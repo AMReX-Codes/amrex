@@ -173,8 +173,12 @@ BoxArray::refine (int refinement_ratio)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->refine(refinement_ratio);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].refine(refinement_ratio);
     return *this;
 }
 
@@ -183,8 +187,12 @@ BoxArray::refine (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->refine(iv);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].refine(iv);
     return *this;
 }
 
@@ -194,8 +202,12 @@ BoxArray::shift (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->shift(dir, nzones);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].shift(dir, nzones);
     return *this;
 }
 
@@ -205,8 +217,12 @@ BoxArray::shift (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->shift(iv);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].shift(iv);
     return *this;
 }
 
@@ -216,8 +232,12 @@ BoxArray::shiftHalf (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->shiftHalf(dir, num_halfs);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].shiftHalf(dir, num_halfs);
     return *this;
 }
 
@@ -226,8 +246,12 @@ BoxArray::shiftHalf (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->shiftHalf(iv);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].shiftHalf(iv);
     return *this;
 }
 
@@ -236,8 +260,12 @@ BoxArray::coarsen (int refinement_ratio)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->coarsen(refinement_ratio);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].coarsen(refinement_ratio);
     return *this;
 }
 
@@ -246,8 +274,12 @@ BoxArray::coarsen (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->coarsen(iv);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].coarsen(iv);
     return *this;
 }
 
@@ -256,8 +288,12 @@ BoxArray::grow (int n)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->grow(n);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].grow(n);
     return *this;
 }
 
@@ -266,8 +302,12 @@ BoxArray::grow (const IntVect& iv)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->grow(iv);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].grow(iv);
     return *this;
 }
 
@@ -277,8 +317,12 @@ BoxArray::grow (int dir,
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->grow(dir, n_cell);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].grow(dir, n_cell);
     return *this;
 }
 
@@ -339,8 +383,12 @@ BoxArray::surroundingNodes ()
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->surroundingNodes();
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].surroundingNodes();
     return *this;
 }
 
@@ -349,8 +397,12 @@ BoxArray::surroundingNodes (int dir)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->surroundingNodes(dir);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].surroundingNodes(dir);
     return *this;
 }
 
@@ -359,8 +411,12 @@ BoxArray::enclosedCells ()
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->enclosedCells();
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].enclosedCells();
     return *this;
 }
 
@@ -369,8 +425,12 @@ BoxArray::enclosedCells (int dir)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->enclosedCells(dir);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].enclosedCells(dir);
     return *this;
 }
 
@@ -379,8 +439,12 @@ BoxArray::convert (IndexType typ)
 {
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        it->convert(typ);
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].convert(typ);
     return *this;
 }
 

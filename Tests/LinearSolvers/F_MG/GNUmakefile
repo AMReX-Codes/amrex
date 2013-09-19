@@ -1,15 +1,12 @@
 BOXLIB_HOME := ../../..
 
 NDEBUG := t
-MPI    :=
+MPI    := 
 OMP    :=
-MPI    :=  
 PROF   :=
 
 USE_MG_CPP :=  
 
-COMP := g95
-COMP := PathScale
 COMP := gfortran
 
 MKVERBOSE := t
@@ -19,11 +16,11 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 programs   += main.f90
 
 f90sources += wrapper.f90
-f90sources += cc_single.f90
 f90sources += cc_multi.f90
-f90sources += nodal_single.f90
+f90sources += cc_edge_coeffs.f90
+f90sources += cc_rhs.f90
 f90sources += nodal_multi.f90
-f90sources += t_smoother.f90
+f90sources += nodal_rhs.f90
 f90sources += mt19937ar.f90
 
 include GPackage.mak

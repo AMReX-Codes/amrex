@@ -3,6 +3,7 @@ module ml_nd_module
   use bl_constants_module
   use bl_prof_module
   use mg_module
+  use fabio_module
   use ml_layout_module
   use bndry_reg_module
 
@@ -51,10 +52,11 @@ contains
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged
 
-    real(dp_t) :: Anorm, bnorm
-    real(dp_t) :: fac
-    real(dp_t) :: tres,tres0
-    real(dp_t) :: abs_eps
+    real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, abs_eps, t1(3), t2(3)
+    real(dp_t) :: stime, bottom_solve_time
+
+    character(len=3)          :: number
+    character(len=20)         :: filename
 
     logical nodal(get_dim(rh(1)))
 
@@ -62,11 +64,11 @@ contains
 
     call build(bpt, "ml_nd")
 
-    dm = get_dim(rh(1))
-
-    nodal = .True.
-
-    nlevs = mla%nlevel
+    dm                = get_dim(rh(1))
+    stime             = parallel_wtime()
+    nodal             = .True.
+    nlevs             = mla%nlevel
+    bottom_solve_time = zero
 
     if ( present(abs_eps_in) ) then
        abs_eps = abs_eps_in
@@ -77,7 +79,6 @@ contains
     allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
     allocate(temp_res(nlevs))
     allocate(brs_flx(2:nlevs))
-
     allocate(zero_rh(2:nlevs))
 
     do n = 2,nlevs-1
@@ -111,12 +112,14 @@ contains
        call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nodal = nodal, other = .false.)
 
     end do
+    !
+    ! Let's elide some reductions by doing these reductions together.
+    !
+    bnorm = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    bnorm = ml_norm_inf(rh,fine_mask)
-
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
+    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels),local=.true.)
     do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels), fine_mask(n)), Anorm)
+       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n),local=.true.), Anorm)
     end do
 
     do n = nlevs,1,-1
@@ -129,7 +132,16 @@ contains
        call multifab_copy(rh(n),res(n),ng=nghost(rh(n)))
     end do
 
-    tres0 = ml_norm_inf(rh,fine_mask)
+    t1(1) = bnorm
+    t1(2) = Anorm
+    t1(3) = ml_norm_inf(rh,fine_mask,local=.true.)
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    bnorm = t2(1)
+    Anorm = t2(2)
+    tres0 = t2(3)
+
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
              fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
@@ -144,7 +156,7 @@ contains
 
     fine_converged = .false.
 
-    if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, &
+    if ( ml_converged(res, fine_mask, bnorm, &
                       rel_eps, abs_eps, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
@@ -154,7 +166,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, fine_mask, bnorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -186,7 +198,7 @@ contains
           else 
              call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  mgt(n)%gamma)
+                  bottom_solve_time = bottom_solve_time)
           end if
 
           ! Add: soln += uu
@@ -340,7 +352,7 @@ contains
         call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
                        mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
-        if ( ml_fine_converged(res, soln, bnorm, Anorm, rel_eps, abs_eps) ) then
+        if ( ml_fine_converged(res, bnorm, rel_eps, abs_eps) ) then
 
           fine_converged = .true.
 
@@ -381,26 +393,33 @@ contains
 
           if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
-                tres = norm_inf(res(n))
+                ttres = norm_inf(res(n),local=.true.)
+                call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
                 if ( parallel_IOProcessor() ) then
-!                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') iter,n,tres
                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                         iter,n,tres/tres0
                 end if
              end do
-!            tres = ml_norm_inf(res,fine_mask)
-!            if ( parallel_IOProcessor() ) then
-!               write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
-!            end if
           end if
 
        else
 
           fine_converged = .false.
           if ( mgt(nlevs)%verbose > 1 ) then
-             tres = norm_inf(res(nlevs))
+
+             if ( .false. ) then
+                !
+                ! Some debugging code I want to keep around for a while.
+                ! I don't want to have to recreate this all the time :-)
+                !
+                write(number,fmt='(i3.3)') iter
+                filename = 'res_fine_iter=' // number
+                call fabio_write(res(nlevs), 'debug', trim(filename))
+             end if
+
+             ttres = norm_inf(res(nlevs),local=.true.)
+             call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
              if ( parallel_IOProcessor() ) then
-!               write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
                 write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
              end if
           end if
@@ -412,17 +431,26 @@ contains
      iter = iter-1
      if (iter < mgt(nlevs)%max_iter) then
         if ( mgt(nlevs)%verbose > 0 ) then
-          tres = ml_norm_inf(res,fine_mask)
-          if ( parallel_IOProcessor() ) then
+           !
+           ! Consolidate these reductions.
+           !
+           t1(1) = ml_norm_inf(res,fine_mask,local=.true.) 
+           t1(2) = (parallel_wtime() - stime)
+           t1(3) = bottom_solve_time
 
-             if (tres0 .gt. 0.0_dp_t) then
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
-               write(unit=*, fmt='("")')
-             else
-               write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
-               write(unit=*, fmt='("")')
-             end if
-          end if
+           call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
+           if ( parallel_IOProcessor() ) then
+              if ( tres0 .gt. 0.0_dp_t) then
+                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,t2(1)/tres0
+                 write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                 write(unit=*, fmt='("")')
+              else
+                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
+                 write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                 write(unit=*, fmt='("")')
+              end if
+           end if
         end if
      else
         if (mgt(nlevs)%abort_on_max_iter) then
@@ -489,11 +517,11 @@ contains
       if (mgt(n)%lcross) then
         call grid_res(one_sided_ss,temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+             mgt(n)%lcross, mgt(n)%uniform_dh)
       else
         call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
              fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+             mgt(n)%lcross, mgt(n)%uniform_dh)
       end if
 
       !    Zero out the flux registers which will hold the fine contributions
@@ -532,43 +560,27 @@ contains
 
     end subroutine crse_fine_residual_nodal
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
+    function ml_fine_converged(res, bnorm, rel_eps, abs_eps) result(r)
       logical :: r
-      type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
+      type(multifab), intent(in) :: res(:)
+      real(dp_t), intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t) :: ni_res
       integer    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
-      ni_sol = norm_inf(sol(nlevs))
-!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
-!     if (ni_res <= rel_eps*(           bnorm) ) print *,'CONVERGED: res < rel_eps*bnorm'
-!     if (ni_res <= rel_eps*(Anorm*ni_sol    ) ) print *,'CONVERGED: res < eps*Anorm*ni_sol'
-!     if (ni_res <= abs_eps                    ) print *,'CONVERGED: res < abs_eps'
-!     if (ni_res <= epsilon(Anorm)*Anorm       ) print *,'CONVERGED: res < epsilon(Anorm)*Anorm'
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, verbose) result(r)
-
+    function ml_converged(res, mask, bnorm, rel_eps, abs_eps, verbose) result(r)
       use ml_norm_module, only : ml_norm_inf
-
       logical :: r
       integer :: verbose
-      type(multifab), intent(in) :: res(:), sol(:)
+      type(multifab), intent(in) :: res(:)
       type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
+      real(dp_t), intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t) :: ni_res
       ni_res = ml_norm_inf(res, mask)
-      ni_sol = ml_norm_inf(sol, mask)
-!     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-!          ni_res <= abs_eps .or. &
-!          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if (ni_res <= rel_eps*bnorm) then
             print *,'Converged res < rel_eps*bnorm '
@@ -580,13 +592,12 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, face_type, stencil_type, lcross, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, face_type, lcross, uniform_dh)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
     integer, intent(in) :: face_type(:,:,:)
-    integer, intent(in) :: stencil_type
     logical, intent(in) :: lcross
     logical, intent(in) :: uniform_dh
 
@@ -1525,6 +1536,7 @@ contains
       !     Lo-x face
       !
       i = 1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
@@ -1535,10 +1547,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-x face
       !
       i = nx+1
+      !$OMP PARALLEL DO PRIVATE(j,k)
       do k = kstart,kend
       do j = jstart,jend
          dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
@@ -1549,10 +1563,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-y face
       !
       j = 1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) =      ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
@@ -1563,10 +1579,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-y face
       !
       j = ny+1
+      !$OMP PARALLEL DO PRIVATE(i,k)
       do k = kstart,kend
       do i = istart,iend
          dd(i,j,k) =      ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
@@ -1577,10 +1595,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Lo-z face
       !
       k = 1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) =      ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
@@ -1591,10 +1611,12 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Hi-z face
       !
       k = nz+1
+      !$OMP PARALLEL DO PRIVATE(i,j)
       do j = jstart,jend
       do i = istart,iend
          dd(i,j,k) =      ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) &
@@ -1605,6 +1627,7 @@ contains
          dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
       end do
       end do
+      !$OMP END PARALLEL DO
       !
       !     Interior
       !

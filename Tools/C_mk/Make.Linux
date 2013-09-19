@@ -118,8 +118,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -h fp0
-  fOPTF += -h fp0
+  FOPTF += -h fp0 -O vector1
+  fOPTF += -h fp0 -O vector1
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -324,6 +324,46 @@ ifeq ($(WHICHLINUX), HOPPER)
   endif
 endif
 
+ifeq ($(WHICHLINUX), GARNET)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC -target=linux
+    CC  := cc -target=linux
+    FC  := ftn -target=linux
+    F90 := ftn -target=linux
+    fC  := ftn -target=linux
+  endif
+  ifeq ($(USE_IPM),TRUE)
+    ifeq ($(COMP),PGI)
+      LIBRARIES += $(IPM)
+    else
+      LIBRARIES += $(IPM_GNU)
+    endif
+  endif
+endif
+
+ifeq ($(WHICHLINUX), HERA)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpig++
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
+ifeq ($(WHICHLINUX), CAB)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiCC
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -342,14 +382,29 @@ ifeq ($(WHICHLINUX), EDISON)
   endif
 endif
 
-ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-  DEFINES += -DBL_PLEIADES
-  ifeq ($(COMP),Intel)
-    CXX = icc
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpiCC
+ifeq ($(HOSTNAME), hyades.ucsc.edu)
+  ifeq ($(USE_MPI),TRUE)
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC := mpiifort
+      fC := mpiifort
+      
+      ifeq ($(USE_OMP),TRUE)
+        CXXOPTF += -mt_mpi
+	CXXDEBF += -mt_mpi
+	LDFLAGS += -mt_mpi
+	F90FLAGS += -mt_mpi
+	FFLAGS += -mt_mpi
+	fFLAGS += -mt_mpi
+      endif
     else
-      LIBRARIES+=-lstdc++
+      CXX := mpicxx
+      CC  := mpicc
+      F90 := mpifc
+      FC := mpifc
+      fC := mpifc
     endif
   endif
 endif 

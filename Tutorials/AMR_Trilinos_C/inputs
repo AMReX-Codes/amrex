@@ -1,0 +1,19 @@
+
+# Domain size
+nx = 32 # number of grid points along the x axis
+ny = 32 # number of grid points along the y axis 
+nz = 32 # number of grid points along the z axis
+
+# Maximum allowable size of each subdomain in the problem domain; 
+#    this is used to decompose the domain for parallel calculations.
+max_grid_size = 32
+
+# Solver specifications 
+tol = 1e-8        # tolerance 
+maxiters = 1000   # maxiters
+numBlocks = 1     # Maximum number of blocks in Krylov space
+recycleBlocks = 0 # Number of vectors in recycle space
+maxOldLHS = 1     # Number of stored LHS for extrapolating the next starting vector
+
+# Verbosity
+verbose = false   # set to true to get more verbosity 

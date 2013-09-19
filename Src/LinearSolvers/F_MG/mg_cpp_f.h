@@ -808,7 +808,6 @@ extern "C"
   void mgt_newu();
 
   void mgt_set_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
-                        const int* gamma, const Real* omega,
                         const int* max_iter, const int* bottom_max_iter,
                         const int* bottom_solver, const Real* bottom_solver_eps,
                         const Real* max_L0_growth,
@@ -817,7 +816,6 @@ extern "C"
                         const int* cycle, const int* smoother, const int* stencil_type);
 
   void mgt_set_nodal_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
-                              const int* gamma, const Real* omega,
                               const int* max_iter, const int* bottom_max_iter,
                               const int* bottom_solver, const Real* bottom_solver_eps,
                               const int* verbose, const int* cg_verbose,
@@ -825,7 +823,6 @@ extern "C"
                               const int* cycle, const int* smoother, const int* stencil_type);
 
   void mgt_get_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
-                        const int* gamma, const Real* omega,
                         const int* max_iter, const int* bottom_max_iter,
                         const int* bottom_solver,
                         const Real* max_L0_growth,
@@ -834,7 +831,6 @@ extern "C"
                         const int* cycle, const int* smoother);
 
   void mgt_get_nodal_defaults(const int* nu1, const int* nu2, const int* nub, const int* nuf,
-                              const int* gamma, const Real* omega,
                               const int* max_iter, const int* bottom_max_iter,
                               const int* bottom_solver,
                               const int* verbose, const int* cg_verbose,

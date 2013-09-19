@@ -1,5 +1,5 @@
-subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
-                                bottom_solver,do_diagnostics,eps,test, fabio, stencil_type)
+subroutine t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, &
+                                do_diagnostics,eps,test, fabio, stencil_type)
   use BoxLib
   use nodal_stencil_module
   use mg_module
@@ -22,12 +22,14 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   use nodal_stencil_fill_module
   use stencil_types_module
 
+  use nodal_rhs_module
+
   implicit none
 
   type(ml_layout), intent(inout) :: mla
   type(mg_tower) , intent(inout) :: mgt(:)
+  type(multifab) , intent(inout) :: rh(:)
   integer        , intent(in   ) :: domain_bc(:,:)
-  integer        , intent(in   ) :: bottom_solver 
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
   integer        , intent(in   ) :: test
@@ -37,13 +39,11 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   type(lmultifab), allocatable :: fine_mask(:)
   type( multifab), allocatable :: coeffs(:)
   type( multifab), allocatable :: full_soln(:)
-  type( multifab), allocatable ::        rh(:)
   type( multifab), allocatable :: one_sided_ss(:)
 
   type(box)    :: pd
   type(layout) :: la
   integer      :: nlevs, n, i, dm, ns
-  integer      :: stat
   real(dp_t)   :: snrm(2)
 
   logical, allocatable :: nodal(:)
@@ -63,7 +63,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
 
   nlevs = mla%nlevel
 
-  allocate(full_soln(nlevs),rh(nlevs),fine_mask(nlevs))
+  allocate(full_soln(nlevs),fine_mask(nlevs))
 
   allocate(ref_ratio(nlevs-1,dm))
   do n = 1,nlevs-1
@@ -105,13 +105,9 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      end if
      la = mla%la(n)
      call multifab_build(full_soln(n), la, 1, 1, nodal)
-     call multifab_build(       rh(n), la, 1, 1, nodal)
      call lmultifab_build(fine_mask(n), la, 1, 0, nodal)
 
      call setval(full_soln(n), ZERO,all=.true.)
-     call setval(       rh(n), ZERO,all=.true.)
- 
-     if (n == nlevs) call mf_init(rh(n))
 
   end do
 
@@ -164,9 +160,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
                               mla)
      endif
 
-     do i = mgt(n)%nlevels, 1, -1
-        call multifab_destroy(coeffs(i))
-     end do
+     call multifab_destroy(coeffs(mgt(n)%nlevels))
      deallocate(coeffs)
 
   end do
@@ -208,17 +202,16 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
      print *, 'SOLUTION L2 NORM ', snrm(1)
   end if
 
-  if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
-  call print(multifab_mem_stats(),  " multifab before")
-  call print(imultifab_mem_stats(), "imultifab before")
-  call print(fab_mem_stats(),       "      fab before")
-  call print(ifab_mem_stats(),      "     ifab before")
-  call print(boxarray_mem_stats(),  " boxarray before")
-  call print(boxassoc_mem_stats(),  " boxassoc before")
-  call print(layout_mem_stats(),    "   layout before")
+! if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
+! call print(multifab_mem_stats(),  " multifab before")
+! call print(imultifab_mem_stats(), "imultifab before")
+! call print(fab_mem_stats(),       "      fab before")
+! call print(ifab_mem_stats(),      "     ifab before")
+! call print(boxarray_mem_stats(),  " boxarray before")
+! call print(boxassoc_mem_stats(),  " boxassoc before")
+! call print(layout_mem_stats(),    "   layout before")
 
   do n = 1,nlevs
-     call multifab_destroy(rh(n))
      call multifab_destroy(full_soln(n))
      call lmultifab_destroy(fine_mask(n))
   end do
@@ -229,59 +222,5 @@ subroutine t_nodal_ml_multigrid(mla, mgt, domain_bc, &
   end if
 
 contains
-
-  subroutine mf_init(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    do i = 1, nfabs(mf)
-
-!      Single point of non-zero RHS
-       bx = get_ibox(mf,i)
-       bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), ONE, bx)
-       print *,'SETTING RHS TO  1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
-
-!      Single point of non-zero RHS: use this to make system solvable
-       bx = get_ibox(mf,i)
-       bx%lo(1       ) = (bx%hi(1       ) + bx%lo(1       ))/2 + 1
-       bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), -ONE, bx)
-       print *,'SETTING RHS TO -1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
-
-!      1-d strip of non-zero RHS in vertical
-!      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
-!      bx%hi(1) = bx%lo(1)
-
-!      1-d strip of non-zero RHS in horizontal
-!      bx%lo(2) = (bx%hi(2) + bx%lo(2))/2
-!      bx%hi(2) = bx%lo(2)
-
-    end do
-  end subroutine mf_init
-
-  subroutine mf_init1(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    type(box) rhs_box, rhs_intersect_box
-
-    rhs_box%dim = mf%dim
-    rhs_box%lo(1:rhs_box%dim) = 8
-    rhs_box%hi(1:rhs_box%dim) = 8
-
-    do i = 1, nfabs(mf)
-       bx = get_ibox(mf,i)
-       rhs_intersect_box = box_intersection(bx,rhs_box)
-       if (.not. empty(rhs_intersect_box)) then
-         bx%lo(1:bx%dim) = lwb(rhs_intersect_box)
-         bx%hi(1:bx%dim) = upb(rhs_intersect_box)
-         call setval(mf%fbs(i), ONE, bx)
-       end if
-    end do
-
-  end subroutine mf_init1
 
 end subroutine t_nodal_ml_multigrid

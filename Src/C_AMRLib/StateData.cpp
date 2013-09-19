@@ -12,6 +12,7 @@ const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
+const int MFMIDDATA = 2;
 
 StateData::StateData () 
 {
@@ -21,6 +22,7 @@ StateData::StateData ()
    new_time.stop  = INVALID_TIME;
    old_time.start = INVALID_TIME;
    old_time.stop  = INVALID_TIME;
+   n_mid_nodes = 0;
 }
 
 StateData::StateData (const Box&             p_domain,
@@ -32,12 +34,23 @@ StateData::StateData (const Box&             p_domain,
     define(p_domain, grds, *d, cur_time, dt);
 }
 
+StateData::StateData (const Box&             p_domain,
+                      const BoxArray&        grds,
+                      const StateDescriptor* d,
+                      Real                   cur_time,
+                      Real                   dt,
+		      const Array<Real>&     t_nodes)
+{
+  define(p_domain, grds, *d, cur_time, dt, t_nodes);
+}
+
 void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
                    const StateDescriptor& d,
                    Real                   time,
-                   Real                   dt)
+                   Real                   dt,
+		   const Array<Real>&     t_nodes)
 {
     domain = p_domain;
     desc = &d;
@@ -69,6 +82,26 @@ StateData::define (const Box&             p_domain,
     new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
 
     old_data = 0;
+
+    n_mid_nodes = t_nodes.size();
+    if (n_mid_nodes > 0)
+    {
+	if (t_typ == StateDescriptor::Point)
+	{
+	    t_mid_nodes.resize(n_mid_nodes);
+	    mid_time.resize(n_mid_nodes);
+	    for (int i=0; i<n_mid_nodes; i++) 
+	    {
+		t_mid_nodes[i] = t_nodes[i];
+		mid_time[i].start = mid_time[i].stop = old_time.start + t_mid_nodes[i]*dt;
+	    }
+	}
+	else
+	{
+	    std::cerr << "StateData:: non-point type mid data not implemented" << std::endl;
+	    ParallelDescriptor::Abort();  // not implemented
+	}
+    }
 }
 
 void
@@ -77,6 +110,14 @@ StateData::reset ()
     new_time = old_time;
     old_time.start = old_time.stop = INVALID_TIME;
     std::swap(old_data, new_data);
+
+    if (n_mid_nodes > 0)
+    {
+	for (int i=0; i<n_mid_nodes; i++) 
+	{
+	    mid_time[i].start = mid_time[i].stop = INVALID_TIME;
+	}	
+    }
 }
 
 void
@@ -85,6 +126,7 @@ StateData::restart (std::istream&          is,
                     const std::string&     chkfile,
                     bool                   bReadSpecial)
 {
+    BL_PROFILE("StateData::restart()");
     if (bReadSpecial)
     {
 	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
@@ -168,6 +210,7 @@ StateData::~StateData()
    desc = 0;
    delete new_data;
    delete old_data;
+   // mid_data is PArrayManage'd
 }
 
 void
@@ -176,6 +219,23 @@ StateData::allocOldData ()
     if (old_data == 0)
     {
         old_data = new MultiFab(grids,desc->nComp(),desc->nExtra());
+    }
+}
+
+void
+StateData::allocMidData ()
+{
+    if (mid_data.size() == 0) 
+    {
+        mid_data.resize(n_mid_nodes, PArrayManage);
+    }
+  
+    for (int i=0; i<n_mid_nodes; i++)
+    {
+        if (!mid_data.defined(i))
+	{
+            mid_data.set(i, new MultiFab(grids,desc->nComp(),desc->nExtra()));
+	}
     }
 }
 
@@ -222,6 +282,10 @@ StateData::setTimeLevel (Real time,
     {
         new_time.start = new_time.stop = time;
         old_time.start = old_time.stop = time - dt_old;
+	for (int i=0; i<n_mid_nodes; i++) 
+	{
+	    mid_time[i].start = mid_time[i].stop = old_time.start + t_mid_nodes[i]*dt_old;
+	}
     }
     else
     {
@@ -240,7 +304,11 @@ StateData::swapTimeLevels (Real dt)
     {
         new_time.start += dt;
         new_time.stop  += dt;
-    }
+ 	for (int i=0; i<n_mid_nodes; i++) 
+	{
+	    mid_time[i].start = mid_time[i].stop = old_time.start + t_mid_nodes[i]*dt;
+	}
+   }
     else
     {
         new_time.start = new_time.stop;
@@ -258,6 +326,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                          int            src_comp,
                          int            num_comp)
 {
+    BL_PROFILE("StateData::FillBoundary()");
     BL_ASSERT(dest.box().ixType() == desc->getType());
    
     if (domain.contains(dest.box())) return;
@@ -267,6 +336,8 @@ StateData::FillBoundary (FArrayBox&     dest,
     const int* dhi = dest.hiVect();
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
+
+    Array<int> bcrs;
 
     Real xlo[BL_SPACEDIM];
     BCRec bcr;
@@ -284,7 +355,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
         if (desc->master(sc))
         {
-            int groupsize = desc->groupsize(sc);
+            const int groupsize = desc->groupsize(sc);
 
             BL_ASSERT(groupsize != 0);
 
@@ -293,8 +364,9 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Can do the whole group at once.
                 //
-                int* bcrs = new int[2*BL_SPACEDIM*groupsize];
-                int* bci  = bcrs;
+                bcrs.resize(2*BL_SPACEDIM*groupsize);
+
+                int* bci  = bcrs.dataPtr();
 
                 for (int j = 0; j < groupsize; j++)
                 {
@@ -310,9 +382,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Use the "group" boundary fill routine.
                 //
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs,true);
-
-                delete [] bcrs;
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),true);
 
                 i += groupsize;
             }
@@ -336,22 +406,26 @@ void
 StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                          Array<MultiFabId>&      mfid)
 {
-    mfid.resize(2);
+    mfid.resize(2+n_mid_nodes);
     mfid[MFNEWDATA] = multiFabCopyDesc.RegisterFabArray(new_data);
     mfid[MFOLDDATA] = multiFabCopyDesc.RegisterFabArray(old_data);
+    for (int i=0; i<n_mid_nodes; i++)
+    {
+	mfid[MFMIDDATA+i] = multiFabCopyDesc.RegisterFabArray(&mid_data[i]);
+    }
 }
 
 void
-StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-                            Array<MultiFabId>&      mfid,
-                            BoxList*                unfillableBoxes,
-                            Array<FillBoxId>&       returnedFillBoxIds,
-                            const Box&              subbox,
-                            Real                    time,
-                            int                     src_comp,
-                            int                     dest_comp,
-                            int                     num_comp,
-                            bool                    extrap)
+StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
+			 Array<MultiFabId>&      mfid,
+			 BoxList*                unfillableBoxes,
+			 Array<FillBoxId>&       returnedFillBoxIds,
+			 const Box&              subbox,
+			 Real                    time,
+			 int                     src_comp,
+			 int                     dest_comp,
+			 int                     num_comp,
+			 bool                    extrap)
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
@@ -367,19 +441,28 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::linInterpAddBox(multiFabCopyDesc,
-                                    unfillableBoxes,
-                                    returnedFillBoxIds,
-                                    subbox,
-                                    mfid[MFOLDDATA],
-                                    mfid[MFNEWDATA],
-                                    old_time.start,
-                                    new_time.start,
-                                    time,
-                                    src_comp,
-                                    dest_comp,
-                                    num_comp,
-                                    extrap);
+	    Array<MultiFabId> mfid_MIDDATA(n_mid_nodes);
+	    Array<Real> t_MIDDATA(n_mid_nodes);
+	    for (int i=0; i<n_mid_nodes; i++)
+	    {
+		mfid_MIDDATA[i] = mfid[MFMIDDATA+i];
+		t_MIDDATA[i]    = mid_time[i].start;
+	    }
+            BoxLib::InterpAddBox(multiFabCopyDesc,
+				 unfillableBoxes,
+				 returnedFillBoxIds,
+				 subbox,
+				 mfid[MFOLDDATA],
+				 mfid[MFNEWDATA],
+				 old_time.start,
+				 new_time.start,
+				 mfid_MIDDATA,
+				 t_MIDDATA,
+				 time,
+				 src_comp,
+				 dest_comp,
+				 num_comp,
+				 extrap);
         }
     }
     else
@@ -410,22 +493,23 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::linInterp(): cannot interp");
+            BoxLib::Error("StateData::Interp(): cannot interp");
         }
    }
 }
 
 void
-StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
-                             const Array<MultiFabId>& mfid,
-                             const Array<FillBoxId>&  fillBoxIds,
-                             FArrayBox&               dest,
-                             Real                     time,
-                             int                      src_comp,
-                             int                      dest_comp,
-                             int                      num_comp,
-                             bool                     extrap)
+StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
+			  const Array<MultiFabId>& mfid,
+			  const Array<FillBoxId>&  fillBoxIds,
+			  FArrayBox&               dest,
+			  Real                     time,
+			  int                      src_comp,
+			  int                      dest_comp,
+			  int                      num_comp,
+			  bool                     extrap)
 {
+    BL_PROFILE("StateData::InterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
@@ -434,18 +518,27 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::linInterpFillFab(multiFabCopyDesc,
-                                     fillBoxIds,
-                                     mfid[MFOLDDATA],
-                                     mfid[MFNEWDATA],
-                                     dest,
-                                     old_time.start,
-                                     new_time.start,
-                                     time,
-                                     src_comp,
-                                     dest_comp,
-                                     num_comp,
-                                     extrap);
+	    Array<MultiFabId> mfid_MIDDATA(n_mid_nodes);
+	    Array<Real> t_MIDDATA(n_mid_nodes);
+	    for (int i=0; i<n_mid_nodes; i++)
+	    {
+		mfid_MIDDATA[i] = mfid[MFMIDDATA+i];
+		t_MIDDATA[i]    = mid_time[i].start;
+	    }
+            BoxLib::InterpFillFab(multiFabCopyDesc,
+				  fillBoxIds,
+				  mfid[MFOLDDATA],
+				  mfid[MFNEWDATA],
+				  dest,
+				  old_time.start,
+				  new_time.start,
+				  mfid_MIDDATA,
+				  t_MIDDATA,
+				  time,
+				  src_comp,
+				  dest_comp,
+				  num_comp,
+				  extrap);
         }
     }
     else
@@ -464,7 +557,7 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::linInterp(): cannot interp");
+            BoxLib::Error("StateData::Interp(): cannot interp");
         }
     }
 }
@@ -476,6 +569,7 @@ StateData::checkPoint (const std::string& name,
                        VisMF::How     how,
                        bool           dump_old)
 {
+    BL_PROFILE("StateData::checkPoint()");
     static const std::string NewSuffix("_New_MF");
     static const std::string OldSuffix("_Old_MF");
 

@@ -324,12 +324,18 @@ TagBoxArray::borderSize () const
 void 
 TagBoxArray::buffer (int nbuf)
 {
-    if (!(nbuf == 0))
+    if (nbuf != 0)
     {
         BL_ASSERT(nbuf <= m_border);
-        for (MFIter fai(*this); fai.isValid(); ++fai)
+
+        const int N = IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
-            get(fai).buffer(nbuf, m_border);
+            get(IndexMap()[i]).buffer(nbuf, m_border);
         } 
     }
 }
@@ -388,35 +394,41 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     if (!work_to_do) return;
 
+    BL_COMM_PROFILE_NAMETAG("CD::TagBoxArray::mapPeriodic()");
     facd.CollectData();
 
-    TagBox src;
+    const int N = IDs.size();
 
-    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(),
-             End = IDs.end();
-         it != End;
-         ++it)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
-        BL_ASSERT(distributionMap[it->first.FabIndex()] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[IDs[i].first.FabIndex()] == ParallelDescriptor::MyProc());
 
-        src.resize(it->first.box(), n_comp);
+        TagBox src(IDs[i].first.box(), n_comp);
 
-        facd.FillFab(faid, it->first, src);
+        facd.FillFab(faid, IDs[i].first, src);
 
-        src.shift(it->second);
+        src.shift(IDs[i].second);
 
-        get(it->first.FabIndex()).merge(src);
+        get(IDs[i].first.FabIndex()).merge(src);
     }
 }
 
 long
 TagBoxArray::numTags () const 
 {
+   const int N = IndexMap().size();
+
    long ntag = 0;
 
-   for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:ntag)
+#endif
+   for (int i = 0; i < N; i++)
    {
-      ntag += get(fai).numTags();
+      ntag += get(IndexMap()[i]).numTags();
    }
 
    ParallelDescriptor::ReduceLongSum(ntag);
@@ -555,13 +567,20 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
-    std::vector< std::pair<int,Box> > isects;
+    const int N = IndexMap().size();
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
-        ba.intersections(fai.validbox(),isects);
+        const int idx = IndexMap()[i];
 
-        TagBox& tags = get(fai);
+        std::vector< std::pair<int,Box> > isects;
+
+        ba.intersections(box(idx),isects);
+
+        TagBox& tags = get(idx);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -573,12 +592,20 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+    const int N = IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
-        TagBox* tfine = m_fabs[fai.index()];
-        m_fabs[fai.index()] = tfine->coarsen(ratio);
+        const int idx   = IndexMap()[i];
+        TagBox*   tfine = m_fabs[idx];
+        m_fabs[idx]     = tfine->coarsen(ratio);
         delete tfine;
     }
+
     boxarray.coarsen(ratio);
+
     m_border = 0;
 }

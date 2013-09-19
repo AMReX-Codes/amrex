@@ -29,32 +29,38 @@ module cc_stencil_module
 
 contains
 
-  function stencil_norm(ss, mask) result(r)
+  function stencil_norm(ss, mask, local) result(r)
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
-    integer :: i,j,k,n,b
+    logical, intent(in), optional :: local
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
+    logical :: llocal
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "st_norm")
 
+    llocal = .false.; if ( present(local) ) llocal = local
+
     r1 = -Huge(r1)
 
     if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      do n = lo(1), hi(1)
                          sum_comps = sum_comps + abs(sp(n,i,j,k))
                       end do
                       r1 = max(r1,sum_comps)
@@ -62,57 +68,71 @@ contains
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !$OMP END PARALLEL DO
     else
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
-          !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps) REDUCTION(max : r1)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                   do n = lo(1), hi(1)
                       sum_comps = sum_comps + abs(sp(n,i,j,k))
                    end do
                    r1 = max(r1,sum_comps)
                 end do
              end do
           end do
-          !$OMP END PARALLEL DO
        end do
+       !$OMP END PARALLEL DO
     end if
 
-    call parallel_reduce(r,r1,MPI_MAX)
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
     call destroy(bpt)
   end function stencil_norm
 
-  function max_of_stencil_sum(ss, mask) result(r)
+  function max_of_stencil_sum(ss, mask, local) result(r)
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
     type(lmultifab), intent(in), optional :: mask
-    integer :: i,j,k,n,b
+    logical, intent(in), optional :: local
+    integer :: i,j,k,n,b,lo(4),hi(4)
     real(kind=dp_t) :: r1, sum_comps
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
+    logical :: llocal
     type(bl_prof_timer), save :: bpt
 
+    llocal = .false.; if ( present(local) ) llocal = local
+    !
     ! NOTE: this is exactly the same as the stencil_norm function except that we sum the
-    !       components of the stencil, not the absolute value of each component
-
+    ! components of the stencil, not the absolute value of each component.
+    !
     call build(bpt, "st_sum")
+
     r1 = -Huge(r1)
+
     if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    if ( lp(i,j,k,1) ) then
                       sum_comps = ZERO
-                      do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                      do n = lo(1), hi(1)
                          sum_comps = sum_comps + sp(n,i,j,k)
                       end do
                       r1 = max(r1,sum_comps)
@@ -121,14 +141,18 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     else
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
-          do k = lbound(sp,dim=4), ubound(sp,dim=4)
-             do j = lbound(sp,dim=3), ubound(sp,dim=3)
-                do i = lbound(sp,dim=2), ubound(sp,dim=2)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+             do j = lo(3), hi(3)
+                do i = lo(2), hi(2)
                    sum_comps = ZERO
-                   do n = lbound(sp,dim=1), ubound(sp,dim=1)
+                   do n = lo(1), hi(1)
                       sum_comps = sum_comps + sp(n,i,j,k)
                    end do
                    r1 = max(r1,sum_comps)
@@ -136,9 +160,13 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end if
 
-    call parallel_reduce(r,r1,MPI_MAX)
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
     call destroy(bpt)
   end function max_of_stencil_sum
 
@@ -201,6 +229,7 @@ contains
 
     type(box)        :: bx1, src, pd
     type(boxarray)   :: ba, sba
+    type(layout)     :: la
     integer          :: i, j, ii, jj, k, ldom
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
@@ -213,9 +242,9 @@ contains
     ! Initialize every border to Fine-Fine (Interior).
     !
     mp => dataptr(mask, idx)
-
     mp = BC_INT
 
+    la    = get_layout(st)
     pd    = get_pd(get_layout(st))
     pmask = get_pmask(get_layout(st))
 
@@ -230,7 +259,7 @@ contains
              !
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
              !
-             call boxarray_boxarray_diff(ba, bx1, get_boxarray(st))
+             call layout_boxarray_diff(ba, bx1, la)
              do ii = 1, nboxes(ba)
                 bx1 = shift(get_box(ba,ii), -j, i)
                 mp => dataptr(mask, idx, bx1)
@@ -1245,6 +1274,7 @@ contains
     nz = hi(3)-lo(3)+1
     f1 = ONE/dh**2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1261,13 +1291,22 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,+1))
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
     lnx = nx; lny = ny; lnz = nz; lorder = order
 
@@ -1424,6 +1463,7 @@ contains
     nz = hi(3)-lo(3)+1
     f1 = ONE/dh**2
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1440,13 +1480,22 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,+1))
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
     ! x derivatives
 
@@ -1619,38 +1668,31 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j
+    real (kind = dp_t) :: fac
+
+    fac = (ONE / (12.d0 * dh(1)**2))
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-
-    ss = 0.0d0
-
+    !
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
+    !
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          ss(1,i,j) =   1.d0 * betax(i  ,j)
-          ss(2,i,j) = -16.d0 * betax(i  ,j)
-          ss(3,i,j) = -16.d0 * betax(i+1,j)
-          ss(4,i,j) =   1.d0 * betax(i+1,j)
-          ss(5,i,j) =   1.d0 * betay(i,j  )
-          ss(6,i,j) = -16.d0 * betay(i,j  )
-          ss(7,i,j) = -16.d0 * betay(i,j+1)
-          ss(8,i,j) =   1.d0 * betay(i,j+1)
+          ss(1,i,j) =   1.d0 * betax(i  ,j) * fac
+          ss(2,i,j) = -16.d0 * betax(i  ,j) * fac
+          ss(3,i,j) = -16.d0 * betax(i+1,j) * fac
+          ss(4,i,j) =   1.d0 * betax(i+1,j) * fac
+          ss(5,i,j) =   1.d0 * betay(i,j  ) * fac
+          ss(6,i,j) = -16.d0 * betay(i,j  ) * fac
+          ss(7,i,j) = -16.d0 * betay(i,j+1) * fac
+          ss(8,i,j) =   1.d0 * betay(i,j+1) * fac
 
           ss(0,i,j) = -( ss(1,i,j) + ss(2,i,j) + ss(3,i,j) + ss(4,i,j)   &
-                        +ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) )
-       end do
-    end do
-
-    ss = ss *  (ONE / (12.d0 * dh(1)**2))
-
-    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          ss(0,i,j) = ss(0,i,j) + alpha(i,j)
+                        +ss(5,i,j) + ss(6,i,j) + ss(7,i,j) + ss(8,i,j) ) + alpha(i,j)
        end do
     end do
 
@@ -1675,8 +1717,6 @@ contains
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
     mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-
-    ss = 0.0d0
 
     ! First use the betax coefficients
     do j = 1, ny
@@ -1767,130 +1807,121 @@ contains
        end do
     end do
 
+    fac = -1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2)
+
     ! Then use the betay coefficients
     do j = 1, ny
        do i = 1, nx
 
-          ss( 8,i,j) = ss( 8,i,j) + 27648.d0*beta(i,j+1,2) + 414720.d0 * beta(i,j  ,2)
-          ss(17,i,j) = ss(17,i,j) + 27648.d0*beta(i,j  ,2) + 414720.d0 * beta(i,j+1,2)
+          ss( 8,i,j) = ( ss( 8,i,j) + 27648.d0*beta(i,j+1,2) + 414720.d0 * beta(i,j  ,2) ) * fac
+          ss(17,i,j) = ( ss(17,i,j) + 27648.d0*beta(i,j  ,2) + 414720.d0 * beta(i,j+1,2) ) * fac
 
-          ss( 3,i,j) = ss( 3,i,j) - 27648.d0 * beta(i,j  ,2)
-          ss(22,i,j) = ss(22,i,j) - 27648.d0 * beta(i,j+1,2)
+          ss( 3,i,j) = ( ss( 3,i,j) - 27648.d0 * beta(i,j  ,2) ) * fac
+          ss(22,i,j) = ( ss(22,i,j) - 27648.d0 * beta(i,j+1,2) ) * fac
 
-          ss(12,i,j) = ss(12,i,j) & 
+          ss(12,i,j) = ( ss(12,i,j) & 
                        -2550.d0 * beta(i+2,j,2)  - 2550.d0 * beta(i+2,j+1,2) &
                       +17340.d0 * beta(i+1,j,2) + 17340.d0 * beta(i+1,j+1,2) &
                       -17340.d0 * beta(i-1,j,2) - 17340.d0 * beta(i-1,j+1,2) &
-                      + 2550.d0 * beta(i-2,j,2)  + 2550.d0 * beta(i-2,j+1,2)
+                      + 2550.d0 * beta(i-2,j,2)  + 2550.d0 * beta(i-2,j+1,2) ) * fac
 
-          ss(13,i,j) = ss(13,i,j) & 
+          ss(13,i,j) = ( ss(13,i,j) & 
                        -2550.d0 * beta(i-2,j,2)  - 2550.d0 * beta(i-2,j+1,2) &
                       +17340.d0 * beta(i-1,j,2) + 17340.d0 * beta(i-1,j+1,2) &
                       -17340.d0 * beta(i+1,j,2) - 17340.d0 * beta(i+1,j+1,2) &
-                      + 2550.d0 * beta(i+2,j,2)  + 2550.d0 * beta(i+2,j+1,2)
+                      + 2550.d0 * beta(i+2,j,2)  + 2550.d0 * beta(i+2,j+1,2) ) * fac
 
-          ss( 7,i,j) = ss( 7,i,j) &
+          ss( 7,i,j) = ( ss( 7,i,j) &
                       + 170.d0 * beta(i+2,j+1,2) +  2550.d0 * beta(i+2,j  ,2) &
                       -1156.d0 * beta(i+1,j+1,2) - 17340.d0 * beta(i+1,j  ,2) &
                       +1156.d0 * beta(i-1,j+1,2) + 17340.d0 * beta(i-1,j  ,2) &
-                      - 170.d0 * beta(i-2,j+1,2) -  2550.d0 * beta(i-2,j  ,2) 
+                      - 170.d0 * beta(i-2,j+1,2) -  2550.d0 * beta(i-2,j  ,2) ) * fac
 
-          ss(16,i,j) = ss(16,i,j) &  
+          ss(16,i,j) = ( ss(16,i,j) &  
                       + 170.d0 * beta(i+2,j  ,2) +  2550.d0 * beta(i+2,j+1,2) &
                       -1156.d0 * beta(i+1,j  ,2) - 17340.d0 * beta(i+1,j+1,2) &
                       +1156.d0 * beta(i-1,j  ,2) + 17340.d0 * beta(i-1,j+1,2) &
-                      - 170.d0 * beta(i-2,j  ,2) -  2550.d0 * beta(i-2,j+1,2) 
+                      - 170.d0 * beta(i-2,j  ,2) -  2550.d0 * beta(i-2,j+1,2) ) * fac
 
-          ss( 9,i,j) = ss( 9,i,j) &  
+          ss( 9,i,j) = ( ss( 9,i,j) &  
                      +  170.d0 * beta(i-2,j+1,2) +  2550.d0 * beta(i-2,j  ,2) &
                       -1156.d0 * beta(i-1,j+1,2) - 17340.d0 * beta(i-1,j  ,2) &
                       +1156.d0 * beta(i+1,j+1,2) + 17340.d0 * beta(i+1,j  ,2) &
-                      - 170.d0 * beta(i+2,j+1,2) -  2550.d0 * beta(i+2,j  ,2) 
+                      - 170.d0 * beta(i+2,j+1,2) -  2550.d0 * beta(i+2,j  ,2) ) * fac
 
-          ss(18,i,j) = ss(18,i,j) &  
+          ss(18,i,j) = ( ss(18,i,j) &  
                      +  170.d0 * beta(i-2,j  ,2) +  2550.d0 * beta(i-2,j+1,2) &
                       -1156.d0 * beta(i-1,j  ,2) - 17340.d0 * beta(i-1,j+1,2) &
                       +1156.d0 * beta(i+1,j  ,2) + 17340.d0 * beta(i+1,j+1,2) &
-                      - 170.d0 * beta(i+2,j  ,2) -  2550.d0 * beta(i+2,j+1,2) 
+                      - 170.d0 * beta(i+2,j  ,2) -  2550.d0 * beta(i+2,j+1,2) ) * fac
 
-          ss( 2,i,j) = ss( 2,i,j) &
+          ss( 2,i,j) = ( ss( 2,i,j) &
                        -170.d0 * beta(i+2,j,2) +  1156.d0 * beta(i+1,j,2) &
-                       +170.d0 * beta(i-2,j,2) -  1156.d0 * beta(i-1,j,2)
+                       +170.d0 * beta(i-2,j,2) -  1156.d0 * beta(i-1,j,2) ) * fac
 
-          ss(21,i,j) = ss(21,i,j) &
+          ss(21,i,j) = ( ss(21,i,j) &
                        -170.d0 * beta(i+2,j+1,2) +  1156.d0 * beta(i+1,j+1,2) &
-                       +170.d0 * beta(i-2,j+1,2) -  1156.d0 * beta(i-1,j+1,2)
+                       +170.d0 * beta(i-2,j+1,2) -  1156.d0 * beta(i-1,j+1,2) ) * fac
 
-          ss( 4,i,j) = ss( 4,i,j) &
+          ss( 4,i,j) = ( ss( 4,i,j) &
                        -170.d0 * beta(i-2,j,2) +  1156.d0 * beta(i-1,j,2) &
-                       +170.d0 * beta(i+2,j,2) -  1156.d0 * beta(i+1,j,2)
+                       +170.d0 * beta(i+2,j,2) -  1156.d0 * beta(i+1,j,2) ) * fac
 
-          ss(23,i,j) = ss(23,i,j) &
+          ss(23,i,j) = ( ss(23,i,j) &
                        -170.d0 * beta(i-2,j+1,2) +  1156.d0 * beta(i-1,j+1,2) &
-                       +170.d0 * beta(i+2,j+1,2) -  1156.d0 * beta(i+1,j+1,2)
+                       +170.d0 * beta(i+2,j+1,2) -  1156.d0 * beta(i+1,j+1,2) ) * fac
 
-          ss(11,i,j) = ss(11,i,j) &
+          ss(11,i,j) = ( ss(11,i,j) &
                       +  375.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2) &
                       - 2550.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
                       + 2550.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
-                      -  375.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2)
+                      -  375.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2) ) * fac
 
-          ss(14,i,j) = ss(14,i,j) &
+          ss(14,i,j) = ( ss(14,i,j) &
                      +  375.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2) &
                       -2550.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
                       +2550.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
-                      - 375.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2)
+                      - 375.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2) ) * fac
 
-          ss( 6,i,j) = ss( 6,i,j) &
+          ss( 6,i,j) = ( ss( 6,i,j) &
                        - 25.d0 * beta(i+2,j+1,2) -  375.d0 * beta(i+2,j,2) &
                        +170.d0 * beta(i+1,j+1,2) + 2550.d0 * beta(i+1,j,2) &
                        -170.d0 * beta(i-1,j+1,2) - 2550.d0 * beta(i-1,j,2) &
-                       + 25.d0 * beta(i-2,j+1,2) +  375.d0 * beta(i-2,j,2)
+                       + 25.d0 * beta(i-2,j+1,2) +  375.d0 * beta(i-2,j,2) ) * fac
 
-          ss(15,i,j) = ss(15,i,j) &
+          ss(15,i,j) = ( ss(15,i,j) &
                        - 25.d0 * beta(i+2,j,2) -  375.d0 * beta(i+2,j+1,2) &
                        +170.d0 * beta(i+1,j,2) + 2550.d0 * beta(i+1,j+1,2) &
                        -170.d0 * beta(i-1,j,2) - 2550.d0 * beta(i-1,j+1,2) &
-                       + 25.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2)
+                       + 25.d0 * beta(i-2,j,2) +  375.d0 * beta(i-2,j+1,2) ) * fac
 
-          ss(10,i,j) = ss(10,i,j) &
+          ss(10,i,j) = ( ss(10,i,j) &
                        - 25.d0 * beta(i-2,j+1,2) -  375.d0 * beta(i-2,j,2) &
                        +170.d0 * beta(i-1,j+1,2) + 2550.d0 * beta(i-1,j,2) &
                        -170.d0 * beta(i+1,j+1,2) - 2550.d0 * beta(i+1,j,2) &
-                       + 25.d0 * beta(i+2,j+1,2) +  375.d0 * beta(i+2,j,2)
+                       + 25.d0 * beta(i+2,j+1,2) +  375.d0 * beta(i+2,j,2) ) * fac
 
-          ss(19,i,j) = ss(19,i,j) &
+          ss(19,i,j) = ( ss(19,i,j) &
                        - 25.d0 * beta(i-2,j,2) -  375.d0 * beta(i-2,j+1,2) &
                        +170.d0 * beta(i-1,j,2) + 2550.d0 * beta(i-1,j+1,2) &
                        -170.d0 * beta(i+1,j,2) - 2550.d0 * beta(i+1,j+1,2) &
-                       + 25.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2)
+                       + 25.d0 * beta(i+2,j,2) +  375.d0 * beta(i+2,j+1,2) ) * fac
 
-          ss( 1,i,j) = ss( 1,i,j) &
+          ss( 1,i,j) = ( ss( 1,i,j) &
                        + 25.d0 * beta(i+2,j,2) -  170.d0 * beta(i+1,j,2) &
-                        -25.d0 * beta(i-2,j,2) +  170.d0 * beta(i-1,j,2)
-          ss( 5,i,j) = ss( 5,i,j) &
+                        -25.d0 * beta(i-2,j,2) +  170.d0 * beta(i-1,j,2) ) * fac
+          ss( 5,i,j) = ( ss( 5,i,j) &
                        + 25.d0 * beta(i-2,j,2) -  170.d0 * beta(i-1,j,2) &
-                        -25.d0 * beta(i+2,j,2) +  170.d0 * beta(i+1,j,2)
-          ss(20,i,j) = ss(20,i,j) &
+                        -25.d0 * beta(i+2,j,2) +  170.d0 * beta(i+1,j,2) ) * fac
+          ss(20,i,j) = ( ss(20,i,j) &
                        + 25.d0 * beta(i+2,j+1,2) -  170.d0 * beta(i+1,j+1,2) &
-                        -25.d0 * beta(i-2,j+1,2) +  170.d0 * beta(i-1,j+1,2)
-          ss(24,i,j) = ss(24,i,j) &
+                        -25.d0 * beta(i-2,j+1,2) +  170.d0 * beta(i-1,j+1,2) ) * fac
+          ss(24,i,j) = ( ss(24,i,j) &
                        + 25.d0 * beta(i-2,j+1,2) -  170.d0 * beta(i-1,j+1,2) &
-                        -25.d0 * beta(i+2,j+1,2) +  170.d0 * beta(i+1,j+1,2)
+                        -25.d0 * beta(i+2,j+1,2) +  170.d0 * beta(i+1,j+1,2) ) * fac
 
-          ss( 0,i,j) = ss(0,i,j) -414720.d0 * ( beta(i,j,2) + beta(i,j+1,2) )
+          ss( 0,i,j) = ( ss(0,i,j) -414720.d0 * ( beta(i,j,2) + beta(i,j+1,2) ) ) * fac + beta(i,j,0)
 
-       end do
-    end do
-  
-    fac = -1.d0 / (12.d0**2 * 48.d0**2 * dh(1)**2)
-
-    ss = fac * ss
-
-    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    do j = 1, ny
-       do i = 1, nx
-          ss(0,i,j) = ss(0,i,j) + beta(i,j,0)
        end do
     end do
 
@@ -1908,8 +1939,8 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer          :: i, j, nsten
-    double precision :: hx2,hy2,hx22,hy22,ss_sum
-    double precision :: rholy,rhory,rhotx,rhobx  !  Transverse derivatives
+    double precision :: hx2,hy2,hx22,hy22
+    double precision :: rholy,rhory,rhotx,rhobx  ! Transverse derivatives
     double precision :: s1,s2,scale              ! Coefficients for slopes
 
     mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
@@ -1952,7 +1983,6 @@ contains
 
     do j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          ss_sum=0.0d0
 
           rholy = s1*(betax(i  ,j+1)- betax(i  ,j-1)) + s2*(betax(i  ,j+2)- betax(i  ,j-2))
           rhory = s1*(betax(i+1,j+1)- betax(i+1,j-1)) + s2*(betax(i+1,j+2)- betax(i+1,j-2))
@@ -2157,16 +2187,24 @@ contains
     real (kind = dp_t), intent(in   ) :: dh(:)
 
     integer            :: i, j, k
+    real (kind = dp_t) :: fac
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
+    fac = (ONE / (12.d0 * dh(1)**2))
 
-    ss = 0.d0
-
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,+1))
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
     !
     ! We only include the beta's here to get the viscous coefficients in here for now.
     ! The projection has beta == 1.
@@ -2175,38 +2213,25 @@ contains
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             ss( 1,i,j,k) =   1.d0 * betax(i  ,j,k)
-             ss( 2,i,j,k) = -16.d0 * betax(i  ,j,k)
-             ss( 3,i,j,k) = -16.d0 * betax(i+1,j,k)
-             ss( 4,i,j,k) =   1.d0 * betax(i+1,j,k)
-             ss( 5,i,j,k) =   1.d0 * betay(i,j  ,k)
-             ss( 6,i,j,k) = -16.d0 * betay(i,j  ,k)
-             ss( 7,i,j,k) = -16.d0 * betay(i,j+1,k)
-             ss( 8,i,j,k) =   1.d0 * betay(i,j+1,k)
-             ss( 9,i,j,k) =   1.d0 * betaz(i,j,k  )
-             ss(10,i,j,k) = -16.d0 * betaz(i,j,k  )
-             ss(11,i,j,k) = -16.d0 * betaz(i,j,k+1)
-             ss(12,i,j,k) =   1.d0 * betaz(i,j,k+1)
+             ss( 1,i,j,k) =   1.d0 * betax(i  ,j,k) * fac
+             ss( 2,i,j,k) = -16.d0 * betax(i  ,j,k) * fac
+             ss( 3,i,j,k) = -16.d0 * betax(i+1,j,k) * fac
+             ss( 4,i,j,k) =   1.d0 * betax(i+1,j,k) * fac
+             ss( 5,i,j,k) =   1.d0 * betay(i,j  ,k) * fac
+             ss( 6,i,j,k) = -16.d0 * betay(i,j  ,k) * fac
+             ss( 7,i,j,k) = -16.d0 * betay(i,j+1,k) * fac
+             ss( 8,i,j,k) =   1.d0 * betay(i,j+1,k) * fac
+             ss( 9,i,j,k) =   1.d0 * betaz(i,j,k  ) * fac
+             ss(10,i,j,k) = -16.d0 * betaz(i,j,k  ) * fac
+             ss(11,i,j,k) = -16.d0 * betaz(i,j,k+1) * fac
+             ss(12,i,j,k) =   1.d0 * betaz(i,j,k+1) * fac
              ss(0,i,j,k)  = -( ss(1,i,j,k) + ss( 2,i,j,k) + ss( 3,i,j,k) + ss( 4,i,j,k) &
                               +ss(5,i,j,k) + ss( 6,i,j,k) + ss( 7,i,j,k) + ss( 8,i,j,k) &
-                              +ss(9,i,j,k) + ss(10,i,j,k) + ss(11,i,j,k) + ss(12,i,j,k) )
+                              +ss(9,i,j,k) + ss(10,i,j,k) + ss(11,i,j,k) + ss(12,i,j,k) ) + alpha(i,j,k)
           end do
        end do
     end do
     !$OMP END PARALLEL DO
-
-    ss = ss * (ONE / (12.d0 * dh(1)**2))
-    !
-    ! This adds the "alpha" term in (alpha - del dot beta grad) phi = RHS.
-    !
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             ss(0,i,j,k) = ss(0,i,j,k) + alpha(i,j,k)
-          end do
-       end do
-    end do
 
   end subroutine s_minion_cross_fill_3d
 
@@ -2232,13 +2257,6 @@ contains
     double precision :: s1,s2,scale
     double precision :: sum
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
-
     !  These are the coefficients in the second order part
     hx22 = -1.d0 / (12.d0 * dh(1)**2 )
     hy22 = -1.d0 / (12.d0 * dh(2)**2 )
@@ -2262,7 +2280,21 @@ contains
     ss = 0.d0
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,+1))
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
+    !$OMP PARALLEL DO PRIVATE(i,j,k,nsten,rhoax,rhobx,rhofx,rhotx,rhoby,rholy,rhory,rhoty,rhofz,rholz,rhorz,rhoaz)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2897,6 +2929,9 @@ contains
     nz = hi(3)-lo(3)+1
     f1 = ONE/dh**2
 
+    lnx = nx; lny = ny; lnz = nz; lorder = order
+
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -2913,15 +2948,22 @@ contains
           end do
        end do
     end do
+    !$OMP END PARALLEL DO
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,3,+1))
-
-    lnx = nx; lny = ny; lnz = nz; lorder = order
+    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,1,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,2,+1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,-1))
+             mask(i,j,k) = ibclr(mask(i,j,k), BC_BIT(BC_GEOM,3,+1))
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
 
     ! x derivatives
 

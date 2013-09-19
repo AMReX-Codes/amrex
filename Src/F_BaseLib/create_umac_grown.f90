@@ -94,7 +94,7 @@ contains
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
-    fgasc = layout_fgassoc(fine_la, 1)
+    fgasc   = layout_fgassoc(fine_la, 1)
 
     call boxarray_build_copy(f_ba,fgasc%ba)
     call boxarray_build_copy(c_ba,fgasc%ba)
@@ -126,12 +126,14 @@ contains
 
        if (nghost(crse(i)) .lt. 1) &
            call bl_error("Need at least one ghost cell in crse in create_umac_grown")
-       
+
+       !$OMP PARALLEL DO PRIVATE(j,fp,cp)
        do j=1,nfabs(tcrse)
           fp => dataptr(tcrse,  j)
           cp => dataptr(crse(i),j, get_ibox(tcrse,j))
-          fp = cp
+          call cpy_d(fp,cp)
        end do
+       !$OMP END PARALLEL DO
 
        call copy(c_mf, tcrse)
 
@@ -140,14 +142,16 @@ contains
        
        ng_f = nghost(f_mf)
        ng_c = nghost(c_mf)
-
+       !
        ! Fill in some of the fine ghost cells from crse.
+       !
+       !$OMP PARALLEL DO PRIVATE(j,fp,cp,f_lo,c_lo,c_hi)
        do j=1,nfabs(f_mf)
-          fp => dataptr(f_mf,j)
-          cp => dataptr(c_mf,j)
-          f_lo = lwb(get_box(f_mf,j))
-          c_lo = lwb(get_box(c_mf,j))
-          c_hi = upb(get_box(c_mf,j))
+          fp   => dataptr(f_mf,j)
+          cp   => dataptr(c_mf,j)
+          f_lo =  lwb(get_box(f_mf,j))
+          c_lo =  lwb(get_box(c_mf,j))
+          c_hi =  upb(get_box(c_mf,j))
           select case(dm)
           case (2)
              call pc_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f,cp(:,:,1,1),ng_c)
@@ -155,15 +159,18 @@ contains
              call pc_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f,cp(:,:,:,1),ng_c)
           end select
        end do
+       !$OMP END PARALLEL DO
 
        call copy(f_mf,fine(i))
-
+       !
        ! Fill in the rest of the fine ghost cells.
+       !
+       !$OMP PARALLEL DO PRIVATE(j,fp,f_lo,c_lo,c_hi)
        do j=1,nfabs(f_mf)
-          fp => dataptr(f_mf,j)
-          f_lo = lwb(get_box(f_mf,j))
-          c_lo = lwb(get_box(c_mf,j))
-          c_hi = upb(get_box(c_mf,j))
+          fp   => dataptr(f_mf,j)
+          f_lo =  lwb(get_box(f_mf,j))
+          c_lo =  lwb(get_box(c_mf,j))
+          c_hi =  upb(get_box(c_mf,j))
           select case(dm)
           case (2)
              call lin_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f)
@@ -171,6 +178,7 @@ contains
              call lin_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f)
           end select
        end do
+       !$OMP END PARALLEL DO
 
        call destroy(c_mf)
        call destroy(c_la)
@@ -189,16 +197,18 @@ contains
 
        call destroy(f_mf)
        call destroy(f_la)
- 
+
+       !$OMP PARALLEL DO PRIVATE(j,fp,cp,tba)
        do j=1,nfabs(tfine)
           call boxarray_box_diff(tba, get_ibox(tfine,j), get_ibox(fine(i),j))
           do k = 1, nboxes(tba)
              fp => dataptr(fine(i), j, get_box(tba,k))
              cp => dataptr(tfine,   j, get_box(tba,k))
-             fp = cp
+             call cpy_d(fp,cp)
           end do
           call destroy(tba)
        end do
+       !$OMP END PARALLEL DO
 
        call destroy(tfine)
        call destroy(tla)
@@ -206,12 +216,14 @@ contains
        ng_f = nghost(fine(1))
 
        call multifab_fill_boundary(fine(i))
-
-       ! now fix up umac grown due to the low order interpolation we used
+       !
+       ! Now fix up umac grown due to the low order interpolation we used.
+       !
+       !$OMP PARALLEL DO PRIVATE(j,fp,f_lo,f_hi)
        do j=1, nfabs(fine(i))
-          fp => dataptr(fine(i), j)
-          f_lo = lwb(get_box(fine(i), j))
-          f_hi = upb(get_box(fine(i), j))
+          fp   => dataptr(fine(i), j)
+          f_lo =  lwb(get_box(fine(i), j))
+          f_hi =  upb(get_box(fine(i), j))
           select case(dm)
           case (2)
              call correct_umac_grown_2d(fp(:,:,1,1),ng_f,f_lo,f_hi,i)
@@ -219,6 +231,7 @@ contains
              call correct_umac_grown_3d(fp(:,:,:,1),ng_f,f_lo,f_hi,i)
           end select
        end do
+       !$OMP END PARALLEL DO
 
        call multifab_fill_boundary(fine(i))
     end do
@@ -422,6 +435,8 @@ contains
     real(kind=dp_t) :: temp_vely_lo(lo(1)-1:hi(1)+1)
     real(kind=dp_t) :: temp_vely_hi(lo(1)-1:hi(1)+1)
 
+    real(kind=dp_t), parameter :: threefourths = (3.d0/4.d0)
+
     if (dir .eq. 1) then
 
        ! for each normal velocity in the first fine ghost cell in the normal direction
@@ -445,8 +460,8 @@ contains
           else
              signy = -1
           end if
-          vel(lo(1)-1,j) = (3.d0/4.d0)*vel(lo(1)-1,j) + FOURTH*temp_velx_lo(j+signy)
-          vel(hi(1)+2,j) = (3.d0/4.d0)*vel(hi(1)+2,j) + FOURTH*temp_velx_hi(j+signy)
+          vel(lo(1)-1,j) = threefourths*vel(lo(1)-1,j) + FOURTH*temp_velx_lo(j+signy)
+          vel(hi(1)+2,j) = threefourths*vel(hi(1)+2,j) + FOURTH*temp_velx_hi(j+signy)
        end do
 
        ! average the grid edge value with the velocity from the first coarse ghost cell
@@ -461,8 +476,8 @@ contains
        ! first coarse ghost cell value
        ! we linearly interpolate to get a better estimate of this value
        do i=lo(1),hi(1)+1
-          vel(i,lo(2)-1) = (3.d0/4.d0)*vel(i,lo(2)-1) + EIGHTH*(vel(i,lo(2))+vel(i,lo(2)+1))
-          vel(i,hi(2)+1) = (3.d0/4.d0)*vel(i,hi(2)+1) + EIGHTH*(vel(i,hi(2))+vel(i,hi(2)-1))
+          vel(i,lo(2)-1) = threefourths*vel(i,lo(2)-1) + EIGHTH*(vel(i,lo(2))+vel(i,lo(2)+1))
+          vel(i,hi(2)+1) = threefourths*vel(i,hi(2)+1) + EIGHTH*(vel(i,hi(2))+vel(i,hi(2)-1))
        end do
 
     else
@@ -488,8 +503,8 @@ contains
           else
              signx = -1
           end if
-          vel(i,lo(2)-1) = (3.d0/4.d0)*vel(i,lo(2)-1) + FOURTH*temp_vely_lo(i+signx)
-          vel(i,hi(2)+2) = (3.d0/4.d0)*vel(i,hi(2)+2) + FOURTH*temp_vely_hi(i+signx)
+          vel(i,lo(2)-1) = threefourths*vel(i,lo(2)-1) + FOURTH*temp_vely_lo(i+signx)
+          vel(i,hi(2)+2) = threefourths*vel(i,hi(2)+2) + FOURTH*temp_vely_hi(i+signx)
        end do
 
        ! average the grid edge value with the velocity from the first coarse ghost cell
@@ -504,8 +519,8 @@ contains
        ! first coarse ghost cell value
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2),hi(2)+1
-          vel(lo(1)-1,j) = (3.d0/4.d0)*vel(lo(1)-1,j) + EIGHTH*(vel(lo(1),j)+vel(lo(1)+1,j))
-          vel(hi(1)+1,j) = (3.d0/4.d0)*vel(hi(1)+1,j) + EIGHTH*(vel(hi(1),j)+vel(hi(1)-1,j))
+          vel(lo(1)-1,j) = threefourths*vel(lo(1)-1,j) + EIGHTH*(vel(lo(1),j)+vel(lo(1)+1,j))
+          vel(hi(1)+1,j) = threefourths*vel(hi(1)+1,j) + EIGHTH*(vel(hi(1),j)+vel(hi(1)-1,j))
        end do
 
     end if
@@ -531,6 +546,11 @@ contains
      real(kind=dp_t), allocatable :: temp_vely_hi(:,:)
      real(kind=dp_t), allocatable :: temp_velz_lo(:,:)
      real(kind=dp_t), allocatable :: temp_velz_hi(:,:)
+
+     real(kind=dp_t), parameter :: threefourths    = (3.d0/4.d0)
+     real(kind=dp_t), parameter :: onesixteenth    = (1.d0/16.d0)
+     real(kind=dp_t), parameter :: threesixteenths = (3.d0/16.d0)
+     real(kind=dp_t), parameter :: ninesixteenths  = (9.d0/16.d0)
 
     if (dir .eq. 1) then
 
@@ -568,14 +588,14 @@ contains
              else
                 signy = -1
              end if
-             vel(lo(1)-1,j,k) = (9.d0/16.d0)*vel(lo(1)-1,j,k) &
-                  + (3.d0/16.d0)*temp_velx_lo(j+signy,k) &
-                  + (3.d0/16.d0)*temp_velx_lo(j,k+signz) &
-                  + (1.d0/16.d0)*temp_velx_lo(j+signy,k+signz)
-             vel(hi(1)+2,j,k) = (9.d0/16.d0)*vel(hi(1)+2,j,k) &
-                  + (3.d0/16.d0)*temp_velx_hi(j+signy,k) &
-                  + (3.d0/16.d0)*temp_velx_hi(j,k+signz) &
-                  + (1.d0/16.d0)*temp_velx_hi(j+signy,k+signz)
+             vel(lo(1)-1,j,k) = ninesixteenths*vel(lo(1)-1,j,k) &
+                  + threesixteenths*temp_velx_lo(j+signy,k) &
+                  + threesixteenths*temp_velx_lo(j,k+signz) &
+                  + onesixteenth*temp_velx_lo(j+signy,k+signz)
+             vel(hi(1)+2,j,k) = ninesixteenths*vel(hi(1)+2,j,k) &
+                  + threesixteenths*temp_velx_hi(j+signy,k) &
+                  + threesixteenths*temp_velx_hi(j,k+signz) &
+                  + onesixteenth*temp_velx_hi(j+signy,k+signz)
           end do
        end do
 
@@ -594,18 +614,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2)-1,hi(2)+1
           do i=lo(1),hi(1)+1
-             vel(i,j,lo(3)-1) = (3.d0/4.d0)*vel(i,j,lo(3)-1) &
+             vel(i,j,lo(3)-1) = threefourths*vel(i,j,lo(3)-1) &
                   + EIGHTH*(vel(i,j,lo(3))+vel(i,j,lo(3)+1))
-             vel(i,j,hi(3)+1) = (3.d0/4.d0)*vel(i,j,hi(3)+1) &
+             vel(i,j,hi(3)+1) = threefourths*vel(i,j,hi(3)+1) &
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
 
        do k=lo(3)-1,hi(3)+1
           do i=lo(1),hi(1)+1
-             vel(i,lo(2)-1,k) = (3.d0/4.d0)*vel(i,lo(2)-1,k) &
+             vel(i,lo(2)-1,k) = threefourths*vel(i,lo(2)-1,k) &
                   + EIGHTH*(vel(i,lo(2),k)+vel(i,lo(2)+1,k))
-             vel(i,hi(2)+1,k) = (3.d0/4.d0)*vel(i,hi(2)+1,k) &
+             vel(i,hi(2)+1,k) = threefourths*vel(i,hi(2)+1,k) &
                   + EIGHTH*(vel(i,hi(2),k)+vel(i,hi(2)-1,k))
           end do
        end do
@@ -648,14 +668,14 @@ contains
              else
                 signx = -1
              end if
-             vel(i,lo(2)-1,k) = (9.d0/16.d0)*vel(i,lo(2)-1,k) &
-                  + (3.d0/16.d0)*temp_vely_lo(i+signx,k) &
-                  + (3.d0/16.d0)*temp_vely_lo(i,k+signz) &
-                  + (1.d0/16.d0)*temp_vely_lo(i+signx,k+signz)
-             vel(i,hi(2)+2,k) = (9.d0/16.d0)*vel(i,hi(2)+2,k) &
-                  + (3.d0/16.d0)*temp_vely_hi(i+signx,k) &
-                  + (3.d0/16.d0)*temp_vely_hi(i,k+signz) &
-                  + (1.d0/16.d0)*temp_vely_hi(i+signx,k+signz)
+             vel(i,lo(2)-1,k) = ninesixteenths*vel(i,lo(2)-1,k) &
+                  + threesixteenths*temp_vely_lo(i+signx,k) &
+                  + threesixteenths*temp_vely_lo(i,k+signz) &
+                  + onesixteenth*temp_vely_lo(i+signx,k+signz)
+             vel(i,hi(2)+2,k) = ninesixteenths*vel(i,hi(2)+2,k) &
+                  + threesixteenths*temp_vely_hi(i+signx,k) &
+                  + threesixteenths*temp_vely_hi(i,k+signz) &
+                  + onesixteenth*temp_vely_hi(i+signx,k+signz)
           end do
        end do
 
@@ -674,18 +694,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2),hi(2)+1
           do i=lo(1)-1,hi(1)+1
-             vel(i,j,lo(3)-1) = (3.d0/4.d0)*vel(i,j,lo(3)-1) &
+             vel(i,j,lo(3)-1) = threefourths*vel(i,j,lo(3)-1) &
                   + EIGHTH*(vel(i,j,lo(3))+vel(i,j,lo(3)+1))
-             vel(i,j,hi(3)+1) = (3.d0/4.d0)*vel(i,j,hi(3)+1) &
+             vel(i,j,hi(3)+1) = threefourths*vel(i,j,hi(3)+1) &
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
 
        do k=lo(3)-1,hi(3)+1
           do j=lo(2),hi(2)+1
-             vel(lo(1)-1,j,k) = (3.d0/4.d0)*vel(lo(1)-1,j,k) &
+             vel(lo(1)-1,j,k) = threefourths*vel(lo(1)-1,j,k) &
                   + EIGHTH*(vel(lo(1),j,k)+vel(lo(1)+1,j,k))
-             vel(hi(1)+1,j,k) = (3.d0/4.d0)*vel(hi(1)+1,j,k) &
+             vel(hi(1)+1,j,k) = threefourths*vel(hi(1)+1,j,k) &
                   + EIGHTH*(vel(hi(1),j,k)+vel(hi(1)-1,j,k))
           end do
        end do
@@ -728,14 +748,14 @@ contains
              else
                 signx = -1
              end if
-             vel(i,j,lo(3)-1) = (9.d0/16.d0)*vel(i,j,lo(3)-1) &
-                  + (3.d0/16.d0)*temp_velz_lo(i+signx,j) &
-                  + (3.d0/16.d0)*temp_velz_lo(i,j+signy) &
-                  + (1.d0/16.d0)*temp_velz_lo(i+signx,j+signy)
-             vel(i,j,hi(3)+2) = (9.d0/16.d0)*vel(i,j,hi(3)+2) &
-                  + (3.d0/16.d0)*temp_velz_hi(i+signx,j) &
-                  + (3.d0/16.d0)*temp_velz_hi(i,j+signy) &
-                  + (1.d0/16.d0)*temp_velz_hi(i+signx,j+signy)
+             vel(i,j,lo(3)-1) = ninesixteenths*vel(i,j,lo(3)-1) &
+                  + threesixteenths*temp_velz_lo(i+signx,j) &
+                  + threesixteenths*temp_velz_lo(i,j+signy) &
+                  + onesixteenth*temp_velz_lo(i+signx,j+signy)
+             vel(i,j,hi(3)+2) = ninesixteenths*vel(i,j,hi(3)+2) &
+                  + threesixteenths*temp_velz_hi(i+signx,j) &
+                  + threesixteenths*temp_velz_hi(i,j+signy) &
+                  + onesixteenth*temp_velz_hi(i+signx,j+signy)
           end do
        end do
 
@@ -754,18 +774,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do k=lo(3),hi(3)+1
           do i=lo(1)-1,hi(1)+1
-             vel(i,lo(2)-1,k) = (3.d0/4.d0)*vel(i,lo(2)-1,k) &
+             vel(i,lo(2)-1,k) = threefourths*vel(i,lo(2)-1,k) &
                   + EIGHTH*(vel(i,lo(2),k)+vel(i,lo(2)+1,k))
-             vel(i,hi(2)+1,k) = (3.d0/4.d0)*vel(i,hi(2)+1,k) &
+             vel(i,hi(2)+1,k) = threefourths*vel(i,hi(2)+1,k) &
                   + EIGHTH*(vel(i,hi(2),k)+vel(i,hi(2)-1,k))
           end do
        end do
 
        do k=lo(3),hi(3)+1
           do j=lo(2)-1,hi(2)+1
-             vel(lo(1)-1,j,k) = (3.d0/4.d0)*vel(lo(1)-1,j,k) &
+             vel(lo(1)-1,j,k) = threefourths*vel(lo(1)-1,j,k) &
                   + EIGHTH*(vel(lo(1),j,k)+vel(lo(1)+1,j,k))
-             vel(hi(1)+1,j,k) = (3.d0/4.d0)*vel(hi(1)+1,j,k) &
+             vel(hi(1)+1,j,k) = threefourths*vel(hi(1)+1,j,k) &
                   + EIGHTH*(vel(hi(1),j,k)+vel(hi(1)-1,j,k))
           end do
        end do

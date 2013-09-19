@@ -1,7 +1,9 @@
 &fortin
   probtype = 1
+  adverr   = 0.2
   specerr  = 0.2
   specgrad = 0.1
+  max_specerr_lev = 10
   max_specerr_lev = 10
   max_specgrad_lev = -1
 

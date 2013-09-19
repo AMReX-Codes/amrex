@@ -38,8 +38,14 @@ endif
 ifdef ROSE
   rose_suffix   := .rose
 endif
+ifdef ZMQ
+  zmq_suffix := .zmq
+endif
+ifdef HDF
+  hdf_suffix := .hdf
+endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =

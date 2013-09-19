@@ -268,6 +268,35 @@ BaseFab<Real>::norm (const Box& bx,
 }
 
 template<>
+Real
+BaseFab<Real>::sum (const Box& bx,
+                    int        comp,
+                    int        ncomp) const
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    Real sm = 0;
+
+    FORT_FASTSUM(_data,
+                 ARLIM(_datalo),
+                 ARLIM(_datahi),
+                 _box_lo,
+                 _box_hi,
+                 &ncomp,
+                 &sm);
+
+    return sm;
+}
+
+template<>
 BaseFab<Real>&
 BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           srcbox,
@@ -342,6 +371,40 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                   &numcomp);
+    return *this;
+}
+
+template <>
+BaseFab<Real>&
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp)
+{
+    const int* destboxlo  = destbox.loVect();
+    const int* destboxhi  = destbox.hiVect();
+    const int* _th_plo    = loVect();
+    const int* _th_phi    = hiVect();
+    const int* _x_lo      = srcbox.loVect();
+    const int* _x_plo     = src.loVect();
+    const int* _x_phi     = src.hiVect();
+    Real*       _th_p     = dataPtr(destcomp);
+    const Real* _x_p      = src.dataPtr(srccomp);
+
+    FORT_FASTSAXPY(_th_p,
+                   ARLIM(_th_plo),
+                   ARLIM(_th_phi),
+                   D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
+                   D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
+                   &a,
+                   _x_p,
+                   ARLIM(_x_plo),
+                   ARLIM(_x_phi),
+                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
+                   &numcomp);
+
     return *this;
 }
 
@@ -461,4 +524,92 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                         &numcomp);
     return *this;
 }
+
+template <>
+BaseFab<Real>&
+BaseFab<Real>::polyInterp (const Array< BaseFab<Real>* > &sf,
+			   int                            scomp,
+			   const Array<Real>&             st,
+			   Real                           t,
+			   const Box&                     b,
+			   int                            comp,
+			   int                            numcomp)
+{
+    int nsf = sf.size();
+
+    BL_ASSERT( nsf >= 3 );
+    BL_ASSERT( comp >= 0 && comp + numcomp <= nComp() );
+
+    BL_ASSERT( scomp >=0 );
+    for (int i=0; i<nsf; i++) {
+	BL_ASSERT( scomp + numcomp <= sf[i]->nComp() );
+    }
+
+    const int *sflo = sf[0]->loVect();
+    const int *sflen = sf[0]->length();
+    for (int i=1; i<nsf; i++) {
+	BL_ASSERT( sflo[0] == (sf[i]->loVect())[0] );
+	BL_ASSERT( sflen[0] == (sf[i]->length())[0] );
+#if (BL_SPACEDIM == 2)
+	BL_ASSERT( sflo[1] == (sf[i]->loVect())[1] );
+	BL_ASSERT( sflen[1] == (sf[i]->length())[1] );
+#elif (BL_SPACEDIM == 3)
+	BL_ASSERT( sflo[2] == (sf[i]->loVect())[2] );
+	BL_ASSERT( sflen[2] == (sf[i]->length())[2] );
+#endif
+    }
+
+    Box destbox = box();
+    destbox &= b;
+
+    if (destbox.ok())
+    {
+	Real* p               = dataPtr(comp);
+        const int* lo         = loVect();
+        const int* hi         = hiVect();
+	const Real* p1        = sf[0]->dataPtr(scomp); 
+        const int* lo1        = sf[0]->loVect();
+        const int* hi1        = sf[0]->hiVect();
+	const Real* p2        = sf[1]->dataPtr(scomp); 
+        const int* lo2        = sf[1]->loVect();
+        const int* hi2        = sf[1]->hiVect();
+	const Real* p3        = sf[2]->dataPtr(scomp); 
+        const int* lo3        = sf[2]->loVect();
+        const int* hi3        = sf[2]->hiVect();
+        const int* destboxlo  = destbox.loVect();
+        const int* destboxhi  = destbox.hiVect();
+
+	if (nsf == 3) 
+	{
+	    BoxLib::Error("BaseFab<Real>::polyInterp: nsf = 3 TODO");
+	    FORT_QUADINTERP(p,
+	    		    ARLIM(lo),
+	    		    ARLIM(hi),
+	    		    D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
+	    		    D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
+	    		    p1,
+	    		    ARLIM(lo1),
+	    		    ARLIM(hi1),
+	    		    p2,
+	    		    ARLIM(lo2),
+	    		    ARLIM(hi2),
+	    		    p3,
+	    		    ARLIM(lo3),
+	    		    ARLIM(hi3),
+	    		    &numcomp,
+	    	            &t,
+	    	            &st[0],
+	    	            &st[1],
+	    	            &st[2]);
+			    
+	}
+	else
+	{
+	    BoxLib::Error("BaseFab<Real>::polyInterp: nsf > 3 TODO");
+	}
+    }
+
+    return *this;
+}
+
 #endif

@@ -132,15 +132,12 @@ MCMultiGrid::errorEstimate (int       level,
     //
     // Get inf-norm of residual.
     //
-    int p = 0;
+    const int p = 0;
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     Real restot = 0.0;
-    Real resk   = 0.0;
     for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
-        resk = (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps);
-
-        restot = std::max(restot, resk);
+        restot = std::max(restot, (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps));
     }
     ParallelDescriptor::ReduceRealMax(restot);
     return restot;
@@ -206,7 +203,7 @@ MCMultiGrid::solve (MultiFab&       _sol,
     prepareForLevel(level);
     residualCorrectionForm(*rhs[level],_rhs,*cor[level],_sol,bc_mode,level);
     if (!solve_(_sol, _eps_rel, _eps_abs, MCHomogeneous_BC, level))
-	BoxLib::Error("MCMultiGrid::solve(): failed to converge!");
+      BoxLib::Error("MCMultiGrid::solve(): failed to converge!");
 }
 
 int
@@ -220,6 +217,8 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     // Relax system maxiter times, stop if relative error <= _eps_rel or
     // if absolute err <= _abs_eps
     //
+    const Real strt_time = ParallelDescriptor::second();
+
     int  returnVal = 0;  // should use bool for return value from this function
     Real error0    = errorEstimate(level, bc_mode);
     Real error     = error0;
@@ -269,6 +268,21 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	    }
 	}
     }
+
+    if ( verbose )
+    {
+        Real run_time = (ParallelDescriptor::second() - strt_time);
+
+        if ( verbose > 1 )
+        {
+            ParallelDescriptor::ReduceRealMax(run_time,ParallelDescriptor::IOProcessorNumber());
+
+            if ( ParallelDescriptor::IOProcessor() )
+                std::cout << "Solve time: " << run_time;
+        }
+
+        if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
+    }
     
     if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
     {
@@ -301,7 +315,7 @@ int
 MCMultiGrid::numLevels () const
 {
     int ng = Lp.numGrids();
-    int lv = numLevelsMAX;
+    int lv = numLevelsMAX - 1;
     //
     // The routine `falls through' since coarsening and refining
     // a unit box does not yield the initial box.
@@ -352,30 +366,29 @@ MCMultiGrid::relax (MultiFab& solL,
 		    Real      eps_abs,
 		    MCBC_Mode bc_mode)
 {
-    //
-    // Recursively relax system.  Equivalent to multigrid V-cycle.
-    // At coarsest grid, call coarsestSmooth.
-    //
-    if (level < numlevels - 1 )
-    {
-	for (int i = preSmooth() ; i > 0 ; i--)
-	    Lp.smooth(solL, rhsL, level, bc_mode);
-
-	Lp.residual(*res[level], rhsL, solL, level, bc_mode);
-	prepareForLevel(level+1);
-	average(*rhs[level+1], *res[level]);
-	cor[level+1]->setVal(0.0);
-	for (int i = cntRelax(); i > 0 ; i--)
-	    relax(*cor[level+1],*rhs[level+1],level+1,eps_rel,eps_abs,bc_mode);
-
-	interpolate(solL, *cor[level+1]);
-	for (int i = postSmooth(); i > 0 ; i--)
-	    Lp.smooth(solL, rhsL, level, bc_mode);
+  //
+  // Recursively relax system.  Equivalent to multigrid V-cycle.
+  // At coarsest grid, call coarsestSmooth.
+  //
+  if (level < numlevels - 1 ) {
+    for (int i = preSmooth() ; i > 0 ; i--) {
+      Lp.smooth(solL, rhsL, level, bc_mode);
     }
-    else
-    {
-	coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode);
+    
+    Lp.residual(*res[level], rhsL, solL, level, bc_mode);
+    prepareForLevel(level+1);
+    average(*rhs[level+1], *res[level]);
+    cor[level+1]->setVal(0.0);
+    for (int i = cntRelax(); i > 0 ; i--) {
+      relax(*cor[level+1],*rhs[level+1],level+1,eps_rel,eps_abs,bc_mode);
     }
+    interpolate(solL, *cor[level+1]);
+    for (int i = postSmooth(); i > 0 ; i--) {
+      Lp.smooth(solL, rhsL, level, bc_mode);
+    }
+  } else {
+    coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode);
+  }
 }
 
 void

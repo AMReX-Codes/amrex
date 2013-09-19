@@ -239,6 +239,60 @@ module fab_module
 
 contains
   !
+  ! To tell whether or not a value is a IEEE inf.
+  !
+  ! In time this should be rewritten to use the IEEE_ARITHMETIC module.
+  !
+  function is_an_inf (val) result(r)
+
+    real(dp_t), intent(in) :: val
+    logical                :: r
+
+    integer :: rc
+
+    interface
+       subroutine val_is_inf(v, res)
+         use bl_types
+         real(dp_t), intent(in)  :: v
+         integer,    intent(out) :: res
+       end subroutine val_is_inf
+    end interface
+
+    r = .false.
+
+    call val_is_inf(val,rc)
+
+    if (rc == 1) r = .true.
+    
+  end function is_an_inf
+  !
+  ! To tell whether or not a value is a IEEE NaN.
+  !
+  ! In time this should be rewritten to use the IEEE_ARITHMETIC module.
+  !
+  function is_a_nan (val) result(r)
+
+    real(dp_t), intent(in) :: val
+    logical                :: r
+
+    integer :: rc
+
+    interface
+       subroutine val_is_nan(v, res)
+         use bl_types
+         real(dp_t), intent(in)  :: v
+         integer,    intent(out) :: res
+       end subroutine val_is_nan
+    end interface
+
+    r = .false.
+
+    call val_is_nan(val,rc)
+
+    if (rc == 1) r = .true.
+    
+  end function is_a_nan
+  !
   ! Does a real(dp_t) fab contain a NaN?
   !
   function contains_nan_c(fb,c,nc) result(r)
@@ -288,7 +342,7 @@ contains
     type(box), intent(in) :: bx
     integer,   intent(in) :: c, nc
 
-    integer                      :: sz, rc, i, j, k, n, idx
+    integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
 
@@ -309,11 +363,14 @@ contains
 
     pp => dataptr(fb,bx,c,nc)
 
+    lo = lbound(pp)
+    hi = ubound(pp)
+
     idx = 1
-    do n = lbound(pp,dim=4), ubound(pp,dim=4)
-       do k = lbound(pp,dim=3), ubound(pp,dim=3)
-          do j = lbound(pp,dim=2), ubound(pp,dim=2)
-             do i = lbound(pp,dim=1), ubound(pp,dim=1)
+    do n = lo(4), hi(4)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 d(idx) = pp(i,j,k,n)
                 idx = idx + 1
              end do
@@ -376,7 +433,7 @@ contains
     type(box), intent(in) :: bx
     integer,   intent(in) :: c, nc
 
-    integer                      :: sz, rc, i, j, k, n, idx
+    integer                      :: sz, rc, i, j, k, n, idx, lo(4), hi(4)
     real(kind=dp_t), allocatable :: d(:)
     real(kind=dp_t), pointer     :: pp(:,:,:,:)
 
@@ -397,11 +454,14 @@ contains
 
     pp => dataptr(fb,bx,c,nc)
 
+    lo = lbound(pp)
+    hi = ubound(pp)
+
     idx = 1
-    do n = lbound(pp,dim=4), ubound(pp,dim=4)
-       do k = lbound(pp,dim=3), ubound(pp,dim=3)
-          do j = lbound(pp,dim=2), ubound(pp,dim=2)
-             do i = lbound(pp,dim=1), ubound(pp,dim=1)
+    do n = lo(4), hi(4)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 d(idx) = pp(i,j,k,n)
                 idx = idx + 1
              end do
@@ -1865,18 +1925,21 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: r, r1
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! minval(ap)
 
     r1 = Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MIN : r1)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MIN : r1) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 r1 = min(r1,ap(i,j,k,n))
              end do
           end do
@@ -1894,18 +1957,21 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t)          :: r, r1
 
-    integer :: i, j, k, n
+    integer :: i, j, k, n, lo(4), hi(4)
+
+    lo = lbound(ap)
+    hi = ubound(ap)
 
     ! maxval(ap)
 
     r1 = -Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1)
-    do n = lbound(ap,dim=4), ubound(ap,dim=4)
+    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
+    do n = lo(4), hi(4)
        !$OMP DO
-       do k = lbound(ap,dim=3), ubound(ap,dim=3)
-          do j = lbound(ap,dim=2), ubound(ap,dim=2)
-             do i = lbound(ap,dim=1), ubound(ap,dim=1)
+       do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 r1 = max(r1,ap(i,j,k,n))
              end do
           end do

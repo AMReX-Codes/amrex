@@ -64,39 +64,51 @@ contains
   subroutine mem_stats_alloc_ll(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer(kind=ll_t) :: vol
+    !$OMP CRITICAL(memstats)
     ms%num_alloc = ms%num_alloc + vol
     ms%cnt_alloc = ms%cnt_alloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_ll
 
   subroutine mem_stats_alloc_i(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer :: vol
+    !$OMP CRITICAL(memstats)
     ms%num_alloc = ms%num_alloc + int(vol,kind=ll_t)
     ms%cnt_alloc = ms%cnt_alloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_i
 
   subroutine mem_stats_alloc_c(ms)
     type(mem_stats), intent(inout) :: ms
+    !$OMP CRITICAL(memstats)
     ms%cnt_alloc = ms%cnt_alloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_c
 
   subroutine mem_stats_dealloc_ll(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer(kind=ll_t) :: vol
+    !$OMP CRITICAL(memstats)
     ms%num_dealloc = ms%num_dealloc + vol
     ms%cnt_dealloc = ms%cnt_dealloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_ll
 
   subroutine mem_stats_dealloc_i(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer :: vol
+    !$OMP CRITICAL(memstats)
     ms%num_dealloc = ms%num_dealloc + int(vol,kind=ll_t)
     ms%cnt_dealloc = ms%cnt_dealloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_i
 
   subroutine mem_stats_dealloc_c(ms)
     type(mem_stats), intent(inout) :: ms
+    !$OMP CRITICAL(memstats)
     ms%cnt_dealloc = ms%cnt_dealloc + 1
+    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_c
 
 end module bl_mem_stat_module

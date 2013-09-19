@@ -106,16 +106,18 @@ contains
 
     call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
 
+    !$OMP PARALLEL DO PRIVATE(i,ba,j,bx,dst,src)
     do i = 1, nfabs(fine)
        call boxarray_box_diff(ba, get_ibox(tmpfine,i), get_ibox(fine,i))
        do j = 1, nboxes(ba)
           bx  =  get_box(ba,j)
           dst => dataptr(fine,    i, bx, icomp, nc)
           src => dataptr(tmpfine, i, bx, 1    , nc)
-          dst =  src
+          call cpy_d(dst,src)
        end do
        call destroy(ba)
     end do
+    !$OMP END PARALLEL DO
     !
     ! Finish up.
     !

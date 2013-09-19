@@ -65,10 +65,10 @@ contains
        do i = 1, dm
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,0), &
                                    full_soln(n), mgt(n)%mm(mglev), -1, i, &
-                                   mgt(n)%stencil_type, mgt(n)%lcross)
+                                   mgt(n)%lcross)
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,1), &
                                    full_soln(n), mgt(n)%mm(mglev),  1, i, &
-                                   mgt(n)%stencil_type, mgt(n)%lcross)
+                                   mgt(n)%lcross)
        end do
     end do
 
@@ -78,7 +78,7 @@ contains
 
    end subroutine ml_cc_solve
 
-   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim, stencil_type, lcross)
+   subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim, lcross)
 
      use bl_prof_module
      use cc_stencil_apply_module
@@ -88,7 +88,6 @@ contains
      type(multifab) , intent(inout) :: uu
      type(imultifab), intent(in   ) :: mm
      integer        , intent(in   ) :: face, dim
-     integer        , intent(in   ) :: stencil_type
      logical        , intent(in   ) :: lcross
 
      integer :: i, n
@@ -109,6 +108,7 @@ contains
 
      call multifab_fill_boundary(uu, cross = lcross)
 
+     !$OMP PARALLEL DO PRIVATE(i,n,fp,up,sp,mp)
      do i = 1, nfabs(flux)
         fp => dataptr(flux, i)
         up => dataptr(uu, i)
@@ -128,6 +128,7 @@ contains
            end select
         end do
      end do
+     !$OMP END PARALLEL DO
 
      call destroy(bpt)
 
@@ -353,6 +354,7 @@ contains
 
      integer :: i,j,k,fi,fj,fk
 
+     !$OMP PARALLEL DO PRIVATE(i,j,k,fi,fj,fk)
      do k = lo(3),hi(3)
         fk = k*ir(3)
         do j = lo(2),hi(2)
@@ -364,6 +366,7 @@ contains
            end do
         end do
      end do
+     !$OMP END PARALLEL DO
 
    end subroutine create_nodal_mask_3d
 

@@ -195,10 +195,6 @@ public:
     //
     int get_nu_b () const { return nu_b; }
 
-    CGSolver::Solver getCGSolver () const { return cg_solver; }
-
-    void setCGSolver (CGSolver::Solver solver_) { cg_solver = solver_; }
-
     void set_maxiter_b (int n) { maxiter_b = n; }
     //
     // get the maximum permitted relative tolerance
@@ -235,7 +231,8 @@ protected:
     // Return scalar estimate of error
     //
     Real errorEstimate (int            level,
-                        LinOp::BC_Mode bc_mode);
+                        LinOp::BC_Mode bc_mode,
+                        bool           local = false);
     //
     // Transfer MultiFab from fine to coarse level
     //
@@ -254,7 +251,8 @@ protected:
                 int            level,
                 Real           eps_rel,
                 Real           eps_abs,
-                LinOp::BC_Mode bc_mode);
+                LinOp::BC_Mode bc_mode,
+                Real&          cg_time);
     //
     // Perform relaxation at bottom of V-cycle
     //
@@ -264,7 +262,8 @@ protected:
                          Real           eps_rel,
                          Real           eps_abs,
                          LinOp::BC_Mode bc_mode,
-                         int            local_usecg);
+                         int            local_usecg,
+                         Real&          cg_time);
 private:
     //
     // default flag, whether to use CG at bottom of MG cycle
@@ -309,10 +308,6 @@ private:
     // default flag controlling the behaviour when the cg solver returns indicating unstable
     //
     static int def_smooth_on_cg_unstable;
-
-    static CGSolver::Solver def_cg_solver;
-
-    CGSolver::Solver cg_solver;
     //
     // verbosity
     //

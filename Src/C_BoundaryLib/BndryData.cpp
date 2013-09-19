@@ -163,6 +163,8 @@ BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
                    const Geometry& _geom)
 {
+    BL_PROFILE("BndryData::define()");
+
     if (m_defined)
     {
         if (_grids == boxes() && m_ncomp == _ncomp && _geom.Domain() == geom.Domain())

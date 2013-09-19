@@ -34,14 +34,29 @@ public:
     // The constructor.
     //
     Amr ();
+    Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord);
+    void InitAmr(int max_level_in, Array<int> n_cell_in);
     //
     // The destructor.
     //
     virtual ~Amr ();
     //
+    // set up t_nodes (for SDC) after construction. Must be called before init if doing SDC.
+    //
+    void set_t_nodes (const Array<Real>& tnodes);
+    //
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
+    //
+    // First part of initialInit
+    //
+    void InitializeInit (Real strt_time, Real stop_time, 
+                         const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+    //
+    // Second part of initialInit
+    //
+    void FinalizeInit (Real strt_time, Real stop_time); 
     //
     // Set the timestep on each level.
     //
@@ -104,6 +119,15 @@ public:
     // Array of time steps at all levels.
     //
     const Array<Real>& dtLevel () const { return dt_level; }
+    //
+    // Array of inner node times on specified level 
+    //
+    const Array<Real>& tNodes (int level) const {
+	return (multi_level_sdc) ? t_nodes[level] : t_nodes[0]; }
+    //
+    // Multi-level SDC?
+    //
+    bool isMultiLevSDC () const { return multi_level_sdc; }
     //
     // Geometry object.
     //
@@ -315,27 +339,31 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
+    //
+    // Add one particle at a time.
+    //
+    void addOneParticle (int id_in, int cpu_in, 
+                         std::vector<double>& xloc, std::vector<double>& attributes);
+
 protected:
     //
     // Used by grid_places().
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-
     //
     // Array of BoxArrays read in to initially define grid hierarchy
     //
     static Array<BoxArray> initial_ba;
-
     //
     // Array of BoxArrays read in to externally define grid hierarchy at each regrid
     //
     static Array<BoxArray> regrid_ba;
-
     //
-    // Initialize grid hierarchy.
+    // Initialize grid hierarchy -- called by Amr::init.
     //
-    void initialInit (Real strt_time, Real stop_time);
+    void initialInit (Real strt_time, Real stop_time, 
+                      const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Read the probin file.
     //
@@ -351,7 +379,7 @@ protected:
     //
     // Define and initialize coarsest level.
     //
-    void defBaseLevel (Real start_time);
+    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Define and initialize refined levels.
     //
@@ -359,9 +387,9 @@ protected:
     //
     // Rebuild grid hierarchy finer than lbase.
     //
-    void regrid (int  lbase,
-                 Real time,
-                 bool initial = false);
+    virtual void regrid (int  lbase,
+                         Real time,
+                         bool initial = false);
     //
     // Define new grid locations (called from regrid) and put into new_grids.
     //
@@ -380,11 +408,11 @@ protected:
     //
     // Do a single timestep on level L.
     //
-    void timeStep (int  level,
-                   Real dt,
-                   int  iter,
-                   int  ncycle,
-                   Real stop_time);
+    virtual void timeStep (int  level,
+                           Real time,
+                           int  iteration,
+                           int  niter,
+                           Real stop_time);
 
     //
     // Whether to write a plotfile now
@@ -412,16 +440,18 @@ protected:
     //
     // The data ...
     //
-    std::string       regrid_grids_file;   // Grids file that will bypass regridding.
-    std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
+    std::string      regrid_grids_file;   // Grids file that will bypass regridding.
+    std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
+    int              multi_level_sdc; // multi-level SDC?
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
     PArray<AmrLevel> amr_level;    // Array of levels
     Array<Geometry>  geom;         // Index extent of domain at all levels.
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Array<Real>      dt_level;     // Timestep at this level.
+    Array<Array<Real> > t_nodes;   // Time of (SDC) inner nodes in the range of (0,1)
     Array<int>       level_steps;  // Number of time steps at this level.
     Array<int>       level_count;
     Array<int>       n_cycle;
@@ -437,7 +467,7 @@ protected:
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
-    std::string          check_file_root; // Root name of checkpoint file.
+    std::string      check_file_root; // Root name of checkpoint file.
     int              last_plotfile;   // Step number of previous plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)

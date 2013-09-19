@@ -12,12 +12,15 @@
 #define FORT_FASTSETVAL      fastsetval
 #define FORT_FASTZERONORM    fastzeronorm
 #define FORT_FASTONENORM     fastonenorm
+#define FORT_FASTSUM         fastsum
 #define FORT_FASTPLUS        fastplus
 #define FORT_FASTMULT        fastmult
+#define FORT_FASTSAXPY       fastsaxpy
 #define FORT_FASTMINUS       fastminus
 #define FORT_FASTDIVIDE      fastdivide
 #define FORT_FASTPROTDIVIDE  fastprotdivide
 #define FORT_FASTINVERT      fastinvert
+#define FORT_QUADINTERP      quadinterp
 #else
 
 #if defined(BL_FORT_USE_UPPERCASE)
@@ -27,12 +30,15 @@
 #define FORT_FASTSETVAL      FASTSETVAL
 #define FORT_FASTZERONORM    FASTZERONORM
 #define FORT_FASTONENORM     FASTONENORM
+#define FORT_FASTSUM         FASTSUM
 #define FORT_FASTPLUS        FASTPLUS
 #define FORT_FASTMULT        FASTMULT
+#define FORT_FASTSAXPY       FASTSAXPY
 #define FORT_FASTMINUS       FASTMINUS
 #define FORT_FASTDIVIDE      FASTDIVIDE
 #define FORT_FASTPROTDIVIDE  FASTPROTDIVIDE
 #define FORT_FASTINVERT      FASTINVERT
+#define FORT_QUADINTERP      QUADINTERP
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_FASTCOPY        fastcopy
 #define FORT_FASTCOPYTOMEM   fastcopytomem
@@ -40,12 +46,14 @@
 #define FORT_FASTSETVAL      fastsetval
 #define FORT_FASTZERONORM    fastzeronorm
 #define FORT_FASTONENORM     fastonenorm
+#define FORT_FASTSUM         fastsum
 #define FORT_FASTPLUS        fastplus
 #define FORT_FASTMULT        fastmult
 #define FORT_FASTMINUS       fastminus
 #define FORT_FASTDIVIDE      fastdivide
 #define FORT_FASTPROTDIVIDE  fastprotdivide
 #define FORT_FASTINVERT      fastinvert
+#define FORT_QUADINTERP      quadinterp
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_FASTCOPY        fastcopy_
 #define FORT_FASTCOPYTOMEM   fastcopytomem_
@@ -53,12 +61,15 @@
 #define FORT_FASTSETVAL      fastsetval_
 #define FORT_FASTZERONORM    fastzeronorm_
 #define FORT_FASTONENORM     fastonenorm_
+#define FORT_FASTSUM         fastsum_
 #define FORT_FASTPLUS        fastplus_
 #define FORT_FASTMULT        fastmult_
+#define FORT_FASTSAXPY       fastsaxpy_
 #define FORT_FASTMINUS       fastminus_
 #define FORT_FASTDIVIDE      fastdivide_
 #define FORT_FASTPROTDIVIDE  fastprotdivide_
 #define FORT_FASTINVERT      fastinvert_
+#define FORT_QUADINTERP      quadinterp_
 #endif
 
 extern "C"
@@ -108,6 +119,13 @@ extern "C"
                            const int*  ncomp,
                            const Real* nrm);
 
+    void FORT_FASTSUM (const Real* dest,
+                       ARLIM_P(dlo), ARLIM_P(dhi),
+                       const int*  lo,
+                       const int*  hi,
+                       const int*  ncomp,
+                       const Real* nrm);
+
     void FORT_FASTPLUS (Real* dest,
                         ARLIM_P(dlo), ARLIM_P(dhi),
                         D_DECL(const int&,const int&,const int&),
@@ -125,6 +143,16 @@ extern "C"
                         ARLIM_P(slo), ARLIM_P(shi),
                         D_DECL(const int&,const int&,const int&),
                         const int* ncomp);
+
+    void FORT_FASTSAXPY (Real* dest,
+                         ARLIM_P(dlo), ARLIM_P(dhi),
+                         D_DECL(const int&,const int&,const int&),
+                         D_DECL(const int&,const int&,const int&),
+                         const Real* a,
+                         const Real* src,
+                         ARLIM_P(slo), ARLIM_P(shi),
+                         D_DECL(const int&,const int&,const int&),
+                         const int* ncomp);
 
     void FORT_FASTMINUS (Real* dest,
                          ARLIM_P(dlo), ARLIM_P(dhi),
@@ -159,6 +187,22 @@ extern "C"
                           const int*  hi,
                           const Real* val,
                           const int*  ncomp);
+
+    void FORT_QUADINTERP (Real* dest,
+			  ARLIM_P(dlo), ARLIM_P(dhi),
+			  D_DECL(const int&,const int&,const int&),
+			  D_DECL(const int&,const int&,const int&),
+			  const Real* src1,
+			  ARLIM_P(s1lo), ARLIM_P(s1hi),
+			  const Real* src2,
+			  ARLIM_P(s2lo), ARLIM_P(s2hi),
+			  const Real* src3,
+			  ARLIM_P(s3lo), ARLIM_P(s3hi),
+			  const int* ncomp,
+	                  const Real* t, 
+	                  const Real* t1, 
+	                  const Real* t2, 
+	                  const Real* t3);
 }
 
 #endif

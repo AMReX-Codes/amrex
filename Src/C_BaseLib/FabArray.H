@@ -466,6 +466,12 @@ public:
               int             nvar,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
+
+    FabArray (const BoxArray&            bxs,
+              int                        nvar,
+              int                        ngrow,
+              const DistributionMapping& dm,
+              FabAlloc                   mem_mode = Fab_allocate);
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -1073,6 +1079,16 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray&            bxs,
+                         int                        nvar,
+                         int                        ngrow,
+                         const DistributionMapping& dm,
+                         FabAlloc                   alloc)
+{
+    define(bxs,nvar,ngrow,dm,alloc);
+}
+
+template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     clear();
@@ -1347,11 +1363,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::copy()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::copy()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
@@ -1891,13 +1909,17 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
             RcvsArray[it->first] = it->second;
 
-        BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<int>::type(),
-                                     SndsArray.dataPtr(),
-                                     1,
-                                     ParallelDescriptor::Mpi_typemap<int>::type(),
-                                     ParallelDescriptor::Communicator()) );
+        {
+            BL_PROFILE("CollectData_Alltoall()");
+
+            BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
+                                         1,
+                                         ParallelDescriptor::Mpi_typemap<int>::type(),
+                                         SndsArray.dataPtr(),
+                                         1,
+                                         ParallelDescriptor::Mpi_typemap<int>::type(),
+                                         ParallelDescriptor::Communicator()) );
+        }
         BL_ASSERT(SndsArray[MyProc] == 0);
 
         for (int i = 0; i < NProcs; i++)
@@ -1957,15 +1979,19 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         for (int i = 1; i < NProcs; i++) sdispls[i] *= ParallelDescriptor::CommData::DIM;
         for (int i = 1; i < NProcs; i++) rdispls[i] *= ParallelDescriptor::CommData::DIM;
 
-        BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
-                                      scnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      cd_others_need.dataPtr(),
-                                      rcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
+        {
+            BL_PROFILE("CollectData_Alltoallv()");
+
+            BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
+                                          scnts.dataPtr(),
+                                          sdispls.dataPtr(),
+                                          ParallelDescriptor::Mpi_typemap<int>::type(),
+                                          cd_others_need.dataPtr(),
+                                          rcnts.dataPtr(),
+                                          rdispls.dataPtr(),
+                                          ParallelDescriptor::Mpi_typemap<int>::type(),
+                                          ParallelDescriptor::Communicator()) );
+        }
         cd_that_i_need.clear();
     }
 
@@ -2027,11 +2053,13 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::CollectData()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,Who,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::CollectData()");
             ParallelDescriptor::Send(data,N,Who,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
@@ -2297,11 +2325,13 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
         if (FabArrayBase::do_async_sends)
         {
+	    BL_COMM_PROFILE_NAMETAG("ASEND::FabArray::FillBoundary()");
             send_data.push_back(data);
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::FabArray::FillBoundary()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }

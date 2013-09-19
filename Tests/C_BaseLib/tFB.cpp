@@ -5,89 +5,99 @@
 #include <Utility.H>
 #include <MultiFab.H>
 
-static
-void
-DumpFirstFab (const MultiFab& mf)
-{
-    BL_ASSERT(mf.size() > 1);
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        BL_ASSERT(mf.DistributionMap()[0] == ParallelDescriptor::MyProc());
-
-	std::cout << mf[0] << std::endl;
-    }
-}
-
-static
-void
-DoIt (MultiFab& mf)
-{
-    BL_ASSERT(mf.nComp() >= 2);
-
-    mf.setVal(0);
-    //
-    // Do loop just filling first component.
-    //
-    for (int i = 0; i < 10; i++)
-    {
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            mf[mfi].setVal(mfi.index()+1,0);
-        }
-
-        mf.FillBoundary(0,1);
-
-        DumpFirstFab(mf);
-    }
-    //
-    // Do loop just filling second component.
-    //
-    for (int i = 0; i < 10; i++)
-    {
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            mf[mfi].setVal(mfi.index()+10,1);
-        }
-
-        mf.FillBoundary(1,1);
-
-        DumpFirstFab(mf);
-    }
-    //
-    // Do loop filling all components.
-    //
-    for (int i = 0; i < 10; i++)
-    {
-        for(MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            mf[mfi].setVal(mfi.index()+100);
-        }
-
-        mf.FillBoundary();
-
-        DumpFirstFab(mf);
-    }
-}
-
 int
 main (int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
-    BoxList bl;
+//    Box bx(IntVect(0,0,0),IntVect(511,511,255));
+//    Box bx(IntVect(0,0,0),IntVect(1023,1023,255));
+//    Box bx(IntVect(0,0,0),IntVect(1023,1023,1023));
+    Box bx(IntVect(0,0,0),IntVect(2047,2047,1023));
+//    Box bx(IntVect(0,0,0),IntVect(127,127,127));
+//    Box bx(IntVect(0,0,0),IntVect(255,255,255));
 
-    Box bx1(IntVect::TheZeroVector(),IntVect::TheUnitVector());
-    Box bx2 = bx1;
-    bx2.shift(0,2);
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "Domain: " << bx << '\n';
 
-    bl.push_back(bx1); bl.push_back(bx2);
+    BoxArray ba(bx);
 
-    BoxArray ba(bl);
-    
-    MultiFab junk(ba,2,1), junky(ba,2,1);
+    ba.maxSize(64);
 
-    DoIt(junk); DoIt(junky); DoIt(junk); DoIt(junky);
+    const int N = 1000;  // This should be divisible by 4 !!!
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "# boxes in BoxArray: " << ba.size() << '\n';
+
+    ParallelDescriptor::Barrier();
+
+    {
+        //
+        // A test of FillBoundary() on 1 grow cell with cross stencil.
+        //
+        MultiFab mf(ba,1,1); mf.setVal(1.23);
+
+        ParallelDescriptor::Barrier();
+        double beg = ParallelDescriptor::second();
+        for (int i = 0; i < N; i++)
+            mf.FillBoundary(false,true);
+        double end = (ParallelDescriptor::second() - beg);
+
+        ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << N << " cross x 1: " << end << std::endl;
+    }
+
+    {
+        //
+        // A test of FillBoundary() on 1 grow cell with dense stencil.
+        //
+        MultiFab mf(ba,1,1); mf.setVal(1.23);
+
+        ParallelDescriptor::Barrier();
+        double beg = ParallelDescriptor::second();
+        for (int i = 0; i < N; i++)
+            mf.FillBoundary(false,false);
+        double end = (ParallelDescriptor::second() - beg);
+
+        ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << N << " dense x 1: " << end << std::endl;
+    }
+
+    {
+        //
+        // First a test of FillBoundary() on 2 grow cells with dense stencil.
+        //
+        MultiFab mf(ba,1,2); mf.setVal(1.23);
+
+        ParallelDescriptor::Barrier();
+        double beg = ParallelDescriptor::second();
+        for (int i = 0; i < N/2; i++)
+            mf.FillBoundary(false,false);
+        double end = (ParallelDescriptor::second() - beg);
+
+        ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << (N/2) << " dense x 2: " << end << std::endl;
+    }
+
+    {
+        //
+        // First a test of FillBoundary() on 4 grow cells with dense stencil.
+        //
+        MultiFab mf(ba,1,4); mf.setVal(1.23);
+
+        ParallelDescriptor::Barrier();
+        double beg = ParallelDescriptor::second();
+        for (int i = 0; i < N/4; i++)
+            mf.FillBoundary(false,false);
+        double end = (ParallelDescriptor::second() - beg);
+
+        ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << (N/4) << " dense x 4: " << end << std::endl;
+    }
 
     BoxLib::Finalize();
 

@@ -118,7 +118,7 @@ public:
     //
     // Fills level boundary cells using BC_mode flag, int. BC data if reqd.
     //
-    void applyBC (MultiFab&      inout,
+    virtual void applyBC (MultiFab&      inout,
                   int            src_comp,
                   int            num_comp,
                   int            level   = 0,

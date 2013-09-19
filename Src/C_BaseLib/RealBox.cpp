@@ -6,7 +6,7 @@
 //
 // The definition of lone static data member.
 //
-Real RealBox::eps = 1.0e-6;
+Real RealBox::eps = 1.0e-8;
 
 RealBox::RealBox (const Box&  bx,
                   const Real* dx,

@@ -53,17 +53,53 @@
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
 
-      integer i
-      integer j
-      integer n
+      integer i, j, n, twoi, twoj, twoip1, twojp1
+      logical interior_i, interior_j
 
+      REAL_T, parameter :: one16th = 1.0d0 /16.0d0
+      !
+      ! Bilinear -- don't assume we have any ghost cells.
+      !
+      !
+      ! Don't have any grow cells.  Do piecewise constant at boundaries.
+      !
       do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               f(2*i+1,2*j+1,n) = c(i,j,n) + f(2*i+1,2*j+1,n)
-               f(2*i  ,2*j+1,n) = c(i,j,n) + f(2*i  ,2*j+1,n)
-               f(2*i+1,2*j  ,n) = c(i,j,n) + f(2*i+1,2*j  ,n)
-               f(2*i  ,2*j  ,n) = c(i,j,n) + f(2*i  ,2*j  ,n)
+         do j = lo(2),hi(2)
+            twoj   = 2*j
+            twojp1 = twoj+1
+            interior_j = ( j > lo(2) .and. j < hi(2) )
+
+            do i = lo(1),hi(1)
+               interior_i = ( i > lo(1) .and. i < hi(1) )
+
+               if ( interior_i .and. interior_j ) cycle
+
+               twoi   = 2*i
+               twoip1 = twoi+1
+
+               f(twoi,   twoj  ,n) = f(twoi,   twoj  ,n) + c(i,j,n)
+               f(twoip1, twoj  ,n) = f(twoip1, twoj  ,n) + c(i,j,n)
+               f(twoi,   twojp1,n) = f(twoi,   twojp1,n) + c(i,j,n)
+               f(twoip1, twojp1,n) = f(twoip1, twojp1,n) + c(i,j,n)
+            end do
+         end do
+      end do
+      !
+      ! Now linearly interp only on the interior.
+      !
+      do n = 1, nc
+         do j = lo(2)+1, hi(2)-1
+            twoj   = 2*j
+            twojp1 = twoj+1
+
+            do i = lo(1)+1, hi(1)-1
+               twoi   = 2*i
+               twoip1 = twoi+1
+
+               f(twoip1, twojp1,n) = f(twoip1, twojp1,n) + one16th * ( 9*c(i,j,n) + 3*c(i+1,j,n) + 3*c(i,j+1,n) + c(i+1,j+1,n) )
+               f(twoi,   twojp1,n) = f(twoi,   twojp1,n) + one16th * ( 9*c(i,j,n) + 3*c(i-1,j,n) + 3*c(i,j+1,n) + c(i-1,j+1,n) )
+               f(twoip1, twoj  ,n) = f(twoip1, twoj  ,n) + one16th * ( 9*c(i,j,n) + 3*c(i,j-1,n) + 3*c(i+1,j,n) + c(i+1,j-1,n) )
+               f(twoi,   twoj  ,n) = f(twoi,   twoj  ,n) + one16th * ( 9*c(i,j,n) + 3*c(i-1,j,n) + 3*c(i,j-1,n) + c(i-1,j-1,n) )
             end do
          end do
       end do
