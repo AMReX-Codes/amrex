@@ -1272,7 +1272,9 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
 
     ParticleType p;
     Real         disp[BL_SPACEDIM];
-    const Real   len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
+    const Real   len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+                                             geom.ProbLength(1),
+                                             geom.ProbLength(2)) };
     //
     // The grid should be initialized according to the ics...
     //
@@ -1360,7 +1362,9 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
         BL_ASSERT(m_particles[lev].empty());
     }
 
-    const Real len[BL_SPACEDIM] = { geom.ProbLength(0),geom.ProbLength(1),geom.ProbLength(2) };
+    const Real len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+                                           geom.ProbLength(1),
+                                           geom.ProbLength(2)) };
     //
     // Print the grids as a sanity check.
     //
@@ -1573,7 +1577,9 @@ ParticleContainer<N>::InitRandom (long          icount,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_amr->Geom(0);
 
-    Real r, len[BL_SPACEDIM] = { geom.ProbLength(0), geom.ProbLength(1), geom.ProbLength(2) };
+    Real r, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+                                        geom.ProbLength(1),
+                                        geom.ProbLength(2)) };
 
     BoxLib::InitRandom(iseed+MyProc);
 
