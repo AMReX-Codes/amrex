@@ -46,7 +46,6 @@ typedef int mode_t;
 #define FAB_CONTAINS_INF  fab_contains_inf_
 #define VAL_IS_INF        val_is_inf_
 #define VAL_IS_NAN        val_is_nan_
-#define FORT_GETPLANE     getplane_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
@@ -66,7 +65,6 @@ typedef int mode_t;
 #define FAB_CONTAINS_INF  fab_contains_inf__
 #define VAL_IS_INF        val_is_inf__
 #define VAL_IS_NAN        val_is_nan__
-#define FORT_GETPLANE     getplane__
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
@@ -86,7 +84,6 @@ typedef int mode_t;
 #define FAB_CONTAINS_INF  fab_contains_inf
 #define VAL_IS_INF        val_is_inf
 #define VAL_IS_NAN        val_is_nan
-#define FORT_GETPLANE     getplane
 #endif
 
 static
@@ -889,143 +886,4 @@ VAL_IS_NAN (double* val, int* result)
     *result = (isnan(*val) ? 1 : 0);
 
 #endif
-}
-
-void
-FORT_GETPLANE (int*    filename,
-               int*    len,
-               double* data,
-               int*    plane,
-               int*    ncomp,
-               int*    isswirltype,
-               int*    dim)
-{
-    static int   kmax[3];
-    static int   first  = 1;
-    static long* offset = 0;
-
-    int  i;
-    char flctfile[512];
-
-    for (i = 0; i < (*len); i++)
-    {
-        char c = filename[i];
-
-        flctfile[i] = c;
-    }
-
-    flctfile[i] = '\0';
-
-    if (first)
-    {
-        //
-        // Read and save all the seekp() offsets in the inflow header file.
-        //
-        first = 0;
-
-        char* header = (char*)malloc((strlen(flctfile) + 5) * sizeof(char));
-
-        strcpy(header,flctfile);
-        strcpy(header,"/HDR");
-
-        FILE* fp = fopen(header, "r");
-
-        if (fp == 0)
-        {
-            fprintf(stderr, "FORT_GETPLANE: failed to open \"%s\"", header);
-            exit(1);
-        }
-
-        int    idummy;
-        double rdummy;
-        //
-        // Hardwire loop max to 3 regardless of spacedim.
-        //
-        for (i = 0; i < 3; i++)
-        {
-            if (fscanf(fp, "%d", &kmax[i]) != 1)
-            {
-                fprintf(stderr, "FORT_GETPLANE: read of kmax failed!");
-                exit(1);
-            }
-        }
-
-        for (i = 0; i < 3; i++)
-        {
-            if (fscanf(fp, "%lf", &rdummy) != 1)
-            {
-                fprintf(stderr, "FORT_GETPLANE: read of rdummy failed!");
-                exit(1);
-            }
-        }
-
-        for (i = 0; i < 3; i++)
-        {
-            if (fscanf(fp, "%d", &idummy) != 1)
-            {
-                fprintf(stderr, "FORT_GETPLANE: read of idummy failed!");
-                exit(1);
-            }
-        }
-
-        if (*isswirltype)
-        {
-            //
-            // Skip over fluct_times array.
-            //
-            for (i = 0; i < kmax[2]; i++)
-            {
-                if (fscanf(fp, "%lf", &rdummy) != 1)
-                {
-                    fprintf(stderr, "FORT_GETPLANE: second read of rdummy failed!");
-                    exit(1);
-                }
-            }
-        }
-
-        offset = (long*)malloc(kmax[2] * (*dim) * sizeof(long));
-
-        for (i = 0; i < kmax[2] * (*dim); i++)
-        {
-            if (fscanf(fp, "%ld", &offset[i]) != 1)
-            {
-                fprintf(stderr, "FORT_GETPLANE: read of offset failed!");
-                exit(1);
-            }
-        }
-
-        free(header);
-
-        fclose(fp);
-    }
-
-    char* datafile = (char*)malloc((strlen(flctfile) + 5) * sizeof(char));
-
-    strcpy(datafile,flctfile);
-    strcpy(datafile,"/DAT");
-
-    int fd = open(datafile, O_RDONLY);
-
-    if (fd == -1)
-    {
-        fprintf(stderr, "FORT_GETPLANE: failed to open \"%s\": %s\n",
-                datafile, strerror(errno));
-        exit(1);
-    }
-    //
-    // There are (dim*kmax[2]) planes of FABs.
-    // The first component are in the first kmax[2] planes,
-    // the second component in the next kmax[2] planes, ....
-    // Note also that both (*plane) and (*ncomp) start from
-    // 1 not 0 since they're passed from Fortran.
-    //
-    const long start = offset[((*plane) - 1) + (((*ncomp) - 1) * kmax[2])] ;
-
-    const int  count = kmax[0]*kmax[1];
-
-    FABIO_READ_D(&fd, &start, data, &count);
-
-    free(datafile);
-
-    FABIO_CLOSE(&fd);
 }
