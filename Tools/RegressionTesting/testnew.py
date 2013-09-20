@@ -76,7 +76,6 @@ class testObj:
         self.diffOpts = ""
 
         self.addToCompileString = ""
-        self.globalAddToExecString = ""
 
         self.reClean = 0    # set automatically, not by users
 
@@ -135,6 +134,8 @@ class suiteObj:
         self.emailTo = []
         self.emailSubject = ""
         self.emailBody = ""
+
+        self.globalAddToExecString = ""
 
         self.wallTime = 0      # set automatically, not by users
 
