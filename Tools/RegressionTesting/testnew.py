@@ -2754,7 +2754,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<PRE>\n")
     
         for line in diffLines:
-            hf.write(line)
+            hf.write(line.replace('<','&lt;').replace('>','&gt;'))
 
         hf.write("</PRE>\n")
 
