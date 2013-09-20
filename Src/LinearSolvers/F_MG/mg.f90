@@ -199,13 +199,27 @@ contains
     end do
 
     mgt%uniform_dh = .true.
+    ! These are real not integer so we have to be careful how we test on equality
     if ( present(dh) ) then
        mgt%dh(:,mgt%nlevels) = dh(:)
        select case ( mgt%dim )
        case (2)
-          mgt%uniform_dh = (dh(1) == dh(2))
+          if (dh(1) > (1.d0-1.d-8) * dh(2)  .and. &
+              dh(1) < (1.d0+1.d-8) * dh(2)) then
+              mgt%uniform_dh = .true.
+          else
+              mgt%uniform_dh = .false.
+          end if
        case (3)
           mgt%uniform_dh = ((dh(1) == dh(2)) .and. (dh(1) == dh(3)))
+          if (dh(1) > (1.d0-1.d-8) * dh(2) .and. &
+              dh(1) < (1.d0+1.d-8) * dh(2) .and. & 
+              dh(1) > (1.d0-1.d-8) * dh(3) .and. &
+              dh(1) < (1.d0+1.d-8) * dh(3) ) then
+              mgt%uniform_dh = .true.
+          else
+              mgt%uniform_dh = .false.
+          end if
        end select
     else
        mgt%dh(:,mgt%nlevels) = 1.0_dp_t
