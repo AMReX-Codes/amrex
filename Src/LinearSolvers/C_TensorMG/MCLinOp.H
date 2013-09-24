@@ -89,12 +89,14 @@ public:
     // allocate a MCLinOp for this box array, boundary and (uniform) spacing info
     //
     MCLinOp (const BndryData& mgb,
-	     const Real       _h);
+	     const Real       _h,
+	     int              _nc = MCLinOp::def_ncomp);
     //
     // allocate MCLinOp for this boxArray, boundary data and spacing array info
     //
     MCLinOp (const BndryData& mgb,
-	     const Real*      _h);
+	     const Real*      _h,
+	     int              _nc = MCLinOp::def_ncomp);
     //
     // destructor
     //
@@ -102,36 +104,36 @@ public:
     //
     // applies level MCLinOp to "in", returns "out", uses BC_mode flag
     //
-    void apply (MultiFab& out,
-		MultiFab& in,
-		int       level = 0,
-		MCBC_Mode bc_mode = MCInhomogeneous_BC);
+    virtual void apply (MultiFab& out,
+                        MultiFab& in,
+                        int       level = 0,
+                        MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
     // fills level boundary cells using BC_mode flag, int. BC data if reqd
     //
-    void applyBC (MultiFab& inout,
-		  int       level = 0,
-		  MCBC_Mode bc_mode = MCInhomogeneous_BC);
+    virtual void applyBC (MultiFab& inout,
+                          int       level = 0,
+                          MCBC_Mode bc_mode = MCInhomogeneous_BC);
     //
     // compute the level residual = rhsL - L(solnL)
     //
-    void residual (MultiFab&       residL,
-		   const MultiFab& rhsL,
-		   MultiFab&       solnL,
-		   int             level = 0,
-		   MCBC_Mode       bc_mode = MCInhomogeneous_BC);
+    virtual void residual (MultiFab&       residL,
+                           const MultiFab& rhsL,
+                           MultiFab&       solnL,
+                           int             level = 0,
+                           MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
     // smooth the level system L(solnL)=rhsL
     //
-    void smooth (MultiFab&       solnL,
-		 const MultiFab& rhsL,
-		 int             level = 0,
-		 MCBC_Mode       bc_mode = MCInhomogeneous_BC);
+    virtual void smooth (MultiFab&       solnL,
+                         const MultiFab& rhsL,
+                         int             level = 0,
+                         MCBC_Mode       bc_mode = MCInhomogeneous_BC);
     //
     // Compute the norm of "in"
     //
-    Real norm (const MultiFab& in,
-	       int             level = 0) const;
+    virtual Real norm (const MultiFab& in,
+                       int             level = 0) const;
     //
     // return the boundary data object
     //
@@ -148,6 +150,10 @@ public:
     // return the number of grids
     //
     int numGrids () const;
+    //
+    // return the number of components
+    //
+    int nComp () const {return numcomp;}
     //
     // return the number of levels
     //
@@ -183,7 +189,7 @@ public:
     //
     // compute the number of components required in BCRec.
     //
-    static int bcComponentsNeeded();
+    static int bcComponentsNeeded(int nComp = MCLinOp::def_ncomp);
 
 protected:
     //
@@ -280,6 +286,10 @@ protected:
     // default maximum BC interpolant order
     //
     static int def_maxorder;
+    //
+    // default number of components
+    //
+    static int def_ncomp;
 };
 
 inline

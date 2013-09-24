@@ -180,17 +180,26 @@ Amr::Amr ()
     datalog(PArrayManage)
 {
     Initialize();
-    InitAmr();
+    Geometry::Setup();
+    int max_level_in = -1;
+    Array<int> n_cell_in(BL_SPACEDIM);
+    for (int i = 0; i < BL_SPACEDIM; i++) n_cell_in[i] = -1;
+    InitAmr(max_level_in,n_cell_in);
+}
+
+Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
+    :
+    amr_level(PArrayManage),
+    datalog(PArrayManage)
+{
+    Initialize();
+    Geometry::Setup(rb,coord);
+    InitAmr(max_level_in,n_cell_in);
 }
 
 void
-Amr::InitAmr ()
+Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 {
-    //
-    // Setup Geometry from ParmParse file.
-    // May be needed for variableSetup or even getLevelBld.
-    //
-    Geometry::Setup();
     //
     // Determine physics class.
     //
@@ -206,8 +215,7 @@ Amr::InitAmr ()
     plot_int               = -1;
     n_proper               = 1;
     max_level              = -1;
-    multi_level_sdc        = 0;
-    last_plotfile          = 0;
+    multi_level_sdc        = 0; last_plotfile          = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
@@ -287,7 +295,11 @@ Amr::InitAmr ()
     //
     // Read max_level and alloc memory for container objects.
     //
-    pp.get("max_level", max_level);
+    if (max_level_in == -1) 
+       pp.get("max_level", max_level);
+    else
+       max_level = max_level_in;
+
     //
     // Do multi-level SDC?
     //
@@ -336,11 +348,10 @@ Amr::InitAmr ()
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
         ref_ratio[i] = IntVect::TheZeroVector();
+
     //
     // Read other amr specific values.
     //
-
-
     pp.query("n_proper",n_proper);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
@@ -482,8 +493,15 @@ Amr::InitAmr ()
     // Read computational domain and set geometry.
     //
     Array<int> n_cell(BL_SPACEDIM);
-    pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
-    BL_ASSERT(n_cell.size() == BL_SPACEDIM);
+    if (n_cell_in[0] == -1)
+    {
+       pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
+    }
+    else
+    {
+       for (i = 0; i < BL_SPACEDIM; i++) n_cell[i] = n_cell_in[i];
+    }
+    
     IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
     hi -= IntVect::TheUnitVector();
     Box index_domain(lo,hi);
@@ -1100,8 +1118,20 @@ Amr::readProbinFile (int& init)
 }
 
 void
-Amr::initialInit (Real strt_time,
-                  Real stop_time)
+Amr::initialInit (Real              strt_time,
+                  Real              stop_time,
+                  const BoxArray*   lev0_grids,
+                  const Array<int>* pmap)
+{
+    InitializeInit(strt_time, stop_time, lev0_grids, pmap);
+    FinalizeInit  (strt_time, stop_time);
+}
+
+void
+Amr::InitializeInit(Real              strt_time,
+                    Real              stop_time,
+                    const BoxArray*   lev0_grids,
+                    const Array<int>* pmap)
 {
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
     checkInput();
@@ -1135,7 +1165,13 @@ Amr::initialInit (Real strt_time,
     //
     // Define base level grids.
     //
-    defBaseLevel(strt_time);
+    defBaseLevel(strt_time, lev0_grids, pmap);
+}
+
+void
+Amr::FinalizeInit (Real              strt_time,
+                   Real              stop_time)
+{
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -1933,8 +1969,12 @@ Amr::coarseTimeStep (Real stop_time)
             fclose(fp);
         }
     }
-    ParallelDescriptor::Bcast(&to_checkpoint, 1, ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::Bcast(&to_stop,       1, ParallelDescriptor::IOProcessorNumber());
+    int packed_data[2];
+    packed_data[0] = to_stop;
+    packed_data[1] = to_checkpoint;
+    ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+    to_stop = packed_data[0];
+    to_checkpoint = packed_data[1];
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
@@ -1996,33 +2036,57 @@ Amr::writePlotNow()
 } 
 
 void
-Amr::defBaseLevel (Real strt_time)
+Amr::defBaseLevel (Real              strt_time, 
+                   const BoxArray*   lev0_grids,
+                   const Array<int>* pmap)
 {
     //
     // Check that base domain has even number of zones in all directions.
     //
-    const Box& domain = geom[0].Domain();
-    IntVect d_length  = domain.size();
-    const int* d_len  = d_length.getVect();
+    const Box& domain   = geom[0].Domain();
+    IntVect    d_length = domain.size();
+    const int* d_len    = d_length.getVect();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
         if (d_len[idir]%2 != 0)
             BoxLib::Error("defBaseLevel: must have even number of cells");
-    //
-    // Coarsening before we split the grids ensures that each resulting
-    // grid will have an even number of cells in each direction.
-    //
+
     BoxArray lev0(1);
 
-    lev0.set(0,BoxLib::coarsen(domain,2));
-    //
-    // Now split up into list of grids within max_grid_size[0] limit.
-    //
-    lev0.maxSize(max_grid_size[0]/2);
-    //
-    // Now refine these boxes back to level 0.
-    //
-    lev0.refine(2);
+    if (lev0_grids != 0 && lev0_grids->size() > 0)
+    {
+        BL_ASSERT(pmap != 0);
+
+        BoxArray domain_ba(domain);
+        if (!domain_ba.contains(*lev0_grids))
+            BoxLib::Error("defBaseLevel: domain does not contain lev0_grids!");
+        if (!lev0_grids->contains(domain_ba))
+            BoxLib::Error("defBaseLevel: lev0_grids does not contain domain");
+
+        lev0 = *lev0_grids;
+        //
+        // Make sure that the grids all go on the processor as specified by pmap;
+        //      we store this in cache so all level 0 MultiFabs will use this DistributionMap.
+        //
+        const bool put_in_cache = true;
+        DistributionMapping dmap(*pmap,put_in_cache);
+    }
+    else
+    {
+        //
+        // Coarsening before we split the grids ensures that each resulting
+        // grid will have an even number of cells in each direction.
+        //
+        lev0.set(0,BoxLib::coarsen(domain,2));
+        //
+        // Now split up into list of grids within max_grid_size[0] limit.
+        //
+        lev0.maxSize(max_grid_size[0]/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+    }
 
     //
     // If (refine_grid_layout == 1) and (Nprocs > ngrids) then break up the 
@@ -2988,4 +3052,12 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
             }
         }
     }
+}
+
+void 
+Amr::addOneParticle (int id_in, int cpu_in, 
+                     std::vector<double>& xloc, std::vector<double>& attributes)
+
+{
+    amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
