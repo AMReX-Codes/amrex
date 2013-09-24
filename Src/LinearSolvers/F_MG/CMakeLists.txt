@@ -27,14 +27,13 @@ preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
 
 set(local_source_files ${CXX_source_files} ${F77_source_files} ${FPP_out_files} ${F90_source_files})
 set(local_header_files ${C_header_files} ${CXX_header_files} ${F77_header_files} ${FPP_header_files} ${F90_header_files})
-add_library(box_fmg ${local_source_files})
+add_library(box_fmg OBJECT ${local_source_files})
 
 # The following line ensures that the mod files associated with the base lib will be build in time
 #  and tell CMake that anything that links to fmg must link to fboxlib.
-target_link_libraries(box_fmg box_f)
+add_dependencies(box_fmg box_f)
 
 add_install_include_file(${local_header_files})
-add_install_library(box_fmg)
 
 if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 endif()

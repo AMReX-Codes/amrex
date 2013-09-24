@@ -275,10 +275,29 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
     m_pmap(pmap)
 {}
 
-DistributionMapping::DistributionMapping (const Array<int>& pmap)
+DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_cache)
     :
     m_ref(new DistributionMapping::Ref(pmap))
-{}
+{
+    if (put_in_cache && ParallelDescriptor::NProcs() > 1)
+    {
+        //
+        // We want to save this pmap in the cache.
+        // It's an error if a pmap of this length has already been cached.
+        //
+        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
+             it != m_Cache.end();
+             ++it)
+        {
+            if (it->first == m_ref->m_pmap.size())
+            {
+                BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
+            }
+        }
+
+        m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    }
+}
 
 DistributionMapping::Ref::Ref (int len)
     :

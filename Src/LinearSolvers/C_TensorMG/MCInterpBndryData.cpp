@@ -60,7 +60,7 @@ MCInterpBndryData::MCInterpBndryData (const BoxArray& _grids,
 				      int             _ncomp,
 				      const Geometry& geom)
     :
-    BndryData(_grids,_ncomp,geom)
+    BndryData(_grids,MCLinOp::bcComponentsNeeded(_ncomp),geom)
 {}
 
 //
@@ -78,7 +78,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 
     BL_ASSERT(grids.size());
     BL_ASSERT(grids == mf.boxArray());
-    int nDer = MCLinOp::bcComponentsNeeded();
+    int nDer = MCLinOp::bcComponentsNeeded(num_comp);
     BL_ASSERT(bc.size()==nDer);
 
     int ratio = 1;
@@ -151,7 +151,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 
     BL_ASSERT(grids.size());
     BL_ASSERT(grids == fine.boxArray());
-    int nDer = MCLinOp::bcComponentsNeeded();
+    int nDer = MCLinOp::bcComponentsNeeded(num_comp);
     BL_ASSERT(bc.size()==nDer);
 
     for (int n=bnd_start; n<bnd_start+nDer; ++n)

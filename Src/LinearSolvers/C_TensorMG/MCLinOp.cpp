@@ -6,7 +6,7 @@
 #include <ParallelDescriptor.H>
 
 #include <LO_BCTYPES.H>
-#include <DivVis_F.H>
+#include <MCLO_F.H>
 #include <MCLinOp.H>
 
 namespace
@@ -19,6 +19,7 @@ namespace
 int MCLinOp::def_harmavg;
 int MCLinOp::def_verbose;
 int MCLinOp::def_maxorder;
+int MCLinOp::def_ncomp = BL_SPACEDIM;
 
 #ifndef NDEBUG
 //
@@ -33,9 +34,6 @@ void
 MCLinOp::Initialize ()
 {
     if (initialized) return;
-    //
-    // Set defaults here!!!
-    //
     MCLinOp::def_harmavg  = 0;
     MCLinOp::def_verbose  = 0;
     MCLinOp::def_maxorder = 2;
@@ -44,6 +42,7 @@ MCLinOp::Initialize ()
 
     pp.query("harmavg", def_harmavg);
     pp.query("v",       def_verbose);
+    pp.query("maxorder",def_maxorder);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
 	std::cout << "def_harmavg = " << def_harmavg << '\n';
@@ -60,11 +59,11 @@ MCLinOp::Finalize ()
 }
 
 MCLinOp::MCLinOp (const BndryData& _bgb,
-		  const Real       _h)
-    :
-    bgb(_bgb)
+		  const Real       _h,
+		  int              _nc)
+    : numcomp(_nc), bgb(_bgb)
 {
-    BL_ASSERT (MCLinOp::bcComponentsNeeded() == bgb.nComp());
+    BL_ASSERT (MCLinOp::bcComponentsNeeded(numcomp) == bgb.nComp());
     Real __h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -74,11 +73,11 @@ MCLinOp::MCLinOp (const BndryData& _bgb,
 }
 
 MCLinOp::MCLinOp (const BndryData& _bgb,
-		  const Real*      _h)
-    :
-    bgb(_bgb)
+		  const Real*      _h,
+		  int              _nc)
+    : numcomp(_nc), bgb(_bgb)
 {
-    BL_ASSERT (MCLinOp::bcComponentsNeeded() == bgb.nComp());
+    BL_ASSERT (MCLinOp::bcComponentsNeeded(numcomp) == bgb.nComp());
     initConstruct(_h);
 }
 
@@ -152,9 +151,15 @@ MCLinOp::initConstruct (const Real* _h)
 }
 
 int
-MCLinOp::bcComponentsNeeded()
+MCLinOp::bcComponentsNeeded(int ncomp)
 {
-  return D_TERM(1,*BL_SPACEDIM,*BL_SPACEDIM) + BL_SPACEDIM;
+  int nc;
+#if (BL_SPACEDIM==2)
+  nc = ncomp * 2; // Tangential derivatives for each comp
+#else
+  nc = ncomp * (1 + BL_SPACEDIM); // D-1 tang derivs for ea, but waste one slot to simplify indexing
+#endif
+  return nc;
 }
 
 void

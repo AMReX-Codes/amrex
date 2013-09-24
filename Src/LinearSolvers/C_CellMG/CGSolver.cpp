@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
+
+using std::isinf;
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
@@ -770,7 +772,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         }
     }
 
-    if ( niters == maxiter && !BiCGStabFailed && !BiCGStabConverged)
+    if ( niters >= maxiter && !BiCGStabFailed && !BiCGStabConverged)
     {
         if ( L2_norm_of_resid > L2_norm_of_rt )
         {

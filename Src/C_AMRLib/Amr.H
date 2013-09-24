@@ -34,7 +34,8 @@ public:
     // The constructor.
     //
     Amr ();
-    void InitAmr();
+    Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord);
+    void InitAmr(int max_level_in, Array<int> n_cell_in);
     //
     // The destructor.
     //
@@ -47,6 +48,15 @@ public:
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
+    //
+    // First part of initialInit
+    //
+    void InitializeInit (Real strt_time, Real stop_time, 
+                         const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+    //
+    // Second part of initialInit
+    //
+    void FinalizeInit (Real strt_time, Real stop_time); 
     //
     // Set the timestep on each level.
     //
@@ -329,27 +339,31 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
+    //
+    // Add one particle at a time.
+    //
+    void addOneParticle (int id_in, int cpu_in, 
+                         std::vector<double>& xloc, std::vector<double>& attributes);
+
 protected:
     //
     // Used by grid_places().
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-
     //
     // Array of BoxArrays read in to initially define grid hierarchy
     //
     static Array<BoxArray> initial_ba;
-
     //
     // Array of BoxArrays read in to externally define grid hierarchy at each regrid
     //
     static Array<BoxArray> regrid_ba;
-
     //
-    // Initialize grid hierarchy.
+    // Initialize grid hierarchy -- called by Amr::init.
     //
-    void initialInit (Real strt_time, Real stop_time);
+    void initialInit (Real strt_time, Real stop_time, 
+                      const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Read the probin file.
     //
@@ -365,7 +379,7 @@ protected:
     //
     // Define and initialize coarsest level.
     //
-    void defBaseLevel (Real start_time);
+    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Define and initialize refined levels.
     //

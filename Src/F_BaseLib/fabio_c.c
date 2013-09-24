@@ -44,8 +44,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
 #define FAB_CONTAINS_INF  fab_contains_inf_
-#define VAL_IS_INF val_is_inf_
-#define VAL_IS_NAN val_is_nan_
+#define VAL_IS_INF        val_is_inf_
+#define VAL_IS_NAN        val_is_nan_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
@@ -63,8 +63,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
 #define FAB_CONTAINS_INF  fab_contains_inf__
-#define VAL_IS_INF val_is_inf__
-#define VAL_IS_NAN val_is_nan__
+#define VAL_IS_INF        val_is_inf__
+#define VAL_IS_NAN        val_is_nan__
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
@@ -82,8 +82,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close
 #define FAB_CONTAINS_NAN  fab_contains_nan
 #define FAB_CONTAINS_INF  fab_contains_inf
-#define VAL_IS_INF val_is_inf
-#define VAL_IS_NAN val_is_nan
+#define VAL_IS_INF        val_is_inf
+#define VAL_IS_NAN        val_is_nan
 #endif
 
 static
