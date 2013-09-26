@@ -88,7 +88,7 @@ void Profiler::Initialize() {
     procNumber = ParallelDescriptor::MyProc();
   } else {
     procName = cProcName;
-#ifdef HOPPER
+#ifdef BL_HOPPER
     procNumber = atoi(procName.substr(3, string::npos).c_str());
 #else
     procNumber = ParallelDescriptor::MyProc();

@@ -11,26 +11,26 @@
 class BoxArray;
 
 //
-// Calculates the distribution of FABs to processors.
+// Calculates the distribution of FABs to MPI processes.
 //
-//  This class calculates the distribution of FABs to processors in a
+//  This class calculates the distribution of FABs to MPI processes in a
 //  FabArray in a multi-processor environment.  By distribution is meant what
-//  CPU in the multi-processor environment owns what FAB.  Only the BoxArray
+//  MPI process in the multi-processor environment owns what FAB.  Only the BoxArray
 //  on which the FabArray is built is used in determining the distribution.
-//  The two types of distributions supported are round-robin and knapsack.  In
-//  the round-robin distribution FAB i is owned by CPU i%N where N is total
-//  number of CPUs.  In the knapsack distribution the FABs are partitioned
-//  across CPUs such that the total volume of the Boxes in the underlying
-//  BoxArray are as equal across CPUs as is possible.
+//  The three types of distributions supported are round-robin, knapsack, and
+//  space filling curve.  In the round-robin distribution FAB i is owned by CPU
+//  i%N where N is total number of MPI processes.  In the knapsack distribution
+//  the FABs are partitioned across CPUs such that the total volume of the
+//  Boxes in the underlying BoxArray are as equal across CPUs as is possible.
 //
 
 class DistributionMapping
 {
   public:
     //
-    // The distribution strategy: ROUNDROBIN, KNAPSACK or SFC.
+    // The distribution strategy: ROUNDROBIN, KNAPSACK, SFC, or PFC.
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK, SFC };
+    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC };
     //
     // The default constructor.
     //
@@ -123,6 +123,7 @@ class DistributionMapping
     bool operator!= (const DistributionMapping& rhs) const;
 
     void SFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
+    void PFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
     void KnapSackProcessorMap   (const std::vector<long>& wgts, int nprocs, double* efficiency = 0, bool do_full_knapsack = true);
     void RoundRobinProcessorMap (int nboxes, int nprocs);
     //
@@ -133,6 +134,7 @@ class DistributionMapping
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
     //   DistributionMapping.strategy = SFC
+    //   DistributionMapping.strategy = PFC
     //
     static void Initialize ();
 
@@ -148,6 +150,7 @@ private:
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
+    void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
 
     typedef std::pair<long,int> LIpair;
 
@@ -174,6 +177,10 @@ private:
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
                               int                      nprocs);
+
+    void PFCProcessorMapDoIt (const BoxArray&          boxes,
+                              const std::vector<long>& wgts,
+                              int                      nprocs);
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
@@ -183,11 +190,16 @@ private:
     //
     bool GetMap (const BoxArray& boxes);
     //
+    // Initialize the topological proximity map
+    //
+    static void InitProximityMap();
+    static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
+    //
     // A useful typedef.
     //
     typedef void (DistributionMapping::*PVMF)(const BoxArray&,int);
     //
-    // Everyone uses the same Strategy -- defaults to KNAPSACK.
+    // Everyone uses the same Strategy -- defaults to SFC.
     //
     static Strategy m_Strategy;
     //
@@ -227,6 +239,10 @@ private:
     // Our cache of processor maps.
     //
     static std::map< int,LnClassPtr<Ref> > m_Cache;
+    //
+    // Topological proximity map
+    //
+    static Array<int> proximityMap;    // i == rank, pMap[i] == proximity mapped rank
 };
 
 //
