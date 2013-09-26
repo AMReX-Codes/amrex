@@ -337,9 +337,10 @@ ParallelDescriptor::StartParallel (int*    argc,
 
 
   //sleep(m_MyId_all);
-  std::cout << "world: rank " << m_MyId_all << " in [0," << m_nProcs_all-1 << "]" << std::endl;
 
     if(nPerfmonProcs > 0) {
+      std::cout << "world: rank " << m_MyId_all << " in [0,"
+                << m_nProcs_all-1 << "]" << std::endl;
       int tag(m_MaxTag + 1);
       if(m_MyId_all == m_MyId_all_perfmon) {  // ---- in perfmon group
         MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
@@ -355,15 +356,14 @@ ParallelDescriptor::StartParallel (int*    argc,
 	                     tag, &m_comm_inter);
 	m_nProcs_perfmon = nPerfmonProcs;
         //sleep(m_MyId_comp);
-        std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0," << m_nProcs_comp-1 << "]" << std::endl;
-
+        std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0,"
+	          << m_nProcs_comp-1 << "]" << std::endl;
   }
 
     } else {
       m_MyId_comp   = m_MyId_all;
       m_nProcs_comp = m_nProcs_all;
     }
-
 
     //
     // Wait until all other processes are properly started.

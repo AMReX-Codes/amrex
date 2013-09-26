@@ -7,8 +7,10 @@
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <Profiler.H>
+#include <FArrayBox.H>
 
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <list>
 #include <map>
@@ -16,6 +18,9 @@
 #include <queue>
 #include <algorithm>
 #include <numeric>
+#include <string>
+#include <cstring>
+using std::string;
 
 namespace
 {
@@ -69,6 +74,9 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
         break;
     case SFC:
         m_BuildMap = &DistributionMapping::SFCProcessorMap;
+        break;
+    case PFC:
+        m_BuildMap = &DistributionMapping::PFCProcessorMap;
         break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
@@ -132,6 +140,12 @@ DistributionMapping::Initialize ()
         else if (theStrategy == "SFC")
         {
             strategy(SFC);
+        }
+        else if (theStrategy == "PFC")
+        {
+            strategy(PFC);
+
+	    DistributionMapping::InitProximityMap();
         }
         else
         {
@@ -1046,6 +1060,371 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
 }
+
+
+namespace
+{
+    struct PFCToken
+    {
+        class Compare
+        {
+        public:
+            bool operator () (const PFCToken& lhs,
+                              const PFCToken& rhs) const;
+        };
+
+        PFCToken (int box, const IntVect& idx, Real vol)
+            :
+            m_box(box), m_idx(idx), m_vol(vol) {}
+
+        int     m_box;
+        IntVect m_idx;
+        Real    m_vol;
+    };
+}
+
+
+
+bool
+PFCToken::Compare::operator () (const PFCToken& lhs,
+                                const PFCToken& rhs) const
+{
+  return lhs.m_idx.lexLT(rhs.m_idx);
+}
+
+
+static
+void
+Distribute (const std::vector<PFCToken>&     tokens,
+            int                              nprocs,
+            Real                             volpercpu,
+            std::vector< std::vector<int> >& v)
+
+{
+    BL_ASSERT(v.size() == nprocs);
+
+    int  K        = 0;
+    Real totalvol = 0;
+
+    const int Navg = tokens.size() / nprocs;
+
+    for (int i = 0; i < nprocs; i++)
+    {
+        int  cnt = 0;
+        Real vol = 0;
+
+        v[i].reserve(Navg + 2);
+
+        for ( int TSZ = tokens.size();
+              K < TSZ && (i == (nprocs-1) || vol < volpercpu);
+              cnt++, K++)
+        {
+            vol += tokens[K].m_vol;
+
+            v[i].push_back(tokens[K].m_box);
+        }
+
+        totalvol += vol;
+
+        if ((totalvol/(i+1)) > volpercpu &&
+            cnt > 1                      &&
+            K < tokens.size())
+        {
+            K--;
+            v[i].pop_back();
+            totalvol -= tokens[K].m_vol;;
+        }
+    }
+
+#ifndef NDEBUG
+    int cnt = 0;
+    for (int i = 0; i < nprocs; i++)
+    {
+        cnt += v[i].size();
+    }
+    BL_ASSERT(cnt == tokens.size());
+#endif
+}
+
+void
+DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
+                                          const std::vector<long>& wgts,
+                                          int                      nprocs)
+{
+    BL_PROFILE("DistributionMapping::PFCProcessorMapDoIt()");
+
+    std::vector<PFCToken> tokens;
+    tokens.reserve(boxes.size());
+    int maxijk = 0;
+
+    for (int i = 0, N = boxes.size(); i < N; i++)
+    {
+        tokens.push_back(PFCToken(i,boxes[i].smallEnd(),wgts[i]));
+        const PFCToken& token = tokens.back();
+
+        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+               maxijk = std::max(maxijk, token.m_idx[1]);,
+               maxijk = std::max(maxijk, token.m_idx[2]););
+    }
+
+    std::sort(tokens.begin(), tokens.end(), PFCToken::Compare());  // sfc order
+
+    // Split'm up as equitably as possible per CPU.
+    Real volpercpu = 0;
+    for (int i = 0, N = tokens.size(); i < N; i++)
+    {
+        volpercpu += tokens[i].m_vol;
+    }
+    volpercpu /= nprocs;
+
+    std::vector< std::vector<int> > vec(nprocs);
+
+    Distribute(tokens,nprocs,volpercpu,vec);
+
+    tokens.clear();
+
+    Array<long> wgts_per_cpu(nprocs,0);
+
+    for (unsigned int i = 0, N = vec.size(); i < N; i++)
+    {
+        const std::vector<int>& vi = vec[i];
+
+        for (int j = 0, M = vi.size(); j < M; j++)
+	{
+            wgts_per_cpu[i] += wgts[vi[j]];
+	}
+    }
+
+    std::vector<LIpair> LIpairV;
+
+    LIpairV.reserve(nprocs);
+
+    for (int i = 0; i < nprocs; i++)
+    {
+        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
+    }
+
+    Sort(LIpairV, true);
+
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
+
+    for (int i = 0; i < nprocs; i++)
+    {
+        const int cpu = ord[i];
+        const int idx = LIpairV[i].second;
+
+        const std::vector<int>& vi = vec[idx];
+
+        for (int j = 0, N = vi.size(); j < N; j++)
+        {
+            m_ref->m_pmap[vi[j]] = cpu;
+        }
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        Real sum_wgt = 0, max_wgt = 0;
+        for (int i = 0, N = wgts_per_cpu.size(); i < N; i++)
+        {
+            const long W = wgts_per_cpu[i];
+            if (W > max_wgt)
+                max_wgt = W;
+            sum_wgt += W;
+        }
+
+        std::cout << "PFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+    }
+}
+
+void
+DistributionMapping::PFCProcessorMap (const BoxArray& boxes,
+                                      int             nprocs)
+{
+    BL_ASSERT(boxes.size() > 0);
+
+    if (m_ref->m_pmap.size() != boxes.size() + 1)
+    {
+        m_ref->m_pmap.resize(boxes.size()+1);
+    }
+
+    std::vector<long> wgts;
+
+    wgts.reserve(boxes.size());
+
+    for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+    {
+      wgts.push_back(it->volume());
+    }
+
+    PFCProcessorMapDoIt(boxes,wgts,nprocs);
+}
+
+void
+DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
+                                      const std::vector<long>& wgts,
+                                      int                      nprocs)
+{
+    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT(boxes.size() == wgts.size());
+
+    if (m_ref->m_pmap.size() != wgts.size() + 1)
+    {
+        m_ref->m_pmap.resize(wgts.size()+1);
+    }
+
+    PFCProcessorMapDoIt(boxes,wgts,nprocs);
+}
+
+
+namespace
+{
+  int ProcNumber(std::string procName) {
+#ifdef BL_HOPPER
+    return(atoi(procName.substr(3, string::npos).c_str()));
+#else
+    return ParallelDescriptor::MyProc();
+#endif
+  }
+}
+
+Array<int> DistributionMapping::proximityMap;
+
+void
+DistributionMapping::InitProximityMap()
+{
+  int myProc(ParallelDescriptor::MyProc());
+  int nProcs(ParallelDescriptor::NProcs());
+
+  // turn rank into a processor number (node id)
+  int resultLen(-1);
+  char procName[MPI_MAX_PROCESSOR_NAME + 11];
+#ifdef BL_USE_MPI
+  MPI_Get_processor_name(procName, &resultLen);
+#endif
+  if(resultLen < 1) {
+    strcpy(procName, "NoProcName");
+  }
+  int procNumber(ProcNumber(procName));
+
+  Array<int> procNumbers(nProcs, -1);
+
+  MPI_Allgather(&procNumber, 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                procNumbers.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                ParallelDescriptor::Communicator());
+
+  std::multimap<int, int> pNumRankMM;    // [procNumber, rank]
+  std::map<int, int> rankPNumMap;        // [rank, procNumber]
+  for(int i(0); i < procNumbers.size(); ++i) {
+    pNumRankMM.insert(std::pair<int, int>(procNumbers[i], i));
+    rankPNumMap.insert(std::pair<int, int>(i, procNumbers[i]));
+  }
+
+  // order ranks by procNumber
+  Array<int> pNumOrderRank(nProcs, -1);
+  int pnor(0);
+  for(std::multimap<int, int>::iterator mmit = pNumRankMM.begin();
+      mmit != pNumRankMM.end(); ++mmit)
+  {
+    pNumOrderRank[pnor++] = mmit->second;
+  }
+
+  proximityMap.resize(ParallelDescriptor::NProcs());
+
+  if(ParallelDescriptor::IOProcessor())
+  {
+    FArrayBox tFab;
+    std::ifstream ifs("topolcoords.3d.fab");
+    if( ! ifs.good())
+    {
+      std::cerr << "**** Error in DistributionMapping::InitProximityMap():  "
+                << "cannot open topolcoords.3d.fab" << std::endl;
+      // set a reasonable default
+
+    } else {
+      tFab.readFrom(ifs);
+      ifs.close();
+      Box tBox(tFab.box());
+      std::cout << "tBox = " << tBox << "  ncomp = " << tFab.nComp() << std::endl;
+
+      // ------------------------------- make sfc from tFab
+      std::vector<SFCToken> tFabTokens;  // use SFCToken here instead of PFC
+      tFabTokens.reserve(tBox.numPts());
+      int maxijk(0);
+
+      int i(0);
+      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv))
+      {
+          tFabTokens.push_back(SFCToken(i++, iv, 1.0));
+          const SFCToken &token = tFabTokens.back();
+
+          D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+                 maxijk = std::max(maxijk, token.m_idx[1]);,
+                 maxijk = std::max(maxijk, token.m_idx[2]););
+      }
+      // Set SFCToken::MaxPower for BoxArray.
+      int m = 0;
+      for ( ; (1<<m) <= maxijk; m++)
+      {
+          ;  // do nothing
+      }
+      SFCToken::MaxPower = m;
+      //
+      // Put'm in Morton space filling curve order.
+      //
+      std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());
+      FArrayBox tFabSFC(tBox, -1.0);
+      for(int i(0); i < tFabTokens.size(); ++i)
+      {
+	IntVect &iv = tFabTokens[i].m_idx;
+        tFabSFC(iv) = i;
+      }
+      std::ofstream tfofs("tFabSFC.3d.fab");
+      tFabSFC.writeOn(tfofs);
+      tfofs.close();
+      // ------------------------------- end make sfc from tFab
+
+      std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
+      for(int nc(0); nc < tFab.nComp(); ++nc) {
+        for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
+          int pnum(tFab(iv, nc));
+          if(pnum >= 0) {
+            std::cout << ">>>> iv pnum = " << iv << "  " << pnum << std::endl;
+            pNumTopIVMap[pnum] = iv;
+          }
+        }
+      }
+      // now we know the physical position (iv in the 3d torus) from the node id
+
+
+
+
+    }
+
+  }
+
+}
+
+
+int
+DistributionMapping::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto)
+{
+    int nhops(0);
+  for(int d(0); d < BL_SPACEDIM; ++d) {
+    int bl(tbox.length(d));
+    int ivl(std::min(ivfrom[d], ivto[d]));
+    int ivh(std::max(ivfrom[d], ivto[d]));
+    int dist(std::min(ivh - ivl, ivl + bl - ivh));
+    nhops += dist;
+  }
+  return nhops;
+}
+
 
 void
 DistributionMapping::CacheStats (std::ostream& os)
