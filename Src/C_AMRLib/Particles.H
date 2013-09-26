@@ -1276,7 +1276,7 @@ ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
 
         if (!ifs.good()) break;
 
-        if (m_verbose > 1)
+        if (m_verbose > 1 && ParallelDescriptor::IOProcessor())
             std::cout << "InitFromBinaryMetaFile: processing file: " << file << '\n';
 
         InitFromBinaryFile(file, extradata);
