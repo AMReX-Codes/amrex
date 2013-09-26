@@ -606,11 +606,6 @@ ParticleBase::Where (ParticleBase& p,
 
             return true;
         }
-        else 
-        {
-            std::cout << "BAD ID " << p.m_id << std::endl;
-            std::cout << "BAD LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
-        }
     }
     return false;
 }
