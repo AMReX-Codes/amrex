@@ -71,12 +71,6 @@ class DistributionMapping
     // with the default constructor.
     //
     void define (const BoxArray& boxes, int nprocs);
-
-    //
-    // Build mapping given a pmap.
-    //
-    void define (const Array<int>& pmap, bool put_in_cache);
-
     //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
