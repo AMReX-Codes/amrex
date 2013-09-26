@@ -264,6 +264,8 @@ public:
 
     void InitFromBinaryFile (const std::string& file, int extradata);
 
+    void InitFromBinaryMetaFile (const std::string& file, int extradata);
+
     void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
@@ -1248,6 +1250,48 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "InitFromBinaryFile() time: " << runtime << '\n';
+    }
+}
+
+//
+// This function expects to read a file containing the pathnames of
+// binary particles files needing to be read in for input.  It expects
+// one file name per line.
+//
+
+template <int N>
+void
+ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
+                                              int                extradata)
+{
+    const Real strttime = ParallelDescriptor::second();
+
+    std::ifstream ifs(metafile.c_str(), std::ios::in);
+
+    std::string file;
+
+    for (;;)
+    {
+        std::getline(ifs,file);
+
+        if (!ifs.good()) break;
+
+//        if (m_verbose > 1)
+            std::cout << "InitFromBinaryMetaFile: processing file: " << file << '\n';
+
+        InitFromBinaryFile(file, extradata);
+    }
+
+    if (m_verbose > 1)
+    {
+        ByteSpread();
+
+        Real runtime = ParallelDescriptor::second() - strttime;
+
+        ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "InitFromBinaryMetaFile() time: " << runtime << '\n';
     }
 }
 
