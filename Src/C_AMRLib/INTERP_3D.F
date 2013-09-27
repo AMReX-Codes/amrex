@@ -1164,7 +1164,7 @@ c :::
       subroutine FORT_PROTECT_INTERP (fine, DIMS(fine), fblo, fbhi, 
      &                                crse, DIMS(crse), cblo, cbhi,
      &                                fine_state, DIMS(state), 
-     &                                nvar, lratiox, lratioy, lratioz, bc)
+     &                                nvar, lratiox,lratioy,lratioz, bc)
 
       implicit none
 
@@ -1191,7 +1191,8 @@ c :::
       integer icase
 
       if (MAX(lratiox,lratioy,lratioz).gt.rMAX) then
-         print *,'rMAX in INTERP_3D::FORT_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy,lratioz)
+         print *,'rMAX in INTERP_3D::FORT_PROTECT_INTERP must be >= ',
+     $        MAX(lratiox,lratioy,lratioz)
          call bl_abort(" ")
       endif
 
@@ -1372,7 +1373,7 @@ c                cells having the same negative value.
                endif
 
                if (crseTot .lt. 0.d0 .and. abs(crseTot) .lt. sumP
-     $                               .and. (sumP+sumN+crseTot) .gt. 0.d0) then
+     $              .and. (sumP+sumN+crseTot) .gt. 0.d0) then
 c              Here we have enough positive states to absorb all the
 c                negative correction *and* redistribute to make negative cells
 c                positive. 
@@ -1395,7 +1396,7 @@ c                positive.
                endif
 
                if (crseTot .lt. 0.d0. and. abs(crseTot) .lt. sumP
-     $                               .and. (sumP+sumN+crseTot) .le. 0.d0) then
+     $              .and. (sumP+sumN+crseTot) .le. 0.d0) then
 c              Here we have enough positive states to absorb all the
 c                negative correction, but not to fix the states already negative. 
 c                We bring all the positive states to zero, and use whatever 
@@ -1544,13 +1545,83 @@ c      Local variables
        data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
      $          -0.01171875D0 /
        
-c$$$       else if (lratiox.eq.4 .and. lratioy.eq.4) then
-c$$$c      todo
-c$$$          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
-c$$$          stop
-c$$$       else
-c$$$          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
-c$$$          stop
-c$$$       endif
+       if (lratiox.eq.2 .and. lratioy.eq.2 .and. lratioz.eq.2) then
+
+          do n = 1, nvar
+          do k = cb2lo(3), cb2hi(3)
+
+             do j = cblo(2), cbhi(2)
+             do i = cblo(1), cbhi(1)
+                ctmp2(i,j,0) = 2.d0*(cL(-2)*crse(i,j,k-2,n) 
+     $               +               cL(-1)*crse(i,j,k-1,n)
+     $               +               cL( 0)*crse(i,j,k  ,n)
+     $               +               cL( 1)*crse(i,j,k+1,n)
+     $               +               cL( 2)*crse(i,j,k+2,n))
+                ctmp2(i,j,1) = 2.d0*(cR(-2)*crse(i,j,k-2,n) 
+     $               +               cR(-1)*crse(i,j,k-1,n)
+     $               +               cR( 0)*crse(i,j,k  ,n)
+     $               +               cR( 1)*crse(i,j,k+1,n)
+     $               +               cR( 2)*crse(i,j,k+2,n))
+             enddo
+             enddo
+
+             do irz = 0, 1
+                kk = k*2+irz
+                if (kk.ge.fblo(3) .and. kk.le.fbhi(3)) then
+
+                   do j = cb2lo(2), cb2hi(2)
+
+                      do i = cblo(1), cbhi(1)
+                         ctmp(i,0) = 2.d0*(cL(-2)*ctmp2(i,j-2,irz) 
+     $                        +            cL(-1)*ctmp2(i,j-1,irz)
+     $                        +            cL( 0)*ctmp2(i,j  ,irz)
+     $                        +            cL( 1)*ctmp2(i,j+1,irz)
+     $                        +            cL( 2)*ctmp2(i,j+2,irz))
+                         ctmp(i,1) = 2.d0*(cR(-2)*ctmp2(i,j-2,irz) 
+     $                        +            cR(-1)*ctmp2(i,j-1,irz)
+     $                        +            cR( 0)*ctmp2(i,j  ,irz)
+     $                        +            cR( 1)*ctmp2(i,j+1,irz)
+     $                        +            cR( 2)*ctmp2(i,j+2,irz))
+                      enddo
+
+                      do iry = 0, 1
+                         jj = j*2+iry
+
+                         if (jj.ge.fblo(2).and.jj.le.fbhi(2)) then
+                            do i = cb2lo(1), cb2hi(1)
+                               ii = 2*i
+                               ftmp(ii  ) = 2.d0*(cL(-2)*ctmp(i-2,iry) 
+     $                              +             cL(-1)*ctmp(i-1,iry)
+     $                              +             cL( 0)*ctmp(i  ,iry)
+     $                              +             cL( 1)*ctmp(i+1,iry)
+     $                              +             cL( 2)*ctmp(i+2,iry))
+                               ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
+     $                              +             cR(-1)*ctmp(i-1,iry)
+     $                              +             cR( 0)*ctmp(i  ,iry)
+     $                              +             cR( 1)*ctmp(i+1,iry)
+     $                              +             cR( 2)*ctmp(i+2,iry))
+                            enddo
+                            do ii = fblo(1), fbhi(1)
+                               fine(ii,jj,kk,n) = ftmp(ii)
+                            enddo
+                         endif  ! if (jj.ge.......
+                      enddo  ! do iry
+
+                   enddo  ! do j
+
+                endif  ! if (kk.ge.......
+             enddo  ! do irz
+
+          enddo  ! do k
+          enddo  ! do n
+
+       else if (lratiox.eq.4 .and. lratioy.eq.4 .and. lratioz.eq.4) then
+c      todo
+          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+          stop
+       else
+          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+          stop
+       endif
 
        end
