@@ -3771,16 +3771,41 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
+        } 
+    }
 
-            // Move the particle to the proper ghost cell. 
-            //      and remove any *ghost* particles that have gone too far
-            // Note that this should only negate ghost particles, not real particles.
-            if (m_amr->subCycle() && !ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow()-2))
+    if (lev > 0 && m_amr->subCycle())
+    {
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&            pbox = pmap_it->second;
+            const int        n    = pbox.size();
+ 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < n; i++)
             {
-                // Assert that the particle being removed is a ghost particle;
-                // the ghost particle is no longer in relevant ghost cells for this grid.
-                BL_ASSERT(p.m_id == GhostParticleID);
-                p.m_id = -1;
+                ParticleType& p = pbox[i];
+                if (p.m_id <= 0) continue;
+
+                // Move the particle to the proper ghost cell. 
+                //      and remove any *ghost* particles that have gone too far
+                // Note that this should only negate ghost particles, not real particles.
+                if (!ParticleBase::RestrictedWhere(p,m_amr, grav_vector.nGrow()-2))
+                {
+                    // Assert that the particle being removed is a ghost particle;
+                    // the ghost particle is no longer in relevant ghost cells for this grid.
+                    if (p.m_id == GhostParticleID)
+                    {
+                        p.m_id = -1;
+                    }
+                    else
+                    {
+                        std::cout << "Oops -- removing particle " << p.m_id << std::endl;
+                        BoxLib::Error("Trying to get rid of a non-ghost particle in moveKickDrift");
+                    }
+                }
             }
         }
     }
@@ -3796,8 +3821,6 @@ ParticleContainer<N>::moveKickDrift (const MultiFab& grav_vector,
             std::cout << "ParticleContainer<N>::moveKickDrift() time: " << stoptime << '\n';
         }
     }
-
-    //Redistribute(true);
 }
 
 
