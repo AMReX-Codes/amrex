@@ -1539,11 +1539,12 @@ c :::
 
 c      Local variables
        integer i,j,k,ii,jj,kk,n,iry,irz
-       REAL_T cL(-2:2), cR(-2:2)
+       REAL_T cL(-2:2)
+c       REAL_T cR(-2:2)
        data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
      $           0.01171875D0 /
-       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
-     $          -0.01171875D0 /
+c       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
+c     $          -0.01171875D0 /
        
        if (lratiox.eq.2 .and. lratioy.eq.2 .and. lratioz.eq.2) then
 
@@ -1557,11 +1558,12 @@ c      Local variables
      $               +               cL( 0)*crse(i,j,k  ,n)
      $               +               cL( 1)*crse(i,j,k+1,n)
      $               +               cL( 2)*crse(i,j,k+2,n))
-                ctmp2(i,j,1) = 2.d0*(cR(-2)*crse(i,j,k-2,n) 
-     $               +               cR(-1)*crse(i,j,k-1,n)
-     $               +               cR( 0)*crse(i,j,k  ,n)
-     $               +               cR( 1)*crse(i,j,k+1,n)
-     $               +               cR( 2)*crse(i,j,k+2,n))
+                ctmp2(i,j,1) = 2.d0*crse(i,j,k,n) - ctmp2(i,j,0)
+c$$$                ctmp2(i,j,1) = 2.d0*(cR(-2)*crse(i,j,k-2,n) 
+c$$$     $               +               cR(-1)*crse(i,j,k-1,n)
+c$$$     $               +               cR( 0)*crse(i,j,k  ,n)
+c$$$     $               +               cR( 1)*crse(i,j,k+1,n)
+c$$$     $               +               cR( 2)*crse(i,j,k+2,n))
              enddo
              enddo
 
@@ -1577,11 +1579,12 @@ c      Local variables
      $                        +            cL( 0)*ctmp2(i,j  ,irz)
      $                        +            cL( 1)*ctmp2(i,j+1,irz)
      $                        +            cL( 2)*ctmp2(i,j+2,irz))
-                         ctmp(i,1) = 2.d0*(cR(-2)*ctmp2(i,j-2,irz) 
-     $                        +            cR(-1)*ctmp2(i,j-1,irz)
-     $                        +            cR( 0)*ctmp2(i,j  ,irz)
-     $                        +            cR( 1)*ctmp2(i,j+1,irz)
-     $                        +            cR( 2)*ctmp2(i,j+2,irz))
+                         ctmp(i,1) = 2.d0*ctmp2(i,j,irz) - ctmp(i,0)
+c$$$                         ctmp(i,1) = 2.d0*(cR(-2)*ctmp2(i,j-2,irz) 
+c$$$     $                        +            cR(-1)*ctmp2(i,j-1,irz)
+c$$$     $                        +            cR( 0)*ctmp2(i,j  ,irz)
+c$$$     $                        +            cR( 1)*ctmp2(i,j+1,irz)
+c$$$     $                        +            cR( 2)*ctmp2(i,j+2,irz))
                       enddo
 
                       do iry = 0, 1
@@ -1595,11 +1598,12 @@ c      Local variables
      $                              +             cL( 0)*ctmp(i  ,iry)
      $                              +             cL( 1)*ctmp(i+1,iry)
      $                              +             cL( 2)*ctmp(i+2,iry))
-                               ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
-     $                              +             cR(-1)*ctmp(i-1,iry)
-     $                              +             cR( 0)*ctmp(i  ,iry)
-     $                              +             cR( 1)*ctmp(i+1,iry)
-     $                              +             cR( 2)*ctmp(i+2,iry))
+                               ftmp(ii+1) = 2.d0*ctmp(i,iry) - ftmp(ii)
+c$$$                               ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
+c$$$     $                              +             cR(-1)*ctmp(i-1,iry)
+c$$$     $                              +             cR( 0)*ctmp(i  ,iry)
+c$$$     $                              +             cR( 1)*ctmp(i+1,iry)
+c$$$     $                              +             cR( 2)*ctmp(i+2,iry))
                             enddo
                             do ii = fblo(1), fbhi(1)
                                fine(ii,jj,kk,n) = ftmp(ii)
