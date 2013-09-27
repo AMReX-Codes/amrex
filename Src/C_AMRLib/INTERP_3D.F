@@ -1429,16 +1429,20 @@ c                remaining positiveness from the states to help the negative sta
 
                if (abs(sum_fine_new - sum_fine_old) .gt. 1.e-8) then
                   print *,' '
-                  print *,'PROTECT_INTERP: BLEW CONSERVATION with ICASE = ',icase
+                  print *,
+     $                 'PROTECT_INTERP: BLEW CONSERVATION with ICASE = '
+     $                 ,icase
                   print *,'AT COARSE CELL ',ic,jc,kc,' AND COMPONENT ',n
-                  print *,'NEW SUM / OLD SUM ',sum_fine_new, sum_fine_old
+                  print *,'NEW SUM / OLD SUM ',
+     $                 sum_fine_new, sum_fine_old
                   print *,'CRSETOT ',crseTot
                   print *,'SUMP SUMN ',sumP,sumN
                   do k = klo,khi
                   do j = jlo,jhi
                   do i = ilo,ihi
-                     print *,'FINE OLD NEW ',i,j,k,orig_fine(i-ilo,j-jlo,k-klo),
-     $                                       fine(i,j,k,n), fine_state(i,j,k,n)
+                     print *,'FINE OLD NEW ',
+     $                    i,j,k,orig_fine(i-ilo,j-jlo,k-klo),
+     $                    fine(i,j,k,n), fine_state(i,j,k,n)
                   enddo
                   enddo
                   enddo
@@ -1482,3 +1486,71 @@ c     End of coarse index loops
       enddo
       enddo
       end
+
+c ::: 
+c ::: --------------------------------------------------------------
+c ::: quartinterp: quartic conservative interpolation from coarse grid to
+c ::: subregion of fine grid defined by (fblo,fbhi)
+c ::: 
+c ::: Inputs/Outputs
+c ::: fine        <=>  (modify) fine grid array
+c ::: flo,fhi      =>  (const)  index limits of fine grid
+c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+c ::: nvar         =>  (const)  number of variables in state vector
+c ::: lratio[xyz]  =>  (const)  refinement ratio between levels
+c ::: 
+c ::: crse         =>  (const)  coarse grid data
+c ::: clo,chi      =>  (const)  index limits of crse grid
+c ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
+c :::
+c ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
+c ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
+c ::: 
+c ::: TEMPORARY ARRAYS
+c ::: ftmp         =>  1-D temp array
+c ::: ctmp         =>  2-D temp array
+c ::: ctmp2        =>  2-D temp array
+c ::: --------------------------------------------------------------
+c ::: 
+       subroutine FORT_QUARTINTERP (fine, DIMS(fine), 
+     $                              fblo, fbhi, fb2lo, fb2hi,
+     $                              crse, DIMS(crse), 
+     $                              cblo, cbhi, cb2lo, cb2hi,
+     $                              nvar, 
+     $                              lratiox, lratioy, lratioz,
+     $                              ftmp, ctmp, ctmp2,
+     $                              bc,actual_comp,actual_state)
+
+       implicit none
+
+       integer DIMDEC(fine)
+       integer DIMDEC(crse)
+       integer fblo(3), fbhi(3), fb2lo(3), fb2hi(3)
+       integer cblo(3), cbhi(3), cb2lo(3), cb2hi(3)
+       integer nvar,lratiox,lratioy,lratioz
+       integer bc(3,2,nvar)
+       integer actual_comp,actual_state
+       REAL_T fine(DIMV(fine),nvar)
+       REAL_T crse(DIMV(crse),nvar)
+       REAL_T ftmp(fb2lo(1):fb2hi(1))
+       REAL_T ctmp(cblo(1):cbhi(1),0:lratioy-1)
+       REAL_T ctmp2(cblo(1):cbhi(1),cblo(2):cbhi(2),0:lratioz-1)
+
+c      Local variables
+       integer i,j,k,ii,jj,kk,n,iry,irz
+       REAL_T cL(-2:2), cR(-2:2)
+       data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
+     $           0.01171875D0 /
+       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
+     $          -0.01171875D0 /
+       
+c$$$       else if (lratiox.eq.4 .and. lratioy.eq.4) then
+c$$$c      todo
+c$$$          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+c$$$          stop
+c$$$       else
+c$$$          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+c$$$          stop
+c$$$       endif
+
+       end
