@@ -10,6 +10,7 @@
 #    define FORT_CCINTERP2   ccinterp2
 #    define FORT_PCINTERP    pcinterp
 #    define FORT_PROTECT_INTERP    printerp
+#    define FORT_QUARTINTERP quartinterp
 #else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_NBINTERP    NBINTERP
@@ -20,6 +21,7 @@
 #    define FORT_CCINTERP2   CCINTERP2
 #    define FORT_PCINTERP    PCINTERP
 #    define FORT_PROTECT_INTERP    PRINTERP
+#    define FORT_QUARTINTERP QUARTINTERP
 #  else
 #  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_NBINTERP    nbinterp
@@ -30,6 +32,7 @@
 #    define FORT_CCINTERP2   ccinterp2
 #    define FORT_PCINTERP    pcinterp
 #    define FORT_PROTECT_INTERP    printerp
+#    define FORT_QUARTINTERP quartinterp
 #  else
 #    define FORT_NBINTERP    nbinterp_
 #    define FORT_CBINTERP    cbinterp_
@@ -39,6 +42,7 @@
 #    define FORT_CCINTERP2   ccinterp2_
 #    define FORT_PCINTERP    pcinterp_
 #    define FORT_PROTECT_INTERP    printerp_
+#    define FORT_QUARTINTERP quartinterp_
 #  endif
 #  endif
 
@@ -160,6 +164,17 @@ extern "C"
                               const int* nvar,
                               D_DECL(const int* lrx,const int* lry,const int* lrz),
                               const int* bc); 
+
+    void FORT_QUARTINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
+			   const int* fblo, const int* fbhi, 
+			   const int* fb2lo, const int* fb2hi,
+			   const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
+			   const int* cblo, const int* cbhi, 
+			   const int* cb2lo, const int* cb2hi,
+			   const int* nvar, 
+			   D_DECL(const int* lrx,const int* lry,const int* lrz),
+			   D_DECL(Real* ftmp, Real* ctmp, Real* ctmp2),
+			   const int* bc, const int* actual_comp, const int* actual_state);
   }
 #endif
 
