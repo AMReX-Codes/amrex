@@ -950,11 +950,12 @@ c :::
 
 c      Local variables
        integer i, ii, n
-       REAL_T cL(-2:2), cR(-2:2)
+       REAL_T cL(-2:2)
+c       REAL_T cR(-2:2)
        data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
      $           0.01171875D0 /
-       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
-     $          -0.01171875D0 /
+c$$$       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
+c$$$     $          -0.01171875D0 /
        
        if (lratiox .eq. 2) then
           do n = 1, nvar
@@ -965,11 +966,12 @@ c      Local variables
      $               +             cL( 0)*crse(i  ,n)
      $               +             cL( 1)*crse(i+1,n)
      $               +             cL( 2)*crse(i+2,n))
-                ftmp(ii+1) = 2.d0*(cR(-2)*crse(i-2,n) 
-     $               +             cR(-1)*crse(i-1,n)
-     $               +             cR( 0)*crse(i  ,n)
-     $               +             cR( 1)*crse(i+1,n)
-     $               +             cR( 2)*crse(i+2,n))
+                ftmp(ii+1) = 2.d0*crse(i,n)-ftmp(ii)
+c$$$                ftmp(ii+1) = 2.d0*(cR(-2)*crse(i-2,n) 
+c$$$     $               +             cR(-1)*crse(i-1,n)
+c$$$     $               +             cR( 0)*crse(i  ,n)
+c$$$     $               +             cR( 1)*crse(i+1,n)
+c$$$     $               +             cR( 2)*crse(i+2,n))
              enddo
              do ii = fblo(1), fbhi(1)
                 fine(ii,n) = ftmp(i)

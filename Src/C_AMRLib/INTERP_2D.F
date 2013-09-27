@@ -1276,11 +1276,12 @@ c :::
 
 c      Local variables
        integer i,j,ii,jj,n,iry
-       REAL_T cL(-2:2), cR(-2:2)
+       REAL_T cL(-2:2)
+c       REAL_T cR(-2:2)
        data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
      $           0.01171875D0 /
-       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
-     $          -0.01171875D0 /
+c       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
+c     $          -0.01171875D0 /
        
        if (lratiox.eq.2 .and. lratioy.eq.2) then
           do n = 1, nvar
@@ -1291,11 +1292,12 @@ c      Local variables
      $                  +            cL( 0)*crse(i,j  ,n)
      $                  +            cL( 1)*crse(i,j+1,n)
      $                  +            cL( 2)*crse(i,j+2,n))
-                   ctmp(i,1) = 2.d0*(cR(-2)*crse(i,j-2,n) 
-     $                  +            cR(-1)*crse(i,j-1,n)
-     $                  +            cR( 0)*crse(i,j  ,n)
-     $                  +            cR( 1)*crse(i,j+1,n)
-     $                  +            cR( 2)*crse(i,j+2,n))
+                   ctmp(i,1) = 2.d0*crse(i,j,n) - ctmp(i,0)
+c$$$                   ctmp(i,1) = 2.d0*(cR(-2)*crse(i,j-2,n) 
+c$$$     $                  +            cR(-1)*crse(i,j-1,n)
+c$$$     $                  +            cR( 0)*crse(i,j  ,n)
+c$$$     $                  +            cR( 1)*crse(i,j+1,n)
+c$$$     $                  +            cR( 2)*crse(i,j+2,n))
                 enddo
                 do iry = 0, 1
                    jj = j*2+iry
@@ -1307,11 +1309,12 @@ c      Local variables
      $                        +             cL( 0)*ctmp(i  ,iry)
      $                        +             cL( 1)*ctmp(i+1,iry)
      $                        +             cL( 2)*ctmp(i+2,iry))
-                         ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
-     $                        +             cR(-1)*ctmp(i-1,iry)
-     $                        +             cR( 0)*ctmp(i  ,iry)
-     $                        +             cR( 1)*ctmp(i+1,iry)
-     $                        +             cR( 2)*ctmp(i+2,iry))
+                         ftmp(ii+1) = 2.d0*ctmp(i,iry) - ftmp(ii)
+c$$$                         ftmp(ii+1) = 2.d0*(cR(-2)*ctmp(i-2,iry) 
+c$$$     $                        +             cR(-1)*ctmp(i-1,iry)
+c$$$     $                        +             cR( 0)*ctmp(i  ,iry)
+c$$$     $                        +             cR( 1)*ctmp(i+1,iry)
+c$$$     $                        +             cR( 2)*ctmp(i+2,iry))
                       enddo
                       do ii = fblo(1), fbhi(1)
                          fine(ii,jj,n) = ftmp(ii)
