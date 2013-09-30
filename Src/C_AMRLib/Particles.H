@@ -1939,8 +1939,6 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     {
         // If mf is not defined on the particle_box_array, then we need
         // to make a temporary mf_pointer here and copy it into mf at the end.
-        if (mf.nGrow() > 0)
-            BoxLib::Error("Not sure what to do about filling ghost cells in ParticleContainer::IncrementWithTotal");
         mf_pointer = new MultiFab(m_amr->ParticleBoxArray(lev),mf.nComp(),mf.nGrow(),Fab_allocate);
     }
 
@@ -1963,8 +1961,8 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     }
 
     // If mf is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf
-    // if (mf.boxArray() != m_amr->ParticleBoxArray(lev))
+    // to copy here from mf_pointer into mf.   I believe that we don't
+    // need any information in ghost cells so we don't copy those.
     if (!m_amr->getLevel(lev).ParticlesOnSameGrids())
         mf.copy(*mf_pointer,0,0,mf.nComp());  
 
@@ -2207,8 +2205,6 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        if (mf_to_be_filled.nGrow() > 0)
-            BoxLib::Error("Not sure what to do about filling ghost cells in ParticleContainer::AssignDensitySingleLevel");
         mf_pointer = new MultiFab(m_amr->ParticleBoxArray(lev),ncomp,mf_to_be_filled.nGrow(),Fab_allocate);
     }
 
@@ -2324,11 +2320,11 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     mf_pointer->mult(1/vol,0,1);
 
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
-    // to copy here from mf_pointer into mf_to_be_filled
+    // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
+    // need any information in ghost cells so we don't copy those.
     if (!m_amr->getLevel(lev).ParticlesOnSameGrids())
-    // if (mf_to_be_filled.boxArray() != m_amr->ParticleBoxArray(lev))
     {
-        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);  // SHOULD WE COPY THE GHOST CELLS???
+        mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
     }
 
     if (m_verbose > 1)
@@ -2417,13 +2413,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     
             for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
                 mf_part[lev_index][mfi].setVal(0);
-    
-            if (mf_to_be_filled[lev_index].nGrow() > 0)
-                BoxLib::Error("Not sure what to do about filling ghost cells in ParticleContainer::AssignDensity");
         }
 
         mf = &mf_part;
-    } 
+    }
 
     if (finest_level == 0)
     {
@@ -2431,6 +2424,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         // Just use the far simpler single-level version.
         //
         AssignDensitySingleLevel((*mf)[0],0,ncomp);
+        //
+        // I believe that we don't need any information in ghost cells so we don't copy those.
+        //
         if (!all_grids_the_same)
             mf_to_be_filled[0].copy((*mf)[0],0,0,ncomp);
         return;
@@ -3140,13 +3136,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     // finest_level. In the following code, lev is the real level,  
     // lev_index is the corresponding index for mf. 
     //
+    // I believe that we don't need any information in ghost cells so we don't copy those.
+    //
     if (!all_grids_the_same)
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
-            if (mf_to_be_filled[lev_index].nGrow() > 0)
-                BoxLib::Error("Not sure what to do about filling ghost cells in ParticleContainer::AssignDensity");
-            mf_to_be_filled[lev_index].copy(mf_part[lev_index],0,0,1);  // SHOULD WE COPY THE GHOST CELLS???
+            mf_to_be_filled[lev_index].copy(mf_part[lev_index],0,0,1);
         }
     
     if (m_verbose > 1)
