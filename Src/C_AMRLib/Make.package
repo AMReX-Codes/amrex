@@ -52,9 +52,4 @@ ifeq ($(USE_PARTICLES), TRUE)
   FEXE_sources += Particles_$(DIM)D.F
 endif
 
-ifeq ($(USE_SDCLIB), TRUE)
-  DEFINES += -DUSE_SDCLIB
-  CEXE_sources += MLSDCAmr.cpp MLSDCAmrEncap.cpp
-  CEXE_headers += MLSDCAmr.H
-endif
 
