@@ -559,6 +559,23 @@ ParticleContainer<N>::addOneParticle (int id_in, int cpu_in,
     for (int i = 0; i < N; i++)
        p.m_data[i] = attributes[i];
 
+    // It's possible that particles are defined to live right on the boundary,
+    // so if that's the case we move them ever so slightly inside the domain 
+    // instead
+    const Geometry& geom = m_amr->Geom(0);
+    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
+                                            geom.ProbHi(1) - geom.ProbLo(1),
+                                            geom.ProbHi(2) - geom.ProbLo(2))};
+
+    //
+    // If particle is right on a domain boundary then move it just inside the boundary.
+    //
+    for (int d = 0; d < BL_SPACEDIM; d++)
+    {
+        if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
+        if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+    }
+
     if (!ParticleBase::Where(p,m_amr))
     {
         ParticleBase::PeriodicShift(p,m_amr);
@@ -679,7 +696,6 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             MyCnt += cnt % NReaders;
 
         const Geometry& geom = m_amr->Geom(0);
-
         const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
                                                 geom.ProbHi(1) - geom.ProbLo(1),
                                                 geom.ProbHi(2) - geom.ProbLo(2))};
@@ -697,8 +713,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             //
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * dmlen[d];
-                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * dmlen[d];
+                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
+                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
             }
 
             for (int n = 0; n < extradata; n++)
@@ -1146,8 +1162,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 //
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-12 * dmlen[d];
-                    if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-12 * dmlen[d];
+                    if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
+                    if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
                 }
                 //
                 // Read in any "extradata".
