@@ -14,6 +14,10 @@
 #include <StationData.H>
 #endif
 
+#ifdef USE_EXTERNAL_GEOMETRY
+#include <IrregularDomain.h>
+#endif
+
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
@@ -257,6 +261,12 @@ public:
     // List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
+#ifdef USE_PARTICLES
+    //
+    // List of particle_grids at each level.
+    //
+    const BoxArray& ParticleBoxArray (int lev) const;
+#endif
     //
     // AmrLevel lev.
     //
@@ -339,11 +349,21 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
+#ifdef USE_EXTERNAL_GEOMETRY
+    //
+    // Define an IrregularDomain geometry object for this Amr.
+    //
+    void setBoundaryGeometry(IrregularDomain* boundary_obj_in);
+    IrregularDomain* getBoundaryGeometry();
+#endif
+
+#ifdef USE_PARTICLES
     //
     // Add one particle at a time.
     //
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes);
+#endif
 
 protected:
     //
@@ -473,9 +493,15 @@ protected:
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
+
 #ifdef USE_STATIONDATA
     StationData      station;
 #endif
+
+#ifdef USE_EXTERNAL_GEOMETRY
+    IrregularDomain* boundary_object;
+#endif
+
     int              verbose;
     int              record_grid_info;
     int              record_run_info;

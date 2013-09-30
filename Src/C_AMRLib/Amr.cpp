@@ -131,6 +131,14 @@ Amr::boxArray (int lev) const
     return amr_level[lev].boxArray();
 }
 
+#ifdef USE_PARTICLES
+const BoxArray&
+Amr::ParticleBoxArray (int lev) const
+{
+    return amr_level[lev].ParticleBoxArray();
+}
+#endif
+
 void
 Amr::setDtMin (const Array<Real>& dt_min_in)
 {
@@ -3046,6 +3054,7 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
     }
 }
 
+#ifdef USE_PARTICLES
 void 
 Amr::addOneParticle (int id_in, int cpu_in, 
                      std::vector<double>& xloc, std::vector<double>& attributes)
@@ -3053,3 +3062,19 @@ Amr::addOneParticle (int id_in, int cpu_in,
 {
     amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
+#endif
+
+#ifdef USE_EXTERNAL_GEOMETRY
+void 
+Amr::setBoundaryGeometry(IrregularDomain* boundary_obj_in)
+{
+    boundary_object = boundary_obj_in; 
+}
+
+IrregularDomain* 
+Amr::getBoundaryGeometry()
+{
+    return boundary_object;
+}
+#endif
+

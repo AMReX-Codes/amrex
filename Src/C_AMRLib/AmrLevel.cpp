@@ -62,6 +62,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     :
     geom(level_geom),
     grids(ba)
+#ifdef USE_PARTICLES
+    ,particle_grids(ba)
+#endif
 {
     level  = lev;
     parent = &papa;
@@ -82,6 +85,7 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     const Array<Real>& t_nodes = parent->tNodes(level);
 
+    // Note that this creates a distribution map associated with grids.
     for (int i = 0; i < state.size(); i++)
     {
         state[i].define(geom.Domain(),
@@ -91,6 +95,60 @@ AmrLevel::AmrLevel (Amr&            papa,
                         parent->dtLevel(lev),
 			t_nodes);
     }
+
+#ifdef USE_PARTICLES
+    // Here we create particle_grids and make a distribution map for it
+    // Right now particle_grids is identical to grids, but the whole point is that 
+    // particle_grids can be optimized for distributing the particle work. 
+
+    Array<int> ParticleProcMap;
+    ParticleProcMap.resize(particle_grids.size()+1); // +1 is a historical thing
+
+    for (int i = 0; i <= particle_grids.size(); i++)
+        ParticleProcMap[i] = -1;
+
+    for (int j = 0; j < grids.size(); j++)
+    {
+        const int who = get_new_data(0).DistributionMap()[j];
+        for (int i = 0; i < particle_grids.size(); i++)
+        {
+            if (grids[j].contains(particle_grids[i]))
+            {
+                ParticleProcMap[i] = who;
+            }
+        }
+    }
+
+    // Don't forget the last entry!
+    ParticleProcMap[particle_grids.size()] = ParallelDescriptor::MyProc();
+
+    // Sanity check that all grids got assigned to processors
+    for (int i = 0; i <= particle_grids.size(); i++)
+        if (ParticleProcMap[i] == -1)
+            BoxLib::Error("Didn't assign every particle_grids box to a processor!!");
+
+    // Different DistributionMappings must have different numbers of boxes 
+    if (grids.size() != particle_grids.size())
+    {
+        const bool put_in_cache = true;
+        particle_dmap = DistributionMapping(ParticleProcMap,put_in_cache);
+        particles_on_same_grids = false;
+    }
+    else
+    {
+        if (grids != particle_grids)
+        {
+           // Oops -- can't handle this 
+            BoxLib::Error("grids != particle_grids but they have the same number of boxes");
+        }
+        else
+        {
+           // Just copy the grids distribution map to the particle_grids distribution map
+           particle_dmap = get_new_data(0).DistributionMap();
+           particles_on_same_grids = true;
+        }
+    }
+#endif
 
     finishConstructor();
 }
@@ -125,6 +183,10 @@ AmrLevel::restart (Amr&          papa,
     {
         grids.readFrom(is);
     }
+
+#ifdef USE_PARTICLES
+    particle_grids.define(grids);
+#endif
 
     int nstate;
     is >> nstate;
