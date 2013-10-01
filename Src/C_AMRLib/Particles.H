@@ -398,7 +398,7 @@ public:
     void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
     // **************************************************************************************************************** 
 
-    void AdvectWithUmac (const MultiFab* umac, int level, Real dt, const int vcomp = 0);
+    void AdvectWithUmac (MultiFab* umac, int level, Real dt, const int vcomp = 0);
 
     void RemoveParticlesNotAtFinestLevel ();
 
@@ -1928,7 +1928,6 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
     MultiFab* mf_pointer;
 
-    // if (mf.boxArray() == m_amr->ParticleBoxArray(lev))
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
     {
         // If we are already working with the internal mf defined on the
@@ -4765,7 +4764,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
 
 template <int N>
 void
-ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
+ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                                       int             lev,
                                       Real            dt,
                                       const int       vcomp)
@@ -4788,6 +4787,23 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
+    MultiFab* umac_pointer[BL_SPACEDIM];
+    if (m_amr->getLevel(lev).ParticlesOnSameGrids())
+    {
+        for (int i = 0; i < BL_SPACEDIM; i++)
+           umac_pointer[i] = &umac[i];
+    }
+    else
+    {
+        for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+           umac_pointer[i] = new MultiFab(m_amr->ParticleBoxArray(lev),umac[i].nComp(),
+                                          umac[i].nGrow(),Fab_allocate);
+           umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp());
+           umac_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+        }
+    }
+
     for (int ipass = 0; ipass < 2; ipass++)
     {
         PMap& pmap = m_particles[lev];
@@ -4798,7 +4814,9 @@ ParticleContainer<N>::AdvectWithUmac (const MultiFab* umac,
             PBox&     pbox = pmap_it->second;
             const int n    = pbox.size();
 
-            const FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&umac[0][grid],&umac[1][grid],&umac[2][grid]) };
+            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&(*umac_pointer[0])[grid],
+                                                   &(*umac_pointer[1])[grid],
+                                                   &(*umac_pointer[2])[grid]) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
