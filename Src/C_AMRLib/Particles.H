@@ -41,12 +41,13 @@ struct ParticleBase
     // and the "extra" data in the particles themselves.
     //
     typedef double RealType;
+//    typedef float RealType;
 
-    int       m_id;
-    int       m_cpu;
-    int       m_lev;
-    int       m_grid;
-    IntVect   m_cell;
+    int      m_id;
+    int      m_cpu;
+    int      m_lev;
+    int      m_grid;
+    IntVect  m_cell;
     RealType m_pos[BL_SPACEDIM];
 
     ParticleBase ()
@@ -5347,10 +5348,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
             for (int k = 0; k < completed; k++)
             {
-                const int   Who  = owner[index[k]];
-                const int   Idx  = rOffset[Who] * rChunkSize;
-                const Real* rcvp = &recvdata[Idx];
-                PBox&       pbox = nparticles[Who];
+                const int                     Who  = owner[index[k]];
+                const int                     Idx  = rOffset[Who] * rChunkSize;
+                const ParticleBase::RealType* rcvp = &recvdata[Idx];
+                PBox&                         pbox = nparticles[Who];
 
                 BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
@@ -5846,7 +5847,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
         //
         Array<ParticleBase::RealType> rstuff(cnt*rChunkSize);
 
-        Real* rptr = rstuff.dataPtr();
+        ParticleBase::RealType* rptr = rstuff.dataPtr();
 
         for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
