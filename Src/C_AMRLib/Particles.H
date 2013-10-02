@@ -82,7 +82,10 @@ struct ParticleBase
     // that have left the domain. May need work (see inline comments)
     //
     static void Reset (ParticleBase& prt, const Amr* amr, bool update, bool verbose=true); 
-    static void PeriodicShift (ParticleBase& prt, const Amr* amr);
+    //
+    // Returns true if the particle was shifted.
+    //
+    static bool PeriodicShift (ParticleBase& prt, const Amr* amr);
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
