@@ -40,8 +40,7 @@ struct ParticleBase
     // The floating point type used for particle positions
     // and the "extra" data in the particles themselves.
     //
-    typedef double RealType;
-//    typedef float RealType;
+    typedef float RealType;
 
     int      m_id;
     int      m_cpu;
@@ -432,13 +431,21 @@ protected:
     //
     // Helper functions for Restart().
     //
-    void Restart_OneDotZero (const std::string& fullname,
-                             std::ifstream&     HdrFile);
+    enum Version { V_Zero, V_One };
+
+    void Restart_Doit (const std::string& fullname,
+                       std::ifstream&     HdrFile,
+                       enum Version       version);
 
     void ReadParticles_OneDotZero (int            cnt,
                                    int            grd,
                                    int            lev,
                                    std::ifstream& ifs);
+
+    void ReadParticles_OneDotOne (int            cnt,
+                                  int            grd,
+                                  int            lev,
+                                  std::ifstream& ifs);
     //
     // The data.
     //
@@ -568,16 +575,16 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     //
     const Geometry& geom = m_amr->Geom(0);
 
-    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                            geom.ProbHi(1) - geom.ProbLo(1),
-                                            geom.ProbHi(2) - geom.ProbLo(2))};
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
+                                              .25*geom.CellSize(1),
+                                              .25*geom.CellSize(2)) };
     //
     // If particle is right on a domain boundary then move it just inside the boundary.
     //
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-        if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+        if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += Delta[d];
+        if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= Delta[d];
     }
 
     if (!ParticleBase::Where(p,m_amr))
@@ -700,9 +707,12 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             MyCnt += cnt % NReaders;
 
         const Geometry& geom = m_amr->Geom(0);
-        const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                                geom.ProbHi(1) - geom.ProbLo(1),
-                                                geom.ProbHi(2) - geom.ProbLo(2))};
+
+        const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+        const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+        const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
+                                                  .25*geom.CellSize(1),
+                                                  .25*geom.CellSize(2)) };
         for (int i = 0; i < MyCnt; i++)
         {
             //
@@ -717,8 +727,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             //
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-                if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+                if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+                if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
             }
 
             for (int n = 0; n < extradata; n++)
@@ -758,13 +768,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             how_many++;
             how_many_read++;
 
-            Real domain_size[BL_SPACEDIM];
-            for (int d=0; d<BL_SPACEDIM; ++d)
-            {
-                domain_size[d]  = (geom.ProbHi(d) - geom.ProbLo(d)) / lNrep[d];
-            }
-
+            const Real DomSize[BL_SPACEDIM] = { D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
+                                                       (geom.ProbHi(1)-geom.ProbLo(1))/lNrep[1],
+                                                       (geom.ProbHi(2)-geom.ProbLo(2))/lNrep[2]) };
             int rep[BL_SPACEDIM];
+
 #if BL_SPACEDIM==3
             for (rep[2] = 1; rep[2] <= lNrep[2]; rep[2]++)
             {
@@ -780,7 +788,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                             //
                             for (int d=0; d<BL_SPACEDIM; ++d)
                             {
-                                p_rep.m_pos[d] = p.m_pos[d] + (rep[d]-1)*domain_size[d];
+                                p_rep.m_pos[d] = p.m_pos[d] + (rep[d]-1)*DomSize[d];
                             }
                             //
                             // Copy the mass and velocity.
@@ -1160,9 +1168,11 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     const Geometry& geom = m_amr->Geom(0);
 
-    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                            geom.ProbHi(1) - geom.ProbLo(1),
-                                            geom.ProbHi(2) - geom.ProbLo(2))};
+    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
+                                              .25*geom.CellSize(1),
+                                              .25*geom.CellSize(2)) };
 
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
@@ -1225,8 +1235,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 //
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-                    if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+                    if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+                    if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
                 }
                 //
                 // Read in any "extradata".
@@ -6005,9 +6015,13 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
     version = vbuf.dataPtr();
 
-    if (version == ParticleBase::Version())
+    if (version == "Version_One_Dot_One")
     {
-        Restart_OneDotZero(fullname,HdrFile);
+        Restart_Doit(fullname,HdrFile,V_One);
+    }
+    else if (version == "Version_One_Dot_Zero")
+    {
+        Restart_Doit(fullname,HdrFile,V_Zero);
     }
     else
     {
@@ -6031,10 +6045,12 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
 template <int N>
 void
-ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
-                                          std::ifstream&     HdrFile)
+ParticleContainer<N>::Restart_Doit (const std::string& fullname,
+                                    std::ifstream&     HdrFile,
+                                    enum Version       version)
 {
     BL_ASSERT(!fullname.empty());
+    BL_ASSERT(version == V_Zero || version == V_One);
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
@@ -6186,17 +6202,32 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
-            ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
-
+            if (version == V_One)
+            {
+                ReadParticles_OneDotOne(count[grid],grid,lev,ParticleFile);
+            }
+            else if (version == V_Zero)
+            {
+                ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
+            }
+            else
+            {
+                BoxLib::Error("Restart_Doit: bad version number");
+            }
+                
             ParticleFile.close();
 
             if (!ParticleFile.good())
-                BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
+                BoxLib::Abort("ParticleContainer<N>::Restart_Doit(): problem reading particles");
         }
     }
 
-    BL_ASSERT(OK());
+    BL_ASSERT(OK());        
 }
+
+//
+// This one stores real data as doubles.
+//
 
 template <int N>
 void
@@ -6208,7 +6239,7 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
-    BL_ASSERT(grd >= 0 && grd < m_amr->ParticleBoxArray(lev).size());
+    BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
     //
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -6220,19 +6251,108 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 
     ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
     //
-    // Then the Real data in binary.
+    // Then the double data in binary.
     //
     const int rChunkSize = BL_SPACEDIM+N;
 
-    Array<Real> rstuff(cnt*rChunkSize);
+    Array<double> rstuff(cnt*rChunkSize);
 
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(double));
     //
     // Now reassemble the particles.
     //
-    int*         iptr = istuff.dataPtr();
-    Real*        rptr = rstuff.dataPtr();
-    PBox&        pbox = m_particles[lev][grd];
+    int*            iptr = istuff.dataPtr();
+    double*         rptr = rstuff.dataPtr();
+    PBox&           pbox = m_particles[lev][grd];
+    const Geometry& geom = m_amr->Geom(0);
+
+    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
+                                              .25*geom.CellSize(1),
+                                              .25*geom.CellSize(2)) };
+    ParticleType p;
+
+    for (int i = 0; i < cnt; i++)
+    {
+        p.m_id   = iptr[0];
+        p.m_cpu  = iptr[1];
+        p.m_lev  = lev;
+        p.m_grid = grd;
+
+        BL_ASSERT(p.m_id > 0);
+
+        BL_ASSERT(p.m_lev  == lev);
+        BL_ASSERT(p.m_grid == grd);
+
+        D_TERM(p.m_cell[0] = iptr[2];,
+               p.m_cell[1] = iptr[3];,
+               p.m_cell[2] = iptr[4];);
+
+        iptr += iChunkSize;
+
+        D_TERM(p.m_pos[0] = rptr[0];,
+               p.m_pos[1] = rptr[1];,
+               p.m_pos[2] = rptr[2];);
+        //
+        // If we're reading in doubles and storing'm in floats we have
+        // to make sure the particles stay in the domain.
+        //
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+            if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
+        }
+
+        for (int i = 0; i < N; i++)
+            p.m_data[i] = rptr[BL_SPACEDIM+i];
+
+        rptr += rChunkSize;
+
+        pbox.push_back(p);
+    }
+}
+
+//
+// This one stores real data as floats.
+//
+
+template <int N>
+void
+ParticleContainer<N>::ReadParticles_OneDotOne (int            cnt,
+                                               int            grd,
+                                               int            lev,
+                                               std::ifstream& ifs)
+{
+    BL_ASSERT(cnt > 0);
+    BL_ASSERT(lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
+    BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
+    //
+    // First read in the integer data in binary.  We do not store
+    // the m_lev and m_grid data on disk.  We can easily recreate
+    // that given the structure of the checkpoint file.
+    //
+    const int iChunkSize = 2+BL_SPACEDIM;
+
+    Array<int> istuff(cnt*iChunkSize);
+
+    ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+    //
+    // Then the float data in binary.
+    //
+    const int rChunkSize = BL_SPACEDIM+N;
+
+    Array<float> rstuff(cnt*rChunkSize);
+
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(float));
+    //
+    // Now reassemble the particles.
+    //
+    int*   iptr = istuff.dataPtr();
+    float* rptr = rstuff.dataPtr();
+    PBox&  pbox = m_particles[lev][grd];
+
     ParticleType p;
 
     for (int i = 0; i < cnt; i++)
