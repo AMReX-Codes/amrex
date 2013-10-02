@@ -487,7 +487,11 @@ ParticleBase::Version ()
     //
     // If we change the Checkpoint/Restart format we should increment this.
     //
-    static const std::string version("Version_One_Dot_Zero");
+    // Previous version strings:
+    //
+    //    "Version_One_Dot_Zero"
+    //
+    static const std::string version("Version_One_Dot_One");
 
     return version;
 }
