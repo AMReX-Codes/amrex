@@ -933,8 +933,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 //
 // NP -- The number of particles in the file.   A "long".
 // DM -- Our dimension.  Either 1, 2, or 3.     A "int".
-// XT -- The amount of "extra" data.            A "int".
-// NP*(DM+XT) native double-precision numbers.  A "double".
+// NX -- The amount of "extra" data.            A "int".
+// NP*(DM+NX) native floating-point numbers.    A "float" or "double".
 //
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
@@ -1060,6 +1060,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         BL_ASSERT(rprocs.size() == NReaders);
     }
 
+    int RealSizeInFile = 0;
+
     if (readers.find(MyProc) != readers.end())
     {
         int DM = 0;
@@ -1095,6 +1097,28 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         if (extradata > NX)
             BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > NX");
         //
+        // Figure out whether we're dealing with floats or doubles.
+        //
+        // First get our current position.
+        //
+        const std::streamoff CURPOS = ifs.tellg();
+        //
+        // Seek to end of file.
+        //
+        ifs.seekg(0,std::ios::end);
+        //
+        // ENDPOS - CURPOS should bracket the particle data.
+        //
+        const std::streamoff ENDPOS = ifs.tellg();
+
+        RealSizeInFile = (ENDPOS - CURPOS) / (NP*(DM+NX));
+
+        BL_ASSERT(RealSizeInFile == sizeof(float) || RealSizeInFile == sizeof(double));
+        //
+        // Now set stream back to earlier position.
+        //
+        ifs.seekg(CURPOS, std::ios::beg);
+        //
         // Skip to our place in the file.
         //
         int id = 0;
@@ -1104,7 +1128,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
         BL_ASSERT(id >= 0 && id < NReaders);
 
-        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * sizeof(double);
+        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * RealSizeInFile;
 
         if (NSKIP > 0)
         {
@@ -1144,6 +1168,21 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
 
+    Array<float>  fxtra, fignore;
+    Array<double> dxtra, dignore;
+
+    if (extradata > 0)
+    {
+        fxtra.resize(extradata);
+        dxtra.resize(extradata);
+    }
+
+    if ((NX-extradata) > 0)
+    {
+        fignore.resize(NX-extradata);
+        dignore.resize(NX-extradata);
+    }
+
     for (int j = 0; j < how_many_redists; j++)
     {
         if (readers.find(MyProc) != readers.end())
@@ -1160,7 +1199,27 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 // We don't read in m_id or m_cpu.  We'll set those later
                 // in a manner to guarantee the global uniqueness of the pair.
                 //
-                ifs.read((char*)&p.m_pos[0], BL_SPACEDIM*sizeof(ParticleBase::RealType));
+                if (RealSizeInFile == sizeof(float))
+                {
+                    float fpos[BL_SPACEDIM];
+
+                    ifs.read((char*)&fpos[0], BL_SPACEDIM*sizeof(float));
+
+                    D_TERM(p.m_pos[0] = fpos[0];,
+                           p.m_pos[1] = fpos[1];,
+                           p.m_pos[2] = fpos[2];);
+
+                }
+                else if (RealSizeInFile == sizeof(double))
+                {
+                    double dpos[BL_SPACEDIM];
+
+                    ifs.read((char*)&dpos[0], BL_SPACEDIM*sizeof(double));
+
+                    D_TERM(p.m_pos[0] = dpos[0];,
+                           p.m_pos[1] = dpos[1];,
+                           p.m_pos[2] = dpos[2];);
+                }
                 //
                 // If particle is right on a domain boundary then move it just inside the boundary.
                 //
@@ -1174,15 +1233,34 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 //
                 if (extradata > 0)
                 {
-                    ifs.read((char*)&p.m_data[0], extradata*sizeof(ParticleBase::RealType));
+                    if (RealSizeInFile == sizeof(float))
+                    {
+                        ifs.read((char*)&fxtra[0], extradata*sizeof(float));
+
+                        for (int i = 0; i < extradata; i++)
+                            p.m_data[i] = fxtra[i];
+                    }
+                    else if (RealSizeInFile == sizeof(double))
+                    {
+                        ifs.read((char*)&dxtra[0], extradata*sizeof(double));
+
+                        for (int i = 0; i < extradata; i++)
+                            p.m_data[i] = dxtra[i];
+                    }
                 }
                 //
                 // Read any remaining data for this particle.
                 //
                 if ((NX-extradata) > 0)
                 {
-                    ParticleBase::RealType ignore[N*sizeof(ParticleBase::RealType)];
-                    ifs.read((char*)&ignore[0], (NX-extradata)*sizeof(ParticleBase::RealType));
+                    if (RealSizeInFile == sizeof(float))
+                    {
+                        ifs.read((char*)&fignore[0], (NX-extradata)*sizeof(float));
+                    }
+                    else if (RealSizeInFile == sizeof(double))
+                    {
+                        ifs.read((char*)&dignore[0], (NX-extradata)*sizeof(double));
+                    }
                 }
 
                 if (!ifs.good())
