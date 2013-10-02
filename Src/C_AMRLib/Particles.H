@@ -575,9 +575,9 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     //
     const Geometry& geom = m_amr->Geom(0);
 
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
-                                              .25*geom.CellSize(1),
-                                              .25*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
     //
     // If particle is right on a domain boundary then move it just inside the boundary.
     //
@@ -710,9 +710,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
         const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
         const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-        const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
-                                                  .25*geom.CellSize(1),
-                                                  .25*geom.CellSize(2)) };
+        const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                                  .125*geom.CellSize(1),
+                                                  .125*geom.CellSize(2)) };
         for (int i = 0; i < MyCnt; i++)
         {
             //
@@ -1170,9 +1170,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
     const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
-                                              .25*geom.CellSize(1),
-                                              .25*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
 
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
@@ -6268,9 +6268,9 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 
     const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
     const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.25*geom.CellSize(0),
-                                              .25*geom.CellSize(1),
-                                              .25*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
     ParticleType p;
 
     for (int i = 0; i < cnt; i++)

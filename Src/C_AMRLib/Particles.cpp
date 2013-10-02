@@ -643,7 +643,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
             break;
         }
     }
-    
+
     if (shifted)
     {
         std::vector< std::pair<int,Box> > isects;
@@ -719,6 +719,7 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     return false;
 }
+
 void
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const Amr*    amr)
@@ -733,7 +734,6 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     const Geometry& geom = amr->Geom(0);
     const Box&      dmn  = geom.Domain();
     const IntVect   iv   = ParticleBase::Index(p,0,amr);
-    const Real      eps  = 1.e-13;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -747,9 +747,15 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] += eps;
+                p.m_pos[i] += .125*geom.CellSize(i);
 
             p.m_pos[i] -= geom.ProbLength(i);
+
+            if (p.m_pos[i] <= geom.ProbLo(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] += .125*geom.CellSize(i);
 
             BL_ASSERT(p.m_pos[i] >= geom.ProbLo(i));
         }
@@ -761,9 +767,15 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] -= eps;
+                p.m_pos[i] -= .125*geom.CellSize(i);
 
             p.m_pos[i] += geom.ProbLength(i);
+
+            if (p.m_pos[i] >= geom.ProbHi(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] -= .125*geom.CellSize(i);
 
             BL_ASSERT(p.m_pos[i] <= geom.ProbHi(i));
         }
