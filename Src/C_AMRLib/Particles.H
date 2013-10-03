@@ -40,8 +40,11 @@ struct ParticleBase
     // The floating point type used for particle positions
     // and the "extra" data in the particles themselves.
     //
-//    typedef float RealType;
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    typedef float RealType;
+#else
     typedef double RealType;
+#endif
 
     int      m_id;
     int      m_cpu;
