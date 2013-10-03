@@ -36,12 +36,18 @@ namespace
 
 struct ParticleBase
 {
-    int     m_id;
-    int     m_cpu;
-    int     m_lev;
-    int     m_grid;
-    IntVect m_cell;
-    Real    m_pos[BL_SPACEDIM];
+    //
+    // The floating point type used for particle positions
+    // and the "extra" data in the particles themselves.
+    //
+    typedef float RealType;
+
+    int      m_id;
+    int      m_cpu;
+    int      m_lev;
+    int      m_grid;
+    IntVect  m_cell;
+    RealType m_pos[BL_SPACEDIM];
 
     ParticleBase ()
         :
@@ -76,7 +82,10 @@ struct ParticleBase
     // that have left the domain. May need work (see inline comments)
     //
     static void Reset (ParticleBase& prt, const Amr* amr, bool update, bool verbose=true); 
-    static void PeriodicShift (ParticleBase& prt, const Amr* amr);
+    //
+    // Returns true if the particle was shifted.
+    //
+    static bool PeriodicShift (ParticleBase& prt, const Amr* amr);
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
@@ -184,7 +193,7 @@ struct Particle
     public ParticleBase
 {
     //
-    // The amount of Real data we hold.
+    // The amount of floating point data we hold.
     //
     // In some cases this is:
     //
@@ -193,7 +202,7 @@ struct Particle
     // 2 - y-velocity
     // 3 - z-velocity
     //
-    Real m_data[N];
+    RealType m_data[N];
 };
 
 //
@@ -303,10 +312,6 @@ public:
     // Set the flag that allows particles to live near the domain boundary and throw away 
     //     the part of their contribution in AssignDensity that is outside the domain.
     void SetAllowParticlesNearBoundary(bool value);
-
-    // Set the precision at which particles are written in the plotfile.
-    // (They are always written in double precision in the checkpoint files.)
-    void SetPlotFileFormat(std::string plotfile_format);
  
     Real estTimestep (MultiFab& grav_vector,         int level, Real cfl) const;
     Real estTimestep (MultiFab& grav_vector, Real a, int level, Real cfl) const;
@@ -342,8 +347,6 @@ public:
     void MoveRandom ();
 
     void MoveRandom (int level);
-
-    std::string plotfile_format;
 
     // **********************************************************************************
     // Nyx Specifc Methods
@@ -431,13 +434,21 @@ protected:
     //
     // Helper functions for Restart().
     //
-    void Restart_OneDotZero (const std::string& fullname,
-                             std::ifstream&     HdrFile);
+    enum Version { V_Zero, V_One };
+
+    void Restart_Doit (const std::string& fullname,
+                       std::ifstream&     HdrFile,
+                       enum Version       version);
 
     void ReadParticles_OneDotZero (int            cnt,
                                    int            grd,
                                    int            lev,
                                    std::ifstream& ifs);
+
+    void ReadParticles_OneDotOne (int            cnt,
+                                  int            grd,
+                                  int            lev,
+                                  std::ifstream& ifs);
     //
     // The data.
     //
@@ -539,7 +550,8 @@ ParticleContainer<N>::ByteSpread () const
 
 template <int N>
 void
-ParticleContainer<N>::addOneParticle (int id_in, int cpu_in, 
+ParticleContainer<N>::addOneParticle (int                  id_in,
+                                      int                  cpu_in, 
                                       std::vector<double>& xloc, 
  				      std::vector<double>& attributes)
 {
@@ -550,30 +562,32 @@ ParticleContainer<N>::addOneParticle (int id_in, int cpu_in,
     }
 
     ParticleType p;
-    p.m_id   = id_in;
-    p.m_cpu  = cpu_in;
+
+    p.m_id  = id_in;
+    p.m_cpu = cpu_in;
 
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_pos[i] = xloc[i];
 
     for (int i = 0; i < N; i++)
        p.m_data[i] = attributes[i];
-
+    //
     // It's possible that particles are defined to live right on the boundary,
     // so if that's the case we move them ever so slightly inside the domain 
-    // instead
+    // instead.
+    //
     const Geometry& geom = m_amr->Geom(0);
-    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                            geom.ProbHi(1) - geom.ProbLo(1),
-                                            geom.ProbHi(2) - geom.ProbLo(2))};
 
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
     //
     // If particle is right on a domain boundary then move it just inside the boundary.
     //
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
-        if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-        if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+        if (p.m_pos[d] <= geom.ProbLo(d)) p.m_pos[d] += Delta[d];
+        if (p.m_pos[d] >= geom.ProbHi(d)) p.m_pos[d] -= Delta[d];
     }
 
     if (!ParticleBase::Where(p,m_amr))
@@ -696,9 +710,12 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             MyCnt += cnt % NReaders;
 
         const Geometry& geom = m_amr->Geom(0);
-        const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                                geom.ProbHi(1) - geom.ProbLo(1),
-                                                geom.ProbHi(2) - geom.ProbLo(2))};
+
+        const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+        const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+        const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                                  .125*geom.CellSize(1),
+                                                  .125*geom.CellSize(2)) };
         for (int i = 0; i < MyCnt; i++)
         {
             //
@@ -713,8 +730,8 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             //
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-                if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+                if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+                if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
             }
 
             for (int n = 0; n < extradata; n++)
@@ -754,13 +771,11 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
             how_many++;
             how_many_read++;
 
-            Real domain_size[BL_SPACEDIM];
-            for (int d=0; d<BL_SPACEDIM; ++d)
-            {
-                domain_size[d]  = (geom.ProbHi(d) - geom.ProbLo(d)) / float(lNrep[d]);
-            }
-
+            const Real DomSize[BL_SPACEDIM] = { D_DECL((geom.ProbHi(0)-geom.ProbLo(0))/lNrep[0],
+                                                       (geom.ProbHi(1)-geom.ProbLo(1))/lNrep[1],
+                                                       (geom.ProbHi(2)-geom.ProbLo(2))/lNrep[2]) };
             int rep[BL_SPACEDIM];
+
 #if BL_SPACEDIM==3
             for (rep[2] = 1; rep[2] <= lNrep[2]; rep[2]++)
             {
@@ -776,7 +791,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
                             //
                             for (int d=0; d<BL_SPACEDIM; ++d)
                             {
-                                p_rep.m_pos[d] = p.m_pos[d] + float(rep[d]-1)*domain_size[d];
+                                p_rep.m_pos[d] = p.m_pos[d] + (rep[d]-1)*DomSize[d];
                             }
                             //
                             // Copy the mass and velocity.
@@ -927,10 +942,10 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 //
 // The format of a binary particle init file:
 //
-// NP -- The number of particles in the file.  A "long".
-// DM -- Our dimension.  Either 1, 2, or 3.    A "int".
-// XT -- The amount of "extra" data.           A "int".
-// NP*(DM+XT) native double-precisionnumbers.  A "double".
+// NP -- The number of particles in the file.   A "long".
+// DM -- Our dimension.  Either 1, 2, or 3.     A "int".
+// NX -- The amount of "extra" data.            A "int".
+// NP*(DM+NX) native floating-point numbers.    A "float" or "double".
 //
 // Note that there is nothing separating all these values.
 // They're packed into the binary file like sardines.
@@ -1056,6 +1071,8 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         BL_ASSERT(rprocs.size() == NReaders);
     }
 
+    int RealSizeInFile = 0;
+
     if (readers.find(MyProc) != readers.end())
     {
         int DM = 0;
@@ -1091,6 +1108,28 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
         if (extradata > NX)
             BoxLib::Abort("ParticleContainer<N>::InitFromBinaryFile(): extradata > NX");
         //
+        // Figure out whether we're dealing with floats or doubles.
+        //
+        // First get our current position.
+        //
+        const std::streamoff CURPOS = ifs.tellg();
+        //
+        // Seek to end of file.
+        //
+        ifs.seekg(0,std::ios::end);
+        //
+        // ENDPOS - CURPOS should bracket the particle data.
+        //
+        const std::streamoff ENDPOS = ifs.tellg();
+
+        RealSizeInFile = (ENDPOS - CURPOS) / (NP*(DM+NX));
+
+        BL_ASSERT(RealSizeInFile == sizeof(float) || RealSizeInFile == sizeof(double));
+        //
+        // Now set stream back to earlier position.
+        //
+        ifs.seekg(CURPOS, std::ios::beg);
+        //
         // Skip to our place in the file.
         //
         int id = 0;
@@ -1100,7 +1139,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
         BL_ASSERT(id >= 0 && id < NReaders);
 
-        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * sizeof(double);
+        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * RealSizeInFile;
 
         if (NSKIP > 0)
         {
@@ -1132,13 +1171,30 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     const Geometry& geom = m_amr->Geom(0);
 
-    const Real dmlen[BL_SPACEDIM] = {D_DECL(geom.ProbHi(0) - geom.ProbLo(0),
-                                            geom.ProbHi(1) - geom.ProbLo(1),
-                                            geom.ProbHi(2) - geom.ProbLo(2))};
+    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
 
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
+
+    Array<float>  fxtra, fignore;
+    Array<double> dxtra, dignore;
+
+    if (extradata > 0)
+    {
+        fxtra.resize(extradata);
+        dxtra.resize(extradata);
+    }
+
+    if ((NX-extradata) > 0)
+    {
+        fignore.resize(NX-extradata);
+        dignore.resize(NX-extradata);
+    }
 
     for (int j = 0; j < how_many_redists; j++)
     {
@@ -1156,29 +1212,68 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
                 // We don't read in m_id or m_cpu.  We'll set those later
                 // in a manner to guarantee the global uniqueness of the pair.
                 //
-                ifs.read((char*)&p.m_pos[0], BL_SPACEDIM*sizeof(double));
+                if (RealSizeInFile == sizeof(float))
+                {
+                    float fpos[BL_SPACEDIM];
+
+                    ifs.read((char*)&fpos[0], BL_SPACEDIM*sizeof(float));
+
+                    D_TERM(p.m_pos[0] = fpos[0];,
+                           p.m_pos[1] = fpos[1];,
+                           p.m_pos[2] = fpos[2];);
+
+                }
+                else if (RealSizeInFile == sizeof(double))
+                {
+                    double dpos[BL_SPACEDIM];
+
+                    ifs.read((char*)&dpos[0], BL_SPACEDIM*sizeof(double));
+
+                    D_TERM(p.m_pos[0] = dpos[0];,
+                           p.m_pos[1] = dpos[1];,
+                           p.m_pos[2] = dpos[2];);
+                }
                 //
                 // If particle is right on a domain boundary then move it just inside the boundary.
                 //
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
-                    if (p.m_pos[d] == geom.ProbLo(d)) p.m_pos[d] += 1.e-8 * dmlen[d];
-                    if (p.m_pos[d] == geom.ProbHi(d)) p.m_pos[d] -= 1.e-8 * dmlen[d];
+                    if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+                    if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
                 }
                 //
                 // Read in any "extradata".
                 //
                 if (extradata > 0)
                 {
-                    ifs.read((char*)&p.m_data[0], extradata*sizeof(double));
+                    if (RealSizeInFile == sizeof(float))
+                    {
+                        ifs.read((char*)&fxtra[0], extradata*sizeof(float));
+
+                        for (int i = 0; i < extradata; i++)
+                            p.m_data[i] = fxtra[i];
+                    }
+                    else if (RealSizeInFile == sizeof(double))
+                    {
+                        ifs.read((char*)&dxtra[0], extradata*sizeof(double));
+
+                        for (int i = 0; i < extradata; i++)
+                            p.m_data[i] = dxtra[i];
+                    }
                 }
                 //
                 // Read any remaining data for this particle.
                 //
                 if ((NX-extradata) > 0)
                 {
-                    double ignore[N*sizeof(double)];
-                    ifs.read((char*)&ignore[0], (NX-extradata)*sizeof(double));
+                    if (RealSizeInFile == sizeof(float))
+                    {
+                        ifs.read((char*)&fignore[0], (NX-extradata)*sizeof(float));
+                    }
+                    else if (RealSizeInFile == sizeof(double))
+                    {
+                        ifs.read((char*)&dignore[0], (NX-extradata)*sizeof(double));
+                    }
                 }
 
                 if (!ifs.good())
@@ -1667,7 +1762,7 @@ ParticleContainer<N>::InitRandom (long          icount,
         // very large numbers of particles.
         //
         //
-        Array<Real> pos(icount*BL_SPACEDIM);
+        Array<ParticleBase::RealType> pos(icount*BL_SPACEDIM);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -2351,7 +2446,8 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 
 template <int N>
 void
-ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min) const
+ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf,
+                                            int               lev_min) const
 {
     AssignDensity(mf, lev_min, BL_SPACEDIM+1);
 }
@@ -2359,7 +2455,9 @@ ParticleContainer<N>::AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min) c
 template <int N>
 void
 ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled, 
-                                     int lev_min, int ncomp, int finest_level) const
+                                     int               lev_min,
+                                     int               ncomp,
+                                     int               finest_level) const
 {
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
@@ -3250,8 +3348,8 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
     const int iChunkSize = 2 + BL_SPACEDIM;
     const int rChunkSize = ncomp;
 
-    Array<int>  irecvdata (NumRcvs*iChunkSize);
-    Array<Real> rrecvdata (NumRcvs*rChunkSize);
+    Array<int>                    irecvdata (NumRcvs*iChunkSize);
+    Array<ParticleBase::RealType> rrecvdata (NumRcvs*rChunkSize);
 
     Array<int>         index(2*RcvCnts.size());
     Array<MPI_Status>  stats(2*RcvCnts.size());
@@ -3283,8 +3381,8 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
     //
     // Send the data.
     //
-    Array<int>  isenddata;
-    Array<Real> rsenddata;
+    Array<int>                    isenddata;
+    Array<ParticleBase::RealType> rsenddata;
 
     for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
     {
@@ -3340,8 +3438,8 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
     //
     if (NumRcvs > 0)
     {
-        const int*  idata = irecvdata.dataPtr();
-        const Real* rdata = rrecvdata.dataPtr();
+        const int*                    idata = irecvdata.dataPtr();
+        const ParticleBase::RealType* rdata = rrecvdata.dataPtr();
 
         for (int i = 0; i < NumRcvs; i++)
         {
@@ -3365,224 +3463,221 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
 template <int N>
 void
-ParticleContainer<N>::GetParticleLocationsAndMass(Array<Real>& part_data)
+ParticleContainer<N>::GetParticleLocationsAndMass (Array<Real>& part_data)
 {
-   // This gives us the starting point into the part_data array
-   // If only one processor (or no MPI), then that's all we need
-   int cnt = 0;
+    //
+    // This gives us the starting point into the part_data array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
 
 #if BL_USE_MPI
-   Array<long> cnts(ParallelDescriptor::NProcs());
+    Array<long> cnts(ParallelDescriptor::NProcs());
 
-   // This returns the number of particles on this processor
-   long lcnt = TotalNumberOfParticles(true,true);
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
 
-   // This accumulates the "lcnt" values into "cnts"
-   MPI_Gather(&lcnt,1,              
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              cnts.dataPtr(),
-              1,
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              ParallelDescriptor::IOProcessorNumber(),
-              ParallelDescriptor::Communicator());
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
 
-   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-       cnt += cnts[iproc];
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
 
-   // Each particle takes up (BL_SPACEDIM+1) Reals
-   cnt*= (BL_SPACEDIM+1);
+    // Each particle takes up (BL_SPACEDIM+1) Reals
+    cnt *= (BL_SPACEDIM+1);
 #endif
 
-   // This is the total number of particles on *all* processors
-   long npart = TotalNumberOfParticles(true,false);
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
 
-   // Mass + locations
-   part_data.resize((BL_SPACEDIM+1)*npart,0);
+    // Mass + locations
+    part_data.resize((BL_SPACEDIM+1)*npart,0);
 
-   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
-   {
-       PMap& pmap = m_particles[lev];
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
 
-       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-       {
-           PBox&     pbx = pmap_it->second;
-           const int n    = pbx.size();
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
     
-           for (int i = 0; i < n; i++)
-           {
-              ParticleType& p = pbx[i];
-              if (p.m_id > 0)
-              {
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load positions
+                    for (int d=0; d < BL_SPACEDIM; d++)
+                        part_data[cnt+d] = p.m_pos[d];
 
-                  // Load positions
-                  for (int d=0; d < BL_SPACEDIM; d++)
-                     part_data[cnt+d] = p.m_pos[d];
+                    // Load mass
+                    part_data[cnt+BL_SPACEDIM] = p.m_data[0];
 
-                  // Load mass
-                  part_data[cnt+BL_SPACEDIM] = p.m_data[0];
-
-                  // Update counter
-                  cnt += (BL_SPACEDIM+1);
-              }
-           }
-       }
+                    // Update counter
+                    cnt += (BL_SPACEDIM+1);
+                }
+            }
+        }
     }
 
-   ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
 template <int N>
 void
-ParticleContainer<N>::GetParticleVelocities(Array<Real>& part_data)
+ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
 {
-   // This gives us the starting point into the part_data array
-   // If only one processor (or no MPI), then that's all we need
-   int cnt = 0;
+    //
+    // This gives us the starting point into the part_data array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
 
 #if BL_USE_MPI
-   Array<long> cnts(ParallelDescriptor::NProcs());
+    Array<long> cnts(ParallelDescriptor::NProcs());
 
-   // This returns the number of particles on this processor
-   long lcnt = TotalNumberOfParticles(true,true);
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
 
-   // This accumulates the "lcnt" values into "cnts"
-   MPI_Gather(&lcnt,1,              
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              cnts.dataPtr(),
-              1,
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              ParallelDescriptor::IOProcessorNumber(),
-              ParallelDescriptor::Communicator());
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
 
-   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-       cnt += cnts[iproc];
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
 
-   // Each particle takes up (BL_SPACEDIM) Reals
-   cnt*= (BL_SPACEDIM);
+    // Each particle takes up (BL_SPACEDIM) Reals
+    cnt*= (BL_SPACEDIM);
 #endif
 
-   // This is the total number of particles on *all* processors
-   long npart = TotalNumberOfParticles(true,false);
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
 
-   // Velocities
-   part_data.resize((BL_SPACEDIM)*npart,0);
+    // Velocities
+    part_data.resize((BL_SPACEDIM)*npart,0);
 
-   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
-   {
-       PMap& pmap = m_particles[lev];
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
 
-       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-       {
-           PBox&     pbx = pmap_it->second;
-           const int n    = pbx.size();
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
     
-           for (int i = 0; i < n; i++)
-           {
-              ParticleType& p = pbx[i];
-              if (p.m_id > 0)
-              {
-                  // Load velocities
-                  for (int d=0; d < BL_SPACEDIM; d++)
-                     part_data[cnt+d] = p.m_data[d+1];
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load velocities
+                    for (int d=0; d < BL_SPACEDIM; d++)
+                        part_data[cnt+d] = p.m_data[d+1];
 
-                  // Update counter
-                  cnt += BL_SPACEDIM;
-              }
-           }
-       }
+                    // Update counter
+                    cnt += BL_SPACEDIM;
+                }
+            }
+        }
     }
 
-   ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
 template <int N>
 void
-ParticleContainer<N>::GetParticleData(Array<Real>& part_data)
+ParticleContainer<N>::GetParticleData (Array<Real>& part_data)
 {
-   // This gives us the starting point into the part_data array
-   // If only one processor (or no MPI), then that's all we need
-   int cnt = 0;
+    //
+    // This gives us the starting point into the part_data array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
 
 #if BL_USE_MPI
-   Array<long> cnts(ParallelDescriptor::NProcs());
+    Array<long> cnts(ParallelDescriptor::NProcs());
 
-   // This returns the number of particles on this processor
-   long lcnt = TotalNumberOfParticles(true,true);
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
 
-   // This accumulates the "lcnt" values into "cnts"
-   MPI_Gather(&lcnt,1,              
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              cnts.dataPtr(),
-              1,
-              ParallelDescriptor::Mpi_typemap<long>::type(),
-              ParallelDescriptor::IOProcessorNumber(),
-              ParallelDescriptor::Communicator());
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
 
-   ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-   for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-       cnt += cnts[iproc];
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
 
-   // Each particle takes up N Reals
-   cnt*= N;
+    // Each particle takes up N Reals
+    cnt*= N;
 #endif
 
-   // This is the total number of particles on *all* processors
-   long npart = TotalNumberOfParticles(true,false);
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
 
-   // Velocities
-   part_data.resize(N*npart,0);
+    // Velocities
+    part_data.resize(N*npart,0);
 
-   for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
-   {
-       PMap& pmap = m_particles[lev];
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
 
-       for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-       {
-           PBox&     pbx = pmap_it->second;
-           const int n    = pbx.size();
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
     
-           for (int i = 0; i < n; i++)
-           {
-              ParticleType& p = pbx[i];
-              if (p.m_id > 0)
-              {
-                  // Load velocities
-                  for (int d=0; d < N; d++)
-                     part_data[cnt+d] = p.m_data[d+1];
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load velocities
+                    for (int d=0; d < N; d++)
+                        part_data[cnt+d] = p.m_data[d+1];
 
-                  // Update counter
-                  cnt += N;
-              }
-           }
-       }
+                    // Update counter
+                    cnt += N;
+                }
+            }
+        }
     }
 
-   ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
+    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
 }
 
 template <int N>
 void
-ParticleContainer<N>::SetPlotFileFormat(std::string plotfile_format_in)
-{
-    plotfile_format = plotfile_format_in; 
-}
-
-
-template <int N>
-void
-ParticleContainer<N>::SetAllowParticlesNearBoundary(bool value)
+ParticleContainer<N>::SetAllowParticlesNearBoundary (bool value)
 {
     allow_particles_near_boundary = value; 
 }
 
 template <int N>
 void
-ParticleContainer<N>::SetParticleLocationsAndMass(Array<Real>& part_data)
+ParticleContainer<N>::SetParticleLocationsAndMass (Array<Real>& part_data)
 {
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
@@ -3651,7 +3746,7 @@ ParticleContainer<N>::SetParticleLocationsAndMass(Array<Real>& part_data)
 
 template <int N>
 void
-ParticleContainer<N>::SetParticleVelocities(Array<Real>& part_data)
+ParticleContainer<N>::SetParticleVelocities (Array<Real>& part_data)
 {
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
@@ -5277,7 +5372,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Allocate data for rcvs as one big chunk.
         //
-        Array<Real> recvdata(NumRcvs * rChunkSize);
+        Array<ParticleBase::RealType> recvdata(NumRcvs * rChunkSize);
         //
         // Post receives.
         //
@@ -5297,7 +5392,7 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         // Send the Real data.
         //
-        Array<Real> senddata;
+        Array<ParticleBase::RealType> senddata;
 
         for (IntIntMap::const_iterator it = SndCnts.begin(), End = SndCnts.end(); it != End; ++it)
         {
@@ -5344,10 +5439,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
             for (int k = 0; k < completed; k++)
             {
-                const int   Who  = owner[index[k]];
-                const int   Idx  = rOffset[Who] * rChunkSize;
-                const Real* rcvp = &recvdata[Idx];
-                PBox&       pbox = nparticles[Who];
+                const int                     Who  = owner[index[k]];
+                const int                     Idx  = rOffset[Who] * rChunkSize;
+                const ParticleBase::RealType* rcvp = &recvdata[Idx];
+                PBox&                         pbox = nparticles[Who];
 
                 BL_ASSERT(pbox.size() == RcvCnts[Who]);
 
@@ -5465,7 +5560,7 @@ template <int N>
 void
 ParticleContainer<N>::Checkpoint (const std::string& dir,
                                   const std::string& name,
-                                  bool is_checkpoint) const
+                                  bool               is_checkpoint) const
 {
     BL_ASSERT(OK());
 
@@ -5833,66 +5928,33 @@ ParticleContainer<N>::WriteParticles (int            lev,
                     iptr += iChunkSize;
                 }
             }
+
             ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
         }
 
         const int rChunkSize = BL_SPACEDIM+N;
+        //
+        // Write the Real data in binary.
+        //
+        Array<ParticleBase::RealType> rstuff(cnt*rChunkSize);
 
-        // This is the default value -- note that we always write the checkpoint
-        //  in double precision.
-        if (is_checkpoint || plotfile_format == "NATIVE")
+        ParticleBase::RealType* rptr = rstuff.dataPtr();
+
+        for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
         {
-           //
-           // Write the Real data in binary.
-           //
-           Array<Real> rstuff(cnt*rChunkSize);
-           Real* rptr = rstuff.dataPtr();
+            if (it->m_id > 0)
+            {
+                D_TERM(rptr[0] = it->m_pos[0];,
+                       rptr[1] = it->m_pos[1];,
+                       rptr[2] = it->m_pos[2];);
 
-           for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
-           {
-               if (it->m_id > 0)
-               {
-                   D_TERM(rptr[0] = it->m_pos[0];,
-                          rptr[1] = it->m_pos[1];,
-                          rptr[2] = it->m_pos[2];);
+                for (int i = 0; i < N; i++)
+                    rptr[BL_SPACEDIM+i] = it->m_data[i];
 
-                   for (int i = 0; i < N; i++)
-                       rptr[BL_SPACEDIM+i] = it->m_data[i];
-
-                   rptr += rChunkSize;
-               }
-           }
-           ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
+                rptr += rChunkSize;
+            }
         }
-        else if (plotfile_format == "IEEE32")
-        {
-           BL_ASSERT(!is_checkpoint);
-           //
-           // Write the Real data in single precision.
-           //
-           Array<float> rstuff(cnt*rChunkSize);
-           float* rptr = rstuff.dataPtr();
-
-           for (typename PBox::const_iterator it = pbox.begin(), End = pbox.end(); it != End; ++it)
-           {
-               if (it->m_id > 0)
-               {
-                   D_TERM(rptr[0] = it->m_pos[0];,
-                          rptr[1] = it->m_pos[1];,
-                          rptr[2] = it->m_pos[2];);
-
-                   for (int i = 0; i < N; i++)
-                       rptr[BL_SPACEDIM+i] = it->m_data[i];
-
-                   rptr += rChunkSize;
-               }
-           }
-           ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(float));
-        }
-        else 
-        {
-            BoxLib::Error("Dont know this particle_plotfile_format -- must be NATIVE or IEEE32");
-        }
+        ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleBase::RealType));
     }
 }
 
@@ -5956,9 +6018,13 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
     version = vbuf.dataPtr();
 
-    if (version == ParticleBase::Version())
+    if (version == "Version_One_Dot_One")
     {
-        Restart_OneDotZero(fullname,HdrFile);
+        Restart_Doit(fullname,HdrFile,V_One);
+    }
+    else if (version == "Version_One_Dot_Zero")
+    {
+        Restart_Doit(fullname,HdrFile,V_Zero);
     }
     else
     {
@@ -5982,10 +6048,12 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
 template <int N>
 void
-ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
-                                          std::ifstream&     HdrFile)
+ParticleContainer<N>::Restart_Doit (const std::string& fullname,
+                                    std::ifstream&     HdrFile,
+                                    enum Version       version)
 {
     BL_ASSERT(!fullname.empty());
+    BL_ASSERT(version == V_Zero || version == V_One);
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
@@ -6137,17 +6205,32 @@ ParticleContainer<N>::Restart_OneDotZero (const std::string& fullname,
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
-            ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
-
+            if (version == V_One)
+            {
+                ReadParticles_OneDotOne(count[grid],grid,lev,ParticleFile);
+            }
+            else if (version == V_Zero)
+            {
+                ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
+            }
+            else
+            {
+                BoxLib::Error("Restart_Doit: bad version number");
+            }
+                
             ParticleFile.close();
 
             if (!ParticleFile.good())
-                BoxLib::Abort("ParticleContainer<N>::Restart(): problem reading particles");
+                BoxLib::Abort("ParticleContainer<N>::Restart_Doit(): problem reading particles");
         }
     }
 
-    BL_ASSERT(OK());
+    BL_ASSERT(OK());        
 }
+
+//
+// This one stores real data as doubles.
+//
 
 template <int N>
 void
@@ -6159,7 +6242,7 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
     BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
-    BL_ASSERT(grd >= 0 && grd < m_amr->ParticleBoxArray(lev).size());
+    BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
     //
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -6171,19 +6254,108 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 
     ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
     //
-    // Then the Real data in binary.
+    // Then the double data in binary.
     //
     const int rChunkSize = BL_SPACEDIM+N;
 
-    Array<Real> rstuff(cnt*rChunkSize);
+    Array<double> rstuff(cnt*rChunkSize);
 
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(Real));
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(double));
     //
     // Now reassemble the particles.
     //
-    int*         iptr = istuff.dataPtr();
-    Real*        rptr = rstuff.dataPtr();
-    PBox&        pbox = m_particles[lev][grd];
+    int*            iptr = istuff.dataPtr();
+    double*         rptr = rstuff.dataPtr();
+    PBox&           pbox = m_particles[lev][grd];
+    const Geometry& geom = m_amr->Geom(0);
+
+    const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
+    const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
+                                              .125*geom.CellSize(1),
+                                              .125*geom.CellSize(2)) };
+    ParticleType p;
+
+    for (int i = 0; i < cnt; i++)
+    {
+        p.m_id   = iptr[0];
+        p.m_cpu  = iptr[1];
+        p.m_lev  = lev;
+        p.m_grid = grd;
+
+        BL_ASSERT(p.m_id > 0);
+
+        BL_ASSERT(p.m_lev  == lev);
+        BL_ASSERT(p.m_grid == grd);
+
+        D_TERM(p.m_cell[0] = iptr[2];,
+               p.m_cell[1] = iptr[3];,
+               p.m_cell[2] = iptr[4];);
+
+        iptr += iChunkSize;
+
+        D_TERM(p.m_pos[0] = rptr[0];,
+               p.m_pos[1] = rptr[1];,
+               p.m_pos[2] = rptr[2];);
+        //
+        // If we're reading in doubles and storing'm in floats we have
+        // to make sure the particles stay in the domain.
+        //
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            if (p.m_pos[d] <= ProbLo[d]) p.m_pos[d] += Delta[d];
+            if (p.m_pos[d] >= ProbHi[d]) p.m_pos[d] -= Delta[d];
+        }
+
+        for (int i = 0; i < N; i++)
+            p.m_data[i] = rptr[BL_SPACEDIM+i];
+
+        rptr += rChunkSize;
+
+        pbox.push_back(p);
+    }
+}
+
+//
+// This one stores real data as floats.
+//
+
+template <int N>
+void
+ParticleContainer<N>::ReadParticles_OneDotOne (int            cnt,
+                                               int            grd,
+                                               int            lev,
+                                               std::ifstream& ifs)
+{
+    BL_ASSERT(cnt > 0);
+    BL_ASSERT(lev < m_particles.size());
+    BL_ASSERT(lev >= 0 && lev <= m_amr->finestLevel());
+    BL_ASSERT(grd >= 0 && grd < m_amr->boxArray(lev).size());
+    //
+    // First read in the integer data in binary.  We do not store
+    // the m_lev and m_grid data on disk.  We can easily recreate
+    // that given the structure of the checkpoint file.
+    //
+    const int iChunkSize = 2+BL_SPACEDIM;
+
+    Array<int> istuff(cnt*iChunkSize);
+
+    ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+    //
+    // Then the float data in binary.
+    //
+    const int rChunkSize = BL_SPACEDIM+N;
+
+    Array<float> rstuff(cnt*rChunkSize);
+
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(float));
+    //
+    // Now reassemble the particles.
+    //
+    int*   iptr = istuff.dataPtr();
+    float* rptr = rstuff.dataPtr();
+    PBox&  pbox = m_particles[lev][grd];
+
     ParticleType p;
 
     for (int i = 0; i < cnt; i++)
