@@ -40,7 +40,8 @@ struct ParticleBase
     // The floating point type used for particle positions
     // and the "extra" data in the particles themselves.
     //
-    typedef float RealType;
+//    typedef float RealType;
+    typedef double RealType;
 
     int      m_id;
     int      m_cpu;
@@ -434,18 +435,16 @@ protected:
     //
     // Helper functions for Restart().
     //
-    enum Version { V_Zero, V_One };
-
     void Restart_Doit (const std::string& fullname,
                        std::ifstream&     HdrFile,
-                       enum Version       version);
+                       const std::string& how);
 
-    void ReadParticles_OneDotZero (int            cnt,
+    void ReadParticles_DoublePrecision (int            cnt,
                                    int            grd,
                                    int            lev,
                                    std::ifstream& ifs);
 
-    void ReadParticles_OneDotOne (int            cnt,
+    void ReadParticles_SinglePrecision (int            cnt,
                                   int            grd,
                                   int            lev,
                                   std::ifstream& ifs);
@@ -5564,6 +5563,8 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
 {
     BL_ASSERT(OK());
 
+    BL_ASSERT(sizeof(ParticleBase::RealType) == 4 || sizeof(ParticleBase::RealType) == 8);
+
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -5638,8 +5639,19 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             BoxLib::FileOpenFailed(HdrFileName);
         //
         // First thing written is our Checkpoint/Restart version string.
+        // 
+        // We append "_single" or "_double" to the version string indicating
+        // whether we're using "float" or "double" floating point data in the
+        // particles so that we can Restart from the checkpoint files.
         //
-        HdrFile << ParticleBase::Version() << '\n';
+        if (sizeof(ParticleBase::RealType) == 4)
+        {
+            HdrFile << ParticleBase::Version() << "_single" << '\n';
+        }
+        else
+        {
+            HdrFile << ParticleBase::Version() << "_double" << '\n';
+        }
         //
         // BL_SPACEDIM and N for sanity checking.
         //
@@ -5954,6 +5966,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
                 rptr += rChunkSize;
             }
         }
+
         ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleBase::RealType));
     }
 }
@@ -6014,17 +6027,40 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
         vbuf[version.size()] = '\0';
     }
-    ParallelDescriptor::Bcast(vbuf.dataPtr(), vbuf.size(), IOProc);
 
+    ParallelDescriptor::Bcast(vbuf.dataPtr(), vbuf.size(), IOProc);
+    //
+    // What do our version strings mean?
+    //
+    // "Version_One_Dot_Zero" -- hard-wired to write out in double precision.
+    // 
+    // "Version_One_Dot_One" -- can write out either as either single or double precision.
+    //
+    // Appended to the latter version string are either "_single" or "_double" to
+    // indicate how the particles were written.
+    //
     version = vbuf.dataPtr();
 
-    if (version == "Version_One_Dot_One")
+    if (version.find("Version_One_Dot_Zero") != std::string::npos)
     {
-        Restart_Doit(fullname,HdrFile,V_One);
+        Restart_Doit(fullname,HdrFile,"single");
     }
-    else if (version == "Version_One_Dot_Zero")
+    else if (version.find("Version_One_Dot_One") != std::string::npos)
     {
-        Restart_Doit(fullname,HdrFile,V_Zero);
+        if (version.find("_single") != std::string::npos)
+        {
+            Restart_Doit(fullname,HdrFile,"single");
+        }
+        else if (version.find("_double") != std::string::npos)
+        {
+            Restart_Doit(fullname,HdrFile,"double");
+        }
+        else
+        {
+            std::string msg("ParticleContainer<N>::Restart(): bad version string: ");
+            msg += version;
+            BoxLib::Error(version.c_str());
+        }
     }
     else
     {
@@ -6050,10 +6086,9 @@ template <int N>
 void
 ParticleContainer<N>::Restart_Doit (const std::string& fullname,
                                     std::ifstream&     HdrFile,
-                                    enum Version       version)
+                                    const std::string& how)
 {
     BL_ASSERT(!fullname.empty());
-    BL_ASSERT(version == V_Zero || version == V_One);
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     //
@@ -6205,17 +6240,19 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
 
             ParticleFile.seekg(where[grid], std::ios::beg);
 
-            if (version == V_One)
+            if (how == "single")
             {
-                ReadParticles_OneDotOne(count[grid],grid,lev,ParticleFile);
+                ReadParticles_SinglePrecision(count[grid],grid,lev,ParticleFile);
             }
-            else if (version == V_Zero)
+            else if (how == "double")
             {
-                ReadParticles_OneDotZero(count[grid],grid,lev,ParticleFile);
+                ReadParticles_DoublePrecision(count[grid],grid,lev,ParticleFile);
             }
             else
             {
-                BoxLib::Error("Restart_Doit: bad version number");
+                std::string msg("ParticleContainer<N>::Restart_Doit(): bad parameter: ");
+                msg += how;
+                BoxLib::Error(msg.c_str());
             }
                 
             ParticleFile.close();
@@ -6234,10 +6271,10 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
 
 template <int N>
 void
-ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
-                                                int            grd,
-                                                int            lev,
-                                                std::ifstream& ifs)
+ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
+                                                     int            grd,
+                                                     int            lev,
+                                                     std::ifstream& ifs)
 {
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
@@ -6322,10 +6359,10 @@ ParticleContainer<N>::ReadParticles_OneDotZero (int            cnt,
 
 template <int N>
 void
-ParticleContainer<N>::ReadParticles_OneDotOne (int            cnt,
-                                               int            grd,
-                                               int            lev,
-                                               std::ifstream& ifs)
+ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
+                                                     int            grd,
+                                                     int            lev,
+                                                     std::ifstream& ifs)
 {
     BL_ASSERT(cnt > 0);
     BL_ASSERT(lev < m_particles.size());
