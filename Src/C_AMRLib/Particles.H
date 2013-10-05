@@ -411,7 +411,7 @@ public:
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
 
-    void Restart (const std::string& dir, const std::string& file);
+    void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
     void WritePlotFile (const std::string& dir, const std::string& name) const;
 
@@ -440,17 +440,20 @@ protected:
     //
     void Restart_Doit (const std::string& fullname,
                        std::ifstream&     HdrFile,
-                       const std::string& how);
+                       const std::string& how,
+                       bool           is_checkpoint);
 
     void ReadParticles_DoublePrecision (int            cnt,
-                                   int            grd,
-                                   int            lev,
-                                   std::ifstream& ifs);
+                                        int            grd,
+                                        int            lev,
+                                        bool           is_checkpoint,
+                                        std::ifstream& ifs);
 
     void ReadParticles_SinglePrecision (int            cnt,
-                                  int            grd,
-                                  int            lev,
-                                  std::ifstream& ifs);
+                                        int            grd,
+                                        int            lev,
+                                        bool           is_checkpoint,
+                                        std::ifstream& ifs);
     //
     // The data.
     //
@@ -5977,7 +5980,8 @@ ParticleContainer<N>::WriteParticles (int            lev,
 template <int N>
 void
 ParticleContainer<N>::Restart (const std::string& dir,
-                               const std::string& file)
+                               const std::string& file,
+                               bool is_checkpoint)
 {
     BL_ASSERT(!dir.empty());
     BL_ASSERT(!file.empty());
@@ -6046,17 +6050,17 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
     if (version.find("Version_One_Dot_Zero") != std::string::npos)
     {
-        Restart_Doit(fullname,HdrFile,"single");
+        Restart_Doit(fullname,HdrFile,"single",is_checkpoint);
     }
     else if (version.find("Version_One_Dot_One") != std::string::npos)
     {
         if (version.find("_single") != std::string::npos)
         {
-            Restart_Doit(fullname,HdrFile,"single");
+            Restart_Doit(fullname,HdrFile,"single",is_checkpoint);
         }
         else if (version.find("_double") != std::string::npos)
         {
-            Restart_Doit(fullname,HdrFile,"double");
+            Restart_Doit(fullname,HdrFile,"double",is_checkpoint);
         }
         else
         {
@@ -6089,7 +6093,8 @@ template <int N>
 void
 ParticleContainer<N>::Restart_Doit (const std::string& fullname,
                                     std::ifstream&     HdrFile,
-                                    const std::string& how)
+                                    const std::string& how,
+                                    bool is_checkpoint)
 {
     BL_ASSERT(!fullname.empty());
 
@@ -6245,11 +6250,11 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
 
             if (how == "single")
             {
-                ReadParticles_SinglePrecision(count[grid],grid,lev,ParticleFile);
+                ReadParticles_SinglePrecision(count[grid],grid,lev,is_checkpoint,ParticleFile);
             }
             else if (how == "double")
             {
-                ReadParticles_DoublePrecision(count[grid],grid,lev,ParticleFile);
+                ReadParticles_DoublePrecision(count[grid],grid,lev,is_checkpoint,ParticleFile);
             }
             else
             {
@@ -6277,6 +6282,7 @@ void
 ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
                                                      int            grd,
                                                      int            lev,
+                                                     bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
     BL_ASSERT(cnt > 0);
@@ -6292,7 +6298,8 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
 
     Array<int> istuff(cnt*iChunkSize);
 
-    ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+    if (is_checkpoint)
+        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
     //
     // Then the double data in binary.
     //
@@ -6316,10 +6323,43 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
                                               .125*geom.CellSize(2)) };
     ParticleType p;
 
+    // If we are restarting from a plotfile instead of a checkpoint file, then we do not
+    //    read in the particle id's, so we need to reset the id counter to zero and renumber them
+    if (!is_checkpoint)
+    {
+        int maxnextid = 1;
+        ParticleBase::NextID(maxnextid);
+    }
+
     for (int i = 0; i < cnt; i++)
     {
-        p.m_id   = iptr[0];
-        p.m_cpu  = iptr[1];
+        if (is_checkpoint)
+        {
+            p.m_id   = iptr[0];
+            p.m_cpu  = iptr[1];
+        }
+        else
+        {
+           if (!ParticleBase::Where(p,m_amr))
+            {
+                ParticleBase::PeriodicShift(p,m_amr);
+
+                if (!ParticleBase::Where(p,m_amr))
+                {
+                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                    {
+                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    }
+
+                    BoxLib::Abort("ParticleContainer<N>::ReadParticles_DoublePrecision(): invalid particle");
+                }
+            }
+
+            p.m_id   = ParticleBase::NextID();
+            p.m_cpu  = ParallelDescriptor::MyProc();
+        }
         p.m_lev  = lev;
         p.m_grid = grd;
 
@@ -6365,6 +6405,7 @@ void
 ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
                                                      int            grd,
                                                      int            lev,
+                                                     bool           is_checkpoint,
                                                      std::ifstream& ifs)
 {
     BL_ASSERT(cnt > 0);
@@ -6380,7 +6421,8 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
 
     Array<int> istuff(cnt*iChunkSize);
 
-    ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+    if (is_checkpoint)
+        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
     //
     // Then the float data in binary.
     //
@@ -6398,10 +6440,47 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
 
     ParticleType p;
 
+    // If we are restarting from a plotfile instead of a checkpoint file, then we do not
+    //    read in the particle id's, so we need to reset the id counter to zero and renumber them
+    if (!is_checkpoint)
+    {
+        int maxnextid = 1;
+        ParticleBase::NextID(maxnextid);
+    }
+
     for (int i = 0; i < cnt; i++)
     {
         p.m_id   = iptr[0];
         p.m_cpu  = iptr[1];
+
+        if (is_checkpoint)
+        {
+            p.m_id   = iptr[0];
+            p.m_cpu  = iptr[1];
+        }
+        else
+        {
+           if (!ParticleBase::Where(p,m_amr))
+            {
+                ParticleBase::PeriodicShift(p,m_amr);
+
+                if (!ParticleBase::Where(p,m_amr))
+                {
+                    std::cout << "RESTART:BAD PARTICLE ID WOULD BE " << ParticleBase::NextID() << '\n';
+
+                    for (int d = 0; d < BL_SPACEDIM; d++)
+                    {
+                        std::cout << "RESTART:BAD PARTICLE POS(" << d << ") " << p.m_pos[d] << std::endl;
+                    }
+
+                    BoxLib::Abort("ParticleContainer<N>::ReadParticles_SinglePrecision(): invalid particle");
+                }
+            }
+
+            p.m_id   = ParticleBase::NextID();
+            p.m_cpu  = ParallelDescriptor::MyProc();
+        }
+
         p.m_lev  = lev;
         p.m_grid = grd;
 
