@@ -413,6 +413,9 @@ contains
              mglev = mgt(n)%nlevels
 
              ! Interpolate uu from coarser level
+             if (ref_ratio(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
+                call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
+             endif
              call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:), mgt(n-1)%use_lininterp, mgt(n-1)%ptype)
 
              ! Add: soln(n) += uu
