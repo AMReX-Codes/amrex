@@ -131,6 +131,14 @@ Amr::boxArray (int lev) const
     return amr_level[lev].boxArray();
 }
 
+#ifdef USE_PARTICLES
+const BoxArray&
+Amr::ParticleBoxArray (int lev) const
+{
+    return amr_level[lev].ParticleBoxArray();
+}
+#endif
+
 void
 Amr::setDtMin (const Array<Real>& dt_min_in)
 {
@@ -289,9 +297,13 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         pp.get("probin_file",probin_file);
     }
     //
-    // Restart or run from scratch?
+    // If set, then restart from checkpoint file.
     //
-    pp.query("restart", restart_file);
+    pp.query("restart", restart_chkfile);
+    //
+    // If set, then restart from plotfile.
+    //
+    pp.query("restart_from_plotfile", restart_pltfile);
     //
     // Read max_level and alloc memory for container objects.
     //
@@ -1010,9 +1022,9 @@ void
 Amr::init (Real strt_time,
            Real stop_time)
 {
-    if (!restart_file.empty() && restart_file != "init")
+    if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
-        restart(restart_file);
+        restart(restart_chkfile);
     }
     else
     {
@@ -1116,7 +1128,14 @@ Amr::initialInit (Real              strt_time,
                   const Array<int>* pmap)
 {
     InitializeInit(strt_time, stop_time, lev0_grids, pmap);
-    FinalizeInit  (strt_time, stop_time);
+
+    // This is a subtlety, but in the case where we are initializing the data
+    //   from a plotfile, we want to use the time read in from the plotfile as 
+    //   the start time instead of using "strt_time".
+    // The Amr data "cumtime" has been set in InitializeInit; if we are restarting 
+    //   from a plotfile, then cumtime must be re-defined in that initialization routine. 
+    //   Thus here we pass "cumtime" rather than "strt_time" to FinalizeInit.
+    FinalizeInit  (cumtime, stop_time);
 }
 
 void
@@ -1155,7 +1174,8 @@ Amr::InitializeInit(Real              strt_time,
 
     cumtime = strt_time;
     //
-    // Define base level grids.
+    // Define base level grids.  Note that if we are restarting from a plotfile, this
+    //    routine will call the level 0 AmrLevel initialization which will overwrite cumtime.
     //
     defBaseLevel(strt_time, lev0_grids, pmap);
 }
@@ -1195,6 +1215,13 @@ Amr::FinalizeInit (Real              strt_time,
 
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_regrid(0,finest_level);
+
+    for (int lev = 0; lev <= finest_level; lev++)
+    {
+        level_steps[lev] = 0;
+        level_count[lev] = 0;
+    }
+
     //
     // Perform any special post_initialization operations.
     //
@@ -1202,10 +1229,6 @@ Amr::FinalizeInit (Real              strt_time,
         amr_level[lev].post_init(stop_time);
 
     for (int lev = 0; lev <= finest_level; lev++)
-    {
-        level_count[lev] = 0;
-        level_steps[lev] = 0;
-    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1227,7 +1250,7 @@ Amr::FinalizeInit (Real              strt_time,
         printGridInfo(gridlog,0,finest_level);
     }
 
-#ifdef USE_STATIONDATA
+#ifdef USE_STATIONDATA 
     station.init(amr_level, finestLevel());
     station.findGrid(amr_level,geom);
 #endif
@@ -1762,7 +1785,7 @@ Amr::timeStep (int  level,
     // Check to see if should write plotfile.
     // This routine is here so it is done after the restart regrid.
     //
-    if (plotfile_on_restart && !(restart_file.empty()) )
+    if (plotfile_on_restart && !(restart_chkfile.empty()) )
     {
 	plotfile_on_restart = 0;
 	writePlotFile();
@@ -3046,6 +3069,7 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
     }
 }
 
+#ifdef USE_PARTICLES
 void 
 Amr::addOneParticle (int id_in, int cpu_in, 
                      std::vector<double>& xloc, std::vector<double>& attributes)
@@ -3053,3 +3077,19 @@ Amr::addOneParticle (int id_in, int cpu_in,
 {
     amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
+#endif
+
+#ifdef USE_EXTERNAL_GEOMETRY
+void 
+Amr::setBoundaryGeometry(IrregularDomain* boundary_obj_in)
+{
+    boundary_object = boundary_obj_in; 
+}
+
+IrregularDomain* 
+Amr::getBoundaryGeometry()
+{
+    return boundary_object;
+}
+#endif
+
