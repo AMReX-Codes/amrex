@@ -18,7 +18,7 @@ contains
          gs_rb_smoother_2d,  gs_rb_smoother_3d, &
          fourth_order_smoother_2d, fourth_order_smoother_3d
     use nodal_smoothers_module, only: nodal_smoother_1d, &
-         nodal_smoother_2d, nodal_smoother_3d, nodal_line_solve_1d
+         nodal_smoother_2d, nodal_smoother_3d, nodal_smoother_3d_opt, nodal_line_solve_1d
     use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
 
     integer        , intent(in   ) :: lev
@@ -330,6 +330,9 @@ contains
                    call nodal_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
                         fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
                         mgt%uniform_dh, pmask, mgt%stencil_type, 0)
+!                  call nodal_smoother_3d_opt(sp(:,:,:,:), up(:,:,:,n), &
+!                       fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
+!                       mgt%uniform_dh, pmask, mgt%stencil_type, mgt%dh(:,lev))
                 end select
              end do
           end do
