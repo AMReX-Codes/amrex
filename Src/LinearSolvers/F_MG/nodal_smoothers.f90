@@ -407,4 +407,85 @@ contains
 
   end subroutine nodal_smoother_3d
 
+  subroutine nodal_smoother_3d_opt(ss, uu, ff, mm, lo, ng, uniform_dh, pmask, &
+                                   stencil_type, dx)
+
+    use bl_prof_module
+    use impose_neumann_bcs_module
+
+    integer,            intent(in   ) :: ng
+    integer,            intent(in   ) :: lo(:)
+    logical,            intent(in   ) :: pmask(:)
+    real (kind = dp_t), intent(in   ) :: ff(lo(1)-1:,lo(2)-1:,lo(3)-1:)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
+    real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):,lo(2):,lo(3):)
+    integer,            intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
+    logical,            intent(in   ) :: uniform_dh
+    integer            ,intent(in   ) :: stencil_type
+    real (kind = dp_t), intent(in   ) :: dx(:)
+
+    integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
+    logical            :: x_is_odd, y_is_odd, jface, kface, doit
+    real (kind = dp_t) :: dd
+    real (kind = dp_t), allocatable :: wrk(:,:,:)
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "nodal_smoother_3d")
+
+    hi(1) = lo(1) + size(mm,dim=1)-1
+    hi(2) = lo(2) + size(mm,dim=2)-1
+    hi(3) = lo(3) + size(mm,dim=3)-1
+
+    print *,'In nodal_smoother_3d_opt with dx ', dx(1)
+
+    call impose_neumann_bcs_3d(uu,mm,lo,ng)
+
+    if ( stencil_type .ne. ND_DENSE_STENCIL ) then
+      call bl_error('Bad stencil_type in nodal_smoother_3d_opt: ',stencil_type)
+    end if
+
+    if ( .not. uniform_dh) then
+      call bl_error('Want uniform_dh = true in nodal_smoother_3d_opt: ')
+    end if
+
+    !
+    ! Gauss-Seidel.
+    !
+    do k = lo(3),hi(3)
+       kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+
+       do j = lo(2),hi(2)
+          jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+
+          do i = lo(1),hi(1)
+
+             doit = .true.
+
+             if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                if ( bc_dirichlet(mm(i,j,k),1,0) ) doit = .false.
+             end if
+
+                if ( doit ) then
+                   dd = ss(0,i,j,k)*uu(i,j,k) &
+                        + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
+                        + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
+                        + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
+                        + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
+                        + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
+                        + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
+                        + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
+                        + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
+                        + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
+                        + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1) 
+
+                   uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
+                end if
+          end do
+       end do
+    end do
+
+    call destroy(bpt)
+
+  end subroutine nodal_smoother_3d_opt
+
 end module nodal_smoothers_module
