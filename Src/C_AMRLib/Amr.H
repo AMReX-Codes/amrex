@@ -157,6 +157,10 @@ public:
     //
     int levelSteps (int lev) const { return level_steps[lev]; }
     //
+    // Number of time steps at specified level.
+    //
+    void setLevelSteps (int lev, int n) { level_steps[lev] = n; }
+    //
     // Which step are we at for the specified level?
     //
     int levelCount (int lev) const { return level_count[lev]; }
@@ -315,9 +319,13 @@ public:
                       int            lev,
                       int            ngrow);
     //
-    // Name of the restart file.
+    // Name of the restart chkpoint file.
     //
-    const std::string& theRestartFile () const { return restart_file; }
+    const std::string& theRestartFile () const { return restart_chkfile; }
+    //
+    // Name of the restart plotfile.
+    //
+    const std::string& theRestartPlotFile () const { return restart_pltfile; }
     //
     // The ith datalog file.  Do with it what you want.
     //
@@ -511,7 +519,8 @@ protected:
     std::ofstream    runlog_terse;
     PArray<std::ofstream> datalog;
     int              sub_cycle;
-    std::string      restart_file;
+    std::string      restart_chkfile;
+    std::string      restart_pltfile;
     std::string      probin_file;
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;

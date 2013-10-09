@@ -97,6 +97,73 @@ AmrLevel::AmrLevel (Amr&            papa,
     }
 
 #ifdef USE_PARTICLES
+    // Note: it is important to call make_particle_dmap *after* the state
+    //       has been defined because it makes use of the state's DistributionMap
+    make_particle_dmap();
+#endif
+
+    finishConstructor();
+}
+
+void
+AmrLevel::restart (Amr&          papa,
+                   std::istream& is,
+		   bool          bReadSpecial)
+{
+    parent = &papa;
+
+    is >> level;
+    is >> geom;
+
+    fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
+    crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
+
+    if (level > 0)
+    {
+        crse_ratio = parent->refRatio(level-1);
+    }
+    if (level < parent->maxLevel())
+    {
+        fine_ratio = parent->refRatio(level);
+    }
+
+    if (bReadSpecial)
+    {
+        BoxLib::readBoxArray(grids, is, bReadSpecial);
+    }
+    else
+    {
+        grids.readFrom(is);
+    }
+
+    int nstate;
+    is >> nstate;
+    int ndesc = desc_lst.size();
+    BL_ASSERT(nstate == ndesc);
+
+    state.resize(ndesc);
+    for (int i = 0; i < ndesc; i++)
+    {
+        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+    }
+
+#ifdef USE_PARTICLES
+    // Note: it is important to call make_particle_dmap *after* the state
+    //       has been defined because it makes use of the state's DistributionMap
+    particle_grids.define(grids);
+    make_particle_dmap();
+#endif
+
+    finishConstructor();
+}
+
+void
+AmrLevel::finishConstructor () {}
+
+#ifdef USE_PARTICLES
+void
+AmrLevel::make_particle_dmap ()
+{
     // Here we create particle_grids and make a distribution map for it
     // Right now particle_grids is identical to grids, but the whole point is that 
     // particle_grids can be optimized for distributing the particle work. 
@@ -148,62 +215,8 @@ AmrLevel::AmrLevel (Amr&            papa,
            particles_on_same_grids = true;
         }
     }
-#endif
-
-    finishConstructor();
 }
-
-void
-AmrLevel::restart (Amr&          papa,
-                   std::istream& is,
-		   bool          bReadSpecial)
-{
-    parent = &papa;
-
-    is >> level;
-    is >> geom;
-
-    fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
-    crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
-
-    if (level > 0)
-    {
-        crse_ratio = parent->refRatio(level-1);
-    }
-    if (level < parent->maxLevel())
-    {
-        fine_ratio = parent->refRatio(level);
-    }
-
-    if (bReadSpecial)
-    {
-        BoxLib::readBoxArray(grids, is, bReadSpecial);
-    }
-    else
-    {
-        grids.readFrom(is);
-    }
-
-#ifdef USE_PARTICLES
-    particle_grids.define(grids);
 #endif
-
-    int nstate;
-    is >> nstate;
-    int ndesc = desc_lst.size();
-    BL_ASSERT(nstate == ndesc);
-
-    state.resize(ndesc);
-    for (int i = 0; i < ndesc; i++)
-    {
-        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
-    }
-
-    finishConstructor();
-}
-
-void
-AmrLevel::finishConstructor () {}
 
 void
 AmrLevel::setTimeLevel (Real time,
@@ -1032,9 +1045,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
         //
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+        // Do NOT try and thread this.  Threads don't play well with the Inflow code.
+        //
         for (int i = 0; i < NC; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
@@ -1054,9 +1066,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+            //
+            // Do NOT try and thread this.  Threads don't play well with the Inflow code.
+            //
             for (int i = 0; i < NC; i++)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
