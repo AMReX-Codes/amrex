@@ -216,7 +216,7 @@ public:
     explicit FArrayBox (const Box& b,
                         int        ncomp=1);
     //
-    // Set the fab to a the value r.
+    // Set the fab to the value r.
     //
     FArrayBox& operator= (const Real& r);
     //
@@ -232,6 +232,13 @@ public:
 
     bool contains_nan (const Box& bx, int scomp, int ncomp) const;
     //
+    // These versions return the cell index (though not the component) of
+    // the first location of a NaN if there is one.
+    //
+    bool contains_nan (IntVect& where) const;
+
+    bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const;
+    //
     // Are there any Infs in the FAB?
     // This may return false, even if the FAB contains Infs, if the machine
     // doesn't support the appropriate Inf testing functions.
@@ -239,6 +246,13 @@ public:
     bool contains_inf () const;
 
     bool contains_inf (const Box& bx, int scomp, int ncomp) const;
+    //
+    // These versions return the cell index (though not the component) of
+    // the first location of an Inf if there is one.
+    //
+    bool contains_inf (IntVect& where) const;
+
+    bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const;
     //
     // For debugging purposes we hide BaseFab version and do some extra work.
     //
