@@ -76,7 +76,6 @@ public:
     // Allocates space for mid timestep data.
     //
     void allocMidData ();
-    void setMidData (MultiFab* md, Real time);
     //
     // Deletes the space used by the mid timestep data.
     //

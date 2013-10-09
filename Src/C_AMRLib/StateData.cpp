@@ -239,17 +239,6 @@ StateData::allocMidData ()
     }
 }
 
-void
-StateData::setMidData (MultiFab* md, Real time)
-{
-  mid_data.clear();
-  mid_data.resize(1);
-  mid_data.set(0, md);
-
-  mid_time.resize(1);
-  mid_time[0].start = mid_time[0].stop = time;
-}
-
 const BCRec
 StateData::getBC (int comp, int i) const
 {

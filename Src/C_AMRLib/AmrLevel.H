@@ -249,6 +249,7 @@ public:
     // Returns the geometry object.
     //
     const Geometry& Geom () const { return geom; }
+    const IntVect& fineRatio () const { return fine_ratio; }
     //
     // Returns number of cells on level.
     //
