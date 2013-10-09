@@ -487,7 +487,11 @@ ParticleBase::Version ()
     //
     // If we change the Checkpoint/Restart format we should increment this.
     //
-    static const std::string version("Version_One_Dot_Zero");
+    // Previous version strings:
+    //
+    //    "Version_One_Dot_Zero"
+    //
+    static const std::string version("Version_One_Dot_One");
 
     return version;
 }
@@ -627,20 +631,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
     //
     ParticleBase p_prime = p;
 
-    ParticleBase::PeriodicShift(p_prime, amr);
-    
-    bool shifted = false;
-
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (p_prime.m_pos[d] != p.m_pos[d])
-        {
-            shifted = true;
-            break;
-        }
-    }
-    
-    if (shifted)
+    if (ParticleBase::PeriodicShift(p_prime, amr))
     {
         std::vector< std::pair<int,Box> > isects;
 
@@ -715,7 +706,8 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     return false;
 }
-void
+
+bool
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const Amr*    amr)
 {
@@ -726,10 +718,10 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom = amr->Geom(0);
-    const Box&      dmn  = geom.Domain();
-    const IntVect   iv   = ParticleBase::Index(p,0,amr);
-    const Real      eps  = 1.e-13;
+    const Geometry& geom    = amr->Geom(0);
+    const Box&      dmn     = geom.Domain();
+    const IntVect   iv      = ParticleBase::Index(p,0,amr);
+    bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -743,11 +735,19 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] += eps;
+                p.m_pos[i] += .125*geom.CellSize(i);
 
             p.m_pos[i] -= geom.ProbLength(i);
 
+            if (p.m_pos[i] <= geom.ProbLo(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] += .125*geom.CellSize(i);
+
             BL_ASSERT(p.m_pos[i] >= geom.ProbLo(i));
+
+            shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
@@ -757,17 +757,26 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] -= eps;
+                p.m_pos[i] -= .125*geom.CellSize(i);
 
             p.m_pos[i] += geom.ProbLength(i);
 
+            if (p.m_pos[i] >= geom.ProbHi(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] -= .125*geom.CellSize(i);
+
             BL_ASSERT(p.m_pos[i] <= geom.ProbHi(i));
+
+            shifted = true;
         }
     }
     //
     // The particle may still be outside the domain in the case
     // where we aren't periodic on the face out which it travelled.
     //
+    return shifted;
 }
 
 void

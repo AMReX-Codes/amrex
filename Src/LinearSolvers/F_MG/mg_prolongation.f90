@@ -280,7 +280,6 @@ contains
        !
        ! For now don't bother with a generic lininterp.
        !
-       call bl_warn('lin_c_prolongation_1d: calling pc_c_prolongation() since ir /= 2')
 
        call pc_c_prolongation(ff, lof, cc, loc, lo, hi, ir)
     end if
@@ -405,7 +404,6 @@ contains
        !
        ! For now don't bother with a generic lininterp.
        !
-       call bl_warn('lin_c_prolongation_2d: calling pc_c_prolongation() since ir /= 2')
 
        call pc_c_prolongation(ff, lof, cc, loc, lo, hi, ir)
     end if
@@ -599,7 +597,6 @@ contains
        !
        ! For now don't bother with a generic lininterp.
        !
-       call bl_warn('lin_c_prolongation_3d: calling pc_c_prolongation() since ir /= 2')
 
        call pc_c_prolongation(ff, lof, cc, loc, lo, hi, ir)
     end if

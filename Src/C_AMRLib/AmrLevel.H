@@ -75,6 +75,14 @@ public:
     virtual void restart (Amr&          papa,
                           std::istream& is,
 			  bool          bReadSpecial = false);
+
+#ifdef USE_PARTICLES
+    //
+    // Make the particle distribution map
+    //
+    void make_particle_dmap ();
+#endif
+
     //
     // Is name a state variable?
     //
