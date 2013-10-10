@@ -194,6 +194,12 @@ private:
     //
     static void InitProximityMap();
     static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
+    static int ProcNumberFromRank(const int rank);
+    static std::vector<int> RanksFromProcNumber(const int procnum);
+    static IntVect TopIVFromProcNumber(const int procnum);
+    static std::vector<int> ProcNumbersFromTopIV(const IntVect &iv);
+    static IntVect TopIVFromRank(const int rank);
+    static std::vector<int> RanksFromTopIV(const IntVect &iv);
     //
     // A useful typedef.
     //

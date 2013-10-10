@@ -25,6 +25,11 @@ using std::string;
 namespace
 {
     bool initialized = false;
+    std::map<int, int> rankPNumMap;       // [rank, procNumber]
+    std::multimap<int, int> pNumRankMM;   // [procNumber, rank]
+    std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
+    std::multimap<IntVect, int, IntVect::Compare> topIVpNumMM;
+                                          // [topological iv position, procNumber]
 }
 
 namespace
@@ -1286,7 +1291,7 @@ namespace
 {
   int ProcNumber(std::string procName) {
 #ifdef BL_HOPPER
-    return(atoi(procName.substr(3, string::npos).c_str()));
+    return(atoi(procName.substr(3, std::string::npos).c_str()));
 #else
     return ParallelDescriptor::MyProc();
 #endif
@@ -1314,9 +1319,11 @@ DistributionMapping::InitProximityMap()
 
   Array<int> procNumbers(nProcs, -1);
 
+#ifdef BL_USE_MPI
   MPI_Allgather(&procNumber, 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 procNumbers.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 ParallelDescriptor::Communicator());
+#endif
 
   std::multimap<int, int> pNumRankMM;    // [procNumber, rank]
   std::map<int, int> rankPNumMap;        // [rank, procNumber]
@@ -1374,11 +1381,9 @@ DistributionMapping::InitProximityMap()
           ;  // do nothing
       }
       SFCToken::MaxPower = m;
-      //
-      // Put'm in Morton space filling curve order.
-      //
-      std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());
-      FArrayBox tFabSFC(tBox, -1.0);
+      std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());  // sfc order
+      FArrayBox tFabSFC(tBox, 1);
+      tFabSFC.setVal(-1.0);
       for(int i(0); i < tFabTokens.size(); ++i)
       {
 	IntVect &iv = tFabTokens[i].m_idx;
@@ -1414,7 +1419,7 @@ DistributionMapping::InitProximityMap()
 int
 DistributionMapping::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto)
 {
-    int nhops(0);
+  int nhops(0);
   for(int d(0); d < BL_SPACEDIM; ++d) {
     int bl(tbox.length(d));
     int ivl(std::min(ivfrom[d], ivto[d]));
@@ -1423,6 +1428,88 @@ DistributionMapping::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect
     nhops += dist;
   }
   return nhops;
+}
+
+
+int ProcNumberFromRank(const int rank) {
+  int procnum(-1);
+  std::map<int, int>::iterator it = rankPNumMap.find(rank);
+  if(it == rankPNumMap.end()) {
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cerr << "**** Error in ProcNumberFromRank:  rank not found:  "
+                << rank << std::endl;
+    }
+  } else {
+    procnum = it->second;
+    if(procnum != rankPNumMap[rank]) {
+      std::cerr << "**** Error in ProcNumberFromRank:  rank not matched:  "
+                << rank << std::endl;
+    }
+  }
+  return procnum;
+}
+
+std::vector<int> RanksFromProcNumber(const int procnum) {
+  std::vector<int> ranks;
+  std::pair<std::multimap<int, int>::iterator, std::multimap<int, int>::iterator> mmiter;
+  mmiter = pNumRankMM.equal_range(procnum);
+  for(std::multimap<int, int>::iterator it = mmiter.first; it != mmiter.second; ++it) {
+    ranks.push_back(it->second);
+  }
+  return ranks;
+}
+
+
+// -------------------------------------------------------------
+IntVect TopIVFromProcNumber(const int procnum) {
+  IntVect iv;
+  std::map<int, IntVect>::iterator it = pNumTopIVMap.find(procnum);
+  if(it == pNumTopIVMap.end()) {
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cerr << "**** Error in TopIVFromProcNumber:  procnum not found:  "
+                << procnum << std::endl;
+    }
+  } else {
+    iv = it->second;
+    if(iv != pNumTopIVMap[procnum]) {
+      std::cerr << "**** Error in TopIVFromProcNumber:  procnum not matched:  "
+                << procnum << std::endl;
+    }
+  }
+  return iv;
+}
+
+std::vector<int> ProcNumbersFromTopIV(const IntVect &iv) {
+  std::vector<int> pnums;
+  std::pair<std::multimap<IntVect, int, IntVect::Compare>::iterator,
+            std::multimap<IntVect, int, IntVect::Compare>::iterator> mmiter;
+  mmiter = topIVpNumMM.equal_range(iv);
+  for(std::multimap<IntVect, int, IntVect::Compare>::iterator it = mmiter.first;
+      it != mmiter.second; ++it)
+  {
+    pnums.push_back(it->second);
+  }
+  return pnums;
+}
+
+
+// -------------------------------------------------------------
+IntVect TopIVFromRank(const int rank) {
+  return TopIVFromProcNumber(ProcNumberFromRank(rank));
+}
+
+
+// -------------------------------------------------------------
+std::vector<int> RanksFromTopIV(const IntVect &iv) {
+  std::vector<int> ranks;
+  std::vector<int> pnums = ProcNumbersFromTopIV(iv);
+  for(int i(0); i < pnums.size(); ++i) {
+    std::vector<int> rfpn = RanksFromProcNumber(pnums[i]);
+    for(int r(0); r < rfpn.size(); ++r) {
+      ranks.push_back(rfpn[r]);
+    }
+  }
+  return ranks;
 }
 
 
