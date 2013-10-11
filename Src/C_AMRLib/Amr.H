@@ -14,6 +14,10 @@
 #include <StationData.H>
 #endif
 
+#ifdef USE_EXTERNAL_GEOMETRY
+#include <IrregularDomain.h>
+#endif
+
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
@@ -153,6 +157,10 @@ public:
     //
     int levelSteps (int lev) const { return level_steps[lev]; }
     //
+    // Number of time steps at specified level.
+    //
+    void setLevelSteps (int lev, int n) { level_steps[lev] = n; }
+    //
     // Which step are we at for the specified level?
     //
     int levelCount (int lev) const { return level_count[lev]; }
@@ -257,6 +265,12 @@ public:
     // List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
+#ifdef USE_PARTICLES
+    //
+    // List of particle_grids at each level.
+    //
+    const BoxArray& ParticleBoxArray (int lev) const;
+#endif
     //
     // AmrLevel lev.
     //
@@ -305,9 +319,13 @@ public:
                       int            lev,
                       int            ngrow);
     //
-    // Name of the restart file.
+    // Name of the restart chkpoint file.
     //
-    const std::string& theRestartFile () const { return restart_file; }
+    const std::string& theRestartFile () const { return restart_chkfile; }
+    //
+    // Name of the restart plotfile.
+    //
+    const std::string& theRestartPlotFile () const { return restart_pltfile; }
     //
     // The ith datalog file.  Do with it what you want.
     //
@@ -339,11 +357,21 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
+#ifdef USE_EXTERNAL_GEOMETRY
+    //
+    // Define an IrregularDomain geometry object for this Amr.
+    //
+    void setBoundaryGeometry(IrregularDomain* boundary_obj_in);
+    IrregularDomain* getBoundaryGeometry();
+#endif
+
+#ifdef USE_PARTICLES
     //
     // Add one particle at a time.
     //
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes);
+#endif
 
 protected:
     //
@@ -473,9 +501,15 @@ protected:
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
+
 #ifdef USE_STATIONDATA
     StationData      station;
 #endif
+
+#ifdef USE_EXTERNAL_GEOMETRY
+    IrregularDomain* boundary_object;
+#endif
+
     int              verbose;
     int              record_grid_info;
     int              record_run_info;
@@ -485,7 +519,8 @@ protected:
     std::ofstream    runlog_terse;
     PArray<std::ofstream> datalog;
     int              sub_cycle;
-    std::string      restart_file;
+    std::string      restart_chkfile;
+    std::string      restart_pltfile;
     std::string      probin_file;
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;

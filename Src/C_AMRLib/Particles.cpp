@@ -211,7 +211,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         which[i] =  0;
     }
 
-    const Box ibx = BoxLib::grow(amr->boxArray(flev)[p.m_grid],-1);
+    const Box ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -234,7 +234,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     //
     const Geometry& cgm = amr->Geom(flev-1);
     const IntVect   rr  = amr->refRatio(flev-1);
-    const BoxArray& cba = amr->boxArray(flev-1);
+    const BoxArray& cba = amr->ParticleBoxArray(flev-1);
 
     ParticleBase::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
 
@@ -306,7 +306,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     BL_ASSERT(lev < amr->finestLevel());
 
     const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
-    const BoxArray& fba = amr->boxArray(lev+1);
+    const BoxArray& fba = amr->ParticleBoxArray(lev+1);
     const Real*     plo = amr->Geom(lev).ProbLo();
     const Real*     dx  = amr->Geom(lev).CellSize();
     const Real*     fdx = amr->Geom(lev+1).CellSize();
@@ -487,7 +487,11 @@ ParticleBase::Version ()
     //
     // If we change the Checkpoint/Restart format we should increment this.
     //
-    static const std::string version("Version_One_Dot_Zero");
+    // Previous version strings:
+    //
+    //    "Version_One_Dot_Zero"
+    //
+    static const std::string version("Version_One_Dot_One");
 
     return version;
 }
@@ -560,7 +564,7 @@ ParticleBase::Where (ParticleBase& p,
         // Try to update m_cell and m_grid smartly.
         //
         BL_ASSERT(p.m_id > 0);
-        BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->boxArray(p.m_lev).size());
+        BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->ParticleBoxArray(p.m_lev).size());
 
         const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
@@ -580,7 +584,7 @@ ParticleBase::Where (ParticleBase& p,
             //
             p.m_cell = iv;
 
-            if (amr->boxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
+            if (amr->ParticleBoxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
                 //
                 // It has left its cell but is still in the same grid.
                 //
@@ -594,7 +598,7 @@ ParticleBase::Where (ParticleBase& p,
     {
         const IntVect iv = ParticleBase::Index(p,lev,amr);
 
-        amr->boxArray(lev).intersections(Box(iv,iv),isects);
+        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
 
         if (!isects.empty())
         {
@@ -605,11 +609,6 @@ ParticleBase::Where (ParticleBase& p,
             p.m_cell = iv;
 
             return true;
-        }
-        else 
-        {
-            std::cout << "BAD ID " << p.m_id << std::endl;
-            std::cout << "BAD LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
         }
     }
     return false;
@@ -632,20 +631,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
     //
     ParticleBase p_prime = p;
 
-    ParticleBase::PeriodicShift(p_prime, amr);
-    
-    bool shifted = false;
-
-    for (int d = 0; d < BL_SPACEDIM; d++)
-    {
-        if (p_prime.m_pos[d] != p.m_pos[d])
-        {
-            shifted = true;
-            break;
-        }
-    }
-    
-    if (shifted)
+    if (ParticleBase::PeriodicShift(p_prime, amr))
     {
         std::vector< std::pair<int,Box> > isects;
 
@@ -653,7 +639,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
         {
             const IntVect iv = ParticleBase::Index(p_prime,lev,amr);
 
-            amr->boxArray(lev).intersections(Box(iv,iv),isects);
+            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
 
             if (!isects.empty())
             {
@@ -684,7 +670,7 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 
     const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
 
-    if (BoxLib::grow(amr->boxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
+    if (BoxLib::grow(amr->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
         p.m_cell = iv;
 
@@ -705,7 +691,7 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
-    amr->boxArray(level).intersections(Box(iv,iv),isects);
+    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects);
 
     if (!isects.empty())
     {
@@ -720,7 +706,8 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     return false;
 }
-void
+
+bool
 ParticleBase::PeriodicShift (ParticleBase& p,
                              const Amr*    amr)
 {
@@ -731,10 +718,10 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom = amr->Geom(0);
-    const Box&      dmn  = geom.Domain();
-    const IntVect   iv   = ParticleBase::Index(p,0,amr);
-    const Real      eps  = 1.e-13;
+    const Geometry& geom    = amr->Geom(0);
+    const Box&      dmn     = geom.Domain();
+    const IntVect   iv      = ParticleBase::Index(p,0,amr);
+    bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -748,11 +735,19 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] += eps;
+                p.m_pos[i] += .125*geom.CellSize(i);
 
             p.m_pos[i] -= geom.ProbLength(i);
 
+            if (p.m_pos[i] <= geom.ProbLo(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] += .125*geom.CellSize(i);
+
             BL_ASSERT(p.m_pos[i] >= geom.ProbLo(i));
+
+            shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
@@ -762,17 +757,26 @@ ParticleBase::PeriodicShift (ParticleBase& p,
                 // Force the particle to be outside the domain so the
                 // periodic shift will bring it back inside.
                 //
-                p.m_pos[i] -= eps;
+                p.m_pos[i] -= .125*geom.CellSize(i);
 
             p.m_pos[i] += geom.ProbLength(i);
 
+            if (p.m_pos[i] >= geom.ProbHi(i))
+                //
+                // This can happen due to precision issues.
+                //
+                p.m_pos[i] -= .125*geom.CellSize(i);
+
             BL_ASSERT(p.m_pos[i] <= geom.ProbHi(i));
+
+            shifted = true;
         }
     }
     //
     // The particle may still be outside the domain in the case
     // where we aren't periodic on the face out which it travelled.
     //
+    return shifted;
 }
 
 void

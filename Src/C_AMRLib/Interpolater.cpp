@@ -22,6 +22,7 @@ CellQuadratic             quadratic_interp;
 CellConservativeLinear    lincc_interp;
 CellConservativeLinear    cell_cons_interp(0);
 CellConservativeProtected protected_interp;
+CellConservativeQuartic   quartic_interp;
 
 Interpolater::~Interpolater () {}
 
@@ -302,9 +303,11 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
     Real* lcc_xsldat = lcc_slopes.dataPtr(0);
     Real* xslfac_dat = slope_factors.dataPtr(0);
+#if (BL_SPACEDIM>=2)
     Real* ucc_ysldat = ucc_slopes.dataPtr(ncomp);
     Real* lcc_ysldat = lcc_slopes.dataPtr(ncomp);
     Real* yslfac_dat = slope_factors.dataPtr(1);
+#endif
 #if (BL_SPACEDIM==3)
     Real* ucc_zsldat = ucc_slopes.dataPtr(2*ncomp);
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
@@ -650,9 +653,11 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     Real* ucc_xsldat = ucc_slopes.dataPtr(0);
     Real* lcc_xsldat = lcc_slopes.dataPtr(0);
     Real* xslfac_dat = slope_factors.dataPtr(0);
+#if (BL_SPACEDIM>=2)
     Real* ucc_ysldat = ucc_slopes.dataPtr(ncomp);
     Real* lcc_ysldat = lcc_slopes.dataPtr(ncomp);
     Real* yslfac_dat = slope_factors.dataPtr(1);
+#endif
 #if (BL_SPACEDIM==3)
     Real* ucc_zsldat = ucc_slopes.dataPtr(2*ncomp);
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
@@ -811,4 +816,105 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 
 #endif /*(BL_SPACEDIM > 1)*/
  
+}
+
+CellConservativeQuartic::~CellConservativeQuartic () {}
+
+Box
+CellConservativeQuartic::CoarseBox (const Box& fine,
+				    int        ratio)
+{
+    Box crse(BoxLib::coarsen(fine,ratio));
+    crse.grow(2);
+    return crse;
+}
+
+Box
+CellConservativeQuartic::CoarseBox (const Box&     fine,
+				    const IntVect& ratio)
+{
+    Box crse = BoxLib::coarsen(fine,ratio);
+    crse.grow(2);
+    return crse;
+}
+
+void
+CellConservativeQuartic::interp (const FArrayBox&  crse,
+				 int               crse_comp,
+				 FArrayBox&        fine,
+				 int               fine_comp,
+				 int               ncomp,
+				 const Box&        fine_region,
+				 const IntVect&    ratio,
+				 const Geometry&   crse_geom,
+				 const Geometry&   fine_geom,
+				 Array<BCRec>&     bcr,
+				 int               actual_comp,
+				 int               actual_state)
+{
+    BL_PROFILE("CellConservativeQuartic::interp()");
+    BL_ASSERT(bcr.size() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
+    BL_ASSERT(fine_geom.IsCartesian());
+    BL_ASSERT(ratio[0]==2);
+#if (BL_SPACEDIM >= 2)
+    BL_ASSERT(ratio[0] == ratio[1]);
+#endif
+#if (BL_SPACEDIM == 3)
+    BL_ASSERT(ratio[1] == ratio[2]);
+#endif
+
+    //
+    // Make box which is intersection of fine_region and domain of fine.
+    //
+    Box target_fine_region = fine_region & fine.box();
+    //
+    // crse_bx is coarsening of target_fine_region, grown by 2.
+    //
+    Box crse_bx = CoarseBox(target_fine_region,ratio);
+
+    Box crse_bx2(crse_bx);
+    crse_bx2.grow(-2);
+    Box fine_bx2 = BoxLib::refine(crse_bx2,ratio);
+
+    Real* fdat       = fine.dataPtr(fine_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    
+    const int* flo    = fine.loVect();
+    const int* fhi    = fine.hiVect();
+    const int* clo    = crse.loVect();
+    const int* chi    = crse.hiVect();
+    const int* fblo   = target_fine_region.loVect();
+    const int* fbhi   = target_fine_region.hiVect();
+    const int* cblo   = crse_bx.loVect();
+    const int* cbhi   = crse_bx.hiVect();
+    const int* cb2lo  = crse_bx2.loVect();
+    const int* cb2hi  = crse_bx2.hiVect();
+    const int* fb2lo  = fine_bx2.loVect();
+    const int* fb2hi  = fine_bx2.hiVect();
+
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
+
+    int ltmp = fb2hi[0]-fb2lo[0]+1;
+    Array<Real> ftmp(ltmp);
+
+#if (BL_SPACEDIM >= 2)
+    ltmp = (cbhi[0]-cblo[0]+1)*ratio[1];
+    Array<Real> ctmp(ltmp);    
+#endif    
+
+#if (BL_SPACEDIM == 3)
+    ltmp = (cbhi[0]-cblo[0]+1)*(cbhi[1]-cblo[1]+1)*ratio[2];
+    Array<Real> ctmp2(ltmp);    
+#endif    
+
+    FORT_QUARTINTERP (fdat,ARLIM(flo),ARLIM(fhi),
+		      fblo, fbhi, fb2lo, fb2hi,
+		      cdat,ARLIM(clo),ARLIM(chi),
+		      cblo, cbhi, cb2lo, cb2hi,
+		      &ncomp,
+		      D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+		      D_DECL(ftmp.dataPtr(), ctmp.dataPtr(), ctmp2.dataPtr()),
+		      bc.dataPtr(),&actual_comp,&actual_state);
 }
