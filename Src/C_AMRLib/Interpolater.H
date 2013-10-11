@@ -369,6 +369,51 @@ public:
 };
 
 //
+// Conservative quartic interpolation on cell averaged data.
+//
+// An order 4 polynomial is used to fit the data.  For each cell involved
+// in constructing the polynomial, the average of the polynomial inside that 
+// cell is equal to the cell averaged value of the original data.
+//
+
+class CellConservativeQuartic
+    :
+    public Interpolater
+{
+public:
+    //
+    // The destructor.
+    //
+    virtual ~CellConservativeQuartic ();
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box& fine,
+                           int        ratio);
+    //
+    // Returns coarsened box given fine box and refinement ratio.
+    //
+    virtual Box CoarseBox (const Box&     fine,
+                           const IntVect& ratio);
+    //
+    // Coarse to fine interpolation in space.
+    //
+    virtual void interp (const FArrayBox& crse,
+                         int              crse_comp,
+                         FArrayBox&       fine,
+                         int              fine_comp,
+                         int              ncomp,
+                         const Box&       fine_region,
+                         const IntVect&   ratio,
+                         const Geometry&  crse_geom,
+                         const Geometry&  fine_geom,
+                         Array<BCRec>&    bcr,
+                         int              actual_comp,
+                         int              actual_state);
+};
+
+
+//
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 //
 extern PCInterp                  pc_interp;
@@ -378,5 +423,6 @@ extern CellQuadratic             quadratic_interp;
 extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
 extern CellConservativeProtected protected_interp;
+extern CellConservativeQuartic   quartic_interp;
 
 #endif /*_INTERPOLATER_H_*/

@@ -268,6 +268,13 @@ contains
 
     else 
 
+       ! Only print this once per solve.
+       do n = 2,nlevs
+           if (ref_ratio(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
+               call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
+           end if
+       end do
+
        do iter = 1, mgt(nlevs)%max_iter
 
           iter_solved = iter 
@@ -413,7 +420,8 @@ contains
              mglev = mgt(n)%nlevels
 
              ! Interpolate uu from coarser level
-             call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:), mgt(n-1)%use_lininterp, mgt(n-1)%ptype)
+             call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:), &
+                                     mgt(n-1)%use_lininterp, mgt(n-1)%ptype)
 
              ! Add: soln(n) += uu
              call plus_plus(full_soln(n), uu(n), nghost(uu(n)))
