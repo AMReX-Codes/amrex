@@ -30,6 +30,7 @@ namespace
     std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
     std::multimap<IntVect, int, IntVect::Compare> topIVpNumMM;
                                           // [topological iv position, procNumber]
+    std::vector<int> ranksSFC;
 }
 
 namespace
@@ -149,7 +150,6 @@ DistributionMapping::Initialize ()
         else if (theStrategy == "PFC")
         {
             strategy(PFC);
-
 	    DistributionMapping::InitProximityMap();
         }
         else
@@ -1287,26 +1287,8 @@ DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
 }
 
 
-namespace
-{
-  int ProcNumber(std::string procName) {
-#ifdef BL_HOPPER
-    return(atoi(procName.substr(3, std::string::npos).c_str()));
-#else
-    return ParallelDescriptor::MyProc();
-#endif
-  }
-}
-
-Array<int> DistributionMapping::proximityMap;
-
-void
-DistributionMapping::InitProximityMap()
-{
-  int myProc(ParallelDescriptor::MyProc());
-  int nProcs(ParallelDescriptor::NProcs());
-
-  // turn rank into a processor number (node id)
+int
+DistributionMapping::GetProcNumber() {
   int resultLen(-1);
   char procName[MPI_MAX_PROCESSOR_NAME + 11];
 #ifdef BL_USE_MPI
@@ -1315,7 +1297,24 @@ DistributionMapping::InitProximityMap()
   if(resultLen < 1) {
     strcpy(procName, "NoProcName");
   }
-  int procNumber(ProcNumber(procName));
+#ifdef BL_HOPPER
+  std::string spn(procName);
+  return(atoi(spn.substr(3, string::npos).c_str()));
+#else
+  return(ParallelDescriptor::MyProc());
+#endif
+}
+
+
+Array<int> DistributionMapping::proximityMap;
+
+void
+DistributionMapping::InitProximityMap()
+{
+  //int myProc(ParallelDescriptor::MyProc());
+  int nProcs(ParallelDescriptor::NProcs());
+
+  int procNumber(GetProcNumber());
 
   Array<int> procNumbers(nProcs, -1);
 
@@ -1325,8 +1324,6 @@ DistributionMapping::InitProximityMap()
                 ParallelDescriptor::Communicator());
 #endif
 
-  std::multimap<int, int> pNumRankMM;    // [procNumber, rank]
-  std::map<int, int> rankPNumMap;        // [rank, procNumber]
   for(int i(0); i < procNumbers.size(); ++i) {
     pNumRankMM.insert(std::pair<int, int>(procNumbers[i], i));
     rankPNumMap.insert(std::pair<int, int>(i, procNumbers[i]));
@@ -1359,6 +1356,17 @@ DistributionMapping::InitProximityMap()
       Box tBox(tFab.box());
       std::cout << "tBox = " << tBox << "  ncomp = " << tFab.nComp() << std::endl;
 
+      for(int nc(0); nc < tFab.nComp(); ++nc) {
+        for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
+          int pnum(tFab(iv, nc));
+          if(pnum >= 0) {
+            //std::cout << ">>>> iv pnum = " << iv << "  " << pnum << std::endl;
+            pNumTopIVMap.insert(std::pair<int, IntVect>(pnum, iv));
+	    topIVpNumMM.insert(std::pair<IntVect, int>(iv, pnum));
+          }
+        }
+      }
+
       // ------------------------------- make sfc from tFab
       std::vector<SFCToken> tFabTokens;  // use SFCToken here instead of PFC
       tFabTokens.reserve(tBox.numPts());
@@ -1375,10 +1383,10 @@ DistributionMapping::InitProximityMap()
                  maxijk = std::max(maxijk, token.m_idx[2]););
       }
       // Set SFCToken::MaxPower for BoxArray.
-      int m = 0;
+      int m(0);
       for ( ; (1<<m) <= maxijk; m++)
       {
-          ;  // do nothing
+        // do nothing
       }
       SFCToken::MaxPower = m;
       std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());  // sfc order
@@ -1394,19 +1402,31 @@ DistributionMapping::InitProximityMap()
       tfofs.close();
       // ------------------------------- end make sfc from tFab
 
-      std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
-      for(int nc(0); nc < tFab.nComp(); ++nc) {
-        for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
-          int pnum(tFab(iv, nc));
-          if(pnum >= 0) {
-            std::cout << ">>>> iv pnum = " << iv << "  " << pnum << std::endl;
-            pNumTopIVMap[pnum] = iv;
+      // ------------------------------- order ranks by topological sfc
+      std::vector<IntVect> nodesSFC;
+      std::cout << std::endl << "----------- order ranks by topological sfc" << std::endl;
+      for(int i(0); i < tFabTokens.size(); ++i) {
+        IntVect &iv = tFabTokens[i].m_idx;
+        std::vector<int> ivRanks = RanksFromTopIV(iv);
+        if(ivRanks.size() > 0) {
+          nodesSFC.push_back(iv);
+          std::cout << "---- iv ranks = " << iv << "  ";
+          for(int ivr(0); ivr < ivRanks.size(); ++ivr) {
+            ranksSFC.push_back(ivRanks[ivr]);
+            std::cout << ivRanks[ivr] << "  ";
           }
+          std::cout << std::endl;
         }
       }
-      // now we know the physical position (iv in the 3d torus) from the node id
-
-
+      if(ranksSFC.size() != nProcs) {
+        std::cerr << "**** Error:  ranksSFC.size() != nProcs:  " << ranksSFC.size()
+                  << "  " <<  nProcs << std::endl;
+      }
+      std::cout << "++++++++++++++++++++++++" << std::endl;
+      for(int i(0); i < ranksSFC.size(); ++i) {
+        std::cout << "++++ rank ranksSFC = " << i << "  " << ranksSFC[i] << std::endl;
+      }
+      std::cout << "----------- end order ranks by topological sfc" << std::endl;
 
 
     }
@@ -1431,7 +1451,8 @@ DistributionMapping::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect
 }
 
 
-int ProcNumberFromRank(const int rank) {
+int
+DistributionMapping::ProcNumberFromRank(const int rank) {
   int procnum(-1);
   std::map<int, int>::iterator it = rankPNumMap.find(rank);
   if(it == rankPNumMap.end()) {
@@ -1449,7 +1470,8 @@ int ProcNumberFromRank(const int rank) {
   return procnum;
 }
 
-std::vector<int> RanksFromProcNumber(const int procnum) {
+std::vector<int>
+DistributionMapping::RanksFromProcNumber(const int procnum) {
   std::vector<int> ranks;
   std::pair<std::multimap<int, int>::iterator, std::multimap<int, int>::iterator> mmiter;
   mmiter = pNumRankMM.equal_range(procnum);
@@ -1460,8 +1482,8 @@ std::vector<int> RanksFromProcNumber(const int procnum) {
 }
 
 
-// -------------------------------------------------------------
-IntVect TopIVFromProcNumber(const int procnum) {
+IntVect
+DistributionMapping::TopIVFromProcNumber(const int procnum) {
   IntVect iv;
   std::map<int, IntVect>::iterator it = pNumTopIVMap.find(procnum);
   if(it == pNumTopIVMap.end()) {
@@ -1479,7 +1501,8 @@ IntVect TopIVFromProcNumber(const int procnum) {
   return iv;
 }
 
-std::vector<int> ProcNumbersFromTopIV(const IntVect &iv) {
+std::vector<int>
+DistributionMapping::ProcNumbersFromTopIV(const IntVect &iv) {
   std::vector<int> pnums;
   std::pair<std::multimap<IntVect, int, IntVect::Compare>::iterator,
             std::multimap<IntVect, int, IntVect::Compare>::iterator> mmiter;
@@ -1493,14 +1516,14 @@ std::vector<int> ProcNumbersFromTopIV(const IntVect &iv) {
 }
 
 
-// -------------------------------------------------------------
-IntVect TopIVFromRank(const int rank) {
+IntVect
+DistributionMapping::TopIVFromRank(const int rank) {
   return TopIVFromProcNumber(ProcNumberFromRank(rank));
 }
 
 
-// -------------------------------------------------------------
-std::vector<int> RanksFromTopIV(const IntVect &iv) {
+std::vector<int>
+DistributionMapping::RanksFromTopIV(const IntVect &iv) {
   std::vector<int> ranks;
   std::vector<int> pnums = ProcNumbersFromTopIV(iv);
   for(int i(0); i < pnums.size(); ++i) {
@@ -1511,7 +1534,6 @@ std::vector<int> RanksFromTopIV(const IntVect &iv) {
   }
   return ranks;
 }
-
 
 void
 DistributionMapping::CacheStats (std::ostream& os)

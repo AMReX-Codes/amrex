@@ -143,6 +143,19 @@ class DistributionMapping
     static bool SameRefs (const DistributionMapping& lhs,
                           const DistributionMapping& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    //
+    // Initialize the topological proximity map
+    //
+    static void InitProximityMap();
+    static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
+    static int ProcNumberFromRank(const int rank);
+    static std::vector<int> RanksFromProcNumber(const int procnum);
+    static IntVect TopIVFromProcNumber(const int procnum);
+    static std::vector<int> ProcNumbersFromTopIV(const IntVect &iv);
+    static IntVect TopIVFromRank(const int rank);
+    static std::vector<int> RanksFromTopIV(const IntVect &iv);
+    static int GetProcNumber();
+
 private:
     //
     // Ways to create the processor map.
@@ -189,17 +202,6 @@ private:
     // Look for a cached processor map.
     //
     bool GetMap (const BoxArray& boxes);
-    //
-    // Initialize the topological proximity map
-    //
-    static void InitProximityMap();
-    static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
-    static int ProcNumberFromRank(const int rank);
-    static std::vector<int> RanksFromProcNumber(const int procnum);
-    static IntVect TopIVFromProcNumber(const int procnum);
-    static std::vector<int> ProcNumbersFromTopIV(const IntVect &iv);
-    static IntVect TopIVFromRank(const int rank);
-    static std::vector<int> RanksFromTopIV(const IntVect &iv);
     //
     // A useful typedef.
     //
