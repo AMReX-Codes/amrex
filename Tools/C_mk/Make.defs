@@ -765,6 +765,15 @@ else
     ProfSuffix	:=
 endif
 
+ifeq ($(USE_ARRAYVIEW), TRUE)
+  DEFINES += -DBL_USE_ARRAYVIEW
+  ARRAYVIEWDIR ?= $(HOME)/Development/ArrayView
+  INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
+  LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
+  LIBRARIES += -larrayview$(DIM)d.$(machineSuffix)
+  VPATH_LOCATIONS   += $(ARRAYVIEWDIR)
+endif
+
 
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
