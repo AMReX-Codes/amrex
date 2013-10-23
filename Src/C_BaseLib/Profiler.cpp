@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <stdlib.h>
 
 
 bool Profiler::bWriteAll = true;
@@ -89,7 +90,7 @@ void Profiler::Initialize() {
   } else {
     procName = cProcName;
 #ifdef BL_HOPPER
-    procNumber = atoi(procName.substr(3, string::npos).c_str());
+    procNumber = atoi(procName.substr(3, std::string::npos).c_str());
 #else
     procNumber = ParallelDescriptor::MyProc();
 #endif
