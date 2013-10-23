@@ -47,6 +47,8 @@ DistributionMapping::Strategy DistributionMapping::m_Strategy;
 
 DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
 
+Array<int> DistributionMapping::proximityMap;
+
 const Array<int>&
 DistributionMapping::ProcessorMap () const
 {
@@ -166,6 +168,8 @@ DistributionMapping::Initialize ()
         //
         strategy(SFC);
     }
+
+    proximityMap.resize(ParallelDescriptor::NProcs(), 0);
 
     BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
 
@@ -1306,16 +1310,11 @@ DistributionMapping::GetProcNumber() {
 }
 
 
-Array<int> DistributionMapping::proximityMap;
-
 void
 DistributionMapping::InitProximityMap()
 {
-  //int myProc(ParallelDescriptor::MyProc());
   int nProcs(ParallelDescriptor::NProcs());
-
   int procNumber(GetProcNumber());
-
   Array<int> procNumbers(nProcs, -1);
 
 #ifdef BL_USE_MPI
@@ -1337,8 +1336,6 @@ DistributionMapping::InitProximityMap()
   {
     pNumOrderRank[pnor++] = mmit->second;
   }
-
-  proximityMap.resize(ParallelDescriptor::NProcs());
 
   if(ParallelDescriptor::IOProcessor())
   {
@@ -1425,6 +1422,7 @@ DistributionMapping::InitProximityMap()
       std::cout << "++++++++++++++++++++++++" << std::endl;
       for(int i(0); i < ranksSFC.size(); ++i) {
         std::cout << "++++ rank ranksSFC = " << i << "  " << ranksSFC[i] << std::endl;
+	proximityMap[i] = ranksSFC[i];
       }
       std::cout << "----------- end order ranks by topological sfc" << std::endl;
 
@@ -1432,6 +1430,10 @@ DistributionMapping::InitProximityMap()
     }
 
   }
+
+  ParallelDescriptor::Bcast(proximityMap.dataPtr(), proximityMap.size(),
+                            ParallelDescriptor::IOProcessorNumber());
+
 
 }
 
