@@ -531,7 +531,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
-    double dsec;
+    Real dsec;
     if(bwriteavg) {
       dsec = it->second.avgTime;
     } else {
@@ -541,7 +541,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     mTimersTotalsSorted.insert(std::make_pair(dsec, sfir));
   }
 
-  for(std::map<double, std::string>::const_iterator it = mTimersTotalsSorted.begin();
+  for(std::map<Real, std::string>::const_iterator it = mTimersTotalsSorted.begin();
       it != mTimersTotalsSorted.end(); ++it)
   {
     percent = 100.0 * (it->first / pTimeTotal);

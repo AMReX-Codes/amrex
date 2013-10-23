@@ -155,6 +155,7 @@ class DistributionMapping
     static IntVect TopIVFromRank(const int rank);
     static std::vector<int> RanksFromTopIV(const IntVect &iv);
     static int GetProcNumber();
+    static int ProximityMap(const int rank) { return proximityMap[rank]; }
 
 private:
     //
