@@ -169,7 +169,10 @@ DistributionMapping::Initialize ()
         strategy(SFC);
     }
 
-    proximityMap.resize(ParallelDescriptor::NProcs(), 0);
+   if(proximityMap.size() != ParallelDescriptor::NProcs()) {
+     std::cout << "####::Initialize: proximityMap not resized yet." << std::endl;
+     proximityMap.resize(ParallelDescriptor::NProcs(), 0);
+    }
 
     BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
 
@@ -1426,6 +1429,10 @@ DistributionMapping::InitProximityMap()
                   << "  " <<  nProcs << std::endl;
       }
       std::cout << "++++++++++++++++++++++++" << std::endl;
+      if(proximityMap.size() != ParallelDescriptor::NProcs()) {
+	std::cout << "####::InitProximityMap: proximityMap not resized yet." << std::endl;
+        proximityMap.resize(ParallelDescriptor::NProcs(), 0);
+      }
       for(int i(0); i < ranksSFC.size(); ++i) {
         std::cout << "++++ rank ranksSFC = " << i << "  " << ranksSFC[i] << std::endl;
 	proximityMap[i] = ranksSFC[i];
@@ -1439,8 +1446,6 @@ DistributionMapping::InitProximityMap()
 
   ParallelDescriptor::Bcast(proximityMap.dataPtr(), proximityMap.size(),
                             ParallelDescriptor::IOProcessorNumber());
-
-
 }
 
 
@@ -1478,6 +1483,7 @@ DistributionMapping::ProcNumberFromRank(const int rank) {
   return procnum;
 }
 
+
 std::vector<int>
 DistributionMapping::RanksFromProcNumber(const int procnum) {
   std::vector<int> ranks;
@@ -1508,6 +1514,7 @@ DistributionMapping::TopIVFromProcNumber(const int procnum) {
   }
   return iv;
 }
+
 
 std::vector<int>
 DistributionMapping::ProcNumbersFromTopIV(const IntVect &iv) {
@@ -1542,6 +1549,7 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
   }
   return ranks;
 }
+
 
 void
 DistributionMapping::CacheStats (std::ostream& os)
