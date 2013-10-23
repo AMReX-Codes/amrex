@@ -298,7 +298,9 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
-    std::cout << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
+    if(ParallelDescriptor::IOProcessor() && nPerfmonProcs > 0) {
+      std::cout << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
+    }
     if(nPerfmonProcs >= m_nProcs_all) {
       std::cerr << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
       BoxLib::Abort("Error in StartParallel:  bad nPerfmonProcs.");
