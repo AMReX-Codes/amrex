@@ -1291,19 +1291,25 @@ DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
 }
 
 
-int
-DistributionMapping::GetProcNumber() {
+std::string
+DistributionMapping::GetProcName() {
   int resultLen(-1);
-  char procName[MPI_MAX_PROCESSOR_NAME + 11];
+  char cProcName[MPI_MAX_PROCESSOR_NAME + 11];
 #ifdef BL_USE_MPI
-  MPI_Get_processor_name(procName, &resultLen);
+  MPI_Get_processor_name(cProcName, &resultLen);
 #endif
   if(resultLen < 1) {
-    strcpy(procName, "NoProcName");
+    strcpy(cProcName, "NoProcName");
   }
+  return(std::string(cProcName));
+}
+
+
+int
+DistributionMapping::GetProcNumber() {
 #ifdef BL_HOPPER
-  std::string spn(procName);
-  return(atoi(spn.substr(3, string::npos).c_str()));
+  std::string procName(GetProcName());
+  return(atoi(procName.substr(3, string::npos).c_str()));
 #else
   return(ParallelDescriptor::MyProc());
 #endif
