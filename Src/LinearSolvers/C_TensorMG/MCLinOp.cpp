@@ -199,6 +199,7 @@ MCLinOp::applyBC (MultiFab& inout,
     int nc = inout.nComp();
     BL_ASSERT(nc == numcomp );
 
+    inout.setBndry(-1.e30);
     inout.FillBoundary();
     prepareForLevel(level);
 
@@ -297,6 +298,120 @@ MCLinOp::applyBC (MultiFab& inout,
 #endif
 	}
     }
+
+#if 0
+  // This "probably" works, but is not strictly needed just because of the way Bill
+  // coded up the tangential derivative stuff.  It's handy code though, so I want to
+  // keep it around/
+
+  // Clean up corners:
+  // The problem here is that APPLYBC fills only grow cells normal to the boundary.
+  // As a result, any corner cell on the boundary (either coarse-fine or fine-fine)
+  // is not filled.  For coarse-fine, the operator adjusts itself, sliding away from
+  // the box edge to avoid referencing that corner point.  On the physical boundary
+  // though, the corner point is needed.  Particularly if a fine-fine boundary intersects
+  // the physical boundary, since we want the stencil to be independent of the box
+  // blocking.  FillBoundary operations wont fix the problem because the "good"
+  // data we need is living in the grow region of adjacent fabs.  So, here we play
+  // the usual games to treat the newly filled grow cells as "valid" data.
+
+  // Note that we only need to do something where the grids touch the physical boundary.
+
+  const Geometry& geomlev = geomarray[level];
+  const BoxArray& grids = inout.boxArray();
+  const Box& domain = geomlev.Domain();
+  int nGrow = 1;
+  int src_comp = 0;
+  int num_comp = BL_SPACEDIM;
+
+
+  // Lets do a quick check to see if we need to do anything at all here
+  BoxArray BIGba = BoxArray(grids).grow(nGrow);
+
+  if (! (domain.contains(BIGba.minimalBox())) ) {
+
+    BoxArray boundary_pieces;
+    Array<int> proc_idxs;
+    Array<Array<int> > old_to_new(grids.size());
+    const DistributionMapping& dmap=inout.DistributionMap();
+
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+      if (! (geomlev.isPeriodic(d)) ) {
+
+        BoxArray gba = BoxArray(grids).grow(d,nGrow);
+        for (int i=0; i<gba.size(); ++i) {
+          BoxArray new_pieces = BoxLib::boxComplement(gba[i],domain);
+          int size_new = new_pieces.size();
+          if (size_new>0) {
+            int size_old = boundary_pieces.size();
+            boundary_pieces.resize(size_old+size_new);
+            proc_idxs.resize(boundary_pieces.size());
+            for (int j=0; j<size_new; ++j) {
+              boundary_pieces.set(size_old+j,new_pieces[j]);
+              proc_idxs[size_old+j] = dmap[i];
+              old_to_new[i].push_back(size_old+j);
+            }
+          }
+        }
+      }
+    }
+
+    proc_idxs.push_back(ParallelDescriptor::MyProc());
+
+    MultiFab boundary_data(boundary_pieces,num_comp,nGrow,
+                           DistributionMapping(proc_idxs));
+
+    for (MFIter mfi(inout); mfi.isValid(); ++mfi) {
+      const FArrayBox& src_fab = inout[mfi];
+      for (int j=0; j<old_to_new[mfi.index()].size(); ++j) {
+        int new_box_idx = old_to_new[mfi.index()][j];
+        boundary_data[new_box_idx].copy(src_fab,src_comp,0,num_comp);
+      }
+    }
+
+    boundary_data.FillBoundary();
+
+    // Use a hacked Geometry object to handle the periodic intersections for us.
+    // Here, the "domain" is the plane of cells on non-periodic boundary faces.
+    // and there may be cells over the periodic boundary in the remaining directions.
+    // We do a Geometry::PFB on each non-periodic face to sync these up.
+    if (geomlev.isAnyPeriodic()) {
+      Array<int> is_per(BL_SPACEDIM,0);
+      for (int d=0; d<BL_SPACEDIM; ++d) {
+        is_per[d] = geomlev.isPeriodic(d);
+      }
+      for (int d=0; d<BL_SPACEDIM; ++d) {
+        if (! is_per[d]) {
+          Box tmpLo = BoxLib::adjCellLo(geomlev.Domain(),d,1);
+          Geometry tmpGeomLo(tmpLo,&(geomlev.ProbDomain()),(int)geomlev.Coord(),is_per.dataPtr());
+          tmpGeomLo.FillPeriodicBoundary(boundary_data);
+
+          Box tmpHi = BoxLib::adjCellHi(geomlev.Domain(),d,1);
+          Geometry tmpGeomHi(tmpHi,&(geomlev.ProbDomain()),(int)geomlev.Coord(),is_per.dataPtr());
+          tmpGeomHi.FillPeriodicBoundary(boundary_data);
+        }
+      }
+    }
+
+    for (MFIter mfi(inout); mfi.isValid(); ++mfi) {
+      int idx = mfi.index();
+      FArrayBox& dst_fab = inout[mfi];
+      for (int j=0; j<old_to_new[idx].size(); ++j) {
+        int new_box_idx = old_to_new[mfi.index()][j];
+        const FArrayBox& src_fab = boundary_data[new_box_idx];
+        const Box& src_box = src_fab.box();
+
+        BoxArray pieces_outside_domain = BoxLib::boxComplement(src_box,domain);
+        for (int k=0; k<pieces_outside_domain.size(); ++k) {
+          const Box& outside = pieces_outside_domain[k] & dst_fab.box();
+          if (outside.ok()) {
+            dst_fab.copy(src_fab,outside,0,outside,src_comp,num_comp);
+          }
+        }
+      }
+    }
+  }
+#endif
 }
     
 void
