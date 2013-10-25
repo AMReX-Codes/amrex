@@ -1438,10 +1438,7 @@ DistributionMapping::InitProximityMap()
 	proximityMap[i] = ranksSFC[i];
       }
       std::cout << "----------- end order ranks by topological sfc" << std::endl;
-
-
     }
-
   }
 
   ParallelDescriptor::Bcast(proximityMap.dataPtr(), proximityMap.size(),
