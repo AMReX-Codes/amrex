@@ -1233,6 +1233,7 @@ VisMF::Check (const std::string& mf_name)
         std::cout << "**** Error in file:  " << FullName << "  Bad Fab at index = "
 	          << i << "   at seekpos = " << fod.m_head << std::endl;
       }
+      ifs.close();
 
     }
     if(nBadFabs) {
