@@ -165,6 +165,23 @@ contains
   subroutine print_usage()
     implicit none
     
-    print *, "usage"
+    print *,""
+    print *, "This program takes a plotfile, calls a reaction network, and "
+    print *, "dumps a new plotfile containing the reaction rates in each zone."
+    print *, ""
+    print *, "usage: "
+    print *, " *frates* -i|--input <pltfile in> [-o|--output <pltfile out>]", &
+         " [--tfromp]"    
+    print *, ""
+    print *, "    -i|--input: <pltfile in>"
+    print *, "        Specify which plotfile to work on. (Required)"
+    print *, "    -o|--output:"
+    print *, "        Name of the out new plotfile to create. (Default: 'rates')"
+    print *, "    --tfromp:"
+    print *, "        Toggles the use of 'temperature' to be tfromp instead", &
+         " of tfromh."
+    print *, "        (Default: use tfromh)"
+    print *, ""
+
   end subroutine print_usage
 end program frates
