@@ -119,10 +119,21 @@ public:
     //
     void aCoefficients (const MultiFab& _a);
     //
+    // Zero out the "a" coeffs for base level.
+    //
+    void ZeroACoefficients ();
+    //
     // copy _b into "b" coeffs in "dir" coordinate direction for base level
     //
     void bCoefficients (const MultiFab& _b,
                         int             dir);
+    //
+    // copy _b into "b" coeffs in "dir" coordinate direction for base level
+    // at supplied gridno
+    //
+    void bCoefficients (const FArrayBox& _b,
+                        int              dir,
+                        int              gridno);
     //
     // alternative (older) version of above members
     //
