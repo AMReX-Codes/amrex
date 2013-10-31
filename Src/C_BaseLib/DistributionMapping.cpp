@@ -1231,7 +1231,7 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
 
         for (int j = 0, N = vi.size(); j < N; j++)
         {
-            m_ref->m_pmap[vi[j]] = cpu;
+            m_ref->m_pmap[vi[j]] = ProximityMap(cpu);
         }
     }
     //
@@ -1325,6 +1325,8 @@ DistributionMapping::InitProximityMap()
   int nProcs(ParallelDescriptor::NProcs());
   int procNumber(GetProcNumber());
   Array<int> procNumbers(nProcs, -1);
+
+  proximityMap.resize(ParallelDescriptor::NProcs(), 0);
 
 #ifdef BL_USE_MPI
   MPI_Allgather(&procNumber, 1, ParallelDescriptor::Mpi_typemap<int>::type(),
