@@ -200,6 +200,12 @@ DivVis::invalidate_b_to_level (int lev)
         b_valid[i]=false;
 }
 
+void
+DivVis::ZeroACoefficients ()
+{
+    invalidate_a_to_level(0);
+    (*acoefs[0]).setVal(0,0,acoefs[0]->nComp(),acoefs[0]->nGrow());
+}
 
 void
 DivVis::aCoefficients (const MultiFab& _a)
@@ -221,6 +227,17 @@ DivVis::bCoefficients (const MultiFab& _b,
     BL_ASSERT(_b.nComp() == 1);
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
+}
+
+void
+DivVis::bCoefficients (const FArrayBox& _b,
+                       int              dir,
+                       int              gridno)
+{
+    BL_ASSERT(_b.box().contains((bcoefs[0][dir])->boxArray()[gridno]));
+    BL_ASSERT(_b.nComp() == 1);
+    invalidate_b_to_level(0);
+    (*bcoefs[0][dir])[gridno].copy(_b,0,0,1);
 }
 
 const MultiFab&

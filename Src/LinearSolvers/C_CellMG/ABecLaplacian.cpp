@@ -203,6 +203,13 @@ ABecLaplacian::aCoefficients (const MultiFab& _a)
 }
 
 void
+ABecLaplacian::ZeroACoefficients ()
+{
+    invalidate_a_to_level(0);
+    (*acoefs[0]).setVal(0,0,acoefs[0]->nComp(),acoefs[0]->nGrow());
+}
+
+void
 ABecLaplacian::bCoefficients (const MultiFab& _b,
                               int             dir)
 {
@@ -210,6 +217,16 @@ ABecLaplacian::bCoefficients (const MultiFab& _b,
     BL_ASSERT(_b.boxArray() == (bcoefs[0][dir])->boxArray());
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
+}
+
+void
+ABecLaplacian::bCoefficients (const FArrayBox& _b,
+                              int              dir,
+                              int              gridno)
+{
+    BL_ASSERT(_b.box().contains((bcoefs[0][dir])->boxArray()[gridno]));
+    invalidate_b_to_level(0);
+    (*bcoefs[0][dir])[gridno].copy(_b,0,0,1);
 }
 
 const MultiFab&
