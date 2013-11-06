@@ -836,16 +836,6 @@ public:
                          const Box&        b,
                          int               comp,
                          int               numcomp = 1);
-    //
-    // Polynomial interpolation
-    //
-    BaseFab<T>& polyInterp (const Array< BaseFab<T>* > &sf,
-			    int                         scomp,
-			    const Array<Real>&          st,
-			    Real                        t,
-			    const Box&                  b,
-			    int                         comp,
-			    int                         numcomp = 1);
 
 protected:
     //
@@ -1628,15 +1618,6 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                                  int                  srccomp,
                                  int                  destcomp,
                                  int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::polyInterp (const Array< BaseFab<Real>* > &sf,
-			   int                            scomp,
-			   const Array<Real>&             st,
-			   Real                           t,
-			   const Box&                     b,
-			   int                            comp,
-			   int                            numcomp);
 #endif
 
 template <class T>
@@ -2651,24 +2632,6 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     {
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
-    return *this;
-}
-
-//
-// Polynomial interpolation
-//
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::polyInterp (const Array< BaseFab<T>* > &sf,
-			int                         scomp,
-			const Array<Real>&          st,
-			Real                        t,
-			const Box&                  b,
-			int                         comp,
-			int                         numcomp)
-{
-    BoxLib::Error("BaseFab<T>::polyInterp:: non-Real version not implemented");
     return *this;
 }
 
