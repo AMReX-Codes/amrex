@@ -3,6 +3,8 @@
 #
 CEXE_sources += MFNorm.cpp
 
-CEXE_sources += DatasetClient.cpp
+#ifeq ($(USE_ARRAYVIEW),TRUE)
+#  CEXE_sources += DatasetClient.cpp
+#endif
 
 
