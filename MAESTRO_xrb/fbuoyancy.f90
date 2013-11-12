@@ -49,11 +49,10 @@ program fbuoyancy
   use bl_constants_module
   use bl_types
   use eos_module
+  use eos_type_module
   use network
 
   implicit none
-
-  logical :: use_eos_coulomb = .true.
 
   character(len=256) :: input, output
   integer :: nlines
@@ -63,7 +62,7 @@ program fbuoyancy
   character(len=256) :: fname, format_string
 
   integer :: i, j, ipos
-  character(len=256) :: line
+  character(len=1024) :: line
 
   real(kind=dp_t) :: time, rms
   integer :: npoints
@@ -76,6 +75,8 @@ program fbuoyancy
   logical :: do_diag = .false.
 
   real(kind=dp_t), parameter :: small = 1.e-14
+
+  type (eos_t) :: eos_state
 
 
   ! defaults
@@ -135,7 +136,7 @@ program fbuoyancy
 
   ! initialize
   call network_init()
-  call eos_init(use_eos_coulomb = use_eos_coulomb)
+  call eos_init()
 
   print *, ''
   print *, 'input file', trim(input)
@@ -148,13 +149,15 @@ program fbuoyancy
   open(unit=99,file=trim(input))
 
   ! read in the time
-  read(99,'(a256)') line
+  read(99,'(a1024)') line
   ipos = index(line,':')+1
 
   read(line(ipos:),*) time
 
   ! make sure we have all the species by parsing the second header line
-  read(99,'(a256)') line
+  read(99,'(a1024)') line
+  print *, 'line ', line
+
   if (.not. all_species_included(line)) &
        call bl_error("not all species in network were included in inputfile")
 
@@ -168,26 +171,17 @@ program fbuoyancy
      read(99,*) height(i), dens(i), rms, temp(i), rms, &
           (comp(i,j), rms, j = 1, nspec)
 
-     den_eos(1) = dens(i)
-     temp_eos(1) = temp(i)
-     xn_eos(1,:) = comp(i,:)
+     eos_state%rho = dens(i)
+     eos_state%T = temp(i)
+     eos_state%xn = comp(i,:)
 
-     call eos(eos_input_rt, den_eos, temp_eos, &
-              npts, &
-              xn_eos, &
-              p_eos, h_eos, e_eos, &
-              cv_eos, cp_eos, xne_eos, eta_eos, pele_eos, &
-              dpdt_eos, dpdr_eos, dedt_eos, dedr_eos, &
-              dpdX_eos, dhdX_eos, &
-              gam1_eos, cs_eos, s_eos, &
-              dsdt_eos, dsdr_eos, &
-              do_diag)
+     call eos(eos_input_rt, eos_state, do_diag)
 
-     pres(i) = p_eos(1)
-     gamma1(i) = gam1_eos(1)
+     pres(i) = eos_state%p
+     gamma1(i) = eos_state%gam1
      
-     chi_t = temp(i) * dpdt_eos(1) / pres(i)
-     chi_rho = dens(i) * dpdr_eos(1) / pres(i)
+     chi_t = temp(i) * eos_state%dpdt / pres(i)
+     chi_rho = dens(i) * eos_state%dpdr / pres(i)
 
      nabla_ad(i) = (gamma1(i) - chi_rho) / (gamma1(i) * chi_t)
      
@@ -311,6 +305,9 @@ program fbuoyancy
       do i = ipos, len(trim(string))
          if (string(i:i) == 'X') spec_count = spec_count+1
       enddo
+
+      print *, 'spec_count', spec_count
+      print *, 'nspec', nspec
 
       if (spec_count/2 == nspec) r = .true.
 
