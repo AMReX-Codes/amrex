@@ -77,6 +77,7 @@ MCMultiGrid::Initialize ()
 	std::cout << "def_atol_b       = " << def_atol_b       << '\n';
 	std::cout << "def_nu_b         = " << def_nu_b         << '\n';
 	std::cout << "def_numLevelsMAX = " << def_numLevelsMAX << '\n';
+	std::cout << "def_verbose      = " << def_verbose      << '\n';
     }
 
     BoxLib::ExecOnFinalize(MCMultiGrid::Finalize);
@@ -88,6 +89,30 @@ void
 MCMultiGrid::Finalize ()
 {
     initialized = false;
+}
+
+static
+Real
+norm_inf (const MultiFab& res, bool local = false)
+{
+    Real restot = 0.0;
+    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
+    {
+        restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
+    }
+    if ( !local )
+        ParallelDescriptor::ReduceRealMax(restot);
+    return restot;
+}
+
+static
+void
+Spacer (std::ostream& os, int lev)
+{
+    for (int k = 0; k < lev; k++)
+    {
+        os << "   ";
+    }
 }
 
 MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
@@ -111,6 +136,43 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
     numLevelsMAX = def_numLevelsMAX;
     numlevels = numLevels();
     numcomps = _Lp.numberComponents();
+    if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
+    {
+	BoxArray tmp = Lp.boxArray();
+	std::cout << "MCMultiGrid: numlevels = " << numlevels 
+		  << ": ngrid = " << tmp.size() << ", npts = [";
+	for ( int i = 0; i < numlevels; ++i ) 
+        {
+	    if ( i > 0 ) tmp.coarsen(2);
+	    std::cout << tmp.d_numPts() << " ";
+        }
+	std::cout << "]" << '\n';
+
+	std::cout << "MCMultiGrid: " << numlevels
+	     << " multigrid levels created for this solve" << '\n';
+    }
+
+    if ( ParallelDescriptor::IOProcessor() && (verbose > 4) )
+    {
+	std::cout << "Grids: " << '\n';
+	BoxArray tmp = Lp.boxArray();
+	for (int i = 0; i < numlevels; ++i)
+	{
+            Orientation face(0, Orientation::low);
+            const DistributionMapping& map = Lp.bndryData().bndryValues(face).DistributionMap();
+	    if (i > 0)
+		tmp.coarsen(2);
+	    std::cout << " Level: " << i << '\n';
+	    for (int k = 0; k < tmp.size(); k++)
+	    {
+		const Box& b = tmp[k];
+		std::cout << "  [" << k << "]: " << b << "   ";
+		for (int j = 0; j < BL_SPACEDIM; j++)
+		    std::cout << b.length(j) << ' ';
+                std::cout << ":: " << map[k] << '\n';
+	    }
+	}
+    }
 }
 
 MCMultiGrid::~MCMultiGrid ()
@@ -127,20 +189,11 @@ MCMultiGrid::~MCMultiGrid ()
 
 Real
 MCMultiGrid::errorEstimate (int       level,
-			    MCBC_Mode bc_mode)
+			    MCBC_Mode bc_mode,
+                            bool      local)
 {
-    //
-    // Get inf-norm of residual.
-    //
-    const int p = 0;
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
-    Real restot = 0.0;
-    for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
-    {
-        restot = std::max(restot, (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps));
-    }
-    ParallelDescriptor::ReduceRealMax(restot);
-    return restot;
+    return norm_inf(*res[level], local);
 }
 
 void
@@ -183,7 +236,6 @@ MCMultiGrid::residualCorrectionForm (MultiFab&       resL,
     initialsolution->copy(inisol);
     solnL.copy(inisol);
     Lp.residual(resL, rhsL, solnL, level, bc_mode);
-    solnL.setVal(0.0);
 }
 
 void
@@ -213,93 +265,125 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 		     MCBC_Mode bc_mode,
 		     int       level)
 {
-    //
-    // Relax system maxiter times, stop if relative error <= _eps_rel or
-    // if absolute err <= _abs_eps
-    //
-    const Real strt_time = ParallelDescriptor::second();
+  //
+  // Relax system maxiter times, stop if relative error <= _eps_rel or
+  // if absolute err <= _abs_eps
+  //
+  const Real strt_time = ParallelDescriptor::second();
+  //
+  // Elide a reduction by doing these together.
+  //
+  Real tmp[2] = { norm_inf(*rhs[level],true), errorEstimate(level,bc_mode,true) };
 
-    int  returnVal = 0;  // should use bool for return value from this function
-    Real error0    = errorEstimate(level, bc_mode);
-    Real error     = error0;
+  ParallelDescriptor::ReduceRealMax(tmp,2);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        for (int k = 0; k < level; k++)
-            std::cout << "   ";
-        std::cout << "MCMultiGrid: Initial error (error0) = " << error0 << '\n';
-    }
+  const Real norm_rhs  = tmp[0];
+  const Real error0    = tmp[1];
+  int        returnVal = 0;
+  Real       error     = error0;
 
-    if (eps_rel < 1.0e-16 && eps_rel > 0.0 && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "MCMultiGrid: Tolerance "
-                  << eps_rel
-                  << " < 1e-16 is probably set too low" << '\n';
-    }
-    int nit;
-    //
-    // Initialize correction to zero at this level (auto-filled at levels below)
-    //
-    (*cor[level]).setVal(0.0);
-    //
-    // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed.
-    //
-    for (nit = 0;
-         (nit < maxiter)
-             &&   (nit < numiter || numiter < 0)
-             &&   (error > eps_rel*error0)
-             &&   (error > eps_abs);
-         ++nit)
-    {
-	relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
-	error = errorEstimate(level, bc_mode);
-	if (verbose > 1 ||
-            (((eps_rel > 0. && error < eps_rel*error0) ||
-              (eps_abs > 0. && error < eps_abs)) && verbose) )
-        {
-	    if (ParallelDescriptor::IOProcessor())
-	    {
-		for (int k = 0; k < level; k++)
-                    std::cout << "   ";
-		std::cout << "MCMultiGrid: Iteration "
-                          << nit
-                          << " error/error0 "
-                          << error/error0 << '\n';
-	    }
-	}
-    }
+  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+  {
+      Spacer(std::cout, level);
+      std::cout << "MCMultiGrid: Initial rhs                = " << norm_rhs << '\n';
+      std::cout << "MCMultiGrid: Initial error (error0)     = " << error0 << '\n';
+  }
+  
+  if ( ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0 )
+  {
+      std::cout << "MCMultiGrid: Tolerance "
+                << eps_rel
+                << " < 1e-16 is probably set too low" << '\n';
+  }
+  //
+  // Initialize correction to zero at this level (auto-filled at levels below)
+  //
+  (*cor[level]).setVal(0.0);
+  //
+  // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed.
+  //
+  Real       norm_cor    = 0.0;
+  int        nit         = 1;
+  const Real new_error_0 = norm_rhs;
+  //const Real norm_Lp     = Lp.norm(0, level);
 
-    if ( verbose )
-    {
-        Real run_time = (ParallelDescriptor::second() - strt_time);
 
-        if ( verbose > 1 )
-        {
-            ParallelDescriptor::ReduceRealMax(run_time,ParallelDescriptor::IOProcessorNumber());
-
-            if ( ParallelDescriptor::IOProcessor() )
-                std::cout << "Solve time: " << run_time;
-        }
-
-        if ( ParallelDescriptor::IOProcessor() ) std::cout << '\n';
-    }
+  for ( ;
+        error > eps_abs &&
+          error > eps_rel*norm_rhs &&
+          //error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
+          nit <= maxiter;
+        ++nit)
+  {
+    relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
     
-    if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
+    Real tmp[2] = { norm_inf(*cor[level],true), errorEstimate(level,bc_mode,true) };
+
+    ParallelDescriptor::ReduceRealMax(tmp,2);
+    
+    norm_cor = tmp[0];
+    error    = tmp[1];
+	
+    if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
     {
-	//
-	// Omit ghost update since maybe not initialized in calling routine.
-        // BoxLib_1.99 has no MultiFab::plus(MultiFab&) member, which would
-        // operate only in valid regions; do explicitly.  Add to boundary
-        // values stored in initialsolution.
-        //
-	_sol.copy(*cor[level]);
-	_sol.plus(*initialsolution,0,_sol.nComp(),0);
-	returnVal = 1;
+      const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+      Spacer(std::cout, level);
+      std::cout << "MCMultiGrid: Iteration   "
+                << nit
+                << " error/error0 = "
+                << rel_error << '\n';
     }
-    //
-    // Otherwise, failed to solve satisfactorily.
-    //
-    return returnVal;
+  }
+
+  Real run_time = (ParallelDescriptor::second() - strt_time);
+  if ( verbose > 0 )
+  {
+      if ( ParallelDescriptor::IOProcessor() )
+      {
+          const Real rel_error = (error0 != 0) ? error/error0 : 0;
+          Spacer(std::cout, level);
+          std::cout << "MCMultiGrid: Final Iter. "
+                    << nit-1
+                    << " error/error0 = "
+                    << rel_error;
+      }
+
+      if ( verbose > 1 )
+      {
+        
+        ParallelDescriptor::ReduceRealMax(run_time);
+
+        if ( ParallelDescriptor::IOProcessor() )
+          std::cout << ", Solve time: " << run_time << '\n';
+      }
+  }
+
+  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+  {
+    if ( error < eps_rel*norm_rhs )
+    {
+      std::cout << "   Converged res < eps_rel*bnorm\n";
+    } 
+    else if ( error < eps_abs )
+    {
+      std::cout << "   Converged res < eps_abs\n";
+    }
+  }
+  //
+  // Omit ghost update since maybe not initialized in calling routine.
+  // Add to boundary values stored in initialsolution.
+  //
+  _sol.copy(*cor[level]);
+  _sol.plus(*initialsolution,0,_sol.nComp(),0);
+
+  if ( error <= eps_rel*(norm_rhs) ||
+       error <= eps_abs )
+    returnVal = 1;
+
+  //
+  // Otherwise, failed to solve satisfactorily
+  //
+  return returnVal;
 }
 
 int
@@ -400,6 +484,7 @@ MCMultiGrid::coarsestSmooth (MultiFab& solL,
 			     MCBC_Mode bc_mode)
 {
     prepareForLevel(level);
+        
     if (usecg == 0)
     {
         for (int i = finalSmooth(); i > 0; i--)
