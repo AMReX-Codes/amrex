@@ -156,7 +156,8 @@ class DistributionMapping
     static std::vector<int> RanksFromTopIV(const IntVect &iv);
     static std::string GetProcName();
     static int GetProcNumber();
-    static int ProximityMap(const int rank) { return proximityMap[rank]; }
+    static int ProximityMap(const int rank)   { return proximityMap[rank];   }
+    static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
 private:
     //
@@ -252,7 +253,8 @@ private:
     //
     // Topological proximity map
     //
-    static Array<int> proximityMap;    // i == rank, pMap[i] == proximity mapped rank
+    static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
+    static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
 };
 
 //

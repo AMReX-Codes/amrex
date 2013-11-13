@@ -92,7 +92,17 @@ void Profiler::Initialize() {
 #ifdef BL_HOPPER
     procNumber = atoi(procName.substr(3, std::string::npos).c_str());
 #else
+#ifdef BL_SIM_HOPPER
+    //procNumber = (100 * ParallelDescriptor::MyProc()) % 6527;
     procNumber = ParallelDescriptor::MyProc();
+    std::stringstream pname;
+    pname << "nid" << procNumber;
+    procName = pname.str();
+    std::cout << ParallelDescriptor::MyProc() << "::procNumber = " << procNumber
+              << "  procName = " << procName << std::endl;
+#else
+    procNumber = ParallelDescriptor::MyProc();
+#endif
 #endif
   }
   //std::cout << myProc << ":::: " << procName << "  len =  " << resultLen << std::endl;
