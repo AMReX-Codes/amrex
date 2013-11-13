@@ -88,7 +88,7 @@ class Profiler
       static std::vector<std::pair<int,int> > nameTags;              // [nameindex, seek]
       static std::vector<std::string> nameTagNames;                  // [name]
       static std::vector<int> reductions;                            // [index]
-      static std::vector<int> tagWraps;                            // [index]
+      static std::vector<int> tagWraps;                              // [index]
       static int csVersion;
 
       CommFuncType cfType;

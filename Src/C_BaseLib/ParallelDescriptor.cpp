@@ -298,7 +298,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
-    if(ParallelDescriptor::IOProcessor() && nPerfmonProcs > 0) {
+    if(m_MyId_all == 0 && nPerfmonProcs > 0) {
       std::cout << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
     }
     if(nPerfmonProcs >= m_nProcs_all) {
@@ -324,7 +324,6 @@ ParallelDescriptor::StartParallel (int*    argc,
       m_group_comp = m_group_all;
     }
 
-
     // ---- find the maximum value for a tag
     int flag(0), *attrVal;
     BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
@@ -337,8 +336,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
-
-  //sleep(m_MyId_all);
 
     if(nPerfmonProcs > 0) {
       std::cout << "world: rank " << m_MyId_all << " in [0,"
@@ -360,7 +357,7 @@ ParallelDescriptor::StartParallel (int*    argc,
         //sleep(m_MyId_comp);
         std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0,"
 	          << m_nProcs_comp-1 << "]" << std::endl;
-  }
+      }
 
     } else {
       m_MyId_comp   = m_MyId_all;
