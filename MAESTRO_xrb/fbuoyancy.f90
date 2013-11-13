@@ -156,7 +156,6 @@ program fbuoyancy
 
   ! make sure we have all the species by parsing the second header line
   read(99,'(a1024)') line
-  print *, 'line ', line
 
   if (.not. all_species_included(line)) &
        call bl_error("not all species in network were included in inputfile")
@@ -269,7 +268,7 @@ program fbuoyancy
       print *, '      specifies the output file; default is "out.dat"'
       print *, '  [-n|--nlines]  <integer>:'
       print *, '      specifies total number of lines in inputfile; (required)'
-      print *, '      one can use: -n `wc -l <inputfile> | awk "{print $1}"'
+      print *, '      one can use: -n `wc -l <inputfile> | awk "{print $1}"`'
       print *, '  [-g|--gconst]  <float>:'
       print *, '      specifies the gravitational constant; default is 2.45e14'
 !       print *, '  [-f|--format] <format_string>:'
@@ -305,9 +304,6 @@ program fbuoyancy
       do i = ipos, len(trim(string))
          if (string(i:i) == 'X') spec_count = spec_count+1
       enddo
-
-      print *, 'spec_count', spec_count
-      print *, 'nspec', nspec
 
       if (spec_count/2 == nspec) r = .true.
 
