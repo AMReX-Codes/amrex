@@ -70,8 +70,6 @@ main (int argc, char** argv)
 
         for (int i = 0; i < NProcs; i++)
             tcount += nmkeys[i];
-
-        std::cout << "tcount = " << tcount << '\n';
         //
         // Where IOProc stores sent data.
         //
@@ -137,8 +135,6 @@ main (int argc, char** argv)
         //
         // Put the (keys,vals) into our map and then print out map.
         //
-        std::cout << "IOProc: keys.size(): " << keys.size() << '\n';
-
         for (int i = 0; i < keys.size(); i++)
         {
             bins[keys[i]] += vals[i];
