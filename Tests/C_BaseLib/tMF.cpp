@@ -14,7 +14,9 @@ main (int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
-    std::map<int,Real> bins;
+    typedef std::map<IntVect,Real,IntVect::Compare> OurBinMap;
+
+    OurBinMap bins;
 
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
@@ -24,8 +26,14 @@ main (int argc, char** argv)
     //
     for (int i = 0; i < 10 + (10*MyProc); i++)
     {
-        bins[1000*MyProc+i] = Real(MyProc);
+        IntVect iv(D_DECL(1000*MyProc+i, 1000*MyProc+i, 1000*MyProc+i));
+
+        bins[iv] = Real(MyProc);
     }
+    //
+    // The number of "ints" in the key to our map.
+    //
+    const int KeySize = BL_SPACEDIM;
 
 #if BL_USE_MPI
     //
@@ -42,14 +50,10 @@ main (int argc, char** argv)
          offset.resize(NProcs,0);
     }
     //
-    // Tell root CPU how many tags each CPU will be sending.
-    // The I/O processor doesn't send anything so doesn't add to this count.
+    // Here lcount is the number of keys.
     //
     int lcount = bins.size();
-    //
-    // Tell root CPU how many tags each CPU will be sending.
-    // Fills in "nmkeys" array on IOProc.
-    //
+
     MPI_Gather(&lcount,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -59,54 +63,88 @@ main (int argc, char** argv)
                IOProc,
                ParallelDescriptor::Communicator());
     //
-    // The "global" (keys,vals) pairs into which all processors send their data.
-    //
-    Array<int>  keys(1);
-    Array<Real> vals(1);
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        int tcount = 0;
-
-        for (int i = 0; i < NProcs; i++)
-            tcount += nmkeys[i];
-        //
-        // Where IOProc stores sent data.
-        //
-        keys.resize(tcount);
-        vals.resize(tcount);
-
-        for (int i = 1, N = offset.size(); i < N; i++)
-            offset[i] = offset[i-1] + nmkeys[i-1];
-    }
-    //
     // Each CPU must pack its data into simple arrays.
     //
-    Array<int>  lkeys(bins.size() + 1);
-    Array<Real> lvals(bins.size() + 1);
+    Array<int>  lkeys;
+    Array<Real> lvals;
 
-    int idx = 0;
-
-    for (std::map<int,Real>::const_iterator it = bins.begin(), End = bins.end();
+    for (OurBinMap::const_iterator it = bins.begin(), End = bins.end();
          it != End;
-         ++it, ++idx)
+         ++it)
     {
-        lkeys[idx] = it->first;
-        lvals[idx] = it->second;
+        //
+        // Our "KeySize" ints per key.
+        //
+        const IntVect& iv = it->first;
+
+        for (int i = 0; i < BL_SPACEDIM; i++)
+            lkeys.push_back(iv[i]);
+        //
+        // And our value.
+        //
+        lvals.push_back(it->second);
     }
     //
     // Clear all the "bins" including IOProc's.
     // For IOProc we do this so that when we add back
     // things into "bin" at the end we don't double
-    // count anything.  For all others it's just the cut
+    // count anything.  For all others it's just to cut
     // out unnecessary memory since MPI will need to use
     // some memory for the Gatherv().
     //
     bins.clear();
     //
-    // First pass the keys.
+    // The "global" (keys,vals) pairs into which all processors send their data.
     //
-    MPI_Gatherv(lkeys.dataPtr(),
+    Array<int>  keys(1);
+    Array<Real> vals(1);
+    //
+    // First pass the vals.
+    //
+    if (ParallelDescriptor::IOProcessor())
+    {
+        int tcount = 0;
+        for (int i = 0; i < NProcs; i++)
+            tcount += nmkeys[i];
+
+        vals.resize(tcount);
+
+        for (int i = 1, N = offset.size(); i < N; i++)
+            offset[i] = offset[i-1] + nmkeys[i-1];
+    }
+
+    MPI_Gatherv(lcount == 0 ? 0 : lvals.dataPtr(),
+                lcount,
+                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                vals.dataPtr(),
+                nmkeys.dataPtr(),
+                offset.dataPtr(),
+                ParallelDescriptor::Mpi_typemap<Real>::type(),
+                IOProc,
+                ParallelDescriptor::Communicator());
+    //
+    // Then the values.
+    // Don't forget to update offset and nmkeys appropriately.
+    //
+    if (ParallelDescriptor::IOProcessor())
+    {
+        int tcount = 0;
+        for (int i = 0; i < NProcs; i++)
+        {
+            nmkeys[i] *= KeySize;
+            tcount    += nmkeys[i];
+        }
+        keys.resize(tcount);
+
+        for (int i = 1, N = offset.size(); i < N; i++)
+            offset[i] = offset[i-1] + nmkeys[i-1];
+    }
+    //
+    // There are KeySize ints in each Key.
+    //
+    lcount *= KeySize;
+
+    MPI_Gatherv(lcount == 0 ? 0 : lkeys.dataPtr(),
                 lcount,
                 ParallelDescriptor::Mpi_typemap<int>::type(),
                 keys.dataPtr(),
@@ -116,33 +154,26 @@ main (int argc, char** argv)
                 IOProc,
                 ParallelDescriptor::Communicator());
 
-    ParallelDescriptor::Barrier();
-    //
-    // Then the values.
-    //
-    MPI_Gatherv(lvals.dataPtr(),
-                lcount,
-                ParallelDescriptor::Mpi_typemap<Real>::type(),
-                vals.dataPtr(),
-                nmkeys.dataPtr(),
-                offset.dataPtr(),
-                ParallelDescriptor::Mpi_typemap<Real>::type(),
-                IOProc,
-                ParallelDescriptor::Communicator());
-
     if (ParallelDescriptor::IOProcessor())
     {
         //
         // Put the (keys,vals) into our map and then print out map.
         //
-        for (int i = 0; i < keys.size(); i++)
+        BL_ASSERT(keys.size() % KeySize == 0);
+        BL_ASSERT(vals.size() * KeySize == keys.size());
+
+        for (int i = 0; i < vals.size(); i++)
         {
-            bins[keys[i]] += vals[i];
+            int ik = i * KeySize;
+
+            IntVect iv(D_DECL(keys[ik],keys[ik+1],keys[ik+2]));
+
+            bins[iv] += vals[i];
         }
 
         std::cout << "Got " << bins.size() << " (key,val) pairs:\n";
 
-        for (std::map<int,Real>::const_iterator it = bins.begin(), End = bins.end();
+        for (OurBinMap::const_iterator it = bins.begin(), End = bins.end();
              it != End;
              ++it)
         {
