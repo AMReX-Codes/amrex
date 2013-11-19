@@ -22,13 +22,15 @@ public:
                int stencil_type,
                bool _have_rhcc = false,
                int nc = 0,
-               int ncomp = 1);
+               int ncomp = 1,
+               bool verbose = false);
 
     void Build(const std::vector<Geometry>& geom, 
                int* bc, int  stencil_type,
                const std::vector<DistributionMapping>& dmap,
                int nc,
-               int ncomp);
+               int ncomp,
+               bool verbose);
 
   static void initialize(bool nodal);
   static void Finalize();

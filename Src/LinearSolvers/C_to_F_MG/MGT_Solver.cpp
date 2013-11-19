@@ -144,7 +144,8 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       int stencil_type,
 		       bool _have_rhcc,
                        int nc,
-                       int ncomp)
+                       int ncomp,
+                       bool verbose)
     :
     m_nlevel(grids.size()),
     m_grids(grids),
@@ -153,7 +154,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 {
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,stencil_type,dmap,nc,ncomp);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp,verbose);
 }
 
 
@@ -163,7 +164,8 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
                   int stencil_type,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
-                  int ncomp)
+                  int ncomp,
+                  bool verbose)
     
 {
    if (!initialized)
@@ -172,19 +174,25 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   BL_ASSERT(m_grids.size()==m_nlevel);
   BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
+  //
+  // The default for "verbose" is false.
+  // If it's true we use it since the user had to have set it somehow.
+  // Otherwise we use def_verbose which is set generically using mg.v.
+  //
+  int lverbose = verbose ? verbose : def_verbose;
 
   if (m_nodal) {
     mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
-                           &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                           &lverbose,&def_cg_verbose,&def_max_nlevel,
                            &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   } else {
     mgt_cc_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                      &def_max_L0_growth,
-                     &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                     &lverbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
