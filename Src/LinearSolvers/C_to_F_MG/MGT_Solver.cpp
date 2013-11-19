@@ -145,7 +145,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       bool _have_rhcc,
                        int nc,
                        int ncomp,
-                       bool verbose)
+                       int verbose)
     :
     m_nlevel(grids.size()),
     m_grids(grids),
@@ -165,7 +165,7 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
                   int ncomp,
-                  bool verbose)
+                  int verbose)
     
 {
    if (!initialized)
@@ -179,7 +179,7 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   // If it's true we use it since the user had to have set it somehow.
   // Otherwise we use def_verbose which is set generically using mg.v.
   //
-  int lverbose = verbose ? verbose : def_verbose;
+  int lverbose = (verbose > 0) ? verbose : def_verbose;
 
   if (m_nodal) {
     mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
@@ -909,7 +909,6 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
-
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
