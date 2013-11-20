@@ -1,7 +1,7 @@
 BOXLIB_HOME := ../../..
 
 NDEBUG := t
-MPI    := 
+MPI    := t
 OMP    :=
 PROF   :=
 
@@ -22,8 +22,8 @@ f90sources += cc_rhs.f90
 f90sources += nodal_multi.f90
 f90sources += nodal_rhs.f90
 f90sources += mt19937ar.f90
+f90sources += init_cell_coeffs.f90
 
-include GPackage.mak
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
