@@ -131,7 +131,7 @@ contains
     integer            ,intent(in) :: stencil_type
     integer            ,intent(in) :: red_black
 
-    integer            :: j, i, ipar, half_x, hi(size(lo))
+    integer            :: j, i, ipar, hi(size(lo))
     logical            :: x_is_odd
     real (kind = dp_t) :: dd
     real (kind = dp_t), allocatable :: wrk(:,:)
@@ -164,57 +164,18 @@ contains
 
     else if ( stencil_type .eq. ND_CROSS_STENCIL ) then
 
-      half_x = (hi(1)-lo(1))/2
-      if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
-         x_is_odd = .false.
-      else
-         x_is_odd = .true.
-      end if
-
-      if ( x_is_odd .and. pmask(1) ) then
-         !
-         ! Use this for Jacobi iteration.
-         !
-         allocate(wrk(lo(1):hi(1),lo(2):hi(2)))
-
-         do j = lo(2),hi(2)
-            do i = lo(1),hi(1)
-               if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
-                  dd =   ss(0,i,j) * uu(i  ,j  ) &
-                       + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
-                       + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
-                  wrk(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd)
-               else
-                  wrk(i,j) = uu(i,j)
-               end if
-            end do
-         end do
-         do j = lo(2),hi(2)
-            do i = lo(1),hi(1)
-               uu(i,j) = wrk(i,j)
-            end do
-         end do
-
-         deallocate(wrk)
-
-      else
-         !
-         ! Use this for Gauss-Seidel iteration.
-         !
-         ipar = 1-red_black
-         do j = lo(2),hi(2)
-            ipar = 1 - ipar
-            do i = lo(1)+ipar,hi(1),2
-               if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
-                  dd =   ss(0,i,j) * uu(i  ,j ) &
-                       + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
-                       + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
-                  uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd) 
-               end if
-            end do
-         end do
-
-      end if
+       ipar = 1-red_black
+       do j = lo(2),hi(2)
+          ipar = 1 - ipar
+          do i = lo(1)+ipar,hi(1),2
+             if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
+                dd =   ss(0,i,j) * uu(i  ,j ) &
+                     + ss(2,i,j) * uu(i-1,j  ) + ss(1,i,j) * uu(i+1,j  ) &
+                     + ss(4,i,j) * uu(i  ,j-1) + ss(3,i,j) * uu(i  ,j+1) 
+                uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd) 
+             end if
+          end do
+       end do
 
     else
       call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)
