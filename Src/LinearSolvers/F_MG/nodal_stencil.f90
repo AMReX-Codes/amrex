@@ -448,23 +448,23 @@ contains
              ! Faces in x-direction
              !
              ss(2,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                  +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )))
+                                +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )))
              ss(1,i,j,k) = fac*((sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
-                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
+                                +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
              !
              ! Faces in y-direction
              !
              ss(4,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
-                  +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )))
+                                +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )))
              ss(3,i,j,k) = fac*((sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
-                  +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
+                                +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )))
              !
              ! Faces in z-direction
              !
              ss(6,i,j,k) = fac*((sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
-                  +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)))
+                                +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)))
              ss(5,i,j,k) = fac*((sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                  +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
+                                +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
 
              ss(0,i,j,k) = -( ss(1,i,j,k) + ss(2,i,j,k) &
                   +ss(3,i,j,k) + ss(4,i,j,k) &
@@ -657,10 +657,10 @@ contains
                      +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )))
              end if
 
-             ss(0,i,j,k) = fac*(-(sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
-                  +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
-                  +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                  +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0)
+             ss(0,i,j,k) = -fac*f0*( sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+                                    +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
+                                    +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
+                                    +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) )
 
           end do
        end do
@@ -858,8 +858,8 @@ contains
                            + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
                            + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
                    end if
-                end if
 
+                end if
              end do
           end do
        end do
