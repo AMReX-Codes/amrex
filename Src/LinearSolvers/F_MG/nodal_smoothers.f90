@@ -132,9 +132,7 @@ contains
     integer            ,intent(in) :: red_black
 
     integer            :: j, i, ipar, hi(size(lo))
-    logical            :: x_is_odd
     real (kind = dp_t) :: dd
-    real (kind = dp_t), allocatable :: wrk(:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "nodal_smoother_2d")
@@ -201,10 +199,9 @@ contains
     integer            ,intent(in   ) :: stencil_type
     integer,            intent(in   ) :: red_black
 
-    integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
-    logical            :: x_is_odd, y_is_odd, jface, kface, doit
+    integer            :: i, j, k, ipar, hi(size(lo))
+    logical            :: jface, kface, doit
     real (kind = dp_t) :: dd
-    real (kind = dp_t), allocatable :: wrk(:,:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "nodal_smoother_3d")
@@ -217,101 +214,35 @@ contains
 
     if ( stencil_type .eq. ND_CROSS_STENCIL ) then
 
-      half_x = (hi(1)-lo(1))/2
-      if ( 2*half_x .eq. ( hi(1)-lo(1) ) ) then
-         x_is_odd = .false.
-      else
-         x_is_odd = .true.
-      end if
+       !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit)
+       do k = lo(3),hi(3)
+          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
 
-      half_y = (hi(2)-lo(2))/2
-      if ( 2*half_y .eq. ( hi(2)-lo(2) ) ) then
-         y_is_odd = .false.
-      else
-         y_is_odd = .true.
-      end if
+          do j = lo(2),hi(2)
+             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
 
-      if ( (x_is_odd .and. pmask(1)) .or. (y_is_odd .and. pmask(2)) ) then
-         !
-         ! Use this for Jacobi iteration.
-         !
-         allocate(wrk(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+             ipar = MOD(j + k + red_black,2)
 
-         !$OMP PARALLEL DO PRIVATE(i,j,k,dd,jface,kface,doit)
-         do k = lo(3),hi(3)
-            kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+             do i = lo(1)+ipar,hi(1),2
 
-            do j = lo(2),hi(2)
-               jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+                doit = .true.
 
-               do i = lo(1),hi(1)
+                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                   if ( bc_dirichlet(mm(i,j,k),1,0) ) doit = .false.
+                end if
 
-                  doit = .true.
+                if (doit) then
+                   dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
+                        + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
+                        + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
+                        + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
 
-                  if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                     if ( bc_dirichlet(mm(i,j,k),1,0) ) doit = .false.
-                  end if
-
-                  if ( doit ) then
-                     dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
-                          + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
-                          + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
-                          + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
-
-                     wrk(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
-                  else
-                     wrk(i,j,k) = uu(i,j,k)
-                  end if
-               end do
-            end do
-         end do
-         !$OMP END PARALLEL DO
-
-         do k = lo(3),hi(3)
-            do j = lo(2),hi(2)
-               do i = lo(1),hi(1)
-                  uu(i,j,k) = wrk(i,j,k)
-               end do
-            end do
-         end do
-
-         deallocate(wrk)
-
-      else
-         !
-         ! Use this for Gauss-Seidel iteration.
-         !
-         !$OMP PARALLEL DO PRIVATE(k,ipar,j,i,dd,jface,kface,doit)
-         do k = lo(3),hi(3)
-            kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
-
-            do j = lo(2),hi(2)
-               jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
-
-               ipar = MOD(j + k + red_black,2)
-
-               do i = lo(1)+ipar,hi(1),2
-
-                  doit = .true.
-
-                  if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
-                     if ( bc_dirichlet(mm(i,j,k),1,0) ) doit = .false.
-                  end if
-
-                  if (doit) then
-                     dd =   ss(0,i,j,k) * uu(i  ,j  ,k  ) &
-                          + ss(2,i,j,k) * uu(i-1,j  ,k  ) + ss(1,i,j,k) * uu(i+1,j  ,k  ) &
-                          + ss(4,i,j,k) * uu(i  ,j-1,k  ) + ss(3,i,j,k) * uu(i  ,j+1,k  ) &
-                          + ss(6,i,j,k) * uu(i  ,j  ,k-1) + ss(5,i,j,k) * uu(i  ,j  ,k+1)
-
-                     uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
-                  end if
-               end do
-            end do
-         end do
-         !$OMP END PARALLEL DO
-
-      end if
+                   uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd) 
+                end if
+             end do
+          end do
+       end do
+     !$OMP END PARALLEL DO
 
     else if ( stencil_type .eq. ND_DENSE_STENCIL ) then
        !
@@ -385,10 +316,9 @@ contains
     integer            ,intent(in   ) :: stencil_type
     real (kind = dp_t), intent(in   ) :: dx(:)
 
-    integer            :: i, j, k, ipar, hi(size(lo)), half_x, half_y
-    logical            :: x_is_odd, y_is_odd, jface, kface, doit
+    integer            :: i, j, k, hi(size(lo))
+    logical            :: jface, kface, doit
     real (kind = dp_t) :: dd
-    real (kind = dp_t), allocatable :: wrk(:,:,:)
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "nodal_smoother_3d")
