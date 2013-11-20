@@ -537,6 +537,8 @@ subroutine wrapper()
      else if ( test_set_mglib ) then
         call read_a_mglib_grid(mba, test_set)
      else
+        if ( parallel_ioprocessor() ) &
+            print *,'READING ',test_set
         call ml_boxarray_read_boxes(mba, test_set)
      end if
 
@@ -569,12 +571,12 @@ subroutine wrapper()
         call build(mba, ba, pd)
         call destroy(ba)
      end if
-  end if
 
-  do i = 1, mba%nlevel
-     call boxarray_simplify(mba%bas(i))
-     call boxarray_maxsize(mba%bas(i), ba_maxsize)
-  end do
+     do i = 1, mba%nlevel
+        call boxarray_simplify(mba%bas(i))
+        call boxarray_maxsize(mba%bas(i), ba_maxsize)
+     end do
+  end if
 
   ! For sanity make sure the mba is clean'
   if ( .not. ml_boxarray_clean(mba) ) call bl_error("MBOXARRAY is not 'clean'")

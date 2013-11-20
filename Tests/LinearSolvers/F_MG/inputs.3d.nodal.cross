@@ -40,7 +40,7 @@
  nodal_in = T
 
  ! ... using the dense (as opposed to cross) stencil
- dense_in = T
+ dense_in = F
 
  ! This problem is triply periodic
  pd_pmask = T, T, T

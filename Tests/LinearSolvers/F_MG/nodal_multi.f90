@@ -128,9 +128,6 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
 
      pd = mla%mba%pd(n)
 
-     if ( parallel_ioprocessor() ) &
-        print *,'N MG LEVS ',mgt(n)%nlevels
-
      call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, 1)
 
      if (coeffs_type .eq. 1) then

@@ -1,10 +1,10 @@
 &PROBIN
 
- ! 3-d
- dm = 3
+ ! 2-d
+ dm = 2
 
  ! By setting this we tell the code to read the multilevel boxarray from this file
- test_set = "grids_3d_2lev"
+ test_set = "grids_2d_2lev"
 
  ! Number of relaxations per level on the way down 
  nu1 = 2
@@ -37,10 +37,10 @@
  fabio = F
 
  ! This is a nodal solve
- nodal_in = T
+ nodal_in = t
 
  ! ... using the dense (as opposed to cross) stencil
- dense_in = T
+ dense_in = F
 
  ! This problem is triply periodic
  pd_pmask = T, T, T
@@ -50,5 +50,4 @@
 
  ! type = 1: Coefficients = 1; type = 2: Coefficients = polynomial
  coeffs_type = 2
-
 /
