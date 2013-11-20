@@ -70,6 +70,9 @@ contains
     nlevs             = mla%nlevel
     bottom_solve_time = zero
 
+    if (nghost(rh(nlevs)) .ne. 1) &
+        call bl_error("ml_nd requires one ghost cell for the RHS");
+
     if ( present(abs_eps_in) ) then
        abs_eps = abs_eps_in
     else
