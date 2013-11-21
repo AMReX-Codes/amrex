@@ -89,6 +89,7 @@ contains
 
     use ml_restriction_module  , only : ml_restriction
     use ml_prolongation_module , only : ml_interp_bcs
+    use stencil_defect_module  , only : compute_defect
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -147,8 +148,8 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type,mgt(n)%lcross)
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                           mgt(n)%stencil_type,mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1

@@ -1,4 +1,4 @@
-module mg_smoother_module
+module cc_mg_tower_smoother_module
  
   use multifab_module
   use cc_stencil_module
@@ -9,7 +9,7 @@ module mg_smoother_module
 
 contains
 
-  subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
+  subroutine cc_mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
 
     use omp_module
     use bl_prof_module
@@ -17,9 +17,7 @@ contains
          jac_smoother_2d, jac_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d, &
          fourth_order_smoother_2d, fourth_order_smoother_3d
-    use nodal_smoothers_module, only: nodal_smoother_1d, &
-         nodal_smoother_2d, nodal_smoother_3d, nodal_smoother_3d_opt, nodal_line_solve_1d
-    use itsol_module, only: itsol_bicgstab_solve, itsol_cg_solve
+    use itsol_module, only: itsol_bicgstab_solve
 
     integer        , intent(in   ) :: lev
     type( mg_tower), intent(inout) :: mgt
@@ -32,15 +30,13 @@ contains
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: i, k, n, ng, nn, stat, npts
+    integer :: i, n, ng, nn, stat, npts
     integer :: lo(mgt%dim)
     type(bl_prof_timer), save :: bpt
     logical :: pmask(mgt%dim), singular_test
     real(kind=dp_t) :: local_eps
 
-    if (.not.nodal_q(ff)) then
-       singular_test = ( mgt%bottom_singular .and. mgt%coeffs_sum_to_zero )
-    end if
+    singular_test = ( mgt%bottom_singular .and. mgt%coeffs_sum_to_zero )
 
     pmask = get_pmask(get_layout(uu))
     !
@@ -48,23 +44,19 @@ contains
     !
     ng = nghost(uu)
 
-    call build(bpt, "mgt_smoother")
+    call build(bpt, "cc_mgt_smoother")
 
-    if ( .not. nodal_q(ff) ) then
-       if ( mgt%skewed_not_set(lev) ) then
-          !$OMP PARALLEL DO PRIVATE(i,mp)
-          do i = 1, nfabs(mm)
-             mp => dataptr(mm, i)
-             mgt%skewed(lev,i) = skewed_q(mp)
-          end do
-          !$OMP END PARALLEL DO
-          mgt%skewed_not_set(lev) = .false.
-       end if
+    if ( mgt%skewed_not_set(lev) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp)
+       do i = 1, nfabs(mm)
+          mp => dataptr(mm, i)
+          mgt%skewed(lev,i) = skewed_q(mp)
+       end do
+       !$OMP END PARALLEL DO
+       mgt%skewed_not_set(lev) = .false.
     end if
 
-    if ( cell_centered_q(uu) ) then
-
-       if ( (mgt%dim .eq. 1) .and. (nboxes(uu%la) .eq. 1) ) then
+    if ( (mgt%dim .eq. 1) .and. (nboxes(uu%la) .eq. 1) ) then
 
           call fill_boundary(uu, cross = mgt%lcross)
           !
@@ -244,107 +236,11 @@ contains
              call bl_error("MG_TOWER_SMOOTHER: no such smoother")
           end select
 
-       end if ! if (mgt%dim > 1)
-
-    else 
-       !
-       ! Nodal stencils.
-       !
-       if (mgt%lcross) then
-          !
-          ! Cross stencils.
-          !
-          if ( get_dim(ff) == 1 ) then
-
-             call fill_boundary(uu, cross = mgt%lcross)
-
-             do i = 1, nfabs(ff)
-                up => dataptr(uu, i)
-                fp => dataptr(ff, i)
-                sp => dataptr(ss, i)
-                mp => dataptr(mm, i)
-                lo =  lwb(get_box(ss, i))
-                do n = 1, mgt%nc
-                   select case ( mgt%dim)
-                   case (1)
-                      call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                           mp(:,1,1,1), lo, ng)
-                   end select
-                end do
-             end do
-
-          else
-
-             do k = 0, 1
-                call fill_boundary(uu, cross = mgt%lcross)
-                do i = 1, nfabs(ff)
-                   up => dataptr(uu, i)
-                   fp => dataptr(ff, i)
-                   sp => dataptr(ss, i)
-                   mp => dataptr(mm, i)
-                   lo =  lwb(get_box(ss, i))
-                   do n = 1, mgt%nc
-                      select case ( mgt%dim)
-                      case (1)
-                         if ( k.eq.0 ) &
-                              call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
-                              fp(:,1,1,n), mp(:,1,1,1), lo, ng)
-                      case (2)
-                         call nodal_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                              fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                              pmask, mgt%stencil_type, k)
-                      case (3)
-                         call nodal_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                              fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                              mgt%uniform_dh, pmask, mgt%stencil_type, k)
-                      end select
-                   end do
-                end do
-             end do
-          end if
-       else
-          !
-          ! Nodal dense stencils.
-          !
-          call fill_boundary(uu, cross = mgt%lcross)
-          !
-          ! Thread over FABS.
-          !
-          !$OMP PARALLEL DO PRIVATE(i,n,up,fp,sp,mp,lo)
-          do i = 1, nfabs(ff)
-             up => dataptr(uu, i)
-             fp => dataptr(ff, i)
-             sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case (mgt%dim)
-                case (1)
-                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
-                        fp(:,1,1,n), mp(:,1,1,1), lo, ng)
-                case (2)
-                   call nodal_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                        fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                        pmask, mgt%stencil_type, 0)
-                case (3)
-                   call nodal_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                        fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-                        mgt%uniform_dh, pmask, mgt%stencil_type, 0)
-!                  call nodal_smoother_3d_opt(sp(:,:,:,:), up(:,:,:,n), &
-!                       fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
-!                       mgt%uniform_dh, pmask, mgt%stencil_type, mgt%dh(:,lev))
-                end select
-             end do
-          end do
-          !$OMP END PARALLEL DO
-       endif
-
-       call multifab_internal_sync(uu)
-    end if
+    end if ! if (mgt%dim > 1)
 
     call destroy(bpt)
 
-  end subroutine mg_tower_smoother
+  end subroutine cc_mg_tower_smoother
 
   subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
 
@@ -409,4 +305,4 @@ contains
 
   end subroutine mg_jacobi_smoother
 
-end module mg_smoother_module
+end module cc_mg_tower_smoother_module

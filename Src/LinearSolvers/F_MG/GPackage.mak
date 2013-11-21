@@ -1,4 +1,5 @@
 f90sources += stencil_types.f90
+f90sources += compute_defect.f90
 f90sources += bc_functions.f90
 f90sources += coarsen_coeffs.f90
 f90sources += edge_restriction.f90
@@ -19,10 +20,10 @@ f90sources += cc_restriction.f90
 f90sources += cc_stencil.f90
 f90sources += cc_stencil_apply.f90
 f90sources += cc_stencil_fill.f90
+f90sources += cc_mg_tower_smoother.f90
 
 f90sources += mg.f90
 f90sources += mg_tower.f90
-f90sources += mg_tower_smoother.f90
 f90sources += mg_prolongation.f90
 
 f90sources += ml_prolongation.f90
@@ -43,6 +44,8 @@ f90sources += nodal_stencil.f90
 f90sources += nodal_stencil_fill.f90
 f90sources += nodal_smoothers.f90
 f90sources += nodal_stencil.f90
+f90sources += nodal_stencil_apply.f90
+f90sources += nodal_mg_tower_smoother.f90
 
 f90sources += tridiag.f90
  
