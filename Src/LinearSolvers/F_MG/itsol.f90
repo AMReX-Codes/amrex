@@ -3,7 +3,8 @@ module itsol_module
   use bl_types
   use multifab_module
   use cc_stencil_module
-  use cc_stencil_apply_module
+  use stencil_types_module
+  use stencil_defect_module
 
   implicit none
 
@@ -11,7 +12,7 @@ module itsol_module
   integer, private, parameter :: def_cg_max_iter   = 1000
 
   private :: dgemv
-  private :: itsol_defect, itsol_precon
+  private :: itsol_precon
   private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
   private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
 
@@ -295,98 +296,6 @@ contains
     endif
 
   end function itsol_converged
-  !
-  ! Computes rr = aa * uu
-  !
-  subroutine itsol_stencil_apply(aa, rr, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
-
-    use bl_prof_module
-
-    use nodal_stencil_module, only: stencil_apply_1d_nodal, &
-                                    stencil_apply_2d_nodal, &
-                                    stencil_apply_3d_nodal
-
-    type(multifab), intent(in)    :: aa
-    type(multifab), intent(inout) :: rr
-    type(multifab), intent(inout) :: uu
-    type(imultifab), intent(in)   :: mm
-    integer, intent(in)           :: stencil_type
-    logical, intent(in)           :: lcross
-    logical, intent(in),optional  :: uniform_dh, bottom_solver
-
-    real(kind=dp_t), pointer :: rp(:,:,:,:), up(:,:,:,:), ap(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer                  :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
-    logical                  :: nodal_flag, luniform_dh, lbottom_solver
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "its_stencil_apply")
-
-    luniform_dh    = .false. ; if ( present(uniform_dh)    ) luniform_dh    = uniform_dh
-    lbottom_solver = .false. ; if ( present(bottom_solver) ) lbottom_solver = bottom_solver
-
-    call bl_assert(ncomp(uu).ge.ncomp(rr), 'uu must have at least as many components as rr')
-
-    call fill_boundary(uu, 1, ncomp(rr), cross = lcross)
-
-    dm         = get_dim(rr)
-    nodal_flag = nodal_q(uu)
-
-    do i = 1, nfabs(rr)
-       rp => dataptr(rr, i)
-       up => dataptr(uu, i)
-       ap => dataptr(aa, i)
-       mp => dataptr(mm, i)
-       lo = lwb(get_box(uu,i))
-       hi = upb(get_box(uu,i))
-       do n = 1, ncomp(rr)
-          select case(dm)
-          case (1)
-             if ( .not. nodal_flag) then
-                call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
-                                      mp(:,1,1,1), lo, hi)
-             else
-                call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu))
-             end if
-          case (2)
-             if ( .not. nodal_flag) then
-                call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
-                     mp(:,:,1,1), lo, hi)
-             else
-                call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu), stencil_type)
-             end if
-          case (3)
-             if ( .not. nodal_flag) then
-                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                                      mp(:,:,:,1), bottom_solver=lbottom_solver)
-             else
-                call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh, lbottom_solver)
-             end if
-          end select
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine itsol_stencil_apply
-  !
-  ! computes rr = aa * uu - rh
-  !
-  subroutine itsol_defect(ss, rr, rh, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
-    use bl_prof_module
-    type(multifab), intent(inout) :: uu, rr
-    type(multifab), intent(in)    :: rh, ss
-    type(imultifab), intent(in)   :: mm
-    integer, intent(in)           :: stencil_type
-    logical, intent(in)           :: lcross
-    logical, intent(in), optional :: uniform_dh, bottom_solver
-    call itsol_stencil_apply(ss, rr, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver)
-    call saxpy(rr, rh, -1.0_dp_t, rr)
-  end subroutine itsol_defect
 
   subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
        stat, singular_in, uniform_dh, nodal_mask, comm_in)
@@ -488,9 +397,11 @@ contains
 
     cnt = 0
     !
-    ! Compute rr = aa * uu - rh.
+    ! Compute rr = aa_local * uu - rh_local.
     !
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.); cnt = cnt + 1
+    call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                        uniform_dh, bottom_solver=.true.) 
+    cnt = cnt + 1
 
     call copy(rt, rr)
 
@@ -544,7 +455,7 @@ contains
           call saxpy(pp, rr, beta, pp)
        end if
        call copy(ph,pp)
-       call itsol_stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
        cnt = cnt + 1
        den = dot(rt, vv, nodal_mask, comm = comm)
        if ( den == ZERO ) then
@@ -564,7 +475,7 @@ contains
        end if
        if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm, comm = comm) ) exit
        call copy(ph,ss)
-       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
+       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
        cnt = cnt + 1
        !
        ! Elide a reduction here by calculating the two dot-products
@@ -822,9 +733,10 @@ contains
     !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 1'; stop; endif
 
     !
-    ! Compute rt = aa * uu - rh.
+    ! Compute rt = aa_local * uu - rh_local.
     !
-    call itsol_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+    call compute_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, &
+                        uniform_dh, bottom_solver=.true.)
 
     call copy(rr,rt); call copy(pp,rt)
     !
@@ -881,7 +793,7 @@ contains
           !
           ! apply the stencil to pp & rr at the same time to cut down on comm time.
           !
-          call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
 
           !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 3'; stop; endif
 
@@ -894,7 +806,7 @@ contains
        !
        ! And the final power of pp[].
        !
-       call itsol_stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
 
        call copy(PR,2*SSS+1,tt,1,1,0)
 
@@ -1262,8 +1174,11 @@ contains
     call diag_initialize(aa_local,rh_local,mm)
 
     cnt = 0
-    ! compute rr = aa * uu - rh_local
-    call itsol_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+    ! 
+    ! Compute rr = aa_local * uu - rh_local
+    ! 
+    call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                        uniform_dh, bottom_solver=.true.)
     cnt = cnt + 1
 
     if ( singular .and. nodal_solve ) then
@@ -1315,7 +1230,7 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call itsol_stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
+       call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
        cnt = cnt + 1
        den = dot(pp, qq, nodal_mask)
        if ( den == ZERO ) then

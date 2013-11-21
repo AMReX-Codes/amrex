@@ -127,8 +127,8 @@ contains
 
     do n = nlevs,1,-1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                           mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
     end do
 
     do n = 1,nlevs
@@ -211,7 +211,7 @@ contains
              mglev_crse = mgt(n-1)%nlevels
 
              ! Compute COARSE Res = Rh - Lap(Soln)
-             call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
+             call compute_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
                   rh(n-1),soln(n-1),mgt(n-1)%mm(mglev_crse), &
                   mgt(n-1)%stencil_type, mgt(n-1)%lcross, mgt(n-1)%uniform_dh)
 
@@ -225,7 +225,7 @@ contains
 
              ! Compute FINE Res = Res - Lap(uu)
              mglev = mgt(n)%nlevels
-             call mg_defect(mgt(n)%ss(mglev), temp_res(n), &
+             call compute_defect(mgt(n)%ss(mglev), temp_res(n), &
                   res(n),uu(n),mgt(n)%mm(mglev), &
                   mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
              call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
@@ -262,8 +262,8 @@ contains
           else
 
              if (do_diagnostics == 1 ) then
-                call mg_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev), &
-                               mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                call compute_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev), &
+                                    mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
                 tres = norm_inf(temp_res(n))
                 if ( parallel_ioprocessor() ) then
                    print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
@@ -296,8 +296,8 @@ contains
           if (n < nlevs) call plus_plus(uu_hold(n), uu(n), nghost(uu(n)))
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
-                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+          call compute_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
+                              mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -315,8 +315,8 @@ contains
                uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
 
           ! Compute Res = Res - Lap(uu)
-          call mg_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
-                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+          call compute_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
+                              mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -352,8 +352,8 @@ contains
        !    Compute the residual on just the finest level
         n = nlevs
         mglev = mgt(n)%nlevels
-        call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
+                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
         if ( ml_fine_converged(res, bnorm, rel_eps, abs_eps) ) then
 
@@ -362,8 +362,8 @@ contains
           !      Compute the residual on every level
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
-             call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+             call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
+                                 mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           end do
 
           do n = nlevs,2,-1

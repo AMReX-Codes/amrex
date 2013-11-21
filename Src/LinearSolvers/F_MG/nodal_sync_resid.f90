@@ -575,7 +575,7 @@ subroutine mgt_compute_sync_resid_crse()
   use nodal_cpp_mg_module
   use nodal_sync_resid_module
   use nodal_stencil_fill_module, only : stencil_fill_nodal
-  use itsol_module, only : itsol_stencil_apply
+  use stencil_defect_module, only : stencil_apply
   implicit none
 
   integer :: dm, mglev
@@ -602,9 +602,9 @@ subroutine mgt_compute_sync_resid_crse()
        mgts%mgt(1)%dh(:,mglev), mgts%mgt(1)%mm(mglev), &
        mgts%mgt(1)%face_type, mgts%stencil_type)
 
-  call itsol_stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
-                           mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
-                           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
+  call stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
+                     mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
+                     mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
 
   sign_res = -ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
