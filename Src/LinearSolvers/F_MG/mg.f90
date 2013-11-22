@@ -178,7 +178,7 @@ contains
        call  multifab_build(mgt%cc(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%ff(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%dd(i), la1, mgt%nc, ng_for_res, nodal)
-       call  multifab_build(mgt%ss(i), la1, ns, 0, nodal, stencil = .true.)
+       call  multifab_build(mgt%ss(i), la1, mgt%ns, 0, nodal, stencil = .true.)
 
        call setval(mgt%cc(i), zero, all = .TRUE.)
        call setval(mgt%ff(i), zero, all = .TRUE.)
