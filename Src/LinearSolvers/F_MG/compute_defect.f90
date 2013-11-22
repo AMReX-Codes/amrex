@@ -11,7 +11,7 @@ contains
 
   ! Computes dd = ff - ss * uu
   subroutine compute_defect(ss, dd, ff, uu, mm, stencil_type, lcross, &
-                            uniform_dh, bottom_solver)
+                            uniform_dh, bottom_solver, diagonalize)
 
     use bl_prof_module
 
@@ -20,12 +20,12 @@ contains
     type(imultifab), intent(in)   :: mm
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
-    logical, intent(in), optional :: uniform_dh, bottom_solver
+    logical, intent(in), optional :: uniform_dh, bottom_solver, diagonalize
     type(bl_prof_timer), save     :: bpt
 
     call build(bpt, "compute_defect")
     call stencil_apply(ss, dd, uu, mm, stencil_type, lcross, &
-                       uniform_dh, bottom_solver)
+                       uniform_dh, bottom_solver, diagonalize)
     call saxpy(dd, ff, -1.0_dp_t, dd)
     call destroy(bpt)
 
@@ -35,7 +35,7 @@ contains
   ! Computes rr = aa * uu
   !
   subroutine stencil_apply(aa, rr, uu, mm, stencil_type, lcross, &
-                           uniform_dh, bottom_solver)
+                           uniform_dh, bottom_solver, diagonalize)
 
     use bl_prof_module
 
@@ -50,12 +50,12 @@ contains
     type(imultifab), intent(in)   :: mm
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
-    logical, intent(in),optional  :: uniform_dh, bottom_solver
+    logical, intent(in),optional  :: uniform_dh, bottom_solver, diagonalize
 
     real(kind=dp_t), pointer :: rp(:,:,:,:), up(:,:,:,:), ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer                  :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
-    logical                  :: nodal_flag, luniform_dh, lbottom_solver
+    logical                  :: nodal_flag, luniform_dh, lbottom_solver, ldiagonalize
 
     type(bl_prof_timer), save :: bpt
 
@@ -63,6 +63,11 @@ contains
 
     luniform_dh    = .false. ; if ( present(uniform_dh)    ) luniform_dh    = uniform_dh
     lbottom_solver = .false. ; if ( present(bottom_solver) ) lbottom_solver = bottom_solver
+    ldiagonalize   = .false. ; if ( present(diagonalize)   ) ldiagonalize   = diagonalize
+
+    if (ldiagonalize .and. .not. nodal_q(rr)) then
+       call bl_error("Dont set diagonalize flag  = true for cell-centered in stencil_apply")
+    end if
 
     call bl_assert(ncomp(uu).ge.ncomp(rr), 'uu must have at least as many components as rr')
 
@@ -85,24 +90,24 @@ contains
                 call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
                                       mp(:,1,1,1), lo, hi)
              else
-                call stencil_apply_1d_nodal(ap(:,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu))
+                call stencil_apply_1d_nodal(ap(1,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
+                     mp(:,1,1,1), nghost(uu), ldiagonalize)
              end if
           case (2)
              if ( .not. nodal_flag) then
                 call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
                      mp(:,:,1,1), lo, hi)
              else
-                call stencil_apply_2d_nodal(ap(:,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu), stencil_type)
+                call stencil_apply_2d_nodal(ap(1,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
+                     mp(:,:,1,1), nghost(uu), stencil_type, ldiagonalize)
              end if
           case (3)
              if ( .not. nodal_flag) then
                 call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
                                       mp(:,:,:,1), bottom_solver=lbottom_solver)
              else
-                call stencil_apply_3d_nodal(ap(:,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh, lbottom_solver)
+                call stencil_apply_3d_nodal(ap(1,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
+                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh, lbottom_solver, ldiagonalize)
              end if
           end select
        end do

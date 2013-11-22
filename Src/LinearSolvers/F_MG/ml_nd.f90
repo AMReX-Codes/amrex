@@ -13,7 +13,7 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio, &
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio, &
                    do_diagnostics,rel_eps,abs_eps_in)
 
     use ml_norm_module        , only : ml_norm_inf
@@ -25,7 +25,6 @@ contains
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
-    type( multifab), intent(in   ) :: one_sided_ss(2:)
     integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics 
     real(dp_t)     , intent(in   ) :: rel_eps
@@ -128,7 +127,7 @@ contains
     do n = nlevs,1,-1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                      mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
     end do
 
     do n = 1,nlevs
@@ -243,7 +242,7 @@ contains
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
+                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
 
              ! Copy u_hold = uu
              if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),ng=nghost(uu(n)))
@@ -263,7 +262,7 @@ contains
 
              if (do_diagnostics == 1 ) then
                 call compute_defect(mgt(n)%ss(mglev),temp_res(n), res(n),uu(n),mgt(n)%mm(mglev), &
-                                    mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                               mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
                 tres = norm_inf(temp_res(n))
                 if ( parallel_ioprocessor() ) then
                    print *,'DWN: RES AFTER  GSRB AT LEVEL ',n, tres
@@ -297,7 +296,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call compute_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
-                              mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -316,7 +315,7 @@ contains
 
           ! Compute Res = Res - Lap(uu)
           call compute_defect(mgt(n)%ss(mglev),temp_res(n),res(n),uu(n),mgt(n)%mm(mglev), &
-                              mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                         mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           call multifab_copy(res(n),temp_res(n),ng=nghost(res(n)))
 
           if ( do_diagnostics == 1 ) then
@@ -353,7 +352,7 @@ contains
         n = nlevs
         mglev = mgt(n)%nlevels
         call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
         if ( ml_fine_converged(res, bnorm, rel_eps, abs_eps) ) then
 
@@ -363,7 +362,7 @@ contains
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
              call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                                 mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
           end do
 
           do n = nlevs,2,-1
@@ -384,7 +383,7 @@ contains
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),one_sided_ss(n),ref_ratio(n-1,:),pdc)
+                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
              if ( dm .eq. 3 ) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
@@ -489,7 +488,7 @@ contains
   contains
 
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
-         crse_soln,fine_soln,one_sided_ss,ref_ratio,pdc)
+         crse_soln,fine_soln,ref_ratio,pdc)
 
       use nodal_interface_stencil_module , only : ml_crse_contrib, ml_fine_contrib
 
@@ -502,7 +501,6 @@ contains
       type(multifab) , intent(inout) :: temp_crse_res
       type(multifab) , intent(inout) :: crse_soln
       type(multifab) , intent(inout) :: fine_soln
-      type(multifab) , intent(in   ) :: one_sided_ss
       integer        , intent(in   ) :: ref_ratio(:)
       type(box)      , intent(in   ) :: pdc
 
@@ -517,15 +515,9 @@ contains
       !    First compute a residual which only takes contributions from the
       !       grid on which it is calculated.
 
-      if (mgt(n)%lcross) then
-        call grid_res(one_sided_ss,temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%lcross, mgt(n)%uniform_dh)
-      else
-        call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
-             fine_rhs,fine_soln,mgt(n)%mm(mglev_fine),mgt(n)%face_type, &
-             mgt(n)%lcross, mgt(n)%uniform_dh)
-      end if
+      call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
+                    fine_rhs,fine_soln,mgt(n)%mm(mglev_fine), &
+                    mgt(n)%lcross,  mgt(n)%stencil_type, mgt(n)%uniform_dh)
 
       !    Zero out the flux registers which will hold the fine contributions
       call bndry_reg_setval(brs_flx, ZERO, all = .true.)
@@ -545,12 +537,12 @@ contains
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
               mgt(n  )%mm(mglev_fine), &
-              pdc,ref_ratio, -i)
+              pdc,ref_ratio, mgt(n)%stencil_type, -i)
          call ml_crse_contrib(temp_crse_res, brs_flx%bmf(i,1), crse_soln, &
               mgt(n-1)%ss(mgt(n-1)%nlevels), &
               mgt(n-1)%mm(mglev_crse), &
               mgt(n  )%mm(mglev_fine), &
-              pdc,ref_ratio, +i)
+              pdc,ref_ratio, mgt(n)%stencil_type, +i)
       end do
 
 !     Add to res(n-1).
@@ -595,13 +587,13 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, face_type, lcross, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, lcross, stencil_type, uniform_dh)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
-    integer, intent(in) :: face_type(:,:,:)
     logical, intent(in) :: lcross
+    integer, intent(in) :: stencil_type
     logical, intent(in) :: uniform_dh
 
     integer :: i, n
@@ -630,14 +622,14 @@ contains
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)
-             call grid_laplace_1d(sp(:,:,1,1), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
+             call grid_laplace_1d(sp(1,:,1,1), dp(:,1,1,n), fp(:,1,1,n), up(:,1,1,n), &
                                   mp(:,1,1,1),nghost(uu))
           case (2)
-             call grid_laplace_2d(sp(:,:,:,1), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), nghost(uu), face_type(i,:,:))
+             call grid_laplace_2d(sp(1,:,:,1), dp(:,:,1,n), fp(:,:,1,n), up(:,:,1,n), &
+                                  mp(:,:,1,1), nghost(uu), stencil_type)
           case (3)
-             call grid_laplace_3d(sp(:,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), nghost(uu), face_type(i,:,:), uniform_dh)
+             call grid_laplace_3d(sp(1,:,:,:), dp(:,:,:,n), fp(:,:,:,n), up(:,:,:,n), &
+                                  mp(:,:,:,1), nghost(uu), stencil_type, uniform_dh)
           end select
        end do
     end do
@@ -646,1009 +638,268 @@ contains
 
   end subroutine grid_res
 
-  subroutine grid_laplace_1d(ss, dd, ff, uu, mm, ng)
+  subroutine grid_laplace_1d(sg, dd, ff, uu, mm, ng)
 
     use impose_neumann_bcs_module
 
     integer           , intent(in   ) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(0:,:)
+    real (kind = dp_t), intent(in   ) :: sg(0:)
     real (kind = dp_t), intent(inout) :: dd(0:)
     real (kind = dp_t), intent(in   ) :: ff(0:)
     integer,            intent(in   ) :: mm(:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
 
+    real (kind = dp_t), allocatable :: sg_int(:)
+
     integer :: i,nx,lo(1)
-    nx = size(ss,dim=2)-1
+    nx = size(sg,dim=1)-2
 
     lo = 1
     call impose_neumann_bcs_1d(uu,mm,lo,ng)
 
-    i = 1
-    dd(i) = HALF*ff(i) - (ss(0,i)*uu(i) + ss(1,i)*(uu(i+1)-uu(i)))
+    allocate(sg_int(0:nx+1))
+    sg_int(:) = 0.d0 
 
-    do i = 2,nx
+    ! Copy the interior values only, we do *not* want to fill ghost cells that 
+    !      intersect other fine grids.
+    sg_int(1:nx) = sg(1:nx)
+
+    do i = 1,nx+1
       dd(i) = ff(i) - &
-              (ss(0,i)*uu(i) + ss(1,i) * uu(i+1) + ss(2,i) * uu(i-1))
+        (sg_int(i) * (uu(i+1) - uu(i)) + sg_int(i-1) * (uu(i-1) - uu(i)))
     end do
-
-    i = nx+1
-    dd(i) = HALF*ff(i) - (ss(2,i)*(uu(i-1)-uu(i)))
+    
+    deallocate(sg_int)
 
   end subroutine grid_laplace_1d
 
-  subroutine grid_laplace_2d(ss, dd, ff, uu, mm, ng, face_type)
+  subroutine grid_laplace_2d(sg, dd, ff, uu, mm, ng, stencil_type)
 
     use bc_module
     use impose_neumann_bcs_module
 
     integer           , intent(in   ) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(0:,:,:)
+    real (kind = dp_t), intent(in   ) :: sg(0:,0:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:) 
     real (kind = dp_t), intent(in   ) :: ff(0:,0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     integer,            intent(in   ) :: mm(:,:)
-    integer,            intent(in ) :: face_type(:,:)
+    integer           , intent(in   ) :: stencil_type
     integer :: i,j,nx,ny,lo(2)
-    integer :: istart,iend,jstart,jend
 
-    nx = size(ss,dim=2)-1
-    ny = size(ss,dim=3)-1
+    real (kind = dp_t), allocatable :: sg_int(:,:)
+
+    nx = size(sg,dim=1)-2
+    ny = size(sg,dim=2)-2
 
     lo = 1
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
-    if (face_type(1,1) == BC_NEU) then
-      istart = 1
-    else
-      istart = 2
-    end if
-    if (face_type(1,2) == BC_NEU) then
-      iend = nx+1
-    else
-      iend = nx
-    end if
-    if (face_type(2,1) == BC_NEU) then
-      jstart = 1
-    else
-      jstart = 2
-    end if
-    if (face_type(2,2) == BC_NEU) then
-      jend = ny+1
-    else
-      jend = ny
-    end if
+    allocate(sg_int(0:nx+1,0:ny+1))
+    sg_int(:,:) = 0.d0 
 
-    if (size(ss,dim=1) .eq. 9) then
-!     Corners
-      i = 1
-      j = 1
-      dd(i,j) = ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
+    ! Copy the interior values only, we do *not* want to fill ghost cells that 
+    !      intersect other fine grids.
+    do j = 1,ny
+    do i = 1,nx
+        sg_int(i,j) = sg(i,j)
+    end do
+    end do
 
-      i = 1
-      j = ny+1
-      dd(i,j) = ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
- 
-      i = nx+1
-      j = 1
-      dd(i,j) = ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
+    ! Set values across Neumann boundaries
+    call set_faces_edges_corners_2d(nx, ny, sg_int, mm)
 
-      i = nx+1
-      j = ny+1
-      dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
- 
-!     Lo-x edge
-      i = 1
-      do j = jstart,jend
-         dd(i,j) = ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j)) &
-                  +ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
-
-!     Hi-x edge
-      i = nx+1
-      do j = jstart,jend
-         dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j))
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
- 
-!     Lo-y edge
-      j = 1
-      do i = istart,iend
-         dd(i,j) = ss(6,i,j)*(uu(i-1,j+1)+HALF*uu(i,j+1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(8,i,j)*(uu(i+1,j+1)+HALF*uu(i,j+1)+HALF*uu(i+1,j)-TWO*uu(i,j))
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
-
-!     Hi-y edge
-      j = ny+1
-      do i = istart,iend
-         dd(i,j) = ss(1,i,j)*(uu(i-1,j-1)+HALF*uu(i,j-1)+HALF*uu(i-1,j)-TWO*uu(i,j)) &
-                  +ss(3,i,j)*(uu(i+1,j-1)+HALF*uu(i,j-1)+HALF*uu(i+1,j)-TWO*uu(i,j))
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
+    if (stencil_type .eq. ND_DENSE_STENCIL) then
  
 !     Interior
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i-1,j-1) &
-                                     + ss(2,i,j) * uu(i  ,j-1) &
-                                     + ss(3,i,j) * uu(i+1,j-1) &
-                                     + ss(4,i,j) * uu(i-1,j  ) &
-                                     + ss(5,i,j) * uu(i+1,j  ) &
-                                     + ss(6,i,j) * uu(i-1,j+1) &
-                                     + ss(7,i,j) * uu(i  ,j+1) &
-                                     + ss(8,i,j) * uu(i+1,j+1)
-         dd(i,j) = ff(i,j) - dd(i,j)
+      do j = 1,ny+1
+      do i = 1,nx+1
+         dd(i,j) = ff(i,j) - THIRD * ( &
+                   sg_int(i-1,j-1) * uu(i-1,j-1) + &
+                   sg_int(i  ,j-1) * uu(i+1,j-1) + &
+                   sg_int(i-1,j  ) * uu(i-1,j+1) + &
+                   sg_int(i  ,j  ) * uu(i+1,j+1) + &
+           HALF * ( (sg_int(i-1,j-1) + sg_int(i  ,j-1)) * uu(i,j-1) + &
+                    (sg_int(i-1,j-1) + sg_int(i-1,j  )) * uu(i-1,j) + &
+                    (sg_int(i  ,j-1) + sg_int(i  ,j  )) * uu(i+1,j) + &
+                    (sg_int(i-1,j  ) + sg_int(i  ,j  )) * uu(i,j+1) ) - &
+            TWO * (sg_int(i-1,j-1) + sg_int(i,j-1) + sg_int(i-1,j) + sg_int(i,j)) * uu(i,j) )
       end do
       end do
 
-    else if (size(ss,dim=1) .eq. 5) then
+    else if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-!     Corners
-      i = 1
-      j = 1
-      dd(i,j) = ss(1,i,j)*(uu(i+1,j)-uu(i,j)) + ss(3,i,j)*(uu(i,j+1)-uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
-
-      i = 1
-      j = ny+1
-      dd(i,j) = ss(1,i,j)*(uu(i+1,j)-uu(i,j)) + ss(4,i,j)*(uu(i,j-1)-uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
-
-      i = nx+1
-      j = 1
-      dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) + ss(3,i,j)*(uu(i,j+1)-uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
-
-      i = nx+1
-      j = ny+1
-      dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) + ss(4,i,j)*(uu(i,j-1)-uu(i,j))
-      dd(i,j) = FOURTH*ff(i,j) - dd(i,j)
-
-!     Lo-x edge
-      i = 1
-      do j = jstart,jend
-         dd(i,j) =  ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
-                   +ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
-                   +ss(4,i,j)*(uu(i,j-1)-uu(i,j)) 
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
-
-!     Hi-x edge
-      i = nx+1
-      do j = jstart,jend
-         dd(i,j) = ss(2,i,j)*(uu(i-1,j)-uu(i,j)) &
-                  +ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
-                  +ss(4,i,j)*(uu(i,j-1)-uu(i,j)) 
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
- 
-!     Lo-y edge
-      j = 1
-      do i = istart,iend
-         dd(i,j) = ss(3,i,j)*(uu(i,j+1)-uu(i,j)) &
-                  +ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
-                  +ss(2,i,j)*(uu(i-1,j)-uu(i,j)) 
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
-
-!     Hi-y edge
-      j = ny+1
-      do i = istart,iend
-         dd(i,j) = ss(4,i,j)*(uu(i,j-1)-uu(i,j)) &
-                  +ss(1,i,j)*(uu(i+1,j)-uu(i,j)) &
-                  +ss(2,i,j)*(uu(i-1,j)-uu(i,j)) 
-         dd(i,j) = HALF*ff(i,j) - dd(i,j)
-      end do
- 
 !     Interior
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i+1,j  ) &
-                                     + ss(2,i,j) * uu(i-1,j  ) &
-                                     + ss(3,i,j) * uu(i  ,j+1) &
-                                     + ss(4,i,j) * uu(i  ,j-1)  
-         dd(i,j) = ff(i,j) - dd(i,j)
+      do j = 1,ny+1
+      do i = 1,nx+1
+         dd(i,j) = ff(i,j) - &
+                   HALF * ( (sg_int(i  ,j-1)+sg_int(i  ,j  )) * uu(i+1,j) + &
+                            (sg_int(i-1,j-1)+sg_int(i-1,j  )) * uu(i-1,j) + &
+                            (sg_int(i-1,j  )+sg_int(i  ,j  )) * uu(i,j+1) + &
+                            (sg_int(i-1,j-1)+sg_int(i  ,j-1)) * uu(i,j-1) ) + &
+            (sg_int(i-1,j-1)+sg_int(i,j-1)+sg_int(i-1,j)+sg_int(i,j)) * uu(i,j)   
       end do
       end do
 
+    else 
+        call bl_error('unknown stencil_type in grid_laplace_2d')
     end if
+
+    deallocate(sg_int)
 
   end subroutine grid_laplace_2d
 
-  subroutine grid_laplace_3d(ss, dd, ff, uu, mm, ng, face_type, uniform_dh)
+  subroutine grid_laplace_3d(sg, dd, ff, uu, mm, ng, stencil_type, uniform_dh)
     use bc_module
     use impose_neumann_bcs_module
-    integer, intent(in) :: ng
+    integer           , intent(in   ) :: ng
+    real (kind = dp_t), intent(in   ) :: sg(0:,0:,0:)
+    real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
     real (kind = dp_t), intent(in   ) :: ff(0:,0:,0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
     integer,            intent(in   ) :: mm(:,:,:)
-    integer,            intent(in   ) :: face_type(:,:)
     logical,            intent(in)    :: uniform_dh
+    integer           , intent(in   ) :: stencil_type
+
+    real (kind = dp_t), allocatable   :: sg_int(:,:,:)
+    real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz, ss0
+    real (kind = dp_t) :: ff_fac
 
     integer :: i, j, k, lo(3)
-    integer :: istart, iend, jstart, jend, kstart, kend
     integer :: nx, ny, nz
 
-    nx = size(ss,dim=2)-1
-    ny = size(ss,dim=3)-1
-    nz = size(ss,dim=4)-1
+    nx = size(sg,dim=1)-2
+    ny = size(sg,dim=2)-2
+    nz = size(sg,dim=3)-2
 
     lo = 1
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    if (face_type(1,1) == BC_NEU) then
-      istart = 1
-    else
-      istart = 2
-    end if
-    if (face_type(1,2) == BC_NEU) then
-      iend = nx+1
-    else
-      iend = nx
-    end if
-    if (face_type(2,1) == BC_NEU) then
-      jstart = 1
-    else
-      jstart = 2
-    end if
-    if (face_type(2,2) == BC_NEU) then
-      jend = ny+1
-    else
-      jend = ny
-    end if
-    if (face_type(3,1) == BC_NEU) then
-      kstart = 1
-    else
-      kstart = 2
-    end if
-    if (face_type(3,2) == BC_NEU) then
-      kend = nz+1
-    else
-      kend = nz
-    end if
+    allocate(sg_int(0:nx+1,0:ny+1,0:nz+1))
+    sg_int(:,:,:) = 0.d0 
 
-    if (size(ss,dim=1) .eq. 27 .or. size(ss,dim=1) .eq. 21) then
-       !
-       !     Corners
-       !
-      i = 1
-      j = 1
-      k = 1
-      dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                               +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
+    ! Copy the interior values only, we do *not* want to fill ghost cells that 
+    !      intersect other fine grids.
+    sg_int(1:nx,1:ny,1:nz) = sg(1:nx,1:ny,1:nz)
 
-      i = 1
-      j = ny+1
-      k = 1
-      dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                               +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-   
-      i = nx+1
-      j = 1
-      k = 1
-      dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                               +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = nx+1
-      j = ny+1
-      k = 1
-      dd(i,j,k) = ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
-                               +uu(i-1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
+    ! Set values across Neumann boundaries
+    call set_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
 
-      i = 1
-      j = 1
-      k = nz+1
-      dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
-                               +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = 1
-      j = ny+1
-      k = nz+1
-      dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
-                               +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-   
-      i = nx+1
-      j = 1
-      k = nz+1
-      dd(i,j,k) = ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
-                               +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = nx+1
-      j = ny+1
-      k = nz+1
-      dd(i,j,k) = ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                               +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                         - FOUR*uu(i  ,j  ,k) )
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
- 
- 
-!     Lo-x / Lo-y edge
-      i = 1
-      j = 1
-      do k = kstart,kend
-         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Lo-y edge
-      !
-      i = nx+1
-      j = 1
-      do k = kstart,kend
-         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                   +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Hi-y edge
-      !
-      i = 1
-      j = ny+1
-      do k = kstart,kend
-         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Hi-y edge
-      !
-      i = nx+1
-      j = ny+1
-      do k = kstart,kend
-         dd(i,j,k) = ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Lo-z edge
-      !
-      i = 1
-      k = 1
-      do j = jstart,jend
-         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Lo-z edge
-      !
-      i = nx+1
-      k = 1
-      do j = jstart,jend
-         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                  +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
-                                  +uu(i-1,j-1,k  ) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Hi-z edge
-      !
-      i = 1
-      k = nz+1
-      do j = jstart,jend
-         dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
-                                  +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Hi-z edge
-      !
-      i = nx+1
-      k = nz+1
-      do j = jstart,jend
-         dd(i,j,k) = ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
-                                  +uu(i-1,j+1,k  ) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-y / Lo-z edge
-      !
-      j = 1
-      k = 1
-      do i = istart,iend
-         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                  +uu(i  ,j+1,k+1) + uu(i-1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-y / Lo-z edge
-      !
-      j = ny+1
-      k = 1
-      do i = istart,iend
-         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
-                                  +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-y / Hi-z edge
-      !
-      j = 1
-      k = nz+1
-      do i = istart,iend
-         dd(i,j,k) = ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
-                                  +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
-                          - FOUR*uu(i  ,j  ,k) ) &
-                      +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
-                                  +uu(i  ,j+1,k-1) + uu(i-1,j  ,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-y / Hi-z edge
-      !
-      j = ny+1
-      k = nz+1
-      do i = istart,iend
-         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
-                                  +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x face
-      !
-      i = 1
-      !$OMP PARALLEL DO PRIVATE(j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i+1,j-1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-x face
-      !
-      i = nx+1
-      !$OMP PARALLEL DO PRIVATE(j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-         dd(i,j,k) = ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                  +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i-1,j  ,k+1) &
-                                  +uu(i-1,j-1,k  ) + uu(i  ,j-1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j  ,k-1) &
-                                  +uu(i-1,j+1,k  ) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                          - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Lo-y face
-      !
-      j = 1
-      !$OMP PARALLEL DO PRIVATE(i,k)
-      do k = kstart,kend
-      do i = istart,iend
-         dd(i,j,k) = ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                  +uu(i-1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-y face
-      !
-      j = ny+1
-      !$OMP PARALLEL DO PRIVATE(i,k)
-      do k = kstart,kend
-      do i = istart,iend
-         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
-                                  +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
-                                  +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Lo-z face
-      !
-      k = 1
-      !$OMP PARALLEL DO PRIVATE(i,j)
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j,k) = ss(15,i,j,k)*(uu(i+1,j-1,k+1) + uu(i+1,j-1,k  ) &
-                                  +uu(i  ,j-1,k+1) + uu(i+1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(13,i,j,k)*(uu(i-1,j-1,k+1) + uu(i  ,j-1,k+1) &
-                                  +uu(i-1,j-1,k  ) + uu(i-1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(20,i,j,k)*(uu(i+1,j+1,k+1) + uu(i+1,j+1,k  ) &
-                                  +uu(i+1,j  ,k+1) + uu(i  ,j+1,k+1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss(18,i,j,k)*(uu(i-1,j+1,k+1) + uu(i-1,j+1,k  ) &
-                                  +uu(i  ,j+1,k+1) + uu(i-1,j  ,k+1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-z face
-      !
-      k = nz+1
-      !$OMP PARALLEL DO PRIVATE(i,j)
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j,k) = ss( 3,i,j,k)*(uu(i+1,j-1,k-1) + uu(i  ,j-1,k-1) &
-                                  +uu(i+1,j-1,k  ) + uu(i+1,j  ,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 1,i,j,k)*(uu(i-1,j-1,k-1) + uu(i-1,j-1,k  ) &
-                                  +uu(i-1,j  ,k-1) + uu(i  ,j-1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 8,i,j,k)*(uu(i+1,j+1,k-1) + uu(i+1,j  ,k-1) &
-                                  +uu(i+1,j+1,k  ) + uu(i  ,j+1,k-1) &
-                            - FOUR*uu(i  ,j  ,k) ) &
-                    +ss( 6,i,j,k)*(uu(i-1,j+1,k-1) + uu(i-1,j+1,k  ) &
-                                  +uu(i  ,j+1,k-1) + uu(i-1,j  ,k-1) &
-                            - FOUR*uu(i  ,j  ,k) )
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Interior
-      !
+    fx     = 1.d0/36.d0
+    fy     = fx
+    fz     = fx
+    f0     = FOUR * (fx + fy + fz)
+    fxyz   = (fx+fy+fz)
+    f2y2zx = (TWO*fy+TWO*fz-fx)
+    f2x2zy = (TWO*fx+TWO*fz-fy)
+    f2x2yz = (TWO*fx+TWO*fy-fz)
+
+    if (stencil_type .eq. ND_DENSE_STENCIL) then
       !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-      do i = istart,iend
+      do k = 1,nz+1
+      do j = 1,ny+1
+      do i = 1,nx+1
 
-        dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
-            + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
-            + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
-            + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
-            + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
-            + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
-            + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
-            + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
-            + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
-            + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
-            + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1)
+          ff_fac = 1.d0
+          if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
+          if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
+          if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
 
-        if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh) ) then
-            !
-            ! Add faces (only non-zero for non-uniform dx)
-            !
-            dd(i,j,k) = dd(i,j,k) + &
-                  ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
-                  + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
-                  + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
-         end if
+          ss0 =  -( sg_int(i-1,j-1,k-1) + sg_int(i,j-1,k-1) &
+                   +sg_int(i-1,j  ,k-1) + sg_int(i,j  ,k-1) &
+                   +sg_int(i-1,j-1,k  ) + sg_int(i,j-1,k  ) &
+                   +sg_int(i-1,j  ,k  ) + sg_int(i,j  ,k  ) ) * f0
+          dd(i,j,k) = ff_fac * ff(i,j,k) - ( &
+               fxyz * ( &   ! Corners
+               sg_int(i-1,j-1,k-1) * uu(i-1,j-1,k-1) + sg_int(i  ,j-1,k-1) * uu(i+1,j-1,k-1) + &
+               sg_int(i-1,j  ,k-1) * uu(i-1,j+1,k-1) + sg_int(i  ,j  ,k-1) * uu(i+1,j+1,k-1) + &
+               sg_int(i-1,j-1,k  ) * uu(i-1,j-1,k+1) + sg_int(i  ,j-1,k  ) * uu(i+1,j-1,k+1) + &
+               sg_int(i-1,j  ,k  ) * uu(i-1,j+1,k+1) + sg_int(i  ,j  ,k  ) * uu(i+1,j+1,k+1)) &
+               + f2y2zx * ( & ! Edges in x-direction
+               (sg_int(i  ,j-1,k-1) + sg_int(i-1,j-1,k-1)) * uu(i  ,j-1,k-1) + &
+               (sg_int(i  ,j  ,k-1) + sg_int(i-1,j  ,k-1)) * uu(i  ,j+1,k-1) + &
+               (sg_int(i  ,j-1,k  ) + sg_int(i-1,j-1,k  )) * uu(i  ,j-1,k+1) + &
+               (sg_int(i  ,j  ,k  ) + sg_int(i-1,j  ,k  )) * uu(i  ,j+1,k+1)) &
+               + f2x2zy * ( & ! Edges in y-direction
+               (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1)) * uu(i-1,j  ,k-1) + &
+               (sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1)) * uu(i+1,j  ,k-1) + &
+               (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  )) * uu(i-1,j  ,k+1) + &
+               (sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) * uu(i+1,j  ,k+1)) &
+               + f2x2yz * ( & ! Edges in z-direction
+               (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  )) * uu(i-1,j-1,k  ) + &
+               (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  )) * uu(i+1,j-1,k  ) + &
+               (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  )) * uu(i-1,j+1,k  ) + &
+               (sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )) * uu(i+1,j+1,k  )) &
+               + ss0 * uu(i,j,k) )
   
-         dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
+          if (.not. uniform_dh) then
+          !
+          ! Add faces (only non-zero for non-uniform dx)
+          !   (minus sign here because this is really (ff - lap(u))
+          !
+          dd(i,j,k) = dd(i,j,k) - ( &
+               ( (FOUR*fx-TWO*fy-TWO*fz)*(sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  )) ) * uu(i-1,j  ,k  ) + &
+               ( (FOUR*fx-TWO*fy-TWO*fz)*(sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+                +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )) ) * uu(i+1,j  ,k  ) + &
+               ( (FOUR*fy-TWO*fx-TWO*fz)*(sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+                +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  )) ) * uu(i  ,j-1,k  ) + &
+               ( (FOUR*fy-TWO*fx-TWO*fz)*(sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+                +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )) ) * uu(i  ,j+1,k  ) + &
+               ( (FOUR*fz-TWO*fx-TWO*fy)*(sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+                +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1)) ) * uu(i  ,j  ,k-1) + &
+               ( (FOUR*fz-TWO*fx-TWO*fy)*(sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+                +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) ) * uu(i  ,j  ,k+1)     )
+
+          end if
+
+          ! This accounts for the fact that fac = 1/(4*dx*dx) to be compatible with
+          !      the cross stencil
+          dd(i,j,k) = 4.d0 * dd(i,j,k)
       end do
       end do
       end do
       !$OMP END PARALLEL DO
 
-    else if (size(ss,dim=1) .eq. 7) then
-       !
-       !     Corners
-       !
-      i = 1
-      j = 1
-      k = 1
-      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
+    else if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-      i = 1
-      j = ny+1
-      k = 1
-      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-   
-      i = nx+1
-      j = 1
-      k = 1
-      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = nx+1
-      j = ny+1
-      k = 1
-      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-
-      i = 1
-      j = 1
-      k = nz+1
-      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = 1
-      j = ny+1
-      k = nz+1
-      dd(i,j,k) =  ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-   
-      i = nx+1
-      j = 1
-      k = nz+1
-      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-  
-      i = nx+1
-      j = ny+1
-      k = nz+1
-      dd(i,j,k) =  ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                 + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                 + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-      dd(i,j,k) = EIGHTH*ff(i,j,k) - dd(i,j,k)
-      !
-      !     Lo-x / Lo-y edge
-      !
-      i = 1
-      j = 1
-      do k = kstart,kend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Lo-y edge
-      !
-      i = nx+1
-      j = 1
-      do k = kstart,kend
-         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Hi-y edge
-      !
-      i = 1
-      j = ny+1
-      do k = kstart,kend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Hi-y edge
-      !
-      i = nx+1
-      j = ny+1
-      do k = kstart,kend
-         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Lo-z edge
-      !
-      i = 1
-      k = 1
-      do j = jstart,jend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Lo-z edge
-      !
-      i = nx+1
-      k = 1
-      do j = jstart,jend
-         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x / Hi-z edge
-      !
-      i = 1
-      k = nz+1
-      do j = jstart,jend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-x / Hi-z edge
-      !
-      i = nx+1
-      k = nz+1
-      do j = jstart,jend
-         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-y / Lo-z edge
-      !
-      j = 1
-      k = 1
-      do i = istart,iend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-y / Lo-z edge
-      !
-      j = ny+1
-      k = 1
-      do i = istart,iend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-y / Hi-z edge
-      !
-      j = 1
-      k = nz+1
-      do i = istart,iend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Hi-y / Hi-z edge
-      !
-      j = ny+1
-      k = nz+1
-      do i = istart,iend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) 
-         dd(i,j,k) = FOURTH*ff(i,j,k) - dd(i,j,k)
-      end do
-      !
-      !     Lo-x face
-      !
-      i = 1
-      !$OMP PARALLEL DO PRIVATE(j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-         dd(i,j,k) =      ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) & 
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-x face
-      !
-      i = nx+1
-      !$OMP PARALLEL DO PRIVATE(j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-         dd(i,j,k) =      ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) &
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) & 
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Lo-y face
-      !
-      j = 1
-      !$OMP PARALLEL DO PRIVATE(i,k)
-      do k = kstart,kend
-      do i = istart,iend
-         dd(i,j,k) =      ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) &
-                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-y face
-      !
-      j = ny+1
-      !$OMP PARALLEL DO PRIVATE(i,k)
-      do k = kstart,kend
-      do i = istart,iend
-         dd(i,j,k) =      ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
-                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) & 
-                        + ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k))  
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Lo-z face
-      !
-      k = 1
-      !$OMP PARALLEL DO PRIVATE(i,j)
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j,k) =      ss(5,i,j,k)*(uu(i,j,k+1)-uu(i,j,k)) &
-                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) 
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Hi-z face
-      !
-      k = nz+1
-      !$OMP PARALLEL DO PRIVATE(i,j)
-      do j = jstart,jend
-      do i = istart,iend
-         dd(i,j,k) =      ss(6,i,j,k)*(uu(i,j,k-1)-uu(i,j,k)) &
-                        + ss(1,i,j,k)*(uu(i+1,j,k)-uu(i,j,k)) & 
-                        + ss(2,i,j,k)*(uu(i-1,j,k)-uu(i,j,k)) & 
-                        + ss(3,i,j,k)*(uu(i,j+1,k)-uu(i,j,k)) & 
-                        + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) 
-         dd(i,j,k) = HALF*ff(i,j,k) - dd(i,j,k)
-      end do
-      end do
-      !$OMP END PARALLEL DO
-      !
-      !     Interior
-      !
       !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = kstart,kend
-      do j = jstart,jend
-      do i = istart,iend
-          dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
-            + ss(1,i,j,k) * uu(i+1,j  ,k  ) + ss(2,i,j,k) * uu(i-1,j  ,k  ) &
-            + ss(3,i,j,k) * uu(i  ,j+1,k  ) + ss(4,i,j,k) * uu(i  ,j-1,k  ) &
-            + ss(5,i,j,k) * uu(i  ,j  ,k+1) + ss(6,i,j,k) * uu(i  ,j  ,k-1) 
-          dd(i,j,k) = ff(i,j,k) - dd(i,j,k)
+      do k = 1,nz+1
+      do j = 1,ny+1
+      do i = 1,nx+1
+
+          ff_fac = 1.d0
+          if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
+          if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
+          if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
+
+          dd(i,j,k) = ff_fac*ff(i,j,k) - ( &
+             (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+             +sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  )) * uu(i-1,j  ,k  ) + &
+             (sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  ) &
+             +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )) * uu(i+1,j  ,k  ) + &
+             (sg_int(i-1,j-1,k-1) + sg_int(i-1,j-1,k  ) &
+             +sg_int(i  ,j-1,k-1) + sg_int(i  ,j-1,k  )) * uu(i  ,j-1,k  ) + &
+             (sg_int(i-1,j  ,k-1) + sg_int(i-1,j  ,k  ) &
+             +sg_int(i  ,j  ,k-1) + sg_int(i  ,j  ,k  )) * uu(i  ,j+1,k  ) + &
+             (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+             +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1)) * uu(i  ,j  ,k-1) + &
+             (sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+             +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) * uu(i  ,j  ,k+1) - &
+             (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
+             +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1) &
+             +sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
+             +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) * 3.d0 * uu(i  ,j  ,k  ) )
       end do
       end do
       end do
       !$OMP END PARALLEL DO
 
+    else 
+        call bl_error('unknown stencil_type in grid_laplace_3d')
     end if
+
+    deallocate(sg_int)
 
   end subroutine grid_laplace_3d
 
