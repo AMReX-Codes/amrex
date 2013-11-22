@@ -60,7 +60,7 @@ contains
                 do n = 1, mgt%nc
                    select case ( mgt%dim)
                    case (1)
-                      call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
+                      call nodal_line_solve_1d(sp(1,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
                            mp(:,1,1,1), lo, ng)
                    end select
                 end do
@@ -80,14 +80,14 @@ contains
                       select case ( mgt%dim)
                       case (1)
                          if ( k.eq.0 ) &
-                              call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                              call nodal_line_solve_1d(sp(1,:,1,1), up(:,1,1,n), &
                               fp(:,1,1,n), mp(:,1,1,1), lo, ng)
                       case (2)
-                         call nodal_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
+                         call nodal_smoother_2d(sp(1,:,:,1), up(:,:,1,n), &
                               fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
                               pmask, mgt%stencil_type, k)
                       case (3)
-                         call nodal_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
+                         call nodal_smoother_3d(sp(1,:,:,:), up(:,:,:,n), &
                               fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
                               mgt%uniform_dh, pmask, mgt%stencil_type, k)
                       end select
@@ -95,11 +95,11 @@ contains
                 end do
              end do
           end if
-       else
-          !
-          ! Nodal dense stencils.
-          !
-          call fill_boundary(uu, cross = mgt%lcross)
+    else
+       !
+       ! Nodal dense stencils.
+       !
+       call fill_boundary(uu, cross = mgt%lcross)
           !
           ! Thread over FABS.
           !
@@ -113,23 +113,23 @@ contains
              do n = 1, mgt%nc
                 select case (mgt%dim)
                 case (1)
-                   call nodal_line_solve_1d(sp(:,:,1,1), up(:,1,1,n), &
+                   call nodal_line_solve_1d(sp(1,:,1,1), up(:,1,1,n), &
                         fp(:,1,1,n), mp(:,1,1,1), lo, ng)
                 case (2)
-                   call nodal_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
+                   call nodal_smoother_2d(sp(1,:,:,1), up(:,:,1,n), &
                         fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
                         pmask, mgt%stencil_type, 0)
                 case (3)
-                   call nodal_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
+                   call nodal_smoother_3d(sp(1,:,:,:), up(:,:,:,n), &
                         fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
                         mgt%uniform_dh, pmask, mgt%stencil_type, 0)
                 end select
              end do
           end do
           !$OMP END PARALLEL DO
-       endif
+    endif
 
-       call multifab_internal_sync(uu)
+    call multifab_internal_sync(uu)
 
     call destroy(bpt)
 

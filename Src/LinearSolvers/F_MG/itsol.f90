@@ -194,78 +194,122 @@ contains
 
     end subroutine diag_init_cc_3d
 
-    subroutine diag_init_nd_1d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
-      integer        , intent(in   )  :: ng_a, ng_r, ng_m
+    subroutine diag_init_nd_1d(sg, ng_sg, r, ng_r, mm, ng_m, lo, hi)
+      integer        , intent(in   )  :: ng_sg, ng_r, ng_m
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:)
-      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:   )
-      integer        , intent(inout)  :: mm(lo(1)-ng_m:   )
+      real(kind=dp_t), intent(inout)  :: sg(lo(1)-ng_sg:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r :)
+      integer        , intent(inout)  :: mm(lo(1)-ng_m :)
 
-      integer         :: i, nc
-      real(kind=dp_t) :: denom
-
-      nc = size(a,dim=1)-1
+      integer         :: i
+      real(kind=dp_t) :: ss0
 
       do i = lo(1),hi(1)+1
          if (.not. bc_dirichlet(mm(i),1,0)) then
-            denom = one / a(0,i)
-            r(i     ) = r(i     ) * denom
-            a(1:nc,i) = a(1:nc,i) * denom
-            a(0,i   ) = one
+              ss0 = -(sg(i)+sg(i-1))
+             r(i) =  r(i) / ss0
          end if
       end do
 
     end subroutine diag_init_nd_1d
 
-    subroutine diag_init_nd_2d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
-      integer        , intent(in   )  :: ng_a, ng_r, ng_m
+    subroutine diag_init_nd_2d(sg, ng_sg, r, ng_r, mm, ng_m, lo, hi, stencil_type)
+      integer        , intent(in   )  :: ng_sg, ng_r, ng_m
       integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:)
-      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
-      integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:   )
+      real(kind=dp_t), intent(inout)  :: sg(lo(1)-ng_sg:,lo(2)-ng_sg:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r :,lo(2)-ng_r :)
+      integer        , intent(inout)  :: mm(lo(1)-ng_m :,lo(2)-ng_m :)
+      integer        , intent(in   )  :: stencil_type
 
-      integer         :: i, j, nc
-      real(kind=dp_t) :: denom
+      integer         :: i, j
+      real(kind=dp_t) :: ss0
+      real(kind=dp_t), parameter :: TWOTHIRDS = 2.d0 / 3.d0
+      !
+      ! NOTE NOTE : we only diagonlize the RHS here --
+      !             we will diagnolize the matrix in the apply routine itself
+      !
 
-      nc = size(a,dim=1)-1
+      if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-      do j = lo(2),hi(2)+1
-         do i = lo(1),hi(1)+1
-            if (.not. bc_dirichlet(mm(i,j),1,0)) then
-               denom = one / a(0,i,j)
-               r(i,j     ) = r(i,j     ) * denom
-               a(1:nc,i,j) = a(1:nc,i,j) * denom
-               a(0,i,j   ) = one
-            end if
-         end do
-      end do
-
-    end subroutine diag_init_nd_2d
-
-    subroutine diag_init_nd_3d(a, ng_a, r, ng_r, mm, ng_m, lo, hi)
-      integer        , intent(in   )  :: ng_a, ng_r, ng_m
-      integer        , intent(in   )  :: lo(:),hi(:)
-      real(kind=dp_t), intent(inout)  ::  a(0:,lo(1)-ng_a:,lo(2)-ng_a:,lo(3)-ng_a:)
-      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
-      integer        , intent(inout)  :: mm(lo(1)-ng_m:,lo(2)-ng_m:,lo(3)-ng_m:   )
-
-      integer         :: i, j, k, nc
-      real(kind=dp_t) :: denom
-
-      nc = size(a,dim=1)-1
-
-      do k = lo(3),hi(3)+1
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
-                  denom = one / a(0,i,j,k)
-                  r(i,j,k     ) = r(i,j,k     ) * denom
-                  a(1:nc,i,j,k) = a(1:nc,i,j,k) * denom
-                  a(0,i,j,k   ) = one
+               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                  ss0 = -(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  r(i,j) =  r(i,j) / ss0
                end if
             end do
          end do
-      end do
+
+      else if (stencil_type .eq. ND_DENSE_STENCIL) then
+
+         do j = lo(2),hi(2)+1
+            do i = lo(1),hi(1)+1
+               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                  ss0 = -TWOTHIRDS*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  r(i,j) =  r(i,j) / ss0
+               end if
+            end do
+         end do
+
+     else
+        call bl_error("diag_init_nd_2d: dont know this stencil_type")
+     end if
+
+    end subroutine diag_init_nd_2d
+
+    subroutine diag_init_nd_3d(sg, ng_sg, r, ng_r, mm, ng_m, lo, hi, stencil_type)
+      integer        , intent(in   )  :: ng_sg, ng_r, ng_m
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  :: sg(lo(1)-ng_sg:,lo(2)-ng_sg:,lo(3)-ng_sg:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r :,lo(2)-ng_r :,lo(3)-ng_r :)
+      integer        , intent(inout)  :: mm(lo(1)-ng_m :,lo(2)-ng_m :,lo(3)-ng_m :)
+      integer        , intent(in   )  :: stencil_type
+
+      integer         :: i, j, k
+      real(kind=dp_t) :: ss0
+      real(kind=dp_t), parameter :: FOURTHIRDS = 4.d0 / 3.d0
+      !
+      ! NOTE NOTE : we only diagonlize the RHS here --
+      !             we will diagnolize the matrix in the apply routine itself
+      !
+
+      if (stencil_type .eq. ND_CROSS_STENCIL) then
+
+         do k = lo(3),hi(3)+1
+         do j = lo(2),hi(2)+1
+         do i = lo(1),hi(1)+1
+            if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+               ss0 = -( sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                       +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
+                       +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                       +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0
+               r(i,j,k) =  r(i,j,k) / ss0
+            end if
+         end do
+         end do
+         end do
+
+      else if (stencil_type .eq. ND_DENSE_STENCIL) then
+
+         do k = lo(3),hi(3)+1
+         do j = lo(2),hi(2)+1
+         do i = lo(1),hi(1)+1
+            if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
+                   ! The extra factor of 4 accounts for the fact that fac = 1/(4*dx*dx) 
+                   !      to be compatible with the cross stencil
+               ss0 =  -( sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+                        +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
+                        +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
+                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * FOURTHIRDS
+               r(i,j,k) =  r(i,j,k) / ss0
+            end if
+         end do
+         end do
+         end do
+
+     else
+        call bl_error("diag_init_nd_3d: dont know this stencil_type")
+     end if
 
     end subroutine diag_init_nd_3d
 
@@ -297,8 +341,8 @@ contains
 
   end function itsol_converged
 
-  subroutine itsol_BiCGStab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
-       stat, singular_in, uniform_dh, nodal_mask, comm_in)
+  subroutine itsol_bicgstab_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
+                                  stat, singular_in, uniform_dh, nodal_mask, comm_in)
 
     use bl_prof_module
 
@@ -391,13 +435,13 @@ contains
       call setval(ss,ZERO,all=.true.)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm)
+    call diag_initialize(aa_local,rh_local,mm,stencil_type)
 
     call copy(ph, uu, ng = nghost(ph))
 
     cnt = 0
     !
-    ! Compute rr = aa_local * uu - rh_local.
+    ! Compute rr = aa_local * uu - rh_local
     !
     call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
                         uniform_dh, bottom_solver=.true.) 
@@ -455,7 +499,8 @@ contains
           call saxpy(pp, rr, beta, pp)
        end if
        call copy(ph,pp)
-       call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                          diagonalize=.true.)
        cnt = cnt + 1
        den = dot(rt, vv, nodal_mask, comm = comm)
        if ( den == ZERO ) then
@@ -475,7 +520,8 @@ contains
        end if
        if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm, comm = comm) ) exit
        call copy(ph,ss)
-       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
+       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                          diagonalize=.true.)
        cnt = cnt + 1
        !
        ! Elide a reduction here by calculating the two dot-products
@@ -543,7 +589,7 @@ contains
 
     call destroy(bpt)
 
-  end subroutine itsol_BiCGStab_solve
+  end subroutine itsol_bicgstab_solve
   !
   ! This is a slightly simplified version of the BLAS 2 routine.
   !
@@ -728,12 +774,12 @@ contains
        call destroy(ss)
     end if
 
-    call diag_initialize(aa_local,rh_local,mm)
+    call diag_initialize(aa_local,rh_local,mm,stencil_type)
 
     !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 1'; stop; endif
 
     !
-    ! Compute rt = aa_local * uu - rh_local.
+    ! Compute rr = aa_local * uu - rh_local
     !
     call compute_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, &
                         uniform_dh, bottom_solver=.true.)
@@ -793,7 +839,8 @@ contains
           !
           ! apply the stencil to pp & rr at the same time to cut down on comm time.
           !
-          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                             diagonalize=.true.)
 
           !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 3'; stop; endif
 
@@ -806,7 +853,8 @@ contains
        !
        ! And the final power of pp[].
        !
-       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                          diagonalize=.true.)
 
        call copy(PR,2*SSS+1,tt,1,1,0)
 
@@ -1171,12 +1219,12 @@ contains
        call cpy_d(pdst, psrc)
     end do
 
-    call diag_initialize(aa_local,rh_local,mm)
+    call diag_initialize(aa_local,rh_local,mm,stencil_type)
 
     cnt = 0
-    ! 
+    !
     ! Compute rr = aa_local * uu - rh_local
-    ! 
+    !
     call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
                         uniform_dh, bottom_solver=.true.)
     cnt = cnt + 1
@@ -1230,7 +1278,8 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.) 
+       call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                          diagonalize=.true.)
        cnt = cnt + 1
        den = dot(pp, qq, nodal_mask)
        if ( den == ZERO ) then
@@ -1343,11 +1392,12 @@ contains
 
   end subroutine itsol_precon
 
-  subroutine diag_initialize(aa, rh, mm)
+  subroutine diag_initialize(aa, rh, mm, stencil_type)
     use bl_prof_module
     type( multifab), intent(in) :: aa
     type( multifab), intent(in) :: rh
     type(imultifab), intent(in) :: mm
+    integer        , intent(in) :: stencil_type
 
     real(kind=dp_t), pointer, dimension(:,:,:,:) :: ap, rp
     integer        , pointer, dimension(:,:,:,:) :: mp
@@ -1376,19 +1426,22 @@ contains
              if ( cell_centered_q(rh) ) then
                 call diag_init_cc_1d(ap(:,:,1,1), ng_a, rp(:,1,1,1), ng_r, lo, hi)
              else
-                call diag_init_nd_1d(ap(:,:,1,1), ng_a, rp(:,1,1,1), ng_r, mp(:,1,1,1), ng_m, lo, hi)
+                call diag_init_nd_1d(ap(1,:,1,1), ng_a, rp(:,1,1,1), ng_r, mp(:,1,1,1), ng_m, &
+                                     lo, hi)
              end if
           case (2)
              if ( cell_centered_q(rh) ) then
                 call diag_init_cc_2d(ap(:,:,:,1), ng_a, rp(:,:,1,1), ng_r, lo, hi)
              else
-                call diag_init_nd_2d(ap(:,:,:,1), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, lo, hi)
+                call diag_init_nd_2d(ap(1,:,:,1), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, &
+                                     lo, hi, stencil_type)
              end if
           case (3)
              if ( cell_centered_q(rh) ) then
                 call diag_init_cc_3d(ap(:,:,:,:), ng_a, rp(:,:,:,1), ng_r, lo, hi)
              else
-                call diag_init_nd_3d(ap(:,:,:,:), ng_a, rp(:,:,:,1), ng_r, mp(:,:,:,1), ng_m, lo, hi)
+                call diag_init_nd_3d(ap(1,:,:,:), ng_a, rp(:,:,:,1), ng_r, mp(:,:,:,1), ng_m, &
+                                     lo, hi, stencil_type)
              end if
        end select
     end do

@@ -37,7 +37,6 @@ module nodal_cpp_mg_module
      type(multifab) , pointer ::          vel(:) => Null()
      type(multifab) , pointer ::  cell_coeffs(:) => Null()
      type(multifab) , pointer ::   amr_coeffs(:) => Null()
-     type(multifab) , pointer :: one_sided_ss(:) => Null()
      type(lmultifab), pointer ::    fine_mask(:) => Null()
      type(multifab) , pointer ::     sync_res(:) => Null()
      type(multifab) , pointer ::     sync_msk(:) => Null()
@@ -115,7 +114,6 @@ subroutine mgt_nodal_alloc(dm, nlevel, stencil_type_in)
   allocate(mgts%uu(nlevel))
   allocate(mgts%mgt(nlevel))
   allocate(mgts%amr_coeffs(nlevel))
-  allocate(mgts%one_sided_ss(nlevel))
   allocate(mgts%fine_mask(nlevel))
 
   call build(mgts%mla, nlevel, dm)
@@ -162,7 +160,6 @@ subroutine mgt_nodal_finalize(dx,bc)
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
   integer   , intent(in) :: bc(2,mgts%dim)
   integer :: dm, i, nlev, n
-  integer :: ns
   logical, allocatable :: nodal(:)
 
   integer :: max_nlevel_in
@@ -210,30 +207,11 @@ subroutine mgt_nodal_finalize(dx,bc)
   end do
 
   if (mgts%stencil_type .eq. ND_DENSE_STENCIL) then
-
      if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
          print *,'Using dense stencil in nodal solver ...'
-
-     if (dm .eq. 3) then
-       if ( dx(nlev,1) .eq. dx(nlev,2) .and. dx(nlev,1) .eq. dx(nlev,3) ) then
-         ns = 21
-       else
-         ns = 27
-       end if
-     else if (dm .eq. 2) then
-       ns = 9
-     end if
-
   else if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
-
      if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
          print *,'Using cross stencil in nodal solver ...'
-
-     ns = 2*dm+1
-     do n = nlev, 2, -1
-       call multifab_build(mgts%one_sided_ss(n), mgts%mla%la(n), ns, 0, nodal, stencil=.true.)
-     end do
-
   else
      if ( parallel_ioprocessor()) &
          print *,'Dont know this stencil type ',mgts%stencil_type
@@ -259,7 +237,6 @@ subroutine mgt_nodal_finalize(dx,bc)
 
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
-          ns                = ns, &
           smoother          = mgts%smoother, &
           nu1               = mgts%nu1, &
           nu2               = mgts%nu2, &
@@ -324,13 +301,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
   call multifab_fill_boundary(mgts%cell_coeffs(nlev))
 
-  call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs, mgts%stencil_type)
-
-  if (mgts%stencil_type .eq. ND_CROSS_STENCIL .and. flev .gt. 1) then
-     call stencil_fill_one_sided(mgts%one_sided_ss(flev), mgts%cell_coeffs(nlev), &
-                                 mgts%mgt(flev)%dh(:,nlev), &
-                                 mgts%mgt(flev)%mm(nlev), mgts%mgt(flev)%face_type)
-  end if
+  call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs)
 
   call destroy(mgts%cell_coeffs(nlev))
   deallocate(mgts%cell_coeffs)
@@ -726,11 +697,6 @@ subroutine mgt_nodal_dealloc()
   do i = 1,mgts%nlevel-1
      call destroy(mgts%fine_mask(i))
   end do
-  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
-     do i = 2,mgts%nlevel
-        call destroy(mgts%one_sided_ss(i))
-     end do
-  endif
   call destroy(mgts%mla)
   mgts%dim = 0
   mgts%final = .false.
@@ -742,7 +708,6 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%uu)
   deallocate(mgts%mgt)
   deallocate(mgts%amr_coeffs)
-  deallocate(mgts%one_sided_ss)
   deallocate(mgts%fine_mask)
 
   call parallel_finalize(.false.) ! do not finalize MPI but free communicator
@@ -772,7 +737,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
-       mgts%one_sided_ss(2:), mgts%rr, &
+       mgts%rr, &
        do_diagnostics, tol, abs_tol)
 
 end subroutine mgt_nodal_solve
