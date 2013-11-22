@@ -181,7 +181,6 @@ subroutine mgt_finalize(dx,bc)
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
   integer   , intent(in) :: bc(2,mgts%dim)
   integer :: i, dm, nlev, n
-  integer :: ns
   integer :: nc
   logical, allocatable :: nodal(:)
 
@@ -222,7 +221,6 @@ subroutine mgt_finalize(dx,bc)
 
   allocate(nodal(1:dm))
   nodal = mgts%nodal
-  ns = 1 + dm*3
 
   do n = nlev, 1, -1
      if ( n == 1 ) then
@@ -243,7 +241,6 @@ subroutine mgt_finalize(dx,bc)
 
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
-          ns                = ns, &
           smoother          = mgts%smoother, &
           nu1               = mgts%nu1, &
           nu2               = mgts%nu2, &
@@ -274,7 +271,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
   integer   , intent(in) :: ns_in
   integer   , intent(in) :: nc_in
   integer :: i, dm, nlev, n
-  integer :: ns, nc
+  integer :: nc
   logical, allocatable :: nodal(:)
 
   integer :: max_nlevel_in
@@ -313,10 +310,6 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
 
   allocate(nodal(1:dm))
   nodal = mgts%nodal
-  ns = 1 + dm*3
-
-  ! There are ns_in components
-  ns = 1 + ns_in*(1 + ns)
 
   do n = nlev, 1, -1
      if ( n == 1 ) then
@@ -336,7 +329,6 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
      end if
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
-          ns                = ns, &
           smoother          = mgts%smoother, &
           nu1               = mgts%nu1, &
           nu2               = mgts%nu2, &

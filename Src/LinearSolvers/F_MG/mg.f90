@@ -4,8 +4,6 @@ module mg_module
   use cc_stencil_module
   use mg_tower_module
   use stencil_defect_module
-  use cc_mg_tower_smoother_module
-  use nodal_mg_tower_smoother_module
 
   implicit none
 
@@ -21,7 +19,6 @@ contains
                             nu1, nu2, nuf, nub, cycle_type, &
                             smoother, &
                             dh, &
-                            ns, &
                             nc, ng, &
                             max_nlevel, max_bottom_nlevel, min_width, &
                             max_iter, abort_on_max_iter, eps, abs_eps, &
@@ -38,7 +35,6 @@ contains
     integer, intent(in) :: domain_bc(:,:)
     integer, intent(in) :: stencil_type_in
 
-    integer, intent(in), optional :: ns
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
     integer, intent(in), optional :: nu1, nu2, nuf, nub, cycle_type
@@ -151,14 +147,16 @@ contains
 
     end if
 
-    if ( present(ns) ) then
-       mgt%ns = ns
+    if ( nodal_flag ) then
+       mgt%ns = 1
     else
-       if ( nodal_flag ) then
-          mgt%ns = 3**mgt%dim
-       else
+       if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
           mgt%ns = 1 + 3*mgt%dim
-       end if
+       else if (mgt%stencil_type .eq. HO_CROSS_STENCIL) then
+          mgt%ns = 1 + 5*mgt%dim
+       else if (mgt%stencil_type .eq. HO_DENSE_STENCIL) then
+          mgt%ns = 1 + 5*mgt%dim
+       endif
     end if
 
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
@@ -178,7 +176,10 @@ contains
        call  multifab_build(mgt%cc(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%ff(i), la1, mgt%nc, ng_for_res, nodal)
        call  multifab_build(mgt%dd(i), la1, mgt%nc, ng_for_res, nodal)
-       call  multifab_build(mgt%ss(i), la1, ns, 0, nodal, stencil = .true.)
+
+       ! This is the stencil of coefficients if doing a cell-centered solve
+       ! This is the cell-centered coefficients if doing a nodal solve
+       call  multifab_build(mgt%ss(i), la1, mgt%ns, ng_for_res, stencil = .true.)
 
        call setval(mgt%cc(i), zero, all = .TRUE.)
        call setval(mgt%ff(i), zero, all = .TRUE.)
@@ -381,7 +382,6 @@ contains
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
-                                   ns = ns, &
                                    nc = mgt%nc, &
                                    ng = mgt%ng, &
                                    smoother = smoother, &
@@ -422,7 +422,7 @@ contains
     if ( nodal_flag .and. (mgt%bottom_solver == 1 .or. &
                            mgt%bottom_solver == 2 .or. &
                            mgt%bottom_solver == 3) ) then
-       call build_nodal_dot_mask(mgt%nodal_mask,mgt%ss(1))
+       call build_nodal_dot_mask(mgt%nodal_mask,mgt%cc(1))
     end if
 
   end subroutine mg_tower_build
@@ -773,7 +773,7 @@ contains
     select case ( mgt%bottom_solver )
     case (0)
        do i = 1, mgt%nuf
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
     case (1)
        if ( nodal_q(rh) ) then
@@ -797,7 +797,7 @@ contains
                                     comm_in = communicator)
        end if
        do i = 1, mgt%nub
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
     case (2)
        if ( nodal_q(rh) ) then
@@ -814,7 +814,7 @@ contains
                               uniform_dh = mgt%uniform_dh)
        end if
        do i = 1, mgt%nub
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
        if ( nodal_q(rh) ) then
@@ -838,7 +838,7 @@ contains
                                       comm_in = communicator)
        end if
        do i = 1, mgt%nub
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
 
     case default
@@ -850,7 +850,7 @@ contains
           call bl_warn("BREAKDOWN in bottom_solver: trying smoother")
        end if
        do i = 1, 20
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
     end if
 
@@ -1576,7 +1576,7 @@ contains
              print *,'  DN: Norm before smooth         ',nrm
        end if
 
-       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
 
        call compute_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
 
@@ -1625,7 +1625,7 @@ contains
           print *,'  DN: Norm before smooth         ',nrm
 
        do i = 1, nu1
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
 
        call compute_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
@@ -1660,7 +1660,7 @@ contains
        end if
 
        do i = 1, nu2
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
 
        if ( do_diag ) then
@@ -1703,7 +1703,7 @@ contains
     end if
 
     do i = 1, nu1
-       call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+       call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
     end do
 
     call compute_defect(ss, mgt%cc(lev), rh, uu, mm, mgt%stencil_type, mgt%lcross, mgt%uniform_dh)
@@ -1732,7 +1732,7 @@ contains
        end if
 
        do i = 1, nu1
-          call mg_tower_smoother(mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), mgt%dd(lev-1), mgt%mm(lev-1))
+          call mg_tower_smoother(i, mgt, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), mgt%dd(lev-1), mgt%mm(lev-1))
        end do
 
        if ( do_diag ) then
@@ -1753,7 +1753,7 @@ contains
        end if
 
        do i = 1, nu2
-          call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
+          call mg_tower_smoother(i, mgt, lev, ss, uu, rh, mm)
        end do
 
        if ( do_diag ) then
@@ -1767,19 +1767,19 @@ contains
 
   end subroutine mini_cycle
 
-  subroutine mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
+  subroutine mg_tower_smoother(i, mgt, lev, ss, uu, ff, mm)
 
-    use cc_mg_tower_smoother_module   , only:    cc_mg_tower_smoother
+    use cc_mg_tower_smoother_module   , only:    cc_mg_tower_smoother 
     use nodal_mg_tower_smoother_module, only: nodal_mg_tower_smoother
 
-    integer        , intent(in   ) :: lev
+    integer        , intent(in   ) :: i, lev
     type( mg_tower), intent(inout) :: mgt
     type( multifab), intent(inout) :: uu
     type( multifab), intent(in   ) :: ff
     type( multifab), intent(in   ) :: ss
     type(imultifab), intent(in   ) :: mm
 
-    if (nodal_q(ff)) then
+    if (nodal_q(ff)) then 
         call nodal_mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
     else
         call cc_mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
