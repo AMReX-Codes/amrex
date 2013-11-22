@@ -39,6 +39,9 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx),
      &                          numcomp,dir,ratio,mult)
 
+#ifdef BL_USE_OMP
+      use omp_lib
+#endif
       implicit none
 
       integer    DIMDEC(reg)
@@ -51,6 +54,10 @@ c ::: -----------------------------------------------------------
       integer    n, i, j, k, ic, jc, kc, ioff, joff, koff
       integer    ratiox, ratioy, ratioz
 
+#ifdef BL_USE_OMP
+      logical nested
+      nested = omp_in_parallel()
+#endif
       ratiox = ratio(1)
       ratioy = ratio(2)
       ratioz = ratio(3)
@@ -69,6 +76,7 @@ c
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(koff,kc,k,joff,jc,j) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -80,6 +88,7 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       else if (dir .eq. 1) then
@@ -94,6 +103,7 @@ c        ::::: flux normal to Y direction
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(koff,kc,k,ioff,ic,i) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -105,6 +115,7 @@ c        ::::: flux normal to Y direction
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       else
@@ -121,6 +132,7 @@ c
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(joff,jc,j,ioff,ic,i) if (.not. nested)
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
@@ -132,6 +144,7 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       end if
@@ -161,6 +174,9 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area),
      &                        numcomp,dir,ratio,mult)
 
+#ifdef BL_USE_OMP
+      use omp_lib
+#endif
       implicit none
 
       integer    DIMDEC(reg)
@@ -175,6 +191,10 @@ c ::: -----------------------------------------------------------
       integer    n, i, j, k, ic, jc, kc, ioff, joff, koff
       integer    ratiox, ratioy, ratioz
 
+#ifdef BL_USE_OMP
+      logical nested
+      nested = omp_in_parallel()
+#endif
       ratiox = ratio(1)
       ratioy = ratio(2)
       ratioz = ratio(3)
@@ -193,6 +213,7 @@ c
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(koff,kc,k,joff,jc,j) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -205,6 +226,7 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       else if (dir .eq. 1) then
@@ -221,6 +243,7 @@ c
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(koff,kc,k,ioff,ic,i) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -233,6 +256,7 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       else
@@ -249,6 +273,7 @@ c
          end if
 
          do n = 1, numcomp
+!$omp parallel do private(joff,jc,j,ioff,ic,i) if (.not. nested)
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
@@ -261,6 +286,7 @@ c
                   end do
                end do
             end do
+!$omp end parallel do
          end do
 
       end if
