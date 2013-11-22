@@ -39,7 +39,7 @@ contains
     integer         :: d, dm, nlevs
 
     ! MG solver defaults
-    integer    :: n, ns
+    integer    :: n
     real(dp_t) ::  xa(mla%dim),  xb(mla%dim)
     real(dp_t) :: pxa(mla%dim), pxb(mla%dim)
 
@@ -50,8 +50,6 @@ contains
     dm = mla%dim
     nlevs = mla%nlevel
 
-    ns = 1 + dm*3
-
     do n = nlevs, 1, -1
 
        pd = layout_get_pd(mla%la(n))
@@ -60,7 +58,6 @@ contains
                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp),&
                            stencil_type_in = CC_CROSS_STENCIL, &
                            dh = dx(n,:), &
-                           ns = ns, &
                            nodal = nodal_flags(res(nlevs)))
 
     end do

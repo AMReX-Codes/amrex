@@ -17,7 +17,6 @@ contains
     use ml_restriction_module , only : ml_restriction
     use ml_prolongation_module, only : ml_interp_bcs
     use cc_ml_resid_module    , only : crse_fine_residual_cc
-    use stencil_defect_module , only : compute_defect
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
