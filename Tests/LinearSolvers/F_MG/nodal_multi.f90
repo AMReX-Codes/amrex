@@ -1,5 +1,5 @@
 subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
-                                do_diagnostics,eps, fabio, stencil_type)
+                                do_diagnostics,eps,test, fabio, stencil_type)
   use BoxLib
   use nodal_stencil_module
   use mg_module
@@ -34,19 +34,18 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
   integer        , intent(in   ) :: domain_bc(:,:)
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
+  integer        , intent(in   ) :: test
   logical        , intent(in   ) :: fabio
   integer        , intent(in   ) :: stencil_type
 
   type(lmultifab), allocatable :: fine_mask(:)
   type( multifab), allocatable :: cell_coeffs(:)
   type( multifab), allocatable :: full_soln(:)
-  type( multifab), allocatable :: one_sided_ss(:)
 
   type(box)    :: pd
   type(layout) :: la
-  integer      :: nlevs, n, i, j, dm, ns
+  integer      :: nlevs, n, i, dm
   real(dp_t)   :: snrm(2)
-  real(dp_t), pointer :: p(:,:,:,:)
 
   logical, allocatable :: nodal(:)
   integer, allocatable :: ref_ratio(:,:)
@@ -72,44 +71,12 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
     ref_ratio(n,:) = mla%mba%rr(n,:)
   end do
 
-  ! NOTE: we need to allocate for both stencils even for the dense stencil
-  !       we don't actually create or use the multifabs
-  allocate(one_sided_ss(2:nlevs))
-
-  if (stencil_type .eq. ND_DENSE_STENCIL) then
-     if (dm .eq. 3) then
-       i = mgt(nlevs)%nlevels
-       if ( (mgt(nlevs)%dh(1,i) .eq. mgt(nlevs)%dh(2,i)) .and. &
-            (mgt(nlevs)%dh(1,i) .eq. mgt(nlevs)%dh(3,i)) ) then 
-         ns = 21
-       else
-         ns = 27
-       end if
-     else if (dm .eq. 2) then
-       ns = 9
-     end if
-     if ( parallel_ioprocessor() ) print *,'SETTING UP DENSE STENCIL WITH NS = ',ns
-  else 
-    ns = 2*dm+1
-    do n = nlevs, 2, -1
-      la = mla%la(n)
-      call multifab_build(one_sided_ss(n), la, ns, 0, nodal, stencil=.true.)
-      !
-      ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
-      !
-      do j = 1, nfabs(one_sided_ss(n))
-         p => dataptr(one_sided_ss(n), j)
-         p = 0.d0
-      end do
-    end do
-  end if
-
   do n = nlevs, 1, -1
 
      pd = mla%mba%pd(n)
      if ( parallel_ioprocessor() ) &
         print *,'PD AT LEVEL ',n,' IS ',extent(pd)
-     
+
      la = mla%la(n)
      call multifab_build(full_soln(n), la, 1, 1, nodal)
      call lmultifab_build(fine_mask(n), la, 1, 0, nodal)
@@ -133,16 +100,10 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
      if (coeffs_type .eq. 1) then
          call setval(cell_coeffs(mgt(n)%nlevels), 1.0_dp_t, 1, all=.true.)
      else
-         call init_cell_coeffs(mla,cell_coeffs(mgt(n)%nlevels),pd,coeffs_type,fabio)
+         call init_cell_coeffs(mla,cell_coeffs(mgt(n)%nlevels),pd,coeffs_type)
      end if
 
-     call stencil_fill_nodal_all_mglevels(mgt(n), cell_coeffs, stencil_type)
-
-     if (stencil_type .eq. ND_CROSS_STENCIL .and. n .gt. 1) then
-        i = mgt(n)%nlevels
-        call stencil_fill_one_sided(one_sided_ss(n), cell_coeffs(i), mgt(n)%dh(:,i), &
-                                    mgt(n)%mm(i), mgt(n)%face_type)
-     end if
+     call stencil_fill_nodal_all_mglevels(mgt(n), cell_coeffs)
 
      call setval(fine_mask(n), val = .TRUE., all = .true.)
 
@@ -158,18 +119,12 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
 
   end do
 
-  if ( fabio ) then
+  if ( fabio ) &
      call fabio_ml_write(rh, ref_ratio(:,1), "rh-init_nodal")
-  end if
-
-  snrm(2) = ml_norm_inf(rh,fine_mask)
-  if ( parallel_IOProcessor() ) then
-     print *, 'RHS MAX NORM ', snrm(2)
-  end if
 
 ! ****************************************************************************
 
-  call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,eps)
+  call ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
 
 ! ****************************************************************************
 
@@ -197,11 +152,6 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
      call multifab_destroy(full_soln(n))
      call lmultifab_destroy(fine_mask(n))
   end do
-  if (stencil_type == ND_CROSS_STENCIL) then
-    do n = 2,nlevs
-      call multifab_destroy(one_sided_ss(n))
-    end do
-  end if
 
 contains
 

@@ -104,7 +104,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
      else 
         pd = mla%mba%pd(n)
         call multifab_build(cell_coeffs,mla%la(n),nc=1,ng=1)
-        call init_cell_coeffs(mla,cell_coeffs,pd,coeffs_type,fabio)
+        call init_cell_coeffs(mla,cell_coeffs,pd,coeffs_type)
         call cell_to_edge_coeffs(cell_coeffs,edge_coeffs(mgt(n)%nlevels,:))
         call multifab_destroy(cell_coeffs)
      end if

@@ -12,7 +12,6 @@ contains
     subroutine nodal_rhs(mla, rh)
 
       type(ml_layout), intent(inout) :: mla
-      type(box      )                :: pd
       type( multifab), intent(inout) :: rh(:)
 
       integer                        :: n, dm, nlevs
@@ -40,7 +39,6 @@ contains
        bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), ONE, bx)
-!      print *,'SETTING RHS TO  1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
 
 !      Single point of non-zero RHS: use this to make system solvable
        bx = get_ibox(mf,i)
@@ -48,15 +46,6 @@ contains
        bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
        bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
        call setval(mf%fbs(i), -ONE, bx)
-!      print *,'SETTING RHS TO -1 IN BOX ',i,' : ', bx%lo(1:bx%dim)
-
-!      1-d strip of non-zero RHS in vertical
-!      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
-!      bx%hi(1) = bx%lo(1)
-
-!      1-d strip of non-zero RHS in horizontal
-!      bx%lo(2) = (bx%hi(2) + bx%lo(2))/2
-!      bx%hi(2) = bx%lo(2)
 
     end do
   end subroutine mf_init
