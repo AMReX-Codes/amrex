@@ -1,7 +1,6 @@
 module init_cell_coeffs_module 
 
     use BoxLib
-    use fabio_module
     use ml_layout_module
     use multifab_module
     use bl_error_module
@@ -10,13 +9,12 @@ module init_cell_coeffs_module
 
 contains
 
-  subroutine init_cell_coeffs(mla, cell_coeffs, pd, coeffs_type, fabio)
+  subroutine init_cell_coeffs(mla, cell_coeffs, pd, coeffs_type)
 
     type(ml_layout), intent(inout) :: mla
     type(multifab ), intent(inout) :: cell_coeffs
     type(box)      , intent(in   ) :: pd
     integer        , intent(in   ) :: coeffs_type
-    logical        , intent(in   ) :: fabio
 
     real(kind=dp_t) :: c_norm
 
@@ -31,10 +29,6 @@ contains
     c_norm = norm_inf(cell_coeffs)
     if ( parallel_ioprocessor() ) &
        print *,'Max norm of coefficient array ',c_norm
-
-    if ( fabio ) then
-      call fabio_write(cell_coeffs, "coeffs","Header")
-    end if
 
   end subroutine init_cell_coeffs
 
