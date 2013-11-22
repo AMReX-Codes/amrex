@@ -133,6 +133,7 @@ contains
     type(boxarray)           :: bxa_periodic, bxa_temp
     integer                  :: i, ib, jb, kb, ib_lo, jb_lo, kb_lo, dm
     integer                  :: shift_vect(get_dim(sg))
+    integer                  :: lo(get_dim(sg)), hi(get_dim(sg))
     type(list_box)           :: lb,nbxs
     type(box), allocatable   :: bxs(:)
     logical                  :: pmask(get_dim(sg))
@@ -254,13 +255,17 @@ contains
        sgp => dataptr(sg,   i)
        mp  => dataptr(mask, i)
 
+       bx = get_box(sg,i)
+       lo = lwb(get_box(sg,i))
+       hi = upb(get_box(sg,i))
+
        select case (dm)
        case (1)
           call s_1d_nodal(ssp(1,:,1,1), sgp(:,1,1,1), mp(:,1,1,1), dh)
        case (2)
-          call s_2d_nodal(ssp(1,:,:,1), sgp(:,:,1,1), mp(:,:,1,1), dh)
+          call s_2d_nodal(ssp(1,:,:,1), sgp(:,:,1,1), mp(:,:,1,1), dh, lo, hi)
        case (3)
-          call s_3d_nodal(ssp(1,:,:,:), sgp(:,:,:,1), mp(:,:,:,1), dh)
+          call s_3d_nodal(ssp(1,:,:,:), sgp(:,:,:,1), mp(:,:,:,1), dh, lo, hi)
        end select
     end do
 

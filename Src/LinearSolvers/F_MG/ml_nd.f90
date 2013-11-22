@@ -685,14 +685,17 @@ contains
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     integer,            intent(in   ) :: mm(:,:)
     integer           , intent(in   ) :: stencil_type
-    integer :: i,j,nx,ny,lo(2)
+    integer :: i,j,nx,ny,lo(2),hi(2)
 
     real (kind = dp_t), allocatable :: sg_int(:,:)
 
     nx = size(sg,dim=1)-2
     ny = size(sg,dim=2)-2
 
-    lo = 1
+    lo(:) = 1
+    hi(1) = nx
+    hi(2) = ny
+
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
     allocate(sg_int(0:nx+1,0:ny+1))
@@ -707,7 +710,7 @@ contains
     end do
 
     ! Set values across Neumann boundaries
-    call set_faces_edges_corners_2d(nx, ny, sg_int, mm)
+    call set_faces_edges_corners_2d(sg_int, mm, lo, hi)
 
     if (stencil_type .eq. ND_DENSE_STENCIL) then
  
@@ -765,14 +768,17 @@ contains
     real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz, ss0
     real (kind = dp_t) :: ff_fac
 
-    integer :: i, j, k, lo(3)
+    integer :: i, j, k, lo(3), hi(3)
     integer :: nx, ny, nz
 
     nx = size(sg,dim=1)-2
     ny = size(sg,dim=2)-2
     nz = size(sg,dim=3)-2
 
-    lo = 1
+    lo(:) = 1
+    hi(1) = nx
+    hi(2) = ny
+    hi(3) = nz
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
     allocate(sg_int(0:nx+1,0:ny+1,0:nz+1))
@@ -783,7 +789,7 @@ contains
     sg_int(1:nx,1:ny,1:nz) = sg(1:nx,1:ny,1:nz)
 
     ! Set values across Neumann boundaries
-    call set_faces_edges_corners_3d(nx, ny, nz, sg_int, mm)
+    call set_faces_edges_corners_3d(sg_int, mm, lo, hi)
 
     fx     = 1.d0/36.d0
     fy     = fx

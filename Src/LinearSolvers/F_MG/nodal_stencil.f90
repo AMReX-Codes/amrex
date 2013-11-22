@@ -119,19 +119,17 @@ contains
 
   end subroutine s_1d_nodal
 
-  subroutine s_2d_nodal(ss, sg, mm, dh)
-    real (kind = dp_t), intent(inout) :: ss(0:,0:)
-    real (kind = dp_t), intent(inout) :: sg(0:,0:)
-    integer           , intent(in   ) :: mm(:,:)
+  subroutine s_2d_nodal(ss, sg, mm, dh, lo, hi)
+
+    integer           , intent(in   ) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: ss(lo(1)-1:,lo(2)-1:)
+    real (kind = dp_t), intent(inout) :: sg(lo(1)-1:,lo(2)-1:)
+    integer           , intent(in   ) :: mm(lo(1)  :,lo(2)  :)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: nx, ny
     real (kind = dp_t) :: fac
 
-    nx = size(sg,dim=1) - 2
-    ny = size(sg,dim=2) - 2
-
-    call set_faces_edges_corners_2d(nx, ny, sg, mm)
+    call set_faces_edges_corners_2d(sg, mm, lo, hi)
 
     ! This is not the full scaling for either stencil
     !   -- the cross stencil will need a factor of (1/2)
@@ -142,20 +140,17 @@ contains
 
   end subroutine s_2d_nodal
 
-  subroutine s_3d_nodal(ss, sg, mm, dh)
+  subroutine s_3d_nodal(ss, sg, mm, dh, lo, hi)
+
+    integer           , intent(in   ) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: ss(0:,0:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: nx, ny, nz
     real (kind = dp_t) :: fac
 
-    nx = size(sg,dim=1) - 2
-    ny = size(sg,dim=2) - 2
-    nz = size(sg,dim=3) - 2
-
-    call set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
+    call set_faces_edges_corners_3d(sg, mm, lo, hi)
 
     ! This is the right scaling for the cross stencil
     ! We end up needing to multiply by four later when we
@@ -166,147 +161,150 @@ contains
 
   end subroutine s_3d_nodal
 
-  subroutine set_faces_edges_corners_2d(nx, ny, sg, mm)
-    integer           , intent(in   ) :: nx, ny
-    real (kind = dp_t), intent(inout) :: sg(0:,0:)
-    integer           , intent(in   ) :: mm(:,:)
+  subroutine set_faces_edges_corners_2d(sg, mm, lo, hi)
+ 
+    integer           , intent(in   ) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: sg(lo(1)-1:,lo(2)-1:)
+    integer           , intent(in   ) :: mm(lo(1)  :,lo(2)  :)
 
     integer :: i, j
     !
     ! Set sg on edges at a Neumann boundary.
     !
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1),2,-1)) sg(i, 0) = sg(i,1)
-       if (bc_neumann(mm(i,ny),2,+1)) sg(i,ny) = sg(i,ny-1)
+    do i = lo(1),hi(1)
+       if (bc_neumann(mm(i,lo(2)  ),2,-1)) sg(i,lo(2)-1) = sg(i,lo(2))
+       if (bc_neumann(mm(i,hi(2)+1),2,+1)) sg(i,hi(2)+1) = sg(i,hi(2))
     end do
 
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j),1,-1)) sg( 0,j) = sg(   1,j)
-       if (bc_neumann(mm(nx,j),1,+1)) sg(nx,j) = sg(nx-1,j)
+    do j = lo(2),hi(2)
+       if (bc_neumann(mm(lo(1)  ,j),1,-1)) sg(lo(1)-1,j) = sg(lo(1),j)
+       if (bc_neumann(mm(hi(1)+1,j),1,+1)) sg(hi(1)+1,j) = sg(hi(1),j)
     end do
 
     !
     ! Note: we do the corners *after* each of the edges has been done.
     !
-    if (bc_neumann(mm( 1, 1),1,-1)) sg( 0, 0) = sg(1, 0)
-    if (bc_neumann(mm( 1,ny),1,-1)) sg( 0,ny) = sg(1,ny)
+    if (bc_neumann(mm(lo(1)  ,lo(2)  ),1,-1)) sg(lo(1)-1,lo(2)-1) = sg(lo(1),lo(2)-1)
+    if (bc_neumann(mm(lo(1)  ,hi(2)+1),1,-1)) sg(lo(1)-1,hi(2)+1) = sg(lo(1),hi(2)+1)
 
-    if (bc_neumann(mm(nx, 1),1,+1)) sg(nx, 0) = sg(nx-1, 0)
-    if (bc_neumann(mm(nx,ny),1,+1)) sg(nx,ny) = sg(nx-1,ny)
+    if (bc_neumann(mm(hi(1)+1,lo(2)  ),1,+1)) sg(hi(1)+1,lo(2)-1) = sg(hi(1),lo(2)-1)
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1),1,+1)) sg(hi(1)+1,hi(2)+1) = sg(hi(1),hi(2)+1)
 
-    if (bc_neumann(mm( 1, 1),2,-1)) sg( 0, 0) = sg( 0,1)
-    if (bc_neumann(mm(nx, 1),2,-1)) sg(nx, 0) = sg(nx,1)
+    if (bc_neumann(mm(lo(1)  ,lo(2)  ),2,-1)) sg(lo(1)-1,lo(2)-1) = sg(lo(1)-1,lo(2))
+    if (bc_neumann(mm(hi(1)+1,lo(2)  ),2,-1)) sg(hi(1)+1,lo(2)-1) = sg(hi(1)+1,lo(2))
 
-    if (bc_neumann(mm( 1,ny),2,+1)) sg( 0,ny) = sg( 0,ny-1)
-    if (bc_neumann(mm(nx,ny),2,+1)) sg(nx,ny) = sg(nx,ny-1)
+    if (bc_neumann(mm(lo(1)  ,hi(2)+1),2,+1)) sg(lo(1)-1,hi(2)+1) = sg(lo(1)-1,hi(2))
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1),2,+1)) sg(hi(1)+1,hi(2)+1) = sg(hi(1)+1,hi(2))
 
   end subroutine set_faces_edges_corners_2d
 
-  subroutine set_faces_edges_corners_3d(nx, ny, nz, sg, mm)
-    integer           , intent(in   ) :: nx, ny, nz
-    real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
-    integer           , intent(in   ) :: mm(:,:,:)
+  subroutine set_faces_edges_corners_3d(sg, mm, lo, hi)
+
+    integer           , intent(in   ) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: sg(lo(1)-1:,lo(2)-1:,lo(3)-1:)
+    integer           , intent(in   ) :: mm(lo(1)  :,lo(2)  :,lo(3)  :)
 
     integer :: i, j, k
     !
     ! Set sg on faces at a Neumann boundary.
     !
-    do j = 1,ny-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
-          if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
-       end do
+    do j = lo(2),hi(2)
+    do i = lo(1),hi(1)
+       if (bc_neumann(mm(i,j,lo(3)  ),3,-1)) sg(i,j,lo(3)-1) = sg(i,j,lo(3))
+       if (bc_neumann(mm(i,j,hi(3)+1),3,+1)) sg(i,j,hi(3)+1) = sg(i,j,hi(3))
+    end do
     end do
 
-    do k = 1,nz-1
-       do i = 1,nx-1
-          if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
-          if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
-       end do
+    do k = lo(3),hi(3)
+    do i = lo(1),hi(1)
+       if (bc_neumann(mm(i,lo(2)  ,k),2,-1)) sg(i,lo(2)-1,k) = sg(i,lo(2),k)
+       if (bc_neumann(mm(i,hi(2)+1,k),2,+1)) sg(i,hi(2)+1,k) = sg(i,hi(2),k)
+    end do
     end do
 
-    do k = 1,nz-1
-       do j = 1,ny-1
-          if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
-          if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
-       end do
+    do k = lo(3),hi(3)
+    do j = lo(2),hi(2)
+       if (bc_neumann(mm(lo(1)  ,j,k),1,-1)) sg(lo(1)-1,j,k) = sg(lo(1),j,k)
+       if (bc_neumann(mm(hi(1)+1,j,k),1,+1)) sg(hi(1)+1,j,k) = sg(hi(1),j,k)
     end do
+    end do
+
     !
     ! Set sg on edges at a Neumann boundary.
     !
-    do i = 1,nx-1
-       if (bc_neumann(mm(i, 1, 1),2,-1)) sg(i, 0, 0) = sg(i,1, 0) 
-       if (bc_neumann(mm(i, 1,nz),2,-1)) sg(i, 0,nz) = sg(i,1,nz) 
+    do i = lo(1),hi(1)
+       if (bc_neumann(mm(lo(1),lo(2)  ,lo(3)  ),2,-1)) sg(i,lo(2)-1,lo(3)-1) = sg(i,lo(2),lo(3)-1) 
+       if (bc_neumann(mm(lo(1),lo(2)  ,hi(3)+1),2,-1)) sg(i,lo(2)-1,hi(3)+1) = sg(i,lo(2),hi(3)+1) 
 
-       if (bc_neumann(mm(i,ny, 1),2,+1)) sg(i,ny, 0) = sg(i,ny-1, 0)
-       if (bc_neumann(mm(i,ny,nz),2,+1)) sg(i,ny,nz) = sg(i,ny-1,nz)
+       if (bc_neumann(mm(lo(1),hi(2)+1,lo(3)  ),2,+1)) sg(i,hi(2)+1,lo(3)-1) = sg(i,hi(2),lo(3)-1)
+       if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),2,+1)) sg(i,hi(2)+1,hi(3)+1) = sg(i,hi(2),hi(3)+1)
 
-       if (bc_neumann(mm(i, 1, 1),3,-1)) sg(i, 0, 0) = sg(i, 0,1)
-       if (bc_neumann(mm(i,ny, 1),3,-1)) sg(i,ny, 0) = sg(i,ny,1)
+       if (bc_neumann(mm(lo(1),lo(2)  ,lo(3)  ),3,-1)) sg(i,lo(2)-1,lo(3)-1) = sg(i,lo(2)-1,lo(3))
+       if (bc_neumann(mm(lo(1),hi(2)+1,lo(3)  ),3,-1)) sg(i,hi(2)+1,lo(3)-1) = sg(i,hi(2)+1,lo(3))
 
-       if (bc_neumann(mm(i, 1,nz),3,+1)) sg(i, 0,nz) = sg(i, 0,nz-1)
-       if (bc_neumann(mm(i,ny,nz),3,+1)) sg(i,ny,nz) = sg(i,ny,nz-1)
+       if (bc_neumann(mm(lo(1),lo(2)  ,hi(3)+1),3,+1)) sg(i,lo(2)-1,hi(3)+1) = sg(i,lo(2)-1,hi(3))
+       if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),3,+1)) sg(i,hi(2)+1,hi(3)+1) = sg(i,hi(2)+1,hi(3))
     end do
 
-    do j = 1,ny-1
-       if (bc_neumann(mm( 1,j, 1),1,-1)) sg( 0,j, 0) = sg(1,j, 0)
-       if (bc_neumann(mm( 1,j,nz),1,-1)) sg( 0,j,nz) = sg(1,j,nz)
+    do j = lo(2),hi(2)
+       if (bc_neumann(mm(lo(1)  ,j,lo(3)  ),1,-1)) sg(lo(1)-1,j,lo(3)-1) = sg(lo(1),j,lo(3)-1)
+       if (bc_neumann(mm(lo(1)  ,j,hi(3)+1),1,-1)) sg(lo(1)-1,j,hi(3)+1) = sg(lo(1),j,hi(3)+1)
 
-       if (bc_neumann(mm(nx,j, 1),1,+1)) sg(nx,j, 0) = sg(nx-1,j, 0)
-       if (bc_neumann(mm(nx,j,nz),1,+1)) sg(nx,j,nz) = sg(nx-1,j,nz)
+       if (bc_neumann(mm(hi(1)+1,j,lo(3)  ),1,+1)) sg(hi(1)+1,j,lo(3)-1) = sg(hi(1),j,lo(3)-1)
+       if (bc_neumann(mm(hi(1)+1,j,hi(3)+1),1,+1)) sg(hi(1)+1,j,hi(3)+1) = sg(hi(1),j,hi(3)+1)
 
-       if (bc_neumann(mm( 1,j, 1),3,-1)) sg( 0,j, 0) = sg( 0,j,1)
-       if (bc_neumann(mm(nx,j, 1),3,-1)) sg(nx,j, 0) = sg(nx,j,1)
+       if (bc_neumann(mm(lo(1)  ,j,lo(3)  ),3,-1)) sg(lo(1)-1,j,lo(3)-1) = sg(lo(1)-1,j,lo(3))  
+       if (bc_neumann(mm(hi(1)+1,j,lo(3)  ),3,-1)) sg(hi(1)+1,j,lo(3)-1) = sg(hi(1)+1,j,lo(3))
 
-       if (bc_neumann(mm( 1,j,nz),3,+1)) sg( 0,j,nz) = sg( 0,j,nz-1)
-       if (bc_neumann(mm(nx,j,nz),3,+1)) sg(nx,j,nz) = sg(nx,j,nz-1)
+       if (bc_neumann(mm(lo(1)  ,j,hi(3)+1),3,+1)) sg(lo(1)-1,j,hi(3)+1) = sg(lo(1)-1,j,hi(3))
+       if (bc_neumann(mm(hi(1)+1,j,hi(3)+1),3,+1)) sg(hi(1)+1,j,hi(3)+1) = sg(hi(1)+1,j,hi(3))
     end do
 
-    do k = 1,nz-1
-       if (bc_neumann(mm( 1, 1,k),1,-1)) sg( 0, 0,k) = sg(1, 0,k)
-       if (bc_neumann(mm( 1,ny,k),1,-1)) sg( 0,ny,k) = sg(1,ny,k)
+    do k = lo(3),hi(3)
+       if (bc_neumann(mm(lo(1)  ,lo(2)  ,k),1,-1)) sg(lo(1)-1,lo(2)-1,k) = sg(lo(1),lo(2)-1,k)
+       if (bc_neumann(mm(lo(1)  ,hi(2)+1,k),1,-1)) sg(lo(1)-1,hi(2)+1,k) = sg(lo(1),hi(2)+1,k)
 
-       if (bc_neumann(mm(nx, 1,k),1,+1)) sg(nx, 0,k) = sg(nx-1, 0,k)
-       if (bc_neumann(mm(nx,ny,k),1,+1)) sg(nx,ny,k) = sg(nx-1,ny,k)
+       if (bc_neumann(mm(hi(1)+1,lo(2)  ,k),1,+1)) sg(hi(1)+1,lo(2)-1,k) = sg(hi(1),lo(2)-1,k)
+       if (bc_neumann(mm(hi(1)+1,hi(2)+1,k),1,+1)) sg(hi(1)+1,hi(2)+1,k) = sg(hi(1),hi(2)+1,k)
 
-       if (bc_neumann(mm( 1, 1,k),2,-1)) sg( 0, 0,k) = sg( 0,1,k)
-       if (bc_neumann(mm(nx, 1,k),2,-1)) sg(nx, 0,k) = sg(nx,1,k)
+       if (bc_neumann(mm(lo(1)  ,lo(2)  ,k),2,-1)) sg(lo(1)-1,lo(2)-1,k) = sg(lo(1)-1,lo(2),k)
+       if (bc_neumann(mm(hi(1)+1,lo(2)  ,k),2,-1)) sg(hi(1)+1,lo(2)-1,k) = sg(hi(1)+1,lo(2),k)
 
-       if (bc_neumann(mm( 1,ny,k),2,+1)) sg( 0,ny,k) = sg( 0,ny-1,k)
-       if (bc_neumann(mm(nx,ny,k),2,+1)) sg(nx,ny,k) = sg(nx,ny-1,k)
+       if (bc_neumann(mm(lo(1)  ,hi(2)+1,k),2,+1)) sg(lo(1)-1,hi(2)+1,k) = sg(lo(1)-1,hi(2),k)
+       if (bc_neumann(mm(hi(1)+1,hi(2)+1,k),2,+1)) sg(hi(1)+1,hi(2)+1,k) = sg(hi(1)+1,hi(2),k)
     end do
 
-    if (bc_neumann(mm( 1, 1, 1),1,-1)) sg( 0, 0, 0) = sg( 1, 0, 0) 
-    if (bc_neumann(mm( 1, 1, 1),2,-1)) sg( 0, 0, 0) = sg( 0, 1, 0) 
-    if (bc_neumann(mm( 1, 1, 1),3,-1)) sg( 0, 0, 0) = sg( 0, 0, 1) 
+    if (bc_neumann(mm(lo(1),lo(2),lo(3)),1,-1)) sg(lo(1)-1,lo(2)-1,lo(3)-1) = sg(lo(1)  ,lo(2)-1,lo(3)-1) 
+    if (bc_neumann(mm(lo(1),lo(2),lo(3)),2,-1)) sg(lo(1)-1,lo(2)-1,lo(3)-1) = sg(lo(1)-1,lo(2)  ,lo(3)-1) 
+    if (bc_neumann(mm(lo(1),lo(2),lo(3)),3,-1)) sg(lo(1)-1,lo(2)-1,lo(3)-1) = sg(lo(1)-1,lo(2)-1,lo(3)  ) 
 
-    if (bc_neumann(mm(nx, 1, 1),1,+1)) sg(nx, 0, 0) = sg(nx-1, 0, 0) 
-    if (bc_neumann(mm(nx, 1, 1),2,-1)) sg(nx, 0, 0) = sg(nx  , 1, 0) 
-    if (bc_neumann(mm(nx, 1, 1),3,-1)) sg(nx, 0, 0) = sg(nx  , 0, 1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),lo(3)),1,+1)) sg(hi(1)+1,lo(2)-1,lo(3)-1) = sg(hi(1)  ,lo(2)-1,lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),lo(3)),2,-1)) sg(hi(1)+1,lo(2)-1,lo(3)-1) = sg(hi(1)+1,lo(2)  ,lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),lo(3)),3,-1)) sg(hi(1)+1,lo(2)-1,lo(3)-1) = sg(hi(1)+1,lo(2)-1,lo(3))   
 
-    if (bc_neumann(mm( 1,ny, 1),1,-1)) sg( 0,ny, 0) = sg( 1,ny  , 0) 
-    if (bc_neumann(mm( 1,ny, 1),2,+1)) sg( 0,ny, 0) = sg( 0,ny-1, 0) 
-    if (bc_neumann(mm( 1,ny, 1),3,-1)) sg( 0,ny, 0) = sg( 0,ny  , 1) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,lo(3)),1,-1)) sg(lo(1)-1,hi(2)+1,lo(3)-1) = sg(lo(1)  ,hi(2)+1, lo(3)-1  ) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,lo(3)),2,+1)) sg(lo(1)-1,hi(2)+1,lo(3)-1) = sg(lo(1)-1,hi(2)  , lo(3)-lo(3)) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,lo(3)),3,-1)) sg(lo(1)-1,hi(2)+1,lo(3)-1) = sg(lo(1)-1,hi(2)+1, lo(3)  )   
 
-    if (bc_neumann(mm( 1, 1,nz),1,-1)) sg( 0, 0,nz) = sg( 1, 0,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),2,-1)) sg( 0, 0,nz) = sg( 0, 1,nz  ) 
-    if (bc_neumann(mm( 1, 1,nz),3,+1)) sg( 0, 0,nz) = sg( 0, 0,nz-1) 
+    if (bc_neumann(mm(lo(1),lo(2),hi(3)+1),1,-1)) sg(lo(1)-1,lo(2)-1,hi(3)+1) = sg(lo(1)  ,lo(2)-1,hi(3)+1) 
+    if (bc_neumann(mm(lo(1),lo(2),hi(3)+1),2,-1)) sg(lo(1)-1,lo(2)-1,hi(3)+1) = sg(lo(1)-1,lo(2)  ,hi(3)+1) 
+    if (bc_neumann(mm(lo(1),lo(2),hi(3)+1),3,+1)) sg(lo(1)-1,lo(2)-1,hi(3)+1) = sg(lo(1)-1,lo(2)-1,hi(3)  ) 
 
-    if (bc_neumann(mm(nx,ny, 1),1,+1)) sg(nx,ny, 0) = sg(nx-1,ny  , 0) 
-    if (bc_neumann(mm(nx,ny, 1),2,+1)) sg(nx,ny, 0) = sg(nx  ,ny-1, 0) 
-    if (bc_neumann(mm(nx,ny, 1),3,-1)) sg(nx,ny, 0) = sg(nx  ,ny  , 1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),1,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)  ,hi(2)+1, lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),2,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)  , lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),3,-1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)+1, lo(3)  ) 
 
-    if (bc_neumann(mm(nx, 1,nz),1,+1)) sg(nx, 0,nz) = sg(nx-1, 0,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),2,-1)) sg(nx, 0,nz) = sg(nx  , 1,nz  ) 
-    if (bc_neumann(mm(nx, 1,nz),3,+1)) sg(nx, 0,nz) = sg(nx  , 0,nz-1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),hi(3)+1),1,+1)) sg(hi(1)+1,lo(2)-1,hi(3)+1) = sg(hi(1)  ,lo(2)-1,hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),hi(3)+1),2,-1)) sg(hi(1)+1,lo(2)-1,hi(3)+1) = sg(hi(1)+1,lo(2)  ,hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,lo(2),hi(3)+1),3,+1)) sg(hi(1)+1,lo(2)-1,hi(3)+1) = sg(hi(1)+1,lo(2)-1,hi(3)  ) 
 
-    if (bc_neumann(mm( 1,ny,nz),1,-1)) sg( 0,ny,nz) = sg( 1,ny  ,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),2,+1)) sg( 0,ny,nz) = sg( 0,ny-1,nz  ) 
-    if (bc_neumann(mm( 1,ny,nz),3,+1)) sg( 0,ny,nz) = sg( 0,ny  ,nz-1) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),1,-1)) sg(lo(1)-1,hi(2)+1,hi(3)+1) = sg(lo(1)  ,hi(2)+1,hi(3)+1) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),2,+1)) sg(lo(1)-1,hi(2)+1,hi(3)+1) = sg(lo(1)-1,hi(2)  ,hi(3)+1) 
+    if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),3,+1)) sg(lo(1)-1,hi(2)+1,hi(3)+1) = sg(lo(1)-1,hi(2)+1,hi(3)  ) 
 
-    if (bc_neumann(mm(nx,ny,nz),1,+1)) sg(nx,ny,nz) = sg(nx-1,ny  ,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
-    if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),1,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1),hi(2)+1,hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),2,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)+1,hi(2),hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),3,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)+1,hi(2)+1,hi(3)) 
 
   end subroutine set_faces_edges_corners_3d
 
