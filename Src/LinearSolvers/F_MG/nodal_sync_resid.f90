@@ -575,7 +575,6 @@ subroutine mgt_compute_sync_resid_crse()
   use nodal_cpp_mg_module
   use nodal_sync_resid_module
   use nodal_stencil_fill_module, only : stencil_fill_nodal
-  use itsol_module, only : itsol_stencil_apply
   implicit none
 
   integer :: dm, mglev
@@ -590,7 +589,7 @@ subroutine mgt_compute_sync_resid_crse()
   call build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
-       mgts%mgt(1)%face_type)
+                     mgts%mgt(1)%face_type)
 
   if (associated(mgts%rhcc)) then  ! only single level solve could get here
      call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
@@ -598,13 +597,13 @@ subroutine mgt_compute_sync_resid_crse()
 
   call multifab_mult_mult(mgts%amr_coeffs(1), mgts%sync_msk(1))
 
-  call stencil_fill_nodal(mgts%mgt(1)%ss(mglev), mgts%amr_coeffs(1), &
-       mgts%mgt(1)%dh(:,mglev), mgts%mgt(1)%mm(mglev), &
-       mgts%mgt(1)%face_type, mgts%stencil_type)
+  call stencil_fill_nodal(mgts%amr_coeffs(1), mgts%mgt(1)%ss(mglev), & 
+                          mgts%mgt(1)%dh(:,mglev), mgts%mgt(1)%mm(mglev), &
+                          mgts%mgt(1)%face_type)
 
-  call itsol_stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
-                           mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
-                           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
+  call stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
+                     mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
+                     mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
 
   sign_res = -ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
@@ -617,7 +616,6 @@ subroutine mgt_compute_sync_resid_fine()
   use nodal_cpp_mg_module
   use nodal_sync_resid_module
   use ml_nd_module
-  use nodal_stencil_fill_module, only : stencil_fill_nodal
   implicit none
 
   integer :: dm, mglev
@@ -643,9 +641,8 @@ subroutine mgt_compute_sync_resid_fine()
   end if
 
   call grid_res(mgts%mgt(1)%ss(mglev), &
-       mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-       mgts%mgt(1)%face_type, &
-       mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
+                mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
+                mgts%mgt(1)%lcross, mgts%stencil_type, mgts%mgt(1)%uniform_dh)
 
   sign_res = ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
