@@ -225,8 +225,8 @@ contains
       real(kind=dp_t) :: ss0
       real(kind=dp_t), parameter :: TWOTHIRDS = 2.d0 / 3.d0
       !
-      ! NOTE NOTE : we only diagonlize the RHS here --
-      !             we will diagnolize the matrix in the apply routine itself
+      ! NOTE NOTE : we only diagonalize the RHS here --
+      !             we will diagnoalize the matrix in the apply routine itself
       !
 
       if (stencil_type .eq. ND_CROSS_STENCIL) then
@@ -269,7 +269,7 @@ contains
       real(kind=dp_t) :: ss0
       real(kind=dp_t), parameter :: FOURTHIRDS = 4.d0 / 3.d0
       !
-      ! NOTE NOTE : we only diagonlize the RHS here --
+      ! NOTE NOTE : we only diagonalize the RHS here --
       !             we will diagnolize the matrix in the apply routine itself
       !
 
@@ -443,8 +443,13 @@ contains
     !
     ! Compute rr = aa_local * uu - rh_local
     !
-    call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
-                        uniform_dh, bottom_solver=.true.) 
+    if ( cell_centered_q(rr) ) then
+        call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.) 
+    else
+        call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.,diagonalize=.true.) 
+    end if
     cnt = cnt + 1
 
     call copy(rt, rr)
@@ -453,7 +458,7 @@ contains
     !
     ! Elide some reductions by calculating local norms & then reducing all together.
     !
-    tnorms(1) = norm_inf(rr,       local = .true.)
+    tnorms(1) = norm_inf(rr,       local = .true.) 
     tnorms(2) = norm_inf(rh_local, local = .true.)
 
     call parallel_reduce(rtnorms, tnorms, MPI_MAX, comm = comm)
@@ -791,8 +796,13 @@ contains
     !
     ! Compute rr = aa_local * uu - rh_local
     !
-    call compute_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, &
-                        uniform_dh, bottom_solver=.true.)
+    if ( cell_centered_q(rt) ) then
+        call compute_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.)
+    else
+        call compute_defect(aa_local, rt, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.,diagonalize=.true.)
+    end if
 
     call copy(rr,rt); call copy(pp,rt)
     !
@@ -1243,8 +1253,13 @@ contains
     !
     ! Compute rr = aa_local * uu - rh_local
     !
-    call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
-                        uniform_dh, bottom_solver=.true.)
+    if ( cell_centered_q(rr) ) then
+        call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.)
+    else 
+        call compute_defect(aa_local, rr, rh_local, uu, mm, stencil_type, lcross, &
+                            uniform_dh, bottom_solver=.true.,diagonalize=.true.)
+    end if
     cnt = cnt + 1
 
     if ( singular .and. nodal_solve ) then
