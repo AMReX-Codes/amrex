@@ -499,8 +499,14 @@ contains
           call saxpy(pp, rr, beta, pp)
        end if
        call copy(ph,pp)
-       call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
-                          diagonalize=.true.)
+      
+       if ( cell_centered_q(ph) ) then
+           call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       else
+           call stencil_apply(aa_local, vv, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                              diagonalize=.true.)
+       end if
+
        cnt = cnt + 1
        den = dot(rt, vv, nodal_mask, comm = comm)
        if ( den == ZERO ) then
@@ -520,8 +526,12 @@ contains
        end if
        if ( itsol_converged(ss, bnorm, eps, rrnorm = rnorm, comm = comm) ) exit
        call copy(ph,ss)
-       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
-                          diagonalize=.true.)
+       if ( cell_centered_q(ph) ) then
+           call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       else
+           call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                              diagonalize=.true.)
+       end if
        cnt = cnt + 1
        !
        ! Elide a reduction here by calculating the two dot-products
@@ -839,8 +849,12 @@ contains
           !
           ! apply the stencil to pp & rr at the same time to cut down on comm time.
           !
-          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
-                             diagonalize=.true.)
+          if ( cell_centered_q(ph) ) then
+              call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+          else
+              call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                                 diagonalize=.true.)
+          end if
 
           !if (contains_nan(ph)) then; print*, '*** Got NaNs @ 3'; stop; endif
 
@@ -853,8 +867,12 @@ contains
        !
        ! And the final power of pp[].
        !
-       call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
-                          diagonalize=.true.)
+       if ( cell_centered_q(ph) ) then
+          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       else
+          call stencil_apply(aa_local, tt, ph, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                             diagonalize=.true.)
+       end if
 
        call copy(PR,2*SSS+1,tt,1,1,0)
 
@@ -1278,8 +1296,12 @@ contains
           beta = rho/rho_1
           call saxpy(pp, zz, beta, pp)
        end if
-       call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
-                          diagonalize=.true.)
+       if ( cell_centered_q(pp) ) then
+           call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
+       else
+           call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true., &
+                              diagonalize=.true.)
+       end if
        cnt = cnt + 1
        den = dot(pp, qq, nodal_mask)
        if ( den == ZERO ) then
