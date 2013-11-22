@@ -26,14 +26,17 @@ module nodal_stencil_apply_module
 
 contains
 
-  subroutine stencil_apply_1d_nodal(ss, dd, uu, mm, ng)
+  subroutine stencil_apply_1d_nodal(sg, dd, uu, mm, ng, diagonalize)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in   ) :: ss(0:,:)
-    real (kind = dp_t), intent(inout) :: dd(0:)
+    real (kind = dp_t), intent(in   ) :: sg(   0:)
+    real (kind = dp_t), intent(inout) :: dd(   0:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:)
-    integer           , intent(in   ) :: mm(:)
+    integer           , intent(in   ) :: mm(    :)
+    logical           , intent(in   ) :: diagonalize
 
-    integer :: i,lo(1)
+    integer :: i,lo(1),nx
+
+    nx = size(sg,dim=1) - 2
  
     dd = ZERO
 
@@ -42,36 +45,41 @@ contains
    
     i = 1
     if (.not. bc_dirichlet(mm(i),1,0)) then
-      dd(i) = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
+      dd(i) = sg(i) * (uu(i+1) - uu(i)) + sg(i-1) * (uu(i-1) - uu(i))
+      if (diagonalize) dd(i) = -dd(i) / (sg(i)+sg(i-1))
     end if
 
-    do i = 2,size(ss,dim=2)-1
-      dd(i) = ss(0,i)*uu(i) + ss(1,i) * uu(i+1) + ss(2,i) * uu(i-1)
+    do i = 2,nx-1
+      dd(i) = sg(i) * (uu(i+1) - uu(i)) + sg(i-1) * (uu(i-1) - uu(i))
+      if (diagonalize) dd(i) = -dd(i) / (sg(i)+sg(i-1))
     end do
 
-    i = size(ss,dim=2)
+    i = nx
     if (.not. bc_dirichlet(mm(i),1,0)) then
-      dd(i) = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
+      dd(i) = sg(i) * (uu(i+1) - uu(i)) + sg(i-1) * (uu(i-1) - uu(i))
+      if (diagonalize) dd(i) = -dd(i) / (sg(i)+sg(i-1))
     end if
 
   end subroutine stencil_apply_1d_nodal
 
-  subroutine stencil_apply_2d_nodal(ss, dd, uu, mm, ng, stencil_type)
+  subroutine stencil_apply_2d_nodal(sg, dd, uu, mm, ng, stencil_type, diagonalize)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(inout) :: dd(0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(0:,:,:)
-    integer           , intent(in   ) :: mm(:,:)
-    integer           , intent(in   ) :: stencil_type
+    real (kind = dp_t), intent(inout) :: dd(   0:,   0:)
+    real (kind = dp_t), intent(in   ) :: sg(   0:,   0:)
+    integer           , intent(in   ) :: mm(    :,    :)
+    integer           , intent(in   ) :: stencil_type 
+    logical           , intent(in   ) :: diagonalize
 
     integer :: i,j,lo(2),nx,ny
     logical :: zeroit,iface,jface
+    real (kind = dp_t) :: ss0
 
     lo = 1
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
  
-    nx = size(ss,dim=2)
-    ny = size(ss,dim=3)
+    nx = size(sg,dim=1) - 1
+    ny = size(sg,dim=2) - 1
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
@@ -89,10 +97,15 @@ contains
              if (zeroit) then
                 dd(i,j) = ZERO
              else
-                dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i+1,j  ) &
-                     + ss(2,i,j) * uu(i-1,j  ) &
-                     + ss(3,i,j) * uu(i  ,j+1) &
-                     + ss(4,i,j) * uu(i  ,j-1) 
+                ss0 = -(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                dd(i,j) = ss0 * uu(i,j) + &
+                   HALF * ( (sg(i  ,j-1)+sg(i  ,j  )) * uu(i+1,j) + &
+                            (sg(i-1,j-1)+sg(i-1,j  )) * uu(i-1,j) + &
+                            (sg(i-1,j  )+sg(i  ,j  )) * uu(i,j+1) + &
+                            (sg(i-1,j-1)+sg(i  ,j-1)) * uu(i,j-1) ) 
+                if (diagonalize) then
+                    dd(i,j) = dd(i,j) / ss0
+                end if
              end if
           end do
        end do
@@ -113,14 +126,19 @@ contains
              if (zeroit) then
                 dd(i,j) = ZERO
              else
-                dd(i,j) = ss(0,i,j)*uu(i,j) + ss(1,i,j) * uu(i-1,j-1) &
-                     + ss(2,i,j) * uu(i  ,j-1) &
-                     + ss(3,i,j) * uu(i+1,j-1) &
-                     + ss(4,i,j) * uu(i-1,j  ) &
-                     + ss(5,i,j) * uu(i+1,j  ) &
-                     + ss(6,i,j) * uu(i-1,j+1) &
-                     + ss(7,i,j) * uu(i  ,j+1) &
-                     + ss(8,i,j) * uu(i+1,j+1)
+                ss0 = -TWO * THIRD * (sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j))
+                dd(i,j) = ss0 * uu(i,j) + THIRD * ( &
+                            sg(i-1,j-1) * uu(i-1,j-1) + &
+                            sg(i  ,j-1) * uu(i+1,j-1) + &
+                            sg(i-1,j  ) * uu(i-1,j+1) + &
+                            sg(i  ,j  ) * uu(i+1,j+1) + &
+                  HALF * ( (sg(i-1,j-1) + sg(i  ,j-1)) * uu(i,j-1) + &
+                           (sg(i-1,j-1) + sg(i-1,j  )) * uu(i-1,j) + &
+                           (sg(i  ,j-1) + sg(i  ,j  )) * uu(i+1,j) + &
+                           (sg(i-1,j  ) + sg(i  ,j  )) * uu(i,j+1) ) )
+                if (diagonalize) then
+                    dd(i,j) = dd(i,j) / ss0
+                end if
              end if
           end do
        end do
@@ -131,25 +149,26 @@ contains
 
   end subroutine stencil_apply_2d_nodal
 
-  subroutine stencil_apply_3d_nodal(ss, dd, uu, mm, ng, stencil_type, uniform_dh, bottom_solver)
+  subroutine stencil_apply_3d_nodal(sg, dd, uu, mm, ng, stencil_type, &
+                                    uniform_dh, bottom_solver, diagonalize)
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)
-    real (kind = dp_t), intent(in   ) :: ss(0:,:,:,:)
-    integer           , intent(in   ) :: mm(:,:,:)
+    real (kind = dp_t), intent(inout) :: dd(   0:,   0:,   0:)
+    real (kind = dp_t), intent(in   ) :: sg(   0:,   0:,   0:)
+    integer           , intent(in   ) :: mm(    :,    :,    :)
     integer           , intent(in   ) :: stencil_type
-    logical           , intent(in   ) :: uniform_dh, bottom_solver
+    logical           , intent(in   ) :: uniform_dh, bottom_solver, diagonalize
 
     integer :: i,j,k,lo(3),nx,ny,nz
     logical :: jface,kface
+    real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz, ss0
 
     lo = 1
-
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
-    nz = size(ss,dim=4)
-    ny = size(ss,dim=3)
-    nx = size(ss,dim=2)
+    nz = size(sg,dim=3) - 1
+    ny = size(sg,dim=2) - 1
+    nx = size(sg,dim=1) - 1
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
@@ -165,22 +184,42 @@ contains
                 if ( (jface .or. kface .or. (i.eq.1) .or. (i.eq.nx)) .and. bc_dirichlet(mm(i,j,k),1,0) ) then
                    dd(i,j,k) = ZERO
                 else
-                   dd(i,j,k) = &
-                        ss(0,i,j,k) * uu(i,j,k)       + &
-                        ss(1,i,j,k) * uu(i+1,j  ,k  ) + &
-                        ss(2,i,j,k) * uu(i-1,j  ,k  ) + &
-                        ss(3,i,j,k) * uu(i  ,j+1,k  ) + &
-                        ss(4,i,j,k) * uu(i  ,j-1,k  ) + &
-                        ss(5,i,j,k) * uu(i  ,j  ,k+1) + &
-                        ss(6,i,j,k) * uu(i  ,j  ,k-1)
+                   ss0 = -( sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                           +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
+                           +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                           +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0
+                   dd(i,j,k) = ss0 * uu(i,j,k) + &
+                     (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) * uu(i-1,j  ,k  ) + &
+                     (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )) * uu(i+1,j  ,k  ) + &
+                     (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )) * uu(i  ,j-1,k  ) + &
+                     (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )) * uu(i  ,j+1,k  ) + &
+                     (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                     +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)) * uu(i  ,j  ,k-1) + &
+                     (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                     +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * uu(i  ,j  ,k+1) 
+                   if (diagonalize) then
+                       dd(i,j,k) = dd(i,j,k) / ss0
+                   end if
                 end if
-
              end do
           end do
        end do
        !$OMP END PARALLEL DO
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
+
+       fx     = 1.d0/36.d0
+       fy     = fx
+       fz     = fx
+       f0     = FOUR * (fx + fy + fz)
+       fxyz   = (fx+fy+fz)
+       f2y2zx = (TWO*fy+TWO*fz-fx)
+       f2x2zy = (TWO*fx+TWO*fz-fy)
+       f2x2yz = (TWO*fx+TWO*fy-fz)
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF(.not.bottom_solver)
        do k = 1,nz
@@ -194,29 +233,62 @@ contains
                 if ( (jface .or. kface .or. (i.eq.1) .or. (i.eq.nx)) .and. bc_dirichlet(mm(i,j,k),1,0) ) then
                    dd(i,j,k) = ZERO
                 else
-                   dd(i,j,k) = ss(0,i,j,k)*uu(i,j,k) &
-                        + ss( 1,i,j,k) * uu(i-1,j-1,k-1) + ss( 2,i,j,k) * uu(i  ,j-1,k-1) &
-                        + ss( 3,i,j,k) * uu(i+1,j-1,k-1) + ss( 4,i,j,k) * uu(i-1,j  ,k-1) &
-                        + ss( 5,i,j,k) * uu(i+1,j  ,k-1) + ss( 6,i,j,k) * uu(i-1,j+1,k-1) &
-                        + ss( 7,i,j,k) * uu(i  ,j+1,k-1) + ss( 8,i,j,k) * uu(i+1,j+1,k-1) &
-                        + ss( 9,i,j,k) * uu(i-1,j-1,k  ) + ss(10,i,j,k) * uu(i+1,j-1,k  ) &
-                        + ss(11,i,j,k) * uu(i-1,j+1,k  ) + ss(12,i,j,k) * uu(i+1,j+1,k  ) &
-                        + ss(13,i,j,k) * uu(i-1,j-1,k+1) + ss(14,i,j,k) * uu(i  ,j-1,k+1) &
-                        + ss(15,i,j,k) * uu(i+1,j-1,k+1) + ss(16,i,j,k) * uu(i-1,j  ,k+1) &
-                        + ss(17,i,j,k) * uu(i+1,j  ,k+1) + ss(18,i,j,k) * uu(i-1,j+1,k+1) &
-                        + ss(19,i,j,k) * uu(i  ,j+1,k+1) + ss(20,i,j,k) * uu(i+1,j+1,k+1)
 
-                   if ((size(ss,dim=1) .eq. 27) .and. (.not. uniform_dh)) then
+                ss0 =  -( sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
+                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
+                         +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
+                         +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * f0 
+                dd(i,j,k) = fxyz * ( &   ! Corners
+                     sg(i-1,j-1,k-1) * uu(i-1,j-1,k-1) + sg(i  ,j-1,k-1) * uu(i+1,j-1,k-1) + &
+                     sg(i-1,j  ,k-1) * uu(i-1,j+1,k-1) + sg(i  ,j  ,k-1) * uu(i+1,j+1,k-1) + &
+                     sg(i-1,j-1,k  ) * uu(i-1,j-1,k+1) + sg(i  ,j-1,k  ) * uu(i+1,j-1,k+1) + &
+                     sg(i-1,j  ,k  ) * uu(i-1,j+1,k+1) + sg(i  ,j  ,k  ) * uu(i+1,j+1,k+1)) &
+                     + f2y2zx * ( & ! Edges in x-direction
+                     (sg(i  ,j-1,k-1) + sg(i-1,j-1,k-1)) * uu(i  ,j-1,k-1) + &
+                     (sg(i  ,j  ,k-1) + sg(i-1,j  ,k-1)) * uu(i  ,j+1,k-1) + &
+                     (sg(i  ,j-1,k  ) + sg(i-1,j-1,k  )) * uu(i  ,j-1,k+1) + &
+                     (sg(i  ,j  ,k  ) + sg(i-1,j  ,k  )) * uu(i  ,j+1,k+1)) &
+                     + f2x2zy * ( & ! Edges in y-direction
+                     (sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1)) * uu(i-1,j  ,k-1) + &
+                     (sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)) * uu(i+1,j  ,k-1) + &
+                     (sg(i-1,j-1,k  ) + sg(i-1,j  ,k  )) * uu(i-1,j  ,k+1) + &
+                     (sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * uu(i+1,j  ,k+1)) &
+                     + f2x2yz * ( & ! Edges in z-direction
+                     (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  )) * uu(i-1,j-1,k  ) + &
+                     (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )) * uu(i+1,j-1,k  ) + &
+                     (sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) * uu(i-1,j+1,k  ) + &
+                     (sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )) * uu(i+1,j+1,k  )) & 
+                     + ss0 * uu(i,j,k)
+
+                   if (.not. uniform_dh) then
                       !
                       ! Add faces (only non-zero for non-uniform dx)
                       !
                       dd(i,j,k) = dd(i,j,k) + &
-                           ss(21,i,j,k) * uu(i-1,j  ,k  ) + ss(22,i,j,k) * uu(i+1,j  ,k  ) &
-                           + ss(23,i,j,k) * uu(i  ,j-1,k  ) + ss(24,i,j,k) * uu(i  ,j+1,k  ) &
-                           + ss(25,i,j,k) * uu(i  ,j  ,k-1) + ss(26,i,j,k) * uu(i  ,j  ,k+1)
+                           ( (FOUR*fx-TWO*fy-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                            +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) ) * uu(i-1,j  ,k  ) + &
+                           ( (FOUR*fx-TWO*fy-TWO*fz)*(sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
+                            +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )) ) * uu(i+1,j  ,k  ) + &
+                           ( (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
+                            +sg(i  ,j-1,k-1) + sg(i  ,j-1,k  )) ) * uu(i  ,j-1,k  ) + &
+                           ( (FOUR*fy-TWO*fx-TWO*fz)*(sg(i-1,j  ,k-1) + sg(i-1,j  ,k  ) &
+                            +sg(i  ,j  ,k-1) + sg(i  ,j  ,k  )) ) * uu(i  ,j+1,k  ) + &
+                           ( (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
+                            +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1)) ) * uu(i  ,j  ,k-1) + &
+                           ( (FOUR*fz-TWO*fx-TWO*fy)*(sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
+                            +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) ) * uu(i  ,j  ,k+1)
+                   end if
+
+                   ! This accounts for the fact that fac = 1/(4*dx*dx) to be compatible with 
+                   !      the cross stencil
+                   if (diagonalize) then
+                       dd(i,j,k) = dd(i,j,k) / ss0
+                   else
+                       dd(i,j,k) = 4.d0 * dd(i,j,k)
                    end if
 
                 end if
+
              end do
           end do
        end do
