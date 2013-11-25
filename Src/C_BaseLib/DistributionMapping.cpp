@@ -43,7 +43,8 @@ namespace
     double max_efficiency;
 }
 
-DistributionMapping::Strategy DistributionMapping::m_Strategy;
+// We default to SFC.
+DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;
 
 DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
 
@@ -164,14 +165,11 @@ DistributionMapping::Initialize ()
     }
     else
     {
-        //
-        // We default to SFC.
-        //
-        strategy(SFC);
+        strategy(m_Strategy);  // default
     }
 
     if(proximityMap.size() != ParallelDescriptor::NProcs()) {
-      std::cout << "####::Initialize: proximityMap not resized yet." << std::endl;
+      std::cout << "#00#::Initialize: proximityMap not resized yet." << std::endl;
       proximityMap.resize(ParallelDescriptor::NProcs(), 0);
       proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
     }
@@ -386,9 +384,9 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     }
     else
     {
-        if (!GetMap(boxes))
+        if ( ! GetMap(boxes))
         {
-            BL_ASSERT(m_BuildMap != 0);
+	    BL_ASSERT(m_BuildMap != 0);
 
             (this->*m_BuildMap)(boxes,nprocs);
             //
@@ -1361,6 +1359,7 @@ DistributionMapping::InitProximityMap()
 
   if(ParallelDescriptor::IOProcessor())
   {
+    Box tBox;
     FArrayBox tFab;
 #ifdef BL_SIM_HOPPER
     std::ifstream ifs("topolcoords.simhopper.3d.fab");
@@ -1376,7 +1375,7 @@ DistributionMapping::InitProximityMap()
     } else {
       tFab.readFrom(ifs);
       ifs.close();
-      Box tBox(tFab.box());
+      tBox = tFab.box();
       std::cout << "tBox = " << tBox << "  ncomp = " << tFab.nComp() << std::endl;
 /*
 if(ParallelDescriptor::IOProcessor()) {
@@ -1484,6 +1483,17 @@ osNodeFab.close();
       }
       std::cout << "----------- end order ranks by topological sfc" << std::endl;
     }
+    FArrayBox nodeFab(tBox);
+    nodeFab.setVal(-nProcs);
+    for(int i(0); i < nProcs; ++i) {
+      IntVect iv = DistributionMapping::TopIVFromRank(i);
+      nodeFab(iv) = i;  // this overwrites previous ones
+      std::cout << "rank pNum iv = " << i << "  "
+                << DistributionMapping::ProcNumberFromRank(i) << "  " << iv << std::endl;
+    }
+    std::ofstream osNodeFab("nodes.3d.fab");
+    nodeFab.writeOn(osNodeFab);
+    osNodeFab.close();
   }
 
   ParallelDescriptor::Bcast(proximityMap.dataPtr(), proximityMap.size(),
