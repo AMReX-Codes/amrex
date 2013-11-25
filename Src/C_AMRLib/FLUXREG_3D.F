@@ -75,8 +75,9 @@ c
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,koff,kc,k,joff,jc,j)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(koff,kc,k,joff,jc,j) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -88,8 +89,9 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       else if (dir .eq. 1) then
 c        ::::: flux normal to Y direction
@@ -102,8 +104,9 @@ c        ::::: flux normal to Y direction
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,koff,kc,k,ioff,ic,i)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(koff,kc,k,ioff,ic,i) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -115,8 +118,9 @@ c        ::::: flux normal to Y direction
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       else
 c
@@ -131,8 +135,9 @@ c
             call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,joff,jc,j,ioff,ic,i)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(joff,jc,j,ioff,ic,i) if (.not. nested)
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
@@ -144,8 +149,9 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       end if
       
@@ -212,8 +218,9 @@ c
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,koff,kc,k,joff,jc,j)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(koff,kc,k,joff,jc,j) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -226,8 +233,9 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       else if (dir .eq. 1) then
 c
@@ -242,8 +250,9 @@ c
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,koff,kc,k,ioff,ic,i)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(koff,kc,k,ioff,ic,i) if (.not. nested)
             do koff = 0, ratioz-1
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
@@ -256,8 +265,9 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       else
 c
@@ -272,8 +282,9 @@ c
             call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
 
+!$omp parallel if (.not. nested) private(n,joff,jc,j,ioff,ic,i)
+!$omp do collapse(3)
          do n = 1, numcomp
-!$omp parallel do private(joff,jc,j,ioff,ic,i) if (.not. nested)
             do joff = 0, ratioy-1
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
@@ -286,8 +297,9 @@ c
                   end do
                end do
             end do
-!$omp end parallel do
          end do
+!$omp end do
+!$omp end parallel
 
       end if
       
