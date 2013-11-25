@@ -290,9 +290,9 @@ contains
     if (bc_neumann(mm(lo(1),lo(2),hi(3)+1),2,-1)) sg(lo(1)-1,lo(2)-1,hi(3)+1) = sg(lo(1)-1,lo(2)  ,hi(3)+1) 
     if (bc_neumann(mm(lo(1),lo(2),hi(3)+1),3,+1)) sg(lo(1)-1,lo(2)-1,hi(3)+1) = sg(lo(1)-1,lo(2)-1,hi(3)  ) 
 
-    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),1,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)  ,hi(2)+1, lo(3)-1) 
-    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),2,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)  , lo(3)-1) 
-    if (bc_neumann(mm(hi(1)+1,hi(2)+1, 1),3,-1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)+1, lo(3)  ) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,lo(3)),1,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)  ,hi(2)+1, lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,lo(3)),2,+1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)  , lo(3)-1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,lo(3)),3,-1)) sg(hi(1)+1,hi(2)+1,lo(3)-1) = sg(hi(1)+1,hi(2)+1, lo(3)  ) 
 
     if (bc_neumann(mm(hi(1)+1,lo(2),hi(3)+1),1,+1)) sg(hi(1)+1,lo(2)-1,hi(3)+1) = sg(hi(1)  ,lo(2)-1,hi(3)+1) 
     if (bc_neumann(mm(hi(1)+1,lo(2),hi(3)+1),2,-1)) sg(hi(1)+1,lo(2)-1,hi(3)+1) = sg(hi(1)+1,lo(2)  ,hi(3)+1) 
@@ -302,8 +302,8 @@ contains
     if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),2,+1)) sg(lo(1)-1,hi(2)+1,hi(3)+1) = sg(lo(1)-1,hi(2)  ,hi(3)+1) 
     if (bc_neumann(mm(lo(1),hi(2)+1,hi(3)+1),3,+1)) sg(lo(1)-1,hi(2)+1,hi(3)+1) = sg(lo(1)-1,hi(2)+1,hi(3)  ) 
 
-    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),1,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1),hi(2)+1,hi(3)+1) 
-    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),2,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)+1,hi(2),hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),1,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)  ,hi(2)+1,hi(3)+1) 
+    if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),2,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)+1,hi(2)  ,hi(3)+1) 
     if (bc_neumann(mm(hi(1)+1,hi(2)+1,hi(3)+1),3,+1)) sg(hi(1)+1,hi(2)+1,hi(3)+1) = sg(hi(1)+1,hi(2)+1,hi(3)) 
 
   end subroutine set_faces_edges_corners_3d
