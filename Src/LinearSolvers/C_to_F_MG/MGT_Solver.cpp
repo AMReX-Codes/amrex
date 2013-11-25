@@ -306,11 +306,21 @@ MGT_Solver::initialize(bool nodal)
     pp.query("nu_f", def_nu_f);
     pp.query("v"   , def_verbose);
     pp.query("usecg", def_usecg);
-    pp.query("cg_solver", def_cg_solver);
+
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
     pp.query("cycle_type", def_cycle); // 1 -> F, 2 -> W, 3 -> V
+    //
+    // The C++ code usually sets CG solver type using cg.cg_solver.
+    // We'll allow people to also use mg.cg_solver but pick up the former as well.
+    //
+    if (!pp.query("cg_solver", def_cg_solver))
+    {
+        ParmParse pp("cg");
+
+        pp.query("cg_solver", def_cg_solver);
+    }
 
 /*
     pp.query("nu_0", def_nu_0);
@@ -336,17 +346,36 @@ MGT_Solver::initialize(bool nodal)
 
     if (def_usecg == 1)
     {
+        //
+        // Translate from C++ -> F90 solver flag values.
+        //
         if (def_cg_solver == 1)
         {
+            //
+            // BiCG
+            //
             def_bottom_solver = 1;
         }
         else if (def_cg_solver == 0)
         {
+            //
+            // CG
+            //
             def_bottom_solver = 2;
+        }
+        else if (def_cg_solver == 2)
+        {
+            //
+            // CABiCG
+            //
+            def_bottom_solver = 3;
         }
     } else
     {
-        def_bottom_solver = 1;
+        //
+        // Default to CABiCG.
+        //
+        def_bottom_solver = 3;
     }
 
     pp.query("bottom_solver", def_bottom_solver);
