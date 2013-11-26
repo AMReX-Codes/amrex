@@ -172,7 +172,7 @@ contains
 
     if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF(.not.bottom_solver)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface,ss0) IF(.not.bottom_solver)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
@@ -221,7 +221,7 @@ contains
        f2x2zy = (TWO*fx+TWO*fz-fy)
        f2x2yz = (TWO*fx+TWO*fy-fz)
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface) IF(.not.bottom_solver)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,jface,kface,ss0) IF(.not.bottom_solver)
        do k = 1,nz
           kface = .false. ; if ( (k.eq.1) .or. (k.eq.nz) ) kface = .true.
 
