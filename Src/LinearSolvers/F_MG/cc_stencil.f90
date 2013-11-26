@@ -71,7 +71,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
@@ -143,7 +143,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
