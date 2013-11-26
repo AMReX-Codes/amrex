@@ -76,9 +76,9 @@ c
          end if
 
 !$omp parallel if (.not. nested) private(n,koff,kc,k,joff,jc,j)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do koff = 0, ratioz-1
+         do koff = 0, ratioz-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -89,8 +89,8 @@ c
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       else if (dir .eq. 1) then
@@ -105,9 +105,9 @@ c        ::::: flux normal to Y direction
          end if
 
 !$omp parallel if (.not. nested) private(n,koff,kc,k,ioff,ic,i)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do koff = 0, ratioz-1
+         do koff = 0, ratioz-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -118,8 +118,8 @@ c        ::::: flux normal to Y direction
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       else
@@ -136,9 +136,9 @@ c
          end if
 
 !$omp parallel if (.not. nested) private(n,joff,jc,j,ioff,ic,i)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do joff = 0, ratioy-1
+         do joff = 0, ratioy-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -149,8 +149,8 @@ c
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       end if
@@ -219,9 +219,9 @@ c
          end if
 
 !$omp parallel if (.not. nested) private(n,koff,kc,k,joff,jc,j)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do koff = 0, ratioz-1
+         do koff = 0, ratioz-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do joff = 0, ratioy-1            
@@ -233,8 +233,8 @@ c
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       else if (dir .eq. 1) then
@@ -251,9 +251,9 @@ c
          end if
 
 !$omp parallel if (.not. nested) private(n,koff,kc,k,ioff,ic,i)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do koff = 0, ratioz-1
+         do koff = 0, ratioz-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do kc = ARG_L3(reg), ARG_H3(reg)
                   k = ratioz*kc + koff
                   do ioff = 0, ratiox-1            
@@ -265,8 +265,8 @@ c
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       else
@@ -283,9 +283,9 @@ c
          end if
 
 !$omp parallel if (.not. nested) private(n,joff,jc,j,ioff,ic,i)
-!$omp do collapse(3)
-         do n = 1, numcomp
-            do joff = 0, ratioy-1
+         do joff = 0, ratioy-1
+!$omp do collapse(2)
+            do n = 1, numcomp
                do jc = ARG_L2(reg), ARG_H2(reg)
                   j = ratioy*jc + joff
                   do ioff = 0, ratiox-1            
@@ -297,8 +297,8 @@ c
                   end do
                end do
             end do
-         end do
 !$omp end do
+         end do
 !$omp end parallel
 
       end if
