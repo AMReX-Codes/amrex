@@ -2774,7 +2774,7 @@ contains
     !
     ! Define the center stencil and add the "alpha" term in 
     !     (alpha - del dot beta grad) phi = RHS.
-    !$OMP PARALLEL DO PRIVATE(i,j,k,sum)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,sum,nsten)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
