@@ -119,15 +119,18 @@ contains
     !
     bnorm = ml_norm_inf(rh,fine_mask,local=.true.)
 
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels),local=.true.)
+    Anorm = nodal_stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels),mgt(n)%stencil_type,&
+                               mgt(n)%uniform_dh, local=.true.)
     do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n),local=.true.), Anorm)
+       Anorm = max(nodal_stencil_norm(mgt(n)%ss(mgt(n)%nlevels), &
+                   mgt(n)%stencil_type, mgt(n)%uniform_dh, &
+                   fine_mask(n), local=.true.), Anorm)
     end do
 
     do n = nlevs,1,-1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                           mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
     end do
 
     do n = 1,nlevs
@@ -908,5 +911,303 @@ contains
     deallocate(sg_int)
 
   end subroutine grid_laplace_3d
+
+  function nodal_stencil_norm(sg, stencil_type, uniform_dh, mask, local) result(r)
+
+    use bl_prof_module
+    real(kind=dp_t) :: r
+    type( multifab), intent(inout)        :: sg
+    integer        , intent(in)           :: stencil_type
+    type(lmultifab), intent(in), optional :: mask
+    logical        , intent(in), optional :: uniform_dh, local
+
+    ! Local variables
+    integer                   :: i,j,k,b,dm,lo(4),hi(4)
+    real(kind=dp_t)           :: r1, sum_comps, ss0
+    real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz
+    real(kind=dp_t), pointer  :: sp(:,:,:,:)
+    logical        , pointer  :: lp(:,:,:,:)
+    logical                   :: llocal
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "st_norm")
+
+    llocal = .false.; if ( present(local) ) llocal = local
+
+    dm = get_dim(sg)
+
+    if (.not. cell_centered_q(sg)) &
+        call bl_error("sg is supposed to be cell-centered in nodal_stencil_norm")
+
+    r1 = -Huge(r1)
+
+    if (stencil_type .eq. ND_CROSS_STENCIL) then
+
+      if (present(mask)) then
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          sp => dataptr(sg, b)
+          lp => dataptr(mask, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+          do j = lo(3), hi(3)
+          do i = lo(2), hi(2)
+             if ( lp(i,j,k,1) ) then
+                sum_comps = ZERO
+                if (dm.eq.2) then
+                   ss0 = -( sp(1,i-1,j-1,k)+sp(1,i,j-1,k) &
+                           +sp(1,i-1,j,k)+sp(1,i,j,k) )
+                   sum_comps = abs(ss0) + HALF * ( &
+                      abs(sp(1,i  ,j-1,k)+sp(1,i  ,j  ,k)) + &
+                      abs(sp(1,i-1,j-1,k)+sp(1,i-1,j  ,k)) + & 
+                      abs(sp(1,i-1,j  ,k)+sp(1,i  ,j  ,k)) + &
+                      abs(sp(1,i-1,j-1,k)+sp(1,i  ,j-1,k)) )
+                else if (dm.eq.3) then
+                   ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
+                           +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
+                           +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
+                           +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.d0
+                   sum_comps = abs(ss0) + &
+                     abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
+                        +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
+                     abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )    &
+                        +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) + &
+                     abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
+                        +sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )) + &
+                     abs(sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )    &
+                        +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) + &
+                     abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1)    &
+                        +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
+                     abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )    &
+                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) 
+                end if  ! end dm.eq.3
+                r1 = max(r1,sum_comps)
+             end if ! end mask test
+          end do ! end i
+          end do ! end j
+          end do ! end k
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+
+      else   ! present(mask) test
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          sp => dataptr(sg, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+          do j = lo(3), hi(3)
+          do i = lo(2), hi(2)
+             sum_comps = ZERO
+             if (dm.eq.2) then
+                ss0 = -(sp(1,i-1,j-1,k)+sp(1,i,j-1,k)+sp(1,i-1,j,k)+sp(1,i,j,k))
+                sum_comps = abs(ss0) + HALF * ( &
+                   abs(sp(1,i  ,j-1,k)+sp(1,i  ,j  ,k)) + &
+                   abs(sp(1,i-1,j-1,k)+sp(1,i-1,j  ,k)) + & 
+                   abs(sp(1,i-1,j  ,k)+sp(1,i  ,j  ,k)) + &
+                   abs(sp(1,i-1,j-1,k)+sp(1,i  ,j-1,k)) )
+             else if (dm.eq.3) then
+                ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
+                        +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
+                        +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
+                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.d0
+                sum_comps = abs(ss0) + &
+                  abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
+                     +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
+                  abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )    &
+                     +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) + &
+                  abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
+                     +sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )) + &
+                  abs(sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )    &
+                     +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) + &
+                  abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1)    &
+                     +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
+                  abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )    &
+                     +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) 
+             end if  ! end dm.eq.3
+             r1 = max(r1,sum_comps)
+          end do ! end i
+          end do ! end j
+          end do ! end k
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+      end if ! present(mask) test
+
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
+
+      fx     = 1.d0/36.d0
+      fy     = fx
+      fz     = fx
+      f0     = FOUR * (fx + fy + fz)
+      fxyz   = (fx+fy+fz)
+      f2y2zx = (TWO*fy+TWO*fz-fx)
+      f2x2zy = (TWO*fx+TWO*fz-fy)
+      f2x2yz = (TWO*fx+TWO*fy-fz)
+
+      if (present(mask)) then
+      
+       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          sp => dataptr(sg, b)
+          lp => dataptr(mask, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+          do j = lo(3), hi(3)
+          do i = lo(2), hi(2)
+             if ( lp(i,j,k,1) ) then
+               if (dm.eq.2) then
+                  ss0 = -TWO * THIRD * (sp(1,i-1,j-1,k) + sp(1,i,j-1,k) + &
+                                        sp(1,i-1,j  ,k) + sp(1,i,j  ,k))
+                  sum_comps = abs(ss0) + THIRD * ( &
+                         abs(sp(1,i-1,j-1,k)) + abs(sp(1,i  ,j-1,k)) + &
+                         abs(sp(1,i-1,j  ,k)) + abs(sp(1,i  ,j  ,k)) + &
+                      HALF * ( abs(sp(1,i-1,j-1,k) + sp(1,i  ,j-1,k)) &
+                              +abs(sp(1,i-1,j-1,k) + sp(1,i-1,j  ,k)) &
+                              +abs(sp(1,i  ,j-1,k) + sp(1,i  ,j  ,k)) &
+                              +abs(sp(1,i-1,j  ,k) + sp(1,i  ,j  ,k)) ) )
+               else if (dm.eq.3) then
+                  ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
+                           +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
+                           +sp(1,i-1,j-1,k  ) + sp(1,i,j-1,k  ) &
+                           +sp(1,i-1,j  ,k  ) + sp(1,i,j  ,k  ) ) * f0
+                  sum_comps = abs(ss0) + &
+                        fxyz * ( &   ! Corners
+                    abs(sp(1,i-1,j-1,k-1)) + abs(sp(1,i  ,j-1,k-1)) + &
+                    abs(sp(1,i-1,j  ,k-1)) + abs(sp(1,i  ,j  ,k-1)) + &
+                    abs(sp(1,i-1,j-1,k  )) + abs(sp(1,i  ,j-1,k  )) + &
+                    abs(sp(1,i-1,j  ,k  )) + abs(sp(1,i  ,j  ,k  )) ) &
+                      + f2y2zx * ( & ! Edges in x-direction
+                    abs(sp(1,i  ,j-1,k-1) + sp(1,i-1,j-1,k-1)) + & 
+                    abs(sp(1,i  ,j  ,k-1) + sp(1,i-1,j  ,k-1)) + & 
+                    abs(sp(1,i  ,j-1,k  ) + sp(1,i-1,j-1,k  )) + & 
+                    abs(sp(1,i  ,j  ,k  ) + sp(1,i-1,j  ,k  )) ) & 
+                      + f2x2zy * ( & ! Edges in y-direction
+                    abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1)) + &
+                    abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
+                    abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )) + &
+                    abs(sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) ) &
+                      + f2x2yz * ( & ! Edges in z-direction
+                    abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )) + &
+                    abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )) + &
+                    abs(sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
+                    abs(sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) )
+
+                  if (.not. uniform_dh) then
+                  !
+                  ! Add faces (only non-zero for non-uniform dx)
+                  !
+                  sum_comps = abs(ss0) + &
+                    abs( (FOUR*fx-TWO*fy-TWO*fz)*(sp(1,i-1,j-1,k-1) + &
+                     sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k-1) + sp(1,i-1,j,k)) ) + &
+                    abs( (FOUR*fx-TWO*fy-TWO*fz)*(sp(1,i  ,j-1,k-1) + &
+                     sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k-1) + sp(1,i,j,k)) ) + &
+                    abs( (FOUR*fy-TWO*fx-TWO*fz)*(sp(1,i-1,j-1,k-1) + &
+                     sp(1,i-1,j-1,k  ) + sp(1,i  ,j-1,k-1) + sp(1,i,j-1,k)) ) + &
+                    abs( (FOUR*fy-TWO*fx-TWO*fz)*(sp(1,i-1,j  ,k-1) + &
+                     sp(1,i-1,j  ,k  ) + sp(1,i  ,j  ,k-1) + sp(1,i,j,k)) ) + &
+                    abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k-1) + &
+                     sp(1,i-1,j  ,k-1)  + sp(1,i  ,j-1,k-1) + sp(1,i,j,k-1)) ) + &
+                    abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k  ) + &
+                     sp(1,i-1,j  ,k  ) + sp(1,i  ,j-1,k  ) + sp(1,i,j,k)) ) 
+                  end if  ! end .not. uniform_dh 
+               end if  ! end dm.eq.3
+               r1 = max(r1,sum_comps)
+             end if  ! end mask test
+          end do ! end i
+          end do ! end j
+          end do ! end k
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+
+      else   ! present(mask) test
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          sp => dataptr(sg, b)
+          lo =  lbound(sp)
+          hi =  ubound(sp)
+          do k = lo(4), hi(4)
+          do j = lo(3), hi(3)
+          do i = lo(2), hi(2)
+            if (dm.eq.2) then
+               ss0 = -TWO * THIRD * (sp(1,i-1,j-1,k) + sp(1,i,j-1,k) + &
+                                     sp(1,i-1,j  ,k) + sp(1,i,j  ,k))
+               sum_comps = abs(ss0) + THIRD * ( &
+                      abs(sp(1,i-1,j-1,k)) + abs(sp(1,i  ,j-1,k)) + &
+                      abs(sp(1,i-1,j  ,k)) + abs(sp(1,i  ,j  ,k)) + &
+                   HALF * ( abs(sp(1,i-1,j-1,k) + sp(1,i  ,j-1,k)) &
+                           +abs(sp(1,i-1,j-1,k) + sp(1,i-1,j  ,k)) &
+                           +abs(sp(1,i  ,j-1,k) + sp(1,i  ,j  ,k)) &
+                           +abs(sp(1,i-1,j  ,k) + sp(1,i  ,j  ,k)) ) )
+            else if (dm.eq.3) then
+               ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
+                        +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
+                        +sp(1,i-1,j-1,k  ) + sp(1,i,j-1,k  ) &
+                        +sp(1,i-1,j  ,k  ) + sp(1,i,j  ,k  ) ) * f0
+               sum_comps = abs(ss0) + &
+                     fxyz * ( &   ! Corners
+                 abs(sp(1,i-1,j-1,k-1)) + abs(sp(1,i  ,j-1,k-1)) + &
+                 abs(sp(1,i-1,j  ,k-1)) + abs(sp(1,i  ,j  ,k-1)) + &
+                 abs(sp(1,i-1,j-1,k  )) + abs(sp(1,i  ,j-1,k  )) + &
+                 abs(sp(1,i-1,j  ,k  )) + abs(sp(1,i  ,j  ,k  )) ) &
+                   + f2y2zx * ( & ! Edges in x-direction
+                 abs(sp(1,i  ,j-1,k-1) + sp(1,i-1,j-1,k-1)) + & 
+                 abs(sp(1,i  ,j  ,k-1) + sp(1,i-1,j  ,k-1)) + & 
+                 abs(sp(1,i  ,j-1,k  ) + sp(1,i-1,j-1,k  )) + & 
+                 abs(sp(1,i  ,j  ,k  ) + sp(1,i-1,j  ,k  )) ) & 
+                   + f2x2zy * ( & ! Edges in y-direction
+                 abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1)) + &
+                 abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
+                 abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )) + &
+                 abs(sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) ) &
+                   + f2x2yz * ( & ! Edges in z-direction
+                 abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )) + &
+                 abs(sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )) + &
+                 abs(sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
+                 abs(sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) )
+
+               if (.not. uniform_dh) then
+               !
+               ! Add faces (only non-zero for non-uniform dx)
+               !
+               sum_comps = abs(ss0) + &
+                    abs( (FOUR*fx-TWO*fy-TWO*fz)*(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  ) &
+                     +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) ) + &
+                    abs( (FOUR*fx-TWO*fy-TWO*fz)*(sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  ) &
+                     +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) ) + &
+                    abs( (FOUR*fy-TWO*fx-TWO*fz)*(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  ) &
+                     +sp(1,i  ,j-1,k-1) + sp(1,i  ,j-1,k  )) ) + &
+                    abs( (FOUR*fy-TWO*fx-TWO*fz)*(sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  ) &
+                     +sp(1,i  ,j  ,k-1) + sp(1,i  ,j  ,k  )) ) + &
+                    abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
+                     +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) ) + &
+                    abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
+                     +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) ) 
+               end if  ! end .not. uniform_dh 
+            end if  ! end dm.eq.3
+            r1 = max(r1,sum_comps)
+          end do ! end i
+          end do ! end j
+          end do ! end k
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+
+      end if   ! present(mask) test
+
+    else 
+       call bl_error("Unknown stencil_type in nodal_stencil_norm")
+    end if
+
+    r = r1
+
+    if ( .not. llocal ) call parallel_reduce(r, r1, MPI_MAX)
+
+    call destroy(bpt)
+
+  end function nodal_stencil_norm
 
 end module ml_nd_module
