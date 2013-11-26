@@ -922,13 +922,16 @@ contains
     logical        , intent(in), optional :: uniform_dh, local
 
     ! Local variables
-    integer                   :: i,j,k,b,dm,lo(4),hi(4)
+    integer                   :: i,j,k,b,dm
+    integer                   :: lo(get_dim(sg)),hi(get_dim(sg))
     real(kind=dp_t)           :: r1, sum_comps, ss0
     real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz
     real(kind=dp_t), pointer  :: sp(:,:,:,:)
     logical        , pointer  :: lp(:,:,:,:)
     logical                   :: llocal
     type(bl_prof_timer), save :: bpt
+
+    type(box) :: bx
 
     call build(bpt, "st_norm")
 
@@ -947,24 +950,37 @@ contains
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
+          bx = get_box(sg,b)
+          lo = bx%lo(:)
+          hi = bx%hi(:)
+
           sp => dataptr(sg, b)
           lp => dataptr(mask, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-          do j = lo(3), hi(3)
-          do i = lo(2), hi(2)
-             if ( lp(i,j,k,1) ) then
-                sum_comps = ZERO
-                if (dm.eq.2) then
-                   ss0 = -( sp(1,i-1,j-1,k)+sp(1,i,j-1,k) &
-                           +sp(1,i-1,j,k)+sp(1,i,j,k) )
+
+          if (dm.eq.2) then
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+                if ( lp(i,j,1,1) ) then
+                   sum_comps = ZERO
+                   ss0 = -( sp(1,i-1,j-1,1)+sp(1,i,j-1,1) &
+                           +sp(1,i-1,j,1)+sp(1,i,j,1) )
                    sum_comps = abs(ss0) + HALF * ( &
-                      abs(sp(1,i  ,j-1,k)+sp(1,i  ,j  ,k)) + &
-                      abs(sp(1,i-1,j-1,k)+sp(1,i-1,j  ,k)) + & 
-                      abs(sp(1,i-1,j  ,k)+sp(1,i  ,j  ,k)) + &
-                      abs(sp(1,i-1,j-1,k)+sp(1,i  ,j-1,k)) )
-                else if (dm.eq.3) then
+                      abs(sp(1,i  ,j-1,1)+sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j-1,1)+sp(1,i-1,j  ,1)) + & 
+                      abs(sp(1,i-1,j  ,1)+sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j-1,1)+sp(1,i  ,j-1,1)) )
+                   r1 = max(r1,sum_comps)
+                end if ! end mask test
+             end do
+             end do
+
+          else if (dm.eq.3) then
+
+             do k = lo(3), hi(3)+1
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+                if ( lp(i,j,k,1) ) then
+                   sum_comps = ZERO
                    ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                            +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                            +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
@@ -982,34 +998,47 @@ contains
                         +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
                      abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )    &
                         +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) 
-                end if  ! end dm.eq.3
-                r1 = max(r1,sum_comps)
-             end if ! end mask test
-          end do ! end i
-          end do ! end j
-          end do ! end k
+                   r1 = max(r1,sum_comps)
+                end if ! end mask test
+             end do ! end i
+             end do ! end j
+             end do ! end k
+
+          end if ! (dm.eq.3)
+
        end do ! end nfabs
        !$OMP END PARALLEL DO
 
-      else   ! present(mask) test
+      else   ! .not. present(mask)
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
+          bx = get_box(sg,b)
+          lo = bx%lo(:)
+          hi = bx%hi(:)
+
           sp => dataptr(sg, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-          do j = lo(3), hi(3)
-          do i = lo(2), hi(2)
-             sum_comps = ZERO
-             if (dm.eq.2) then
-                ss0 = -(sp(1,i-1,j-1,k)+sp(1,i,j-1,k)+sp(1,i-1,j,k)+sp(1,i,j,k))
+          lp => dataptr(mask, b)
+
+          if (dm.eq.2) then
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+                sum_comps = ZERO
+                ss0 = -(sp(1,i-1,j-1,1)+sp(1,i,j-1,1)+sp(1,i-1,j,1)+sp(1,i,j,1))
                 sum_comps = abs(ss0) + HALF * ( &
-                   abs(sp(1,i  ,j-1,k)+sp(1,i  ,j  ,k)) + &
-                   abs(sp(1,i-1,j-1,k)+sp(1,i-1,j  ,k)) + & 
-                   abs(sp(1,i-1,j  ,k)+sp(1,i  ,j  ,k)) + &
-                   abs(sp(1,i-1,j-1,k)+sp(1,i  ,j-1,k)) )
-             else if (dm.eq.3) then
+                   abs(sp(1,i  ,j-1,1)+sp(1,i  ,j  ,1)) + &
+                   abs(sp(1,i-1,j-1,1)+sp(1,i-1,j  ,1)) + & 
+                   abs(sp(1,i-1,j  ,1)+sp(1,i  ,j  ,1)) + &
+                   abs(sp(1,i-1,j-1,1)+sp(1,i  ,j-1,1)) )
+                r1 = max(r1,sum_comps)
+             end do
+             end do
+
+          else if (dm.eq.3) then
+
+             do k = lo(3), hi(3)+1
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
                 ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                         +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
@@ -1027,13 +1056,14 @@ contains
                      +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1)) + &
                   abs(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  )    &
                      +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) 
-             end if  ! end dm.eq.3
-             r1 = max(r1,sum_comps)
-          end do ! end i
-          end do ! end j
-          end do ! end k
+                r1 = max(r1,sum_comps)
+             end do ! end i
+             end do ! end j
+             end do ! end k
+          end if ! (dm.eq.3)
        end do ! end nfabs
        !$OMP END PARALLEL DO
+
       end if ! present(mask) test
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
@@ -1051,25 +1081,37 @@ contains
       
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
+          bx = get_box(sg,b)
+          lo = bx%lo(:)
+          hi = bx%hi(:)
+
           sp => dataptr(sg, b)
           lp => dataptr(mask, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-          do j = lo(3), hi(3)
-          do i = lo(2), hi(2)
-             if ( lp(i,j,k,1) ) then
-               if (dm.eq.2) then
-                  ss0 = -TWO * THIRD * (sp(1,i-1,j-1,k) + sp(1,i,j-1,k) + &
-                                        sp(1,i-1,j  ,k) + sp(1,i,j  ,k))
+
+          if (dm.eq.2) then
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+                if ( lp(i,j,1,1) ) then
+                  ss0 = -TWO * THIRD * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                        sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
                   sum_comps = abs(ss0) + THIRD * ( &
-                         abs(sp(1,i-1,j-1,k)) + abs(sp(1,i  ,j-1,k)) + &
-                         abs(sp(1,i-1,j  ,k)) + abs(sp(1,i  ,j  ,k)) + &
-                      HALF * ( abs(sp(1,i-1,j-1,k) + sp(1,i  ,j-1,k)) &
-                              +abs(sp(1,i-1,j-1,k) + sp(1,i-1,j  ,k)) &
-                              +abs(sp(1,i  ,j-1,k) + sp(1,i  ,j  ,k)) &
-                              +abs(sp(1,i-1,j  ,k) + sp(1,i  ,j  ,k)) ) )
-               else if (dm.eq.3) then
+                         abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                         abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                      HALF * ( abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) &
+                              +abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) &
+                              +abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) &
+                              +abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) ) )
+                  r1 = max(r1,sum_comps)
+                end if ! mask test
+             end do
+             end do
+
+          else if (dm.eq.3) then
+
+             do k = lo(3), hi(3)+1
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+                if ( lp(i,j,k,1) ) then
                   ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
                            +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
                            +sp(1,i-1,j-1,k  ) + sp(1,i,j-1,k  ) &
@@ -1114,12 +1156,12 @@ contains
                     abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k  ) + &
                      sp(1,i-1,j  ,k  ) + sp(1,i  ,j-1,k  ) + sp(1,i,j,k)) ) 
                   end if  ! end .not. uniform_dh 
-               end if  ! end dm.eq.3
                r1 = max(r1,sum_comps)
              end if  ! end mask test
           end do ! end i
           end do ! end j
           end do ! end k
+          end if ! (dm.eq.3)
        end do ! end nfabs
        !$OMP END PARALLEL DO
 
@@ -1127,23 +1169,34 @@ contains
 
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
+          ! This is the cell-centered box with one ghost cell
+          bx = get_box(sg,b)
           sp => dataptr(sg, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-          do j = lo(3), hi(3)
-          do i = lo(2), hi(2)
-            if (dm.eq.2) then
-               ss0 = -TWO * THIRD * (sp(1,i-1,j-1,k) + sp(1,i,j-1,k) + &
-                                     sp(1,i-1,j  ,k) + sp(1,i,j  ,k))
+          lo = bx%lo(:)
+          hi = bx%hi(:)
+
+          if (dm.eq.2) then
+
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
+               ss0 = -TWO * THIRD * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                     sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
                sum_comps = abs(ss0) + THIRD * ( &
-                      abs(sp(1,i-1,j-1,k)) + abs(sp(1,i  ,j-1,k)) + &
-                      abs(sp(1,i-1,j  ,k)) + abs(sp(1,i  ,j  ,k)) + &
-                   HALF * ( abs(sp(1,i-1,j-1,k) + sp(1,i  ,j-1,k)) &
-                           +abs(sp(1,i-1,j-1,k) + sp(1,i-1,j  ,k)) &
-                           +abs(sp(1,i  ,j-1,k) + sp(1,i  ,j  ,k)) &
-                           +abs(sp(1,i-1,j  ,k) + sp(1,i  ,j  ,k)) ) )
-            else if (dm.eq.3) then
+                      abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                      abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                   HALF * ( abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) &
+                           +abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) &
+                           +abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) &
+                           +abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) ) )
+               r1 = max(r1,sum_comps)
+             end do ! end i
+             end do ! end j
+
+          else if (dm.eq.3) then
+
+             do k = lo(3), hi(3)+1
+             do j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)+1
                ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
                         +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i,j-1,k  ) &
@@ -1188,11 +1241,11 @@ contains
                     abs( (FOUR*fz-TWO*fx-TWO*fy)*(sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
                      +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) ) 
                end if  ! end .not. uniform_dh 
-            end if  ! end dm.eq.3
             r1 = max(r1,sum_comps)
           end do ! end i
           end do ! end j
           end do ! end k
+          end if ! end dm.eq.3
        end do ! end nfabs
        !$OMP END PARALLEL DO
 
