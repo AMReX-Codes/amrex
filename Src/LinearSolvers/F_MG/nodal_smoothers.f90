@@ -115,7 +115,6 @@ contains
     integer            ,intent(in   ) :: red_black
 
     integer            :: j, i, ipar, half_x, hi(size(lo))
-    logical            :: x_is_odd
     real (kind = dp_t) :: dd, ss0
     type(bl_prof_timer), save :: bpt
 
