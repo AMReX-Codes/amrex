@@ -923,7 +923,6 @@ contains
 
     ! Local variables
     integer                   :: i,j,k,b,dm
-    integer                   :: lo(get_dim(sg)),hi(get_dim(sg))
     real(kind=dp_t)           :: r1, sum_comps, ss0
     real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz
     real(kind=dp_t), pointer  :: sp(:,:,:,:)
@@ -951,15 +950,13 @@ contains
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
-          lo = bx%lo(:)
-          hi = bx%hi(:)
 
           sp => dataptr(sg, b)
           lp => dataptr(mask, b)
 
           if (dm.eq.2) then
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,1,1) ) then
                    sum_comps = ZERO
                    ss0 = -( sp(1,i-1,j-1,1)+sp(1,i,j-1,1) &
@@ -976,9 +973,9 @@ contains
 
           else if (dm.eq.3) then
 
-             do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do k = bx%lo(3), bx%hi(3)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,k,1) ) then
                    sum_comps = ZERO
                    ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
@@ -1014,15 +1011,13 @@ contains
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
-          lo = bx%lo(:)
-          hi = bx%hi(:)
 
           sp => dataptr(sg, b)
           lp => dataptr(mask, b)
 
           if (dm.eq.2) then
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 sum_comps = ZERO
                 ss0 = -(sp(1,i-1,j-1,1)+sp(1,i,j-1,1)+sp(1,i-1,j,1)+sp(1,i,j,1))
                 sum_comps = abs(ss0) + HALF * ( &
@@ -1036,9 +1031,9 @@ contains
 
           else if (dm.eq.3) then
 
-             do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do k = bx%lo(3), bx%hi(3)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                         +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
@@ -1082,15 +1077,13 @@ contains
        !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
-          lo = bx%lo(:)
-          hi = bx%hi(:)
 
           sp => dataptr(sg, b)
           lp => dataptr(mask, b)
 
           if (dm.eq.2) then
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,1,1) ) then
                   ss0 = -TWO * THIRD * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
                                         sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
@@ -1108,9 +1101,9 @@ contains
 
           else if (dm.eq.3) then
 
-             do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do k = bx%lo(3), bx%hi(3)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,k,1) ) then
                   ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
                            +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
@@ -1172,13 +1165,11 @@ contains
           ! This is the cell-centered box with one ghost cell
           bx = get_box(sg,b)
           sp => dataptr(sg, b)
-          lo = bx%lo(:)
-          hi = bx%hi(:)
 
           if (dm.eq.2) then
 
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                ss0 = -TWO * THIRD * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
                                      sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
                sum_comps = abs(ss0) + THIRD * ( &
@@ -1194,9 +1185,9 @@ contains
 
           else if (dm.eq.3) then
 
-             do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)+1
-             do i = lo(1), hi(1)+1
+             do k = bx%lo(3), bx%hi(3)+1
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
                ss0 =  -( sp(1,i-1,j-1,k-1) + sp(1,i,j-1,k-1) &
                         +sp(1,i-1,j  ,k-1) + sp(1,i,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i,j-1,k  ) &
