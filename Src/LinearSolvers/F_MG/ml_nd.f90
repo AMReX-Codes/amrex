@@ -9,8 +9,6 @@ module ml_nd_module
 
   implicit none
 
-!  private :: grid_res, grid_laplace_1d, grid_laplace_2d, grid_laplace_3d
-
 contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio, &
@@ -804,12 +802,12 @@ contains
     f2x2yz = (TWO*fx+TWO*fy-fz)
 
     if (stencil_type .eq. ND_DENSE_STENCIL) then
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
+      !$OMP PARALLEL DO PRIVATE(i,j,k,ff_fac,ss0)
       do k = 1,nz+1
       do j = 1,ny+1
       do i = 1,nx+1
 
-          ff_fac = 1.d0
+          ff_fac = 1.0d0
           if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
           if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
           if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
@@ -818,6 +816,7 @@ contains
                    +sg_int(i-1,j  ,k-1) + sg_int(i,j  ,k-1) &
                    +sg_int(i-1,j-1,k  ) + sg_int(i,j-1,k  ) &
                    +sg_int(i-1,j  ,k  ) + sg_int(i,j  ,k  ) ) * f0
+
           dd(i,j,k) = ff_fac * ff(i,j,k) - ( &
                fxyz * ( &   ! Corners
                sg_int(i-1,j-1,k-1) * uu(i-1,j-1,k-1) + sg_int(i  ,j-1,k-1) * uu(i+1,j-1,k-1) + &
@@ -864,7 +863,7 @@ contains
 
           ! This accounts for the fact that fac = 1/(4*dx*dx) to be compatible with
           !      the cross stencil
-          dd(i,j,k) = 4.d0 * dd(i,j,k)
+          dd(i,j,k) = 4.0d0 * dd(i,j,k)
       end do
       end do
       end do
@@ -872,12 +871,12 @@ contains
 
     else if (stencil_type .eq. ND_CROSS_STENCIL) then
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
+      !$OMP PARALLEL DO PRIVATE(i,j,k,ff_fac)
       do k = 1,nz+1
       do j = 1,ny+1
       do i = 1,nx+1
 
-          ff_fac = 1.d0
+          ff_fac = 1.0d0
           if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
           if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
           if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
@@ -947,7 +946,7 @@ contains
 
       if (present(mask)) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
@@ -958,7 +957,6 @@ contains
              do j = bx%lo(2), bx%hi(2)+1
              do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,1,1) ) then
-                   sum_comps = ZERO
                    ss0 = -( sp(1,i-1,j-1,1)+sp(1,i,j-1,1) &
                            +sp(1,i-1,j,1)+sp(1,i,j,1) )
                    sum_comps = abs(ss0) + HALF * ( &
@@ -977,7 +975,6 @@ contains
              do j = bx%lo(2), bx%hi(2)+1
              do i = bx%lo(1), bx%hi(1)+1
                 if ( lp(i,j,k,1) ) then
-                   sum_comps = ZERO
                    ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                            +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                            +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
@@ -1008,17 +1005,15 @@ contains
 
       else   ! .not. present(mask)
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
           sp => dataptr(sg, b)
-          lp => dataptr(mask, b)
 
           if (dm.eq.2) then
              do j = bx%lo(2), bx%hi(2)+1
              do i = bx%lo(1), bx%hi(1)+1
-                sum_comps = ZERO
                 ss0 = -(sp(1,i-1,j-1,1)+sp(1,i,j-1,1)+sp(1,i-1,j,1)+sp(1,i,j,1))
                 sum_comps = abs(ss0) + HALF * ( &
                    abs(sp(1,i  ,j-1,1)+sp(1,i  ,j  ,1)) + &
@@ -1037,7 +1032,7 @@ contains
                 ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                         +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
-                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.d0
+                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.0d0
                 sum_comps = abs(ss0) + &
                   abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
                      +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
@@ -1074,7 +1069,7 @@ contains
 
       if (present(mask)) then
       
-       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
@@ -1160,7 +1155,7 @@ contains
 
       else   ! present(mask) test
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,sum_comps,sp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           ! This is the cell-centered box with one ghost cell
           bx = get_box(sg,b)
@@ -1233,11 +1228,11 @@ contains
                      +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) ) 
                end if  ! end .not. uniform_dh 
             r1 = max(r1,sum_comps)
-          end do ! end i
-          end do ! end j
-          end do ! end k
-          end if ! end dm.eq.3
-       end do ! end nfabs
+          end do
+          end do
+          end do
+          end if
+       end do
        !$OMP END PARALLEL DO
 
       end if   ! present(mask) test
