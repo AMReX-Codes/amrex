@@ -1204,6 +1204,9 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
+#ifdef _OPENMP
+#pragma omp critical(basefab)
+#endif
         BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
     }
 }
