@@ -946,7 +946,7 @@ contains
 
       if (present(mask)) then
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
@@ -1005,7 +1005,7 @@ contains
 
       else   ! .not. present(mask)
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
@@ -1069,7 +1069,7 @@ contains
 
       if (present(mask)) then
       
-       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           bx = get_box(sg,b)
 
@@ -1155,7 +1155,7 @@ contains
 
       else   ! present(mask) test
 
-       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp) REDUCTION(max:r1)
        do b = 1, nfabs(sg)
           ! This is the cell-centered box with one ghost cell
           bx = get_box(sg,b)
