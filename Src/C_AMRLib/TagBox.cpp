@@ -399,9 +399,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     const int N = IDs.size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < N; i++)
     {
         BL_ASSERT(distributionMap[IDs[i].first.FabIndex()] == ParallelDescriptor::MyProc());
