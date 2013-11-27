@@ -389,9 +389,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     const int N = Recs.size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < N; i++)
     {
         const Rec&       rf   = Recs[i];
