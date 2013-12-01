@@ -295,6 +295,8 @@ MGT_Solver::initialize(bool nodal)
     def_cg_solver = 1;
     def_bottom_solver_eps = 0.0001;
     def_nu_f = 2;
+    def_maxiter = 200;
+    def_maxiter_b = 200;
 
     ParmParse pp("mg");
 
