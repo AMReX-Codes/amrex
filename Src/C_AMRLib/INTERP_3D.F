@@ -703,8 +703,6 @@ c
 c         Limit slopes so as to not introduce new maxs or mins.
 c
             do n = 1,nvar
-!$omp parallel do private(i,j,k,ic,jc,kc,corr_fact)
-!$omp&private(orig_corr_fact,dummy_fine) if (.not. nested)
                do k = voff_lo(3),voff_hi(3)
                   kc = IX_PROJ(k,lratioz)
                   do j = voff_lo(2),voff_hi(2)
@@ -746,7 +744,6 @@ c
                      end do
                   end do
                end do
-!$omp end parallel do
             end do
          end if
 c
