@@ -800,13 +800,14 @@ ParticleBase::Reset (ParticleBase& p,
 
         if (!ParticleBase::Where(p,amr))
         {
+	    if (verbose) {
 #ifdef _OPENMP
 #pragma omp critical(reset_lock)
 #endif
-            {
-	      if (verbose) 
+	      {
 		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-            }
+	      }
+	    }
 
             BL_ASSERT(p.m_id > 0);
 
