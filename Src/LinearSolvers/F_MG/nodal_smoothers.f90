@@ -45,7 +45,7 @@ contains
 
     do i = is,ie
       a_ls(i-is) = sg(i-1)
-      b_ls(i-is) = -HALF*(sg(i)+sg(i-1))
+      b_ls(i-is) = -(sg(i)+sg(i-1))
       c_ls(i-is) = sg(i  )
       r_ls(i-is) = ff(i)
     end do
@@ -114,7 +114,7 @@ contains
     integer            ,intent(in   ) :: stencil_type
     integer            ,intent(in   ) :: red_black
 
-    integer            :: j, i, ipar, half_x, hi(size(lo))
+    integer            :: j, i, ipar, hi(size(lo))
     real (kind = dp_t) :: dd, ss0
     type(bl_prof_timer), save :: bpt
 
