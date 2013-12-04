@@ -1101,11 +1101,13 @@ BaseFab<T>::define ()
     {
         new (ptr) T;
     }
+
+    long tst = truesize*sizeof(T);
 #ifdef _OPENMP
 #pragma omp critical(basefab)
 #endif
     {
-        BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
+        BoxLib::total_bytes_allocated_in_fabs += tst;
 
         if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
         {
@@ -1204,10 +1206,11 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
+	long tst = truesize*sizeof(T);
 #ifdef _OPENMP
-#pragma omp critical(basefab)
+#pragma omp atomic
 #endif
-        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
+        BoxLib::total_bytes_allocated_in_fabs -= tst;
     }
 }
 
