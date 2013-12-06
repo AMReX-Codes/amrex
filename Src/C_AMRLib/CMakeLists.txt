@@ -20,7 +20,7 @@ if(BL_SPACEDIM EQUAL 3)
   set(FPP_source_files ${FPP_source_files} MAKESLICE_${BL_SPACEDIM}D.F)
 endif()
 
-set(CXX_header_files Amr.H AmrLevel.H AuxBoundaryData.H BCRec.H BC_TYPES.H Cluster.H DatasetClient.H Derive.H ErrorList.H FluxRegister.H INTERP_F.H Interpolater.H LevelBld.H PROB_AMR_F.H SLABSTAT_F.H SlabStat.H StateData.H StateDescriptor.H StationData.H TagBox.H)
+set(CXX_header_files Amr.H AmrLevel.H AuxBoundaryData.H BCRec.H BC_TYPES.H Cluster.H Derive.H ErrorList.H FluxRegister.H INTERP_F.H Interpolater.H LevelBld.H PROB_AMR_F.H SLABSTAT_F.H SlabStat.H StateData.H StateDescriptor.H StationData.H TagBox.H)
 set(FPP_header_files FLUSH_F.H FLUXREG_F.H)
 if(BL_SPACEDIM EQUAL 3)
   list(APPEND FPP_header_files MAKESLICE_F.H)
