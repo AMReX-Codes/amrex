@@ -5,8 +5,9 @@
 //
 // Set default values in Initialize()!!!
 //
-bool FabArrayBase::verbose;
+bool FabArrayBase::Verbose;
 bool FabArrayBase::do_async_sends;
+int  FabArrayBase::MaxComp;
 
 namespace
 {
@@ -25,16 +26,19 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::verbose          = true;
-    FabArrayBase::do_async_sends   = false;
+    FabArrayBase::Verbose         = true;
+    FabArrayBase::do_async_sends  = false;
+    FabArrayBase::MaxComp         = 5;
 
     copy_cache_max_size = 200;
     fb_cache_max_size   = 100;
 
     ParmParse pp("fabarray");
 
-    pp.query("verbose",             FabArrayBase::verbose);
+    pp.query("Verbose",             FabArrayBase::Verbose);
+    pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
+    pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //
@@ -44,6 +48,8 @@ FabArrayBase::Initialize ()
         fb_cache_max_size = 1;
     if (copy_cache_max_size < 1)
         copy_cache_max_size = 1;
+    if (MaxComp < 1)
+        MaxComp = 1;
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -310,7 +316,7 @@ FabArrayBase::CPC::FlushCache ()
             stats[1]++;
     }
 
-    if (FabArrayBase::verbose)
+    if (FabArrayBase::Verbose)
     {
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
@@ -608,7 +614,7 @@ FabArrayBase::FlushSICache ()
             stats[1]++;
     }
 
-    if (FabArrayBase::verbose)
+    if (FabArrayBase::Verbose)
     {
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
