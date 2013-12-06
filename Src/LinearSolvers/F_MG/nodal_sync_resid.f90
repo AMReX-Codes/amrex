@@ -187,23 +187,23 @@ contains
     real(kind=dp_t), intent(in   ) :: sgnr
     
     integer         :: i, j, k, nx, ny, nz
-    real(kind=dp_t) :: result
+    real(kind=dp_t) :: r
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,result)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,r)
     do k = 0, nz
        do j = 0, ny
           do i = 0, nx
-             result = ZERO
+             r = ZERO
              if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) ) then
                 if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
-                   result = sgnr*res(i,j,k) + dvo(i,j,k)
+                   r = sgnr*res(i,j,k) + dvo(i,j,k)
                 endif
              endif
-             res(i,j,k) = result
+             res(i,j,k) = r
           end do
        end do
     end do
