@@ -164,9 +164,6 @@ subroutine mgt_nodal_finalize(dx,bc)
 
   integer :: max_nlevel_in
   integer :: bottom_solver_in
-
-  type(boxarray) :: bac
-
   integer :: bottom_max_iter_in
 
   call mgt_verify("MGT_FINALIZE")
