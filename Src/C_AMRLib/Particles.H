@@ -571,6 +571,12 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     p.m_id  = id_in;
     p.m_cpu = cpu_in;
 
+    if (p.m_id <= 0)
+        BoxLib::Abort("Particle ID's must be > 0 in addOneParticle");
+ 
+    if (ParallelDescriptor::MyProc() != p.m_cpu)
+        BoxLib::Abort("cpu_in must equal MyProc() in addOneParticle");
+
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_pos[i] = xloc[i];
 
@@ -610,6 +616,11 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     }
 
     m_particles[p.m_lev][p.m_grid].push_back(p);
+
+    // Note that we will need to call Redistribute once we are done adding particles this way.
+    // The Where call above assigns a particle to a grid (p.m_grid) based on the particle location.
+    // However, the particle may not currently live on the processor that owns that grid.
+    // The Redistribute routine should ensure that the particle ends up on the right processor.
 }
 
 template <int N>
