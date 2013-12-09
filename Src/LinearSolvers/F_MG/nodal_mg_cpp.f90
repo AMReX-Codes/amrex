@@ -126,10 +126,13 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   integer, intent(in) :: lev, nb, dm
   integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), pm(dm), pmap(nb+1)
 
-  type(box) :: bxs(nb)
   integer   :: i
   logical   :: pmask(dm)
   integer   :: flev
+
+  type(box), allocatable :: bxs(:)
+
+  allocate(bxs(nb))
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_NODAL_LEVEL", flev)
