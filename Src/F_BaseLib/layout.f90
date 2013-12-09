@@ -596,7 +596,7 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
-    integer :: i, j, k
+    integer :: i, j, k, cnt, lcnt
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
@@ -624,13 +624,23 @@ contains
     !
     ! Get rid of boxassocs.
     !
+    cnt = 0; lcnt = 0
     bxa => lap%bxasc
     do while ( associated(bxa) )
        obxa => bxa%next
+       lcnt = lcnt + boxassoc_bytes(bxa)
        call boxassoc_destroy(bxa)
        deallocate(bxa)
        bxa => obxa
     end do
+
+    if ( verbose > 0 ) then
+       call parallel_reduce(cnt, lcnt, MPI_MAX, parallel_IOProcessorNode())
+       if ( parallel_IOProcessor() .and. cnt > 0 ) then
+          print*, '*** layout_destroy: max bytes in boxassoc (per MPI proc): ', cnt
+          call flush(6)
+       end if
+    end if
     !
     ! Get rid of fgassocs.
     !
@@ -702,6 +712,7 @@ contains
 
     logical :: lpmask(get_dim(ba))
     lpmask = .false.; if ( present(pmask) ) lpmask = pmask
+
     allocate(la%lap)
     la%la_type = LA_BASE
     call layout_rep_build(la%lap, ba, pd, lpmask, mapping, explicit_mapping)
@@ -1866,6 +1877,22 @@ contains
     call destroy(bpt)
 
   end subroutine syncassoc_build
+
+  function boxassoc_bytes(bxasc) result(nbytes)
+    use bl_error_module
+    integer :: nbytes
+    type(boxassoc), intent(in) :: bxasc
+    if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
+
+    nbytes = 0
+    nbytes = nbytes + 4 * 9;
+    nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
+    nbytes = nbytes + bxasc%r_con%nsnd * 4 * 25
+    nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
+    nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
+    nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
+
+  end function boxassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
