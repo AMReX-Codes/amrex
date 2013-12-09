@@ -668,7 +668,9 @@ contains
        do k = lbound(lap%bins,3), ubound(lap%bins,3)
           do j = lbound(lap%bins,2), ubound(lap%bins,2)
              do i = lbound(lap%bins,1), ubound(lap%bins,1)
-                deallocate(lap%bins(i,j,k)%iv)
+                if ( associated(lap%bins(i,j,k)%iv) ) then
+                   deallocate(lap%bins(i,j,k)%iv)
+                end if
              end do
           end do
        end do
@@ -2666,7 +2668,7 @@ contains
     integer :: dm, i, j, k, n
     type(box) :: bx, cbx
     integer :: lcrsn
-    integer :: sz
+    integer :: sz, cnt
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer, pointer :: ipv(:)
     type(bl_prof_timer), save :: bpt
@@ -2684,32 +2686,52 @@ contains
        lcrsn = maxval(vsz)
     end if
     la%lap%crsn = lcrsn
-    bx = boxarray_bbox(ba)
+    bx  = boxarray_bbox(ba)
     cbx = coarsen(bx, lcrsn)
     la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
     la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
     la%lap%vshft = int_coarsen(vsz, lcrsn+1)
+
     allocate(la%lap%bins(la%lap%plo(1):la%lap%phi(1),la%lap%plo(2):la%lap%phi(2),la%lap%plo(3):la%lap%phi(3)))
+
     bins => la%lap%bins
-    do k = la%lap%plo(3), la%lap%phi(3)
-       do j = la%lap%plo(2), la%lap%phi(2)
-          do i = la%lap%plo(1), la%lap%phi(1)
-             allocate(bins(i,j,k)%iv(0))
-          end do
-       end do
-    end do
+
     do n = 1, nboxes(ba)
        ext = 0; ext(1:dm) = int_coarsen(lwb(get_box(ba,n)), lcrsn)
        if ( .not. contains(cbx, ext(1:dm)) ) then
           call bl_error("init_box_hash_bin(): not contained!")
        end if
-       sz = size(bins(ext(1),ext(2),ext(3))%iv)
-       allocate(ipv(sz+1))
-       ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
-       ipv(sz+1) = n
-       deallocate(bins(ext(1),ext(2),ext(3))%iv)
+       if ( .not. associated(bins(ext(1),ext(2),ext(3))%iv) ) then
+          allocate(ipv(1))
+          ipv(1) = n
+       else
+          sz = size(bins(ext(1),ext(2),ext(3))%iv)
+          allocate(ipv(sz+1))
+          ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
+          ipv(sz+1) = n
+          deallocate(bins(ext(1),ext(2),ext(3))%iv)
+       end if
        bins(ext(1),ext(2),ext(3))%iv => ipv
     end do
+
+    if ( parallel_IOProcessor() ) then
+       !
+       ! I'm assuming pointers are eight bytes and integers four bytes.
+       !
+       cnt = size(bins,DIM=1) * size(bins,DIM=2) * size(bins,DIM=3) * 8
+       
+       do k = la%lap%plo(3), la%lap%phi(3)
+          do j = la%lap%plo(2), la%lap%phi(2)
+             do i = la%lap%plo(1), la%lap%phi(1)
+                if ( associated(bins(i,j,k)%iv) ) then
+                   cnt = cnt + size(bins(i,j,k)%iv) * 4
+                end if
+             end do
+          end do
+       end do
+
+       if ( verbose > 0 ) print*, '*** Size of hash bin in bytes: ', cnt
+    end if
 
     call destroy(bpt)
   end subroutine init_box_hash_bin
@@ -2747,6 +2769,34 @@ contains
        do k = max(lo(3)-la%lap%vshft(3)-1,la%lap%plo(3)), min(hi(3)+la%lap%vshft(3), la%lap%phi(3))
           do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
              do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+                if ( associated(bins(i,j,k)%iv) ) then
+                   do n = 1, size(bins(i,j,k)%iv)
+                      bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                      if ( empty(bx1) ) cycle
+                      cnt = cnt + 1
+
+                      if (cnt > size(bi)) then
+                         allocate(tbi(size(bi) * 2))
+                         tbi(1:cnt-1) = bi(1:cnt-1)
+                         deallocate(bi)
+                         bi => tbi
+                      end if
+
+                      bi(cnt)%i  = bins(i,j,k)%iv(n)
+                      bi(cnt)%bx = bx1
+                   end do
+                end if
+
+             end do
+          end do
+       end do
+    case (2)
+       k = 0
+       do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
+          do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+             if ( associated(bins(i,j,k)%iv) ) then
                 do n = 1, size(bins(i,j,k)%iv)
                    bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                    if ( empty(bx1) ) cycle
@@ -2762,13 +2812,16 @@ contains
                    bi(cnt)%i  = bins(i,j,k)%iv(n)
                    bi(cnt)%bx = bx1
                 end do
-             end do
+             end if
+
           end do
        end do
-    case (2)
+    case (1)
        k = 0
-       do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
-          do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+       j = 0
+       do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+          if ( associated(bins(i,j,k)%iv) ) then
              do n = 1, size(bins(i,j,k)%iv)
                 bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
@@ -2784,27 +2837,8 @@ contains
                 bi(cnt)%i  = bins(i,j,k)%iv(n)
                 bi(cnt)%bx = bx1
              end do
-          end do
-       end do
-    case (1)
-       k = 0
-       j = 0
-       do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
-          do n = 1, size(bins(i,j,k)%iv)
-             bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
-             if ( empty(bx1) ) cycle
-             cnt = cnt + 1
+          end if
 
-             if (cnt > size(bi)) then
-                allocate(tbi(size(bi) * 2))
-                tbi(1:cnt-1) = bi(1:cnt-1)
-                deallocate(bi)
-                bi => tbi
-             end if
-
-             bi(cnt)%i  = bins(i,j,k)%iv(n)
-             bi(cnt)%bx = bx1
-          end do
        end do
     end select
 
