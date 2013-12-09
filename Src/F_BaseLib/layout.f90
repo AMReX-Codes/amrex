@@ -596,7 +596,7 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
-    integer :: i, j, k, cnt, lcnt
+    integer :: cnt, lcnt
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
@@ -664,18 +664,7 @@ contains
     !
     ! Remove any boxarray hash.
     !
-    if ( associated(lap%bins) ) then
-       do k = lbound(lap%bins,3), ubound(lap%bins,3)
-          do j = lbound(lap%bins,2), ubound(lap%bins,2)
-             do i = lbound(lap%bins,1), ubound(lap%bins,1)
-                if ( associated(lap%bins(i,j,k)%iv) ) then
-                   deallocate(lap%bins(i,j,k)%iv)
-                end if
-             end do
-          end do
-       end do
-       deallocate(lap%bins)
-    end if
+    call clear_box_hash_bin(lap)
     !
     ! Remove all fluxassoc's associated with this layout_rep.
     !
@@ -2658,6 +2647,29 @@ contains
     r = flasc%dim /= 0
   end function fluxassoc_built_q
 
+  subroutine clear_box_hash_bin(lap)
+    type(layout_rep), intent(inout) :: lap
+
+    integer :: i,j,k
+
+    if ( associated(lap%bins) ) then
+
+       do k = lbound(lap%bins,3), ubound(lap%bins,3)
+          do j = lbound(lap%bins,2), ubound(lap%bins,2)
+             do i = lbound(lap%bins,1), ubound(lap%bins,1)
+                if ( associated(lap%bins(i,j,k)%iv) ) then
+                   deallocate(lap%bins(i,j,k)%iv)
+                end if
+             end do
+          end do
+       end do
+       deallocate(lap%bins)
+
+       lap%bins => Null()
+    end if
+
+  end subroutine clear_box_hash_bin
+
   subroutine init_box_hash_bin(la, crsn)
     use bl_prof_module
     use bl_error_module
@@ -2673,6 +2685,8 @@ contains
     integer, pointer :: ipv(:)
     type(bl_prof_timer), save :: bpt
     call build(bpt, "i_bx_hash")
+
+    if ( parallel_IOProcessor() ) print*, '*** building hash bin'
 
     dm = la%lap%dim
     ba = get_boxarray(la)
