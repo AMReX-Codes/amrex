@@ -197,15 +197,6 @@ subroutine mgt_nodal_finalize(dx,bc)
      call setval(mgts%vel(i),ZERO,all=.true.)
   end do
 
-  do i = nlev-1, 1, -1
-     call build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
-     call setval(mgts%mla%mask(i), val = .TRUE.) 
-     call copy(bac, mgts%mla%mba%bas(i+1))
-     call boxarray_coarsen(bac, mgts%rr(i,:))
-     call setval(mgts%mla%mask(i), .false., bac)
-     call destroy(bac) 
-  end do
-
   if (mgts%stencil_type .eq. ND_DENSE_STENCIL) then
      if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
          print *,'Using dense stencil in nodal solver ...'
