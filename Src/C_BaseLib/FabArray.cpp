@@ -297,6 +297,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         }
     }
 
+    TheCPC.m_srcba.clear_hash_bin();
+
     return cache_it;
 }
 
@@ -585,6 +587,8 @@ FabArrayBase::TheFB (bool                cross,
             }
         }
     }
+
+    ba.clear_hash_bin();
 
     return cache_it;
 }
