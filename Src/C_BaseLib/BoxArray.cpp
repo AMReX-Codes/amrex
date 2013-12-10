@@ -759,15 +759,17 @@ BoxArray::intersections (const Box&                         bx,
 
         m_ref->hash.resize(boundingbox, 1);
 
-        const long total = boundingbox.numPts()*sizeof(std::vector<int>) + size()*sizeof(int);
-
         for (int i = 0, N = size(); i < N; i++)
         {
             m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
         }
 
-        if (false && ParallelDescriptor::IOProcessor() && total)
-            std::cout << "*** intersections(): bytes in box hash: " << total << '\n';
+        if (false && ParallelDescriptor::IOProcessor())
+        {
+            const long total = boundingbox.numPts()*sizeof(std::vector<int>) + size()*sizeof(int);
+
+            std::cout << "*** BoxArray::intersections(): bytes in box hash: " << total << '\n';
+        }
     }
 
     isects.resize(0);
