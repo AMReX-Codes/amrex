@@ -275,6 +275,10 @@ public:
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
     //
+    // Clear out the internal hash table used by intersections.
+    //
+    void clear_hash_bin () const;
+    //
     // Changes the BoxArray to one with no overlap.
     // Also tries to "simplify" the BoxArray within reason.
     //

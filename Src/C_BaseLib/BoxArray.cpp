@@ -728,6 +728,12 @@ BoxArray::intersections (const Box& bx) const
 }
 
 void
+BoxArray::clear_hash_bin () const
+{
+    m_ref->hash.clear();
+}
+
+void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
