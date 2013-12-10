@@ -566,14 +566,11 @@ TagBoxArray::setVal (const BoxArray& ba,
 {
     const int N = IndexMap().size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+    std::vector< std::pair<int,Box> > isects;
+
     for (int i = 0; i < N; i++)
     {
         const int idx = IndexMap()[i];
-
-        std::vector< std::pair<int,Box> > isects;
 
         ba.intersections(box(idx),isects);
 
@@ -583,7 +580,9 @@ TagBoxArray::setVal (const BoxArray& ba,
         {
             tags.setVal(val,isects[i].second,0);
         }
-    } 
+    }
+
+    ba.clear_hash_bin();
 }
 
 void
