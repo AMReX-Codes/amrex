@@ -483,10 +483,10 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::isDisjoint () const
 {
+    std::vector< std::pair<int,Box> > isects;
+
     for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
     {
-        std::vector< std::pair<int,Box> > isects;
-
         intersections(*it,isects);
 
         if ( !(isects.size() == 1 && isects[0].second == *it) )
@@ -737,64 +737,37 @@ void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
-
-#ifdef _OPENMP
-#pragma omp critical(intersections_lock)
-#endif
+    if (!m_ref->hash.isAllocated() && size() > 0)
     {
-        if (!m_ref->hash.isAllocated() && size() > 0)
+        BL_ASSERT(bx.sameType(get(0)));
+        //
+        // Calculate the bounding box & maximum extent of the boxes.
+        //
+        IntVect maxext(D_DECL(0,0,0));
+
+        Box boundingbox = get(0);
+
+        for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
         {
-            BL_ASSERT(bx.sameType(get(0)));
-            //
-            // Calculate the bounding box & maximum extent of the boxes.
-            //
-            IntVect maxext(D_DECL(0,0,0));
-
-            Box boundingbox = get(0);
-
-            for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
-            {
-                boundingbox.minBox(*it);
-                maxext = BoxLib::max(maxext, it->size());
-
-            }
-
-            m_ref->crsn = maxext;
-
-            boundingbox.coarsen(maxext);
-
-            m_ref->hash.resize(boundingbox, 1);
-
-            long total = boundingbox.numPts()*sizeof(std::vector<int>);
-
-            for (int i = 0, N = size(); i < N; i++)
-            {
-                m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
-            }
-            //
-            // Now compress out excess capacity in vectors.
-            //
-            for (IntVect iv = boundingbox.smallEnd(), End = boundingbox.bigEnd(); iv <= End; boundingbox.next(iv))
-            {
-                std::vector<int>& v = m_ref->hash(iv);
-
-                if (!v.empty())
-                {
-                    const int N = v.size();
-
-                    std::vector<int> tmp(N);
-
-                    for (int i = 0; i < N; i++) tmp[i] = v[i];
-
-                    v.swap(tmp);
-
-                    total += N * sizeof(int);
-                }
-            }
-
-            if (false && ParallelDescriptor::IOProcessor())
-                std::cout << "*** BoxArray::intersections(): bytes in box hash: " << total << '\n';
+            boundingbox.minBox(*it);
+            maxext = BoxLib::max(maxext, it->size());
         }
+
+        m_ref->crsn = maxext;
+
+        boundingbox.coarsen(maxext);
+
+        m_ref->hash.resize(boundingbox, 1);
+
+        const long total = boundingbox.numPts()*sizeof(std::vector<int>) + size()*sizeof(int);
+
+        for (int i = 0, N = size(); i < N; i++)
+        {
+            m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
+        }
+
+        if (false && ParallelDescriptor::IOProcessor() && total)
+            std::cout << "*** intersections(): bytes in box hash: " << total << '\n';
     }
 
     isects.resize(0);
