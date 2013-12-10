@@ -3,6 +3,7 @@
 
 #include <BLassert.H>
 #include <BoxArray.H>
+#include <ParallelDescriptor.H>
 
 void
 BoxArray::reserve (long _truesize)
@@ -749,16 +750,44 @@ BoxArray::intersections (const Box&                         bx,
             {
                 boundingbox.minBox(*it);
                 maxext = BoxLib::max(maxext, it->size());
+
             }
+
             m_ref->crsn = maxext;
+
             boundingbox.coarsen(maxext);
 
             m_ref->hash.resize(boundingbox, 1);
+
+            long total = boundingbox.numPts()*sizeof(std::vector<int>);
 
             for (int i = 0, N = size(); i < N; i++)
             {
                 m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
             }
+            //
+            // Now compress out excess capacity in vectors.
+            //
+            for (IntVect iv = boundingbox.smallEnd(), End = boundingbox.bigEnd(); iv <= End; boundingbox.next(iv))
+            {
+                std::vector<int>& v = m_ref->hash(iv);
+
+                if (!v.empty())
+                {
+                    const int N = v.size();
+
+                    std::vector<int> tmp(N);
+
+                    for (int i = 0; i < N; i++) tmp[i] = v[i];
+
+                    v.swap(tmp);
+
+                    total += N * sizeof(int);
+                }
+            }
+
+            if (false && ParallelDescriptor::IOProcessor())
+                std::cout << "*** BoxArray::intersections(): bytes in box hash: " << total << '\n';
         }
     }
 
