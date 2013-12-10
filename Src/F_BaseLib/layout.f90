@@ -17,11 +17,9 @@ module layout_module
   integer, parameter :: LA_LOCAL      = 103
   integer, parameter :: LA_EXPLICIT   = 104
 
-  integer, private :: verbose = 0
-
+  integer, private :: verbose       = 0
   integer, private :: sfc_threshold = 0
-
-  integer, private :: def_mapping = LA_KNAPSACK
+  integer, private :: def_mapping   = LA_KNAPSACK
 
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
@@ -596,7 +594,6 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
-    integer :: cnt, lcnt
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
@@ -624,23 +621,13 @@ contains
     !
     ! Get rid of boxassocs.
     !
-    cnt = 0; lcnt = 0
     bxa => lap%bxasc
     do while ( associated(bxa) )
        obxa => bxa%next
-       lcnt = lcnt + boxassoc_bytes(bxa)
        call boxassoc_destroy(bxa)
        deallocate(bxa)
        bxa => obxa
     end do
-
-    if ( verbose > 1 ) then
-       call parallel_reduce(cnt, lcnt, MPI_MAX, parallel_IOProcessorNode())
-       if ( parallel_IOProcessor() .and. cnt > 0 ) then
-          print*, '*** layout_destroy: max bytes in boxassoc (per MPI proc): ', cnt
-          call flush(6)
-       end if
-    end if
     !
     ! Get rid of fgassocs.
     !
@@ -1440,7 +1427,11 @@ contains
             lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 
-    if ( anynodal ) call destroy(latmp)
+    if ( anynodal ) then
+       call destroy(latmp)
+    else
+       call clear_box_hash_bin(la%lap)
+    end if
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
@@ -1569,6 +1560,8 @@ contains
        call splice(bl, leftover)
        call list_destroy_box(pieces)
     end do
+
+    call clear_box_hash_bin(la%lap)
     !
     ! Remove any overlaps on remaining cells.
     !
@@ -2305,7 +2298,11 @@ contains
        deallocate(bi)
     end do
 
-    if ( anynodal ) call destroy(lasrctmp)
+    if ( anynodal ) then
+       call destroy(lasrctmp)
+    else
+       call clear_box_hash_bin(la_src%lap)
+    end if
 
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
@@ -2677,10 +2674,10 @@ contains
     integer, intent(in), optional :: crsn
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
-    integer :: dm, i, j, k, n
+    integer :: dm, n
     type(box) :: bx, cbx
     integer :: lcrsn
-    integer :: sz, cnt
+    integer :: sz
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer, pointer :: ipv(:)
     type(bl_prof_timer), save :: bpt
@@ -2726,25 +2723,6 @@ contains
        bins(ext(1),ext(2),ext(3))%iv => ipv
     end do
 
-    if ( parallel_IOProcessor() ) then
-       !
-       ! I'm assuming pointers are eight bytes and integers four bytes.
-       !
-       cnt = size(bins,DIM=1) * size(bins,DIM=2) * size(bins,DIM=3) * 8
-       
-       do k = la%lap%plo(3), la%lap%phi(3)
-          do j = la%lap%plo(2), la%lap%phi(2)
-             do i = la%lap%plo(1), la%lap%phi(1)
-                if ( associated(bins(i,j,k)%iv) ) then
-                   cnt = cnt + size(bins(i,j,k)%iv) * 4
-                end if
-             end do
-          end do
-       end do
-
-       if ( verbose > 1 ) print*, '*** Size of hash bin in bytes: ', cnt
-    end if
-
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
@@ -2763,9 +2741,7 @@ contains
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)
 
-    !$OMP CRITICAL(initboxhashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
-    !$OMP END CRITICAL(initboxhashbin)
 
     allocate(bi(ChunkSize))
 
