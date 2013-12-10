@@ -2686,8 +2686,6 @@ contains
     type(bl_prof_timer), save :: bpt
     call build(bpt, "i_bx_hash")
 
-    if ( parallel_IOProcessor() ) print*, '*** building hash bin'
-
     dm = la%lap%dim
     ba = get_boxarray(la)
     vsz = 0; vsz(1:dm) = -Huge(1)
