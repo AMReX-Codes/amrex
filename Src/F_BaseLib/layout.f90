@@ -634,7 +634,7 @@ contains
        bxa => obxa
     end do
 
-    if ( verbose > 0 ) then
+    if ( verbose > 1 ) then
        call parallel_reduce(cnt, lcnt, MPI_MAX, parallel_IOProcessorNode())
        if ( parallel_IOProcessor() .and. cnt > 0 ) then
           print*, '*** layout_destroy: max bytes in boxassoc (per MPI proc): ', cnt
@@ -2742,7 +2742,7 @@ contains
           end do
        end do
 
-       if ( verbose > 0 ) print*, '*** Size of hash bin in bytes: ', cnt
+       if ( verbose > 1 ) print*, '*** Size of hash bin in bytes: ', cnt
     end if
 
     call destroy(bpt)
