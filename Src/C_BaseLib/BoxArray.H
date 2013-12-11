@@ -3,6 +3,8 @@
 #define BL_BOXARRAY_H
 
 #include <cstddef>
+#include <map>
+
 #include <IndexType.H>
 #include <BoxList.H>
 #include <Array.H>
@@ -313,10 +315,14 @@ private:
         // The data.
         //
         Array<Box> m_abox;
+        //
+        // Box hash stuff.
+        //
+        mutable Box bbox;
 
         mutable IntVect crsn;
 
-        mutable BaseFab< std::vector<int> > hash;
+        mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
     };
     //
     // Make ourselves unique.
