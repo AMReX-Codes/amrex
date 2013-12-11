@@ -2121,7 +2121,6 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 
     MultiFab* gv_pointer;
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
-    // if (gv.boxArray() == m_amr->ParticleBoxArray(lev))
     {
         gv_pointer = &gv;
     }
