@@ -737,38 +737,43 @@ void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
-    if (!m_ref->hash.isAllocated() && size() > 0)
+#ifdef _OPENMP
+    #pragma omp critical(intersections_lock)
+#endif
     {
-        BL_ASSERT(bx.sameType(get(0)));
-        //
-        // Calculate the bounding box & maximum extent of the boxes.
-        //
-        IntVect maxext(D_DECL(0,0,0));
-
-        Box boundingbox = get(0);
-
-        for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+        if (!m_ref->hash.isAllocated() && size() > 0)
         {
-            boundingbox.minBox(*it);
-            maxext = BoxLib::max(maxext, it->size());
-        }
+            BL_ASSERT(bx.sameType(get(0)));
+            //
+            // Calculate the bounding box & maximum extent of the boxes.
+            //
+            IntVect maxext(D_DECL(0,0,0));
 
-        m_ref->crsn = maxext;
+            Box boundingbox = get(0);
 
-        boundingbox.coarsen(maxext);
+            for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+            {
+                boundingbox.minBox(*it);
+                maxext = BoxLib::max(maxext, it->size());
+            }
 
-        m_ref->hash.resize(boundingbox, 1);
+            m_ref->crsn = maxext;
 
-        for (int i = 0, N = size(); i < N; i++)
-        {
-            m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
-        }
+            boundingbox.coarsen(maxext);
 
-        if (false && ParallelDescriptor::IOProcessor())
-        {
-            const long total = boundingbox.numPts()*sizeof(std::vector<int>) + size()*sizeof(int);
+            m_ref->hash.resize(boundingbox, 1);
 
-            std::cout << "*** BoxArray::intersections(): bytes in box hash: " << total << '\n';
+            for (int i = 0, N = size(); i < N; i++)
+            {
+                m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
+            }
+
+            if (false && ParallelDescriptor::IOProcessor())
+            {
+                const long total = boundingbox.numPts()*sizeof(std::vector<int>) + size()*sizeof(int);
+
+                std::cout << "*** BoxArray::intersections(): bytes in box hash: " << total << '\n';
+            }
         }
     }
 
