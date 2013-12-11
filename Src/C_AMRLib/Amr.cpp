@@ -345,9 +345,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
            regrid_int[i]  = 0;
     }
 
+    // Make the default ref_ratio = 2 for all levels.
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
-        ref_ratio[i] = IntVect::TheZeroVector();
+        ref_ratio[i] = 2 * IntVect::TheUnitVector();
 
     //
     // Read other amr specific values.
@@ -393,7 +394,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         }
         else
         {
-            BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
+            BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
     
@@ -1785,6 +1786,13 @@ Amr::timeStep (int  level,
     amr_level[level].post_timestep(iteration);
 }
 
+Real
+Amr::coarseTimeStepDt (Real stop_time)
+{
+    coarseTimeStep(stop_time);
+    return dt_level[0];
+}
+
 void
 Amr::coarseTimeStep (Real stop_time)
 {
@@ -3008,23 +3016,15 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
 void 
 Amr::addOneParticle (int id_in, int cpu_in, 
                      std::vector<double>& xloc, std::vector<double>& attributes)
-
 {
     amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
-#endif
-
-#ifdef USE_EXTERNAL_GEOMETRY
 void 
-Amr::setBoundaryGeometry(IrregularDomain* boundary_obj_in)
+Amr::RedistributeParticles ()
 {
-    boundary_object = boundary_obj_in; 
-}
-
-IrregularDomain* 
-Amr::getBoundaryGeometry()
-{
-    return boundary_object;
+    // Call Redistribute with where_already_called = false
+    //                        full_where           = false
+    //                        lev_min              = 0
+    amr_level[0].particle_redistribute(0,true);
 }
 #endif
-

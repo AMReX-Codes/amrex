@@ -382,6 +382,11 @@ public:
     virtual void addOneParticle (int id_in, int cpu_in,
                                  std::vector<double>& xloc, 
                                  std::vector<double>& attributes) {;}
+
+    //
+    // Add this function which can be called from the parent 
+    //
+    virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
 #endif
 
 protected:
