@@ -3535,9 +3535,6 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
                     // Load the ID
                     part_ids[cnt] = p.m_id;
 
-                    std::cout << "LOADINGF PART: PROC CNT ID " << 
-                       ParallelDescriptor::MyProc() << " " << cnt << " " << p.m_id <<  std::endl;
-
                     // Update counter
                     cnt++;
                 }
