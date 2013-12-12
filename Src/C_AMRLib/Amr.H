@@ -427,6 +427,12 @@ public:
     // Redistribute after adding particles
     //
     void RedistributeParticles ();
+    //
+    // Get particle data out of the Particle Class
+    //
+    void GetParticleIDs       (Array<int>&  part_ids);
+    void GetParticleLocations (Array<Real>& part_locs);
+    void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif
 
 protected:

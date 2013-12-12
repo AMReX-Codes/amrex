@@ -3027,4 +3027,28 @@ Amr::RedistributeParticles ()
     //                        lev_min              = 0
     amr_level[0].particle_redistribute(0,true);
 }
+void
+Amr::GetParticleIDs (Array<int>& part_ids)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleIDs(part_ids);
+}
+void
+Amr::GetParticleLocations (Array<Real>& part_data)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleLocations(part_data);
+}
+void 
+Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleData(part_data,start_comp,num_comp);
+}
 #endif
