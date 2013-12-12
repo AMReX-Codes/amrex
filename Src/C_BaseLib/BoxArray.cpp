@@ -739,6 +739,7 @@ BoxArray::intersections (const Box&                         bx,
 {
     std::map< IntVect,std::vector<int>,IntVect::Compare >& BoxHashMap = m_ref->hash;
 
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
     typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
 
 #ifdef _OPENMP
@@ -774,9 +775,32 @@ BoxArray::intersections (const Box&                         bx,
 
             if (false && ParallelDescriptor::IOProcessor())
             {
+                //
+                // Squeeze out spare memory in vectors & output some statistics.
+                //
+                int maxcnt = 0, compressed = 0;
+
+                for (BoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
+                     it != End;
+                     ++it)
+                {
+                    const int extra = (it->second.capacity() - it->second.size());
+
+                    if (it->second.size() > maxcnt) maxcnt = it->second.size();
+
+                    if (extra)
+                    {
+                        compressed += extra * sizeof(int);
+                        std::vector<int> tmp(it->second);
+                        it->second.swap(tmp);
+                    }
+                }
+
                 std::cout << " *** hash intersector: size: " << BoxHashMap.size()
                           << ", ba.size: " << size()
-                          << ", bbox.numPts: " << boundingbox.numPts() << '\n';
+                          << ", bbox.numPts: " << boundingbox.numPts()
+                          << ", compressed: " << compressed
+                          << ", maxcnt: " << maxcnt << '\n';
             }
         }
     }
@@ -789,9 +813,9 @@ BoxArray::intersections (const Box&                         bx,
     {
         BL_ASSERT(bx.sameType(get(0)));
 
-        Box     cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        IntVect sm  = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        IntVect bg  = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+        Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
+        const IntVect  sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect  bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         cbx = Box(sm,bg,bx.ixType());
 
