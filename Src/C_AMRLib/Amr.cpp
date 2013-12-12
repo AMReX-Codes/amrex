@@ -3036,6 +3036,14 @@ Amr::GetParticleIDs (Array<int>& part_ids)
     amr_level[0].GetParticleIDs(part_ids);
 }
 void
+Amr::GetParticleCPU (Array<int>& part_cpu)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleCPU(part_cpu);
+}
+void
 Amr::GetParticleLocations (Array<Real>& part_data)
 {
     //

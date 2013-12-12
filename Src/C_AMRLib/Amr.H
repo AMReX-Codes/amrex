@@ -431,6 +431,7 @@ public:
     // Get particle data out of the Particle Class
     //
     void GetParticleIDs       (Array<int>&  part_ids);
+    void GetParticleCPU       (Array<int>&  part_cpu);
     void GetParticleLocations (Array<Real>& part_locs);
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif

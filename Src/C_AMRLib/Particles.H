@@ -306,6 +306,7 @@ public:
     void MultiplyParticleMass (int lev, Real mult);
 
     void GetParticleIDs        (Array<int> & part_ids);
+    void GetParticleCPU        (Array<int> & part_cpu);
     void GetParticleLocations  (Array<Real>& part_locs);
     void GetParticleVelocities (Array<Real>& part_vels);
     void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
@@ -3506,6 +3507,8 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
     for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
         cnt += cnts[iproc];
 
+    std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
+
     // Each particle takes up 1 int so no need to multiply cnt by anything
 #endif
 
@@ -3532,6 +3535,9 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
                     // Load the ID
                     part_ids[cnt] = p.m_id;
 
+                    std::cout << "LOADINGF PART: PROC CNT ID " << 
+                       ParallelDescriptor::MyProc() << " " << cnt << " " << p.m_id <<  std::endl;
+
                     // Update counter
                     cnt++;
                 }
@@ -3540,6 +3546,72 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
     }
 
     ParallelDescriptor::ReduceIntSum(part_ids.dataPtr(),part_ids.size()); 
+}
+
+template <int N>
+void
+ParticleContainer<N>::GetParticleCPU (Array<int>& part_cpu)
+{
+    //
+    // This gives us the starting point into the part_cpu array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
+
+#if BL_USE_MPI
+    Array<long> cnts(ParallelDescriptor::NProcs());
+
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
+
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
+
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
+
+    // Each particle takes up 1 int so no need to multiply cnt by anything
+#endif
+
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
+
+    // Locations
+    part_cpu.resize(npart,0);
+
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
+    
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load the ID
+                    part_cpu[cnt] = p.m_cpu;
+
+                    // Update counter
+                    cnt++;
+                }
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceIntSum(part_cpu.dataPtr(),part_cpu.size()); 
 }
 
 template <int N>
