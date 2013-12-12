@@ -393,6 +393,7 @@ public:
     //     an Amr* amrptr.
     //
     virtual void GetParticleIDs       (Array<int>&  part_ids ) {;}
+    virtual void GetParticleCPU       (Array<int>&  part_cpu ) {;}
     virtual void GetParticleLocations (Array<Real>& part_locs) {;}
     virtual void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp) {;}
 
