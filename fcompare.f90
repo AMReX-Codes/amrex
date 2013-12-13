@@ -94,6 +94,13 @@ program fcompare
      farg = farg + 1
   enddo
 
+  if (len_trim(plotfile_a) == 0) &
+     call get_command_argument(farg, value = plotfile_a)
+
+  if (len_trim(plotfile_b) == 0) &
+     call get_command_argument(farg, value = plotfile_b)
+
+
   if (len_trim(plotfile_a) == 0 .OR. len_trim(plotfile_b) == 0) then
      print *, " "
      print *, "Compare two plotfiles, zone by zone, to machine precision"
@@ -102,6 +109,9 @@ program fcompare
      print *, " "
      print *, "usage:"
      print *, "   fcompare --infile1 file1 --infile2 file2"
+     print *, ' '
+     print *, ' or '
+     print *, "   fcompare file1 file2"
      print *, " "
      stop
   endif
