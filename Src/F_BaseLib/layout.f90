@@ -2674,7 +2674,7 @@ contains
     integer, intent(in), optional :: crsn
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
-    integer :: dm, n
+    integer :: dm, n, i, j, k, cnt, full
     type(box) :: bx, cbx
     integer :: lcrsn
     integer :: sz
@@ -2722,6 +2722,20 @@ contains
        end if
        bins(ext(1),ext(2),ext(3))%iv => ipv
     end do
+
+    if ( .false. .and. parallel_IOProcessor() ) then
+       cnt = size(bins,dim=1)*size(bins,dim=2)*size(bins,dim=3); full = 0
+       do k = la%lap%plo(3),la%lap%phi(3)
+          do j = la%lap%plo(2),la%lap%phi(2)
+             do i = la%lap%plo(1),la%lap%phi(1)
+                if ( associated(bins(i,j,k)%iv) ) full = full + 1
+             end do
+          end do
+       end do
+       if ( cnt > 0 ) then
+          write(6,'(A I6 A I3)') '*** init_box_hash_bin: bins: ', cnt, ' %full: ', INT(REAL(full)/cnt*100)
+       endif
+    end if
 
     call destroy(bpt)
   end subroutine init_box_hash_bin
