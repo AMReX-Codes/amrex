@@ -338,11 +338,12 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
+    // Make the default regrid_int = 1 for all levels.
     if (max_level > 0) 
     {
        regrid_int.resize(max_level);
        for (i = 0; i < max_level; i++)
-           regrid_int[i]  = 0;
+           regrid_int[i]  = 1;
     }
 
     // Make the default ref_ratio = 2 for all levels.
@@ -477,6 +478,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
            {
                regrid_int[i] = the_regrid_int;
            }
+       }
+       else if (numvals == 0)
+       {
+           BoxLib::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
