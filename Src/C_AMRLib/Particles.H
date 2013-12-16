@@ -241,7 +241,7 @@ struct ParticleContainerBase
     virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
                                 Real a_old = 1.0, Real a_half = 1.0) = 0;
     virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
-                                Real a_new = 1.0, Real a_half = 1.0) = 0;
+                                Real a_new = 1.0, Real a_half = 1.0, int start_comp_for_accel = -1) = 0;
     virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
                                 Real a_old = 1.0, Real a_half = 1.0) = 0;
     virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
@@ -373,7 +373,8 @@ public:
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
     void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
+    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0,
+                        int start_comp_for_accel = -1);
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
@@ -4233,16 +4234,18 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
 }
 
 //
-// This version takes as input the gravity vector at cell centers
+// This version takes as input the acceleration vector at cell centers, and has the option of
+//      returning the acceleration at the particle location in the data array, starting at
+//      component start_comp_for_accel
 //
-
 template <int N>
 void
 ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt,
                                 Real            a_new,
-                                Real            a_half) 
+                                Real            a_half, 
+                                int             start_comp_for_accel)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -4304,6 +4307,13 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                 D_TERM(p.m_data[1] *= a_new_inv;,
                        p.m_data[2] *= a_new_inv;,
                        p.m_data[3] *= a_new_inv;);
+
+                if (start_comp_for_accel > BL_SPACEDIM)
+                {
+                   D_TERM(p.m_data[start_comp_for_accel  ] = grav[0];,
+                          p.m_data[start_comp_for_accel+1] = grav[1];,
+                          p.m_data[start_comp_for_accel+2] = grav[2];);
+                }
             }
         }
     }
