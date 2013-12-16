@@ -893,8 +893,6 @@ BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      MultiFabId              faid2,
 		      Real                    t1,
 		      Real                    t2,
-		      Array<MultiFabId>&      faidm,
-		      Array<Real>&            tm,
 		      Real                    t,
 		      int                     src_comp,
 		      int                     dest_comp,
@@ -902,7 +900,6 @@ BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
-    const int  ntm  = tm.size(); 
 
     BL_ASSERT(extrap || ( (t>=t1-teps) && (t <= t2+teps) ) );
 
@@ -926,7 +923,7 @@ BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                                                    dest_comp,
                                                    num_comp);
     }
-    else if (ntm == 0)
+    else
     {
         returnedFillBoxIds.resize(2);
         BoxList tempUnfilledBoxes(subbox.ixType());
@@ -947,47 +944,6 @@ BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
         // same so only use returnUnfilledBoxes from one AddBox here.
         //
     }
-    else
-    {
-	for (int i=0; i<ntm; i++)
-	{
-	    if (t >= tm[i]-teps && t <= tm[i]+teps)
-	    {
-		returnedFillBoxIds.resize(1);
-		returnedFillBoxIds[0] = fabCopyDesc.AddBox(faidm[i],
-							   subbox,
-							   returnUnfilledBoxes,
-							   src_comp,
-							   dest_comp,
-							   num_comp);
-		return;
-	    }
-	}
-
-        returnedFillBoxIds.resize(2+ntm);
-        BoxList tempUnfilledBoxes(subbox.ixType());
-        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1,
-                                                   subbox,
-                                                   returnUnfilledBoxes,
-                                                   src_comp,
-                                                   dest_comp,
-                                                   num_comp);
-        returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2,
-                                                   subbox,
-                                                   &tempUnfilledBoxes,
-                                                   src_comp,
-                                                   dest_comp,
-                                                   num_comp);	
-	for (int i=0; i<ntm; i++)
-	{
-	    returnedFillBoxIds[2+i] = fabCopyDesc.AddBox(faidm[i],
-							 subbox,
-							 &tempUnfilledBoxes,
-							 src_comp,
-							 dest_comp,
-							 num_comp);	
-	}
-    }
 }
 
 void
@@ -998,8 +954,6 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       FArrayBox&              dest,
 		       Real                    t1,
 		       Real                    t2,
-		       Array<MultiFabId>&      faidm,
-		       Array<Real>&            tm,
 		       Real                    t,
 		       int                     src_comp,   // these comps need to be removed
 		       int                     dest_comp,  // from this routine
@@ -1007,7 +961,6 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 		       bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
-    const int  ntm  = tm.size(); 
 
     BL_ASSERT(extrap || ( (t>=t1-teps) && (t <= t2+teps) ) );
 
@@ -1019,7 +972,7 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     {
         fabCopyDesc.FillFab(faid2, fillBoxIds[0], dest);
     }
-    else if (ntm == 0)
+    else
     {
         BL_ASSERT(dest_comp + num_comp <= dest.nComp());
 
@@ -1039,55 +992,6 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                        dest.box(),
                        dest_comp,
                        num_comp);
-    }
-    else {
-	for (int i=0; i<ntm; i++)
-	{
-	    if (t >= tm[i]-teps && t <= tm[i]+teps)
-	    {
-		fabCopyDesc.FillFab(faidm[i], fillBoxIds[0], dest);
-		return;
-	    }
-	}
-
-	BL_ASSERT(dest_comp + num_comp <= dest.nComp());
-
-	Array<Real> tsrc;
-	Array<FArrayBox*> src(2+ntm);
-	for (int i=0; i<2+ntm; i++)
-	{
-	    src[i] = new FArrayBox(dest.box(), dest.nComp());
-	    src[i]->setVal(Real(1.e30)); // FIXME - Whats a better value?
-	}
-
-	tsrc[0] = t1;
-	fabCopyDesc.FillFab(faid1, fillBoxIds[0], *(src[0]));
-	for (int i=0; i<ntm; i++)
-	{
-	    tsrc[1+i] = tm[i];
-	    fabCopyDesc.FillFab(faidm[i], fillBoxIds[2+i], *(src[1+i]));	    
-	}
-	tsrc[1+ntm] = t2;
-	fabCopyDesc.FillFab(faid2, fillBoxIds[1], *(src[1+ntm]));
-
-	Array< BaseFab<Real>* > src_bf(2+ntm);
-	for (int i=0; i<2+ntm; i++)
-	{
-	    src_bf[i] = src[i];
-	}	
-
-	dest.polyInterp(src_bf,
-			src_comp,
-			tsrc,
-			t,
-			dest.box(),
-			dest_comp,
-			num_comp);
-
-	for (int i=0; i<src.size(); i++)
-	{
-	    delete src[i];
-	}	
     }
 }
 

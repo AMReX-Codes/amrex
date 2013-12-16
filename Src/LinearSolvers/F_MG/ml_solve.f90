@@ -138,7 +138,7 @@ contains
 ! ******************************************************************************************
 !
 
-   subroutine ml_nd_solve(mla,mgt,rh,full_soln,one_sided_ss,ref_ratio,do_diagnostics,&
+   subroutine ml_nd_solve(mla,mgt,rh,full_soln,ref_ratio,do_diagnostics,&
                           rel_eps_in,abs_eps_in)
 
        use ml_nd_module, only : ml_nd
@@ -147,7 +147,6 @@ contains
        type(mg_tower) , intent(inout)           :: mgt(:)
        type(multifab) , intent(inout)           :: rh(:)
        type(multifab) , intent(inout)           :: full_soln(:)
-       type(multifab) , intent(in   )           :: one_sided_ss(2:)
        integer        , intent(in   )           :: ref_ratio(:,:)
        integer        , intent(in   )           :: do_diagnostics 
        real(dp_t)     , intent(in   ), optional :: rel_eps_in
@@ -179,7 +178,7 @@ contains
           endif
        end do
 
-       call ml_nd(mla,mgt,rh,full_soln,fine_mask,one_sided_ss,ref_ratio,do_diagnostics,&
+       call ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,&
                   rel_eps,abs_eps)
      
        do n = 1,nlevs

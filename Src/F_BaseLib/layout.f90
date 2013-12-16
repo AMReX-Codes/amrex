@@ -17,11 +17,9 @@ module layout_module
   integer, parameter :: LA_LOCAL      = 103
   integer, parameter :: LA_EXPLICIT   = 104
 
-  integer, private :: verbose = 0
-
+  integer, private :: verbose       = 0
   integer, private :: sfc_threshold = 0
-
-  integer, private :: def_mapping = LA_KNAPSACK
+  integer, private :: def_mapping   = LA_KNAPSACK
 
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
@@ -596,7 +594,6 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
-    integer :: i, j, k
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
@@ -654,16 +651,7 @@ contains
     !
     ! Remove any boxarray hash.
     !
-    if ( associated(lap%bins) ) then
-       do k = lbound(lap%bins,3), ubound(lap%bins,3)
-          do j = lbound(lap%bins,2), ubound(lap%bins,2)
-             do i = lbound(lap%bins,1), ubound(lap%bins,1)
-                deallocate(lap%bins(i,j,k)%iv)
-             end do
-          end do
-       end do
-       deallocate(lap%bins)
-    end if
+    call clear_box_hash_bin(lap)
     !
     ! Remove all fluxassoc's associated with this layout_rep.
     !
@@ -702,6 +690,7 @@ contains
 
     logical :: lpmask(get_dim(ba))
     lpmask = .false.; if ( present(pmask) ) lpmask = pmask
+
     allocate(la%lap)
     la%la_type = LA_BASE
     call layout_rep_build(la%lap, ba, pd, lpmask, mapping, explicit_mapping)
@@ -1438,7 +1427,11 @@ contains
             lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 
-    if ( anynodal ) call destroy(latmp)
+    if ( anynodal ) then
+       call destroy(latmp)
+    else
+       call clear_box_hash_bin(la%lap)
+    end if
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
@@ -1567,6 +1560,8 @@ contains
        call splice(bl, leftover)
        call list_destroy_box(pieces)
     end do
+
+    call clear_box_hash_bin(la%lap)
     !
     ! Remove any overlaps on remaining cells.
     !
@@ -1866,6 +1861,22 @@ contains
     call destroy(bpt)
 
   end subroutine syncassoc_build
+
+  function boxassoc_bytes(bxasc) result(nbytes)
+    use bl_error_module
+    integer :: nbytes
+    type(boxassoc), intent(in) :: bxasc
+    if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
+
+    nbytes = 0
+    nbytes = nbytes + 4 * 9;
+    nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
+    nbytes = nbytes + bxasc%r_con%nsnd * 4 * 25
+    nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
+    nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
+    nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
+
+  end function boxassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
@@ -2287,7 +2298,11 @@ contains
        deallocate(bi)
     end do
 
-    if ( anynodal ) call destroy(lasrctmp)
+    if ( anynodal ) then
+       call destroy(lasrctmp)
+    else
+       call clear_box_hash_bin(la_src%lap)
+    end if
 
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
@@ -2629,6 +2644,29 @@ contains
     r = flasc%dim /= 0
   end function fluxassoc_built_q
 
+  subroutine clear_box_hash_bin(lap)
+    type(layout_rep), intent(inout) :: lap
+
+    integer :: i,j,k
+
+    if ( associated(lap%bins) ) then
+
+       do k = lbound(lap%bins,3), ubound(lap%bins,3)
+          do j = lbound(lap%bins,2), ubound(lap%bins,2)
+             do i = lbound(lap%bins,1), ubound(lap%bins,1)
+                if ( associated(lap%bins(i,j,k)%iv) ) then
+                   deallocate(lap%bins(i,j,k)%iv)
+                end if
+             end do
+          end do
+       end do
+       deallocate(lap%bins)
+
+       lap%bins => Null()
+    end if
+
+  end subroutine clear_box_hash_bin
+
   subroutine init_box_hash_bin(la, crsn)
     use bl_prof_module
     use bl_error_module
@@ -2636,7 +2674,7 @@ contains
     integer, intent(in), optional :: crsn
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
-    integer :: dm, i, j, k, n
+    integer :: dm, n, i, j, k, cnt, full
     type(box) :: bx, cbx
     integer :: lcrsn
     integer :: sz
@@ -2657,32 +2695,47 @@ contains
        lcrsn = maxval(vsz)
     end if
     la%lap%crsn = lcrsn
-    bx = boxarray_bbox(ba)
+    bx  = boxarray_bbox(ba)
     cbx = coarsen(bx, lcrsn)
     la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
     la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
     la%lap%vshft = int_coarsen(vsz, lcrsn+1)
+
     allocate(la%lap%bins(la%lap%plo(1):la%lap%phi(1),la%lap%plo(2):la%lap%phi(2),la%lap%plo(3):la%lap%phi(3)))
+
     bins => la%lap%bins
-    do k = la%lap%plo(3), la%lap%phi(3)
-       do j = la%lap%plo(2), la%lap%phi(2)
-          do i = la%lap%plo(1), la%lap%phi(1)
-             allocate(bins(i,j,k)%iv(0))
-          end do
-       end do
-    end do
+
     do n = 1, nboxes(ba)
        ext = 0; ext(1:dm) = int_coarsen(lwb(get_box(ba,n)), lcrsn)
        if ( .not. contains(cbx, ext(1:dm)) ) then
           call bl_error("init_box_hash_bin(): not contained!")
        end if
-       sz = size(bins(ext(1),ext(2),ext(3))%iv)
-       allocate(ipv(sz+1))
-       ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
-       ipv(sz+1) = n
-       deallocate(bins(ext(1),ext(2),ext(3))%iv)
+       if ( .not. associated(bins(ext(1),ext(2),ext(3))%iv) ) then
+          allocate(ipv(1))
+          ipv(1) = n
+       else
+          sz = size(bins(ext(1),ext(2),ext(3))%iv)
+          allocate(ipv(sz+1))
+          ipv(1:sz) = bins(ext(1),ext(2),ext(3))%iv(1:sz)
+          ipv(sz+1) = n
+          deallocate(bins(ext(1),ext(2),ext(3))%iv)
+       end if
        bins(ext(1),ext(2),ext(3))%iv => ipv
     end do
+
+    if ( .false. .and. parallel_IOProcessor() ) then
+       cnt = size(bins,dim=1)*size(bins,dim=2)*size(bins,dim=3); full = 0
+       do k = la%lap%plo(3),la%lap%phi(3)
+          do j = la%lap%plo(2),la%lap%phi(2)
+             do i = la%lap%plo(1),la%lap%phi(1)
+                if ( associated(bins(i,j,k)%iv) ) full = full + 1
+             end do
+          end do
+       end do
+       if ( cnt > 0 ) then
+          write(6,'(A I6 A I3)') '*** init_box_hash_bin: bins: ', cnt, ' %full: ', INT(REAL(full)/cnt*100)
+       endif
+    end if
 
     call destroy(bpt)
   end subroutine init_box_hash_bin
@@ -2720,6 +2773,34 @@ contains
        do k = max(lo(3)-la%lap%vshft(3)-1,la%lap%plo(3)), min(hi(3)+la%lap%vshft(3), la%lap%phi(3))
           do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
              do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+                if ( associated(bins(i,j,k)%iv) ) then
+                   do n = 1, size(bins(i,j,k)%iv)
+                      bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                      if ( empty(bx1) ) cycle
+                      cnt = cnt + 1
+
+                      if (cnt > size(bi)) then
+                         allocate(tbi(size(bi) * 2))
+                         tbi(1:cnt-1) = bi(1:cnt-1)
+                         deallocate(bi)
+                         bi => tbi
+                      end if
+
+                      bi(cnt)%i  = bins(i,j,k)%iv(n)
+                      bi(cnt)%bx = bx1
+                   end do
+                end if
+
+             end do
+          end do
+       end do
+    case (2)
+       k = 0
+       do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
+          do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+             if ( associated(bins(i,j,k)%iv) ) then
                 do n = 1, size(bins(i,j,k)%iv)
                    bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                    if ( empty(bx1) ) cycle
@@ -2735,13 +2816,16 @@ contains
                    bi(cnt)%i  = bins(i,j,k)%iv(n)
                    bi(cnt)%bx = bx1
                 end do
-             end do
+             end if
+
           end do
        end do
-    case (2)
+    case (1)
        k = 0
-       do j = max(lo(2)-la%lap%vshft(2)-1,la%lap%plo(2)), min(hi(2)+la%lap%vshft(2), la%lap%phi(2))
-          do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+       j = 0
+       do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
+
+          if ( associated(bins(i,j,k)%iv) ) then
              do n = 1, size(bins(i,j,k)%iv)
                 bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
                 if ( empty(bx1) ) cycle
@@ -2757,27 +2841,8 @@ contains
                 bi(cnt)%i  = bins(i,j,k)%iv(n)
                 bi(cnt)%bx = bx1
              end do
-          end do
-       end do
-    case (1)
-       k = 0
-       j = 0
-       do i = max(lo(1)-la%lap%vshft(1)-1,la%lap%plo(1)), min(hi(1)+la%lap%vshft(1), la%lap%phi(1))
-          do n = 1, size(bins(i,j,k)%iv)
-             bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
-             if ( empty(bx1) ) cycle
-             cnt = cnt + 1
+          end if
 
-             if (cnt > size(bi)) then
-                allocate(tbi(size(bi) * 2))
-                tbi(1:cnt-1) = bi(1:cnt-1)
-                deallocate(bi)
-                bi => tbi
-             end if
-
-             bi(cnt)%i  = bins(i,j,k)%iv(n)
-             bi(cnt)%bx = bx1
-          end do
        end do
     end select
 

@@ -53,7 +53,7 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
 
       if ( cdir .eq. 0 ) then
          do n = 1, nc
@@ -132,7 +132,7 @@ c-----------------------------------------------------------------------
      
       integer n, i, j, k
 
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
      
       if ( cdir .eq. 0 ) then
          do n = 1, nc
@@ -209,7 +209,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k)
+!$omp parallel private(i,j,k,n)
       do n = 1, nc
 !$omp do
          do k = lo(3), hi(3)

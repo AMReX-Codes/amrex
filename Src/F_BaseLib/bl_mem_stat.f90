@@ -81,9 +81,8 @@ contains
 
   subroutine mem_stats_alloc_c(ms)
     type(mem_stats), intent(inout) :: ms
-    !$OMP CRITICAL(memstats)
+    !$OMP ATOMIC
     ms%cnt_alloc = ms%cnt_alloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_c
 
   subroutine mem_stats_dealloc_ll(ms, vol)
@@ -106,9 +105,8 @@ contains
 
   subroutine mem_stats_dealloc_c(ms)
     type(mem_stats), intent(inout) :: ms
-    !$OMP CRITICAL(memstats)
+    !$OMP ATOMIC
     ms%cnt_dealloc = ms%cnt_dealloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_c
 
 end module bl_mem_stat_module

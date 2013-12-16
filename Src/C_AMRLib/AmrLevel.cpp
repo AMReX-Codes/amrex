@@ -83,8 +83,6 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     state.resize(desc_lst.size());
 
-    const Array<Real>& t_nodes = parent->tNodes(level);
-
     // Note that this creates a distribution map associated with grids.
     for (int i = 0; i < state.size(); i++)
     {
@@ -92,8 +90,7 @@ AmrLevel::AmrLevel (Amr&            papa,
                         grids,
                         desc_lst[i],
                         time,
-                        parent->dtLevel(lev),
-			t_nodes);
+                        parent->dtLevel(lev));
     }
 
 #ifdef USE_PARTICLES
@@ -347,24 +344,6 @@ AmrLevel::removeOldData ()
 }
 
 void
-AmrLevel::allocMidData ()
-{
-    for (int i = 0; i < desc_lst.size(); i++)
-    {
-        state[i].allocMidData();
-    }
-}
-
-void
-AmrLevel::removeMidData ()
-{
-    for (int i = 0; i < desc_lst.size(); i++)
-    {
-        state[i].removeMidData();
-    }
-}
-
-void
 AmrLevel::reset ()
 {
     for (int i = 0; i < desc_lst.size(); i++)
@@ -380,7 +359,6 @@ AmrLevel::get_data (int  state_indx,
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
     const Real eps = 0.001*(new_time - old_time);
-    const int  n_mid_data = state[state_indx].sizeMidData();
 
     if (time > old_time-eps && time < old_time+eps)
     {
@@ -389,17 +367,6 @@ AmrLevel::get_data (int  state_indx,
     else if (time > new_time-eps && time < new_time+eps)
     {
         return get_new_data(state_indx);
-    }
-    else if (n_mid_data > 0)
-    {
-	for (int i=0; i < n_mid_data; i++)
-	{
-	    const Real mid_time = state[state_indx].midTime(i);
-	    if (time > mid_time-eps && time < mid_time+eps)
-	    {
-		return get_mid_data(state_indx, i);
-	    }
-	}
     }
 
     BoxLib::Error("get_data: invalid time");

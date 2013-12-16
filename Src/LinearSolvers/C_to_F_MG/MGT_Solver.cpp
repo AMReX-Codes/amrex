@@ -144,7 +144,8 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       int stencil_type,
 		       bool _have_rhcc,
                        int nc,
-                       int ncomp)
+                       int ncomp,
+                       int verbose)
     :
     m_nlevel(grids.size()),
     m_grids(grids),
@@ -153,7 +154,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 {
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,stencil_type,dmap,nc,ncomp);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp,verbose);
 }
 
 
@@ -163,7 +164,8 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
                   int stencil_type,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
-                  int ncomp)
+                  int ncomp,
+                  int verbose)
     
 {
    if (!initialized)
@@ -172,19 +174,25 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   BL_ASSERT(m_grids.size()==m_nlevel);
   BL_ASSERT(   dmap.size()==m_nlevel);
   int dm = BL_SPACEDIM;
+  //
+  // The default for "verbose" is false.
+  // If it's true we use it since the user had to have set it somehow.
+  // Otherwise we use def_verbose which is set generically using mg.v.
+  //
+  int lverbose = (verbose > 0) ? verbose : def_verbose;
 
   if (m_nodal) {
     mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
-                           &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                           &lverbose,&def_cg_verbose,&def_max_nlevel,
                            &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   } else {
     mgt_cc_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                      &def_max_L0_growth,
-                     &def_verbose,&def_cg_verbose,&def_max_nlevel,
+                     &lverbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
@@ -287,6 +295,8 @@ MGT_Solver::initialize(bool nodal)
     def_cg_solver = 1;
     def_bottom_solver_eps = 0.0001;
     def_nu_f = 2;
+    def_maxiter = 200;
+    def_maxiter_b = 200;
 
     ParmParse pp("mg");
 
@@ -298,11 +308,21 @@ MGT_Solver::initialize(bool nodal)
     pp.query("nu_f", def_nu_f);
     pp.query("v"   , def_verbose);
     pp.query("usecg", def_usecg);
-    pp.query("cg_solver", def_cg_solver);
+
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
     pp.query("cycle_type", def_cycle); // 1 -> F, 2 -> W, 3 -> V
+    //
+    // The C++ code usually sets CG solver type using cg.cg_solver.
+    // We'll allow people to also use mg.cg_solver but pick up the former as well.
+    //
+    if (!pp.query("cg_solver", def_cg_solver))
+    {
+        ParmParse pp("cg");
+
+        pp.query("cg_solver", def_cg_solver);
+    }
 
 /*
     pp.query("nu_0", def_nu_0);
@@ -328,17 +348,36 @@ MGT_Solver::initialize(bool nodal)
 
     if (def_usecg == 1)
     {
+        //
+        // Translate from C++ -> F90 solver flag values.
+        //
         if (def_cg_solver == 1)
         {
+            //
+            // BiCG
+            //
             def_bottom_solver = 1;
         }
         else if (def_cg_solver == 0)
         {
+            //
+            // CG
+            //
             def_bottom_solver = 2;
+        }
+        else if (def_cg_solver == 2)
+        {
+            //
+            // CABiCG
+            //
+            def_bottom_solver = 3;
         }
     } else
     {
-        def_bottom_solver = 1;
+        //
+        // Default to CABiCG.
+        //
+        def_bottom_solver = 3;
     }
 
     pp.query("bottom_solver", def_bottom_solver);
@@ -901,7 +940,6 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
-
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)

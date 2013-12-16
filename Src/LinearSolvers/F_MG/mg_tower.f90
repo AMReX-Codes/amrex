@@ -82,7 +82,6 @@ module mg_tower_module
      type(multifab),  pointer :: uu(:) => Null()
      type(multifab),  pointer :: ss(:) => Null()
      type(imultifab), pointer :: mm(:) => Null()
-     type(stencil) ,  pointer :: st(:) => Null()
 
      integer, pointer :: face_type(:,:,:)  => Null()
      logical, pointer :: skewed(:,:)       => Null()

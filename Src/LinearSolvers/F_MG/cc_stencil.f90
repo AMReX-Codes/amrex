@@ -71,7 +71,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
@@ -143,7 +143,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lp,lo,hi) REDUCTION(max:r1)
+       !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lo =  lbound(sp)
@@ -2774,7 +2774,7 @@ contains
     !
     ! Define the center stencil and add the "alpha" term in 
     !     (alpha - del dot beta grad) phi = RHS.
-    !$OMP PARALLEL DO PRIVATE(i,j,k,sum)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,sum,nsten)
     do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)

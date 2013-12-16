@@ -62,6 +62,9 @@ C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
 C$(BOXLIB_BASE)_sources += FArrayBox.cpp
 C$(BOXLIB_BASE)_headers += FArrayBox.H
 
+C$(BOXLIB_BASE)_sources += IArrayBox.cpp
+C$(BOXLIB_BASE)_headers += IArrayBox.H
+
 C$(BOXLIB_BASE)_headers += Looping.H
 
 T_headers += BaseFab.H
@@ -72,6 +75,9 @@ C$(BOXLIB_BASE)_sources += BaseFab.cpp
 #
 C$(BOXLIB_BASE)_sources += MultiFab.cpp
 C$(BOXLIB_BASE)_headers += MultiFab.H
+
+C$(BOXLIB_BASE)_sources += iMultiFab.cpp
+C$(BOXLIB_BASE)_headers += iMultiFab.H
 
 T_headers += FabArray.H
 C$(BOXLIB_BASE)_sources += FabArray.cpp

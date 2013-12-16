@@ -382,6 +382,15 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
+    //
+    // AddBox() above calls intersections() ...
+    //
+    for (OrientationIter fi; fi; ++fi)
+    {
+        bndry[fi()].boxArray().clear_hash_bin();
+    }
+
+    ba.clear_hash_bin();
 
     BL_COMM_PROFILE_NAMETAG("CD::FluxRegister::Reflux()");
 
@@ -389,9 +398,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     const int N = Recs.size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < N; i++)
     {
         const Rec&       rf   = Recs[i];
@@ -594,6 +600,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
 
+    bndry[lo].boxArray().clear_hash_bin();
+
     const Orientation hi(dir,Orientation::high);
 
     bndry[hi].boxArray().intersections(subbox,isects);
@@ -602,6 +610,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     {
         DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
+
+    bndry[hi].boxArray().clear_hash_bin();
 }
 
 void

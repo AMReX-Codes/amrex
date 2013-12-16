@@ -276,7 +276,7 @@ protected:
 
     Real sumDerive (const std::string& name, Real time);
 
-    virtual void sum_integrated_quantities ();
+    void sum_integrated_quantities ();
 
     //
     // Interpolate cell-centered cync correction from coarse to fine.

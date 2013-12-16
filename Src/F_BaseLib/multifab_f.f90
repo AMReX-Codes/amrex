@@ -3865,6 +3865,10 @@ contains
 
     call build(bpt, "build_nodal_dot_mask")
 
+    if (.not.nodal_q(mf)) then
+       call bl_error("In mf_build_nodal_dot_mask with mf not nodal!")
+    end if
+
     call build(mask, mf%la, 1, 0, mf%nodal)
 
     !$OMP PARALLEL DO PRIVATE(i,d,full_box,shrunk_box,inner_box)

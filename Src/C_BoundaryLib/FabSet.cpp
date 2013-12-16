@@ -351,6 +351,8 @@ FabSet::linComb (Real            a,
         }
     }
 
+    ba_isects.clear_hash_bin();    
+
     BL_COMM_PROFILE_NAMETAG("CD::FabSet::linComb()");
     mfcd.CollectData();
 
