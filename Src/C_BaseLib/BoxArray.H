@@ -15,6 +15,13 @@ class BoxArray;
 
 namespace BoxLib
 {
+
+    extern long total_boxarrays;               // total count at any given time
+    extern long total_boxarrays_hwm;           // high-water-mark over a given interval
+
+    extern long total_hash_tables;             // total count of extant hash tables
+    extern long total_hash_tables_hwm;         // high-water mark over a given interval
+
     extern long total_bytes_in_hashtables;     // total bytes at any given time
     extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
 }
@@ -83,13 +90,11 @@ public:
     //
     // The copy constructor.
     //
-    BoxArray (const BoxArray& rhs)
-        :
-        m_ref(rhs.m_ref) {}
+    BoxArray (const BoxArray& rhs);
     //
     // The assignment operator.
     //
-    BoxArray& operator= (const BoxArray& rhs) { m_ref = rhs.m_ref; return *this; }
+    BoxArray& operator= (const BoxArray& rhs);
     //
     // The destructor.
     //
@@ -295,6 +300,8 @@ public:
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
 private:
+
+    void decrementCounters () const;
 
     class Ref
     {
