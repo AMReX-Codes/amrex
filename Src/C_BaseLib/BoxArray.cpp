@@ -5,6 +5,10 @@
 #include <BoxArray.H>
 #include <ParallelDescriptor.H>
 
+long BoxLib::total_boxarrays               = 0;
+long BoxLib::total_boxarrays_hwm           = 0;
+long BoxLib::total_hash_tables             = 0;
+long BoxLib::total_hash_tables_hwm         = 0;
 long BoxLib::total_bytes_in_hashtables     = 0;
 long BoxLib::total_bytes_in_hashtables_hwm = 0;
 
@@ -28,6 +32,32 @@ NBytes (const BoxHashMapType& BoxHashMap)
     return nbytes;
 }
 
+static
+inline
+void
+BumpBoxArrayCount ()
+{
+    BoxLib::total_boxarrays++;
+
+    if (BoxLib::total_boxarrays > BoxLib::total_boxarrays_hwm)
+        BoxLib::total_boxarrays_hwm++;
+}
+
+void
+BoxArray::decrementCounters () const
+{
+    if (m_ref.linkCount() == 1)
+    {
+        BoxLib::total_boxarrays--;
+
+        if (!m_ref->hash.empty())
+        {
+            BoxLib::total_hash_tables--;
+            BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
+        }
+    }
+}
+
 void
 BoxArray::reserve (long _truesize)
 {
@@ -36,16 +66,23 @@ BoxArray::reserve (long _truesize)
     m_ref->m_abox.reserve(_truesize);
 }
 
+//
+// Most heavily used BoxArray constructor.
+//
 BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
-{}
+{
+    BumpBoxArrayCount();
+}
 
 BoxArray::BoxArray (const Box& bx)
     :
     m_ref(new BoxArray::Ref(1))
 {
     m_ref->m_abox[0] = bx;
+
+    BumpBoxArrayCount();
 }
 
 BoxArray::Ref::Ref (const BoxList& bl)
@@ -56,7 +93,9 @@ BoxArray::Ref::Ref (const BoxList& bl)
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
-{}
+{
+    BumpBoxArrayCount();
+}
 
 BoxArray::Ref::Ref (std::istream& is)
 {
@@ -71,7 +110,9 @@ BoxArray::Ref::Ref (size_t size)
 BoxArray::BoxArray (size_t size)
     :
     m_ref(new BoxArray::Ref(size))
-{}
+{
+    BumpBoxArrayCount();
+}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
@@ -80,6 +121,8 @@ BoxArray::BoxArray (const Box* bxvec,
 {
     for (int i = 0; i < nbox; i++)
         m_ref->m_abox[i] = *bxvec++;
+
+    BumpBoxArrayCount();
 }
 
 BoxArray::Ref::Ref (const Ref& rhs)
@@ -87,10 +130,35 @@ BoxArray::Ref::Ref (const Ref& rhs)
     m_abox(rhs.m_abox)
 {}
 
+//
+// The copy constructor.
+//
+BoxArray::BoxArray (const BoxArray& rhs)
+    :
+    m_ref(rhs.m_ref)
+{}
+
+//
+// The assignment operator.
+//
+BoxArray&
+BoxArray::operator= (const BoxArray& rhs)
+{
+    decrementCounters();
+
+    m_ref = rhs.m_ref;
+
+    return *this;
+}
+
 void
 BoxArray::uniqify ()
 {
-    m_ref = new Ref(*m_ref);
+    BL_ASSERT(!m_ref.unique());
+
+    m_ref = new BoxArray::Ref(*m_ref);
+
+    BumpBoxArrayCount();
 }
 
 void
@@ -175,15 +243,15 @@ void
 BoxArray::define (const BoxArray& bs)
 {
     BL_ASSERT(size() == 0);
+
+    decrementCounters();
+
     m_ref = bs.m_ref;
 }
 
 BoxArray::~BoxArray ()
 {
-    if (m_ref.linkCount() == 1 && !m_ref->hash.empty())
-    {
-        BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
-    }
+    decrementCounters();
 }
 
 bool
@@ -761,6 +829,12 @@ BoxArray::intersections (const Box& bx) const
 void
 BoxArray::clear_hash_bin () const
 {
+    if (!m_ref->hash.empty())
+    {
+        BoxLib::total_hash_tables--;
+        BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
+    }
+
     m_ref->hash.clear();
 }
 
@@ -800,26 +874,16 @@ BoxArray::intersections (const Box&                         bx,
             {
                 BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
             }
-            //
-            // Squeeze out as much memory as possible.
-            //
-            for (BoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
-                 it != End;
-                 ++it)
-            {
-                if (it->second.capacity() > it->second.size())
-                {
-                    std::vector<int> tmp(it->second);
-                    it->second.swap(tmp);
-                }
-            }
 
             const long nbytes = NBytes(BoxHashMap);
 
             BoxLib::total_bytes_in_hashtables += nbytes;
-
             if (BoxLib::total_bytes_in_hashtables > BoxLib::total_bytes_in_hashtables_hwm)
                 BoxLib::total_bytes_in_hashtables_hwm = BoxLib::total_bytes_in_hashtables;
+
+            BoxLib::total_hash_tables++;
+            if (BoxLib::total_hash_tables > BoxLib::total_hash_tables_hwm)
+                BoxLib::total_hash_tables_hwm = BoxLib::total_hash_tables;
 
             if (false && ParallelDescriptor::IOProcessor())
             {
