@@ -800,6 +800,19 @@ BoxArray::intersections (const Box&                         bx,
             {
                 BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
             }
+            //
+            // Squeeze out as much memory as possible.
+            //
+            for (BoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
+                 it != End;
+                 ++it)
+            {
+                if (it->second.capacity() > it->second.size())
+                {
+                    std::vector<int> tmp(it->second);
+                    it->second.swap(tmp);
+                }
+            }
 
             const long nbytes = NBytes(BoxHashMap);
 
