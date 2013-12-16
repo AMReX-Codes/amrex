@@ -1861,7 +1861,13 @@ Amr::coarseTimeStep (Real stop_time)
                       << " ... "
                       << max_fab_bytes
                       << "]\n";
+
+            std::cout << "\nHigh water mark for bytes in BoxArray hash tables: "
+                      << BoxLib::total_bytes_in_hashtables_hwm
+                      << '\n';
         }
+
+        BoxLib::total_bytes_in_hashtables_hwm = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);

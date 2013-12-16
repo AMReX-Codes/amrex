@@ -15,6 +15,12 @@ class BoxArray;
 
 namespace BoxLib
 {
+    extern long total_bytes_in_hashtables;     // total bytes at any given time
+    extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
+}
+
+namespace BoxLib
+{
     //
     // Makes a BoxArray from the the complement of b2 in b1in.
     //
