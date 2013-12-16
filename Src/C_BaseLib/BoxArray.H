@@ -3,6 +3,8 @@
 #define BL_BOXARRAY_H
 
 #include <cstddef>
+#include <map>
+
 #include <IndexType.H>
 #include <BoxList.H>
 #include <Array.H>
@@ -10,6 +12,12 @@
 #include <BaseFab.H>
 
 class BoxArray;
+
+namespace BoxLib
+{
+    extern long total_bytes_in_hashtables;     // total bytes at any given time
+    extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
+}
 
 namespace BoxLib
 {
@@ -275,6 +283,10 @@ public:
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
     //
+    // Clear out the internal hash table used by intersections.
+    //
+    void clear_hash_bin () const;
+    //
     // Changes the BoxArray to one with no overlap.
     // Also tries to "simplify" the BoxArray within reason.
     //
@@ -309,10 +321,14 @@ private:
         // The data.
         //
         Array<Box> m_abox;
+        //
+        // Box hash stuff.
+        //
+        mutable Box bbox;
 
         mutable IntVect crsn;
 
-        mutable BaseFab< std::vector<int> > hash;
+        mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
     };
     //
     // Make ourselves unique.

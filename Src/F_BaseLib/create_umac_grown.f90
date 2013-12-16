@@ -198,7 +198,7 @@ contains
        call destroy(f_mf)
        call destroy(f_la)
 
-       !$OMP PARALLEL DO PRIVATE(j,fp,cp,tba)
+       !$OMP PARALLEL DO PRIVATE(j,k,fp,cp,tba)
        do j=1,nfabs(tfine)
           call boxarray_box_diff(tba, get_ibox(tfine,j), get_ibox(fine(i),j))
           do k = 1, nboxes(tba)

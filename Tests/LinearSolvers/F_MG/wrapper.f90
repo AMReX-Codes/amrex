@@ -31,7 +31,7 @@ subroutine wrapper()
        logical        , intent(in   ) :: fabio
      end subroutine t_cc_ml_multigrid
 
-     subroutine t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, &
+     subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
           do_diagnostics, eps, test, fabio, stencil_type)
        use mg_module    
        use ml_boxarray_module    
@@ -39,6 +39,7 @@ subroutine wrapper()
        type(ml_layout  ), intent(inout) :: mla
        type(mg_tower) , intent(inout) :: mgt(:)
        type(multifab) , intent(inout) :: rh(:)
+       integer        , intent(in   ) :: coeffs_type
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
        real(dp_t)     , intent(in   ) :: eps
@@ -75,7 +76,7 @@ subroutine wrapper()
   logical, allocatable :: pmask(:)
   logical :: nodal_in, dense_in, lininterp
 
-  integer :: i,n,nlevs,ns,dm
+  integer :: i,n,nlevs,dm
 
   type(box) :: pd
 
@@ -92,7 +93,7 @@ subroutine wrapper()
   integer :: nu1, nu2, nub, nuf, solver, smoother
   integer :: ng, nc
   character(len=128) :: test_set
-  integer :: test, test_lev, cycle_type, rhs_type, coeffs_type
+  integer :: test, cycle_type, rhs_type, coeffs_type
   logical :: test_set_mglib
   logical :: test_set_hgproj
   logical :: test_random_boxes
@@ -133,7 +134,6 @@ subroutine wrapper()
   namelist /probin/ test_set
   namelist /probin/ test_set_mglib
   namelist /probin/ test_set_hgproj
-  namelist /probin/ test_lev
   namelist /probin/ fabio
 
   namelist /probin/ test_random_boxes
@@ -196,7 +196,6 @@ subroutine wrapper()
 
   test_set_mglib = .FALSE.
   test_set_hgproj = .FALSE.
-  test_lev       = 0
   test_set    = ''
 
   ng                = mgt_default%ng
@@ -464,10 +463,6 @@ subroutine wrapper()
         case ('--test_set')
            farg = farg + 1
            call get_command_argument(farg, value = test_set)
-        case ('--test_lev')
-           farg = farg + 1
-           call get_command_argument(farg, value = fname)
-           read(fname, *) test_lev
         case ('--test_set_mglib')
            test_set_mglib = .True.
         case ('--test_set_hgproj')
@@ -536,6 +531,8 @@ subroutine wrapper()
      else if ( test_set_mglib ) then
         call read_a_mglib_grid(mba, test_set)
      else
+        if ( parallel_ioprocessor() ) &
+            print *,'READING ',test_set
         call ml_boxarray_read_boxes(mba, test_set)
      end if
   else
@@ -566,31 +563,29 @@ subroutine wrapper()
         call build(mba, ba, pd)
         call destroy(ba)
      end if
+
+     do i = 1, mba%nlevel
+        call boxarray_simplify(mba%bas(i))
+        call boxarray_maxsize(mba%bas(i), ba_maxsize)
+     end do
   end if
 
-  do i = 1, mba%nlevel
-     call boxarray_simplify(mba%bas(i))
-     call boxarray_maxsize(mba%bas(i), ba_maxsize)
-!    if ( parallel_IOProcessor() ) print*, 'nboxes in mba at i =', i, ' : ', nboxes(mba%bas(i))
-  end do
-
-  ! For sanity make sure the mba is clean'
+  ! For sanity make sure the mba is clean
   if ( .not. ml_boxarray_clean(mba) ) call bl_error("MBOXARRAY is not 'clean'")
 
   if ( .not. ml_boxarray_properly_nested(mba) ) call bl_error("MBOXARRAY is not 'properly nested'")
-
-!  if ( parallel_ioprocessor() ) then
-!      call print(mba, "BOXARRAY TOWER")
-!  end if
 
   dm = mba%dim
   
   if ( dm <= 0 ) then
       call bl_error("DM <= 0", dm)
   end if
+
   allocate(nodal(dm))
   allocate(pmask(dm))
+
   nlevs = min(max_lev_of_mba, mba%nlevel)
+
   if ( nodal_in ) then
      nodal = .true.
   else
@@ -639,28 +634,7 @@ subroutine wrapper()
   ! Define the grid spacing on the finest level to be 1
   dh(nlevs,:) = h_finest
 
-  if ( nodal_in ) then
-     if (dense_in) then
-       if (dm .eq. 3) then
-         if ( (dh(nlevs,1).eq.dh(nlevs,2)) .and. (dh(nlevs,1) .eq. dh(nlevs,3)) ) then
-           ns = 21
-         else
-           ns = 27
-         end if
-       else 
-         ns = 9
-       end if
-     else 
-       ns = 1 + 2*dm
-     end if
-  else
-     ns = 1 + dm*3
-  end if
-
   call ml_layout_build(mla, mba, pmask = pmask)
-! if ( parallel_ioprocessor() ) then
-!    call print(mla, "LAYOUT TOWER")
-! end if
 
   do n = nlevs, 1, -1
 
@@ -696,14 +670,8 @@ subroutine wrapper()
         dh(n,:) = dh(n+1,:) * mba%rr(n,:)
      end if
 
-!    if ( parallel_IOProcessor() ) then
-!       print *, 'LEV n: ',n,' , dh = ', dh(n,:)
-!       print *, 'DOMAIN BC ', domain_bc
-!    end if
-
      call mg_tower_build(mgt(n), mla%la(n), mba%pd(n), domain_bc, stencil_type,&
           dh = dh(n,:), &
-          ns = ns, &
           smoother = smoother, &
           nu1 = nu1, &
           nu2 = nu2, &
@@ -727,31 +695,36 @@ subroutine wrapper()
 
   ! Allocate space for the RHS for the solve.
   allocate(rh(nlevs))
-  do n = nlevs, 1, -1
-     call multifab_build( rh(n), mla%la(n), 1, 0, nodal)
-  end do
+
+  if ( nodal_in ) then
+     do n = nlevs, 1, -1
+        call multifab_build( rh(n), mla%la(n), 1, 1, nodal)
+     end do
+     call nodal_rhs(mla, rh)
+  else
+     do n = nlevs, 1, -1
+        call multifab_build( rh(n), mla%la(n), 1, 0, nodal)
+     end do
+     call cc_rhs(mla, pd, rh, rhs_type)
+  end if
 
   call wall_second(wcb)
   if ( nodal_in ) then
-     call nodal_rhs(mla, rh)
-     call t_nodal_ml_multigrid(mla, mgt, rh, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
+     call t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
   else
-     call cc_rhs(mla, pd, rh, rhs_type)
      call t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+  end if
+  call wall_second(wce)
+  wce = wce - wcb
+
+  if ( parallel_ioprocessor() ) then
+     print*, 'Wall clock for solve itself: ', wce
   end if
 
   do n = nlevs, 1, -1
      call multifab_destroy(rh(n))
   end do
   deallocate(rh)
-
-  call wall_second(wce)
-
-  wce = wce - wcb
-
-  if ( parallel_ioprocessor() ) then
-     print*, 'Wall clock for solve: ', wce
-  end if
 
   do n = 1, nlevs
      call mg_tower_destroy(mgt(n))

@@ -836,16 +836,6 @@ public:
                          const Box&        b,
                          int               comp,
                          int               numcomp = 1);
-    //
-    // Polynomial interpolation
-    //
-    BaseFab<T>& polyInterp (const Array< BaseFab<T>* > &sf,
-			    int                         scomp,
-			    const Array<Real>&          st,
-			    Real                        t,
-			    const Box&                  b,
-			    int                         comp,
-			    int                         numcomp = 1);
 
 protected:
     //
@@ -1111,11 +1101,13 @@ BaseFab<T>::define ()
     {
         new (ptr) T;
     }
+
+    long tst = truesize*sizeof(T);
 #ifdef _OPENMP
 #pragma omp critical(basefab)
 #endif
     {
-        BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
+        BoxLib::total_bytes_allocated_in_fabs += tst;
 
         if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
         {
@@ -1214,7 +1206,11 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
-        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
+	long tst = truesize*sizeof(T);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        BoxLib::total_bytes_allocated_in_fabs -= tst;
     }
 }
 
@@ -1628,15 +1624,6 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                                  int                  srccomp,
                                  int                  destcomp,
                                  int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::polyInterp (const Array< BaseFab<Real>* > &sf,
-			   int                            scomp,
-			   const Array<Real>&             st,
-			   Real                           t,
-			   const Box&                     b,
-			   int                            comp,
-			   int                            numcomp);
 #endif
 
 template <class T>
@@ -2651,24 +2638,6 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     {
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
-    return *this;
-}
-
-//
-// Polynomial interpolation
-//
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::polyInterp (const Array< BaseFab<T>* > &sf,
-			int                         scomp,
-			const Array<Real>&          st,
-			Real                        t,
-			const Box&                  b,
-			int                         comp,
-			int                         numcomp)
-{
-    BoxLib::Error("BaseFab<T>::polyInterp:: non-Real version not implemented");
     return *this;
 }
 

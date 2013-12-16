@@ -7,7 +7,6 @@
 #include <MultiFab.H>
 #include <BCRec.H>
 #include <Array.H>
-#include <PArray.H>
 #include <VisMF.H>
 
 class RealBox;
@@ -21,10 +20,7 @@ namespace BoxLib
 // Current and previous level-time data.
 //
 // StateData holds state data on a level for the current and previous time step.
-// It may also hold additional node data for SDC or RK.
 //
-
-const Array<Real> NullArrayReal;
 
 class StateData
 {
@@ -42,15 +38,6 @@ public:
                Real                   cur_time,
                Real                   dt);
     //
-    // Constructor that properly initializes data members including node data.
-    //
-    StateData (const Box&             p_domain,
-               const BoxArray&        grds,
-               const StateDescriptor* d,
-               Real                   cur_time,
-               Real                   dt,
-	       const Array<Real>&     t_nodes);
-    //
     // The destructor.
     //
     ~StateData ();
@@ -61,9 +48,7 @@ public:
                  const BoxArray&        grds,
                  const StateDescriptor& d, 
                  Real                   cur_time,
-                 Real                   dt,
-		 const Array<Real>&     t_nodes = NullArrayReal);
-
+                 Real                   dt);
     //
     // Allocates space for old timestep data.
     //
@@ -72,14 +57,6 @@ public:
     // Deletes the space used by the old timestep data.
     //
     void removeOldData () { delete old_data; old_data = 0; }
-    //
-    // Allocates space for mid timestep data.
-    //
-    void allocMidData ();
-    //
-    // Deletes the space used by the mid timestep data.
-    //
-    void removeMidData () { mid_data.clear(); }
     //
     // Reverts back to initial state.
     //
@@ -173,10 +150,6 @@ public:
     //
     Real prevTime () const { return 0.5*(old_time.start + old_time.stop); }
     //
-    // Returns i-th mid time.
-    //
-    Real midTime (int i) const { return 0.5*(mid_time[i].start + mid_time[i].stop); }  
-    //
     // Returns the new data.
     //
     MultiFab& newData () { BL_ASSERT(new_data != 0); return *new_data; }
@@ -193,18 +166,6 @@ public:
     //
     const MultiFab& oldData () const { BL_ASSERT(old_data != 0); return *old_data; }
     //
-    // Returns the i-th mid data.
-    //
-    MultiFab& midData (int i) { BL_ASSERT(mid_data[i].defined(i)); return mid_data[i]; }
-    //
-    // Returns the i-th mid data.
-    //
-    const MultiFab& midData (int i) const { BL_ASSERT(mid_data[i].defined(i)); return mid_data[i]; }
-    //
-    // Return the size of the mid data
-    //
-    int sizeMidData () const { return mid_data.size(); }
-    //
     // Returns the FAB of new data at grid index `i'.
     //
     FArrayBox& newGrid (int i) { BL_ASSERT(new_data != 0); return (*new_data)[i]; }
@@ -212,10 +173,6 @@ public:
     // Returns the FAB of old data at grid index `i'.
     //
     FArrayBox& oldGrid (int i) { BL_ASSERT(old_data != 0); return (*old_data)[i]; }
-    //
-    // Returns the FAB of 'imid'-th mid data at grid index `i'.
-    //
-    FArrayBox& midGrid (int imid, int i) { BL_ASSERT(mid_data.defined(imid)); return mid_data[imid][i]; }
     //
     // Returns boundary conditions of specified component on the specified grid.
     //
@@ -232,10 +189,6 @@ public:
     // True if there is any new data available.
     //
     bool hasNewData () const { return new_data != 0; }
-    //
-    // True if there is mid data available. 
-    //
-    bool hasMidData (int i=0) const { return mid_data.defined(i); }
 
 private:
 
@@ -265,18 +218,6 @@ private:
     //
     TimeInterval old_time;
     //
-    // Number of middle nodes
-    //
-    int n_mid_nodes;
-    //
-    // middle node times normilized to (0,1)
-    //
-    Array<Real> t_mid_nodes;
-    //
-    // "Physical" Time variable assoc with middle nodes
-    //
-    Array<TimeInterval> mid_time;
-    //
     // Pointer to new-time data.
     //
     MultiFab* new_data;
@@ -284,10 +225,6 @@ private:
     // Pointer to previous time data.
     //
     MultiFab* old_data;
-    //
-    // Array of pointers to data at middle times
-    //
-    PArray<MultiFab> mid_data;
 };
 
 #endif /*_StateData_H_*/

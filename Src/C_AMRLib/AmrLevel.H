@@ -184,14 +184,6 @@ public:
     //
     virtual void removeOldData ();
     //
-    // Alloc space for mid time data.
-    //
-    virtual void allocMidData ();
-    //
-    // Delete mid-time data.
-    //
-    virtual void removeMidData ();
-    //
     // Init data on this level from another AmrLevel (during regrid).
     // This is a pure virtual function and hence MUST be
     // implemented by derived classes.
@@ -312,14 +304,6 @@ public:
     //
     const MultiFab& get_old_data (int state_indx) const { return state[state_indx].oldData(); }
     //
-    // State data at mid time.
-    //
-    MultiFab& get_mid_data (int state_indx, int mid_indx) { return state[state_indx].midData(mid_indx); }
-    //
-    // State data at mid time.
-    //
-    const MultiFab& get_mid_data (int state_indx, int mid_indx) const { return state[state_indx].midData(mid_indx); }
-    //
     // State data at new time.
     //
     MultiFab& get_new_data (int state_indx) { return state[state_indx].newData(); }
@@ -398,6 +382,21 @@ public:
     virtual void addOneParticle (int id_in, int cpu_in,
                                  std::vector<double>& xloc, 
                                  std::vector<double>& attributes) {;}
+
+    //
+    // Add this function which can be called from the parent 
+    //
+    virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
+
+    //
+    // Get particle data out of the Particle Class and send it back out through 
+    //     an Amr* amrptr.
+    //
+    virtual void GetParticleIDs       (Array<int>&  part_ids ) {;}
+    virtual void GetParticleCPU       (Array<int>&  part_cpu ) {;}
+    virtual void GetParticleLocations (Array<Real>& part_locs) {;}
+    virtual void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp) {;}
+
 #endif
 
 protected:
@@ -543,7 +542,7 @@ private:
     AmrLevel&                  m_amrlevel;
     MultiFab&                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
-    Array< Array<MultiFabId> > m_mfid;     // [level][oldmidnew]
+    Array< Array<MultiFabId> > m_mfid;     // [level][oldnew]
     Interpolater*              m_map;
     std::map<int,Box>          m_ba;
     Real                       m_time;
@@ -556,7 +555,7 @@ private:
 
     std::map< int,Array< Array<Box> > >                m_fbox; // [grid][level][validregion]
     std::map< int,Array< Array<Box> > >                m_cbox; // [grid][level][fillablesubbox]
-    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldmidnew]
+    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
 
 #endif /*_AmrLevel_H_*/

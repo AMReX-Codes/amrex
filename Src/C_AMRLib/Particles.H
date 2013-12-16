@@ -241,7 +241,7 @@ struct ParticleContainerBase
     virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
                                 Real a_old = 1.0, Real a_half = 1.0) = 0;
     virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
-                                Real a_new = 1.0, Real a_half = 1.0) = 0;
+                                Real a_new = 1.0, Real a_half = 1.0, int start_comp_for_accel = -1) = 0;
     virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
                                 Real a_old = 1.0, Real a_half = 1.0) = 0;
     virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
@@ -305,12 +305,13 @@ public:
 
     void MultiplyParticleMass (int lev, Real mult);
 
-    void GetParticleLocationsAndMass (Array<Real>& part_data);
-    void GetParticleVelocities       (Array<Real>& part_data);
-    void GetParticleData             (Array<Real>& part_data);
+    void GetParticleIDs        (Array<int> & part_ids);
+    void GetParticleCPU        (Array<int> & part_cpu);
+    void GetParticleLocations  (Array<Real>& part_locs);
+    void GetParticleVelocities (Array<Real>& part_vels);
+    void GetParticleData       (Array<Real>& part_data, int start_comp, int num_comp);
 
-    void SetParticleLocationsAndMass (Array<Real>& part_data);
-
+    void SetParticleLocations  (Array<Real>& part_data);
     void SetParticleVelocities (Array<Real>& part_data);
 
     // Set the flag that allows particles to live near the domain boundary and throw away 
@@ -372,7 +373,8 @@ public:
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
     void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
+    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0,
+                        int start_comp_for_accel = -1);
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
@@ -571,6 +573,12 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     p.m_id  = id_in;
     p.m_cpu = cpu_in;
 
+    if (p.m_id <= 0)
+        BoxLib::Abort("Particle ID's must be > 0 in addOneParticle");
+ 
+    if (ParallelDescriptor::MyProc() != p.m_cpu)
+        BoxLib::Abort("cpu_in must equal MyProc() in addOneParticle");
+
     for (int i = 0; i < BL_SPACEDIM; i++)
        p.m_pos[i] = xloc[i];
 
@@ -610,6 +618,11 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     }
 
     m_particles[p.m_lev][p.m_grid].push_back(p);
+
+    // Note that we will need to call Redistribute once we are done adding particles this way.
+    // The Where call above assigns a particle to a grid (p.m_grid) based on the particle location.
+    // However, the particle may not currently live on the processor that owns that grid.
+    // The Redistribute routine should ensure that the particle ends up on the right processor.
 }
 
 template <int N>
@@ -2110,7 +2123,6 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 
     MultiFab* gv_pointer;
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
-    // if (gv.boxArray() == m_amr->ParticleBoxArray(lev))
     {
         gv_pointer = &gv;
     }
@@ -3468,7 +3480,141 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
 template <int N>
 void
-ParticleContainer<N>::GetParticleLocationsAndMass (Array<Real>& part_data)
+ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
+{
+    //
+    // This gives us the starting point into the part_ids array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
+
+#if BL_USE_MPI
+    Array<long> cnts(ParallelDescriptor::NProcs());
+
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
+
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
+
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
+
+    std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
+
+    // Each particle takes up 1 int so no need to multiply cnt by anything
+#endif
+
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
+
+    // Locations
+    part_ids.resize(npart,0);
+
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
+    
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load the ID
+                    part_ids[cnt] = p.m_id;
+
+                    // Update counter
+                    cnt++;
+                }
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceIntSum(part_ids.dataPtr(),part_ids.size()); 
+}
+
+template <int N>
+void
+ParticleContainer<N>::GetParticleCPU (Array<int>& part_cpu)
+{
+    //
+    // This gives us the starting point into the part_cpu array
+    // If only one processor (or no MPI), then that's all we need.
+    //
+    int cnt = 0;
+
+#if BL_USE_MPI
+    Array<long> cnts(ParallelDescriptor::NProcs());
+
+    // This returns the number of particles on this processor
+    long lcnt = TotalNumberOfParticles(true,true);
+
+    // This accumulates the "lcnt" values into "cnts"
+    MPI_Gather(&lcnt,1,              
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               cnts.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<long>::type(),
+               ParallelDescriptor::IOProcessorNumber(),
+               ParallelDescriptor::Communicator());
+
+    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
+
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+        cnt += cnts[iproc];
+
+    // Each particle takes up 1 int so no need to multiply cnt by anything
+#endif
+
+    // This is the total number of particles on *all* processors
+    long npart = TotalNumberOfParticles(true,false);
+
+    // Locations
+    part_cpu.resize(npart,0);
+
+    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            PBox&     pbx = pmap_it->second;
+            const int n    = pbx.size();
+    
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbx[i];
+                if (p.m_id > 0)
+                {
+                    // Load the ID
+                    part_cpu[cnt] = p.m_cpu;
+
+                    // Update counter
+                    cnt++;
+                }
+            }
+        }
+    }
+
+    ParallelDescriptor::ReduceIntSum(part_cpu.dataPtr(),part_cpu.size()); 
+}
+
+template <int N>
+void
+ParticleContainer<N>::GetParticleLocations (Array<Real>& part_data)
 {
     //
     // This gives us the starting point into the part_data array
@@ -3496,15 +3642,15 @@ ParticleContainer<N>::GetParticleLocationsAndMass (Array<Real>& part_data)
     for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
         cnt += cnts[iproc];
 
-    // Each particle takes up (BL_SPACEDIM+1) Reals
-    cnt *= (BL_SPACEDIM+1);
+    // Each particle takes up BL_SPACEDIM Reals
+    cnt *= (BL_SPACEDIM);
 #endif
 
     // This is the total number of particles on *all* processors
     long npart = TotalNumberOfParticles(true,false);
 
-    // Mass + locations
-    part_data.resize((BL_SPACEDIM+1)*npart,0);
+    // Locations
+    part_data.resize(BL_SPACEDIM*npart,0);
 
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
@@ -3524,77 +3670,6 @@ ParticleContainer<N>::GetParticleLocationsAndMass (Array<Real>& part_data)
                     for (int d=0; d < BL_SPACEDIM; d++)
                         part_data[cnt+d] = p.m_pos[d];
 
-                    // Load mass
-                    part_data[cnt+BL_SPACEDIM] = p.m_data[0];
-
-                    // Update counter
-                    cnt += (BL_SPACEDIM+1);
-                }
-            }
-        }
-    }
-
-    ParallelDescriptor::ReduceRealSum(part_data.dataPtr(),part_data.size()); 
-}
-
-template <int N>
-void
-ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
-{
-    //
-    // This gives us the starting point into the part_data array
-    // If only one processor (or no MPI), then that's all we need.
-    //
-    int cnt = 0;
-
-#if BL_USE_MPI
-    Array<long> cnts(ParallelDescriptor::NProcs());
-
-    // This returns the number of particles on this processor
-    long lcnt = TotalNumberOfParticles(true,true);
-
-    // This accumulates the "lcnt" values into "cnts"
-    MPI_Gather(&lcnt,1,              
-               ParallelDescriptor::Mpi_typemap<long>::type(),
-               cnts.dataPtr(),
-               1,
-               ParallelDescriptor::Mpi_typemap<long>::type(),
-               ParallelDescriptor::IOProcessorNumber(),
-               ParallelDescriptor::Communicator());
-
-    ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
-
-    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
-        cnt += cnts[iproc];
-
-    // Each particle takes up (BL_SPACEDIM) Reals
-    cnt*= (BL_SPACEDIM);
-#endif
-
-    // This is the total number of particles on *all* processors
-    long npart = TotalNumberOfParticles(true,false);
-
-    // Velocities
-    part_data.resize((BL_SPACEDIM)*npart,0);
-
-    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
-    {
-        PMap& pmap = m_particles[lev];
-
-        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
-        {
-            PBox&     pbx = pmap_it->second;
-            const int n    = pbx.size();
-    
-            for (int i = 0; i < n; i++)
-            {
-                ParticleType& p = pbx[i];
-                if (p.m_id > 0)
-                {
-                    // Load velocities
-                    for (int d=0; d < BL_SPACEDIM; d++)
-                        part_data[cnt+d] = p.m_data[d+1];
-
                     // Update counter
                     cnt += BL_SPACEDIM;
                 }
@@ -3607,13 +3682,30 @@ ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
 
 template <int N>
 void
-ParticleContainer<N>::GetParticleData (Array<Real>& part_data)
+ParticleContainer<N>::GetParticleVelocities (Array<Real>& part_data)
+{
+    // This assumes that the mass/charge is stored in the first position 
+    //      in the particle data, followed by the velocity components
+    int start_comp = 1;
+    int   num_comp = BL_SPACEDIM;
+    GetParticleData(part_data,1,BL_SPACEDIM);
+}
+
+template <int N>
+void
+ParticleContainer<N>::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 {
     //
     // This gives us the starting point into the part_data array
     // If only one processor (or no MPI), then that's all we need.
     //
     int cnt = 0;
+
+    //
+    // Make sure we don't try to get more than we have
+    //
+    if (start_comp + num_comp > N)
+        BoxLib::Error("Tried to grab too many components in GetParticleData!!");
 
 #if BL_USE_MPI
     Array<long> cnts(ParallelDescriptor::NProcs());
@@ -3635,15 +3727,14 @@ ParticleContainer<N>::GetParticleData (Array<Real>& part_data)
     for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
         cnt += cnts[iproc];
 
-    // Each particle takes up N Reals
-    cnt*= N;
+    // Each particle takes up num_comp Reals
+    cnt*= num_comp;
 #endif
 
     // This is the total number of particles on *all* processors
     long npart = TotalNumberOfParticles(true,false);
 
-    // Velocities
-    part_data.resize(N*npart,0);
+    part_data.resize(num_comp*npart,0);
 
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
     {
@@ -3659,12 +3750,12 @@ ParticleContainer<N>::GetParticleData (Array<Real>& part_data)
                 ParticleType& p = pbx[i];
                 if (p.m_id > 0)
                 {
-                    // Load velocities
-                    for (int d=0; d < N; d++)
-                        part_data[cnt+d] = p.m_data[d+1];
+                    // Load particle data, whatever it is.
+                    for (int d = 0; d < num_comp; d++)
+                      part_data[cnt+d] = p.m_data[start_comp+d];
 
                     // Update counter
-                    cnt += N;
+                    cnt += num_comp;
                 }
             }
         }
@@ -3682,7 +3773,7 @@ ParticleContainer<N>::SetAllowParticlesNearBoundary (bool value)
 
 template <int N>
 void
-ParticleContainer<N>::SetParticleLocationsAndMass (Array<Real>& part_data)
+ParticleContainer<N>::SetParticleLocations (Array<Real>& part_data)
 {
    // This gives us the starting point into the part_data array
    // If only one processor (or no MPI), then that's all we need
@@ -3708,16 +3799,16 @@ ParticleContainer<N>::SetParticleLocationsAndMass (Array<Real>& part_data)
    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
        cnt += cnts[iproc];
 
-   // Each particle takes up (BL_SPACEDIM+1) Reals
-   cnt*= (BL_SPACEDIM+1);
+   // Each particle takes up BL_SPACEDIM Reals
+   cnt*= BL_SPACEDIM;
 #endif
 
    // This is the total number of particles on *all* processors
    long npart = TotalNumberOfParticles(true,false);
 
    // Mass + locations
-   if (part_data.size() != npart*(BL_SPACEDIM+1))
-       BoxLib::Abort("Sending in wrong size part_data to SetParticleLocationsAndMass");
+   if (part_data.size() != npart*BL_SPACEDIM)
+       BoxLib::Abort("Sending in wrong size part_data to SetParticleLocations");
 
    for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
    {
@@ -3737,12 +3828,8 @@ ParticleContainer<N>::SetParticleLocationsAndMass (Array<Real>& part_data)
                   for (int d=0; d < BL_SPACEDIM; d++)
                      p.m_pos[d] = part_data[cnt+d];
 
-                  // Check mass
-                  if (p.m_data[0] != part_data[cnt+BL_SPACEDIM])
-                      BoxLib::Abort("Masses dont match in SetParticleLocationsAndMass");
-
                   // Update counter
-                  cnt += (BL_SPACEDIM+1);
+                  cnt += BL_SPACEDIM;
               }
            }
        }
@@ -4147,16 +4234,18 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
 }
 
 //
-// This version takes as input the gravity vector at cell centers
+// This version takes as input the acceleration vector at cell centers, and has the option of
+//      returning the acceleration at the particle location in the data array, starting at
+//      component start_comp_for_accel
 //
-
 template <int N>
 void
 ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                                 int             lev,
                                 Real            dt,
                                 Real            a_new,
-                                Real            a_half) 
+                                Real            a_half, 
+                                int             start_comp_for_accel)
 {
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -4218,6 +4307,13 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                 D_TERM(p.m_data[1] *= a_new_inv;,
                        p.m_data[2] *= a_new_inv;,
                        p.m_data[3] *= a_new_inv;);
+
+                if (start_comp_for_accel > BL_SPACEDIM)
+                {
+                   D_TERM(p.m_data[start_comp_for_accel  ] = grav[0];,
+                          p.m_data[start_comp_for_accel+1] = grav[1];,
+                          p.m_data[start_comp_for_accel+2] = grav[2];);
+                }
             }
         }
     }

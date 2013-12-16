@@ -223,7 +223,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     plot_int               = -1;
     n_proper               = 1;
     max_level              = -1;
-    multi_level_sdc        = 0; last_plotfile          = 0;
+    last_plotfile          = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
@@ -312,10 +312,6 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     else
        max_level = max_level_in;
 
-    //
-    // Do multi-level SDC?
-    //
-    pp.query("multi_level_sdc", multi_level_sdc);
     int nlev     = max_level+1;
     geom.resize(nlev);
     dt_level.resize(nlev);
@@ -327,14 +323,6 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     max_grid_size.resize(nlev);
     n_error_buf.resize(nlev);
     amr_level.resize(nlev);
-    if (multi_level_sdc)
-    {
-	t_nodes.resize(nlev);
-    }
-    else
-    {
-	t_nodes.resize(1);
-    }
     //
     // Set bogus values.
     //
@@ -350,16 +338,18 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
+    // Make the default regrid_int = 1 for all levels.
     if (max_level > 0) 
     {
        regrid_int.resize(max_level);
        for (i = 0; i < max_level; i++)
-           regrid_int[i]  = 0;
+           regrid_int[i]  = 1;
     }
 
+    // Make the default ref_ratio = 2 for all levels.
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
-        ref_ratio[i] = IntVect::TheZeroVector();
+        ref_ratio[i] = 2 * IntVect::TheUnitVector();
 
     //
     // Read other amr specific values.
@@ -405,7 +395,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         }
         else
         {
-            BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
+            BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
     
@@ -488,6 +478,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
            {
                regrid_int[i] = the_regrid_int;
            }
+       }
+       else if (numvals == 0)
+       {
+           BoxLib::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
@@ -964,58 +958,6 @@ Amr::checkInput ()
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read inputs file ... " << '\n';
-}
-
-void
-Amr::set_t_nodes(const Array<Real>& tn)
-{
-    BL_ASSERT(tn.size() >= 0);
-
-    int n_nodes = tn.size();
-
-    t_nodes[0].resize(n_nodes);
-    for (int i=0; i<n_nodes; i++) 
-    {
-	t_nodes[0][i] = tn[i];
-    }
-
-    if (multi_level_sdc)
-    {
-	int trat = n_nodes+1;    // t ratio
-	int nn_c = n_nodes;      // number of nodes on coarser level
-	for (int lev=1; lev <= max_level; lev++)
-	{
-	    int n = (nn_c+1)*trat-1; // number of nodes on current level
-
-	    t_nodes[lev].resize(n);
-
-	    for (int i=0; i<n; i++)
-	    {
-		int ii = i%trat;
-		int ic = i/trat;
-		if (ii == 2)
-		{
-		    t_nodes[lev][i] = t_nodes[lev-1][ic];
-		}
-		else if (ic == 0)
-		{
-		    t_nodes[lev][i] = tn[ii] * t_nodes[lev-1][ic];
-		}
-		else if (ic == nn_c)
-		{
-		    t_nodes[lev][i] = t_nodes[lev-1][ic-1]
-			+ tn[ii] * (1.0 - t_nodes[lev-1][ic-1]); 
-		}
-		else
-		{
-		    t_nodes[lev][i] = t_nodes[lev-1][ic-1]
-			+ tn[ii] * (t_nodes[lev-1][ic] - t_nodes[lev-1][ic-1]); 
-		}
-	    }
-
-	    nn_c = n;   // current level is a coarse level for next iteration
-	}
-    }
 }
 
 void
@@ -1857,6 +1799,13 @@ Amr::timeStep (int  level,
     amr_level[level].post_timestep(iteration);
 }
 
+Real
+Amr::coarseTimeStepDt (Real stop_time)
+{
+    coarseTimeStep(stop_time);
+    return dt_level[0];
+}
+
 void
 Amr::coarseTimeStep (Real stop_time)
 {
@@ -1920,7 +1869,13 @@ Amr::coarseTimeStep (Real stop_time)
                       << " ... "
                       << max_fab_bytes
                       << "]\n";
+
+            std::cout << "\nHigh water mark for bytes in BoxArray hash tables: "
+                      << BoxLib::total_bytes_in_hashtables_hwm
+                      << '\n';
         }
+
+        BoxLib::total_bytes_in_hashtables_hwm = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
@@ -2183,7 +2138,6 @@ Amr::regrid (int  lbase,
     for (int lev = start; lev <= finest_level; lev++)
     {
         amr_level[lev].removeOldData();
-        amr_level[lev].removeMidData();
     }
     //
     // Reclaim all remaining storage for levels > new_finest.
@@ -3081,23 +3035,47 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
 void 
 Amr::addOneParticle (int id_in, int cpu_in, 
                      std::vector<double>& xloc, std::vector<double>& attributes)
-
 {
     amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
-#endif
-
-#ifdef USE_EXTERNAL_GEOMETRY
 void 
-Amr::setBoundaryGeometry(IrregularDomain* boundary_obj_in)
+Amr::RedistributeParticles ()
 {
-    boundary_object = boundary_obj_in; 
+    // Call Redistribute with where_already_called = false
+    //                        full_where           = false
+    //                        lev_min              = 0
+    amr_level[0].particle_redistribute(0,true);
 }
-
-IrregularDomain* 
-Amr::getBoundaryGeometry()
+void
+Amr::GetParticleIDs (Array<int>& part_ids)
 {
-    return boundary_object;
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleIDs(part_ids);
+}
+void
+Amr::GetParticleCPU (Array<int>& part_cpu)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleCPU(part_cpu);
+}
+void
+Amr::GetParticleLocations (Array<Real>& part_data)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleLocations(part_data);
+}
+void 
+Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleData(part_data,start_comp,num_comp);
 }
 #endif
-

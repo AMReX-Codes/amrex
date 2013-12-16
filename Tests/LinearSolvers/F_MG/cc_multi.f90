@@ -23,6 +23,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
 
   use cc_rhs_module
   use cc_edge_coeffs_module
+  use init_cell_coeffs_module
 
   implicit none
 
@@ -43,6 +44,8 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
   type(multifab), allocatable :: edge_coeffs(:,:)
 
   type( multifab), allocatable   :: full_soln(:)
+
+  type(multifab)                 :: cell_coeffs
 
   type(layout)                   :: la
   real(dp_t)     , allocatable   :: xa(:), xb(:), pxa(:), pxb(:)
@@ -100,8 +103,10 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
         end do
      else 
         pd = mla%mba%pd(n)
-        call make_edge_coeffs(mla,n,edge_coeffs(mgt(n)%nlevels,:),pd,&
-                              coeffs_type,fabio)
+        call multifab_build(cell_coeffs,mla%la(n),nc=1,ng=1)
+        call init_cell_coeffs(mla,cell_coeffs,pd,coeffs_type)
+        call cell_to_edge_coeffs(cell_coeffs,edge_coeffs(mgt(n)%nlevels,:))
+        call multifab_destroy(cell_coeffs)
      end if
 
   end do

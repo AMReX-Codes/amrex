@@ -4,7 +4,9 @@
 #include <iomanip>
 #include <cmath>
 
+#ifndef __PGI
 using std::isinf;
+#endif
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>

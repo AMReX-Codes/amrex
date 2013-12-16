@@ -108,11 +108,6 @@ contains
           call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
        end do
 
-       ! maximum number of stencil points
-       ! this is not 1 + 2*dm as you would expect for the standard Laplacian because
-       ! near boundaries, we can use one-sided stencils with more points
-       ns = 1 + 3*dm
-
        ! initialize these to the default values in the mgt object
        smoother          = mgt(nlevs)%smoother           ! smoother type
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
@@ -153,7 +148,6 @@ contains
                               the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
                               stencil_type, &
                               dh = dx_vector(n,:), &
-                              ns = ns, &
                               smoother = smoother, &
                               nu1 = nu1, &
                               nu2 = nu2, &
