@@ -287,8 +287,6 @@ public:
     //
     Box minimalBox () const;
 
-    void reserve (long _truesize);
-
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;

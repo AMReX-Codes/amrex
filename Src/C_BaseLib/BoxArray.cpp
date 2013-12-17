@@ -81,14 +81,6 @@ BoxArray::decrementCounters () const
     }
 }
 
-void
-BoxArray::reserve (long _truesize)
-{
-    if (!m_ref.unique())
-        uniqify();
-    m_ref->m_abox.reserve(_truesize);
-}
-
 //
 // Most heavily used BoxArray constructor.
 //
