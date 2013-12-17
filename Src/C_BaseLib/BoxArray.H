@@ -316,13 +316,13 @@ private:
         //
         Ref () {}
 
-        Ref (size_t size);
+        Ref (size_t size) : m_abox(size) {}
 
-        Ref (const BoxList& bl);
+        Ref (const BoxList& bl) { define(bl); }
 
-        Ref (std::istream& is);
+        Ref (std::istream& is) { define(is); }
 
-        Ref (const Ref& rhs);
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
         //
         // Some defines()s to match those in BoxArray.
         //
