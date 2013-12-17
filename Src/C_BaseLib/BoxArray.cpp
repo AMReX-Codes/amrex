@@ -108,27 +108,12 @@ BoxArray::BoxArray (const Box& bx)
     BumpBoxArrayCount(1);
 }
 
-BoxArray::Ref::Ref (const BoxList& bl)
-{
-    define(bl);
-}
-
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
 {
     BumpBoxArrayCount(size());
 }
-
-BoxArray::Ref::Ref (std::istream& is)
-{
-    define(is);
-}
-
-BoxArray::Ref::Ref (size_t size)
-    :
-    m_abox(size)
-{}
 
 BoxArray::BoxArray (size_t n)
     :
@@ -146,11 +131,6 @@ BoxArray::BoxArray (const Box* bxvec,
         m_ref->m_abox[i] = *bxvec++;
     BumpBoxArrayCount(nbox);
 }
-
-BoxArray::Ref::Ref (const Ref& rhs)
-    :
-    m_abox(rhs.m_abox)
-{}
 
 //
 // The copy constructor.
