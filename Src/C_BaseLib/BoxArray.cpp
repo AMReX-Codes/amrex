@@ -9,6 +9,8 @@ long BoxLib::total_boxarrays               = 0;
 long BoxLib::total_boxarrays_hwm           = 0;
 long BoxLib::total_hash_tables             = 0;
 long BoxLib::total_hash_tables_hwm         = 0;
+long BoxLib::total_bytes_in_boxarrays      = 0;
+long BoxLib::total_bytes_in_boxarrays_hwm  = 0;
 long BoxLib::total_bytes_in_hashtables     = 0;
 long BoxLib::total_bytes_in_hashtables_hwm = 0;
 
@@ -32,15 +34,32 @@ NBytes (const BoxHashMapType& BoxHashMap)
     return nbytes;
 }
 
+//
+// We allow N here to be positive or negative.
+// So N can be either an increment or decrement.
+//
 static
 inline
 void
-BumpBoxArrayCount ()
+BumpBoxArrayByteCount (int N)
+{
+    BoxLib::total_bytes_in_boxarrays += N*sizeof(Box);
+
+    if (BoxLib::total_bytes_in_boxarrays > BoxLib::total_bytes_in_boxarrays_hwm)
+        BoxLib::total_bytes_in_boxarrays_hwm = BoxLib::total_bytes_in_boxarrays;
+}
+
+static
+inline
+void
+BumpBoxArrayCount (int N)
 {
     BoxLib::total_boxarrays++;
 
     if (BoxLib::total_boxarrays > BoxLib::total_boxarrays_hwm)
-        BoxLib::total_boxarrays_hwm++;
+        BoxLib::total_boxarrays_hwm = BoxLib::total_boxarrays;
+
+    BumpBoxArrayByteCount(N);
 }
 
 void
@@ -49,6 +68,10 @@ BoxArray::decrementCounters () const
     if (m_ref.linkCount() == 1)
     {
         BoxLib::total_boxarrays--;
+
+        const int N = m_ref->m_abox.capacity();
+
+        BumpBoxArrayByteCount(-N);
 
         if (!m_ref->hash.empty())
         {
@@ -73,7 +96,7 @@ BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
 {
-    BumpBoxArrayCount();
+    BumpBoxArrayCount(0);
 }
 
 BoxArray::BoxArray (const Box& bx)
@@ -82,7 +105,7 @@ BoxArray::BoxArray (const Box& bx)
 {
     m_ref->m_abox[0] = bx;
 
-    BumpBoxArrayCount();
+    BumpBoxArrayCount(1);
 }
 
 BoxArray::Ref::Ref (const BoxList& bl)
@@ -94,7 +117,7 @@ BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
 {
-    BumpBoxArrayCount();
+    BumpBoxArrayCount(size());
 }
 
 BoxArray::Ref::Ref (std::istream& is)
@@ -107,11 +130,11 @@ BoxArray::Ref::Ref (size_t size)
     m_abox(size)
 {}
 
-BoxArray::BoxArray (size_t size)
+BoxArray::BoxArray (size_t n)
     :
-    m_ref(new BoxArray::Ref(size))
+    m_ref(new BoxArray::Ref(n))
 {
-    BumpBoxArrayCount();
+    BumpBoxArrayCount(n);
 }
 
 BoxArray::BoxArray (const Box* bxvec,
@@ -121,8 +144,7 @@ BoxArray::BoxArray (const Box* bxvec,
 {
     for (int i = 0; i < nbox; i++)
         m_ref->m_abox[i] = *bxvec++;
-
-    BumpBoxArrayCount();
+    BumpBoxArrayCount(nbox);
 }
 
 BoxArray::Ref::Ref (const Ref& rhs)
@@ -145,9 +167,7 @@ BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
     decrementCounters();
-
     m_ref = rhs.m_ref;
-
     return *this;
 }
 
@@ -155,10 +175,20 @@ void
 BoxArray::uniqify ()
 {
     BL_ASSERT(!m_ref.unique());
-
     m_ref = new BoxArray::Ref(*m_ref);
+    BumpBoxArrayCount(size());
+}
 
-    BumpBoxArrayCount();
+int
+BoxArray::size () const
+{
+    return m_ref->m_abox.size();
+}
+
+bool
+BoxArray::empty () const
+{
+    return m_ref->m_abox.empty();
 }
 
 void
@@ -166,7 +196,20 @@ BoxArray::clear ()
 {
     if (!m_ref.unique())
         uniqify();
-    m_ref->m_abox.clear();
+    const int N = m_ref->m_abox.capacity();
+    if (N > 0)
+    {
+        //
+        // I want to forcefully clear out any memory in m_abox.
+        // Normally a clear() would just reset some internal pointers.
+        // I want to really let go of the memory so my byte count
+        // statistics are more accurate.
+        //
+
+        Array<Box>().swap(m_ref->m_abox);
+        BumpBoxArrayByteCount(-N);
+    }
+    BL_ASSERT(size() == 0);
 }
 
 void
@@ -174,7 +217,10 @@ BoxArray::resize (int len)
 {
     if (!m_ref.unique())
         uniqify();
+    const int N = len - m_ref->m_abox.capacity();
     m_ref->m_abox.resize(len);
+    if (N > 0)
+        BumpBoxArrayByteCount(N);
 }
 
 void
@@ -211,6 +257,7 @@ BoxArray::Ref::define (std::istream& is)
     unsigned long hash;
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> hash;
     m_abox.resize(maxbox);
+    BumpBoxArrayByteCount(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
     is.ignore(BL_IGNORE_MAX, ')');
@@ -231,7 +278,9 @@ void
 BoxArray::Ref::define (const BoxList& bl)
 {
     BL_ASSERT(m_abox.size() == 0);
-    m_abox.resize(bl.size());
+    const int N = bl.size();
+    m_abox.resize(N);
+    BumpBoxArrayByteCount(N);
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
@@ -243,9 +292,7 @@ void
 BoxArray::define (const BoxArray& bs)
 {
     BL_ASSERT(size() == 0);
-
     decrementCounters();
-
     m_ref = bs.m_ref;
 }
 
@@ -645,7 +692,9 @@ BoxArray::maxSize (const IntVect& block_size)
     BoxList blst(*this);
     blst.maxSize(block_size);
     clear();
-    m_ref->m_abox.resize(blst.size());
+    const int N = blst.size();
+    m_ref->m_abox.resize(N);
+    BumpBoxArrayByteCount(N);
     BoxList::iterator bli = blst.begin(), End = blst.end();
     for (int i = 0; bli != End; ++bli)
         set(i++, *bli);
