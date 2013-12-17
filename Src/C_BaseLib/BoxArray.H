@@ -22,6 +22,9 @@ namespace BoxLib
     extern long total_hash_tables;             // total count of extant hash tables
     extern long total_hash_tables_hwm;         // high-water mark over a given interval
 
+    extern long total_bytes_in_boxarrays;      // total bytes at any given time
+    extern long total_bytes_in_boxarrays_hwm;  // high-water-mark over a given interval
+
     extern long total_bytes_in_hashtables;     // total bytes at any given time
     extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
 }
@@ -130,7 +133,9 @@ public:
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const { return m_ref->m_abox.size(); }
+    int size () const;
+
+    bool empty () const;
 
     long numPts() const;
     //
