@@ -259,8 +259,9 @@ public:
 
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
-                                const FabArrayBase& src,
-                                CPCCache&           TheCopyCache);
+                                const FabArrayBase& src);
+
+    static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -590,7 +591,9 @@ public:
     // is performed on the region of intersection.  The intersection
     // is restricted to the valid region of each FAB.
     //
-    void copy (const FabArray<FAB>& fa, CpOp op = FabArrayBase::COPY);
+    void copy (const FabArray<FAB>& fa,
+               CpOp                 op = FabArrayBase::COPY,
+               bool                 use_cache = true);
     //
     // This function copies data from src to this FabArray.  Each FAB
     // in src is intersected with all FABs in this FabArray and a copy
@@ -603,7 +606,8 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY,
+               bool                 use_cache = true);
     //
     // Copies the values contained in the intersection of the
     // valid region of this FabArray with the FAB dest into dest.
@@ -1242,7 +1246,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
                      int                  ncomp,
-                     CpOp                 op)
+                     CpOp                 op,
+                     bool                 use_cache)
 {
     BL_PROFILE("FabArray::copy()");
 
@@ -1278,7 +1283,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src, FabArrayBase::m_TheCopyCache);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
@@ -1306,6 +1311,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
+        if (!use_cache)
+            FabArrayBase::EraseFromTheCPC(cache_it);
+
         return;
     }
 
@@ -1317,10 +1325,15 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int SeqNum = ParallelDescriptor::SeqNum();
 
     if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty())
+    {
         //
         // No work to do.
         //
+        if (!use_cache)
+            FabArrayBase::EraseFromTheCPC(cache_it);
+
         return;
+    }
     //
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
@@ -1465,14 +1478,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         DC        += NC;
         NCompLeft -= NC;
     }
+
+    if (!use_cache)
+        FabArrayBase::EraseFromTheCPC(cache_it);
 #endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
+FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op, bool use_cache)
 {
-    copy(src,0,0,nComp(),op);
+    copy(src,0,0,nComp(),op,use_cache);
 }
 
 //
