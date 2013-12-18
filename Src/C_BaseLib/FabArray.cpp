@@ -174,8 +174,7 @@ FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
-                      const FabArrayBase& src,
-                      CPCCache&           TheCopyCache)
+                      const FabArrayBase& src)
 {
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
@@ -184,8 +183,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     // but with different edgeness of boxes.  We also want to
     // differentiate dst.copy(src) from src.copy(dst).
     //
-    const IntVect Typ   = cpc.m_dstba[0].type();
-    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    CPCCache&     TheCopyCache = FabArrayBase::m_TheCopyCache;
+    const IntVect Typ          = cpc.m_dstba[0].type();
+    const int     Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
 
     int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
     Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
@@ -299,6 +299,12 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     TheCPC.m_srcba.clear_hash_bin();
 
     return cache_it;
+}
+
+void
+FabArrayBase::EraseFromTheCPC (CPCCacheIter& cache_it)
+{
+    FabArrayBase::m_TheCopyCache.erase(cache_it);    
 }
 
 void
