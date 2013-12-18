@@ -30,7 +30,7 @@ FabArrayBase::Initialize ()
     FabArrayBase::do_async_sends  = false;
     FabArrayBase::MaxComp         = 5;
 
-    copy_cache_max_size = 200;
+    copy_cache_max_size = 100;
     fb_cache_max_size   = 100;
 
     ParmParse pp("fabarray");
@@ -38,7 +38,6 @@ FabArrayBase::Initialize ()
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
-    pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //
