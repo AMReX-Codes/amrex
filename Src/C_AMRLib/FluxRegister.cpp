@@ -382,13 +382,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-    //
-    // AddBox() above calls intersections() ...
-    //
-    for (OrientationIter fi; fi; ++fi)
-    {
-        bndry[fi()].boxArray().clear_hash_bin();
-    }
 
     ba.clear_hash_bin();
 

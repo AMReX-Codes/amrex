@@ -586,8 +586,6 @@ TagBoxArray::setVal (const BoxArray& ba,
             tags.setVal(val,isects[i].second,0);
         }
     }
-
-    ba.clear_hash_bin();
 }
 
 void
