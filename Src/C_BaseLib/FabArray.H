@@ -537,7 +537,7 @@ public:
     //
     void clear ();
     //
-    // Set all components in the valid region of each FAB to val.
+    // Set all components in the entire region of each FAB to val.
     //
     void setVal (value_type val);
     void operator= (const value_type& val);
