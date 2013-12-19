@@ -592,8 +592,7 @@ public:
     // is restricted to the valid region of each FAB.
     //
     void copy (const FabArray<FAB>& fa,
-               CpOp                 op = FabArrayBase::COPY,
-               bool                 use_cache = true);
+               CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
     // in src is intersected with all FABs in this FabArray and a copy
@@ -606,8 +605,7 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-               CpOp                 op = FabArrayBase::COPY,
-               bool                 use_cache = true);
+               CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
     // valid region of this FabArray with the FAB dest into dest.
@@ -1246,8 +1244,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
                      int                  ncomp,
-                     CpOp                 op,
-                     bool                 use_cache)
+                     CpOp                 op)
 {
     BL_PROFILE("FabArray::copy()");
 
@@ -1311,9 +1308,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-        if (!use_cache)
-            FabArrayBase::EraseFromTheCPC(cache_it);
-
         return;
     }
 
@@ -1325,15 +1319,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     const int SeqNum = ParallelDescriptor::SeqNum();
 
     if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty())
-    {
         //
         // No work to do.
         //
-        if (!use_cache)
-            FabArrayBase::EraseFromTheCPC(cache_it);
-
         return;
-    }
     //
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
@@ -1479,16 +1468,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
-    if (!use_cache)
-        FabArrayBase::EraseFromTheCPC(cache_it);
 #endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op, bool use_cache)
+FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 {
-    copy(src,0,0,nComp(),op,use_cache);
+    copy(src,0,0,nComp(),op);
 }
 
 //
