@@ -212,9 +212,6 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         {
             if (!it->second.m_reused)
             {
-
-                if (ParallelDescriptor::IOProcessor()) std::cout << " *** Deleting an used one!!!\n";
-
                 TheCopyCache.erase(it++);
 
                 if (TheCopyCache.size() < copy_cache_max_size)
