@@ -132,7 +132,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 
     if (!m_empty && mf.size() > 0)
     {
-        mf.copy(m_fabs,src_comp,dst_comp,num_comp,FabArrayBase::COPY,false);
+        mf.copy(m_fabs,src_comp,dst_comp,num_comp);
     }
 }
 
@@ -146,6 +146,6 @@ AuxBoundaryData::copyFrom (const MultiFab& mf,
 
     if (!m_empty && mf.size() > 0)
     {
-         m_fabs.copy(mf,src_comp,dst_comp,num_comp,FabArrayBase::COPY,false);
+         m_fabs.copy(mf,src_comp,dst_comp,num_comp);
     }
 }
