@@ -22,6 +22,9 @@ namespace BoxLib
     extern long total_hash_tables;             // total count of extant hash tables
     extern long total_hash_tables_hwm;         // high-water mark over a given interval
 
+    extern long total_bytes_in_boxarrays;      // total bytes at any given time
+    extern long total_bytes_in_boxarrays_hwm;  // high-water-mark over a given interval
+
     extern long total_bytes_in_hashtables;     // total bytes at any given time
     extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
 }
@@ -130,7 +133,9 @@ public:
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const { return m_ref->m_abox.size(); }
+    int size () const;
+
+    bool empty () const;
 
     long numPts() const;
     //
@@ -282,8 +287,6 @@ public:
     //
     Box minimalBox () const;
 
-    void reserve (long _truesize);
-
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
@@ -311,13 +314,13 @@ private:
         //
         Ref () {}
 
-        Ref (size_t size);
+        Ref (size_t size) : m_abox(size) {}
 
-        Ref (const BoxList& bl);
+        Ref (const BoxList& bl) { define(bl); }
 
-        Ref (std::istream& is);
+        Ref (std::istream& is) { define(is); }
 
-        Ref (const Ref& rhs);
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
         //
         // Some defines()s to match those in BoxArray.
         //

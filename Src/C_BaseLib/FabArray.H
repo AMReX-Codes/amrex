@@ -259,8 +259,9 @@ public:
 
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
-                                const FabArrayBase& src,
-                                CPCCache&           TheCopyCache);
+                                const FabArrayBase& src);
+
+    static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -536,7 +537,7 @@ public:
     //
     void clear ();
     //
-    // Set all components in the valid region of each FAB to val.
+    // Set all components in the entire region of each FAB to val.
     //
     void setVal (value_type val);
     void operator= (const value_type& val);
@@ -590,7 +591,8 @@ public:
     // is performed on the region of intersection.  The intersection
     // is restricted to the valid region of each FAB.
     //
-    void copy (const FabArray<FAB>& fa, CpOp op = FabArrayBase::COPY);
+    void copy (const FabArray<FAB>& fa,
+               CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
     // in src is intersected with all FABs in this FabArray and a copy
@@ -1278,7 +1280,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src, FabArrayBase::m_TheCopyCache);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
@@ -1465,6 +1467,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         DC        += NC;
         NCompLeft -= NC;
     }
+
 #endif /*BL_USE_MPI*/
 }
 
