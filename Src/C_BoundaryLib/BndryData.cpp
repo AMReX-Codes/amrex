@@ -257,8 +257,6 @@ BndryData::define (const BoxArray& _grids,
             }
         }
     }
-
-    grids.clear_hash_bin();
     //
     // Define "bcond" and "bcloc".
     //

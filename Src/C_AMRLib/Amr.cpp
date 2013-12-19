@@ -1870,6 +1870,10 @@ Amr::coarseTimeStep (Real stop_time)
                       << BoxLib::total_hash_tables_hwm
                       << '\n';
 
+            std::cout << "High water mark for bytes in BoxArrays            : "
+                      << BoxLib::total_bytes_in_boxarrays_hwm
+                      << '\n';
+
             std::cout << "High water mark for bytes in BoxArray hash tables : "
                       << BoxLib::total_bytes_in_hashtables_hwm
                       << '\n';
@@ -1877,6 +1881,7 @@ Amr::coarseTimeStep (Real stop_time)
 
         BoxLib::total_boxarrays_hwm           = 0;
         BoxLib::total_hash_tables_hwm         = 0;
+        BoxLib::total_bytes_in_boxarrays_hwm  = 0;
         BoxLib::total_bytes_in_hashtables_hwm = 0;
     }
 
