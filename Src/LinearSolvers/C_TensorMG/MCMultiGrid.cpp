@@ -98,7 +98,7 @@ norm_inf (const MultiFab& res, bool local = false)
     Real restot = 0.0;
     for (MFIter mfi(res); mfi.isValid(); ++mfi) 
     {
-        restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
+      restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0, 0, res.nComp()));
     }
     if ( !local )
         ParallelDescriptor::ReduceRealMax(restot);
