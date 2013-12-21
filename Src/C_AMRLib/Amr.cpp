@@ -1844,15 +1844,17 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-        long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long min_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long max_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes,IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes,IOProc);
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        long HWcnts[4] = { BoxLib::total_boxarrays_hwm,
+                           BoxLib::total_hash_tables_hwm,
+                           BoxLib::total_bytes_in_boxarrays_hwm,
+                           BoxLib::total_bytes_in_hashtables_hwm };
+
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(HWcnts,4,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1862,27 +1864,19 @@ Amr::coarseTimeStep (Real stop_time)
                       << max_fab_bytes
                       << "]\n\n";
 
-            std::cout << "High water mark for # of BoxArrays                : "
-                      << BoxLib::total_boxarrays_hwm
-                      << '\n';
-
-            std::cout << "High water mark for # of BoxArray hash tables     : "
-                      << BoxLib::total_hash_tables_hwm
-                      << '\n';
-
-            std::cout << "High water mark for bytes in BoxArrays            : "
-                      << BoxLib::total_bytes_in_boxarrays_hwm
-                      << '\n';
-
-            std::cout << "High water mark for bytes in BoxArray hash tables : "
-                      << BoxLib::total_bytes_in_hashtables_hwm
-                      << '\n';
+            std::cout << "High water mark for # of BoxArrays                : " << HWcnts[0] << '\n';
+            std::cout << "High water mark for # of BoxArray hash tables     : " << HWcnts[1] << '\n';
+            std::cout << "High water mark for bytes in BoxArrays            : " << HWcnts[2] << '\n';
+            std::cout << "High water mark for bytes in BoxArray hash tables : " << HWcnts[3] << '\n';
         }
-
-        BoxLib::total_boxarrays_hwm           = 0;
-        BoxLib::total_hash_tables_hwm         = 0;
-        BoxLib::total_bytes_in_boxarrays_hwm  = 0;
-        BoxLib::total_bytes_in_hashtables_hwm = 0;
+        //
+        // Reset to zero to calculate high-water-mark for next timestep.
+        //
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        BoxLib::total_boxarrays_hwm               = 0;
+        BoxLib::total_hash_tables_hwm             = 0;
+        BoxLib::total_bytes_in_boxarrays_hwm      = 0;
+        BoxLib::total_bytes_in_hashtables_hwm     = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
