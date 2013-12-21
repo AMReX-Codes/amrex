@@ -73,11 +73,7 @@ BoxArray::decrementCounters () const
 
         BumpBoxArrayByteCount(-N);
 
-        if (!m_ref->hash.empty())
-        {
-            BoxLib::total_hash_tables--;
-            BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
-        }
+        clear_hash_bin();
     }
 }
 
@@ -852,11 +848,13 @@ BoxArray::clear_hash_bin () const
 {
     if (!m_ref->hash.empty())
     {
-        BoxLib::total_hash_tables--;
-        BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
-    }
+        const long N = NBytes(m_ref->hash);
 
-    m_ref->hash.clear();
+        BoxLib::total_hash_tables--;
+        BoxLib::total_bytes_in_hashtables -= N;
+
+        m_ref->hash.clear();
+    }
 }
 
 void
