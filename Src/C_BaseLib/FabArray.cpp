@@ -207,30 +207,29 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     {
         //
         // Don't let the size of the cache get too big.
+        // Get rid of entries with the biggest largest key that haven't been reused.
+        // Otherwise just remove the entry with the largest key.
         //
-        for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
-        {
-            if (!it->second.m_reused)
-            {
-                TheCopyCache.erase(it++);
+        CPCCache::iterator End      = TheCopyCache.end();
+        CPCCache::iterator last_it  = End;
+        CPCCache::iterator erase_it = End;
 
-                if (TheCopyCache.size() < copy_cache_max_size)
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    break;
-            }
-            else
-            {
-                ++it;
-            }
+        for (CPCCache::iterator it = TheCopyCache.begin(); it != End; ++it)
+        {
+            last_it = it;
+
+            if (!it->second.m_reused)
+                erase_it = it;
         }
 
-        if (TheCopyCache.size() >= copy_cache_max_size && !TheCopyCache.empty())
-            //
-            // Get rid of first entry which is the one with the smallest key.
-            //
-            TheCopyCache.erase(TheCopyCache.begin());
+        if (erase_it != End)
+        {
+            TheCopyCache.erase(erase_it);
+        }
+        else if (last_it != End)
+        {
+            TheCopyCache.erase(last_it);
+        }
     }
     //
     // Got to insert one & then build it.
@@ -471,30 +470,29 @@ FabArrayBase::TheFB (bool                cross,
     {
         //
         // Don't let the size of the cache get too big.
+        // Get rid of entries with the biggest largest key that haven't been reused.
+        // Otherwise just remove the entry with the largest key.
         //
-        for (FBCacheIter it = m_TheFBCache.begin(); it != m_TheFBCache.end(); )
-        {
-            if (!it->second.m_reused)
-            {
-                m_TheFBCache.erase(it++);
+        FBCacheIter End      = m_TheFBCache.end();
+        FBCacheIter last_it  = End;
+        FBCacheIter erase_it = End;
 
-                if (m_TheFBCache.size() < fb_cache_max_size)
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    break;
-            }
-            else
-            {
-                ++it;
-            }
+        for (FBCacheIter it = m_TheFBCache.begin(); it != End; ++it)
+        {
+            last_it = it;
+
+            if (!it->second.m_reused)
+                erase_it = it;
         }
 
-        if (m_TheFBCache.size() >= fb_cache_max_size && !m_TheFBCache.empty())
-            //
-            // Get rid of first entry which is the one with the smallest key.
-            //
-            m_TheFBCache.erase(m_TheFBCache.begin());
+        if (erase_it != End)
+        {
+            m_TheFBCache.erase(erase_it);
+        }
+        else if (last_it != End)
+        {
+             m_TheFBCache.erase(last_it);
+        }
     }
     //
     // Got to insert one & then build it.
