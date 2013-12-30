@@ -2147,14 +2147,15 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-
-    if (lbase == 0)
-    {
-        MultiFab::FlushSICache();
-        Geometry::FlushPIRMCache();
-        FabArrayBase::CPC::FlushCache();
-        DistributionMapping::FlushCache();
-    }
+    //
+    // Flush the caches.
+    // We're most interesting in flushing cached stuff from the finer levels.
+    // Lower level stuff that could be reused is just as easily rebuilt.
+    //
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
     //
     // Define the new grids from level start up to new_finest.
     //
