@@ -974,7 +974,7 @@ c$$$     $               +             cR( 1)*crse(i+1,n)
 c$$$     $               +             cR( 2)*crse(i+2,n))
              enddo
              do ii = fblo(1), fbhi(1)
-                fine(ii,n) = ftmp(i)
+                fine(ii,n) = ftmp(ii)
              enddo
           enddo
        else if (lratiox .eq. 4) then
