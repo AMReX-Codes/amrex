@@ -197,15 +197,18 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn -target=linux
     endif
 endif
-ifeq ($(findstring jaguar, $(HOST)), jaguar)
+ifeq ($(findstring titan, $(HOST)), titan)
     #
-    # jaguar
+    # titan (Oak Ridge, OLCF machine)
+		#
+		# Cray machines require you use their compiler wrappers
+		# even if you aren't using Cray compiler
     #
     ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
+        CXX := CC 
+        CC  := cc 
+        FC  := ftn
+        F90 := ftn
     endif
 endif
 ifeq ($(findstring kraken, $(UNAMEN)), kraken)

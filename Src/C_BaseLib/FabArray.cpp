@@ -294,6 +294,26 @@ FabArrayBase::TheCPC (const CPC&          cpc,
             }
         }
     }
+    //
+    // Squeeze out any unused memory ...
+    //
+    CPC::CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
+
+    TheCPC.m_LocTags->swap(tmp);
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
 
     TheCPC.m_srcba.clear_hash_bin();
 
@@ -589,6 +609,26 @@ FabArrayBase::TheFB (bool                cross,
                 }
             }
         }
+    }
+    //
+    // Squeeze out any unused memory ...
+    //
+    CPC::CopyComTagsContainer tmp(*TheFB.m_LocTags); 
+
+    TheFB.m_LocTags->swap(tmp);
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
     }
 
     ba.clear_hash_bin();
