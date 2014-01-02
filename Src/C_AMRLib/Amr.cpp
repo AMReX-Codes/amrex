@@ -338,16 +338,18 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
+    // Make the default regrid_int = 1 for all levels.
     if (max_level > 0) 
     {
        regrid_int.resize(max_level);
        for (i = 0; i < max_level; i++)
-           regrid_int[i]  = 0;
+           regrid_int[i]  = 1;
     }
 
+    // Make the default ref_ratio = 2 for all levels.
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
-        ref_ratio[i] = IntVect::TheZeroVector();
+        ref_ratio[i] = 2 * IntVect::TheUnitVector();
 
     //
     // Read other amr specific values.
@@ -393,7 +395,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         }
         else
         {
-            BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
+            BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
     
@@ -476,6 +478,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
            {
                regrid_int[i] = the_regrid_int;
            }
+       }
+       else if (numvals == 0)
+       {
+           BoxLib::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
@@ -1785,6 +1791,13 @@ Amr::timeStep (int  level,
     amr_level[level].post_timestep(iteration);
 }
 
+Real
+Amr::coarseTimeStepDt (Real stop_time)
+{
+    coarseTimeStep(stop_time);
+    return dt_level[0];
+}
+
 void
 Amr::coarseTimeStep (Real stop_time)
 {
@@ -1831,15 +1844,11 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-        long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long min_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long max_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes,IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes,IOProc);
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1849,6 +1858,10 @@ Amr::coarseTimeStep (Real stop_time)
                       << max_fab_bytes
                       << "]\n";
         }
+        //
+        // Reset to zero to calculate high-water-mark for next timestep.
+        //
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
@@ -2119,14 +2132,15 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-
-    if (lbase == 0)
-    {
-        MultiFab::FlushSICache();
-        Geometry::FlushPIRMCache();
-        FabArrayBase::CPC::FlushCache();
-        DistributionMapping::FlushCache();
-    }
+    //
+    // Flush the caches.
+    // We're most interesting in flushing cached stuff from the finer levels.
+    // Lower level stuff that could be reused is just as easily rebuilt.
+    //
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
     //
     // Define the new grids from level start up to new_finest.
     //
@@ -3008,23 +3022,47 @@ Amr::impose_refine_grid_layout (int lbase, int new_finest, Array<BoxArray>& new_
 void 
 Amr::addOneParticle (int id_in, int cpu_in, 
                      std::vector<double>& xloc, std::vector<double>& attributes)
-
 {
     amr_level[0].addOneParticle(id_in,cpu_in,xloc,attributes);
 }
-#endif
-
-#ifdef USE_EXTERNAL_GEOMETRY
 void 
-Amr::setBoundaryGeometry(IrregularDomain* boundary_obj_in)
+Amr::RedistributeParticles ()
 {
-    boundary_object = boundary_obj_in; 
+    // Call Redistribute with where_already_called = false
+    //                        full_where           = false
+    //                        lev_min              = 0
+    amr_level[0].particle_redistribute(0,true);
 }
-
-IrregularDomain* 
-Amr::getBoundaryGeometry()
+void
+Amr::GetParticleIDs (Array<int>& part_ids)
 {
-    return boundary_object;
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleIDs(part_ids);
+}
+void
+Amr::GetParticleCPU (Array<int>& part_cpu)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleCPU(part_cpu);
+}
+void
+Amr::GetParticleLocations (Array<Real>& part_data)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleLocations(part_data);
+}
+void 
+Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
+{
+    //
+    // The AmrLevel class is where we have access to the particle container.
+    //
+    amr_level[0].GetParticleData(part_data,start_comp,num_comp);
 }
 #endif
-

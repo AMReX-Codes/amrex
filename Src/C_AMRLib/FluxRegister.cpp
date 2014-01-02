@@ -383,6 +383,8 @@ FluxRegister::Reflux (MultiFab&       S,
         }
     }
 
+    ba.clear_hash_bin();
+
     BL_COMM_PROFILE_NAMETAG("CD::FluxRegister::Reflux()");
 
     fscd.CollectData();
@@ -591,6 +593,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
 
+    bndry[lo].boxArray().clear_hash_bin();
+
     const Orientation hi(dir,Orientation::high);
 
     bndry[hi].boxArray().intersections(subbox,isects);
@@ -599,6 +603,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     {
         DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
     }
+
+    bndry[hi].boxArray().clear_hash_bin();
 }
 
 void

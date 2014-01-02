@@ -126,10 +126,13 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   integer, intent(in) :: lev, nb, dm
   integer, intent(in) :: lo(nb,dm), hi(nb,dm), pd_lo(dm), pd_hi(dm), pm(dm), pmap(nb+1)
 
-  type(box) :: bxs(nb)
   integer   :: i
   logical   :: pmask(dm)
   integer   :: flev
+
+  type(box), allocatable :: bxs(:)
+
+  allocate(bxs(nb))
 
   flev = lev + 1
   call mgt_verify_lev("MGT_SET_NODAL_LEVEL", flev)
@@ -164,9 +167,6 @@ subroutine mgt_nodal_finalize(dx,bc)
 
   integer :: max_nlevel_in
   integer :: bottom_solver_in
-
-  type(boxarray) :: bac
-
   integer :: bottom_max_iter_in
 
   call mgt_verify("MGT_FINALIZE")
@@ -195,15 +195,6 @@ subroutine mgt_nodal_finalize(dx,bc)
      call setval(mgts%uu(i),ZERO,all=.true.)
      call setval(mgts%rh(i),ZERO,all=.true.)
      call setval(mgts%vel(i),ZERO,all=.true.)
-  end do
-
-  do i = nlev-1, 1, -1
-     call build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
-     call setval(mgts%mla%mask(i), val = .TRUE.) 
-     call copy(bac, mgts%mla%mba%bas(i+1))
-     call boxarray_coarsen(bac, mgts%rr(i,:))
-     call setval(mgts%mla%mask(i), .false., bac)
-     call destroy(bac) 
   end do
 
   if (mgts%stencil_type .eq. ND_DENSE_STENCIL) then
