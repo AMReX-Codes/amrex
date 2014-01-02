@@ -925,6 +925,26 @@ Geometry::GetFPB (const Geometry&      geom,
             }
         }
     }
+    //
+    // Squeeze out any unused memory ...
+    //
+    FPB::FPBComTagsContainer tmp(*TheFPB.m_LocTags); 
+
+    TheFPB.m_LocTags->swap(tmp);
+
+    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_SndTags->begin(), End = TheFPB.m_SndTags->end(); it != End; ++it)
+    {
+        FPB::FPBComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_RcvTags->begin(), End = TheFPB.m_RcvTags->end(); it != End; ++it)
+    {
+        FPB::FPBComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
 
     return cache_it;
 }
