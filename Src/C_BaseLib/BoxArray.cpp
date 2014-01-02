@@ -5,74 +5,15 @@
 #include <BoxArray.H>
 #include <ParallelDescriptor.H>
 
-long BoxLib::total_boxarrays               = 0;
-long BoxLib::total_boxarrays_hwm           = 0;
-long BoxLib::total_hash_tables             = 0;
-long BoxLib::total_hash_tables_hwm         = 0;
-long BoxLib::total_bytes_in_boxarrays      = 0;
-long BoxLib::total_bytes_in_boxarrays_hwm  = 0;
-long BoxLib::total_bytes_in_hashtables     = 0;
-long BoxLib::total_bytes_in_hashtables_hwm = 0;
-
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
-
-static
-long
-NBytes (const BoxHashMapType& BoxHashMap)
-{
-    long nbytes = BoxHashMap.size() * sizeof(std::pair< IntVect, std::vector<int> >);
-
-    for (ConstBoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
-         it != End;
-         ++it)
-    {
-        nbytes += it->second.capacity() * sizeof(int);
-    }
-
-    return nbytes;
-}
-
-//
-// We allow N here to be positive or negative.
-// So N can be either an increment or decrement.
-//
-static
-inline
-void
-BumpBoxArrayByteCount (int N)
-{
-    BoxLib::total_bytes_in_boxarrays += N*sizeof(Box);
-
-    if (BoxLib::total_bytes_in_boxarrays > BoxLib::total_bytes_in_boxarrays_hwm)
-        BoxLib::total_bytes_in_boxarrays_hwm = BoxLib::total_bytes_in_boxarrays;
-}
-
-static
-inline
-void
-BumpBoxArrayCount (int N)
-{
-    BoxLib::total_boxarrays++;
-
-    if (BoxLib::total_boxarrays > BoxLib::total_boxarrays_hwm)
-        BoxLib::total_boxarrays_hwm = BoxLib::total_boxarrays;
-
-    BumpBoxArrayByteCount(N);
-}
 
 void
 BoxArray::decrementCounters () const
 {
     if (m_ref.linkCount() == 1)
     {
-        BoxLib::total_boxarrays--;
-
-        const int N = m_ref->m_abox.capacity();
-
-        BumpBoxArrayByteCount(-N);
-
         clear_hash_bin();
     }
 }
@@ -83,32 +24,24 @@ BoxArray::decrementCounters () const
 BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
-{
-    BumpBoxArrayCount(0);
-}
+{}
 
 BoxArray::BoxArray (const Box& bx)
     :
     m_ref(new BoxArray::Ref(1))
 {
     m_ref->m_abox[0] = bx;
-
-    BumpBoxArrayCount(1);
 }
 
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
-{
-    BumpBoxArrayCount(size());
-}
+{}
 
 BoxArray::BoxArray (size_t n)
     :
     m_ref(new BoxArray::Ref(n))
-{
-    BumpBoxArrayCount(n);
-}
+{}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
@@ -117,7 +50,6 @@ BoxArray::BoxArray (const Box* bxvec,
 {
     for (int i = 0; i < nbox; i++)
         m_ref->m_abox[i] = *bxvec++;
-    BumpBoxArrayCount(nbox);
 }
 
 //
@@ -144,7 +76,6 @@ BoxArray::uniqify ()
 {
     BL_ASSERT(!m_ref.unique());
     m_ref = new BoxArray::Ref(*m_ref);
-    BumpBoxArrayCount(size());
 }
 
 int
@@ -164,8 +95,8 @@ BoxArray::clear ()
 {
     if (!m_ref.unique())
         uniqify();
-    const int N = m_ref->m_abox.capacity();
-    if (N > 0)
+
+    if (m_ref->m_abox.capacity() > 0)
     {
         //
         // I want to forcefully clear out any memory in m_abox.
@@ -173,11 +104,8 @@ BoxArray::clear ()
         // I want to really let go of the memory so my byte count
         // statistics are more accurate.
         //
-
         Array<Box>().swap(m_ref->m_abox);
-        BumpBoxArrayByteCount(-N);
     }
-    BL_ASSERT(size() == 0);
 }
 
 void
@@ -185,10 +113,7 @@ BoxArray::resize (int len)
 {
     if (!m_ref.unique())
         uniqify();
-    const int N = len - m_ref->m_abox.capacity();
     m_ref->m_abox.resize(len);
-    if (N > 0)
-        BumpBoxArrayByteCount(N);
 }
 
 void
@@ -225,7 +150,6 @@ BoxArray::Ref::define (std::istream& is)
     unsigned long hash;
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> hash;
     m_abox.resize(maxbox);
-    BumpBoxArrayByteCount(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
     is.ignore(BL_IGNORE_MAX, ')');
@@ -248,7 +172,6 @@ BoxArray::Ref::define (const BoxList& bl)
     BL_ASSERT(m_abox.size() == 0);
     const int N = bl.size();
     m_abox.resize(N);
-    BumpBoxArrayByteCount(N);
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
@@ -662,7 +585,6 @@ BoxArray::maxSize (const IntVect& block_size)
     clear();
     const int N = blst.size();
     m_ref->m_abox.resize(N);
-    BumpBoxArrayByteCount(N);
     BoxList::iterator bli = blst.begin(), End = blst.end();
     for (int i = 0; bli != End; ++bli)
         set(i++, *bli);
@@ -848,11 +770,6 @@ BoxArray::clear_hash_bin () const
 {
     if (!m_ref->hash.empty())
     {
-        const long N = NBytes(m_ref->hash);
-
-        BoxLib::total_hash_tables--;
-        BoxLib::total_bytes_in_hashtables -= N;
-
         m_ref->hash.clear();
     }
 }
@@ -892,30 +809,6 @@ BoxArray::intersections (const Box&                         bx,
             for (int i = 0, N = size(); i < N; i++)
             {
                 BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
-            }
-
-            const long nbytes = NBytes(BoxHashMap);
-
-            BoxLib::total_bytes_in_hashtables += nbytes;
-            if (BoxLib::total_bytes_in_hashtables > BoxLib::total_bytes_in_hashtables_hwm)
-                BoxLib::total_bytes_in_hashtables_hwm = BoxLib::total_bytes_in_hashtables;
-
-            BoxLib::total_hash_tables++;
-            if (BoxLib::total_hash_tables > BoxLib::total_hash_tables_hwm)
-                BoxLib::total_hash_tables_hwm = BoxLib::total_hash_tables;
-
-            if (false && ParallelDescriptor::IOProcessor())
-            {
-                //
-                // Only output modestly large ones.
-                // Small ones are generated by some Box operations.
-                //
-                if (BoxHashMap.size() > 100)
-                {
-                    std::cout << " *** hash intersector: size: " << BoxHashMap.size()
-                              << ", nbytes: " << nbytes
-                              << ", ba.size: " << size() << '\n';
-                }
             }
         }
     }

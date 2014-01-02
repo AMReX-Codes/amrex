@@ -846,16 +846,14 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 				 int               ncomp,
 				 const Box&        fine_region,
 				 const IntVect&    ratio,
-				 const Geometry&   crse_geom,
-				 const Geometry&   fine_geom,
+				 const Geometry&   /* crse_geom */,
+				 const Geometry&   /* fine_geom */,
 				 Array<BCRec>&     bcr,
 				 int               actual_comp,
 				 int               actual_state)
 {
     BL_PROFILE("CellConservativeQuartic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
-    BL_ASSERT(fine_geom.IsCartesian());
     BL_ASSERT(ratio[0]==2);
 #if (BL_SPACEDIM >= 2)
     BL_ASSERT(ratio[0] == ratio[1]);
