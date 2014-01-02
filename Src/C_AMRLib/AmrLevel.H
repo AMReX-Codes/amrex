@@ -382,6 +382,21 @@ public:
     virtual void addOneParticle (int id_in, int cpu_in,
                                  std::vector<double>& xloc, 
                                  std::vector<double>& attributes) {;}
+
+    //
+    // Add this function which can be called from the parent 
+    //
+    virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
+
+    //
+    // Get particle data out of the Particle Class and send it back out through 
+    //     an Amr* amrptr.
+    //
+    virtual void GetParticleIDs       (Array<int>&  part_ids ) {;}
+    virtual void GetParticleCPU       (Array<int>&  part_cpu ) {;}
+    virtual void GetParticleLocations (Array<Real>& part_locs) {;}
+    virtual void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp) {;}
+
 #endif
 
 protected:

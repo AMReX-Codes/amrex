@@ -391,10 +391,15 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             }
         }
     }
+    //
+    // AddBox() calls intersections() ...
+    //
+    boxArray().clear_hash_bin();
 
     if (!work_to_do) return;
 
     BL_COMM_PROFILE_NAMETAG("CD::TagBoxArray::mapPeriodic()");
+
     facd.CollectData();
 
     const int N = IDs.size();
@@ -566,14 +571,11 @@ TagBoxArray::setVal (const BoxArray& ba,
 {
     const int N = IndexMap().size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+    std::vector< std::pair<int,Box> > isects;
+
     for (int i = 0; i < N; i++)
     {
         const int idx = IndexMap()[i];
-
-        std::vector< std::pair<int,Box> > isects;
 
         ba.intersections(box(idx),isects);
 
@@ -583,7 +585,7 @@ TagBoxArray::setVal (const BoxArray& ba,
         {
             tags.setVal(val,isects[i].second,0);
         }
-    } 
+    }
 }
 
 void

@@ -265,7 +265,7 @@ contains
     type(ml_layout), intent(inout) :: mla
     integer :: n
     do n = 1, mla%nlevel-1
-       call destroy(mla%mask(n))
+       if (built_q(mla%mask(n))) call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
 

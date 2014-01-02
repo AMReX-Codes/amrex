@@ -5,8 +5,9 @@
 //
 // Set default values in Initialize()!!!
 //
-bool FabArrayBase::verbose;
+bool FabArrayBase::Verbose;
 bool FabArrayBase::do_async_sends;
+int  FabArrayBase::MaxComp;
 
 namespace
 {
@@ -25,15 +26,17 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::verbose          = true;
-    FabArrayBase::do_async_sends   = false;
+    FabArrayBase::Verbose         = true;
+    FabArrayBase::do_async_sends  = false;
+    FabArrayBase::MaxComp         = 5;
 
-    copy_cache_max_size = 200;
-    fb_cache_max_size   = 100;
+    copy_cache_max_size = 25;
+    fb_cache_max_size   = 25;
 
     ParmParse pp("fabarray");
 
-    pp.query("verbose",             FabArrayBase::verbose);
+    pp.query("verbose",             FabArrayBase::Verbose);
+    pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
@@ -44,6 +47,8 @@ FabArrayBase::Initialize ()
         fb_cache_max_size = 1;
     if (copy_cache_max_size < 1)
         copy_cache_max_size = 1;
+    if (MaxComp < 1)
+        MaxComp = 1;
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
@@ -169,8 +174,7 @@ FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
-                      const FabArrayBase& src,
-                      CPCCache&           TheCopyCache)
+                      const FabArrayBase& src)
 {
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
@@ -179,8 +183,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     // but with different edgeness of boxes.  We also want to
     // differentiate dst.copy(src) from src.copy(dst).
     //
-    const IntVect Typ   = cpc.m_dstba[0].type();
-    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    CPCCache&     TheCopyCache = FabArrayBase::m_TheCopyCache;
+    const IntVect Typ          = cpc.m_dstba[0].type();
+    const int     Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
 
     int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
     Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
@@ -202,30 +207,29 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     {
         //
         // Don't let the size of the cache get too big.
+        // Get rid of entries with the biggest largest key that haven't been reused.
+        // Otherwise just remove the entry with the largest key.
         //
-        for (CPCCacheIter it = TheCopyCache.begin(); it != TheCopyCache.end(); )
-        {
-            if (!it->second.m_reused)
-            {
-                TheCopyCache.erase(it++);
+        CPCCache::iterator End      = TheCopyCache.end();
+        CPCCache::iterator last_it  = End;
+        CPCCache::iterator erase_it = End;
 
-                if (TheCopyCache.size() < copy_cache_max_size)
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    break;
-            }
-            else
-            {
-                ++it;
-            }
+        for (CPCCache::iterator it = TheCopyCache.begin(); it != End; ++it)
+        {
+            last_it = it;
+
+            if (!it->second.m_reused)
+                erase_it = it;
         }
 
-        if (TheCopyCache.size() >= copy_cache_max_size && !TheCopyCache.empty())
-            //
-            // Get rid of first entry which is the one with the smallest key.
-            //
-            TheCopyCache.erase(TheCopyCache.begin());
+        if (erase_it != End)
+        {
+            TheCopyCache.erase(erase_it);
+        }
+        else if (last_it != End)
+        {
+            TheCopyCache.erase(last_it);
+        }
     }
     //
     // Got to insert one & then build it.
@@ -290,8 +294,36 @@ FabArrayBase::TheCPC (const CPC&          cpc,
             }
         }
     }
+    //
+    // Squeeze out any unused memory ...
+    //
+    CPC::CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
+
+    TheCPC.m_LocTags->swap(tmp);
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    TheCPC.m_srcba.clear_hash_bin();
 
     return cache_it;
+}
+
+void
+FabArrayBase::EraseFromTheCPC (CPCCacheIter& cache_it)
+{
+    FabArrayBase::m_TheCopyCache.erase(cache_it);    
 }
 
 void
@@ -310,7 +342,7 @@ FabArrayBase::CPC::FlushCache ()
             stats[1]++;
     }
 
-    if (FabArrayBase::verbose)
+    if (FabArrayBase::Verbose)
     {
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 
@@ -458,30 +490,29 @@ FabArrayBase::TheFB (bool                cross,
     {
         //
         // Don't let the size of the cache get too big.
+        // Get rid of entries with the biggest largest key that haven't been reused.
+        // Otherwise just remove the entry with the largest key.
         //
-        for (FBCacheIter it = m_TheFBCache.begin(); it != m_TheFBCache.end(); )
-        {
-            if (!it->second.m_reused)
-            {
-                m_TheFBCache.erase(it++);
+        FBCacheIter End      = m_TheFBCache.end();
+        FBCacheIter last_it  = End;
+        FBCacheIter erase_it = End;
 
-                if (m_TheFBCache.size() < fb_cache_max_size)
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    break;
-            }
-            else
-            {
-                ++it;
-            }
+        for (FBCacheIter it = m_TheFBCache.begin(); it != End; ++it)
+        {
+            last_it = it;
+
+            if (!it->second.m_reused)
+                erase_it = it;
         }
 
-        if (m_TheFBCache.size() >= fb_cache_max_size && !m_TheFBCache.empty())
-            //
-            // Get rid of first entry which is the one with the smallest key.
-            //
-            m_TheFBCache.erase(m_TheFBCache.begin());
+        if (erase_it != End)
+        {
+            m_TheFBCache.erase(erase_it);
+        }
+        else if (last_it != End)
+        {
+             m_TheFBCache.erase(last_it);
+        }
     }
     //
     // Got to insert one & then build it.
@@ -579,6 +610,28 @@ FabArrayBase::TheFB (bool                cross,
             }
         }
     }
+    //
+    // Squeeze out any unused memory ...
+    //
+    CPC::CopyComTagsContainer tmp(*TheFB.m_LocTags); 
+
+    TheFB.m_LocTags->swap(tmp);
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
+    {
+        CPC::CopyComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    ba.clear_hash_bin();
 
     return cache_it;
 }
@@ -608,7 +661,7 @@ FabArrayBase::FlushSICache ()
             stats[1]++;
     }
 
-    if (FabArrayBase::verbose)
+    if (FabArrayBase::Verbose)
     {
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
 

@@ -14,10 +14,6 @@
 #include <StationData.H>
 #endif
 
-#ifdef USE_EXTERNAL_GEOMETRY
-#include <IrregularDomain.h>
-#endif
-
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
@@ -33,6 +29,8 @@ class BoxDomain;
 
 class Amr
 {
+    typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+
 public:
     //
     // The constructor.
@@ -299,6 +297,10 @@ public:
     //
     virtual void coarseTimeStep (Real stop_time);
     //
+    // Do a complete integration cycle and return the coarse dt.
+    //
+    Real coarseTimeStepDt (Real stop_time);
+    //
     // Retrieve derived data. User is responsible for deleting pointer.
     //
     MultiFab* derive (const std::string& name,
@@ -344,13 +346,76 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
-#ifdef USE_EXTERNAL_GEOMETRY
     //
-    // Define an IrregularDomain geometry object for this Amr.
+    // Specialized version:
+    // Define BoundaryPointLists that give the intersections
+    //    of the external geometry with constant (i,k) and (j,k)
+    // These are defined at the coarsest level indexing only.
     //
-    void setBoundaryGeometry(IrregularDomain* boundary_obj_in);
-    IrregularDomain* getBoundaryGeometry();
-#endif
+    void setBoundaryGeometry(BoundaryPointList& IntersectLoX,
+                             BoundaryPointList& IntersectHiX,
+                             BoundaryPointList& IntersectLoY,
+                             BoundaryPointList& IntersectHiY)
+    {
+        intersect_lox = IntersectLoX;
+        intersect_hix = IntersectHiX;
+        intersect_loy = IntersectLoY;
+        intersect_hiy = IntersectHiY;
+    };
+
+    //
+    // More general version:
+    // Define BoundaryPointLists that give the intersections
+    //    of the external geometry with constant (i,k),(j,k)
+    //    and (i,j).
+    // These are defined at the coarsest level indexing only.
+    //
+    void setBoundaryGeometry(BoundaryPointList& IntersectLoX,
+                             BoundaryPointList& IntersectHiX,
+                             BoundaryPointList& IntersectLoY,
+                             BoundaryPointList& IntersectHiY,
+                             BoundaryPointList& IntersectLoZ,
+                             BoundaryPointList& IntersectHiZ)
+    {
+        intersect_lox = IntersectLoX;
+        intersect_hix = IntersectHiX;
+        intersect_loy = IntersectLoY;
+        intersect_hiy = IntersectHiY;
+        intersect_loz = IntersectLoZ;
+        intersect_hiz = IntersectHiZ;
+    };
+
+    BoundaryPointList& getIntersectLoX() 
+    {
+        return intersect_lox;
+    };
+    BoundaryPointList& getIntersectHiX() 
+    {
+        return intersect_hix;
+    };
+    BoundaryPointList& getIntersectLoY() 
+    {
+        return intersect_loy;
+    };
+    BoundaryPointList& getIntersectHiY() 
+    {
+        return intersect_hiy;
+    };
+    BoundaryPointList& getIntersectLoZ() 
+    {
+        return intersect_loz;
+    };
+    BoundaryPointList& getIntersectHiZ() 
+    {
+        return intersect_hiz;
+    };
+
+    BoundaryPointList intersect_lox;
+    BoundaryPointList intersect_loy;
+    BoundaryPointList intersect_loz;
+    BoundaryPointList intersect_hix;
+    BoundaryPointList intersect_hiy;
+    BoundaryPointList intersect_hiz;
 
 #ifdef USE_PARTICLES
     //
@@ -358,6 +423,17 @@ public:
     //
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes);
+    //
+    // Redistribute after adding particles
+    //
+    void RedistributeParticles ();
+    //
+    // Get particle data out of the Particle Class
+    //
+    void GetParticleIDs       (Array<int>&  part_ids);
+    void GetParticleCPU       (Array<int>&  part_cpu);
+    void GetParticleLocations (Array<Real>& part_locs);
+    void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif
 
 protected:
@@ -489,10 +565,6 @@ protected:
 
 #ifdef USE_STATIONDATA
     StationData      station;
-#endif
-
-#ifdef USE_EXTERNAL_GEOMETRY
-    IrregularDomain* boundary_object;
 #endif
 
     int              verbose;

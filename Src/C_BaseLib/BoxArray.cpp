@@ -3,15 +3,24 @@
 
 #include <BLassert.H>
 #include <BoxArray.H>
+#include <ParallelDescriptor.H>
+
+typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
+typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
+typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
 
 void
-BoxArray::reserve (long _truesize)
+BoxArray::decrementCounters () const
 {
-    if (!m_ref.unique())
-        uniqify();
-    m_ref->m_abox.reserve(_truesize);
+    if (m_ref.linkCount() == 1)
+    {
+        clear_hash_bin();
+    }
 }
 
+//
+// Most heavily used BoxArray constructor.
+//
 BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
@@ -24,29 +33,14 @@ BoxArray::BoxArray (const Box& bx)
     m_ref->m_abox[0] = bx;
 }
 
-BoxArray::Ref::Ref (const BoxList& bl)
-{
-    define(bl);
-}
-
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
 {}
 
-BoxArray::Ref::Ref (std::istream& is)
-{
-    define(is);
-}
-
-BoxArray::Ref::Ref (size_t size)
+BoxArray::BoxArray (size_t n)
     :
-    m_abox(size)
-{}
-
-BoxArray::BoxArray (size_t size)
-    :
-    m_ref(new BoxArray::Ref(size))
+    m_ref(new BoxArray::Ref(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
@@ -58,15 +52,42 @@ BoxArray::BoxArray (const Box* bxvec,
         m_ref->m_abox[i] = *bxvec++;
 }
 
-BoxArray::Ref::Ref (const Ref& rhs)
+//
+// The copy constructor.
+//
+BoxArray::BoxArray (const BoxArray& rhs)
     :
-    m_abox(rhs.m_abox)
+    m_ref(rhs.m_ref)
 {}
+
+//
+// The assignment operator.
+//
+BoxArray&
+BoxArray::operator= (const BoxArray& rhs)
+{
+    decrementCounters();
+    m_ref = rhs.m_ref;
+    return *this;
+}
 
 void
 BoxArray::uniqify ()
 {
-    m_ref = new Ref(*m_ref);
+    BL_ASSERT(!m_ref.unique());
+    m_ref = new BoxArray::Ref(*m_ref);
+}
+
+int
+BoxArray::size () const
+{
+    return m_ref->m_abox.size();
+}
+
+bool
+BoxArray::empty () const
+{
+    return m_ref->m_abox.empty();
 }
 
 void
@@ -74,7 +95,17 @@ BoxArray::clear ()
 {
     if (!m_ref.unique())
         uniqify();
-    m_ref->m_abox.clear();
+
+    if (m_ref->m_abox.capacity() > 0)
+    {
+        //
+        // I want to forcefully clear out any memory in m_abox.
+        // Normally a clear() would just reset some internal pointers.
+        // I want to really let go of the memory so my byte count
+        // statistics are more accurate.
+        //
+        Array<Box>().swap(m_ref->m_abox);
+    }
 }
 
 void
@@ -139,7 +170,8 @@ void
 BoxArray::Ref::define (const BoxList& bl)
 {
     BL_ASSERT(m_abox.size() == 0);
-    m_abox.resize(bl.size());
+    const int N = bl.size();
+    m_abox.resize(N);
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
@@ -151,10 +183,14 @@ void
 BoxArray::define (const BoxArray& bs)
 {
     BL_ASSERT(size() == 0);
+    decrementCounters();
     m_ref = bs.m_ref;
 }
 
-BoxArray::~BoxArray () {}
+BoxArray::~BoxArray ()
+{
+    decrementCounters();
+}
 
 bool
 BoxArray::operator== (const BoxArray& rhs) const
@@ -482,10 +518,10 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::isDisjoint () const
 {
+    std::vector< std::pair<int,Box> > isects;
+
     for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
     {
-        std::vector< std::pair<int,Box> > isects;
-
         intersections(*it,isects);
 
         if ( !(isects.size() == 1 && isects[0].second == *it) )
@@ -547,7 +583,8 @@ BoxArray::maxSize (const IntVect& block_size)
     BoxList blst(*this);
     blst.maxSize(block_size);
     clear();
-    m_ref->m_abox.resize(blst.size());
+    const int N = blst.size();
+    m_ref->m_abox.resize(N);
     BoxList::iterator bli = blst.begin(), End = blst.end();
     for (int i = 0; bli != End; ++bli)
         set(i++, *bli);
@@ -704,6 +741,8 @@ BoxLib::GetBndryCells (const BoxArray& ba,
             bcells.catenate(leftover);
         }
     }
+
+    tba.clear_hash_bin();
     //
     // Now strip out overlaps.
     //
@@ -727,15 +766,25 @@ BoxArray::intersections (const Box& bx) const
 }
 
 void
+BoxArray::clear_hash_bin () const
+{
+    if (!m_ref->hash.empty())
+    {
+        m_ref->hash.clear();
+    }
+}
+
+void
 BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects) const
 {
+    BoxHashMapType& BoxHashMap = m_ref->hash;
 
 #ifdef _OPENMP
-#pragma omp critical(intersections_lock)
+    #pragma omp critical(intersections_lock)
 #endif
     {
-        if (!m_ref->hash.isAllocated() && size() > 0)
+        if (BoxHashMap.empty() && size() > 0)
         {
             BL_ASSERT(bx.sameType(get(0)));
             //
@@ -748,16 +797,18 @@ BoxArray::intersections (const Box&                         bx,
             for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
             {
                 boundingbox.minBox(*it);
+
                 maxext = BoxLib::max(maxext, it->size());
             }
-            m_ref->crsn = maxext;
+
             boundingbox.coarsen(maxext);
 
-            m_ref->hash.resize(boundingbox, 1);
+            m_ref->crsn = maxext;
+            m_ref->bbox = boundingbox;
 
             for (int i = 0, N = size(); i < N; i++)
             {
-                m_ref->hash(BoxLib::coarsen(get(i).smallEnd(),maxext)).push_back(i);
+                BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
             }
         }
     }
@@ -766,27 +817,35 @@ BoxArray::intersections (const Box&                         bx,
 
     isects.reserve(27);
 
-    if (m_ref->hash.isAllocated())
+    if (!BoxHashMap.empty())
     {
         BL_ASSERT(bx.sameType(get(0)));
 
-        Box     cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        IntVect sm  = BoxLib::max(cbx.smallEnd()-1, m_ref->hash.box().smallEnd());
-        IntVect bg  = BoxLib::min(cbx.bigEnd(),     m_ref->hash.box().bigEnd());
+        Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
+        const IntVect  sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect  bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         cbx = Box(sm,bg,bx.ixType());
 
+        ConstBoxHashMapIter TheEnd = BoxHashMap.end();
+
         for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); iv <= End; cbx.next(iv))
         {
-            std::vector<int>& v = m_ref->hash(iv);
+            ConstBoxHashMapIter it = BoxHashMap.find(iv);
 
-            for (int i = 0, N = v.size(); i < N; i++)
+            if (it != TheEnd)
             {
-                const Box isect = bx & get(v[i]);
-
-                if (isect.ok())
+                for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end();
+                     v_it != v_end;
+                     ++v_it)
                 {
-                    isects.push_back(std::pair<int,Box>(v[i],isect));
+                    const int index = *v_it;
+                    const Box isect = bx & get(index);
+
+                    if (isect.ok())
+                    {
+                        isects.push_back(std::pair<int,Box>(index,isect));
+                    }
                 }
             }
         }
@@ -801,6 +860,10 @@ void
 BoxArray::removeOverlap ()
 {
     if (!m_ref.unique()) uniqify();
+
+    std::map< IntVect,std::vector<int>,IntVect::Compare >& BoxHashMap = m_ref->hash;
+
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
 
     BoxList bl;
 
@@ -830,7 +893,7 @@ BoxArray::removeOverlap ()
                 {
                     m_ref->m_abox.push_back(*it);
 
-                    m_ref->hash(BoxLib::coarsen(it->smallEnd(),m_ref->crsn)).push_back(size()-1);
+                    BoxHashMap[BoxLib::coarsen(it->smallEnd(),m_ref->crsn)].push_back(size()-1);
                 }
             }
         }
@@ -840,17 +903,26 @@ BoxArray::removeOverlap ()
     //
     bl.clear();
 
-    const Box& bb = m_ref->hash.box();
+    const Box& bb = m_ref->bbox;
+
+    ConstBoxHashMapIter TheEnd = BoxHashMap.end();
 
     for (IntVect iv = bb.smallEnd(), End = bb.bigEnd(); iv <= End; bb.next(iv))
     {
-        std::vector<int>& v = m_ref->hash(iv);
+        ConstBoxHashMapIter it = BoxHashMap.find(iv);
 
-        for (int i = 0, N = v.size(); i < N; i++)
+        if (it != TheEnd)
         {
-            if (m_ref->m_abox[v[i]].ok())
+            for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end();
+                 v_it != v_end;
+                 ++v_it)
             {
-                bl.push_back(m_ref->m_abox[v[i]]);
+                const int index = *v_it;
+
+                if (m_ref->m_abox[index].ok())
+                {
+                    bl.push_back(m_ref->m_abox[index]);
+                }
             }
         }
     }
