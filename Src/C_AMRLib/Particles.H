@@ -5275,7 +5275,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
     BL_ASSERT(OK(full_where, lev_min, nGrow, theEffectiveFinestLevel));
 
-    if (m_verbose > 1)
+    if (m_verbose > 0)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
