@@ -1857,13 +1857,12 @@ template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::CollectData ()
 {
-    typedef typename FAB::value_type value_type;
-
     dataAvailable = true;
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #if BL_USE_MPI
+    typedef typename FAB::value_type value_type;
     //
     // Make sure we can treat CommData as a stream of integers.
     //
