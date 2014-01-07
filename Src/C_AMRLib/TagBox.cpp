@@ -5,7 +5,6 @@
 #include <vector>
 #include <cmath>
 #include <climits>
-#include <deque>
 
 #include <TagBox.H>
 #include <Geometry.H>
@@ -353,7 +352,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     bool                           work_to_do = false;
     const Box&                     dmn        = geom.Domain();
 
-    std::deque< std::pair<FillBoxId,IntVect> > IDs;
+    std::vector< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0, N = boxarray.size(); i < N; i++)
     {
