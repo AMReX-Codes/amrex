@@ -15,12 +15,6 @@ class BoxArray;
 
 namespace BoxLib
 {
-    extern long total_bytes_in_hashtables;     // total bytes at any given time
-    extern long total_bytes_in_hashtables_hwm; // high-water-mark over a given interval
-}
-
-namespace BoxLib
-{
     //
     // Makes a BoxArray from the the complement of b2 in b1in.
     //
@@ -83,13 +77,11 @@ public:
     //
     // The copy constructor.
     //
-    BoxArray (const BoxArray& rhs)
-        :
-        m_ref(rhs.m_ref) {}
+    BoxArray (const BoxArray& rhs);
     //
     // The assignment operator.
     //
-    BoxArray& operator= (const BoxArray& rhs) { m_ref = rhs.m_ref; return *this; }
+    BoxArray& operator= (const BoxArray& rhs);
     //
     // The destructor.
     //
@@ -125,7 +117,9 @@ public:
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const { return m_ref->m_abox.size(); }
+    int size () const;
+
+    bool empty () const;
 
     long numPts() const;
     //
@@ -277,8 +271,6 @@ public:
     //
     Box minimalBox () const;
 
-    void reserve (long _truesize);
-
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
@@ -296,6 +288,8 @@ public:
 
 private:
 
+    void decrementCounters () const;
+
     class Ref
     {
         friend class BoxArray;
@@ -304,13 +298,13 @@ private:
         //
         Ref () {}
 
-        Ref (size_t size);
+        Ref (size_t size) : m_abox(size) {}
 
-        Ref (const BoxList& bl);
+        Ref (const BoxList& bl) { define(bl); }
 
-        Ref (std::istream& is);
+        Ref (std::istream& is) { define(is); }
 
-        Ref (const Ref& rhs);
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
         //
         // Some defines()s to match those in BoxArray.
         //
