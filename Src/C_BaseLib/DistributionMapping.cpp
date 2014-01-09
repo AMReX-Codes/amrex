@@ -456,9 +456,11 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     //
     std::vector<LIpair> LIpairV;
 
-    LIpairV.reserve(boxes.size());
+    const int N = boxes.size();
 
-    for (int i = 0, N = boxes.size(); i < N; i++)
+    LIpairV.reserve(N);
+
+    for (int i = 0; i < N; i++)
     {
         LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
@@ -851,14 +853,10 @@ Distribute (const std::vector<SFCToken>&     tokens,
     int  K        = 0;
     Real totalvol = 0;
 
-    const int Navg = tokens.size() / nprocs;
-
     for (int i = 0; i < nprocs; i++)
     {
         int  cnt = 0;
         Real vol = 0;
-
-        v[i].reserve(Navg + 2);
 
         for ( int TSZ = tokens.size();
               K < TSZ && (i == (nprocs-1) || vol < volpercpu);
@@ -898,11 +896,13 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::vector<SFCToken> tokens;
 
-    tokens.reserve(boxes.size());
+    const int N = boxes.size();
+
+    tokens.reserve(N);
 
     int maxijk = 0;
 
-    for (int i = 0, N = boxes.size(); i < N; i++)
+    for (int i = 0; i < N; i++)
     {
         tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
 

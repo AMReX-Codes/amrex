@@ -815,8 +815,6 @@ BoxArray::intersections (const Box&                         bx,
 
     isects.resize(0);
 
-    isects.reserve(27);
-
     if (!BoxHashMap.empty())
     {
         BL_ASSERT(bx.sameType(get(0)));
