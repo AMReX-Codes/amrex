@@ -8,7 +8,6 @@
 #include <Profiler.H>
 #include <ccse-mpi.H>
 
-#include <deque>
 #include <vector>
 
 FluxRegister::FluxRegister ()
@@ -258,7 +257,7 @@ FluxRegister::Reflux (MultiFab&       S,
     BL_PROFILE("FluxRegister::Reflux()");
 
     FabSetId                          fsid[2*BL_SPACEDIM];
-    std::deque<Rec>                   Recs;
+    std::vector<Rec>                  Recs;
     FabSetCopyDescriptor              fscd;
     std::vector< std::pair<int,Box> > isects;
     //
@@ -382,13 +381,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-    //
-    // AddBox() above calls intersections() ...
-    //
-    for (OrientationIter fi; fi; ++fi)
-    {
-        bndry[fi()].boxArray().clear_hash_bin();
-    }
 
     ba.clear_hash_bin();
 
@@ -505,10 +497,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 // Helper function and data for CrseInit()/CrseInitFinish().
 //
 
-static Array<int>                          CIMsgs;
-static std::deque<FabArrayBase::FabComTag> CITags;
-static std::deque<FArrayBox*>              CIFabs;
-static BArena                              CIArena;
+static Array<int>                           CIMsgs;
+static std::vector<FabArrayBase::FabComTag> CITags;
+static std::vector<FArrayBox*>              CIFabs;
+static BArena                               CIArena;
 
 static
 void

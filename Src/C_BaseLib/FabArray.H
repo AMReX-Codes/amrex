@@ -6,7 +6,6 @@
 #include <cstring>
 #include <limits>
 #include <map>
-#include <deque>
 #include <utility>
 #include <vector>
 
@@ -113,18 +112,18 @@ public:
     // Some static member templates used throughout the code.
     //
     template<typename T>
-    static void SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
-                            int                            src_owner,
-                            const T&                       tag,
-                            std::map<int,int>&             m_RcvVols,
-                            const Box&                     bx);
+    static void SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
+                            int                             src_owner,
+                            const T&                        tag,
+                            std::map<int,int>&              m_RcvVols,
+                            const Box&                      bx);
 
     template<typename T>
-    static void SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
-                            int                            dst_owner,
-                            const T&                       tag,
-                            std::map<int,int>&             m_SndVols,
-                            const Box&                     bx);
+    static void SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
+                            int                             dst_owner,
+                            const T&                        tag,
+                            std::map<int,int>&              m_SndVols,
+                            const Box&                      bx);
 
     template<typename T>
     static void GrokAsyncSends (int                 N_snds,
@@ -133,14 +132,14 @@ public:
                                 Array<MPI_Status>&  stats);
 
     template<typename T1, typename T2>
-    static void PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
-                          const std::map<int,int>&              m_RcvVols,
-                          T2*&                                  the_recv_data,
-                          Array<T2*>&                           recv_data,
-                          Array<int>&                           recv_from,
-                          Array<MPI_Request>&                   recv_reqs,
-                          int                                   ncomp,
-                          int                                   SeqNum);
+    static void PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
+                          const std::map<int,int>&               m_RcvVols,
+                          T2*&                                   the_recv_data,
+                          Array<T2*>&                            recv_data,
+                          Array<int>&                            recv_from,
+                          Array<MPI_Request>&                    recv_reqs,
+                          int                                    ncomp,
+                          int                                    SeqNum);
     //
     // Used by a bunch of routines when communicating via MPI.
     //
@@ -152,7 +151,7 @@ public:
         //
         // Some typedefs & helper functions used throughout the code.
         //
-        typedef std::deque<CopyComTag> CopyComTagsContainer;
+        typedef std::vector<CopyComTag> CopyComTagsContainer;
 
         typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
     };
@@ -259,8 +258,9 @@ public:
 
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
-                                const FabArrayBase& src,
-                                CPCCache&           TheCopyCache);
+                                const FabArrayBase& src);
+
+    static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -536,7 +536,7 @@ public:
     //
     void clear ();
     //
-    // Set all components in the valid region of each FAB to val.
+    // Set all components in the entire region of each FAB to val.
     //
     void setVal (value_type val);
     void operator= (const value_type& val);
@@ -590,7 +590,8 @@ public:
     // is performed on the region of intersection.  The intersection
     // is restricted to the valid region of each FAB.
     //
-    void copy (const FabArray<FAB>& fa, CpOp op = FabArrayBase::COPY);
+    void copy (const FabArray<FAB>& fa,
+               CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
     // in src is intersected with all FABs in this FabArray and a copy
@@ -833,6 +834,7 @@ private:
     // These are disallowed.
     //
     FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
+
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
     //
     // Helper function for AddBox() routines.
@@ -851,14 +853,14 @@ private:
     //
     typedef std::map<int,int> IntIntMap;
 
-    typedef std::deque<FabArrayBase::FabComTag> FabComTagContainer;
+    typedef std::vector<FabArrayBase::FabComTag> FabComTagContainer;
 
-    typedef std::deque<FabComTagContainer::const_iterator> FabComTagIterContainer;
+    typedef std::vector<FabComTagContainer::const_iterator> FabComTagIterContainer;
     //
     // The data.
     //
     std::vector<FabArray<FAB>*> fabArrays;
-    std::deque<FCDMap>          fabCopyDescList;
+    std::vector<FCDMap>         fabCopyDescList;
     FabComTagContainer          fabComTagList;
     int                         nextFillBoxId;
     bool                        dataAvailable;
@@ -866,11 +868,11 @@ private:
 
 template<typename T>
 void
-FabArrayBase::SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
-                          int                            src_owner,
-                          const T&                       tag,
-                          std::map<int,int>&             m_RcvVols,
-                          const Box&                     bx)
+FabArrayBase::SetRecvTag (std::map< int,std::vector<T> >& m_RcvTags,
+                          int                             src_owner,
+                          const T&                        tag,
+                          std::map<int,int>&              m_RcvVols,
+                          const Box&                      bx)
 {
     m_RcvTags[src_owner].push_back(tag);
 
@@ -890,11 +892,11 @@ FabArrayBase::SetRecvTag (std::map< int,std::deque<T> >& m_RcvTags,
 
 template<typename T>
 void
-FabArrayBase::SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
-                          int                            dst_owner,
-                          const T&                       tag,
-                          std::map<int,int>&             m_SndVols,
-                          const Box&                     bx)
+FabArrayBase::SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
+                          int                             dst_owner,
+                          const T&                        tag,
+                          std::map<int,int>&              m_SndVols,
+                          const Box&                      bx)
 {
     m_SndTags[dst_owner].push_back(tag);
 
@@ -914,14 +916,14 @@ FabArrayBase::SetSendTag (std::map< int,std::deque<T> >& m_SndTags,
 
 template<typename T1, typename T2>
 void
-FabArrayBase::PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
-                        const std::map<int,int>&              m_RcvVols,
-                        T2*&                                  the_recv_data,
-                        Array<T2*>&                           recv_data,
-                        Array<int>&                           recv_from,
-                        Array<MPI_Request>&                   recv_reqs,
-                        int                                   ncomp,
-                        int                                   SeqNum)
+FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
+                        const std::map<int,int>&               m_RcvVols,
+                        T2*&                                   the_recv_data,
+                        Array<T2*>&                            recv_data,
+                        Array<int>&                            recv_from,
+                        Array<MPI_Request>&                    recv_reqs,
+                        int                                    ncomp,
+                        int                                    SeqNum)
 {
     int TotalRcvsVolume = 0;
 
@@ -941,7 +943,7 @@ FabArrayBase::PostRcvs (const std::map< int,std::deque<T1> >& m_RcvTags,
 
     int Offset = 0;
 
-    for (typename std::map< int,std::deque<T1> >::const_iterator m_it = m_RcvTags.begin(),
+    for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
              m_End = m_RcvTags.end();
          m_it != m_End;
          ++m_it)
@@ -1278,7 +1280,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src, FabArrayBase::m_TheCopyCache);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
@@ -1465,6 +1467,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         DC        += NC;
         NCompLeft -= NC;
     }
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -1854,13 +1857,12 @@ template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::CollectData ()
 {
-    typedef typename FAB::value_type value_type;
-
     dataAvailable = true;
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #if BL_USE_MPI
+    typedef typename FAB::value_type value_type;
     //
     // Make sure we can treat CommData as a stream of integers.
     //

@@ -21,7 +21,7 @@ namespace
     bool verbose;
 }
 
-const int fpb_cache_max_size_def = 100;
+const int fpb_cache_max_size_def = 25;
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
 
@@ -808,30 +808,29 @@ Geometry::GetFPB (const Geometry&      geom,
     {
         //
         // Don't let the size of the cache get too big.
+        // Get rid of entries with the biggest largest key that haven't been reused.
+        // Otherwise just remove the entry with the largest key.
         //
-        for (Geometry::FPBMMapIter it = m_FPBCache.begin(); it != m_FPBCache.end(); )
-        {
-            if (!it->second.m_reused)
-            {
-                m_FPBCache.erase(it++);
+        Geometry::FPBMMapIter End      = m_FPBCache.end();
+        Geometry::FPBMMapIter last_it  = End;
+        Geometry::FPBMMapIter erase_it = End;
 
-                if (m_FPBCache.size() < Geometry::fpb_cache_max_size)
-                    //
-                    // Only delete enough entries to stay under limit.
-                    //
-                    break;
-            }
-            else
-            {
-                ++it;
-            }
+        for (Geometry::FPBMMapIter it = m_FPBCache.begin(); it != End; ++it)
+        {
+            last_it = it;
+
+            if (!it->second.m_reused)
+                erase_it = it;
         }
 
-        if (m_FPBCache.size() >= Geometry::fpb_cache_max_size && !m_FPBCache.empty())
-            //
-            // Get rid of first entry which is the one with the smallest key.
-            //
-            m_FPBCache.erase(m_FPBCache.begin());
+        if (erase_it != End)
+        {
+            m_FPBCache.erase(erase_it);
+        }
+        else if (last_it != End)
+        {
+            m_FPBCache.erase(last_it);
+        }
     }
     //
     // Got to insert one & then build it.
@@ -925,6 +924,26 @@ Geometry::GetFPB (const Geometry&      geom,
                 }
             }
         }
+    }
+    //
+    // Squeeze out any unused memory ...
+    //
+    FPB::FPBComTagsContainer tmp(*TheFPB.m_LocTags); 
+
+    TheFPB.m_LocTags->swap(tmp);
+
+    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_SndTags->begin(), End = TheFPB.m_SndTags->end(); it != End; ++it)
+    {
+        FPB::FPBComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
+    }
+
+    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_RcvTags->begin(), End = TheFPB.m_RcvTags->end(); it != End; ++it)
+    {
+        FPB::FPBComTagsContainer tmp(it->second);
+
+        it->second.swap(tmp);
     }
 
     return cache_it;

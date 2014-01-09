@@ -1852,15 +1852,11 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-        long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long min_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long max_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes,IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes,IOProc);
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1869,13 +1865,11 @@ Amr::coarseTimeStep (Real stop_time)
                       << " ... "
                       << max_fab_bytes
                       << "]\n";
-
-            std::cout << "\nHigh water mark for bytes in BoxArray hash tables: "
-                      << BoxLib::total_bytes_in_hashtables_hwm
-                      << '\n';
         }
-
-        BoxLib::total_bytes_in_hashtables_hwm = 0;
+        //
+        // Reset to zero to calculate high-water-mark for next timestep.
+        //
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
@@ -2146,14 +2140,15 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-
-    if (lbase == 0)
-    {
-        MultiFab::FlushSICache();
-        Geometry::FlushPIRMCache();
-        FabArrayBase::CPC::FlushCache();
-        DistributionMapping::FlushCache();
-    }
+    //
+    // Flush the caches.
+    // We're most interesting in flushing cached stuff from the finer levels.
+    // Lower level stuff that could be reused is just as easily rebuilt.
+    //
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
     //
     // Define the new grids from level start up to new_finest.
     //

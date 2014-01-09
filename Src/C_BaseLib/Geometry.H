@@ -241,7 +241,7 @@ public:
         //
         // Some useful typedefs.
         //
-        typedef std::deque<FPBComTag> FPBComTagsContainer;
+        typedef std::vector<FPBComTag> FPBComTagsContainer;
 
         typedef std::map<int,FPBComTagsContainer> MapOfFPBComTagContainers;
         //

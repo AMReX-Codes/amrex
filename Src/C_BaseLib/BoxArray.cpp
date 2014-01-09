@@ -5,37 +5,22 @@
 #include <BoxArray.H>
 #include <ParallelDescriptor.H>
 
-long BoxLib::total_bytes_in_hashtables     = 0;
-long BoxLib::total_bytes_in_hashtables_hwm = 0;
-
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
 
-static
-long
-NBytes (const BoxHashMapType& BoxHashMap)
-{
-    long nbytes = BoxHashMap.size() * sizeof(std::pair< IntVect, std::vector<int> >);
-
-    for (ConstBoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
-         it != End;
-         ++it)
-    {
-        nbytes += it->second.capacity() * sizeof(int);
-    }
-
-    return nbytes;
-}
-
 void
-BoxArray::reserve (long _truesize)
+BoxArray::decrementCounters () const
 {
-    if (!m_ref.unique())
-        uniqify();
-    m_ref->m_abox.reserve(_truesize);
+    if (m_ref.linkCount() == 1)
+    {
+        clear_hash_bin();
+    }
 }
 
+//
+// Most heavily used BoxArray constructor.
+//
 BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
@@ -48,29 +33,14 @@ BoxArray::BoxArray (const Box& bx)
     m_ref->m_abox[0] = bx;
 }
 
-BoxArray::Ref::Ref (const BoxList& bl)
-{
-    define(bl);
-}
-
 BoxArray::BoxArray (const BoxList& bl)
     :
     m_ref(new BoxArray::Ref(bl))
 {}
 
-BoxArray::Ref::Ref (std::istream& is)
-{
-    define(is);
-}
-
-BoxArray::Ref::Ref (size_t size)
+BoxArray::BoxArray (size_t n)
     :
-    m_abox(size)
-{}
-
-BoxArray::BoxArray (size_t size)
-    :
-    m_ref(new BoxArray::Ref(size))
+    m_ref(new BoxArray::Ref(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
@@ -82,15 +52,42 @@ BoxArray::BoxArray (const Box* bxvec,
         m_ref->m_abox[i] = *bxvec++;
 }
 
-BoxArray::Ref::Ref (const Ref& rhs)
+//
+// The copy constructor.
+//
+BoxArray::BoxArray (const BoxArray& rhs)
     :
-    m_abox(rhs.m_abox)
+    m_ref(rhs.m_ref)
 {}
+
+//
+// The assignment operator.
+//
+BoxArray&
+BoxArray::operator= (const BoxArray& rhs)
+{
+    decrementCounters();
+    m_ref = rhs.m_ref;
+    return *this;
+}
 
 void
 BoxArray::uniqify ()
 {
-    m_ref = new Ref(*m_ref);
+    BL_ASSERT(!m_ref.unique());
+    m_ref = new BoxArray::Ref(*m_ref);
+}
+
+int
+BoxArray::size () const
+{
+    return m_ref->m_abox.size();
+}
+
+bool
+BoxArray::empty () const
+{
+    return m_ref->m_abox.empty();
 }
 
 void
@@ -98,7 +95,17 @@ BoxArray::clear ()
 {
     if (!m_ref.unique())
         uniqify();
-    m_ref->m_abox.clear();
+
+    if (m_ref->m_abox.capacity() > 0)
+    {
+        //
+        // I want to forcefully clear out any memory in m_abox.
+        // Normally a clear() would just reset some internal pointers.
+        // I want to really let go of the memory so my byte count
+        // statistics are more accurate.
+        //
+        Array<Box>().swap(m_ref->m_abox);
+    }
 }
 
 void
@@ -163,7 +170,8 @@ void
 BoxArray::Ref::define (const BoxList& bl)
 {
     BL_ASSERT(m_abox.size() == 0);
-    m_abox.resize(bl.size());
+    const int N = bl.size();
+    m_abox.resize(N);
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
@@ -175,15 +183,13 @@ void
 BoxArray::define (const BoxArray& bs)
 {
     BL_ASSERT(size() == 0);
+    decrementCounters();
     m_ref = bs.m_ref;
 }
 
 BoxArray::~BoxArray ()
 {
-    if (m_ref.linkCount() == 1 && !m_ref->hash.empty())
-    {
-        BoxLib::total_bytes_in_hashtables -= NBytes(m_ref->hash);
-    }
+    decrementCounters();
 }
 
 bool
@@ -577,7 +583,8 @@ BoxArray::maxSize (const IntVect& block_size)
     BoxList blst(*this);
     blst.maxSize(block_size);
     clear();
-    m_ref->m_abox.resize(blst.size());
+    const int N = blst.size();
+    m_ref->m_abox.resize(N);
     BoxList::iterator bli = blst.begin(), End = blst.end();
     for (int i = 0; bli != End; ++bli)
         set(i++, *bli);
@@ -761,7 +768,10 @@ BoxArray::intersections (const Box& bx) const
 void
 BoxArray::clear_hash_bin () const
 {
-    m_ref->hash.clear();
+    if (!m_ref->hash.empty())
+    {
+        m_ref->hash.clear();
+    }
 }
 
 void
@@ -799,40 +809,6 @@ BoxArray::intersections (const Box&                         bx,
             for (int i = 0, N = size(); i < N; i++)
             {
                 BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
-            }
-            //
-            // Squeeze out as much memory as possible.
-            //
-            for (BoxHashMapIter it = BoxHashMap.begin(), End = BoxHashMap.end();
-                 it != End;
-                 ++it)
-            {
-                if (it->second.capacity() > it->second.size())
-                {
-                    std::vector<int> tmp(it->second);
-                    it->second.swap(tmp);
-                }
-            }
-
-            const long nbytes = NBytes(BoxHashMap);
-
-            BoxLib::total_bytes_in_hashtables += nbytes;
-
-            if (BoxLib::total_bytes_in_hashtables > BoxLib::total_bytes_in_hashtables_hwm)
-                BoxLib::total_bytes_in_hashtables_hwm = BoxLib::total_bytes_in_hashtables;
-
-            if (false && ParallelDescriptor::IOProcessor())
-            {
-                //
-                // Only output modestly large ones.
-                // Small ones are generated by some Box operations.
-                //
-                if (BoxHashMap.size() > 100)
-                {
-                    std::cout << " *** hash intersector: size: " << BoxHashMap.size()
-                              << ", nbytes: " << nbytes
-                              << ", ba.size: " << size() << '\n';
-                }
             }
         }
     }
