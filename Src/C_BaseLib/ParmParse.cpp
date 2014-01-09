@@ -21,17 +21,14 @@
 //
 // Used by constructor to build table.
 //
-ParmParse::PP_entry::PP_entry (const std::string& name,
-                    const std::list<std::string>& vals)
+ParmParse::PP_entry::PP_entry (const std::string&            name,
+                               const std::list<std::string>& vals)
     :
     m_name(name),
     m_table(0),
     m_queried(false)
 {
-    for ( std::list<std::string>::const_iterator li = vals.begin(), End = vals.end(); li != End; ++li )
-    {
-	m_vals.push_back(*li);
-    }
+    m_vals.insert(m_vals.end(), vals.begin(), vals.end());
 }
 
 ParmParse::PP_entry::PP_entry (const std::string& name,
