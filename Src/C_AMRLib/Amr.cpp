@@ -1568,10 +1568,6 @@ Amr::checkPoint ()
     //
     AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
 #endif
-    //
-    // Don't forget to reset FAB format.
-    //
-    FArrayBox::setFormat(thePrevFormat);
 
     if (verbose > 0)
     {
@@ -1588,6 +1584,11 @@ Amr::checkPoint ()
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
   }  // end while
+
+  //
+  // Don't forget to reset FAB format.
+  //
+  FArrayBox::setFormat(thePrevFormat);
 
 }
 
