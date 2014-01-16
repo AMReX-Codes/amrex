@@ -197,7 +197,7 @@ contains
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
     call boxarray_grow(ba, stencil_width) ! Grow by stencil_width for stencil in interpolation routine.
-    call build(la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
+    call build(la, ba, pd = get_pd(get_layout(crse)), pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
