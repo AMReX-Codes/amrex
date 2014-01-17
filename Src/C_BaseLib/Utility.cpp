@@ -1233,12 +1233,13 @@ bool BoxLib::StreamRetry::TryOutput()
 }
 
 
-bool BoxLib::StreamRetry::TryFileOutput()
+bool BoxLib::StreamRetry::TryFileOutput(bool &goodFileWritten)
 {
     bool bTryOutput(false);
 
     if(tries == 0) {
       bTryOutput = true;
+      goodFileWritten = false;
     } else {
 
       int nWriteErrors(nStreamErrors);
@@ -1246,7 +1247,9 @@ bool BoxLib::StreamRetry::TryFileOutput()
 
       if(nWriteErrors == 0) {  // wrote a good file
         bTryOutput = false;
-      } else {                 // rename the bad file
+        goodFileWritten = true;
+      } else {                 // wrote a bad file, rename it
+        goodFileWritten = false;
         if(ParallelDescriptor::IOProcessor()) {
           const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
                                                               tries - 1, 2);

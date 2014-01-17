@@ -820,6 +820,7 @@ Amr::writePlotFile ()
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
     const std::string pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string pltfileTemp = pltfile + ".temp";
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -827,23 +828,24 @@ Amr::writePlotFile ()
     if (record_run_info && ParallelDescriptor::IOProcessor())
         runlog << "PLOTFILE: file = " << pltfile << '\n';
 
-  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+  BoxLib::StreamRetry sretry(pltfileTemp, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  while(sretry.TryFileOutput()) {
+  bool goodFileWritten(false);
+  while(sretry.TryFileOutput(goodFileWritten)) {
 
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(pltfile, 0755))
-            BoxLib::CreateDirectoryFailed(pltfile);
+        if (!BoxLib::UtilCreateDirectory(pltfileTemp, 0755))
+            BoxLib::CreateDirectoryFailed(pltfileTemp);
     //
     // Force other processors to wait till directory is built.
     //
     ParallelDescriptor::Barrier("Amr::writePlotFile::dir");
 
-    std::string HeaderFileName = pltfile + "/Header";
+    std::string HeaderFileName = pltfileTemp + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -865,7 +867,7 @@ Amr::writePlotFile ()
     }
 
     for (int k = 0; k <= finest_level; k++)
-        amr_level[k].writePlotFile(pltfile, HeaderFile);
+        amr_level[k].writePlotFile(pltfileTemp, HeaderFile);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -891,6 +893,13 @@ Amr::writePlotFile ()
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
   }  // end while
+
+  if(goodFileWritten) {
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+  }
 
 }
 
@@ -1479,6 +1488,7 @@ Amr::checkPoint ()
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
     const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
+    const std::string ckfileTemp = ckfile + ".temp";
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
@@ -1487,23 +1497,24 @@ Amr::checkPoint ()
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
 
 
-  BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
+  BoxLib::StreamRetry sretry(ckfileTemp, abort_on_stream_retry_failure,
                              stream_max_tries);
 
-  while(sretry.TryFileOutput()) {
+  bool goodFileWritten(false);
+  while(sretry.TryFileOutput(goodFileWritten)) {
 
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(ckfile, 0755))
-            BoxLib::CreateDirectoryFailed(ckfile);
+        if (!BoxLib::UtilCreateDirectory(ckfileTemp, 0755))
+            BoxLib::CreateDirectoryFailed(ckfileTemp);
     //
     // Force other processors to wait till directory is built.
     //
     ParallelDescriptor::Barrier("Amr::checkPoint::dir");
 
-    std::string HeaderFileName = ckfile + "/Header";
+    std::string HeaderFileName = ckfileTemp + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -1550,7 +1561,7 @@ Amr::checkPoint ()
     }
 
     for (i = 0; i <= finest_level; i++)
-        amr_level[i].checkPoint(ckfile, HeaderFile);
+        amr_level[i].checkPoint(ckfileTemp, HeaderFile);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1584,6 +1595,13 @@ Amr::checkPoint ()
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
   }  // end while
+
+  if(goodFileWritten) {
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(ckfileTemp.c_str(), ckfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
+  }
 
   //
   // Don't forget to reset FAB format.
