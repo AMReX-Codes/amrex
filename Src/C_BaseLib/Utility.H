@@ -323,7 +323,7 @@ namespace BoxLib
 	            const bool abortonretryfailure,
 	            const int maxtries);
 	bool TryOutput();
-	bool TryFileOutput();
+	bool TryFileOutput(bool &goodFileWritten);
         static int NStreamErrors()       { return nStreamErrors; }
         static void ClearStreamErrors()  { nStreamErrors = 0;    }
 
