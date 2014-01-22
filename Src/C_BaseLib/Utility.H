@@ -93,6 +93,17 @@ namespace BoxLib
     //
     void UnlinkFile (const std::string& file);
     //
+    // Check if a file already exists.
+    //   Return true if the filename is an existing file, directory,
+    //   or link.  For links, this operates on the link and not what
+    //   the link points to.
+    //
+    bool FileExists(const std::string &filename);
+    //
+    // Create a (probably) unique string
+    //
+    std::string UniqueString();
+    //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
     // set_new_handler() function for BoxLib applications.
@@ -323,7 +334,7 @@ namespace BoxLib
 	            const bool abortonretryfailure,
 	            const int maxtries);
 	bool TryOutput();
-	bool TryFileOutput(bool &goodFileWritten);
+	bool TryFileOutput();
         static int NStreamErrors()       { return nStreamErrors; }
         static void ClearStreamErrors()  { nStreamErrors = 0;    }
 
