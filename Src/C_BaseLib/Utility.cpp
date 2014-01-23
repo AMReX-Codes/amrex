@@ -1231,7 +1231,8 @@ bool BoxLib::StreamRetry::TryOutput()
                   << tries << " :: gbfe:  "
                   << sros.good() << sros.bad() << sros.fail() << sros.eof()
                   << " :: sec = " << ParallelDescriptor::second()
-                  << " :: os.tellp = " << sros.tellp()
+                  << " :: os.tellp() = " << sros.tellp()
+                  << " :: rewind spos = " << spos
                   << std::endl;
         sros.clear();  // clear the bad bits
         sros.seekp(spos, std::ios::beg);  // reset stream position
@@ -1242,7 +1243,8 @@ bool BoxLib::StreamRetry::TryOutput()
                   << tries << " :: File may be corrupt.  :: gbfe:  "
                   << sros.good() << sros.bad() << sros.fail() << sros.eof()
                   << " :: sec = " << ParallelDescriptor::second()
-                  << " :: os.tellp = " << sros.tellp()
+                  << " :: os.tellp() = " << sros.tellp()
+                  << " :: rewind spos = " << spos
                   << std::endl;
         sros.clear();  // clear the bad bits
         return false;
