@@ -807,7 +807,9 @@ contains
     integer :: r, i, l
     r = 1
     do i = 1, bx%dim
-       l = (bx%hi(i)-bx%lo(i)+1)
+       ! use abs() in case this dimension of the box is empty,
+       ! i.e. lo > hi
+       l = (abs(bx%hi(i)-bx%lo(i))+1)
        if ( r .le. Huge(r) / l ) then
           r = r*l
        else
