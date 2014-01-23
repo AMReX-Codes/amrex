@@ -851,21 +851,19 @@ Amr::writePlotFile ()
         //
 	if(BoxLib::FileExists(pltfile)) {
           std::string newoldname(pltfile + ".old." + BoxLib::UniqueString());
-	  std::cout << "**** Amr::writePlotFile:  " << pltfile
-	            << " exists.  Renaming to:  " << newoldname
-		    << std::endl;
+          if(verbose > 0) {
+	    std::cout << "Amr::writePlotFile():  " << pltfile
+	              << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
           std::rename(pltfile.c_str(), newoldname.c_str());
-	} else {
-	  std::cout << "**** " << pltfile << " does not exist." << std::endl;
 	}
 	if(BoxLib::FileExists(pltfileTemp)) {
           std::string newoldname(pltfileTemp + ".old." + BoxLib::UniqueString());
-	  std::cout << "**** Amr::writePlotFile:  " << pltfileTemp
-	            << " exists.  Renaming to:  " << newoldname
-		    << std::endl;
+          if(verbose > 0) {
+	    std::cout << "Amr::writePlotFile():  " << pltfileTemp
+	              << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
           std::rename(pltfileTemp.c_str(), newoldname.c_str());
-	} else {
-	  std::cout << "**** " << pltfileTemp << " does not exist." << std::endl;
 	}
         if ( ! BoxLib::UtilCreateDirectory(pltfileTemp, 0755)) {
             BoxLib::CreateDirectoryFailed(pltfileTemp);
@@ -1556,21 +1554,19 @@ Amr::checkPoint ()
         //
         if(BoxLib::FileExists(ckfile)) {
           std::string newoldname(ckfile + ".old." + BoxLib::UniqueString());
-          std::cout << "**** Amr::checkPoint:  " << ckfile
-                    << " exists.  Renaming to:  " << newoldname
-                    << std::endl;
+          if(verbose > 0) {
+            std::cout << "Amr::checkPoint():  " << ckfile
+                      << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
           std::rename(ckfile.c_str(), newoldname.c_str());
-        } else {
-          std::cout << "**** " << ckfile << " does not exist." << std::endl;
         }
         if(BoxLib::FileExists(ckfileTemp)) {
           std::string newoldname(ckfileTemp + ".old." + BoxLib::UniqueString());
-          std::cout << "**** Amr::checkPoint:  " << ckfileTemp
-                    << " exists.  Renaming to:  " << newoldname
-                    << std::endl;
+          if(verbose > 0) {
+            std::cout << "Amr::checkPoint():  " << ckfileTemp
+                      << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
           std::rename(ckfileTemp.c_str(), newoldname.c_str());
-        } else {
-          std::cout << "**** " << ckfileTemp << " does not exist." << std::endl;
         }
         if ( ! BoxLib::UtilCreateDirectory(ckfileTemp, 0755)) {
             BoxLib::CreateDirectoryFailed(ckfileTemp);
