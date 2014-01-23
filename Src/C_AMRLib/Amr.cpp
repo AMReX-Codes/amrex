@@ -869,9 +869,6 @@ Amr::writePlotFile ()
             BoxLib::CreateDirectoryFailed(pltfileTemp);
 	}
     }
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "writing: " << pltfileTemp << std::endl;
-    }
     //
     // the plotfile file now has the temporary name
     //
