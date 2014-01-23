@@ -363,15 +363,27 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine boxarray_grow_v_f
-  subroutine boxarray_grow_n(ba, n)
+  subroutine boxarray_grow_n(ba, n, allow_empty)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: n
+    logical, intent(in), optional :: allow_empty
     integer :: i
-    !$OMP PARALLEL DO
-    do i = 1, ba%nboxes
-       ba%bxs(i) = grow(ba%bxs(i), n)
-    end do
-    !$OMP END PARALLEL DO
+    logical :: lallow
+    lallow = .false. ; if (present(allow_empty)) lallow = allow_empty
+    if (lallow) then
+      !$OMP PARALLEL DO
+      do i = 1, ba%nboxes
+         if (empty(ba%bxs(i))) cycle
+         ba%bxs(i) = grow(ba%bxs(i), n)
+      end do
+      !$OMP END PARALLEL DO
+    else
+      !$OMP PARALLEL DO
+      do i = 1, ba%nboxes
+         ba%bxs(i) = grow(ba%bxs(i), n)
+      end do
+      !$OMP END PARALLEL DO
+    endif
   end subroutine boxarray_grow_n
   subroutine boxarray_grow_n_f(ba, n, face)
     type(boxarray), intent(inout) :: ba
@@ -868,12 +880,17 @@ contains
 
   end function boxarray_box_contains
 
-  function boxarray_boxarray_contains(ba1, ba2) result(r)
+  function boxarray_boxarray_contains(ba1, ba2, allow_empty) result(r)
     use bl_error_module
     logical :: r
     type(boxarray), intent(in) :: ba1, ba2
+    logical, intent(in), optional :: allow_empty
 
     integer :: i
+    logical :: lallow
+
+    !Note that allow_empty refers to permitting empty boxes, not empty boxarrays
+    lallow = .false.; if (present(allow_empty)) lallow=allow_empty
 
     if ( nboxes(ba1) .eq. 0 ) &
        call bl_error('Empty boxarray ba1 in boxarray_boxarray_contains')
@@ -881,10 +898,18 @@ contains
     if ( nboxes(ba2) .eq. 0 ) &
        call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
 
-    do i = 1, nboxes(ba2)
-       r = boxarray_box_contains(ba1, get_box(ba2,i)) 
-       if ( .not. r ) return
-    end do
+    if ( lallow) then
+       do i = 1, nboxes(ba2)
+          if (empty(get_box(ba2,i))) cycle !ignore empty boxes
+          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
+          if ( .not. r ) return
+       end do
+    else
+       do i = 1, nboxes(ba2)
+          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
+          if ( .not. r ) return
+       end do
+    endif
 
     r = .true.
 
