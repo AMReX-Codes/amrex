@@ -441,20 +441,45 @@ IntVect*
 TagBoxArray::collate (long& numtags) const
 {
     BL_PROFILE("TagBoxArray::collate()");
-    //
-    // The total number of tags system wide that must be collated.
-    //
-    numtags = numTags();
 
-    int count = 0;
+    int count = 0, nfabs = 0;
+
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        count += get(fai).numTags();
+        count += get(fai).numTags(); nfabs++;
     }
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
-    IntVect*  TheLocalCollateSpace  = new IntVect[count];
+    IntVect*  TheLocalCollateSpace = new IntVect[count];
+
+    count = 0;
+
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).collate(TheLocalCollateSpace,count);
+        count += get(fai).numTags();
+    }
+
+    if (nfabs > 0 && count > 0)
+    {
+        //
+        // Remove duplicate IntVects.
+        //
+        std::sort(TheLocalCollateSpace, TheLocalCollateSpace+count, IntVect::Compare());
+        IntVect* end = std::unique(TheLocalCollateSpace,TheLocalCollateSpace+count);
+        ptrdiff_t duplicates = (TheLocalCollateSpace+count) - end;
+        BL_ASSERT(duplicates >= 0);
+        count -= duplicates;
+    }
+    //
+    // The total number of tags system wide that must be collated.
+    // This is really just an estimate of the upper bound due to duplicates.
+    // While we've removed duplicates per MPI process there's still more systemwide.
+    //
+    numtags = count;
+
+    ParallelDescriptor::ReduceLongSum(numtags);
     //
     // This holds all tags after they've been gather'd and unique'ified.
     //
@@ -462,14 +487,7 @@ TagBoxArray::collate (long& numtags) const
     //
     // The caller of collate() is responsible for delete[]ing this space.
     //
-    IntVect*  TheGlobalCollateSpace = new IntVect[numtags];
-
-    count = 0;
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        get(fai).collate(TheLocalCollateSpace,count);
-        count += get(fai).numTags();
-    }
+    IntVect* TheGlobalCollateSpace = new IntVect[numtags];
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -532,12 +550,15 @@ TagBoxArray::collate (long& numtags) const
     if (ParallelDescriptor::IOProcessor())
     {
         //
-        // Remove duplicate IntVects.
+        // Remove yet more possible duplicate IntVects.
         //
         std::sort(TheGlobalCollateSpace, TheGlobalCollateSpace+numtags, IntVect::Compare());
         IntVect* end = std::unique(TheGlobalCollateSpace,TheGlobalCollateSpace+numtags);
         ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
+
+        //std::cout << "*** numtags: " << numtags << ", duplicates: " << duplicates << '\n';
+
         numtags -= duplicates;
     }
     //

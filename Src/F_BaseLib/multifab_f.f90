@@ -1314,11 +1314,11 @@ contains
     enddo
   end function multifab_contains_inf_bx_c
 
-  subroutine multifab_setval(mf, val, all)
+  subroutine multifab_setval(mf, val, all, allow_empty)
     type(multifab), intent(inout) :: mf
     real(dp_t), intent(in) :: val
-    logical, intent(in), optional :: all
-    call multifab_setval_c(mf, val, 1, mf%nc, all)
+    logical, intent(in), optional :: all, allow_empty
+    call multifab_setval_c(mf, val, 1, mf%nc, all, allow_empty)
   end subroutine multifab_setval
   subroutine imultifab_setval(mf, val, all)
     type(imultifab), intent(inout) :: mf
@@ -1546,26 +1546,40 @@ contains
     end do
   end subroutine zmultifab_setval_bx_c
 
-  subroutine multifab_setval_c(mf, val, c, nc, all)
+  subroutine multifab_setval_c(mf, val, c, nc, all, allow_empty)
     type(multifab), intent(inout) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
     real(dp_t), intent(in) :: val
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, allow_empty
     integer :: i
-    logical lall
+    logical lall, lallow
     type(bl_prof_timer), save :: bpt
     call build(bpt, "mf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i)
-    do i = 1, nlocal(mf%la)
-       if ( lall ) then
-          call setval(mf%fbs(i), val, c, nc)
-       else
-          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
-       end if
-    end do
-    !$OMP END PARALLEL DO
+    lallow = .FALSE.; if ( present(allow_empty) ) lallow = allow_empty
+    if ( lallow ) then
+      !$OMP PARALLEL DO PRIVATE(i)
+      do i = 1, nlocal(mf%la)
+         if ( lall ) then
+            call setval(mf%fbs(i), val, c, nc)
+         else
+            if ( empty(get_ibox(mf, i)) ) cycle
+            call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
+         end if
+      end do
+      !$OMP END PARALLEL DO
+    else
+      !$OMP PARALLEL DO PRIVATE(i)
+      do i = 1, nlocal(mf%la)
+         if ( lall ) then
+            call setval(mf%fbs(i), val, c, nc)
+         else
+            call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
+         end if
+      end do
+      !$OMP END PARALLEL DO
+    endif
     call destroy(bpt)
   end subroutine multifab_setval_c
   subroutine imultifab_setval_c(mf, val, c, nc, all)
@@ -5406,16 +5420,25 @@ contains
     call parallel_reduce(r, r1, MPI_MIN)
   end function multifab_min_c
   
-  function multifab_max(mf, all) result(r)
+  function multifab_max(mf, all, allow_empty) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, allow_empty
+    logical :: lallow
     integer :: i
     real(kind=dp_t) :: r1
     r1 = -Huge(r1)
-    do i = 1, nlocal(mf%la)
-       r1 = max(r1, max_val(mf%fbs(i), all))
-    end do
+    lallow = .false.; if (present(allow_empty)) lallow=allow_empty
+    if (lallow) then
+       do i = 1, nlocal(mf%la)
+          if (empty(get_box(mf%fbs(i)))) cycle
+          r1 = max(r1, max_val(mf%fbs(i), all))
+       end do
+    else
+       do i = 1, nlocal(mf%la)
+          r1 = max(r1, max_val(mf%fbs(i), all))
+       end do
+    endif
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_max
   function multifab_max_c(mf, c, nc, all) result(r)
