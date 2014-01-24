@@ -107,6 +107,9 @@ contains
        !
        ! Note: we let bl contain empty boxes so that we keep the same number of boxes
        !       in bl as in fine, but in the interpolation later we cycle if it's empty.
+       !       We do this to keep the mapping of boxes between the various
+       !       multifabs consistent with one another and because it means we
+       !       don't have to manage changes to the processor map.
        !
        bx = intersection(grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng),fdomain)
        call push_back(bl, bx)
@@ -196,13 +199,16 @@ contains
     call build(ba, bl, sort = .false.)
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
-    call boxarray_grow(ba, stencil_width) ! Grow by stencil_width for stencil in interpolation routine.
+    ! Grow by stencil_width for stencil in interpolation routine. 
+    ! Don't grow empty boxes!
+    call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
     call build(la, ba, pd = get_pd(get_layout(crse)), pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
     ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
-    call setval(cfine, 1.e200_dp_t)
+    ! Empty boxes aren't setval()'d
+    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
@@ -216,13 +222,13 @@ contains
     grow_counter = nghost(crse)
 
     ! In this case the original crse multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine))) then
+    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
 
        ! Sanity check
        cdomain = get_pd(get_layout(crse))
        cdomain = grow(cdomain,nghost(crse))
        call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine))) &
+       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
           call bl_error('Sanity check failed in fillpatch')
        call destroy(ba_domain)
 
@@ -241,7 +247,7 @@ contains
           grow_counter = grow_counter + 1
           cdomain = grow(cdomain,1)
           call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine))) done = .true.
+          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
           call destroy(ba_domain)
        end do
 
@@ -278,8 +284,8 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse) .ge. 0.99d200) then
+    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
+       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
           call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
