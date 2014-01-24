@@ -855,6 +855,7 @@ Amr::writePlotFile ()
 	    std::cout << "Amr::writePlotFile():  " << pltfile
 	              << " exists.  Renaming to:  " << newoldname << std::endl;
 	  }
+	  // should probably check if newoldname exists....
           std::rename(pltfile.c_str(), newoldname.c_str());
 	}
 	if(BoxLib::FileExists(pltfileTemp)) {
