@@ -926,9 +926,6 @@ Amr::writePlotFile ()
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "renaming: " << pltfileTemp << " to " << pltfile << std::endl;
-    }
     if(ParallelDescriptor::IOProcessor()) {
       std::rename(pltfileTemp.c_str(), pltfile.c_str());
     }
