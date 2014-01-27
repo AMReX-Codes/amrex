@@ -5428,6 +5428,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
         //
+        // Free up this memory ...
+        //
+        Array<int>().swap(senddata);
+        //
         // Now receive and unpack the integer data.
         //
         for (int NWaits = rreqs.size(), completed; NWaits > 0; NWaits -= completed)
@@ -5531,6 +5535,10 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
 
             ParallelDescriptor::Send(senddata.dataPtr(),Cnt,Who,SeqNum);
         }
+        //
+        // Free up this memory ...
+        //
+        Array<ParticleBase::RealType>().swap(senddata);
         //
         // Now receive and unpack the Real data.
         //
