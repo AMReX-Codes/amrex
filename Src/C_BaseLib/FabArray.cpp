@@ -28,7 +28,7 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::Verbose         = true;
     FabArrayBase::do_async_sends  = false;
-    FabArrayBase::MaxComp         = 5;
+    FabArrayBase::MaxComp         = 25;
 
     copy_cache_max_size = 25;
     fb_cache_max_size   = 25;
