@@ -583,12 +583,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
                     {
                         BoxList bl = BoxLib::boxDiff(shbox,box);
 
-                        for (BoxList::const_iterator bli = bl.begin(), End = bl.end();
-                             bli != End;
-                             ++bli)
-                        {
-                            unfilledThisLevel.push_back(*bli);
-                        }
+                        unfilledThisLevel.insert(unfilledThisLevel.end(), bl.begin(), bl.end());
                     }
                 }
             }
@@ -717,13 +712,9 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             {
                 unfilledThisLevel.clear();
 
-                for (BoxList::const_iterator bli = unfillableThisLevel.begin(),
-                         End = unfillableThisLevel.end();
-                     bli != End;
-                     ++bli)
-                {
-                    unfilledThisLevel.push_back(*bli);
-                }
+                unfilledThisLevel.insert(unfilledThisLevel.end(),
+                                         unfillableThisLevel.begin(),
+                                         unfillableThisLevel.end());
             }
         }
     }

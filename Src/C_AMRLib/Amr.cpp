@@ -5,6 +5,11 @@
 #include <list>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <Geometry.H>
 #include <TagBox.H>
@@ -805,7 +810,7 @@ Amr::okToContinue ()
 void
 Amr::writePlotFile ()
 {
-    if (!Plot_Files_Output()) return;
+    if ( ! Plot_Files_Output()) return;
 
     BL_PROFILE("Amr::writePlotFile()");
 
@@ -830,20 +835,51 @@ Amr::writePlotFile ()
   BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
+  const std::string pltfileTemp(pltfile + ".temp");
+
   while(sretry.TryFileOutput()) {
+    //
+    // Only the I/O processor makes the directory.
+    //
+    if (ParallelDescriptor::IOProcessor()) {
+        //
+        //  if either the pltfile or pltfileTemp exists, rename them
+        //  to move them out of the way.  then create pltfile
+        //  with the temporary name, then rename it back when
+        //  it is finished writing.  then stream retry can rename
+        //  it to a bad suffix if there were stream errors.
+        //
+	if(BoxLib::FileExists(pltfile)) {
+          std::string newoldname(pltfile + ".old." + BoxLib::UniqueString());
+          if(verbose > 0) {
+	    std::cout << "Amr::writePlotFile():  " << pltfile
+	              << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
+	  // should probably check if newoldname exists....
+          std::rename(pltfile.c_str(), newoldname.c_str());
+	}
+	if(BoxLib::FileExists(pltfileTemp)) {
+          std::string newoldname(pltfileTemp + ".old." + BoxLib::UniqueString());
+          if(verbose > 0) {
+	    std::cout << "Amr::writePlotFile():  " << pltfileTemp
+	              << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
+          std::rename(pltfileTemp.c_str(), newoldname.c_str());
+	}
+        if ( ! BoxLib::UtilCreateDirectory(pltfileTemp, 0755)) {
+            BoxLib::CreateDirectoryFailed(pltfileTemp);
+	}
+    }
+    //
+    // the plotfile file now has the temporary name
+    //
 
     //
-    // Only the I/O processor makes the directory if it doesn't already exist.
-    //
-    if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(pltfile, 0755))
-            BoxLib::CreateDirectoryFailed(pltfile);
-    //
-    // Force other processors to wait till directory is built.
+    // Force other processors to wait until directory is built.
     //
     ParallelDescriptor::Barrier("Amr::writePlotFile::dir");
 
-    std::string HeaderFileName = pltfile + "/Header";
+    std::string HeaderFileName(pltfileTemp + "/Header");
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -851,7 +887,7 @@ Amr::writePlotFile ()
 
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
-    int old_prec = 0;
+    int old_prec(0);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -859,18 +895,18 @@ Amr::writePlotFile ()
         // Only the IOProcessor() writes to the header file.
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
-        if (!HeaderFile.good())
+        if ( ! HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
         old_prec = HeaderFile.precision(15);
     }
 
-    for (int k = 0; k <= finest_level; k++)
-        amr_level[k].writePlotFile(pltfile, HeaderFile);
+    for (int k(0); k <= finest_level; ++k)
+        amr_level[k].writePlotFile(pltfileTemp, HeaderFile);
 
     if (ParallelDescriptor::IOProcessor())
     {
         HeaderFile.precision(old_prec);
-        if (!HeaderFile.good())
+        if ( ! HeaderFile.good())
             BoxLib::Error("Amr::writePlotFile() failed");
     }
 
@@ -890,8 +926,15 @@ Amr::writePlotFile ()
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
-  }  // end while
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+    //
+    // the plotfile file now has the regular name
+    //
 
+  }  // end while
 }
 
 void
@@ -1464,7 +1507,7 @@ Amr::restart (const std::string& filename)
 void
 Amr::checkPoint ()
 {
-    if (!checkpoint_files_output) return;
+    if ( ! checkpoint_files_output) return;
 
     BL_PROFILE("Amr::checkPoint()");
 
@@ -1490,20 +1533,51 @@ Amr::checkPoint ()
   BoxLib::StreamRetry sretry(ckfile, abort_on_stream_retry_failure,
                              stream_max_tries);
 
+  const std::string ckfileTemp(ckfile + ".temp");
+
   while(sretry.TryFileOutput()) {
+    //
+    // Only the I/O processor makes the directory.
+    //
+    if (ParallelDescriptor::IOProcessor()) {
+        //
+        //  if either the ckfile or ckfileTemp exists, rename them
+        //  to move them out of the way.  then create ckfile
+        //  with the temporary name, then rename it back when
+        //  it is finished writing.  then stream retry can rename
+        //  it to a bad suffix if there were stream errors.
+        //
+        if(BoxLib::FileExists(ckfile)) {
+          std::string newoldname(ckfile + ".old." + BoxLib::UniqueString());
+          if(verbose > 0) {
+            std::cout << "Amr::checkPoint():  " << ckfile
+                      << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
+          std::rename(ckfile.c_str(), newoldname.c_str());
+        }
+        if(BoxLib::FileExists(ckfileTemp)) {
+          std::string newoldname(ckfileTemp + ".old." + BoxLib::UniqueString());
+          if(verbose > 0) {
+            std::cout << "Amr::checkPoint():  " << ckfileTemp
+                      << " exists.  Renaming to:  " << newoldname << std::endl;
+	  }
+          std::rename(ckfileTemp.c_str(), newoldname.c_str());
+        }
+        if ( ! BoxLib::UtilCreateDirectory(ckfileTemp, 0755)) {
+            BoxLib::CreateDirectoryFailed(ckfileTemp);
+	}
+    }
 
     //
-    // Only the I/O processor makes the directory if it doesn't already exist.
+    // the checkpoint file now has the temporary name
     //
-    if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(ckfile, 0755))
-            BoxLib::CreateDirectoryFailed(ckfile);
+
     //
-    // Force other processors to wait till directory is built.
+    // Force other processors to wait until directory is built.
     //
     ParallelDescriptor::Barrier("Amr::checkPoint::dir");
 
-    std::string HeaderFileName = ckfile + "/Header";
+    std::string HeaderFileName = ckfileTemp + "/Header";
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -1520,7 +1594,7 @@ Amr::checkPoint ()
         //
         HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
 
-        if (!HeaderFile.good())
+        if ( ! HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
 
         old_prec = HeaderFile.precision(17);
@@ -1549,14 +1623,14 @@ Amr::checkPoint ()
         HeaderFile << '\n';
     }
 
-    for (i = 0; i <= finest_level; i++)
-        amr_level[i].checkPoint(ckfile, HeaderFile);
+    for (i = 0; i <= finest_level; ++i)
+        amr_level[i].checkPoint(ckfileTemp, HeaderFile);
 
     if (ParallelDescriptor::IOProcessor())
     {
         HeaderFile.precision(old_prec);
 
-        if (!HeaderFile.good())
+        if ( ! HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
     }
 
@@ -1568,10 +1642,6 @@ Amr::checkPoint ()
     //
     AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
 #endif
-    //
-    // Don't forget to reset FAB format.
-    //
-    FArrayBox::setFormat(thePrevFormat);
 
     if (verbose > 0)
     {
@@ -1587,7 +1657,17 @@ Amr::checkPoint ()
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(ckfileTemp.c_str(), ckfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary checkPoint file.");
+
   }  // end while
+
+  //
+  // Don't forget to reset FAB format.
+  //
+  FArrayBox::setFormat(thePrevFormat);
 
 }
 
@@ -1844,15 +1924,11 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
-        long max_fab_bytes = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long min_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long max_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes,IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes,IOProc);
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        ParallelDescriptor::ReduceLongMin(min_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_bytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -1860,29 +1936,12 @@ Amr::coarseTimeStep (Real stop_time)
                       << min_fab_bytes
                       << " ... "
                       << max_fab_bytes
-                      << "]\n\n";
-
-            std::cout << "High water mark for # of BoxArrays                : "
-                      << BoxLib::total_boxarrays_hwm
-                      << '\n';
-
-            std::cout << "High water mark for # of BoxArray hash tables     : "
-                      << BoxLib::total_hash_tables_hwm
-                      << '\n';
-
-            std::cout << "High water mark for bytes in BoxArrays            : "
-                      << BoxLib::total_bytes_in_boxarrays_hwm
-                      << '\n';
-
-            std::cout << "High water mark for bytes in BoxArray hash tables : "
-                      << BoxLib::total_bytes_in_hashtables_hwm
-                      << '\n';
+                      << "]\n";
         }
-
-        BoxLib::total_boxarrays_hwm           = 0;
-        BoxLib::total_hash_tables_hwm         = 0;
-        BoxLib::total_bytes_in_boxarrays_hwm  = 0;
-        BoxLib::total_bytes_in_hashtables_hwm = 0;
+        //
+        // Reset to zero to calculate high-water-mark for next timestep.
+        //
+        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
@@ -2153,14 +2212,15 @@ Amr::regrid (int  lbase,
         amr_level.clear(lev);
 
     finest_level = new_finest;
-
-    if (lbase == 0)
-    {
-        MultiFab::FlushSICache();
-        Geometry::FlushPIRMCache();
-        FabArrayBase::CPC::FlushCache();
-        DistributionMapping::FlushCache();
-    }
+    //
+    // Flush the caches.
+    // We're most interesting in flushing cached stuff from the finer levels.
+    // Lower level stuff that could be reused is just as easily rebuilt.
+    //
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
     //
     // Define the new grids from level start up to new_finest.
     //

@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <ctime>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -425,6 +427,21 @@ BoxLib::UnlinkFile (const std::string& file)
     unlink(file.c_str());
 }
 
+bool
+BoxLib::FileExists(const std::string &filename)
+{
+  struct stat statbuff;
+  return(::lstat(filename.c_str(), &statbuff) != -1);
+}
+
+std::string
+BoxLib::UniqueString()
+{
+  std::stringstream tempstring;
+  tempstring << std::setprecision(11) << std::fixed << ParallelDescriptor::second();
+  int tsl(tempstring.str().length());
+  return(tempstring.str().substr(tsl/2, tsl));
+}
 void
 BoxLib::OutOfMemory ()
 {
@@ -1211,18 +1228,24 @@ bool BoxLib::StreamRetry::TryOutput()
       int myProc(ParallelDescriptor::MyProc());
       if(tries < maxTries) {
         std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
-                  << tries << " :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail()
-                  << sros.eof() << std::endl;
+                  << tries << " :: gbfe:  "
+                  << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                  << " :: sec = " << ParallelDescriptor::second()
+                  << " :: os.tellp() = " << sros.tellp()
+                  << " :: rewind spos = " << spos
+                  << std::endl;
         sros.clear();  // clear the bad bits
         sros.seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
         return true;
       } else {
         std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
-                  << tries << " :: File may be corrupt.  :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail()
-                  << sros.eof() << std::endl;
+                  << tries << " :: File may be corrupt.  :: gbfe:  "
+                  << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                  << " :: sec = " << ParallelDescriptor::second()
+                  << " :: os.tellp() = " << sros.tellp()
+                  << " :: rewind spos = " << spos
+                  << std::endl;
         sros.clear();  // clear the bad bits
         return false;
       }
@@ -1246,7 +1269,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
 
       if(nWriteErrors == 0) {  // wrote a good file
         bTryOutput = false;
-      } else {                 // rename the bad file
+      } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
           const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
                                                               tries - 1, 2);
