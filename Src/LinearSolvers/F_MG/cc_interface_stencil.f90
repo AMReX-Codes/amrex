@@ -310,7 +310,8 @@ contains
     integer :: i, j, ns
     real (kind = dp_t) :: crse_flux
  
-    ns = size(ss,dim=1)
+    ns = size(ss,1)
+!    ns = size(ss,dim=1)  ! some version of Intel does not like this
 
     !   Hi i side
     if ( dim == 1 ) then
