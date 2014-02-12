@@ -397,8 +397,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     if (!work_to_do) return;
 
-    BL_COMM_PROFILE_NAMETAG("CD::TagBoxArray::mapPeriodic()");
-
     facd.CollectData();
 
     const int N = IDs.size();
