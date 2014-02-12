@@ -66,6 +66,10 @@ AmrLevel::AmrLevel (Amr&            papa,
     ,particle_grids(ba)
 #endif
 {
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "))))---- AmrLevel::AmrLevel" << std::endl;
+}
+
     level  = lev;
     parent = &papa;
 
@@ -100,6 +104,9 @@ AmrLevel::AmrLevel (Amr&            papa,
 #endif
 
     finishConstructor();
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "((((---- AmrLevel::AmrLevel" << std::endl;
+}
 }
 
 void
