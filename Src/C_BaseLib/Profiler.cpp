@@ -574,6 +574,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 void Profiler::WriteCommStats(const bool bFlushing) {
 
+  Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.insert(AllCFTypes);  // temporarily
@@ -763,6 +764,13 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   CommStats::reductions.clear();
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.erase(AllCFTypes);
+  }
+
+  ParallelDescriptor::Barrier("Profiler::WriteCommStats::end");
+
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "Profiler::WriteCommStats():  time:  "
+              << ParallelDescriptor::second() - wcsStart << std::endl;
   }
 }
 
