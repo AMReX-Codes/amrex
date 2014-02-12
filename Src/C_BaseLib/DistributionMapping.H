@@ -7,6 +7,7 @@
 #include <BoxLib.H>
 #include <Array.H>
 #include <Box.H>
+#include <REAL.H>
 
 class BoxArray;
 
@@ -28,7 +29,7 @@ class DistributionMapping
 {
   public:
     //
-    // The distribution strategy: ROUNDROBIN, KNAPSACK, SFC, or PFC.
+    // The distribution strategies
     //
     enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC };
     //
@@ -101,7 +102,7 @@ class DistributionMapping
     //
     // Flush the cache of processor maps.  The processor map cache
     // is only flushed manually.  Only call this after a regridding
-    // before new MultiFabs are alloc()d.  This removed unreferenced
+    // before new MultiFabs are alloc()d.  This removes unreferenced
     // DistributionMaps from the Cache.
     //
     static void FlushCache ();
@@ -122,10 +123,14 @@ class DistributionMapping
     //
     bool operator!= (const DistributionMapping& rhs) const;
 
-    void SFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
-    void PFCProcessorMap        (const BoxArray& boxes, const std::vector<long>& wgts, int nprocs);
-    void KnapSackProcessorMap   (const std::vector<long>& wgts, int nprocs, double* efficiency = 0, bool do_full_knapsack = true);
-    void RoundRobinProcessorMap (int nboxes, int nprocs);
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
+                         int nprocs);
+    void PFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
+                         int nprocs);
+    void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
+                              double* efficiency = 0,
+			      bool do_full_knapsack = true);
+    void RoundRobinProcessorMap(int nboxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -141,8 +146,10 @@ class DistributionMapping
     static void Finalize ();
 
     static bool SameRefs (const DistributionMapping& lhs,
-                          const DistributionMapping& rhs) { return lhs.m_ref == rhs.m_ref; }
+                          const DistributionMapping& rhs)
+		  { return lhs.m_ref == rhs.m_ref; }
 
+    static void PrintDiagnostics(const std::string &filename);
     //
     // Initialize the topological proximity map
     //
@@ -198,6 +205,10 @@ private:
                               const std::vector<long>& wgts,
                               int                      nprocs);
     //
+    // Current # of bytes of FAB data.
+    //
+    static void CurrentBytesUsed (int nprocs, Array<long>& result);
+    //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
     static void LeastUsedCPUs (int nprocs, Array<int>& result);
@@ -208,7 +219,7 @@ private:
     //
     // A useful typedef.
     //
-    typedef void (DistributionMapping::*PVMF)(const BoxArray&,int);
+    typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
     //
     // Everyone uses the same Strategy -- defaults to SFC.
     //
@@ -241,6 +252,7 @@ private:
         // This latter acts as a sentinel in some FabArray loops.
         //
         Array<int> m_pmap;
+        //Array<long> boxPoints;  // i == rank.  so we can subtract from total
     };
     //
     // The data -- a reference-counted pointer to a Ref.
@@ -253,8 +265,12 @@ private:
     //
     // Topological proximity map
     //
+    static long totalCells;
+    static Real bytesPerCell;
     static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
     static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
+    static Array<long> totalBoxPoints;  // i == rank
+    //const Array<long> &BoxPoints() { return boxPoints; }
 };
 
 //

@@ -128,11 +128,11 @@ class Profiler
     static void AddStep(const int snum);
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
 
-    static const int NoTag()      { return -3; }
-    static const int BeforeCall() { return -5; }
-    static const int AfterCall()  { return -7; }
+    static inline const int NoTag()      { return -3; }
+    static inline const int BeforeCall() { return -5; }
+    static inline const int AfterCall()  { return -7; }
 
-    static const int ProcNumber()  { return procNumber; }
+    static inline const int ProcNumber() { return procNumber; }
 
     static void PerfMonProcess();
 
