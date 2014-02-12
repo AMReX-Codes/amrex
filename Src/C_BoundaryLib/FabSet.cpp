@@ -304,9 +304,6 @@ FabSet::linComb (Real            a,
 
     std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
-    fbids_mfa.reserve(16);
-    fbids_mfb.reserve(16);
-
     BoxArray ba_isects = bxa;
     ba_isects.grow(ngrow);
 

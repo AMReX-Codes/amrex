@@ -2732,9 +2732,9 @@ contains
              end do
           end do
        end do
-       if ( cnt > 0 ) then
-          write(6,'(A I6 A I3)') '*** init_box_hash_bin: bins: ', cnt, ' %full: ', INT(REAL(full)/cnt*100)
-       endif
+!       if ( cnt > 0 ) then
+!          write(6,'(A I6 A I3)') '*** init_box_hash_bin: bins: ', cnt, ' %full: ', INT(REAL(full)/cnt*100)
+!       endif
     end if
 
     call destroy(bpt)

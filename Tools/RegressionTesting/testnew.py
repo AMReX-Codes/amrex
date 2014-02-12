@@ -2011,6 +2011,10 @@ def testSuite(argv):
             origLastFile = "orig_%s" % (lastFile)
             shutil.move(lastFile, origLastFile)
 
+            if test.diffDir:
+                origDiffDir = "orig_%s" % (test.diffDir)
+                shutil.move(test.diffDir, origDiffDir)
+
             # get the file number to restart from
             restartFile = "%s_chk%5.5d" % (test.name, test.restartFileNum)
 
@@ -2178,7 +2182,10 @@ def testSuite(argv):
                         cf.close()
 
                 if (not test.diffDir == ""):
-                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    if not test.restartTest:
+                        diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    else:
+                        diffDirBench = origDiffDir
                     
                     print "  doing the diff..."
                     print "    diff dir: ", test.diffDir

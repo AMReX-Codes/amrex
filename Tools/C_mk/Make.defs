@@ -37,8 +37,17 @@ ifeq ($(MACHINE), SunOS)
 endif
 
 #
-# Set special flag for the Linux cluster (n2001.lbl.gov)
+# Set special flag to identify machine
 #
+ifeq ($(MACHINE), Darwin)
+  ifeq ($(findstring MarcsLaptop, $(UNAMEN)), MarcsLaptop)
+    WHICHDARWIN:=MARC
+  endif
+  ifeq ($(findstring ruhr, $(UNAMEN)), ruhr)
+    WHICHDARWIN:=MATTI
+  endif
+endif
+
 ifeq ($(MACHINE), Linux)
   WHICHLINUX := GENERICLINUX
   ifeq ($(findstring n2001, $(UNAMEN)), n2001)
@@ -241,7 +250,8 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3 
-    CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
+    #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
+    CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++
     CC	       := gcc
