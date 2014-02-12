@@ -101,6 +101,10 @@ namespace ParallelDescriptor
                            IntVect(&m_data[7+2*BL_SPACEDIM]));
             }
     };
+    //
+    // Used as default argument to ParallelDescriptor::Barrier().
+    //
+    const std::string Unnamed("Unnamed");
 }
 //
 // Yes you can output CommData.
@@ -279,8 +283,8 @@ namespace ParallelDescriptor
         return m_comm_inter;
     }
 
-    void Barrier (const std::string &message = "Unnamed");
-    void Barrier (MPI_Comm comm, const std::string &message = "Unnamed");
+    void Barrier (const std::string& message = Unnamed);
+    void Barrier (MPI_Comm comm, const std::string& message = Unnamed);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
