@@ -384,8 +384,6 @@ FluxRegister::Reflux (MultiFab&       S,
 
     ba.clear_hash_bin();
 
-    BL_COMM_PROFILE_NAMETAG("CD::FluxRegister::Reflux()");
-
     fscd.CollectData();
 
     const int N = Recs.size();
