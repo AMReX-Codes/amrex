@@ -8,32 +8,36 @@
 
 #include <Utility.H>
 #include <MultiFab.H>
- 
+
 int
 main (int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
-    typedef std::map<IntVect,Real,IntVect::Compare> OurBinMap;
+    typedef std::map<Array<int>,Array<Real> > OurBinMap;
 
     OurBinMap bins;
 
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+    //
+    // The number of "ints" in the key to our map.
+    //
+    const int nKeys = BL_SPACEDIM;
+    const int nVals = 1;
     //
     // Each CPU will put a different # of things in map.
     //
     for (int i = 0; i < 10 + (10*MyProc); i++)
     {
-        IntVect iv(D_DECL(1000*MyProc+i, 1000*MyProc+i, 1000*MyProc+i));
-
-        bins[iv] = Real(MyProc);
+      Array<int> iv(nKeys);
+      for (int j=0; j<nKeys; ++j) {
+        iv[j] = 1000*MyProc+i;
+      }
+      bins[iv].resize(1, Real(MyProc) );
     }
-    //
-    // The number of "ints" in the key to our map.
-    //
-    const int KeySize = BL_SPACEDIM;
 
 #if BL_USE_MPI
     //
@@ -42,26 +46,31 @@ main (int argc, char** argv)
     // without error.
     //
     Array<int> nmkeys(1);
+    Array<int> nmvals(1);
+    Array<int> nmentries(1);
     Array<int> offset(1);
 
     if (ParallelDescriptor::IOProcessor())
     {
+         nmentries.resize(NProcs,0);
          nmkeys.resize(NProcs,0);
+         nmvals.resize(NProcs,0);
          offset.resize(NProcs,0);
     }
     //
-    // Here lcount is the number of keys.
+    // Here lcount is the number of entries.
     //
     int lcount = bins.size();
 
     MPI_Gather(&lcount,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
-               nmkeys.dataPtr(),
+               nmentries.dataPtr(),
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
                IOProc,
                ParallelDescriptor::Communicator());
+
     //
     // Each CPU must pack its data into simple arrays.
     //
@@ -72,18 +81,19 @@ main (int argc, char** argv)
          it != End;
          ++it)
     {
-        //
-        // Our "KeySize" ints per key.
-        //
-        const IntVect& iv = it->first;
+        const Array<int>& iv = it->first;
+        BL_ASSERT(iv.size() == nKeys);
 
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < nKeys; i++)
             lkeys.push_back(iv[i]);
-        //
-        // And our value.
-        //
-        lvals.push_back(it->second);
+
+        const Array<Real>& vals = it->second;
+        BL_ASSERT(vals.size() == nVals);
+
+        for (int i = 0; i < nVals; i++)
+            lvals.push_back(vals[i]);
     }
+
     //
     // Clear all the "bins" including IOProc's.
     // For IOProc we do this so that when we add back
@@ -105,47 +115,58 @@ main (int argc, char** argv)
     {
         int tcount = 0;
         for (int i = 0; i < NProcs; i++)
-            tcount += nmkeys[i];
+        {
+            nmvals[i] = nmentries[i] * nVals;
+            tcount    += nmvals[i];
+        }
 
         vals.resize(tcount);
 
-        for (int i = 1, N = offset.size(); i < N; i++)
-            offset[i] = offset[i-1] + nmkeys[i-1];
+        for (int i = 1, N = offset.size(); i < N; i++) {
+            offset[i] = offset[i-1] + nmvals[i-1];
+        }
     }
 
+    ParallelDescriptor::Barrier();
+
+    int vcount = lcount * nVals;
+
     MPI_Gatherv(lcount == 0 ? 0 : lvals.dataPtr(),
-                lcount,
+                vcount,
                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                 vals.dataPtr(),
-                nmkeys.dataPtr(),
+                nmvals.dataPtr(),
                 offset.dataPtr(),
                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                 IOProc,
                 ParallelDescriptor::Communicator());
+
     //
-    // Then the values.
-    // Don't forget to update offset and nmkeys appropriately.
+    // Then the keys
     //
     if (ParallelDescriptor::IOProcessor())
     {
+
         int tcount = 0;
         for (int i = 0; i < NProcs; i++)
         {
-            nmkeys[i] *= KeySize;
+            nmkeys[i] = nmentries[i] * nKeys;
             tcount    += nmkeys[i];
         }
         keys.resize(tcount);
 
-        for (int i = 1, N = offset.size(); i < N; i++)
+        for (int i = 1, N = offset.size(); i < N; i++) {
             offset[i] = offset[i-1] + nmkeys[i-1];
+        }
     }
-    //
-    // There are KeySize ints in each Key.
-    //
-    lcount *= KeySize;
 
-    MPI_Gatherv(lcount == 0 ? 0 : lkeys.dataPtr(),
-                lcount,
+    //
+    // There are nKeys ints in each Key.
+    //
+    int kcount = lcount * nKeys;
+
+    MPI_Gatherv(kcount == 0 ? 0 : lkeys.dataPtr(),
+                kcount,
                 ParallelDescriptor::Mpi_typemap<int>::type(),
                 keys.dataPtr(),
                 nmkeys.dataPtr(),
@@ -159,26 +180,27 @@ main (int argc, char** argv)
         //
         // Put the (keys,vals) into our map and then print out map.
         //
-        BL_ASSERT(keys.size() % KeySize == 0);
-        BL_ASSERT(vals.size() * KeySize == keys.size());
+        int nentries = vals.size() / nVals;
+        BL_ASSERT(nentries * nVals == vals.size());
 
-        for (int i = 0; i < vals.size(); i++)
+        for (int i = 0; i < nentries; i++)
         {
-            int ik = i * KeySize;
+            int ik = i * nKeys;
+            Array<int> key(nKeys);
+            for (int k=0; k<nKeys; ++k) {
+                key[k] = keys[ik+k];
+            }
 
-            IntVect iv(D_DECL(keys[ik],keys[ik+1],keys[ik+2]));
+            int iv = i * nVals;
+            Array<Real> val(nVals);
+            for (int k=0; k<nVals; ++k) {
+                val[k] = vals[iv+k];
+            }
 
-            bins[iv] += vals[i];
+            bins[key] = val;
         }
 
         std::cout << "Got " << bins.size() << " (key,val) pairs:\n";
-
-        for (OurBinMap::const_iterator it = bins.begin(), End = bins.end();
-             it != End;
-             ++it)
-        {
-            std::cout << it->first << ' ' << it->second << '\n';
-        }
     }
 #endif
 
