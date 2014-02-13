@@ -312,6 +312,13 @@ public:
     //
     static bool do_async_sends;
     //
+    // Shuffle the order in which we send MPI data in copy(), FillBoundary() and
+    // FillPeriodicBoundary() in hopes of evening out any networking bottlenecks.
+    //
+    // Default is false.
+    //
+    static bool do_random_shuffle;
+    //
     // Print out some stuff; default is false.
     //
     static bool Verbose;
@@ -1346,12 +1353,26 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         // Send the FAB data.
         //
         FAB fab;
+        //
+        // Get the indices of SndTags and shuffle'm a bit.
+        //
+        Array<int> indices;
 
         for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
                  m_End = thecpc.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
+            indices.push_back(m_it->first);
+        }
+
+        if (FabArrayBase::do_random_shuffle)
+            std::random_shuffle(indices.begin(), indices.end());
+
+        for (int j = 0, NN = indices.size(); j < NN; j++)
+        {
+            CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->find(indices[j]);
+
             std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
 
             BL_ASSERT(vol_it != thecpc.m_SndVols->end());
@@ -2312,12 +2333,26 @@ FabArray<FAB>::FillBoundary (int  scomp,
     // Send the FAB data.
     //
     FAB fab;
+    //
+    // Get the indices of SndTags and shuffle'm a bit.
+    //
+    Array<int> indices;
 
     for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
              m_End = TheSI.m_SndTags->end();
          m_it != m_End;
          ++m_it)
     {
+        indices.push_back(m_it->first);
+    }
+
+    if (FabArrayBase::do_random_shuffle)
+        std::random_shuffle(indices.begin(), indices.end());
+
+    for (int j = 0, NN = indices.size(); j < NN; j++)
+    {
+        SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(indices[j]);
+
         std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
 
         BL_ASSERT(vol_it != TheSI.m_SndVols->end());

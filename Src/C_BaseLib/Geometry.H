@@ -373,12 +373,26 @@ namespace BoxLib
         // Send the FAB data.
         //
         FAB fab;
+        //
+        // Get the indices of SndTags and shuffle'm a bit.
+        //
+        Array<int> indices;
 
         for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
                  m_End = TheFPB.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
+            indices.push_back(m_it->first);
+        }
+
+        if (FabArrayBase::do_random_shuffle)
+            std::random_shuffle(indices.begin(), indices.end());
+
+        for (int j = 0, NN = indices.size(); j < NN; j++)
+        {
+            Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->find(indices[j]);
+
             std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
 
             BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
