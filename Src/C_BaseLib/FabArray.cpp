@@ -7,6 +7,7 @@
 //
 bool FabArrayBase::Verbose;
 bool FabArrayBase::do_async_sends;
+bool FabArrayBase::do_random_shuffle;
 int  FabArrayBase::MaxComp;
 
 namespace
@@ -26,9 +27,10 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::Verbose         = true;
-    FabArrayBase::do_async_sends  = false;
-    FabArrayBase::MaxComp         = 25;
+    FabArrayBase::Verbose           = true;
+    FabArrayBase::do_async_sends    = false;
+    FabArrayBase::do_random_shuffle = false;
+    FabArrayBase::MaxComp           = 25;
 
     copy_cache_max_size = 25;
     fb_cache_max_size   = 25;
@@ -38,6 +40,7 @@ FabArrayBase::Initialize ()
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
+    pp.query("do_random_shuffle",   FabArrayBase::do_random_shuffle);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //
