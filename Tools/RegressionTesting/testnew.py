@@ -3123,6 +3123,18 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     # loop over all the test runs 
     for dir in validDirs:
 
+        # first look to see if there are any valid tests at all --
+        # otherwise we don't do anything for this date
+        valid = 0
+        for test in allTests:
+            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
+            if (os.path.isfile(statusFile)):
+                valid = 1
+                break
+
+        if not valid:
+            continue
+
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
                  (dir, dir) )
