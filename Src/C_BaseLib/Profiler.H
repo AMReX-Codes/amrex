@@ -62,7 +62,8 @@ class Profiler
       NoCFTypes,       // 29
       IOStart,         // 30
       IOEnd,           // 31
-      TagWrap          // 32
+      TagWrap,         // 32
+      NUMBER_OF_CFTS   // 33
     };
 
     struct CommStats {
@@ -215,6 +216,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case IOStart:        return "IOStart";
     case IOEnd:          return "IOEnd";
     case TagWrap:        return "TagWrap";
+    case NUMBER_OF_CFTS: return "NUMBER_OF_CFTS";
   }
   return "*** Error: Bad CommFuncType.";
 }
