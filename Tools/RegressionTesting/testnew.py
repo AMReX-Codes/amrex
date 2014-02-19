@@ -79,6 +79,9 @@ class testObj:
 
         self.reClean = 0    # set automatically, not by users
 
+        self.wallTime = 0   # set automatically, not by users
+
+
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -110,8 +113,15 @@ class suiteObj:
 
         self.useExtraBuild = 0     # set automatically -- not by users
         self.extraBuildDir = ""
+
+        # this should be the environment variable name that should be
+        # set so the builds in the extraBuildDir can see the main
+        # source.  This environment variable will be set to the
+        # sourceTree path and included on the make lines
         self.extraBuildDirCompString = ""
 
+        # these are set automatically by the script -- they hold the
+        # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
         self.extraBuildName = ""
@@ -136,8 +146,6 @@ class suiteObj:
         self.emailBody = ""
 
         self.globalAddToExecString = ""
-
-        self.wallTime = 0      # set automatically, not by users
 
 
 
@@ -3122,6 +3130,18 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
     # loop over all the test runs 
     for dir in validDirs:
+
+        # first look to see if there are any valid tests at all --
+        # otherwise we don't do anything for this date
+        valid = 0
+        for test in allTests:
+            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
+            if (os.path.isfile(statusFile)):
+                valid = 1
+                break
+
+        if not valid:
+            continue
 
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
