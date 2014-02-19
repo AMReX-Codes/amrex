@@ -79,6 +79,9 @@ class testObj:
 
         self.reClean = 0    # set automatically, not by users
 
+        self.wallTime = 0   # set automatically, not by users
+
+
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -110,8 +113,15 @@ class suiteObj:
 
         self.useExtraBuild = 0     # set automatically -- not by users
         self.extraBuildDir = ""
+
+        # this should be the environment variable name that should be
+        # set so the builds in the extraBuildDir can see the main
+        # source.  This environment variable will be set to the
+        # sourceTree path and included on the make lines
         self.extraBuildDirCompString = ""
 
+        # these are set automatically by the script -- they hold the
+        # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
         self.extraBuildName = ""
@@ -136,8 +146,6 @@ class suiteObj:
         self.emailBody = ""
 
         self.globalAddToExecString = ""
-
-        self.wallTime = 0      # set automatically, not by users
 
 
 
