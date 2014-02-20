@@ -1,0 +1,15 @@
+This code is a very simple code designed to profile communication patterns 
+associated with the MultiFabFillBoundary operation, which exchanges ghost cells
+between the FABs in a single multifab.
+
+All this code does, for a certain set of parameters, is to 
+ * create a MultiFab which has "nGhost" ghost cells and "nComp" components
+ * fill the data with the value 1.0 everywhere
+ * exchange "nGhost" ghost cells of "nComp" components of the data in the FABs in this MultiFab
+ * exchange either the faces only ("cross" = true) or all 26 nearest neighbor exchanges ("cross" = false")
+
+We have a separate call for each combination:
+ 
+ * nComp = 1, 4, 20
+ * nGhost = 1, 2, 3, 4
+ * cross = true or false
