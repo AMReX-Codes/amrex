@@ -601,6 +601,14 @@ void Profiler::WriteCommStats(const bool bFlushing) {
 
   std::string cdir("bl_comm_prof");
   if(ParallelDescriptor::IOProcessor()) {
+    if(bFirstCommWriteH) {
+      if(BoxLib::FileExists(cdir)) {
+        std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
+        std::cout << "Profiler::WriteCommStats():  " << cdir
+                  << " exists.  Renaming to:  " << newoldname << std::endl;
+        std::rename(cdir.c_str(), newoldname.c_str());
+      }
+    }
     if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
       BoxLib::CreateDirectoryFailed(cdir);
     }
@@ -616,7 +624,6 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     }
   }
 
-  //std::ostringstream csHeader;
 
   // --------------------- start nfiles block
   const int   myProc    = ParallelDescriptor::MyProc();
@@ -645,6 +652,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     csGlobalHeaderFile << "CommProfVersion  " << CommStats::csVersion << '\n';
     csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
     csGlobalHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
+    csGlobalHeaderFile << "NOutFiles  " << nOutFiles << '\n';
     csGlobalHeaderFile << "FinestLevel  " << finestLevel << '\n';
     csGlobalHeaderFile << "MaxLevel  " << maxLevel << '\n';
     for(int i(0); i < refRatio.size(); ++i) {
@@ -652,6 +660,11 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     }
     for(int i(0); i < probDomain.size(); ++i) {
       csGlobalHeaderFile << "ProbDomain  " << i << "  " << probDomain[i] << '\n';
+    }
+    for(int i(0); i < nOutFiles; ++i) {
+      std::string headerName(cdir + "_H_");
+      headerName = BoxLib::Concatenate(headerName, i, 4);
+      csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
     }
 
     csGlobalHeaderFile.flush();
