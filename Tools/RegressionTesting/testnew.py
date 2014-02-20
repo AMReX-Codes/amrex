@@ -111,8 +111,11 @@ class suiteObj:
         self.sourceGitBranch = "master"
         self.extSrcGitBranch = "master"
 
-        self.useExtraBuild = 0     # set automatically -- not by users
-        self.extraBuildDir = ""
+        # this will hold the # of extra build directories we need to worry 
+        # about.  It is set automatically, not by users
+        self.useExtraBuild = 0   
+                            
+        self.extraBuildDirs = []
 
         # this should be the environment variable name that should be
         # set so the builds in the extraBuildDir can see the main
@@ -124,7 +127,7 @@ class suiteObj:
         # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
-        self.extraBuildName = ""
+        self.extraBuildNames = []
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -263,9 +266,16 @@ def LoadParams(file):
         elif (opt == "extSrcGitBranch"):
             mysuite.extSrcGitBranch = value
 
+        # we will keep the extra build directories in a list -- we want them
+        # in the correct order in the list so we can simply index later
         elif (opt == "extraBuildDir"):
-            mysuite.extraBuildDir = checkTestDir(value)
-            mysuite.useExtraBuild = 1
+            if len(mysuite.extraBuildDirs) == 0:
+                mysuite.extraBuildDirs.append(checkTestDir(value))
+            else:
+                mysuite.extraBuildDirs.insert(0,checkTestDir(value))
+
+        elif (opt == "extraBuildDir2"):
+            mysuite.extraBuildDirs.append(checkTestDir(value))
 
         elif (opt == "extraBuildDirCompString"):
             mysuite.extraBuildDirCompString = value
@@ -316,6 +326,8 @@ def LoadParams(file):
             warning("WARNING: suite parameter %s not valid" % (opt))
 
 
+    mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
+
     mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
 
     # if there is an extra source directory, update the additional
@@ -328,8 +340,11 @@ def LoadParams(file):
 
     # if there is an extra build directory (some problems defined there),
     # then update the additional compilation string
-    if mysuite.useExtraBuild:
-        mysuite.extraBuildName = os.path.basename(os.path.normpath(mysuite.extraBuildDir))
+    if mysuite.useExtraBuild > 0:
+        n = 0
+        while n < len(mysuite.extraBuildDirs):
+            mysuite.extraBuildNames.append(os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n])))
+            n += 1
 
         # since we are building in the extraBuildDir, we need to 
         # take make where the sourceDir is
@@ -483,8 +498,8 @@ def LoadParams(file):
 
 
         # make sure that the build directory actually exists
-        if (mytest.useExtraBuildDir):
-            bDir = mysuite.extraBuildDir + mytest.buildDir
+        if (mytest.useExtraBuildDir > 0):
+            bDir = mysuite.extraBuildDirs[mytest.useExtraBuildDir-1] + mytest.buildDir
         else:
             bDir = mysuite.sourceDir + mytest.buildDir
 
@@ -640,9 +655,13 @@ def findBuildDirs(testList):
     for obj in testList:
         
         # be sneaky here.  We'll add a "+" to any of the tests that
-        # are built in the extraBuildDir instead of the sourceDir.
-        if (obj.useExtraBuildDir):
+        # are built in the first extraBuildDir and a "@" for an tests
+        # that are build in the second extraBuild dir, instead of the
+        # sourceDir.
+        if obj.useExtraBuildDir == 1:
             prefix = "+"
+        elif obj.useExtraBuildDir == 2:
+            prefix = "@"
         else:
             prefix = ""
 
@@ -1285,13 +1304,13 @@ def testSuite(argv):
         updateBoxLib = True
         updateSource = True
         updateExtSrc = True
-        updateExtraBuild = True
+        updateExtraBuild = [True]*suite.useExtraBuild
 
     elif no_update_low == "all":
         updateBoxLib = False
         updateSource = False
         updateExtSrc = False
-        updateExtraBuild = False
+        updateExtraBuild = [False]*suite.useExtraBuild
 
     else:
         nouplist = no_update_low.split(",")
@@ -1311,16 +1330,19 @@ def testSuite(argv):
         else:
             updateExtSrc = True
 
-        if suite.extraBuildName.lower() in nouplist:
-            updateExtraBuild = False
-        else:
-            updateExtraBuild = True
+        # each extra build directory has its own update flag
+        updateExtraBuild = []
+        for e in suite.extraBuildNames:
+            if e.lower() in nouplist:
+                updateExtraBuild.append(False)
+            else:
+                updateExtraBuild.append(True)
 
     if not suite.useExtSrc:
         updateExtSrc = False
 
     if not suite.useExtraBuild:
-        updateExtraBuild = False
+        updateExtraBuild = [False]
     
     if suite.sourceTree == "BoxLib":
         updateSource = False # to avoid updating BoxLib twice.
@@ -1466,14 +1488,17 @@ def testSuite(argv):
                                                suite.extSrcGitBranch,
                                                extSrcGitHash)
 
-    if updateExtraBuild:
+    if any(updateExtraBuild):
 
         # extra build directory
-        if (suite.useExtraBuild):
-            extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDir, 
-                                               suite.extraBuildName, fullWebDir,
-                                               "master",
-                                               "")
+        n = 0
+        while n < suite.useExtraBuild:
+            if updateExtraBuild[n]:
+                extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDirs[n], 
+                                                   suite.extraBuildNames[n], fullWebDir,
+                                                   "master",
+                                                   "")
+            n += 1
 
     if updateBoxLib or boxLibGitHash:
 
@@ -1494,8 +1519,10 @@ def testSuite(argv):
     if suite.useExtSrc:
         saveGITHEAD(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
-    if suite.useExtraBuild:
-        saveGITHEAD(suite.extraBuildDir, suite.extraBuildName, fullWebDir)
+    n = 0
+    while n < suite.useExtraBuild:
+        saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
+        n += 1
 
 
     #--------------------------------------------------------------------------
@@ -1512,11 +1539,13 @@ def testSuite(argv):
         if (suite.useExtSrc):
             makeGITChangeLog(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
-    if updateExtraBuild:
 
-        # extra build directory
-        if (suite.useExtraBuild):
-            makeGITChangeLog(suite.extraBuildDir, suite.extraBuildName, fullWebDir)
+    # extra build directories            
+    n = 0
+    while n < suite.useExtraBuild:
+        if updateExtraBuild[n]:
+            makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
+        n += 1
 
     if updateBoxLib:
 
@@ -1597,12 +1626,15 @@ def testSuite(argv):
         if (dir.find("+") == 0):
             inExtra = 1
             dir = dir[1:]
+        elif (dir.find("@") == 0):
+            inExtra = 2
+            dir = dir[1:]
         else:
             inExtra = 0
 
-        if (inExtra):
-            print "  %s in %s" % (dir,suite.extraBuildName)
-            os.chdir(suite.extraBuildDir + dir)
+        if (inExtra > 0):
+            print "  %s in %s" % (dir,suite.extraBuildNames[inExtra-1])
+            os.chdir(suite.extraBuildDirs[inExtra-1] + dir)
         else:
             print "  %s" % (dir)
             os.chdir(suite.sourceDir + dir)
@@ -1654,8 +1686,8 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # compile the code
         #----------------------------------------------------------------------
-        if (test.useExtraBuildDir):
-            bDir = suite.extraBuildDir + test.buildDir
+        if test.useExtraBuildDir > 0:
+            bDir = suite.extraBuildDirs[test.useExtraBuildDir-1] + test.buildDir
         else:
             bDir = suite.sourceDir + test.buildDir
 
@@ -1696,7 +1728,7 @@ def testSuite(argv):
             else:
                 buildOptions += "USE_OMP=FALSE "
 
-            if (test.useExtraBuildDir):
+            if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
@@ -1730,7 +1762,7 @@ def testSuite(argv):
             else:
                 buildOptions += "OMP= "
             
-            if (test.useExtraBuildDir):
+            if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
             compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s >& %s/%s.make.out" % \
@@ -2684,8 +2716,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     hf.write(newHead)
 
     hf.write("<P><b>build directory:</b> %s" % (test.buildDir) )
-    if (test.useExtraBuildDir):
-        hf.write(" in %s\n" % (suite.extraBuildDir))
+    if test.useExtraBuildDir > 0:
+        hf.write(" in %s\n" % (suite.extraBuildDirs[test.useExtraBuildDir-1]))
     else:
         hf.write("\n")
 
