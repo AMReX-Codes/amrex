@@ -24,7 +24,7 @@ The defaults there are g++ and gfortran.
 
 2) Type "make".  This will create an executable with a name like
 
-     test3d.Linux.g++.gfortran.COMM_PROF.MPI.ex
+     fbtest3d.Linux.g++.gfortran.COMM_PROF.MPI.ex
 
 which indicates this is a 3D code built with the g++ and gfortran compilers, with the commprof
 version of BoxLib, and built with MPI.  (If you want to build a serial version, simply set
@@ -32,7 +32,7 @@ USE_MPI = FALSE in the GNUmakefile and re-make.)
 
 3) To run the code in parallel, simply type
 
-$ <mpi-run-command> -n NPROCS ./test3d.Linux.g++.gfortran.COMM_PROF.MPI.ex
+$ <mpi-run-command> -n NPROCS ./fbtest3d.Linux.g++.gfortran.COMM_PROF.MPI.ex
 
 NOTE:  For simplicity we define that there is one 64^3 grid per MPI process and that these
 grids form a cubic domain.  Thus we require that NPROCS be a perfect cube, such as 8, 27, 64, etc.
