@@ -41,14 +41,14 @@ int main(int argc, char *argv[]) {
     int nprocs = ParallelDescriptor::NProcs();
 
     // This is the cube root of the number of processors
-    int domain_hi = exp(log(abs(nprocs))/3.0);
+    int N = exp(log(abs(nprocs))/3.0);
 
-    if (domain_hi*domain_hi*domain_hi != nprocs) 
+    if (N*N*N != nprocs) 
     {
         BoxLib::Error("We require that the number of processors be a perfect cube");
     }
 
-    // std::cout << "Cube root of " << nprocs << " is " << domain_hi << std::endl;
+    // std::cout << "Cube root of " << nprocs << " is " << N << std::endl;
 
     int nGhost;
     int nComp;
@@ -61,6 +61,7 @@ int main(int argc, char *argv[]) {
     bool cross;
 
     // ---- make a box, then a boxarray with maxSize
+    int domain_hi = (N*maxGrid) - 1;
     Box Domain(IntVect(0,0,0), IntVect(domain_hi,domain_hi,domain_hi));
     BoxArray ba(Domain);
     ba.maxSize(maxGrid);
