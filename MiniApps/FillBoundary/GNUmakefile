@@ -9,7 +9,7 @@ COMP         = g++
 FCOMP        = gfortran
 DIM          = 3
 PRECISION    = DOUBLE
-EBASE        = test
+EBASE        = fbtest
 
 CEXE_sources += MultiFabFillBoundaryTest.cpp
 
@@ -20,6 +20,8 @@ include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+
+CXXFLAGS += -std=c++0x
 
 vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
 vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
