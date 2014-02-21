@@ -124,7 +124,6 @@ void
 DistributionMapping::Initialize ()
 {
     if (initialized) return;
-std::cout << "IIIIIIIIIIIIIIIIIIIIIIIII DistributionMapping::Initialize ()" << std::endl;
     //
     // Set defaults here!!!
     //
@@ -173,7 +172,7 @@ std::cout << "IIIIIIIIIIIIIIIIIIIIIIIII DistributionMapping::Initialize ()" << s
     }
 
     if(proximityMap.size() != ParallelDescriptor::NProcs()) {
-      std::cout << "#00#::Initialize: proximityMap not resized yet." << std::endl;
+      //std::cout << "#00#::Initialize: proximityMap not resized yet." << std::endl;
       proximityMap.resize(ParallelDescriptor::NProcs(), 0);
       proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
     }
@@ -394,8 +393,8 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
         if ( ! GetMap(boxes))
         {
 if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "|||| DistributionMapping::define:  nprocs boxes.size() = "
-            << nprocs << "  " << boxes.size() << std::endl;
+  //std::cout << "|||| DistributionMapping::define:  nprocs boxes.size() = "
+            //<< nprocs << "  " << boxes.size() << std::endl;
 }
 	    BL_ASSERT(m_BuildMap != 0);
 
