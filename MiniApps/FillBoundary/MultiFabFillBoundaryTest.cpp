@@ -27,10 +27,6 @@
 #endif
 
 const int maxGrid(64);
-const int pdHi(127);
-const int nComp(5);
-const int nGhost(2);
-const int nFiles(64);
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
@@ -53,6 +49,9 @@ int main(int argc, char *argv[]) {
     }
 
     // std::cout << "Cube root of " << nprocs << " is " << domain_hi << std::endl;
+
+    int nGhost;
+    int nComp;
 
     // Don't restrict ourselves to on-processor communication
     bool local = false;
@@ -78,136 +77,121 @@ int main(int argc, char *argv[]) {
     // --------------------------------------------------------------------------
     // --------------------------------------------------------------------------
 
-    // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 1
-    // --------------------------------------------------------------------------
+    nGhost = 1;
+    nComp  = 1;
     
     MultiFab mf1_1t(ba, nComp, nGhost);
     mf1_1t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_1t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 1;
     
     MultiFab mf2_1t(ba, nComp, nGhost);
     mf2_1t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_1t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 1;
     
     MultiFab mf3_1t(ba, nComp, nGhost);
     mf3_1t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_1t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 1;
     
     MultiFab mf4_1t(ba, nComp, nGhost);
     mf4_1t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_1t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 1;
+    nComp  = 4;
     
     MultiFab mf1_4t(ba, nComp, nGhost);
     mf1_4t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_4t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 4;
     
     MultiFab mf2_4t(ba, nComp, nGhost);
     mf2_4t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_4t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 4;
     
     MultiFab mf3_4t(ba, nComp, nGhost);
     mf3_4t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_4t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 4;
     
     MultiFab mf4_4t(ba, nComp, nGhost);
     mf4_4t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_4t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 20
     // --------------------------------------------------------------------------
+
+    nGhost = 1;
+    nComp  = 20;
     
     MultiFab mf1_20t(ba, nComp, nGhost);
     mf1_20t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_20t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 20t
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 20;
     
     MultiFab mf2_20t(ba, nComp, nGhost);
     mf2_20t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_20t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 20t
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 20;
     
     MultiFab mf3_20t(ba, nComp, nGhost);
     mf3_20t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_20t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 20t
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 20;
     
     MultiFab mf4_20t(ba, nComp, nGhost);
     mf4_20t.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_20t.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
@@ -216,136 +200,121 @@ int main(int argc, char *argv[]) {
     // --------------------------------------------------------------------------
     // --------------------------------------------------------------------------
 
-    // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 1
-    // --------------------------------------------------------------------------
+    nGhost = 1;
+    nComp  = 1;
     
     MultiFab mf1_1f(ba, nComp, nGhost);
     mf1_1f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_1f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 1;
     
     MultiFab mf2_1f(ba, nComp, nGhost);
     mf2_1f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_1f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 1;
     
     MultiFab mf3_1f(ba, nComp, nGhost);
     mf3_1f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_1f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 1
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 1;
     
     MultiFab mf4_1f(ba, nComp, nGhost);
     mf4_1f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_1f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 1;
+    nComp  = 4;
     
     MultiFab mf1_4f(ba, nComp, nGhost);
     mf1_4f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_4f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 4;
     
     MultiFab mf2_4f(ba, nComp, nGhost);
     mf2_4f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_4f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 4;
     
     MultiFab mf3_4f(ba, nComp, nGhost);
     mf3_4f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_4f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 4
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 4;
     
     MultiFab mf4_4f(ba, nComp, nGhost);
     mf4_4f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_4f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 1
-    // nComp  = 20
     // --------------------------------------------------------------------------
+
+    nGhost = 1;
+    nComp  = 20;
     
     MultiFab mf1_20f(ba, nComp, nGhost);
     mf1_20f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf1_20f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 2
-    // nComp  = 20f
     // --------------------------------------------------------------------------
+
+    nGhost = 2;
+    nComp  = 20;
     
     MultiFab mf2_20f(ba, nComp, nGhost);
     mf2_20f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf2_20f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 3
-    // nComp  = 20f
     // --------------------------------------------------------------------------
+
+    nGhost = 3;
+    nComp  = 20;
     
     MultiFab mf3_20f(ba, nComp, nGhost);
     mf3_20f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf3_20f.FillBoundary(local,cross);
 
     // --------------------------------------------------------------------------
-    // nGhost = 4
-    // nComp  = 20f
     // --------------------------------------------------------------------------
+
+    nGhost = 4;
+    nComp  = 20;
     
     MultiFab mf4_20f(ba, nComp, nGhost);
     mf4_20f.setVal(1.0);
-
-    // ---- This fills the ghost regions from intersecting FABs
     mf4_20f.FillBoundary(local,cross);
 
     BoxLib::Finalize();
