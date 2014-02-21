@@ -1,7 +1,7 @@
 // --------------------------------------------------------------------------
 // MultiFabFillBoundaryTest.cpp
 // --------------------------------------------------------------------------
-//  this file writes and reads multifabs.
+//   this file tests fillboundary.
 // --------------------------------------------------------------------------
 #include <winstd.H>
 
@@ -11,16 +11,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 #include <cmath>
 
 #ifndef WIN32
 #include <unistd.h>
 #endif
 
-#include <ParmParse.H>
+#include <IntVect.H>
+#include <Box.H>
+#include <BoxArray.H>
+#include <MultiFab.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-#include <VisMF.H>
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
@@ -32,6 +35,8 @@ const int maxGrid(64);
 int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
+
+    BL_PROFILE_VAR("main()", pmain);
 
     // ---- First use the number of processors to decide how many grids you have.
     // ---- We arbitrarily decide to have one grid per MPI process in a uniform
@@ -50,15 +55,12 @@ int main(int argc, char *argv[]) {
 
     // std::cout << "Cube root of " << nprocs << " is " << N << std::endl;
 
-    int nGhost;
-    int nComp;
 
     // Don't restrict ourselves to on-processor communication
-    bool local = false;
+    bool local(false);
 
     // ---- If cross == true then only the faces are exchanged
     // ---- If cross == false then the faces, edges and corners are all exchanged
-    bool cross;
 
     // ---- make a box, then a boxarray with maxSize
     int domain_hi = (N*maxGrid) - 1;
@@ -72,251 +74,49 @@ int main(int argc, char *argv[]) {
     // ----  (these are also arbitrary, just meant to be representative)
     // ---- and for "cross" = true or false.
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-    // cross = true;
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
 
-    nGhost = 1;
-    nComp  = 1;
-    
-    MultiFab mf1_1t(ba, nComp, nGhost);
-    mf1_1t.setVal(1.0);
-    mf1_1t.FillBoundary(local,cross);
+    const std::vector<bool> cross = { true, false };
+    const std::vector<int>  nComp = { 1, 4, 20 };
+    const std::vector<int> nGhost = { 1, 2, 3, 4 };
+    // do this for older compilers
+    //static const int nGhostarr[] = {1, 2, 3, 4};
+    //std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
+    for(int icross(0); icross < cross.size(); ++icross) {
+      std::string crossString;
+      if(cross[icross]) {
+        crossString = "True";
+      } else {
+        crossString = "False";
+      }
 
-    nGhost = 2;
-    nComp  = 1;
-    
-    MultiFab mf2_1t(ba, nComp, nGhost);
-    mf2_1t.setVal(1.0);
-    mf2_1t.FillBoundary(local,cross);
+      for(int icomp(0); icomp < nComp.size(); ++icomp) {
+        for(int ighost(0); ighost < nGhost.size(); ++ighost) {
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
+          std::ostringstream nametag;
+          nametag << "FB_nGhost" << nGhost[ighost] << "_nComp" << nComp[icomp] << "_cross" << crossString;
+	  if(ParallelDescriptor::IOProcessor()) {
+	    std::cout << "Working on:  " << nametag.str() << std::endl;
+	  }
 
-    nGhost = 3;
-    nComp  = 1;
-    
-    MultiFab mf3_1t(ba, nComp, nGhost);
-    mf3_1t.setVal(1.0);
-    mf3_1t.FillBoundary(local,cross);
+          MultiFab mf(ba, nComp[icomp], nGhost[ighost]);
+          mf.setVal(1.0);
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
+          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_Start");
 
-    nGhost = 4;
-    nComp  = 1;
-    
-    MultiFab mf4_1t(ba, nComp, nGhost);
-    mf4_1t.setVal(1.0);
-    mf4_1t.FillBoundary(local,cross);
+          mf.FillBoundary(local, cross[icross]);
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
+          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_End");
 
-    nGhost = 1;
-    nComp  = 4;
-    
-    MultiFab mf1_4t(ba, nComp, nGhost);
-    mf1_4t.setVal(1.0);
-    mf1_4t.FillBoundary(local,cross);
+        }
+      }
+    }
 
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "Finished." << std::endl;
+    }
 
-    nGhost = 2;
-    nComp  = 4;
-    
-    MultiFab mf2_4t(ba, nComp, nGhost);
-    mf2_4t.setVal(1.0);
-    mf2_4t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 3;
-    nComp  = 4;
-    
-    MultiFab mf3_4t(ba, nComp, nGhost);
-    mf3_4t.setVal(1.0);
-    mf3_4t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 4;
-    nComp  = 4;
-    
-    MultiFab mf4_4t(ba, nComp, nGhost);
-    mf4_4t.setVal(1.0);
-    mf4_4t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 1;
-    nComp  = 20;
-    
-    MultiFab mf1_20t(ba, nComp, nGhost);
-    mf1_20t.setVal(1.0);
-    mf1_20t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 2;
-    nComp  = 20;
-    
-    MultiFab mf2_20t(ba, nComp, nGhost);
-    mf2_20t.setVal(1.0);
-    mf2_20t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 3;
-    nComp  = 20;
-    
-    MultiFab mf3_20t(ba, nComp, nGhost);
-    mf3_20t.setVal(1.0);
-    mf3_20t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 4;
-    nComp  = 20;
-    
-    MultiFab mf4_20t(ba, nComp, nGhost);
-    mf4_20t.setVal(1.0);
-    mf4_20t.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-    // cross = false;
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 1;
-    nComp  = 1;
-    
-    MultiFab mf1_1f(ba, nComp, nGhost);
-    mf1_1f.setVal(1.0);
-    mf1_1f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 2;
-    nComp  = 1;
-    
-    MultiFab mf2_1f(ba, nComp, nGhost);
-    mf2_1f.setVal(1.0);
-    mf2_1f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 3;
-    nComp  = 1;
-    
-    MultiFab mf3_1f(ba, nComp, nGhost);
-    mf3_1f.setVal(1.0);
-    mf3_1f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 4;
-    nComp  = 1;
-    
-    MultiFab mf4_1f(ba, nComp, nGhost);
-    mf4_1f.setVal(1.0);
-    mf4_1f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 1;
-    nComp  = 4;
-    
-    MultiFab mf1_4f(ba, nComp, nGhost);
-    mf1_4f.setVal(1.0);
-    mf1_4f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 2;
-    nComp  = 4;
-    
-    MultiFab mf2_4f(ba, nComp, nGhost);
-    mf2_4f.setVal(1.0);
-    mf2_4f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 3;
-    nComp  = 4;
-    
-    MultiFab mf3_4f(ba, nComp, nGhost);
-    mf3_4f.setVal(1.0);
-    mf3_4f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 4;
-    nComp  = 4;
-    
-    MultiFab mf4_4f(ba, nComp, nGhost);
-    mf4_4f.setVal(1.0);
-    mf4_4f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 1;
-    nComp  = 20;
-    
-    MultiFab mf1_20f(ba, nComp, nGhost);
-    mf1_20f.setVal(1.0);
-    mf1_20f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 2;
-    nComp  = 20;
-    
-    MultiFab mf2_20f(ba, nComp, nGhost);
-    mf2_20f.setVal(1.0);
-    mf2_20f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 3;
-    nComp  = 20;
-    
-    MultiFab mf3_20f(ba, nComp, nGhost);
-    mf3_20f.setVal(1.0);
-    mf3_20f.FillBoundary(local,cross);
-
-    // --------------------------------------------------------------------------
-    // --------------------------------------------------------------------------
-
-    nGhost = 4;
-    nComp  = 20;
-    
-    MultiFab mf4_20f(ba, nComp, nGhost);
-    mf4_20f.setVal(1.0);
-    mf4_20f.FillBoundary(local,cross);
+    BL_PROFILE_VAR_STOP(pmain);
 
     BoxLib::Finalize();
     return 0;
