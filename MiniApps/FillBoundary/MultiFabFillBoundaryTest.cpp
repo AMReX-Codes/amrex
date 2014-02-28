@@ -10,8 +10,6 @@
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <sstream>
 #include <cmath>
 
 #ifndef WIN32
@@ -35,8 +33,6 @@ const int maxGrid(64);
 int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
-
-    BL_PROFILE_VAR("main()", pmain);
 
     // ---- First use the number of processors to decide how many grids you have.
     // ---- We arbitrarily decide to have one grid per MPI process in a uniform
@@ -83,30 +79,21 @@ int main(int argc, char *argv[]) {
     //std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
 
     for(int icross(0); icross < cross.size(); ++icross) {
-      std::string crossString;
-      if(cross[icross]) {
-        crossString = "True";
-      } else {
-        crossString = "False";
-      }
-
       for(int icomp(0); icomp < nComp.size(); ++icomp) {
         for(int ighost(0); ighost < nGhost.size(); ++ighost) {
 
-          std::ostringstream nametag;
-          nametag << "FB_nGhost" << nGhost[ighost] << "_nComp" << nComp[icomp] << "_cross" << crossString;
 	  if(ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Working on:  " << nametag.str() << std::endl;
+	    std::cout << "Working on:"
+	              << "  Ghost = " << nGhost[ighost]
+	              << "  nComp = " << nComp[icomp]
+		      << "  cross = " << (cross[icross] ? "true":"false")
+		      << std::endl;
 	  }
 
           MultiFab mf(ba, nComp[icomp], nGhost[ighost]);
           mf.setVal(1.0);
 
-          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_Start");
-
           mf.FillBoundary(local, cross[icross]);
-
-          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_End");
 
         }
       }
@@ -115,8 +102,6 @@ int main(int argc, char *argv[]) {
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "Finished." << std::endl;
     }
-
-    BL_PROFILE_VAR_STOP(pmain);
 
     BoxLib::Finalize();
     return 0;
