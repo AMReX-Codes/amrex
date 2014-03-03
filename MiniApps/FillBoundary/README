@@ -37,3 +37,15 @@ $ <mpi-run-command> -n NPROCS ./fbtest3d.Linux.g++.gfortran.COMM_PROF.MPI.ex
 NOTE:  For simplicity we define that there is one 64^3 grid per MPI process and that these
 grids form a cubic domain.  Thus we require that NPROCS be a perfect cube, such as 8, 27, 64, etc.
 Note that this restriction is purely for simplicity of input. 
+
+****************************************************************************************
+
+Suggested Runs for O(100), O(1000), O(10K), O(100K):
+
+1) 5**3: NPROCS = 125
+
+2) 10**3: NPROCS = 1000
+
+3) 22**3: NPROCS = 10648
+
+4) 48**3: NPROCS = 110592
