@@ -6,11 +6,8 @@ from ctypes import *
 from base import BLObject
 from pybl import bl
 
-try:
-  import libpycboxlib as cbl
-except:
-  print "WARNING: Update to load libpycboxlib.so"
-
+# XXX: it would be nice to put libpycboxlib into libpyfboxlib
+import libpycboxlib as cbl
 
 class fab(BLObject):
   """FAB.
@@ -57,12 +54,12 @@ class fab(BLObject):
     get_array = getattr(cbl, mftype + '_as_numpy')
 
     if level:
-      get_info(self.mfab.cptr, level, nbox, byref(self._dim), byref(self._nc), 
+      get_info(self.mfab.cptr, level, nbox, byref(self._dim), byref(self._nc),
                self.pbx_lo, self.pbx_hi)
     else:
-      get_info(self.mfab.cptr, nbox, byref(self._dim), byref(self._nc), 
-               self.bx_lo, self.bx_hi, 
-               self.pbx_lo, self.pbx_hi, 
+      get_info(self.mfab.cptr, nbox, byref(self._dim), byref(self._nc),
+               self.bx_lo, self.bx_hi,
+               self.pbx_lo, self.pbx_hi,
                self.ibx_lo, self.ibx_hi)
 
     ints = lambda arr: [ int(x) for x in arr[:self.dim] ]
@@ -87,7 +84,7 @@ class fab(BLObject):
   def size(self):
     return self.array.size
 
-  
+
   def bxrange(self, dim):
     """Return an iterator to cycle over the global indicies for the
     given dimension.
@@ -115,7 +112,7 @@ class fab(BLObject):
 
     key = adjust_indexes(lbound, key)
 
-    return self.array[key] 
+    return self.array[key]
 
 
   def __setitem__(self, key, value):
