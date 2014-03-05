@@ -107,6 +107,13 @@ public:
     //
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     //
+    // set the maximum number of permitted multigrid iterations -- 
+    //    if this flag is set to 1 then multigrid will do exactly this number,
+    //    regardless of convergence
+    //
+    void setFixedIter (int _do_fixed_number_of_iters) { do_fixed_number_of_iters = _do_fixed_number_of_iters;}
+    //
+    //
     // return the maximum permitted multigrid iterations
     //
     int getMaxIter () const { return maxiter; }
@@ -320,6 +327,10 @@ private:
     // current maximum number of allowed iterations
     //
     int maxiter;
+    //
+    // whether to use a fixed number of iterations or continue until convergence
+    //
+    int do_fixed_number_of_iters;
     //
     // current number of level, pre-, post- and bottom smooths
     //
