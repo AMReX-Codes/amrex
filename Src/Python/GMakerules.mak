@@ -7,5 +7,5 @@ NPINCLUDE+=-I$(shell python -c 'import numpy; print numpy.get_include()')/numpy
 $(PYFBOXLIB): $(objects)
 	$(F90) $(F90FLAGS) -shared -o $@ $^
 
-$(PYCBOXLIB): $(PYBOXLIB)/src/boxlib_numpy_c.c
+$(PYCBOXLIB): $(PYBOXLIB)/fsrc/boxlib_numpy_c.c
 	$(CC) $(CFLAGS) $(NPINCLUDE) -shared -o $@ $^ -L. -lpyfboxlib
