@@ -10,7 +10,6 @@
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <sstream>
 #include <cmath>
 
@@ -83,20 +82,18 @@ int main(int argc, char *argv[]) {
     //std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
 
     for(int icross(0); icross < cross.size(); ++icross) {
-      std::string crossString;
-      if(cross[icross]) {
-        crossString = "True";
-      } else {
-        crossString = "False";
-      }
-
       for(int icomp(0); icomp < nComp.size(); ++icomp) {
         for(int ighost(0); ighost < nGhost.size(); ++ighost) {
 
           std::ostringstream nametag;
-          nametag << "FB_nGhost" << nGhost[ighost] << "_nComp" << nComp[icomp] << "_cross" << crossString;
+          nametag << "FB_nGhost" << nGhost[ighost] << "_nComp" << nComp[icomp]
+	          << "_cross" << (cross[icross] ? "True":"False");
 	  if(ParallelDescriptor::IOProcessor()) {
-	    std::cout << "Working on:  " << nametag.str() << std::endl;
+	    std::cout << "Working on:"
+	              << "  Ghost = " << nGhost[ighost]
+	              << "  nComp = " << nComp[icomp]
+		      << "  cross = " << (cross[icross] ? "true":"false")
+		      << std::endl;
 	  }
 
           MultiFab mf(ba, nComp[icomp], nGhost[ighost]);

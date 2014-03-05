@@ -3,6 +3,7 @@ BOXLIB_HOME = ../../../BoxLib
 DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_OMP      = FALSE
+USE_IPM      = FALSE
 PROFILE      = TRUE
 COMM_PROFILE = TRUE
 COMP         = g++
