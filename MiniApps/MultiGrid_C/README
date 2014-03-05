@@ -14,7 +14,7 @@ module load ipm
 
 Then recompile the code.  This will create an executable file named
 
-fbtest3d.Linux.g++.gfortran.MPI.IPM.ex
+main3d.Linux.gcc.gfortran.MPI.ex
 
 There is an example batch script named qsub.ipm.bat in this directory,
 You will need to set a valid account number in order to run the example.
