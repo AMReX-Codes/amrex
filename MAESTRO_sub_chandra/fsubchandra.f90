@@ -1,526 +1,77 @@
-! Analysis routines for the 3-d sub_chandra MAESTRO problem 
-! These are based on fsedov3d_sph.f90 and fwdconvect.f90
+! Main driver for analysis routines for the 3-d sub_chandra MAESTRO problem 
+! This code borrows from fsedov3d_sph.f90 and fwdconvect.f90
+! See fsubchandra_mod.f90 for more.
 !
-! Here we compute angle-averaged quantities, <q>, and RMS quantities,
-! q' = sqrt { < (q - <q>)**2 > }, where the averaging is done at constant
-! radius.
-!
-! For density, rho_0 = <rho>, and in the plotfiles we store rhopert =
-! rho - rho0, so we can compute the RMS density directly from this.
-!
-! Similarly, for temperature, and entropy (using tpert and spert from
-! the plotfiles).!
-!
-! we also compute some global quantities, including T_peak and its
-! location and velocity, and enuc_peak and its location
+! usage: fsubchandra [args] plotfile"
+!          args: [-s|--slicefile] <slice file> : specify output file"
+!                --globals-only                : only output global quantities "
 !
 ! --globals_only will just print T_peak, it's location, and enuc_peak
-! and its location.
+! and its location to stdout.
 !
-program fwdconvect
+! For now you have the choice between globals only or all analysis 
+! (for now this is just averages and hotspot calculations).  If this proves
+! inconvenient then see TODO list.
+!
+!
 
-  use f2kcli
-  use bl_space
-  use bl_error_module
-  use bl_constants_module
-  use bl_IO_module
+!TODO:
+! 1) Add ability to handle full star simulations
+! 2) Add ability to select specific analysis to carry out
+
+program fsubchandra
+  !Modules
   use plotfile_module
-
+  use subchandra
   implicit none
 
+  !Data, variables
   type(plotfile) pf
-  integer :: unit
-  integer :: i, j, ii, jj, kk
-  real(kind=dp_t) :: xx, yy, zz
-  integer :: rr, r1
-  integer :: uno
+  type(state_comps) sc
+  type(geometry) geo
+  type(radial_averages) radav
+  type(globals) glb
+  type(hheap) hspots
 
-  integer :: nbins
-  real(kind=dp_t), allocatable :: r(:)
-  real(kind=dp_t) :: maxdist, x_maxdist, y_maxdist, z_maxdist
-  real(kind=dp_t) :: xctr, yctr, zctr
-
-  real(kind=dp_t) :: dx(MAX_SPACEDIM)
-  real(kind=dp_t) :: dx_fine
-
-  real(kind=dp_t) :: r_zone
-  integer :: indx
-
-  real(kind=dp_t), pointer :: p(:,:,:,:)
-
-  integer, allocatable :: ncount(:)
-  real(kind=dp_t), allocatable :: dens_avg_bin(:), dens_rms_bin(:)
-  real(kind=dp_t), allocatable :: temp_avg_bin(:), temp_rms_bin(:)
-  real(kind=dp_t), allocatable :: XC12_avg_bin(:), XO16_avg_bin(:), XHe4_avg_bin(:)
-  real(kind=dp_t), allocatable :: entropy_avg_bin(:), entropy_rms_bin(:)
-
-  integer :: dens_comp, temp_comp, XC12_comp, XO16_comp, XHe4_comp
-  integer :: rhopert_comp, tpert_comp
-  integer :: enuc_comp, xvel_comp, yvel_comp, zvel_comp
-  integer :: s_comp, spert_comp
-
-  logical, allocatable :: imask(:,:,:)
-  integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
-  integer :: flo(MAX_SPACEDIM), fhi(MAX_SPACEDIM)
-
-  character(len=256) :: slicefile
-  character(len=256) :: pltfile
-  integer :: indslsh
-
-  integer :: narg, farg
-  character(len=256) :: fname
-
-  real(kind=dp_t) :: time
-
-  real(kind=dp_t) :: T_peak
-  real(kind=dp_t) :: xloc_Tpeak, yloc_Tpeak, zloc_Tpeak, R_Tpeak
-  real(kind=dp_t) :: vx_Tpeak, vy_Tpeak, vz_Tpeak, vr_Tpeak
-
-  real(kind=dp_t) :: enuc_peak
-  real(kind=dp_t) :: xloc_enucpeak, yloc_enucpeak, zloc_enucpeak, R_enucpeak
-
+  real(kind=dp_t) :: hpcnt
+  integer :: i
+  character(len=256) :: slicefile, pltfile
   logical :: globals_only
 
-  unit = unit_new()
-  uno =  unit_new()
+  !Read command line args, build pf
+  call parse_args(slicefile, pltfile, globals_only, hpcnt, pf)
 
+  !Initialize the component indices
+  call init_comps(pf, sc)
 
-  ! set the defaults
-  slicefile = ''
-  globals_only = .false.
+  !Initialize geometry attributes 
+  call init_geometry(pf, globals_only, geo)
 
-  narg = command_argument_count()
-
-  farg = 1
-  do while ( farg <= narg )
-     call get_command_argument(farg, value = fname)
-
-     select case (fname)
-
-     case ('-s', '--slicefile')
-        farg = farg + 1
-        call get_command_argument(farg, value = slicefile)
-
-     case ('--globals_only')
-        globals_only = .true.
-
-     case default
-        exit
-
-     end select
-
-     farg = farg + 1
-  end do
-
-
-  ! usage
-  if (farg > narg) then
-     print *, "usage: fwdconvect args"
-     print *, "args [-s|--slicefile] slice file : slice file"
-     print *, "     --globals_only              : only output global quantities (optional) "
-     stop
+  !This is the main analysis subroutine. It loops over the entire computational
+  !domain applying calculations (averages, globals, etc...) based on the arguments passed.
+  if(globals_only) then
+    print *, 'analyze globals only...'
+    call analyze(pf, geo, sc, glb=glb)
+  else if(hpcnt > 0.0) then
+    !Only calculate hotspot statistics of hpcnt > 0.0
+    print *, 'analyze with hotspots, hpcnt = ', hpcnt
+    call analyze(pf, geo, sc, glb=glb, radav=radav, hh=hspots, hheap_frac_input=hpcnt)
+  else
+    print *, 'analyze without hotspots...'
+    call analyze(pf, geo, sc, glb=glb, radav=radav)
   end if
 
-
-  ! plotfile is the last argument
-  call get_command_argument(farg, value = pltfile)
-
-
-  ! slicefile not defined, default to plotfile.slice
-  if ( len_trim(slicefile) == 0 ) then
-
-     ! get basename of file
-     indslsh = index(pltfile, '/', back = .TRUE.)
-
-     if ( indslsh /= 0 ) then
-        slicefile = trim(pltfile(:indslsh-1)) // ".slice"
-     else
-        slicefile = trim(pltfile) // ".slice"
-     end if
-  endif
-
-
-  call build(pf, pltfile, unit)
-
-  time = pf%tm
-
-
-
-  ! figure out the variable indices
-  dens_comp    = plotfile_var_index(pf, "density")
-  temp_comp    = plotfile_var_index(pf, "tfromp") 
-  XHe4_comp    = plotfile_var_index(pf, "X(He4)")
-  XC12_comp    = plotfile_var_index(pf, "X(C12)")
-  XO16_comp    = plotfile_var_index(pf, "X(O16)")
-  rhopert_comp = plotfile_var_index(pf, "rhopert")
-  tpert_comp   = plotfile_var_index(pf, "tpert") 
-  enuc_comp    = plotfile_var_index(pf, "enucdot") 
-  xvel_comp    = plotfile_var_index(pf, "x_vel")
-  yvel_comp    = plotfile_var_index(pf, "y_vel") 
-  zvel_comp    = plotfile_var_index(pf, "z_vel") 
-  s_comp       = plotfile_var_index(pf, "entropy")
-  spert_comp   = plotfile_var_index(pf, "entropypert")
-
-  if ( dens_comp < 0 .or. temp_comp < 0 .or. &
-       XHe4_comp < 0 .or. XC12_comp < 0 .or. XO16_comp < 0 .or. &
-       rhopert_comp < 0 .or. tpert_comp < 0 .or. &
-       enuc_comp < 0 .or. &
-       xvel_comp < 0 .or. yvel_comp < 0 .or. zvel_comp < 0 .or. &
-       s_comp < 0 .or. spert_comp < 0) then
-     call bl_error("ERROR: varaible(s) not defined")
-  endif
-
-
-  ! get dx for the coarse level.  
-  dx = plotfile_get_dx(pf, 1)
-
-
-  ! get the index bounds for the finest level.  Note, lo and hi are
-  ! ZERO based indicies
-  flo = lwb(plotfile_get_pd_box(pf, pf%flevel))
-  fhi = upb(plotfile_get_pd_box(pf, pf%flevel))
-
-  if (.not. globals_only) then
-     print *, 'Size of domain (zones): ', fhi(1)-flo(1)+1, fhi(2)-flo(2)+1, fhi(3)-flo(3)+1
-  endif
-
-  ! the default for the center of the star will be the origin (octants)
-  xctr = ZERO
-  yctr = ZERO
-  zctr = ZERO
-
-  if (.not. globals_only) then
-     print *, 'Center of the star: ', xctr, yctr, zctr
-  endif
-
-  ! compute the size of the radially-binned array -- we'll do it to
-  ! the furtherest corner of the domain
-  x_maxdist = max(abs(pf%phi(1) - xctr), abs(pf%plo(1) - xctr))
-  y_maxdist = max(abs(pf%phi(2) - yctr), abs(pf%plo(2) - yctr))
-  z_maxdist = max(abs(pf%phi(3) - zctr), abs(pf%plo(3) - zctr))
-  
-  maxdist = sqrt(x_maxdist**2 + y_maxdist**2 + z_maxdist**2)
-
-  dx_fine = minval(plotfile_get_dx(pf, pf%flevel))
-  nbins = int(maxdist/dx_fine)
-
-  allocate(r(0:nbins-1))
-
-  do i = 0, nbins-1
-     r(i) = (dble(i) + HALF)*dx_fine
-  enddo
-
-
-  ! imask will be set to false if we've already output the data.
-  ! Note, imask is defined in terms of the finest level.  As we loop
-  ! over levels, we will compare to the finest level index space to
-  ! determine if we've already output here
-  allocate(imask(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3)))
-
-  ! ncount will keep track of how many fine zones were written into
-  ! each bin
-  allocate(   ncount(0:nbins-1))
-
-
-  !----------------------------------------------------------------------------
-  ! compute the angle averaged quantities
-  !----------------------------------------------------------------------------
-
-  ! allocate storage for the data 
-  allocate(   dens_avg_bin(0:nbins-1))
-  allocate(   temp_avg_bin(0:nbins-1))
-  allocate(   XHe4_avg_bin(0:nbins-1))
-  allocate(   XC12_avg_bin(0:nbins-1))
-  allocate(   XO16_avg_bin(0:nbins-1))
-  allocate(   dens_rms_bin(0:nbins-1))
-  allocate(   temp_rms_bin(0:nbins-1))
-  allocate(entropy_avg_bin(0:nbins-1))
-  allocate(entropy_rms_bin(0:nbins-1))
-
-  ncount(:) = 0
-  dens_avg_bin(:) = ZERO
-  temp_avg_bin(:) = ZERO
-  XHe4_avg_bin(:) = ZERO
-  XC12_avg_bin(:) = ZERO
-  XO16_avg_bin(:) = ZERO
-  dens_rms_bin(:) = ZERO
-  temp_rms_bin(:) = ZERO
-  entropy_avg_bin(:) = ZERO
-  entropy_rms_bin(:) = ZERO
-
-  imask(:,:,:) = .true.
-
-  T_peak = 0.0
-  xloc_Tpeak = 0.0
-  yloc_Tpeak = 0.0
-  zloc_Tpeak = 0.0
-
-  vx_Tpeak = 0.0
-  vy_Tpeak = 0.0
-  vz_Tpeak = 0.0
-  vr_Tpeak = 0.0
-
-  enuc_peak = 0.0
-  xloc_enucpeak = 0.0
-  yloc_enucpeak = 0.0
-  zloc_enucpeak = 0.0
-
-  ! loop over the data, starting at the finest grid, and if we haven't
-  ! already stored data in that grid location (according to imask),
-  ! store it.  
-
-
-  ! r1 is the factor between the current level grid spacing and the
-  ! FINEST level
-  r1  = 1
-
-  do i = pf%flevel, 1, -1
-
-     ! rr is the factor between the COARSEST level grid spacing and
-     ! the current level
-     rr = product(pf%refrat(1:i-1,1))
-
-     if (.not. globals_only) then
-        print *, 'processing level ', i, ' rr = ', rr
-     endif
-
-     do j = 1, nboxes(pf, i)
-        
-        ! read in the data 1 patch at a time -- read in all the variables
-        call fab_bind(pf, i, j)
-
-        lo = lwb(get_box(pf, i, j))
-        hi = upb(get_box(pf, i, j))
-
-
-        ! get a pointer to the current patch
-        p => dataptr(pf, i, j)
-
-        
-        ! loop over all of the zones in the patch.  Here, we convert
-        ! the cell-centered indices at the current level into the
-        ! corresponding RANGE on the finest level, and test if we've
-        ! stored data in any of those locations.  If we haven't then
-        ! we store this level's data and mark that range as filled.
-        do kk = lbound(p,dim=3), ubound(p,dim=3)
-           zz = (kk + HALF)*dx(3)/rr + pf%plo(3)
-
-           do jj = lbound(p,dim=2), ubound(p,dim=2)
-              yy = (jj + HALF)*dx(2)/rr + pf%plo(2)
-
-              do ii = lbound(p,dim=1), ubound(p,dim=1)
-                 xx = (ii + HALF)*dx(1)/rr + pf%plo(1)
-
-                 ! since a coarse zone will completely encompass this group
-                 ! of fine zones, we can use any() here or all().  If any()
-                 ! is true, then all() will be too.
-                 if ( any(imask(ii*r1:(ii+1)*r1-1, &
-                                jj*r1:(jj+1)*r1-1, &
-                                kk*r1:(kk+1)*r1-1) ) ) then
-
-                    r_zone = sqrt((xx-xctr)**2 + (yy-yctr)**2 + (zz-zctr)**2)
-
-                    indx = r_zone/dx_fine
-
-                    ! weight the zone's data by its size
-
-                    ! note, for p(:,:,:,n), n refers to index of the
-                    ! variable as found via plotfile_var_index
-
-                    dens_avg_bin(indx) = dens_avg_bin(indx) + &
-                         p(ii,jj,kk,dens_comp) * r1**3
-
-                    temp_avg_bin(indx) = temp_avg_bin(indx) + &
-                         p(ii,jj,kk,temp_comp) * r1**3
-
-                    entropy_avg_bin(indx) = entropy_avg_bin(indx) + &
-                         p(ii,jj,kk,s_comp) * r1**3
-
-
-                    ! do the Favre-average here, < rho * X(He4) > / < rho >
-                    XHe4_avg_bin(indx) = XHe4_avg_bin(indx) + &
-                         p(ii,jj,kk,dens_comp)*p(ii,jj,kk,XHe4_comp) * r1**3
-
-                    ! do the Favre-average here, < rho * X(C12) > / < rho >
-                    XC12_avg_bin(indx) = XC12_avg_bin(indx) + &
-                         p(ii,jj,kk,dens_comp)*p(ii,jj,kk,XC12_comp) * r1**3
-
-                    ! do the Favre-average here, < rho * X(O16) > / < rho >
-                    XO16_avg_bin(indx) = XO16_avg_bin(indx) + &
-                         p(ii,jj,kk,dens_comp)*p(ii,jj,kk,XO16_comp) * r1**3
-
-
-                    ! for the RMS quantities, we use the perturbational quantities
-                    ! already stored in the plotfile
-                    dens_rms_bin(indx) = dens_rms_bin(indx) + &
-                         p(ii,jj,kk,rhopert_comp)*p(ii,jj,kk,rhopert_comp) * r1**3
-
-                    temp_rms_bin(indx) = temp_rms_bin(indx) + &
-                         p(ii,jj,kk,tpert_comp)*p(ii,jj,kk,tpert_comp) * r1**3
-
-                    entropy_rms_bin(indx) = entropy_rms_bin(indx) + &
-                         p(ii,jj,kk,spert_comp)*p(ii,jj,kk,spert_comp) * r1**3
-
-                    ncount(indx) = ncount(indx) + r1**3
-
-
-                    ! store the location and value of the peak temperature
-                    if (p(ii,jj,kk,temp_comp) > T_peak) then
-                       T_peak = p(ii,jj,kk,temp_comp)
-                       xloc_Tpeak = xx
-                       yloc_Tpeak = yy
-                       zloc_Tpeak = zz
-
-                       R_Tpeak = sqrt( (xctr - xloc_Tpeak)**2 + &
-                                       (yctr - yloc_Tpeak)**2 + &
-                                       (zctr - zloc_Tpeak)**2 )
-
-                       vx_Tpeak = p(ii,jj,kk,xvel_comp)
-                       vy_Tpeak = p(ii,jj,kk,yvel_comp)
-                       vz_Tpeak = p(ii,jj,kk,zvel_comp)
-
-                       ! this is (v . e_r)
-                       vr_Tpeak = vx_Tpeak*(xx - xctr)/R_Tpeak + &
-                                  vy_Tpeak*(yy - yctr)/R_Tpeak + &
-                                  vz_Tpeak*(zz - zctr)/R_Tpeak
-                       
-
-                    endif
-
-
-                    ! store the location and value of the peak enucdot
-                    if (p(ii,jj,kk,enuc_comp) > enuc_peak) then
-                       enuc_peak = p(ii,jj,kk,enuc_comp)
-
-                       xloc_enucpeak = xx
-                       yloc_enucpeak = yy
-                       zloc_enucpeak = zz
-
-                       R_enucpeak = sqrt( (xctr - xloc_enucpeak)**2 + &
-                                          (yctr - yloc_enucpeak)**2 + &
-                                          (zctr - zloc_enucpeak)**2 )
-                    endif
-
-                    imask(ii*r1:(ii+1)*r1-1, &
-                          jj*r1:(jj+1)*r1-1, &
-                          kk*r1:(kk+1)*r1-1) = .false.
-                 end if
-
-              end do
-           enddo
-        enddo
-
-        call fab_unbind(pf, i, j)
-                
-     end do
-
-     ! adjust r1 for the next lowest level
-     if ( i /= 1 ) r1 = r1*pf%refrat(i-1,1)
-  end do
-
-
-  ! normalize
-  do i = 0, nbins-1
-     if (ncount(i) /= 0) then
-
-        ! simple averages
-        dens_avg_bin(i) = dens_avg_bin(i)/ncount(i)
-        temp_avg_bin(i) = temp_avg_bin(i)/ncount(i)
-        entropy_avg_bin(i) = entropy_avg_bin(i)/ncount(i)
-
-        ! Favre averaged composition
-        XHe4_avg_bin(i) = (XHe4_avg_bin(i)/ncount(i)) / dens_avg_bin(i)
-        XC12_avg_bin(i) = (XC12_avg_bin(i)/ncount(i)) / dens_avg_bin(i)
-        XO16_avg_bin(i) = (XO16_avg_bin(i)/ncount(i)) / dens_avg_bin(i)
-
-        ! RMS quantities
-        dens_rms_bin(i) = sqrt(dens_rms_bin(i)/ncount(i))        
-        temp_rms_bin(i) = sqrt(temp_rms_bin(i)/ncount(i))
-        entropy_rms_bin(i) = sqrt(entropy_rms_bin(i)/ncount(i))
-
-     endif
-  enddo
-
-
-
-990  format("# time = ",g24.12)
-991  format("# ---------------------------------------------------------------------------")
-994  format("# peak temperature = ", g24.12)
-995  format("# peak temp loc (x,y,z) = ", 3(g24.12,1x))
-996  format("# peak temp radius = ", g24.12)
-9961 format("# velocity @ peak T loc (vx, vy, vz) = ", 3(g24.12,1x))
-9962 format("# radial velocity @ peak T loc = ", g24.12,1x)
-997  format("# peak enucdot = ", g24.12)
-998  format("# peak enucdot loc (x,y,z) = ", 3(g24.12,1x))
-999  format("# peak enucdot radius = ", g24.12)
-1000 format("#",100(a24,1x))
-1001 format(1x, 100(g24.12,1x))
-
-  ! slicefile
-  if (.not. globals_only) then
-     open(unit=uno, file=slicefile, status = 'replace')
-
-     ! write the header
-     write(uno,990) time
-     write(uno,991)
-
-     write(uno,994) T_peak
-     write(uno,995) xloc_Tpeak, yloc_Tpeak, zloc_Tpeak     
-     write(uno,996) R_Tpeak
-     write(uno,9961) vx_Tpeak, vy_Tpeak, vz_Tpeak
-     write(uno,9962) vr_Tpeak
-
-     write(uno,997) enuc_peak
-     write(uno,998) xloc_enucpeak, yloc_enucpeak, zloc_enucpeak
-     write(uno,999) R_enucpeak
-     write(uno,991)
-
-     write(uno,1000) "r", "density", "temperature", "entropy", &
-          "X(He4)", "X(C12)", "X(O16)", &
-          "RMS density", "RMS temperature", "RMS entropy"
-
-     ! write the data in columns
-     do i = 0, nbins-1
-        ! Use this to protect against a number being xx.e-100
-        !   which will print without the "e"
-        if (abs(   dens_avg_bin(i)) .lt. 1.d-99)    dens_avg_bin(i) = 0.d0
-        if (abs(   temp_avg_bin(i)) .lt. 1.d-99)    temp_avg_bin(i) = 0.d0
-        if (abs(entropy_avg_bin(i)) .lt. 1.d-99) entropy_avg_bin(i) = 0.d0
-        if (abs(   XHe4_avg_bin(i)) .lt. 1.d-99)    XHe4_avg_bin(i) = 0.d0
-        if (abs(   XC12_avg_bin(i)) .lt. 1.d-99)    XC12_avg_bin(i) = 0.d0
-        if (abs(   XO16_avg_bin(i)) .lt. 1.d-99)    XO16_avg_bin(i) = 0.d0
-        if (abs(   dens_rms_bin(i)) .lt. 1.d-99)    dens_rms_bin(i) = 0.d0
-        if (abs(   temp_rms_bin(i)) .lt. 1.d-99)    temp_rms_bin(i) = 0.d0
-        if (abs(entropy_rms_bin(i)) .lt. 1.d-99) entropy_rms_bin(i) = 0.d0
-        
-        write(uno,1001) r(i), dens_avg_bin(i), temp_avg_bin(i), &
-             entropy_avg_bin(i), &
-             XHe4_avg_bin(i), XC12_avg_bin(i), XO16_avg_bin(i), &
-             dens_rms_bin(i), temp_rms_bin(i), &
-             entropy_rms_bin(i)
-     end do
-
-     close(unit=uno)
-  endif
-
-  if (.not. globals_only) then
-     print *, 'Peak temperature = ', T_peak
-     print *, 'Peak temperature location (x,y,z) = ', xloc_Tpeak, yloc_Tpeak, zloc_Tpeak
-     print *, 'Peak temperature radius = ', R_Tpeak
-     print *, 'Peak enucdot = ', enuc_peak
-     print *, 'Peak enucdot location (x,y,z) = ', xloc_enucpeak, yloc_enucpeak, zloc_enucpeak
-     print *, 'Peak enucdot radius = ', R_enucpeak
+  !Write output
+  if(globals_only) then
+    call writeout(pf, slicefile, geo, sc, glb=glb)
   else
-     write (*,1000) "time", "T_peak", "x(T_peak)", "y(T_peak)", "z(T_peak)", "R(T_peak)", &
-          "enuc_peak", "x(enuc_peak)", "y(enuc_peak)", "z(enuc_peak)", "R(enuc_peak)"
-     write (*,1001) time, T_peak, xloc_Tpeak, yloc_Tpeak, zloc_Tpeak, R_Tpeak, &
-          enuc_peak, xloc_enucpeak, yloc_enucpeak, zloc_enucpeak, R_enucpeak
-  endif
+    call writeout(pf, slicefile, geo, sc, glb=glb, radav=radav, hh=hspots)
+  end if
 
+  !Clean up
   do i = 1, pf%flevel
      call fab_unbind_level(pf, i)
   end do
 
   call destroy(pf)
-
-end program fwdconvect
+end program fsubchandra
