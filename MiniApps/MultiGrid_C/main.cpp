@@ -20,8 +20,9 @@
 
 Real tolerance_rel = 1.e-8;
 Real tolerance_abs = 0.0;
-int  maxiter       = 100; 
+int  maxiter       = 1; 
 int  comp_norm     = 1;
+int  verbose       = 0;
 
 Real dx[BL_SPACEDIM];
 
@@ -53,7 +54,6 @@ int main(int argc, char* argv[])
 
   solver_type = BoxLib_C;
   bc_type = Periodic;
-  maxiter = 100;
 
   Real     a = 0.0;
   Real     b = 1.0;
@@ -299,7 +299,9 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
   abec_operator.setCoefficients(alpha, beta);
 
   MultiGrid mg(abec_operator);
-  mg.setVerbose(0);
+  mg.setMaxIter(maxiter);
+  mg.setVerbose(verbose);
+  mg.setFixedIter(1);
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 
   Real run_time = ParallelDescriptor::second() - run_strt;
