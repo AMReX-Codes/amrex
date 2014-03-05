@@ -161,6 +161,9 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     numLevelsMAX = def_numLevelsMAX;
     smooth_on_cg_unstable = def_smooth_on_cg_unstable;
     numlevels    = numLevels();
+
+    do_fixed_number_of_iters = 0;
+
     if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
     {
 	BoxArray tmp = Lp.boxArray();
@@ -291,8 +294,10 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    int            level)
 {
   //
-  // Relax system maxiter times, stop if relative error <= _eps_rel or
-  // if absolute err <= _abs_eps
+  // If do_fixed_number_of_iters = 1, then do maxiter iterations without checking for convergence 
+  // 
+  // If do_fixed_number_of_iters = 0, then relax system maxiter times, 
+  //    and stop if relative error <= _eps_rel or if absolute err <= _abs_eps
   //
   const Real strt_time = ParallelDescriptor::second();
   //
@@ -336,9 +341,10 @@ MultiGrid::solve_ (MultiFab&      _sol,
   if ( use_Anorm_for_convergence == 1 ) 
   {
      for ( ;
-           error > eps_abs &&
-               error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
-               nit <= maxiter;
+           ( (error > eps_abs &&
+              error > eps_rel*(norm_Lp*norm_cor+norm_rhs)) ||
+             (do_fixed_number_of_iters == 1) )
+             && nit <= maxiter;
            ++nit)
      {
          relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode, cg_time);
@@ -364,9 +370,10 @@ MultiGrid::solve_ (MultiFab&      _sol,
   else
   {
      for ( ;
-           error > eps_abs &&
-               error > eps_rel*(norm_rhs) &&
-               nit <= maxiter;
+           ( (error > eps_abs &&
+              error > eps_rel*norm_rhs) ||
+             (do_fixed_number_of_iters == 1) )
+             && nit <= maxiter;
            ++nit)
      {
          relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode, cg_time);
@@ -414,7 +421,11 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
   if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
   {
-      if ( error < eps_rel*norm_rhs )
+      if ( do_fixed_number_of_iters == 1)
+      {
+          std::cout << "   Did fixed number of iterations: " << maxiter << std::endl;
+      } 
+      else if ( error < eps_rel*norm_rhs )
       {
           std::cout << "   Converged res < eps_rel*bnorm\n";
       } 
@@ -436,13 +447,15 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
   if ( use_Anorm_for_convergence == 1 ) 
   {
-     if ( error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
+     if ( do_fixed_number_of_iters == 1                ||
+          error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
           error <= eps_abs )
        returnVal = 1;
   } 
   else 
   {
-     if ( error <= eps_rel*(norm_rhs) ||
+     if ( do_fixed_number_of_iters == 1 ||
+          error <= eps_rel*(norm_rhs)   ||
           error <= eps_abs )
        returnVal = 1;
   } 
