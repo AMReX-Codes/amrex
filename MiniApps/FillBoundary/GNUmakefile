@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../../BoxLib
+BOXLIB_HOME = ../../../BoxLib.commprof
 
 DEBUG        = FALSE
 USE_MPI      = TRUE
