@@ -7,12 +7,8 @@
 
 #include <new>
 #include <iostream>
-#include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
-#include <iomanip>
-#include <map>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -48,19 +44,16 @@ int main(int argc, char *argv[]) {
     // N is the cube root of the number of processors
     //int N = exp(log(abs(nprocs))/3.0);  // this does not always work because of roundoff (1000 breaks)
 
-    // make a map of the cubes
-    int N(0), maxN(128);
-    std::map<int,int> NCubes;  // [NCubed, N]
-    for(int i(1); i < maxN; ++i) {
-      NCubes.insert(std::make_pair(i*i*i, i));
+    int N(0);
+    for(int i(1); i*i*i <= nprocs; ++i) {
+      if(i*i*i == nprocs) {
+        N = i;
+      }
     }
 
-    std::map<int,int>::iterator niter = NCubes.find(nprocs);
-    if(niter == NCubes.end()) {  // not a cube
+    if(N == 0) {  // not a cube
       std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
       BoxLib::Error("We require that the number of processors be a perfect cube");
-    } else {
-      N = niter->second;
     }
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "N = " << N << std::endl;
