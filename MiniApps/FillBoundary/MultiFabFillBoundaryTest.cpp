@@ -37,6 +37,8 @@ int main(int argc, char *argv[]) {
 
     BL_PROFILE_VAR("main()", pmain);
 
+    const Real run_strt = ParallelDescriptor::second();
+
     // ---- First use the number of processors to decide how many grids you have.
     // ---- We arbitrarily decide to have one grid per MPI process in a uniform
     // ---- cubic domain, so we require that the number of processors be N^3. 
@@ -109,8 +111,13 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    Real run_time = ParallelDescriptor::second() - run_strt;
+
+    ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "Finished." << std::endl;
+      std::cout << "Run time      : " << run_time << std::endl;
     }
 
     BL_PROFILE_VAR_STOP(pmain);
