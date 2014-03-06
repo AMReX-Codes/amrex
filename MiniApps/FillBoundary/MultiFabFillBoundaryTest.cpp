@@ -52,7 +52,9 @@ int main(int argc, char *argv[]) {
     }
 
     if(N == 0) {  // not a cube
-      std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
+      }
       BoxLib::Error("We require that the number of processors be a perfect cube");
     }
     if(ParallelDescriptor::IOProcessor()) {
