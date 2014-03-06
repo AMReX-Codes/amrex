@@ -30,11 +30,6 @@ ifeq ($(COMP), g++)
   DEFINES += -DBL_CXX11
 endif
 
-ifeq ($(USE_DUMPI), TRUE)
-  LIBRARY_LOCATIONS += /project/projectdirs/m888/DUMPI_LIB/lib
-  LIBRARIES += -ldumpi 
-endif
-
 vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
 vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
