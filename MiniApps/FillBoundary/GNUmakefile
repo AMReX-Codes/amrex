@@ -4,10 +4,13 @@ DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_OMP      = FALSE
 USE_IPM      = FALSE
+USE_DUMPI    = FALSE
 PROFILE      = FALSE
 COMM_PROFILE = FALSE
 COMP         = g++
 FCOMP        = gfortran
+#COMP         = Intel
+#FCOMP        = Intel
 DIM          = 3
 PRECISION    = DOUBLE
 EBASE        = fbtest
@@ -22,7 +25,15 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 
-CXXFLAGS += -std=c++0x
+ifeq ($(COMP), g++)
+  CXXFLAGS += -std=c++11
+  DEFINES += -DBL_CXX11
+endif
+
+ifeq ($(USE_DUMPI), TRUE)
+  LIBRARY_LOCATIONS += /project/projectdirs/m888/DUMPI_LIB/lib
+  LIBRARIES += -ldumpi 
+endif
 
 vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
 vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
