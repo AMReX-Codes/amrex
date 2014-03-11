@@ -110,12 +110,12 @@ subroutine mgt_use_alltoallv ()
   call multifab_set_alltoallv(.true.)
 end subroutine mgt_use_alltoallv
 
-subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
+subroutine mgt_cc_alloc(dm, nlevel, stencil_type)
 
   use cpp_mg_module
   implicit none
   integer, intent(in) :: dm, nlevel
-  integer, intent(in) :: stencil_type_in
+  integer, intent(in) :: stencil_type
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -123,7 +123,7 @@ subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
      mgts%nodal = .false.
   end if
 
-  mgts%stencil_type = stencil_type_in
+  mgts%stencil_type = stencil_type
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))

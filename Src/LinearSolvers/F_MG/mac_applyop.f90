@@ -56,7 +56,7 @@ contains
 
        call mg_tower_build(mgt(n), mla%la(n), pd, &
                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp),&
-                           stencil_type_in = CC_CROSS_STENCIL, &
+                           stencil_type = CC_CROSS_STENCIL, &
                            dh = dx(n,:), &
                            nodal = nodal_flags(res(nlevs)))
 

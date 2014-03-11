@@ -15,7 +15,7 @@ module mg_module
 
 contains
 
-  recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
+  recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type, &
                                       nu1, nu2, nuf, nub, cycle_type, &
                                       smoother, &
                                       dh, &
@@ -25,7 +25,7 @@ contains
                                       bottom_solver, bottom_max_iter, bottom_solver_eps, &
                                       max_L0_growth, &
                                       verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                                      the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
+                                      the_bottom_comm, fancy_bottom_type, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
 
@@ -33,7 +33,7 @@ contains
     type(layout), intent(in   ) :: la
     type(box), intent(in) :: pd
     integer, intent(in) :: domain_bc(:,:)
-    integer, intent(in) :: stencil_type_in
+    integer, intent(in) :: stencil_type
 
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
@@ -61,12 +61,11 @@ contains
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
-    integer, intent(in), optional :: fancy_bottom_type_in
+    integer, intent(in), optional :: fancy_bottom_type
     logical, intent(in), optional :: use_lininterp
     integer, intent(in), optional :: ptype
 
     integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
-    integer         :: fancy_bottom_type
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
@@ -102,6 +101,7 @@ contains
     if ( present(nuf)               ) mgt%nuf               = nuf
     if ( present(nub)               ) mgt%nub               = nub
     if ( present(cycle_type)        ) mgt%cycle_type        = cycle_type
+    if ( present(fancy_bottom_type) ) mgt%fancy_bottom_type = fancy_bottom_type
     if ( present(bottom_solver)     ) mgt%bottom_solver     = bottom_solver
     if ( present(bottom_solver_eps) ) mgt%bottom_solver_eps = bottom_solver_eps
     if ( present(bottom_max_iter)   ) mgt%bottom_max_iter   = bottom_max_iter
@@ -127,7 +127,7 @@ contains
        end if
     end if
 
-    mgt%stencil_type = stencil_type_in
+    mgt%stencil_type = stencil_type
 
     ! "lcross" is used in the call to multifab_fill_boundary -- when true it means
     !   that the corner cells do *not* need to be filled
@@ -374,12 +374,6 @@ contains
                end if
 
                coarse_dx(:) = mgt%dh(:,1)
-
-               if (present(fancy_bottom_type_in)) then
-                  fancy_bottom_type = fancy_bottom_type_in
-               else
-                  fancy_bottom_type = 1
-               end if
                   
 
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
