@@ -13,9 +13,9 @@
 #include "arrayobject.h"
 
 // fortran prototypes
-void multifab_as_numpy_f(void *cptr, int *nbox, void *ptr, 
+void multifab_as_numpy_f(void *cptr, int *nbox, void *ptr,
 			 int *nx, int *ny, int *nz, int *nc);
-void plotfile_as_numpy_f(void *cptr, int *level, int *nbox, void *ptr, 
+void plotfile_as_numpy_f(void *cptr, int *level, int *nbox, void *ptr,
 			 int *nx, int *ny, int *nz, int *nc);
 /* void lmultifab_as_numpy_f(void *ctpr, int *nbox, void *ptr,  */
 /* 			  int *nx, int *ny, int *nz, int *nc); */
@@ -107,7 +107,7 @@ plotfile_as_numpy (PyObject * self, PyObject * args)
 /*   return arr; */
 /* } */
 
-static PyMethodDef libpycboxlib_methods[] = {
+static PyMethodDef libpyfboxlib_methods[] = {
   {"multifab_as_numpy", multifab_as_numpy, METH_VARARGS,
    "Return NumPy array associated with a BoxLib multifab."},
   {"plotfile_as_numpy", plotfile_as_numpy, METH_VARARGS,
@@ -118,8 +118,8 @@ static PyMethodDef libpycboxlib_methods[] = {
 };
 
 void
-initlibpycboxlib(void)
+initlibpyfboxlib(void)
 {
-  Py_InitModule("libpycboxlib", libpycboxlib_methods);
+  Py_InitModule("libpyfboxlib", libpyfboxlib_methods);
   import_array();
 }
