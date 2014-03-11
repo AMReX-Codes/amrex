@@ -46,6 +46,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver);
 
+
 int main(int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
@@ -65,15 +66,24 @@ int main(int argc, char* argv[])
 
   int nprocs = ParallelDescriptor::NProcs();
 
-  // This is the cube root of the number of processors
-  int N = exp(log(abs(nprocs))/3.0);
-
-  if (N*N*N != nprocs)
-  {
-      BoxLib::Error("We require that the number of processors be a perfect cube");
+  // N is the cube root of the number of processors
+  int N(0);
+  for(int i(1); i*i*i <= nprocs; ++i) {
+    if(i*i*i == nprocs) {
+      N = i;
+    }
   }
 
-  // std::cout << "Cube root of " << nprocs << " is " << N << std::endl;
+  if(N == 0) {  // not a cube
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
+    }
+    BoxLib::Error("We require that the number of processors be a perfect cube");
+  }
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "N = " << N << std::endl;
+  }
+
 
   // ---- make a box, then a boxarray with maxSize
   int domain_hi = (N*maxGrid) - 1;
@@ -309,6 +319,6 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
   ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
 
   if (ParallelDescriptor::IOProcessor()) {
-    std::cout << "   Run time      : " << run_time << std::endl;
+    std::cout << "Run time        : " << run_time << std::endl;
   }
 }

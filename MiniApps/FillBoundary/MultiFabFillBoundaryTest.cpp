@@ -7,10 +7,8 @@
 
 #include <new>
 #include <iostream>
-#include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -34,22 +32,34 @@ int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
 
+    const Real tStart(ParallelDescriptor::second());
+
     // ---- First use the number of processors to decide how many grids you have.
     // ---- We arbitrarily decide to have one grid per MPI process in a uniform
     // ---- cubic domain, so we require that the number of processors be N^3. 
     // ---- This requirement is somewhat arbitrary, but convenient for now.
 
-    int nprocs = ParallelDescriptor::NProcs();
+    int nprocs(ParallelDescriptor::NProcs());
 
-    // This is the cube root of the number of processors
-    int N = exp(log(abs(nprocs))/3.0);
+    // N is the cube root of the number of processors
+    //int N = exp(log(abs(nprocs))/3.0);  // this does not always work because of roundoff (1000 breaks)
 
-    if (N*N*N != nprocs) 
-    {
-        BoxLib::Error("We require that the number of processors be a perfect cube");
+    int N(0);
+    for(int i(1); i*i*i <= nprocs; ++i) {
+      if(i*i*i == nprocs) {
+        N = i;
+      }
     }
 
-    // std::cout << "Cube root of " << nprocs << " is " << N << std::endl;
+    if(N == 0) {  // not a cube
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cerr << "**** Error:  nprocs = " << nprocs << " is not currently supported." << std::endl;
+      }
+      BoxLib::Error("We require that the number of processors be a perfect cube");
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "N = " << N << std::endl;
+    }
 
 
     // Don't restrict ourselves to on-processor communication
@@ -70,13 +80,21 @@ int main(int argc, char *argv[]) {
     // ----  (these are also arbitrary, just meant to be representative)
     // ---- and for "cross" = true or false.
 
-
+#ifdef BL_CXX11
     const std::vector<bool> cross = { true, false };
     const std::vector<int>  nComp = { 1, 4, 20 };
     const std::vector<int> nGhost = { 1, 2, 3, 4 };
+#else
     // do this for older compilers
-    //static const int nGhostarr[] = {1, 2, 3, 4};
-    //std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
+    static const bool crossarr[] = { true, false };
+    std::vector<bool> cross(crossarr, crossarr + sizeof(crossarr) / sizeof(crossarr[0]) );
+
+    static const int nComparr[] = { 1, 4, 20 };
+    std::vector<int> nComp(nComparr, nComparr + sizeof(nComparr) / sizeof(nComparr[0]) );
+
+    static const int nGhostarr[] = { 1, 2, 3, 4 };
+    std::vector<int> nGhost(nGhostarr, nGhostarr + sizeof(nGhostarr) / sizeof(nGhostarr[0]) );
+#endif
 
     for(int icross(0); icross < cross.size(); ++icross) {
       for(int icomp(0); icomp < nComp.size(); ++icomp) {
@@ -99,8 +117,13 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    Real runTime(ParallelDescriptor::second() - tStart);
+
+    ParallelDescriptor::ReduceRealMax(runTime, ParallelDescriptor::IOProcessorNumber());
+
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "Finished." << std::endl;
+      std::cout << "Run time = " << runTime << std::endl;
     }
 
     BoxLib::Finalize();

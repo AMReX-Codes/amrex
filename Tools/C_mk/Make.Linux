@@ -322,6 +322,9 @@ ifeq ($(WHICHLINUX), HOPPER)
       LIBRARIES += $(IPM_GNU)
     endif
   endif
+  ifeq ($(USE_DUMPI),TRUE)
+    LIBRARIES += $(DUMPI_LINK_OPTS)
+  endif
 endif
 
 ifeq ($(WHICHLINUX), GARNET)
@@ -379,6 +382,9 @@ ifeq ($(WHICHLINUX), EDISON)
     else
       LIBRARIES += $(IPM_GNU)
     endif
+  endif
+  ifeq ($(USE_DUMPI),TRUE)
+    LIBRARIES += $(DUMPI_LINK_OPTS)
   endif
 endif
 
