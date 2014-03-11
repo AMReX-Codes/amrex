@@ -10,8 +10,8 @@ module ml_cc_module
 
 contains
 
-  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
-       do_diagnostics, rel_eps, abs_eps_in, need_grad_phi_in, final_resnorm, status)
+  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, &
+                   do_diagnostics, need_grad_phi_in, final_resnorm, status)
 
     use bl_prof_module
     use ml_norm_module        , only : ml_norm_inf
@@ -24,11 +24,8 @@ contains
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
-    integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics
-    real(dp_t)     , intent(in   ) :: rel_eps
 
-    real(dp_t)     , intent(in   ), optional :: abs_eps_in
     logical        , intent(in   ), optional :: need_grad_phi_in
     real(dp_t)     , intent(  out), optional :: final_resnorm
     integer        , intent(  out), optional :: status
@@ -48,7 +45,7 @@ contains
     integer :: mglev, mglev_crse, iter, iter_solved
     logical :: fine_converged,need_grad_phi
 
-    real(dp_t) :: bnorm, abs_eps, ni_res
+    real(dp_t) :: bnorm, ni_res
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
@@ -63,12 +60,6 @@ contains
     nlevs             = mla%nlevel
     stime             = parallel_wtime()
     bottom_solve_time = zero
-
-    if ( present(abs_eps_in) ) then
-       abs_eps = abs_eps_in 
-    else
-       abs_eps = mgt(nlevs)%abs_eps
-    end if
 
     if ( present(need_grad_phi_in) ) then
        need_grad_phi = need_grad_phi_in 
@@ -104,9 +95,9 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, &
             width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, &
             width = 2, other = .false.)
 
     end do
@@ -115,7 +106,7 @@ contains
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
     !
     ! Let's elide some reductions by doing there reductions together.
@@ -133,7 +124,7 @@ contains
 
        call ml_restriction(full_soln(n-1), full_soln(n), &
             mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-            ref_ratio(n-1,:))
+            mla%mba%rr(n-1,:))
     enddo
 
     !  Now make sure full_soln at fine grid has the correct coarse grid bc's in 
@@ -144,9 +135,9 @@ contains
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-               ref_ratio(n-1,:), ng_fill, -i)
+               mla%mba%rr(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-               ref_ratio(n-1,:), ng_fill, +i)
+               mla%mba%rr(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do
@@ -168,10 +159,10 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-            ref_ratio(n-1,:))
+            mla%mba%rr(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     enddo
     !
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
@@ -251,7 +242,7 @@ contains
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
-    if ( ml_converged(res, fine_mask, bnorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, fine_mask, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
        solved = .true.
 
@@ -270,7 +261,7 @@ contains
 
        ! Only print this once per solve.
        do n = 2,nlevs
-           if (ref_ratio(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
+           if (mla%mba%rr(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
                call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
            end if
        end do
@@ -280,8 +271,8 @@ contains
           iter_solved = iter 
 
           if ( fine_converged ) then
-             if ( ml_converged(res, fine_mask, max_norm, rel_eps, &
-                  abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+             if ( ml_converged(res, fine_mask, max_norm, mgt(nlevs)%eps, &
+                  mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
                 ! Subtract one from "iter" here because we have already converged
                 iter_solved = iter-1
@@ -378,13 +369,13 @@ contains
                 ! Compute CRSE-FINE Res = Res - Crse Flux(soln) + Fine Flux(soln)
                 pdc = layout_get_pd(mla%la(n-1))
                 call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n), &
-                     pdc,ref_ratio(n-1,:))
+                     pdc,mla%mba%rr(n-1,:))
 
                 ! Restrict FINE Res to COARSE Res (important to do this last
                 !     so we overwrite anything extra which may have been defined
                 !     above near fine-fine interfaces)
                 call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
-                     mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
                 ! Copy u_hold = uu
                 if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng = nghost(uu(n)))
@@ -420,7 +411,7 @@ contains
              mglev = mgt(n)%nlevels
 
              ! Interpolate uu from coarser level
-             call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:), &
+             call ml_cc_prolongation(uu(n), uu(n-1), mla%mba%rr(n-1,:), &
                                      mgt(n-1)%use_lininterp, mgt(n-1)%ptype)
 
              ! Add: soln(n) += uu
@@ -435,9 +426,9 @@ contains
              ng_fill = nghost(uu(n))
              do i = 1, dm
                 call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
-                     ref_ratio(n-1,:), ng_fill, -i)
+                     mla%mba%rr(n-1,:), ng_fill, -i)
                 call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
-                     ref_ratio(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, +i)
              end do
              call multifab_fill_boundary(uu(n))
 
@@ -482,7 +473,7 @@ contains
              ! Only do this as long as tangential interp looks under fine grids
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
           end do
 
@@ -491,7 +482,7 @@ contains
              mglev      = mgt(n)%nlevels
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
           end do
 
           do n = 1,nlevs
@@ -505,9 +496,9 @@ contains
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
              do i = 1, dm
                 call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                     ref_ratio(n-1,:), ng_fill, -i)
+                     mla%mba%rr(n-1,:), ng_fill, -i)
                 call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                     ref_ratio(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, +i)
              end do
              call multifab_fill_boundary(full_soln(n))
           end do
@@ -521,7 +512,7 @@ contains
           call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                          mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
-          if ( ml_fine_converged(res, max_norm, rel_eps, abs_eps) ) then
+          if ( ml_fine_converged(res, max_norm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
              fine_converged = .true.
 
@@ -536,7 +527,7 @@ contains
              do n = nlevs,2,-1
                 pdc = layout_get_pd(mla%la(n-1))
                 call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                     ref_ratio(n-1,:))
+                     mla%mba%rr(n-1,:))
              end do
 
              !      Average the fine residual onto the coarser level
@@ -544,7 +535,7 @@ contains
                 mglev      = mgt(n  )%nlevels
                 mglev_crse = mgt(n-1)%nlevels
                 call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                     mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
              end do
 
              if ( mgt(nlevs)%verbose > 1 ) then
@@ -650,7 +641,7 @@ contains
 
           call ml_restriction(full_soln(n-1), full_soln(n), &
                mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-               ref_ratio(n-1,:))
+               mla%mba%rr(n-1,:))
        enddo
 
        !   Fill the ghost cells at each level from grids at that level
@@ -665,8 +656,8 @@ contains
           pd = layout_get_pd(mla%la(n))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
           do i = 1, dm
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), ng_fill, -i)
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), ng_fill, +i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, mla%mba%rr(n-1,:), ng_fill, -i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, mla%mba%rr(n-1,:), ng_fill, +i)
           end do
           call multifab_fill_boundary(full_soln(n))
        end do
