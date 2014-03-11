@@ -218,8 +218,7 @@ contains
        end do
 
        ! solve (alpha - del dot beta grad) phi = rhs to obtain phi
-       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, mla%mba%rr, &
-                        do_diagnostics, rel_solver_eps)
+       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, do_diagnostics)
 
        ! deallocate memory
        do n=1,nlevs

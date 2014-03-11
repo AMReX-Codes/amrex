@@ -11,8 +11,7 @@ module ml_nd_module
 
 contains
 
-  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio, &
-                   do_diagnostics,rel_eps,abs_eps_in)
+  subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,do_diagnostics)
 
     use ml_norm_module        , only : ml_norm_inf
     use ml_restriction_module , only : ml_restriction, periodic_add_copy
@@ -23,11 +22,7 @@ contains
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
-    integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics 
-    real(dp_t)     , intent(in   ) :: rel_eps
-
-    real(dp_t)     , intent(in   ), optional :: abs_eps_in
 
     integer    :: nlevs
 
@@ -49,7 +44,7 @@ contains
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged
 
-    real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, abs_eps, t1(3), t2(3)
+    real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, t1(3), t2(3)
     real(dp_t) :: stime, bottom_solve_time
 
     character(len=3)          :: number
@@ -69,12 +64,6 @@ contains
 
     if (nghost(rh(nlevs)) .ne. 1) &
         call bl_error("ml_nd requires one ghost cell for the RHS");
-
-    if ( present(abs_eps_in) ) then
-       abs_eps = abs_eps_in
-    else
-       abs_eps = mgt(nlevs)%abs_eps
-    end if
 
     allocate(soln(nlevs), uu(nlevs), uu_hold(2:nlevs-1), res(nlevs))
     allocate(temp_res(nlevs))
@@ -109,7 +98,7 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nodal = nodal, other = .false.)
+       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, nodal = nodal, other = .false.)
 
     end do
     !
@@ -160,7 +149,7 @@ contains
     fine_converged = .false.
 
     if ( ml_converged(res, fine_mask, bnorm, &
-                      rel_eps, abs_eps, mgt(nlevs)%verbose) ) then
+                      mgt(nlevs)%eps, mgt(nlevs)%abs_eps, mgt(nlevs)%verbose) ) then
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
@@ -169,7 +158,7 @@ contains
      do iter = 1, mgt(nlevs)%max_iter
 
        if ( (iter .eq. 1) .or. fine_converged ) then
-          if ( ml_converged(res, fine_mask, bnorm, rel_eps, abs_eps, mgt(nlevs)%verbose) ) exit
+          if ( ml_converged(res, fine_mask, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps, mgt(nlevs)%verbose) ) exit
        end if
 
        ! Set: uu = 0
@@ -216,10 +205,10 @@ contains
                   mgt(n-1)%stencil_type, mgt(n-1)%lcross, mgt(n-1)%uniform_dh)
 
              if ( dm .eq. 3 ) then
-                fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
@@ -238,12 +227,12 @@ contains
 
              ! Restrict FINE Res to COARSE Res
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                                 mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                                 mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1),zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
+                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc)
 
              ! Copy u_hold = uu
              if (n < nlevs) call multifab_copy(uu_hold(n),uu(n),ng=nghost(uu(n)))
@@ -252,10 +241,10 @@ contains
              call setval(uu(n),ZERO,all=.true.)
 
              if ( dm .eq. 3 ) then
-                fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = 1.0_dp_t / (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = 1.0_dp_t / (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
@@ -282,7 +271,7 @@ contains
 
           ! Interpolate uu from coarser level
           if (iter == 1) call plus_plus(uu(n-1),  full_soln(n-1))
-          call ml_nodal_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
+          call ml_nodal_prolongation(uu(n), uu(n-1), mla%mba%rr(n-1,:))
           if (iter == 1) call sub_sub(uu(n-1), full_soln(n-1))
 
           ! Subtract: uu -= full_soln
@@ -340,7 +329,7 @@ contains
           mglev      = mgt(n)%nlevels
           mglev_crse = mgt(n-1)%nlevels
           call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:), inject = .true.)
+               mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:), inject = .true.)
        end do
 
         do n = 1,nlevs
@@ -355,7 +344,7 @@ contains
         call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
                        mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
 
-        if ( ml_fine_converged(res, bnorm, rel_eps, abs_eps) ) then
+        if ( ml_fine_converged(res, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
           fine_converged = .true.
 
@@ -371,25 +360,25 @@ contains
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
              if ( dm .eq. 3 ) then
-                fac = (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = (4.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
              call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),ref_ratio(n-1,:),pdc)
+                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc)
              if ( dm .eq. 3 ) then
-                fac = 1.0_dp_t / (8.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = 1.0_dp_t / (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = 1.0_dp_t / (4.0_dp_t)**(ref_ratio(n-1,1)/2)
+                fac = 1.0_dp_t / (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
           end do

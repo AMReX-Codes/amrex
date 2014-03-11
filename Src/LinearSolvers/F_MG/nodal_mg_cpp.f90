@@ -705,12 +705,11 @@ subroutine mgt_nodal_dealloc()
 
 end subroutine mgt_nodal_dealloc
 
-subroutine mgt_nodal_solve(tol, abs_tol)
+subroutine mgt_nodal_solve()
   use nodal_cpp_mg_module
   use ml_nd_module
 
   implicit none
-  real(kind=dp_t), intent(in) :: tol, abs_tol
 
   integer :: do_diagnostics
 
@@ -728,8 +727,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
-       mgts%rr, &
-       do_diagnostics, tol, abs_tol)
+       do_diagnostics)
 
 end subroutine mgt_nodal_solve
 
