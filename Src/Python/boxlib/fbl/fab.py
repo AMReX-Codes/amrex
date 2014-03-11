@@ -6,8 +6,7 @@ from ctypes import *
 from base import BLObject
 from pybl import bl
 
-# XXX: it would be nice to put libpycboxlib into libpyfboxlib
-import libpycboxlib as cbl
+import libpyfboxlib as cbl
 
 class fab(BLObject):
   """FAB.
