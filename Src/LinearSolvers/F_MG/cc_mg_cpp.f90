@@ -1396,9 +1396,8 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
 
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
-       mgts%mla%mask, mgts%rr, &
-       do_diag, tol, &
-       abs_eps_in = abs_tol, &
+       mgts%mla%mask, &
+       do_diag, &
        need_grad_phi_in = lneedgradphi,&
        final_resnorm = final_resnorm,&
        status = status)
