@@ -16,16 +16,16 @@ module mg_module
 contains
 
   recursive subroutine mg_tower_build(mgt, la, pd, domain_bc, stencil_type_in, &
-                            nu1, nu2, nuf, nub, cycle_type, &
-                            smoother, &
-                            dh, &
-                            nc, ng, &
-                            max_nlevel, max_bottom_nlevel, min_width, &
-                            max_iter, abort_on_max_iter, eps, abs_eps, &
-                            bottom_solver, bottom_max_iter, bottom_solver_eps, &
-                            max_L0_growth, &
-                            verbose, cg_verbose, nodal, use_hypre, is_singular, &
-                            the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
+                                      nu1, nu2, nuf, nub, cycle_type, &
+                                      smoother, &
+                                      dh, &
+                                      nc, ng, &
+                                      max_nlevel, max_bottom_nlevel, min_width, &
+                                      max_iter, abort_on_max_iter, eps, abs_eps, &
+                                      bottom_solver, bottom_max_iter, bottom_solver_eps, &
+                                      max_L0_growth, &
+                                      verbose, cg_verbose, nodal, use_hypre, is_singular, &
+                                      the_bottom_comm, fancy_bottom_type_in, use_lininterp, ptype)
     use bl_IO_module
     use bl_prof_module
 
@@ -35,26 +35,29 @@ contains
     integer, intent(in) :: domain_bc(:,:)
     integer, intent(in) :: stencil_type_in
 
+    integer, intent(in), optional :: nu1
+    integer, intent(in), optional :: nu2
+    integer, intent(in), optional :: nuf
+    integer, intent(in), optional :: nub
+    integer, intent(in), optional :: cycle_type
+    integer, intent(in), optional :: smoother
+    real(kind=dp_t), intent(in), optional :: dh(:)
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
-    integer, intent(in), optional :: nu1, nu2, nuf, nub, cycle_type
-    integer, intent(in), optional :: smoother
-    logical, intent(in), optional :: nodal(:)
-    real(kind=dp_t), intent(in), optional :: dh(:)
-    real(kind=dp_t), intent(in), optional :: eps
-    real(kind=dp_t), intent(in), optional :: abs_eps
-    real(kind=dp_t), intent(in), optional :: bottom_solver_eps
-    real(kind=dp_t), intent(in), optional :: max_L0_growth
-
     integer, intent(in), optional :: max_nlevel
     integer, intent(in), optional :: max_bottom_nlevel
     integer, intent(in), optional :: min_width
     integer, intent(in), optional :: max_iter
     logical, intent(in), optional :: abort_on_max_iter
+    real(kind=dp_t), intent(in), optional :: eps
+    real(kind=dp_t), intent(in), optional :: abs_eps
     integer, intent(in), optional :: bottom_solver
     integer, intent(in), optional :: bottom_max_iter
+    real(kind=dp_t), intent(in), optional :: bottom_solver_eps
+    real(kind=dp_t), intent(in), optional :: max_L0_growth
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
+    logical, intent(in), optional :: nodal(:)
     integer, intent(in), optional :: use_hypre
     logical, intent(in), optional :: is_singular
     integer, intent(in), optional :: the_bottom_comm
