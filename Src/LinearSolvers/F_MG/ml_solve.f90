@@ -15,6 +15,11 @@ module ml_solve_module
      module procedure ml_cc_solve_2
   end interface
 
+  interface ml_nd_solve
+     module procedure ml_nd_solve_1
+     module procedure ml_nd_solve_2
+  end interface ml_nd_solve
+
   private
 
   public :: ml_cc_solve, ml_nd_solve
@@ -24,7 +29,7 @@ contains
   ! solve (alpha - del dot beta grad) full_soln = rhs for cell-centered full_soln
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in
-  subroutine ml_cc_solve_1(mla,rh,full_soln,alpha,beta,dx,the_bc_tower,bc_comp,is_singular, &
+  subroutine ml_cc_solve_1(mla,rh,full_soln,alpha,beta,dx,the_bc_tower,bc_comp, &
                            nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
@@ -42,7 +47,6 @@ contains
     real(kind=dp_t), intent(in   ) :: dx(:,:)
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: bc_comp
-    logical        , intent(in   ) :: is_singular
 
     ! optional arguments
     integer, intent(in), optional :: nu1
@@ -77,6 +81,8 @@ contains
     integer, intent(in), optional :: do_diagnostics
 
     ! local
+    logical :: is_parabolic
+
     type(mg_tower) :: mgt(mla%nlevel)
 
     type(layout) :: la
@@ -101,7 +107,13 @@ contains
 
     if (present(do_diagnostics)) do_diagnostics_in = do_diagnostics
     if (present(stencil_order))  stencil_order_in = stencil_order
-       
+
+    ! Am I doing a parabolic or elliptic solve?
+    if (multifab_norm_inf(alpha(1)) .gt. 0.) then
+      is_parabolic = .true.
+    else
+      is_parabolic = .false.
+    end if
 
     ! stores beta*grad phi/dx_fine on coarse-fine interfaces
     ! this gets computed inside of ml_cc_solve
@@ -150,38 +162,70 @@ contains
        if (present(ptype))                mgt(n)%ptype = ptype
 
        ! build the mg_tower object at level n
-       call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
-                           the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
-                           stencil_type = mgt(n)%stencil_type, &
-                           nu1 = mgt(n)%nu1, &
-                           nu2 = mgt(n)%nu2, &
-                           nuf = mgt(n)%nuf, &
-                           nub = mgt(n)%nub, &
-                           cycle_type = mgt(n)%cycle_type, &
-                           smoother = mgt(n)%smoother, &
-                           dh = dx(n,:), &
-                           nc = mgt(n)%nc, &
-                           ng = mgt(n)%ng, &
-                           max_nlevel = mgt(n)%max_nlevel, &
-                           max_bottom_nlevel = mgt(n)%max_bottom_nlevel, &
-                           min_width = mgt(n)%min_width, &
-                           max_iter = mgt(n)%max_iter, &
-                           abort_on_max_iter = mgt(n)%abort_on_max_iter, &
-                           eps = mgt(n)%eps, &
-                           abs_eps = mgt(n)%abs_eps, &
-                           bottom_solver = mgt(n)%bottom_solver, &
-                           bottom_max_iter = mgt(n)%bottom_max_iter, &
-                           bottom_solver_eps = mgt(n)%bottom_solver_eps, &
-                           max_L0_growth = mgt(n)%max_L0_growth, &
-                           verbose = mgt(n)%verbose, &
-                           cg_verbose = mgt(n)%cg_verbose, &
-                           nodal = nodal_flags(rh(nlevs)), &
-                           use_hypre = mgt(n)%use_hypre,&
-                           is_singular = is_singular, &
-                           fancy_bottom_type = mgt(n)%fancy_bottom_type, &
-                           use_lininterp = mgt(n)%use_lininterp, &
-                           ptype = mgt(n)%ptype)
-
+       if (is_parabolic) then
+          call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
+                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              stencil_type = mgt(n)%stencil_type, &
+                              nu1 = mgt(n)%nu1, &
+                              nu2 = mgt(n)%nu2, &
+                              nuf = mgt(n)%nuf, &
+                              nub = mgt(n)%nub, &
+                              cycle_type = mgt(n)%cycle_type, &
+                              smoother = mgt(n)%smoother, &
+                              dh = dx(n,:), &
+                              nc = mgt(n)%nc, &
+                              ng = mgt(n)%ng, &
+                              max_nlevel = mgt(n)%max_nlevel, &
+                              max_bottom_nlevel = mgt(n)%max_bottom_nlevel, &
+                              min_width = mgt(n)%min_width, &
+                              max_iter = mgt(n)%max_iter, &
+                              abort_on_max_iter = mgt(n)%abort_on_max_iter, &
+                              eps = mgt(n)%eps, &
+                              abs_eps = mgt(n)%abs_eps, &
+                              bottom_solver = mgt(n)%bottom_solver, &
+                              bottom_max_iter = mgt(n)%bottom_max_iter, &
+                              bottom_solver_eps = mgt(n)%bottom_solver_eps, &
+                              max_L0_growth = mgt(n)%max_L0_growth, &
+                              verbose = mgt(n)%verbose, &
+                              cg_verbose = mgt(n)%cg_verbose, &
+                              nodal = nodal_flags(rh(nlevs)), &
+                              use_hypre = mgt(n)%use_hypre,&
+                              is_singular = .false., &
+                              fancy_bottom_type = mgt(n)%fancy_bottom_type, &
+                              use_lininterp = mgt(n)%use_lininterp, &
+                              ptype = mgt(n)%ptype)
+       else
+          call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
+                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              stencil_type = mgt(n)%stencil_type, &
+                              nu1 = mgt(n)%nu1, &
+                              nu2 = mgt(n)%nu2, &
+                              nuf = mgt(n)%nuf, &
+                              nub = mgt(n)%nub, &
+                              cycle_type = mgt(n)%cycle_type, &
+                              smoother = mgt(n)%smoother, &
+                              dh = dx(n,:), &
+                              nc = mgt(n)%nc, &
+                              ng = mgt(n)%ng, &
+                              max_nlevel = mgt(n)%max_nlevel, &
+                              max_bottom_nlevel = mgt(n)%max_bottom_nlevel, &
+                              min_width = mgt(n)%min_width, &
+                              max_iter = mgt(n)%max_iter, &
+                              abort_on_max_iter = mgt(n)%abort_on_max_iter, &
+                              eps = mgt(n)%eps, &
+                              abs_eps = mgt(n)%abs_eps, &
+                              bottom_solver = mgt(n)%bottom_solver, &
+                              bottom_max_iter = mgt(n)%bottom_max_iter, &
+                              bottom_solver_eps = mgt(n)%bottom_solver_eps, &
+                              max_L0_growth = mgt(n)%max_L0_growth, &
+                              verbose = mgt(n)%verbose, &
+                              cg_verbose = mgt(n)%cg_verbose, &
+                              nodal = nodal_flags(rh(nlevs)), &
+                              use_hypre = mgt(n)%use_hypre,&
+                              fancy_bottom_type = mgt(n)%fancy_bottom_type, &
+                              use_lininterp = mgt(n)%use_lininterp, &
+                              ptype = mgt(n)%ptype)
+       end if
     end do
 
     ! Fill coefficient array
@@ -361,7 +405,11 @@ contains
   ! ******************************************************************************************
   !
 
-  subroutine ml_nd_solve(mla,mgt,rh,full_soln,do_diagnostics)
+  subroutine ml_nd_solve_1()
+
+  end subroutine ml_nd_solve_1
+
+  subroutine ml_nd_solve_2(mla,mgt,rh,full_soln,do_diagnostics)
 
     use ml_nd_module, only : ml_nd
 
@@ -399,7 +447,7 @@ contains
        call lmultifab_destroy(fine_mask(n))
     end do
 
-  end subroutine ml_nd_solve
+  end subroutine ml_nd_solve_2
 
   subroutine create_nodal_mask(mask,mm_crse,mm_fine,ir)
 
