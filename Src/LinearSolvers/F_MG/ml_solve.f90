@@ -164,7 +164,7 @@ contains
        ! build the mg_tower object at level n
        if (is_parabolic) then
           call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
-                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp), &
                               stencil_type = mgt(n)%stencil_type, &
                               nu1 = mgt(n)%nu1, &
                               nu2 = mgt(n)%nu2, &
@@ -196,7 +196,7 @@ contains
                               ptype = mgt(n)%ptype)
        else
           call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
-                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
+                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp), &
                               stencil_type = mgt(n)%stencil_type, &
                               nu1 = mgt(n)%nu1, &
                               nu2 = mgt(n)%nu2, &
@@ -405,7 +405,145 @@ contains
   ! ******************************************************************************************
   !
 
-  subroutine ml_nd_solve_1()
+  subroutine ml_nd_solve_1(mla,rh,full_soln,beta,dx,the_bc_tower,bc_comp, &
+                           add_divu_to_rh, u, &
+                           nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
+                           max_nlevel, max_bottom_nlevel, min_width, max_iter, &
+                           abort_on_max_iter, eps, abs_eps, bottom_solver, &
+                           bottom_max_iter, bottom_solver_eps, max_L0_growth, &
+                           verbose, cg_verbose, nodal, use_hypre, &
+                           fancy_bottom_type, use_lininterp, ptype, &
+                           stencil_type, stencil_order, do_diagnostics)
+    
+    ! required arguments
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(inout) :: rh(:)         ! nodal
+    type(multifab) , intent(inout) :: full_soln(:)  ! nodal
+    type(multifab) , intent(in   ) :: beta(:)       ! cell-centered
+    real(kind=dp_t), intent(in   ) :: dx(:,:)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
+    integer        , intent(in   ) :: bc_comp
+
+    ! optional arguments
+    integer, intent(in), optional :: add_divu_to_rh
+    type(multifab), intent(in), optional :: u(:) ! cell-centered
+    integer, intent(in), optional :: nu1
+    integer, intent(in), optional :: nu2
+    integer, intent(in), optional :: nuf
+    integer, intent(in), optional :: nub
+    integer, intent(in), optional :: cycle_type
+    integer, intent(in), optional :: smoother
+    real(kind=dp_t), intent(in), optional :: dh(:)
+    integer, intent(in), optional :: nc
+    integer, intent(in), optional :: ng
+    integer, intent(in), optional :: max_nlevel
+    integer, intent(in), optional :: max_bottom_nlevel
+    integer, intent(in), optional :: min_width
+    integer, intent(in), optional :: max_iter
+    logical, intent(in), optional :: abort_on_max_iter
+    real(kind=dp_t), intent(in), optional :: eps
+    real(kind=dp_t), intent(in), optional :: abs_eps
+    integer, intent(in), optional :: bottom_solver
+    integer, intent(in), optional :: bottom_max_iter
+    real(kind=dp_t), intent(in), optional :: bottom_solver_eps
+    real(kind=dp_t), intent(in), optional :: max_L0_growth
+    integer, intent(in), optional :: verbose
+    integer, intent(in), optional :: cg_verbose
+    logical, intent(in), optional :: nodal(:)
+    integer, intent(in), optional :: use_hypre
+    integer, intent(in), optional :: fancy_bottom_type
+    logical, intent(in), optional :: use_lininterp
+    integer, intent(in), optional :: ptype
+    integer, intent(in), optional :: stencil_type
+    integer, intent(in), optional :: stencil_order
+    integer, intent(in), optional :: do_diagnostics
+
+    ! local
+    integer :: i,dm,n,nlevs
+    integer :: do_diagnostics_in, stencil_order_in
+    type(mg_tower) :: mgt(mla%nlevel)
+
+    dm = mla%dim
+    nlevs = mla%nlevel
+
+    do_diagnostics_in = 0
+    stencil_order_in = 2
+
+    do n=1,nlevs
+       
+       if (present(stencil_type)) then
+          mgt(n)%stencil_type = stencil_type
+       else
+          mgt(n)%stencil_type = ND_DENSE_STENCIL
+       end if
+       if (present(nu1))                  mgt(n)%nu1 = nu1 ! # of smooths at each level on the way down
+       if (present(nu2))                  mgt(n)%nu2 = nu2 ! # of smooths at each level on the way up
+       if (present(nuf))                  mgt(n)%nuf = nuf
+       if (present(nub))                  mgt(n)%nub = nub ! # of smooths before and after bottom solver
+       if (present(cycle_type))           mgt(n)%cycle_type = cycle_type ! choose between V-cycle, W-cycle, etc.
+       if (present(smoother))             mgt(n)%smoother = smoother ! smoother type
+       if (present(nc))                   mgt(n)%nc = nc
+       if (present(ng))                   mgt(n)%ng = ng
+       ! max_nlevel represents how many levels you can coarsen before you either reach
+       ! the bottom solve, or the mg_tower object at the next coarser level of refinement
+       if (n .eq. 1) then
+          if (present(max_nlevel)) mgt(n)%max_nlevel = max_nlevel
+       else
+          mgt(n)%max_nlevel = 1
+       end if
+       if (present(max_bottom_nlevel))    mgt(n)%max_bottom_nlevel = max_bottom_nlevel ! additional coarsening if you use bottom_solver type 4
+       if (present(min_width))            mgt(n)%min_width = min_width ! minimum size of grid at coarsest multigrid level
+       if (present(max_iter))             mgt(n)%max_iter = max_iter ! maximum number of v-cycles
+       if (present(abort_on_max_iter))    mgt(n)%abort_on_max_iter = abort_on_max_iter
+       if (present(eps))                  mgt(n)%eps = eps ! relative tolerance of solver
+       if (present(abs_eps))              mgt(n)%abs_eps = abs_eps ! absolute tolerance of solver
+       if (present(bottom_solver))        mgt(n)%bottom_solver = bottom_solver ! bottom solver type
+       if (present(bottom_max_iter))      mgt(n)%bottom_max_iter = bottom_max_iter ! max iterations of bottom solver
+       if (present(bottom_solver_eps))    mgt(n)%bottom_solver_eps = bottom_solver_eps ! tolerance of bottom solver
+       if (present(max_L0_growth))        mgt(n)%max_L0_growth = max_L0_growth
+       if (present(verbose))              mgt(n)%verbose = verbose ! verbosity
+       if (present(cg_verbose))           mgt(n)%cg_verbose = cg_verbose ! bottom solver verbosity
+       if (present(use_hypre))            mgt(n)%use_hypre = use_hypre
+       if (present(fancy_bottom_type))    mgt(n)%fancy_bottom_type = fancy_bottom_type
+       if (present(use_lininterp))        mgt(n)%use_lininterp = use_lininterp
+       if (present(ptype))                mgt(n)%ptype = ptype
+
+       call mg_tower_build(mgt(n), mla%la(n), layout_get_pd(mla%la(n)), &
+                           the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp), &
+                           stencil_type = mgt(n)%stencil_type, &
+                           nu1 = mgt(n)%nu1, &
+                           nu2 = mgt(n)%nu2, &
+                           nuf = mgt(n)%nuf, &
+                           nub = mgt(n)%nub, &
+                           cycle_type = mgt(n)%cycle_type, &
+                           smoother = mgt(n)%smoother, &
+                           dh = dx(n,:), &
+                           nc = mgt(n)%nc, &
+                           ng = mgt(n)%ng, &
+                           max_nlevel = mgt(n)%max_nlevel, &
+                           max_bottom_nlevel = mgt(n)%max_bottom_nlevel, &
+                           min_width = mgt(n)%min_width, &
+                           max_iter = mgt(n)%max_iter, &
+                           abort_on_max_iter = mgt(n)%abort_on_max_iter, &
+                           eps = mgt(n)%eps, &
+                           abs_eps = mgt(n)%abs_eps, &
+                           bottom_solver = mgt(n)%bottom_solver, &
+                           bottom_max_iter = mgt(n)%bottom_max_iter, &
+                           bottom_solver_eps = mgt(n)%bottom_solver_eps, &
+                           max_L0_growth = mgt(n)%max_L0_growth, &
+                           verbose = mgt(n)%verbose, &
+                           cg_verbose = mgt(n)%cg_verbose, &
+                           nodal = nodal_flags(rh(nlevs)), &
+                           use_hypre = mgt(n)%use_hypre,&
+                           fancy_bottom_type = mgt(n)%fancy_bottom_type, &
+                           use_lininterp = mgt(n)%use_lininterp, &
+                           ptype = mgt(n)%ptype)
+    end do
+
+
+
+
+
 
   end subroutine ml_nd_solve_1
 
