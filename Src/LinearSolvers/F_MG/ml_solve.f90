@@ -7,6 +7,7 @@ module ml_solve_module
   use multifab_module
   use define_bc_module
   use cc_stencil_fill_module
+  use nodal_divu_module
 
   implicit none
 
@@ -280,10 +281,10 @@ contains
     call ml_cc_solve(mla, mgt, rh, full_soln, fine_flx, do_diagnostics_in)
 
     ! deallocate memory
-    do n = 2,nlevs
+    do n=2,nlevs
        call bndry_reg_destroy(fine_flx(n))
     end do
-    do n = 1, nlevs
+    do n=1,nlevs
        call mg_tower_destroy(mgt(n))
     end do
 
@@ -405,8 +406,19 @@ contains
   ! ******************************************************************************************
   !
 
+
+  ! solve  "-(del dot beta grad) full_soln = rh" for nodal full_soln
+  ! rh is nodal and beta is cell-centered.
+  ! alpha is not supported yet
+  ! only the first row of arguments is required; everything else is optional and will
+  ! revert to defaults in mg_tower.f90 if not passed in.
+  ! if subtract_divu=.true., this subroutine will compute div(u) and instead solve
+  ! -(del dot beta grad) full_soln = rh - div(u)
+  ! Thus, if you are doing a projection method where div(u)=S, you want to solve
+  ! -(del dot beta grad) full_soln = S - div(u), and thus you should pass in "+S" for rh
+  ! and pass in subtract_divu=.true.
   subroutine ml_nd_solve_1(mla,rh,full_soln,beta,dx,the_bc_tower,bc_comp, &
-                           add_divu_to_rh, u, &
+                           subtract_divu, u, &
                            nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
@@ -415,6 +427,8 @@ contains
                            fancy_bottom_type, use_lininterp, ptype, &
                            stencil_type, stencil_order, do_diagnostics)
     
+    use nodal_stencil_fill_module , only : stencil_fill_nodal_all_mglevels
+
     ! required arguments
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: rh(:)         ! nodal
@@ -425,7 +439,7 @@ contains
     integer        , intent(in   ) :: bc_comp
 
     ! optional arguments
-    integer, intent(in), optional :: add_divu_to_rh
+    logical, intent(in), optional :: subtract_divu
     type(multifab), intent(in), optional :: u(:) ! cell-centered
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
@@ -461,13 +475,28 @@ contains
     ! local
     integer :: i,dm,n,nlevs
     integer :: do_diagnostics_in, stencil_order_in
+    logical :: subtract_divu_in
+
     type(mg_tower) :: mgt(mla%nlevel)
+    type(layout) :: la
+
+    type(multifab), allocatable :: coeffs(:)
+    integer, allocatable :: lo_inflow(:),hi_inflow(:)
+
+    type(multifab) :: divu(mla%nlevel)
+
+    logical :: test0(2)
+    integer :: test(2), test2(2)
+
 
     dm = mla%dim
     nlevs = mla%nlevel
 
     do_diagnostics_in = 0
     stencil_order_in = 2
+
+    subtract_divu_in = .false.
+    if (present(subtract_divu)) subtract_divu_in = subtract_divu
 
     do n=1,nlevs
        
@@ -542,8 +571,62 @@ contains
 
 
 
+    do n = nlevs,1,-1
 
+       allocate(coeffs(mgt(n)%nlevels))
 
+       call multifab_build(coeffs(mgt(n)%nlevels), mla%la(n), 1, 1)
+       call multifab_copy_c(coeffs(mgt(n)%nlevels),1,beta(n),1,1,beta(n)%ng)
+
+       call stencil_fill_nodal_all_mglevels(mgt(n), coeffs)
+
+       call destroy(coeffs(mgt(n)%nlevels))
+       deallocate(coeffs)
+
+    end do
+
+    ! ********************************************************************************
+    ! add divu to rhs (optional)
+    ! ********************************************************************************
+    
+    if (subtract_divu_in) then
+
+       if (.not.(present(u))) then
+          call bl_error('ml_solve.f90: subtract_divu_in requires u passed in')
+       end if
+
+       ! Set the inflow array -- 1 if inflow, otherwise 0
+       allocate(lo_inflow(dm),hi_inflow(dm))
+       lo_inflow(:) = 0
+       hi_inflow(:) = 0
+       do i=1,dm
+          if (the_bc_tower%bc_tower_array(1)%phys_bc_level_array(0,i,1) == INLET) then
+             lo_inflow(i) = 1
+          end if
+          if (the_bc_tower%bc_tower_array(1)%phys_bc_level_array(0,i,2) == INLET) then
+             hi_inflow(i) = 1
+          end if
+       end do
+       
+       do n=1,nlevs
+          call multifab_build_nodal(divu(n),mla%la(n),1,1)
+       end do
+
+!       call divu(nlevs,mgt,u,divu,mla%mba%rr,nodal_flags(divu(nlevs)),lo_inflow,hi_inflow)
+ 
+       deallocate(lo_inflow,hi_inflow)
+       
+       ! Do rh = rh - divu (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
+       call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
+       call subtract_divu_from_rh(nlevs,mgt,rh,divu)
+
+    end if
+
+    call ml_nd_solve_2(mla,mgt,rh,full_soln,do_diagnostics_in)
+
+    do n=1,nlevs
+       call mg_tower_destroy(mgt(n))
+    end do
 
   end subroutine ml_nd_solve_1
 
