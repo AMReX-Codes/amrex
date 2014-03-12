@@ -440,7 +440,7 @@ contains
 
     ! optional arguments
     logical, intent(in), optional :: subtract_divu
-    type(multifab), intent(in), optional :: u(:) ! cell-centered
+    type(multifab), intent(inout), optional :: u(:) ! cell-centered
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
     integer, intent(in), optional :: nuf
@@ -463,7 +463,6 @@ contains
     real(kind=dp_t), intent(in), optional :: max_L0_growth
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
-    logical, intent(in), optional :: nodal(:)
     integer, intent(in), optional :: use_hypre
     integer, intent(in), optional :: fancy_bottom_type
     logical, intent(in), optional :: use_lininterp
@@ -481,12 +480,13 @@ contains
     type(layout) :: la
 
     type(multifab), allocatable :: coeffs(:)
-    integer, allocatable :: lo_inflow(:),hi_inflow(:)
+    integer :: lo_inflow(mla%dim),hi_inflow(mla%dim)
 
-    type(multifab) :: divu(mla%nlevel)
+    type(multifab) :: div_u(mla%nlevel)
 
-    logical :: test0(2)
+    logical :: nodal(mla%dim)
     integer :: test(2), test2(2)
+
 
 
     dm = mla%dim
@@ -497,6 +497,8 @@ contains
 
     subtract_divu_in = .false.
     if (present(subtract_divu)) subtract_divu_in = subtract_divu
+
+    nodal = nodal_flags(rh(nlevs))
 
     do n=1,nlevs
        
@@ -586,7 +588,7 @@ contains
     end do
 
     ! ********************************************************************************
-    ! add divu to rhs (optional)
+    ! add div_u to rhs (optional)
     ! ********************************************************************************
     
     if (subtract_divu_in) then
@@ -596,7 +598,6 @@ contains
        end if
 
        ! Set the inflow array -- 1 if inflow, otherwise 0
-       allocate(lo_inflow(dm),hi_inflow(dm))
        lo_inflow(:) = 0
        hi_inflow(:) = 0
        do i=1,dm
@@ -609,16 +610,14 @@ contains
        end do
        
        do n=1,nlevs
-          call multifab_build_nodal(divu(n),mla%la(n),1,1)
+          call multifab_build_nodal(div_u(n),mla%la(n),1,1)
        end do
 
-!       call divu(nlevs,mgt,u,divu,mla%mba%rr,nodal_flags(divu(nlevs)),lo_inflow,hi_inflow)
+       call divu(nlevs,mgt,u,div_u,mla%mba%rr,nodal_flags(div_u(nlevs)),lo_inflow,hi_inflow)
  
-       deallocate(lo_inflow,hi_inflow)
-       
-       ! Do rh = rh - divu (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
+       ! Do rh = rh - div_u (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
        call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
-       call subtract_divu_from_rh(nlevs,mgt,rh,divu)
+       call subtract_divu_from_rh(nlevs,mgt,rh,div_u)
 
     end if
 
