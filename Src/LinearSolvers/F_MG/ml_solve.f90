@@ -265,7 +265,7 @@ contains
        ! tell mgt about alpha, beta, xa, xb, pxa, and pxb
        call stencil_fill_cc_all_mglevels(mgt(n), cell_coeffs, edge_coeffs, xa, xb, &
                                          pxa, pxb, stencil_order_in, &
-                                         the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1))
+                                         the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp))
 
        ! deallocate memory
        call destroy(cell_coeffs(mgt(n)%nlevels))
