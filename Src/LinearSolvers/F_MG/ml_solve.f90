@@ -31,11 +31,11 @@ contains
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in
   subroutine ml_cc_solve_1(mla,rh,full_soln,fine_flx,alpha,beta,dx,the_bc_tower,bc_comp, &
-                           nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
+                           nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
                            bottom_max_iter, bottom_solver_eps, max_L0_growth, &
-                           verbose, cg_verbose, nodal, use_hypre, &
+                           verbose, cg_verbose, use_hypre, &
                            fancy_bottom_type, use_lininterp, ptype, &
                            stencil_type, stencil_order, do_diagnostics)
     
@@ -57,7 +57,6 @@ contains
     integer, intent(in), optional :: nub
     integer, intent(in), optional :: cycle_type
     integer, intent(in), optional :: smoother
-    real(kind=dp_t), intent(in), optional :: dh(:)
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
     integer, intent(in), optional :: max_nlevel
@@ -73,7 +72,6 @@ contains
     real(kind=dp_t), intent(in), optional :: max_L0_growth
     integer, intent(in), optional :: verbose
     integer, intent(in), optional :: cg_verbose
-    logical, intent(in), optional :: nodal(:)
     integer, intent(in), optional :: use_hypre
     integer, intent(in), optional :: fancy_bottom_type
     logical, intent(in), optional :: use_lininterp
@@ -88,9 +86,8 @@ contains
     type(mg_tower) :: mgt(mla%nlevel)
 
     type(layout) :: la
-    type(box) :: pd
 
-    integer :: stencil_order_in, do_diagnostics_in, integer
+    integer :: stencil_order_in, do_diagnostics_in
     integer :: i, dm, n, nlevs
 
     type(multifab), allocatable :: cell_coeffs(:)
@@ -408,11 +405,11 @@ contains
   ! and pass in subtract_divu=.true.
   subroutine ml_nd_solve_1(mla,rh,full_soln,beta,dx,the_bc_tower,bc_comp, &
                            subtract_divu, u, &
-                           nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
+                           nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
                            bottom_max_iter, bottom_solver_eps, max_L0_growth, &
-                           verbose, cg_verbose, nodal, use_hypre, &
+                           verbose, cg_verbose, use_hypre, &
                            fancy_bottom_type, use_lininterp, ptype, &
                            stencil_type, stencil_order, do_diagnostics)
     
@@ -436,7 +433,6 @@ contains
     integer, intent(in), optional :: nub
     integer, intent(in), optional :: cycle_type
     integer, intent(in), optional :: smoother
-    real(kind=dp_t), intent(in), optional :: dh(:)
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
     integer, intent(in), optional :: max_nlevel
@@ -466,28 +462,22 @@ contains
     logical :: subtract_divu_in
 
     type(mg_tower) :: mgt(mla%nlevel)
-    type(layout) :: la
 
     type(multifab), allocatable :: coeffs(:)
     integer :: lo_inflow(mla%dim),hi_inflow(mla%dim)
 
     type(multifab) :: div_u(mla%nlevel)
 
-    logical :: nodal(mla%dim)
-    integer :: test(2), test2(2)
-
-
-
     dm = mla%dim
     nlevs = mla%nlevel
 
     do_diagnostics_in = 0
     stencil_order_in = 2
-
     subtract_divu_in = .false.
-    if (present(subtract_divu)) subtract_divu_in = subtract_divu
 
-    nodal = nodal_flags(rh(nlevs))
+    if (present(do_diagnostics)) do_diagnostics_in = do_diagnostics
+    if (present(stencil_order))  stencil_order_in = stencil_order
+    if (present(subtract_divu))  subtract_divu_in = subtract_divu
 
     do n=1,nlevs
        
