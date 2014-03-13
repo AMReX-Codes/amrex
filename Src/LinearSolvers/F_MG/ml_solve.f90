@@ -87,7 +87,7 @@ contains
 
     type(layout) :: la
 
-    integer :: stencil_order_in, do_diagnostics_in
+    integer :: stencil_order_loc, do_diagnostics_loc
     integer :: i, dm, n, nlevs
 
     type(multifab), allocatable :: cell_coeffs(:)
@@ -99,11 +99,11 @@ contains
     dm = mla%dim
     nlevs = mla%nlevel
 
-    do_diagnostics_in = 0
-    stencil_order_in = 2
+    do_diagnostics_loc = 0
+    stencil_order_loc = 2
 
-    if (present(do_diagnostics)) do_diagnostics_in = do_diagnostics
-    if (present(stencil_order))  stencil_order_in = stencil_order
+    if (present(do_diagnostics)) do_diagnostics_loc = do_diagnostics
+    if (present(stencil_order))  stencil_order_loc = stencil_order
 
     ! Am I doing a parabolic or elliptic solve?
     if (multifab_norm_inf(alpha(1)) .gt. 0.) then
@@ -253,7 +253,7 @@ contains
 
        ! tell mgt about alpha, beta, xa, xb, pxa, and pxb
        call stencil_fill_cc_all_mglevels(mgt(n), cell_coeffs, edge_coeffs, xa, xb, &
-                                         pxa, pxb, stencil_order_in, &
+                                         pxa, pxb, stencil_order_loc, &
                                          the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp))
 
        ! deallocate memory
@@ -267,7 +267,7 @@ contains
     end do
 
     ! solve (alpha - del dot beta grad) phi = rhs to obtain phi
-    call ml_cc_solve(mla, mgt, rh, full_soln, fine_flx, do_diagnostics_in)
+    call ml_cc_solve(mla, mgt, rh, full_soln, fine_flx, do_diagnostics_loc)
 
     ! deallocate memory
     do n=1,nlevs
@@ -308,7 +308,7 @@ contains
     ! ****************************************************************************
 
     call ml_cc(mla,mgt,rh,full_soln,fine_mask,do_diagnostics, &
-         need_grad_phi_in=.true.)
+               need_grad_phi_in=.true.)
 
     ! ****************************************************************************
 
@@ -458,8 +458,8 @@ contains
 
     ! local
     integer :: i,dm,n,nlevs
-    integer :: do_diagnostics_in, stencil_order_in
-    logical :: add_divu_in
+    integer :: do_diagnostics_loc, stencil_order_loc
+    logical :: add_divu_loc
 
     type(mg_tower) :: mgt(mla%nlevel)
 
@@ -471,13 +471,13 @@ contains
     dm = mla%dim
     nlevs = mla%nlevel
 
-    do_diagnostics_in = 0
-    stencil_order_in = 2
-    add_divu_in = .false.
+    do_diagnostics_loc = 0
+    stencil_order_loc = 2
+    add_divu_loc = .false.
 
-    if (present(do_diagnostics)) do_diagnostics_in = do_diagnostics
-    if (present(stencil_order))  stencil_order_in = stencil_order
-    if (present(add_divu))  add_divu_in = add_divu
+    if (present(do_diagnostics)) do_diagnostics_loc = do_diagnostics
+    if (present(stencil_order))  stencil_order_loc = stencil_order
+    if (present(add_divu))  add_divu_loc = add_divu
 
     do n=1,nlevs
        
@@ -570,10 +570,10 @@ contains
     ! add divergence of u to rhs (optional)
     ! ********************************************************************************
     
-    if (add_divu_in) then
+    if (add_divu_loc) then
 
        if (.not.(present(u))) then
-          call bl_error('ml_solve.f90: add_divu_in requires u passed in')
+          call bl_error('ml_solve.f90: add_divu requires u passed in')
        end if
 
        ! Set the inflow array -- 1 if inflow, otherwise 0
@@ -600,7 +600,7 @@ contains
 
     end if
 
-    call ml_nd_solve_2(mla,mgt,rh,full_soln,do_diagnostics_in)
+    call ml_nd_solve_2(mla,mgt,rh,full_soln,do_diagnostics_loc)
 
     do n=1,nlevs
        call mg_tower_destroy(mgt(n))
