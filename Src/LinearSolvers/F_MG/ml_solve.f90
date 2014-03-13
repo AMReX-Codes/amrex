@@ -393,18 +393,18 @@ contains
   !
 
 
-  ! solve  "-(del dot beta grad) full_soln = rh" for nodal full_soln
+  ! solve  "del dot beta grad full_soln = rh" for nodal full_soln
   ! rh is nodal and beta is cell-centered.
   ! alpha is not supported yet
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in.
-  ! if subtract_divu=.true., this subroutine will compute div(u) and instead solve
-  ! -(del dot beta grad) full_soln = rh - div(u)
+  ! if add_divu=.true., this subroutine will compute div(u) and instead solve
+  ! del dot beta grad full_soln = rh + div(u)
   ! Thus, if you are doing a projection method where div(u)=S, you want to solve
-  ! -(del dot beta grad) full_soln = S - div(u), and thus you should pass in "+S" for rh
-  ! and pass in subtract_divu=.true.
+  ! del dot beta grad full_soln = div(u) - S, and thus you should pass in "-S" for rh
+  ! and pass in add_divu=.true.
   subroutine ml_nd_solve_1(mla,rh,full_soln,beta,dx,the_bc_tower,bc_comp, &
-                           subtract_divu, u, &
+                           add_divu, u, &
                            nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
@@ -425,7 +425,7 @@ contains
     integer        , intent(in   ) :: bc_comp
 
     ! optional arguments
-    logical, intent(in), optional :: subtract_divu
+    logical, intent(in), optional :: add_divu
     type(multifab), intent(inout), optional :: u(:) ! cell-centered
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
@@ -459,7 +459,7 @@ contains
     ! local
     integer :: i,dm,n,nlevs
     integer :: do_diagnostics_in, stencil_order_in
-    logical :: subtract_divu_in
+    logical :: add_divu_in
 
     type(mg_tower) :: mgt(mla%nlevel)
 
@@ -473,11 +473,11 @@ contains
 
     do_diagnostics_in = 0
     stencil_order_in = 2
-    subtract_divu_in = .false.
+    add_divu_in = .false.
 
     if (present(do_diagnostics)) do_diagnostics_in = do_diagnostics
     if (present(stencil_order))  stencil_order_in = stencil_order
-    if (present(subtract_divu))  subtract_divu_in = subtract_divu
+    if (present(add_divu))  add_divu_in = add_divu
 
     do n=1,nlevs
        
@@ -567,13 +567,13 @@ contains
     end do
 
     ! ********************************************************************************
-    ! add divu_tmp to rhs (optional)
+    ! add divergence of u to rhs (optional)
     ! ********************************************************************************
     
-    if (subtract_divu_in) then
+    if (add_divu_in) then
 
        if (.not.(present(u))) then
-          call bl_error('ml_solve.f90: subtract_divu_in requires u passed in')
+          call bl_error('ml_solve.f90: add_divu_in requires u passed in')
        end if
 
        ! Set the inflow array -- 1 if inflow, otherwise 0
@@ -594,14 +594,9 @@ contains
 
        call divu(nlevs,mgt,u,divu_tmp,mla%mba%rr,nodal_flags(divu_tmp(nlevs)),lo_inflow,hi_inflow)
  
-       ! Do rh = rh - divu_tmp (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
+       ! Do rh = rh + divu_tmp (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
        call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
-       call subtract_divu_from_rh(nlevs,mgt,rh,divu_tmp)
-
-       ! not sure about this... makes varden regression work but need to think about it
-       do n=1,nlevs
-          call multifab_mult_mult_s_c(rh(n),1,-1.d0,1,1)
-       end do
+       call subtract_divu_from_rh(nlevs,mgt,rh,divu_tmp,.false.)
 
     end if
 
