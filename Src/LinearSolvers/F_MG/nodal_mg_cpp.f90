@@ -93,10 +93,10 @@ contains
 
 end module nodal_cpp_mg_module
 
-subroutine mgt_nodal_alloc(dm, nlevel, stencil_type_in)
+subroutine mgt_nodal_alloc(dm, nlevel, stencil_type)
   use nodal_cpp_mg_module
   implicit none
-  integer, intent(in) :: dm, nlevel, stencil_type_in
+  integer, intent(in) :: dm, nlevel, stencil_type
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -105,7 +105,7 @@ subroutine mgt_nodal_alloc(dm, nlevel, stencil_type_in)
      mgts%nodal = .true.
   end if
 
-  mgts%stencil_type = stencil_type_in
+  mgts%stencil_type = stencil_type
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))
@@ -705,12 +705,11 @@ subroutine mgt_nodal_dealloc()
 
 end subroutine mgt_nodal_dealloc
 
-subroutine mgt_nodal_solve(tol, abs_tol)
+subroutine mgt_nodal_solve()
   use nodal_cpp_mg_module
   use ml_nd_module
 
   implicit none
-  real(kind=dp_t), intent(in) :: tol, abs_tol
 
   integer :: do_diagnostics
 
@@ -728,8 +727,7 @@ subroutine mgt_nodal_solve(tol, abs_tol)
   call ml_nd(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%fine_mask, &
-       mgts%rr, &
-       do_diagnostics, tol, abs_tol)
+       do_diagnostics)
 
 end subroutine mgt_nodal_solve
 

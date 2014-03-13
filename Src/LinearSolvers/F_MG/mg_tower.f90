@@ -38,6 +38,7 @@ module mg_tower_module
      integer :: bottom_max_iter = 100
      logical :: bottom_singular = .false.
      real(kind=dp_t) :: bottom_solver_eps = 1.0e-4_dp_t
+     integer :: fancy_bottom_type = 1
 
      ! This must be true in order to enforce solvability
      logical :: coeffs_sum_to_zero = .false.
