@@ -2,10 +2,13 @@
 # Makefile for C++ versions of PyBoxLib
 #
 
+OUT ?= .
+
+
 all:
-	make -f GNUmakefile_CXX.mak DIM=1
-	make -f GNUmakefile_CXX.mak DIM=2
-	make -f GNUmakefile_CXX.mak DIM=3
+	make -f GNUmakefile_CXX.mak DIM=1 OUT=$(OUT)
+	make -f GNUmakefile_CXX.mak DIM=2 OUT=$(OUT)
+	make -f GNUmakefile_CXX.mak DIM=3 OUT=$(OUT)
 
 wrappers:
 	make -f GNUmakefile_CXX.mak DIM=1 wrapper
