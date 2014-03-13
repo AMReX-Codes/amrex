@@ -466,7 +466,7 @@ contains
     type(multifab), allocatable :: coeffs(:)
     integer :: lo_inflow(mla%dim),hi_inflow(mla%dim)
 
-    type(multifab) :: div_u(mla%nlevel)
+    type(multifab) :: divu_tmp(mla%nlevel)
 
     dm = mla%dim
     nlevs = mla%nlevel
@@ -567,7 +567,7 @@ contains
     end do
 
     ! ********************************************************************************
-    ! add div_u to rhs (optional)
+    ! add divu_tmp to rhs (optional)
     ! ********************************************************************************
     
     if (subtract_divu_in) then
@@ -589,14 +589,19 @@ contains
        end do
        
        do n=1,nlevs
-          call multifab_build_nodal(div_u(n),mla%la(n),1,1)
+          call multifab_build_nodal(divu_tmp(n),mla%la(n),1,1)
        end do
 
-       call divu(nlevs,mgt,u,div_u,mla%mba%rr,nodal_flags(div_u(nlevs)),lo_inflow,hi_inflow)
+       call divu(nlevs,mgt,u,divu_tmp,mla%mba%rr,nodal_flags(divu_tmp(nlevs)),lo_inflow,hi_inflow)
  
-       ! Do rh = rh - div_u (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
+       ! Do rh = rh - divu_tmp (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
        call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
-       call subtract_divu_from_rh(nlevs,mgt,rh,div_u)
+       call subtract_divu_from_rh(nlevs,mgt,rh,divu_tmp)
+
+       ! not sure about this... makes varden regression work but need to think about it
+       do n=1,nlevs
+          call multifab_mult_mult_s_c(rh(n),1,-1.d0,1,1)
+       end do
 
     end if
 
@@ -604,6 +609,7 @@ contains
 
     do n=1,nlevs
        call mg_tower_destroy(mgt(n))
+       call multifab_destroy(divu_tmp(n))
     end do
 
   end subroutine ml_nd_solve_1
