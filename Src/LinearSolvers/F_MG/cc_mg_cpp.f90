@@ -1394,6 +1394,9 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
 
   do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
 
+  mgts%mgt%eps     = tol
+  mgts%mgt%abs_eps = abs_tol
+
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
        mgts%mla%mask, &
