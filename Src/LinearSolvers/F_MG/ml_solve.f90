@@ -30,7 +30,7 @@ contains
   ! solve (alpha - del dot beta grad) full_soln = rhs for cell-centered full_soln
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in
-  subroutine ml_cc_solve_1(mla,rh,full_soln,alpha,beta,dx,the_bc_tower,bc_comp, &
+  subroutine ml_cc_solve_1(mla,rh,full_soln,fine_flx,alpha,beta,dx,the_bc_tower,bc_comp, &
                            nu1, nu2, nuf, nub, cycle_type, smoother, dh, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
@@ -43,6 +43,7 @@ contains
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: rh(:)         ! cell-centered
     type(multifab) , intent(inout) :: full_soln(:)  ! cell-centered
+    type(bndry_reg), intent(inout) :: fine_flx(:)   ! boundary register
     type(multifab) , intent(in   ) :: alpha(:)      ! cell-centered
     type(multifab) , intent(in   ) :: beta(:,:)     ! edge-based
     real(kind=dp_t), intent(in   ) :: dx(:,:)
@@ -89,8 +90,6 @@ contains
     type(layout) :: la
     type(box) :: pd
 
-    type(bndry_reg) :: fine_flx(2:mla%nlevel)
-
     integer :: stencil_order_in, do_diagnostics_in, integer
     integer :: i, dm, n, nlevs
 
@@ -115,13 +114,6 @@ contains
     else
       is_parabolic = .false.
     end if
-
-    ! stores beta*grad phi/dx_fine on coarse-fine interfaces
-    ! this gets computed inside of ml_cc_solve
-    ! we pass it back out because some algorithms (like projection methods) use this information
-    do n = 2,nlevs
-       call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
-    end do
 
     do n=1,nlevs
        
@@ -281,9 +273,6 @@ contains
     call ml_cc_solve(mla, mgt, rh, full_soln, fine_flx, do_diagnostics_in)
 
     ! deallocate memory
-    do n=2,nlevs
-       call bndry_reg_destroy(fine_flx(n))
-    end do
     do n=1,nlevs
        call mg_tower_destroy(mgt(n))
     end do
