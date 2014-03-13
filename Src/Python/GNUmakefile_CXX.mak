@@ -121,37 +121,13 @@ vpath %.F   $(VPATH_LOCATIONS)
 vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
-# ifeq ($(MACHINE), Linux)
-#   ifeq (${WHICHLINUX}, HEDORAH)
-#     PYTHON_DIR := /usr
-#     PYTHON_INCLUDES := ${PYTHON_DIR}/include/python2.6
-#     ifeq ($(USE_MPI), TRUE)
-#       SHARED_LIBRARIES += /usr/local/lib/libmpichcxx.so \
-#                           /usr/local/lib/libmpl.so
-#     endif
-#     SHARED_LIBRARIES += /usr/lib/libstdc++.so.6 \
-#                         /usr/lib/gcc/x86_64-linux-gnu/4.4.3/libgfortran.so \
-#                         /usr/lib/libm.so
-#     endif
-# endif
-# ifeq (${MACHINE}, Darwin)
-#   PYTHON_DIR := /usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/Current
-#   PYTHON_INCLUDES := ${PYTHON_DIR}/Headers
-#     ifeq ($(USE_MPI), TRUE)
-#       SHARED_LIBRARIES += /usr/local/openmpi/lib/libmpi.dylib /usr/local/openmpi/lib/libmpi_cxx.dylib
-#     endif
-#   SHARED_LIBRARIES += ${PYTHON_DIR}/lib/libpython2.7.dylib \
-#                       /usr/local/lib/libgfortran.dylib
-#   PYTHON_INCLUDES += $(shell python -c 'import numpy; print numpy.get_include()')
-# endif
-
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
 NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')/numpy
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
 WRAPPER = src/boxlib_wrap_$(DIM).cpp
-PYSO    = boxlib/_bl$(DIM).so
+PYSO    = $(OUT)/_bl$(DIM).so
 
 all: $(PYSO)
 
