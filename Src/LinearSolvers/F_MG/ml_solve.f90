@@ -398,13 +398,17 @@ contains
   ! alpha is not supported yet
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in.
-  ! if add_divu=.true., this subroutine will compute div(u) and instead solve
-  ! del dot beta grad full_soln = rh + div(u)
+  ! if add_divu=.true., this subroutine will compute div(u), set rh = rh + div(u) and solve
+  ! del dot beta grad full_soln = rh
+  ! if subtract_divu_rhs=.true., this subroutine will set rh = rh - divu_rhs and solve
+  ! del dot beta grad full_soln = rh
   ! Thus, if you are doing a projection method where div(u)=S, you want to solve
-  ! del dot beta grad full_soln = div(u) - S, and thus you should pass in "-S" for rh
-  ! and pass in add_divu=.true.
+  ! del dot beta grad full_soln = div(u) - S, and thus you should pass in 
+  ! rh initialized to zero, add_divu=.true., and
+  ! divu_rhs=S with subtract_divu_rhs=.true.
   subroutine ml_nd_solve_1(mla,rh,full_soln,beta,dx,the_bc_tower,bc_comp, &
                            add_divu, u, &
+                           subtract_divu_rhs, divu_rhs, &
                            nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
@@ -427,6 +431,8 @@ contains
     ! optional arguments
     logical, intent(in), optional :: add_divu
     type(multifab), intent(inout), optional :: u(:) ! cell-centered
+    logical, intent(in), optional :: subtract_divu_rhs
+    type(multifab), intent(inout), optional :: divu_rhs(:) ! nodal
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
     integer, intent(in), optional :: nuf
@@ -459,7 +465,7 @@ contains
     ! local
     integer :: i,dm,n,nlevs
     integer :: do_diagnostics_loc, stencil_order_loc
-    logical :: add_divu_loc
+    logical :: add_divu_loc, subtract_divu_rhs_loc
 
     type(mg_tower) :: mgt(mla%nlevel)
 
@@ -474,10 +480,12 @@ contains
     do_diagnostics_loc = 0
     stencil_order_loc = 2
     add_divu_loc = .false.
+    subtract_divu_rhs_loc = .false.
 
     if (present(do_diagnostics)) do_diagnostics_loc = do_diagnostics
     if (present(stencil_order))  stencil_order_loc = stencil_order
     if (present(add_divu))  add_divu_loc = add_divu
+    if (present(subtract_divu_rhs)) subtract_divu_rhs_loc = subtract_divu_rhs
 
     do n=1,nlevs
        
@@ -566,6 +574,9 @@ contains
 
     end do
 
+    ! this routine preserves rh=0 on nodes which have bc_dirichlet = true.
+    call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
+
     ! ********************************************************************************
     ! add divergence of u to rhs (optional)
     ! ********************************************************************************
@@ -594,9 +605,21 @@ contains
 
        call divu(nlevs,mgt,u,divu_tmp,mla%mba%rr,nodal_flags(divu_tmp(nlevs)),lo_inflow,hi_inflow)
  
-       ! Do rh = rh + divu_tmp (this routine preserves rh=0 on nodes which have bc_dirichlet = true.)
-       call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
+       ! Do rh = rh + divu_tmp
+       call enforce_outflow_on_divu_rhs(divu_tmp,the_bc_tower)
        call subtract_divu_from_rh(nlevs,mgt,rh,divu_tmp,.false.)
+
+    end if
+
+    if (subtract_divu_rhs_loc) then
+
+       if (.not.(present(divu_rhs))) then
+          call bl_error('ml_solve.f90: subtract_divu_rhs requires divu_rhs passed in')
+       end if
+
+       ! Do rh = rh - divu_rhs
+       call enforce_outflow_on_divu_rhs(divu_rhs,the_bc_tower)
+       call subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs,.true.)
 
     end if
 
