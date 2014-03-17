@@ -14,7 +14,7 @@ module mac_applyop_module
 
 contains
 
-  subroutine mac_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,stencil_order)
+  subroutine mac_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,stencil_order_in)
 
     use mg_module             , only: mg_tower, mg_tower_build, mg_tower_destroy
     use cc_stencil_fill_module, only: stencil_fill_cc
@@ -27,7 +27,7 @@ contains
     real(dp_t)     , intent(in   ) :: dx(:,:)
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: bc_comp
-    integer        , intent(in   ) :: stencil_order
+    integer, intent(in), optional :: stencil_order_in
 
     type(layout  ) :: la
     type(box     ) :: pd
@@ -37,6 +37,7 @@ contains
 
     type(mg_tower)  :: mgt(mla%nlevel)
     integer         :: d, dm, nlevs
+    integer         :: stencil_order
 
     ! MG solver defaults
     integer    :: n
@@ -49,6 +50,9 @@ contains
 
     dm = mla%dim
     nlevs = mla%nlevel
+
+    stencil_order = 2
+    if (present(stencil_order_in)) stencil_order = stencil_order_in
 
     do n = nlevs, 1, -1
 
