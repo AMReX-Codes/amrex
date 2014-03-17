@@ -129,10 +129,18 @@ contains
        if (present(ng))                   mgt(n)%ng = ng
        ! max_nlevel represents how many levels you can coarsen before you either reach
        ! the bottom solve, or the mg_tower object at the next coarser level of refinement
-       if (n .eq. 1) then
-          if (present(max_nlevel)) mgt(n)%max_nlevel = max_nlevel
-       else
+       if (dm .eq. 1) then
           mgt(n)%max_nlevel = 1
+       else if (n .eq. 1 .and. present(max_nlevel)) then
+          mgt(n)%max_nlevel = max_nlevel
+       else
+          if ( all(mla%mba%rr(n-1,:) == 2) ) then
+             mgt(n)%max_nlevel = 1
+          else if ( all(mla%mba%rr(n-1,:) == 4) ) then
+             mgt(n)%max_nlevel = 2
+          else
+             call bl_error("ml_cc_solve_1: confused about ref_ratio")
+          end if
        end if
        if (present(max_bottom_nlevel))    mgt(n)%max_bottom_nlevel = max_bottom_nlevel ! additional coarsening if you use bottom_solver type 4
        if (present(min_width))            mgt(n)%min_width = min_width ! minimum size of grid at coarsest multigrid level
@@ -504,10 +512,18 @@ contains
        if (present(ng))                   mgt(n)%ng = ng
        ! max_nlevel represents how many levels you can coarsen before you either reach
        ! the bottom solve, or the mg_tower object at the next coarser level of refinement
-       if (n .eq. 1) then
-          if (present(max_nlevel)) mgt(n)%max_nlevel = max_nlevel
-       else
+       if (dm .eq. 1) then
           mgt(n)%max_nlevel = 1
+       else if (n .eq. 1 .and. present(max_nlevel)) then
+          mgt(n)%max_nlevel = max_nlevel
+       else
+          if ( all(mla%mba%rr(n-1,:) == 2) ) then
+             mgt(n)%max_nlevel = 1
+          else if ( all(mla%mba%rr(n-1,:) == 4) ) then
+             mgt(n)%max_nlevel = 2
+          else
+             call bl_error("ml_nd_solve_1: confused about ref_ratio")
+          end if
        end if
        if (present(max_bottom_nlevel))    mgt(n)%max_bottom_nlevel = max_bottom_nlevel ! additional coarsening if you use bottom_solver type 4
        if (present(min_width))            mgt(n)%min_width = min_width ! minimum size of grid at coarsest multigrid level
