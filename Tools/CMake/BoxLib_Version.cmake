@@ -5,8 +5,8 @@
 # VERSION_PATCH = patch version if requested, else 0
 # VERSION_TWEAK = tweak version if requested, else 0
 # VERSION_COUNT = number of version components, 0 to 4
-SET(CCSE_VERSION       1.2.5)
+SET(CCSE_VERSION       1.2.6)
 SET(CCSE_VERSION_MAJOR 1)
 SET(CCSE_VERSION_MINOR 2)
-SET(CCSE_VERSION_PATCH 5)
+SET(CCSE_VERSION_PATCH 6)
 SET(CCSE_VERSION_COUNT 3)
