@@ -148,7 +148,23 @@ contains
        if (present(abort_on_max_iter))    mgt(n)%abort_on_max_iter = abort_on_max_iter
        if (present(eps))                  mgt(n)%eps = eps ! relative tolerance of solver
        if (present(abs_eps))              mgt(n)%abs_eps = abs_eps ! absolute tolerance of solver
-       if (present(bottom_solver))        mgt(n)%bottom_solver = bottom_solver ! bottom solver type
+       if (present(bottom_solver)) then
+          if (bottom_solver .ge. 0) then
+             if (bottom_solver .eq. 4 .and. nboxes(full_soln(1)%la) .eq. 1) then
+                if (parallel_IOProcessor()) then
+                   print *,'Dont use mg_bottom_solver == 4 with only one grid -- '
+                   print *,'  Reverting to default bottom solver ',mgt(n)%bottom_solver
+                end if
+             else if (bottom_solver .eq. 4 .and. mgt(n)%max_bottom_nlevel .lt. 2) then
+                if (parallel_IOProcessor()) then
+                   print *,'Dont use mg_bottom_solver == 4 with max_bottom_nlevels < 2'
+                   print *,'  Reverting to default bottom solver ',mgt(n)%bottom_solver
+                end if
+             else
+                mgt(n)%bottom_solver = bottom_solver
+             end if
+          end if
+       end if
        if (present(bottom_max_iter))      mgt(n)%bottom_max_iter = bottom_max_iter ! max iterations of bottom solver
        if (present(bottom_solver_eps))    mgt(n)%bottom_solver_eps = bottom_solver_eps ! tolerance of bottom solver
        if (present(max_L0_growth))        mgt(n)%max_L0_growth = max_L0_growth
@@ -531,7 +547,23 @@ contains
        if (present(abort_on_max_iter))    mgt(n)%abort_on_max_iter = abort_on_max_iter
        if (present(eps))                  mgt(n)%eps = eps ! relative tolerance of solver
        if (present(abs_eps))              mgt(n)%abs_eps = abs_eps ! absolute tolerance of solver
-       if (present(bottom_solver))        mgt(n)%bottom_solver = bottom_solver ! bottom solver type
+       if (present(bottom_solver)) then
+          if (bottom_solver .ge. 0) then
+             if (bottom_solver .eq. 4 .and. nboxes(full_soln(1)%la) .eq. 1) then
+                if (parallel_IOProcessor()) then
+                   print *,'Dont use mg_bottom_solver == 4 with only one grid -- '
+                   print *,'  Reverting to default bottom solver ',mgt(n)%bottom_solver
+                end if
+             else if (bottom_solver .eq. 4 .and. mgt(n)%max_bottom_nlevel .lt. 2) then
+                if (parallel_IOProcessor()) then
+                   print *,'Dont use mg_bottom_solver == 4 with max_bottom_nlevels < 2'
+                   print *,'  Reverting to default bottom solver ',mgt(n)%bottom_solver
+                end if
+             else
+                mgt(n)%bottom_solver = bottom_solver
+             end if
+          end if
+       end if
        if (present(bottom_max_iter))      mgt(n)%bottom_max_iter = bottom_max_iter ! max iterations of bottom solver
        if (present(bottom_solver_eps))    mgt(n)%bottom_solver_eps = bottom_solver_eps ! tolerance of bottom solver
        if (present(max_L0_growth))        mgt(n)%max_L0_growth = max_L0_growth
