@@ -131,8 +131,10 @@ contains
        ! the bottom solve, or the mg_tower object at the next coarser level of refinement
        if (dm .eq. 1) then
           mgt(n)%max_nlevel = 1
-       else if (n .eq. 1 .and. present(max_nlevel)) then
-          mgt(n)%max_nlevel = max_nlevel
+       else if (n .eq. 1) then
+          if (present(max_nlevel)) then
+             mgt(n)%max_nlevel = max_nlevel
+          end if
        else
           if ( all(mla%mba%rr(n-1,:) == 2) ) then
              mgt(n)%max_nlevel = 1
@@ -530,8 +532,10 @@ contains
        ! the bottom solve, or the mg_tower object at the next coarser level of refinement
        if (dm .eq. 1) then
           mgt(n)%max_nlevel = 1
-       else if (n .eq. 1 .and. present(max_nlevel)) then
-          mgt(n)%max_nlevel = max_nlevel
+       else if (n .eq. 1) then
+          if (present(max_nlevel)) then
+             mgt(n)%max_nlevel = max_nlevel
+          end if
        else
           if ( all(mla%mba%rr(n-1,:) == 2) ) then
              mgt(n)%max_nlevel = 1
