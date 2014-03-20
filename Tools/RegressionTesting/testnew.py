@@ -925,7 +925,8 @@ def testSuite(argv):
                   --boxLibGitHash boxlibhash
                   --sourceGitHash sourcehash
                   --extSrcGitHash extsourcehash
-                  --note note]
+                  --note note
+                  --complete_report_from_crash testdir]
         testfile.ini
 
 
@@ -1190,6 +1191,12 @@ def testSuite(argv):
        --note \"note\"
           print the note on the resulting test webpages
           
+       --complete_report_from_crash \"testdir\"
+          if a test suite run crashed (or the terminal you were running 
+          from disconnected) and the file report was not generated, this
+          option will just generate the report for the test suite run and
+          the overall report for all runs.  testdir is the name of the
+          testdir (e.g. 20XX-XX-XX) that was running when the suite crashed.
 
     Getting started:
 
@@ -1222,7 +1229,8 @@ def testSuite(argv):
                                     "boxLibGitHash=",
                                     "sourceGitHash=",
                                     "extSrcGitHash=",
-                                    "note="])
+                                    "note=",
+                                    "complete_report_from_crash="])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -1241,7 +1249,8 @@ def testSuite(argv):
     sourceGitHash = ""
     extSrcGitHash = ""
     note = ""
-    
+    completeReportFromCrash = ""
+
     for o, a in opts:
 
         if o == "--make_benchmarks":
@@ -1271,7 +1280,10 @@ def testSuite(argv):
 
         if o == "--note":
             note = a
-            
+
+        if o == "--complete_report_from_crash":
+            completeReportFromCrash = a
+
     try:
         testFile = next[0]
 
@@ -1293,6 +1305,45 @@ def testSuite(argv):
 
     if (len(testList) == 0):
         fail("No valid tests defined")
+
+
+    if not completeReportFromCrash == "":
+
+        # make sure the web directory from the crash run exists
+        fullWebDir = "%s/%s/"  % (suite.webTopDir, completeReportFromCrash)
+        if not os.path.isdir(fullWebDir):
+            fail("Crash directory does not exist")
+
+        # find all the tests that completed in that web directory
+        tests = []
+        testFile = ""
+        wasBenchmarkRun = 0
+        for file in os.listdir(fullWebDir):
+            if os.path.isfile(file) and file.endswith(".status"):
+                index = string.rfind(file, ".status")
+                tests.append(file[:index])
+
+                f = open(fullWebDir + file, "r")
+                for line in f:
+                    if string.find(line, "benchmarks updated") > 0:
+                        wasBenchmarkRun = 1
+
+            if os.path.isfile(file) and file.endswith(".ini"):
+                testFile = file
+
+
+        # create the report for this test run
+        numFailed = reportThisTestRun(suite, wasBenchmarkRun, "", 
+                                      "recreated report after crash of suite", 
+                                      "",  0, 0, 0,
+                                      tests, completeReportFromCrash, testFile, fullWebDir)
+
+
+        # create the suite report
+        bold("creating suite report...")
+        tableHeight = min(max(suite.lenTestName, 4), 16)
+        reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
+        sys.exit("done")
 
 
     #--------------------------------------------------------------------------
@@ -3056,7 +3107,10 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     #--------------------------------------------------------------------------
     
     index = string.find(testDir, "/")
-    statusFile = testDir[0:index] + ".status"
+    if index > 0:
+        statusFile = testDir[0:index] + ".status"
+    else:
+        statusFile = testDir + ".status"
 
     sf = open(statusFile, 'w')
 
