@@ -25,13 +25,15 @@ contains
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
       integer        , pointer ::  mp(:,:,:,:) 
 
-      integer         :: i,n,dm,ng,mglev_fine
+      integer         :: i,n,dm,ng_u,ng_r,mglev_fine
+      integer         :: lo(get_dim(unew(nlevs))),hi(get_dim(unew(nlevs)))
       type(      box) :: pdc
       type(   layout) :: la_crse,la_fine
       type(bndry_reg) :: brs_flx
 
       dm = get_dim(unew(nlevs))
-      ng = nghost(unew(nlevs))
+      ng_u = nghost(unew(nlevs))
+      ng_r = nghost(rh(nlevs))
 
 !     Create the regular single-level divergence.
       do n = 1, nlevs
@@ -41,19 +43,21 @@ contains
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp  => dataptr(mgt(n)%mm(mglev_fine),i)
+            lo = lwb(get_box(unew(n),i))
+            hi = upb(get_box(unew(n),i))
             select case (dm)
                case (1)
                  call divu_1d(unp(:,1,1,1), rhp(:,1,1,1), &
                                mp(:,1,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
                case (2)
                  call divu_2d(unp(:,:,1,:), rhp(:,:,1,1), &
                                mp(:,:,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
                case (3)
                  call divu_3d(unp(:,:,:,:), rhp(:,:,:,1), &
                                mp(:,:,:,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
             end select
          end do
       end do
@@ -74,50 +78,45 @@ contains
 
     end subroutine divu
 
-    subroutine divu_1d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_1d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:)
-      real(kind=dp_t), intent(inout) :: rh(-1:)
-      integer        , intent(inout) :: mm(0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,nx
-
-      nx = size(rh,dim=1) - 3
+      integer         :: i
 
       rh = ZERO
 
-      do i = 0,nx
+      do i = lo(1),hi(1)+1
          if (.not.bc_dirichlet(mm(i),1,0)) then 
            rh(i) = (u(i)-u(i-1)) / dx(1) 
          end if
       end do
 
       if (face_type(1,1) == BC_NEU) rh( 0) = TWO*rh( 0)
-      if (face_type(1,2) == BC_NEU) rh(nx) = TWO*rh(nx)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1) = TWO*rh(hi(1)+1)
 
     end subroutine divu_1d
 
-    subroutine divu_2d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_2d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,1:)
-      real(kind=dp_t), intent(inout) :: rh(-1:,-1:)
-      integer        , intent(inout) :: mm(0:,0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:,lo(2)-ng_u:,:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:,lo(2)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):,lo(2):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,j,nx,ny
-
-      nx = size(rh,dim=1) - 3
-      ny = size(rh,dim=2) - 3
+      integer         :: i,j
 
       rh = ZERO
 
-      do j = 0,ny
-      do i = 0,nx
+      do j = lo(2),hi(2)+1
+      do i = lo(1),hi(1)+1
          if (.not.bc_dirichlet(mm(i,j),1,0)) then 
            rh(i,j) = (u(i  ,j,1) + u(i  ,j-1,1) &
                      -u(i-1,j,1) - u(i-1,j-1,1)) / dx(1) + &
@@ -129,29 +128,24 @@ contains
       end do
 
       if (face_type(1,1) == BC_NEU) rh( 0,:) = TWO*rh( 0,:)
-      if (face_type(1,2) == BC_NEU) rh(nx,:) = TWO*rh(nx,:)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1,:) = TWO*rh(hi(1)+1,:)
       if (face_type(2,1) == BC_NEU) rh(:, 0) = TWO*rh(:, 0)
-      if (face_type(2,2) == BC_NEU) rh(:,ny) = TWO*rh(:,ny)
+      if (face_type(2,2) == BC_NEU) rh(:,hi(2)+1) = TWO*rh(:,hi(2)+1)
 
     end subroutine divu_2d
 
-    subroutine divu_3d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_3d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,-ng:,1:)
-      real(kind=dp_t), intent(inout) :: rh(-1:,-1:,-1:)
-      integer        , intent(inout) :: mm(0:,0:,0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:,lo(2)-ng_u:,lo(3)-ng_u:,:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):,lo(2):,lo(3):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,j,k,nx,ny,nz
+      integer         :: i,j,k
       real(kind=dp_t) :: ivdx, ivdy, ivdz
       
-
-      nx = size(rh,dim=1) - 3
-      ny = size(rh,dim=2) - 3
-      nz = size(rh,dim=3) - 3
-
       rh = ZERO
 
       ivdx = 1.0d0 / dx(1)
@@ -159,9 +153,9 @@ contains
       ivdz = 1.0d0 / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = 0,nz
-      do j = 0,ny
-      do i = 0,nx
+      do k = lo(3),hi(3)+1
+      do j = lo(2),hi(2)+1
+      do i = lo(1),hi(1)+1
          if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
            rh(i,j,k) = (u(i  ,j,k  ,1) + u(i  ,j-1,k  ,1) &
                        +u(i  ,j,k-1,1) + u(i  ,j-1,k-1,1) &
@@ -183,11 +177,11 @@ contains
       !$OMP END PARALLEL DO
 
       if (face_type(1,1) == BC_NEU) rh( 0,:,:) = TWO*rh( 0,:,:)
-      if (face_type(1,2) == BC_NEU) rh(nx,:,:) = TWO*rh(nx,:,:)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1,:,:) = TWO*rh(hi(1)+1,:,:)
       if (face_type(2,1) == BC_NEU) rh(:, 0,:) = TWO*rh(:, 0,:)
-      if (face_type(2,2) == BC_NEU) rh(:,ny,:) = TWO*rh(:,ny,:)
+      if (face_type(2,2) == BC_NEU) rh(:,hi(2)+1,:) = TWO*rh(:,hi(2)+1,:)
       if (face_type(3,1) == BC_NEU) rh(:,:, 0) = TWO*rh(:,:, 0)
-      if (face_type(3,2) == BC_NEU) rh(:,:,nz) = TWO*rh(:,:,nz)
+      if (face_type(3,2) == BC_NEU) rh(:,:,hi(3)+1) = TWO*rh(:,:,hi(3)+1)
 
     end subroutine divu_3d
 
