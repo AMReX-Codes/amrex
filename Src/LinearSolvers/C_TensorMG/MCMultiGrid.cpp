@@ -302,7 +302,6 @@ MCMultiGrid::solve_ (MultiFab& _sol,
   //
   // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed.
   //
-  Real       norm_cor    = 0.0;
   int        nit         = 1;
   const Real new_error_0 = norm_rhs;
   //const Real norm_Lp     = Lp.norm(0, level);
@@ -311,18 +310,12 @@ MCMultiGrid::solve_ (MultiFab& _sol,
   for ( ;
         error > eps_abs &&
           error > eps_rel*norm_rhs &&
-          //error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
           nit <= maxiter;
         ++nit)
   {
     relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
-    
-    Real tmp[2] = { norm_inf(*cor[level],true), errorEstimate(level,bc_mode,true) };
 
-    ParallelDescriptor::ReduceRealMax(tmp,2);
-    
-    norm_cor = tmp[0];
-    error    = tmp[1];
+    error = errorEstimate(level,bc_mode);
 	
     if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
     {
