@@ -7,8 +7,6 @@ module cc_applyop_module
 
   implicit none
 
-  private :: scale_residual_1d, scale_residual_2d, scale_residual_3d
-
 contains
 
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
@@ -129,25 +127,10 @@ contains
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
-
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = nghost(res(n))
-       
-       do i=1, nfabs(res(n))
-          resp  => dataptr(res(n),i)
-          lo    =  lwb(get_box(res(n), i))
-          hi    =  upb(get_box(res(n), i))
-          select case (dm)
-          case (1)
-             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
-          case (2)
-             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
-          case (3)
-             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
-          end select
-       end do
-    enddo
+       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+    end do
 
     do n = 2,nlevs-1
        call destroy(uu_hold(n))
@@ -289,25 +272,10 @@ contains
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
-
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = nghost(res(n))
-       
-       do i=1, nfabs(res(n))
-          resp  => dataptr(res(n),i)
-          lo    =  lwb(get_box(res(n), i))
-          hi    =  upb(get_box(res(n), i))
-          select case (dm)
-          case (1)
-             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
-          case (2)
-             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
-          case (3)
-             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
-          end select
-       end do
-    enddo
+       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+    end do
 
     do n = 2,nlevs-1
        call destroy(uu_hold(n))
@@ -326,67 +294,5 @@ contains
     call destroy(bpt)
 
   end subroutine ml_cc_n_applyop
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 1d
-  subroutine scale_residual_1d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:)
-
-! Local
-  integer :: i
-
-  do i=lo(1),hi(1)
-     res(i) = -res(i)
-  enddo
-  
-  end subroutine scale_residual_1d
-
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 2d
-  subroutine scale_residual_2d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:)
-
-! Local
-  integer :: i,j
-
-  do j=lo(2),hi(2)
-     do i=lo(1),hi(1)
-        res(i,j) = -res(i,j)
-     enddo
-  enddo
-  
-  end subroutine scale_residual_2d
-
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 3d
-  subroutine scale_residual_3d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-
-! Local
-  integer :: i,j,k
-
-  do k=lo(3),hi(3)
-     do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
-           res(i,j,k) = -res(i,j,k)
-        enddo
-     enddo
-  enddo
-
-  end subroutine scale_residual_3d
 
 end module cc_applyop_module
