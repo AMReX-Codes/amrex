@@ -10,7 +10,7 @@ module cc_applyop_module
 
   private
 
-  public :: cc_applyop
+  public :: cc_applyop, ml_cc_applyop
 
 contains
 
