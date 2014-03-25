@@ -4,7 +4,6 @@ f90sources += bc_functions.f90
 f90sources += coarsen_coeffs.f90
 f90sources += edge_restriction.f90
 f90sources += itsol.f90
-f90sources += mac_applyop.f90
 
 ifdef USE_MG_CPP
 f90sources += cc_mg_cpp.f90
