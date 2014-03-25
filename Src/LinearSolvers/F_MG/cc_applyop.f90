@@ -45,7 +45,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "mac_applyop")
+    call build(bpt, "cc_applyop")
 
     dm = mla%dim
     nlevs = mla%nlevel
