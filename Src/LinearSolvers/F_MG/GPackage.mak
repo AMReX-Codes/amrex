@@ -32,6 +32,7 @@ f90sources += ml_cc.f90
 f90sources += ml_norm.f90
 f90sources += ml_solve.f90
 
+f90sources += nodal_applyop.f90
 f90sources += nodal_mask.f90
 f90sources += nodal_mg_cpp.f90
 f90sources += nodal_divu.f90
