@@ -126,11 +126,7 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::      soln(:)
-    type(multifab), allocatable  ::        uu(:)
-    type(multifab), allocatable  ::   uu_hold(:)
     type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-    type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
@@ -146,29 +142,16 @@ contains
 
     nlevs = mla%nlevel
 
-    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
-    allocate(uu_hold(2:nlevs-1))
+    allocate(rh(nlevs))
 
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
 
-    do n = 2,nlevs-1
-       la = mla%la(n)
-       call build(uu_hold(n),la,1,1)
-       call setval( uu_hold(n), ZERO,all=.true.)
-    end do
-
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, 1)
-       call build(      uu(n), la, 1, 1)
-       call build(      rh(n), la, 1, 0)
-       call build(temp_res(n), la, 1, 0)
-       call setval(    soln(n), ZERO,all=.true.)
-       call setval(      uu(n), ZERO,all=.true.)
-       call setval(      rh(n), ZERO,all=.true.)
-       call setval(temp_res(n), ZERO,all=.true.)
+       call build(rh(n), la, 1, 0)
+       call setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
        call setval(     res(n), ZERO,all=.true.)
@@ -207,10 +190,9 @@ contains
        call multifab_fill_boundary(full_soln(n))
     end do
 
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
                            mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
@@ -225,7 +207,7 @@ contains
                                   ref_ratio(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
@@ -233,15 +215,8 @@ contains
        call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
     end do
 
-    do n = 2,nlevs-1
-       call destroy(uu_hold(n))
-    end do
-
     do n = nlevs, 1, -1
-       call destroy(soln(n))
-       call destroy(uu(n))
        call destroy(rh(n))
-       call destroy(temp_res(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
@@ -268,11 +243,7 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::      soln(:)
-    type(multifab), allocatable  ::        uu(:)
-    type(multifab), allocatable  ::   uu_hold(:)
     type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-    type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
@@ -288,17 +259,10 @@ contains
 
     nlevs = mla%nlevel
 
-    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
-    allocate(uu_hold(2:nlevs-1))
+    allocate(rh(nlevs))
 
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
-
-    do n = 2,nlevs-1
-       la = mla%la(n)
-       call build(uu_hold(n),la,1,1)
-       call setval( uu_hold(n), ZERO,all=.true.)
-    end do
 
     dm    = 2
     nComp = 2
@@ -306,14 +270,8 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, 1)
-       call build(      uu(n), la, 1, 1)
-       call build(      rh(n), la, 1, 0)
-       call build(temp_res(n), la, 1, 0)
-       call setval(    soln(n), ZERO,all=.true.)
-       call setval(      uu(n), ZERO,all=.true.)
-       call setval(      rh(n), ZERO,all=.true.)
-       call setval(temp_res(n), ZERO,all=.true.)
+       call build(rh(n), la, 1, 0)
+       call setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
        call setval(     res(n), ZERO,all=.true.)
@@ -352,10 +310,9 @@ contains
        call multifab_fill_boundary(full_soln(n))
     end do
 
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
                            mgt(n)%stencil_type, mgt(n)%lcross) 
     end do
 
@@ -369,7 +326,7 @@ contains
        call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                     ref_ratio(n-1,:))
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
@@ -377,15 +334,8 @@ contains
        call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
     end do
 
-    do n = 2,nlevs-1
-       call destroy(uu_hold(n))
-    end do
-
     do n = nlevs, 1, -1
-       call destroy(soln(n))
-       call destroy(uu(n))
        call destroy(rh(n))
-       call destroy(temp_res(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
