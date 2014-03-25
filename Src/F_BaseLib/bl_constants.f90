@@ -32,10 +32,13 @@ module bl_constants_module
   real(kind = dp_t), parameter :: EIGHTH  = 0.125_dp_t
   real(kind = dp_t), parameter :: NINETH  = ONE/NINE
   real(kind = dp_t), parameter :: TENTH   = 0.10_dp_t
+  real(kind = dp_t), parameter :: TWELVTH = ONE/TWELVE
 
-  real(kind = dp_t), parameter :: TWO3RD  = TWO/THREE
-  real(kind = dp_t), parameter :: FOUR3RD = FOUR/THREE
-  real(kind = dp_t), parameter :: FIVE3RD = FIVE/THREE
+  real(kind = dp_t), parameter :: TWO3RD    = TWO/THREE
+  real(kind = dp_t), parameter :: FOUR3RD   = FOUR/THREE
+  real(kind = dp_t), parameter :: FIVE3RD   = FIVE/THREE
+
+  real(kind = dp_t), parameter :: SEVEN12TH = SEVEN/TWELVE
 
   !! Pi
   real(kind = dp_t), parameter :: M_PI    = &
