@@ -60,8 +60,7 @@ contains
        allocate(coeffs(mgt(n)%nlevels))
 
        call multifab_build(coeffs(mgt(n)%nlevels), mla%la(n), 1, 1)
-       call multifab_copy_c(coeffs(mgt(n)%nlevels),1,beta(n),1,1,beta(n)%ng)
-
+       call multifab_copy_c(coeffs(mgt(n)%nlevels),1,beta(n),1,1,1)
        call stencil_fill_nodal_all_mglevels(mgt(n), coeffs)
 
        call destroy(coeffs(mgt(n)%nlevels))
@@ -89,7 +88,7 @@ contains
     ! local
     integer    :: n,nlevs,mglev
 
-    type(multifab), allocatable  ::        rh(:) ! this will be set to zero
+    type(multifab) :: rh(mla%nlevel) ! this will be set to zero
 
     nlevs = mla%nlevel
 
@@ -102,6 +101,11 @@ contains
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+    end do
+
+    ! multiply by -1 so operator returns +del dot beta grad phi
+    do n=1,nlevs
+       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,res(n)%ng)
     end do
 
     do n=1,nlevs
