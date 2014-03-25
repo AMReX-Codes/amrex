@@ -702,8 +702,6 @@ contains
     dm    = get_dim(rh(nlevs))
     nodal = .true.
 
-    !      We are only considering the dense stencils here (3 in 1d, 9 in 2d, 27 in 3d)
-
     do n = nlevs, 1, -1
        call lmultifab_build(fine_mask(n), mla%la(n), 1, 0, nodal)
        if ( n < nlevs ) then
