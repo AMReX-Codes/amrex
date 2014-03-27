@@ -3,7 +3,9 @@
     _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
-    ifeq ($(findstring Version 13, $(_ifc_version)), Version 13)
+    ifeq ($(findstring Version 14, $(_ifc_version)), Version 14)
+        _comp := Intel14
+    else ifeq ($(findstring Version 13, $(_ifc_version)), Version 13)
         _comp := Intel13
     else ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
         _comp := Intel12
@@ -29,6 +31,26 @@
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2
       CFLAGS   += -openmp -openmp-report2
+    endif
+    ifeq ($(_comp),Intel14)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g -Wcheck
+      else
+        ifdef INTEL_X86
+	  F90FLAGS += -fast
+	  FFLAGS += -fast
+	  CFLAGS += -fast
+	else
+          F90FLAGS += -O2 -ip -xHost # -fp-model source -vec-report6
+          FFLAGS   += -O2 -ip -xHost # -fp-model source 
+          CFLAGS   += -O2 -ip -xHost # -fp-model source 
+	endif
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
     endif
     ifeq ($(_comp),Intel13)
       ifndef NDEBUG
