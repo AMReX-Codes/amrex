@@ -38,8 +38,14 @@ endif
 ifdef ROSE
   rose_suffix   := .rose
 endif
+ifdef ZMQ
+  zmq_suffix := .zmq
+endif
+ifdef HDF
+  hdf_suffix := .hdf
+endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(hpc_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =
@@ -219,9 +225,9 @@ ifndef ROSE
    COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
    COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 else
-   COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSE_CFLAGS)   $(CPPFLAGS) -c
-   COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSE_FFLAGS)   $(FPPFLAGS) -c
-   COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSE_F90FLAGS) $(FPPFLAGS) -c
+   COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSEFLAGS) $(CPPFLAGS) -c
+   COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSEFLAGS) $(FPPFLAGS) -c
+   COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSEFLAGS) $(FPPFLAGS) -c
 endif
 
 LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)

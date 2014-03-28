@@ -128,9 +128,7 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       REAL_T tranderb(DIMV(tranderb),3,3)
 
       integer i,j,k
-      REAL_T tauxxw,tauxxe,tauyyn,tauyys
-      REAL_T tauxye,tauxyw,tauxyn,tauxys
-      REAL_T hx,hy,hz
+      REAL_T hx,hy,hz,invhx,invhy,invhz,ihxsq,ihysq,ihzsq,ihxyz
       REAL_T dudxe,dudxw
       REAL_T dvdyn,dvdys
       REAL_T dudye,dudyw
@@ -150,7 +148,6 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       integer istart,jstart,kstart
       REAL_T diagu,diagv,diagw
       REAL_T operu,operv,operw
-      
 
       logical False, True
       parameter( False=.false.)
@@ -160,6 +157,15 @@ c ::: direction of derivative.  Obviously not all are used, but this is easy.
       hy = h(2)
       hz = h(3)
 
+      invhx = 1.0d0/hx
+      invhy = 1.0d0/hy
+      invhz = 1.0d0/hz
+
+      ihxsq = 1.0d0/hx**2
+      ihysq = 1.0d0/hy**2
+      ihzsq = 1.0d0/hz**2
+
+      ihxyz = 1.0d0/(hx*hy*hz)
 
       if( ncomp .ne. 3 ) then
 	write(6,*)'FORT_GSRB: bad ncomp',ncomp
@@ -230,89 +236,89 @@ c ::: Null
          do j=jstart,hi(2)-1,2
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
       
 c     ::: get expressions for tangential derivatives
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: in interior, diagonal elements need no corrections
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -337,116 +343,116 @@ c ::: Null
          do j=jstart,hi(2)-1,2
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -472,116 +478,116 @@ c ::: Null
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
                
 c     ::: get expressions for tangential derivatives
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
         dwdyb=tranderb(i,j,-1+k,3,2)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -606,116 +612,116 @@ c ::: Null
       do k=kstart,hi(3)-1,2
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal 
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
         dudzw=tranderw(-1+i,j,k,1,3)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -741,116 +747,116 @@ c ::: Null
       do k=kstart,hi(3)-1,2
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -876,116 +882,116 @@ c ::: Null
       do k=kstart,hi(3)-1,2
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
                
 c     ::: get expressions for tangential derivatives
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1013,116 +1019,116 @@ c ::: Null
       do k=kstart,hi(3)-1,2
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=tranders(i,-1+j,k,2,3)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1151,130 +1157,130 @@ c ::: Null
 !$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=trandert(i,j,1+k,3,1)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,1)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,1)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
       endif
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1297,131 +1303,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
         dwdxt=trandert(i,j,1+k,3,1)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1445,131 +1451,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1593,131 +1599,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
                
 c     ::: get expressions for tangential derivatives
         dudye=trandere(1+i,j,k,1,2)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1741,131 +1747,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=trandern(i,1+j,k,2,1)
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -1889,131 +1895,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
             do i=istart,hi(1)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=tranderb(i,j,-1+k,3,1)
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2037,131 +2043,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
       do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dwdyb=tranderb(i,j,-1+k,3,2)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2185,131 +2191,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
          do j=jstart,hi(2)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dudye=trandere(1+i,j,k,1,2)
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
         dwdyb=tranderb(i,j,-1+k,3,2)
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2333,131 +2339,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2481,131 +2487,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2629,131 +2635,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
         dvdzn=trandern(i,1+j,k,2,3)
         
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2777,131 +2783,131 @@ c ::: Null
 !$omp&private(operu,operv,operw)
       do k=kstart,hi(3)-1,2
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
         dvdzs=tranders(i,-1+j,k,2,3)
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fw(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fw(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fw(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fw(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fw(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -2920,135 +2926,135 @@ c ::: Null
       i=hi(1)
       if( mod(k,2).eq.modz .and. mod(j,2).eq.mody .and. mod(i,2).eq.modx ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3066,134 +3072,134 @@ c ::: Null
            k=hi(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(maskn(i,1+j,-1+k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dwdyb=((U(i,-2+j,-1+k,3)-4*U(i,-1+j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hy))/2.d0
+     &  j,-1+k,3))*(.5d0*invhy)+(U(i,-2+j,k,3)-4*U(i,-1+j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskt(i,-1+j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dvdzs=((U(i,-1+j,-2+k,2)-4*U(i,-1+j,-1+k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hz))/2.d0
+     &  -1+j,k,2))*(.5d0*invhz)+(U(i,j,-2+k,2)-4*U(i,j,-1+k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3211,135 +3217,135 @@ c ::: Null
            k=hi(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maske(1+i,j,-1+k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dwdxb=((U(-2+i,j,-1+k,3)-4*U(-1+i,j,-1+k,3)+3*U(i,
-     &  j,-1+k,3))/(2.d0*hx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
-     &  )+3*U(i,j,k,3))/(2.d0*hx))/2.d0
+     &  j,-1+k,3))*(.5d0*invhx)+(U(-2+i,j,k,3)-4*U(-1+i,j,k,3
+     &  )+3*U(i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
         dudye=trandere(1+i,j,k,1,2)
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
       if(maskt(-1+i,j,1+k).gt.0.or.maskt(i,j,1+k).gt.0) then 
         dudzw=((U(-1+i,j,-2+k,1)-4*U(-1+i,j,-1+k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hz))/2.d0
+     &  +i,j,k,1))*(.5d0*invhz)+(U(i,j,-2+k,1)-4*U(i,j,-1+k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3356,134 +3362,134 @@ c ::: Null
            k=hi(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
       if(maskw(-1+i,j,-1+k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dwdxb=((-3*U(i,j,-1+k,3)+4*U(1+i,j,-1+k,3)-U(2+i,j
-     &  ,-1+k,3))/(2.d0*hx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
-     &  U(2+i,j,k,3))/(2.d0*hx))/2.d0
+     &  ,-1+k,3))*(.5d0*invhx)+(-3*U(i,j,k,3)+4*U(1+i,j,k,3)-
+     &  U(2+i,j,k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxb=(-U(-1+i,j,-1+k,3)-U(-1+i,j,k,3)+U(1+i,j,-1+
-     &  k,3)+U(1+i,j,k,3))/(4.d0*hx)
+     &  k,3)+U(1+i,j,k,3))*(.25d0*invhx)
       endif
         dwdxt=trandert(i,j,1+k,3,1)
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
       if(masks(i,-1+j,-1+k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dwdyb=((-3*U(i,j,-1+k,3)+4*U(i,1+j,-1+k,3)-U(i,2+j
-     &  ,-1+k,3))/(2.d0*hy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
-     &  U(i,2+j,k,3))/(2.d0*hy))/2.d0
+     &  ,-1+k,3))*(.5d0*invhy)+(-3*U(i,j,k,3)+4*U(i,1+j,k,3)-
+     &  U(i,2+j,k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyb=(-U(i,-1+j,-1+k,3)-U(i,-1+j,k,3)+U(i,1+j,-1+
-     &  k,3)+U(i,1+j,k,3))/(4.d0*hy)
+     &  k,3)+U(i,1+j,k,3))*(.25d0*invhy)
       endif
         dwdyt=trandert(i,j,1+k,3,2)
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(1+i,j,1+k).gt.0) then 
         dudze=((U(i,j,-2+k,1)-4*U(i,j,-1+k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(1+i,j,-2+k,1)-4*U(1+i,j,-1+k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskt(i,j,1+k).gt.0.or.maskt(i,1+j,1+k).gt.0) then 
         dvdzn=((U(i,j,-2+k,2)-4*U(i,j,-1+k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hz))/2.d0
+     &  )*(.5d0*invhz)+(U(i,1+j,-2+k,2)-4*U(i,1+j,-1+k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskt(i,j,k+1) .gt. 0 ) then
-         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)/hz**2)
-         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)/hz**2)
-         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)/hz**2
+         diagu = diagu -ft(i,j,k,1)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagv = diagv -ft(i,j,k,2)*(beta*muZ(i,j,1+k)*ihzsq)
+         diagw = diagw -ft(i,j,k,3)*2.d0*beta*muZ(i,j,1+k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3501,135 +3507,135 @@ c ::: Null
            k=lo(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maske(1+i,-1+j,k).gt.0.or.maske(1+i,j,k).gt.0) then 
         dvdxs=((U(-2+i,-1+j,k,2)-4*U(-1+i,-1+j,k,2)+3*U(i,
-     &  -1+j,k,2))/(2.d0*hx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
-     &  )+3*U(i,j,k,2))/(2.d0*hx))/2.d0
+     &  -1+j,k,2))*(.5d0*invhx)+(U(-2+i,j,k,2)-4*U(-1+i,j,k,2
+     &  )+3*U(i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(maskn(-1+i,1+j,k).gt.0.or.maskn(i,1+j,k).gt.0) then 
         dudyw=((U(-1+i,-2+j,k,1)-4*U(-1+i,-1+j,k,1)+3*U(-1
-     &  +i,j,k,1))/(2.d0*hy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
-     &  )+3*U(i,j,k,1))/(2.d0*hy))/2.d0
+     &  +i,j,k,1))*(.5d0*invhy)+(U(i,-2+j,k,1)-4*U(i,-1+j,k,1
+     &  )+3*U(i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3647,134 +3653,134 @@ c ::: Null
            k=lo(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
         dvdxn=trandern(i,1+j,k,2,1)
       if(maskw(-1+i,-1+j,k).gt.0.or.maskw(-1+i,j,k).gt.0) then 
         dvdxs=((-3*U(i,-1+j,k,2)+4*U(1+i,-1+j,k,2)-U(2+i,-
-     &  1+j,k,2))/(2.d0*hx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
-     &  U(2+i,j,k,2))/(2.d0*hx))/2.d0
+     &  1+j,k,2))*(.5d0*invhx)+(-3*U(i,j,k,2)+4*U(1+i,j,k,2)-
+     &  U(2+i,j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxs=(-U(-1+i,-1+j,k,2)-U(-1+i,j,k,2)+U(1+i,-1+j,
-     &  k,2)+U(1+i,j,k,2))/(4.d0*hx)
+     &  k,2)+U(1+i,j,k,2))*(.25d0*invhx)
       endif
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
       if(maskn(i,1+j,k).gt.0.or.maskn(1+i,1+j,k).gt.0) then 
         dudye=((U(i,-2+j,k,1)-4*U(i,-1+j,k,1)+3*U(i,j,k,1)
-     &  )/(2.d0*hy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
-     &  (1+i,j,k,1))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(1+i,-2+j,k,1)-4*U(1+i,-1+j,k,1)+3*U
+     &  (1+i,j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(maskn(i,1+j,k).gt.0.or.maskn(i,1+j,1+k).gt.0) then 
         dwdyt=((U(i,-2+j,k,3)-4*U(i,-1+j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hy))/2.d0
+     &  )*(.5d0*invhy)+(U(i,-2+j,1+k,3)-4*U(i,-1+j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
       if(maskb(i,-1+j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dvdzs=((-3*U(i,-1+j,k,2)+4*U(i,-1+j,1+k,2)-U(i,-1+
-     &  j,2+k,2))/(2.d0*hz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
-     &  U(i,j,2+k,2))/(2.d0*hz))/2.d0
+     &  j,2+k,2))*(.5d0*invhz)+(-3*U(i,j,k,2)+4*U(i,j,1+k,2)-
+     &  U(i,j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzs=(-U(i,-1+j,-1+k,2)+U(i,-1+j,1+k,2)-U(i,j,-1+
-     &  k,2)+U(i,j,1+k,2))/(4.d0*hz)
+     &  k,2)+U(i,j,1+k,2))*(.25d0*invhz)
       endif
         dvdzn=trandern(i,1+j,k,2,3)
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( maskn(i,j+1,k) .gt. 0 ) then
-         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)/hy**2)
-         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)/hy**2
-         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)/hy**2)
+         diagu = diagu -fn(i,j,k,1)*(beta*muY(i,1+j,k)*ihysq)
+         diagv = diagv -fn(i,j,k,2)*2.d0*beta*muY(i,1+j,k)*ihysq
+         diagw = diagw -fn(i,j,k,3)*(beta*muY(i,1+j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3793,134 +3799,134 @@ c ::: Null
            k=lo(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maske(1+i,j,k).gt.0.or.maske(1+i,1+j,k).gt.0) then 
         dvdxn=((U(-2+i,j,k,2)-4*U(-1+i,j,k,2)+3*U(i,j,k,2)
-     &  )/(2.d0*hx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
-     &  (i,1+j,k,2))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,1+j,k,2)-4*U(-1+i,1+j,k,2)+3*U
+     &  (i,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maske(1+i,j,k).gt.0.or.maske(1+i,j,1+k).gt.0) then 
         dwdxt=((U(-2+i,j,k,3)-4*U(-1+i,j,k,3)+3*U(i,j,k,3)
-     &  )/(2.d0*hx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
-     &  (i,j,1+k,3))/(2.d0*hx))/2.d0
+     &  )*(.5d0*invhx)+(U(-2+i,j,1+k,3)-4*U(-1+i,j,1+k,3)+3*U
+     &  (i,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
         dudye=trandere(1+i,j,k,1,2)
       if(masks(-1+i,-1+j,k).gt.0.or.masks(i,-1+j,k).gt.0) then 
         dudyw=((-3*U(-1+i,j,k,1)+4*U(-1+i,1+j,k,1)-U(-1+i,
-     &  2+j,k,1))/(2.d0*hy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
-     &  U(i,2+j,k,1))/(2.d0*hy))/2.d0
+     &  2+j,k,1))*(.5d0*invhy)+(-3*U(i,j,k,1)+4*U(i,1+j,k,1)-
+     &  U(i,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudyw=(-U(-1+i,-1+j,k,1)+U(-1+i,1+j,k,1)-U(i,-1+j,
-     &  k,1)+U(i,1+j,k,1))/(4.d0*hy)
+     &  k,1)+U(i,1+j,k,1))*(.25d0*invhy)
       endif
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
       if(maskb(-1+i,j,-1+k).gt.0.or.maskb(i,j,-1+k).gt.0) then 
         dudzw=((-3*U(-1+i,j,k,1)+4*U(-1+i,j,1+k,1)-U(-1+i,
-     &  j,2+k,1))/(2.d0*hz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
-     &  U(i,j,2+k,1))/(2.d0*hz))/2.d0
+     &  j,2+k,1))*(.5d0*invhz)+(-3*U(i,j,k,1)+4*U(i,j,1+k,1)-
+     &  U(i,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudzw=(-U(-1+i,j,-1+k,1)+U(-1+i,j,1+k,1)-U(i,j,-1+
-     &  k,1)+U(i,j,1+k,1))/(4.d0*hz)
+     &  k,1)+U(i,j,1+k,1))*(.25d0*invhz)
       endif
         dudze=trandere(1+i,j,k,1,3)
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maske(i+1,j,k) .gt. 0 ) then
-         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)/hx**2
-         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)/hx**2)
-         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)/hx**2)
+         diagu = diagu -fe(i,j,k,1)*2.d0*beta*muX(1+i,j,k)*ihxsq
+         diagv = diagv -fe(i,j,k,2)*(beta*muX(1+i,j,k)*ihxsq)
+         diagw = diagw -fe(i,j,k,3)*(beta*muX(1+i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)
@@ -3938,135 +3944,135 @@ c ::: Null
            k=lo(3)
            if( mod(i,2).eq.modx .and. mod(j,2).eq.mody .and. mod(k,2).eq.modz ) then
 c     :::  get expressions for normal derivatives
-               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))/hx
-               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))/hx
+               dudxe = (-U(i,j,k,1)+U(1+i,j,k,1))*invhx
+               dudxw = (-U(-1+i,j,k,1)+U(i,j,k,1))*invhx
 
-               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))/hy
-               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))/hy
+               dvdyn = (-U(i,j,k,2)+U(i,1+j,k,2))*invhy
+               dvdys = (-U(i,-1+j,k,2)+U(i,j,k,2))*invhy
 
-               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))/hz
-               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))/hz
+               dwdzt = (-U(i,j,k,3)+U(i,j,1+k,3))*invhz
+               dwdzb = (-U(i,j,-1+k,3)+U(i,j,k,3))*invhz
 
-               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))/hy
-               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))/hy
+               dudyn = (-U(i,j,k,1)+U(i,1+j,k,1))*invhy
+               dudys = (-U(i,-1+j,k,1)+U(i,j,k,1))*invhy
 
-               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))/hx
-               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))/hx
+               dvdxe = (-U(i,j,k,2)+U(1+i,j,k,2))*invhx
+               dvdxw = (-U(-1+i,j,k,2)+U(i,j,k,2))*invhx
 
-               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))/hz
-               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))/hz
+               dudzt = (-U(i,j,k,1)+U(i,j,1+k,1))*invhz
+               dudzb = (-U(i,j,-1+k,1)+U(i,j,k,1))*invhz
 
-               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))/hz
-               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))/hz
+               dvdzb = (-U(i,j,-1+k,2)+U(i,j,k,2))*invhz
+               dvdzt = (-U(i,j,k,2)+U(i,j,1+k,2))*invhz
 
-               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))/hx
-               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))/hx
+               dwdxw = (-U(-1+i,j,k,3)+U(i,j,k,3))*invhx
+               dwdxe = (-U(i,j,k,3)+U(1+i,j,k,3))*invhx
 
-               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))/hy
-               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))/hy
+               dwdys = (-U(i,-1+j,k,3)+U(i,j,k,3))*invhy
+               dwdyn = (-U(i,j,k,3)+U(i,1+j,k,3))*invhy
 
 c     ::: get expressions for tangential derivatives
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,1+j,k).gt.0) then 
         dvdxn=((-3*U(i,j,k,2)+4*U(1+i,j,k,2)-U(2+i,j,k,2))
-     &  /(2.d0*hx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
-     &  ,1+j,k,2))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,1+j,k,2)+4*U(1+i,1+j,k,2)-U(2+i
+     &  ,1+j,k,2))*(.5d0*invhx))*0.5d0
       else
         dvdxn=(-U(-1+i,j,k,2)-U(-1+i,1+j,k,2)+U(1+i,j,k,2)
-     &  +U(1+i,1+j,k,2))/(4.d0*hx)
+     &  +U(1+i,1+j,k,2))*(.25d0*invhx)
       endif
         dvdxs=tranders(i,-1+j,k,2,1)
         dwdxb=tranderb(i,j,-1+k,3,1)
       if(maskw(-1+i,j,k).gt.0.or.maskw(-1+i,j,1+k).gt.0) then 
         dwdxt=((-3*U(i,j,k,3)+4*U(1+i,j,k,3)-U(2+i,j,k,3))
-     &  /(2.d0*hx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
-     &  ,j,1+k,3))/(2.d0*hx))/2.d0
+     &  *(.5d0*invhx)+(-3*U(i,j,1+k,3)+4*U(1+i,j,1+k,3)-U(2+i
+     &  ,j,1+k,3))*(.5d0*invhx))*0.5d0
       else
         dwdxt=(-U(-1+i,j,k,3)-U(-1+i,j,1+k,3)+U(1+i,j,k,3)
-     &  +U(1+i,j,1+k,3))/(4.d0*hx)
+     &  +U(1+i,j,1+k,3))*(.25d0*invhx)
       endif
       if(masks(i,-1+j,k).gt.0.or.masks(1+i,-1+j,k).gt.0) then 
         dudye=((-3*U(i,j,k,1)+4*U(i,1+j,k,1)-U(i,2+j,k,1))
-     &  /(2.d0*hy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
-     &  ,2+j,k,1))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(1+i,j,k,1)+4*U(1+i,1+j,k,1)-U(1+i
+     &  ,2+j,k,1))*(.5d0*invhy))*0.5d0
       else
         dudye=(-U(i,-1+j,k,1)+U(i,1+j,k,1)-U(1+i,-1+j,k,1)
-     &  +U(1+i,1+j,k,1))/(4.d0*hy)
+     &  +U(1+i,1+j,k,1))*(.25d0*invhy)
       endif
         dudyw=tranderw(-1+i,j,k,1,2)
         dwdyb=tranderb(i,j,-1+k,3,2)
       if(masks(i,-1+j,k).gt.0.or.masks(i,-1+j,1+k).gt.0) then 
         dwdyt=((-3*U(i,j,k,3)+4*U(i,1+j,k,3)-U(i,2+j,k,3))
-     &  /(2.d0*hy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
-     &  +j,1+k,3))/(2.d0*hy))/2.d0
+     &  *(.5d0*invhy)+(-3*U(i,j,1+k,3)+4*U(i,1+j,1+k,3)-U(i,2
+     &  +j,1+k,3))*(.5d0*invhy))*0.5d0
       else
         dwdyt=(-U(i,-1+j,k,3)-U(i,-1+j,1+k,3)+U(i,1+j,k,3)
-     &  +U(i,1+j,1+k,3))/(4.d0*hy)
+     &  +U(i,1+j,1+k,3))*(.25d0*invhy)
       endif
         dudzw=tranderw(-1+i,j,k,1,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(1+i,j,-1+k).gt.0) then 
         dudze=((-3*U(i,j,k,1)+4*U(i,j,1+k,1)-U(i,j,2+k,1))
-     &  /(2.d0*hz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
-     &  ,j,2+k,1))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(1+i,j,k,1)+4*U(1+i,j,1+k,1)-U(1+i
+     &  ,j,2+k,1))*(.5d0*invhz))*0.5d0
       else
         dudze=(-U(i,j,-1+k,1)+U(i,j,1+k,1)-U(1+i,j,-1+k,1)
-     &  +U(1+i,j,1+k,1))/(4.d0*hz)
+     &  +U(1+i,j,1+k,1))*(.25d0*invhz)
       endif
         dvdzs=tranders(i,-1+j,k,2,3)
       if(maskb(i,j,-1+k).gt.0.or.maskb(i,1+j,-1+k).gt.0) then 
         dvdzn=((-3*U(i,j,k,2)+4*U(i,j,1+k,2)-U(i,j,2+k,2))
-     &  /(2.d0*hz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
-     &  +j,2+k,2))/(2.d0*hz))/2.d0
+     &  *(.5d0*invhz)+(-3*U(i,1+j,k,2)+4*U(i,1+j,1+k,2)-U(i,1
+     &  +j,2+k,2))*(.5d0*invhz))*0.5d0
       else
         dvdzn=(-U(i,j,-1+k,2)+U(i,j,1+k,2)-U(i,1+j,-1+k,2)
-     &  +U(i,1+j,1+k,2))/(4.d0*hz)
+     &  +U(i,1+j,1+k,2))*(.25d0*invhz)
       endif
 
 
 c ::: get diagonal element
-      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)/hx**2+2.d0*beta*muX(1
-     &  +i,j,k)/hx**2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+2.d0*beta*muY(i,j,k)/hy**2+2.d0*beta*muY(i,1+
-     &  j,k)/hy**2+beta*muZ(i,j,k)/hz**2+beta*muZ(i,j,1+k
-     &  )/hz**2
-      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)/hx**2+beta*muX(1+i,j,k)/hx
-     &  **2+beta*muY(i,j,k)/hy**2+beta*muY(i,1+j,k)/hy**2
-     &  +2.d0*beta*muZ(i,j,k)/hz**2+2.d0*beta*muZ(i,j,1+k
-     &  )/hz**2
+      diagu = alpha*a(i,j,k)+2.d0*beta*muX(i,j,k)*ihxsq+2.d0*beta*muX(1
+     &  +i,j,k)*ihxsq+beta*muY(i,j,k)*ihysq+beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagv = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +2.d0*beta*muY(i,j,k)*ihysq+2.d0*beta*muY(i,1+
+     &  j,k)*ihysq+beta*muZ(i,j,k)*ihzsq+beta*muZ(i,j,1+k
+     &  )*ihzsq
+      diagw = alpha*a(i,j,k)+beta*muX(i,j,k)*ihxsq+beta*muX(1+i,j,k)*ihxsq
+     &  +beta*muY(i,j,k)*ihysq+beta*muY(i,1+j,k)*ihysq
+     &  +2.d0*beta*muZ(i,j,k)*ihzsq+2.d0*beta*muZ(i,j,1+k
+     &  )*ihzsq
 c ::: correct diagonal elements for ghost cell contrib
       if( maskb(i,j,k-1) .gt. 0 ) then
-         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)/hz**2)
-         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)/hz**2)
-         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)/hz**2
+         diagu = diagu -fb(i,j,k,1)*(beta*muZ(i,j,k)*ihzsq)
+         diagv = diagv -fb(i,j,k,2)*(beta*muZ(i,j,k)*ihzsq)
+         diagw = diagw -fb(i,j,k,3)*2.d0*beta*muZ(i,j,k)*ihzsq
       endif
       if( masks(i,j-1,k) .gt. 0 ) then
-         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)/hy**2)
-         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)/hy**2
-         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)/hy**2)
+         diagu = diagu -fs(i,j,k,1)*(beta*muY(i,j,k)*ihysq)
+         diagv = diagv -fs(i,j,k,2)*2.d0*beta*muY(i,j,k)*ihysq
+         diagw = diagw -fs(i,j,k,3)*(beta*muY(i,j,k)*ihysq)
       endif
       if( maskw(i-1,j,k) .gt. 0 ) then
-         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)/hx**2
-         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)/hx**2)
-         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)/hx**2)
+         diagu = diagu -fw(i,j,k,1)*2.d0*beta*muX(i,j,k)*ihxsq
+         diagv = diagv -fw(i,j,k,2)*(beta*muX(i,j,k)*ihxsq)
+         diagw = diagw -fw(i,j,k,3)*(beta*muX(i,j,k)*ihxsq)
       endif
 
 c     :::  evaluate expression
       operu = -((beta*(hy*hz*(-2*dudxw*muX(i,j,k)+2*dudxe*muX(1+i,j,k))+
      &  hx*hz*(-((dudys+dvdxs)*muY(i,j,k))+(dudyn+dvdxn)*m
      &  uY(i,1+j,k))+hx*hy*(-((dudzb+dwdxb)*muZ(i,j,k))+(d
-     &  udzt+dwdxt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  udzt+dwdxt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,1)
       operv = -((beta*(hy*hz*(-((dudyw+dvdxw)*muX(i,j,k))+(dudye+dvdxe)*
      &  muX(1+i,j,k))+hx*hz*(-2*dvdys*muY(i,j,k)+2*dvdyn*m
      &  uY(i,1+j,k))+hx*hy*(-((dvdzb+dwdyb)*muZ(i,j,k))+(d
-     &  vdzt+dwdyt)*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  vdzt+dwdyt)*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,2)
       operw = -((beta*(hy*hz*(-((dudzw+dwdxw)*muX(i,j,k))+(dudze+dwdxe)*
      &  muX(1+i,j,k))+hx*hz*(-((dvdzs+dwdys)*muY(i,j,k))+(
      &  dvdzn+dwdyn)*muY(i,1+j,k))+hx*hy*(-2*dwdzb*muZ(i,j
-     &  ,k)+2*dwdzt*muZ(i,j,1+k))))/(hx*hy*hz))+alpha*a(i,
+     &  ,k)+2*dwdzt*muZ(i,j,1+k))))*ihxyz)+alpha*a(i,
      &  j,k)*u(i,j,k,3)
 c ::: do relaxation
                u(i,j,k,1) = (rhs(i,j,k,1)-operu)/diagu+u(i,j,k,1)

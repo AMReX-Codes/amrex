@@ -10,8 +10,8 @@ module ml_cc_module
 
 contains
 
-  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, ref_ratio, &
-       do_diagnostics, rel_eps, abs_eps_in, need_grad_phi_in, final_resnorm, status)
+  subroutine ml_cc(mla, mgt, rh, full_soln, fine_mask, &
+                   do_diagnostics, need_grad_phi_in, final_resnorm, status)
 
     use bl_prof_module
     use ml_norm_module        , only : ml_norm_inf
@@ -24,11 +24,8 @@ contains
     type( multifab), intent(inout) :: rh(:)
     type( multifab), intent(inout) :: full_soln(:)
     type(lmultifab), intent(in   ) :: fine_mask(:)
-    integer        , intent(in   ) :: ref_ratio(:,:)
     integer        , intent(in   ) :: do_diagnostics
-    real(dp_t)     , intent(in   ) :: rel_eps
 
-    real(dp_t)     , intent(in   ), optional :: abs_eps_in
     logical        , intent(in   ), optional :: need_grad_phi_in
     real(dp_t)     , intent(  out), optional :: final_resnorm
     integer        , intent(  out), optional :: status
@@ -45,28 +42,24 @@ contains
     type(box) :: pd, pdc
     type(layout) :: la, lac
     integer :: i, n, dm, ng_fill
-    integer :: mglev, mglev_crse, iter
+    integer :: mglev, mglev_crse, iter, iter_solved
     logical :: fine_converged,need_grad_phi
 
-    real(dp_t) :: Anorm, bnorm, abs_eps, ni_res
+    real(dp_t) :: bnorm, ni_res
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2
+    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_cc")
 
-    dm = get_dim(rh(1))
-    nlevs = mla%nlevel
-
-    if ( present(abs_eps_in) ) then
-       abs_eps = abs_eps_in 
-    else
-       abs_eps = mgt(nlevs)%abs_eps
-    end if
+    dm                = get_dim(rh(1))
+    nlevs             = mla%nlevel
+    stime             = parallel_wtime()
+    bottom_solve_time = zero
 
     if ( present(need_grad_phi_in) ) then
        need_grad_phi = need_grad_phi_in 
@@ -102,9 +95,9 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, &
             width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, &
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, &
             width = 2, other = .false.)
 
     end do
@@ -113,17 +106,16 @@ contains
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
+    !
+    ! Let's elide some reductions by doing there reductions together.
+    !
     bnorm = ml_norm_inf(rh,fine_mask)
-
-    Anorm = stencil_norm(mgt(nlevs)%ss(mgt(nlevs)%nlevels))
-    do n = 1, nlevs-1
-       Anorm = max(stencil_norm(mgt(n)%ss(mgt(n)%nlevels),fine_mask(n)),Anorm)
-    end do
-
-    !   First we must restrict the final solution onto coarser levels, because those coarse
-    !   cells may be used to construct slopes in the interpolation of the boundary conditions
+    !
+    ! First we must restrict the final solution onto coarser levels, because those coarse
+    ! cells may be used to construct slopes in the interpolation of the boundary conditions.
+    !
     do n = nlevs,2,-1
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
@@ -132,7 +124,7 @@ contains
 
        call ml_restriction(full_soln(n-1), full_soln(n), &
             mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-            ref_ratio(n-1,:))
+            mla%mba%rr(n-1,:))
     enddo
 
     !  Now make sure full_soln at fine grid has the correct coarse grid bc's in 
@@ -143,9 +135,9 @@ contains
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-               ref_ratio(n-1,:), ng_fill, -i)
+               mla%mba%rr(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-               ref_ratio(n-1,:), ng_fill, +i)
+               mla%mba%rr(n-1,:), ng_fill, +i)
        end do
        call multifab_fill_boundary(full_soln(n))
     end do
@@ -157,7 +149,7 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                       mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
@@ -167,16 +159,26 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-            ref_ratio(n-1,:))
+            mla%mba%rr(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     enddo
-
+    !
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
     ! Only test on lowest mg level of lowest AMR level -- this should be cheapest
-    coeff_sum = max_of_stencil_sum(mgt(1)%ss(1)) 
-    coeff_max = stencil_norm(mgt(1)%ss(1)) 
+    !
+    ! Elide some reduction.
+    !
+    t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
+    t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
+    t1(3) = ml_norm_inf(rh,fine_mask,local=.true.)
+
+    call parallel_reduce(t2, t1, MPI_MAX)
+
+    coeff_sum = t2(1)
+    coeff_max = t2(2)
+    tres0     = t2(3)
 
     if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
@@ -217,7 +219,6 @@ contains
 
     end if
 
-    tres0 = ml_norm_inf(rh,fine_mask)
     if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) then
        write(unit=*, &
             fmt='("F90mg: Initial rhs                  = ",g15.8)') bnorm
@@ -241,7 +242,7 @@ contains
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
-    if ( ml_converged(res, full_soln, fine_mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, fine_mask, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
        solved = .true.
 
@@ -258,12 +259,23 @@ contains
 
     else 
 
+       ! Only print this once per solve.
+       do n = 2,nlevs
+           if (mla%mba%rr(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
+               call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
+           end if
+       end do
+
        do iter = 1, mgt(nlevs)%max_iter
 
-          if ( fine_converged ) then
-             if ( ml_converged(res, full_soln, fine_mask, max_norm, Anorm, rel_eps, &
-                  abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+          iter_solved = iter 
 
+          if ( fine_converged ) then
+             if ( ml_converged(res, fine_mask, max_norm, mgt(nlevs)%eps, &
+                  mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+
+                ! Subtract one from "iter" here because we have already converged
+                iter_solved = iter-1
                 solved = .true.
                 exit
 
@@ -318,17 +330,15 @@ contains
              end if
 
              ! Relax ...
-             if (iter < mgt(nlevs)%max_iter) then
-                if (n > 1) then
-                   call mini_cycle(mgt(n), mglev, &
-                        mgt(n)%ss(mglev), uu(n), res(n), &
-                        mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
-                else 
-                   call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
-                        mgt(n)%ss(mglev), uu(n), res(n), &
-                        mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                        mgt(n)%gamma)
-                end if
+             if (n > 1) then
+                call mini_cycle(mgt(n), mglev, &
+                     mgt(n)%ss(mglev), uu(n), res(n), &
+                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
+             else
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                     mgt(n)%ss(mglev), uu(n), res(n), &
+                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     bottom_solve_time = bottom_solve_time)
              end if
 
              ! Add: Soln += uu
@@ -339,12 +349,12 @@ contains
                 mglev_crse = mgt(n-1)%nlevels
 
                 ! Compute COARSE Res = Rh - Lap(Soln)
-                call mg_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
+                call compute_defect(mgt(n-1)%ss(mglev_crse),res(n-1), &
                                rh(n-1),full_soln(n-1),mgt(n-1)%mm(mglev_crse), &
                                mgt(n-1)%stencil_type, mgt(n-1)%lcross)
 
                 ! Compute FINE Res = Res - Lap(uu)
-                call mg_defect(mgt(n)%ss(mglev),temp_res(n), &
+                call compute_defect(mgt(n)%ss(mglev),temp_res(n), &
                                res(n),uu(n),mgt(n)%mm(mglev), &
                                mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
@@ -359,13 +369,13 @@ contains
                 ! Compute CRSE-FINE Res = Res - Crse Flux(soln) + Fine Flux(soln)
                 pdc = layout_get_pd(mla%la(n-1))
                 call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n), &
-                     pdc,ref_ratio(n-1,:))
+                     pdc,mla%mba%rr(n-1,:))
 
                 ! Restrict FINE Res to COARSE Res (important to do this last
                 !     so we overwrite anything extra which may have been defined
                 !     above near fine-fine interfaces)
                 call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
-                     mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
                 ! Copy u_hold = uu
                 if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng = nghost(uu(n)))
@@ -376,7 +386,7 @@ contains
              else
 
                 if (do_diagnostics == 1 ) then
-                   call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
+                   call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                         mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                    tres = norm_inf(temp_res(n))
                    if ( parallel_ioprocessor()) then
@@ -401,7 +411,8 @@ contains
              mglev = mgt(n)%nlevels
 
              ! Interpolate uu from coarser level
-             call ml_cc_prolongation(uu(n), uu(n-1), ref_ratio(n-1,:))
+             call ml_cc_prolongation(uu(n), uu(n-1), mla%mba%rr(n-1,:), &
+                                     mgt(n-1)%use_lininterp, mgt(n-1)%ptype)
 
              ! Add: soln(n) += uu
              call plus_plus(full_soln(n), uu(n), nghost(uu(n)))
@@ -415,14 +426,14 @@ contains
              ng_fill = nghost(uu(n))
              do i = 1, dm
                 call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
-                     ref_ratio(n-1,:), ng_fill, -i)
+                     mla%mba%rr(n-1,:), ng_fill, -i)
                 call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
-                     ref_ratio(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, +i)
              end do
              call multifab_fill_boundary(uu(n))
 
              ! Compute Res = Res - Lap(uu)
-             call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
+             call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                             mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
@@ -443,7 +454,7 @@ contains
              ! Compute Res = Res - Lap(uu)
 
              if (do_diagnostics == 1 ) then
-                call mg_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
+                call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                                mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
                 call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
                 tres = norm_inf(res(n))
@@ -462,7 +473,7 @@ contains
              ! Only do this as long as tangential interp looks under fine grids
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
           end do
 
@@ -471,7 +482,7 @@ contains
              mglev      = mgt(n)%nlevels
              mglev_crse = mgt(n-1)%nlevels
              call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
           end do
 
           do n = 1,nlevs
@@ -485,9 +496,9 @@ contains
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
              do i = 1, dm
                 call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                     ref_ratio(n-1,:), ng_fill, -i)
+                     mla%mba%rr(n-1,:), ng_fill, -i)
                 call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                     ref_ratio(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, +i)
              end do
              call multifab_fill_boundary(full_soln(n))
           end do
@@ -498,17 +509,17 @@ contains
           !    Compute the residual on just the finest level
           n = nlevs
           mglev = mgt(n)%nlevels
-          call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
+          call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                          mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
-          if ( ml_fine_converged(res, full_soln, max_norm, Anorm, rel_eps, abs_eps) ) then
+          if ( ml_fine_converged(res, max_norm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
              fine_converged = .true.
 
              !      Compute the residual on every level
              do n = 1,nlevs-1
                 mglev = mgt(n)%nlevels
-                call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
+                call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
                                mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              end do
 
@@ -516,7 +527,7 @@ contains
              do n = nlevs,2,-1
                 pdc = layout_get_pd(mla%la(n-1))
                 call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                     ref_ratio(n-1,:))
+                     mla%mba%rr(n-1,:))
              end do
 
              !      Average the fine residual onto the coarser level
@@ -524,23 +535,18 @@ contains
                 mglev      = mgt(n  )%nlevels
                 mglev_crse = mgt(n-1)%nlevels
                 call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                     mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
              end do
 
              if ( mgt(nlevs)%verbose > 1 ) then
                 do n = 1,nlevs
                    tres = norm_inf(res(n))
                    if ( parallel_ioprocessor() ) then
-                      !                  write(unit=*, fmt='(i3,": Level ",i2,"  : SL_Ninf(defect) = ",g15.8)') &
-                      !                       iter,n,tres
                       write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                            iter,n,tres/tres0
+                      print *, 'tres=', tres
                    end if
                 end do
-                !            tres = ml_norm_inf(res,fine_mask)
-                !            if ( parallel_ioprocessor() ) then
-                !               write(unit=*, fmt='(i3,": All Levels: ML_Ninf(defect) = ",g15.8)') iter, tres
-                !            end if
              end if
 
           else 
@@ -582,27 +588,36 @@ contains
        endif
 
        ! ****************************************************************************
-       if (solved) then
+       if ( solved ) then
           if ( mgt(nlevs)%verbose > 0 ) then
-             tres = ml_norm_inf(res,fine_mask)
+             !
+             ! Consolidate these reductions.
+             !
+             t1(1) = ml_norm_inf(res,fine_mask,local=.true.) 
+             t1(2) = (parallel_wtime() - stime)
+             t1(3) = bottom_solve_time
+
+             call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
              if ( parallel_IOProcessor() ) then
-                if (tres0 .gt. 0.0_dp_t) then
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,tres/tres0
-                   write(unit=*, fmt='("")') 
+                if ( tres0 .gt. 0.0_dp_t) then
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,t2(1)/tres0
+                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                   write(unit=*, fmt='("")')
                 else
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
-                   write(unit=*, fmt='("")') 
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,0.0_dp_t
+                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                   write(unit=*, fmt='("")')
                 end if
              end if
           end if
        else
-          if (.not.  present(status)) then
+          if (.not. present(status) .and. mgt(nlevs)%abort_on_max_iter) then
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
           endif
        end if
 
     endif
-
 
     if (solved) then
        do n = 1,nlevs
@@ -626,7 +641,7 @@ contains
 
           call ml_restriction(full_soln(n-1), full_soln(n), &
                mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-               ref_ratio(n-1,:))
+               mla%mba%rr(n-1,:))
        enddo
 
        !   Fill the ghost cells at each level from grids at that level
@@ -641,8 +656,8 @@ contains
           pd = layout_get_pd(mla%la(n))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
           do i = 1, dm
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), ng_fill, -i)
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), ng_fill, +i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, mla%mba%rr(n-1,:), ng_fill, -i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, mla%mba%rr(n-1,:), ng_fill, +i)
           end do
           call multifab_fill_boundary(full_soln(n))
        end do
@@ -668,75 +683,47 @@ contains
     call destroy(bpt)
 
     if (solved) then
-       if ( present(final_resnorm) ) &
-            final_resnorm = ni_res
-       
-       r2 = parallel_wtime() - r1
-       
+       if ( present(final_resnorm) ) final_resnorm = ni_res
+       r2 = (parallel_wtime() - r1)
        call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
-       
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
-       
     endif
 
   contains
 
-    function ml_fine_converged(res, sol, bnorm, Anorm, rel_eps, abs_eps) result(r)
-      logical :: r
-      type(multifab), intent(in) :: res(:), sol(:)
-      real(dp_t), intent(in) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res, ni_sol
-      integer    :: nlevs
+    function ml_fine_converged(res, bnorm, rel_eps, abs_eps) result(r)
+      logical                    :: r
+      type(multifab), intent(in) :: res(:)
+      real(dp_t),     intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t)                 :: ni_res
+      integer                    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
-      ni_sol = norm_inf(sol(nlevs))
-      !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-      !          ni_res <= abs_eps .or. &
-      !          ni_res <= epsilon(Anorm)*Anorm
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps)
     end function ml_fine_converged
 
-    function ml_converged(res, sol, mask, bnorm, Anorm, rel_eps, abs_eps, ni_res, verbose) result(r)
+    function ml_converged(res, mask, bnorm, rel_eps, abs_eps, ni_res, verbose) result(r)
 
       use ml_norm_module, only : ml_norm_inf
 
-      logical :: r
-      integer :: verbose
-      type(multifab), intent(in) :: res(:), sol(:)
-      type(lmultifab), intent(in) :: mask(:)
-      real(dp_t), intent(in   ) :: Anorm, rel_eps, abs_eps, bnorm
-      real(dp_t), intent(  out) :: ni_res
-      real(dp_t) :: ni_sol
-
+      logical                      :: r
+      integer                      :: verbose
+      type(multifab),  intent(in ) :: res(:)
+      type(lmultifab), intent(in ) :: mask(:)
+      real(dp_t),      intent(in ) :: rel_eps, abs_eps, bnorm
+      real(dp_t),      intent(out) :: ni_res
       ni_res = ml_norm_inf(res, mask)
-      ni_sol = ml_norm_inf(sol, mask)
-
-      !     r =  ni_res <= rel_eps*(Anorm*ni_sol + bnorm) .or. &
-      !          ni_res <= abs_eps .or. &
-      !          ni_res <= epsilon(Anorm)*Anorm
-
-      r =  ni_res <= rel_eps*(bnorm) .or. &
-           ni_res <= abs_eps 
-
+      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if (ni_res <= rel_eps*bnorm) then
+         if ( ni_res <= rel_eps*bnorm ) then
             print *,'Converged res < rel_eps*bnorm '
-         else if (ni_res <= abs_eps) then
+         else if ( ni_res <= abs_eps ) then
             print *,'Converged res < abs_eps '
-            !        else if (ni_res <= rel_eps*Anorm*ni_sol) then
-            !           print *,'Converged res < rel_eps*Anorm*sol'
-            !        else if (ni_res <= epsilon(Anorm)*Anorm) then 
-            !           print *,'Converged res < epsilon(Anorm)*Anorm'
          end if
       end if
     end function ml_converged
 
   end subroutine ml_cc
-
-  !
-  ! ******************************************************************************************
-  !
 
 end module ml_cc_module

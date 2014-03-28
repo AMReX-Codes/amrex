@@ -1,4 +1,6 @@
-subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics, eps, stencil_order, fabio)
+
+subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+
   use BoxLib
   use cc_stencil_module
   use cc_stencil_fill_module
@@ -19,30 +21,37 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
   use bndry_reg_module
 
+  use cc_rhs_module
+  use cc_edge_coeffs_module
+  use init_cell_coeffs_module
+
   implicit none
 
   type(ml_layout), intent(inout) :: mla
+  type(mg_tower) , intent(inout) :: mgt(:)
+  type( multifab), intent(inout) :: rh(:)
+
+  integer        , intent(in   ) :: coeffs_type
   integer        , intent(in   ) :: domain_bc(:,:)
-  integer        , intent(in   ) :: bottom_solver 
   integer        , intent(in   ) :: do_diagnostics 
   real(dp_t)     , intent(in   ) :: eps
-  type(mg_tower) , intent(inout) :: mgt(:)
   integer        , intent(in   ) :: stencil_order
   logical        , intent(in   ) :: fabio
 
   type(box      )                :: pd
 
-  type(multifab) :: cell_coeffs
-  type(multifab) :: edge_coeffs(mla%dim)
+  type(multifab), allocatable :: alpha(:)
+  type(multifab), allocatable :: edge_coeffs(:,:)
 
   type( multifab), allocatable   :: full_soln(:)
-  type( multifab), allocatable   ::        rh(:)
+
+  type(multifab)                 :: cell_coeffs
 
   type(layout)                   :: la
   real(dp_t)     , allocatable   :: xa(:), xb(:), pxa(:), pxb(:)
 
   integer        , allocatable   :: ref_ratio(:,:)
-  integer                        :: i, d, n, dm, nlevs
+  integer                        :: d, n, dm, nlevs
 
   real(dp_t)                     :: snrm(2)
 
@@ -52,7 +61,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
   nlevs = mla%nlevel
 
-  allocate(full_soln(nlevs),rh(nlevs))
+  allocate(full_soln(nlevs))
   allocate(xa(dm), xb(dm), pxa(dm), pxb(dm))
 
   allocate(ref_ratio(nlevs-1,dm))
@@ -68,9 +77,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
      call multifab_build(full_soln(n), mla%la(n), 1, 1)
      call setval(full_soln(n), val = ZERO, all=.true.)
 
-     call multifab_build( rh(n), mla%la(n), 1, 0)
-     call setval(rh(n), val = ZERO, all=.true.)
-     if (n == nlevs) call mf_init_2(rh(n))
   end do
 
   !! Fill coefficient arrays
@@ -81,13 +87,37 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
 
      la = mla%la(n)
 
-     call multifab_build(cell_coeffs, la, nc=1, ng=0)
-     call setval(cell_coeffs,0.d0,all=.true.)
+     allocate(alpha(mgt(n)%nlevels))
+     allocate(edge_coeffs(mgt(n)%nlevels,dm))
+
+     call multifab_build(alpha(mgt(n)%nlevels),la,nc=1,ng=1)
+     call setval(alpha(mgt(n)%nlevels),0.d0,all=.true.)
 
      do d = 1,dm
-        call multifab_build_edge(edge_coeffs(d), la, nc=1, ng=0, dir=d)
-        call setval(edge_coeffs(d),mac_beta,all=.true.)
+        call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,d), la, nc=1, ng=0, dir=d)
      end do
+
+     if (coeffs_type .eq. 0) then
+        do d = 1,dm
+           call setval(edge_coeffs(mgt(n)%nlevels,d),mac_beta,all=.true.)
+        end do
+     else 
+        pd = mla%mba%pd(n)
+        call multifab_build(cell_coeffs,mla%la(n),nc=1,ng=1)
+        call init_cell_coeffs(mla,cell_coeffs,pd,coeffs_type)
+        call cell_to_edge_coeffs(cell_coeffs,edge_coeffs(mgt(n)%nlevels,:))
+        call multifab_destroy(cell_coeffs)
+     end if
+
+  end do
+
+  do n = nlevs,2,-1
+     do d = 1,dm
+        call ml_edge_restriction(edge_coeffs(n-1,d),edge_coeffs(n,d),mla%mba%rr(n-1,:),d)
+     end do
+  end do
+
+  do n = nlevs, 1, -1
 
      pxa = ZERO
      pxb = ZERO
@@ -99,18 +129,18 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
         xb = ZERO
      end if
 
-     pd = mla%mba%pd(n)
+     call stencil_fill_cc_all_mglevels(mgt(n), alpha, edge_coeffs, xa, xb, pxa, pxb, &
+                                       stencil_order, domain_bc)
+  end do
 
-     call stencil_fill_cc(mgt(n)%ss(mgt(n)%nlevels), cell_coeffs, edge_coeffs, mgt(n)%dh(:,mgt(n)%nlevels), &
-                          mgt(n)%mm(mgt(n)%nlevels), xa, xb, pxa, pxb, stencil_order, &
-                          domain_bc)
+  do n = nlevs, 1, -1
+     call destroy(alpha(mgt(n)%nlevels))
+     deallocate(alpha)
 
-     call destroy(cell_coeffs)
-
-    do d = 1,dm
-       call destroy(edge_coeffs(d))
-    end do
-
+     do d = 1, dm
+        call destroy(edge_coeffs(mgt(n)%nlevels,d))
+     end do
+     deallocate(edge_coeffs)
   end do
 
   if ( fabio ) then
@@ -118,9 +148,9 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
   end if
 
   snrm(2) = ml_norm_inf(rh,mla%mask)
-  if ( parallel_IOProcessor() ) then
-     print *, 'RHS MAX NORM ', snrm(2)
-  end if
+! if ( parallel_IOProcessor() ) then
+!    print *, 'RHS MAX NORM ', snrm(2)
+! end if
 
 ! ****************************************************************************
 
@@ -132,98 +162,24 @@ subroutine t_cc_ml_multigrid(mla, mgt, domain_bc, bottom_solver, do_diagnostics,
      call fabio_ml_write(full_soln, ref_ratio(:,1), "soln_cc")
   end if
 
-  snrm(1) = ml_norm_l2(full_soln,ref_ratio,mla%mask)
-  snrm(2) = ml_norm_inf(full_soln,mla%mask)
-  if ( parallel_IOProcessor() ) then
-     print *, 'SOLUTION MAX NORM ', snrm(2)
-     print *, 'SOLUTION L2 NORM ', snrm(1)
-  end if
+! snrm(1) = ml_norm_l2(full_soln,ref_ratio,mla%mask)
+! snrm(2) = ml_norm_inf(full_soln,mla%mask)
+! if ( parallel_IOProcessor() ) then
+!    print *, 'SOLUTION MAX NORM ', snrm(2)
+!    print *, 'SOLUTION L2 NORM ', snrm(1)
+! end if
 
-  if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
-  call print(multifab_mem_stats(),  " multifab before")
-  call print(imultifab_mem_stats(), "imultifab before")
-  call print(fab_mem_stats(),       "      fab before")
-  call print(ifab_mem_stats(),      "     ifab before")
-  call print(boxarray_mem_stats(),  " boxarray before")
-  call print(boxassoc_mem_stats(),  " boxassoc before")
-  call print(layout_mem_stats(),    "   layout before")
+! if ( parallel_IOProcessor() ) print *, 'MEMORY STATS'
+! call print(multifab_mem_stats(),  " multifab before")
+! call print(imultifab_mem_stats(), "imultifab before")
+! call print(fab_mem_stats(),       "      fab before")
+! call print(ifab_mem_stats(),      "     ifab before")
+! call print(boxarray_mem_stats(),  " boxarray before")
+! call print(boxassoc_mem_stats(),  " boxassoc before")
+! call print(layout_mem_stats(),    "   layout before")
 
   do n = 1,nlevs
-     call multifab_destroy(rh(n))
      call multifab_destroy(full_soln(n))
   end do
-
-contains
-
-  subroutine mf_init(mf)
-
-    type(multifab), intent(inout) :: mf
-    type(box) bx
-    bx = pd
-    bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
-    bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-    call setval(mf, ONE, bx)
-
-  end subroutine mf_init
-
-  subroutine mf_init_2(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
-
-       bx = get_box(mf,i)
-       bx%lo(1:bx%dim) = (bx%hi(1:bx%dim) + bx%lo(1:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), 1.0_dp_t, bx)
-!       print *,'SETTING RHS TO ONE ON ',bx%lo(1:bx%dim)
-
-!      Single point of non-zero RHS: use this to make system solvable
-       bx = get_box(mf,i)
-       bx%lo(1       ) = (bx%hi(1       ) + bx%lo(1       ))/2 + 1
-       bx%lo(2:bx%dim) = (bx%hi(2:bx%dim) + bx%lo(2:bx%dim))/2
-       bx%hi(1:bx%dim) = bx%lo(1:bx%dim)
-       call setval(mf%fbs(i), -1.0_dp_t, bx)
-!       print *,'SETTING RHS TO -ONE ON ',bx%lo(1:bx%dim)
-
-!      1-d Strip: Variation in x-direction
-!      bx%lo(1) = (bx%hi(1) + bx%lo(1))/2
-!      bx%hi(1) = bx%lo(1)+1
-
-!      1-d Strip: Variation in y-direction
-!      bx%lo(2) = (bx%hi(2) + bx%lo(2))/2
-!      bx%hi(2) = bx%lo(2)+1
-
-!      1-d Strip: Variation in z-direction
-!      bx%lo(3) = (bx%hi(3) + bx%lo(3))/2
-!      bx%hi(3) = bx%lo(3)+1
-
-    end do
-  end subroutine mf_init_2
-
-  subroutine mf_init_1(mf)
-    type(multifab), intent(inout) :: mf
-    integer i
-    type(box) bx
-    type(box) rhs_box, rhs_intersect_box
-
-    rhs_box%dim = mf%dim
-    rhs_box%lo(1:rhs_box%dim) = 7
-    rhs_box%hi(1:rhs_box%dim) = 8
-
-    do i = 1, mf%nboxes
-
-       if ( remote(mf,i) ) cycle
-       bx = get_ibox(mf,i)
-       rhs_intersect_box = box_intersection(bx,rhs_box)
-       if (.not. empty(rhs_intersect_box)) then
-         bx%lo(1:bx%dim) = lwb(rhs_intersect_box)
-         bx%hi(1:bx%dim) = upb(rhs_intersect_box)
-!         print *,'SETTING RHS IN BOX ',i,' : ', bx%lo(1:bx%dim),bx%hi(1:bx%dim)
-         call setval(mf%fbs(i), ONE, bx)
-       end if
-    end do
-
-  end subroutine mf_init_1
 
 end subroutine t_cc_ml_multigrid

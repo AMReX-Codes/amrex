@@ -39,7 +39,6 @@ BoxArray MakeBoxArray(int maxgrid,  int nboxes) {
   IntVect ivhi(maxgrid - 1, maxgrid - 1, maxgrid - 1);
 #endif
   int iSide(pow(static_cast<Real>(nboxes), 1.0/3.0));
-  cout << " iSide = " << iSide << endl;
   Box tempBox(ivlo, ivhi);
   BoxArray bArray(nboxes);
   int ix(0), iy(0), iz(0);

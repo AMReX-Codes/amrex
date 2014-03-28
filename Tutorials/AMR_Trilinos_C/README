@@ -1,0 +1,51 @@
+This tutorial demonstrates how to call a Trilinos solver (in this case, Epetra) from a BoxLib
+C++ code.  In driver.cpp, we set up a sample RHS for the equation
+
+                            Laplacian(phi) = RHS.
+
+In SolverBoundary.cpp we construct the matrix entries of the finite 
+difference discretization of the Laplacian operator; the solution is computed in Solver.cpp   
+
+The geometry of this problem is defined by SolverBoundary.cpp, which defines the
+valid domain as all cells that do not touch the domain boundary.  The solution, phi, is set
+to zero on all cells touching the domain boundary.
+
+The code can be built in 2D or 3D by setting "DIM" in the GNUmakefile.
+
+The inputs are as follows:
+
+nx            = total number of cells in the problem domain in the x-direction
+ny            = total number of cells in the problem domain in the y-direction
+nz            = total number of cells in the problem domain in the z-direction (if 3D)
+
+max_grid_size = maximum size of each subdomain in the problem domain
+
+tol           = tolerance of the iterative solver
+maxiters      = maximum number of iterations by the iterative solver
+numBlocks     = maximum number of blocks in Krylov space
+recycleBlocks = number of vectors in recycle space
+maxOldLHS     = number of stored LHS for extrapolating the next starting vector
+verbose       = controls the verbosity of the output
+
+To build this code requires a number of other libraries, which you must build (or which must
+exist on the machine where you are building), and you will need to set the path to each of
+these libraries in the GNUmakefile.  Note that the "?=" means that if you set these as an 
+environment variable, the environment variable will override what is set in the GNUmakefile.
+
+The libaries you need (and paths you will need to set) are:
+
+TRILINOS_DIR	 ?= /path/to/trilinos-11.0.3-Source
+PARMETIS_LIB_DIR ?= /path/to/ParMetis-3.2.0
+METIS_LIB_DIR	 ?= /path/to/ParmMetis-3.2.0
+BLAS_LIB_DIR	 ?= /path/to/BLAS
+LAPACK_LIB_DIR	 ?= /path/to/lapack-3.4.2/lib
+
+To build the code, edit the appropriate lines in the GNUmakefile and type "make".
+
+To run the code, simply type the exectuable name followed by the name of the inputs file.
+A sample inputs file (called "inputs") is provided here.
+
+Two plotfiles are written: RHS and SOLN.  You can visualize these using Visit or Amrvis.
+
+This tutorial was based on the interface to Trilinos implemented by Dr. Tulin Kaman 
+of the Paul Scherrer Institut (tulin.kaman@psi.ch) and ETH Zurich (tulin.kaman@inf.ethz.ch)

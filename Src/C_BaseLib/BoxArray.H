@@ -3,6 +3,8 @@
 #define BL_BOXARRAY_H
 
 #include <cstddef>
+#include <map>
+
 #include <IndexType.H>
 #include <BoxList.H>
 #include <Array.H>
@@ -75,13 +77,11 @@ public:
     //
     // The copy constructor.
     //
-    BoxArray (const BoxArray& rhs)
-        :
-        m_ref(rhs.m_ref) {}
+    BoxArray (const BoxArray& rhs);
     //
     // The assignment operator.
     //
-    BoxArray& operator= (const BoxArray& rhs) { m_ref = rhs.m_ref; return *this; }
+    BoxArray& operator= (const BoxArray& rhs);
     //
     // The destructor.
     //
@@ -117,7 +117,9 @@ public:
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const { return m_ref->m_abox.size(); }
+    int size () const;
+
+    bool empty () const;
 
     long numPts() const;
     //
@@ -269,11 +271,13 @@ public:
     //
     Box minimalBox () const;
 
-    void reserve (long _truesize);
-
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
+    //
+    // Clear out the internal hash table used by intersections.
+    //
+    void clear_hash_bin () const;
     //
     // Changes the BoxArray to one with no overlap.
     // Also tries to "simplify" the BoxArray within reason.
@@ -284,6 +288,8 @@ public:
 
 private:
 
+    void decrementCounters () const;
+
     class Ref
     {
         friend class BoxArray;
@@ -292,13 +298,13 @@ private:
         //
         Ref () {}
 
-        Ref (size_t size);
+        Ref (size_t size) : m_abox(size) {}
 
-        Ref (const BoxList& bl);
+        Ref (const BoxList& bl) { define(bl); }
 
-        Ref (std::istream& is);
+        Ref (std::istream& is) { define(is); }
 
-        Ref (const Ref& rhs);
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
         //
         // Some defines()s to match those in BoxArray.
         //
@@ -309,10 +315,14 @@ private:
         // The data.
         //
         Array<Box> m_abox;
+        //
+        // Box hash stuff.
+        //
+        mutable Box bbox;
 
         mutable IntVect crsn;
 
-        mutable BaseFab< std::vector<int> > hash;
+        mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
     };
     //
     // Make ourselves unique.

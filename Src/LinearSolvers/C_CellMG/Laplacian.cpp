@@ -24,13 +24,11 @@ Laplacian::norm (int nm, int level, const bool local)
 
 void
 Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-		     MultiFab& in, const BC_Mode& bc_mode)
+		     MultiFab& in, const BC_Mode& bc_mode,
+		     int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
     const int level    = 0;
-    const int src_comp = 0;
-    const int num_comp = 1;
-    applyBC(in,src_comp,num_comp,level,bc_mode);
-    const int nc = in.nComp();
+    applyBC(in,src_comp,num_comp,level,bc_mode,bnd_comp);
 
     for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
     {
@@ -41,18 +39,18 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                FArrayBox& yfab  = yflux[inmfi];,
                FArrayBox& zfab  = zflux[inmfi];);
 
-        FORT_FLUX(infab.dataPtr(),
+        FORT_FLUX(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
-		  vbx.loVect(), vbx.hiVect(), &nc,
+		  vbx.loVect(), vbx.hiVect(), &num_comp,
 		  h[level],
-		  xfab.dataPtr(),
+		  xfab.dataPtr(dst_comp),
 		  ARLIM(xfab.loVect()), ARLIM(xfab.hiVect())
 #if (BL_SPACEDIM >= 2)
-		  ,yfab.dataPtr(),
+		  ,yfab.dataPtr(dst_comp),
 		  ARLIM(yfab.loVect()), ARLIM(yfab.hiVect())
 #endif
 #if (BL_SPACEDIM == 3)
-		  ,zfab.dataPtr(),
+		  ,zfab.dataPtr(dst_comp),
 		  ARLIM(zfab.loVect()), ARLIM(zfab.hiVect())
 #endif
 		  );
@@ -180,19 +178,31 @@ Laplacian::Fapply (MultiFab&       y,
                    const MultiFab& x,
                    int             level)
 {
-    const int nc = y.nComp();
+  int src_comp = 0;
+  int dst_comp = 0;
+  int num_comp = 1;
+  Fapply(y,dst_comp,x,src_comp,num_comp,level);
+}
 
+void
+Laplacian::Fapply (MultiFab&       y,
+		   int             dst_comp,
+                   const MultiFab& x,
+		   int             src_comp,
+		   int             num_comp,
+                   int             level)
+{
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
         const Box&       vbx  = ymfi.validbox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
 
-        FORT_ADOTX(yfab.dataPtr(), 
+        FORT_ADOTX(yfab.dataPtr(dst_comp), 
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
-                   xfab.dataPtr(), 
+                   xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
     }
 }

@@ -26,8 +26,8 @@ int VisMF::verbose = 1;
 //
 // Set these in Initialize().
 //
-int VisMF::nOutFiles;
-int VisMF::nMFFileInStreams;
+int VisMF::nOutFiles(64);
+int VisMF::nMFFileInStreams(1);
 
 namespace
 {
@@ -41,9 +41,9 @@ VisMF::Initialize ()
     //
     // Use the same defaults as in Amr.cpp.
     //
-    VisMF::SetNOutFiles(64);
+    VisMF::SetNOutFiles(nOutFiles);
 
-    VisMF::SetMFFileInStreams(1);
+    VisMF::SetMFFileInStreams(nMFFileInStreams);
 
     BoxLib::ExecOnFinalize(VisMF::Finalize);
 
@@ -365,6 +365,16 @@ VisMF::clear (int fabIndex,
 long
 VisMF::FileOffset (std::ostream& os)
 {
+    //
+    // Set to the end of the file before doing the tellp().
+    // This shouldn't be needed except for a bug we've found
+    // on edison.  As long as it doesn't hurt anything we'll
+    // go with it for now.  The reason it should be OK is that
+    // all our open()s for writing in this file are in append
+    // mode.  So tellp() should always be at the file end.
+    //
+    os.seekp(0, std::ios::end);
+
     return os.tellp();
 }
 
@@ -757,7 +767,7 @@ VisMF::Write (const MultiFab&    mf,
     }
 
 #ifdef BL_USE_MPI
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("VisMF::Write");
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -900,6 +910,8 @@ void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
+  BL_PROFILE("VisMF::Read()");
+
   VisMF::Initialize();
 
   if (verbose && ParallelDescriptor::IOProcessor())
@@ -908,7 +920,7 @@ VisMF::Read (MultiFab&          mf,
   }
 
 #ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_0");
   {
       MPI_Status mwstatus;
       int mwflag(0);
@@ -927,7 +939,7 @@ VisMF::Read (MultiFab&          mf,
         //BoxLib::Abort("EXTRA MESSAGES BEFORE");
       }
   }
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_1");
 #endif
 
     VisMF::Header hdr;
@@ -1111,7 +1123,7 @@ VisMF::Read (MultiFab&          mf,
 
 
 #ifdef BL_VISMF_MSGCHECK
-  ParallelDescriptor::Barrier();
+  ParallelDescriptor::Barrier("VisMF::Read::MSGCHECK_2");
   {
       MPI_Status mwstatus;
       int mwflag(0);
@@ -1131,7 +1143,7 @@ VisMF::Read (MultiFab&          mf,
       }
   }
 #endif
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier("VisMF::Read");
 
     if (ParallelDescriptor::IOProcessor() && false)
     {
@@ -1156,6 +1168,85 @@ VisMF::Read (MultiFab&          mf,
 
     BL_ASSERT(mf.ok());
 }
+
+
+
+void
+VisMF::Check (const std::string& mf_name)
+{
+  BL_PROFILE("VisMF::Check()");
+
+  VisMF::Initialize();
+
+  if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "VisMF::Check:  about to check:  " << mf_name << std::endl;
+
+    char c;
+    int nBadFabs(0);
+    VisMF::Header hdr;
+    std::string FullHdrFileName(mf_name);
+    FullHdrFileName += TheMultiFabHdrFileSuffix;
+
+    std::ifstream ifs(FullHdrFileName.c_str());
+
+    ifs >> hdr;
+
+    ifs.close();
+
+    std::cout << "hdr.boxarray size =  " << hdr.m_ba.size() << std::endl;
+    std::cout << "mf.ncomp =  " << hdr.m_ncomp << std::endl;
+    std::cout << "number of fabs on disk =  " << hdr.m_fod.size() << std::endl;
+    std::cout << "DirName = " << DirName(mf_name) << std::endl;
+    std::cout << "mf_name = " << mf_name << std::endl;
+    std::cout << "FullHdrFileName = " << FullHdrFileName << std::endl;
+
+    // check that the string FAB is where it should be
+    for(int i(0); i < hdr.m_fod.size(); ++i) {
+      bool badFab(false);
+      FabOnDisk &fod = hdr.m_fod[i];
+      std::string FullName(VisMF::DirName(mf_name));
+      FullName += fod.m_name;
+      std::ifstream ifs;
+      ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
+
+      if( ! ifs.good()) {
+        std::cout << "**** Error:  could not open file:  " << FullName << std::endl;
+	continue;
+      }
+
+      ifs.seekg(fod.m_head, std::ios::beg);
+
+      ifs >> c;
+      if(c != 'F') {
+        badFab = true;
+      }
+      ifs >> c;
+      if(c != 'A') {
+        badFab = true;
+      }
+      ifs >> c;
+      if(c != 'B') {
+        badFab = true;
+      }
+      if(badFab) {
+	++nBadFabs;
+        std::cout << "**** Error in file:  " << FullName << "  Bad Fab at index = "
+	          << i << "   at seekpos = " << fod.m_head << std::endl;
+      }
+
+    }
+    if(nBadFabs) {
+      std::cout << "Total Bad Fabs = " << nBadFabs << std::endl;
+    } else {
+      std::cout << "No Bad Fabs." << std::endl;
+    }
+
+  }
+
+}
+
+
+
 
 void
 VisMF::clear (int fabIndex)

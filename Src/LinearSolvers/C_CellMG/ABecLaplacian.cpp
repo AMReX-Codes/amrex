@@ -54,7 +54,8 @@ ABecLaplacian::norm (int nm, int level, const bool local)
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
-    const int nc = a.nComp();
+    //const int nc = a.nComp(); // FIXME: This LinOp only really support single-component
+    const int nc = 1;
     Real res = 0.0;
     for (MFIter amfi(a); amfi.isValid(); ++amfi)
     {
@@ -202,6 +203,13 @@ ABecLaplacian::aCoefficients (const MultiFab& _a)
 }
 
 void
+ABecLaplacian::ZeroACoefficients ()
+{
+    invalidate_a_to_level(0);
+    (*acoefs[0]).setVal(0,0,acoefs[0]->nComp(),acoefs[0]->nGrow());
+}
+
+void
 ABecLaplacian::bCoefficients (const MultiFab& _b,
                               int             dir)
 {
@@ -209,6 +217,16 @@ ABecLaplacian::bCoefficients (const MultiFab& _b,
     BL_ASSERT(_b.boxArray() == (bcoefs[0][dir])->boxArray());
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
+}
+
+void
+ABecLaplacian::bCoefficients (const FArrayBox& _b,
+                              int              dir,
+                              int              gridno)
+{
+    BL_ASSERT(_b.box().contains((bcoefs[0][dir])->boxArray()[gridno]));
+    invalidate_b_to_level(0);
+    (*bcoefs[0][dir])[gridno].copy(_b,0,0,1);
 }
 
 const MultiFab&
@@ -263,20 +281,21 @@ ABecLaplacian::invalidate_b_to_level (int lev)
 void
 ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			 MultiFab& in, const BC_Mode& bc_mode,
-			 int sComp, int dComp, int nComp)
+			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
-    compFlux(D_DECL(xflux, yflux, zflux), in, bc_mode, true, sComp, dComp, nComp);
+  compFlux(D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
 }
 
 void
 ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                         MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
-			 int src_comp, int dst_comp, int num_comp)
+                         MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode,
+			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
     const int level = 0;
+    BL_ASSERT(num_comp==1);
 
     if (do_ApplyBC)
-        applyBC(in,src_comp,num_comp,level,bc_mode);
+      applyBC(in,src_comp,num_comp,level,bc_mode,bnd_comp);
 
     const MultiFab& a = aCoefficients(level);
 
@@ -353,7 +372,8 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
-    const int nc = solnL.nComp();
+    //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
+    const int nc = 1;
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
@@ -455,7 +475,8 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
-    const int nc = solnL.nComp();
+    //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
+    const int nc = 1;
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
@@ -541,13 +562,28 @@ ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
                        int             level)
 {
+  int num_comp = 1;
+  int src_comp = 0;
+  int dst_comp = 0;
+  Fapply(y,dst_comp,x,src_comp,num_comp,level);
+}
+
+void
+ABecLaplacian::Fapply (MultiFab&       y,
+		       int             dst_comp,
+                       const MultiFab& x,
+		       int             src_comp,
+		       int             num_comp,
+                       int             level)
+{
+    BL_ASSERT(y.nComp()>=dst_comp+num_comp);
+    BL_ASSERT(x.nComp()>=src_comp+num_comp);
+
     const MultiFab& a   = aCoefficients(level);
 
     D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
-
-    const int nc = y.nComp();
 
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
@@ -561,9 +597,9 @@ ABecLaplacian::Fapply (MultiFab&       y,
                const FArrayBox& bzfab = bZ[ymfi];);
 
 #if (BL_SPACEDIM == 2)
-        FORT_ADOTX(yfab.dataPtr(),
+        FORT_ADOTX(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
-                   xfab.dataPtr(),
+                   xfab.dataPtr(src_comp),
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
                    &alpha, &beta, afab.dataPtr(), 
                    ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
@@ -571,13 +607,13 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), 
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
 #endif
 #if (BL_SPACEDIM ==3)
-        FORT_ADOTX(yfab.dataPtr(),
+        FORT_ADOTX(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
-                   xfab.dataPtr(),
+                   xfab.dataPtr(src_comp),
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
                    &alpha, &beta, afab.dataPtr(), 
                    ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
@@ -587,7 +623,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
                    bzfab.dataPtr(), 
                    ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   vbx.loVect(), vbx.hiVect(), &num_comp,
                    h[level]);
 #endif
     }

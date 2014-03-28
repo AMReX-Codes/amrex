@@ -12,6 +12,7 @@
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
 #include <ParmParse.H>
+#include <PArray.H>
 
 //
 // Set default values in Initialize()!!!
@@ -230,6 +231,19 @@ MultiFab::MultiFab (const BoxArray& bxs,
                     FabAlloc        alloc)
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
+{
+    Initialize();
+
+    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+}
+
+MultiFab::MultiFab (const BoxArray&            bxs,
+                    int                        ncomp,
+                    int                        ngrow,
+                    const DistributionMapping& dm,
+                    FabAlloc                   alloc)
+    :
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc)
 {
     Initialize();
 
@@ -871,19 +885,19 @@ MultiFab::negate (const Box& region,
 }
 
 void
-BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                         BoxList*                returnUnfilledBoxes,
-                         Array<FillBoxId>&       returnedFillBoxIds,
-                         const Box&              subbox,
-                         MultiFabId              faid1,
-                         MultiFabId              faid2,
-                         Real                    t1,
-                         Real                    t2,
-                         Real                    t,
-                         int                     src_comp,
-                         int                     dest_comp,
-                         int                     num_comp,
-                         bool                    extrap)
+BoxLib::InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+		      BoxList*                returnUnfilledBoxes,
+		      Array<FillBoxId>&       returnedFillBoxIds,
+		      const Box&              subbox,
+		      MultiFabId              faid1,
+		      MultiFabId              faid2,
+		      Real                    t1,
+		      Real                    t2,
+		      Real                    t,
+		      int                     src_comp,
+		      int                     dest_comp,
+		      int                     num_comp,
+		      bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 
@@ -933,18 +947,18 @@ BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 }
 
 void
-BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                          const Array<FillBoxId>& fillBoxIds,
-                          MultiFabId              faid1,
-                          MultiFabId              faid2,
-                          FArrayBox&              dest,
-                          Real                    t1,
-                          Real                    t2,
-                          Real                    t,
-                          int                     src_comp,   // these comps need to be removed
-                          int                     dest_comp,  // from this routine
-                          int                     num_comp,
-                          bool                    extrap)
+BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+		       const Array<FillBoxId>& fillBoxIds,
+		       MultiFabId              faid1,
+		       MultiFabId              faid2,
+		       FArrayBox&              dest,
+		       Real                    t1,
+		       Real                    t2,
+		       Real                    t,
+		       int                     src_comp,   // these comps need to be removed
+		       int                     dest_comp,  // from this routine
+		       int                     num_comp,
+		       bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 
@@ -969,10 +983,8 @@ BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1,
-                       dest1.box(),
                        src_comp,
                        dest2,
-                       dest2.box(),
                        src_comp,
                        t1,
                        t2,
@@ -1138,10 +1150,12 @@ MultiFab::SumBoundary (int scomp,
         if (FabArrayBase::do_async_sends)
         {
             send_data.push_back(data);
+	    BL_COMM_PROFILE_NAMETAG("ASEND::SumBoundary()");
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
+	    BL_COMM_PROFILE_NAMETAG("SEND::SumBoundary()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }

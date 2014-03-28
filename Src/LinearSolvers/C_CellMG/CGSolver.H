@@ -84,7 +84,7 @@ class CGSolver
 {
 public:
 
-    enum Solver { CG, BiCGStab };
+    enum Solver { CG, BiCGStab, CABiCGStab, CABiCGStabQuad };
     //
     // The Constructor.
     //
@@ -106,8 +106,7 @@ public:
 	       const MultiFab& rhsL,
 	       Real            eps_rel    = -1.0,
 	       Real            eps_abs    = -1.0,
-	       LinOp::BC_Mode  bc_mode    = LinOp::Inhomogeneous_BC,
-	       Solver          cg_solver_ = BiCGStab);
+	       LinOp::BC_Mode  bc_mode    = LinOp::Inhomogeneous_BC);
     //
     // Set maximum allowed number of CG iterations.
     //
@@ -136,29 +135,31 @@ public:
     //
     int getVerbose () const { return verbose; }
 
-    void   setCGSolver (Solver cg_solver_) { cg_solver = cg_solver_; }
-
-    Solver getCGSolver () const { return cg_solver; }
-
 protected:
-
-    int solve_00 (MultiFab&       solnL,
-	       const MultiFab& rhsL,
-	       Real            eps_rel = -1.0,
-	       Real            eps_abs = -1.0,
-	       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
 
     int solve_cg (MultiFab&       solnL,
 		  const MultiFab& rhsL,
-		  Real            eps_rel = -1.0,
-		  Real            eps_abs = -1.0,
-		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+		  Real            eps_rel,
+		  Real            eps_abs,
+		  LinOp::BC_Mode  bc_mode);
 
     int solve_bicgstab (MultiFab&       solnL,
-		  const MultiFab& rhsL,
-		  Real            eps_rel = -1.0,
-		  Real            eps_abs = -1.0,
-		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+                        const MultiFab& rhsL,
+                        Real            eps_rel,
+                        Real            eps_abs,
+                        LinOp::BC_Mode  bc_mode);
+
+    int solve_cabicgstab (MultiFab&       solnL,
+                          const MultiFab& rhsL,
+                          Real            eps_rel,
+                          Real            eps_abs,
+                          LinOp::BC_Mode  bc_mode);
+
+    int solve_cabicgstab_quad (MultiFab&       solnL,
+                               const MultiFab& rhsL,
+                               Real            eps_rel,
+                               Real            eps_abs,
+                               LinOp::BC_Mode  bc_mode);
 
     int jbb_precond (MultiFab&       sol,
                      const MultiFab& rhs,
@@ -186,7 +187,6 @@ private:
     //
     // The data.
     //
-    Solver     cg_solver;
     LinOp&     Lp;             // Operator for linear system to be solved.
     MultiGrid* mg_precond;     // MultiGrid solver to be used as preconditioner
     int        maxiter;        // Current maximum number of allowed iterations.

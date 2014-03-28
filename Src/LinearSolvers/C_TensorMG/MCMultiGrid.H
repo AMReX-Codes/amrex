@@ -231,8 +231,8 @@ protected:
     // Return scalar estimate of error
     //
     virtual Real errorEstimate (int       level,
-				MCBC_Mode bc_mode);
-    //
+				MCBC_Mode bc_mode,
+                                bool      local = false);
     // Transfer MultiFab from fine to coarse level
     //
     void average (MultiFab&       c,

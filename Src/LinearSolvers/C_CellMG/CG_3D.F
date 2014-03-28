@@ -4,8 +4,8 @@
 #endif
 
 #include <REAL.H>
-#include "CG_F.H"
-#include "ArrayLim.H"
+#include <CG_F.H>
+#include <ArrayLim.H>
 
 c-----------------------------------------------------------------------
 c      
@@ -45,20 +45,25 @@ c-----------------------------------------------------------------------
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   phi(i,j,k,n) = phi(i,j,k,n) + a * pp(i,j,k,n)
+               end do
+            end do
+         end do
+      end do
+
+      do n = 1, nc
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   rr(i,j,k,n)  = rr(i,j,k,n)  - a * ww(i,j,k,n)
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -78,7 +83,7 @@ c-----------------------------------------------------------------------
      $     b,
      $     lo, hi, nc
      $     )
-c
+
       implicit none
       integer nc
       integer lo(BL_SPACEDIM)
@@ -91,9 +96,7 @@ c
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -101,9 +104,8 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
+
       end
       
 c-----------------------------------------------------------------------
@@ -136,8 +138,8 @@ c-----------------------------------------------------------------------
       integer i, j, k, n
 
       pw = 0.0D0
+
       do n = 1, nc
-!$omp parallel do private(i,j,k) reduction(+:pw) if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -145,7 +147,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -171,9 +172,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -181,8 +180,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end

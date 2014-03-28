@@ -153,6 +153,7 @@ class AmrData {
               Real &dataMin, Real &dataMax);
   
   static void SetVerbose(bool tf)       { verbose = tf; }
+  static bool Verbose()                 { return verbose; }
   static void SetSkipPltLines(int spl)  { skipPltLines = spl; }
   static void SetStaticBoundaryWidth(int bw)  { sBoundaryWidth = bw; }
   

@@ -1,9 +1,13 @@
-to use the profiler, set PROFILE=TRUE in your GNUmakefile.
-a summary of timings will be written to cout and optionally
-a file named bl_prof.txt will be written with timings for
-each processor.
 
-to instrument regular functions, add BL_PROFILE("class::fname()") to
+--------------------------------------------- Function timings.
+To use the profiler, set PROFILE=TRUE in your GNUmakefile.
+A summary of timings will be written to cout and optionally
+a directory named bl_prof will be created with timings for
+each processor in nfiles files.
+
+You must at least instrument main.
+
+To instrument regular functions, add BL_PROFILE("class::fname()") to
 the top of your function. there can only be one of these per function.
 
 void YourClass::YourFunction() {
@@ -13,14 +17,14 @@ void YourClass::YourFunction() {
 }
 
 
-for other timers within an instrumented function, add:
+For other timers within an already instrumented function, add:
 
-      BL_PROFILE_VAR("Flaten::FORT_FLATENX()", FLATENX);  // add this before
+      BL_PROFILE_VAR("Flaten::FORT_FLATENX()", anyname);  // add this before
         FORT_FLATENX(arg1, arg2);
-      BL_PROFILE_VAR_STOP(FLATENX);   // add this after, using the same name
+      BL_PROFILE_VAR_STOP(anyname);   // add this after, using the same name
 
 
-for main, add these:
+For main, add these:
 
 int main(...) {
 
@@ -32,7 +36,97 @@ int main(...) {
 
   BL_PROFILE_VAR_STOP(pmain);  // add this
   BL_PROFILE_SET_RUN_TIME(Your_timers_time_for_the_run);  // optional
-  BL_PROFILE_FINALIZE();       // add this
 
   BoxLib::Finalize();
 }
+
+
+Profiling macros are empty if profiling is off.
+
+
+--------------------------------------------- Communications timings.
+Timings for communication functions such as ParallelDescriptor::Send(...)
+are shown in the regular profiling's function timing section.  BoxLib
+can also collect additional information such as point to point
+communication timings, amount of data moved, barrier and
+reduction wait times, etc.  To use this part of the profiler,
+set PROFILE=TRUE and COMM_PROFILE=TRUE in your GNUmakefile.
+A database of communication information will be written to
+a directory named bl_comm_prof.  The files here must be
+postprocessed in a manner similar to plotfiles to extract
+useful information.  This is done with the CommProfParser
+(AmrPostprocessing/C_Src/CommProfParser).
+
+Some features of the communication profiler:
+  local filtering.
+  nfiles for data and headers.
+  demand driven i/o support.
+  named tags.
+  named barriers.
+  flushing.
+
+instrumentation:
+
+BL_COMM_PROFILE_NAMETAG("LevelAdvance::FillPatchIterator START");
+BL_COMM_PROFILE_NAMETAG("LevelAdvance::FillPatchIterator END");
+
+barriers can be named:  ParallelDescriptor::Barrier("CreateDirs");
+
+
+input:
+
+output:
+
+usage:
+
+overhead:
+
+demand driven i/o support:
+  each header file contains seek position information for
+  data blocks, barriers, reductions, and named tags and
+  minmax times for each data block in order to assist
+  reading subsets of the data.
+
+
+file formats:
+  the communication data exists in the directory named
+  bl_comm_prof.  header files are named bl_comm_prof_H_0000
+  through bl_comm_prof_H_nnnn, where nnnn is nfiles-1.
+  data files have the same names except 'D' instead of 'H'.
+  the data is in binary.  currently there is no support
+  for postprocessing on a machine with a different byte
+  ordering from where the data was written.
+
+  header files have the following format:
+
+NProcs  4
+CommStatsSize  24
+CommProfProc  0  nCommStats  2338513  datafile  bl_comm_prof_D_0000  seekpos  0
+bNum  0  "Amr::setRecordGridInfo"  4
+bNum  1  "Amr::checkPoint::dir"  1489916
+bNum  n  "barrier name"  seekpos
+bNum  m  "barrier name"  seekpos
+nTag  "STEP 1"  2338512
+nTag  "tagname aaa"  seekpos
+nTag  "tagname bbb"  seekpos
+red  0  2574
+red  1  2576
+red  n  seekpos
+timeMinMax  0.002336025238037109  231.200443983078
+nameTagNames  "STEP 1"
+nameTagNames  "tagname aaa"
+nameTagNames  "tagname bbb"
+NProcs  4   # <------------------ a new data block
+# rest of data block
+# more data blocks
+
+
+each mpi process writes its own data and data can be
+flushed during the run, so there will be multiple
+blocks for each process, probably interleaved with
+data from other processes.  the commprofparser will
+sort these out.
+
+
+
+

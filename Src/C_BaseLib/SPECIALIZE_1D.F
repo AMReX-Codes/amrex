@@ -194,6 +194,35 @@ c
 
       end
 c
+c     Calculate sum(abs) over section of an array.
+c
+      subroutine FORT_FASTSUM (src,DIMS(src),lo,hi,ncomp,sm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(1), hi(1)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), sm
+c
+c     Local variables.
+c
+      integer i,k
+      integer imin,imax
+
+      imin = lo(1)
+      imax = hi(1)
+
+      sm = 0.0d0
+
+      do k = 1, ncomp
+         do i = imin,imax
+            sm = sm + src(i,k)
+         end do
+      end do
+
+      end
+c
 c     This function adds floating point numbers from one array to another.
 c
       subroutine FORT_FASTPLUS (dest,
@@ -269,6 +298,47 @@ c
       do k = 1, ncomp
             do i = imin,imax
                dest(i,k) = dest(i,k) * src(i+ioff,k)
+            end do
+      end do
+
+      end
+c
+c     This function adds scaled floating point numbers from one array to another.
+c
+      subroutine FORT_FASTSAXPY (dest,
+     &                           DIMS(dest),
+     &                           imin, imax,
+     &                           a, src,
+     &                           DIMS(src),
+     &                           imn,
+     &                           ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dest
+c
+      integer imin, imax
+      integer DIMDEC(dest)
+c
+c     Bounds to fill from src
+c
+      integer imn
+      integer DIMDEC(src)
+      integer ncomp
+      
+      REAL_T  dest(DIMV(dest),ncomp)
+      REAL_T  a
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,k,ioff
+
+      ioff=imn-imin
+
+      do k = 1, ncomp
+            do i = imin, imax
+               dest(i,k) = dest(i,k) + a * src(i+ioff,k)
             end do
       end do
 
@@ -417,3 +487,4 @@ c
       end do
 
       end
+

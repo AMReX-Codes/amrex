@@ -182,6 +182,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
     BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
 
     for (int i = 0; i < ncomp; i++)
     {
@@ -189,6 +190,38 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
         {
             if (isnan(this->operator()(p,scomp+i)))
                 return true;
+        }
+    }
+#endif
+    return false;
+}
+
+bool 
+FArrayBox::contains_nan (IntVect& where) const
+{
+    return contains_nan(domain, 0, nComp(), where);
+}
+
+bool 
+FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (isnan(this->operator()(p,scomp+i)))
+            {
+                where = p;
+
+                return true;
+            }
         }
     }
 #endif
@@ -215,6 +248,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
     BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
 
     for (int i = 0; i < ncomp; i++)
     {
@@ -222,6 +256,38 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
         {
             if (isinf(this->operator()(p,scomp+i)))
                 return true;
+        }
+    }
+#endif
+    return false;
+}
+
+bool 
+FArrayBox::contains_inf (IntVect& where) const
+{
+    return contains_inf(domain,0,nComp(),where);
+}
+
+bool 
+FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const
+{
+#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (isinf(this->operator()(p,scomp+i)))
+            {
+                where = p;
+
+                return true;
+            }
         }
     }
 #endif

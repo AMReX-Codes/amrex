@@ -8,14 +8,30 @@ endif
 CXXOPTF += -DMPICH_IGNORE_CXX_SEEK
 CXXDEBF += -DMPICH_IGNORE_CXX_SEEK
 
-ifeq ($(findstring jaguar, $(HOST)), jaguar)
+### Cray compiler versions in the 8.1 series greater than 8.1.1 seem to
+### have a PGAS bug --- this should fix it, but won't be needed with >= 8.2
+ifeq ($(COMP), Cray)
+  version_info = $(shell craycc -V 2>&1 | awk '{print $$5}')
+  minor_version = $(shell echo $(version_info) | cut -d'.' -f3)
+
+  ifeq ($(findstring 8.1., $(version_info)), 8.1.)
+    ifneq ($(minor_version),1)
+      CXXFLAGS += -hnopgas_runtime
+      LIBRARIES += -lpgas-dmapp
+    endif
+  endif
+endif
+
+ifeq ($(findstring titan, $(HOST)), titan)
     #
-    # jaguar
+    # titan
     #
     ifeq ($(USE_MPI),TRUE)
-        CXX := CC -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
+       CC := cc
+       CXX := CC
+       FC := ftn
+       F90 := ftn
+       fC := ftn
     endif
 endif
 
@@ -31,13 +47,6 @@ ifeq ($(findstring .scs, $(UNAMEN)), .scs)
   F90FLAGS += -module $(fmoddir)
 endif
 
-ifeq ($(MACHINE), OSF1)
-  MPI_HOME:=/usr/opt/mpi
-  BL_MPI_LIBS += -lmpi -lpmpi
-  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-  INCLUDE_LOCATIONS += $(MPI_HOME)/include
-endif
-
 ifeq ($(MACHINE), AIX)
   MPI_HOME:=/usr/lpp/ppe.poe
   BL_MPI_LIBS += -lmpi
@@ -45,12 +54,30 @@ ifeq ($(MACHINE), AIX)
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
 endif
 
-ifeq ($(MACHINE), IRIX64)
-  BL_MPI_LIBS += -lmpi
-endif
-
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
+
+    ifeq ($(WHICHLINUX), BLUE_WATERS)
+      CC := cc
+      CXX := CC
+      FC := ftn
+      F90 := ftn
+      fC := ftn
+
+      ifeq ($(COMP), Cray)
+        ifneq ($(USE_OMP),TRUE)
+	  CXXOPTF += -hnoomp
+	  CXXDEBF += -hnoomp
+	endif
+      endif
+
+      ifeq ($(FCOMP), Cray)
+        ifneq ($(USE_OMP),TRUE)
+	  F90FLAGS += -hnoomp
+	  FFLAGS += -hnoomp
+	endif
+      endif
+    endif
 
     ifeq ($(WHICHLINUX), INTREPID)
 
@@ -77,7 +104,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(WHICHLINUX), LENS)
-      MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
+      ifeq ($(COMP), g++)
+  	MPI_HOME:=/sw/analysis-x64/ompi/1.4.2/centos5.5_gnu4.4.4
+      else
+        MPI_HOME:=/sw/analysis-x64/ompi/1.4.3/centos5.5_pgi10.9
+      endif
       BL_MPI_LIBS += -lmpi
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
@@ -104,17 +135,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpich
 #      BL_MPI_LIBS += -lmpi -lmpi_f77
     endif
-    ifeq ($(WHICHLINUX), ATLAS)
-      ifeq ($(FCOMP), Intel)
-	MPI_HOME=/usr/local/tools/mvapich-intel
-      endif
-      ifeq ($(FCOMP), PGI)
-	MPI_HOME=/usr/local/tools/mvapich-pgi
-      endif
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-      BL_MPI_LIBS += -lmpichfarg
-    endif
     ifeq ($(WHICHLINUX), HYPERION)
       ifeq ($(FCOMP), Intel)
 	MPI_HOME=/usr/local/tools/mvapich-intel
@@ -126,27 +146,10 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
     endif
-# mas: duplicate atlas stuff for yana
-    ifeq ($(WHICHLINUX), YANA)
-      ifeq ($(FCOMP), Intel)
-        MPI_HOME=/usr/local/tools/mvapich-intel
-      endif
-      ifeq ($(FCOMP), PGI)
-        MPI_HOME=/usr/local/tools/mvapich-pgi
-      endif
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-      BL_MPI_LIBS += -lmpichfarg
-    endif
     ifeq ($(WHICHLINUX), HOMER)
       MPI_HOME=/usr/local/mpich2/
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-    endif
-    ifeq ($(WHICHLINUX), SN)
-      MPI_HOME=/usr/lib64/mpich2
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += /usr/include/mpich2-x86_64/
     endif
     ifeq ($(WHICHLINUX), PCCLUSTER)
       MPI_HOME=/usr/local/pkg/mpich
@@ -186,7 +189,7 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lmpich -lpthread -lmpl
     endif
 
     ifeq ($(HOST), orga)
@@ -270,11 +273,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),gigan)
-      MPI_HOME=/usr/local/mpich2
+      MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lpthread -lmpl
     endif
 
     ifeq ($(HOST), kiryu)
@@ -283,13 +286,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib64
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DOMPI_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpi_f77 -lmpi
     endif
 
     ifeq ($(HOST),angilas)
@@ -321,7 +317,7 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lpthread -lmpich
     endif
 
     ifeq ($(HOST),hedorah)
@@ -413,7 +409,7 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
 
-    ifneq ($(HOSTNAME), pleiades.ucsc.edu)
+    ifneq ($(HOSTNAME), hyades.ucsc.edu)
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)

@@ -85,6 +85,7 @@ StateData::restart (std::istream&          is,
                     const std::string&     chkfile,
                     bool                   bReadSpecial)
 {
+    BL_PROFILE("StateData::restart()");
     if (bReadSpecial)
     {
 	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
@@ -240,7 +241,7 @@ StateData::swapTimeLevels (Real dt)
     {
         new_time.start += dt;
         new_time.stop  += dt;
-    }
+   }
     else
     {
         new_time.start = new_time.stop;
@@ -258,6 +259,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                          int            src_comp,
                          int            num_comp)
 {
+    BL_PROFILE("StateData::FillBoundary()");
     BL_ASSERT(dest.box().ixType() == desc->getType());
    
     if (domain.contains(dest.box())) return;
@@ -267,6 +269,8 @@ StateData::FillBoundary (FArrayBox&     dest,
     const int* dhi = dest.hiVect();
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
+
+    Array<int> bcrs;
 
     Real xlo[BL_SPACEDIM];
     BCRec bcr;
@@ -284,7 +288,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
         if (desc->master(sc))
         {
-            int groupsize = desc->groupsize(sc);
+            const int groupsize = desc->groupsize(sc);
 
             BL_ASSERT(groupsize != 0);
 
@@ -293,8 +297,9 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Can do the whole group at once.
                 //
-                int* bcrs = new int[2*BL_SPACEDIM*groupsize];
-                int* bci  = bcrs;
+                bcrs.resize(2*BL_SPACEDIM*groupsize);
+
+                int* bci  = bcrs.dataPtr();
 
                 for (int j = 0; j < groupsize; j++)
                 {
@@ -310,9 +315,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Use the "group" boundary fill routine.
                 //
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs,true);
-
-                delete [] bcrs;
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),true);
 
                 i += groupsize;
             }
@@ -342,16 +345,16 @@ StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
 }
 
 void
-StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-                            Array<MultiFabId>&      mfid,
-                            BoxList*                unfillableBoxes,
-                            Array<FillBoxId>&       returnedFillBoxIds,
-                            const Box&              subbox,
-                            Real                    time,
-                            int                     src_comp,
-                            int                     dest_comp,
-                            int                     num_comp,
-                            bool                    extrap)
+StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
+			 Array<MultiFabId>&      mfid,
+			 BoxList*                unfillableBoxes,
+			 Array<FillBoxId>&       returnedFillBoxIds,
+			 const Box&              subbox,
+			 Real                    time,
+			 int                     src_comp,
+			 int                     dest_comp,
+			 int                     num_comp,
+			 bool                    extrap)
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
@@ -367,19 +370,19 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::linInterpAddBox(multiFabCopyDesc,
-                                    unfillableBoxes,
-                                    returnedFillBoxIds,
-                                    subbox,
-                                    mfid[MFOLDDATA],
-                                    mfid[MFNEWDATA],
-                                    old_time.start,
-                                    new_time.start,
-                                    time,
-                                    src_comp,
-                                    dest_comp,
-                                    num_comp,
-                                    extrap);
+            BoxLib::InterpAddBox(multiFabCopyDesc,
+				 unfillableBoxes,
+				 returnedFillBoxIds,
+				 subbox,
+				 mfid[MFOLDDATA],
+				 mfid[MFNEWDATA],
+				 old_time.start,
+				 new_time.start,
+				 time,
+				 src_comp,
+				 dest_comp,
+				 num_comp,
+				 extrap);
         }
     }
     else
@@ -410,22 +413,23 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::linInterp(): cannot interp");
+            BoxLib::Error("StateData::Interp(): cannot interp");
         }
    }
 }
 
 void
-StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
-                             const Array<MultiFabId>& mfid,
-                             const Array<FillBoxId>&  fillBoxIds,
-                             FArrayBox&               dest,
-                             Real                     time,
-                             int                      src_comp,
-                             int                      dest_comp,
-                             int                      num_comp,
-                             bool                     extrap)
+StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
+			  const Array<MultiFabId>& mfid,
+			  const Array<FillBoxId>&  fillBoxIds,
+			  FArrayBox&               dest,
+			  Real                     time,
+			  int                      src_comp,
+			  int                      dest_comp,
+			  int                      num_comp,
+			  bool                     extrap)
 {
+    BL_PROFILE("StateData::InterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
@@ -434,18 +438,18 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::linInterpFillFab(multiFabCopyDesc,
-                                     fillBoxIds,
-                                     mfid[MFOLDDATA],
-                                     mfid[MFNEWDATA],
-                                     dest,
-                                     old_time.start,
-                                     new_time.start,
-                                     time,
-                                     src_comp,
-                                     dest_comp,
-                                     num_comp,
-                                     extrap);
+            BoxLib::InterpFillFab(multiFabCopyDesc,
+				  fillBoxIds,
+				  mfid[MFOLDDATA],
+				  mfid[MFNEWDATA],
+				  dest,
+				  old_time.start,
+				  new_time.start,
+				  time,
+				  src_comp,
+				  dest_comp,
+				  num_comp,
+				  extrap);
         }
     }
     else
@@ -464,7 +468,7 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            BoxLib::Error("StateData::linInterp(): cannot interp");
+            BoxLib::Error("StateData::Interp(): cannot interp");
         }
     }
 }
@@ -476,6 +480,7 @@ StateData::checkPoint (const std::string& name,
                        VisMF::How     how,
                        bool           dump_old)
 {
+    BL_PROFILE("StateData::checkPoint()");
     static const std::string NewSuffix("_New_MF");
     static const std::string OldSuffix("_Old_MF");
 

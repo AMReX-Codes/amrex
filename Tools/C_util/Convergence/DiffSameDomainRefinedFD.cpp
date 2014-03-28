@@ -189,8 +189,8 @@ main (int   argc,
 	error[iLevel]->setVal(GARBAGE);
 
         //
-        // For each component, average the fine fields down and calculate
-        // the errors
+        // For each component, compute errors by striding through fine
+        // solution
         //
         Array<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
@@ -205,7 +205,7 @@ main (int   argc,
             new_data1.copy(data1,0,0,1);
 
             //
-            // Calculate the errors  for each FAB in the MultiFab
+            // Calculate the errors for each FAB in the MultiFab
             //
             for (MFIter mfi(new_data1); mfi.isValid(); ++mfi)
             {
@@ -224,10 +224,13 @@ main (int   argc,
 
 		for (i=lo[0]; i<=hi[0]; i++) {
 		  cidx[0] = i; fidx[0] = i * refine_ratio[0];
+
 		  for (j=lo[1]; j<=hi[1]; j++) {
 		    cidx[1] = j; fidx[1] = j * refine_ratio[1];
+
 		    for (k=lo[2]; k<=hi[2]; k++) {
 		      cidx[2] = k; fidx[2] = k * refine_ratio[2];
+
 		      data2Coarse(cidx) = data2Fine[mfi](fidx);
 		    }
 		  }
@@ -301,17 +304,12 @@ main (int   argc,
 #endif
 
 
-        Real vol = 1.0;
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            vol *= amrData1.DxLevel()[iLevel][dir];
-
         if (ParallelDescriptor::IOProcessor())
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
                 if (norm != 0)
                 {
-                    norms[iComp] = norms[iComp] * vol;
                     norms[iComp] = pow(norms[iComp], (1.0/norm));
                 }
 

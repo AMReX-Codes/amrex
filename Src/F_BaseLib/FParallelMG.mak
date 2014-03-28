@@ -39,6 +39,12 @@ f90EXE_sources += sort_d.f90
 f90EXE_sources += sort_i.f90
 f90EXE_sources += vector_i.f90
 
+ifeq ($(USE_OMP),TRUE)
+  f90EXE_sources += omp.f90
+else
+  f90EXE_sources += omp_stubs.f90
+endif
+
 ifeq ($(USE_MPI),TRUE)
   f90EXE_sources += parallel.f90
 else

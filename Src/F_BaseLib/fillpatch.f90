@@ -107,6 +107,9 @@ contains
        !
        ! Note: we let bl contain empty boxes so that we keep the same number of boxes
        !       in bl as in fine, but in the interpolation later we cycle if it's empty.
+       !       We do this to keep the mapping of boxes between the various
+       !       multifabs consistent with one another and because it means we
+       !       don't have to manage changes to the processor map.
        !
        bx = intersection(grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng),fdomain)
        call push_back(bl, bx)
@@ -196,13 +199,16 @@ contains
     call build(ba, bl, sort = .false.)
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
-    call boxarray_grow(ba, stencil_width) ! Grow by stencil_width for stencil in interpolation routine.
-    call build(la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
+    ! Grow by stencil_width for stencil in interpolation routine. 
+    ! Don't grow empty boxes!
+    call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
+    call build(la, ba, pd = get_pd(get_layout(crse)), pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
     ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
-    call setval(cfine, 1.e200_dp_t)
+    ! Empty boxes aren't setval()'d
+    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
@@ -216,13 +222,13 @@ contains
     grow_counter = nghost(crse)
 
     ! In this case the original crse multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine))) then
+    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
 
        ! Sanity check
        cdomain = get_pd(get_layout(crse))
        cdomain = grow(cdomain,nghost(crse))
        call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine))) &
+       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
           call bl_error('Sanity check failed in fillpatch')
        call destroy(ba_domain)
 
@@ -241,7 +247,7 @@ contains
           grow_counter = grow_counter + 1
           cdomain = grow(cdomain,1)
           call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine))) done = .true.
+          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
           call destroy(ba_domain)
        end do
 
@@ -265,19 +271,21 @@ contains
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
+    !$OMP PARALLEL DO PRIVATE(i,src,dst)
     do i = 1, nfabs(pcrse)
        src => dataptr(pcrse,   i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
        ! dst = src failed using Intel compiler 9.1.043
        call cpy_d(dst,src)
     end do
+    !$OMP END PARALLEL DO
 
     if (grow_counter .gt. nghost(crse)) call destroy(gcrse)
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse) .ge. 0.99d200) then
+    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
+       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
           call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
@@ -289,6 +297,8 @@ contains
 
     cdomain = get_pd(get_layout(crse))
 
+    !$OMP PARALLEL DO PRIVATE(i,j,cbx,fine_box,fbx,cslope_lo,cslope_hi,local_bc,lo_c,hi_c,lo_f,hi_f) &
+    !$OMP PRIVATE(fvcx,fvcy,fvcz,cvcx,cvcy,cvcz,src,fp,dst)
     do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
@@ -406,16 +416,19 @@ contains
        if ( dm > 2 ) deallocate(cvcz, fvcz)
 
     end do
+    !$OMP END PARALLEL DO
 
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
+          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
           do i = 1, nfabs(fine)
              bx  =  grow(get_ibox(fine,i), ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
-             dst =  src
+             call cpy_d(dst,src)
           end do
+          !$OMP END PARALLEL DO
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().

@@ -198,10 +198,14 @@ LinOp::apply (MultiFab&      out,
               MultiFab&      in,
               int            level,
               LinOp::BC_Mode bc_mode,
-              bool           local)
+              bool           local,
+	      int            src_comp,
+	      int            dst_comp,
+	      int            num_comp,
+	      int            bndry_comp)
 {
-    applyBC(in,0,1,level,bc_mode,local);
-    Fapply(out,in,level);
+    applyBC(in,src_comp,num_comp,level,bc_mode,local,bndry_comp);
+    Fapply(out,dst_comp,in,src_comp,num_comp,level);
 }
 
 void
@@ -210,7 +214,8 @@ LinOp::applyBC (MultiFab&      inout,
                 int            num_comp,
                 int            level,
                 LinOp::BC_Mode bc_mode,
-                bool           local)
+                bool           local,
+		int            bndry_comp)
 {
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
@@ -219,6 +224,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
+    BL_ASSERT(level < numLevels());
     BL_ASSERT(!(level > 0 && bc_mode == Inhomogeneous_BC));
 
     int flagden = 1; // Fill in undrrelxr.
@@ -229,10 +235,6 @@ LinOp::applyBC (MultiFab&      inout,
         // No data if homogeneous.
         //
         flagbc = 0;
-    //
-    // Only single-component solves supported (verified) by this class.
-    //
-    BL_ASSERT(num_comp == 1);
 
     const bool cross = true;
 
@@ -242,12 +244,11 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Do periodic fixup.
     //
+    BL_ASSERT(level<geomarray.size());
     geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp,false,local);
     //
     // Fill boundary cells.
     //
-    const int comp = 0;
-
     const int N = inout.IndexMap().size();
 
 #ifdef _OPENMP
@@ -258,6 +259,10 @@ LinOp::applyBC (MultiFab&      inout,
         const int gn = inout.IndexMap()[i];
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
+
+        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
+        BL_ASSERT(level<undrrelxr.size());
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
         const MaskTuple&                 lma = lmaskvals[level][gn];
@@ -273,10 +278,14 @@ LinOp::applyBC (MultiFab&      inout,
             const FabSet& fs  = bgb->bndryValues(o);
             const Mask&   m   = local ? (*lma[o]) : (*ma[o]);
             Real          bcl = bdl[o];
-            int           bct = bdc[o][comp];
+            BL_ASSERT(bdc[o].size()>bndry_comp);
+            int           bct = bdc[o][bndry_comp];
 
             const Box&       vbx   = inout.box(gn);
             FArrayBox&       iofab = inout[gn];
+            BL_ASSERT(f.size()>gn);
+            BL_ASSERT(fs.size()>gn);
+
             FArrayBox&       ffab  = f[gn];
             const FArrayBox& fsfab = fs[gn];
 
@@ -284,7 +293,7 @@ LinOp::applyBC (MultiFab&      inout,
                          iofab.dataPtr(src_comp),
                          ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
                          &cdr, &bct, &bcl,
-                         fsfab.dataPtr(), 
+                         fsfab.dataPtr(bndry_comp), 
                          ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
                          m.dataPtr(),
                          ARLIM(m.loVect()), ARLIM(m.hiVect()),
@@ -465,6 +474,8 @@ LinOp::prepareForLevel (int level)
             }
         }
     }
+
+    gbox[level].clear_hash_bin();
 }
 
 void

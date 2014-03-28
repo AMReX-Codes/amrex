@@ -44,6 +44,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
 #define FAB_CONTAINS_INF  fab_contains_inf_
+#define VAL_IS_INF        val_is_inf_
+#define VAL_IS_NAN        val_is_nan_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
@@ -61,6 +63,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
 #define FAB_CONTAINS_INF  fab_contains_inf__
+#define VAL_IS_INF        val_is_inf__
+#define VAL_IS_NAN        val_is_nan__
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
@@ -78,6 +82,8 @@ typedef int mode_t;
 #define FABIO_CLOSE       fabio_close
 #define FAB_CONTAINS_NAN  fab_contains_nan
 #define FAB_CONTAINS_INF  fab_contains_inf
+#define VAL_IS_INF        val_is_inf
+#define VAL_IS_NAN        val_is_nan
 #endif
 
 static
@@ -815,25 +821,69 @@ FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
 void
 FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 {
-    *result = 0;
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
-    int i;
-    const double* dp = dptr;
-    for (i = 0; i < *countp && *result == 0; i++)
-        if (isnan(*dp++))
-            *result = 1;
+    int i, r;
+    int rr=0;
+#ifdef _OPENMP
+#pragma omp parallel private(r) reduction(+:rr)
+#endif
+    {
+      r = 0;
+#ifdef _OPENMP
+#pragma omp for private(i)
+#endif
+      for (i = 0; i < *countp; i++) {
+	if (isnan(dptr[i])) {
+	  r = 1;
+	}
+      }
+      rr += r;
+    }
+    *result = (rr>0) ? 1 : 0;
 #endif
 }
 
 void
 FAB_CONTAINS_INF (double dptr[], const int* countp, int* result)
 {
-    *result = 0;
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
-    int i;
-    const double* dp = dptr;
-    for (i = 0; i < *countp && *result == 0; i++)
-        if (isinf(*dp++))
-            *result = 1;
+    int i, r;
+    int rr=0;
+#ifdef _OPENMP
+#pragma omp parallel private(r) reduction(+:rr)
+#endif
+    {
+      r = 0;
+#ifdef _OPENMP
+#pragma omp for private(i)
+#endif
+      for (i = 0; i < *countp; i++) {
+        if (isinf(dptr[i])) {
+	  r = 1;
+	}
+      }
+      rr += r;
+    }
+    *result = (rr>0) ? 1 : 0;
+#endif
+}
+
+void
+VAL_IS_INF (double* val, int* result)
+{
+#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+
+    *result = (isinf(*val) ? 1 : 0);
+
+#endif
+}
+
+void
+VAL_IS_NAN (double* val, int* result)
+{
+#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+
+    *result = (isnan(*val) ? 1 : 0);
+
 #endif
 }

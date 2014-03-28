@@ -4,18 +4,119 @@ module cc_applyop_module
   use mg_module
   use ml_layout_module
   use bndry_reg_module
+  use define_bc_module
 
   implicit none
 
-  private :: scale_residual_1d, scale_residual_2d, scale_residual_3d
+  private
+
+  public :: cc_applyop, ml_cc_applyop
 
 contains
+
+  subroutine cc_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,stencil_order_in)
+
+    use mg_module             , only: mg_tower, mg_tower_build, mg_tower_destroy
+    use cc_stencil_fill_module, only: stencil_fill_cc
+    use stencil_types_module
+
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(inout) :: res(:), phi(:)
+    type(multifab) , intent(in   ) :: alpha(:), beta(:,:)
+    real(dp_t)     , intent(in   ) :: dx(:,:)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
+    integer        , intent(in   ) :: bc_comp
+    integer, intent(in), optional :: stencil_order_in
+
+    type(layout  ) :: la
+    type(box     ) :: pd
+
+    type(multifab) :: cell_coeffs
+    type(multifab) :: edge_coeffs(mla%dim)
+
+    type(mg_tower)  :: mgt(mla%nlevel)
+    integer         :: d, dm, nlevs
+    integer         :: stencil_order
+
+    ! MG solver defaults
+    integer    :: n
+    real(dp_t) ::  xa(mla%dim),  xb(mla%dim)
+    real(dp_t) :: pxa(mla%dim), pxb(mla%dim)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "cc_applyop")
+
+    dm = mla%dim
+    nlevs = mla%nlevel
+
+    stencil_order = 2
+    if (present(stencil_order_in)) stencil_order = stencil_order_in
+
+    do n = nlevs, 1, -1
+
+       pd = layout_get_pd(mla%la(n))
+
+       call mg_tower_build(mgt(n), mla%la(n), pd, &
+                           the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp),&
+                           stencil_type = CC_CROSS_STENCIL, &
+                           dh = dx(n,:), &
+                           nodal = nodal_flags(res(nlevs)))
+
+    end do
+
+    !! Fill coefficient array
+
+    do n = nlevs,1,-1
+
+       la = mla%la(n)
+
+       call multifab_build(cell_coeffs, la,          nc=1,ng=nghost(alpha(n)))
+       call multifab_copy_c(cell_coeffs,1,alpha(n),1,nc=1,ng=nghost(alpha(n)))
+
+       do d = 1,dm
+          call multifab_build_edge(edge_coeffs(d), la,      nc=1,ng=nghost(beta(n,d)),dir=d)
+          call multifab_copy_c(edge_coeffs(d),1,beta(n,d),1,nc=1,ng=nghost(beta(n,d)))
+       end do
+
+       if (n > 1) then
+          xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+          xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
+       else
+          xa = ZERO
+          xb = ZERO
+       end if
+
+       pxa = ZERO
+       pxb = ZERO
+
+       call stencil_fill_cc(mgt(n)%ss(mgt(n)%nlevels), cell_coeffs, edge_coeffs, mgt(n)%dh(:,mgt(n)%nlevels), &
+                            mgt(n)%mm(mgt(n)%nlevels), xa, xb, pxa, pxb, stencil_order, &
+                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp))
+
+       call destroy(cell_coeffs)
+
+       do d = 1,dm
+          call destroy(edge_coeffs(d))
+       end do
+
+    end do
+
+    call ml_cc_applyop(mla, mgt, res, phi, mla%mba%rr)
+
+    do n = 1, nlevs
+       call mg_tower_destroy(mgt(n))
+    end do
+
+    call destroy(bpt)
+
+  end subroutine cc_applyop
 
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
     use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
+    use ml_prolongation_module, only : ml_interp_bcs
     use cc_ml_resid_module    , only : crse_fine_residual_cc
 
     type(ml_layout), intent(in)    :: mla
@@ -25,11 +126,7 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::      soln(:)
-    type(multifab), allocatable  ::        uu(:)
-    type(multifab), allocatable  ::   uu_hold(:)
     type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-    type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
@@ -40,36 +137,21 @@ contains
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
-    integer                   :: lo(get_dim(res(1))),hi(get_dim(res(1))),ng
-    real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
     call build(bpt, "ml_cc_applyop")
 
     nlevs = mla%nlevel
 
-    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
-    allocate(uu_hold(2:nlevs-1))
+    allocate(rh(nlevs))
 
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
 
-    do n = 2,nlevs-1
-       la = mla%la(n)
-       call build(uu_hold(n),la,1,1)
-       call setval( uu_hold(n), ZERO,all=.true.)
-    end do
-
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, 1)
-       call build(      uu(n), la, 1, 1)
-       call build(      rh(n), la, 1, 0)
-       call build(temp_res(n), la, 1, 0)
-       call setval(    soln(n), ZERO,all=.true.)
-       call setval(      uu(n), ZERO,all=.true.)
-       call setval(      rh(n), ZERO,all=.true.)
-       call setval(temp_res(n), ZERO,all=.true.)
+       call build(rh(n), la, 1, 0)
+       call setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
        call setval(     res(n), ZERO,all=.true.)
@@ -108,11 +190,10 @@ contains
        call multifab_fill_boundary(full_soln(n))
     end do
 
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type, mgt(n)%lcross)
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                           mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -126,38 +207,16 @@ contains
                                   ref_ratio(n-1,:))
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
-
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = nghost(res(n))
-       
-       do i=1, nfabs(res(n))
-          resp  => dataptr(res(n),i)
-          lo    =  lwb(get_box(res(n), i))
-          hi    =  upb(get_box(res(n), i))
-          select case (dm)
-          case (1)
-             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
-          case (2)
-             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
-          case (3)
-             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
-          end select
-       end do
-    enddo
-
-    do n = 2,nlevs-1
-       call destroy(uu_hold(n))
+       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
     end do
 
     do n = nlevs, 1, -1
-       call destroy(soln(n))
-       call destroy(uu(n))
        call destroy(rh(n))
-       call destroy(temp_res(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
@@ -169,11 +228,12 @@ contains
 !
 ! ******************************************************************************************
 !
+
  subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
     use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
+    use ml_prolongation_module, only : ml_interp_bcs
     use cc_ml_resid_module    , only : crse_fine_residual_n_cc
 
     type(ml_layout), intent(in)    :: mla
@@ -183,11 +243,7 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::      soln(:)
-    type(multifab), allocatable  ::        uu(:)
-    type(multifab), allocatable  ::   uu_hold(:)
     type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-    type(multifab), allocatable  ::  temp_res(:)
 
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
@@ -198,24 +254,15 @@ contains
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
-    integer                   :: lo(get_dim(res(1))),hi(get_dim(res(1))),ng
-    real(kind=dp_t),  pointer :: resp(:,:,:,:)
 
-    call build(bpt, "ml_cc_applyop")
+    call build(bpt, "ml_cc_n_applyop")
 
     nlevs = mla%nlevel
 
-    allocate(soln(nlevs), uu(nlevs), rh(nlevs), temp_res(nlevs))
-    allocate(uu_hold(2:nlevs-1))
+    allocate(rh(nlevs))
 
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
-
-    do n = 2,nlevs-1
-       la = mla%la(n)
-       call build(uu_hold(n),la,1,1)
-       call setval( uu_hold(n), ZERO,all=.true.)
-    end do
 
     dm    = 2
     nComp = 2
@@ -223,14 +270,8 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(    soln(n), la, 1, 1)
-       call build(      uu(n), la, 1, 1)
-       call build(      rh(n), la, 1, 0)
-       call build(temp_res(n), la, 1, 0)
-       call setval(    soln(n), ZERO,all=.true.)
-       call setval(      uu(n), ZERO,all=.true.)
-       call setval(      rh(n), ZERO,all=.true.)
-       call setval(temp_res(n), ZERO,all=.true.)
+       call build(rh(n), la, 1, 0)
+       call setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
        call setval(     res(n), ZERO,all=.true.)
@@ -269,11 +310,10 @@ contains
        call multifab_fill_boundary(full_soln(n))
     end do
 
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type, mgt(n)%lcross) 
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                           mgt(n)%stencil_type, mgt(n)%lcross) 
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -286,38 +326,16 @@ contains
        call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                     ref_ratio(n-1,:))
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
-
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       ng = nghost(res(n))
-       
-       do i=1, nfabs(res(n))
-          resp  => dataptr(res(n),i)
-          lo    =  lwb(get_box(res(n), i))
-          hi    =  upb(get_box(res(n), i))
-          select case (dm)
-          case (1)
-             call scale_residual_1d(lo,hi,ng,resp(:,1,1,1))
-          case (2)
-             call scale_residual_2d(lo,hi,ng,resp(:,:,1,1))
-          case (3)
-             call scale_residual_3d(lo,hi,ng,resp(:,:,:,1))
-          end select
-       end do
-    enddo
-
-    do n = 2,nlevs-1
-       call destroy(uu_hold(n))
+       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
     end do
 
     do n = nlevs, 1, -1
-       call destroy(soln(n))
-       call destroy(uu(n))
        call destroy(rh(n))
-       call destroy(temp_res(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
@@ -326,67 +344,5 @@ contains
     call destroy(bpt)
 
   end subroutine ml_cc_n_applyop
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 1d
-  subroutine scale_residual_1d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:)
-
-! Local
-  integer :: i
-
-  do i=lo(1),hi(1)
-     res(i) = -res(i)
-  enddo
-  
-  end subroutine scale_residual_1d
-
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 2d
-  subroutine scale_residual_2d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:)
-
-! Local
-  integer :: i,j
-
-  do j=lo(2),hi(2)
-     do i=lo(1),hi(1)
-        res(i,j) = -res(i,j)
-     enddo
-  enddo
-  
-  end subroutine scale_residual_2d
-
-!
-! ******************************************************************************************
-!
-
-! Multiply residual by -1 in 3d
-  subroutine scale_residual_3d(lo,hi,ng,res)
-
-  integer        , intent(in   ) :: lo(:),hi(:),ng
-  real(kind=dp_t), intent(inout) :: res(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-
-! Local
-  integer :: i,j,k
-
-  do k=lo(3),hi(3)
-     do j=lo(2),hi(2)
-        do i=lo(1),hi(1)
-           res(i,j,k) = -res(i,j,k)
-        enddo
-     enddo
-  enddo
-
-  end subroutine scale_residual_3d
 
 end module cc_applyop_module
