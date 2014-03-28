@@ -23,6 +23,7 @@
 #
 # ------------------------------------------------
 
+f90EXE_sources += compute_defect.f90
 f90EXE_sources += bc_functions.f90
 f90EXE_sources += coarsen_coeffs.f90
 f90EXE_sources += mg_prolongation.f90
@@ -36,11 +37,12 @@ f90EXE_sources += cc_stencil.f90
 f90EXE_sources += cc_stencil_apply.f90
 f90EXE_sources += cc_stencil_fill.f90
 f90EXE_sources += cc_interface_stencil.f90
+f90EXE_sources += cc_mg_tower_smoother.f90
+f90EXE_sources += define_bc_tower.f90
 f90EXE_sources += itsol.f90
 f90EXE_sources += ml_restriction.f90
 f90EXE_sources += mg.f90
 f90EXE_sources += mg_tower.f90
-f90EXE_sources += mg_tower_smoother.f90
 f90EXE_sources += ml_cc.f90
 f90EXE_sources += ml_nd.f90
 f90EXE_sources += ml_norm.f90
@@ -58,6 +60,8 @@ f90EXE_sources += nodal_restriction.f90
 f90EXE_sources += nodal_stencil.f90
 f90EXE_sources += nodal_stencil_fill.f90
 f90EXE_sources += nodal_smoothers.f90
+f90EXE_sources += nodal_stencil_apply.f90
+f90EXE_sources += nodal_mg_tower_smoother.f90
 
 f90EXE_sources += stencil_types.f90
 

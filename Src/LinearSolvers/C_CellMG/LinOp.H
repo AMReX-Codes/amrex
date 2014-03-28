@@ -110,16 +110,21 @@ public:
                         MultiFab&      in,
                         int            level   = 0,
                         LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC,
-                        bool           local   = false);
+                        bool           local   = false,
+			int            src_comp = 0,
+                        int            dst_comp = 0,
+                        int            num_comp = 1,
+                        int            bndry_comp = 0);
     //
     // Fills level boundary cells using BC_mode flag, int. BC data if reqd.
     //
-    void applyBC (MultiFab&      inout,
+    virtual void applyBC (MultiFab&      inout,
                   int            src_comp,
                   int            num_comp,
                   int            level   = 0,
                   LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC,
-                  bool           local   = false);
+                  bool           local   = false,
+		  int            bndryComp = 0);
     //
     // Compute the level residual = rhsL - L(solnL).
     //
@@ -150,7 +155,7 @@ public:
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
-			   int sComp=0, int dComp=0, int nComp=1) = 0;
+			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0) = 0;
     //
     // Return the boundary data object.
     //
@@ -221,6 +226,12 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
+                         int             level) = 0;
+    virtual void Fapply (MultiFab&       out,
+			 int             dst_comp,
+                         const MultiFab& in,
+			 int             src_comp,
+			 int             num_comp,
                          int             level) = 0;
     //
     // Virtual to carry out the level smoothing operation for

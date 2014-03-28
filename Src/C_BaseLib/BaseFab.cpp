@@ -268,6 +268,35 @@ BaseFab<Real>::norm (const Box& bx,
 }
 
 template<>
+Real
+BaseFab<Real>::sum (const Box& bx,
+                    int        comp,
+                    int        ncomp) const
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    const int* _box_lo = bx.loVect();            
+    const int* _box_hi = bx.hiVect();            
+    const int* _datalo = loVect();                           
+    const int* _datahi = hiVect();
+
+    const Real* _data = dataPtr(comp);
+
+    Real sm = 0;
+
+    FORT_FASTSUM(_data,
+                 ARLIM(_datalo),
+                 ARLIM(_datahi),
+                 _box_lo,
+                 _box_hi,
+                 &ncomp,
+                 &sm);
+
+    return sm;
+}
+
+template<>
 BaseFab<Real>&
 BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           srcbox,
@@ -342,6 +371,40 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                   ARLIM(_x_phi),
                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
                   &numcomp);
+    return *this;
+}
+
+template <>
+BaseFab<Real>&
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp)
+{
+    const int* destboxlo  = destbox.loVect();
+    const int* destboxhi  = destbox.hiVect();
+    const int* _th_plo    = loVect();
+    const int* _th_phi    = hiVect();
+    const int* _x_lo      = srcbox.loVect();
+    const int* _x_plo     = src.loVect();
+    const int* _x_phi     = src.hiVect();
+    Real*       _th_p     = dataPtr(destcomp);
+    const Real* _x_p      = src.dataPtr(srccomp);
+
+    FORT_FASTSAXPY(_th_p,
+                   ARLIM(_th_plo),
+                   ARLIM(_th_phi),
+                   D_DECL(destboxlo[0],destboxlo[1],destboxlo[2]),
+                   D_DECL(destboxhi[0],destboxhi[1],destboxhi[2]),
+                   &a,
+                   _x_p,
+                   ARLIM(_x_plo),
+                   ARLIM(_x_phi),
+                   D_DECL(_x_lo[0],_x_lo[1],_x_lo[2]),
+                   &numcomp);
+
     return *this;
 }
 
@@ -461,4 +524,5 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
                         &numcomp);
     return *this;
 }
+
 #endif

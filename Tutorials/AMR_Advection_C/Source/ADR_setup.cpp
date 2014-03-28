@@ -104,7 +104,6 @@ ADR::variableSetUp ()
     BL_ASSERT(desc_lst.size() == 0);
 
     // Initialize the network
-    std::cout << "CALLING FROM VAR SET UP " << std::endl;
     adr_network_init();
 
     // Get options, set phys_bc
@@ -119,7 +118,7 @@ ADR::variableSetUp ()
 #if (BL_SPACEDIM == 3)
     Zvel = cnt++;
 #endif
-    NumAdv = 0;
+    NumAdv = 1;
     if (NumAdv > 0)
     {
         FirstAdv = cnt++;
@@ -171,7 +170,7 @@ ADR::variableSetUp ()
 
     store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-                           StateDescriptor::Point,1,NUM_STATE,
+                           StateDescriptor::Point,0,NUM_STATE,
                            interp,state_data_extrap,store_in_checkpoint);
 
     Array<BCRec>       bcs(NUM_STATE);
@@ -256,6 +255,15 @@ ADR::variableSetUp ()
                           BndryFunc(BL_FORT_PROC_CALL(SPECFILL,specfill)));
     }
 
+    for (int i=0; i<NumAdv; ++i)
+    {
+    desc_lst.setComponent(State_Type,
+                          FirstAdv+i,
+                          name[FirstAdv+i],
+                          bcs[FirstAdv+i],
+                          BndryFunc(BL_FORT_PROC_CALL(SPECFILL,specfill)));
+    }
+
     //
     // DEFINE DERIVED QUANTITIES
     //
@@ -311,4 +319,8 @@ ADR::variableSetUp ()
     // DEFINE ERROR ESTIMATION QUANTITIES
     //
     ErrorSetUp();
+
+    for (int i = 0; i < NumSpec; i++) {
+      delete[] spec_names[i];
+    }
 }

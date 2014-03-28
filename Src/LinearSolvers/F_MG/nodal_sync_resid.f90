@@ -73,11 +73,16 @@ contains
     real(kind=dp_t), intent(in   ) :: dx(:)
     integer        , intent(in   ) :: face_type(:,:)
     
-    integer :: i, j, k, nx, ny, nz
+    integer         :: i, j, k, nx, ny, nz
+    real(kind=dp_t) :: ivdx,ivdy,ivdz
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
+
+    ivdx = 1.0d0 / dx(1)
+    ivdy = 1.0d0 / dx(2)
+    ivdz = 1.0d0 / dx(3)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz
@@ -91,7 +96,7 @@ contains
                -  vel(i-1,j  ,k  ,1) * msk(i-1,j  ,k  ) &
                -  vel(i-1,j-1,k  ,1) * msk(i-1,j-1,k  ) &
                -  vel(i-1,j  ,k-1,1) * msk(i-1,j  ,k-1) &
-               -  vel(i-1,j-1,k-1,1) * msk(i-1,j-1,k-1)) / dx(1) &
+               -  vel(i-1,j-1,k-1,1) * msk(i-1,j-1,k-1)) * ivdx &
                + (vel(i  ,j  ,k  ,2) * msk(i  ,j  ,k  ) &
                +  vel(i-1,j  ,k  ,2) * msk(i-1,j  ,k  ) &
                +  vel(i  ,j  ,k-1,2) * msk(i  ,j  ,k-1) &
@@ -99,7 +104,7 @@ contains
                -  vel(i  ,j-1,k  ,2) * msk(i  ,j-1,k  ) &
                -  vel(i-1,j-1,k  ,2) * msk(i-1,j-1,k  ) &
                -  vel(i  ,j-1,k-1,2) * msk(i  ,j-1,k-1) & 
-               -  vel(i-1,j-1,k-1,2) * msk(i-1,j-1,k-1)) / dx(2) &
+               -  vel(i-1,j-1,k-1,2) * msk(i-1,j-1,k-1)) * ivdy &
                + (vel(i  ,j  ,k  ,3) * msk(i  ,j  ,k  ) &
                +  vel(i-1,j  ,k  ,3) * msk(i-1,j  ,k  ) &
                +  vel(i  ,j-1,k  ,3) * msk(i  ,j-1,k  ) & 
@@ -107,7 +112,7 @@ contains
                -  vel(i  ,j  ,k-1,3) * msk(i  ,j  ,k-1) & 
                -  vel(i-1,j  ,k-1,3) * msk(i-1,j  ,k-1) &
                -  vel(i  ,j-1,k-1,3) * msk(i  ,j-1,k-1) &
-               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) / dx(3) )
+               -  vel(i-1,j-1,k-1,3) * msk(i-1,j-1,k-1)) * ivdz )
        end do
     end do
     end do
@@ -181,24 +186,26 @@ contains
     real(kind=dp_t), intent(in   ) :: msk(-1:,-1:,-1:)
     real(kind=dp_t), intent(in   ) :: sgnr
     
-    integer :: i, j, k, nx, ny, nz
+    integer         :: i, j, k, nx, ny, nz
+    real(kind=dp_t) :: r
 
     nx = size(msk,dim=1) - 2
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,r)
     do k = 0, nz
-    do j = 0, ny
-       do i = 0, nx
-          if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) .and. &
-               any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
-             res(i,j,k) = sgnr*res(i,j,k) + dvo(i,j,k)
-          else
-             res(i,j,k) = ZERO
-          end if
+       do j = 0, ny
+          do i = 0, nx
+             r = ZERO
+             if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ONE) ) then
+                if ( any(msk(i-1:i,j-1:j,k-1:k) .eq. ZERO) ) then
+                   r = sgnr*res(i,j,k) + dvo(i,j,k)
+                endif
+             endif
+             res(i,j,k) = r
+          end do
        end do
-    end do
     end do
     !$OMP END PARALLEL DO
 
@@ -210,7 +217,7 @@ contains
     type(multifab) , intent(in   ) :: mask
     integer        , intent(in   ) :: face_type(:,:,:)
     
-    integer :: i, dm
+    integer                  :: i, dm
     real(kind=dp_t), pointer :: msk(:,:,:,:) 
     real(kind=dp_t), pointer :: dvo(:,:,:,:) 
     real(kind=dp_t), pointer :: rc(:,:,:,:) 
@@ -568,7 +575,6 @@ subroutine mgt_compute_sync_resid_crse()
   use nodal_cpp_mg_module
   use nodal_sync_resid_module
   use nodal_stencil_fill_module, only : stencil_fill_nodal
-  use itsol_module, only : itsol_stencil_apply
   implicit none
 
   integer :: dm, mglev
@@ -583,7 +589,7 @@ subroutine mgt_compute_sync_resid_crse()
   call build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
-       mgts%mgt(1)%face_type)
+                     mgts%mgt(1)%face_type)
 
   if (associated(mgts%rhcc)) then  ! only single level solve could get here
      call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
@@ -591,13 +597,13 @@ subroutine mgt_compute_sync_resid_crse()
 
   call multifab_mult_mult(mgts%amr_coeffs(1), mgts%sync_msk(1))
 
-  call stencil_fill_nodal(mgts%mgt(1)%ss(mglev), mgts%amr_coeffs(1), &
-       mgts%mgt(1)%dh(:,mglev), mgts%mgt(1)%mm(mglev), &
-       mgts%mgt(1)%face_type, mgts%stencil_type)
+  call stencil_fill_nodal(mgts%amr_coeffs(1), mgts%mgt(1)%ss(mglev), & 
+                          mgts%mgt(1)%dh(:,mglev), mgts%mgt(1)%mm(mglev), &
+                          mgts%mgt(1)%face_type)
 
-  call itsol_stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
-                           mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
-                           mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
+  call stencil_apply(mgts%mgt(1)%ss(mglev), mgts%sync_res(1), mgts%uu(1), &
+                     mgts%mgt(1)%mm(mglev), mgts%mgt(1)%stencil_type, &
+                     mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
 
   sign_res = -ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
@@ -610,12 +616,10 @@ subroutine mgt_compute_sync_resid_fine()
   use nodal_cpp_mg_module
   use nodal_sync_resid_module
   use ml_nd_module
-  use nodal_stencil_fill_module, only : stencil_fill_nodal, stencil_fill_one_sided
   implicit none
 
   integer :: dm, mglev
   real(kind=dp_t) :: sign_res
-  type(multifab) :: ss1
   type(multifab) :: divuo
   type(multifab) :: rh0  
   logical :: nodal(3)
@@ -636,30 +640,14 @@ subroutine mgt_compute_sync_resid_fine()
      call divuo_add_rhcc(divuo, mgts%rhcc(1), mgts%sync_msk(1), mgts%mgt(1)%face_type)
   end if
 
-  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
-     call multifab_build(ss1, mgts%mla%la(1), 2*dm+1, 0, nodal, stencil=.true.)
-     call stencil_fill_one_sided(ss1, mgts%amr_coeffs(1), mgts%mgt(1)%dh(:,mglev), &
-          mgts%mgt(1)%mm(mglev), mgts%mgt(1)%face_type)
-
-     call grid_res(ss1, &
-          mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
-          mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
-  else
-     call grid_res(mgts%mgt(1)%ss(mglev), &
-          mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
-          mgts%mgt(1)%face_type, mgts%mgt(1)%stencil_type, &
-          mgts%mgt(1)%lcross, mgts%mgt(1)%uniform_dh)
-  endif
+  call grid_res(mgts%mgt(1)%ss(mglev), &
+                mgts%sync_res(1), rh0, mgts%uu(1), mgts%mgt(1)%mm(mglev), &
+                mgts%mgt(1)%lcross, mgts%stencil_type, mgts%mgt(1)%uniform_dh)
 
   sign_res = ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
 
   call sync_res_fine_bndry(mgts%sync_res(1), mgts%mgt(1)%face_type)
-
-  if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
-     call destroy(ss1)
-  endif
 
   call destroy(divuo)
   call destroy(rh0)

@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = craycc
 
-  CXXOPTF += -h nomessage=7221
+  CXXOPTF += -h nomessage=7221 -h fp0
   CXXDEBF += -g -O0
 
   ifneq ($(USE_OMP),TRUE)
@@ -40,7 +40,7 @@ ifeq ($(COMP),PGI)
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
-    ifeq ($(findstring jaguar, $(HOST)), jaguar)
+    ifeq ($(findstring titan, $(HOST)), titan)
       CXXOPTF += -O
     else
       COPTF += -fast
@@ -118,8 +118,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF +=
-  fOPTF +=
+  FOPTF += -h fp0 -O vector1
+  fOPTF += -h fp0 -O vector1
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -267,24 +267,6 @@ ifeq ($(WHICHLINUX), KRAKEN)
   endif
 endif
 
-ifeq ($(WHICHLINUX), FRANKLIN)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-  ifdef USE_IPM
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    elif ($(COMP),PathScale)
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-endif
-
 ifeq ($(WHICHLINUX), GRACE)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -340,16 +322,95 @@ ifeq ($(WHICHLINUX), HOPPER)
       LIBRARIES += $(IPM_GNU)
     endif
   endif
+  ifeq ($(USE_DUMPI),TRUE)
+    LIBRARIES += $(DUMPI_LINK_OPTS)
+  endif
 endif
 
-ifeq ($(HOSTNAME), pleiades.ucsc.edu)
-  DEFINES += -DBL_PLEIADES
-  ifeq ($(COMP),Intel)
-    CXX = icc
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpiCC
+ifeq ($(WHICHLINUX), GARNET)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC -target=linux
+    CC  := cc -target=linux
+    FC  := ftn -target=linux
+    F90 := ftn -target=linux
+    fC  := ftn -target=linux
+  endif
+  ifeq ($(USE_IPM),TRUE)
+    ifeq ($(COMP),PGI)
+      LIBRARIES += $(IPM)
     else
-      LIBRARIES+=-lstdc++
+      LIBRARIES += $(IPM_GNU)
+    endif
+  endif
+endif
+
+ifeq ($(WHICHLINUX), HERA)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpig++
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
+ifeq ($(WHICHLINUX), CAB)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiCC
+    CC  := gcc
+    FC  := gfortran
+    F90 := gfortran
+    fC  := gfortran
+  endif
+endif
+
+ifeq ($(WHICHLINUX), EDISON)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC -target=compute_node
+    CC  := cc -target=compute_node
+    FC  := ftn -target=compute_node
+    F90 := ftn -target=compute_node
+    fC  := ftn -target=compute_node
+  endif
+  ifeq ($(USE_IPM),TRUE)
+    ifeq ($(COMP),PGI)
+      LIBRARIES += $(IPM)
+    else
+      LIBRARIES += $(IPM_GNU)
+    endif
+  endif
+  ifeq ($(USE_DUMPI),TRUE)
+    LIBRARIES += $(DUMPI_LINK_OPTS)
+  endif
+endif
+
+ifeq ($(HOSTNAME), hyades.ucsc.edu)
+  ifeq ($(USE_MPI),TRUE)
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC := mpiifort
+      fC := mpiifort
+      
+      ifeq ($(USE_OMP),TRUE)
+        CXXOPTF += -mt_mpi
+	CXXDEBF += -mt_mpi
+	LDFLAGS += -mt_mpi
+	F90FLAGS += -mt_mpi
+	FFLAGS += -mt_mpi
+	fFLAGS += -mt_mpi
+      endif
+    else
+      CXX := mpicxx
+      CC  := mpicc
+      F90 := mpifc
+      FC := mpifc
+      fC := mpifc
     endif
   endif
 endif 
@@ -365,62 +426,6 @@ ifeq ($(WHICHLINUX), JVN)
   endif
 endif
 
-ifeq ($(WHICHLINUX), ATLAS)
-  ifeq ($(COMP),Intel)
-    CXX = icpc
-#    CXXOPTF = -O3 -ip -mp
-    CXXOPTF = -O3 -ip -fp-model fast=2
-    CXXDEBF = -g
-    ifeq ($(USE_MPI),TRUE)
-# MAS: 4.17.2008
-# works for chaos3, but doesn't seem to work for chaos4, so hard
-# code everything contained in this mpiicpc script -- to see what's
-# contained in mpiicpc script, type "mpiicpc -show"
-#      CXX = mpiicpc
-      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
-	    -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
-            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
-	    -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
-	    -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
-	    -L/usr/local/tools/mvapich-intel/lib
-    endif
-  endif
-endif
-# mas: duplicate atlas stuff for yana
-ifeq ($(WHICHLINUX), YANA)
-  ifeq ($(COMP),Intel)
-    CXX = icpc
-    CXXOPTF = -O3 -ip -mp
-    CXXDEBF = -g
-    ifeq ($(USE_MPI),TRUE)
-# MAS: 4.17.2008
-# works for chaos3, but doesn't seem to work for chaos4, so hard
-# code everything contained in this mpiicpc script -- to see what's
-# contained in mpiicpc script, type "mpiicpc -show"
-#      CXX = mpiicpc
-      CXX = icpc -Wl,-rpath,/usr/local/tools/mvapich-intel/lib/shared \
-            -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
-            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
-            -DMALLOC_RET_VOID=1 -I/usr/local/tools/mvapich-intel/include \
-            -L/usr/local/tools/mvapich-intel/lib/shared -L/usr/lib64 \
-            -L/usr/local/tools/mvapich-intel/lib
-    endif
-  endif
-  ifeq ($(FCOMP),Intel)
-    FOPTF = -O3 -ip -mp
-    fOPTF = -O3 -ip -mp
-  endif
-  ifeq ($(COMP),PGI)
-    CXX = pgCC
-    CXXOPTF = -fast
-    CXXDEBF = -g -O0
-    FC = pgif90
-    fC = pgif90
-    ifeq ($(USE_MPI),TRUE)
-      CXX = mpipgCC
-    endif
-  endif
-endif
 
 ifeq ($(WHICHLINUX), HYPERION)
   ifeq ($(COMP),Intel)

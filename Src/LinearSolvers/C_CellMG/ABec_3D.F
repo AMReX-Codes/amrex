@@ -381,27 +381,28 @@ c
       REAL_T h(BL_SPACEDIM)
 
       integer i,j,k,n
-      REAL_T dhx,dhy,dhz
+      REAL_T dhx,dhy,dhz,val
 
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       dhz = beta/h(3)**2
 
       res = 0.0D0
+
       do n = 1, nc
-!$omp parallel do private(i,j,k) reduction(max : res)
+!$omp parallel do private(i,j,k,val) reduction(max:res)
 !$omp&if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  res = max(res, 
-     &                 abs(alpha*a(i,j,k)
+                  val = abs(alpha*a(i,j,k)
      &                 + dhx*(bX(i+1,j,k) + bX(i,j,k))
      &                 + dhy*(bY(i,j+1,k) + bY(i,j,k))
      $                 + dhz*(bZ(i,j,k+1) + bZ(i,j,k)))
      &                 + abs( -dhx*bX(i+1,j,k)) + abs( -dhx*bX(i,j,k))
      &                 + abs( -dhy*bY(i,j+1,k)) + abs( -dhy*bY(i,j,k))
-     &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k)))
+     &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k))
+                  res = max(res, val)
                end do
             end do
          end do
@@ -465,8 +466,7 @@ c
             end do
          end do
 !$omp end do nowait
-      end do
-      do n = 1, nc
+
 !$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)+1
@@ -476,8 +476,7 @@ c
             end do
          end do
 !$omp end do nowait
-      end do
-      do n = 1, nc
+
 !$omp do
          do k = lo(3), hi(3)+1
             do j = lo(2), hi(2)
@@ -487,6 +486,7 @@ c
             end do
          end do
 !$omp end do nowait
+
       end do
 !$omp end parallel
 

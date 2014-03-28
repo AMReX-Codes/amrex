@@ -192,8 +192,9 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel private(i,j,k,l) reduction(max : nrm)
       do l = 1, ncomp
-!$omp parallel do private(i,j,k) reduction(max : nrm)
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -201,8 +202,9 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+!$omp end do
       end do
+!$omp end parallel
 
       end
 c
@@ -231,8 +233,9 @@ c
 
       nrm = 0.0d0
 
+!$omp parallel private(i,j,k,l) reduction(+ : nrm)
       do l = 1, ncomp
-!$omp parallel do private(i,j,k) reduction(+ : nrm)
+!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -240,8 +243,50 @@ c
                end do
             end do
          end do
-!$omp end parallel do
+!$omp end do
       end do
+!$omp end parallel
+
+      end
+c
+c     Calculate sum() over section of an array.
+c
+      subroutine FORT_FASTSUM (src,DIMS(src),lo,hi,ncomp,sm)
+
+      implicit none
+
+      integer ncomp
+      integer lo(3), hi(3)
+      integer DIMDEC(src)
+      REAL_T  src(DIMV(src),ncomp), sm
+c
+c     Local variables.
+c
+      integer i,j,k,l
+      integer imin,jmin,kmin,imax,jmax,kmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      kmin = lo(3)
+      imax = hi(1)
+      jmax = hi(2)
+      kmax = hi(3)
+
+      sm = 0.0d0
+
+!$omp parallel private(i,j,k,l) reduction(+ : sm)
+      do l = 1, ncomp
+!$omp do
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  sm = sm + src(i,j,k,l)
+               end do
+            end do
+         end do
+!$omp end do
+      end do
+!$omp end parallel
 
       end
 c
@@ -336,6 +381,57 @@ c
             do j = jmin,jmax
                do i = imin,imax
                   dst(i,j,k,l) = dst(i,j,k,l) * src(i+ioff,j+joff,k+koff,l)
+               end do
+            end do
+         end do
+!$omp end do nowait
+      end do
+!$omp end parallel
+
+      end
+c
+c     This function adds scaled floating point numbers from one array to another.
+c
+      subroutine FORT_FASTSAXPY (dst,
+     &                           DIMS(dst),
+     &                           imin, jmin, kmin, imax, jmax, kmax,
+     &                           a, src,
+     &                           DIMS(src),
+     &                           imn,  jmn,  kmn,
+     &                           ncomp)
+
+      implicit none
+c
+c     Bounds to fill in dst 
+c
+      integer imin, jmin, kmin, imax, jmax, kmax
+      integer DIMDEC(dst)
+c
+c     Bounds to fill from src
+c
+      integer imn,  jmn,  kmn
+      integer DIMDEC(src)
+      integer ncomp
+
+      REAL_T  dst(DIMV(dst),ncomp)
+      REAL_T  a
+      REAL_T  src(DIMV(src),ncomp)
+c
+c     Local variables
+c
+      integer i,j,k,l,ioff,joff,koff
+
+      ioff=imn-imin
+      joff=jmn-jmin
+      koff=kmn-kmin
+
+!$omp parallel private(i,j,k,l)
+      do l = 1, ncomp
+!$omp do
+         do k = kmin,kmax
+            do j = jmin,jmax
+               do i = imin,imax
+                  dst(i,j,k,l) = dst(i,j,k,l) + a * src(i+ioff,j+joff,k+koff,l)
                end do
             end do
          end do
@@ -534,3 +630,4 @@ c
 !$omp end parallel
 
       end
+

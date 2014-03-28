@@ -24,7 +24,7 @@ $(optionsLib): $(addprefix $(objTempDir)/, $(objForLibs))
 	$(SILENT) $(AR) $(ARFLAGS) $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs))
 	$(SILENT) $(RANLIB) $@
  
-realclean: clean
+realclean:: clean
 	@echo Cleaning ...
 	$(SILENT) $(RM) lib*.a  TAGS tags BROWSE
 	$(SILENT) $(RM) -r d o f ii_files *~

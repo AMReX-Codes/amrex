@@ -101,7 +101,6 @@ contains
     end if
 
     if ( face .eq. 1 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,m,n) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -115,9 +114,7 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else if ( face .eq. 2 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,l,n) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -131,9 +128,7 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else if ( face .eq. 3 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,l,m) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -147,7 +142,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     end if
 
   end subroutine edge_restriction_3d

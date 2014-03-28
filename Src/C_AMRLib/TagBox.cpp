@@ -5,7 +5,6 @@
 #include <vector>
 #include <cmath>
 #include <climits>
-#include <deque>
 
 #include <TagBox.H>
 #include <Geometry.H>
@@ -324,12 +323,18 @@ TagBoxArray::borderSize () const
 void 
 TagBoxArray::buffer (int nbuf)
 {
-    if (!(nbuf == 0))
+    if (nbuf != 0)
     {
         BL_ASSERT(nbuf <= m_border);
-        for (MFIter fai(*this); fai.isValid(); ++fai)
+
+        const int N = IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < N; i++)
         {
-            get(fai).buffer(nbuf, m_border);
+            get(IndexMap()[i]).buffer(nbuf, m_border);
         } 
     }
 }
@@ -347,7 +352,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     bool                           work_to_do = false;
     const Box&                     dmn        = geom.Domain();
 
-    std::deque< std::pair<FillBoxId,IntVect> > IDs;
+    std::vector< std::pair<FillBoxId,IntVect> > IDs;
 
     for (int i = 0, N = boxarray.size(); i < N; i++)
     {
@@ -385,38 +390,46 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             }
         }
     }
+    //
+    // AddBox() calls intersections() ...
+    //
+    boxArray().clear_hash_bin();
 
     if (!work_to_do) return;
 
+    BL_COMM_PROFILE_NAMETAG("CD::TagBoxArray::mapPeriodic()");
+
     facd.CollectData();
 
-    TagBox src;
+    const int N = IDs.size();
 
-    for (std::deque< std::pair<FillBoxId,IntVect> >::const_iterator it = IDs.begin(),
-             End = IDs.end();
-         it != End;
-         ++it)
+    for (int i = 0; i < N; i++)
     {
-        BL_ASSERT(distributionMap[it->first.FabIndex()] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[IDs[i].first.FabIndex()] == ParallelDescriptor::MyProc());
 
-        src.resize(it->first.box(), n_comp);
+        TagBox src(IDs[i].first.box(), n_comp);
 
-        facd.FillFab(faid, it->first, src);
+        facd.FillFab(faid, IDs[i].first, src);
 
-        src.shift(it->second);
+        src.shift(IDs[i].second);
 
-        get(it->first.FabIndex()).merge(src);
+        get(IDs[i].first.FabIndex()).merge(src);
     }
 }
 
 long
 TagBoxArray::numTags () const 
 {
+   const int N = IndexMap().size();
+
    long ntag = 0;
 
-   for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:ntag)
+#endif
+   for (int i = 0; i < N; i++)
    {
-      ntag += get(fai).numTags();
+      ntag += get(IndexMap()[i]).numTags();
    }
 
    ParallelDescriptor::ReduceLongSum(ntag);
@@ -428,20 +441,45 @@ IntVect*
 TagBoxArray::collate (long& numtags) const
 {
     BL_PROFILE("TagBoxArray::collate()");
-    //
-    // The total number of tags system wide that must be collated.
-    //
-    numtags = numTags();
 
-    int count = 0;
+    int count = 0, nfabs = 0;
+
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        count += get(fai).numTags();
+        count += get(fai).numTags(); nfabs++;
     }
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
-    IntVect*  TheLocalCollateSpace  = new IntVect[count];
+    IntVect*  TheLocalCollateSpace = new IntVect[count];
+
+    count = 0;
+
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).collate(TheLocalCollateSpace,count);
+        count += get(fai).numTags();
+    }
+
+    if (nfabs > 0 && count > 0)
+    {
+        //
+        // Remove duplicate IntVects.
+        //
+        std::sort(TheLocalCollateSpace, TheLocalCollateSpace+count, IntVect::Compare());
+        IntVect* end = std::unique(TheLocalCollateSpace,TheLocalCollateSpace+count);
+        ptrdiff_t duplicates = (TheLocalCollateSpace+count) - end;
+        BL_ASSERT(duplicates >= 0);
+        count -= duplicates;
+    }
+    //
+    // The total number of tags system wide that must be collated.
+    // This is really just an estimate of the upper bound due to duplicates.
+    // While we've removed duplicates per MPI process there's still more systemwide.
+    //
+    numtags = count;
+
+    ParallelDescriptor::ReduceLongSum(numtags);
     //
     // This holds all tags after they've been gather'd and unique'ified.
     //
@@ -449,14 +487,7 @@ TagBoxArray::collate (long& numtags) const
     //
     // The caller of collate() is responsible for delete[]ing this space.
     //
-    IntVect*  TheGlobalCollateSpace = new IntVect[numtags];
-
-    count = 0;
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        get(fai).collate(TheLocalCollateSpace,count);
-        count += get(fai).numTags();
-    }
+    IntVect* TheGlobalCollateSpace = new IntVect[numtags];
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -519,12 +550,15 @@ TagBoxArray::collate (long& numtags) const
     if (ParallelDescriptor::IOProcessor())
     {
         //
-        // Remove duplicate IntVects.
+        // Remove yet more possible duplicate IntVects.
         //
         std::sort(TheGlobalCollateSpace, TheGlobalCollateSpace+numtags, IntVect::Compare());
         IntVect* end = std::unique(TheGlobalCollateSpace,TheGlobalCollateSpace+numtags);
         ptrdiff_t duplicates = (TheGlobalCollateSpace+numtags) - end;
         BL_ASSERT(duplicates >= 0);
+
+        //std::cout << "*** numtags: " << numtags << ", duplicates: " << duplicates << '\n';
+
         numtags -= duplicates;
     }
     //
@@ -555,30 +589,42 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
+    const int N = IndexMap().size();
+
     std::vector< std::pair<int,Box> > isects;
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+    for (int i = 0; i < N; i++)
     {
-        ba.intersections(fai.validbox(),isects);
+        const int idx = IndexMap()[i];
 
-        TagBox& tags = get(fai);
+        ba.intersections(box(idx),isects);
+
+        TagBox& tags = get(idx);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
             tags.setVal(val,isects[i].second,0);
         }
-    } 
+    }
 }
 
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+    const int N = IndexMap().size();
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
     {
-        TagBox* tfine = m_fabs[fai.index()];
-        m_fabs[fai.index()] = tfine->coarsen(ratio);
+        const int idx   = IndexMap()[i];
+        TagBox*   tfine = m_fabs[idx];
+        m_fabs[idx]     = tfine->coarsen(ratio);
         delete tfine;
     }
+
     boxarray.coarsen(ratio);
+
     m_border = 0;
 }

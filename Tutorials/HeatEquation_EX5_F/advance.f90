@@ -56,10 +56,10 @@ contains
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: stencil_type,ns,smoother,nu1,nu2,nub,gamma,cycle_type
+    integer :: stencil_type,ns,smoother,nu1,nu2,nub,cycle_type
     integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
     integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
-    real(dp_t) :: omega,bottom_solver_eps,rel_solver_eps,abs_solver_eps
+    real(dp_t) :: bottom_solver_eps,rel_solver_eps,abs_solver_eps
 
     dm = mla%dim
     nlevs = mla%nlevel
@@ -108,19 +108,12 @@ contains
           call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
        end do
 
-       ! maximum number of stencil points
-       ! this is not 1 + 2*dm as you would expect for the standard Laplacian because
-       ! near boundaries, we can use one-sided stencils with more points
-       ns = 1 + 3*dm
-
        ! initialize these to the default values in the mgt object
        smoother          = mgt(nlevs)%smoother           ! smoother type
        nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
        nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
        nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
-       gamma             = mgt(nlevs)%gamma              ! allows control over 'shape' of V or W cycle
        cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
-       omega             = mgt(nlevs)%omega              ! some smoothers use omega parameter
        bottom_solver     = mgt(nlevs)%bottom_solver      ! bottom solver type
        bottom_max_iter   = mgt(nlevs)%bottom_max_iter    ! max iterations of bottom solver
        bottom_solver_eps = mgt(nlevs)%bottom_solver_eps  ! tolerance of bottom solver
@@ -155,14 +148,11 @@ contains
                               the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
                               stencil_type, &
                               dh = dx_vector(n,:), &
-                              ns = ns, &
                               smoother = smoother, &
                               nu1 = nu1, &
                               nu2 = nu2, &
                               nub = nub, &
-                              gamma = gamma, &
                               cycle_type = cycle_type, &
-                              omega = omega, &
                               bottom_solver = bottom_solver, &
                               bottom_max_iter = bottom_max_iter, &
                               bottom_solver_eps = bottom_solver_eps, &
@@ -228,8 +218,7 @@ contains
        end do
 
        ! solve (alpha - del dot beta grad) phi = rhs to obtain phi
-       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, mla%mba%rr, &
-                        do_diagnostics, rel_solver_eps)
+       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, do_diagnostics)
 
        ! deallocate memory
        do n=1,nlevs

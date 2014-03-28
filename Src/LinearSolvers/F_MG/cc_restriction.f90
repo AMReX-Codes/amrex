@@ -45,21 +45,39 @@ contains
     integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
-    integer     :: i, j, l, m
+    integer     :: i, j, l, m, twoi, twoj, twoip1, twojp1
 
-    fac = one/real(product(ir),kind=dp_t)
+    if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
-    do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          cc(i,j) = zero
-          do m = 0, ir(2)-1
-             do l = 0, ir(1)-1
-                cc(i,j) = cc(i,j) + ff(ir(1)*i+l,ir(2)*j+m)
-             end do
+       do j = lo(2), hi(2)
+             twoj   = 2*j
+             twojp1 = 2*j+1
+
+          do i = lo(1), hi(1)
+             twoi   = 2*i
+             twoip1 = 2*i+1
+
+             cc(i,j) = 0.25d0 * ( ff(twoi,twoj) + ff(twoip1,twoj) + ff(twoi,twojp1) + ff(twoip1,twojp1) )
           end do
-          cc(i,j) = cc(i,j)*fac
        end do
-    end do
+
+    else
+
+       fac = one/real(product(ir),kind=dp_t)
+
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             cc(i,j) = zero
+             do m = 0, ir(2)-1
+                do l = 0, ir(1)-1
+                   cc(i,j) = cc(i,j) + ff(ir(1)*i+l,ir(2)*j+m)
+                end do
+             end do
+             cc(i,j) = cc(i,j)*fac
+          end do
+       end do
+
+    end if
 
   end subroutine cc_restriction_2d
 
@@ -72,27 +90,56 @@ contains
     integer,     intent(in)    :: ir(:)
 
     real (dp_t) :: fac
-    integer     :: i, j, k, l, m, n
+    integer     :: i, j, k, l, m, n, twoi, twoj, twoip1, twojp1, twok, twokp1
 
-    fac = one/real(product(ir),kind=dp_t)
+    if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
 
-    !$OMP PARALLEL DO PRIVATE(i,j,k,l,m,n)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-             cc(i,j,k) = zero
-             do n = 0, ir(3)-1
-                do m = 0, ir(2)-1
-                   do l = 0, ir(1)-1
-                      cc(i,j,k) = cc(i,j,k) + ff(ir(1)*i+l,ir(2)*j+m,ir(3)*k+n)
-                   end do
-                end do
+       do k = lo(3),hi(3)
+          twok   = 2*k
+          twokp1 = 2*k+1
+
+          do j = lo(2),hi(2)
+             twoj   = 2*j
+             twojp1 = 2*j+1
+
+             do i = lo(1),hi(1)
+                twoi   = 2*i
+                twoip1 = 2*i+1
+
+                cc(i,j,k) =  0.125d0 * ( &
+                     ff(twoi,   twoj,   twok  ) + &
+                     ff(twoip1, twoj,   twok  ) + &
+                     ff(twoi,   twojp1, twok  ) + &
+                     ff(twoip1, twojp1, twok  ) + &
+                     ff(twoi,   twoj,   twokp1) + &
+                     ff(twoip1, twoj,   twokp1) + &
+                     ff(twoi,   twojp1, twokp1) + &
+                     ff(twoip1, twojp1, twokp1) )
              end do
-             cc(i,j,k) = cc(i,j,k)*fac
           end do
        end do
-    end do
-    !$OMP END PARALLEL DO
+
+    else
+
+       fac = one/real(product(ir),kind=dp_t)
+
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             do i = lo(1),hi(1)
+                cc(i,j,k) = zero
+                do n = 0, ir(3)-1
+                   do m = 0, ir(2)-1
+                      do l = 0, ir(1)-1
+                         cc(i,j,k) = cc(i,j,k) + ff(ir(1)*i+l,ir(2)*j+m,ir(3)*k+n)
+                      end do
+                   end do
+                end do
+                cc(i,j,k) = cc(i,j,k)*fac
+             end do
+          end do
+       end do
+
+    end if
 
   end subroutine cc_restriction_3d
 
@@ -183,7 +230,6 @@ contains
     end if
 
     if ( face .eq. 1 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,m,n) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -197,9 +243,7 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else if ( face .eq. 2 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,l,n) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -213,9 +257,7 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     else if ( face .eq. 3 ) then
-       !$OMP PARALLEL DO PRIVATE(i,j,k,l,m) IF((hi(3)-lo(3)).gt.8)
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -229,7 +271,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
     end if
 
   end subroutine edge_restriction_3d

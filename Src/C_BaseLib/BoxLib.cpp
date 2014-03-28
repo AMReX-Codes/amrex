@@ -218,10 +218,13 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
+    BL_PROFILE_INITIALIZE();
+
     //
     // Initialize random seed after we're running in parallel.
     //
-    BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
+    BoxLib::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
 
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
@@ -261,11 +264,14 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 
     std::cout << std::setprecision(10);
+
 }
 
 void
 BoxLib::Finalize (bool finalize_parallel)
 {
+    BL_PROFILE_FINALIZE();
+
     while (!The_Finalize_Function_Stack.empty())
     {
         //

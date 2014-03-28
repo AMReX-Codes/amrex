@@ -79,6 +79,9 @@ class testObj:
 
         self.reClean = 0    # set automatically, not by users
 
+        self.wallTime = 0   # set automatically, not by users
+
+
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -104,13 +107,27 @@ class suiteObj:
         self.extSrcDir = ""
         self.extSrcCompString = ""
 
-        self.useExtraBuild = 0     # set automatically -- not by users
-        self.extraBuildDir = ""
+        self.boxLibGitBranch = "master"
+        self.sourceGitBranch = "master"
+        self.extSrcGitBranch = "master"
+
+        # this will hold the # of extra build directories we need to worry 
+        # about.  It is set automatically, not by users
+        self.useExtraBuild = 0   
+                            
+        self.extraBuildDirs = []
+
+        # this should be the environment variable name that should be
+        # set so the builds in the extraBuildDir can see the main
+        # source.  This environment variable will be set to the
+        # sourceTree path and included on the make lines
         self.extraBuildDirCompString = ""
 
+        # these are set automatically by the script -- they hold the
+        # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
-        self.extraBuildName = ""
+        self.extraBuildNames = []
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -131,7 +148,7 @@ class suiteObj:
         self.emailSubject = ""
         self.emailBody = ""
 
-        self.wallTime = 0      # set automatically, not by users
+        self.globalAddToExecString = ""
 
 
 
@@ -240,9 +257,25 @@ def LoadParams(file):
         elif (opt == "extSrcCompString"):
             mysuite.extSrcCompString = value
 
+        elif (opt == "boxLibGitBranch"):
+            mysuite.boxLibGitBranch = value
+
+        elif (opt == "sourceGitBranch"):
+            mysuite.sourceGitBranch = value
+
+        elif (opt == "extSrcGitBranch"):
+            mysuite.extSrcGitBranch = value
+
+        # we will keep the extra build directories in a list -- we want them
+        # in the correct order in the list so we can simply index later
         elif (opt == "extraBuildDir"):
-            mysuite.extraBuildDir = checkTestDir(value)
-            mysuite.useExtraBuild = 1
+            if len(mysuite.extraBuildDirs) == 0:
+                mysuite.extraBuildDirs.append(checkTestDir(value))
+            else:
+                mysuite.extraBuildDirs.insert(0,checkTestDir(value))
+
+        elif (opt == "extraBuildDir2"):
+            mysuite.extraBuildDirs.append(checkTestDir(value))
 
         elif (opt == "extraBuildDirCompString"):
             mysuite.extraBuildDirCompString = value
@@ -286,9 +319,14 @@ def LoadParams(file):
         elif (opt == "emailBody"):
             mysuite.emailBody = value
 
+        elif (opt == "globalAddToExecString"):
+            mysuite.globalAddToExecString = value
+
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
 
+
+    mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
 
     mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
 
@@ -302,8 +340,11 @@ def LoadParams(file):
 
     # if there is an extra build directory (some problems defined there),
     # then update the additional compilation string
-    if mysuite.useExtraBuild:
-        mysuite.extraBuildName = os.path.basename(os.path.normpath(mysuite.extraBuildDir))
+    if mysuite.useExtraBuild > 0:
+        n = 0
+        while n < len(mysuite.extraBuildDirs):
+            mysuite.extraBuildNames.append(os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n])))
+            n += 1
 
         # since we are building in the extraBuildDir, we need to 
         # take make where the sourceDir is
@@ -457,8 +498,8 @@ def LoadParams(file):
 
 
         # make sure that the build directory actually exists
-        if (mytest.useExtraBuildDir):
-            bDir = mysuite.extraBuildDir + mytest.buildDir
+        if (mytest.useExtraBuildDir > 0):
+            bDir = mysuite.extraBuildDirs[mytest.useExtraBuildDir-1] + mytest.buildDir
         else:
             bDir = mysuite.sourceDir + mytest.buildDir
 
@@ -614,9 +655,13 @@ def findBuildDirs(testList):
     for obj in testList:
         
         # be sneaky here.  We'll add a "+" to any of the tests that
-        # are built in the extraBuildDir instead of the sourceDir.
-        if (obj.useExtraBuildDir):
+        # are built in the first extraBuildDir and a "@" for an tests
+        # that are build in the second extraBuild dir, instead of the
+        # sourceDir.
+        if obj.useExtraBuildDir == 1:
             prefix = "+"
+        elif obj.useExtraBuildDir == 2:
+            prefix = "@"
         else:
             prefix = ""
 
@@ -710,7 +755,7 @@ def checkTestDir(dirName):
 #==============================================================================
 # doGITUpdate
 #==============================================================================
-def doGITUpdate(topDir, root, outDir, githash):
+def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    """ do a git update of the repository in topDir.  root is the name
        of the directory (used for labeling).  outDir is the full path
        to the directory where we will store the git output.  If githash
@@ -728,10 +773,16 @@ def doGITUpdate(topDir, root, outDir, githash):
    currentBranch = stdout0.rstrip('\n')
    p0.stdout.close()
 
-
-   if currentBranch == "HEAD":  # detached state without a branch
-       subprocess.call(["git", "checkout", "master"])
-   
+   if currentBranch != gitbranch:
+       print "\n"
+       bold("git checkout %s in %s" % (gitbranch, topDir))
+       prog = ["git", "checkout", gitbranch]
+       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+       stdout, stderr = p.communicate()
+       p.stdout.close()
+       p.stdin.close()
 
    if githash == "":
 
@@ -874,7 +925,8 @@ def testSuite(argv):
                   --boxLibGitHash boxlibhash
                   --sourceGitHash sourcehash
                   --extSrcGitHash extsourcehash
-                  --note note]
+                  --note note
+                  --complete_report_from_crash testdir]
         testfile.ini
 
 
@@ -1139,6 +1191,12 @@ def testSuite(argv):
        --note \"note\"
           print the note on the resulting test webpages
           
+       --complete_report_from_crash \"testdir\"
+          if a test suite run crashed (or the terminal you were running 
+          from disconnected) and the file report was not generated, this
+          option will just generate the report for the test suite run and
+          the overall report for all runs.  testdir is the name of the
+          testdir (e.g. 20XX-XX-XX) that was running when the suite crashed.
 
     Getting started:
 
@@ -1171,7 +1229,8 @@ def testSuite(argv):
                                     "boxLibGitHash=",
                                     "sourceGitHash=",
                                     "extSrcGitHash=",
-                                    "note="])
+                                    "note=",
+                                    "complete_report_from_crash="])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -1190,7 +1249,8 @@ def testSuite(argv):
     sourceGitHash = ""
     extSrcGitHash = ""
     note = ""
-    
+    completeReportFromCrash = ""
+
     for o, a in opts:
 
         if o == "--make_benchmarks":
@@ -1220,7 +1280,10 @@ def testSuite(argv):
 
         if o == "--note":
             note = a
-            
+
+        if o == "--complete_report_from_crash":
+            completeReportFromCrash = a
+
     try:
         testFile = next[0]
 
@@ -1244,6 +1307,45 @@ def testSuite(argv):
         fail("No valid tests defined")
 
 
+    if not completeReportFromCrash == "":
+
+        # make sure the web directory from the crash run exists
+        fullWebDir = "%s/%s/"  % (suite.webTopDir, completeReportFromCrash)
+        if not os.path.isdir(fullWebDir):
+            fail("Crash directory does not exist")
+
+        # find all the tests that completed in that web directory
+        tests = []
+        testFile = ""
+        wasBenchmarkRun = 0
+        for file in os.listdir(fullWebDir):
+            if os.path.isfile(file) and file.endswith(".status"):
+                index = string.rfind(file, ".status")
+                tests.append(file[:index])
+
+                f = open(fullWebDir + file, "r")
+                for line in f:
+                    if string.find(line, "benchmarks updated") > 0:
+                        wasBenchmarkRun = 1
+
+            if os.path.isfile(file) and file.endswith(".ini"):
+                testFile = file
+
+
+        # create the report for this test run
+        numFailed = reportThisTestRun(suite, wasBenchmarkRun, "", 
+                                      "recreated report after crash of suite", 
+                                      "",  0, 0, 0,
+                                      tests, completeReportFromCrash, testFile, fullWebDir)
+
+
+        # create the suite report
+        bold("creating suite report...")
+        tableHeight = min(max(suite.lenTestName, 4), 16)
+        reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
+        sys.exit("done")
+
+
     #--------------------------------------------------------------------------
     # figure out which git repos we will update
     #--------------------------------------------------------------------------
@@ -1253,13 +1355,13 @@ def testSuite(argv):
         updateBoxLib = True
         updateSource = True
         updateExtSrc = True
-        updateExtraBuild = True
+        updateExtraBuild = [True]*suite.useExtraBuild
 
     elif no_update_low == "all":
         updateBoxLib = False
         updateSource = False
         updateExtSrc = False
-        updateExtraBuild = False
+        updateExtraBuild = [False]*suite.useExtraBuild
 
     else:
         nouplist = no_update_low.split(",")
@@ -1279,16 +1381,19 @@ def testSuite(argv):
         else:
             updateExtSrc = True
 
-        if suite.extraBuildName.lower() in nouplist:
-            updateExtraBuild = False
-        else:
-            updateExtraBuild = True
+        # each extra build directory has its own update flag
+        updateExtraBuild = []
+        for e in suite.extraBuildNames:
+            if e.lower() in nouplist:
+                updateExtraBuild.append(False)
+            else:
+                updateExtraBuild.append(True)
 
     if not suite.useExtSrc:
         updateExtSrc = False
 
     if not suite.useExtraBuild:
-        updateExtraBuild = False
+        updateExtraBuild = [False]
     
     if suite.sourceTree == "BoxLib":
         updateSource = False # to avoid updating BoxLib twice.
@@ -1329,7 +1434,8 @@ def testSuite(argv):
             testList = newTestList
         
     elif (not tests == ""):
-        testsFind = string.split(tests)
+        testsFind = list(set(string.split(tests)))
+
         newTestList = []
         for test in testsFind:
             found = 0
@@ -1419,32 +1525,39 @@ def testSuite(argv):
     if updateSource or sourceGitHash:
 
         # main suite
-        sourceGitBranch = doGITUpdate(suite.sourceDir, 
-                                      suite.srcName, fullWebDir,
-                                      sourceGitHash)
+        sourceGitBranch_Orig = doGITUpdate(suite.sourceDir, 
+                                           suite.srcName, fullWebDir,
+                                           suite.sourceGitBranch,
+                                           sourceGitHash)
     
     if updateExtSrc or extSrcGitHash:
 
         # extra source
         if (suite.useExtSrc):
-            extSrcGitBranch = doGITUpdate(suite.extSrcDir, 
-                                          suite.extSrcName, fullWebDir,
-                                          extSrcGitHash)
+            extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir, 
+                                               suite.extSrcName, fullWebDir,
+                                               suite.extSrcGitBranch,
+                                               extSrcGitHash)
 
-    if updateExtraBuild:
+    if any(updateExtraBuild):
 
         # extra build directory
-        if (suite.useExtraBuild):
-            extSrcGitBranch = doGITUpdate(suite.extraBuildDir, 
-                                          suite.extraBuildName, fullWebDir,
-                                          "")
+        n = 0
+        while n < suite.useExtraBuild:
+            if updateExtraBuild[n]:
+                extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDirs[n], 
+                                                   suite.extraBuildNames[n], fullWebDir,
+                                                   "master",
+                                                   "")
+            n += 1
 
     if updateBoxLib or boxLibGitHash:
 
         # BoxLib
-        boxLibGitBranch = doGITUpdate(suite.boxLibDir, 
-                                      "BoxLib", fullWebDir,
-                                      boxLibGitHash)
+        boxLibGitBranch_Orig = doGITUpdate(suite.boxLibDir, 
+                                           "BoxLib", fullWebDir,
+                                           suite.boxLibGitBranch,
+                                           boxLibGitHash)
 
     #--------------------------------------------------------------------------
     # Save git HEADs
@@ -1457,8 +1570,10 @@ def testSuite(argv):
     if suite.useExtSrc:
         saveGITHEAD(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
-    if suite.useExtraBuild:
-        saveGITHEAD(suite.extraBuildDir, suite.extraBuildName, fullWebDir)
+    n = 0
+    while n < suite.useExtraBuild:
+        saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
+        n += 1
 
 
     #--------------------------------------------------------------------------
@@ -1475,11 +1590,13 @@ def testSuite(argv):
         if (suite.useExtSrc):
             makeGITChangeLog(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
-    if updateExtraBuild:
 
-        # extra build directory
-        if (suite.useExtraBuild):
-            makeGITChangeLog(suite.extraBuildDir, suite.extraBuildName, fullWebDir)
+    # extra build directories            
+    n = 0
+    while n < suite.useExtraBuild:
+        if updateExtraBuild[n]:
+            makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
+        n += 1
 
     if updateBoxLib:
 
@@ -1560,12 +1677,15 @@ def testSuite(argv):
         if (dir.find("+") == 0):
             inExtra = 1
             dir = dir[1:]
+        elif (dir.find("@") == 0):
+            inExtra = 2
+            dir = dir[1:]
         else:
             inExtra = 0
 
-        if (inExtra):
-            print "  %s in %s" % (dir,suite.extraBuildName)
-            os.chdir(suite.extraBuildDir + dir)
+        if (inExtra > 0):
+            print "  %s in %s" % (dir,suite.extraBuildNames[inExtra-1])
+            os.chdir(suite.extraBuildDirs[inExtra-1] + dir)
         else:
             print "  %s" % (dir)
             os.chdir(suite.sourceDir + dir)
@@ -1617,8 +1737,8 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # compile the code
         #----------------------------------------------------------------------
-        if (test.useExtraBuildDir):
-            bDir = suite.extraBuildDir + test.buildDir
+        if test.useExtraBuildDir > 0:
+            bDir = suite.extraBuildDirs[test.useExtraBuildDir-1] + test.buildDir
         else:
             bDir = suite.sourceDir + test.buildDir
 
@@ -1659,7 +1779,7 @@ def testSuite(argv):
             else:
                 buildOptions += "USE_OMP=FALSE "
 
-            if (test.useExtraBuildDir):
+            if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
@@ -1693,7 +1813,7 @@ def testSuite(argv):
             else:
                 buildOptions += "OMP= "
             
-            if (test.useExtraBuildDir):
+            if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
             compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s >& %s/%s.make.out" % \
@@ -1910,11 +2030,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1930,11 +2050,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
 	       if (test.restartTest):
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                else:
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
 	       testRunCommand = testRunCommand.replace("@command@", command)
 
@@ -1945,11 +2065,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -1959,11 +2079,11 @@ def testSuite(argv):
 
                 # keep around the checkpoint files only for the restart runs
                 if (test.restartTest):
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
                 else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
+                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
 
                 print "    " + testRunCommand
                 systemCall(testRunCommand)
@@ -1981,6 +2101,10 @@ def testSuite(argv):
 
             origLastFile = "orig_%s" % (lastFile)
             shutil.move(lastFile, origLastFile)
+
+            if test.diffDir:
+                origDiffDir = "orig_%s" % (test.diffDir)
+                shutil.move(test.diffDir, origDiffDir)
 
             # get the file number to restart from
             restartFile = "%s_chk%5.5d" % (test.name, test.restartFileNum)
@@ -2044,8 +2168,8 @@ def testSuite(argv):
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
 
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     testRunCommand = testRunCommand.replace("@command@", command)
                     
@@ -2059,8 +2183,8 @@ def testSuite(argv):
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     testRunCommand = testRunCommand.replace("@command@", command)
                     
@@ -2069,8 +2193,8 @@ def testSuite(argv):
 
                 elif (test.useOMP):
 
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     print "    " + testRunCommand
                     systemCall(testRunCommand)
@@ -2078,8 +2202,8 @@ def testSuite(argv):
 
                 else:
 
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
+                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
                     print "    " + testRunCommand
                     systemCall(testRunCommand)
@@ -2149,7 +2273,10 @@ def testSuite(argv):
                         cf.close()
 
                 if (not test.diffDir == ""):
-                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    if not test.restartTest:
+                        diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
+                    else:
+                        diffDirBench = origDiffDir
                     
                     print "  doing the diff..."
                     print "    diff dir: ", test.diffDir
@@ -2349,14 +2476,14 @@ def testSuite(argv):
        if (os.path.isfile(currentFile)):
           os.chmod(currentFile, 0644)
           
-    if boxLibGitHash:
-        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch)
+    if updateBoxLib or boxLibGitHash:
+        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch_Orig)
 
-    if sourceGitHash:
-        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch)
+    if updateSource or sourceGitHash:
+        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch_Orig)
 
-    if extSrcGitHash:
-        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch)
+    if updateExtSrc or extSrcGitHash:
+        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch_Orig)
             
     #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
@@ -2640,8 +2767,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     hf.write(newHead)
 
     hf.write("<P><b>build directory:</b> %s" % (test.buildDir) )
-    if (test.useExtraBuildDir):
-        hf.write(" in %s\n" % (suite.extraBuildDir))
+    if test.useExtraBuildDir > 0:
+        hf.write(" in %s\n" % (suite.extraBuildDirs[test.useExtraBuildDir-1]))
     else:
         hf.write("\n")
 
@@ -2726,7 +2853,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<PRE>\n")
     
         for line in diffLines:
-            hf.write(line)
+            hf.write(line.replace('<','&lt;').replace('>','&gt;'))
 
         hf.write("</PRE>\n")
 
@@ -2980,7 +3107,10 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     #--------------------------------------------------------------------------
     
     index = string.find(testDir, "/")
-    statusFile = testDir[0:index] + ".status"
+    if index > 0:
+        statusFile = testDir[0:index] + ".status"
+    else:
+        statusFile = testDir + ".status"
 
     sf = open(statusFile, 'w')
 
@@ -3086,6 +3216,18 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
     # loop over all the test runs 
     for dir in validDirs:
+
+        # first look to see if there are any valid tests at all --
+        # otherwise we don't do anything for this date
+        valid = 0
+        for test in allTests:
+            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
+            if (os.path.isfile(statusFile)):
+                valid = 1
+                break
+
+        if not valid:
+            continue
 
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %

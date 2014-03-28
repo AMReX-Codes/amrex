@@ -42,7 +42,7 @@ class DistributionMapping
     //                  in boxlib and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
-    DistributionMapping (const Array<int>& pmap);
+    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false);
     //
     // Build mapping out of BoxArray over nprocs processors.
     //

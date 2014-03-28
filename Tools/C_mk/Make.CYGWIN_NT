@@ -31,7 +31,7 @@ endif
 CXXPRFF += -pg
 FPRF    += -pg
 
-override XTRALIBS +=   -lm -lg2c
+override XTRALIBS +=   -lm
 
 FDEBF += -g
 fDEBF += -g

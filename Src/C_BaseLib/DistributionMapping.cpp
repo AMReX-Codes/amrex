@@ -275,10 +275,29 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
     m_pmap(pmap)
 {}
 
-DistributionMapping::DistributionMapping (const Array<int>& pmap)
+DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_cache)
     :
     m_ref(new DistributionMapping::Ref(pmap))
-{}
+{
+    if (put_in_cache && ParallelDescriptor::NProcs() > 1)
+    {
+        //
+        // We want to save this pmap in the cache.
+        // It's an error if a pmap of this length has already been cached.
+        //
+        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
+             it != m_Cache.end();
+             ++it)
+        {
+            if (it->first == m_ref->m_pmap.size())
+            {
+                BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
+            }
+        }
+
+        m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    }
+}
 
 DistributionMapping::Ref::Ref (int len)
     :
@@ -437,9 +456,11 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     //
     std::vector<LIpair> LIpairV;
 
-    LIpairV.reserve(boxes.size());
+    const int N = boxes.size();
 
-    for (int i = 0, N = boxes.size(); i < N; i++)
+    LIpairV.reserve(N);
+
+    for (int i = 0; i < N; i++)
     {
         LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
@@ -832,14 +853,10 @@ Distribute (const std::vector<SFCToken>&     tokens,
     int  K        = 0;
     Real totalvol = 0;
 
-    const int Navg = tokens.size() / nprocs;
-
     for (int i = 0; i < nprocs; i++)
     {
         int  cnt = 0;
         Real vol = 0;
-
-        v[i].reserve(Navg + 2);
 
         for ( int TSZ = tokens.size();
               K < TSZ && (i == (nprocs-1) || vol < volpercpu);
@@ -879,11 +896,13 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::vector<SFCToken> tokens;
 
-    tokens.reserve(boxes.size());
+    const int N = boxes.size();
+
+    tokens.reserve(N);
 
     int maxijk = 0;
 
-    for (int i = 0, N = boxes.size(); i < N; i++)
+    for (int i = 0; i < N; i++)
     {
         tokens.push_back(SFCToken(i,boxes[i].smallEnd(),wgts[i]));
 

@@ -186,15 +186,29 @@ ifeq ($(findstring hopper, $(HOST)), hopper)
         F90 := ftn -target=linux
     endif
 endif
-ifeq ($(findstring jaguar, $(HOST)), jaguar)
+ifeq ($(findstring edison, $(HOST)), edison)
     #
-    # jaguar
+    # edison.nersc.gov
     #
     ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
+        CXX := CC -target=compute_node
+        CC  := cc -target=compute_node
+        FC  := ftn -target=compute_node
+        F90 := ftn -target=compute_node
+    endif
+endif
+ifeq ($(findstring titan, $(HOST)), titan)
+    #
+    # titan (Oak Ridge, OLCF machine)
+		#
+		# Cray machines require you use their compiler wrappers
+		# even if you aren't using Cray compiler
+    #
+    ifdef MPI
+        CXX := CC 
+        CC  := cc 
+        FC  := ftn
+        F90 := ftn
     endif
 endif
 ifeq ($(findstring kraken, $(UNAMEN)), kraken)
@@ -207,7 +221,22 @@ ifeq ($(findstring kraken, $(UNAMEN)), kraken)
         F90 := ftn -target=linux
     endif
 endif
+ifeq ($(findstring h2o, $(UNAMEN)), h2o)
+    #
+    # Blue Waters
+    #
+    ifdef MPI
+        CXX := CC
+	FC  := ftn
+	F90 := ftn
+    endif
 
+    ifeq ($(COMP),Cray)
+      FFLAGS += -hnopgas_runtime
+      F90FLAGS += -hnopgas_runtime
+      CFLAGS += -hnopgas_runtime
+    endif
+endif
 
 
 ifeq ($(HOST),cfe3)
@@ -245,10 +274,10 @@ ifeq ($(HOST),battra)
 endif
 
 ifeq ($(HOST),gigan)
-  MPIHOME=/usr/local/mpich2
+  MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
+  mpi_libraries += -lmpich -lpthread -lmpl
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
@@ -316,7 +345,7 @@ ifeq ($(HOST),posse)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),mothra)
-  MPIHOME=/usr/local/mpich2
+  MPIHOME=/usr/local/
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
@@ -387,5 +416,11 @@ ifeq ($(HOST),lookfar)
     CFLAGS += -DBL_FORT_USE_DBL_UNDERSCORE
     CFLAGS += -UBL_FORT_USE_UNDERSCORE
   endif
+endif
+
+ifeq ($(HOSTNAME),hyades.ucsc.edu)
+  F90 := mpiifort
+  FC := mpiifort
+  fC := mpiifort
 endif
 

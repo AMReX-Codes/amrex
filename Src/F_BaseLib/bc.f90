@@ -19,12 +19,18 @@ module bc_module
   integer, parameter, public :: SYMMETRY     = 13
   integer, parameter, public ::    SLIP_WALL = 14
   integer, parameter, public :: NO_SLIP_WALL = 15
+  integer, parameter, public ::         SLIP = 16
+  integer, parameter, public ::      NO_SLIP = 17
 
   integer, parameter, public :: REFLECT_ODD  =  20
   integer, parameter, public :: REFLECT_EVEN =  21
-  integer, parameter, public :: FOEXTRAP     =  22
+  integer, parameter, public :: HOM_DIR      =  22
   integer, parameter, public :: EXT_DIR      =  23
-  integer, parameter, public :: HOEXTRAP     =  24
+  integer, parameter, public :: FOEXTRAP     =  24
+  integer, parameter, public :: HOEXTRAP     =  25
+  integer, parameter, public :: DIR_VEL      =  26
+  integer, parameter, public :: DIR_TRACT    =  27
+
 
 contains
 
@@ -33,6 +39,8 @@ contains
     character (len=*), intent(in) :: str
 
     integer :: bc_int
+
+    bc_int = UNDEFINED
 
     select case (str)
 

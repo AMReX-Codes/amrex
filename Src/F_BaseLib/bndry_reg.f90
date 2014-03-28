@@ -59,12 +59,11 @@ contains
     integer                        :: i, j, id, f, kk, dm, nb, lw, lnc, cnt
     integer                        :: lo(size(rr)), hi(size(rr))
     integer                        :: lo1(size(rr)), hi1(size(rr))
-    type(box), allocatable         :: bxs(:), bxs1(:), bxsc(:)
+    type(box), allocatable         :: bxs(:), bxs1(:), bxsc(:), bxc(:)
     type(box_intersector), pointer :: bi(:)
     integer, allocatable           :: prcc(:)
     type(box)                      :: rbox, lpdc, bx, bx1
     type(boxarray)                 :: baa, bac
-    type(list_box)                 :: blc
     type(layout)                   :: latmp
     logical                        :: lnodal(size(rr)), lother
 
@@ -77,83 +76,94 @@ contains
     lnodal = .false. ; if ( present(nodal) ) lnodal = nodal
     lother = .true.  ; if ( present(other) ) lother = other
 
-    dm = get_dim(la)
-    nb = nboxes(la)
-
+    dm       = get_dim(la)
+    nb       = nboxes(la)
     br%dim   = dm
     br%nc    = lnc
     br%other = lother
+    lpdc     = box_nodalize(pdc, lnodal)
 
-    allocate(bxs(nb), bxs1(nb))
+    allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
 
     if (br%other) then
+       allocate(bxs1(nb))
        allocate(br%obmf(dm,0:1), br%olaf(dm,0:1))
     end if
 
-    lpdc = box_nodalize(pdc, lnodal)
-
     if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
-    !
-    ! Build a layout to be used in intersection tests below.
-    !
-    do i = 1, nboxes(lac)
-       bx = box_nodalize(get_box(lac,i),lnodal)
-       lo = lwb(bx)
-       hi = upb(bx)
-       do j = 1, dm
-          if ( .not. lnodal(j) ) then
-             if ( lo(j) == lwb(lpdc,j) ) lo(j) = lo(j) - 1
-             if ( hi(j) == upb(lpdc,j) ) hi(j) = hi(j) + 1
-          end if
+
+    if ( br%other ) then
+       !
+       ! Build a layout to be used in intersection tests below.
+       !
+       allocate(bxc(nboxes(lac)))
+
+       !$OMP PARALLEL DO PRIVATE(i,j,bx,lo,hi)
+       do i = 1, nboxes(lac)
+          bx = box_nodalize(get_box(lac,i),lnodal)
+          lo = lwb(bx)
+          hi = upb(bx)
+          do j = 1, dm
+             if ( .not. lnodal(j) ) then
+                if ( lo(j) == lwb(lpdc,j) ) lo(j) = lo(j) - 1
+                if ( hi(j) == upb(lpdc,j) ) hi(j) = hi(j) + 1
+             end if
+          end do
+          call build(bxc(i), lo, hi)
        end do
-       call push_back(blc, make_box(lo,hi))
-    end do
-    call build(bac, blc, sort = .false.)
-    call destroy(blc)
-    call build(latmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
-    call destroy(bac)
+       !$OMP END PARALLEL DO
+
+       call build(bac, bxc, sort = .false.)
+       deallocate(bxc)
+       call build(latmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
+       call destroy(bac)
+    end if
 
     do i = 1, dm
        do f = 0, 1
           cnt = 0
+
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
              lo   = lwb(rbox)
              hi   = upb(rbox)
-             select case (f)
-             case ( 0 )
+             if ( f == 0 ) then
                 if ( .not. lnodal(i) ) lo(i) = lo(i) - 1
                 hi(i) = lo(i)
-             case ( 1 )
+             else
                 if ( .not. lnodal(i) ) hi(i) = hi(i) + 1
                 lo(i) = hi(i)
-             end select
-             !
-             ! Grow in the other directions for interping bc's
-             ! Grow by lw if possible; if not lw then lw-1, etc; then none.
-             ! Note that this makes sure not to leave the physical boundary,
-             ! but doesn't see the other grids.
-             !
-             lo1 = lo
-             hi1 = hi
-             do id = 1, dm
-                if ( id /= i ) then
-                   lo1(id) = max(lo1(id), lpdc%lo(id))
-                   hi1(id) = min(hi1(id), lpdc%hi(id))
-                end if
-             end do
-             call build(bxs1(j), lo1, hi1)
-             bi => layout_get_box_intersector(latmp, bxs1(j))
-             cnt = cnt + size(bi)
-             deallocate(bi)
+             end if
+
              do id = 1, dm
                 if ( id /= i ) then
                    lo(id) = max(lo(id)-lw, lpdc%lo(id))
                    hi(id) = min(hi(id)+lw, lpdc%hi(id))
                 end if
              end do
+
              call build(bxs(j), lo, hi)
+             !
+             ! Grow in the other directions for interping bc's
+             ! Grow by lw if possible; if not lw then lw-1, etc; then none.
+             ! Note that this makes sure not to leave the physical boundary,
+             ! but doesn't see the other grids.
+             !
+             if ( br%other ) then
+                lo1 = lo
+                hi1 = hi
+                do id = 1, dm
+                   if ( id /= i ) then
+                      lo1(id) = max(lo1(id), lpdc%lo(id))
+                      hi1(id) = min(hi1(id), lpdc%hi(id))
+                   end if
+                end do
+                call build(bxs1(j), lo1, hi1)
+                bi => layout_get_box_intersector(latmp, bxs1(j))
+                cnt = cnt + size(bi)
+                deallocate(bi)
+             end if
           end do
 
           call build(baa, bxs, sort = .false.)
@@ -191,7 +201,11 @@ contains
        end do
     end do
 
-    call destroy(latmp)
+    if ( br%other ) then
+       deallocate(bxs1)
+       call destroy(latmp)
+    end if
+
     call destroy(bpt)
   end subroutine bndry_reg_rr_build
 
@@ -217,41 +231,38 @@ contains
     lnc    = 1;       if ( present(nc)    ) lnc    = nc
     lnodal = .false.; if ( present(nodal) ) lnodal = nodal
 
-    dm = get_dim(la)
-    nb = nboxes(la)
-
-    allocate(bxs(nb))
-    allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
-
+    dm       = get_dim(la)
+    nb       = nboxes(la)
     br%dim   = dm
     br%nc    = lnc
     br%other = .false.
+
+    allocate(bxs(nb))
+    allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
 
     if (dm /= box_dim(pd)) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
 
     do i = 1, dm
        do f = 0, 1
-          do j = 1, nb
 
+          !$OMP PARALLEL DO PRIVATE(j,rbox,lo,hi)
+          do j = 1, nb
              rbox = get_box(la,j)
              lo   = lwb(rbox)
              hi   = upb(rbox)
 
-             select case (f)
-             case ( 0 )
+             if ( f == 0 ) then
                 !! Build lo-side objects
                 hi(i) = lo(i)
-             case ( 1 )
+             else
                 !! Build hi-side objects
                 if ( .not. lnodal(i) ) hi(i) = hi(i)+1
                 lo(i) = hi(i)
-             case default
-                call bl_error("BUILD_FLUX_REG: This can't be happening")
-             end select
+             end if
 
              call build(bxs(j), lo, hi)
-
           end do
+          !$OMP END PARALLEL DO
 
           call build(baa, bxs, sort = .false.)
           call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
@@ -323,7 +334,7 @@ contains
        do i = 1, nfabs(mf)
           src => dataptr(mf,  i)
           dst => dataptr(tmf, i)
-          dst =  src
+          call cpy_d(dst,src)
        end do
 
        do i = 1, br%dim

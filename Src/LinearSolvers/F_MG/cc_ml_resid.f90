@@ -89,6 +89,7 @@ contains
 
     use ml_restriction_module  , only : ml_restriction
     use ml_prolongation_module , only : ml_interp_bcs
+    use stencil_defect_module  , only : compute_defect
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -147,8 +148,8 @@ contains
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
-       call mg_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                      mgt(n)%stencil_type,mgt(n)%lcross)
+       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+                           mgt(n)%stencil_type,mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -202,6 +203,7 @@ contains
 
     dm = get_dim(ss)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
@@ -221,6 +223,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_fluxes
 !
@@ -254,6 +257,7 @@ contains
 
     call multifab_fill_boundary(uu, cross = lcross)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i, cf)
        up => dataptr(uu, i, cu)
@@ -271,6 +275,7 @@ contains
                mp(:,:,:,1), ng, ratio, face, dim)
        end select
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_fluxes_c
 !
@@ -299,6 +304,7 @@ contains
 
     ng = nghost(uu)
 
+    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
        fp => dataptr(flux, i)
        up => dataptr(uu, i)
@@ -323,6 +329,7 @@ contains
           end select
        end do
     end do
+    !$OMP END PARALLEL DO
     call destroy(bpt)
   end subroutine ml_fill_n_fluxes
 

@@ -18,20 +18,19 @@
 #include <Box.H>
 #include <IntVect.H>
 
+static bool finalize_verbose = true;
+
 //
 // Used by constructor to build table.
 //
-ParmParse::PP_entry::PP_entry (const std::string& name,
-                    const std::list<std::string>& vals)
+ParmParse::PP_entry::PP_entry (const std::string&            name,
+                               const std::list<std::string>& vals)
     :
     m_name(name),
     m_table(0),
     m_queried(false)
 {
-    for ( std::list<std::string>::const_iterator li = vals.begin(), End = vals.end(); li != End; ++li )
-    {
-	m_vals.push_back(*li);
-    }
+    m_vals.insert(m_vals.end(), vals.begin(), vals.end());
 }
 
 ParmParse::PP_entry::PP_entry (const std::string& name,
@@ -1006,6 +1005,7 @@ finalize_table (std::string pfx, const ParmParse::Table& table)
 	}
 	else if ( !li->m_queried )
 	{
+          if (finalize_verbose)
 	    std::cout << pfx << "::" << *li << std::endl;
 	}
     }
@@ -1030,9 +1030,9 @@ ParmParse::Finalize ()
 {
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
-	std::cout << "Unused ParmParse Variables:\n";
-	finalize_table("[TOP]", g_table);
-	std::cout << "done.\n";
+      if (finalize_verbose) std::cout << "Unused ParmParse Variables:\n";
+      finalize_table("[TOP]", g_table);
+      if (finalize_verbose) std::cout << "done.\n";
 	//
 	// First loop through and delete all queried entries.
 	//

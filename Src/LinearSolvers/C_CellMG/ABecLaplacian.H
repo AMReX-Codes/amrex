@@ -87,12 +87,12 @@ public:
     // Compute extensive (area-weighted) flux associated with the op
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC,
-			   int sComp=0, int dComp=0, int nComp=1);
+			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
+			   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0);
 
     void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
-                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC,
-		   int sComp=0, int dComp=0, int nComp=1);
+                   MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
+		   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0);
     //
     // Set scalar coefficients.
     //
@@ -119,10 +119,21 @@ public:
     //
     void aCoefficients (const MultiFab& _a);
     //
+    // Zero out the "a" coeffs for base level.
+    //
+    void ZeroACoefficients ();
+    //
     // copy _b into "b" coeffs in "dir" coordinate direction for base level
     //
     void bCoefficients (const MultiFab& _b,
                         int             dir);
+    //
+    // copy _b into "b" coeffs in "dir" coordinate direction for base level
+    // at supplied gridno
+    //
+    void bCoefficients (const FArrayBox& _b,
+                        int              dir,
+                        int              gridno);
     //
     // alternative (older) version of above members
     //
@@ -163,6 +174,12 @@ protected:
     //
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
+                         int             level);
+    virtual void Fapply (MultiFab&       out,
+			 int             dst_comp,
+                         const MultiFab& in,
+			 int             src_comp,
+			 int             num_comp,
                          int             level);
     //
     // apply GSRB smoother to improve residual to L(solnL)=rhsL

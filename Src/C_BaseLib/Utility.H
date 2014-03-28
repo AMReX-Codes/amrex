@@ -93,6 +93,17 @@ namespace BoxLib
     //
     void UnlinkFile (const std::string& file);
     //
+    // Check if a file already exists.
+    //   Return true if the filename is an existing file, directory,
+    //   or link.  For links, this operates on the link and not what
+    //   the link points to.
+    //
+    bool FileExists(const std::string &filename);
+    //
+    // Create a (probably) unique string
+    //
+    std::string UniqueString();
+    //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
     // set_new_handler() function for BoxLib applications.
@@ -180,7 +191,10 @@ namespace BoxLib
       same one used by BoxLib::Random()) to get a value in [0,1] and then
       sets "rn" to that value.
     */
-    double Random ();
+    double Random (); // [0,1]
+    double Random1 (); // [0,1)
+    double Random2 (); // (0,1)
+    unsigned long Random_int(unsigned long n); // [0,n-1], where n<=2^32-1
     /* Set the seed of the random number generator.
 
       There is also an entry point for Fortran callable as:
@@ -194,12 +208,17 @@ namespace BoxLib
       call blinitrand(seed)
     */
     void InitRandom (unsigned long seed);
+    void InitRandom (unsigned long seed, int numprocs);
+
+    void ResetRandomSeed(unsigned long seed);
     //
     // Save and restore random state.
     //
     // state.size() == 626 on return from Save & on entry to Restore.
     //
     void SaveRandomState (Array<unsigned long>& state);
+
+    int sizeofRandomState ();
 
     void RestoreRandomState (const Array<unsigned long>& state);
     //
@@ -261,8 +280,10 @@ namespace BoxLib
 	typedef unsigned long seed_type;
 
 	explicit mt19937 (seed_type seed = 4357UL);
+        mt19937 (seed_type seed, int numprocs);
 	mt19937 (seed_type array[], int array_len);
 	void rewind();
+	void reset(unsigned long seed);
 
 	double d_value  (); // [0,1] random numbers
 	double d1_value (); // [0,1) random numbers
@@ -272,17 +293,21 @@ namespace BoxLib
 	unsigned long u_value (); // [0,2^32-1] random numbers
 
         void save (Array<unsigned long>& state) const;
+        int  RNGstatesize() const;
         void restore (const Array<unsigned long>& state);
+    private:
+	enum { N = 624 };
+        static unsigned long init_seed;
+        static unsigned long mt[N];	// the array for the state vector
+        static int mti;		// mti==N+1 means mt[N] is not initialized
+#ifdef _OPENMP
+#pragma omp threadprivate(init_seed,mt,mti)
+#endif
     private:
 	void sgenrand (unsigned long seed);
 	void sgenrand (seed_type seed_array[], int len);
 	unsigned long igenrand ();
 	void reload ();
-    private:
-	enum { N = 624 };
-	unsigned long init_seed;
-	unsigned long mt[N];	// the array for the state vector
-	int mti;		// mti==N+1 means mt[N] is not initialized
     };
 
     class expect;
@@ -305,12 +330,23 @@ namespace BoxLib
       public:
         StreamRetry(std::ostream &os, const std::string &suffix,
 	            const int maxtries);
+        StreamRetry(const std::string &filename,
+	            const bool abortonretryfailure,
+	            const int maxtries);
 	bool TryOutput();
+	bool TryFileOutput();
+        static int NStreamErrors()       { return nStreamErrors; }
+        static void ClearStreamErrors()  { nStreamErrors = 0;    }
+
       private:
         int tries, maxTries;
+	bool abortOnRetryFailure;
+	std::string fileName;
 	std::ostream &sros;
 	std::ostream::pos_type spos;
 	std::string suffix;
+
+	static int nStreamErrors;
     };
 }
 

@@ -1,17 +1,19 @@
 
-from pyboxlib import *
+import boxlib
 
 def test_multifab():
-  pybl.open()
 
-  la = layout()
-  la.create(boxes=[ [(0,0), (31,31)] ])
+  ndim = 3
+  size = 64
+  dof  = 1
 
-  mfab = multifab()
-  mfab.create(la)
+  bx = boxlib.Box(lo=[1]*ndim, hi=[size]*ndim)
+  ba = boxlib.BoxArray(boxes=[bx])
+  ba.maxSize(32)
 
-  assert mfab.nc == 1
-  assert mfab.ng == 0
+  mf = boxlib.MultiFab(ba, ncomp=dof, nghost=2)
+
+  mf.FillBoundary(0, mf.nComp())
 
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@
 #include <Interpolater.H>
 #include <Amr.H>
 #include <SlabStat.H>
+#include <DistributionMapping.H>
 #include <StateDescriptor.H>
 #include <StateData.H>
 #include <VisMF.H>
@@ -74,6 +75,14 @@ public:
     virtual void restart (Amr&          papa,
                           std::istream& is,
 			  bool          bReadSpecial = false);
+
+#ifdef USE_PARTICLES
+    //
+    // Make the particle distribution map
+    //
+    void make_particle_dmap ();
+#endif
+
     //
     // Is name a state variable?
     //
@@ -202,6 +211,24 @@ public:
     // Number of grids at this level.
     //
     int numGrids () const { return grids.size(); }
+#ifdef USE_PARTICLES
+    //
+    // List of particle_grids at this level.
+    //
+    const BoxArray& ParticleBoxArray () const { return particle_grids; }
+    //
+    // List of particle_grids at this level.
+    //
+    bool ParticlesOnSameGrids () const { return particles_on_same_grids; }
+    //
+    // DistributionMap for particle_grids at this level.
+    //
+    const DistributionMapping& ParticleDistributionMap () const { return particle_dmap; }
+    //
+    // Number of particle_grids at this level.
+    //
+    int numParticleGrids () const { return particle_grids.size(); }
+#endif
     //
     // Returns the indices defining physical domain.
     //
@@ -214,6 +241,7 @@ public:
     // Returns the geometry object.
     //
     const Geometry& Geom () const { return geom; }
+    const IntVect& fineRatio () const { return fine_ratio; }
     //
     // Returns number of cells on level.
     //
@@ -301,10 +329,10 @@ public:
     //
     // Boundary condition access function.
     //
-     Array<int> getBCArray (int State_Type,
-                            int gridno,
-                            int scomp,
-                            int ncomp);
+    Array<int> getBCArray (int State_Type,
+			   int gridno,
+			   int scomp,
+			   int ncomp);
     //
     // Get state data at specified index and time.
     //
@@ -347,6 +375,30 @@ public:
     //
     virtual bool writePlotNow ();
 
+#ifdef USE_PARTICLES
+    //
+    // Add one particle a time to a ParticleContainer owned by this AmrLevel.
+    //
+    virtual void addOneParticle (int id_in, int cpu_in,
+                                 std::vector<double>& xloc, 
+                                 std::vector<double>& attributes) {;}
+
+    //
+    // Add this function which can be called from the parent 
+    //
+    virtual void particle_redistribute (int lbase = 0, bool init = false) {;}
+
+    //
+    // Get particle data out of the Particle Class and send it back out through 
+    //     an Amr* amrptr.
+    //
+    virtual void GetParticleIDs       (Array<int>&  part_ids ) {;}
+    virtual void GetParticleCPU       (Array<int>&  part_cpu ) {;}
+    virtual void GetParticleLocations (Array<Real>& part_locs) {;}
+    virtual void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp) {;}
+
+#endif
+
 protected:
     //
     // The constructors -- for derived classes.
@@ -368,6 +420,11 @@ protected:
     int                   level;        // AMR level (0 is coarsest).
     Geometry              geom;         // Geom at this level.
     BoxArray              grids;        // Cell-centered locations of grids.
+#ifdef USE_PARTICLES
+    BoxArray              particle_grids; // Cell-centered locations of grids on which particles live.
+    DistributionMapping   particle_dmap; // Distribution map associated with particle_grids.
+    bool                  particles_on_same_grids; // Are the BoxArrays particle_grids and grids identical?
+#endif
     Amr*                  parent;       // Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
     IntVect               fine_ratio;   // Refinement ratio to finer level.
@@ -396,6 +453,8 @@ class FillPatchIterator
     public MFIter
 {
   public:
+
+    friend class AmrLevel;
 
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata);

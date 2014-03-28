@@ -1,0 +1,25 @@
+This is a collection of simple tests demonstrating possible bugs in
+ROSE0.9.5a-without-EDG-20390.  These tests were written when we tried
+to compile BoxLib using ROSE's identityTranslator.  More specifically,
+we tried to compile BoxLib/Tutorials/HeatEquation_EX1_F/, which uses
+BoxLib/Src/F_BaseLib.  
+
+* Test 1: ROSE translates 
+     all(pmask .eqv. .false.) 
+  into 
+     all(pmask .eq. .false.)
+
+* Test 2: ROSE does not like "d%d".
+
+* Test 3: ROSE inserts "PUBLIC" to derived type.
+
+* Test 4: ROSE does not handle 1.e50_8 properly.
+
+* Test 5: ROSE has OpenMP problems.
+
+* Test 6: OpenMP
+
+* Test 7: Namelist and module
+
+* Test 8: Array
+

@@ -587,9 +587,9 @@ c :::
       implicit none
 
       integer DIMDEC(crse)
-      integer cblo(2), cbhi(2)
+      integer cblo(1), cbhi(1)
       integer DIMDEC(fine)
-      integer fblo(2), fbhi(2)
+      integer fblo(1), fbhi(1)
       integer ftmp_lo, ftmp_hi
       integer nvar, lratio, longdir
       integer actual_comp,actual_state
@@ -599,7 +599,7 @@ c :::
 
 c     Local variables    
       REAL_T sumrho
-      integer i, j, ic, jc, ioff, joff, n
+      integer i, ic, ioff, n
 
          do n = 1, nvar
 	    do ioff = 0, lratio-1
@@ -900,5 +900,90 @@ c
           end do
 
        end if
+
+       end
+
+c ::: 
+c ::: --------------------------------------------------------------
+c ::: quartinterp: quartic conservative interpolation from coarse grid to
+c ::: subregion of fine grid defined by (fblo,fbhi)
+c ::: 
+c ::: Inputs/Outputs
+c ::: fine        <=>  (modify) fine grid array
+c ::: flo,fhi      =>  (const)  index limits of fine grid
+c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
+c ::: nvar         =>  (const)  number of variables in state vector
+c ::: lratiox      =>  (const)  refinement ratio between levels
+c ::: 
+c ::: crse         =>  (const)  coarse grid data
+c ::: clo,chi      =>  (const)  index limits of crse grid
+c ::: cblo,cbhi    =>  (const)  coarse grid region containing fblo,fbhi and widen by 2 or 4 cells
+c :::
+c ::: cb2lo,cb2hi  =>  (const)  coarse grid region containing fblo,fbhi
+c ::: fb2lo,fb2hi  =>  (const)  fine version of cb2. It could be wider than fb
+c ::: 
+c ::: TEMPORARY ARRAYS
+c ::: ftmp         =>  1-D temp array
+c ::: --------------------------------------------------------------
+c ::: 
+       subroutine FORT_QUARTINTERP (fine, DIMS(fine), 
+     $                              fblo, fbhi, fb2lo, fb2hi,
+     $                              crse, DIMS(crse), 
+     $                              cblo, cbhi, cb2lo, cb2hi,
+     $                              nvar, 
+     $                              lratiox, 
+     $                              ftmp,
+     $                              bc,actual_comp,actual_state)
+
+       implicit none
+
+       integer DIMDEC(fine)
+       integer DIMDEC(crse)
+       integer fblo(1), fbhi(1), fb2lo(1), fb2hi(1)
+       integer cblo(1), cbhi(1), cb2lo(1), cb2hi(1)
+       integer lratiox, nvar
+       integer bc(1,2,nvar)
+       integer actual_comp,actual_state
+       REAL_T fine(DIMV(fine),nvar)
+       REAL_T crse(DIMV(crse),nvar)
+       REAL_T ftmp(fb2lo(1):fb2hi(1))
+
+c      Local variables
+       integer i, ii, n
+       REAL_T cL(-2:2)
+c       REAL_T cR(-2:2)
+       data cL/ -0.01171875D0,  0.0859375D0, 0.5d0, -0.0859375D0,
+     $           0.01171875D0 /
+c$$$       data cR/  0.01171875D0, -0.0859375D0, 0.5d0,  0.0859375D0,
+c$$$     $          -0.01171875D0 /
+       
+       if (lratiox .eq. 2) then
+          do n = 1, nvar
+             do i = cb2lo(1), cb2hi(1)
+                ii = 2*i
+                ftmp(ii  ) = 2.d0*(cL(-2)*crse(i-2,n) 
+     $               +             cL(-1)*crse(i-1,n)
+     $               +             cL( 0)*crse(i  ,n)
+     $               +             cL( 1)*crse(i+1,n)
+     $               +             cL( 2)*crse(i+2,n))
+                ftmp(ii+1) = 2.d0*crse(i,n)-ftmp(ii)
+c$$$                ftmp(ii+1) = 2.d0*(cR(-2)*crse(i-2,n) 
+c$$$     $               +             cR(-1)*crse(i-1,n)
+c$$$     $               +             cR( 0)*crse(i  ,n)
+c$$$     $               +             cR( 1)*crse(i+1,n)
+c$$$     $               +             cR( 2)*crse(i+2,n))
+             enddo
+             do ii = fblo(1), fbhi(1)
+                fine(ii,n) = ftmp(ii)
+             enddo
+          enddo
+       else if (lratiox .eq. 4) then
+c      todo
+          write(6,*) 'FORT_QUARTINTERP: refinement ratio = 4 TODO'
+          stop
+       else
+          write(6,*) 'FORT_QUARTINTERP: unsupported refinement ratio'
+          stop
+       endif
 
        end

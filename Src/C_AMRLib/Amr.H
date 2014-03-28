@@ -29,11 +29,15 @@ class BoxDomain;
 
 class Amr
 {
+    typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+
 public:
     //
     // The constructor.
     //
     Amr ();
+    Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord);
+    void InitAmr(int max_level_in, Array<int> n_cell_in);
     //
     // The destructor.
     //
@@ -42,6 +46,15 @@ public:
     // Init data after construction. Must be called before timestepping.
     //
     virtual void init (Real strt_time, Real stop_time);
+    //
+    // First part of initialInit
+    //
+    void InitializeInit (Real strt_time, Real stop_time, 
+                         const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+    //
+    // Second part of initialInit
+    //
+    void FinalizeInit (Real strt_time, Real stop_time); 
     //
     // Set the timestep on each level.
     //
@@ -128,6 +141,10 @@ public:
     // Number of time steps at specified level.
     //
     int levelSteps (int lev) const { return level_steps[lev]; }
+    //
+    // Number of time steps at specified level.
+    //
+    void setLevelSteps (int lev, int n) { level_steps[lev] = n; }
     //
     // Which step are we at for the specified level?
     //
@@ -233,6 +250,12 @@ public:
     // List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
+#ifdef USE_PARTICLES
+    //
+    // List of particle_grids at each level.
+    //
+    const BoxArray& ParticleBoxArray (int lev) const;
+#endif
     //
     // AmrLevel lev.
     //
@@ -274,6 +297,10 @@ public:
     //
     virtual void coarseTimeStep (Real stop_time);
     //
+    // Do a complete integration cycle and return the coarse dt.
+    //
+    Real coarseTimeStepDt (Real stop_time);
+    //
     // Retrieve derived data. User is responsible for deleting pointer.
     //
     MultiFab* derive (const std::string& name,
@@ -281,9 +308,13 @@ public:
                       int            lev,
                       int            ngrow);
     //
-    // Name of the restart file.
+    // Name of the restart chkpoint file.
     //
-    const std::string& theRestartFile () const { return restart_file; }
+    const std::string& theRestartFile () const { return restart_chkfile; }
+    //
+    // Name of the restart plotfile.
+    //
+    const std::string& theRestartPlotFile () const { return restart_pltfile; }
     //
     // The ith datalog file.  Do with it what you want.
     //
@@ -315,27 +346,115 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
+    //
+    // Specialized version:
+    // Define BoundaryPointLists that give the intersections
+    //    of the external geometry with constant (i,k) and (j,k)
+    // These are defined at the coarsest level indexing only.
+    //
+    void setBoundaryGeometry(BoundaryPointList& IntersectLoX,
+                             BoundaryPointList& IntersectHiX,
+                             BoundaryPointList& IntersectLoY,
+                             BoundaryPointList& IntersectHiY)
+    {
+        intersect_lox = IntersectLoX;
+        intersect_hix = IntersectHiX;
+        intersect_loy = IntersectLoY;
+        intersect_hiy = IntersectHiY;
+    };
+
+    //
+    // More general version:
+    // Define BoundaryPointLists that give the intersections
+    //    of the external geometry with constant (i,k),(j,k)
+    //    and (i,j).
+    // These are defined at the coarsest level indexing only.
+    //
+    void setBoundaryGeometry(BoundaryPointList& IntersectLoX,
+                             BoundaryPointList& IntersectHiX,
+                             BoundaryPointList& IntersectLoY,
+                             BoundaryPointList& IntersectHiY,
+                             BoundaryPointList& IntersectLoZ,
+                             BoundaryPointList& IntersectHiZ)
+    {
+        intersect_lox = IntersectLoX;
+        intersect_hix = IntersectHiX;
+        intersect_loy = IntersectLoY;
+        intersect_hiy = IntersectHiY;
+        intersect_loz = IntersectLoZ;
+        intersect_hiz = IntersectHiZ;
+    };
+
+    BoundaryPointList& getIntersectLoX() 
+    {
+        return intersect_lox;
+    };
+    BoundaryPointList& getIntersectHiX() 
+    {
+        return intersect_hix;
+    };
+    BoundaryPointList& getIntersectLoY() 
+    {
+        return intersect_loy;
+    };
+    BoundaryPointList& getIntersectHiY() 
+    {
+        return intersect_hiy;
+    };
+    BoundaryPointList& getIntersectLoZ() 
+    {
+        return intersect_loz;
+    };
+    BoundaryPointList& getIntersectHiZ() 
+    {
+        return intersect_hiz;
+    };
+
+    BoundaryPointList intersect_lox;
+    BoundaryPointList intersect_loy;
+    BoundaryPointList intersect_loz;
+    BoundaryPointList intersect_hix;
+    BoundaryPointList intersect_hiy;
+    BoundaryPointList intersect_hiz;
+
+#ifdef USE_PARTICLES
+    //
+    // Add one particle at a time.
+    //
+    void addOneParticle (int id_in, int cpu_in, 
+                         std::vector<double>& xloc, std::vector<double>& attributes);
+    //
+    // Redistribute after adding particles
+    //
+    void RedistributeParticles ();
+    //
+    // Get particle data out of the Particle Class
+    //
+    void GetParticleIDs       (Array<int>&  part_ids);
+    void GetParticleCPU       (Array<int>&  part_cpu);
+    void GetParticleLocations (Array<Real>& part_locs);
+    void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
+#endif
+
 protected:
     //
     // Used by grid_places().
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-
     //
     // Array of BoxArrays read in to initially define grid hierarchy
     //
     static Array<BoxArray> initial_ba;
-
     //
     // Array of BoxArrays read in to externally define grid hierarchy at each regrid
     //
     static Array<BoxArray> regrid_ba;
-
     //
-    // Initialize grid hierarchy.
+    // Initialize grid hierarchy -- called by Amr::init.
     //
-    void initialInit (Real strt_time, Real stop_time);
+    void initialInit (Real strt_time, Real stop_time, 
+                      const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Read the probin file.
     //
@@ -351,7 +470,7 @@ protected:
     //
     // Define and initialize coarsest level.
     //
-    void defBaseLevel (Real start_time);
+    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
     //
     // Define and initialize refined levels.
     //
@@ -359,9 +478,9 @@ protected:
     //
     // Rebuild grid hierarchy finer than lbase.
     //
-    void regrid (int  lbase,
-                 Real time,
-                 bool initial = false);
+    virtual void regrid (int  lbase,
+                         Real time,
+                         bool initial = false);
     //
     // Define new grid locations (called from regrid) and put into new_grids.
     //
@@ -369,14 +488,22 @@ protected:
                       Real             time,
                       int&             new_finest,
                       Array<BoxArray>& new_grids);
+
+    //
+    // If ngrids < nprocs, break up the grids to better load balance
+    //
+    void impose_refine_grid_layout (int              lbase,
+                                    int              new_finest,
+                                    Array<BoxArray>& new_grids);
+
     //
     // Do a single timestep on level L.
     //
-    void timeStep (int  level,
-                   Real dt,
-                   int  iter,
-                   int  ncycle,
-                   Real stop_time);
+    virtual void timeStep (int  level,
+                           Real time,
+                           int  iteration,
+                           int  niter,
+                           Real stop_time);
 
     //
     // Whether to write a plotfile now
@@ -404,8 +531,8 @@ protected:
     //
     // The data ...
     //
-    std::string       regrid_grids_file;   // Grids file that will bypass regridding.
-    std::string      initial_grids_file;   // Grids file that will bypass regridding only at initialization.
+    std::string      regrid_grids_file;   // Grids file that will bypass regridding.
+    std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
@@ -429,15 +556,17 @@ protected:
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
-    std::string          check_file_root; // Root name of checkpoint file.
+    std::string      check_file_root; // Root name of checkpoint file.
     int              last_plotfile;   // Step number of previous plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
+
 #ifdef USE_STATIONDATA
     StationData      station;
 #endif
+
     int              verbose;
     int              record_grid_info;
     int              record_run_info;
@@ -447,9 +576,14 @@ protected:
     std::ofstream    runlog_terse;
     PArray<std::ofstream> datalog;
     int              sub_cycle;
-    std::string      restart_file;
+    std::string      restart_chkfile;
+    std::string      restart_pltfile;
     std::string      probin_file;
     LevelBld*        levelbld;
+    bool             abort_on_stream_retry_failure;
+    int              stream_max_tries;
+
+    bool             bUserStopRequest;
     //
     // The static data ...
     //

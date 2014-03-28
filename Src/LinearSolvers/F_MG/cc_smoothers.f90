@@ -6,8 +6,6 @@ module cc_smoothers_module
 
   implicit none
 
-  private dgtsl
-
 contains
 
   subroutine gs_line_solve_1d(ss, uu, ff, mm, lo, ng)
@@ -61,12 +59,11 @@ contains
 
   end subroutine gs_line_solve_1d
 
-  subroutine gs_rb_smoother_1d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_1d(ss, uu, ff, mm, lo, ng, n, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,lo(1):)
@@ -77,6 +74,8 @@ contains
     real (kind = dp_t) :: dd
     logical :: lskwd
     real(dp_t) :: lr(2)
+
+    real (kind = dp_t), parameter :: omega = 0.6_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -98,10 +97,10 @@ contains
     if ( all(lo == hi) ) then
        i = lo(1)
        if ( mod(i,2) == n ) then
-          if ( abs(ss(0,i)) .gt. 0.0_dp_t ) then
+          if ( abs(ss(0,i)) .gt. zero ) then
              dd = ss(0,i)*uu(i) &
                 + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 
-             uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
+             uu(i) = uu(i) + (omega/ss(0,i)) * (ff(i) - dd)
           end if
        end if
        call destroy(bpt)
@@ -127,16 +126,16 @@ contains
                    dd = dd + ss(XBC,i)*lr(2)
                 end if
              end if
-             uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
+             uu(i) = uu(i) + (omega/ss(0,i)) * (ff(i) - dd)
           end do
 
     else
 
        do i = lo(1), hi(1)
-          if (abs(ss(0,i)) .gt. 0.0_dp_t) then
+          if (abs(ss(0,i)) .gt. zero) then
             dd = ss(0,i)*uu(i) &
                + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 
-            uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
+            uu(i) = uu(i) + (omega/ss(0,i)) * (ff(i) - dd)
           end if
        end do
 
@@ -146,12 +145,11 @@ contains
 
   end subroutine gs_rb_smoother_1d
 
-  subroutine gs_rb_smoother_2d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_2d(ss, uu, ff, mm, lo, ng, n, skwd)
     use bl_prof_module
     integer, intent(in) :: ng
     integer, intent(in) :: lo(:)
     integer, intent(in) :: n
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
@@ -188,11 +186,11 @@ contains
     if ( all(lo == hi) ) then
        i = lo(1); j = lo(2)
        if ( mod(i + j,2) == n ) then
-          if ( abs(ss(0,i,j)) .gt. 0.0_dp_t ) then
+          if ( abs(ss(0,i,j)) .gt. zero ) then
              dd = ss(0,i,j)*uu(i,j) &
                   + ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j) &
                   + ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1)
-             uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+             uu(i,j) = uu(i,j) + (one/ss(0,i,j))*(ff(i,j) - dd) 
           end if
        end if
        call destroy(bpt)
@@ -233,7 +231,7 @@ contains
                    dd = dd + ss(YBC,i,j)*tb(i,2)
                 end if
              end if
-             uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+             uu(i,j) = uu(i,j) + (one/ss(0,i,j))*(ff(i,j) - dd)
           end do
        end do
     else
@@ -243,11 +241,11 @@ contains
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
-             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+             if (abs(ss(0,i,j)) .gt. zero) then
                dd = ss(0,i,j)*uu(i,j) &
                     + ss(1,i,j) * uu(i+1,j) + ss(2,i,j) * uu(i-1,j) &
                     + ss(3,i,j) * uu(i,j+1) + ss(4,i,j) * uu(i,j-1)
-               uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
+               uu(i,j) = uu(i,j) + (one/ss(0,i,j))*(ff(i,j) - dd) 
              end if
           end do
        end do
@@ -258,23 +256,29 @@ contains
 
   end subroutine gs_rb_smoother_2d
 
-  subroutine gs_rb_smoother_3d(omega, ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_3d(ss, uu, ff, mm, lo, ng, n, skwd)
     use bl_prof_module
-    integer, intent(in) :: ng
-    integer, intent(in) :: lo(:)
-    integer, intent(in) :: n
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):,lo(3):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):, lo(2):, lo(3):)
-    integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
+    integer,    intent(in   ) :: ng, lo(:), n
+    real(dp_t), intent(in   ) :: ff(lo(1):,lo(2):,lo(3):)
+    real(dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
+    real(dp_t), intent(in   ) :: ss(0:,lo(1):, lo(2):, lo(3):)
+    integer,    intent(in   ) :: mm(lo(1):,lo(2):,lo(3):)
+
     logical, intent(in), optional :: skwd
-    integer :: i, j, k, ioff
-    integer :: hi(size(lo))
-    integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
-    logical :: lskwd
-    real(dp_t), allocatable :: lr(:,:,:), tb(:,:,:), fb(:,:,:)
+
+    integer    :: i, j, k, ioff, hi(size(lo))
+    logical    :: lskwd
     real(dp_t) :: dd
+    !
+    ! These are small so we'll put'm on the stack instead of the heap.
+    !
+    real(dp_t) lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
+    real(dp_t) fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
+
+    integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
+
+    real(dp_t), parameter :: omega = 1.15_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -285,12 +289,12 @@ contains
     if ( all(lo == hi) ) then
        k = lo(3); j = lo(2); i = lo(1)
        if ( mod(i + j + k, 2) == n ) then
-          if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+          if (abs(ss(0,i,j,k)) .gt. zero) then
              dd = ss(0,i,j,k)*uu(i,j,k)   + &
                   ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
                   ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
                   ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+             uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k))*(ff(i,j,k) - dd)
           end if
        end if
        call destroy(bpt)
@@ -329,10 +333,6 @@ contains
 
 1234 if ( lskwd ) then
 
-       allocate(lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2))
-       allocate(tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2))
-       allocate(fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2))
-
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
              if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
@@ -365,32 +365,30 @@ contains
                      ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
                      ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
 
-                if ( i == lo(1)) then
+                if ( i == lo(1) ) then
                    if ( bc_skewed(mm(i,j,k),1,+1) ) dd = dd + ss(XBC,i,j,k)*lr(j,k,1)
-                end if
-                if ( i == hi(1)) then
+                else if ( i == hi(1) ) then
                    if ( bc_skewed(mm(i,j,k),1,-1) ) dd = dd + ss(XBC,i,j,k)*lr(j,k,2)
                 end if
-                if ( j == lo(2)) then
+
+                if ( j == lo(2) ) then
                    if ( bc_skewed(mm(i,j,k),2,+1) ) dd = dd + ss(YBC,i,j,k)*tb(i,k,1)
-                end if
-                if ( j == hi(2) ) then
+                else if ( j == hi(2) ) then
                    if ( bc_skewed(mm(i,j,k),2,-1) ) dd = dd + ss(YBC,i,j,k)*tb(i,k,2)
                 end if
-                if ( k == lo(3)) then
+
+                if ( k == lo(3) ) then
                    if ( bc_skewed(mm(i,j,k),3,+1) ) dd = dd + ss(ZBC,i,j,k)*fb(i,j,1)
-                end if
-                if ( k == hi(3) ) then
+                else if ( k == hi(3) ) then
                    if ( bc_skewed(mm(i,j,k),3,-1) ) dd = dd + ss(ZBC,i,j,k)*fb(i,j,2)
                 end if
 
-                uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k))*(ff(i,j,k) - dd)
              end do
           end do
        end do
        !$OMP END PARALLEL DO
 
-       deallocate(lr,tb,fb)
     else
        !
        ! USE THIS FOR GAUSS-SEIDEL
@@ -400,12 +398,13 @@ contains
           do j = lo(2), hi(2)
              ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
              do i = lo(1)+ioff, hi(1), 2
+
                   dd = ss(0,i,j,k)*uu(i,j,k)   + &
                        ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
                        ss(3,i,j,k)*uu(i,j+1,k) + ss(4,i,j,k)*uu(i,j-1,k) + &
                        ss(5,i,j,k)*uu(i,j,k+1) + ss(6,i,j,k)*uu(i,j,k-1)
 
-                  uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
+                  uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k))*(ff(i,j,k) - dd)
              end do
           end do
        end do
@@ -417,11 +416,10 @@ contains
 
   end subroutine gs_rb_smoother_3d
 
-  subroutine fourth_order_smoother_2d(omega, ss, uu, ff, lo, ng, stencil_type, n)
+  subroutine fourth_order_smoother_2d(ss, uu, ff, lo, ng, stencil_type, n)
     use bl_prof_module
     integer           , intent(in) :: ng, n
     integer           , intent(in) :: lo(:)
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ff(lo(1):, lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(0:,lo(1):, lo(2):)
@@ -441,13 +439,13 @@ contains
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
-             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+             if (abs(ss(0,i,j)) .gt. zero) then
                dd =   ss(0,i,j) * uu(i,j) &
                     + ss(1,i,j) * uu(i-2,j) + ss(2,i,j) * uu(i-1,j) &
                     + ss(3,i,j) * uu(i+1,j) + ss(4,i,j) * uu(i+2,j) &
                     + ss(5,i,j) * uu(i,j-2) + ss(6,i,j) * uu(i,j-1) &
                     + ss(7,i,j) * uu(i,j+1) + ss(8,i,j) * uu(i,j+2)
-               uu(i,j) = uu(i,j) + (omega/ss(0,i,j)) * (ff(i,j) - dd)
+               uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd)
              end if
           end do
        end do
@@ -456,7 +454,7 @@ contains
 
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(0,i,j)) .gt. 0.0_dp_t) then
+             if ( abs(ss(0,i,j)) .gt. zero ) then
                dd =   ss( 0,i,j) * uu(i,j) &
                     + ss( 1,i,j) * uu(i-2,j-2) + ss( 2,i,j) * uu(i-1,j-2) & ! AT J-2
                     + ss( 3,i,j) * uu(i  ,j-2) + ss( 4,i,j) * uu(i+1,j-2) & ! AT J-2
@@ -473,7 +471,7 @@ contains
                     + ss(22,i,j) * uu(i  ,j+2) + ss(23,i,j) * uu(i+1,j+2) & ! AT J+2
                     + ss(24,i,j) * uu(i+2,j+2)                              ! AT J+2
 
-               uu(i,j) = uu(i,j) + (omega/ss(0,i,j)) * (ff(i,j) - dd)
+               uu(i,j) = uu(i,j) + (one/ss(0,i,j)) * (ff(i,j) - dd)
 
              end if
           end do
@@ -485,11 +483,10 @@ contains
 
   end subroutine fourth_order_smoother_2d
 
-  subroutine fourth_order_smoother_3d(omega, ss, uu, ff, lo, ng, stencil_type, n)
+  subroutine fourth_order_smoother_3d(ss, uu, ff, lo, ng, stencil_type)
     use bl_prof_module
-    integer           , intent(in   ) :: ng, n
+    integer           , intent(in   ) :: ng
     integer           , intent(in   ) :: lo(:)
-    real (kind = dp_t), intent(in   ) :: omega
     real (kind = dp_t), intent(in   ) :: ff(lo(1):, lo(2):, lo(3):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in   ) :: ss(0:, lo(1):, lo(2):, lo(3):)
@@ -510,7 +507,7 @@ contains
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+             if ( abs(ss(0,i,j,k)) .gt. zero ) then
                dd =   ss( 0,i,j,k) * uu(i,j,k) &
                     + ss( 1,i,j,k) * uu(i-2,j,k) + ss( 2,i,j,k) * uu(i-1,j,k) &
                     + ss( 3,i,j,k) * uu(i+1,j,k) + ss( 4,i,j,k) * uu(i+2,j,k) &
@@ -518,7 +515,7 @@ contains
                     + ss( 7,i,j,k) * uu(i,j+1,k) + ss( 8,i,j,k) * uu(i,j+2,k) &
                     + ss( 9,i,j,k) * uu(i,j,k-2) + ss(10,i,j,k) * uu(i,j,k-1) &
                     + ss(11,i,j,k) * uu(i,j,k+1) + ss(12,i,j,k) * uu(i,j,k+2)
-               uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k)) * (ff(i,j,k) - dd)
+               uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd)
              end if
           end do
        end do
@@ -530,7 +527,7 @@ contains
        do k = lo(3),hi(3)
        do j = lo(2),hi(2)
           do i = lo(1), hi(1)
-             if (abs(ss(0,i,j,k)) .gt. 0.0_dp_t) then
+             if (abs(ss(0,i,j,k)) .gt. zero) then
 
                 dd = &
                        ss( 0,i,j,k) * uu(i  ,j  ,k  ) &
@@ -583,7 +580,7 @@ contains
                      + ss(58,i,j,k) * uu(i+2,j  ,k+2) + ss(59,i,j,k) * uu(i  ,j+1,k+2) &
                      + ss(60,i,j,k) * uu(i  ,j+2,k+2)
 
-               uu(i,j,k) = uu(i,j,k) + (omega/ss(0,i,j,k)) * (ff(i,j,k) - dd)
+               uu(i,j,k) = uu(i,j,k) + (one/ss(0,i,j,k)) * (ff(i,j,k) - dd)
              end if
           end do
        end do
@@ -595,221 +592,8 @@ contains
 
   end subroutine fourth_order_smoother_3d
 
-  subroutine gs_lex_smoother_1d(omega, ss, uu, ff, ng, skwd)
+  subroutine jac_smoother_1d(ss, uu, ff, mm, ng)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)    :: omega
-    real (kind = dp_t), intent(in)    :: ff(:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:)
-    real (kind = dp_t), intent(in)    :: ss(0:,:)
-    logical, intent(in), optional :: skwd
-    real (kind = dp_t) :: dd
-    integer :: i
-    logical :: lskwd
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do i = 1, size(ff,dim=1)
-       dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
-    end do
-
-  end subroutine gs_lex_smoother_1d
-
-  subroutine gs_lex_smoother_2d(omega, ss, uu, ff, ng, skwd)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(:, :)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:, :, :)
-    logical, intent(in), optional :: skwd
-    integer :: j, i
-    real (kind = dp_t) :: dd
-    logical :: lskwd
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "gs_lex_smoother_2d")
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do j = 1, size(ff,dim=2)
-       do i = 1, size(ff, dim=1)
-          dd = &
-               + ss(0,i,j)*uu(i  ,j  ) &
-               + ss(1,i,j)*uu(i+1,j  ) &
-               + ss(2,i,j)*uu(i-1,j  ) &
-               + ss(3,i,j)*uu(i  ,j+1) &
-               + ss(4,i,j)*uu(i  ,j-1)
-          uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
-       end do
-    end do
-
-    call destroy(bpt)
-  end subroutine gs_lex_smoother_2d
-
-  subroutine gs_lex_smoother_3d(omega, ss, uu, ff, ng, skwd)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(:,:,:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
-    logical, intent(in), optional :: skwd
-    integer :: i, j, k
-    real (kind = dp_t) :: dd
-    logical :: lskwd
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "gs_lex_smoother_3d")
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do k = 1, size(ff,dim=3)
-       do j = 1, size(ff,dim=2)
-          do i = 1, size(ff,dim=1)
-             dd = &
-                  + ss(0,i,j,k)*uu(  i,j  ,k  ) &
-                  + ss(1,i,j,k)*uu(i+1,j  ,k  ) &
-                  + ss(2,i,j,k)*uu(i-1,j  ,k  ) &
-                  + ss(3,i,j,k)*uu(i  ,j+1,k  ) &
-                  + ss(4,i,j,k)*uu(i  ,j-1,k  ) &
-                  + ss(5,i,j,k)*uu(i  ,j  ,k-1) &
-                  + ss(6,i,j,k)*uu(i  ,j  ,k+1) 
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-          end do
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine gs_lex_smoother_3d
-
-  subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, ng, skwd)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in)    :: omega
-    real (kind = dp_t), intent(in)    :: ff(:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:)
-    real (kind = dp_t), intent(in)    :: ss(0:,:)
-    logical, intent(in), optional :: skwd
-    real (kind = dp_t) :: dd
-    integer :: i
-    logical :: lskwd
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do i = 1, size(ff,dim=1)
-       dd = ss(0,i)*uu(i) + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1)
-       uu(i) = uu(i) + omega/ss(0,i)*(ff(i) - dd)
-    end do
-
-
-  end subroutine gs_lex_dense_smoother_1d
-
-  subroutine gs_lex_dense_smoother_2d(omega, ss, uu, ff, ng, skwd)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(:, :)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:, 1-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:, :, :)
-    logical, intent(in), optional :: skwd
-    integer :: j, i
-    real (kind = dp_t) :: dd
-    logical :: lskwd
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "gs_lex_dense_smoother_2d")
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do j = 1, size(ff,dim=2)
-       do i = 1, size(ff, dim=1)
-          dd = &
-               + ss(1,i,j)*uu(i-1,j-1) &
-               + ss(2,i,j)*uu(i  ,j-1) &
-               + ss(3,i,j)*uu(i+1,j-1) &
-               
-               + ss(4,i,j)*uu(i-1,j  ) &
-               + ss(0,i,j)*uu(i  ,j  ) &
-               + ss(5,i,j)*uu(i+1,j  ) &
-               
-               + ss(6,i,j)*uu(i-1,j+1) &
-               + ss(7,i,j)*uu(i  ,j+1) &
-               + ss(8,i,j)*uu(i+1,j+1)
-          uu(i,j) = uu(i,j) + omega/ss(0,i,j)*(ff(i,j) - dd)
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine gs_lex_dense_smoother_2d
-
-  subroutine gs_lex_dense_smoother_3d(omega, ss, uu, ff, ng, skwd)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ff(:,:,:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
-    logical, intent(in), optional :: skwd
-    integer :: i, j, k
-    real (kind = dp_t) :: dd
-    logical :: lskwd
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "gs_lex_dense_smoother_3d")
-
-    lskwd = .true.; if ( present(skwd) ) lskwd = skwd
-
-    do k = 1, size(ff,dim=3)
-       do j = 1, size(ff,dim=2)
-          do i = 1, size(ff,dim=1)
-             dd = &
-                  + ss( 0,i,j,k)*uu(i  ,j  ,k  ) &
-                  + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
-                  + ss( 2,i,j,k)*uu(i  ,j-1,k-1) &
-                  + ss( 3,i,j,k)*uu(i+1,j-1,k-1) &
-                  + ss( 4,i,j,k)*uu(i-1,j  ,k-1) &
-                  + ss( 5,i,j,k)*uu(i  ,j  ,k-1) &
-                  + ss( 6,i,j,k)*uu(i+1,j  ,k-1) &
-                  + ss( 7,i,j,k)*uu(i-1,j+1,k-1) &
-                  + ss( 8,i,j,k)*uu(i  ,j+1,k-1) &
-                  + ss( 9,i,j,k)*uu(i+1,j+1,k-1) &
-                  
-                  + ss(10,i,j,k)*uu(i-1,j-1,k  ) &
-                  + ss(11,i,j,k)*uu(i  ,j-1,k  ) &
-                  + ss(12,i,j,k)*uu(i+1,j-1,k  ) &
-                  + ss(13,i,j,k)*uu(i-1,j  ,k  ) &
-                  + ss( 0,i,j,k)*uu(i  ,j  ,k  ) &
-                  + ss(14,i,j,k)*uu(i+1,j  ,k  ) &
-                  + ss(15,i,j,k)*uu(i  ,j+1,k  ) &
-                  + ss(16,i,j,k)*uu(i-1,j+1,k  ) &
-                  + ss(17,i,j,k)*uu(i+1,j+1,k  ) &
-                  
-                  + ss(18,i,j,k)*uu(i-1,j-1,k+1) &
-                  + ss(19,i,j,k)*uu(i  ,j-1,k+1) &
-                  + ss(20,i,j,k)*uu(i+1,j-1,k+1) &
-                  + ss(21,i,j,k)*uu(i-1,j  ,k+1) &
-                  + ss(22,i,j,k)*uu(i  ,j  ,k+1) &
-                  + ss(23,i,j,k)*uu(i+1,j  ,k+1) &
-                  + ss(24,i,j,k)*uu(i-1,j+1,k+1) &
-                  + ss(25,i,j,k)*uu(i  ,j+1,k+1) &
-                  + ss(26,i,j,k)*uu(i+1,j+1,k+1) 
-
-             uu(i,j,k) = uu(i,j,k) + omega/ss(0,i,j,k)*(ff(i,j,k) - dd)
-          end do
-       end do
-    end do
-
-    call destroy(bpt)
-
-  end subroutine gs_lex_dense_smoother_3d
-
-  subroutine jac_smoother_1d(omega, ss, uu, ff, mm, ng)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) ::  omega
     real (kind = dp_t), intent(in) ::  ss(0:,:)
     real (kind = dp_t), intent(in) ::  ff(:)
     integer           , intent(in) ::  mm(:)
@@ -833,14 +617,13 @@ contains
        wrk(i) = ff(i) - dd
     end do
     do i = 1, nx
-       uu(i) = uu(i) + omega*(wrk(i)/ss(0,i)-uu(i))
+       uu(i) = uu(i) + (wrk(i)/ss(0,i)-uu(i))
     end do
 
   end subroutine jac_smoother_1d
 
-  subroutine jac_dense_smoother_1d(omega, ss, uu, ff, ng)
+  subroutine jac_dense_smoother_1d(ss, uu, ff, ng)
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) ::  omega
     real (kind = dp_t), intent(in) ::  ss(:,:)
     real (kind = dp_t), intent(in) ::  ff(:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:)
@@ -852,15 +635,15 @@ contains
        wrk(i) = ( ff(i) - ss(1,i)*uu(i+1) - ss(3,i)*uu(i-1) )
     end do
     do i = 1, nx
-       uu(i) = uu(i) + omega*(wrk(i)/ss(2,i)-uu(i))
+       uu(i) = uu(i) + (wrk(i)/ss(2,i)-uu(i))
     end do
 
   end subroutine jac_dense_smoother_1d
 
-  subroutine jac_smoother_2d(omega, ss, uu, ff, mm, ng)
+  subroutine jac_smoother_2d(ss, uu, ff, mm, ng)
     use bl_prof_module
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) ::  omega
+
     real (kind = dp_t), intent(in) ::  ss(0:,:,:)
     real (kind = dp_t), intent(in) ::  ff(:,:)
     integer           , intent(in) ::  mm(:,:)
@@ -870,6 +653,8 @@ contains
     integer :: i, j
     real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 5, YBC = 6
+
+    real (kind = dp_t), parameter :: omega = 4.0_dp_t/5.0_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -910,16 +695,17 @@ contains
 
   end subroutine jac_smoother_2d
 
-  subroutine jac_dense_smoother_2d(omega, ss, uu, ff, ng)
+  subroutine jac_dense_smoother_2d(ss, uu, ff, ng)
     use bl_prof_module
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(0:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
     integer :: i, j
     integer :: nx, ny
+
+    real (kind = dp_t), parameter :: omega = 4.0_dp_t/5.0_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -955,10 +741,9 @@ contains
 
   end subroutine jac_dense_smoother_2d
 
-  subroutine jac_smoother_3d(omega, ss, uu, ff, mm, ng)
+  subroutine jac_smoother_3d(ss, uu, ff, mm, ng)
     use bl_prof_module
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     integer           , intent(in) :: mm(:,:,:)
@@ -968,6 +753,8 @@ contains
     integer :: nx, ny, nz
     integer :: i, j, k
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
+
+    real (kind = dp_t), parameter :: omega = 6.0_dp_t/7.0_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -1030,16 +817,17 @@ contains
 
   end subroutine jac_smoother_3d
 
-  subroutine jac_dense_smoother_3d(omega, ss, uu, ff, ng)
+  subroutine jac_dense_smoother_3d(ss, uu, ff, ng)
     use bl_prof_module
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), allocatable :: wrk(:,:,:)
     integer :: nx, ny, nz
     integer :: i, j, k
+
+    real (kind = dp_t), parameter :: omega = 6.0_dp_t/7.0_dp_t
 
     type(bl_prof_timer), save :: bpt
 
@@ -1104,230 +892,5 @@ contains
     call destroy(bpt)
 
   end subroutine jac_dense_smoother_3d
-
-  subroutine lgs_x_2d(omega, ss, uu, ff, lo, ng)
-    integer, intent(in) :: lo(:), ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
-
-    real (kind = dp_t) :: wrk(size(ff,dim=1),4)
-    integer :: i, j, hi(size(lo))
-
-    hi = ubound(ff)
-
-    do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          wrk(i,1:3) = ss((/0,2,1/),i,j)
-          wrk(i,4) = ff(i,j) - (ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do i = lo(1), hi(1)
-          uu(i,j) = uu(i,j) + omega*(wrk(i,4)-uu(i,j))
-       end do
-    end do
-  end subroutine lgs_x_2d
-
-  subroutine lgs_y_2d(omega, ss, uu, ff, lo, ng)
-    integer, intent(in) :: lo(:), ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
-    real (kind = dp_t) :: wrk(size(ff,dim=2),4)
-    integer :: i, j, hi(size(lo))
-    hi = ubound(ff)
-    do i = lo(1), hi(1)
-       do j = lo(2), hi(2)
-          wrk(j,1:3) = ss((/0,4,3/),i,j)
-          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do j = lo(2), hi(2)
-          uu(i,j) = uu(i,j) - omega*(wrk(j,4)-uu(i,j))
-       end do
-    end do
-  end subroutine lgs_y_2d
-
-  subroutine lgs_rb_x_2d(omega, ss, uu, ff, lo, ng)
-    integer, intent(in) :: lo(:), ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
-    real (kind = dp_t) :: wrk(size(ff,dim=1),4)
-    integer :: i, j, hi(size(lo))
-
-    hi = ubound(ff)
-
-    ! Note: it is wasteful to use the 4 component of wrk
-
-    do j = lo(2), hi(2), 2
-       do i = lo(1), hi(1)
-          wrk(i,1:3) = ss((/0,2,1/),i,j)
-          wrk(i,4) = ff(i,j) -(ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do i = lo(1), hi(1)
-          uu(i,j) = uu(i,j) + omega*(wrk(i,4)-uu(i,j))
-       end do
-    end do
-
-    do j = lo(2)+1, hi(2), 2
-       do i = lo(1), hi(1)
-          wrk(i,1:3) = ss((/0,2,1/),i,j)
-          wrk(i,4) = -(ss(3,i,j)*uu(i,j+1) + ss(4,i,j)*uu(i,j-1))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do i = lo(1), hi(1)
-          uu(i,j) = uu(i,j) + omega*(wrk(i,4)-uu(i,j))
-       end do
-    end do
-  end subroutine lgs_rb_x_2d
-
-  subroutine lgs_rb_y_2d(omega, ss, uu, ff, lo, ng)
-    integer, intent(in) :: lo(:), ng
-    real (kind = dp_t), intent(in) :: omega
-    real (kind = dp_t), intent(in) :: ss(0:,lo(1):,lo(2):)
-    real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
-    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
-    real (kind = dp_t) :: wrk(size(ff,dim=2),4)
-    integer :: i, j, hi(size(lo))
-
-    hi = ubound(ff)
-    do i = lo(1), hi(1), 2
-       do j = lo(2), hi(2)
-          wrk(j,1:3) = ss((/0,4,3/),i,j)
-          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do j = lo(2), hi(2)
-          uu(i,j) = uu(i,j) + omega*(wrk(j,4)-uu(i,j))
-       end do
-    end do
-
-    do i = lo(1)+1, hi(1), 2
-       do j = lo(2), hi(2)
-          wrk(j,1:3) = ss((/0,4,3/),i,j)
-          wrk(j,4) = ff(i,j) -(ss(1,i,j)*uu(i+1,j) + ss(2,i,j)*uu(i-1,j))
-       end do
-       call dgtsl(wrk(:,2), wrk(:,1), wrk(:,3), wrk(:,4))
-       do j = lo(2), hi(2)
-          uu(i,j) = uu(i,j) + omega*(wrk(j,4)-uu(i,j))
-       end do
-    end do
-
-  end subroutine lgs_rb_y_2d
-
-  subroutine dgtsl(c, d, e, b, lpivot)
-    use bl_error_module
-    real (kind = dp_t), intent(inout), dimension(:) :: c, d, e, b
-    logical, optional, intent(in) :: LPIVOT
-
-    !     dgtsl given a general tridiagonal matrix and a right hand
-    !     side will find the solution.
-
-    !     on entry
-
-    !     n       integer
-    !     is the order of the tridiagonal matrix.
-
-    !     c       real (kind = dp_t)(n)
-    !     is the subdiagonal of the tridiagonal matrix.
-    !     c(2) through c(n) should contain the subdiagonal.
-    !     on output c is destroyed.
-
-    !     d       real (kind = dp_t)(n)
-    !     is the diagonal of the tridiagonal matrix.
-    !     on output d is destroyed.
-
-    !     e       real (kind = dp_t)(n)
-    !     is the superdiagonal of the tridiagonal matrix.
-    !     e(1) through e(n-1) should contain the superdiagonal.
-    !     on output e is destroyed.
-
-    !     b       real (kind = dp_t)(n)
-    !     is the right hand side vector.
-
-    !     on return
-
-    !     b       is the solution vector.
-
-    !     linpack. this version dated 08/14/78 .
-    !     jack dongarra, argonne national laboratory.
-
-    !     no externals
-    !     fortran dabs
-
-    !     internal variables
-
-    integer :: k, n
-    real (kind = dp_t) :: t
-    real (kind = dp_t), parameter :: ZERO = 0.0_dp_t
-    logical :: lpv
-
-    lpv = .TRUE.; if ( present(lpivot) ) lpv = lpivot
-
-    !     begin block permitting ...exits to 100
-
-    n = size(b)
-    if ( n .lt. 1 ) return
-    if ( n .eq. 1 ) then
-       b(1) = b(1)/d(1)
-       return
-    end if
-
-    c(1) = d(1)
-    d(1) = e(1)
-    e(1) = ZERO
-    e(n) = ZERO
-
-    do k = 1, n-1
-
-       ! find the largest of the two rows
-
-       if (LPV .and. abs(c(k+1)) .ge. abs(c(k))) then
-
-          ! interchange row
-
-          t = c(k+1)
-          c(k+1) = c(k)
-          c(k) = t
-          t = d(k+1)
-          d(k+1) = d(k)
-          d(k) = t
-          t = e(k+1)
-          e(k+1) = e(k)
-          e(k) = t
-          t = b(k+1)
-          b(k+1) = b(k)
-          b(k) = t
-       end if
-
-       ! zero elements
-
-       if (c(k) .eq. ZERO) then
-          call bl_error("error 0")
-       end if
-       t = -c(k+1)/c(k)
-       c(k+1) = d(k+1) + t*d(k)
-       d(k+1) = e(k+1) + t*e(k)
-       e(k+1) = ZERO
-       b(k+1) = b(k+1) + t*b(k)
-    end do
-    if (c(n) .eq. ZERO) then
-       call bl_error("error 1")
-    end  if
-
-    ! back solve
-
-    b(n) = b(n)/c(n)
-    b(n-1) = (b(n-1) - d(n-1)*b(n))/c(n-1)
-    do k = n-2, 1, -1
-       b(k) = (b(k) - d(k)*b(k+1) - e(k)*b(k+2))/c(k)
-    end do
-
-  end subroutine dgtsl
 
 end module cc_smoothers_module

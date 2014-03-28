@@ -1,32 +1,25 @@
 #
-# Makefile for PyBoxLib
+# Makefile for C++ versions of PyBoxLib
 #
 
-BOXLIB_HOME ?= $(HOME)/Development/BoxLib
-
-COMP   := gfortran
-NDEBUG := t
-OMP    := t
-MPI    := t
-
-include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
-
-F90      := mpif90
-FC       := mpif90
-CC       := mpicc
-F90FLAGS += -fPIC
-CFLAGS   += -fPIC
-
-include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
-VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-
-include $(BOXLIB_HOME)/Src/Python/GPackage.mak
-# VPATH_LOCATIONS += src
-
-all: $(PYBOXLIBS)
+OUT ?= .
 
 
-include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
-include $(BOXLIB_HOME)/Src/Python/GMakerules.mak
+all:
+	make -f GNUmakefile_CXX.mak DIM=1 OUT=$(OUT)
+	make -f GNUmakefile_CXX.mak DIM=2 OUT=$(OUT)
+	make -f GNUmakefile_CXX.mak DIM=3 OUT=$(OUT)
+
+wrappers:
+	make -f GNUmakefile_CXX.mak DIM=1 wrapper
+	make -f GNUmakefile_CXX.mak DIM=2 wrapper
+	make -f GNUmakefile_CXX.mak DIM=3 wrapper
+
+clean:
+	rm -rf boxlib/*.so boxlib/*.pyc *.pyc
+
+realclean:
+	rm -rf boxlib/*.so boxlib/*.pyc *.pyc d f o src/* boxlib/bl*.py
 
 
+.PHONY: clean

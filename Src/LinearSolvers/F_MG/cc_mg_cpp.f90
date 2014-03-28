@@ -15,8 +15,6 @@ module cpp_mg_module
      integer         :: stencil_type
      integer         :: stencil_order = 2
      integer         :: nu1, nu2, nuf, nub
-     integer         :: gamma
-     real(dp_t)      :: omega
      real(dp_t)      :: max_L0_growth
      integer         :: max_iter
      integer         :: max_nlevel
@@ -112,12 +110,12 @@ subroutine mgt_use_alltoallv ()
   call multifab_set_alltoallv(.true.)
 end subroutine mgt_use_alltoallv
 
-subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
+subroutine mgt_cc_alloc(dm, nlevel, stencil_type)
 
   use cpp_mg_module
   implicit none
   integer, intent(in) :: dm, nlevel
-  integer, intent(in) :: stencil_type_in
+  integer, intent(in) :: stencil_type
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -125,7 +123,7 @@ subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
      mgts%nodal = .false.
   end if
 
-  mgts%stencil_type = stencil_type_in
+  mgts%stencil_type = stencil_type
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))
@@ -183,7 +181,6 @@ subroutine mgt_finalize(dx,bc)
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
   integer   , intent(in) :: bc(2,mgts%dim)
   integer :: i, dm, nlev, n
-  integer :: ns
   integer :: nc
   logical, allocatable :: nodal(:)
 
@@ -224,7 +221,6 @@ subroutine mgt_finalize(dx,bc)
 
   allocate(nodal(1:dm))
   nodal = mgts%nodal
-  ns = 1 + dm*3
 
   do n = nlev, 1, -1
      if ( n == 1 ) then
@@ -245,13 +241,11 @@ subroutine mgt_finalize(dx,bc)
 
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
-          ns                = ns, &
           smoother          = mgts%smoother, &
           nu1               = mgts%nu1, &
           nu2               = mgts%nu2, &
           nuf               = mgts%nuf, &
           nub               = mgts%nub, &
-          gamma             = mgts%gamma, &
           cycle_type        = mgts%cycle_type, &
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
@@ -277,7 +271,7 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
   integer   , intent(in) :: ns_in
   integer   , intent(in) :: nc_in
   integer :: i, dm, nlev, n
-  integer :: ns, nc
+  integer :: nc
   logical, allocatable :: nodal(:)
 
   integer :: max_nlevel_in
@@ -316,10 +310,6 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
 
   allocate(nodal(1:dm))
   nodal = mgts%nodal
-  ns = 1 + dm*3
-
-  ! There are ns_in components
-  ns = 1 + ns_in*(1 + ns)
 
   do n = nlev, 1, -1
      if ( n == 1 ) then
@@ -339,13 +329,11 @@ subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
      end if
      call mg_tower_build(mgts%mgt(n), mgts%mla%la(n), mgts%pd(n), mgts%bc, mgts%stencil_type, &
           dh                = dx(n,:), &
-          ns                = ns, &
           smoother          = mgts%smoother, &
           nu1               = mgts%nu1, &
           nu2               = mgts%nu2, &
           nuf               = mgts%nuf, &
           nub               = mgts%nub, &
-          gamma             = mgts%gamma, &
           cycle_type        = mgts%cycle_type, &
           bottom_solver     = bottom_solver_in, &
           bottom_max_iter   = bottom_max_iter_in, &
@@ -1406,11 +1394,13 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
 
   do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
 
+  mgts%mgt%eps     = tol
+  mgts%mgt%abs_eps = abs_tol
+
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
-       mgts%mla%mask, mgts%rr, &
-       do_diag, tol, &
-       abs_eps_in = abs_tol, &
+       mgts%mla%mask, &
+       do_diag, &
        need_grad_phi_in = lneedgradphi,&
        final_resnorm = final_resnorm,&
        status = status)
@@ -1495,14 +1485,14 @@ subroutine mgt_delete_flux(lev)
 
 end subroutine mgt_delete_flux
 
-subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
+subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,max_iter,bottom_max_iter, &
                             bottom_solver,bottom_solver_eps,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
-  integer   , intent(in) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
+  integer   , intent(in) :: nu_1,nu_2,nu_b,nu_f,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(in) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(in) :: omega, bottom_solver_eps, max_L0_growth 
+  real(dp_t), intent(in) :: bottom_solver_eps, max_L0_growth 
 
   call mgt_not_final("MGT_SET_DEFAULTS")
 
@@ -1510,8 +1500,6 @@ subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
   mgts%nu2             = nu_2
   mgts%nuf             = nu_f
   mgts%nub             = nu_b
-  mgts%gamma           = gamma
-  mgts%omega           = omega
   mgts%max_iter        = max_iter
   mgts%verbose         = verbose
   mgts%cg_verbose      = cg_verbose
@@ -1527,21 +1515,19 @@ subroutine mgt_set_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_
 
 end subroutine mgt_set_defaults
 
-subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,gamma,omega,max_iter,bottom_max_iter, &
+subroutine mgt_get_defaults(nu_1,nu_2,nu_b,nu_f,max_iter,bottom_max_iter, &
                             bottom_solver,max_L0_growth, &
                             verbose,cg_verbose,max_nlevel,min_width,cycle_type,smoother)
   use cpp_mg_module
   implicit none
-  integer   , intent(out) :: nu_1,nu_2,nu_b,nu_f,gamma,max_iter,bottom_max_iter,bottom_solver
+  integer   , intent(out) :: nu_1,nu_2,nu_b,nu_f,max_iter,bottom_max_iter,bottom_solver
   integer   , intent(out) :: verbose, cg_verbose, max_nlevel, min_width, cycle_type, smoother
-  real(dp_t), intent(out) :: omega, max_L0_growth
+  real(dp_t), intent(out) :: max_L0_growth
 
   nu_1       = mgts%mg_tower_default%nu1
   nu_2       = mgts%mg_tower_default%nu2
   nu_f       = mgts%mg_tower_default%nuf
   nu_b       = mgts%mg_tower_default%nub
-  gamma      = mgts%mg_tower_default%gamma
-  omega      = mgts%mg_tower_default%omega
   max_iter   = mgts%mg_tower_default%max_iter
   verbose    = mgts%mg_tower_default%verbose
   cg_verbose = mgts%mg_tower_default%cg_verbose

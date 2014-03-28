@@ -797,6 +797,10 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
 // ---------------------------------------------------------------
 bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype) {
+  const int LevelZero(0), LevelOne(1), BoxZero(0), ComponentZero(0);
+  const int NVarZero(0), FabZero(0), IndexZero(0);
+  const int iopNum(ParallelDescriptor::IOProcessorNumber());
+  const int myProc(ParallelDescriptor::MyProc());
   int i;
   if(verbose) {
     if(ParallelDescriptor::IOProcessor()) {
@@ -812,7 +816,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
   time = 0;
   if(fileType == Amrvis::FAB) {
-    finestLevel = 0;
+    finestLevel = LevelZero;
     plotFileVersion = "FromFAB";
   } else if(fileType == Amrvis::MULTIFAB) {
     finestLevel = 1;  // level zero is filler
@@ -823,11 +827,11 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
   dxLevel.resize(finestLevel + 1);
   refRatio.resize(finestLevel + 1);
   if(fileType == Amrvis::FAB) {
-    refRatio[0] = 1;
+    refRatio[LevelZero] = 1;
   } else if(fileType == Amrvis::MULTIFAB) {
-    refRatio[0] = 2;
+    refRatio[LevelZero] = 2;
   }
-  for(int iLevel(0); iLevel <= finestLevel; ++iLevel) {
+  for(int iLevel(LevelZero); iLevel <= finestLevel; ++iLevel) {
     dxLevel[iLevel].resize(BL_SPACEDIM);
     for(i = 0; i < BL_SPACEDIM; ++i) {
       probLo[i] = 0.0;
@@ -853,29 +857,40 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 #endif
 
     FArrayBox *newfab = new FArrayBox;
-    nComp = newfab->readFrom(is, 0);  // read the first component
+    nComp = newfab->readFrom(is, ComponentZero);  // read the first component
     Box fabbox(newfab->box());
     fabBoxArray.resize(1);
-    fabBoxArray.set(0, fabbox);
-    dataGrids[0].resize(nComp);
-    dataGridsDefined[0].resize(nComp);
-    dataGridsDefined[0][0].resize(1);
-    dataGrids[0][0] = new MultiFab;
+    fabBoxArray.set(BoxZero, fabbox);
+    dataGrids[LevelZero].resize(nComp);
+    dataGridsDefined[LevelZero].resize(nComp);
+    dataGridsDefined[LevelZero][ComponentZero].resize(1);
+    dataGrids[LevelZero][ComponentZero] = new MultiFab;
     int nGrow(0);
-    dataGrids[0][0]->define(fabBoxArray, 0, nGrow, Fab_noallocate);
-    dataGrids[0][0]->setFab(0, newfab);
-    dataGridsDefined[0][0][0] = true;
+
+    Array<int> dMap(fabBoxArray.size() + 1);
+    dMap[BoxZero] = iopNum;
+    dMap[dMap.size() - 1] = myProc;
+
+    dataGrids[LevelZero][ComponentZero]->define(fabBoxArray, NVarZero,
+                                                nGrow, dMap, Fab_noallocate);
+    if(ParallelDescriptor::IOProcessor()) {
+      dataGrids[LevelZero][ComponentZero]->setFab(FabZero, newfab);
+    }
+    dataGridsDefined[LevelZero][ComponentZero][IndexZero] = true;
     // read subsequent components
     // need to optimize this for lazy i/o
     for(int iComp = 1; iComp < nComp; ++iComp) {
-      dataGrids[0][iComp] = new MultiFab;
-      dataGrids[0][iComp]->define(fabBoxArray, 0, nGrow, Fab_noallocate);
-      newfab = new FArrayBox;
-      is.seekg(0, ios::beg);
-      newfab->readFrom(is, iComp);  // read the iComp component
-      dataGrids[0][iComp]->setFab(0, newfab);
-      dataGridsDefined[0][iComp].resize(1);
-      dataGridsDefined[0][iComp][0] = true;
+      dataGrids[LevelZero][iComp] = new MultiFab;
+      dataGrids[LevelZero][iComp]->define(fabBoxArray, NVarZero,
+                                          nGrow, dMap, Fab_noallocate);
+      if(ParallelDescriptor::IOProcessor()) {
+        newfab = new FArrayBox;
+        is.seekg(0, ios::beg);
+        newfab->readFrom(is, iComp);  // read the iComp component
+        dataGrids[LevelZero][iComp]->setFab(0, newfab);
+      }
+      dataGridsDefined[LevelZero][iComp].resize(1);
+      dataGridsDefined[LevelZero][iComp][IndexZero] = true;
     }
     const int N(64);
     char fabname[N];  // arbitrarily
@@ -886,33 +901,37 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       }
       plotVars[i] = fabname;
     }
-    probDomain[0] = newfab->box();
+    probDomain[LevelZero] = newfab->box();
     for(i = 0; i < BL_SPACEDIM; ++i) {
-      dxLevel[0][i] = 1.0 / probDomain[0].length(i);
+      dxLevel[LevelZero][i] = 1.0 / probDomain[LevelZero].length(i);
     }
     is.close();
 
   } else if(fileType == Amrvis::MULTIFAB) {
     VisMF tempVisMF(filename);
     nComp = tempVisMF.nComp();
-    probDomain[1] = tempVisMF.boxArray().minimalBox();
-    probDomain[0] = probDomain[1];
-    probDomain[0].coarsen(refRatio[0]);
+    probDomain[LevelOne] = tempVisMF.boxArray().minimalBox();
+    probDomain[LevelZero] = probDomain[1];
+    probDomain[LevelZero].coarsen(refRatio[0]);
     BoxArray mfBoxArray(tempVisMF.boxArray());
     BoxArray levelZeroBoxArray;
     levelZeroBoxArray.resize(1);
-    levelZeroBoxArray.set(0, probDomain[0]);
+    levelZeroBoxArray.set(0, probDomain[LevelZero]);
     dataGrids[0].resize(nComp, NULL);
     dataGrids[1].resize(nComp, NULL);
-    dataGridsDefined[0].resize(nComp);
-    dataGridsDefined[1].resize(nComp);
+    dataGridsDefined[LevelZero].resize(nComp);
+    dataGridsDefined[LevelOne].resize(nComp);
     fabBoxArray.resize(1);
-    fabBoxArray.set(0, probDomain[0]);
+    fabBoxArray.set(BoxZero, probDomain[LevelZero]);
 
     int nGrow(0);
     const int N(64);
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
+
+    Array<int> dMap(fabBoxArray.size() + 1);
+    dMap[BoxZero] = iopNum;
+    dMap[dMap.size() - 1] = myProc;
 
     for(int iComp(0); iComp < nComp; ++iComp) {
       if(snprintf(fabname, N, "%s%d", "MultiFab_", iComp) >= N) {
@@ -926,36 +945,39 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       }
 
       // set the level zero multifab
-      dataGridsDefined[0][iComp].resize(1, false);
-      dataGrids[0][iComp] = new MultiFab;
-      dataGrids[0][iComp]->define(levelZeroBoxArray, 0, nGrow, Fab_noallocate);
-      FArrayBox *newfab = new FArrayBox(probDomain[0], 1);
-      Real levelZeroValue, zvMin, zvMax;
-      zvMin = tempVisMF.min(0, iComp);  // init with first value
-      zvMax = tempVisMF.max(0, iComp);  // init with first value
-      for(int ic(0); ic < tempVisMF.size(); ++ic) {
-        zvMin = min(zvMin, tempVisMF.min(ic, iComp));
-        zvMax = max(zvMax, tempVisMF.max(ic, iComp));
-      }
-      levelZeroValue = zvMin;
-      newfab->setVal(levelZeroValue);
+      dataGridsDefined[LevelZero][iComp].resize(1, false);
+      dataGrids[LevelZero][iComp] = new MultiFab;
+      dataGrids[LevelZero][iComp]->define(levelZeroBoxArray, NVarZero,
+                                          nGrow, dMap, Fab_noallocate);
+      if(ParallelDescriptor::IOProcessor()) {
+        FArrayBox *newfab = new FArrayBox(probDomain[LevelZero], 1);
+        Real levelZeroValue, zvMin, zvMax;
+        zvMin = tempVisMF.min(0, iComp);  // init with first value
+        zvMax = tempVisMF.max(0, iComp);  // init with first value
+        for(int ic(0); ic < tempVisMF.size(); ++ic) {
+          zvMin = min(zvMin, tempVisMF.min(ic, iComp));
+          zvMax = max(zvMax, tempVisMF.max(ic, iComp));
+        }
+        levelZeroValue = zvMin;
+        newfab->setVal(levelZeroValue);
 #if(BL_SPACEDIM == 2)
 #ifdef BL_SETMFBACKGROUND
-      Real *dptr = newfab->dataPtr();
-      int idx;
-      for(int icr(0); icr < newfab->box().length(1); ++icr) {
-        for(int icc(0); icc < newfab->box().length(0); ++icc) {
-	  idx = icc + (icr * newfab->box().length(0));
-	  BL_ASSERT(idx < newfab->box().numPts());
-	  if((icc + icr) % 5 == 0) {
-            dptr[idx] = zvMax;
-	  }
+        Real *dptr = newfab->dataPtr();
+        int idx;
+        for(int icr(0); icr < newfab->box().length(1); ++icr) {
+          for(int icc(0); icc < newfab->box().length(0); ++icc) {
+	    idx = icc + (icr * newfab->box().length(0));
+	    BL_ASSERT(idx < newfab->box().numPts());
+	    if((icc + icr) % 5 == 0) {
+              dptr[idx] = zvMax;
+	    }
+          }
         }
+#endif
+#endif
+        dataGrids[LevelZero][iComp]->setFab(FabZero, newfab);
       }
-#endif
-#endif
-      dataGrids[0][iComp]->setFab(0, newfab);
-      dataGridsDefined[0][iComp][0] = true;
+      dataGridsDefined[LevelZero][iComp][IndexZero] = true;
 
     }  // end for(iComp...)
 
@@ -970,17 +992,18 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
       compIndexToVisMFComponentMap.resize(nComp);
 
       while(currentIndexComp < nComp) {
-        visMF[1].resize(currentVisMF + 1);  // this preserves previous ones
-        visMF[1][currentVisMF] = new VisMF(filename);
+        visMF[LevelOne].resize(currentVisMF + 1);  // this preserves previous ones
+        visMF[LevelOne][currentVisMF] = new VisMF(filename);
         int iComp(currentIndexComp);
-        nGrow = visMF[1][currentVisMF]->nGrow();
-        currentIndexComp += visMF[1][currentVisMF]->nComp();
+        nGrow = visMF[LevelOne][currentVisMF]->nGrow();
+        currentIndexComp += visMF[LevelOne][currentVisMF]->nComp();
         for(int currentVisMFComponent(0); iComp < currentIndexComp; ++iComp) {
           // make single component multifabs for level one
-          dataGrids[1][iComp] = new MultiFab(visMF[1][currentVisMF]->boxArray(), 1,
-                                             visMF[1][currentVisMF]->nGrow(),
-                                             Fab_noallocate);
-          dataGridsDefined[1][iComp].resize(visMF[1][currentVisMF]->size(), false);
+          dataGrids[1][iComp] =
+	      new MultiFab(visMF[LevelOne][currentVisMF]->boxArray(), 1,
+                           visMF[LevelOne][currentVisMF]->nGrow(),
+                           Fab_noallocate);
+          dataGridsDefined[LevelOne][iComp].resize(visMF[LevelOne][currentVisMF]->size(), false);
           compIndexToVisMFMap[iComp] = currentVisMF;
           compIndexToVisMFComponentMap[iComp] = currentVisMFComponent;
           ++currentVisMFComponent;
@@ -1031,12 +1054,21 @@ void AmrData::IntVectFromLocation(const int finestFillLevel,
    BL_ASSERT(location.size() == BL_SPACEDIM);
    BL_ASSERT(finestFillLevel <= finestLevel);
 
-   int ffl(finestFillLevel);
+   int ival;
 
    for(int i(0); i < BL_SPACEDIM; ++i) {
-      int ival = probDomain[ffl].smallEnd()[i] +
-                 ((int) ( (location[i] - probLo[i]) / dxLevel[ffl][i] ) );
+      ival = probDomain[finestFillLevel].smallEnd()[i] +
+                 (static_cast<int> ( (location[i] - probLo[i]) /
+		                     dxLevel[finestFillLevel][i] ) );
       ivFinestFillLev.setVal(i, ival);
+   }
+   Box fflBox(ivFinestFillLev, ivFinestFillLev);
+   ivLevel = FinestContainingLevel(fflBox, finestFillLevel);
+   for(int i(0); i < BL_SPACEDIM; ++i) {
+      ival = probDomain[ivLevel].smallEnd()[i] +
+                 (static_cast<int> ( (location[i] - probLo[i]) /
+		                     dxLevel[ivLevel][i] ) );
+      ivLoc.setVal(i, ival);
    }
 }
 

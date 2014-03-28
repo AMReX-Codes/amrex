@@ -14,6 +14,7 @@
 #include <Looping.H>
 #include <REAL.H>
 #include <Profiler.H>
+#include <PArray.H>
 
 namespace BoxLib
 {
@@ -568,6 +569,19 @@ public:
                       int               destcomp,
                       int               numcomp=1);
     //
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
+    //
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp=1);
+    //
+    // FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
+    //
+    BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
+    //
     // Scalar subtraction (a[i] <- a[i] - r).
     // Note: use plus(-r) for more general operations.
     //
@@ -782,6 +796,19 @@ public:
                            int               comp1,
                            const BaseFab<T>& f2,
                            const Box&        b2,
+                           int               comp2,
+                           Real              t1,
+                           Real              t2,
+                           Real              t,
+                           const Box&        b,
+                           int               comp,
+                           int               numcomp = 1);
+    //
+    // Version of linInterp() in which b, b1, & b2 are the same.
+    //
+    BaseFab<T>& linInterp (const BaseFab<T>& f1,
+                           int               comp1,
+                           const BaseFab<T>& f2,
                            int               comp2,
                            Real              t1,
                            Real              t2,
@@ -1067,17 +1094,25 @@ BaseFab<T>::define ()
     // Now call T::T() on the raw memory so we have valid Ts.
     //
     T* ptr = dptr;
-
-    // Note this must be long not int for very large (e.g.,1024^3) boxes
+    //
+    // Note this must be long not int for very large (e.g.,1024^3) boxes.
+    //
     for (long i = 0; i < truesize; i++, ptr++)
     {
         new (ptr) T;
     }
-    BoxLib::total_bytes_allocated_in_fabs += truesize*sizeof(T);
 
-    if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+    long tst = truesize*sizeof(T);
+#ifdef _OPENMP
+#pragma omp critical(basefab)
+#endif
     {
-        BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
+        BoxLib::total_bytes_allocated_in_fabs += tst;
+
+        if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
+        {
+            BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
+        }
     }
 }
 
@@ -1171,7 +1206,11 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
-        BoxLib::total_bytes_allocated_in_fabs -= truesize*sizeof(T);
+	long tst = truesize*sizeof(T);
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+        BoxLib::total_bytes_allocated_in_fabs -= tst;
     }
 }
 
@@ -1530,6 +1569,12 @@ BaseFab<Real>::norm (const Box& subbox,
                      int        p,
                      int        comp,
                      int        ncomp) const;
+
+template <>
+Real
+BaseFab<Real>::sum (const Box& subbox,
+                    int        comp,
+                    int        ncomp) const;
 template <>
 BaseFab<Real>&
 BaseFab<Real>::plus (const BaseFab<Real>& src,
@@ -1546,6 +1591,15 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      int                  srccomp,
                      int                  destcomp,
                      int                  numcomp);
+template <>
+BaseFab<Real>&
+BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
+                      const Box&        srcbox,
+                      const Box&        destbox,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp);
+
 template <>
 BaseFab<Real>&
 BaseFab<Real>::minus (const BaseFab<Real>& src,
@@ -1964,6 +2018,29 @@ BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& x)
 {
     return operator+=(x);
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
+{
+    Box ovlp(domain);
+    ovlp &= x.domain;
+    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
+}
+
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
+                   const Box&        srcbox,
+                   const Box&        destbox,
+                   int               srccomp,
+                   int               destcomp,
+                   int               numcomp)
+{
+    BoxLib::Error("BaseFab<T>::saxpy:: non-Real version not implemented");
+    return *this;
 }
 
 template <class T>
@@ -2496,17 +2573,17 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
 template <class T>
 BaseFab<T>&
 BaseFab<T>::linInterp (const BaseFab<T>& f1,
-                       const Box&         b1,
-                       int                comp1,
+                       const Box&        b1,
+                       int               comp1,
                        const BaseFab<T>& f2,
-                       const Box&         b2,
-                       int                comp2,
-                       Real               t1,
-                       Real               t2,
-                       Real               t,
-                       const Box&         b,
-                       int                comp,
-                       int                numcomp)
+                       const Box&        b2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp)
 {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
@@ -2515,6 +2592,22 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
     return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linInterp (const BaseFab<T>& f1,
+                       int               comp1,
+                       const BaseFab<T>& f2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp)
+{
+    return linInterp(f1, b, comp1, f2, b, comp2, t1, t2, t, b, comp, numcomp);
 }
 
 //
