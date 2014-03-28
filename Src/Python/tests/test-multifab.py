@@ -1,22 +1,19 @@
 
-from boxlib import fbl
+import boxlib
 
 def test_multifab():
-  fbl.open()
 
-  la = fbl.layout()
-  la.create(boxes=[ [(0,0), (31,31)] ])
+  ndim = 3
+  size = 64
+  dof  = 1
 
-  mfab = fbl.multifab()
-  mfab.create(la)
+  bx = boxlib.Box(lo=[1]*ndim, hi=[size]*ndim)
+  ba = boxlib.BoxArray(boxes=[bx])
+  ba.maxSize(32)
 
-  fab = mfab.fab(1)
-  fab[0,0] = 22.0
+  mf = boxlib.MultiFab(ba, ncomp=dof, nghost=2)
 
-  assert mfab.nc == 1
-  assert mfab.ng == 0
-
-  fbl.close()
+  mf.FillBoundary(0, mf.nComp())
 
 
 if __name__ == '__main__':

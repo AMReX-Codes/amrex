@@ -38,6 +38,7 @@ f90EXE_sources += cc_stencil_apply.f90
 f90EXE_sources += cc_stencil_fill.f90
 f90EXE_sources += cc_interface_stencil.f90
 f90EXE_sources += cc_mg_tower_smoother.f90
+f90EXE_sources += define_bc_tower.f90
 f90EXE_sources += itsol.f90
 f90EXE_sources += ml_restriction.f90
 f90EXE_sources += mg.f90

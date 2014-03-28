@@ -110,12 +110,12 @@ subroutine mgt_use_alltoallv ()
   call multifab_set_alltoallv(.true.)
 end subroutine mgt_use_alltoallv
 
-subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
+subroutine mgt_cc_alloc(dm, nlevel, stencil_type)
 
   use cpp_mg_module
   implicit none
   integer, intent(in) :: dm, nlevel
-  integer, intent(in) :: stencil_type_in
+  integer, intent(in) :: stencil_type
 
   if ( mgts%dim == 0 ) then
      mgts%dim = dm
@@ -123,7 +123,7 @@ subroutine mgt_cc_alloc(dm, nlevel, stencil_type_in)
      mgts%nodal = .false.
   end if
 
-  mgts%stencil_type = stencil_type_in
+  mgts%stencil_type = stencil_type
 
   allocate(mgts%rr(nlevel-1,dm))
   allocate(mgts%rh(nlevel))
@@ -1394,11 +1394,13 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
 
   do_diag = 0; if ( mgts%verbose >= 4 ) do_diag = 1
 
+  mgts%mgt%eps     = tol
+  mgts%mgt%abs_eps = abs_tol
+
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &
-       mgts%mla%mask, mgts%rr, &
-       do_diag, tol, &
-       abs_eps_in = abs_tol, &
+       mgts%mla%mask, &
+       do_diag, &
        need_grad_phi_in = lneedgradphi,&
        final_resnorm = final_resnorm,&
        status = status)
