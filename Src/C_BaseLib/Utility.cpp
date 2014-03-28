@@ -1117,20 +1117,24 @@ bool BoxLib::StreamRetry::TryOutput()
   } else {
     if(sros.fail()) {
       int myProc(ParallelDescriptor::MyProc());
-      if(tries < maxTries) {
+      if(tries <= maxTries) {
         std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                   << tries << " :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << std::endl;
+        std::cout << "gbfe:  " << sros.good() << sros.bad()
+	          << sros.fail() << sros.eof() << std::endl;
         sros.clear();  // clear the bad bits
+        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+	          << sros.fail() << sros.eof() << std::endl;
         sros.seekp(spos, std::ios::beg);  // reset stream position
         return true;
       } else {
         std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix
                   << " :: File may be corrupt.  :: ";
-        std::cout << "gbfe:  " << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << std::endl;
+        std::cout << "gbfe:  " << sros.good() << sros.bad()
+	          << sros.fail() << sros.eof() << std::endl;
         sros.clear();  // clear the bad bits
+        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+	          << sros.fail() << sros.eof() << std::endl;
         return false;
       }
     } else {
