@@ -1,31 +1,74 @@
 PyBoxLib
 ========
 
-PyBoxLib is a Python wrapper of the Fortran version of BoxLib, and is
-authored by Matthew Emmett <memmett@unc.edu>.
+PyBoxLib is a Python wrapper of the C++ version of `BoxLib`_.
 
-The `pyboxlib`_ repository on github.com is a mirror of the
-``Src/Python`` directory of the official `BoxLib`_ respository.
-
-.. _`pyboxlib`: https://github.com/memmett/pyboxlib
 .. _`BoxLib`: https://ccse.lbl.gov/BoxLib/index.html
 
 
-Overview
-========
+Basic usage
+===========
 
-BoxLib routines are called from Python through the various wrappers in
-``src/fboxlib.f90``.  These wrappers are called from Python using the
-``ctypes`` Python module (which allows one to load a shared library
-and call C callable routines directly).  The wrappers are made C
-callable using the ``iso_c_binding`` Fortran module.  Breifly:
+import boxlib
+import sys
 
-1. Python: PyBoxLib: ``pyboxlib/multifab.py`` etc
-2. Python: ctypes
-3. Fortran: iso_c_binding
-4. Fortran: PyBoxLib wrappers: ``src/fboxlib.f90`` etc
-5. Fortran: BoxLib
+ndim = 3
+size = 128
 
-Finally, PyBoxLib exposes FAB arrays as NumPy arrays.  This is done
-through the routines in ``src/boxlib_numpy_*``.
+bx = boxlib.Box(lo=[1]*ndim, hi=[size]*ndim)
+ba = boxlib.BoxArray(boxes=[bx])
+ba.maxSize(32)
+
+mf = boxlib.MultiFab(ba, ncomp=1, nghost=2)
+
+a = mf[0].get_array()
+a[10,10,10,0] = 22.0
+
+print a.shape
+
+mf.FillBoundary(0, mf1.nComp())
+
+
+
+Technical overview
+==================
+
+The Python wrappers to BoxLib are created using SWIG.  There a few
+convenience functions defined in the "boxlib" module that make
+creating Boxes, BoxArrays, and MultiFabs a bit more Pythonic.
+
+Note that the dimension of all BoxLib objects is set at compile time.
+As such, PyBoxLib compiles three versions of BoxLib (for 1, 2, and 3
+dimensions).  As such, the first time you call one of the convenience
+routines (Box, BoxArray etc), PyBoxLib loads the appropriate shared
+library.
+
+To access the raw SWIG generate shared library, simply access the "bl"
+object in boxlib, and index it with the dimensionality that you need.
+For example, to call the XXX routine of the 1 dimensional BoxLib SWIG
+wrapper, do the following:
+
+>>> import boxlib
+>>> boxlib.bl[1].XXX
+
+All arrays are stored in Fortran order.  PyBoxLib exposes the raw
+arrays to Python through NumPy, and the ordering is set to Fortran
+order.
+
+
+Known issues
+============
+
+#. Once you create a BoxLib object (Box/MultiFab etc) of a given
+   dimension, all subsequent BoxLib objects must be of the same
+   dimension.  In other words, once PyBoxLib loads one of the shared
+   libraries for a specific dimension, it can't load another.
+
+   In particular, the length of the IntVects becomes corrupted.  I'm
+   sure there is a way around this...
+
+#. The C++ version stores components in a non-interleaved format.
+   That is, in Fortran the indexing is a(i,j,k,c).  An interleaved
+   format is being worked on...
+
 

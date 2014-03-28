@@ -5,6 +5,7 @@ module nodal_divu_module
   use bndry_reg_module
   use mg_tower_module
   use ml_restriction_module
+  use define_bc_module
 
   implicit none
 
@@ -24,13 +25,15 @@ contains
       real(kind=dp_t), pointer :: rhp(:,:,:,:) 
       integer        , pointer ::  mp(:,:,:,:) 
 
-      integer         :: i,n,dm,ng,mglev_fine
+      integer         :: i,n,dm,ng_u,ng_r,mglev_fine
+      integer         :: lo(get_dim(unew(nlevs))),hi(get_dim(unew(nlevs)))
       type(      box) :: pdc
       type(   layout) :: la_crse,la_fine
       type(bndry_reg) :: brs_flx
 
       dm = get_dim(unew(nlevs))
-      ng = nghost(unew(nlevs))
+      ng_u = nghost(unew(nlevs))
+      ng_r = nghost(rh(nlevs))
 
 !     Create the regular single-level divergence.
       do n = 1, nlevs
@@ -40,19 +43,21 @@ contains
             unp => dataptr(unew(n), i)
             rhp => dataptr(rh(n)  , i)
             mp  => dataptr(mgt(n)%mm(mglev_fine),i)
+            lo = lwb(get_box(unew(n),i))
+            hi = upb(get_box(unew(n),i))
             select case (dm)
                case (1)
                  call divu_1d(unp(:,1,1,1), rhp(:,1,1,1), &
                                mp(:,1,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
                case (2)
                  call divu_2d(unp(:,:,1,:), rhp(:,:,1,1), &
                                mp(:,:,1,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
                case (3)
                  call divu_3d(unp(:,:,:,:), rhp(:,:,:,1), &
                                mp(:,:,:,1), mgt(n)%dh(:,mglev_fine), &
-                              mgt(n)%face_type(i,:,:), ng)
+                              mgt(n)%face_type(i,:,:), lo, hi, ng_u, ng_r)
             end select
          end do
       end do
@@ -73,50 +78,45 @@ contains
 
     end subroutine divu
 
-    subroutine divu_1d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_1d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:)
-      real(kind=dp_t), intent(inout) :: rh(-1:)
-      integer        , intent(inout) :: mm(0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,nx
-
-      nx = size(rh,dim=1) - 3
+      integer         :: i
 
       rh = ZERO
 
-      do i = 0,nx
+      do i = lo(1),hi(1)+1
          if (.not.bc_dirichlet(mm(i),1,0)) then 
            rh(i) = (u(i)-u(i-1)) / dx(1) 
          end if
       end do
 
       if (face_type(1,1) == BC_NEU) rh( 0) = TWO*rh( 0)
-      if (face_type(1,2) == BC_NEU) rh(nx) = TWO*rh(nx)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1) = TWO*rh(hi(1)+1)
 
     end subroutine divu_1d
 
-    subroutine divu_2d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_2d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,1:)
-      real(kind=dp_t), intent(inout) :: rh(-1:,-1:)
-      integer        , intent(inout) :: mm(0:,0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:,lo(2)-ng_u:,:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:,lo(2)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):,lo(2):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,j,nx,ny
-
-      nx = size(rh,dim=1) - 3
-      ny = size(rh,dim=2) - 3
+      integer         :: i,j
 
       rh = ZERO
 
-      do j = 0,ny
-      do i = 0,nx
+      do j = lo(2),hi(2)+1
+      do i = lo(1),hi(1)+1
          if (.not.bc_dirichlet(mm(i,j),1,0)) then 
            rh(i,j) = (u(i  ,j,1) + u(i  ,j-1,1) &
                      -u(i-1,j,1) - u(i-1,j-1,1)) / dx(1) + &
@@ -128,29 +128,24 @@ contains
       end do
 
       if (face_type(1,1) == BC_NEU) rh( 0,:) = TWO*rh( 0,:)
-      if (face_type(1,2) == BC_NEU) rh(nx,:) = TWO*rh(nx,:)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1,:) = TWO*rh(hi(1)+1,:)
       if (face_type(2,1) == BC_NEU) rh(:, 0) = TWO*rh(:, 0)
-      if (face_type(2,2) == BC_NEU) rh(:,ny) = TWO*rh(:,ny)
+      if (face_type(2,2) == BC_NEU) rh(:,hi(2)+1) = TWO*rh(:,hi(2)+1)
 
     end subroutine divu_2d
 
-    subroutine divu_3d(u,rh,mm,dx,face_type,ng)
+    subroutine divu_3d(u,rh,mm,dx,face_type,lo,hi,ng_u,ng_r)
 
-      integer        , intent(in   ) :: ng
-      real(kind=dp_t), intent(inout) ::  u(-ng:,-ng:,-ng:,1:)
-      real(kind=dp_t), intent(inout) :: rh(-1:,-1:,-1:)
-      integer        , intent(inout) :: mm(0:,0:,0:)
+      integer        , intent(in   ) :: ng_u,ng_r,lo(:),hi(:)
+      real(kind=dp_t), intent(inout) ::  u(lo(1)-ng_u:,lo(2)-ng_u:,lo(3)-ng_u:,:)
+      real(kind=dp_t), intent(inout) :: rh(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:)
+      integer        , intent(inout) :: mm(lo(1):,lo(2):,lo(3):)
       real(kind=dp_t), intent(in   ) :: dx(:)
       integer        , intent(in   ) :: face_type(:,:)
 
-      integer         :: i,j,k,nx,ny,nz
+      integer         :: i,j,k
       real(kind=dp_t) :: ivdx, ivdy, ivdz
       
-
-      nx = size(rh,dim=1) - 3
-      ny = size(rh,dim=2) - 3
-      nz = size(rh,dim=3) - 3
-
       rh = ZERO
 
       ivdx = 1.0d0 / dx(1)
@@ -158,9 +153,9 @@ contains
       ivdz = 1.0d0 / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = 0,nz
-      do j = 0,ny
-      do i = 0,nx
+      do k = lo(3),hi(3)+1
+      do j = lo(2),hi(2)+1
+      do i = lo(1),hi(1)+1
          if (.not. bc_dirichlet(mm(i,j,k),1,0)) then
            rh(i,j,k) = (u(i  ,j,k  ,1) + u(i  ,j-1,k  ,1) &
                        +u(i  ,j,k-1,1) + u(i  ,j-1,k-1,1) &
@@ -182,11 +177,11 @@ contains
       !$OMP END PARALLEL DO
 
       if (face_type(1,1) == BC_NEU) rh( 0,:,:) = TWO*rh( 0,:,:)
-      if (face_type(1,2) == BC_NEU) rh(nx,:,:) = TWO*rh(nx,:,:)
+      if (face_type(1,2) == BC_NEU) rh(hi(1)+1,:,:) = TWO*rh(hi(1)+1,:,:)
       if (face_type(2,1) == BC_NEU) rh(:, 0,:) = TWO*rh(:, 0,:)
-      if (face_type(2,2) == BC_NEU) rh(:,ny,:) = TWO*rh(:,ny,:)
+      if (face_type(2,2) == BC_NEU) rh(:,hi(2)+1,:) = TWO*rh(:,hi(2)+1,:)
       if (face_type(3,1) == BC_NEU) rh(:,:, 0) = TWO*rh(:,:, 0)
-      if (face_type(3,2) == BC_NEU) rh(:,:,nz) = TWO*rh(:,:,nz)
+      if (face_type(3,2) == BC_NEU) rh(:,:,hi(3)+1) = TWO*rh(:,:,hi(3)+1)
 
     end subroutine divu_3d
 
@@ -1438,12 +1433,13 @@ contains
   end subroutine ml_interface_3d_divu
 
 
-    subroutine subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs)
+    subroutine subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs,subtract_flag_in)
 
       integer        , intent(in   ) :: nlevs
       type(mg_tower) , intent(inout) :: mgt(:)
       type(multifab) , intent(inout) :: rh(:)
       type(multifab) , intent(in   ) :: divu_rhs(:)
+      logical, intent(in), optional  :: subtract_flag_in
 
       real(kind=dp_t), pointer :: dp(:,:,:,:) 
       real(kind=dp_t), pointer :: rp(:,:,:,:) 
@@ -1451,6 +1447,10 @@ contains
 
       integer :: i,n,dm,ng_r,ng_d
       integer :: mglev_fine
+      logical :: subtract_flag
+
+      subtract_flag = .true.
+      if (present(subtract_flag_in)) subtract_flag = subtract_flag_in
 
       dm   = get_dim(rh(nlevs))
       ng_r = nghost(rh(nlevs))
@@ -1467,66 +1467,85 @@ contains
                case (1)
                  call subtract_divu_from_rh_1d(rp(:,1,1,1), ng_r, &
                                                dp(:,1,1,1), ng_d, &
-                                               mp(:,1,1,1) )
+                                               mp(:,1,1,1), subtract_flag )
                case (2)
                  call subtract_divu_from_rh_2d(rp(:,:,1,1), ng_r, &
                                                dp(:,:,1,1), ng_d, &
-                                               mp(:,:,1,1) )
+                                               mp(:,:,1,1), subtract_flag )
                case (3)
                  call subtract_divu_from_rh_3d(rp(:,:,:,1), ng_r, &
                                                dp(:,:,:,1), ng_d, &
-                                               mp(:,:,:,1) )
+                                               mp(:,:,:,1), subtract_flag )
             end select
          end do
       end do
 
     end subroutine subtract_divu_from_rh
 
-    subroutine subtract_divu_from_rh_1d(rh,ng_rh,divu_rhs,ng_divu,mm)
+    subroutine subtract_divu_from_rh_1d(rh,ng_rh,divu_rhs,ng_divu,mm,subtract_flag)
 
       integer        , intent(in   ) :: ng_rh,ng_divu
       real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:)
       real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:)
       integer        , intent(inout) :: mm(0:)
+      logical        , intent(in   ) :: subtract_flag
 
       integer         :: i,nx
 
       nx = size(mm,dim=1) - 1
 
-      do i = 0,nx
-         if (.not. bc_dirichlet(mm(i),1,0)) &
-           rh(i) = rh(i) - divu_rhs(i)
-      end do
+      if (subtract_flag) then
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i),1,0)) &
+                 rh(i) = rh(i) - divu_rhs(i)
+         end do
+      else
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i),1,0)) &
+                 rh(i) = rh(i) + divu_rhs(i)
+         end do
+      end if
 
     end subroutine subtract_divu_from_rh_1d
 
-    subroutine subtract_divu_from_rh_2d(rh,ng_rh,divu_rhs,ng_divu,mm)
+    subroutine subtract_divu_from_rh_2d(rh,ng_rh,divu_rhs,ng_divu,mm,subtract_flag)
 
       integer        , intent(in   ) :: ng_rh,ng_divu
       real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:)
       real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:)
       integer        , intent(inout) :: mm(0:,0:)
+      logical        , intent(in   ) :: subtract_flag
 
       integer         :: i,j,nx,ny
 
       nx = size(mm,dim=1) - 1
       ny = size(mm,dim=2) - 1
 
-      do j = 0,ny
-      do i = 0,nx
-         if (.not. bc_dirichlet(mm(i,j),1,0)) &
-           rh(i,j) = rh(i,j) - divu_rhs(i,j)
-      end do
-      end do
+      if (subtract_flag) then
+         do j = 0,ny
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i,j),1,0)) &
+                 rh(i,j) = rh(i,j) - divu_rhs(i,j)
+         end do
+         end do
+      else
+         do j = 0,ny
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i,j),1,0)) &
+                 rh(i,j) = rh(i,j) + divu_rhs(i,j)
+         end do
+         end do
+      end if
 
     end subroutine subtract_divu_from_rh_2d
 
-    subroutine subtract_divu_from_rh_3d(rh,ng_rh,divu_rhs,ng_divu,mm)
+    subroutine subtract_divu_from_rh_3d(rh,ng_rh,divu_rhs,ng_divu,mm,subtract_flag)
 
       integer        , intent(in   ) :: ng_rh,ng_divu
       real(kind=dp_t), intent(inout) ::       rh(  -ng_rh:,  -ng_rh:,   -ng_rh:)
       real(kind=dp_t), intent(inout) :: divu_rhs(-ng_divu:,-ng_divu:, -ng_divu:)
       integer        , intent(inout) :: mm(0:,0:,0:)
+      logical        , intent(in   ) :: subtract_flag
 
       integer         :: i,j,k,nx,ny,nz
 
@@ -1534,16 +1553,29 @@ contains
       ny = size(mm,dim=2) - 1
       nz = size(mm,dim=3) - 1
 
-      !$OMP PARALLEL DO PRIVATE(i,j,k)
-      do k = 0,nz
+      if (subtract_flag) then
+         !$OMP PARALLEL DO PRIVATE(i,j,k)
+         do k = 0,nz
          do j = 0,ny
-            do i = 0,nx
-               if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
-                    rh(i,j,k) = rh(i,j,k) - divu_rhs(i,j,k)
-            end do
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+                 rh(i,j,k) = rh(i,j,k) - divu_rhs(i,j,k)
          end do
-      end do
-      !$OMP END PARALLEL DO
+         end do
+         end do
+         !$OMP END PARALLEL DO
+      else
+         !$OMP PARALLEL DO PRIVATE(i,j,k)
+         do k = 0,nz
+         do j = 0,ny
+         do i = 0,nx
+            if (.not. bc_dirichlet(mm(i,j,k),1,0)) &
+                 rh(i,j,k) = rh(i,j,k) + divu_rhs(i,j,k)
+         end do
+         end do
+         end do
+         !$OMP END PARALLEL DO
+      end if
 
     end subroutine subtract_divu_from_rh_3d
 
@@ -2952,6 +2984,89 @@ contains
     end if
 
   end subroutine ml_interface_rhcc_3d
+
+  subroutine enforce_outflow_on_divu_rhs(divu_rhs,the_bc_tower)
+
+    type(multifab) , intent(inout) :: divu_rhs(:)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
+
+    integer        :: i,n,ng_d,dm,nlevs
+    integer        :: lo(get_dim(divu_rhs(1))),hi(get_dim(divu_rhs(1)))
+    type(bc_level) :: bc
+    real(kind=dp_t), pointer :: divp(:,:,:,:) 
+
+    dm = get_dim(divu_rhs(1))
+    nlevs = size(divu_rhs)
+
+    ng_d = nghost(divu_rhs(1))
+
+    do n = 1, nlevs
+       bc = the_bc_tower%bc_tower_array(n)
+       do i = 1, nfabs(divu_rhs(n))
+          divp => dataptr(divu_rhs(n) , i)
+          lo = lwb(get_box(divu_rhs(n),i))
+          hi = upb(get_box(divu_rhs(n),i))
+          select case (dm)
+          case (1)
+             call enforce_outflow_1d(divp(:,1,1,1), lo, hi, ng_d, &
+                  bc%phys_bc_level_array(i,:,:))
+          case (2)
+             call enforce_outflow_2d(divp(:,:,1,1), lo, hi, ng_d, &
+                  bc%phys_bc_level_array(i,:,:))
+          case (3)
+             call enforce_outflow_3d(divp(:,:,:,1), lo, hi, ng_d, &
+                  bc%phys_bc_level_array(i,:,:))
+          end select
+       end do
+    end do
+
+  end subroutine enforce_outflow_on_divu_rhs
+
+  ! ******************************************************************************** !
+
+  subroutine enforce_outflow_1d(divu_rhs,lo,hi,ng_d,phys_bc)
+
+    integer        , intent(in   ) :: ng_d,lo(:),hi(:)
+    real(kind=dp_t), intent(inout) :: divu_rhs(lo(1)-ng_d:)
+    integer        , intent(in   ) :: phys_bc(:,:)
+
+    if (phys_bc(1,1) .eq. OUTLET) divu_rhs(lo(1)  ) = ZERO
+    if (phys_bc(1,2) .eq. OUTLET) divu_rhs(hi(1)+1) = ZERO
+
+  end subroutine enforce_outflow_1d
+
+
+  ! ******************************************************************************** !
+
+  subroutine enforce_outflow_2d(divu_rhs,lo,hi,ng_d,phys_bc)
+
+    integer        , intent(in   ) :: ng_d,lo(:),hi(:)
+    real(kind=dp_t), intent(inout) :: divu_rhs(lo(1)-ng_d:,lo(2)-ng_d:)
+    integer        , intent(in   ) :: phys_bc(:,:)
+
+    if (phys_bc(1,1) .eq. OUTLET) divu_rhs(lo(1)  ,:) = ZERO
+    if (phys_bc(1,2) .eq. OUTLET) divu_rhs(hi(1)+1,:) = ZERO
+    if (phys_bc(2,1) .eq. OUTLET) divu_rhs(:,lo(2)  ) = ZERO
+    if (phys_bc(2,2) .eq. OUTLET) divu_rhs(:,hi(2)+1) = ZERO
+
+  end subroutine enforce_outflow_2d
+
+  ! ******************************************************************************** !
+
+  subroutine enforce_outflow_3d(divu_rhs,lo,hi,ng_d,phys_bc)
+
+    integer        , intent(in   ) :: ng_d,lo(:),hi(:)
+    real(kind=dp_t), intent(inout) :: divu_rhs(lo(1)-ng_d:,lo(2)-ng_d:,lo(3)-ng_d:)
+    integer        , intent(in   ) :: phys_bc(:,:)
+
+    if (phys_bc(1,1) .eq. OUTLET) divu_rhs(lo(1)  ,:,:) = ZERO
+    if (phys_bc(1,2) .eq. OUTLET) divu_rhs(hi(1)+1,:,:) = ZERO
+    if (phys_bc(2,1) .eq. OUTLET) divu_rhs(:,lo(2)  ,:) = ZERO
+    if (phys_bc(2,2) .eq. OUTLET) divu_rhs(:,hi(2)+1,:) = ZERO
+    if (phys_bc(3,1) .eq. OUTLET) divu_rhs(:,:,lo(3)  ) = ZERO
+    if (phys_bc(3,2) .eq. OUTLET) divu_rhs(:,:,hi(3)+1) = ZERO
+
+  end subroutine enforce_outflow_3d
 
 end module nodal_divu_module
 

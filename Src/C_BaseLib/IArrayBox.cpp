@@ -134,19 +134,19 @@ IArrayBox::norm (const Box& subbox,
                 tmp = new int[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::pow(row[i],pwr);
+                    tmp[i] = std::pow((double)row[i],pwr);
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] += std::pow(row[i],pwr);
+                    tmp[i] += std::pow((double)row[i],pwr);
             }
         } EndForPencil
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
             nrm += tmp[i];
         int invpwr = 1.0/pwr;
-        nrm = std::pow(nrm,invpwr);
+        nrm = std::pow((double)nrm,invpwr);
     }
 
     delete [] tmp;
