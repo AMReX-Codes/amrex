@@ -91,7 +91,7 @@ contains
                                       mp(:,1,1,1), lo, hi)
              else
                 call stencil_apply_1d_nodal(ap(1,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu), ldiagonalize)
+                     mp(:,1,1,1), nghost(uu), nghost(rr), ldiagonalize)
              end if
           case (2)
              if ( .not. nodal_flag) then
@@ -99,7 +99,7 @@ contains
                      mp(:,:,1,1), lo, hi)
              else
                 call stencil_apply_2d_nodal(ap(1,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu), stencil_type, ldiagonalize)
+                     mp(:,:,1,1), nghost(uu), nghost(rr), stencil_type, ldiagonalize)
              end if
           case (3)
              if ( .not. nodal_flag) then
@@ -107,7 +107,7 @@ contains
                                       mp(:,:,:,1), bottom_solver=lbottom_solver)
              else
                 call stencil_apply_3d_nodal(ap(1,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), stencil_type, luniform_dh, lbottom_solver, ldiagonalize)
+                     mp(:,:,:,1), nghost(uu), nghost(rr), stencil_type, luniform_dh, lbottom_solver, ldiagonalize)
              end if
           end select
        end do
