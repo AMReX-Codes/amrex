@@ -40,6 +40,8 @@ std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
 std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler *> Profiler::mFortProfs;
+std::vector<std::string> Profiler::mFortProfsErrors;
+const int mFortProfMaxErrors(32);
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
@@ -256,8 +258,6 @@ void Profiler::Finalize() {
     return;
   }
 
-  // clean up the fortran map ?
-
   // --------------------------------------- gather global stats
   Real finalizeStart = ParallelDescriptor::second();  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
@@ -472,6 +472,30 @@ void Profiler::Finalize() {
   WriteCommStats();
 #endif
 
+  // report any fortran errors.  should really check with all procs, just iop for now
+  if(ParallelDescriptor::IOProcessor()) {
+    if(Profiler::mFortProfs.size() > 0) {
+      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+      for(std::map<std::string, Profiler *>::iterator it = Profiler::mFortProfs.begin();
+          it != Profiler::mFortProfs.end(); ++it)
+      {
+        std::cout << "FFFF function not stopped:  fname ptr = " << it->first
+	          << "  ---->" << it->second << "<----" << std::endl;
+      }
+      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+    }
+    if(Profiler::mFortProfsErrors.size() > 0) {
+      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF FORTRAN PROFILING ERRORS" << std::endl;
+      if(Profiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
+        std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF MAX FORTRAN ERRORS EXCEEDED" << std::endl;
+      }
+      for(int i(0); i < Profiler::mFortProfsErrors.size(); ++i) {
+        std::cout << "FFFF " << Profiler::mFortProfsErrors[i] << std::endl;
+      }
+      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF END FORTRAN PROFILING ERRORS" << std::endl;
+    }
+  }
+
   bInitialized = false;
 }
 
@@ -517,10 +541,14 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
-    if(bwriteavg) {
-      percent = 100.0 * (it->second.avgTime / pTimeTotal);
+    if(pTimeTotal > 0.0) {
+      if(bwriteavg) {
+        percent = 100.0 * (it->second.avgTime / pTimeTotal);
+      } else {
+        percent = 100.0 * (it->second.totalTime / pTimeTotal);
+      }
     } else {
-      percent = 100.0 * (it->second.totalTime / pTimeTotal);
+      percent = 100.0;
     }
     std::string fname(it->first);
     const ProfStats &pstats = it->second;
@@ -555,7 +583,11 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   for(std::map<Real, std::string>::const_iterator it = mTimersTotalsSorted.begin();
       it != mTimersTotalsSorted.end(); ++it)
   {
-    percent = 100.0 * (it->first / pTimeTotal);
+    if(pTimeTotal > 0.0) {
+      percent = 100.0 * (it->first / pTimeTotal);
+    } else {
+      percent = 100.0;
+    }
     std::string fname(it->second);
     const ProfStats &pstats = mProfStats[fname];
     WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
@@ -1028,57 +1060,65 @@ void Profiler::PerfMonProcess() {
 
 
 
+namespace {
+  const int EOS(-1);
 
-namespace
-{
-  const int EOS = -1;
-
-  std::string
-  Trim (const std::string& str)
-  {
+  std::string Trim(const std::string &str) {
     int n;
-    for ( n = str.size(); --n >= 0; )
-      {
-        if ( str[n] != ' ' ) break;
+    for(n = str.size(); --n >= 0; ) {
+      if(str[n] != ' ' ) {
+	break;
       }
+    }
     std::string result;
-    for (int i = 0; i <= n; ++i )
-      {
-        result += str[i];
-      }
+    for(int i(0); i <= n; ++i) {
+      result += str[i];
+    }
     return result;
   }
 
-  std::string
-  Fint_2_string (const int* iarr, int nlen)
-  {
+  std::string Fint_2_string(const int *iarr, int nlen) {
     std::string res;
-    for ( int i = 0; i < nlen && *iarr != EOS; ++i )
-      {
-        res += *iarr++;
-      }
+    for(int i(0); i < nlen && *iarr != EOS; ++i) {
+      res += *iarr++;
+    }
     return Trim(res);
   }
 }
 
 #include <BLFort.H>
 
-BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
-  (
-   const int istr[], const int* NSTR
-   )
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
+  (const int istr[], const int *NSTR)
 {
-  std::string fName = Fint_2_string(istr, *NSTR);
-  Profiler::mFortProfs[fName] = new Profiler(fName);
+  std::string fName(Fint_2_string(istr, *NSTR));
+  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
+  if(it == Profiler::mFortProfs.end()) {  // make a new profiler
+    Profiler::mFortProfs.insert(std::pair<std::string, Profiler *>(fName, new Profiler(fName)));
+  } else {  // error:  fname is already being profiled
+    std::string estring("bl_proffortfuncstart error:  mFortProfs function already being profiled:  ");
+    estring += fName;
+    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      Profiler::mFortProfsErrors.push_back(estring);
+    }
+  }
 }
 
-BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
-  (
-   const int istr[], const int* NSTR
-   )
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP, bl_proffortfuncstop_cpp)
+  (const int istr[], const int *NSTR)
 {
-  std::string fName = Fint_2_string(istr, *NSTR);
-  delete Profiler::mFortProfs[fName];
+  std::string fName(Fint_2_string(istr, *NSTR));
+  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
+  if(it == Profiler::mFortProfs.end()) {  // error:  fname not found
+    std::string estring("bl_proffortfuncstop error:  mFortProfs function not started:  ");
+    estring += fName;
+    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      Profiler::mFortProfsErrors.push_back(estring);
+    }
+  } else {  // delete the pointer and remove fname from map
+    delete it->second;
+    Profiler::mFortProfs.erase(fName);
+  }
 }
 
 
@@ -1088,14 +1128,14 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
   (
-   const int istr[], const int* NSTR
+   const int istr[], const int *NSTR
    )
 {
 }
 
 BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
   (
-   const int istr[], const int* NSTR
+   const int istr[], const int *NSTR
    )
 {
 }
