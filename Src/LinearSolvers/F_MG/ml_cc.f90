@@ -261,8 +261,9 @@ contains
 
        ! Only print this once per solve.
        do n = 2,nlevs
-           if (mla%mba%rr(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
-               call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
+           if (parallel_IOProcessor() .and. &
+                mla%mba%rr(n-1,1) /= 2 .and. mgt(n-1)%use_lininterp) then
+              call bl_warn('ml_cc: linear prolongation not supported since ir /= 2')
            end if
        end do
 
