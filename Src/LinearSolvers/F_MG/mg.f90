@@ -1430,7 +1430,9 @@ contains
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
 
-    select case ( mgt%cycle_type )
+    ! Note: this used to depend on mgt%cycle_type, but now we explicitly use the cycle_type
+    !       that is passed in in "cyc" so that we can mix the cycle types in a single solve.
+    select case ( cyc )
         case(MG_VCycle)
             call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
         case(MG_WCycle)
