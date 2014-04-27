@@ -191,10 +191,10 @@ ifeq ($(findstring edison, $(HOST)), edison)
     # edison.nersc.gov
     #
     ifdef MPI
-        CXX := CC -target=compute_node
-        CC  := cc -target=compute_node
-        FC  := ftn -target=compute_node
-        F90 := ftn -target=compute_node
+        CXX := CC
+        CC  := cc
+        FC  := ftn
+        F90 := ftn
     endif
 endif
 ifeq ($(findstring titan, $(HOST)), titan)
