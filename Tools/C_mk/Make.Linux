@@ -370,11 +370,11 @@ endif
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=compute_node
-    CC  := cc -target=compute_node
-    FC  := ftn -target=compute_node
-    F90 := ftn -target=compute_node
-    fC  := ftn -target=compute_node
+    CXX := CC 
+    CC  := cc 
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
   endif
   ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)
