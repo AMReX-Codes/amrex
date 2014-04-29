@@ -640,6 +640,24 @@ MultiFab::norm0 (int comp) const
     return nm0;
 }
 
+Array<Real>
+MultiFab::norm0 (const Array<int>& comps) const
+{
+    int n = comps.size();
+    Array<Real> nm0(n, -std::numeric_limits<Real>::max());
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	for (int i=0; i<n; i++) {
+	    nm0[i] = std::max(nm0[i], get(mfi).norm(mfi.validbox(), 0, comps[i], 1));
+	}
+    }
+
+    ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+
+    return nm0;
+}
+
 Real
 MultiFab::norm2 (int comp) const
 {
@@ -658,6 +676,29 @@ MultiFab::norm2 (int comp) const
 
     return nm2;
 }
+
+Array<Real>
+MultiFab::norm2 (const Array<int>& comps) const
+{
+    int n = comps.size();
+    Array<Real> nm2(n, 0.e0);
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	for (int i=0; i<n; i++) {
+	    const Real nm_grid = get(mfi).norm(mfi.validbox(), 2, comps[i], 1);
+	    nm2[i] += nm_grid*nm_grid;
+	}
+    }
+
+    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n);
+
+    for (int i=0; i<n; i++) {
+	nm2[i] = std::sqrt(nm2[i]);
+    }
+
+    return nm2;
+}
  
 Real
 MultiFab::norm1 (int comp, int ngrow) const
@@ -670,6 +711,24 @@ MultiFab::norm1 (int comp, int ngrow) const
     }
 
     ParallelDescriptor::ReduceRealSum(nm1);
+
+    return nm1;
+}
+
+Array<Real>
+MultiFab::norm1 (const Array<int>& comps, int ngrow) const
+{
+    int n = comps.size();
+    Array<Real> nm1(n, 0.e0);
+
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	for (int i=0; i<n; i++) {
+	    nm1[i] += get(mfi).norm(BoxLib::grow(mfi.validbox(),ngrow), 1, comps[i], 1);
+	}
+    }
+
+    ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
 
     return nm1;
 }

@@ -1,5 +1,5 @@
 subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
-                                do_diagnostics,eps,test, fabio, stencil_type)
+                                do_diagnostics,test, fabio, stencil_type)
   use BoxLib
   use nodal_stencil_module
   use mg_module
@@ -33,7 +33,6 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
   integer        , intent(in   ) :: coeffs_type
   integer        , intent(in   ) :: domain_bc(:,:)
   integer        , intent(in   ) :: do_diagnostics 
-  real(dp_t)     , intent(in   ) :: eps
   integer        , intent(in   ) :: test
   logical        , intent(in   ) :: fabio
   integer        , intent(in   ) :: stencil_type
@@ -124,7 +123,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
 
 ! ****************************************************************************
 
-  call ml_nd(mla,mgt,rh,full_soln,fine_mask,ref_ratio,do_diagnostics,eps)
+  call ml_nd(mla,mgt,rh,full_soln,fine_mask,do_diagnostics)
 
 ! ****************************************************************************
 
