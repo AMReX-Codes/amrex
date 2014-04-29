@@ -108,9 +108,7 @@ contains
        call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
-    !
-    ! Let's elide some reductions by doing there reductions together.
-    !
+
     bnorm = ml_norm_inf(rh,fine_mask)
     !
     ! First we must restrict the final solution onto coarser levels, because those coarse
@@ -172,7 +170,7 @@ contains
     !
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
-    t1(3) = ml_norm_inf(rh,fine_mask,local=.true.)
+    t1(3) = ml_norm_inf(res,fine_mask,local=.true.)
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
@@ -242,7 +240,7 @@ contains
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
-    if ( ml_converged(res, fine_mask, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
+    if ( ml_converged(res, fine_mask, max_norm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps, ni_res, mgt(nlevs)%verbose) ) then
 
        solved = .true.
 
