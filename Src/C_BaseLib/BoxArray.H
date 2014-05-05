@@ -253,6 +253,12 @@ public:
     //
     BoxList boxList () const;
     //
+    // True if the Box intersects with this BoxArray.
+    // The Box must have the same IndexType as those in this
+    // BoxArray.
+    //
+    bool intersects (const Box& b) const;
+    //
     // True if the IntVect is within any of the Boxes in this BoxArray.
     //
     bool contains (const IntVect& v) const;
@@ -271,9 +277,9 @@ public:
     //
     Box minimalBox () const;
 
-    std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only=false) const;
 
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, bool first_only=false) const;
     //
     // Clear out the internal hash table used by intersections.
     //
