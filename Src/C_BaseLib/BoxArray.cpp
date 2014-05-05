@@ -363,6 +363,17 @@ BoxArray::grow (int dir,
 }
 
 bool
+BoxArray::intersects (const Box& b) const
+{
+    std::vector< std::pair<int,Box> > isects;
+
+    bool first_only = true;
+    intersections(b,isects,first_only);
+
+    return (isects.size() > 0) ;
+}
+
+bool
 BoxArray::contains (const IntVect& iv) const
 {
     if (size() > 0)
@@ -758,10 +769,10 @@ BoxLib::GetBndryCells (const BoxArray& ba,
 }
 
 std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx) const
+BoxArray::intersections (const Box& bx, bool first_only) const
 {
     std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects);
+    intersections(bx,isects,first_only);
     return isects;
 }
 
@@ -776,7 +787,8 @@ BoxArray::clear_hash_bin () const
 
 void
 BoxArray::intersections (const Box&                         bx,
-                         std::vector< std::pair<int,Box> >& isects) const
+                         std::vector< std::pair<int,Box> >& isects,
+			 bool first_only) const
 {
     BoxHashMapType& BoxHashMap = m_ref->hash;
 
@@ -843,6 +855,7 @@ BoxArray::intersections (const Box&                         bx,
                     if (isect.ok())
                     {
                         isects.push_back(std::pair<int,Box>(index,isect));
+			if (first_only) return;
                     }
                 }
             }
