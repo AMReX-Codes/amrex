@@ -8,6 +8,7 @@ module ml_solve_module
   use define_bc_module
   use cc_stencil_fill_module
   use nodal_divu_module
+  use nodal_enforce_module
 
   implicit none
 
@@ -626,8 +627,9 @@ contains
 
     end do
 
-    ! this routine preserves rh=0 on nodes which have bc_dirichlet = true.
-    call enforce_outflow_on_divu_rhs(rh,the_bc_tower)
+    ! This sets rh to zero on any fine nodes on the coarse-fine interface
+    !      OR              on the outflow boundary
+    call enforce_dirichlet_rhs(rh,mgt)
 
     ! ********************************************************************************
     ! add divergence of u to rhs (optional)
@@ -657,8 +659,11 @@ contains
 
        call divu(nlevs,mgt,u,divu_tmp,mla%mba%rr,nodal_flags(divu_tmp(nlevs)),lo_inflow,hi_inflow)
  
+       ! This sets divu_tmp to zero on any fine nodes on the coarse-fine interface
+       !      OR                    on the outflow boundary
+       call enforce_dirichlet_rhs(divu_tmp,mgt)
+
        ! Do rh = rh + divu_tmp
-       call enforce_outflow_on_divu_rhs(divu_tmp,the_bc_tower)
        call subtract_divu_from_rh(nlevs,mgt,rh,divu_tmp,.false.)
 
     end if
@@ -669,8 +674,11 @@ contains
           call bl_error('ml_solve.f90: subtract_divu_rhs requires divu_rhs passed in')
        end if
 
+       ! This sets divu_rhs to zero on any fine nodes on the coarse-fine interface
+       !      OR                    on the outflow boundary
+       call enforce_dirichlet_rhs(divu_rhs,mgt)
+
        ! Do rh = rh - divu_rhs
-       call enforce_outflow_on_divu_rhs(divu_rhs,the_bc_tower)
        call subtract_divu_from_rh(nlevs,mgt,rh,divu_rhs,.true.)
 
     end if
@@ -895,8 +903,6 @@ contains
           fj = j*ir(2)
           do i = lo(1),hi(1)
              fi = i*ir(1)
-             if (.not. bc_dirichlet(mm_fine(fi,fj,fk),1,0) .or. bc_dirichlet(mm_crse(i,j,k),1,0) ) &
-                  mask(i,j,k) = .false.
           end do
        end do
     end do
