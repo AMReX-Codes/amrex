@@ -208,6 +208,7 @@ private:
     // Current # of bytes of FAB data.
     //
     static void CurrentBytesUsed (int nprocs, Array<long>& result);
+    static void CurrentCellsUsed (int nprocs, Array<long>& result);
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //

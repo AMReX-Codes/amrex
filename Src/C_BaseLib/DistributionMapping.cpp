@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstdlib>
 #include <list>
 #include <map>
@@ -459,6 +460,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
 {
+//BoxLib::Abort("RoundRobinDoIt");
     Array<int> ord;
 
     LeastUsedCPUs(nprocs,ord);
@@ -794,6 +796,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     {
         std::cout << "KNAPSACK efficiency: " << efficiency << '\n';
     }
+
 }
 
 void
@@ -845,6 +848,25 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         bool do_full_knapsack = true;
         KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
+
+if(ParallelDescriptor::IOProcessor()) {
+  Array<long> ncells(nprocs, 0);
+  for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+    int index(m_ref->m_pmap[i]);
+    ncells[index] += boxes[index].numPts();
+  }
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "KSncells.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < ncells.size(); ++i) {
+    bos << i << ' ' << ncells[i] << '\n';
+  }
+  bos.close();
+}
+/*
+*/
+
 }
 
 namespace
@@ -950,6 +972,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                      nprocs)
 {
+//BoxLib::Abort("SFCDoIt");
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
     std::vector<SFCToken> tokens;
@@ -1167,6 +1190,57 @@ if(ParallelDescriptor::IOProcessor()) {
     std::cout << "currentBytes[" << i << "] = " << result[i] << std::endl;
   }
   std::cout << "**********************************" << std::endl;
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "CurrentBytes.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < result.size(); ++i) {
+    bos << i << ' ' << result[i] << '\n';
+  }
+  bos.close();
+}
+
+}
+
+
+void
+DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
+{
+    result.resize(nprocs);
+    Array<long> cells(nprocs, 0);
+
+#ifdef BL_USE_MPI
+    BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
+
+
+    MPI_Allgather(&BoxLib::total_cells_allocated_in_fabs,
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  cells.dataPtr(),
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  ParallelDescriptor::Communicator());
+#endif
+
+    for(int i(0); i < nprocs; ++i) {
+      result[i] = cells[i];
+    }
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "**********************************" << std::endl;
+  for(int i(0); i < result.size(); ++i) {
+    std::cout << "currentCells[" << i << "] = " << result[i] << std::endl;
+  }
+  /*
+  std::cout << "**********************************" << std::endl;
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "CurrentCells.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < result.size(); ++i) {
+    bos << i << ' ' << result[i] << '\n';
+  }
+  bos.close();
+  */
 }
 
 }
@@ -1244,119 +1318,151 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::sort(tokens.begin(), tokens.end(), PFCToken::Compare());  // sfc order
 
-    long previousTotalCells(totalCells);
-    for(int i(0); i < boxes.size(); ++i) {  // add the new ones
-      totalCells += boxes[i].numPts();
-    }
-
-    Array<long> currentBytes;
-    CurrentBytesUsed(nprocs, currentBytes);
-
-    Real totalBytes(0.0), bytesPerCPU(0.0);
-    for(int i(0); i < currentBytes.size(); ++i) {  // currently used bytes
-      totalBytes += currentBytes[i];
-    }
-
-    Real previousTotalBytes(totalBytes);
+    Array<long> aCurrentBytes;
+    CurrentBytesUsed(nprocs, aCurrentBytes);
+    Real totB(0.0), totC(0.0), bytesPerCell(0.0);
+    Array<long> aCurrentCells;
+    CurrentCellsUsed(nprocs, aCurrentCells);
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "_here 2 totalBytes = " << totalBytes << std::endl;
+      for(int i(0); i < aCurrentCells.size(); ++i) {
+        std::cout << "aCurrentCells[" << i << "] = " << aCurrentCells[i] << std::endl;
+	totC += aCurrentCells[i];
+	totB += aCurrentBytes[i];
+      }
+      if(totC > 0.0) {
+        std::cout << "BytesPerCell = " << totB / totC << std::endl;
+      } else {
+        std::cout << "BytesPerCell = " << 0.0 << std::endl;
+      }
     }
 
-static int bpcCount(0);
+    long totalCurrentCells(0);
+    for(int i(0); i < nprocs; ++i) {
+      totalCurrentCells += aCurrentCells[i];
+    }
+    Real avgCurrentCells(static_cast<Real>(totalCurrentCells) / nprocs);
 
-    if(totalBytes > 0.0) {
+      // ===============================   // Distribute(tokens,nprocs,volpercpu,vec);
+      int  K(0);
+      Real totalvol(0.0), volpercpu(0.0), ccScale(1.0);
+      const int Navg(tokens.size() / nprocs);
+      long totalNewCells(0);
+      long totalNewCellsB(0);
+      for(int i(0); i < tokens.size(); ++i) {        // new cells to add
+        totalNewCells += tokens[i].m_vol;
+        totalNewCellsB += boxes[i].numPts();
+      }
+      if(totalNewCells != totalNewCellsB) {
+        BoxLib::Abort("tnc");
+      }
+      volpercpu = static_cast<Real>(totalNewCells) / nprocs;
 
-      if(bpcCount < 4) {
-        bytesPerCell = totalBytes / previousTotalCells;
-	++bpcCount;
+      Array<long> scaledCurrentCells(aCurrentCells.size(), 0);
+      if(totalCurrentCells > 0) {
+        ccScale = static_cast<Real>(totalNewCells) / totalCurrentCells;
+      }
+      for(int i(0); i < aCurrentCells.size(); ++i) {
+        scaledCurrentCells[i] = ccScale * aCurrentCells[i];
       }
 
-      if(bytesPerCell > 0.0) {
-        for(int i(0); i < tokens.size(); ++i) {        // new bytes to add
-          totalBytes += tokens[i].m_vol * bytesPerCell;
+      Array<long> newVolPerCPU(nprocs, 0);
+      /*
+      if(totalCurrentCells > 0) {
+        for(int i(0); i < newVolPerCPU.size(); ++i) {
+          newVolPerCPU[i] = (2.0 * volpercpu) - scaledCurrentCells[i];
+        }
+      } else {
+        for(int i(0); i < newVolPerCPU.size(); ++i) {
+          newVolPerCPU[i] = volpercpu;
         }
       }
-      bytesPerCPU = totalBytes / nprocs;
+      */
+
+long accDiff(0), accNVPC(0), accAV(0);
+KnapSackProcessorMap(boxes, nprocs);
+for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+  int whichProc(m_ref->m_pmap[i]);
+  newVolPerCPU[whichProc] += boxes[i].numPts();
+}
+for(int i(0); i < nprocs; ++i) {
+  accNVPC += newVolPerCPU[i];
+}
 
       if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "_here 0 previousTotalCells = " << previousTotalCells << std::endl;
-        std::cout << "_here 0 bytesPerCPU        = " << bytesPerCPU << std::endl;
-        std::cout << "_here 0 bytesPerCell       = " << bytesPerCell << std::endl;
-        std::cout << "_here 0 newbytes           = " << totalBytes - previousTotalBytes  << std::endl;
-        std::cout << "_here 0 m_Cache.size()     = " << m_Cache.size() << std::endl;
+        std::cout << "_here 1 totalCurrentCells = " << totalCurrentCells << std::endl;
+        std::cout << "_here 1 totalNewCells     = " << totalNewCells << std::endl;
+        std::cout << "_here 1 ccScale           = " << ccScale << std::endl;
+        std::cout << "_here 1 volpercpu         = " << volpercpu << std::endl;
+        std::cout << "_here 1 boxes.size()      = " << boxes.size() << std::endl;
+        for(int i(0); i < newVolPerCPU.size(); ++i) {
+          std::cout << "_here 1.1:  newVolPerCPU[" << i << "] diff = "
+	        << newVolPerCPU[i] << "  " << volpercpu - newVolPerCPU[i] << std::endl;
+        }
       }
-
-      // ===============================   // Distribute(tokens,nprocs,volpercpu,vec);
-      int  K(0);
-      //Real totalBytes(0.0);
-      const int Navg(tokens.size() / nprocs);
-
-      for (int i(0); i < nprocs; ++i) {
+      for(int i(0); i < nprocs; ++i) {
         int  cnt(0);
-        Real newBytes(0.0);
-        Real oldBytes(currentBytes[i]);
+        Real vol(0.0);
+	long accVol(0), oldAccVol(0);
+        long oldCells(aCurrentCells[i]);
+	long halfVol;
         vec[i].reserve(Navg + 2);
+
         for(int TSZ(tokens.size()); K < TSZ &&
-	    (i == (nprocs-1) || (oldBytes + newBytes) < bytesPerCPU);
+	    (i == (nprocs-1) || vol < (newVolPerCPU[i] - 0));
             ++cnt, ++K)
         {
-            newBytes += tokens[K].m_vol * bytesPerCell;
+            vol += tokens[K].m_vol;
+            accVol += tokens[K].m_vol;
+	    oldAccVol = accVol;
             vec[i].push_back(tokens[K].m_box);
+	    halfVol = tokens[K].m_vol / 2;
         }
 
-        totalBytes += newBytes;
-        if ((totalBytes / (i + 1)) > bytesPerCPU && cnt > 1 && K < tokens.size()) {
+        totalvol += vol;
+        if((totalvol / (i + 1)) > (newVolPerCPU[i] + 0) && cnt > 1 && K < tokens.size()) {
             --K;
             vec[i].pop_back();
-            totalBytes -= tokens[K].m_vol * bytesPerCell;
+            totalvol -= tokens[K].m_vol;
+	    oldAccVol = accVol;
+            accVol -= tokens[K].m_vol;
         }
+      aCurrentCells[i] += accVol;
+
+      accAV   += accVol;
+
+if(ParallelDescriptor::IOProcessor()) {
+  accDiff += newVolPerCPU[i] - accVol;
+  std::cout << "_here 2:  proc nVPC accVol diff odiff accDiff :::: " << i << ":  "
+	    << newVolPerCPU[i] << "  -   " << accVol << " =  "
+	    << newVolPerCPU[i] - accVol << "  "
+	    << newVolPerCPU[i] - oldAccVol << "  " << accDiff << std::endl;
+}
+
       }
       // ===============================
 
-
-    } else {  // distribute by volume
-
-      // ===============================   // Distribute(tokens,nprocs,volpercpu,vec);
-      int  K(0);
-      Real totalvol(0.0);
-      const int Navg(tokens.size() / nprocs);
-      Real volpercpu(0.0);
-      for(int i(0); i < tokens.size(); ++i) {
-        volpercpu += tokens[i].m_vol;
-      }
-      volpercpu /= nprocs;
-
-      for(int i(0); i < nprocs; ++i) {
-          int  cnt(0);
-          Real vol(0.0);
-          vec[i].reserve(Navg + 2);
-          for(int TSZ(tokens.size());
-	      K < TSZ && (i == (nprocs-1) || vol < volpercpu);
-              ++cnt, ++K)
-          {
-              vol += tokens[K].m_vol;
-              vec[i].push_back(tokens[K].m_box);
-          }
-
-          totalvol += vol;
-          if((totalvol / (i + 1)) > volpercpu && cnt > 1 && K < tokens.size()) {
-              --K;
-              vec[i].pop_back();
-              totalvol -= tokens[K].m_vol;
-          }
-      }
-      // ===============================
-    }
-
+if(ParallelDescriptor::IOProcessor()) {
+  long npoints(0);
+  for(int i(0); i < boxes.size(); ++i) {
+    npoints += boxes[i].numPts();
+  }
+  std::cout << "_here 2.1:  accNVPC accAV npoints = " << accNVPC << "  "
+            << accAV << "  " << npoints << std::endl;
+  std::cout << "_here 3:  vvvvvvvvvvvvvvvvvvvvvvvv after dist" << std::endl;
+  for(int i(0); i < aCurrentCells.size(); ++i) {
+    std::cout << "aCurrentCells[" << i << "] = " << aCurrentCells[i] << std::endl;
+  }
+  std::cout << "_here 3:  ^^^^^^^^^^^^^^^^^^^^^^^^ after dist" << std::endl;
+}
 
     tokens.clear();
-    //Array<long> wgts_per_cpu(nprocs, 0);
-    //for (unsigned int i(0), N(vec.size()); i < N; ++i) {
-        //const std::vector<int>& vi = vec[i];
-        //for (int j(0), M(vi.size()); j < M; ++j) {
-            //wgts_per_cpu[i] += wgts[vi[j]];
-	//}
-    //}
+    Array<long> wgts_per_cpu(nprocs, 0);
+    for (unsigned int i(0), N(vec.size()); i < N; ++i) {
+        const std::vector<int>& vi = vec[i];
+        for (int j(0), M(vi.size()); j < M; ++j) {
+            wgts_per_cpu[i] += wgts[vi[j]];
+	}
+    }
 
     //std::vector<LIpair> LIpairV;
     //LIpairV.reserve(nprocs);
@@ -1370,13 +1476,55 @@ static int bpcCount(0);
         //const int idx = LIpairV[i].second;
         const std::vector<int>& vi = vec[i];
 
-        for (int j(0), N(vi.size()); j < N; ++j) {
-            m_ref->m_pmap[vi[j]] = ProximityMap(i);
+        for(int j(0), N(vi.size()); j < N; ++j) {
+          m_ref->m_pmap[vi[j]] = ProximityMap(i);
         }
     }
 
     // Set sentinel equal to our processor number.
     m_ref->m_pmap[boxes.size()] = ParallelDescriptor::MyProc();
+
+    if(ParallelDescriptor::IOProcessor()) {
+        Real sum_wgt = 0, max_wgt = 0;
+        for(int i = 0, N = wgts_per_cpu.size(); i < N; ++i) {
+            const long W = wgts_per_cpu[i];
+            if(W > max_wgt) {
+              max_wgt = W;
+	    }
+            sum_wgt += W;
+        }
+        std::cout << "PFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+    }
+/*
+if(ParallelDescriptor::IOProcessor()) {
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "CurrentCellsAcc.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < aCurrentCells.size(); ++i) {
+    bos << i << ' ' << aCurrentCells[i] << '\n';
+  }
+  bos.close();
+}
+*/
+
+
+if(ParallelDescriptor::IOProcessor()) {
+  Array<long> ncells(nprocs, 0);
+  for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+    int index(m_ref->m_pmap[i]);
+    ncells[index] += boxes[index].numPts();
+  }
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "PFCncells.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < ncells.size(); ++i) {
+    bos << i << ' ' << ncells[i] << '\n';
+  }
+  bos.close();
+}
+
 }
 
 
@@ -1757,7 +1905,7 @@ void
 DistributionMapping::PrintDiagnostics(const std::string &filename)
 {
     int nprocs(ParallelDescriptor::NProcs());
-    Array<long> bytes(nprocs);
+    Array<long> bytes(nprocs, 0);
 
     ParallelDescriptor::Gather(&BoxLib::total_bytes_allocated_in_fabs,
                                1,

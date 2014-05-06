@@ -68,11 +68,13 @@ StateData::define (const Box&             p_domain,
     int ncomp = desc->nComp();
 
 if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "+++++++++++++>>>> StateData::define:  making new_data" << std::endl;
+  std::cout << "+++++++++++++>>>> StateData::define:  making new_data:  pd ngrids = "
+            << p_domain << "  " << grids.size() << std::endl;
 }
     new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
 if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "+++++++++++++<<<< StateData::define:  after making new_data" << std::endl;
+  std::cout << "+++++++++++++<<<< StateData::define:  after making new_data = "
+            << new_data << std::endl;
 }
 
     old_data = 0;
