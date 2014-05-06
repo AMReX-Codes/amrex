@@ -543,7 +543,7 @@ contains
                    if ( parallel_ioprocessor() ) then
                       write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                            iter,n,tres/tres0
-                      print *, 'tres=', tres
+!                     print *, 'tres=', tres
                    end if
                 end do
              end if
