@@ -903,6 +903,8 @@ contains
           fj = j*ir(2)
           do i = lo(1),hi(1)
              fi = i*ir(1)
+             if (.not. bc_dirichlet(mm_fine(fi,fj,fk),1,0) .or. bc_dirichlet(mm_crse(i,j,k),1,0) ) &
+                  mask(i,j,k) = .false.
           end do
        end do
     end do
