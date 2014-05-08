@@ -926,6 +926,7 @@ def testSuite(argv):
                   --sourceGitHash sourcehash
                   --extSrcGitHash extsourcehash
                   --note note
+                  -d dimensionality
                   --complete_report_from_crash testdir]
         testfile.ini
 
@@ -1220,7 +1221,7 @@ def testSuite(argv):
         sys.exit(2)
 
     try:
-        opts, next = getopt.getopt(argv[1:], "",
+        opts, next = getopt.getopt(argv[1:], "d:",
                                    ["make_benchmarks=",
                                     "no_update=",
                                     "single_test=",
@@ -1239,6 +1240,7 @@ def testSuite(argv):
 
 
     # defaults
+    dimensionality = -1
     make_benchmarks = 0
     no_update = "None"
     single_test = ""
@@ -1252,6 +1254,9 @@ def testSuite(argv):
     completeReportFromCrash = ""
 
     for o, a in opts:
+
+        if o == "-d":
+            dimensionality = int(a)
 
         if o == "--make_benchmarks":
             make_benchmarks = 1
@@ -1298,6 +1303,15 @@ def testSuite(argv):
     bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
+
+    # if we only want to run tests of a certain dimensionality, remove
+    # the others
+    if dimensionality >= 1 and dimensionality <= 3:
+        testListold = testList[:]
+        for t in testListold:
+            if not t.dim == dimensionality:
+                testList.remove(t)
+
     activeTestList = [t.name for t in testList]
 
     # store the full path to the testFile
