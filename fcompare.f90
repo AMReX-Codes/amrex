@@ -94,12 +94,15 @@ program fcompare
      farg = farg + 1
   enddo
 
-  if (len_trim(plotfile_a) == 0) &
+  if (len_trim(plotfile_a) == 0) then
      call get_command_argument(farg, value = plotfile_a)
+     farg = farg + 1
+  endif
 
-  if (len_trim(plotfile_b) == 0) &
+  if (len_trim(plotfile_b) == 0) then
      call get_command_argument(farg, value = plotfile_b)
-
+     farg = farg + 1
+  endif
 
   if (len_trim(plotfile_a) == 0 .OR. len_trim(plotfile_b) == 0) then
      print *, " "
