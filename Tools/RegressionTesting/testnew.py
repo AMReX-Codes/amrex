@@ -2442,8 +2442,13 @@ def testSuite(argv):
             if (not outputFile == ""):
 
                 print "  doing the analysis..."
-                shutil.copy("{}/{}".format(suite.sourceDir, test.analysisRoutine),
-                            os.getcwd())
+                if test.useExtraBuildDir > 0:
+                    shutil.copy("{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1], 
+                                               test.analysisRoutine),
+                                os.getcwd())
+                else:
+                    shutil.copy("{}/{}".format(suite.sourceDir, test.analysisRoutine),
+                                os.getcwd())
                             
 
                 option = eval("suite.{}".format(test.analysisMainArgs))
