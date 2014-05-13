@@ -154,12 +154,24 @@ contains
        mgt%ns = 1
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
-          mgt%ns = 1 + 3*mgt%dim
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 7
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 10
+          end if
        else if (mgt%stencil_type .eq. HO_CROSS_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 9
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 13
+          end if
        else if (mgt%stencil_type .eq. HO_DENSE_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
-       endif
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 25
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 61
+          end if
+       end if
     end if
 
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
