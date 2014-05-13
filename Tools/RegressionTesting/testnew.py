@@ -69,6 +69,10 @@ class testObj:
         self.doVis = 0
         self.visVar = ""
 
+        self.analysisRoutine = ""
+        self.analysisMainArgs = ""
+        self.analysisOutputImage = ""
+
         self.outputFile = ""
         self.compareFile = ""
 
@@ -477,6 +481,15 @@ def LoadParams(file):
 
             elif (opt == "visVar"):
                 mytest.visVar = value
+
+            elif (opt == "analysisRoutine"):
+                mytest.analysisRoutine = value
+
+            elif (opt == "analysisMainArgs"):
+                mytest.analysisMainArgs = value
+
+            elif (opt == "analysisOutputImage"):
+                mytest.analysisOutputImage = value
 
             elif (opt == "outputFile"):
                 mytest.outputFile = value
@@ -1009,6 +1022,18 @@ def testSuite(argv):
 
             doVis = < 0 for no visualization, 1 if we do visualization >
             visVar = < string of the variable to visualize >
+
+            analysisRoutine = < name of the script to run on the output.  The
+                                script is run as:
+
+                                analysisRoutine [options] plotfile >
+
+            analysisMainArgs = < commandline arguments to pass to the 
+                                 analysisRoutine -- these should refer to
+                                 options from the [main] block >
+
+            analysisOutputImage = < result of the analysis to show on the 
+                                    test results page >
 
             compareFile = < explicit output file to do the comparison with >
 
@@ -2407,6 +2432,28 @@ def testSuite(argv):
             else:
                 warning("    WARNING: no output file.  Skipping visualization")
         
+
+
+        #----------------------------------------------------------------------
+        # do any analysis
+        #---------------------------------------------------------------------- 
+        if (not test.analysisRoutine == "" and not make_benchmarks):
+
+            if (not outputFile == ""):
+
+                print "  doing the analysis..."
+                shutil.copy("{}/{}".format(suite.sourceDir, test.analysisRoutine),
+                            os.getcwd())
+                            
+
+                option = eval("suite.{}".format(test.analysisMainArgs))
+                
+                systemCall("{} {} {}".format(os.path.basename(test.analysisRoutine), 
+                                             option, outputFile))
+
+            else:
+                warning("    WARNING: no output file.  Skipping visualization")
+        
                        
         #----------------------------------------------------------------------
         # move the output files into the web directory
@@ -2437,6 +2484,12 @@ def testSuite(argv):
                except IOError:
                    # visualization was not successful.  Reset doVis
                    test.doVis = 0
+
+            if (not test.analysisRoutine == ""):
+                try: shutil.copy(test.analysisOutputImage, fullWebDir)
+                except IOError:
+                    # analysis was not successful.  Reset the output image
+                    test.analysisOutputImage = ""
 
                
         else:
@@ -2876,6 +2929,11 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
             pngFile = getRecentFileName(fullWebDir, test.name, ".png")
             hf.write("<P>&nbsp;\n")
             hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
+
+        # show any analysis
+        if (not test.analysisOutputImage == ""):
+            hf.write("<P>&nbsp;\n")
+            hf.write("<P><IMG SRC='%s' BORDER=0>" % (test.analysisOutputImage) )
     
 
     # close
