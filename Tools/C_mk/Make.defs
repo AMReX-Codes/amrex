@@ -360,9 +360,9 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     # ask gfortran the name of the library to link in.  First check for the
     # static version.  If it returns only the name w/o a path, then it
     # was not found.  In that case, ask for the shared-object version.
-    _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
+    _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.a)
     ifeq ($(_f95_lib),libgfortran.a)
-      _f95_lib:=$(shell gfortran -print-file-name=libgfortran.so)
+      _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
     override XTRALIBS += $(_f95_lib)

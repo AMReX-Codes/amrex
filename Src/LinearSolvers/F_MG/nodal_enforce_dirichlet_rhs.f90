@@ -2,10 +2,7 @@ module nodal_enforce_module
 
   use bl_constants_module
   use bc_functions_module
-  use bndry_reg_module
   use mg_tower_module
-  use ml_restriction_module
-  use define_bc_module
 
   implicit none
 
@@ -19,7 +16,6 @@ contains
     type(imultifab):: mask
     integer        :: i,n,ng_d,dm,nlevs
     integer        :: lo(get_dim(divu_rhs(1))),hi(get_dim(divu_rhs(1)))
-    type(bc_level) :: bc
     integer        , pointer ::   mp(:,:,:,:) 
     real(kind=dp_t), pointer :: divp(:,:,:,:) 
 
