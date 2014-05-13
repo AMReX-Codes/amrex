@@ -544,7 +544,7 @@ iMultiFab::norm2 (int comp) const
 
     ParallelDescriptor::ReduceIntSum(nm2);
 
-    nm2 = std::sqrt(nm2);
+    nm2 = std::sqrt(double(nm2));
 
     return nm2;
 }
