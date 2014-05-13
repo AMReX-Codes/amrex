@@ -585,7 +585,7 @@ contains
     type(boxarray), intent(in) :: ba
     real(dp_t) :: r
     integer :: i
-    r = 0_dp_t
+    r = 0.0_dp_t
     !$OMP PARALLEL DO REDUCTION(+:r)
     do i = 1, ba%nboxes
        r = r + box_dvolume(ba%bxs(i))
