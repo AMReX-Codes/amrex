@@ -14,8 +14,10 @@
 #include <ABecLaplacian.H>
 #include <ParallelDescriptor.H>
 #include <MacBndry.H>
+#ifdef USE_F90_SOLVERS
 #include <MGT_Solver.H>
 #include <stencil_types.H>
+#endif
 
 #ifdef USEHYPRE
 #include <HypreABecLap.H>
@@ -57,8 +59,12 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 	   solver_t solver);
 void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+
+#ifdef USE_F90_SOLVERS
 void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
+#endif
+
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
@@ -82,7 +88,11 @@ int main(int argc, char* argv[])
       solver_type = BoxLib_C;
     }
     else if (solver_type_s == "BoxLib_F") {
+#ifdef USE_F90_SOLVERS
       solver_type = BoxLib_F;      
+#else
+      BoxLib::Error("Set USE_FORTRAN=TRUE in GNUmakefile");
+#endif
     }
     else if (solver_type_s == "Hypre") {
 #ifdef USEHYPRE
@@ -233,6 +243,7 @@ int main(int argc, char* argv[])
     solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
   }
 
+#ifdef USE_F90_SOLVERS
   if (solver_type == BoxLib_F || solver_type == All) {
     if (ParallelDescriptor::IOProcessor()) {
       std::cout << "----------------------------------------" << std::endl;
@@ -241,6 +252,7 @@ int main(int argc, char* argv[])
 
     solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_F);
   }
+#endif
 
   if (ParallelDescriptor::IOProcessor()) {
     std::cout << "----------------------------------------" << std::endl;
@@ -419,10 +431,12 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
     ss = "CPP";
     solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
   }
+#ifdef USE_F90_SOLVERS
   else if (solver == BoxLib_F) {
     ss = "F90";
     solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
   }
+#endif
 #ifdef USEHYPRE
   else if (solver == Hypre) {
     ss = "Hyp";
@@ -483,6 +497,7 @@ void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 } 
 
+#ifdef USE_F90_SOLVERS
 void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
@@ -565,6 +580,7 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   Real final_resnorm;
   mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
 }
+#endif
 
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
