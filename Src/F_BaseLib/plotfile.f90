@@ -7,7 +7,7 @@ module plotfile_module
   implicit none
 
   integer, private, parameter :: MAX_PATH_NAME = 128
-  integer, private, parameter :: MAX_VAR_NAME  = 20
+  integer, private, parameter :: MAX_VAR_NAME  = 128
 
   interface destroy
      module procedure plotfile_destroy
@@ -232,7 +232,7 @@ contains
     read(unit=lun,fmt='(a)') str
     if ( str == '&PLOTFILE' ) then
        call build_pf
-    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
+    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' .or. str == 'PorousMedia-V1.1' ) then 
        call build_ns_plotfile
     else
        call bl_error('BUILD_PLOTIFILE: Header has improper magic string', str)
