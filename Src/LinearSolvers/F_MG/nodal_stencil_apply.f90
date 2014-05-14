@@ -26,11 +26,11 @@ module nodal_stencil_apply_module
 
 contains
 
-  subroutine stencil_apply_1d_nodal(sg, dd, uu, mm, ng, diagonalize)
-    integer, intent(in) :: ng
+  subroutine stencil_apply_1d_nodal(sg, dd, uu, mm, ng_u, ng_d, diagonalize)
+    integer, intent(in) :: ng_u, ng_d
     real (kind = dp_t), intent(in   ) :: sg(   0:)
-    real (kind = dp_t), intent(inout) :: dd(   0:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:)
+    real (kind = dp_t), intent(inout) :: dd(1-ng_d:)
+    real (kind = dp_t), intent(inout) :: uu(1-ng_u:)
     integer           , intent(in   ) :: mm(    :)
     logical           , intent(in   ) :: diagonalize
 
@@ -41,7 +41,7 @@ contains
     dd = ZERO
 
     lo = 1
-    call impose_neumann_bcs_1d(uu,mm,lo,ng)
+    call impose_neumann_bcs_1d(uu,mm,lo,ng_u)
    
     i = 1
     if (.not. bc_dirichlet(mm(i),1,0)) then
@@ -62,10 +62,10 @@ contains
 
   end subroutine stencil_apply_1d_nodal
 
-  subroutine stencil_apply_2d_nodal(sg, dd, uu, mm, ng, stencil_type, diagonalize)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t), intent(inout) :: dd(   0:,   0:)
+  subroutine stencil_apply_2d_nodal(sg, dd, uu, mm, ng_u, ng_d, stencil_type, diagonalize)
+    integer, intent(in) :: ng_u, ng_d
+    real (kind = dp_t), intent(inout) :: uu(1-ng_u:,1-ng_u:)
+    real (kind = dp_t), intent(inout) :: dd(1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in   ) :: sg(   0:,   0:)
     integer           , intent(in   ) :: mm(    :,    :)
     integer           , intent(in   ) :: stencil_type 
@@ -76,7 +76,7 @@ contains
     real (kind = dp_t) :: ss0
 
     lo = 1
-    call impose_neumann_bcs_2d(uu,mm,lo,ng)
+    call impose_neumann_bcs_2d(uu,mm,lo,ng_u)
  
     nx = size(sg,dim=1) - 1
     ny = size(sg,dim=2) - 1
@@ -149,11 +149,11 @@ contains
 
   end subroutine stencil_apply_2d_nodal
 
-  subroutine stencil_apply_3d_nodal(sg, dd, uu, mm, ng, stencil_type, &
+  subroutine stencil_apply_3d_nodal(sg, dd, uu, mm, ng_u, ng_d, stencil_type, &
                                     uniform_dh, bottom_solver, diagonalize)
-    integer           , intent(in   ) :: ng
-    real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), intent(inout) :: dd(   0:,   0:,   0:)
+    integer           , intent(in   ) :: ng_u, ng_d
+    real (kind = dp_t), intent(inout) :: uu(1-ng_u:,1-ng_u:,1-ng_u:)
+    real (kind = dp_t), intent(inout) :: dd(1-ng_d:,1-ng_d:,1-ng_d:)
     real (kind = dp_t), intent(in   ) :: sg(   0:,   0:,   0:)
     integer           , intent(in   ) :: mm(    :,    :,    :)
     integer           , intent(in   ) :: stencil_type
@@ -164,7 +164,7 @@ contains
     real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz, ss0
 
     lo = 1
-    call impose_neumann_bcs_3d(uu,mm,lo,ng)
+    call impose_neumann_bcs_3d(uu,mm,lo,ng_u)
 
     nz = size(sg,dim=3) - 1
     ny = size(sg,dim=2) - 1

@@ -154,12 +154,24 @@ contains
        mgt%ns = 1
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
-          mgt%ns = 1 + 3*mgt%dim
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 7
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 10
+          end if
        else if (mgt%stencil_type .eq. HO_CROSS_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 9
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 13
+          end if
        else if (mgt%stencil_type .eq. HO_DENSE_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
-       endif
+          if (mgt%dim .eq. 2) then
+             mgt%ns = 25
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 61
+          end if
+       end if
     end if
 
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
@@ -1430,7 +1442,9 @@ contains
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
 
-    select case ( mgt%cycle_type )
+    ! Note: this used to depend on mgt%cycle_type, but now we explicitly use the cycle_type
+    !       that is passed in in "cyc" so that we can mix the cycle types in a single solve.
+    select case ( cyc )
         case(MG_VCycle)
             call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
         case(MG_WCycle)
