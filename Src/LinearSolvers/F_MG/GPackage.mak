@@ -36,6 +36,7 @@ f90sources += nodal_applyop.f90
 f90sources += nodal_mask.f90
 f90sources += nodal_mg_cpp.f90
 f90sources += nodal_divu.f90
+f90sources += nodal_enforce_dirichlet_rhs.f90
 f90sources += nodal_interface_stencil.f90
 f90sources += nodal_neumann_bcs.f90
 f90sources += nodal_newu.f90

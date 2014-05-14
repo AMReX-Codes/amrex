@@ -360,9 +360,9 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     # ask gfortran the name of the library to link in.  First check for the
     # static version.  If it returns only the name w/o a path, then it
     # was not found.  In that case, ask for the shared-object version.
-    _f95_lib:=$(shell gfortran -print-file-name=libgfortran.a)
+    _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.a)
     ifeq ($(_f95_lib),libgfortran.a)
-      _f95_lib:=$(shell gfortran -print-file-name=libgfortran.so)
+      _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
     override XTRALIBS += $(_f95_lib)
@@ -424,7 +424,11 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), GIMANTIS)
      CXXOPTF += -g -O2 -ip
    else
+   ifeq ($(WHICHLINUX), EDISON)
+     CXXOPTF += -g -O2 -ip
+   else
      CXXOPTF += -g -O2 -ip -fp-model source -xHost
+   endif
    endif
    CXXDEBF += -g -O0
 
@@ -692,8 +696,13 @@ ifeq ($(FCOMP),Intel)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
+   ifeq ($(WHICHLINUX), EDISON)
+     FOPTF += -O2 -ip
+     fOPTF += -O2 -ip
+   else
      FOPTF += -O2 -ip -fp-model source -xHost
      fOPTF += -O2 -ip -fp-model source -xHost
+   endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
