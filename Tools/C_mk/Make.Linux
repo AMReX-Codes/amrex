@@ -359,11 +359,19 @@ endif
 ifeq ($(WHICHLINUX), CAB)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := mpiCC
-    CC  := gcc
-    FC  := gfortran
-    F90 := gfortran
-    fC  := gfortran
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC  := mpiifort
+      fC  := mpiifort
+    else
+      CXX := mpiCC
+      CC  := gcc
+      FC  := gfortran
+      F90 := gfortran
+      fC  := gfortran
+    endif
   endif
 endif
 
