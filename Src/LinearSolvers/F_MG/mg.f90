@@ -154,19 +154,27 @@ contains
        mgt%ns = 1
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
-          if (mgt%dim .eq. 2) then
+          ! Note that the cross stencils have 
+          !      ns = 2*dm (lo/hi each direction) + 1 (center) + 1 (extra used only at bc)
+          if (mgt%dim .eq. 1) then
+             mgt%ns = 4
+          else if (mgt%dim .eq. 2) then
              mgt%ns = 7
           else if (mgt%dim .eq. 3) then
              mgt%ns = 10
           end if
        else if (mgt%stencil_type .eq. HO_CROSS_STENCIL) then
-          if (mgt%dim .eq. 2) then
+          if (mgt%dim .eq. 1) then
+             call bl_error("HO_CROSS_STENCIL not supported in 1D")
+          else if (mgt%dim .eq. 2) then
              mgt%ns = 9
           else if (mgt%dim .eq. 3) then
              mgt%ns = 13
           end if
        else if (mgt%stencil_type .eq. HO_DENSE_STENCIL) then
-          if (mgt%dim .eq. 2) then
+          if (mgt%dim .eq. 1) then
+             call bl_error("HO_DENSE_STENCIL not supported in 1D")
+          else if (mgt%dim .eq. 2) then
              mgt%ns = 25
           else if (mgt%dim .eq. 3) then
              mgt%ns = 61
