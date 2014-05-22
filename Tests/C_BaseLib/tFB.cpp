@@ -5,29 +5,53 @@
 #include <Utility.H>
 #include <MultiFab.H>
 
+const int nTimes(5);
+const int nStrategies(4);
+
+
 int
 main (int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
+  Array<DistributionMapping::Strategy> dmStrategies(nStrategies);
+  dmStrategies[0] = DistributionMapping::ROUNDROBIN;
+  dmStrategies[1] = DistributionMapping::KNAPSACK;
+  dmStrategies[2] = DistributionMapping::SFC;
+  dmStrategies[3] = DistributionMapping::PFC;
+
+  Array<std::string> dmSNames(nStrategies);
+  dmSNames[0] = "ROUNDROBIN";
+  dmSNames[1] = "KNAPSACK";
+  dmSNames[2] = "SFC";
+  dmSNames[3] = "PFC";
+
+  Array<double> dmSTimes(nStrategies, 0.0);
+
+  for(int iS(0); iS < nStrategies * nTimes; ++iS) {
+
+    int whichStrategy(iS % nStrategies);
+
+    DistributionMapping::strategy(dmStrategies[whichStrategy]);
+
 //    Box bx(IntVect(0,0,0),IntVect(511,511,255));
 //    Box bx(IntVect(0,0,0),IntVect(1023,1023,255));
-//    Box bx(IntVect(0,0,0),IntVect(1023,1023,1023));
-    Box bx(IntVect(0,0,0),IntVect(2047,2047,1023));
+    Box bx(IntVect(0,0,0),IntVect(1023,1023,1023));
+//    Box bx(IntVect(0,0,0),IntVect(2047,2047,1023));
 //    Box bx(IntVect(0,0,0),IntVect(127,127,127));
 //    Box bx(IntVect(0,0,0),IntVect(255,255,255));
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "Domain: " << bx << '\n';
-
     BoxArray ba(bx);
-
     ba.maxSize(64);
 
-    const int N = 1000;  // This should be divisible by 4 !!!
+    const int N = 2000;  // This should be divisible by 4 !!!
 
+    if (ParallelDescriptor::IOProcessor() && iS == 0) {
+        std::cout << "Domain: " << bx << "  # boxes in BoxArray:  " << ba.size() << '\n';
+    }
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "# boxes in BoxArray: " << ba.size() << '\n';
+        std::cout << "Strategy: " << dmSNames[DistributionMapping::strategy()] << '\n';
+
 
     ParallelDescriptor::Barrier();
 
@@ -44,9 +68,12 @@ main (int argc, char** argv)
         double end = (ParallelDescriptor::second() - beg);
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << N << " cross x 1: " << end << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+          std::cout << N << " cross x 1: " << end << std::endl;
+	  dmSTimes[whichStrategy] += end;
+	}
     }
+
 
     {
         //
@@ -61,8 +88,10 @@ main (int argc, char** argv)
         double end = (ParallelDescriptor::second() - beg);
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << N << " dense x 1: " << end << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+          std::cout << N << " dense x 1: " << end << std::endl;
+	  dmSTimes[whichStrategy] += end;
+	}
     }
 
     {
@@ -78,8 +107,10 @@ main (int argc, char** argv)
         double end = (ParallelDescriptor::second() - beg);
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << (N/2) << " dense x 2: " << end << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+          std::cout << (N/2) << " dense x 2: " << end << std::endl;
+	  dmSTimes[whichStrategy] += end;
+	}
     }
 
     {
@@ -95,8 +126,23 @@ main (int argc, char** argv)
         double end = (ParallelDescriptor::second() - beg);
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << (N/4) << " dense x 4: " << end << std::endl;
+        if (ParallelDescriptor::IOProcessor()) {
+          std::cout << (N/4) << " dense x 4: " << end << std::endl;
+	  dmSTimes[whichStrategy] += end;
+	}
+    }
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << std::endl;
+
+  }  // end for iS
+
+
+    if(ParallelDescriptor::IOProcessor()) {
+      for(int i(0); i < nStrategies; ++i) {
+        std::cout << std::endl << "Total times:" << std::endl;
+	std::cout << dmSNames[i] << " time = " << dmSTimes[i] << std::endl;
+      }
+      std::cout << std::endl << std::endl;
     }
 
     BoxLib::Finalize();
