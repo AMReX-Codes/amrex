@@ -13,6 +13,9 @@ DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
+PROFILE      = FALSE
+COMM_PROFILE = FALSE
+
 BOXLIB_HOME = ../..
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
