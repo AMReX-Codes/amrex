@@ -1736,7 +1736,7 @@ osNodeFab.close();
       }
       std::cout << "++++++++++++++++++++++++" << std::endl;
       if(proximityMap.size() != ParallelDescriptor::NProcs()) {
-	std::cout << "####::InitProximityMap: proximityMap not resized yet." << std::endl;
+	//std::cout << "####::InitProximityMap: proximityMap not resized yet." << std::endl;
         proximityMap.resize(ParallelDescriptor::NProcs(), 0);
         proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
       }
