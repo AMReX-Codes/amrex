@@ -1703,58 +1703,7 @@ Amr::timeStep (int  level,
     //
     if (max_level == 0 && regrid_on_restart)
     {
-        regrid_on_restart = 0;
-        //
-        // Coarsening before we split the grids ensures that each resulting
-        // grid will have an even number of cells in each direction.
-        //
-        BoxArray lev0(BoxLib::coarsen(geom[0].Domain(),2));
-        //
-        // Now split up into list of grids within max_grid_size[0] limit.
-        //
-        lev0.maxSize(max_grid_size[0]/2);
-        //
-        // Now refine these boxes back to level 0.
-        //
-        lev0.refine(2);
-
-        //
-        // If use_efficient_regrid flag is set, then test to see whether we in fact 
-        //    have just changed the level 0 grids. If not, then don't do anything more here.
-        //
-        if ( !( (use_efficient_regrid == 1) && (lev0 == amr_level[0].boxArray()) ) ) 
-        {
-            //
-            // Construct skeleton of new level.
-            //
-            AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
-
-            a->init(amr_level[0]);
-            amr_level.clear(0);
-            amr_level.set(0,a);
-
-            amr_level[0].post_regrid(0,0);
-
-            if (ParallelDescriptor::IOProcessor())
-            {
-               if (verbose > 1)
-               {
-                  printGridInfo(std::cout,0,finest_level);
-               }
-               else if (verbose > 0)
-               {
-                  printGridSummary(std::cout,0,finest_level);
-               }
-            }
-
-            if (record_grid_info && ParallelDescriptor::IOProcessor())
-                printGridInfo(gridlog,0,finest_level);
-        }
-        else
-        {
-            if (verbose > 0 && ParallelDescriptor::IOProcessor())
-                std::cout << "Regridding at level 0 but grids unchanged " << std::endl;
-        }
+	regrid_level_0_on_restart();
     }
     else
     {
@@ -2309,6 +2258,63 @@ Amr::regrid (int  lbase,
         {
            printGridSummary(std::cout,start,finest_level);
         }
+    }
+}
+
+void
+Amr::regrid_level_0_on_restart()
+{
+    regrid_on_restart = 0;
+    //
+    // Coarsening before we split the grids ensures that each resulting
+    // grid will have an even number of cells in each direction.
+    //
+    BoxArray lev0(BoxLib::coarsen(geom[0].Domain(),2));
+    //
+    // Now split up into list of grids within max_grid_size[0] limit.
+    //
+    lev0.maxSize(max_grid_size[0]/2);
+    //
+    // Now refine these boxes back to level 0.
+    //
+    lev0.refine(2);
+    
+    //
+    // If use_efficient_regrid flag is set, then test to see whether we in fact 
+    //    have just changed the level 0 grids. If not, then don't do anything more here.
+    //
+    if ( !( (use_efficient_regrid == 1) && (lev0 == amr_level[0].boxArray()) ) ) 
+    {
+	//
+	// Construct skeleton of new level.
+	//
+	AmrLevel* a = (*levelbld)(*this,0,geom[0],lev0,cumtime);
+	
+	a->init(amr_level[0]);
+	amr_level.clear(0);
+	amr_level.set(0,a);
+	
+	amr_level[0].post_regrid(0,0);
+	
+	if (ParallelDescriptor::IOProcessor())
+	{
+	    if (verbose > 1)
+	    {
+		printGridInfo(std::cout,0,finest_level);
+	    }
+	    else if (verbose > 0)
+	    {
+		printGridSummary(std::cout,0,finest_level);
+	    }
+	}
+	
+	if (record_grid_info && ParallelDescriptor::IOProcessor())
+	    printGridInfo(gridlog,0,finest_level);
+    }
+    else
+    {
+	if (verbose > 0 && ParallelDescriptor::IOProcessor())
+	    std::cout << "Regridding at level 0 but grids unchanged " << std::endl;
     }
 }
 
