@@ -482,6 +482,10 @@ protected:
                          Real time,
                          bool initial = false);
     //
+    // Regrid level 0 on restart. 
+    //
+    virtual void regrid_level_0_on_restart ();
+    //
     // Define new grid locations (called from regrid) and put into new_grids.
     //
     void grid_places (int              lbase,
