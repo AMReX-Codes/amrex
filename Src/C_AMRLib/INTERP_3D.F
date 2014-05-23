@@ -37,8 +37,9 @@ c :::
      $                          lratiox, lratioy, lratioz, nvar,
      $                          sl, num_slp,
      $                          actual_comp, actual_state)
+      implicit none
 #ifdef BL_USE_OMP
-      use omp_lib
+      include 'omp_lib.h'
 #endif
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -252,10 +253,10 @@ c :::
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
      $                          voffx,voffy,voffz, alpha, cmax, cmin,
      $                          actual_comp, actual_state)
-#ifdef BL_USE_OMP
-      use omp_lib
-#endif
       implicit none
+#ifdef BL_USE_OMP
+      include 'omp_lib.h'
+#endif
 
       integer DIMDEC(fine)
       integer DIMDEC(crse)
