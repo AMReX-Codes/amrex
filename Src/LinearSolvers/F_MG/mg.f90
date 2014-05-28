@@ -335,6 +335,7 @@ contains
     !   or if you're here as part of a cc_applyop instead of a solve
     !   instead of coarsening within this one then don't bother
     !   creating the special bottom solver stuff
+
     if (mgt%nlevels == 1) mgt%bottom_solver = 1
 
     if (mgt%bottom_solver == 4 .and. mgt%use_hypre == 0) then
@@ -357,8 +358,6 @@ contains
           end if
 
        else
-
-           allocate(mgt%bottom_mgt)
 
            ! Get the old/new coarse problem domain
            coarse_pd = layout_get_pd(old_coarse_la)
@@ -394,8 +393,9 @@ contains
                end if
 
                coarse_dx(:) = mgt%dh(:,1)
-                  
 
+               allocate(mgt%bottom_mgt)
+                  
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
@@ -425,8 +425,8 @@ contains
                mgt%bottom_solver = 1
 
                if ( parallel_IOProcessor() .and. verbose > 1 ) then
-                   print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
-                   print *,'F90mg: Using bottom_solver = 1 instead'
+                   print *,'F90mg: Unsuccessful in get_bottom_box_size'
+                   print *,'F90mg: Setting bottom_solver to 1 instead'
                end if
 
            end if
