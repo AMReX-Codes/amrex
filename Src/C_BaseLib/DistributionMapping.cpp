@@ -853,7 +853,7 @@ if(ParallelDescriptor::IOProcessor()) {
   Array<long> ncells(nprocs, 0);
   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
     int index(m_ref->m_pmap[i]);
-    ncells[index] += boxes[index].numPts();
+    ncells[index] += boxes[i].numPts();
   }
   static int count(0);
   std::stringstream dfss;
@@ -1513,7 +1513,7 @@ if(ParallelDescriptor::IOProcessor()) {
   Array<long> ncells(nprocs, 0);
   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
     int index(m_ref->m_pmap[i]);
-    ncells[index] += boxes[index].numPts();
+    ncells[index] += boxes[i].numPts();
   }
   static int count(0);
   std::stringstream dfss;
