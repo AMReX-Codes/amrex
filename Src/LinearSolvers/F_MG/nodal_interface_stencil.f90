@@ -1576,7 +1576,6 @@ contains
                   else
                      dd(ic,jc) = dd(ic,jc) + HALF * fac * res(irght,joff)
                   end if
-                  if (ic.eq.4 .and. jc.eq.2) print *,'HERE 0'
                else if (lhi) then
                   if (n==0) then
                      if (.not. bc_dirichlet(mm(i,joff),1,0)) &
@@ -1584,7 +1583,6 @@ contains
                   else
                      dd(ic,jc) = dd(ic,jc) + HALF * fac * res(ileft,joff)
                   end if
-                  if (ic.eq.4 .and. jc.eq.2) print *,'HERE 1'
                else
                   dd(ic,jc) = dd(ic,jc) + fac * ( res(irght,joff) + &
                                                   res(ileft,joff) )
