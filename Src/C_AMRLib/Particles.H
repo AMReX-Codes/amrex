@@ -6154,7 +6154,7 @@ ParticleContainer<N>::Restart (const std::string& dir,
 
     if (version.find("Version_One_Dot_Zero") != std::string::npos)
     {
-        Restart_Doit(fullname,HdrFile,"single",is_checkpoint);
+        Restart_Doit(fullname,HdrFile,"double",is_checkpoint);
     }
     else if (version.find("Version_One_Dot_One") != std::string::npos)
     {
