@@ -95,6 +95,11 @@ public:
     // Finest currently existing level.
     //
     int finestLevel () const { return finest_level; }
+    //  
+    // What is "level" in Amr::timeStep?  This is only relevant if we are still in Amr::timeStep;
+    //      it is set back to -1 on leaving Amr::timeStep.
+    //  
+    int level_being_advanced () const { return which_level_being_advanced; }
     //
     // Physical time.
     //
@@ -566,6 +571,8 @@ protected:
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
     std::string      plot_file_root;  // Root name of plotfile.
+
+    int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)
 
 #ifdef USE_STATIONDATA
     StationData      station;
