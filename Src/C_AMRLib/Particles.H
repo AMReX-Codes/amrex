@@ -3949,7 +3949,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
     // if (gv.boxArray() == m_amr->ParticleBoxArray(lev))
     {
-        gv_pointer = &gv;
+        gv_pointer = 0;
     }
     else 
     {
@@ -3963,7 +3963,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
         const int        grid = pmap_it->first;
         PBox&            pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = (*gv_pointer)[grid];
+        const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -3990,6 +3990,8 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
             } 
         }
     }
+
+    if (gv_pointer) delete gv_pointer;
 
     if (m_verbose > 1)
     {
@@ -4026,8 +4028,8 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
     // if (gv.boxArray() == m_amr->ParticleBoxArray(lev))
     {
-        gv_pointer     = &gv;
-        gv_pointer_old = &gv_old;
+        gv_pointer     = 0;
+        gv_pointer_old = 0;
     }
     else 
     {
@@ -4045,8 +4047,8 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         const int        grid     = pmap_it->first;
         PBox&            pbox     = pmap_it->second;
         const int        n        = pbox.size();
-        const FArrayBox& gfab     = (*gv_pointer)[grid];
-        const FArrayBox& gfab_old = (*gv_pointer_old)[grid];
+        const FArrayBox& gfab     = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
+        const FArrayBox& gfab_old = (gv_pointer_old) ? (*gv_pointer_old)[grid] : gv_old[grid];
         const Real       half_dt  = 0.5 * dt;
 
 #ifdef _OPENMP
@@ -4078,6 +4080,9 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
             }
         }
     }
+
+    if (gv_pointer) delete gv_pointer;
+    if (gv_pointer_old) delete gv_pointer_old;
 
     if (m_verbose > 1)
     {
