@@ -2075,8 +2075,11 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     // If mf is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf.   I believe that we don't
     // need any information in ghost cells so we don't copy those.
-    if (!m_amr->getLevel(lev).ParticlesOnSameGrids())
-        mf.copy(*mf_pointer,0,0,mf.nComp());  
+    if (mf_pointer != &mf) 
+    {
+	mf.copy(*mf_pointer,0,0,mf.nComp());  
+	delete mf_pointer;
+    }
 
     ParallelDescriptor::ReduceLongLongSum(num_particles_in_domain);
 
@@ -2185,6 +2188,8 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
             ldt[tid] = std::min(dt_part, ldt[tid]);
         }
     }
+
+    if (gv_pointer != &gv) delete gv_pointer;
 
     for (int i = 0; i < ldt.size(); i++)
         dt = std::min(dt, ldt[i]);
@@ -2320,10 +2325,13 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     }
 
     if (lev >= m_particles.size())
+    {
         //
         // Don't do anything if there are no particles at this level.
         //
+	if (mf_pointer != &mf_to_be_filled) delete mf_pointer;
         return;
+    }
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_amr->Geom(lev);
@@ -2433,9 +2441,10 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     // If mf_to_be_filled is not defined on the particle_box_array, then we need
     // to copy here from mf_pointer into mf_to_be_filled.   I believe that we don't
     // need any information in ghost cells so we don't copy those.
-    if (!m_amr->getLevel(lev).ParticlesOnSameGrids())
+    if (mf_pointer != &mf_to_be_filled)
     {
         mf_to_be_filled.copy(*mf_pointer,0,0,ncomp);
+	delete mf_pointer;
     }
 
     if (m_verbose > 1)
@@ -4189,6 +4198,8 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
         } 
     }
 
+    if (gv_pointer != &grav_vector) delete gv_pointer;
+
     if (lev > 0 && m_amr->subCycle())
     {
         for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
@@ -4323,6 +4334,8 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
         }
     }
 
+    if (gv_pointer != &grav_vector) delete gv_pointer;
+
     if (m_verbose > 1)
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
@@ -4438,6 +4451,11 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
         }
+    }
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+	if (gv_pointer[i] != &grav_vector[i]) delete gv_pointer[i];
     }
 
     if (lev > 0 && m_amr->subCycle())
@@ -4583,6 +4601,11 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
                    p.m_data[2] *= a_new_inv;,
                    p.m_data[3] *= a_new_inv;);
         }
+    }
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+	if (gv_pointer[i] != &grav_vector[i]) delete gv_pointer[i];
     }
 
     if (m_verbose > 1)
