@@ -1646,27 +1646,30 @@ DistributionMapping::InitProximityMap()
       std::cerr << "**** Error in DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab" << std::endl;
       // set a reasonable default
+      tBox = Box(IntVect(0,0,0), IntVect(16,7,23), IntVect(0,0,0));
+      tFab.resize(tBox, 2);
+      tFab.setVal(-1.0);
+      int i(0);
+      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
+        tFab(iv, 0) = i++;
+        tFab(iv, 1) = i++;
+      }
+
+#ifdef BL_SIM_HOPPER
+#ifdef BL_SIM_HOPPER_MAKE_TCFAB
+      std::ofstream ostFab("topolcoords.simhopper.3d.fab");
+      tFab.writeOn(ostFab);
+      tFab.close();
+#endif
+#endif
 
     } else {
       tFab.readFrom(ifs);
       ifs.close();
+    }
+
       tBox = tFab.box();
       std::cout << "tBox = " << tBox << "  ncomp = " << tFab.nComp() << std::endl;
-/*
-if(ParallelDescriptor::IOProcessor()) {
-FArrayBox nodeFab(tBox, 2);
-nodeFab.setVal(-1.0);
-int i(0);
-for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
-  nodeFab(iv, 0) = i++;
-  nodeFab(iv, 1) = i++;
-}
-std::ofstream osNodeFab("topolcoords.simhopper.3d.fab");
-nodeFab.writeOn(osNodeFab);
-osNodeFab.close();
-}
-*/
-
 
       for(int nc(0); nc < tFab.nComp(); ++nc) {
         for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
@@ -1754,21 +1757,37 @@ osNodeFab.close();
         proximityOrder[it->first] = it->second;
       }
       for(int i(0); i < proximityOrder.size(); ++i) {
-        std::cout << "++++ rank proximityOrder = " << i << "  " << proximityOrder[i] << std::endl;
+        std::cout << "++++ rank proximityOrder = " << i << "  "
+	          << proximityOrder[i] << std::endl;
       }
       std::cout << "----------- end order ranks by topological sfc" << std::endl;
-    }
+
     FArrayBox nodeFab(tBox);
     nodeFab.setVal(-nProcs);
     for(int i(0); i < nProcs; ++i) {
-      IntVect iv = DistributionMapping::TopIVFromRank(i);
+      IntVect iv(DistributionMapping::TopIVFromRank(i));
       nodeFab(iv) = i;  // this overwrites previous ones
       std::cout << "rank pNum topiv = " << i << "  "
                 << DistributionMapping::ProcNumberFromRank(i) << "  " << iv << std::endl;
     }
     std::ofstream osNodeFab("nodes.3d.fab");
-    nodeFab.writeOn(osNodeFab);
-    osNodeFab.close();
+    if( ! osNodeFab.good()) {
+      std::cerr << "Error:  could not open nodes.3d.fab" << std::endl;
+    } else {
+      nodeFab.writeOn(osNodeFab);
+      osNodeFab.close();
+    }
+
+    std::ofstream rpo("RankProxOrder.txt");
+    if( ! rpo.good()) {
+      std::cerr << "Error:  could not open RankProxOrder.txt" << std::endl;
+    } else {
+      rpo << proximityOrder.size() << '\n';
+      for(int i(0); i < proximityOrder.size(); ++i) {
+	rpo << i << ' ' << proximityOrder[i] << '\n';
+      }
+      rpo.close();
+    }
   }
 
   ParallelDescriptor::Bcast(proximityMap.dataPtr(), proximityMap.size(),
