@@ -360,22 +360,30 @@ endif
 ifeq ($(WHICHLINUX), CAB)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := mpiCC
-    CC  := gcc
-    FC  := gfortran
-    F90 := gfortran
-    fC  := gfortran
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC  := mpiifort
+      fC  := mpiifort
+    else
+      CXX := mpiCC
+      CC  := gcc
+      FC  := gfortran
+      F90 := gfortran
+      fC  := gfortran
+    endif
   endif
 endif
 
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=compute_node
-    CC  := cc -target=compute_node
-    FC  := ftn -target=compute_node
-    F90 := ftn -target=compute_node
-    fC  := ftn -target=compute_node
+    CXX := CC 
+    CC  := cc 
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
   endif
   ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)

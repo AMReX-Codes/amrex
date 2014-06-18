@@ -15,7 +15,7 @@ include_directories(${FBOXLIB_INCLUDE_DIRS})
 
 include_directories(${CMAKE_FORTRAN_MODULE_DIRECTORY})
 
-set(F90_source_files bc_functions.f90 cc_applyop.f90 cc_interface_stencil.f90 cc_mg_cpp.f90 cc_mg_tower_smoother.f90 cc_ml_resid.f90 cc_restriction.f90 cc_smoothers.f90 cc_stencil_apply.f90 cc_stencil.f90 cc_stencil_fill.f90 coarsen_coeffs.f90 compute_defect.f90 edge_restriction.f90 itsol.f90 mg.f90 mg_prolongation.f90 mg_tower.f90 nodal_mg_tower_smoother.f90 ml_cc.f90 ml_nd.f90 ml_norm.f90 ml_prolongation.f90 ml_restriction.f90 ml_solve.f90 nodal_divu.f90 nodal_interface_stencil.f90 nodal_mask.f90 nodal_mg_cpp.f90 nodal_neumann_bcs.f90 nodal_newu.f90 nodal_restriction.f90 nodal_smoothers.f90 nodal_stencil.f90 nodal_stencil_apply.f90 nodal_stencil_fill.f90 nodal_sync_resid.f90 stencil_types.f90 tridiag.f90)
+set(F90_source_files bc_functions.f90 cc_applyop.f90 cc_interface_stencil.f90 cc_mg_cpp.f90 cc_mg_tower_smoother.f90 cc_ml_resid.f90 cc_restriction.f90 cc_smoothers.f90 cc_stencil_apply.f90 cc_stencil.f90 cc_stencil_fill.f90 coarsen_coeffs.f90 compute_defect.f90 edge_restriction.f90 itsol.f90 mg.f90 mg_prolongation.f90 mg_tower.f90 nodal_mg_tower_smoother.f90 ml_cc.f90 ml_nd.f90 ml_norm.f90 ml_prolongation.f90 ml_restriction.f90 ml_solve.f90 nodal_divu.f90 nodal_enforce_dirichlet_rhs.f90 nodal_interface_stencil.f90 nodal_mask.f90 nodal_mg_cpp.f90 nodal_neumann_bcs.f90 nodal_newu.f90 nodal_restriction.f90 nodal_smoothers.f90 nodal_stencil.f90 nodal_stencil_apply.f90 nodal_stencil_fill.f90 nodal_sync_resid.f90 stencil_types.f90 tridiag.f90)
 
 set(C_header_files mg_cpp_f.h)
 set(CXX_header_files)

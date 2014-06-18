@@ -43,9 +43,9 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O2 -ip -xHost # -fp-model source -vec-report6
-          FFLAGS   += -O2 -ip -xHost # -fp-model source 
-          CFLAGS   += -O2 -ip -xHost # -fp-model source 
+          F90FLAGS += -O2 -ip # -xHost # -fp-model source -vec-report6
+          FFLAGS   += -O2 -ip # -xHost # -fp-model source 
+          CFLAGS   += -O2 -ip # -xHost # -fp-model source 
 	endif
       endif
       ifdef GPROF

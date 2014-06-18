@@ -1,5 +1,5 @@
 
-subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, stencil_order, fabio)
 
   use BoxLib
   use cc_stencil_module
@@ -34,7 +34,6 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
   integer        , intent(in   ) :: coeffs_type
   integer        , intent(in   ) :: domain_bc(:,:)
   integer        , intent(in   ) :: do_diagnostics 
-  real(dp_t)     , intent(in   ) :: eps
   integer        , intent(in   ) :: stencil_order
   logical        , intent(in   ) :: fabio
 
@@ -154,7 +153,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
 
 ! ****************************************************************************
 
-  call ml_cc(mla, mgt, rh, full_soln, mla%mask, ref_ratio, do_diagnostics, eps)
+  call ml_cc(mla, mgt, rh, full_soln, mla%mask, do_diagnostics)
 
 ! ****************************************************************************
 

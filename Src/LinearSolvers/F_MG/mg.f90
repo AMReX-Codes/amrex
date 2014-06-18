@@ -154,12 +154,32 @@ contains
        mgt%ns = 1
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
-          mgt%ns = 1 + 3*mgt%dim
+          ! Note that the cross stencils have 
+          !      ns = 2*dm (lo/hi each direction) + 1 (center) + 1 (extra used only at bc)
+          if (mgt%dim .eq. 1) then
+             mgt%ns = 4
+          else if (mgt%dim .eq. 2) then
+             mgt%ns = 7
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 10
+          end if
        else if (mgt%stencil_type .eq. HO_CROSS_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
+          if (mgt%dim .eq. 1) then
+             call bl_error("HO_CROSS_STENCIL not supported in 1D")
+          else if (mgt%dim .eq. 2) then
+             mgt%ns = 9
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 13
+          end if
        else if (mgt%stencil_type .eq. HO_DENSE_STENCIL) then
-          mgt%ns = 1 + 5*mgt%dim
-       endif
+          if (mgt%dim .eq. 1) then
+             call bl_error("HO_DENSE_STENCIL not supported in 1D")
+          else if (mgt%dim .eq. 2) then
+             mgt%ns = 25
+          else if (mgt%dim .eq. 3) then
+             mgt%ns = 61
+          end if
+       end if
     end if
 
     ng_for_res = 0; if ( nodal_flag ) ng_for_res = 1
@@ -315,6 +335,7 @@ contains
     !   or if you're here as part of a cc_applyop instead of a solve
     !   instead of coarsening within this one then don't bother
     !   creating the special bottom solver stuff
+
     if (mgt%nlevels == 1) mgt%bottom_solver = 1
 
     if (mgt%bottom_solver == 4 .and. mgt%use_hypre == 0) then
@@ -337,8 +358,6 @@ contains
           end if
 
        else
-
-           allocate(mgt%bottom_mgt)
 
            ! Get the old/new coarse problem domain
            coarse_pd = layout_get_pd(old_coarse_la)
@@ -374,8 +393,9 @@ contains
                end if
 
                coarse_dx(:) = mgt%dh(:,1)
-                  
 
+               allocate(mgt%bottom_mgt)
+                  
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
@@ -405,8 +425,8 @@ contains
                mgt%bottom_solver = 1
 
                if ( parallel_IOProcessor() .and. verbose > 1 ) then
-                   print *,'F90mg: Do not use bottom_solver = 4 with this boxarray'
-                   print *,'F90mg: Using bottom_solver = 1 instead'
+                   print *,'F90mg: Unsuccessful in get_bottom_box_size'
+                   print *,'F90mg: Setting bottom_solver to 1 instead'
                end if
 
            end if
@@ -1430,7 +1450,9 @@ contains
     integer, intent(in), optional :: bottom_level
     real(dp_t), intent(inout), optional :: bottom_solve_time
 
-    select case ( mgt%cycle_type )
+    ! Note: this used to depend on mgt%cycle_type, but now we explicitly use the cycle_type
+    !       that is passed in in "cyc" so that we can mix the cycle types in a single solve.
+    select case ( cyc )
         case(MG_VCycle)
             call mg_tower_v_cycle(mgt,cyc,lev,ss,uu,rh,mm,nu1,nu2,1,bottom_level,bottom_solve_time)
         case(MG_WCycle)

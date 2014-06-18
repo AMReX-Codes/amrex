@@ -27,6 +27,7 @@ COMP =gcc
 FCOMP=gfortran
 
 USE_HYPRE = FALSE
+USE_F90_SOLVERS = TRUE
 
 # Make BoxLib_C bottom CG solver use the old convergence criteria for comparison with BoxLib_F
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
@@ -59,17 +60,21 @@ CEXE_headers += BCRec.H BC_TYPES.H
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
-vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+ifeq ($(USE_F90_SOLVERS), TRUE)
+  include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+  include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
+  vpathdir          += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
 
-include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+  include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
+  vpathdir          += $(BOXLIB_HOME)/Src/F_BaseLib
+
+  DEFINES += -DUSE_F90_SOLVERS
+endif
 
 ifeq ($(USE_HYPRE), TRUE)
   # hypre driver
