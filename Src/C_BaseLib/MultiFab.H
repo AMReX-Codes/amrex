@@ -126,18 +126,31 @@ public:
     // and the valid regions of the MultiFab.  No ghost cells are used.
     //
     Real norm0 (int comp, const BoxArray& ba) const;
-
+    //
+    // Returns the maximum *absolute* values contained in 
+    // each component of "comps" of the MultiFab.  No ghost cells are used.
+    //
+    Array<Real> norm0 (const Array<int>& comps) const;
     //
     // Returns the L1 norm of component "comp" over the MultiFab.
     // ngrow ghost cells are used.
     //
     Real norm1 (int comp = 0, int ngrow = 0) const;
-    
+    //
+    // Returns the L1 norm of each component of "comps" over the MultiFab.
+    // ngrow ghost cells are used.
+    //
+    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0) const;
     //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
     //
     Real norm2 (int comp = 0) const;
+    //
+    // Returns the L2 norm of each component of "comps" over the MultiFab.
+    // No ghost cells are used.
+    //
+    Array<Real> norm2 (const Array<int>& comps) const;
     //
     // Identical to the previous max() function, but confines its
     // search to intersection of Box b and the MultiFab.

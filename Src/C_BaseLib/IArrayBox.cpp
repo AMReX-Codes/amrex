@@ -121,7 +121,7 @@ IArrayBox::norm (const Box& subbox,
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
             nrm += tmp[i];
-        nrm = std::sqrt(nrm);
+        nrm = std::sqrt(double(nrm));
     }
     else
     {

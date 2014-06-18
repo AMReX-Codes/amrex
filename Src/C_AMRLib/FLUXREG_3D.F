@@ -39,11 +39,10 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FRFINEADD(reg,DIMS(reg),flx,DIMS(flx),
      &                          numcomp,dir,ratio,mult)
 
-#ifdef BL_USE_OMP
-      use omp_lib
-#endif
       implicit none
-
+#ifdef BL_USE_OMP
+      include 'omp_lib.h'
+#endif
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    ratio(3), dir, numcomp
@@ -180,11 +179,10 @@ c ::: -----------------------------------------------------------
       subroutine FORT_FRFAADD(reg,DIMS(reg),flx,DIMS(flx),area,DIMS(area),
      &                        numcomp,dir,ratio,mult)
 
-#ifdef BL_USE_OMP
-      use omp_lib
-#endif
       implicit none
-
+#ifdef BL_USE_OMP
+      include 'omp_lib.h'
+#endif
       integer    DIMDEC(reg)
       integer    DIMDEC(flx)
       integer    DIMDEC(area)

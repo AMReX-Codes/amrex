@@ -16,7 +16,7 @@ subroutine wrapper()
 
   interface
      subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
-                                  do_diagnostics, eps, stencil_order, fabio)
+                                  do_diagnostics, stencil_order, fabio)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
@@ -26,13 +26,12 @@ subroutine wrapper()
        integer        , intent(in   ) :: coeffs_type
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
-       real(dp_t)     , intent(in   ) :: eps
        integer        , intent(in   ) :: stencil_order
        logical        , intent(in   ) :: fabio
      end subroutine t_cc_ml_multigrid
 
      subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
-          do_diagnostics, eps, test, fabio, stencil_type)
+          do_diagnostics, test, fabio, stencil_type)
        use mg_module    
        use ml_boxarray_module    
        use ml_layout_module    
@@ -42,7 +41,6 @@ subroutine wrapper()
        integer        , intent(in   ) :: coeffs_type
        integer        , intent(in   ) :: domain_bc(:,:)
        integer        , intent(in   ) :: do_diagnostics
-       real(dp_t)     , intent(in   ) :: eps
        integer        , intent(in   ) :: test
        logical        , intent(in   ) :: fabio
        integer        , intent(in   ) :: stencil_type
@@ -710,9 +708,9 @@ subroutine wrapper()
 
   call wall_second(wcb)
   if ( nodal_in ) then
-     call t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, test, fabio, stencil_type)
+     call t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, test, fabio, stencil_type)
   else
-     call t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, eps, stencil_order, fabio)
+     call t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostics, stencil_order, fabio)
   end if
   call wall_second(wce)
   wce = wce - wcb
