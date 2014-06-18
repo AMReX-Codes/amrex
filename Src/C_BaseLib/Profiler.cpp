@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <stack>
 #include <stdlib.h>
 
 
@@ -56,8 +57,13 @@ std::vector<std::string> Profiler::CommStats::nameTagNames;
 std::vector<int> Profiler::CommStats::reductions;
 std::vector<int> Profiler::CommStats::tagWraps;
 
-std::string Profiler::procName = "NoProcName";
-int Profiler::procNumber = -1;
+std::string Profiler::procName("NoProcName");
+int Profiler::procNumber(-1);
+
+#ifdef BL_CALL_TRACE
+std::vector<Profiler::CallStats> Profiler::vCallTrace;
+int Profiler::callStackDepth(-1);
+#endif
 
 
 Profiler::Profiler(const std::string &funcname)
@@ -122,6 +128,10 @@ void Profiler::Initialize() {
 
 #ifdef BL_COMM_PROFILING
   vCommStats.reserve(csFlushSize);
+#endif
+
+#ifdef BL_CALL_TRACE
+  vCallTrace.reserve(128000);
 #endif
 
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
@@ -199,6 +209,23 @@ void Profiler::start() {
   bRunning = true;
   bltstart = ParallelDescriptor::second();
   nestedTimeStack.push(0.0);
+
+#ifdef BL_CALL_TRACE
+  ++callStackDepth;
+  if(vCallTrace.size() == 0) {
+    CallStats cs(callStackDepth, fname);
+    ++cs.nCalls;
+    vCallTrace.push_back(cs);
+  } else {
+    if(vCallTrace.back().csFName == fname) {
+      ++(vCallTrace.back().nCalls);
+    } else {
+      CallStats cs(callStackDepth, fname);
+      ++cs.nCalls;
+      vCallTrace.push_back(cs);
+    }
+  }
+#endif
 }
 }
 
@@ -219,6 +246,13 @@ void Profiler::stop() {
     nestedTimeStack.top() += bltelapsed;
   }
   mProfStats[fname].totalTime += thisFuncTime;
+
+#ifdef BL_CALL_TRACE
+  --callStackDepth;
+  if(vCallTrace.size() > 0) {
+    vCallTrace.back().totalTime += thisFuncTime;
+  }
+#endif
 }
 }
 
@@ -394,6 +428,9 @@ void Profiler::Finalize() {
       bWriteAvg = false;
     }
     WriteStats(std::cout, bWriteAvg);
+#ifdef BL_CALL_TRACE
+    WriteHTML();
+#endif
   }
 
 
@@ -601,7 +638,123 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   }
   ios << std::setfill(' ');
   ios << std::endl;
+
+
+#ifdef BL_CALL_TRACE
+  ios << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
+  ios << "**************** ************vvvv" << '\n';
+  for(int i(0); i < vCallTrace.size(); ++i) {
+    CallStats &cs = vCallTrace[i];
+    for(int indent(0); indent < cs.callStackDepth; ++indent) {
+      ios << "----";
+    }
+    ios << "  " << cs.csFName << "  " << cs.nCalls << "  "
+        //<< cs.callStackDepth << " node" << i << '\n';
+        << '\n';
+  }
+  ios << "**************** ************^^^^" << '\n';
+#endif
 }
+
+
+#ifdef BL_CALL_TRACE
+void Profiler::WriteHTML() {
+  // write to html file
+  std::string htmlFileName("CallTrace.html");
+  std::stack<std::string> listEnds;
+  std::ofstream csHTMLFile;
+  csHTMLFile.open(htmlFileName.c_str(), std::ios::out | std::ios::trunc);
+  if( ! csHTMLFile.good()) {
+    BoxLib::FileOpenFailed(htmlFileName);
+  }
+  csHTMLFile << "<!DOCTYPE html>" << '\n';
+  csHTMLFile << "<html>" << '\n';
+  csHTMLFile << "<head>" << '\n';
+  csHTMLFile << "<title>Call Tree</title>" << '\n';
+  csHTMLFile << "</head>" << '\n';
+  csHTMLFile << '\n';
+
+  csHTMLFile << "<body>" << '\n';
+  csHTMLFile << '\n';
+  csHTMLFile << "<script type=\"text/javascript\">" << '\n';
+  csHTMLFile << "function collapse(id) {" << '\n';
+  csHTMLFile << "  var elem = document.getElementById(id);" << '\n';
+  csHTMLFile << "  if(elem.style.display == '') {" << '\n';
+  csHTMLFile << "    elem.style.display = 'none';" << '\n';
+  csHTMLFile << "  } else {" << '\n';
+  csHTMLFile << "    elem.style.display = '';" << '\n';
+  csHTMLFile << "  }" << '\n';
+  csHTMLFile << "}" << '\n';
+  csHTMLFile << "</script>" << '\n';
+  csHTMLFile << '\n';
+
+  csHTMLFile << "<h3>Function calls.</h3>" << '\n';
+
+  csHTMLFile << "<ul>" << '\n';
+  listEnds.push("</ul>");
+
+//#define IcsHTMLFile for(int id(0); id <= listEnds.size(); ++id) csHTMLFile << "  "; csHTMLFile
+//#define IIcsHTMLFile for(int id(0); id < listEnds.size(); ++id) csHTMLFile << "  "; csHTMLFile
+#define IcsHTMLFile csHTMLFile
+#define IIcsHTMLFile csHTMLFile
+
+std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::endl;
+  for(int i(0); i < vCallTrace.size(); ++i) {
+    CallStats &cs = vCallTrace[i];
+
+    if(i == vCallTrace.size() - 1) {
+        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
+	            << "</li>" << '\n';
+        for(int n(0); n < cs.callStackDepth; ++n) {
+          IIcsHTMLFile << listEnds.top() << '\n';
+          listEnds.pop();
+          IIcsHTMLFile << listEnds.top() << '\n';
+          listEnds.pop();
+	}
+    } else {
+      CallStats &csNext = vCallTrace[i + 1];
+      if(csNext.callStackDepth > cs.callStackDepth) {
+        IcsHTMLFile << "<li>" << '\n';
+        listEnds.push("</li>");
+	IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node" << i << "')\">"
+	            << cs.csFName << "  " << cs.nCalls << "  "
+		    //<< cs.callStackDepth << "  node" << i << "</a>" << '\n';
+		    << "</a>" << '\n';
+	IcsHTMLFile << "<ul id=\"node" << i << "\" style=\"display:\">" << '\n';
+        listEnds.push("</ul>");
+      } else  if(csNext.callStackDepth == cs.callStackDepth) {
+        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
+	            << "</li>" << '\n';
+      } else {
+        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
+	            << "</li>" << '\n';
+        for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {
+          IIcsHTMLFile << listEnds.top() << '\n';
+          listEnds.pop();
+          IIcsHTMLFile << listEnds.top() << '\n';
+          listEnds.pop();
+	}
+      }
+    }
+  }
+
+
+  if(listEnds.size() != 1) {
+    std::cout << "**** Error:  listEnds.size() = " << listEnds.size() << std::endl;
+  }
+  csHTMLFile << listEnds.top() << '\n';
+  listEnds.pop();
+
+  csHTMLFile << "</body>" << '\n';
+
+  csHTMLFile << "</html>" << '\n';
+
+  csHTMLFile.close();
+}
+#endif
 
 
 void Profiler::WriteCommStats(const bool bFlushing) {
