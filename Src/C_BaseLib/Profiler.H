@@ -15,6 +15,7 @@
 #include <set>
 #include <map>
 #include <vector>
+#include <list>
 #include <utility>
 #include <typeinfo>
 
@@ -27,6 +28,15 @@ class Profiler
                     maxTime(0.0), avgTime(0.0) { }
       long nCalls;
       Real totalTime, minTime, maxTime, avgTime;
+    };
+
+    struct CallStats {
+      CallStats(int depth, std::string fname) : callStackDepth(depth), csFName(fname),
+                                                nCalls(0), totalTime(0.0) { }
+      int callStackDepth;
+      std::string csFName;
+      long nCalls;
+      Real totalTime;
     };
 
     enum CommFuncType {
@@ -107,6 +117,9 @@ class Profiler
     static void Initialize();
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
+#ifdef BL_CALL_TRACE
+    static void WriteHTML();
+#endif
     static void WriteCommStats(const bool bFlushing = false);
 
     static void AddCommStat(const CommFuncType cft, const int size,
@@ -171,6 +184,9 @@ class Profiler
 
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
+
+    static std::vector<CallStats> vCallTrace;
+    static int callStackDepth;
 };
 
 
