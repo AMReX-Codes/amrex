@@ -1,4 +1,4 @@
-BOXLIB_HOME = ../../../BoxLib.commprof
+BOXLIB_HOME = ../../../BoxLib
 
 DEBUG        = FALSE
 USE_MPI      = TRUE
@@ -26,7 +26,8 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 
 ifeq ($(COMP), g++)
-  CXXFLAGS += -std=c++11
+  #CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=c++0x
   DEFINES += -DBL_CXX11
 endif
 
