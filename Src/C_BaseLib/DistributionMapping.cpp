@@ -1255,44 +1255,6 @@ Distribute (const std::vector<PFCToken>&     tokens,
 
 {
 BoxLib::Abort("PFC Distribute not used.");
-/*
-    BL_ASSERT(v.size() == nprocs);
-
-    int  K        = 0;
-    Real totalvol = 0;
-    const int Navg = tokens.size() / nprocs;
-
-    for (int i = 0; i < nprocs; ++i) {
-        int  cnt = 0;
-        Real vol = 0;
-        v[i].reserve(Navg + 2);
-        for ( int TSZ = tokens.size();
-              K < TSZ && (i == (nprocs-1) || vol < volpercpu);
-              cnt++, K++)
-        {
-            vol += tokens[K].m_vol;
-            v[i].push_back(tokens[K].m_box);
-        }
-
-        totalvol += vol;
-        if ((totalvol/(i+1)) > volpercpu &&
-            cnt > 1                      &&
-            K < tokens.size())
-        {
-            --K;
-            v[i].pop_back();
-            totalvol -= tokens[K].m_vol;
-        }
-    }
-
-#ifndef NDEBUG
-    int cnt = 0;
-    for (int i = 0; i < nprocs; ++i) {
-        cnt += v[i].size();
-    }
-    BL_ASSERT(cnt == tokens.size());
-#endif
-*/
 }
 
 
@@ -1318,21 +1280,13 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
 
     std::sort(tokens.begin(), tokens.end(), PFCToken::Compare());  // sfc order
 
-    Array<long> aCurrentBytes;
-    CurrentBytesUsed(nprocs, aCurrentBytes);
-    Real totB(0.0), totC(0.0), bytesPerCell(0.0);
+    Real totC(0.0);
     Array<long> aCurrentCells;
     CurrentCellsUsed(nprocs, aCurrentCells);
     if(ParallelDescriptor::IOProcessor()) {
       for(int i(0); i < aCurrentCells.size(); ++i) {
         std::cout << "aCurrentCells[" << i << "] = " << aCurrentCells[i] << std::endl;
 	totC += aCurrentCells[i];
-	totB += aCurrentBytes[i];
-      }
-      if(totC > 0.0) {
-        std::cout << "BytesPerCell = " << totB / totC << std::endl;
-      } else {
-        std::cout << "BytesPerCell = " << 0.0 << std::endl;
       }
     }
 
@@ -1340,16 +1294,13 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
     for(int i(0); i < nprocs; ++i) {
       totalCurrentCells += aCurrentCells[i];
     }
-    Real avgCurrentCells(static_cast<Real>(totalCurrentCells) / nprocs);
 
-      // ===============================   // Distribute(tokens,nprocs,volpercpu,vec);
       int  K(0);
       Real totalvol(0.0), volpercpu(0.0), ccScale(1.0);
       const int Navg(tokens.size() / nprocs);
-      long totalNewCells(0);
-      long totalNewCellsB(0);
+      long totalNewCells(0), totalNewCellsB(0);
       for(int i(0); i < tokens.size(); ++i) {        // new cells to add
-        totalNewCells += tokens[i].m_vol;
+        totalNewCells  += tokens[i].m_vol;
         totalNewCellsB += boxes[i].numPts();
       }
       if(totalNewCells != totalNewCellsB) {
@@ -1366,7 +1317,6 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
       }
 
       Array<long> newVolPerCPU(nprocs, 0);
-      /*
       if(totalCurrentCells > 0) {
         for(int i(0); i < newVolPerCPU.size(); ++i) {
           newVolPerCPU[i] = (2.0 * volpercpu) - scaledCurrentCells[i];
@@ -1376,14 +1326,8 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
           newVolPerCPU[i] = volpercpu;
         }
       }
-      */
 
 long accDiff(0), accNVPC(0), accAV(0);
-KnapSackProcessorMap(boxes, nprocs);
-for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
-  int whichProc(m_ref->m_pmap[i]);
-  newVolPerCPU[whichProc] += boxes[i].numPts();
-}
 for(int i(0); i < nprocs; ++i) {
   accNVPC += newVolPerCPU[i];
 }
@@ -1399,15 +1343,15 @@ for(int i(0); i < nprocs; ++i) {
 	        << newVolPerCPU[i] << "  " << volpercpu - newVolPerCPU[i] << std::endl;
         }
       }
+
       for(int i(0); i < nprocs; ++i) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0);
-        long oldCells(aCurrentCells[i]);
-	long halfVol;
+	long accVol(0), oldAccVol(0), oldCells(aCurrentCells[i]);
         vec[i].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
+	    //(i == (nprocs-1) || vol < (newVolPerCPU[i] - tokens[K].m_vol / 2));
 	    (i == (nprocs-1) || vol < (newVolPerCPU[i] - 0));
             ++cnt, ++K)
         {
@@ -1415,11 +1359,13 @@ for(int i(0); i < nprocs; ++i) {
             accVol += tokens[K].m_vol;
 	    oldAccVol = accVol;
             vec[i].push_back(tokens[K].m_box);
-	    halfVol = tokens[K].m_vol / 2;
         }
 
         totalvol += vol;
-        if((totalvol / (i + 1)) > (newVolPerCPU[i] + 0) && cnt > 1 && K < tokens.size()) {
+        //if((totalvol / (i + 1)) > (newVolPerCPU[i] + tokens[K].m_vol / 2) &&
+        if((totalvol / (i + 1)) > (newVolPerCPU[i] + 0) &&
+	   cnt > 1 && K < tokens.size())
+	{
             --K;
             vec[i].pop_back();
             totalvol -= tokens[K].m_vol;
@@ -1438,8 +1384,18 @@ if(ParallelDescriptor::IOProcessor()) {
 	    << newVolPerCPU[i] - oldAccVol << "  " << accDiff << std::endl;
 }
 
+	int extra(newVolPerCPU[i] - accVol);
+        if(extra != 0) {  // add the difference to the rest
+	  extra /= nprocs - (i + 1);
+	  for(int ii(i+1); ii < nprocs; ++ii) {
+	    newVolPerCPU[ii] += extra;
+	  }
+	  //if(i+1 < nprocs) {
+	    //newVolPerCPU[i+1] += extra;
+	  //}
+        }
       }
-      // ===============================
+
 
 if(ParallelDescriptor::IOProcessor()) {
   long npoints(0);
@@ -1453,6 +1409,15 @@ if(ParallelDescriptor::IOProcessor()) {
     std::cout << "aCurrentCells[" << i << "] = " << aCurrentCells[i] << std::endl;
   }
   std::cout << "_here 3:  ^^^^^^^^^^^^^^^^^^^^^^^^ after dist" << std::endl;
+
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "CurrentCellsAcc.count_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < aCurrentCells.size(); ++i) {
+    bos << i << ' ' << aCurrentCells[i] << '\n';
+  }
+  bos.close();
 }
 
     tokens.clear();
@@ -1464,17 +1429,8 @@ if(ParallelDescriptor::IOProcessor()) {
 	}
     }
 
-    //std::vector<LIpair> LIpairV;
-    //LIpairV.reserve(nprocs);
-    //for (int i(0); i < nprocs; ++i) {
-        //LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
-    //}
-    //Sort(LIpairV, true);
-
     for (int i(0); i < nprocs; ++i) {
-        //const int cpu = i;
-        //const int idx = LIpairV[i].second;
-        const std::vector<int>& vi = vec[i];
+        const std::vector<int> &vi = vec[i];
 
         for(int j(0), N(vi.size()); j < N; ++j) {
           m_ref->m_pmap[vi[j]] = ProximityMap(i);
@@ -1495,36 +1451,6 @@ if(ParallelDescriptor::IOProcessor()) {
         }
         std::cout << "PFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
     }
-/*
-if(ParallelDescriptor::IOProcessor()) {
-  static int count(0);
-  std::stringstream dfss;
-  dfss << "CurrentCellsAcc.count_" << count++ << ".xgr";
-  std::ofstream bos(dfss.str().c_str());
-  for(int i(0); i < aCurrentCells.size(); ++i) {
-    bos << i << ' ' << aCurrentCells[i] << '\n';
-  }
-  bos.close();
-}
-*/
-
-
-if(ParallelDescriptor::IOProcessor()) {
-  Array<long> ncells(nprocs, 0);
-  for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
-    int index(m_ref->m_pmap[i]);
-    ncells[index] += boxes[i].numPts();
-  }
-  static int count(0);
-  std::stringstream dfss;
-  dfss << "PFCncells.count_" << count++ << ".xgr";
-  std::ofstream bos(dfss.str().c_str());
-  for(int i(0); i < ncells.size(); ++i) {
-    bos << i << ' ' << ncells[i] << '\n';
-  }
-  bos.close();
-}
-
 }
 
 
@@ -1646,7 +1572,13 @@ DistributionMapping::InitProximityMap()
       std::cerr << "**** Error in DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab" << std::endl;
       // set a reasonable default
+#if (BL_SPACEDIM == 1)
+      tBox = Box(IntVect(0), IntVect(3263), IntVect(0));
+#elif (BL_SPACEDIM == 2)
+      tBox = Box(IntVect(0,0), IntVect(16,191), IntVect(0,0));
+#else
       tBox = Box(IntVect(0,0,0), IntVect(16,7,23), IntVect(0,0,0));
+#endif
       tFab.resize(tBox, 2);
       tFab.setVal(-1.0);
       int i(0);
