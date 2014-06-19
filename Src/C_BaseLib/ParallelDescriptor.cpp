@@ -244,14 +244,18 @@ ParallelDescriptor::Message::wait ()
 {
     BL_PROFILE("ParallelDescriptor::Message::wait()");
 
+    BL_COMM_PROFILE(Profiler::Wait, sizeof(m_type), pid(), tag());
     BL_MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
+    BL_COMM_PROFILE(Profiler::Wait, sizeof(m_type), Profiler::AfterCall(), tag());
 }
 
 bool
 ParallelDescriptor::Message::test ()
 {
     int flag;
+    BL_COMM_PROFILE(Profiler::Test, sizeof(m_type), pid(), tag());
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
+    BL_COMM_PROFILE(Profiler::Test, flag, Profiler::AfterCall(), tag());
     m_finished = flag != 0;
     return m_finished;
 }
@@ -411,15 +415,23 @@ void
 ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
 {
     BL_PROFILE("ParallelDescriptor::Test()");
+    BL_COMM_PROFILE(Profiler::Test, sizeof(char), status.MPI_SOURCE, status.MPI_TAG);
+
     BL_MPI_REQUIRE( MPI_Test(&request,&flag,&status) );
+
+    BL_COMM_PROFILE(Profiler::Test, flag, Profiler::AfterCall(), status.MPI_TAG);
 }
 
 void
 ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
 {
     BL_PROFILE("ParallelDescriptor::Iprobe()");
+    BL_COMM_PROFILE(Profiler::Iprobe, sizeof(char), src_pid, tag);
+
     BL_MPI_REQUIRE( MPI_Iprobe(src_pid, tag, ParallelDescriptor::Communicator(),
                                &flag, &status) );
+
+    BL_COMM_PROFILE(Profiler::Iprobe, flag, Profiler::AfterCall(), status.MPI_TAG);
 }
 
 void
@@ -1230,7 +1242,9 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
             rq.push_back(reqs[i]);
     std::vector<MPI_Status> rst(rq.size());
 
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitall, reqs, completed, indx, status, true);
     BL_MPI_REQUIRE( MPI_Waitall(rq.size(), &rq[0], &rst[0]) );
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitall, reqs, completed, indx, status, false);
     completed = rq.size();
     int c = 0;
     for ( int i = 0; i < reqs.size(); ++i )
