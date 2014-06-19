@@ -73,7 +73,16 @@ class Profiler
       IOStart,         // 30
       IOEnd,           // 31
       TagWrap,         // 32
-      NUMBER_OF_CFTS   // 33
+      Allgather,       // 33
+      Alltoall,        // 34
+      Alltoallv,       // 35
+      Gatherv,         // 36
+      Get_count,       // 37
+      Iprobe,          // 38
+      Test,            // 39
+      Wait,            // 40
+      Waitall,         // 41
+      NUMBER_OF_CFTS   // 42
     };
 
     struct CommStats {
@@ -233,6 +242,15 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
     case IOStart:        return "IOStart";
     case IOEnd:          return "IOEnd";
     case TagWrap:        return "TagWrap";
+    case Allgather:      return "Allgather";
+    case Alltoall:       return "Alltoall";
+    case Alltoallv:      return "Alltoallv";
+    case Gatherv:        return "Gatherv";
+    case Get_count:      return "Get_count";
+    case Iprobe:         return "Iprobe";
+    case Test:           return "Test";
+    case Wait:           return "Wait";
+    case Waitall:        return "Waitall";
     case NUMBER_OF_CFTS: return "NUMBER_OF_CFTS";
   }
   return "*** Error: Bad CommFuncType.";

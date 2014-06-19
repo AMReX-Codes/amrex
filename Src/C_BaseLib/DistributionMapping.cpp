@@ -227,6 +227,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
     Array<long> bytes(nprocs);
 
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
+                    Profiler::NoTag());
     MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -234,6 +236,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
+                    Profiler::NoTag());
 
     std::vector<LIpair> LIpairV;
 
@@ -1171,6 +1175,8 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
     BL_PROFILE("DistributionMapping::CurrentBytesUsed()");
 
 
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
+                    Profiler::NoTag());
     MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -1178,6 +1184,8 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
+                    Profiler::NoTag());
 #endif
 
     for (int i(0); i < nprocs; ++i)
@@ -1213,6 +1221,8 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
     BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
 
 
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
+                    Profiler::NoTag());
     MPI_Allgather(&BoxLib::total_cells_allocated_in_fabs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -1220,6 +1230,8 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
+    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
+                    Profiler::NoTag());
 #endif
 
     for(int i(0); i < nprocs; ++i) {

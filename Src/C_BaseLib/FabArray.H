@@ -986,7 +986,12 @@ FabArrayBase::GrokAsyncSends (int                 N_snds,
     BL_ASSERT(send_reqs.size() == N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
+    Array<int> indx;
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitall, send_reqs, N_snds, indx, stats, false);
+
     BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+
+    BL_COMM_PROFILE_WAITSOME(Profiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
     for (int i = 0; i < N_snds; i++)
         BoxLib::The_Arena()->free(send_data[i]);
@@ -1949,6 +1954,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         {
             BL_PROFILE("CollectData_Alltoall()");
+	    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int), ParallelDescriptor::MyProc(),
+	                    Profiler::BeforeCall());
 
             BL_MPI_REQUIRE( MPI_Alltoall(RcvsArray.dataPtr(),
                                          1,
@@ -1957,6 +1964,10 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                                          1,
                                          ParallelDescriptor::Mpi_typemap<int>::type(),
                                          ParallelDescriptor::Communicator()) );
+
+	    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int), ParallelDescriptor::MyProc(),
+	                    Profiler::AfterCall());
+
         }
         BL_ASSERT(SndsArray[MyProc] == 0);
 
@@ -2019,6 +2030,8 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         {
             BL_PROFILE("CollectData_Alltoallv()");
+	    BL_COMM_PROFILE(Profiler::Alltoallv, nrcvs * sizeof(int), ParallelDescriptor::MyProc(),
+	                    Profiler::BeforeCall());
 
             BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
                                           scnts.dataPtr(),
@@ -2029,6 +2042,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                                           rdispls.dataPtr(),
                                           ParallelDescriptor::Mpi_typemap<int>::type(),
                                           ParallelDescriptor::Communicator()) );
+
+	    BL_COMM_PROFILE(Profiler::Alltoallv, nrcvs * sizeof(int), ParallelDescriptor::MyProc(),
+	                    Profiler::AfterCall());
         }
         cd_that_i_need.clear();
     }
@@ -2175,7 +2191,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         stats.resize(N_snds);
 
+        BL_COMM_PROFILE(Profiler::Waitall, sizeof(value_type), Profiler::BeforeCall(), N_snds);
         BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+        BL_COMM_PROFILE(Profiler::Waitall, sizeof(value_type), Profiler::AfterCall(), N_snds);
 
         for (int i = 0; i < N_snds; i++)
             BoxLib::The_Arena()->free(send_data[i]);

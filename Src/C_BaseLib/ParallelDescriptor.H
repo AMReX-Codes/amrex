@@ -797,7 +797,7 @@ ParallelDescriptor::Gather (const T& t, int root)
                                Mpi_typemap<T>::type(),
                                root,
                                Communicator()) );
-    BL_COMM_PROFILE(Profiler::GatherTi, 1 * sizeof(T), root, Profiler::NoTag());
+    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(T), root, Profiler::NoTag());
     return resl;
 }
 

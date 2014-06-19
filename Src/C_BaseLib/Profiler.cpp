@@ -169,6 +169,15 @@ void Profiler::Initialize() {
   CommStats::cftNames["IOStart"]        = IOStart;
   CommStats::cftNames["IOEnd"]          = IOEnd;
   CommStats::cftNames["TagWrap"]        = TagWrap;
+  CommStats::cftNames["Allgather"]      = Allgather;
+  CommStats::cftNames["Alltoall"]       = Alltoall;
+  CommStats::cftNames["Alltoallv"]      = Alltoallv;
+  CommStats::cftNames["Gatherv"]        = Gatherv;
+  CommStats::cftNames["Get_count"]      = Get_count;
+  CommStats::cftNames["Iprobe"]         = Iprobe;
+  CommStats::cftNames["Test"]           = Test;
+  CommStats::cftNames["Wait"]           = Wait;
+  CommStats::cftNames["Waitall"]        = Waitall;
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
