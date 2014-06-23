@@ -49,7 +49,7 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
+    real(dp_t) :: r1,r2,t1(4),t2(4),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -109,7 +109,6 @@ contains
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
 
-    bnorm = ml_norm_inf(rh,fine_mask)
     !
     ! First we must restrict the final solution onto coarser levels, because those coarse
     ! cells may be used to construct slopes in the interpolation of the boundary conditions.
@@ -171,12 +170,14 @@ contains
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
     t1(3) = ml_norm_inf(res,fine_mask,local=.true.)
+    t1(4) = ml_norm_inf(rh,fine_mask,local=.true.)
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
     coeff_sum = t2(1)
     coeff_max = t2(2)
     tres0     = t2(3)
+    bnorm     = t2(4)
 
     if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
