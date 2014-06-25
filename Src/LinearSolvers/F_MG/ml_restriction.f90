@@ -625,7 +625,7 @@ contains
 
    use nodal_stencil_module
 
-   type(ml_layout), intent(in   ) :: mla
+   type(ml_layout), intent(inout) :: mla
    type(multifab) , intent(inout) :: mf(:) ! n-level array of nodal multifabs
    type(bc_tower) , intent(in   ) :: the_bc_tower
    integer        , intent(in   ) :: bc_comp
