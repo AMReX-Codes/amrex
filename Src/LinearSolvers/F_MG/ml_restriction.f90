@@ -347,7 +347,7 @@ contains
           lom_fine = lwb(get_pbox(mm_fine, i))
           do n = 1, ncomp(fine)
              cp      => dataptr(cfine,   i, n, 1)
-             mp_fine => dataptr(mm_fine, i, n, 1)
+             mp_fine => dataptr(mm_fine, i, 1, 1) ! mask has only 1 component
              select case (dm)
              case (1)
                 call nodal_zero_1d(cp(:,1,1,1), loc, mp_fine(:,1,1,1), lom_fine, lo, hi, ir)
@@ -381,8 +381,8 @@ contains
           do n = 1, ncomp(fine)
              cp      => dataptr(cfine,   i, n, 1)
              fp      => dataptr(fine,    i, n, 1)
-             mp_crse => dataptr(mm_cfine,i, n, 1)
-             mp_fine => dataptr(mm_fine, i, n, 1)
+             mp_crse => dataptr(mm_cfine,i, 1, 1) ! mask has only 1 component
+             mp_fine => dataptr(mm_fine, i, 1, 1) ! mask has only 1 component
              select case (dm)
              case (1)
                 call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
