@@ -2,13 +2,17 @@ module ml_restriction_module
 
   use bl_types
   use multifab_module
+  use ml_layout_module
+  use define_bc_module
+  use bc_module
 
   implicit none
 
   private
 
   public :: ml_restriction, ml_cc_restriction, ml_cc_restriction_c
-  public :: ml_edge_restriction, ml_edge_restriction_c, periodic_add_copy 
+  public :: ml_edge_restriction, ml_edge_restriction_c, periodic_add_copy, &
+       ml_nodal_restriction_wrapper
 
 contains
 
@@ -613,5 +617,87 @@ contains
  end subroutine ml_restriction
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+ ! a wrapper for nodal restriction
+ ! need to build mm_fine, mm_crse
+ 
+ subroutine ml_nodal_restriction_wrapper(mla,mf,the_bc_tower,bc_comp)
+
+   use nodal_stencil_module
+
+   type(ml_layout), intent(in   ) :: mla
+   type(multifab) , intent(inout) :: mf(:) ! n-level array of nodal multifabs
+   type(bc_tower) , intent(in   ) :: the_bc_tower
+   integer        , intent(in   ) :: bc_comp
+
+   ! local
+   type(imultifab) :: mm(mla%nlevel)
+   integer, allocatable :: face_type(:,:,:)
+
+   integer :: n,nlevs,i
+
+   type(box) :: pd,bx,nbx,pd_periodic
+   integer :: id,lo_grid,hi_grid,lo_dom,hi_dom
+
+   logical :: nodal_flag(mla%dim)
+
+   nlevs = mla%nlevel
+
+   nodal_flag(:) = .true.
+
+   ! build the nodal mask for each level
+   do n=1,nlevs
+
+      call imultifab_build(mm(n), mla%la(n), 1, 0, nodal_flag)
+
+      ! extract the problem domain
+      pd = layout_get_pd(mla%la(n))
+
+      ! allocate and fill face_type for the level
+       allocate(face_type(nfabs(mf(n)),mla%dim,2))
+       face_type = BC_INT
+       do id = 1,mla%dim
+          lo_dom = lwb(pd,id)
+          hi_dom = upb(pd,id)
+          do i = 1,nfabs(mf(n))
+             lo_grid =  lwb(get_box(mf(n),i),id)
+             if (lo_grid == lo_dom) then
+                face_type(i,id,1) = &
+                     the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,id,1,bc_comp)
+             end if
+             hi_grid = upb(get_box(mf(n),i),id)
+             if (hi_grid == hi_dom) then
+                face_type(i,id,2) = &
+                     the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,id,2,bc_comp)
+             end if
+          end do
+       end do
+
+
+       ! build the mask for the level
+       ! start by initializing to zero
+       call setval(mm(n),BC_INT)  
+
+       do i = 1, nfabs(mf(n))
+          bx  = get_box(mf(n),i)
+          nbx = box_nodalize(bx,nodal_flag)
+          ! AJN - should pd be pd_periodic = get_pd(get_layout(mf(n)))?
+          call stencil_set_bc_nodal(mla%dim, bx, nbx, i, mm(n), face_type, pd, mla%la(n))
+       end do
+
+       deallocate(face_type)
+
+   end do
+
+   ! do nodal restriction
+   do n=nlevs,2,-1
+      call ml_restriction(mf(n-1),mf(n),mm(n),mm(n-1),mla%mba%rr(n-1,:),inject=.true.)
+   end do
+
+   do n=1,nlevs
+      call destroy(mm(n))
+   end do
+
+ end subroutine ml_nodal_restriction_wrapper
 
 end module ml_restriction_module
