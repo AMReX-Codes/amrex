@@ -641,6 +641,8 @@ contains
 
    logical :: nodal_flag(mla%dim)
 
+   type(layout) :: la
+
    nlevs = mla%nlevel
 
    nodal_flag(:) = .true.
@@ -682,7 +684,8 @@ contains
           bx  = get_box(mf(n),i)
           nbx = box_nodalize(bx,nodal_flag)
           ! AJN - should pd be pd_periodic = get_pd(get_layout(mf(n)))?
-          call stencil_set_bc_nodal(mla%dim, bx, nbx, i, mm(n), face_type, pd, mla%la(n))
+          la = mla%la(n)
+          call stencil_set_bc_nodal(mla%dim, bx, nbx, i, mm(n), face_type, pd, la)
        end do
 
        deallocate(face_type)
