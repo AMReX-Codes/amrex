@@ -117,19 +117,19 @@ contains
           lof =  lwb(get_box(cf(1), i))
           cxp => dataptr(cc(1), i) 
           fxp => dataptr(cf(1), i) 
-          call crse_xedge_coeffs_3d(cxp(:,:,:,:), fxp(:,:,:,:), ng, loc, hic, lof)
+          call crse_xedge_coeffs_3d(cxp, fxp, ng, loc, hic, lof)
           loc =  lwb(get_box(cc(2), i))
           hic =  upb(get_box(cc(2), i))
           lof =  lwb(get_box(cf(2), i))
           cyp => dataptr(cc(2), i) 
           fyp => dataptr(cf(2), i) 
-          call crse_yedge_coeffs_3d(cyp(:,:,:,:), fyp(:,:,:,:), ng, loc, hic, lof)
+          call crse_yedge_coeffs_3d(cyp, fyp, ng, loc, hic, lof)
           loc =  lwb(get_box(cc(3), i))
           hic =  upb(get_box(cc(3), i))
           lof =  lwb(get_box(cf(3), i))
           czp => dataptr(cc(3), i) 
           fzp => dataptr(cf(3), i) 
-          call crse_zedge_coeffs_3d(czp(:,:,:,:), fzp(:,:,:,:), ng, loc, hic, lof)
+          call crse_zedge_coeffs_3d(czp, fzp, ng, loc, hic, lof)
        end select
     end do 
     !$OMP END PARALLEL DO
