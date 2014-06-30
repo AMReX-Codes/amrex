@@ -98,7 +98,7 @@ program main
   ! build multifab with 1 component and 1 ghost cell
   call multifab_build(phi,la,1,1)
   
-  ! initialze phi
+  ! initialize phi
   call init_phi(phi,dx,prob_lo)
 
   istep = 0
