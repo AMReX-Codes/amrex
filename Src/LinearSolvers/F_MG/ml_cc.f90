@@ -44,6 +44,7 @@ contains
     integer :: i, n, dm, ng_fill
     integer :: mglev, mglev_crse, iter, iter_solved
     logical :: fine_converged,need_grad_phi
+    logical :: using_bnorm
 
     real(dp_t) :: bnorm, ni_res
     real(dp_t) :: tres, tres0, max_norm
@@ -231,6 +232,11 @@ contains
     ! ************************************************************************
 
     max_norm = max(bnorm,tres0)
+    if (tres0 .gt. bnorm) then
+      using_bnorm = .false.
+    else
+      using_bnorm = .true.
+    end if
 
     fine_converged = .false.
 
@@ -279,7 +285,7 @@ contains
                 solved = .true.
                 exit
 
-             endif
+             end if
           end if
 
           ! Set: uu = 0
@@ -542,9 +548,13 @@ contains
                 do n = 1,nlevs
                    tres = norm_inf(res(n))
                    if ( parallel_ioprocessor() ) then
-                      write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
-                           iter,n,tres/tres0
-!                     print *, 'tres=', tres
+                      if (using_bnorm) then
+                          write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/bnorm = ",g15.8)') &
+                               iter,n,tres/max_norm
+                      else
+                          write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
+                               iter,n,tres/max_norm
+                      end if
                    end if
                 end do
              end if
@@ -568,11 +578,14 @@ contains
                 if ( present(status) ) status = 1
                 exit
 
-             endif
+             end if
 
              if ( mgt(nlevs)%verbose > 1 .and. parallel_IOProcessor() ) then
-                ! write(unit=*, fmt='(i3,": FINE_Ninf(defect) = ",g15.8)') iter, tres
-                write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/tres0
+                if (using_bnorm) then
+                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/bnorm  = ",g15.8)') iter,tres/max_norm
+                else
+                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Fine  resid/resid0 = ",g15.8)') iter,tres/max_norm
+                end if
              end if
 
           end if
@@ -584,8 +597,8 @@ contains
        if ( present(status) ) then 
           if (status .eq. 0  .and.  .not. solved) then 
              status = -iter
-          endif
-       endif
+          end if
+       end if
 
        ! ****************************************************************************
        if ( solved ) then
@@ -600,30 +613,30 @@ contains
              call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
 
              if ( parallel_IOProcessor() ) then
-                if ( tres0 .gt. 0.0_dp_t) then
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,t2(1)/tres0
-                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
-                   write(unit=*, fmt='("")')
+
+                if (using_bnorm) then
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/bnorm  = ",g15.8)') iter_solved,t2(1)/max_norm
                 else
-                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,0.0_dp_t
-                   write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
-                   write(unit=*, fmt='("")')
+                   write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter_solved,t2(1)/max_norm
                 end if
+
+                write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
+                write(unit=*, fmt='("")')
              end if
           end if
        else
           if (.not. present(status) .and. mgt(nlevs)%abort_on_max_iter) then
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
-          endif
+          end if
        end if
 
-    endif
+    end if
 
     if (solved) then
        do n = 1,nlevs
           call multifab_fill_boundary(full_soln(n))
        end do
-    endif
+    end if
 
     do n = 2,nlevs-1
        call multifab_destroy(uu_hold(n))
@@ -669,7 +682,7 @@ contains
        do n = 1,nlevs
           call multifab_fill_boundary(full_soln(n))
        end do
-    endif
+    end if
 
     do n = nlevs, 1, -1
        call multifab_destroy(      uu(n))
@@ -688,22 +701,22 @@ contains
        call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
-    endif
+    end if
 
   contains
 
-    function ml_fine_converged(res, bnorm, rel_eps, abs_eps) result(r)
+    function ml_fine_converged(res, max_norm, rel_eps, abs_eps) result(r)
       logical                    :: r
       type(multifab), intent(in) :: res(:)
-      real(dp_t),     intent(in) :: rel_eps, abs_eps, bnorm
+      real(dp_t),     intent(in) :: rel_eps, abs_eps, max_norm
       real(dp_t)                 :: ni_res
       integer                    :: nlevs
       nlevs = size(res)
       ni_res = norm_inf(res(nlevs))
-      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps)
+      r = ( ni_res <= rel_eps*(max_norm) .or. ni_res <= abs_eps)
     end function ml_fine_converged
 
-    function ml_converged(res, mask, bnorm, rel_eps, abs_eps, ni_res, verbose) result(r)
+    function ml_converged(res, mask, max_norm, rel_eps, abs_eps, ni_res, verbose) result(r)
 
       use ml_norm_module, only : ml_norm_inf
 
@@ -711,13 +724,13 @@ contains
       integer                      :: verbose
       type(multifab),  intent(in ) :: res(:)
       type(lmultifab), intent(in ) :: mask(:)
-      real(dp_t),      intent(in ) :: rel_eps, abs_eps, bnorm
+      real(dp_t),      intent(in ) :: rel_eps, abs_eps, max_norm
       real(dp_t),      intent(out) :: ni_res
       ni_res = ml_norm_inf(res, mask)
-      r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
+      r = ( ni_res <= rel_eps*(max_norm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
-         if ( ni_res <= rel_eps*bnorm ) then
-            print *,'Converged res < rel_eps*bnorm '
+         if ( ni_res <= rel_eps*max_norm ) then
+            print *,'Converged res < rel_eps*max_norm '
          else if ( ni_res <= abs_eps ) then
             print *,'Converged res < abs_eps '
          end if
