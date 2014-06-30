@@ -1494,7 +1494,7 @@ MGT_Solver::get_fluxes(int lev,
 }
 
 void 
-MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[],
+MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], const PArray<MultiFab>& rhnd,
 			  const Real& tol, const Real& abs_tol,
 			  int* lo_inflow, int* hi_inflow)
 {
@@ -1540,27 +1540,23 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], Mult
 
   mgt_divu(lo_inflow, hi_inflow);
 
-  {
-    int lev = 0;
-    if (rhcrse[lev] != 0) {
-
-      BL_ASSERT( (*rhcrse[lev]).nGrow() == 1 );
- 
-      for (MFIter rmfi(*(rhcrse[lev])); rmfi.isValid(); ++rmfi) {
-	int n = rmfi.index();
-	
-	const int* lo = rmfi.validbox().loVect();
-	const int* hi = rmfi.validbox().hiVect();
-	
-	const FArrayBox& rhsfab = (*(rhcrse[lev]))[rmfi];
-	const Real* rhsd = rhsfab.dataPtr();
-	const int* rhslo = rhsfab.box().loVect();
-	const int* rhshi = rhsfab.box().hiVect();
-	mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
+  for ( int lev = 0; lev < rhnd.size(); ++lev ) {
+    if (rhnd.defined(lev)) {
+      for (MFIter rmfi(rhnd[lev]); rmfi.isValid(); ++rmfi) {
+        int n = rmfi.index();
+        
+        const int* lo = rmfi.validbox().loVect();
+        const int* hi = rmfi.validbox().hiVect();
+        
+        const FArrayBox& rhsfab = (rhnd[lev])[rmfi];
+        const Real* rhsd = rhsfab.dataPtr();
+        const int* rhslo = rhsfab.box().loVect();
+        const int* rhshi = rhsfab.box().hiVect();
+        mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
       }
-    }    
-  }
-
+    }
+  }  
+  
   if (have_rhcc) {
     BL_ASSERT(rhcc[0] != 0);
     for ( int lev = 0; lev < m_nlevel; ++lev ) {
