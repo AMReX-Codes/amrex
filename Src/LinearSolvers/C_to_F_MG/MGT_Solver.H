@@ -139,7 +139,7 @@ public:
 		  const Real* dx);
 
   void set_nodal_coefficients(const MultiFab* aa[]);
-  void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], MultiFab* rhcrse[], 
+  void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], const PArray<MultiFab>& rhnd, 
 		     const Real& tol, const Real& abs_tol, 
 		     int* lo_inflow=0, int* hi_inflow=0);
 
