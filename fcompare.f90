@@ -34,7 +34,7 @@ program fcompare
   integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
 
-  real(kind=dp_t), allocatable :: aerror(:), rerror(:)
+  real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
   logical, allocatable :: has_nan_a(:), has_nan_b(:)
   logical :: any_nans
@@ -168,6 +168,7 @@ program fcompare
 
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
+  allocate(rerror_denom(pf_a%nvars))
 
   allocate(has_nan_a(pf_a%nvars))
   allocate(has_nan_b(pf_a%nvars))
@@ -221,17 +222,19 @@ program fcompare
   !---------------------------------------------------------------------------
   ! go level-by-level and patch-by-patch and compare the data
   
-998 format(1x,a24,2x,a20,   2x,a20)
+998 format(1x,a24,2x,a24,   2x,a24)
 999 format(1x,70("-"))
 
   write (*,*) " "
-  write (*,998) "variable name", "absolute error", "relative error"
+  write (*,998) "variable name", "absolute error",  "relative error"
+  write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
   write (*,999)
 
   do i = 1, pf_a%flevel
 
      aerror(:) = ZERO
      rerror(:) = ZERO
+     rerror_denom(:) = ZERO
 
      has_nan_a(:) = .false.
      has_nan_b(:) = .false.
@@ -321,22 +324,14 @@ program fcompare
 
                     if (norm == 0) then
                        aerror(n_a) = max(aerror(n_a),pd)
-                       if (pa .ne. 0.d0) then 
-                          rerror(n_a) = max(rerror(n_a), pd/pa)
-                       else if (pb .ne. 0.d0) then 
-                          rerror(n_a) = max(rerror(n_a), pd/pb)
-                       else 
-                          ! The relative error is zero so do nothing
-                       end if
+
+                       rerror(n_a) = max(rerror(n_a), pd)
+                       rerror_denom(n_a) = max(rerror_denom(n_a), pa)
                     else
                        aerror(n_a) = aerror(n_a) + pd**norm
-                       if (pa .ne. 0.d0) then 
-                           rerror(n_a) = rerror(n_a) + (pd/pa)**norm
-                       else if (pb .ne. 0.d0) then 
-                           rerror(n_a) = rerror(n_a) + (pd/pb)**norm
-                       else 
-                          ! The relative error is zero so do nothing
-                       end if
+
+                       rerror(n_a) = rerror(n_a) + pd**norm
+                       rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
                     endif
 
                  enddo
@@ -357,8 +352,15 @@ program fcompare
            aerror(n_a) = aerror(n_a)*product(dx_a(1:pf_a%dim))
            aerror(n_a) = aerror(n_a)**(ONE/real(norm,dp_t))
 
-           rerror(n_a) = rerror(n_a)*product(dx_a(1:pf_a%dim))
-           rerror(n_a) = rerror(n_a)**(ONE/real(norm,dp_t))
+           ! since we are taking the ratio of two norms, no grid normalization
+           ! is needed
+           rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
+        enddo
+        
+     else
+
+        do n_a = 1, pf_a%nvars
+           rerror(n_a) = rerror(n_a)/rerror_denom(n_a)
         enddo
 
      endif
@@ -368,8 +370,8 @@ program fcompare
      ! print out the comparison report for this level
      
 1000 format(1x,"level = ", i2)
-1001 format(1x,a24,2x,g20.10,2x,g20.10)
-1002 format(1x,a24,2x,a42)
+1001 format(1x,a24,2x,g24.10,2x,g24.10)
+1002 format(1x,a24,2x,a50)
 
      write (*,1000) i
 
