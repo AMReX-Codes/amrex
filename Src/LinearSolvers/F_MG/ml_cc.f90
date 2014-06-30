@@ -50,7 +50,7 @@ contains
     real(dp_t) :: tres, tres0, max_norm
     real(dp_t) :: sum, coeff_sum, coeff_max
 
-    real(dp_t) :: r1,r2,t1(3),t2(3),stime,bottom_solve_time
+    real(dp_t) :: r1,r2,t1(4),t2(4),stime,bottom_solve_time
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
@@ -110,7 +110,6 @@ contains
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
 
-    bnorm = ml_norm_inf(rh,fine_mask)
     !
     ! First we must restrict the final solution onto coarser levels, because those coarse
     ! cells may be used to construct slopes in the interpolation of the boundary conditions.
@@ -172,12 +171,14 @@ contains
     t1(1) = max_of_stencil_sum(mgt(1)%ss(1),local=.true.) 
     t1(2) = stencil_norm(mgt(1)%ss(1),local=.true.) 
     t1(3) = ml_norm_inf(res,fine_mask,local=.true.)
+    t1(4) = ml_norm_inf(rh,fine_mask,local=.true.)
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
     coeff_sum = t2(1)
     coeff_max = t2(2)
     tres0     = t2(3)
+    bnorm     = t2(4)
 
     if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
@@ -235,7 +236,7 @@ contains
       using_bnorm = .false.
     else
       using_bnorm = .true.
-    endif
+    end if
 
     fine_converged = .false.
 
@@ -284,7 +285,7 @@ contains
                 solved = .true.
                 exit
 
-             endif
+             end if
           end if
 
           ! Set: uu = 0
@@ -553,7 +554,7 @@ contains
                       else
                           write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
                                iter,n,tres/max_norm
-                      endif
+                      end if
                    end if
                 end do
              end if
@@ -577,7 +578,7 @@ contains
                 if ( present(status) ) status = 1
                 exit
 
-             endif
+             end if
 
              if ( mgt(nlevs)%verbose > 1 .and. parallel_IOProcessor() ) then
                 if (using_bnorm) then
@@ -596,8 +597,8 @@ contains
        if ( present(status) ) then 
           if (status .eq. 0  .and.  .not. solved) then 
              status = -iter
-          endif
-       endif
+          end if
+       end if
 
        ! ****************************************************************************
        if ( solved ) then
@@ -626,16 +627,16 @@ contains
        else
           if (.not. present(status) .and. mgt(nlevs)%abort_on_max_iter) then
              call bl_error("Multigrid Solve: failed to converge in max_iter iterations")
-          endif
+          end if
        end if
 
-    endif
+    end if
 
     if (solved) then
        do n = 1,nlevs
           call multifab_fill_boundary(full_soln(n))
        end do
-    endif
+    end if
 
     do n = 2,nlevs-1
        call multifab_destroy(uu_hold(n))
@@ -681,7 +682,7 @@ contains
        do n = 1,nlevs
           call multifab_fill_boundary(full_soln(n))
        end do
-    endif
+    end if
 
     do n = nlevs, 1, -1
        call multifab_destroy(      uu(n))
@@ -700,7 +701,7 @@ contains
        call parallel_reduce(r1, r2, MPI_MAX, proc = parallel_IOProcessorNode())
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
-    endif
+    end if
 
   contains
 
