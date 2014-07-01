@@ -62,7 +62,9 @@ int Profiler::procNumber(-1);
 
 #ifdef BL_CALL_TRACE
 std::vector<Profiler::CallStats> Profiler::vCallTrace;
+std::stack<int> Profiler::callIndexStack;
 int Profiler::callStackDepth(-1);
+int Profiler::prevDepth(0);
 #endif
 
 
@@ -203,7 +205,6 @@ void Profiler::Initialize() {
     for(int i(0); i < vEx.size(); ++i) {
       CommStats::cftExclude.insert(vEx[i]);
     }
-
   }
   bInitialized = true;
 }
@@ -226,7 +227,8 @@ void Profiler::start() {
     ++cs.nCalls;
     vCallTrace.push_back(cs);
   } else {
-    if(vCallTrace.back().csFName == fname) {
+    std::string topName(fname);
+    if(vCallTrace.back().csFName == topName && callStackDepth != prevDepth) {
       ++(vCallTrace.back().nCalls);
     } else {
       CallStats cs(callStackDepth, fname);
@@ -234,6 +236,8 @@ void Profiler::start() {
       vCallTrace.push_back(cs);
     }
   }
+  callIndexStack.push(vCallTrace.size() - 1);
+  prevDepth = callStackDepth;
 #endif
 }
 }
@@ -244,11 +248,14 @@ void Profiler::stop() {
 #pragma omp master
 #endif
 {
-  bltelapsed += ParallelDescriptor::second() - bltstart;
+  double tDiff(ParallelDescriptor::second() - bltstart);
+  double nestedTime(0.0);
+  bltelapsed += tDiff;
   bRunning = false;
   Real thisFuncTime(bltelapsed);
   if( ! nestedTimeStack.empty()) {
-    thisFuncTime -= nestedTimeStack.top();
+    nestedTime    = nestedTimeStack.top();
+    thisFuncTime -= nestedTime;
     nestedTimeStack.pop();
   }
   if( ! nestedTimeStack.empty()) {
@@ -257,9 +264,19 @@ void Profiler::stop() {
   mProfStats[fname].totalTime += thisFuncTime;
 
 #ifdef BL_CALL_TRACE
+  prevDepth = callStackDepth;
   --callStackDepth;
   if(vCallTrace.size() > 0) {
-    vCallTrace.back().totalTime += thisFuncTime;
+    if(vCallTrace.back().csFName == fname) {
+      vCallTrace.back().totalTime = thisFuncTime + nestedTime;
+      vCallTrace.back().stackTime = thisFuncTime;
+    }
+  }
+  if( ! callIndexStack.empty()) {
+    int index(callIndexStack.top());
+    vCallTrace[index].totalTime = thisFuncTime + nestedTime;
+    vCallTrace[index].stackTime = thisFuncTime;
+    callIndexStack.pop();
   }
 #endif
 }
@@ -659,6 +676,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     }
     ios << "  " << cs.csFName << "  " << cs.nCalls << "  "
         //<< cs.callStackDepth << " node" << i << '\n';
+	<< cs.totalTime << "  " << cs.stackTime
         << '\n';
   }
   ios << "**************** ************^^^^" << '\n';
@@ -702,6 +720,7 @@ void Profiler::WriteHTML() {
   csHTMLFile << "<ul>" << '\n';
   listEnds.push("</ul>");
 
+// the next two lines will indent the html
 //#define IcsHTMLFile for(int id(0); id <= listEnds.size(); ++id) csHTMLFile << "  "; csHTMLFile
 //#define IIcsHTMLFile for(int id(0); id < listEnds.size(); ++id) csHTMLFile << "  "; csHTMLFile
 #define IcsHTMLFile csHTMLFile
@@ -710,10 +729,14 @@ void Profiler::WriteHTML() {
 std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::endl;
   for(int i(0); i < vCallTrace.size(); ++i) {
     CallStats &cs = vCallTrace[i];
+    if(cs.nCalls > 1) {
+      std::cout << "DDDDDDDDDD cs.nCalls = " << cs.nCalls << std::endl;
+    }
 
     if(i == vCallTrace.size() - 1) {
         IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
 	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
+	            << cs.totalTime << "  " << cs.stackTime
 	            << "</li>" << '\n';
         for(int n(0); n < cs.callStackDepth; ++n) {
           IIcsHTMLFile << listEnds.top() << '\n';
@@ -728,16 +751,19 @@ std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::end
         listEnds.push("</li>");
 	IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node" << i << "')\">"
 	            << cs.csFName << "  " << cs.nCalls << "  "
+	            << cs.totalTime << "  " << cs.stackTime
 		    //<< cs.callStackDepth << "  node" << i << "</a>" << '\n';
 		    << "</a>" << '\n';
 	IcsHTMLFile << "<ul id=\"node" << i << "\" style=\"display:\">" << '\n';
         listEnds.push("</ul>");
       } else  if(csNext.callStackDepth == cs.callStackDepth) {
         IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+	            << cs.totalTime << "  " << cs.stackTime
 	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
 	            << "</li>" << '\n';
       } else {
         IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+	            << cs.totalTime << "  " << cs.stackTime
 	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
 	            << "</li>" << '\n';
         for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {

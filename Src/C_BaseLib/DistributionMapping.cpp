@@ -1397,7 +1397,7 @@ if(ParallelDescriptor::IOProcessor()) {
 }
 
 	int extra(newVolPerCPU[i] - accVol);
-        if(extra != 0) {  // add the difference to the rest
+        if(extra != 0 && i < nprocs - 1) {  // add the difference to the rest
 	  extra /= nprocs - (i + 1);
 	  for(int ii(i+1); ii < nprocs; ++ii) {
 	    newVolPerCPU[ii] += extra;
