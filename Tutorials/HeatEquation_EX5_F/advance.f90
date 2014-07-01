@@ -39,33 +39,14 @@ contains
     type(multifab) :: beta(mla%nlevel,mla%dim)
     type(multifab) :: rhs(mla%nlevel)
 
-    type(multifab), allocatable :: cell_coeffs(:)
-    type(multifab), allocatable :: edge_coeffs(:,:)
-
     type(bndry_reg) :: fine_flx(2:mla%nlevel)
-
-    real(dp_t) ::  xa(mla%dim),  xb(mla%dim)
-    real(dp_t) :: pxa(mla%dim), pxb(mla%dim)
-
-    integer :: stencil_order,do_diagnostics
-
-    type(mg_tower)  :: mgt(mla%nlevel)
-
-    type(layout) :: la
-    type(box) :: pd
 
     real(dp_t) :: dx_vector(mla%nlevel,mla%dim)
 
-    integer :: stencil_type,ns,smoother,nu1,nu2,nub,cycle_type
-    integer :: bottom_solver,bottom_max_iter,max_iter,max_nlevel
-    integer :: max_bottom_nlevel,min_width,verbose,cg_verbose
-    real(dp_t) :: bottom_solver_eps,rel_solver_eps,abs_solver_eps
+    integer :: bc_comp
 
     dm = mla%dim
     nlevs = mla%nlevel
-
-    stencil_order = 2
-    do_diagnostics = 0
 
     if (do_implicit_solve) then
 
@@ -103,136 +84,33 @@ contains
 
        ! stores beta*grad phi/dx_fine on coarse-fine interfaces
        ! this gets computed inside of ml_cc_solve
-       ! we pass it back out because some algorithms (like projection methods) use this information
+       ! we pass it back out because some algorithms (like projection methods) 
+       ! use this information
        do n = 2,nlevs
           call bndry_reg_build(fine_flx(n),mla%la(n),ml_layout_get_pd(mla,n))
        end do
 
-       ! initialize these to the default values in the mgt object
-       smoother          = mgt(nlevs)%smoother           ! smoother type
-       nu1               = mgt(nlevs)%nu1                ! # of smooths at each level on the way down
-       nu2               = mgt(nlevs)%nu2                ! # of smooths at each level on the way up
-       nub               = mgt(nlevs)%nub                ! # of smooths before and after bottom solver
-       cycle_type        = mgt(nlevs)%cycle_type         ! choose between V-cycle, W-cycle, etc.
-       bottom_solver     = mgt(nlevs)%bottom_solver      ! bottom solver type
-       bottom_max_iter   = mgt(nlevs)%bottom_max_iter    ! max iterations of bottom solver
-       bottom_solver_eps = mgt(nlevs)%bottom_solver_eps  ! tolerance of bottom solver
-       max_iter          = mgt(nlevs)%max_iter           ! maximum number of v-cycles
-       max_bottom_nlevel = mgt(nlevs)%max_bottom_nlevel  ! additional coarsening if you use bottom_solver type 4
-       min_width         = mgt(nlevs)%min_width          ! minimum size of grid at coarsest multigrid level
-       rel_solver_eps    = mgt(nlevs)%eps                ! relative tolerance of solver
-       abs_solver_eps    = mgt(nlevs)%abs_eps            ! absolute tolerance of solver
-       verbose           = mgt(nlevs)%verbose            ! verbosity
-       cg_verbose        = mgt(nlevs)%cg_verbose         ! bottom solver verbosity
+       ! there is only one boundary condition component in this example
+       bc_comp = 1
 
+       ! ml_cc_solve interface requires dx dimensioned as dx(nlevs,dm)
        do n=1,nlevs
-
-          ! get the problem domain for level n
-          pd = layout_get_pd(mla%la(n))
-
-          ! mg_tower_build needs dx to be represented as a vector of size (nlevs,dm).
-          dx_vector(n,:) = dx(n)
-
-          ! max_nlevel represents how many levels you can coarsen before you either reach
-          ! the bottom solve, or the mg_tower object at the next coarser level of refinement
-          if (n .eq. 1) then
-             max_nlevel = mgt(nlevs)%max_nlevel
-          else
-             max_nlevel = 1
-          end if
-
-          stencil_type = CC_CROSS_STENCIL
-
-          ! build the mg_tower object at level n
-          call mg_tower_build(mgt(n), mla%la(n), pd, &
-                              the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1), &
-                              stencil_type, &
-                              dh = dx_vector(n,:), &
-                              smoother = smoother, &
-                              nu1 = nu1, &
-                              nu2 = nu2, &
-                              nub = nub, &
-                              cycle_type = cycle_type, &
-                              bottom_solver = bottom_solver, &
-                              bottom_max_iter = bottom_max_iter, &
-                              bottom_solver_eps = bottom_solver_eps, &
-                              max_iter = max_iter, &
-                              max_nlevel = max_nlevel, &
-                              max_bottom_nlevel = max_bottom_nlevel, &
-                              min_width = min_width, &
-                              eps = rel_solver_eps, &
-                              abs_eps = abs_solver_eps, &
-                              verbose = verbose, &
-                              cg_verbose = cg_verbose, &
-                              nodal = nodal_flags(rhs(nlevs)), &
-                              is_singular = .false.)
-
-       end do
-
-       ! Fill coefficient array
-       do n = nlevs,1,-1
-
-          allocate(cell_coeffs(mgt(n)%nlevels))
-          allocate(edge_coeffs(mgt(n)%nlevels,dm))
-
-          la = mla%la(n)
-
-          ! we will use this to tell mgt about alpha
-          call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, 1)
-          call multifab_copy_c(cell_coeffs(mgt(n)%nlevels),1,alpha(n),1,1,alpha(n)%ng)
-
-          ! we will use this to tell mgt about beta
-          do i=1,dm
-             call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,i),la,1,1,i)
-             call multifab_copy_c(edge_coeffs(mgt(n)%nlevels,i),1,beta(n,i),1,1,beta(n,i)%ng)
-          end do
-
-          ! xa and xb tell the stencil how far away the ghost cell values are in physical
-          ! dimensions from the edge of the grid
-          if (n > 1) then
-             xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
-             xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
-          else
-             xa = ZERO
-             xb = ZERO
-          end if
-
-          ! xa and xb tell the stencil how far away the ghost cell values are in physical
-          ! dimensions from the edge of the grid if the grid is at the domain boundary
-          pxa = ZERO
-          pxb = ZERO
-
-          ! tell mgt about alpha, beta, xa, xb, pxa, and pxb
-          call stencil_fill_cc_all_mglevels(mgt(n), cell_coeffs, edge_coeffs, xa, xb, &
-                                            pxa, pxb, stencil_order, &
-                                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,1))
-
-          ! deallocate memory
-          call destroy(cell_coeffs(mgt(n)%nlevels))
-          do i=1,dm
-             call destroy(edge_coeffs(mgt(n)%nlevels,i))
-          end do
-          deallocate(cell_coeffs)
-          deallocate(edge_coeffs)
-
+          dx_vector(n,1:dm) = dx(n)
        end do
 
        ! solve (alpha - del dot beta grad) phi = rhs to obtain phi
-       call ml_cc_solve(mla, mgt, rhs, phi, fine_flx, do_diagnostics)
+       call ml_cc_solve(mla,rhs,phi,fine_flx,alpha,beta,dx_vector,the_bc_tower,bc_comp)
 
-       ! deallocate memory
-       do n=1,nlevs
-          call multifab_destroy(alpha(n))
-          call multifab_destroy(  rhs(n))
-          do i=1,dm
-             call multifab_destroy(beta(n,i))
-          end do
-       end do
+       ! free memory
        do n = 2,nlevs
           call bndry_reg_destroy(fine_flx(n))
        end do
-       do n = 1, nlevs
-          call mg_tower_destroy(mgt(n))
+       do n = 1,nlevs
+          call multifab_destroy(alpha(n))
+          call multifab_destroy(rhs(n))
+          do i=1,dm
+             call multifab_destroy(beta(n,i))
+          end do
        end do
 
     else
