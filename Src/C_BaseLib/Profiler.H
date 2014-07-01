@@ -32,11 +32,12 @@ class Profiler
 
     struct CallStats {
       CallStats(int depth, std::string fname) : callStackDepth(depth), csFName(fname),
-                                                nCalls(0), totalTime(0.0) { }
+                                                nCalls(0), totalTime(0.0),
+						stackTime(0.0)  { }
       int callStackDepth;
       std::string csFName;
       long nCalls;
-      Real totalTime;
+      Real totalTime, stackTime;
     };
 
     enum CommFuncType {
@@ -194,8 +195,13 @@ class Profiler
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
 
+#ifdef BL_CALL_TRACE
     static std::vector<CallStats> vCallTrace;
+    static std::stack<int> callIndexStack;
     static int callStackDepth;
+    static int prevDepth;
+#endif
+
 };
 
 
