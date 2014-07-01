@@ -424,3 +424,11 @@ ifeq ($(HOSTNAME),hyades.ucsc.edu)
   fC := mpiifort
 endif
 
+
+ifeq ($(findstring lanl, $(UNAMEN)), lanl)
+  F90 := mpif90
+  FC := mpif90
+  fc := mpif90
+  CXX := mpic++
+  CC := mpicc
+endif
