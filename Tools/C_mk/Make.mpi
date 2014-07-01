@@ -57,6 +57,15 @@ endif
 ifeq ($(MACHINE), Linux)
   ifdef WHICHLINUX
 
+    ifeq ($(WHICHLINUX), LANL)
+      CC := mpicc
+      CXX := mpic++
+      FC := mpif90
+      F90 := mpif90
+      fC := mpif90
+
+    endif
+
     ifeq ($(WHICHLINUX), BLUE_WATERS)
       CC := cc
       CXX := CC

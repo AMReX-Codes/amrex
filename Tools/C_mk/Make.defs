@@ -162,6 +162,11 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
+  ifeq ($(findstring lanl, $(UNAMEN)), lanl)
+    WHICHLINUX := LANL
+    # classified machines are a mix of Linux clusters and Cray
+    # so this might need to be updated in the future
+  endif
 endif
 #
 # Some Lawrencium crap ...
