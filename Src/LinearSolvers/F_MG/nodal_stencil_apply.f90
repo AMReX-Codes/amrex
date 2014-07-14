@@ -143,6 +143,40 @@ contains
           end do
        end do
 
+    else if (stencil_type .eq. ND_VATER_STENCIL) then
+
+       do j = 1,ny
+          jface = .false. ; if ( (j.eq.1).or.(j.eq.ny) ) jface = .true.
+          do i = 1,nx
+             iface = .false. ; if ( (i.eq.1).or.(i.eq.nx) ) iface = .true.
+
+             zeroit = .false.
+
+             if ( iface .or. jface ) then
+                if (bc_dirichlet(mm(i,j),1,0)) zeroit = .true.
+             end if
+
+             if (zeroit) then
+                dd(i,j) = ZERO
+             else
+                ss0 = -0.75d0 * (sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j))
+                dd(i,j) = ss0 * uu(i,j) + &
+                FOURTH * ( &
+                            sg(i-1,j-1) * uu(i-1,j-1) + &
+                            sg(i  ,j-1) * uu(i+1,j-1) + &
+                            sg(i-1,j  ) * uu(i-1,j+1) + &
+                            sg(i  ,j  ) * uu(i+1,j+1) + &
+                           (sg(i-1,j-1) + sg(i  ,j-1)) * uu(i,j-1) + &
+                           (sg(i-1,j-1) + sg(i-1,j  )) * uu(i-1,j) + &
+                           (sg(i  ,j-1) + sg(i  ,j  )) * uu(i+1,j) + &
+                           (sg(i-1,j  ) + sg(i  ,j  )) * uu(i,j+1) )
+                if (diagonalize) then
+                    dd(i,j) = dd(i,j) / ss0
+                end if
+             end if
+          end do
+       end do
+
     else
        call bl_error("stencil_apply_2d_nodal: dont know this stencil_type")
     end if
@@ -293,6 +327,8 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
+    else if (stencil_type .eq. ND_VATER_STENCIL) then
+       call bl_error("stencil_apply_3d_nodal: ND_VATER_STENCIL not implemented in 3-d")
     else
        call bl_error("stencil_apply_3d_nodal: dont know this stencil_type")
     end if
