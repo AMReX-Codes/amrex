@@ -630,7 +630,7 @@ subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
                 local_index(mgts%rh(flev),fn))
 
-  rhmax = -1.e200
+  rhmax = -Huge(rhmax)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do i = lo(1),hi(1)
@@ -660,7 +660,7 @@ subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
                 local_index(mgts%rh(flev),fn))
 
-  rhmax = -1.e200
+  rhmax = -Huge(rhmax)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do j = lo(2),hi(2)
@@ -694,7 +694,7 @@ subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
                 local_index(mgts%rh(flev),fn))
 
-  rhmax = -1.e200
+  rhmax = -Huge(rhmax)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do k = lo(3),hi(3)
