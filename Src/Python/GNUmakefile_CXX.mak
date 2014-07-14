@@ -43,7 +43,7 @@ F90 := mpif90
 FFLAGS   += -fPIC
 fFLAGS   += -fPIC
 CFLAGS   += -fPIC
-CXXFLAGS += -fPIC
+CXXFLAGS += -fPIC -D__USE_XOPEN2K8
 
 # Chemistry
 ifeq ($(NEEDSCHEM), TRUE)
@@ -135,13 +135,15 @@ PYSO    = $(OUT)/_bl$(DIM).so
 
 all: $(PYSO)
 
-wrapper: $(WRAPPER)
+#wrapper: $(WRAPPER)
 
-$(WRAPPER): swig/boxlib.i
-	swig -DDIM$(DIM) -python -c++ -Iswig -Icsrc $(includes) -o $@ -outdir boxlib $<
+#$(WRAPPER): swig/boxlib.i
+#	swig -DDIM$(DIM) -python -c++ -Iswig -Icsrc $(includes) -o $@ -outdir boxlib $<
+
+#mpic++ -print-file-name=libstdc++.a
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	mpic++ -shared -o $@ $^ ${SHARED_LIBRARIES}
+	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
