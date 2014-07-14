@@ -203,6 +203,9 @@ subroutine mgt_nodal_finalize(dx,bc)
   else if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
      if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
          print *,'Using cross stencil in nodal solver ...'
+  else if (mgts%stencil_type .eq. ND_VATER_STENCIL) then
+     if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
+         print *,'Using Vater dense stencil in nodal solver ...'
   else
      if ( parallel_ioprocessor()) &
          print *,'Dont know this stencil type ',mgts%stencil_type
