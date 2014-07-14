@@ -102,10 +102,13 @@ running_dir = os.getcwd()
 
 ngit = len(args.GIT)
 git_hashes = []
-for i in range(ngit):
-    os.chdir(args.GIT[i])
-    git_hashes.append(runcommand("git rev-parse HEAD"))
-    os.chdir(running_dir)
+for d in args.GIT:
+    if d:
+        os.chdir(d)
+        git_hashes.append(runcommand("git rev-parse HEAD"))
+        os.chdir(running_dir)
+    else:
+        git_hashes.append("")
 
 
 fout = open("buildInfo.cpp", "w")
