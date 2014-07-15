@@ -93,6 +93,8 @@ AmrLevel::AmrLevel (Amr&            papa,
                         parent->dtLevel(lev));
     }
 
+    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
     //       has been defined because it makes use of the state's DistributionMap
@@ -143,7 +145,8 @@ AmrLevel::restart (Amr&          papa,
     {
         state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
     }
-    constructAreaNotToTag();
+ 
+    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
 
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
@@ -1580,12 +1583,19 @@ void AmrLevel::constructAreaNotToTag()
     if (level == 0 || !Amr::useFixedCoarseGrids || Amr::useFixedUpToLevel>level)
         return;
 
+    // We are restricting the tagging on the finest fixed level
     if (Amr::useFixedUpToLevel==level)
     {
+        // We use the next coarser level shrunk by one blockingfactor
+        //    as the region in which we allow tagging. 
+        // Why level-1? Because we always use the full domain at level 0 
+        //    and therefore level 0 in initialba is level 1 in the AMR hierarchy, etc.
         const Array<BoxArray>& initialba = parent->getInitialBA();
         Box tagarea(initialba[level-1].minimalBox());
         tagarea.grow(-parent->blockingFactor(level));
         m_AreaToTag = tagarea;
+
+        // We disallow tagging in the remaining part of the domain.
         BoxArray tagba = BoxLib::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
         m_AreaNotToTag = tagba;
 
