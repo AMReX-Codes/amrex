@@ -2,7 +2,7 @@
 
 import sys
 import os
-import argparse
+import getopt
 import datetime
 import string
 import subprocess
@@ -78,19 +78,36 @@ def runcommand(command):
     return out.strip()
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--boxlib_home", help="location of the BoxLib/ directory", 
-                   type=str, default=None)
-parser.add_argument("--FCOMP", help="the name of the Fortran compiler", 
-                   type=str, default=None)
-parser.add_argument("--COMP", help="the name of the C++ compiler", 
-                   type=str, default=None)
-parser.add_argument("--AUX", help="auxillary information (EOS, network path)", 
-                   type=str, default=None, nargs="*")
-parser.add_argument("--GIT", help="the directories whose git hashes we should capture", 
-                   type=str, default=None, nargs="*")
+try: opts, next = getopt.getopt(sys.argv[1:], "",
+                                ["boxlib_home=",
+                                 "FCOMP=",
+                                 "COMP=",
+                                 "AUX=",
+                                 "GIT="])
 
-args = parser.parse_args()
+except getopt.GetoptError:
+    sys.exit("invalid calling sequence")
+
+boxlib_home = ""
+FCOMP = ""
+COMP = ""
+AUX = []
+GIT = []
+
+for o, a in opts:
+
+    if o == "--boxlib_home": boxlib_home = a
+
+    if o == "--FCOMP": FCOMP = a
+
+    if o == "--COMP": COMP = a
+
+    if o == "--AUX":
+        if not a == "": AUX = a.split()
+
+    if o == "--GIT":
+        if not a == "": GIT = a.split()
+
 
 # build stuff                                                                                           
 build_date = str(datetime.datetime.now())
@@ -100,9 +117,9 @@ build_machine = runcommand("uname -a")
 # git hashes
 running_dir = os.getcwd()
 
-ngit = len(args.GIT)
+ngit = len(GIT)
 git_hashes = []
-for d in args.GIT:
+for d in GIT:
     if d:
         os.chdir(d)
         git_hashes.append(runcommand("git rev-parse HEAD"))
@@ -134,29 +151,29 @@ for line in source.splitlines():
             fout.write(newline)        
 
         elif keyword == "BOXLIB_DIR":
-            newline = string.replace(line, "@@BOXLIB_DIR@@", args.boxlib_home)
+            newline = string.replace(line, "@@BOXLIB_DIR@@", boxlib_home)
             fout.write(newline)        
 
         elif keyword == "COMP":
-            newline = string.replace(line, "@@COMP@@", args.COMP)
+            newline = string.replace(line, "@@COMP@@", COMP)
             fout.write(newline)        
 
         elif keyword == "FCOMP":
-            newline = string.replace(line, "@@FCOMP@@", args.FCOMP)
+            newline = string.replace(line, "@@FCOMP@@", FCOMP)
             fout.write(newline)        
 
         elif keyword == "AUX_DECLS":
             indent = index
             aux_str = ""
-            for i in range(len(args.AUX)):
-                aux_str += '{}static const char AUX{}[] = "{}";\n'.format(indent*" ", i+1, args.AUX[i])
+            for i in range(len(AUX)):
+                aux_str += '{}static const char AUX{}[] = "{}";\n'.format(indent*" ", i+1, AUX[i])
 
             fout.write(aux_str)        
 
         elif keyword == "AUX_CASE":
             indent = index
             aux_str = ""
-            for i in range(len(args.AUX)):
+            for i in range(len(AUX)):
                 aux_str += '{}case {}: return AUX{};\n'.format(indent*" ", i+1, i+1)
 
             fout.write(aux_str)
@@ -164,7 +181,7 @@ for line in source.splitlines():
         elif keyword == "GIT_DECLS":
             indent = index
             git_str = ""
-            for i in range(len(args.GIT)):
+            for i in range(len(GIT)):
                 git_str += '{}static const char HASH{}[] = "{}";\n'.format(indent*" ", i+1, git_hashes[i])
 
             fout.write(git_str)        
@@ -172,7 +189,7 @@ for line in source.splitlines():
         elif keyword == "GIT_CASE":
             indent = index
             git_str = ""
-            for i in range(len(args.GIT)):
+            for i in range(len(GIT)):
                 git_str += '{}case {}: return HASH{};\n'.format(indent*" ", i+1, i+1)
 
             fout.write(git_str)
