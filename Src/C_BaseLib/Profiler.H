@@ -31,11 +31,11 @@ class Profiler
     };
 
     struct CallStats {
-      CallStats(int depth, std::string fname) : callStackDepth(depth), csFName(fname),
-                                                nCalls(0), totalTime(0.0),
-						stackTime(0.0)  { }
-      int callStackDepth;
-      std::string csFName;
+      CallStats(int depth, int fnamenumber) : callStackDepth(depth),
+                                              csFNameNumber(fnamenumber),
+                                              nCalls(0), totalTime(0.0),
+					      stackTime(0.0)  { }
+      int callStackDepth, csFNameNumber;
       long nCalls;
       Real totalTime, stackTime;
     };
@@ -198,8 +198,19 @@ class Profiler
 #ifdef BL_CALL_TRACE
     static std::vector<CallStats> vCallTrace;
     static std::stack<int> callIndexStack;
+    static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
     static int callStackDepth;
     static int prevDepth;
+
+    typedef std::pair<Real, int> RIpair;
+    struct fTTComp {
+      bool operator()(const RIpair &lhs,
+                      const RIpair &rhs) const
+      {
+        return lhs.first > rhs.first;
+      }
+    };
+
 #endif
 
 };
