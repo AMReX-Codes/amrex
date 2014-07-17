@@ -12,6 +12,7 @@
 #include <string>
 #include <cstring>
 #include <stack>
+#include <algorithm>
 #include <stdlib.h>
 
 
@@ -63,6 +64,7 @@ int Profiler::procNumber(-1);
 #ifdef BL_CALL_TRACE
 std::vector<Profiler::CallStats> Profiler::vCallTrace;
 std::stack<int> Profiler::callIndexStack;
+std::map<std::string, int> Profiler::mFNameNumbers;
 int Profiler::callStackDepth(-1);
 int Profiler::prevDepth(0);
 #endif
@@ -221,17 +223,25 @@ void Profiler::start() {
   nestedTimeStack.push(0.0);
 
 #ifdef BL_CALL_TRACE
+  int fnameNumber;
+  std::map<std::string, int>::iterator it = Profiler::mFNameNumbers.find(fname);
+  if(it == Profiler::mFNameNumbers.end()) {
+    fnameNumber = Profiler::mFNameNumbers.size();
+    Profiler::mFNameNumbers.insert(std::pair<std::string, int>(fname, fnameNumber));
+  } else {
+    fnameNumber = it->second;
+  }
   ++callStackDepth;
   if(vCallTrace.size() == 0) {
-    CallStats cs(callStackDepth, fname);
+    CallStats cs(callStackDepth, fnameNumber);
     ++cs.nCalls;
     vCallTrace.push_back(cs);
   } else {
-    std::string topName(fname);
-    if(vCallTrace.back().csFName == topName && callStackDepth != prevDepth) {
+    int topNameNumber(fnameNumber);
+    if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevDepth) {
       ++(vCallTrace.back().nCalls);
     } else {
-      CallStats cs(callStackDepth, fname);
+      CallStats cs(callStackDepth, fnameNumber);
       ++cs.nCalls;
       vCallTrace.push_back(cs);
     }
@@ -267,7 +277,7 @@ void Profiler::stop() {
   prevDepth = callStackDepth;
   --callStackDepth;
   if(vCallTrace.size() > 0) {
-    if(vCallTrace.back().csFName == fname) {
+    if(vCallTrace.back().csFNameNumber == mFNameNumbers[fname]) {
       vCallTrace.back().totalTime = thisFuncTime + nestedTime;
       vCallTrace.back().stackTime = thisFuncTime;
     }
@@ -564,9 +574,7 @@ void Profiler::Finalize() {
 
 
 void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
-  //const int nProcs(ParallelDescriptor::NProcs());
   const int myProc(ParallelDescriptor::MyProc());
-  //const int iopNum(ParallelDescriptor::IOProcessorNumber());
   const int colWidth(10);
 
   mTimersTotalsSorted.clear();
@@ -667,6 +675,13 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 
 #ifdef BL_CALL_TRACE
+  // -------- write timers sorted by inclusive times
+  std::vector<std::string> fNumberNames(mFNameNumbers.size());
+  for(std::map<std::string, int>::const_iterator it = Profiler::mFNameNumbers.begin();
+      it != Profiler::mFNameNumbers.end(); ++it)
+  {
+    fNumberNames[it->second] = it->first;
+  }
   ios << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
   ios << "**************** ************vvvv" << '\n';
   for(int i(0); i < vCallTrace.size(); ++i) {
@@ -674,18 +689,69 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     for(int indent(0); indent < cs.callStackDepth; ++indent) {
       ios << "----";
     }
-    ios << "  " << cs.csFName << "  " << cs.nCalls << "  "
-        //<< cs.callStackDepth << " node" << i << '\n';
-	<< cs.totalTime << "  " << cs.stackTime
-        << '\n';
+    ios << "  " << fNumberNames[cs.csFNameNumber] << "  "
+	<< cs.totalTime << "  " << cs.stackTime << '\n';
   }
   ios << "**************** ************^^^^" << '\n';
+
+  // sort by total time
+  std::vector<RIpair> funcTotalTimes(mFNameNumbers.size());
+  for(int i(0); i < funcTotalTimes.size(); ++i) {
+    funcTotalTimes[i].first  = 0.0;
+    funcTotalTimes[i].second = i;
+  }
+  std::vector<int> callStack(1000, -1);  // use vector instead of stack for iterator
+  for(int i(0); i < vCallTrace.size(); ++i) {
+    CallStats &cs = vCallTrace[i];
+    int depth(cs.callStackDepth);
+    callStack[depth] = cs.csFNameNumber;
+    bool recursiveCall(false);
+    for(int d(0); d <  depth; ++d) {
+      if(cs.csFNameNumber == callStack[d]) {
+        ios << " RECURSIVE:  " << fNumberNames[cs.csFNameNumber] << '\n';
+        recursiveCall = true;
+      }
+    }
+    if( ! recursiveCall) {
+      funcTotalTimes[cs.csFNameNumber].first += cs.totalTime;
+    }
+  }
+
+  std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), fTTComp());
+
+  int numPrec(4);
+  ios << '\n' << '\n';
+  ios << std::setfill('-') << std::setw(maxlen+4 + 1 * (colWidth+2))
+      << std::left << "Inclusive times " << '\n';
+  ios << std::right << std::setfill(' ');
+  ios << std::setw(maxlen + 2) << "Function Name"
+      << std::setw(colWidth + 2) << "Time s"
+      << '\n';
+
+  for(int i(0); i < funcTotalTimes.size(); ++i) {
+    ios << std::setw(maxlen + 2) << fNumberNames[funcTotalTimes[i].second] << "  "
+        << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+        << funcTotalTimes[i].first << " s"
+        << '\n';
+  }
+  ios << std::setfill('=') << std::setw(maxlen+4 + 1 * (colWidth+2)) << ""
+      << '\n';
+  ios << std::setfill(' ');
+  ios << std::endl;
+
 #endif
 }
 
 
 #ifdef BL_CALL_TRACE
 void Profiler::WriteHTML() {
+  std::vector<std::string> fNumberNames(mFNameNumbers.size());
+  for(std::map<std::string, int>::const_iterator it = Profiler::mFNameNumbers.begin();
+      it != Profiler::mFNameNumbers.end(); ++it)
+  {
+    fNumberNames[it->second] = it->first;
+  }
+
   // write to html file
   std::string htmlFileName("CallTrace.html");
   std::stack<std::string> listEnds;
@@ -726,7 +792,7 @@ void Profiler::WriteHTML() {
 #define IcsHTMLFile csHTMLFile
 #define IIcsHTMLFile csHTMLFile
 
-std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::endl;
+  std::cout << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
   for(int i(0); i < vCallTrace.size(); ++i) {
     CallStats &cs = vCallTrace[i];
     if(cs.nCalls > 1) {
@@ -734,8 +800,7 @@ std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::end
     }
 
     if(i == vCallTrace.size() - 1) {
-        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
-	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
+        IcsHTMLFile << "<li>" << fNumberNames[cs.csFNameNumber] << "  "
 	            << cs.totalTime << "  " << cs.stackTime
 	            << "</li>" << '\n';
         for(int n(0); n < cs.callStackDepth; ++n) {
@@ -750,21 +815,22 @@ std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::end
         IcsHTMLFile << "<li>" << '\n';
         listEnds.push("</li>");
 	IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node" << i << "')\">"
-	            << cs.csFName << "  " << cs.nCalls << "  "
+	            << fNumberNames[cs.csFNameNumber] << "  "
 	            << cs.totalTime << "  " << cs.stackTime
-		    //<< cs.callStackDepth << "  node" << i << "</a>" << '\n';
 		    << "</a>" << '\n';
-	IcsHTMLFile << "<ul id=\"node" << i << "\" style=\"display:\">" << '\n';
+	if(cs.callStackDepth < 3) {
+	  IcsHTMLFile << "<ul id=\"node" << i << "\" style=\"display:\">" << '\n';
+	} else {
+	  IcsHTMLFile << "<ul id=\"node" << i << "\" style=\"display:none\">" << '\n';
+	}
         listEnds.push("</ul>");
       } else  if(csNext.callStackDepth == cs.callStackDepth) {
-        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+        IcsHTMLFile << "<li>" << fNumberNames[cs.csFNameNumber] << "  "
 	            << cs.totalTime << "  " << cs.stackTime
-	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
 	            << "</li>" << '\n';
       } else {
-        IcsHTMLFile << "<li>" << cs.csFName << "  " << cs.nCalls << "  "
+        IcsHTMLFile << "<li>" << fNumberNames[cs.csFNameNumber] << "  "
 	            << cs.totalTime << "  " << cs.stackTime
-	            //<< cs.callStackDepth << "  node" << i << "</li>" << '\n';
 	            << "</li>" << '\n';
         for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {
           IIcsHTMLFile << listEnds.top() << '\n';
@@ -776,7 +842,6 @@ std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::end
     }
   }
 
-
   if(listEnds.size() != 1) {
     std::cout << "**** Error:  listEnds.size() = " << listEnds.size() << std::endl;
   }
@@ -784,7 +849,6 @@ std::cout << "_here 000:  vCallTrace.size() = " << vCallTrace.size() << std::end
   listEnds.pop();
 
   csHTMLFile << "</body>" << '\n';
-
   csHTMLFile << "</html>" << '\n';
 
   csHTMLFile.close();
