@@ -19,7 +19,7 @@ clean:
 	rm -rf boxlib/*.so boxlib/*.pyc *.pyc
 
 realclean:
-	rm -rf boxlib/*.so boxlib/*.pyc *.pyc d f o src/* boxlib/bl*.py
+	rm -rf build/ boxlib/*.so boxlib/*.pyc *.pyc d f o
 
 
 .PHONY: clean

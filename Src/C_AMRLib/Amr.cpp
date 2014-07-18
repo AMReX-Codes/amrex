@@ -45,6 +45,8 @@ std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
+bool                   Amr::useFixedCoarseGrids;
+int                    Amr::useFixedUpToLevel;
 
 namespace
 {
@@ -92,6 +94,8 @@ Amr::Initialize ()
     checkpoint_on_restart    = 0;
     checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
+    Amr::useFixedCoarseGrids = false;
+    Amr::useFixedUpToLevel   = 0;
 
     BoxLib::ExecOnFinalize(Amr::Finalize);
 
@@ -404,6 +408,11 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
             BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
+
+    //
+    // Are we going to keep the grids at certain levels fixed?
+    //
+    pp.query("useFixedCoarseGrids", useFixedCoarseGrids);
     
     //
     // Setup plot and checkpoint controls.
@@ -547,6 +556,11 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         is >> in_finest;
         STRIP;
         initial_ba.resize(in_finest);
+
+        useFixedUpToLevel = in_finest;
+        if (in_finest > max_level)
+           BoxLib::Error("You have fewer levels in your inputs file then in your grids file!");
+
         for (int lev = 1; lev <= in_finest; lev++)
         {
             BoxList bl;
@@ -563,6 +577,9 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
             initial_ba[lev-1].define(bl);
         }
         is.close();
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Read initial_ba. Size is " << initial_ba.size() << std::endl;
+
 #undef STRIP
     }
 
@@ -2548,7 +2565,7 @@ Amr::grid_places (int              lbase,
        impose_refine_grid_layout(lbase,lbase,new_grids);
     }
 
-    if ( time == 0. && !initial_grids_file.empty() )
+    if ( time == 0. && !initial_grids_file.empty() && !useFixedCoarseGrids)
     {
         new_finest = std::min(max_level,(finest_level+1));
         new_finest = std::min(new_finest,initial_ba.size());
@@ -2569,6 +2586,31 @@ Amr::grid_places (int              lbase,
         return;
     }
 
+    // Use grids in initial_grids_file as fixed coarse grids.
+    if ( !initial_grids_file.empty() && useFixedCoarseGrids)
+    {
+        new_finest = std::min(max_level,(finest_level+1));
+        new_finest = std::min(new_finest,initial_ba.size());
+
+        for (int lev = lbase+1; lev <= new_finest; lev++)
+        {
+            BoxList bl;
+            int ngrid = initial_ba[lev-1].size();
+            for (i = 0; i < ngrid; i++)
+            {
+                Box bx(initial_ba[lev-1][i]);
+
+                if (lev > lbase)
+                    bl.push_back(bx);
+
+            }
+            if (lev > lbase)
+                new_grids[lev].define(bl);
+            new_grids[lev].maxSize(max_grid_size[lev]);
+        }
+    }
+
+    // Use grids in regrid_grids_file 
     else if ( !regrid_grids_file.empty() )
     {
         new_finest = std::min(max_level,(finest_level+1));
@@ -2672,10 +2714,15 @@ Amr::grid_places (int              lbase,
             }
         }
         TagBoxArray tags(amr_level[levc].boxArray(),n_error_buf[levc]+ngrow);
-
-        amr_level[levc].errorEst(tags,
-                                 TagBox::CLEAR,TagBox::SET,time,
-                                 n_error_buf[levc],ngrow);
+    
+        //
+        // Only use error estimation to tag cells for the creation of new grids
+        //      if the grids at that level aren't already fixed.
+        //
+        if ( !(useFixedCoarseGrids && levc < useFixedUpToLevel) )
+            amr_level[levc].errorEst(tags,
+                                     TagBox::CLEAR,TagBox::SET,time,
+                                     n_error_buf[levc],ngrow);
         //
         // If new grids have been constructed above this level, project
         // those grids down and tag cells on intersections to ensure
@@ -2750,6 +2797,18 @@ Amr::grid_places (int              lbase,
         // Buffer error cells.
         //
         tags.buffer(n_error_buf[levc]+ngrow);
+
+        if (useFixedCoarseGrids)
+        {
+           if (levc>=useFixedUpToLevel)
+           {
+               BoxArray bla(amr_level[levc].getAreaNotToTag());
+               tags.setVal(bla,TagBox::CLEAR);
+           }
+           if (levc<useFixedUpToLevel)
+              new_finest = std::max(new_finest,levf);
+        }
+
         //
         // Coarsen the taglist by blocking_factor/ref_ratio.
         //
@@ -2784,7 +2843,8 @@ Amr::grid_places (int              lbase,
             //
             // Created new level, now generate efficient grids.
             //
-            new_finest = std::max(new_finest,levf);
+            if ( !(useFixedCoarseGrids && levc<useFixedUpToLevel) )
+                new_finest = std::max(new_finest,levf);
             //
             // Construct initial cluster.
             //
@@ -2840,7 +2900,8 @@ Amr::grid_places (int              lbase,
             //
             new_bx.refine(ref_ratio[levc]);
             BL_ASSERT(new_bx.isDisjoint());
-            new_grids[levf].define(new_bx);
+            if (levf > useFixedUpToLevel)
+                new_grids[levf].define(new_bx);
         }
         //
         // Don't forget to get rid of space used for collate()ing.
@@ -2860,7 +2921,7 @@ Amr::grid_places (int              lbase,
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "grid_places() time: " << stoptime << '\n';
+            std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
 #endif
     }
 }
@@ -2931,6 +2992,7 @@ using std::endl;
 	    regrid(0,strt_time,true);
 
 	    grids_the_same = true;
+	    int min_level  = 0;
 
 	    for (int i = 0; i <= finest_level && grids_the_same; i++)
 	      if (!(grids[i] == amr_level[i].boxArray()))
@@ -3149,6 +3211,11 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     for (int i = n-1; i > 0; i--)
         best[i] /= best[i-1];
     return best_dt;
+}
+
+const Array<BoxArray>& Amr::getInitialBA()
+{
+  return initial_ba;
 }
 
 void 

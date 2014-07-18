@@ -99,8 +99,8 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring ranger, $(UNAMEN)), ranger)
     WHICHLINUX := RANGER
   endif
-  ifeq ($(findstring kraken, $(UNAMEN)), kraken)
-    WHICHLINUX := KRAKEN
+  ifeq ($(findstring darter, $(UNAMEN)), darter)
+    WHICHLINUX := DARTER
   endif
   ifeq ($(findstring mothra, $(UNAMEN)), mothra)
     WHICHLINUX := MOTHRA

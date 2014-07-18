@@ -4,7 +4,6 @@ BOXLIB_HOME    = $(TOP)/BoxLib
 
 PRECISION      = DOUBLE
 DEBUG	       = FALSE
-DEBUG	       = TRUE
 PROFILE        = FALSE
 USE_MPI        = TRUE
 USE_OMP        = FALSE
@@ -34,12 +33,17 @@ endif
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
+# default to using mpi compilers
+CXX := mpic++
+CC  := mpicc
+FC  := mpif90
+fC  := mpif90
+F90 := mpif90
+
 FFLAGS   += -fPIC
 fFLAGS   += -fPIC
 CFLAGS   += -fPIC
-CXXFLAGS += -fPIC
-
-# fincludes=${includes}
+CXXFLAGS += -fPIC -D__USE_XOPEN2K8
 
 # Chemistry
 ifeq ($(NEEDSCHEM), TRUE)
@@ -122,7 +126,7 @@ vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
-NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')/numpy
+NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
@@ -131,13 +135,15 @@ PYSO    = $(OUT)/_bl$(DIM).so
 
 all: $(PYSO)
 
-wrapper: $(WRAPPER)
+#wrapper: $(WRAPPER)
 
-$(WRAPPER): swig/boxlib.i
-	swig -DDIM$(DIM) -python -c++ -Iswig -Icsrc $(includes) -o $@ -outdir boxlib $<
+#$(WRAPPER): swig/boxlib.i
+#	swig -DDIM$(DIM) -python -c++ -Iswig -Icsrc $(includes) -o $@ -outdir boxlib $<
+
+#mpic++ -print-file-name=libstdc++.a
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	mpic++ -shared -o $@ $^ ${SHARED_LIBRARIES}
+	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
