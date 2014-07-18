@@ -725,7 +725,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
       << std::left << "Inclusive times " << '\n';
   ios << std::right << std::setfill(' ');
   ios << std::setw(maxlen + 2) << "Function Name"
-      << std::setw(colWidth + 2) << "Time s"
+      << std::setw(colWidth + 4) << "Time s"
       << '\n';
 
   for(int i(0); i < funcTotalTimes.size(); ++i) {
