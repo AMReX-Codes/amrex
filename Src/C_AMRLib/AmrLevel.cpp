@@ -105,6 +105,8 @@ if(ParallelDescriptor::IOProcessor()) {
                         parent->dtLevel(lev));
     }
 
+    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
     //       has been defined because it makes use of the state's DistributionMap
@@ -158,6 +160,8 @@ AmrLevel::restart (Amr&          papa,
     {
         state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
     }
+ 
+    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
 
 #ifdef USE_PARTICLES
     // Note: it is important to call make_particle_dmap *after* the state
@@ -1572,3 +1576,55 @@ AmrLevel::writePlotNow ()
 {
     return false;
 }
+
+const BoxArray& AmrLevel::getAreaNotToTag()
+{
+    return m_AreaNotToTag;
+}
+
+const Box& AmrLevel::getAreaToTag()
+{
+    return m_AreaToTag;
+}
+
+void AmrLevel::setAreaNotToTag(BoxArray& ba)
+{
+    m_AreaNotToTag = ba;
+}
+
+void AmrLevel::constructAreaNotToTag()
+{
+    if (level == 0 || !Amr::useFixedCoarseGrids || Amr::useFixedUpToLevel>level)
+        return;
+
+    // We are restricting the tagging on the finest fixed level
+    if (Amr::useFixedUpToLevel==level)
+    {
+        // We use the next coarser level shrunk by one blockingfactor
+        //    as the region in which we allow tagging. 
+        // Why level-1? Because we always use the full domain at level 0 
+        //    and therefore level 0 in initialba is level 1 in the AMR hierarchy, etc.
+        const Array<BoxArray>& initialba = parent->getInitialBA();
+        Box tagarea(initialba[level-1].minimalBox());
+        tagarea.grow(-parent->blockingFactor(level));
+        m_AreaToTag = tagarea;
+
+        // We disallow tagging in the remaining part of the domain.
+        BoxArray tagba = BoxLib::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
+        m_AreaNotToTag = tagba;
+
+        BoxArray bxa(parent->Geom(level).Domain());
+        BL_ASSERT(bxa.contains(m_AreaNotToTag));
+    }
+
+    if (Amr::useFixedUpToLevel<level)
+    {
+        Box tagarea = parent->getLevel(level-1).getAreaToTag();
+        tagarea.refine(parent->refRatio(level-1));
+        tagarea.grow(-parent->blockingFactor(level));
+        m_AreaToTag = tagarea;
+        BoxArray tagba = BoxLib::boxComplement(parent->Geom(level).Domain(),m_AreaToTag);
+        m_AreaNotToTag = tagba;
+    }
+}
+

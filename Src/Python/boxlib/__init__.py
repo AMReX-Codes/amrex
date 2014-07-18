@@ -4,6 +4,8 @@ Please see the README file in BoxLib/Src/Python for a technical
 overview.
 """
 
+import numpy as np
+
 class BOXLIB(object):
     """Dimensionally aware BoxLib import wrapper."""
     def __init__(self):
@@ -23,12 +25,21 @@ bl = BOXLIB()
 def rank():
     return bl[0].rank()
 
+def size():
+    return bl[0].size()
+
 def Box(lo=[], hi=[]):
     """Dimensionally aware Box wrapper."""
     dim = len(lo)
     lo  = bl[dim].IntVect(*lo)
     hi  = bl[dim].IntVect(*hi)
     bx  = bl[dim].Box(lo, hi)
+    return bx
+
+def RealBox(lo=[], hi=[]):
+    """Dimensionally aware Box wrapper."""
+    dim = len(lo)
+    bx  = bl[dim].RealBox(np.asarray(lo), np.asarray(hi))
     return bx
 
 def lo(bx):
@@ -52,3 +63,4 @@ def MultiFab(ba, ncomp=1, nghost=0):
     """Dimensionally aware MultiFab wrapper."""
     dim = len(ba.get(0).size())
     return bl[dim].MultiFab(ba, ncomp, nghost)
+

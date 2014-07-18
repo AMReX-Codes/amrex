@@ -702,7 +702,9 @@ contains
     ! Set values across Neumann boundaries
     call set_faces_edges_corners_2d(sg_int, mm, lo, hi)
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error('ND_VATER_STENCIL not implemented in grid_laplace_2d')
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
  
 !     Interior
       do j = 1,ny+1
@@ -790,7 +792,9 @@ contains
     f2x2zy = (TWO*fx+TWO*fz-fy)
     f2x2yz = (TWO*fx+TWO*fy-fz)
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error('ND_VATER_STENCIL not implemented in grid_laplace_3d')
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
       !$OMP PARALLEL DO PRIVATE(i,j,k,ff_fac,ss0)
       do k = 1,nz+1
       do j = 1,ny+1
@@ -1220,6 +1224,73 @@ contains
           end do
           end do
           end do
+          end if
+       end do
+       !$OMP END PARALLEL DO
+
+      end if   ! present(mask) test
+
+    else if (stencil_type .eq. ND_VATER_STENCIL) then
+
+      if (dm .eq. 3) &
+          call bl_error("nodal_stencil_norm: ND_VATER_STENCIL not implemented in 3-d")
+
+      if (present(mask)) then
+      
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          bx = get_box(sg,b)
+
+          sp => dataptr(sg, b)
+          lp => dataptr(mask, b)
+
+          if (dm.eq.2) then
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
+                if ( lp(i,j,1,1) ) then
+                  ss0 = -0.75d0 * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                   sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
+                  sum_comps = abs(ss0) + FOURTH * ( &
+                         abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                         abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                         abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) + &
+                         abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) + &
+                         abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) + &
+                         abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) )
+                  r1 = max(r1,sum_comps)
+                end if ! mask test
+             end do
+             end do
+          end if
+
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+
+      else   ! present(mask) test
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          ! This is the cell-centered box with one ghost cell
+          bx = get_box(sg,b)
+          sp => dataptr(sg, b)
+
+          if (dm.eq.2) then
+
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
+               ss0 = -0.75d0 * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
+               sum_comps = abs(ss0) + FOURTH * ( &
+                      abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                      abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) + &
+                      abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) + &
+                      abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) )
+               r1 = max(r1,sum_comps)
+             end do ! end i
+             end do ! end j
+
           end if
        end do
        !$OMP END PARALLEL DO
