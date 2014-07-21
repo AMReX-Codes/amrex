@@ -924,7 +924,7 @@ contains
 
     type(box) :: bx
 
-    call build(bpt, "st_norm")
+    call build(bpt, "st_norm_nd")
 
     llocal = .false.; if ( present(local) ) llocal = local
 
