@@ -10,6 +10,7 @@ program main
   use define_bc_module
   use make_new_grids_module
   use regrid_module
+  use bl_prof_module
 
   implicit none
 
@@ -56,6 +57,8 @@ program main
   ! if running in parallel, this will print out the number of MPI 
   ! processes and OpenMP threads
   call boxlib_initialize()
+
+  call bl_prof_initialize(on = .true.)
 
   ! parallel_wtime() returns the number of wallclock-time seconds since
   ! the program began
@@ -314,6 +317,11 @@ program main
 
   ! deallocate temporary boxarrays and communication mappings
   call layout_flush_copyassoc_cache ()
+
+
+  call bl_prof_glean("bl_prof_res")
+
+  call bl_prof_finalize()
 
   ! check for memory that should have been deallocated
   if ( parallel_IOProcessor() ) then
