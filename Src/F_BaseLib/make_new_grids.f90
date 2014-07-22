@@ -184,7 +184,7 @@ module make_new_grids_module
         all_properly_nested = .true.
         counter = counter + 1
 
-        if (counter .gt. 3) call bl_error('Still not properly nested after 3 tries')
+        if (counter .gt. nlevs + 1) call bl_error('Still not properly nested after nlevs + 1 tries')
 
         nl = nlevs - 1
         do while ( (nl .ge. 2) )
