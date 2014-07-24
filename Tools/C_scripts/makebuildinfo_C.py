@@ -166,7 +166,7 @@ for line in source.splitlines():
             indent = index
             aux_str = ""
             for i in range(len(AUX)):
-                aux_str += '{}static const char AUX{}[] = "{}";\n'.format(indent*" ", i+1, AUX[i])
+                aux_str += '%sstatic const char AUX%1d[] = "%s";\n' % (indent*" ", i+1, AUX[i])
 
             fout.write(aux_str)        
 
@@ -174,7 +174,7 @@ for line in source.splitlines():
             indent = index
             aux_str = ""
             for i in range(len(AUX)):
-                aux_str += '{}case {}: return AUX{};\n'.format(indent*" ", i+1, i+1)
+                aux_str += '%scase %1d: return AUX%1d;\n' % (indent*" ", i+1, i+1)
 
             fout.write(aux_str)
 
@@ -182,7 +182,7 @@ for line in source.splitlines():
             indent = index
             git_str = ""
             for i in range(len(GIT)):
-                git_str += '{}static const char HASH{}[] = "{}";\n'.format(indent*" ", i+1, git_hashes[i])
+                git_str += '%sstatic const char HASH%1d[] = "%s";\n' % (indent*" ", i+1, git_hashes[i])
 
             fout.write(git_str)        
 
@@ -190,7 +190,7 @@ for line in source.splitlines():
             indent = index
             git_str = ""
             for i in range(len(GIT)):
-                git_str += '{}case {}: return HASH{};\n'.format(indent*" ", i+1, i+1)
+                git_str += '%scase %1d: return HASH%1d;\n' % (indent*" ", i+1, i+1)
 
             fout.write(git_str)
 
