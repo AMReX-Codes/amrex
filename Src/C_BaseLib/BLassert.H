@@ -29,7 +29,12 @@
   a null statement in the code, which will be eliminated by the code
   optimizer.
 */
+#ifdef _CRAYC
+// Some Cray compilers seem to have bugs.  This is a way to get around it.
+#define BL_ASSERT(EX) (EX)?((void)0):BoxLib::Assert( # EX , __FILE__, __LINE__)
+#else
 #define BL_ASSERT(EX) ((void)0)
+#endif
 #else
 #if defined(__sgi) || defined(__hpux)
 //
