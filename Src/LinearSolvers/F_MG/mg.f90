@@ -138,6 +138,7 @@ contains
         mgt%lcross = .true.
 
     else if (mgt%stencil_type .eq. ND_DENSE_STENCIL .or. &
+             mgt%stencil_type .eq. ND_VATER_STENCIL .or. &
              mgt%stencil_type .eq. HO_DENSE_STENCIL) then
 
         mgt%lcross = .false.

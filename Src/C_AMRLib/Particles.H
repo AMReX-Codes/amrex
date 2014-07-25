@@ -2127,7 +2127,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
     MultiFab* gv_pointer;
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
     {
-        gv_pointer = &gv;
+        gv_pointer = 0;
     }
     else 
     {
@@ -2141,7 +2141,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         const int        grid = pmap_it->first;
         const PBox&      pbox = pmap_it->second;
         const int        n    = pbox.size();
-        const FArrayBox& gfab = (*gv_pointer)[grid];
+        const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
 
         num_particles_at_level += n;
 
@@ -2189,7 +2189,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         }
     }
 
-    if (gv_pointer != &gv) delete gv_pointer;
+    if (gv_pointer) delete gv_pointer;
 
     for (int i = 0; i < ldt.size(); i++)
         dt = std::min(dt, ldt[i]);
@@ -3956,7 +3956,6 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
 
     MultiFab* gv_pointer;
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
-    // if (gv.boxArray() == m_amr->ParticleBoxArray(lev))
     {
         gv_pointer = 0;
     }
@@ -6050,6 +6049,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
 
         if (is_checkpoint)
         {
+            //
             // First write out the integer data in binary.
             // We do not need to write out the m_lev and m_grid
             // info since it's implicit in how the particles

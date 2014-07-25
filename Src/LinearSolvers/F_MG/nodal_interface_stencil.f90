@@ -281,7 +281,10 @@ contains
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error("ml_interface_2d_nodal: ND_VATER_STENCIL not implemented at interfaces")
+
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
     ! Dense stencil
 
       if (side == -1) then
@@ -598,7 +601,10 @@ contains
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
     !
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error("ml_interface_3d_nodal: ND_VATER_STENCIL not implemented at interfaces")
+
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
        ! Dense stencil
        fx     = 1.d0/36.d0
        fy     = fx

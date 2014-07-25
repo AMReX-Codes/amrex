@@ -298,6 +298,23 @@ public:
     //
     bool okToRegrid (int level);
     //
+    // Array of BoxArrays read in to initially define grid hierarchy
+    //
+    static const BoxArray& initialBa (int level) 
+        { BL_ASSERT(level-1 < initial_ba.size()); return initial_ba[level-1]; }
+    //
+    // Number of levels at which the grids are initially specified 
+    //
+    static int initialBaLevels () { return initial_ba.size(); }
+    //
+    // Should we keep the coarser grids fixed (and not regrid those levels) at all?
+    //
+    static bool useFixedCoarseGrids;
+    //
+    // Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
+    //
+    static int useFixedUpToLevel;
+    //
     // Do a complete integration cycle.
     //
     virtual void coarseTimeStep (Real stop_time);
@@ -350,6 +367,8 @@ public:
     //
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
+
+    const Array<BoxArray>& getInitialBA();
 
     //
     // Specialized version:

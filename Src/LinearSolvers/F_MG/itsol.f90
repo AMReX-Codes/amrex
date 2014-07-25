@@ -251,6 +251,17 @@ contains
             end do
          end do
 
+      else if (stencil_type .eq. ND_VATER_STENCIL) then
+
+         do j = lo(2),hi(2)+1
+            do i = lo(1),hi(1)+1
+               if (.not. bc_dirichlet(mm(i,j),1,0)) then
+                  ss0 = -0.75d0*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  r(i,j) =  r(i,j) / ss0
+               end if
+            end do
+         end do
+
      else
         call bl_error("diag_init_nd_2d: dont know this stencil_type")
      end if
@@ -306,6 +317,9 @@ contains
          end do
          end do
          end do
+
+     else if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error("diag_init_nd_3d: ND_VATER_STENCIL not implemented in 3-d")
 
      else
         call bl_error("diag_init_nd_3d: dont know this stencil_type")

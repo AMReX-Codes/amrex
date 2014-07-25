@@ -13,7 +13,7 @@ module nodal_applyop_module
 
 contains
 
-  subroutine nodal_applyop(mla,res,phi,beta,dx,the_bc_tower,bc_comp)
+  subroutine nodal_applyop(mla,res,phi,beta,dx,the_bc_tower,bc_comp,stencil_type_in)
 
     ! compute res = del dot beta grad phi
 
@@ -24,10 +24,12 @@ contains
     real(dp_t)     , intent(in   ) :: dx(:,:)
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: bc_comp
+    integer        , intent(in   ), optional :: stencil_type_in
 
     ! local
     integer :: n,nlevs,dm
     integer :: stencil_order
+    integer :: stencil_type
 
     type(box) :: pd
     type(mg_tower) :: mgt(mla%nlevel)
@@ -43,13 +45,16 @@ contains
 
     stencil_order = 2
 
+    stencil_type = ND_DENSE_STENCIL
+    if (present(stencil_type_in)) stencil_type = stencil_type_in
+
     do n = nlevs, 1, -1
 
        pd = layout_get_pd(mla%la(n))
 
        call mg_tower_build(mgt(n), mla%la(n), pd, &
                            the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp),&
-                           stencil_type = ND_DENSE_STENCIL, &
+                           stencil_type, &
                            dh = dx(n,:), &
                            nodal = nodal_flags(res(nlevs)))
 

@@ -20,6 +20,7 @@
 #include <MultiFab.H>
 #include <VisMF.H>
 #include <Array.H>
+#include <Geometry.H>
 #include <ParallelDescriptor.H>
 
 #define SWIG_FILE_WITH_INIT
@@ -47,6 +48,14 @@
   }
   int rank() {
     return ParallelDescriptor::MyProc();
+  }
+  int size() {
+    return ParallelDescriptor::NProcs();
+  }
+  Real ReduceRealMax (Real lval) {
+    Real rvar = lval;
+    ParallelDescriptor::ReduceRealMax(rvar);
+    return rvar;
   }
 %}
 
@@ -82,7 +91,7 @@
 %rename(__str__) display;
 
 
-
+typedef double Real;
 
 template <class T>
 class Array
@@ -463,6 +472,7 @@ public:
 	void set( int i, Box& ibox);
 
 	BoxArray& maxSize(int);
+	BoxArray& maxSize(const IntVect& block_size);
 
         bool ok () const;
         bool isDisjoint () const;
@@ -581,6 +591,8 @@ public:
                        int        ncomp);
 
 	void FillBoundary (int scomp, int ncomp);
+	void FillBoundary (bool local = false, bool cross = false);
+	//void FillBoundary (int scomp, int ncomp, bool cross);
 
 	%extend{
 	    double sum(int comp = 0 ) const {
@@ -614,4 +626,24 @@ public:
 		}
 	}
 };
+
+class RealBox {
+public:
+  RealBox (Real IN_ARRAY1[BL_SPACEDIM] /* lo */,
+	   Real IN_ARRAY1[BL_SPACEDIM]) /* hi */;
+};
+
+class Geometry {
+public:
+    Geometry (const Box&     dom,
+              const RealBox* rb     ,
+              int            coord  ,
+              int IN_ARRAY1[BL_SPACEDIM] );
+
+    void FillPeriodicBoundary (MultiFab& mf,
+                               bool      do_corners = false,
+                               bool      local      = false);
+};
+
+
 

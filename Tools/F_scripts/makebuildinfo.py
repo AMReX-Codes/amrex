@@ -87,9 +87,7 @@ try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 "source_home=",
                                 "extra_home="])
 except getopt.GetoptError:
-    print "invalid calling sequence"
-    print usage
-    sys.exit(2)
+    sys.exit("invalid calling sequence")
 
 modules = ""
 FCOMP = ""
