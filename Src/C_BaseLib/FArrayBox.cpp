@@ -165,10 +165,12 @@ FArrayBox::operator= (const Real& v)
 bool 
 FArrayBox::contains_nan () const
 {
+#ifndef _CRAYC
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (isnan(*dp++))
             return true;
+#endif
     return false;
 }
 
@@ -181,6 +183,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
+#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -189,6 +192,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
                 return true;
         }
     }
+#endif
     return false;
 }
 
@@ -207,6 +211,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
+#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -219,6 +224,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
             }
         }
     }
+#endif
     return false;
 }
 
