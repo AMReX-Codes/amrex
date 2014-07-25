@@ -577,9 +577,11 @@ contains
     type(list_box), intent(in) :: bxl
     type(list_box) :: r, bl
     type(list_box_node), pointer :: blp, bp
-    type(bl_prof_timer), save :: bpt
+! for some reason this timer is causing the timers to fail for some single-level,
+! multi-processor runs
+!    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "boxlist_boxlist_diff")
+!    call build(bpt, "boxlist_boxlist_diff")
 
     call push_back(r, bx)
     blp => begin(bxl)
@@ -597,7 +599,7 @@ contains
        blp => next(blp)
     end do
 
-    call destroy(bpt)
+!    call destroy(bpt)
 
   end function boxlist_boxlist_diff
 

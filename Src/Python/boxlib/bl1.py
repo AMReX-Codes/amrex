@@ -77,6 +77,14 @@ def rank():
   return _bl1.rank()
 rank = _bl1.rank
 
+def size():
+  return _bl1.size()
+size = _bl1.size
+
+def ReduceRealMax(*args):
+  return _bl1.ReduceRealMax(*args)
+ReduceRealMax = _bl1.ReduceRealMax
+
 def open_ifstream(*args):
   return _bl1.open_ifstream(*args)
 open_ifstream = _bl1.open_ifstream
@@ -320,6 +328,37 @@ class MultiFab(_object):
     def __getitem__(self, *args): return _bl1.MultiFab___getitem__(self, *args)
 MultiFab_swigregister = _bl1.MultiFab_swigregister
 MultiFab_swigregister(MultiFab)
+
+class RealBox(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, RealBox, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, RealBox, name)
+    __repr__ = _swig_repr
+    def __init__(self, *args): 
+        this = _bl1.new_RealBox(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _bl1.delete_RealBox
+    __del__ = lambda self : None;
+RealBox_swigregister = _bl1.RealBox_swigregister
+RealBox_swigregister(RealBox)
+
+class Geometry(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, Geometry, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, Geometry, name)
+    __repr__ = _swig_repr
+    def __init__(self, *args): 
+        this = _bl1.new_Geometry(*args)
+        try: self.this.append(this)
+        except: self.this = this
+    def FillPeriodicBoundary(self, *args): return _bl1.Geometry_FillPeriodicBoundary(self, *args)
+    __swig_destroy__ = _bl1.delete_Geometry
+    __del__ = lambda self : None;
+Geometry_swigregister = _bl1.Geometry_swigregister
+Geometry_swigregister(Geometry)
 
 # This file is compatible with both classic and new-style classes.
 

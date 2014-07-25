@@ -33,6 +33,8 @@ ifeq ($(COMP),Cray)
   ifneq ($(USE_OMP),TRUE)
     CXXOPTF += -h noomp
     CXXDEBF += -h noomp
+    COPTF += -h noomp
+    CDEBF += -h noomp
   endif
 else
 ifeq ($(COMP),PGI)
@@ -257,7 +259,7 @@ ifeq ($(WHICHLINUX), RANGER)
   endif
 endif
 
-ifeq ($(WHICHLINUX), KRAKEN)
+ifeq ($(WHICHLINUX), DARTER)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     CXX := CC

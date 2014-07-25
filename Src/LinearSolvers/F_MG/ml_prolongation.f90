@@ -39,9 +39,11 @@ contains
     type(multifab)      :: cfine, cfgrow
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) &
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
+       call bl_error('ml_cc_prolongation: crse & fine must have same # of components')
+    end if
 
-    call build(bpt, "ml_prolongation")
+    call build(bpt, "ml_cc_prolongation")
 
     laf = get_layout(fine)
 
@@ -142,10 +144,11 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    if ( ncomp(crse) .ne. ncomp(fine) ) &
-         call bl_error('ml_prolongation: crse & fine must have same # of components')
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
+       call bl_error('ml_nodal_prolongation: crse & fine must have same # of components')
+    end if
 
-    call build(bpt, "ml_prolongation")
+    call build(bpt, "ml_nodal_prolongation")
 
     laf = get_layout(fine)
 

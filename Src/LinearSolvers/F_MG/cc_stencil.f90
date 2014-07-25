@@ -42,7 +42,7 @@ contains
     logical :: llocal
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "st_norm")
+    call build(bpt, "st_norm_cc")
 
     llocal = .false.; if ( present(local) ) llocal = local
 

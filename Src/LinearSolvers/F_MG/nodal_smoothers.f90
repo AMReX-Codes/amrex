@@ -145,6 +145,27 @@ contains
           end do
        end do
 
+    else if ( stencil_type .eq. ND_VATER_STENCIL ) then
+
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
+                ss0 = -0.75d0 * (  sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j) )
+                dd =  ss0 * uu(i,j) + &
+                      FOURTH * ( & 
+                          sg(i-1,j-1) * uu(i-1,j-1) + &
+                          sg(i  ,j-1) * uu(i+1,j-1) + &
+                          sg(i-1,j  ) * uu(i-1,j+1) + &
+                          sg(i  ,j  ) * uu(i+1,j+1) + &
+                         (sg(i-1,j-1) + sg(i  ,j-1)) * uu(i,j-1) + &
+                         (sg(i-1,j-1) + sg(i-1,j  )) * uu(i-1,j) + &
+                         (sg(i  ,j-1) + sg(i  ,j  )) * uu(i+1,j) + &
+                         (sg(i-1,j  ) + sg(i  ,j  )) * uu(i,j+1) )
+                uu(i,j) = uu(i,j) + (one/ss0) * (ff(i,j) - dd)
+             end if
+          end do
+       end do
+
     else if ( stencil_type .eq. ND_CROSS_STENCIL ) then
 
        ipar = 1-red_black
