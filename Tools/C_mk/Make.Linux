@@ -36,6 +36,13 @@ ifeq ($(COMP),Cray)
     COPTF += -h noomp
     CDEBF += -h noomp
   endif
+
+  ifneq ($(USE_ACC),TRUE)
+    CXXOPTF += -h noacc
+    CXXDEBF += -h noacc
+    COPTF += -h noacc
+    CDEBF += -h noacc
+  endif
 else
 ifeq ($(COMP),PGI)
   CXX = pgCC
@@ -63,6 +70,15 @@ ifeq ($(COMP),PGI)
   ifeq ($(USE_OMP),TRUE)
     CXXOPTF += -mp=nonuma
     CXXDEBF += -mp=nonuma
+    COPTF += -mp=nonuma
+    CDEBF += -mp=nonuma
+  endif
+
+  ifeq ($(USE_ACC),TRUE)
+    CXXOPTF += -acc
+    CXXDEBF += -acc
+    COPTF += -acc
+    CDEBF += -acc
   endif
 
 else
@@ -130,6 +146,13 @@ ifeq ($(FCOMP),Cray)
     fDEBF += -h noomp
   endif
 
+  ifneq ($(USE_ACC),TRUE)
+    FOPTF += -h noacc
+    fOPTF += -h noacc
+    FDEBF += -h noacc
+    fDEBF += -h noacc
+  endif
+
   FORT_CPP := cpp -traditional
   override XTRALIBS += 
 #  LDFLAGS += -static
@@ -171,6 +194,13 @@ ifeq ($(FCOMP),PGI)
     fOPTF += -mp,nonuma -Minfo=mp
     FDEBF += -mp,nonuma -Minfo=mp
     fDEBF += -mp,nonuma -Minfo=mp
+  endif
+
+  ifeq ($(USE_ACC),TRUE)
+    FOPTF += -acc -Minfo=acc
+    fOPTF += -acc -Minfo=acc
+    FDEBF += -acc -Minfo=acc
+    fDEBF += -acc -Minfo=acc
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
