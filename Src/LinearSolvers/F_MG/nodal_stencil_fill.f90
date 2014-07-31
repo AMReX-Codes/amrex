@@ -160,7 +160,7 @@ contains
 
     if ( any(pmask) ) then
        !
-       ! First trim out all boxes that can't effect periodicity.
+       ! First trim out all boxes that can't affect periodicity.
        !
        do i = 1,nboxes(bxa_periodic)
           if ( .not. contains(pd_periodic, get_box(bxa_periodic,i), strict = .true.) ) then
