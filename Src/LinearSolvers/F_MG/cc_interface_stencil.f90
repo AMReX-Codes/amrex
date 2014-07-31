@@ -42,50 +42,22 @@ contains
     integer,        intent(in   ) :: face, dim
     real(kind=dp_t),intent(in   ) :: efactor
 
-    type(box)      :: fbox, cbox, isect
-    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, k, shft, dm
-    integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res)), proc
+    type(box)      :: fbox, cbox, bx
+    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm
+    integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res))
     logical        :: pmask(get_dim(res))
-    type(multifab) :: tflux
-    type(list_box) :: bl
-    type(boxarray) :: ba
-    type(layout)   :: la
-    type(vector_i) :: procmap, indxmap, shftmap
-
-    type(box_intersector), pointer :: bi(:)
-
     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_interf_c")
 
+    call bl_assert(.not.(any(flux%nodal) .or. any(crse%nodal)), 'ml_interface_c(): cannot have nodal')
+
     pmask = get_pmask(get_layout(res))
-    !
-    ! Build layout used in intersection test for below loop.
-    !
-    call copy(ba, get_boxarray(flux))
+    dm    = get_dim(res)
 
-    !$OMP PARALLEL DO PRIVATE(i,fbox)
-    do i = 1, nboxes(flux%la)
-       fbox = box_nodalize(get_box(flux%la,i),flux%nodal)
-       if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
-          if ( face .eq. -1 ) then
-             fbox = shift(fbox,  extent(crse_domain,dim), dim)
-          else
-             fbox = shift(fbox, -extent(crse_domain,dim), dim)
-          end if
-          call set_box(ba, i, fbox)
-       end if
-    end do
-    !$OMP END PARALLEL DO
-
-    call build(la, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-
-    call destroy(ba)
-
-    dm = get_dim(res)
-
+    !$OMP PARALLEL DO PRIVATE(fbox,cbox,bx,lor,los,i,j,lo,hi,loc,rp,fp,cp,sp)
     do j = 1, nfabs(crse)
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
@@ -94,121 +66,43 @@ contains
        sp   => dataptr(ss, j)
        rp   => dataptr(res, j, cr)
        cp   => dataptr(crse, j, cr)
-       bi   => layout_get_box_intersector(la, cbox)
 
-       do k = 1, size(bi)
-          lo = lwb(bi(k)%bx)
-          hi = upb(bi(k)%bx)
-
-          select case (dm)
-          case (1)
-             call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, sp(:,:,1,1), los, lo, face, efactor)
-          case (2)
-             call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, sp(:,:,:,1), los, lo, hi, face, dim, efactor)
-          case (3)
-             call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, sp(:,:,:,:), los, lo, hi, face, dim, efactor)
-          end select
-       end do
-
-      deallocate(bi)
-    end do
-    !
-    ! Build a multifab based on the intersections of flux with crse in such a way that each 
-    ! intersecting box is owned by the same CPU as that owning the appropriate box in crse.
-    !
-    call build(procmap)
-    call build(indxmap)
-    call build(shftmap)
-
-    do j = 1, nboxes(crse%la)
-       cbox = box_nodalize(get_box(crse%la,j),crse%nodal)
-       proc =  get_proc(crse%la,j)
-       bi   => layout_get_box_intersector(la, cbox)
-
-       do k = 1, size(bi)
-          shft  = 0
-          isect = bi(k)%bx
-          fbox  = box_nodalize(get_box(flux%la,bi(k)%i),flux%nodal)
-
-          if ( pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
-             !
-             ! We need to remember the original flux box & whether or not it needs to be shifted.
-             !
-             shft = 1
+       do i = 1, nfabs(flux)
+          fbox = get_ibox(flux,i)
+          if (pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
              if ( face .eq. -1 ) then
-                isect = shift(isect, -extent(crse_domain,dim), dim)
+                fbox = shift(fbox,  extent(crse_domain,dim), dim)
              else
-                isect = shift(isect,  extent(crse_domain,dim), dim)
+                fbox = shift(fbox, -extent(crse_domain,dim), dim)
              end if
           end if
 
-          call push_back(bl, isect)
-          call push_back(procmap, proc)
-          call push_back(indxmap, j)
-          call push_back(shftmap, shft)
-       end do
+          bx = intersection(cbox, fbox)
+          if (.not. empty(bx)) then
+             call bl_assert(equal(bx,fbox), 'ml_interface_c(): how did this happen?')
+             lo = lwb(bx)
+             hi = upb(bx)
+             fp => dataptr(flux,i,cf)
 
-       deallocate(bi)
-    end do
-
-    call destroy(la)
-
-    if ( empty(procmap) ) then
-       !
-       ! Nothing else to do ...
-       !
-       call destroy(bpt)
-       call destroy(shftmap)
-       call destroy(indxmap)
-       call destroy(procmap)
-       return
-    end if
-
-    call build(ba, bl, sort = .false.)
-    call destroy(bl)
-    call build(la, ba, boxarray_bbox(ba), pmask = pmask, explicit_mapping = dataptr(procmap, 1, size(procmap)))
-    call destroy(ba)
-    call build(tflux, la, nc = ncomp(flux), ng = 0)
-    call copy(tflux, 1, flux, cf)  ! parallel copy
-
-    !$OMP PARALLEL DO PRIVATE(i,j,cbox,fbox,lor,rp,lo,hi,fp)
-    do i = 1, nfabs(tflux)
-       j    = at(indxmap,global_index(tflux,i))
-       cbox = box_nodalize(get_box(crse%la,j),crse%nodal)
-       lor  =  lwb(get_pbox(res,local_index(res,j)))
-       rp   => dataptr(res, local_index(res,j), cr)
-       fbox =  get_ibox(tflux,i)
-
-       if ( at(shftmap,global_index(tflux,i)) .eq. 1 ) then
-          if (face .eq. -1) then
-             fbox = shift(fbox,  extent(crse_domain,dim), dim)
-          else
-             fbox = shift(fbox, -extent(crse_domain,dim), dim)
+             select case (dm)
+             case (1)
+                call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
+                     sp(:,:,1,1), los, lo, face, efactor)
+                call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
+              case (2)
+                call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+                     sp(:,:,:,1), los, lo, hi, face, dim, efactor)
+                call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
+             case (3)
+                call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+                     sp(:,:,:,:), los, lo, hi, face, dim, efactor)
+                call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
+             end select
           end if
-       end if
-
-       call bl_assert(intersects(cbox,fbox), 'ml_interface_c(): how did this happen?')
-
-       lo  =  lwb(fbox)
-       hi  =  upb(fbox)
-       fp  => dataptr(tflux, i, 1)
-
-       select case (dm)
-       case (1)
-          call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
-       case (2)
-          call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
-       case (3)
-          call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
-       end select
+       end do
     end do
     !$OMP END PARALLEL DO
 
-    call destroy(shftmap)
-    call destroy(indxmap)
-    call destroy(procmap)
-    call destroy(tflux)
-    call destroy(la)
     call destroy(bpt)
 
     contains
