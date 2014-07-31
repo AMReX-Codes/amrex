@@ -85,17 +85,14 @@ contains
 
              select case (dm)
              case (1)
-                call ml_interface_1d_crse(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
-                     sp(:,:,1,1), los, lo, face, efactor)
-                call ml_interface_1d_fine(rp(:,1,1,1), lor, fp(:,1,1,1), lo, lo, efactor)
+                call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
+                     sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
               case (2)
-                call ml_interface_2d_crse(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
-                     sp(:,:,:,1), los, lo, hi, face, dim, efactor)
-                call ml_interface_2d_fine(rp(:,:,1,1), lor, fp(:,:,1,1), lo, lo, hi, efactor)
+                call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+                     sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
              case (3)
-                call ml_interface_3d_crse(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
-                     sp(:,:,:,:), los, lo, hi, face, dim, efactor)
-                call ml_interface_3d_fine(rp(:,:,:,1), lor, fp(:,:,:,1), lo, lo, hi, efactor)
+                call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+                     sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
              end select
           end if
        end do
@@ -104,69 +101,19 @@ contains
 
     call destroy(bpt)
 
-    contains
-
-      subroutine ml_interface_1d_fine(res, lor, fine_flux, lof, lo, efactor)
-        integer, intent(in) :: lor(:)
-        integer, intent(in) :: lof(:) 
-        integer, intent(in) :: lo(:)
-        real (kind = dp_t), intent(inout) :: res(lor(1):)
-        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
-        real (kind = dp_t), intent(in   ) :: efactor
-
-        integer :: i 
-
-        i = lo(1)
-        res(i) = res(i) + efactor*fine_flux(i)
-      end subroutine ml_interface_1d_fine
-
-      subroutine ml_interface_2d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-        integer, intent(in) :: lor(:)
-        integer, intent(in) :: lof(:)
-        integer, intent(in) :: lo(:), hi(:)
-        real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):)
-        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
-        real (kind = dp_t), intent(in   ) :: efactor
-
-        integer :: i, j
-
-        do j = lo(2),hi(2)
-           do i = lo(1),hi(1)
-              res(i,j) = res(i,j) + efactor*fine_flux(i,j)
-           end do
-        end do
-      end subroutine ml_interface_2d_fine
-
-      subroutine ml_interface_3d_fine(res, lor, fine_flux, lof, lo, hi, efactor)
-        integer, intent(in) :: lor(:)
-        integer, intent(in) :: lof(:)
-        integer, intent(in) :: lo(:), hi(:)
-        real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
-        real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
-        real( kind = dp_t), intent(in   ) :: efactor
-
-        integer :: i, j, k
-
-        do k = lo(3),hi(3)
-           do j = lo(2),hi(2)
-              do i = lo(1),hi(1)
-                 res(i,j,k) = res(i,j,k) + efactor*fine_flux(i,j,k)
-              end do
-           end do
-        end do
-      end subroutine ml_interface_3d_fine
-
   end subroutine ml_interface_c
 
-  subroutine ml_interface_1d_crse(res, lor, cc, loc, &
-       ss , los, lo, face, efactor)
+
+  subroutine ml_interface_1d(res, lor, cc, loc, ss , los, fine_flux, lof, lo, face, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
+    integer, intent(in) :: lof(:) 
     integer, intent(in) :: lo(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     real (kind = dp_t), intent(in   ) :: ss(0:,los(1):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     integer, intent(in) :: face
     real(kind=dp_t), intent(in) :: efactor
 
@@ -178,25 +125,27 @@ contains
     !   Lo side
     if (face == -1) then
        crse_flux = ss(1,i)*(cc(i)-cc(i+1))
-       res(i) = res(i) - efactor*crse_flux
+       res(i) = res(i) + efactor*(fine_flux(i)-crse_flux)
 
        !   Hi side
     else if (face == 1) then
        crse_flux = ss(2,i)*(cc(i)-cc(i-1))
-       res(i) = res(i) - efactor*crse_flux
+       res(i) = res(i) + efactor*(fine_flux(i)-crse_flux)
     end if
 
-  end subroutine ml_interface_1d_crse
+  end subroutine ml_interface_1d
 
-  subroutine ml_interface_2d_crse(res, lor, cc, loc, &
-                                  ss , los, lo, hi, face, dim, efactor)
+  subroutine ml_interface_2d(res, lor, cc, loc, ss , los, fine_flux, lof, &
+       lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
+    integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) :: res(lor(1):,lor(2):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     real (kind = dp_t), intent(in   ) :: ss(0:,los(1):,los(2):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
     integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
@@ -219,7 +168,7 @@ contains
                  +               ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
 
              endif
-             res(i,j) = res(i,j) - efactor*crse_flux
+             res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do
           !   Lo i side
        else if (face == -1) then
@@ -233,7 +182,7 @@ contains
                  +               ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
 
              endif
-             res(i,j) = res(i,j) - efactor*crse_flux
+             res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do
        end if
     else if ( dim == 2 ) then
@@ -249,7 +198,7 @@ contains
                  +               ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
 
              endif
-             res(i,j) = res(i,j) - efactor*crse_flux
+             res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do
           !   Lo j side
        else if (face == -1) then
@@ -262,21 +211,23 @@ contains
                    (15.d0/16.d0)*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
                  +               ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
              endif
-             res(i,j) = res(i,j) - efactor*crse_flux
+             res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do
        end if
     end if
-  end subroutine ml_interface_2d_crse
+  end subroutine ml_interface_2d
 
-  subroutine ml_interface_3d_crse(res, lor, cc, loc, &
-       ss , los, lo, hi, face, dim, efactor)
+  subroutine ml_interface_3d(res, lor, cc, loc, ss , los, fine_flux, lof, &
+       lo, hi, face, dim, efactor)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
+    integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (kind = dp_t), intent(inout) ::       res(lor(1):,lor(2):,lor(3):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):,loc(3):)
     real (kind = dp_t), intent(in   ) ::        ss(0:,los(1):,los(2):,los(3):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
     integer, intent(in) :: face, dim
     real(kind=dp_t), intent(in) :: efactor
 
@@ -288,7 +239,8 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(2,i,j,k)*(cc(i,j,k)-cc(i-1,j,k)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(2,i,j,k)*(cc(i,j,k)-cc(i-1,j,k)) )
              end do
           end do
           !   Lo i side
@@ -296,7 +248,8 @@ contains
           i = lo(1)
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(1,i,j,k)*(cc(i,j,k)-cc(i+1,j,k)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(1,i,j,k)*(cc(i,j,k)-cc(i+1,j,k)) )
              end do
           end do
        end if
@@ -306,7 +259,8 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(4,i,j,k)*(cc(i,j,k)-cc(i,j-1,k)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(4,i,j,k)*(cc(i,j,k)-cc(i,j-1,k)) )
              end do
           end do
           !   Lo j side
@@ -314,7 +268,8 @@ contains
           j = lo(2)
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(3,i,j,k)*(cc(i,j,k)-cc(i,j+1,k)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(3,i,j,k)*(cc(i,j,k)-cc(i,j+1,k)) )
              end do
           end do
        end if
@@ -324,7 +279,8 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(6,i,j,k)*(cc(i,j,k)-cc(i,j,k-1)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(6,i,j,k)*(cc(i,j,k)-cc(i,j,k-1)) )
              end do
           end do
           !   Lo k side
@@ -332,12 +288,13 @@ contains
           k = lo(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                res(i,j,k) = res(i,j,k) - efactor*(ss(5,i,j,k)*(cc(i,j,k)-cc(i,j,k+1)))
+                res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                     - ss(5,i,j,k)*(cc(i,j,k)-cc(i,j,k+1)) )
              end do
           end do
        end if
     end if
 
-  end subroutine ml_interface_3d_crse
+  end subroutine ml_interface_3d
 
 end module cc_interface_stencil_module

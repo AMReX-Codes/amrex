@@ -67,7 +67,6 @@ contains
     type(layout)                   :: latmp
     logical                        :: lnodal(size(rr)), lother
     logical                        :: pmask(size(rr))
-    integer                        :: n
     integer, allocatable           :: shifted(:)
 
     type(bl_prof_timer), save :: bpt
