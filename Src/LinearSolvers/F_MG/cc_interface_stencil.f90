@@ -31,7 +31,6 @@ contains
 
   subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim, efactor)
     use bl_prof_module
-    use vector_i_module
 
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux

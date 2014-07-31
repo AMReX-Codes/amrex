@@ -129,6 +129,7 @@ contains
     do i = 1, dm
        do f = 0, 1
           cnt = 0
+          if ( br%other ) shifted = 0
 
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
@@ -157,7 +158,6 @@ contains
              ! but doesn't see the other grids.
              !
              if ( br%other ) then
-                shifted = 0
                 lo1 = lo
                 hi1 = hi
                 if (pmask(i)) then
