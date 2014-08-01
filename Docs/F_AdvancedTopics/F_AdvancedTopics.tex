@@ -237,8 +237,8 @@ solvers in \BoxLib.  These will be described in Section \ref{Sec:Linear Solvers}
 
 \section{Multiple Levels of Refinement}\label{Sec:Refinement}
 In the {\tt BoxLib/Tutorials/HeatEquation\_EX3\_F/} tutorial, we have expanded our example
-to the cases of multiple levels of refinement, with the grids fixed in space.  Note that there is
-currently no subcycling support for Fortran90 \BoxLib, so in this example we advance all the grids
+to the cases of multiple levels of refinement, with the grids fixed in space.  
+In this example we advance all the grids
 with the same time step, and perform synchronization operations between levels.\\
 
 The big change for this tutorial is that we use a "multilevel layout" {\tt ml\_layout} 
@@ -303,3 +303,89 @@ is equivalent to
 (\mathcal{I} - \Delta t\nabla\cdot\nabla)\phi^{n+1} = \phi^n.
 \end{equation}
 Thus, we will set $\alpha=1$, each $\beta=\Delta t$, and RHS = $\phi^n$.
+
+\section{Subcycling in Time}\label{Sec:Subcycling}
+In {\tt BoxLib/Tutorials/HeatEquation\_EX6\_F/} we have expanded the explicit version 
+of the heat equation example in {\tt BoxLib/Tutorials/HeatEquation\_EX4\_F/} 
+to include an example of subcycling in time.  In the previous examples, which did not
+use subcycling in time, each level was advanced with the same time step, which was determined
+by imposing the CFL criterion at the finest level.  In the example in 
+{\tt BoxLib/Tutorials/HeatEquation\_EX6\_F/}, we use both temporal and spatial refinement;
+$\Delta t$ decreases as $\Delta x$ decreases so that each level is running at a different
+time step.  This strategy requires fewer steps to be taken at all but the finest levels
+relative to the non-subcycling algorithm, but requires a more sophisticated synchronization algorithm 
+between levels.  Overall, the use of subycling for explicit methods usually reduces runtime despite the 
+synchronization overhead.
+
+With subycling in time, the advance of each level is called recursively from coarsest to finest.
+Inter-level synchronization must be ensured after each global time step and
+additionally after each sub-step of the algorithm. The time step for each level is determined before the
+solution at this level is advanced. The simplification of the original method implemented in this example consists
+in performing a fixed number of time steps on the finer meshes for every time step on the lower level mesh.
+The time step size of sub-steps at the highest level is equal to the time step used in previous examples 
+$\Delta t_{min}$. However, the advantage of subcycling is that the time step for any lower level grid can be
+$num\_substeps$ longer and in particular the global (level~$\ell=1$) time step becomes:
+\begin{equation}
+	\Delta t_{global} = \Delta t_{min}  \cdot {(num\_substeps)}^{nlevs-1},
+\end{equation}
+where $num\_substeps$ is dependent on the problem type. For the parabolic problem of the heat equation
+considered here it is equal to $4$, for an advection equation it would equal $2$. These values guarantee
+that a given CFL condition is met at each level for each problem type.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[tb]
+\centering
+\includegraphics{./F_AdvancedTopics/subcycling_algorithm}
+\caption{\label{fig:subcycling_algorithm} Subcycling algorithm with 3 levels of refinement. 
+        $num\_substeps=2$ is assumed here for clarity. }
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+During the single global time step, the algorithm performs ${(num\_substeps)}^{\ell-1}$ steps at each level $\ell$
+according to the predefined sequence presented in Figure~\ref{fig:subcycling_algorithm}. The main rule
+is that coarser levels are always updated before the finer ones. For each level the algorithm
+performs the following:
+\begin{itemize}
+\item First, data from cells that are covered by ghost cells of a finer mesh are stored; these are later used
+by the ghost cells at the higher level.
+\item Next, fluxes that will be used for the solution update are computed.
+\item Before proceeding to the next step, flux values from level $\ell$ are stored for the subsequent flux-fix
+procedure on level $\ell$. This procedure applies to cells at outer inter-level interfaces.
+\item Finally, the solution at current level is advanced by the respective time step.
+\end{itemize}
+If the current level is the highest level, the described procedure is executed $(num\_substeps-1)$ more times,
+otherwise it is executed for the next higher level. If any of the levels has been advanced $num\_substeps$ times,
+restriction of the solution is performed and the flux fix procedure is called. Then the algorithm
+described above is called for the lower level. The whole algorithm proceeds until the flux fix procedure is
+executed for the level $\ell=1$.
+
+The so-called \textit{hanging nodes} that arise at interfaces between two regions of different level of
+refinement require special treatment during the flux computation and time update when subcycling is used.
+The restriction is performed for each refined cell (overlaid by finer cells) that abuts an unrefined cell
+from the same level after each $num\_substeps$ time steps on the fine mesh. Both the refined and the
+uncovered coarse cells, from both sides of the boundary, have previously been updated to the states
+$\tilde \phi^{n+1}_{parent}$ and $\tilde \phi^{n+1}_{unrefined}$, respectively, using a common coarse flux.
+This flux is likely to be different and less accurate than the mean of the fine grid fluxes which were
+computed across the boundary between the fine grid interior and ghost cells.
+The restriction updates the state in a refined cell to
+$\phi^{n+1}_{parent}$, which is equivalent to replacing the coarse flux with the mean of finer ones; obviously,
+this leads to lack of conservation. This deficiency is corrected by updating the state of the unrefined
+cell by the difference between the coarse and mean over the sub-steps of the restricted fine fluxes. The so-called
+\textit{flux-fix} (or \textit{reflux}) is evaluated as follows:
+\begin{equation}
+\label{eq:fluxfix}
+F_{fix} = - \tilde F_{unrefined}
++ \frac{1}{num\_substeps}  \sum_{s=1}^{num\_substeps} \left( F^{s}_{restricted} \right) ,
+\end{equation}
+where $\tilde F_{unrefined} = - \tilde F_{parent}$.
+The above applies to each face (edge in 2D) at a fine-coarse boundary. Note, that for other faces $F_{fix} = 0$.
+The solution at each unrefined cell that abuts a refined cell from the same level after each
+$num\_substeps$ time steps on the fine mesh is then updated in the same manner when the regular time advancement is
+performed:
+\begin{equation}
+\label{eq:apply_fluxfix}
+\phi^{n+1}_{i,j}=\tilde \phi^{n+1}_{i,j}
++ \frac{\Delta t }{\Delta x } \cdot \left( F^{fix}_{i-\frac{1}{2},j} - F^{fix}_{i+\frac{1}{2},j} \right)
++ \frac{\Delta t }{\Delta x } \cdot \left( F^{fix}_{i,j-\frac{1}{2}} - F^{fix}_{i,j+\frac{1}{2}} \right).
+\end{equation}
+
