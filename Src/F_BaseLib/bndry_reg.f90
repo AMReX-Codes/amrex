@@ -66,6 +66,8 @@ contains
     type(boxarray)                 :: baa, bac
     type(layout)                   :: latmp
     logical                        :: lnodal(size(rr)), lother
+    logical                        :: pmask(size(rr))
+    integer, allocatable           :: shifted(:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -89,6 +91,7 @@ contains
     if (br%other) then
        allocate(bxs1(nb))
        allocate(br%obmf(dm,0:1), br%olaf(dm,0:1))
+       allocate(shifted(nb))
     end if
 
     if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
@@ -118,11 +121,14 @@ contains
        deallocate(bxc)
        call build(latmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
        call destroy(bac)
+
+       pmask = get_pmask(lac)
     end if
 
     do i = 1, dm
        do f = 0, 1
           cnt = 0
+          if ( br%other ) shifted = 0
 
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
@@ -153,12 +159,18 @@ contains
              if ( br%other ) then
                 lo1 = lo
                 hi1 = hi
-                do id = 1, dm
-                   if ( id /= i ) then
-                      lo1(id) = max(lo1(id), lpdc%lo(id))
-                      hi1(id) = min(hi1(id), lpdc%hi(id))
+                if (pmask(i)) then
+                   if (lo(i) .lt. pdc%lo(i)) then
+                      shifted(j) = extent(pdc,i)
+                      lo1(i) = lo1(i) + shifted(j)
+                      hi1(i) = lo1(i)
+                   else if (hi(i) .gt. pdc%hi(i)) then
+                      shifted(j) = -extent(pdc,i)
+                      lo1(i) = lo1(i) + shifted(j)
+                      hi1(i) = lo1(i)
                    end if
-                end do
+                end if
+
                 call build(bxs1(j), lo1, hi1)
                 bi => layout_get_box_intersector(latmp, bxs1(j))
                 cnt = cnt + size(bi)
@@ -175,7 +187,9 @@ contains
              allocate(bxsc(cnt), prcc(cnt))
              cnt = 1
              do j = 1, nb
+
                 bi => layout_get_box_intersector(latmp, bxs1(j))
+
                 do kk = 1, size(bi)
                    lo = lwb(bi(kk)%bx)
                    hi = upb(bi(kk)%bx)
@@ -185,6 +199,10 @@ contains
                          hi(id) = min(hi(id)+lw, lpdc%hi(id))
                       end if
                    end do
+                   if (shifted(j) .ne. 0) then
+                      lo(i) = lo(i) - shifted(j)
+                      hi(i) = lo(i)
+                   end if
                    call build(bx1, lo, hi)
                    bxsc(cnt) = bx1
                    prcc(cnt) = get_proc(lac,bi(kk)%i)
@@ -202,7 +220,7 @@ contains
     end do
 
     if ( br%other ) then
-       deallocate(bxs1)
+       deallocate(bxs1,shifted)
        call destroy(latmp)
     end if
 
