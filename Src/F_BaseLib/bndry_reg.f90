@@ -13,6 +13,7 @@ module bndry_reg_module
      type(multifab), pointer :: obmf(:,:) => Null()
      type(layout),   pointer ::  laf(:,:) => Null()
      type(layout),   pointer :: olaf(:,:) => Null()
+     integer, pointer :: indexmap(:,:,:) => Null()
   end type bndry_reg
 
   interface destroy
@@ -40,6 +41,7 @@ contains
        if ( br%other ) then
           deallocate(br%obmf)
           deallocate(br%olaf)
+          deallocate(br%indexmap)
        end if
     end if
     br%dim = 0
@@ -56,15 +58,16 @@ contains
     logical,         intent(in   ), optional :: nodal(:)
     logical,         intent(in   ), optional :: other
 
-    integer                        :: i, j, id, f, kk, dm, nb, lw, lnc, cnt
+    integer                        :: i, j, id, f, kk, dm, nb, lw, lnc, cnto, cnt
+    integer                        :: nl, ncell, myproc, nlthin
     integer                        :: lo(size(rr)), hi(size(rr))
     integer                        :: lo1(size(rr)), hi1(size(rr))
     type(box), allocatable         :: bxs(:), bxs1(:), bxsc(:), bxc(:)
     type(box_intersector), pointer :: bi(:)
-    integer, allocatable           :: prcc(:)
+    integer, allocatable           :: prcc(:), prf(:)
     type(box)                      :: rbox, lpdc, bx, bx1
     type(boxarray)                 :: baa, bac
-    type(layout)                   :: latmp
+    type(layout)                   :: lactmp, laftmp
     logical                        :: lnodal(size(rr)), lother
     logical                        :: pmask(size(rr))
     integer, allocatable           :: shifted(:)
@@ -78,8 +81,12 @@ contains
     lnodal = .false. ; if ( present(nodal) ) lnodal = nodal
     lother = .true.  ; if ( present(other) ) lother = other
 
+    call bl_assert(.not.(lnodal.and.lother), "bndry_reg_rr_build(): nodal and other cannot be both true.")
+
+    myproc   = parallel_myproc()
     dm       = get_dim(la)
     nb       = nboxes(la)
+    nl       = nlocal(la)
     br%dim   = dm
     br%nc    = lnc
     br%other = lother
@@ -92,6 +99,7 @@ contains
        allocate(bxs1(nb))
        allocate(br%obmf(dm,0:1), br%olaf(dm,0:1))
        allocate(shifted(nb))
+       allocate(br%indexmap(nl,dm,0:1))
     end if
 
     if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
@@ -119,15 +127,29 @@ contains
 
        call build(bac, bxc, sort = .false.)
        deallocate(bxc)
-       call build(latmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
+       call build(lactmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(lac))
        call destroy(bac)
 
        pmask = get_pmask(lac)
+
+       ! Build a coarsen version of the fine boxarray
+       allocate(bxc(nb))
+       do i = 1, nb
+          bxc(i) = coarsen(get_box(la,i), rr)
+       end do
+       call build(bac, bxc, sort = .false.)
+       deallocate(bxc)
+       call build(laftmp, bac, boxarray_bbox(bac), explicit_mapping = get_proc(la))
+       call destroy(bac)
     end if
+
+    allocate(prf(nb))
 
     do i = 1, dm
        do f = 0, 1
+          nlthin = 0
           cnt = 0
+          cnto = 0
           if ( br%other ) shifted = 0
 
           do j = 1, nb
@@ -149,7 +171,30 @@ contains
                 end if
              end do
 
-             call build(bxs(j), lo, hi)
+             call build(bx, lo, hi)
+
+             if (br%other) then
+                bi => layout_get_box_intersector(laftmp, bx)
+                ncell = 0
+                do kk=1, size(bi)
+                   ncell = ncell + volume(bi(kk)%bx)
+                end do
+                deallocate(bi)
+                if (ncell .eq. volume(bx)) then
+                   cycle  ! bx is entirely covered by fine grids
+                end if
+             end if
+
+             cnt = cnt+1
+             prf(cnt) = get_proc(la,j)
+             if (br%other) then
+                if (myproc .eq. prf(cnt)) then
+                   nlthin = nlthin + 1
+                   br%indexmap(nlthin,i,f) = local_index(la,j)
+                end if
+             end if
+             call build(bxs(cnt), lo, hi)
+
              !
              ! Grow in the other directions for interping bc's
              ! Grow by lw if possible; if not lw then lw-1, etc; then none.
@@ -161,34 +206,34 @@ contains
                 hi1 = hi
                 if (pmask(i)) then
                    if (lo(i) .lt. pdc%lo(i)) then
-                      shifted(j) = extent(pdc,i)
-                      lo1(i) = lo1(i) + shifted(j)
+                      shifted(cnt) = extent(pdc,i)
+                      lo1(i) = lo1(i) + shifted(cnt)
                       hi1(i) = lo1(i)
                    else if (hi(i) .gt. pdc%hi(i)) then
-                      shifted(j) = -extent(pdc,i)
-                      lo1(i) = lo1(i) + shifted(j)
+                      shifted(cnt) = -extent(pdc,i)
+                      lo1(i) = lo1(i) + shifted(cnt)
                       hi1(i) = lo1(i)
                    end if
                 end if
 
-                call build(bxs1(j), lo1, hi1)
-                bi => layout_get_box_intersector(latmp, bxs1(j))
-                cnt = cnt + size(bi)
+                call build(bxs1(cnt), lo1, hi1)
+                bi => layout_get_box_intersector(lactmp, bxs1(cnt))
+                cnto = cnto + size(bi)
                 deallocate(bi)
              end if
           end do
 
-          call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+          call build(baa, bxs(1:cnt), sort = .false.)
+          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
           call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
           call destroy(baa)
 
           if ( br%other ) then
-             allocate(bxsc(cnt), prcc(cnt))
-             cnt = 1
-             do j = 1, nb
+             allocate(bxsc(cnto), prcc(cnto))
+             cnto = 1
+             do j = 1, cnt
 
-                bi => layout_get_box_intersector(latmp, bxs1(j))
+                bi => layout_get_box_intersector(lactmp, bxs1(j))
 
                 do kk = 1, size(bi)
                    lo = lwb(bi(kk)%bx)
@@ -204,9 +249,9 @@ contains
                       hi(i) = lo(i)
                    end if
                    call build(bx1, lo, hi)
-                   bxsc(cnt) = bx1
-                   prcc(cnt) = get_proc(lac,bi(kk)%i)
-                   cnt = cnt + 1
+                   bxsc(cnto) = bx1
+                   prcc(cnto) = get_proc(lac,bi(kk)%i)
+                   cnto = cnto + 1
                 end do
                 deallocate(bi)
              end do
@@ -221,9 +266,11 @@ contains
 
     if ( br%other ) then
        deallocate(bxs1,shifted)
-       call destroy(latmp)
+       call destroy(lactmp)
+       call destroy(laftmp)
     end if
 
+    deallocate(prf)
     call destroy(bpt)
   end subroutine bndry_reg_rr_build
 
