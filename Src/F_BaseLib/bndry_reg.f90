@@ -14,14 +14,10 @@ module bndry_reg_module
      type(multifab), pointer :: obmf(:,:) => Null()
      type(layout),   pointer ::  laf(:,:) => Null()
      type(layout),   pointer :: olaf(:,:) => Null()
-     integer, pointer :: indxmap(:,:) => Null()
-     integer, pointer :: facemap(:,:) => Null()
-     integer, pointer :: oindxmap1(:) => Null()
-     integer, pointer :: oindxmap2(:) => Null()
-     integer, pointer :: oindxmap3(:) => Null()
-     integer, pointer :: ofacemap1(:) => Null()
-     integer, pointer :: ofacemap2(:) => Null()
-     integer, pointer :: ofacemap3(:) => Null()
+     integer, pointer ::  indxmap(:,:) => Null()
+     integer, pointer :: oindxmap(:,:) => Null()
+     integer, pointer ::  facemap(:,:) => Null()
+     integer, pointer :: ofacemap(:,:) => Null()
   end type bndry_reg
 
   interface destroy
@@ -52,9 +48,7 @@ contains
        if ( br%other ) then
           deallocate(br%obmf, br%olaf)
           deallocate(br%indxmap, br%facemap)
-          deallocate(br%oindxmap1, br%ofacemap1)
-          if (br%dim .gt. 1) deallocate(br%oindxmap2, br%ofacemap2)
-          if (br%dim .gt. 2) deallocate(br%oindxmap3, br%ofacemap3)
+          deallocate(br%oindxmap, br%ofacemap)
        end if
     end if
     br%dim = 0
@@ -164,8 +158,8 @@ contains
     integer,         intent(in   ) :: nc
 
     logical                        :: pmask(size(rr))
-    integer                        :: i, j, kk, dm, nb, cnto, cnt, f
-    integer                        :: nl, ncell, myproc, nlthin, nlthino, ilocal
+    integer                        :: i, j, kk, dm, nb, cnto, cnt, f, ilocal, nlmax
+    integer                        :: nl, ncell, myproc, nlthin, nlthino(size(rr))
     integer                        :: lo(size(rr)), hi(size(rr))
     integer                        :: lof(size(rr),0:1), hif(size(rr),0:1)
     integer, allocatable           :: prcc(:), prf(:), pshift(:)
@@ -175,6 +169,8 @@ contains
     type(boxarray)                 :: baa
     type(layout)                   :: lactmp, laftmp
     integer, pointer :: tindxmap(:), tfacemap(:)
+    integer, allocatable, target :: oindxmap1(:), oindxmap2(:), oindxmap3(:)
+    integer, allocatable, target :: ofacemap1(:), ofacemap2(:), ofacemap3(:)
     type(vector_i) :: oproc, oface
 
     myproc   = parallel_myproc()
@@ -234,7 +230,7 @@ contains
 
     do i = 1, dm
        nlthin = 0
-       nlthino = 0
+       nlthino(i) = 0
        cnt = 0
        cnto = 0
        pshift = 0
@@ -283,17 +279,12 @@ contains
              if (pmask(i)) then
                 if (lof(i,f) .lt. pdc%lo(i)) then
                    pshift(cnt) = extent(pdc,i)
-                   lof(i,f) = lof(i,f) + pshift(cnt)
-                   hif(i,f) = lof(i,f)
                 else if (hif(i,f) .gt. pdc%hi(i)) then
                    pshift(cnt) = -extent(pdc,i)
-                   lof(i,f) = lof(i,f) + pshift(cnt)
-                   hif(i,f) = lof(i,f)
                 end if
              end if
 
-             call build(bx, lof(:,f), hif(:,f))
-             bxso(cnt) = bx
+             bxso(cnt) = shift(bx, pshift(cnt), i)
 
              bi => layout_get_box_intersector(lactmp, bxso(cnt))
              cnto = cnto + size(bi)
@@ -301,7 +292,7 @@ contains
                 if (myproc .eq. get_proc(lactmp,bi(kk)%i)) then
                    call push_back(oproc, local_index(lactmp,bi(kk)%i))
                    call push_back(oface, (2*f-1)*i)  ! possible values: -1,+1,-2,+2,-3:+3 
-                   nlthino = nlthino+1
+                   nlthino(i) = nlthino(i)+1
                 end if
              end do
              deallocate(bi)
@@ -315,43 +306,35 @@ contains
 
        allocate(bxsc(cnto), prcc(cnto))
        if (i .eq. 1) then
-          allocate(br%oindxmap1(nlthino), br%ofacemap1(nlthino))
-          tindxmap => br%oindxmap1
-          tfacemap => br%ofacemap1
+          allocate(oindxmap1(nlthino(i)), ofacemap1(nlthino(i)))
+          tindxmap => oindxmap1
+          tfacemap => ofacemap1
        else if (i .eq. 2) then
-          allocate(br%oindxmap2(nlthino), br%ofacemap2(nlthino))
-          tindxmap => br%oindxmap2
-          tfacemap => br%ofacemap2
+          allocate(oindxmap2(nlthino(i)), ofacemap2(nlthino(i)))
+          tindxmap => oindxmap2
+          tfacemap => ofacemap2
        else
-          allocate(br%oindxmap3(nlthino), br%ofacemap3(nlthino))
-          tindxmap => br%oindxmap3
-          tfacemap => br%ofacemap3
+          allocate(oindxmap3(nlthino(i)), ofacemap3(nlthino(i)))
+          tindxmap => oindxmap3
+          tfacemap => ofacemap3
        end if
 
-       ilocal = 1
-       cnto = 1
+       ilocal = 0
+       cnto = 0
        do j = 1, cnt
 
           bi => layout_get_box_intersector(lactmp, bxso(j))
 
           do kk = 1, size(bi)
-             lo = lwb(bi(kk)%bx)
-             hi = upb(bi(kk)%bx)
-             if (pshift(j) .ne. 0) then
-                lo(i) = lo(i) - pshift(j)
-                hi(i) = lo(i)
-             end if
-             call build(bx, lo, hi)
-             bxsc(cnto) = bx
+             cnto = cnto + 1
+             bxsc(cnto) = shift(bi(kk)%bx, -pshift(j), i)
              prcc(cnto) = get_proc(lac,bi(kk)%i)
 
              if (myproc .eq. get_proc(lactmp,bi(kk)%i)) then
+                ilocal = ilocal + 1
                 tindxmap(ilocal) = at(oproc, ilocal)
                 tfacemap(ilocal) = at(oface, ilocal)
-                ilocal = ilocal + 1
              end if
-
-             cnto = cnto + 1
           end do
 
           deallocate(bi)
@@ -367,6 +350,24 @@ contains
        call destroy(oproc)
        call destroy(oface)
     end do
+
+    nlmax = maxval(nlthino)
+    allocate(br%oindxmap(nlmax, dm))
+    allocate(br%ofacemap(nlmax, dm))
+
+    br%oindxmap(1:nlthino(1),1) = oindxmap1
+    br%ofacemap(1:nlthino(1),1) = ofacemap1
+    deallocate(oindxmap1,ofacemap1)
+    if (br%dim .gt. 1) then
+       br%oindxmap(1:nlthino(2),2) = oindxmap2
+       br%ofacemap(1:nlthino(2),2) = ofacemap2
+       deallocate(oindxmap2,ofacemap2)
+    end if
+    if (br%dim .gt. 2) then
+       br%oindxmap(1:nlthino(3),3) = oindxmap3
+       br%ofacemap(1:nlthino(3),3) = ofacemap3
+       deallocate(oindxmap3,ofacemap3)
+    end if
 
     deallocate(bxs,bxso,pshift,prf)
     call destroy(lactmp)
