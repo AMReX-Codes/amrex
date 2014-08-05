@@ -36,19 +36,11 @@ contains
               brs_flx%facemap(:,i), brs_flx%indxmap(:,i))
       end do
       call bndry_reg_copy_to_other(brs_flx)
-      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
-           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-           brs_flx%ofacemap1, brs_flx%oindxmap1, ONE)
-      if (dm .gt. 1) then
-         call ml_interface(crse_res, brs_flx%obmf(2,0), uu(n-1), &
+      do i = 1, dm
+         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
               mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap2, brs_flx%oindxmap2, ONE)
-      end if
-      if (dm .gt. 2) then
-         call ml_interface(crse_res, brs_flx%obmf(3,0), uu(n-1), &
-              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap3, brs_flx%oindxmap3, ONE)
-      end if
+              brs_flx%ofacemap(:,i), brs_flx%oindxmap(:,i), ONE)
+      end do
 
   end subroutine crse_fine_residual_cc
 
@@ -77,19 +69,11 @@ contains
               brs_flx%facemap(:,i), brs_flx%indxmap(:,i))
       end do
       call bndry_reg_copy_to_other(brs_flx)
-      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
-           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-           brs_flx%ofacemap1, brs_flx%oindxmap1, ONE)
-      if (dm .gt. 1) then
-         call ml_interface(crse_res, brs_flx%obmf(2,0), uu(n-1), &
+      do i = 1, dm
+         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
               mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap2, brs_flx%oindxmap2, ONE)
-      end if
-      if (dm .gt. 2) then
-         call ml_interface(crse_res, brs_flx%obmf(3,0), uu(n-1), &
-              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap3, brs_flx%oindxmap3, ONE)
-      end if
+              brs_flx%ofacemap(:,i), brs_flx%oindxmap(:,i), ONE)
+      end do
 
   end subroutine crse_fine_residual_n_cc
 
