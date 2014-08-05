@@ -32,9 +32,9 @@ contains
 
       do i = 1, dm
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i)
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i, brs_flx%indexmap(:,i,0))
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,1), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i)
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i, brs_flx%indexmap(:,i,1))
       end do
       call bndry_reg_copy_to_other(brs_flx)
       do i = 1, dm
@@ -67,9 +67,9 @@ contains
 
       do i = 1, dm
          call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i)
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), -1, i, brs_flx%indexmap(:,i,0))
          call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,1), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i)
+              uu(n), mgt(n)%mm(mglev), ref_ratio(i), 1, i, brs_flx%indexmap(:,i,1))
       end do
       call bndry_reg_copy_to_other(brs_flx)
       do i = 1, dm
@@ -174,7 +174,7 @@ contains
 !
 ! ******************************************************************************************
 !
-  subroutine ml_fill_fluxes(ss, flux, uu, mm, ratio, face, dim)
+  subroutine ml_fill_fluxes(ss, flux, uu, mm, ratio, face, dim, indexmap)
 
     use bl_prof_module
     use cc_stencil_apply_module
@@ -183,9 +183,8 @@ contains
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in) :: mm
-    integer :: ratio
-    integer :: face, dim
-    integer :: i, n, dm
+    integer, intent(in) :: ratio, face, dim, indexmap(:)
+    integer :: i, j, n, dm
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
@@ -203,12 +202,13 @@ contains
 
     dm = get_dim(ss)
 
-    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
+    !$OMP PARALLEL DO PRIVATE(i,j,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
+       j = indexmap(i)
        fp => dataptr(flux, i)
-       up => dataptr(uu, i)
-       sp => dataptr(ss, i)
-       mp => dataptr(mm, i)
+       up => dataptr(uu, j)
+       sp => dataptr(ss, j)
+       mp => dataptr(mm, j)
        do n = 1, ncomp(uu)
           select case(dm)
           case (1)
@@ -281,7 +281,7 @@ contains
 !
 ! ******************************************************************************************
 !
-  subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, face, dim)
+  subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, face, dim, indexmap)
 
     use bl_prof_module
     use cc_stencil_apply_module
@@ -290,9 +290,8 @@ contains
     type(multifab), intent(in)    :: ss
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in)   :: mm
-    integer :: ratio
-    integer :: face, dim
-    integer :: i, n
+    integer, intent(in) :: ratio, face, dim, indexmap(:)
+    integer :: i, j, n
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
@@ -304,12 +303,13 @@ contains
 
     ng = nghost(uu)
 
-    !$OMP PARALLEL DO PRIVATE(i,fp,up,sp,mp,n)
+    !$OMP PARALLEL DO PRIVATE(i,j,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
+       j = indexmap(j)
        fp => dataptr(flux, i)
-       up => dataptr(uu, i)
-       sp => dataptr(ss, i)
-       mp => dataptr(mm, i)
+       up => dataptr(uu, j)
+       sp => dataptr(ss, j)
+       mp => dataptr(mm, j)
        do n = 1, ncomp(uu)
           select case(get_dim(ss))
           case (1)
