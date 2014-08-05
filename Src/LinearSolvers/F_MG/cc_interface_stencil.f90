@@ -14,22 +14,22 @@ module cc_interface_stencil_module
 
 contains
 
-  subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim, efactor)
+  subroutine ml_interface(res, flux, crse, ss, crse_domain, facemap, indxmap, efactor)
     use bl_prof_module
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
     type(multifab), intent(in   ) :: crse
     type(multifab), intent(in   ) :: ss
     type(box),      intent(in   ) :: crse_domain
-    integer,        intent(in   ) :: face, dim
+    integer,        intent(in   ) :: facemap(:), indxmap(:)
     real(kind=dp_t),intent(in   ) :: efactor
     type(bl_prof_timer), save :: bpt
     call build(bpt, "ml_interf")
-    call ml_interface_c(res, 1, flux, 1, crse, ss, crse_domain, face, dim, efactor)
+    call ml_interface_c(res, 1, flux, 1, crse, ss, crse_domain, facemap, indxmap, efactor)
     call destroy(bpt)
   end subroutine ml_interface
 
-  subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim, efactor)
+  subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, facemap, indxmap, efactor)
     use bl_prof_module
 
     type(multifab), intent(inout) :: res
@@ -38,11 +38,11 @@ contains
     type(multifab), intent(in   ) :: ss
     integer,        intent(in   ) :: cr, cf
     type(box),      intent(in   ) :: crse_domain
-    integer,        intent(in   ) :: face, dim
+    integer,        intent(in   ) :: facemap(:), indxmap(:)
     real(kind=dp_t),intent(in   ) :: efactor
 
-    type(box)      :: fbox, cbox, bx
-    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm
+    type(box)      :: fbox, cbox
+    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm, face, dim
     integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res))
     logical        :: pmask(get_dim(res))
     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
@@ -56,8 +56,25 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(res)
 
-    !$OMP PARALLEL DO PRIVATE(fbox,cbox,bx,lor,los,i,j,lo,hi,loc,rp,fp,cp,sp)
-    do j = 1, nfabs(crse)
+    !$OMP PARALLEL DO PRIVATE(fbox,cbox,lor,los,i,j,face,dim,lo,hi,loc,rp,fp,cp,sp)
+    do i = 1, nfabs(flux)
+       j = indxmap(i)
+       dim = abs(facemap(i))
+       face = sign(1, facemap(i))
+
+       fbox = get_ibox(flux,i)
+       if (pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
+          if ( face .eq. -1 ) then
+             fbox = shift(fbox,  extent(crse_domain,dim), dim)
+          else
+             fbox = shift(fbox, -extent(crse_domain,dim), dim)
+          end if
+       end if
+
+       lo = lwb(fbox)
+       hi = upb(fbox)
+       fp => dataptr(flux,i,cf)
+
        cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
@@ -66,36 +83,17 @@ contains
        rp   => dataptr(res, j, cr)
        cp   => dataptr(crse, j, cr)
 
-       do i = 1, nfabs(flux)
-          fbox = get_ibox(flux,i)
-          if (pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
-             if ( face .eq. -1 ) then
-                fbox = shift(fbox,  extent(crse_domain,dim), dim)
-             else
-                fbox = shift(fbox, -extent(crse_domain,dim), dim)
-             end if
-          end if
-
-          bx = intersection(cbox, fbox)
-          if (.not. empty(bx)) then
-             call bl_assert(equal(bx,fbox), 'ml_interface_c(): how did this happen?')
-             lo = lwb(bx)
-             hi = upb(bx)
-             fp => dataptr(flux,i,cf)
-
-             select case (dm)
-             case (1)
-                call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
-                     sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
-              case (2)
-                call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
-                     sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
-             case (3)
-                call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
-                     sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
-             end select
-          end if
-       end do
+       select case (dm)
+       case (1)
+          call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
+               sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
+       case (2)
+          call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+               sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
+       case (3)
+          call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+               sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
+       end select
     end do
     !$OMP END PARALLEL DO
 
