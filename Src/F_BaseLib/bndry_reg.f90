@@ -531,7 +531,7 @@ contains
     n = shape(br%bmf)
     do f = 0, n(2)-1
        do i = 1, n(1)
-          call copy(br%obmf(i,f), br%bmf(i,f))
+          call copy(br%obmf(i,f), br%bmf(i,f), bndry_reg_to_other=.true.)
        end do
     end do
     call destroy(bpt)

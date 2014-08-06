@@ -2874,4 +2874,183 @@ contains
     call destroy(bl1)
   end subroutine layout_boxarray_diff
 
-  end module layout_module
+  ! build special copyassoc for bndry_reg copy to other
+  subroutine copyassoc_build_br_to_other(cpasc, la_dst, la_src, nd_dst, nd_src)
+    type(copyassoc), intent(inout) :: cpasc
+    type(layout), intent(in) :: la_dst, la_src
+    logical, intent(in) :: nd_dst(:), nd_src(:)
+
+    type(box) :: bx, bx_src
+    integer :: i0, i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
+    integer :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, sh(MAX_SPACEDIM+1)
+    type(local_copy_desc), pointer :: n_cpy(:) => Null()
+    type(comm_dsc), pointer :: n_snd(:) => Null(), n_rcv(:) => Null()
+    integer, allocatable :: pvol(:,:), ppvol(:,:), parr(:,:)
+    integer, parameter :: ChunkSize = 500
+
+    cpasc%dim = get_dim(la_dst)
+    
+    allocate(cpasc%nd_dst(cpasc%dim));  cpasc%nd_dst = nd_dst
+    allocate(cpasc%nd_src(cpasc%dim));  cpasc%nd_src = nd_src
+
+    allocate(cpasc%l_con%cpy(ChunkSize))
+    allocate(cpasc%r_con%snd(ChunkSize))
+    allocate(cpasc%r_con%rcv(ChunkSize))
+
+    allocate(cpasc%prc_src(la_src%lap%nboxes))
+    allocate(cpasc%prc_dst(la_dst%lap%nboxes))
+    cpasc%prc_src = la_src%lap%prc
+    cpasc%prc_dst = la_dst%lap%prc
+
+    allocate(parr(0:parallel_nprocs()-1,2))
+    allocate(pvol(0:parallel_nprocs()-1,2))
+    allocate(ppvol(0:parallel_nprocs()-1,2))
+
+    parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
+
+    i0 = 1
+    do j = 1, nboxes(la_src) 
+       bx_src = get_box(la_src, j)
+
+       do i = i0, nboxes(la_dst)
+          bx = get_box(la_dst, i)
+
+          if ( .not. box_contains(bx_src, bx)) then
+             i0 = i
+             exit
+          else
+             if ( remote(la_dst,i) .and. remote(la_src,j) ) then
+                cycle
+             else if ( local(la_dst, i) .and. local(la_src, j) ) then
+                if ( li_r > size(cpasc%l_con%cpy) ) then
+                   allocate(n_cpy(size(cpasc%l_con%cpy) * 2))
+                   n_cpy(1:li_r-1) = cpasc%l_con%cpy(1:li_r-1)
+                   deallocate(cpasc%l_con%cpy)
+                   cpasc%l_con%cpy => n_cpy
+                end if
+                lcnt_r                    = lcnt_r + 1
+                cpasc%l_con%cpy(li_r)%nd  = i
+                cpasc%l_con%cpy(li_r)%ns  = j
+                cpasc%l_con%cpy(li_r)%sbx = bx
+                cpasc%l_con%cpy(li_r)%dbx = bx
+                li_r                      = li_r + 1
+             else if ( local(la_src, j) ) then ! dst is remote
+                if ( i_s > size(cpasc%r_con%snd) ) then
+                   allocate(n_snd(size(cpasc%r_con%snd) * 2))
+                   n_snd(1:i_s-1) = cpasc%r_con%snd(1:i_s-1)
+                   deallocate(cpasc%r_con%snd)
+                   cpasc%r_con%snd => n_snd
+                end if
+                cnt_s                      = cnt_s + 1
+                parr(la_dst%lap%prc(i), 2) = parr(la_dst%lap%prc(i), 2) + 1
+                pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
+                cpasc%r_con%snd(i_s)%nd    = i
+                cpasc%r_con%snd(i_s)%ns    = j
+                cpasc%r_con%snd(i_s)%sbx   = bx
+                cpasc%r_con%snd(i_s)%dbx   = bx
+                cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
+                i_s                        = i_s + 1
+             else ! src is remote, dst is local
+                if ( i_r > size(cpasc%r_con%rcv) ) then
+                   allocate(n_rcv(size(cpasc%r_con%rcv) * 2))
+                   n_rcv(1:i_r-1) = cpasc%r_con%rcv(1:i_r-1)
+                   deallocate(cpasc%r_con%rcv)
+                   cpasc%r_con%rcv => n_rcv
+                end if
+                cnt_r                      = cnt_r + 1
+                parr(la_src%lap%prc(j), 1) = parr(la_src%lap%prc(j), 1) + 1
+                pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
+                cpasc%r_con%rcv(i_r)%nd    = i
+                cpasc%r_con%rcv(i_r)%ns    = j
+                cpasc%r_con%rcv(i_r)%sbx   = bx
+                cpasc%r_con%rcv(i_r)%dbx   = bx
+                cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
+                sh                         = 1
+                sh(1:cpasc%dim)            = extent(bx)
+                cpasc%r_con%rcv(i_r)%sh    = sh
+                i_r                        = i_r + 1
+             end if
+          end if
+       end do
+    end do
+
+    cpasc%l_con%ncpy = lcnt_r
+    cpasc%r_con%nsnd = cnt_s
+    cpasc%r_con%nrcv = cnt_r
+    !
+    ! Trim off unused space.
+    !
+    allocate(n_cpy(lcnt_r))
+    n_cpy(1:lcnt_r) = cpasc%l_con%cpy(1:lcnt_r)
+    deallocate(cpasc%l_con%cpy)
+    cpasc%l_con%cpy => n_cpy
+
+    allocate(n_snd(cnt_s))
+    n_snd(1:cnt_s) = cpasc%r_con%snd(1:cnt_s)
+    deallocate(cpasc%r_con%snd)
+    cpasc%r_con%snd => n_snd
+
+    allocate(n_rcv(cnt_r))
+    n_rcv(1:cnt_r) = cpasc%r_con%rcv(1:cnt_r)
+    deallocate(cpasc%r_con%rcv)
+    cpasc%r_con%rcv => n_rcv
+    !
+    ! This region packs the src/recv boxes into processor order
+    !
+    do i = 0, parallel_nprocs()-1
+       ppvol(i,1) = sum(pvol(0:i-1,1))
+       ppvol(i,2) = sum(pvol(0:i-1,2))
+    end do
+    !
+    ! Pack Receives maintaining original ordering
+    !
+    do i_r = 1, cnt_r
+       i = cpasc%r_con%rcv(i_r)%pr
+       cpasc%r_con%rcv(i_r)%pv = ppvol(i,1)
+       pv = volume(cpasc%r_con%rcv(i_r)%dbx)
+       ppvol(i,1) = ppvol(i,1) + pv
+    end do
+    !
+    ! Pack Sends maintaining original ordering
+    !
+    do i_s = 1, cnt_s
+       i = cpasc%r_con%snd(i_s)%pr
+       cpasc%r_con%snd(i_s)%pv = ppvol(i,2)
+       pv = volume(cpasc%r_con%snd(i_s)%dbx)
+       ppvol(i,2) = ppvol(i,2) + pv
+    end do
+    !
+    ! Now compute the volume of data the each processor expects
+    !
+    pcnt_r = count(parr(:,1) /= 0 )
+    pcnt_s = count(parr(:,2) /= 0 )
+    cpasc%r_con%nrp  = pcnt_r
+    cpasc%r_con%nsp  = pcnt_s
+    cpasc%r_con%rvol = sum(pvol(:,1))
+    cpasc%r_con%svol = sum(pvol(:,2))
+    allocate(cpasc%r_con%str(pcnt_s))
+    allocate(cpasc%r_con%rtr(pcnt_r))
+    pi_r = 1; pi_s = 1; rpv  = 0; spv  = 0
+    do i = 0, size(pvol,dim=1)-1
+       if ( pvol(i,1) /= 0 ) then
+          cpasc%r_con%rtr(pi_r)%sz = pvol(i,1)
+          cpasc%r_con%rtr(pi_r)%pr = i
+          cpasc%r_con%rtr(pi_r)%pv = rpv
+          rpv  = rpv + pvol(i,1)
+          pi_r = pi_r + 1
+       end if
+       if ( pvol(i,2) /= 0 ) then
+          cpasc%r_con%str(pi_s)%sz = pvol(i,2)
+          cpasc%r_con%str(pi_s)%pr = i
+          cpasc%r_con%str(pi_s)%pv = spv
+          spv  = spv + pvol(i,2)
+          pi_s = pi_s + 1
+       end if
+    end do
+
+    call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    deallocate(pvol, ppvol, parr)
+  end subroutine copyassoc_build_br_to_other
+
+end module layout_module
