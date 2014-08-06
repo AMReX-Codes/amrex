@@ -6,6 +6,8 @@ module bndry_reg_module
 
   implicit none
 
+  logical, private :: bndry_reg_thin = .false.
+
   type :: bndry_reg
      integer :: dim   = 0
      integer :: nc    = 1
@@ -27,6 +29,15 @@ module bndry_reg_module
   private :: rr_build, rr_build_other
 
 contains
+
+  subroutine bndry_reg_set_thin(v)
+    logical, intent(in) :: v
+    bndry_reg_thin = v
+  end subroutine bndry_reg_set_thin
+  pure function bndry_reg_get_thin() result(r)
+    logical :: r
+    r = bndry_reg_thin
+  end function bndry_reg_get_thin
 
   subroutine bndry_reg_destroy(br)
     type(bndry_reg), intent(inout) :: br
@@ -76,9 +87,8 @@ contains
     lnodal = .false. ; if ( present(nodal) ) lnodal = nodal
     lother = .true.  ; if ( present(other) ) lother = other
 
-    call bl_assert(.not.(lnodal.and.lother), "bndry_reg_rr_build(): nodal and other cannot be both true.")
-
     if (lother) then
+       call bl_assert(.not.lnodal, "bndry_reg_rr_build(): nodal and other cannot be both true.")
        call bl_assert(lw.eq.0, "bndry_reg_rr_build(): width must be zero when other is true.")
        call rr_build_other(br, la, lac, rr, pdc, lnc)
     else
@@ -208,16 +218,18 @@ contains
     call destroy(baa)
     
     pmask = get_pmask(lac)
-    
-    ! Build a coarsen version of the fine boxarray
-    allocate(bxsc(nb))
-    do i = 1, nb
-       bxsc(i) = coarsen(get_box(la,i), rr)
-    end do
-    call build(baa, bxsc, sort = .false.)
-    deallocate(bxsc)
-    call build(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-    call destroy(baa)
+
+    if (bndry_reg_thin) then
+       ! Build a coarsen version of the fine boxarray
+       allocate(bxsc(nb))
+       do i = 1, nb
+          bxsc(i) = coarsen(get_box(la,i), rr)
+       end do
+       call build(baa, bxsc, sort = .false.)
+       deallocate(bxsc)
+       call build(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+       call destroy(baa)
+    end if
 
     allocate(bxs(2*nb))
     allocate(bxso(2*nb))
@@ -256,14 +268,16 @@ contains
           do f = 0, 1
              call build(bx, lof(:,f), hif(:,f))
 
-             bi => layout_get_box_intersector(laftmp, bx)
-             ncell = 0
-             do kk=1, size(bi)
-                ncell = ncell + volume(bi(kk)%bx)
-             end do
-             deallocate(bi)
-             if (ncell .eq. volume(bx)) then
-                cycle  ! bx is entirely covered by fine grids
+             if (bndry_reg_thin) then
+                bi => layout_get_box_intersector(laftmp, bx)
+                ncell = 0
+                do kk=1, size(bi)
+                   ncell = ncell + volume(bi(kk)%bx)
+                end do
+                deallocate(bi)
+                if (ncell .eq. volume(bx)) then
+                   cycle  ! bx is entirely covered by fine grids
+                end if
              end if
 
              cnt = cnt+1
@@ -371,7 +385,7 @@ contains
 
     deallocate(bxs,bxso,pshift,prf)
     call destroy(lactmp)
-    call destroy(laftmp)
+    if (bndry_reg_thin) call destroy(laftmp)
   end subroutine rr_build_other
 
 
