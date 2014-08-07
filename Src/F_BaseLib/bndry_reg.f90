@@ -543,11 +543,12 @@ contains
     type(bndry_reg), intent(inout) :: br
     integer, intent(in) :: cb, cm
     integer, intent(in), optional :: nc
-    integer :: i, f
+    integer :: i, f, n(2)
     type(bl_prof_timer), save :: bpt
     call build(bpt, "br_copy_c")
-    do i = 1, br%dim
-       do f = 0, 1
+    n = shape(br%bmf)
+    do f = 0, n(2)-1
+       do i = 1, n(1)
           call copy(br%bmf(i,f), cb, mf, cm, nc = nc)
        end do
     end do
@@ -558,9 +559,10 @@ contains
     type(bndry_reg), intent(inout) :: br
     real(kind=dp_t), intent(in) :: val
     logical, intent(in), optional :: all
-    integer :: i, f
-    do i = 1, br%dim
-       do f = 0, 1
+    integer :: i, f, n(2)
+    n = shape(br%bmf)
+    do f = 0, n(2)-1
+       do i = 1, n(1)
           call setval(br%bmf(i,f), val, all=all)
        end do
     end do
