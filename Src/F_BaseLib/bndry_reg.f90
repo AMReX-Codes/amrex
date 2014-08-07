@@ -76,7 +76,7 @@ contains
     logical,         intent(in   ), optional :: other
 
     integer :: lnc, lw
-    logical :: lnodal(size(rr)), lother
+    logical :: lnodal(la%lap%dim), lother
     
     type(bl_prof_timer), save :: bpt
 
@@ -108,7 +108,7 @@ contains
     logical,         intent(in   ) :: nodal(:)
 
     integer                        :: i, j, id, f, dm, nb
-    integer                        :: lo(size(rr)), hi(size(rr))
+    integer                        :: lo(la%lap%dim), hi(la%lap%dim)
     type(box), allocatable         :: bxs(:)
     type(box)                      :: rbox, lpdc
     type(boxarray)                 :: baa
