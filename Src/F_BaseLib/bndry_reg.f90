@@ -177,47 +177,21 @@ contains
     type(box), allocatable         :: bxs(:), bxso(:), bxsc(:)
     type(box_intersector), pointer :: bi(:)
     type(boxarray)                 :: baa
-    type(layout)                   :: lactmp, laftmp
+    type(layout)                   :: laftmp
     integer, pointer :: tindxmap(:), tfacemap(:)
     integer, allocatable, target :: oindxmap1(:), oindxmap2(:), oindxmap3(:)
     integer, allocatable, target :: ofacemap1(:), ofacemap2(:), ofacemap3(:)
     type(vector_i) :: oproc, oface
 
-    myproc   = parallel_myproc()
-    dm       = get_dim(la)
-    nb       = nboxes(la)
-    nl       = nlocal(la)
+    myproc = parallel_myproc()
+    dm     = get_dim(la)
+    nb     = nboxes(la)
+    nl     = nlocal(la)
+    pmask  = get_pmask(lac)
 
     br%dim   = dm
     br%nc    = nc
     br%other = .true.
-
-    if ( dm /= get_dim(la) .or. dm /= box_dim(pdc) ) call bl_error("BNDRY_REG_BUILD: DIM inconsistent")
-
-    !
-    ! Build a layout to be used in intersection tests below.
-    !
-    allocate(bxsc(nboxes(lac)))
-    
-    !$OMP PARALLEL DO PRIVATE(i,j,bx,lo,hi)
-    do i = 1, nboxes(lac)
-       bx = get_box(lac,i)
-       lo = lwb(bx)
-       hi = upb(bx)
-       do j = 1, dm
-          if ( lo(j) == lwb(pdc,j) ) lo(j) = lo(j) - 1
-          if ( hi(j) == upb(pdc,j) ) hi(j) = hi(j) + 1
-       end do
-       call build(bxsc(i), lo, hi)
-    end do
-    !$OMP END PARALLEL DO
-
-    call build(baa, bxsc, sort = .false.)
-    deallocate(bxsc)
-    call build(lactmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(lac))
-    call destroy(baa)
-    
-    pmask = get_pmask(lac)
 
     if (bndry_reg_thin) then
        ! Build a coarsen version of the fine boxarray
@@ -300,11 +274,11 @@ contains
 
              bxso(cnt) = shift(bx, pshift(cnt), i)
 
-             bi => layout_get_box_intersector(lactmp, bxso(cnt))
+             bi => layout_get_box_intersector(lac, bxso(cnt))
              cnto = cnto + size(bi)
              do kk=1, size(bi)
-                if (myproc .eq. get_proc(lactmp,bi(kk)%i)) then
-                   call push_back(oproc, local_index(lactmp,bi(kk)%i))
+                if (myproc .eq. get_proc(lac,bi(kk)%i)) then
+                   call push_back(oproc, local_index(lac,bi(kk)%i))
                    call push_back(oface, (2*f-1)*i)  ! possible values: -1,+1,-2,+2,-3:+3 
                    nlthino(i) = nlthino(i)+1
                 end if
@@ -337,14 +311,14 @@ contains
        cnto = 0
        do j = 1, cnt
 
-          bi => layout_get_box_intersector(lactmp, bxso(j))
+          bi => layout_get_box_intersector(lac, bxso(j))
 
           do kk = 1, size(bi)
              cnto = cnto + 1
              bxsc(cnto) = shift(bi(kk)%bx, -pshift(j), i)
              prcc(cnto) = get_proc(lac,bi(kk)%i)
 
-             if (myproc .eq. get_proc(lactmp,bi(kk)%i)) then
+             if (myproc .eq. get_proc(lac,bi(kk)%i)) then
                 ilocal = ilocal + 1
                 tindxmap(ilocal) = at(oproc, ilocal)
                 tfacemap(ilocal) = at(oface, ilocal)
@@ -384,7 +358,6 @@ contains
     end if
 
     deallocate(bxs,bxso,pshift,prf)
-    call destroy(lactmp)
     if (bndry_reg_thin) call destroy(laftmp)
   end subroutine rr_build_other
 
