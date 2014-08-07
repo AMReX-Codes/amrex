@@ -768,22 +768,31 @@ solve.
 
 \subsubsection{\bndryreg}
 
-A \bndryreg\ is a set of {\tt dim*2} multifabs defined on the coarse cells
-immediately outside of each fine grid.
+There are two types of \bndryreg\ objects, each of which is a set of 
+{\tt dim} multifabs.  The first, which is built with 
+the {\tt bndry\_reg\_build} call, is defined on all cells immediately outside
+of each grid.  Each multifab within the \bndryreg\ contains all the fabs on both
+the low and high faces for a given direction.  In the context of 
+multigrid, we fill the \bndryreg\ with coarse data before interpolating the data
+to the correct locations to be used in the multigrid stencil.  The second type
+of \bndryreg\ object is defined on the coarse cells immediately outside each
+fine grid, and is defined with the  {\tt bndry\_reg\_rr\_build} call, is defined on all cells immediately outside
+.  For this latter type, the option is available to include only cells 
+not covered by a different fine grid, but this is left as an option because it
+requires additional calculations of box intersections.
 
-Ideally we would only include the cells not covered by a different
-fine grid, but in the current implementation, for {\tt N} fine grids we have
-{\tt N*dim*2} multifabs (the factor of 2 is {\tt lo}/{\tt hi}).
+In multigrid, we use the latter type of \bndryreg\ to calculate the 
+residual at coarse cells adjacent to fine grids that is used as the right hand side
+in the relaxation step at the coarse level on the way down the V-cycle (or other).  
+The first type of \bndryreg is used to hold boundary conditions for the fine grids 
+that are interpolated from the coarse grid solution; this is filled on the way back up the V-cycle.
 
-We use the \bndryreg to store the correction to the residual to be
-used in the coarse grid relaxation.  The way we use it is that we
-compute a pure coarse grid residual in every coarse cell, then we
-correct it by subtracting the contribution of the coarse flux under
-the coarse-fine edge and adding the contribution of the fine fluxes at
-that same interface.  The \bndryreg\ holds the cell-centered
+To compute the residual in a coarse cell adjacent to a fine grid, we first
+compute the pure coarse residual, then subtract the contribution from the coarse
+face underlying the coarse-fine interface, and add the contribution of the fine
+faces at the coarse-fine interface.  The \bndryreg\ holds the cell-centered
 contribution from the difference of these edge fluxes and is added to
 the coarse residual multifab.
-
 
 \subsection{Stencils}
 
