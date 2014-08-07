@@ -11,7 +11,7 @@ module particle_module
 
   use bl_space
   use bl_constants_module
-  use vector_i_module
+  use vector_i_module, vector_i_size => size
   use multifab_module
   use ml_layout_module
 
@@ -223,7 +223,7 @@ contains
        call bl_assert(p%grd > 0, 'particle_where: p%grd must be > 0')
        call bl_assert(p%lev > 0, 'particle_where: p%lev must be > 0')
 
-       call bl_assert(p%lev <= size(mla%la), 'particle_where: lev out of bounds')
+       call bl_assert(p%lev <= mla%nlevel, 'particle_where: lev out of bounds')
 
        call bl_assert(p%grd <= nboxes(mla%la(p%lev)%lap%bxa), 'particle_where: p%grd out of bounds')
 
@@ -238,7 +238,7 @@ contains
           return
        end if
 
-       if ( p%lev == size(mla%la) ) then
+       if ( p%lev == mla%nlevel ) then
 
           p%cell(1:dm) = iv(1:dm)
           
@@ -253,7 +253,7 @@ contains
        end if
     end if
 
-    do lev = size(mla%la), 1, -1
+    do lev = mla%nlevel, 1, -1
 
        call particle_index(p,lev,mla,dx,prob_lo,iv)
 
@@ -371,7 +371,7 @@ contains
     type(particle_container), intent(inout) :: d
     if ( d%built ) then
        call particle_container_clear(d)
-       call vector_clear_i(d%invalid)
+       call clear(d%invalid)
        d%size  = 0
        d%d     => Null()
        d%built = .false.
