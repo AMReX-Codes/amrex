@@ -304,14 +304,8 @@ contains
 
                 sum = multifab_sum(res(1))  / boxarray_dvolume(get_boxarray(res(1)))
 
-                ! Set this to all one for use in saxpy 
-                call setval( uu(1),  ONE, all=.true.)
-
                 ! Subtract "sum" from res(1) in order to make this solvable
-                call  saxpy(res(1), -sum, uu(1))
-
-                ! Return this to zero
-                call setval( uu(1), ZERO, all=.true.)
+                call sub_sub(res(1), sum)
 
                 if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) then
                    write(unit=*, fmt='("F90mg: Subtracting from res ",g15.8)') sum
