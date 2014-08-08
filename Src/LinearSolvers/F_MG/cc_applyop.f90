@@ -175,20 +175,17 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       call multifab_fill_boundary(full_soln(n-1))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), mf_filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), ng_fill, +i)
        end do
-       call multifab_fill_boundary(full_soln(n))
     end do
 
-    !   Make sure all periodic and internal boundaries are filled as well
-    do n = 1,nlevs   
-       call multifab_fill_boundary(full_soln(n))
-    end do
+    call multifab_fill_boundary(full_soln(nlevs))
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
@@ -295,20 +292,17 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       call multifab_fill_boundary(full_soln(n-1))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), mf_filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), ng_fill, +i)
        end do
-       call multifab_fill_boundary(full_soln(n))
     end do
 
-    !   Make sure all periodic and internal boundaries are filled as well
-    do n = 1,nlevs   
-       call multifab_fill_boundary(full_soln(n))
-    end do
+    call multifab_fill_boundary(full_soln(nlevs))
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels

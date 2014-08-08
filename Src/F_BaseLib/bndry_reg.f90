@@ -427,9 +427,10 @@ contains
     call destroy(bpt)
   end subroutine bndry_reg_build
 
-  subroutine bndry_reg_copy(br, mf)
+  subroutine bndry_reg_copy(br, mf, mf_filled)
     type(multifab) , intent(inout) :: mf
     type(bndry_reg), intent(inout) :: br
+    logical, intent(in), optional  :: mf_filled
 
     integer                   :: i, j, f
     type(list_box)            :: bl
@@ -440,8 +441,11 @@ contains
     logical                   :: have_periodic_boxes
     real(kind=dp_t), pointer  :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
+    logical                   :: l_mf_filled
 
     call build(bpt, "br_copy")
+
+    l_mf_filled = .false.;  if (present(mf_filled)) l_mf_filled = mf_filled
 
     mf_la = get_layout(mf)
 
@@ -476,7 +480,7 @@ contains
        !
        ! Need to fill the ghost cells of the crse array before copying from them.
        !
-       call multifab_fill_boundary(mf)
+       if (.not.l_mf_filled) call multifab_fill_boundary(mf)
 
        call build(ba, bl, sort = .false.)
        call destroy(bl)
