@@ -131,7 +131,7 @@ contains
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), mf_filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                mla%mba%rr(n-1,:), ng_fill, -i)
@@ -648,31 +648,21 @@ contains
                mla%mba%rr(n-1,:))
        enddo
 
-       !   Fill the ghost cells at each level from grids at that level
-       do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n), cross = mgt(n)%lcross)
-       enddo
-
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at
        !   crse-fine boundaries
        do n = 2,nlevs
           ng_fill = nghost(full_soln(n))
           pd = layout_get_pd(mla%la(n))
-          call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+          call multifab_fill_boundary(full_soln(n-1))
+          call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
           do i = 1, dm
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, mla%mba%rr(n-1,:), ng_fill, -i)
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, mla%mba%rr(n-1,:), ng_fill, +i)
           end do
-          call multifab_fill_boundary(full_soln(n))
        end do
 
-    end if
+       call multifab_fill_boundary(full_soln(nlevs))
 
-    if (solved) then
-       !   Make sure all periodic and internal boundaries are filled
-       do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n))
-       end do
     end if
 
     do n = nlevs, 1, -1

@@ -176,7 +176,7 @@ contains
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), mf_filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
@@ -293,7 +293,7 @@ contains
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), mf_filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
