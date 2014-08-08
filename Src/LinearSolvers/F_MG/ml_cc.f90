@@ -154,7 +154,7 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-            mla%mba%rr(n-1,:))
+            mla%mba%rr(n-1,:), filled=.true.)
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
@@ -516,7 +516,7 @@ contains
              do n = nlevs,2,-1
                 pdc = layout_get_pd(mla%la(n-1))
                 call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                     mla%mba%rr(n-1,:))
+                     mla%mba%rr(n-1,:), filled=.true.)
              end do
 
              !      Average the fine residual onto the coarser level
