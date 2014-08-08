@@ -45,6 +45,7 @@ contains
     logical :: fine_converged
 
     real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, t1(3), t2(3)
+    real(dp_t) :: mltres(mla%nlevel), lmltres(mla%nlevel)
     real(dp_t) :: stime, bottom_solve_time
 
     character(len=3)          :: number
@@ -385,11 +386,13 @@ contains
 
           if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
-                ttres = norm_inf(res(n),local=.true.)
-                call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
+                lmltres(n) = norm_inf(res(n),local=.true.)
+             end do
+             call parallel_reduce(mltres, lmltres, MPI_MAX, proc = parallel_IOProcessorNode())
+             do n = 1,nlevs
                 if ( parallel_IOProcessor() ) then
                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
-                        iter,n,tres/tres0
+                        iter,n,mltres(n)/tres0
                 end if
              end do
           end if
