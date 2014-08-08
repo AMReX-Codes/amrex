@@ -445,7 +445,7 @@ contains
       if ( ioproc .and. verbose > 0 ) then
          print *,'   ...singular adjustment to rhs: ', rho
       endif
-      call saxpy(rh_local,-rho,ss)
+      call sub_sub(rh_local, rho)
       call setval(ss,ZERO,all=.true.)
     end if
 
@@ -515,7 +515,8 @@ contains
           end if
           beta = (rho/rho_1)*(alpha/omega)
           call saxpy(pp, -omega, vv)
-          call saxpy(pp, rr, beta, pp)
+          call scale(pp, beta)
+          call plus_plus(pp, rr)
        end if
        call copy(ph,pp)
       
@@ -799,7 +800,7 @@ contains
        if ( ioproc .and. verbose > 0 ) then
           print *,'   ...singular adjustment to rhs: ', rho
        endif
-       call saxpy(rh_local,-rho,ss)
+       call sub_sub(rh_local,rho)
        call destroy(ss)
     end if
 
@@ -1279,7 +1280,7 @@ contains
     if ( singular .and. nodal_solve ) then
       call setval(zz,ONE)
       rho = dot(rr, zz, nodal_mask) / dot(zz,zz)
-      call saxpy(rr,-rho,zz)
+      call subsub(rr,rho)
       call setval(zz,ZERO,all=.true.)
     end if
     !
@@ -1323,7 +1324,8 @@ contains
              call bl_error("CG_solve: failure 1")
           end if
           beta = rho/rho_1
-          call saxpy(pp, zz, beta, pp)
+          call scale(pp, beta)
+          call plus_plus(pp, zz)
        end if
        if ( cell_centered_q(pp) ) then
            call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)
