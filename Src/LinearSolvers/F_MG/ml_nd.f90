@@ -342,7 +342,7 @@ contains
         n = nlevs
         mglev = mgt(n)%nlevels
         call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh, filled=.true.)
 
         if ( ml_fine_converged(res, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
@@ -352,7 +352,7 @@ contains
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
              call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh, filled=.true.)
           end do
 
           do n = nlevs,2,-1

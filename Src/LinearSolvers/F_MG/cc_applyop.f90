@@ -190,7 +190,7 @@ contains
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross)
+                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -307,7 +307,7 @@ contains
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross) 
+                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.) 
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
