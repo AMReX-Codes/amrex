@@ -32,7 +32,7 @@ contains
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
-      if (.not.filled) call multifab_fill_boundary(uu(n))
+      if (.not.lfilled) call multifab_fill_boundary(uu(n))
 
       do i = 1, dm
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
@@ -69,7 +69,7 @@ contains
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
-      if (.not.filled) call multifab_fill_boundary(uu(n))
+      if (.not.lfilled) call multifab_fill_boundary(uu(n))
 
       do i = 1, dm
          call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
