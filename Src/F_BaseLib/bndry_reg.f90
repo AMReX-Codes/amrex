@@ -589,7 +589,7 @@ contains
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: all, data
     integer, intent(in), optional :: skip
-    integer :: i, f, un
+    integer :: i, f, n(2), un
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un, fmt='("BNDRY_REG")', advance = 'no')
@@ -598,8 +598,9 @@ contains
     else
        write(unit=un, fmt='()')
     end if
-    do i = 1, br%dim
-       do f = 0, 1
+    n = shape(br%bmf)
+    do f = 0, n(2)-1
+       do i = 1, n(1)
           call print(br%bmf(i,f), &
                unit = unit, &
                all = all, &

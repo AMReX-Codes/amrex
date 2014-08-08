@@ -726,7 +726,9 @@ contains
       type(lmultifab), intent(in ) :: mask(:)
       real(dp_t),      intent(in ) :: rel_eps, abs_eps, max_norm
       real(dp_t),      intent(out) :: ni_res
-      ni_res = ml_norm_inf(res, mask)
+      real(dp_t) :: l_ni_res
+      l_ni_res = ml_norm_inf(res, mask, local=.true.)
+      call parallel_reduce(ni_res, l_ni_res, MPI_MAX) 
       r = ( ni_res <= rel_eps*(max_norm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if ( ni_res <= rel_eps*max_norm ) then
