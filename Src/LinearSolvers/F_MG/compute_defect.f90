@@ -11,7 +11,7 @@ contains
 
   ! Computes dd = ff - ss * uu
   subroutine compute_defect(ss, dd, ff, uu, mm, stencil_type, lcross, &
-                            uniform_dh, bottom_solver, diagonalize)
+                            uniform_dh, bottom_solver, diagonalize, filled)
 
     use bl_prof_module
 
@@ -20,12 +20,12 @@ contains
     type(imultifab), intent(in)   :: mm
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
-    logical, intent(in), optional :: uniform_dh, bottom_solver, diagonalize
+    logical, intent(in), optional :: uniform_dh, bottom_solver, diagonalize, filled
     type(bl_prof_timer), save     :: bpt
 
     call build(bpt, "compute_defect")
     call stencil_apply(ss, dd, uu, mm, stencil_type, lcross, &
-                       uniform_dh, bottom_solver, diagonalize)
+                       uniform_dh, bottom_solver, diagonalize, filled)
     call saxpy(dd, ff, -1.0_dp_t, dd)
     call destroy(bpt)
 
@@ -35,7 +35,7 @@ contains
   ! Computes rr = aa * uu
   !
   subroutine stencil_apply(aa, rr, uu, mm, stencil_type, lcross, &
-                           uniform_dh, bottom_solver, diagonalize)
+                           uniform_dh, bottom_solver, diagonalize, filled)
 
     use bl_prof_module
 
@@ -50,12 +50,12 @@ contains
     type(imultifab), intent(in)   :: mm
     integer, intent(in)           :: stencil_type
     logical, intent(in)           :: lcross
-    logical, intent(in),optional  :: uniform_dh, bottom_solver, diagonalize
+    logical, intent(in),optional  :: uniform_dh, bottom_solver, diagonalize, filled
 
     real(kind=dp_t), pointer :: rp(:,:,:,:), up(:,:,:,:), ap(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer                  :: i, n, lo(get_dim(rr)), hi(get_dim(rr)), dm
-    logical                  :: nodal_flag, luniform_dh, lbottom_solver, ldiagonalize
+    logical                  :: nodal_flag, luniform_dh, lbottom_solver, ldiagonalize, lfilled
 
     type(bl_prof_timer), save :: bpt
 
@@ -64,6 +64,7 @@ contains
     luniform_dh    = .false. ; if ( present(uniform_dh)    ) luniform_dh    = uniform_dh
     lbottom_solver = .false. ; if ( present(bottom_solver) ) lbottom_solver = bottom_solver
     ldiagonalize   = .false. ; if ( present(diagonalize)   ) ldiagonalize   = diagonalize
+    lfilled        = .false. ; if ( present(filled)        ) lfilled        = filled
 
     if (ldiagonalize .and. .not. nodal_q(rr)) then
        call bl_error("Dont set diagonalize flag  = true for cell-centered in stencil_apply")
@@ -71,7 +72,7 @@ contains
 
     call bl_assert(ncomp(uu).ge.ncomp(rr), 'uu must have at least as many components as rr')
 
-    call fill_boundary(uu, 1, ncomp(rr), cross = lcross)
+    if (.not.lfilled) call fill_boundary(uu, 1, ncomp(rr), cross = lcross)
 
     dm         = get_dim(rr)
     nodal_flag = nodal_q(uu)
