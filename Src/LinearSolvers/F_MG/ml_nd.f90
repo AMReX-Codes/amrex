@@ -373,7 +373,7 @@ contains
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc)
+                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc,filled=.true.) ! soln(n) is filled
              if ( dm .eq. 3 ) then
                 fac = 1.0_dp_t / (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
@@ -478,7 +478,7 @@ contains
   contains
 
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
-         crse_soln,fine_soln,ref_ratio,pdc)
+         crse_soln,fine_soln,ref_ratio,pdc,filled)
 
       use nodal_interface_stencil_module , only : ml_crse_contrib, ml_fine_contrib
 
@@ -493,6 +493,7 @@ contains
       type(multifab) , intent(inout) :: fine_soln
       integer        , intent(in   ) :: ref_ratio(:)
       type(box)      , intent(in   ) :: pdc
+      logical, intent(in), optional  :: filled  ! is fine_soln filled?
 
       integer :: i,dm,mglev_crse,mglev_fine
 
@@ -507,7 +508,7 @@ contains
 
       call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
                     fine_rhs,fine_soln,mgt(n)%mm(mglev_fine), &
-                    mgt(n)%lcross,  mgt(n)%stencil_type, mgt(n)%uniform_dh)
+                    mgt(n)%lcross,  mgt(n)%stencil_type, mgt(n)%uniform_dh, filled)
 
       !    Zero out the flux registers which will hold the fine contributions
       call bndry_reg_setval(brs_flx, ZERO, all = .true.)
@@ -577,7 +578,7 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, lcross, stencil_type, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, lcross, stencil_type, uniform_dh, filled)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
@@ -585,6 +586,7 @@ contains
     logical, intent(in) :: lcross
     integer, intent(in) :: stencil_type
     logical, intent(in) :: uniform_dh
+    logical, intent(in), optional :: filled
 
     integer :: i, n
     real(kind=dp_t), pointer :: dp(:,:,:,:)
@@ -593,15 +595,18 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: dm,nodal_ng
+    logical :: lfilled
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "grid_res")
+
+    lfilled = .false.;  if (present(filled)) lfilled = filled
 
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
     dm = get_dim(uu)
 
-    call multifab_fill_boundary(uu, cross = lcross)
+    if (.not.lfilled) call multifab_fill_boundary(uu, cross = lcross)
 
     do i = 1, nfabs(uu)
        dp  => dataptr(dd, i)
