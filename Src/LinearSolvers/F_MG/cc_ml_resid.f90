@@ -11,7 +11,7 @@ module cc_ml_resid_module
 
 contains
 
-  subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
+  subroutine crse_fine_residual_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio, filled)
 
       use cc_interface_stencil_module, only : ml_interface
 
@@ -22,13 +22,17 @@ contains
       type(multifab) , intent(inout) :: crse_res
       type(box)      , intent(in   ) :: pdc
       integer        , intent(in   ) :: ref_ratio(:)
+      logical, intent(in), optional  :: filled
 
       integer :: i, dm, mglev
+      logical :: lfilled
+
+      lfilled = .false.;  if (present(filled)) lfilled = filled
 
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
-      call multifab_fill_boundary(uu(n))
+      if (.not.filled) call multifab_fill_boundary(uu(n))
 
       do i = 1, dm
          call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
@@ -44,7 +48,7 @@ contains
 
   end subroutine crse_fine_residual_cc
 
-  subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio)
+  subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio, filled)
 
       use cc_interface_stencil_module, only : ml_interface
 
@@ -55,13 +59,17 @@ contains
       type(multifab) , intent(inout) :: crse_res
       type(box)      , intent(in   ) :: pdc
       integer        , intent(in   ) :: ref_ratio(:)
+      logical, intent(in), optional  :: filled
 
       integer :: i, dm, mglev
+      logical :: lfilled
+
+      lfilled = .false.;  if (present(filled)) lfilled = filled
 
       dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
-      call multifab_fill_boundary(uu(n))
+      if (.not.filled) call multifab_fill_boundary(uu(n))
 
       do i = 1, dm
          call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
@@ -150,7 +158,7 @@ contains
        mglev_crse = mgt(n-1)%nlevels
 
        pdc = layout_get_pd(mla%la(n-1))
-       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:))
+       call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:), filled=.true.)
 
        call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
