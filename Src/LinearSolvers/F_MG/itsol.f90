@@ -515,7 +515,7 @@ contains
           end if
           beta = (rho/rho_1)*(alpha/omega)
           call saxpy(pp, -omega, vv)
-          call scale(pp, beta)
+          call rescale(pp, beta)
           call plus_plus(pp, rr)
        end if
        call copy(ph,pp)
@@ -1280,7 +1280,7 @@ contains
     if ( singular .and. nodal_solve ) then
       call setval(zz,ONE)
       rho = dot(rr, zz, nodal_mask) / dot(zz,zz)
-      call subsub(rr,rho)
+      call sub_sub(rr,rho)
       call setval(zz,ZERO,all=.true.)
     end if
     !
@@ -1324,7 +1324,7 @@ contains
              call bl_error("CG_solve: failure 1")
           end if
           beta = rho/rho_1
-          call scale(pp, beta)
+          call rescale(pp, beta)
           call plus_plus(pp, zz)
        end if
        if ( cell_centered_q(pp) ) then
