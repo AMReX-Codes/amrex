@@ -26,7 +26,8 @@ contains
     call build(bpt, "compute_defect")
     call stencil_apply(ss, dd, uu, mm, stencil_type, lcross, &
                        uniform_dh, bottom_solver, diagonalize, filled)
-    call saxpy(dd, ff, -1.0_dp_t, dd)
+    call sub_sub(dd, ff)
+    call rescale(dd, -1.0_dp_t)
     call destroy(bpt)
 
   end subroutine compute_defect
