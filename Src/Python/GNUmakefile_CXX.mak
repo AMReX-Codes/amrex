@@ -1,5 +1,5 @@
 
-TOP            = $(HOME)/Development
+TOP            = ../../..
 BOXLIB_HOME    = $(TOP)/BoxLib
 
 PRECISION      = DOUBLE
@@ -43,7 +43,7 @@ F90 := mpif90
 FFLAGS   += -fPIC
 fFLAGS   += -fPIC
 CFLAGS   += -fPIC
-CXXFLAGS += -fPIC -D__USE_XOPEN2K8
+CXXFLAGS += -fPIC
 
 # Chemistry
 ifeq ($(NEEDSCHEM), TRUE)
@@ -127,6 +127,7 @@ vpath %.f90 $(VPATH_LOCATIONS)
 
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
 NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')
+PYLIBS := $(shell python-config --libs)
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
@@ -143,8 +144,6 @@ all: $(PYSO)
 #mpic++ -print-file-name=libstdc++.a
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++
+	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++ ${PYLIBS}
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
-
-
