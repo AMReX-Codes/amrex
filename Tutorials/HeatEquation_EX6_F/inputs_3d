@@ -1,11 +1,13 @@
 &probin
 
- max_levs = 4
+ max_levs = 3
  dim = 3
- nsteps = 1000
- plot_int = 100
- n_cell = 128
- max_grid_size = 32
+ plot_int = 10
+ n_cell = 32
+ max_grid_size = 64
+
+ nsteps = 10000
+ nsteps = 10
 
  do_subcycling = T
 
@@ -21,9 +23,6 @@
  bc_z_hi = -1
 
  amr_buf_width = 2
- cluster_minwidth = 16
- cluster_blocking_factor = 8
- cluster_min_eff = 0.7d0
+ cluster_blocking_factor = 2
  regrid_int = 4
-
 /

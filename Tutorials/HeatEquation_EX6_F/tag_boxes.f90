@@ -108,8 +108,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-!               if (mf(i,j,k) .gt. 1.01d0) then
-                if (mf(i,j,k) .gt. 1.5d0) then
+                if (mf(i,j,k) .gt. 1.01d0) then
                    tagbox(i,j,k) = .true.
                 end if
              end do
