@@ -2,7 +2,7 @@
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
 BOXLIB_HOME ?= /path/to/BoxLib/
 
-NDEBUG    := t
+NDEBUG    :=  
 MPI       :=
 OMP       :=
 PROF      :=
