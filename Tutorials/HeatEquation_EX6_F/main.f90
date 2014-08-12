@@ -1,6 +1,5 @@
 program main
  
-  use boxlib
   use multifab_module
   use bl_IO_module
   use ml_layout_module
@@ -8,9 +7,9 @@ program main
   use write_plotfile_module
   use advance_module
   use define_bc_module
+  use bndry_reg_module
   use make_new_grids_module
   use regrid_module
-  use subcycling_module
 
   implicit none
 
@@ -39,21 +38,27 @@ program main
   integer       , allocatable :: phys_bc(:,:)
 
   ! will be allocated with max_levs components
-  real(dp_t)    , allocatable :: dx(:)
-  type(multifab), allocatable :: phi(:)
+  real(dp_t)    , allocatable :: dx(:), dt(:)
+  type(multifab), allocatable :: phi_old(:)
+  type(multifab), allocatable :: phi_new(:)
 
   ! logical multifab indicating which cells are refined
   ! will be allocated with max_levs components
-  type(lmultifab),allocatable :: isrefined(:)
 
   integer    :: istep,i,n,nl,nlevs
   logical    :: new_grid
-  real(dp_t) :: dt,time,start_time,run_time,run_time_IOproc
+  real(dp_t) :: time,start_time,run_time,run_time_IOproc
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
   type(layout), allocatable :: la_array(:)
+
+  ! Array of edge-based multifabs; one for each direction
+  type(multifab) , allocatable :: flux(:,:)
+
+  ! Boundary register to hold the fine flux contributions at the coarse resolution
+  type(bndry_reg), allocatable :: bndry_flx(:)
 
   type(bc_tower) :: the_bc_tower
 
@@ -97,7 +102,6 @@ program main
   bc_z_hi       = -1 ! PERIODIC
 
   do_subcycling = .true.
-
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! read inputs file and overwrite any default values
@@ -125,8 +129,9 @@ program main
 
   ! now that we have max_levs, we can allocate these
   allocate(dx(max_levs))
-  allocate(phi(max_levs))
-  allocate(isrefined(max_levs))
+  allocate(dt(max_levs))
+  allocate(phi_old(max_levs))
+  allocate(phi_new(max_levs))
   allocate(la_array(max_levs))
 
   ! put all the domain boundary conditions into phys_bc
@@ -202,13 +207,15 @@ program main
   call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),is_periodic)
 
   ! build the level 1 multifab with 1 component and 1 ghost cell
-  call multifab_build(phi(1),la_array(1),1,1)
+  call multifab_build(phi_new(1),la_array(1),1,1)
 
   ! define level 1 of the_bc_tower
   call bc_tower_level_build(the_bc_tower,1,la_array(1))
 
-  ! initialize phi on level 1
-  call init_phi_on_level(phi(1),dx(1),prob_lo,the_bc_tower%bc_tower_array(1))
+  ! initialize phi_new on level 1
+  ! Here we choose to initialize phi_new because at the beginning of each time step
+  !      we will copy phi_new into phi_old
+  call init_phi_on_level(phi_new(1),dx(1),prob_lo,the_bc_tower%bc_tower_array(1))
 
   nl = 1
   new_grid = .true.
@@ -217,7 +224,7 @@ program main
 
      ! determine whether we need finer grids based on tagging criteria
      ! if so, return new_grid=T and the la_array(nl+1)
-     call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi(nl),dx(nl), &
+     call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi_new(nl),dx(nl), &
                          amr_buf_width,mba%rr(nl,1),nl,max_grid_size)
      
      if (new_grid) then
@@ -226,13 +233,13 @@ program main
         call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
 
         ! Build the level nl+1 data
-        call multifab_build(phi(nl+1),la_array(nl+1),1,1)
+        call multifab_build(phi_new(nl+1),la_array(nl+1),1,1)
         
         ! define level nl+1 of the_bc_tower
         call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
             
         ! initialize phi on level nl+1
-        call init_phi_on_level(phi(nl+1),dx(nl+1),prob_lo,the_bc_tower%bc_tower_array(nl+1))
+        call init_phi_on_level(phi_new(nl+1),dx(nl+1),prob_lo,the_bc_tower%bc_tower_array(nl+1))
 
         ! increment current level counter
         nl = nl+1
@@ -247,7 +254,7 @@ program main
   ! destroy phi - we are going to build it again using the new multilevel
   ! layout after we have tested and reconfigured the grids due to proper nesting
   do n=1,nlevs
-     call multifab_destroy(phi(n))
+     call multifab_destroy(phi_new(n))
   end do
 
   if (nlevs .ge. 3) then
@@ -268,47 +275,57 @@ program main
   end do
 
   do n=1,nlevs
-     call multifab_build(phi(n),mla%la(n),1,1)
-     ! build logical multifab with 1 component and 1 ghost cell
-     call lmultifab_build(isrefined(n),mla%la(n),1,1)
+     call multifab_build(phi_new(n),mla%la(n),1,1)
+     call multifab_build(phi_old(n),mla%la(n),1,1)
   end do
 
-  call update_isrefined(mla,isrefined,nlevs)
-
-  call init_phi(mla,phi,dx,prob_lo,the_bc_tower)
+  call init_phi(mla,phi_new,dx,prob_lo,the_bc_tower)
 
   call destroy(mba)
 
   istep = 0
   time = 0.d0
 
-  ! choose a time step with a diffusive CFL of 0.9 base on resolution
-  ! at max_levs, even if nlevs < max_levs
-  dt = 0.9d0*dx(max_levs)**2/(2.d0*dim)
   if (.not.do_subcycling) then
-     ! dt = dt
+     ! Set the dt for all levels based on the criterion at the finest level
+     dt(:) = 0.9d0*dx(max_levs)**2/(2.d0*dim)
   else
      ! num_substeps is the number of fine steps (at level n+1) for each coarse
      ! (at level n) time step in subcycling algorithm. In other words, it is
-     ! time refinement ratio.
-     ! It is depended on the problem type solved. Typically, for hyperbolic
-     ! equations it equals 2. For parabolic problems, as heat equation,
-     ! it can be equal to 4.
+     ! the time refinement ratio, which depends on the problem type being solved.
+
+     ! Choose a time step with a local diffusive CFL of 0.9 
+     dt(1) = 0.9d0*dx(1)**2/(2.d0*dim)
+
+     ! In the current implementation, num_substeps must be set to 
+     !    2 (for an explicit hyperbolic problem) or 
+     !    4 (for an explicit parabolic  problem) 
      num_substeps = 4
-     ! in case of subcycling:
-     ! * increase the time step size at the coarsest levels
-     dt = dt * (dble(num_substeps))**(max_levs-1)
-     ! * reduce maximum number of time steps
-     nsteps        = int((nsteps-1)/((dble(num_substeps))**(max_levs-1)))+1
-     ! * and writing frequency
-     plot_int      = int((plot_int-1)/((dble(num_substeps))**(max_levs-1)))+1
-     if ((num_substeps.ne.2).and.(num_substeps.ne.4)) then
-        call bl_error("Invalid input - Only num_substeps= 2 or 4 supported.")
-     endif
+
+     do n = 2, max_levs 
+        dt(n) = dt(n-1) / dble(num_substeps)
+     end do
   endif
 
-  ! write out plotfile 0
-  call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+  ! Write plotfile at t=0
+  call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
+
+  ! Build the bndry_reg multifabs which will store the flux information from the
+  !       fine grids at the coarse resolution.
+  allocate(bndry_flx(2:nlevs))
+  do n = 2, nlevs
+     call bndry_reg_rr_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+                             ml_layout_get_pd(mla,n-1),other=.true.)
+  end do
+
+  ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i,
+  !    i.e. it lives on the i-edges.
+  allocate(flux(nlevs,dim))
+  do n = 1,nlevs
+    do i = 1, dim
+        call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
+    end do
+  end do
 
   do istep=1,nsteps
 
@@ -316,43 +333,60 @@ program main
      if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
           (mod(istep-1,regrid_int) .eq. 0) ) then
 
-        call regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
-
-        ! rebuild isrefined multifab after refinement
-        ! TODO: move this to regrid
-        do n=1,nlevs
-          call lmultifab_build(isrefined(n),mla%la(n),1,1)
+        ! Destroy phi_old before regridding
+        do n = 1,nlevs
+          call multifab_destroy(phi_old(n))
         end do
 
-        ! update information about refinement
-        call update_isrefined(mla,isrefined,nlevs)
+        call regrid(mla,phi_new,flux,bndry_flx,&
+                    nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+
+        ! Create new flux, phi_old and bndry_flx after regridding
+        do n = 1,nlevs
+          call multifab_build(phi_old(n),mla%la(n),1,1)
+        end do
 
      end if
 
      ! we only want one processor to write to screen
      if ( parallel_IOProcessor() ) then
-        print*,'Advancing time step',istep,'with dt=',dt
+        print*,'  '
+        print*,' STEP = ', istep, ' TIME = ',time, ' DT = ',dt(1)
      end if
 
-     ! advance phi
-     call advance(mla,phi,isrefined,dx,dt,the_bc_tower,do_subcycling,num_substeps)
+     ! Advance phi by one coarse time step
+     call advance(mla,phi_old,phi_new,flux,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
 
-     time = time + dt
+     time = time + dt(1)
 
+     ! Write plotfile after every plot_int time steps, or if the simulation is done.
      if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        ! write out plotfile
-        call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+        call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
      end if
 
   end do
 
-  ! make sure to destroy the multifab or you'll leak memory
-  do n=1,nlevs
-     call destroy(phi(n))
-     call destroy(isrefined(n))
+  ! Make sure to destroy the multifabs or you'll leak memory
+  do n = 1,nlevs
+     call destroy(phi_old(n))
+     call destroy(phi_new(n))
   end do
-  call destroy(mla)
+
+  do n = 1,nlevs
+     do i = 1, dim
+        call multifab_destroy(flux(n,i))
+     end do
+  end do
+  deallocate(flux)
+
   call bc_tower_destroy(the_bc_tower)
+
+  do n = 2, nlevs
+     call bndry_reg_destroy(bndry_flx(n))
+  end do
+  deallocate(bndry_flx)
+
+  call destroy(mla)
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
 
