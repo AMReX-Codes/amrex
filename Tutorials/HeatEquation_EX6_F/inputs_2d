@@ -2,13 +2,12 @@
 
  max_levs = 3
  dim = 2
- plot_int = 1
- n_cell = 256
- n_cell = 32
+ plot_int = 10
+ n_cell = 64
  max_grid_size = 64
 
  nsteps = 10000
- nsteps = 1
+ nsteps = 10
 
  do_subcycling = T
 
