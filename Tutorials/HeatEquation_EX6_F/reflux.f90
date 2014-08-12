@@ -243,7 +243,7 @@ contains
   end subroutine bndry_reg_add_fine_flx
 
   subroutine bndry_reg_add_fine_flx_fab(fine_flx, flux, ratio, &
-                                         facemap, indxmap)
+                                        facemap, indxmap)
 
     use bl_prof_module
 
@@ -254,12 +254,14 @@ contains
     integer       , intent(in   ) :: indxmap(:)
 
     integer :: i, j, dm, dim, face
-    integer :: lo(2), hi(2), loc(2), hic(2)
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     type(box)                :: ba, bac
+    integer, allocatable     :: lo(:), hi(:), loc(:)
 
     dm = get_dim(flux)
+
+    allocate(lo(dm),hi(dm),loc(dm))
 
     !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,n)
     do i = 1, nfabs(fine_flx)
@@ -273,7 +275,6 @@ contains
 
        bac = get_box(fine_flx,i)
        loc  = lwb(bac)
-       hic  = upb(bac)
 
        fp => dataptr(fine_flx, i)
        up => dataptr(flux, j)
@@ -289,6 +290,8 @@ contains
                             ratio, face, dim)
           end select
     end do
+
+    deallocate(lo,hi,loc)
 
   end subroutine bndry_reg_add_fine_flx_fab
 
