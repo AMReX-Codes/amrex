@@ -213,7 +213,7 @@ contains
 
        ! Copy from the data structure built on the fine layout to the "other"
        !      data structure which puts the data where t
-       call bndry_reg_copy_to_other(bndry_flx(n))
+       call bndry_reg_copy_to_other(bndry_flx(n+1))
 
        ! Reflux 
        pd = get_pd(mla%la(n)) 
