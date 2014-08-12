@@ -2,16 +2,12 @@
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
 BOXLIB_HOME ?= /path/to/BoxLib/
 
-NDEBUG    :=  
+NDEBUG    := t
 MPI       :=
 OMP       :=
 PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
-
-ROSE := 
-ROSECOMP := identityTranslator
-ROSEVERBOSE := 1
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
