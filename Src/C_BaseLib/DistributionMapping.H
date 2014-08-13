@@ -166,6 +166,10 @@ class DistributionMapping
     static int ProximityMap(const int rank)   { return proximityMap[rank];   }
     static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
+    static void ReadCheckPointHeader(const std::string &filename,
+                                     Array<BoxArray> &allBoxes);
+
+
 private:
     //
     // Ways to create the processor map.

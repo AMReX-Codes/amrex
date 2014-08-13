@@ -8,6 +8,8 @@
 #include <ParmParse.H>
 #include <Profiler.H>
 #include <FArrayBox.H>
+#include <Geometry.H>
+#include <VisMF.H>
 
 #include <iostream>
 #include <fstream>
@@ -363,10 +365,10 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     const int L1 = pmap_1.size() - 1; // Length not including sentinel.
     const int L2 = pmap_2.size() - 1; // Length not including sentinel.
 
-    for (int i = 0; i < L1; i++)
+    for (int i = 0; i < L1; ++i)
         m_ref->m_pmap[i] = pmap_1[i];
 
-    for (int i = L1, j = 0; j < L2; i++, j++)
+    for (int i = L1, j = 0; j < L2; ++i, ++j)
         m_ref->m_pmap[i] = pmap_2[j];
     //
     // Set sentinel equal to our processor number.
@@ -388,7 +390,7 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
 
     if (nprocs == 1)
     {
-        for (int i = 0, N = m_ref->m_pmap.size(); i < N; i++)
+        for (int i = 0, N = m_ref->m_pmap.size(); i < N; ++i)
         {
             m_ref->m_pmap[i] = 0;
         }
@@ -473,14 +475,14 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
     {
         BL_ASSERT(LIpairV->size() == nboxes);
 
-        for (int i = 0; i < nboxes; i++)
+        for (int i = 0; i < nboxes; ++i)
         {
             m_ref->m_pmap[(*LIpairV)[i].second] = ord[i%nprocs];
         }
     }
     else
     {
-        for (int i = 0; i < nboxes; i++)
+        for (int i = 0; i < nboxes; ++i)
         {
             m_ref->m_pmap[i] = ord[i%nprocs];
         }
@@ -525,7 +527,7 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 
     LIpairV.reserve(N);
 
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; ++i)
     {
         LIpairV.push_back(LIpair(boxes[i].numPts(),i));
     }
@@ -732,7 +734,7 @@ top:
         ++cit;
     }
 
-    for (int i  = 0; i < nprocs; i++)
+    for (int i  = 0; i < nprocs; ++i)
         delete vbbs[i];
 }
 
@@ -754,7 +756,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     Array<long> wgts_per_cpu(nprocs,0);
 
-    for (unsigned int i = 0, N = vec.size(); i < N; i++)
+    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
     {
         for (std::vector<int>::iterator lit = vec[i].begin(), End = vec[i].end();
              lit != End;
@@ -768,7 +770,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     LIpairV.reserve(nprocs);
 
-    for (int i = 0; i < nprocs; i++)
+    for (int i = 0; i < nprocs; ++i)
     {
         LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
     }
@@ -779,7 +781,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     LeastUsedCPUs(nprocs,ord);
 
-    for (unsigned int i = 0, N = vec.size(); i < N; i++)
+    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
     {
         const int idx = LIpairV[i].second;
         const int cpu = ord[i];
@@ -845,7 +847,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
     {
         std::vector<long> wgts(boxes.size());
 
-        for (unsigned int i = 0, N = boxes.size(); i < N; i++)
+        for (unsigned int i = 0, N = boxes.size(); i < N; ++i)
             wgts[i] = boxes[i].numPts();
 
         double effi = 0;
@@ -1893,6 +1895,246 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
 }
 
 
+void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
+                                               Array<BoxArray> &allBoxes)
+{
+    const std::string CheckPointVersion("CheckPointVersion_1.0");
+    Array<Geometry> geom;
+    int i, max_level, finest_level, max_lev;
+    Real calcTime;
+    Array<IntVect> ref_ratio;
+    Array<Real> dt_min;
+    Array<Real> dt_level;
+    Array<int> level_steps;
+    Array<int> level_count;
+
+    // Open the checkpoint header file for reading.
+    std::string File(filename);
+    File += '/';
+    File += "Header";
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    Array<char> fileCharPtr;
+    ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+    std::string fileCharPtrString(fileCharPtr.dataPtr());
+    std::istringstream is(fileCharPtrString, std::istringstream::in);
+    //
+    // Attempt to differentiate between old and new CheckPointFiles.
+    //
+    int         spdim;
+    bool        new_checkpoint_format = false;
+    std::string first_line;
+
+    std::getline(is,first_line);
+
+    if(first_line == CheckPointVersion) {
+      new_checkpoint_format = true;
+      is >> spdim;
+    } else {
+      spdim = atoi(first_line.c_str());
+    }
+
+    if(spdim != BL_SPACEDIM) {
+      std::cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
+      BoxLib::Abort();
+    }
+
+    is >> calcTime;
+    int mx_lev;
+    is >> mx_lev;
+    is >> finest_level;
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "**** fl sd ct ml flev = " << first_line << "  "
+                << spdim << "  " << calcTime << "  " << mx_lev << "  " 
+		<< finest_level << std::endl;
+    }
+    max_level = max_lev;
+    geom.resize(max_level + 1);
+    ref_ratio.resize(max_level);
+    dt_min.resize(max_level + 1);
+    dt_level.resize(max_level + 1);
+    level_steps.resize(max_level + 1);
+    level_count.resize(max_level + 1);
+    allBoxes.resize(max_level + 1);
+
+    Array<Box> inputs_domain(max_level + 1);
+    for(int lev(0); lev <= max_level; ++lev) {
+      //Box bx(geom[lev].Domain().smallEnd(), geom[lev].Domain().bigEnd());
+      //inputs_domain[lev] = bx;
+    }
+
+    if (max_level >= mx_lev) {
+
+       for (i = 0; i <= mx_lev; ++i) {
+         is >> geom[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << geom[i] << std::endl;
+	   std::cout << std::endl;
+	 }
+       }
+       for (i = 0; i <  mx_lev; ++i) {
+         is >> ref_ratio[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << ref_ratio[i] << ' ';
+	 }
+       }
+       if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+       for (i = 0; i <= mx_lev; ++i) {
+         is >> dt_level[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << dt_level[i] << ' ';
+	 }
+       }
+       if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+
+       if(new_checkpoint_format) {
+         for(i = 0; i <= mx_lev; ++i) {
+	   is >> dt_min[i];
+           if(ParallelDescriptor::IOProcessor()) {
+	     std::cout << dt_min[i] << ' ';
+	   }
+	 }
+         if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+       } else {
+           for (i = 0; i <= mx_lev; ++i) dt_min[i] = dt_level[i];
+       }
+
+       Array<int>  n_cycle_in;
+       n_cycle_in.resize(mx_lev+1);
+       for(i = 0; i <= mx_lev; ++i) {
+         is >> n_cycle_in[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << n_cycle_in[i] << ' ';
+	 }
+       }
+       if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+
+       // If we change n_cycle then force a full regrid from level 0 up
+       if(max_level > 0) {
+         //level_count[0] = regrid_int[0];
+       }
+
+       for(i = 0; i <= mx_lev; ++i) {
+         is >> level_steps[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << level_steps[i] << ' ';
+	 }
+       }
+       if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+       for(i = 0; i <= mx_lev; ++i) {
+         is >> level_count[i];
+         if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << level_count[i] << ' ';
+	 }
+       }
+       if(ParallelDescriptor::IOProcessor()) { std::cout << std::endl; }
+
+       // Set bndry conditions.
+       if (max_level > mx_lev) {
+           for (i = mx_lev+1; i <= max_level; ++i) {
+               //dt_level[i]    = dt_level[i-1]/n_cycle[i];
+               //level_steps[i] = n_cycle[i]*level_steps[i-1];
+               //level_count[i] = 0;
+           }
+       }
+
+       //if (regrid_on_restart && max_level > 0)
+           //level_count[0] = regrid_int[0];
+
+       //checkInput();
+       ParallelDescriptor::Barrier();
+
+       // Read levels.
+       int lev, level, nstate;
+       Geometry levelGeom;
+       for(lev = 0; lev <= finest_level; ++lev) {
+         BoxArray ba;
+         if(ParallelDescriptor::IOProcessor()) {
+           std::cout << "  -----------  reading level " << lev << std::endl;
+         }
+         //amr_level.set(lev,(*levelbld)());
+         //amr_level[lev].restart(*this, is);
+	 is >> level;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  Level:  " << level << std::endl;
+	   std::cout << std::endl;
+	 }
+	 is >> levelGeom;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  levelGeom:  " << levelGeom << std::endl;
+	   std::cout << std::endl;
+	 }
+	 ba.readFrom(is);
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  ba:  " << ba << std::endl;
+	   std::cout << std::endl;
+	   std::cout << std::endl;
+	 }
+	 is >> nstate;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  nstate:  " << nstate << std::endl;
+	   std::cout << std::endl;
+	   std::cout << std::endl;
+	 }
+
+	 // ------------ state.restart(...);
+	 Box domain;
+	 BoxArray stateGrids;
+	 Real old_time_start, old_time_stop, new_time_start, new_time_stop;
+	 int nsets;
+	 std::string mf_name;
+
+       ParallelDescriptor::Barrier();
+	 is >> domain;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  domain:  " << domain << std::endl;
+	   std::cout << std::endl;
+	 }
+       ParallelDescriptor::Barrier();
+	 stateGrids.readFrom(is);
+       ParallelDescriptor::Barrier();
+	 is >> old_time_start;
+	 is >> old_time_stop;
+	 is >> new_time_start;
+	 is >> new_time_stop;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  new_time_stop:  " << new_time_stop << std::endl;
+	   std::cout << std::endl;
+	 }
+
+	 is >> nsets;
+	 if(nsets >= 1) {
+	   is >> mf_name;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  mf_name:  " << mf_name << std::endl;
+	   std::cout << std::endl;
+	 }
+	 }
+	 if(nsets == 2) {
+	   is >> mf_name;
+	 if(ParallelDescriptor::IOProcessor()) {
+	   std::cout << "  mf_name:  " << mf_name << std::endl;
+	   std::cout << std::endl;
+	 }
+	 }
+
+       ParallelDescriptor::Barrier();
+       }
+       //
+       // Build any additional data structures.
+       //
+       //for (lev = 0; lev <= finest_level; lev++)
+           //amr_level[lev].post_restart();
+
+    } else {
+    }
+
+
+}
+
+
 std::ostream&
 operator<< (std::ostream&              os,
             const DistributionMapping& pmap)
@@ -1901,7 +2143,7 @@ operator<< (std::ostream&              os,
     //
     // Do not print the sentinel value.
     //
-    for (int i = 0; i < pmap.ProcessorMap().size() - 1; i++)
+    for (int i = 0; i < pmap.ProcessorMap().size() - 1; ++i)
     {
         os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
