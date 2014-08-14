@@ -1012,10 +1012,6 @@ Amr::checkInput ()
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
 
-    if (max_level > 0) 
-       if (regrid_int[0] <= 0)
-          BoxLib::Error("checkinput: regrid_int not defined and max_level > 0");
-
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
        std::cout << "Successfully read inputs file ... " << '\n';
 }
@@ -1401,13 +1397,18 @@ Amr::restart (const std::string& filename)
                for (i = 1; i <= finest_level; i++)
                {
                    if (dt_level[i] != dt_level[i-1])
-                      BoxLib::Error("defBaseLevel: must have even number of cells");
+                      BoxLib::Error("restart: must have same dt at all levels if not subcycling"
                }
            }
        }
 
        if (regrid_on_restart && max_level > 0)
-           level_count[0] = regrid_int[0];
+       {
+           if (regrid_int > 0) 
+               level_count[0] = regrid_int[0];
+           else
+               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0")
+       }
 
        checkInput();
        //
@@ -1469,7 +1470,12 @@ Amr::restart (const std::string& filename)
        for (i = max_level+1; i <= mx_lev   ; i++) is >> int_dummy;
 
        if (regrid_on_restart && max_level > 0)
-           level_count[0] = regrid_int[0];
+       {
+           if (regrid_int > 0) 
+               level_count[0] = regrid_int[0];
+           else
+               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0")
+       }
 
        checkInput();
 
@@ -3098,7 +3104,10 @@ Amr::initPltAndChk ()
 bool
 Amr::okToRegrid(int level)
 {
-    return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
+    if (regrid_int[level] < 0)
+        return false;
+    else
+        return level_count[level] >= regrid_int[level] && amr_level[level].okToRegrid();
 }
 
 Real
