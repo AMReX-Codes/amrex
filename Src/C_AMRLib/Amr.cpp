@@ -1397,17 +1397,17 @@ Amr::restart (const std::string& filename)
                for (i = 1; i <= finest_level; i++)
                {
                    if (dt_level[i] != dt_level[i-1])
-                      BoxLib::Error("restart: must have same dt at all levels if not subcycling"
+                      BoxLib::Error("restart: must have same dt at all levels if not subcycling");
                }
            }
        }
 
        if (regrid_on_restart && max_level > 0)
        {
-           if (regrid_int > 0) 
+           if (regrid_int[0] > 0) 
                level_count[0] = regrid_int[0];
            else
-               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0")
+               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
        }
 
        checkInput();
@@ -1471,10 +1471,10 @@ Amr::restart (const std::string& filename)
 
        if (regrid_on_restart && max_level > 0)
        {
-           if (regrid_int > 0) 
+           if (regrid_int[0] > 0) 
                level_count[0] = regrid_int[0];
            else
-               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0")
+               BoxLib::Error("restart: can't have regrid_on_restart and regrid_int <= 0");
        }
 
        checkInput();
