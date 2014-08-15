@@ -19,6 +19,11 @@
 #include <Looping.H>
 #include <Utility.H>
 
+#ifdef BL_Darwin
+using std::isinf;
+using std::isnan;
+#endif
+
 static const char sys_name[] = "IEEE";
 //
 // Default Ordering to Normal Order.
