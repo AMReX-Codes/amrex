@@ -159,8 +159,8 @@ public:
     virtual  int okToContinue () = 0;
     //
     // Should I regrid with this level as base level?
-    // This test is only evaluated when level_count >= regrid_int
-    // as well. Defaults to true.
+    // This test is only evaluated if regrid_int > 0 and 
+    // level_count >= regrid_int as well. Defaults to true.
     //
     virtual  int okToRegrid ();
     //
