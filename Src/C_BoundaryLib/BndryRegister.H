@@ -79,6 +79,11 @@ public:
     //
     void setVal (Real v);
     //
+    // register += rhs
+    //
+    BndryRegister& operator+= (const BndryRegister& rhs);
+    BndryRegister& plus (const BndryRegister& rhs);
+    //
     // Fill the boundary FABs on intersection with given MultiFab.
     //
     BndryRegister& copyFrom (const MultiFab& src,
