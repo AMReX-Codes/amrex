@@ -5409,41 +5409,55 @@ contains
     end subroutine c_3d
   end subroutine multifab_fab_copy
 
-  function multifab_min(mf, all) result(r)
+  function multifab_min(mf, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
+    logical :: llocal
+    llocal = .false. ; if (present(local)) llocal = local
     r1 = +Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
-    call parallel_reduce(r, r1, MPI_MIN)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MIN)
+    end if
   end function multifab_min
-  function multifab_min_c(mf, c, nc, all) result(r)
+  function multifab_min_c(mf, c, nc, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     real(kind=dp_t) :: r1
     integer :: i
+    logical :: llocal
+    llocal = .false. ; if (present(local)) llocal = local
     r1 = +Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
-    call parallel_reduce(r, r1, MPI_MIN)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MIN)
+    end if
   end function multifab_min_c
   
-  function multifab_max(mf, all, allow_empty) result(r)
+  function multifab_max(mf, all, allow_empty, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all, allow_empty
+    logical, intent(in), optional :: all, allow_empty, local
     logical :: lallow
     integer :: i
     real(kind=dp_t) :: r1
+    logical :: llocal
     r1 = -Huge(r1)
+    llocal = .false.; if (present(local))       llocal=local
     lallow = .false.; if (present(allow_empty)) lallow=allow_empty
     if (lallow) then
        do i = 1, nlocal(mf%la)
@@ -5455,21 +5469,31 @@ contains
           r1 = max(r1, max_val(mf%fbs(i), all))
        end do
     endif
-    call parallel_reduce(r, r1, MPI_MAX)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MAX)
+    end if
   end function multifab_max
-  function multifab_max_c(mf, c, nc, all) result(r)
+  function multifab_max_c(mf, c, nc, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
-    r1 = -Huge(r1)
+    logical :: llocal
+    llocal = .false.; if (present(local)) llocal=local
+     r1 = -Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
-    call parallel_reduce(r, r1, MPI_MAX)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MAX)
+    end if
   end function multifab_max_c
   
 end module multifab_module

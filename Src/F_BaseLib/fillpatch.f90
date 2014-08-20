@@ -284,8 +284,8 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine, allow_empty=.true.) .gt. Huge(ONE)-ONE) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .gt. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+       if (multifab_max(tmpcrse, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
           call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
@@ -762,8 +762,8 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine, allow_empty=.true.) .ge. Huge(ONE)-ONE) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, allow_empty=.true., local=.true.) .ge. Huge(ONE)-ONE) then
+       if (multifab_max(tmpcrse, allow_empty=.true., local=.true.) .ge. Huge(ONE)-ONE) then
           call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
