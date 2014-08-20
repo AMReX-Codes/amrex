@@ -177,7 +177,7 @@ contains
     tres0     = t2(3)
     bnorm     = t2(4)
 
-    if ( coeff_sum .lt. (1.d-12 * coeff_max) ) then
+    if ( coeff_sum .lt. (1.0e-12_dp_t * coeff_max) ) then
        mgt(1)%coeffs_sum_to_zero = .true.
        if ( parallel_IOProcessor() .and. (do_diagnostics == 1) ) &
             print *,'Coefficients sum to zero '

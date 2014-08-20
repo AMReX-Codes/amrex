@@ -1,18 +1,11 @@
 module ml_prolongation_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
 
   implicit none
 
-  real(dp_t), private, parameter :: ZERO  = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE   = 1.0_dp_t
-  real(dp_t), private, parameter :: TWO   = 2.0_dp_t
-  real(dp_t), private, parameter :: THREE = 3.0_dp_t
-  real(dp_t), private, parameter :: FOUR  = 4.0_dp_t
-  real(dp_t), private, parameter :: HALF  = 0.5_dp_t
-  real(dp_t), private, parameter :: FOURTH= 0.25_dp_t
-  real(dp_t), private, parameter :: EIGHTH= 0.125_dp_t
   real(dp_t), private, parameter :: THREE_EIGHTHS= 0.375_dp_t
 
   private

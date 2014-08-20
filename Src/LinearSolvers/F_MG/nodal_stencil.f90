@@ -1,5 +1,6 @@
 module nodal_stencil_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use bc_functions_module
@@ -7,22 +8,6 @@ module nodal_stencil_module
   use stencil_types_module
 
   implicit none
-
-  real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
-  real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
-  real (kind = dp_t), private, parameter :: TWO   = 2.0_dp_t
-  real (kind = dp_t), private, parameter :: THREE = 3.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR  = 4.0_dp_t
-  real (kind = dp_t), private, parameter :: FIVE  = 5.0_dp_t
-  real (kind = dp_t), private, parameter :: SIX   = 6.0_dp_t
-  real (kind = dp_t), private, parameter :: SEVEN = 7.0_dp_t
-  real (kind = dp_t), private, parameter :: EIGHT = 8.0_dp_t
-  real (kind = dp_t), private, parameter :: TEN   = 10.0_dp_t
-  real (kind = dp_t), private, parameter :: HALF  = 0.5_dp_t
-  real (kind = dp_t), private, parameter :: FOURTH= 0.25_dp_t
-  real (kind = dp_t), private, parameter :: THIRD = 1.0_dp_t/3.0_dp_t
-  real (kind = dp_t), private, parameter :: SIXTH = 1.0_dp_t/6.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
   public :: set_faces_edges_corners_2d,set_faces_edges_corners_3d
 
@@ -134,7 +119,7 @@ contains
     ! This is not the full scaling for either stencil
     !   -- the cross stencil will need a factor of (1/2)
     !   -- the dense stencil will need a factor of (1/3)
-    fac = 1.d0 / (dh(1))**2
+    fac = ONE / (dh(1))**2
 
     ss(:,:) = fac * sg(:,:)
 

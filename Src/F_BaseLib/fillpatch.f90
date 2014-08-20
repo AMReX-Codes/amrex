@@ -206,9 +206,9 @@ contains
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
-    ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
+    ! Set all of cfine to huge so that we can make sure it gets completely filled below.
     ! Empty boxes aren't setval()'d
-    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
+    call setval(cfine, Huge(ONE), allow_empty=.true.)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
@@ -284,9 +284,9 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
-          call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
+    if (multifab_max(cfine, allow_empty=.true.) .gt. Huge(ONE)-ONE) then
+       if (multifab_max(tmpcrse, allow_empty=.true.) .gt. Huge(ONE)-ONE) then
+          call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
        end if
@@ -346,24 +346,24 @@ contains
        hi_f(1:dm) = upb(fbx)
 
        allocate(fvcx(lo_f(1):hi_f(1)+1))
-       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
+       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = j
        if ( dm > 1 ) then
           allocate(fvcy(lo_f(2):hi_f(2)+1))
-          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
+          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = j 
           if ( dm > 2 ) then
              allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = dble(j)
+             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = j
           end if
        end if
 
        allocate(cvcx(lo_c(1):hi_c(1)+1))
-       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = dble(j) * TWO
+       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = j * TWO
        if ( dm > 1 ) then
           allocate(cvcy(lo_c(2):hi_c(2)+1))
-          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = dble(j) * TWO
+          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = j * TWO
           if ( dm > 2 ) then
              allocate(cvcz(lo_c(3):hi_c(3)+1))
-             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = dble(j) * TWO
+             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = j * TWO
           end if
        end if
 
@@ -671,9 +671,9 @@ contains
     call destroy(ba)
     call build(cfine, la, nc = nc, ng = 0)
  
-    ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
+    ! Set all of cfine to huge so that we can make sure it gets completely filled below.
     ! Empty boxes aren't setval()'d
-    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
+    call setval(cfine, Huge(ONE), allow_empty=.true.)
     !
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
@@ -743,8 +743,8 @@ contains
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
-    ! tmpcrse = alpha * pcrse_old + (1.0-alpha) * pcrse_new
-    omalpha = 1.d0 - alpha 
+    ! tmpcrse = alpha * pcrse_old + (ONE-alpha) * pcrse_new
+    omalpha = ONE - alpha 
 
     !$OMP PARALLEL DO PRIVATE(i)
     do i = 1, nfabs(pcrse_old)
@@ -762,9 +762,9 @@ contains
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
-    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
-          call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
+    if (multifab_max(cfine, allow_empty=.true.) .ge. Huge(ONE)-ONE) then
+       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. Huge(ONE)-ONE) then
+          call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
           call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
        end if
@@ -824,24 +824,24 @@ contains
        hi_f(1:dm) = upb(fbx)
 
        allocate(fvcx(lo_f(1):hi_f(1)+1))
-       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
+       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = j
        if ( dm > 1 ) then
           allocate(fvcy(lo_f(2):hi_f(2)+1))
-          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
+          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = j 
           if ( dm > 2 ) then
              allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = dble(j)
+             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = j
           end if
        end if
 
        allocate(cvcx(lo_c(1):hi_c(1)+1))
-       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = dble(j) * TWO
+       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = j * TWO
        if ( dm > 1 ) then
           allocate(cvcy(lo_c(2):hi_c(2)+1))
-          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = dble(j) * TWO
+          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = j * TWO
           if ( dm > 2 ) then
              allocate(cvcz(lo_c(3):hi_c(3)+1))
-             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = dble(j) * TWO
+             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = j * TWO
           end if
        end if
 
