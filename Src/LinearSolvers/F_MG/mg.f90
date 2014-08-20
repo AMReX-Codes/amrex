@@ -231,32 +231,32 @@ contains
        mgt%dh(:,mgt%nlevels) = dh(:)
        select case ( mgt%dim )
        case (2)
-          if (dh(1) > (1.d0-1.d-8) * dh(2)  .and. &
-              dh(1) < (1.d0+1.d-8) * dh(2)) then
+          if (dh(1) > (ONE-1.0e-8_dp_t) * dh(2)  .and. &
+              dh(1) < (ONE+1.0e-8_dp_t) * dh(2)) then
               mgt%uniform_dh = .true.
           else
               mgt%uniform_dh = .false.
           end if
        case (3)
           mgt%uniform_dh = ((dh(1) == dh(2)) .and. (dh(1) == dh(3)))
-          if (dh(1) > (1.d0-1.d-8) * dh(2) .and. &
-              dh(1) < (1.d0+1.d-8) * dh(2) .and. & 
-              dh(1) > (1.d0-1.d-8) * dh(3) .and. &
-              dh(1) < (1.d0+1.d-8) * dh(3) ) then
+          if (dh(1) > (ONE-1.0e-8_dp_t) * dh(2) .and. &
+              dh(1) < (ONE+1.0e-8_dp_t) * dh(2) .and. & 
+              dh(1) > (ONE-1.0e-8_dp_t) * dh(3) .and. &
+              dh(1) < (ONE+1.0e-8_dp_t) * dh(3) ) then
               mgt%uniform_dh = .true.
           else
               mgt%uniform_dh = .false.
           end if
        end select
     else
-       mgt%dh(:,mgt%nlevels) = 1.0_dp_t
+       mgt%dh(:,mgt%nlevels) = ONE
     end if
 
     if ( (.not. mgt%uniform_dh) .and. nodal_flag ) &
        call bl_error("nodal solver does not support nonuniform dh")
 
     do i = mgt%nlevels-1, 1, -1
-       mgt%dh(:,i) = mgt%dh(:,i+1)*2.0_dp_t
+       mgt%dh(:,i) = mgt%dh(:,i+1)*TWO
     end do
 
     if ( .not. nodal_flag ) then
@@ -307,7 +307,7 @@ contains
        mgt%bottom_singular = is_singular
     else
        ! If we cover the entire domain, then just test on the domain_bc values
-       if ( abs(dvol-dvol_pd).lt.1.d-2 ) then
+       if ( abs(dvol-dvol_pd).lt.1.0e-2_dp_t ) then
           mgt%bottom_singular = .true.
           do id = 1,mgt%dim
              if ( domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR ) &

@@ -1,25 +1,12 @@
 module nodal_stencil_fill_module
 
+  use bl_constants_module
   use bl_types
   use bc_module
   use multifab_module
   use nodal_stencil_module
 
   implicit none
-
-  real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
-  real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
-  real (kind = dp_t), private, parameter :: TWO   = 2.0_dp_t
-  real (kind = dp_t), private, parameter :: THREE = 3.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR  = 4.0_dp_t
-  real (kind = dp_t), private, parameter :: FIVE  = 5.0_dp_t
-  real (kind = dp_t), private, parameter :: SIX   = 6.0_dp_t
-  real (kind = dp_t), private, parameter :: SEVEN = 7.0_dp_t
-  real (kind = dp_t), private, parameter :: EIGHT = 8.0_dp_t
-  real (kind = dp_t), private, parameter :: TEN   = 10.0_dp_t
-  real (kind = dp_t), private, parameter :: HALF  = 0.5_dp_t
-  real (kind = dp_t), private, parameter :: THIRD = 1.0_dp_t/3.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
 contains
 

@@ -1,5 +1,6 @@
 module ml_restriction_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use ml_layout_module
@@ -361,7 +362,7 @@ contains
        !$OMP END PARALLEL DO
 
        call copy(crse, cfine)
-       call setval(cfine, 0.0_dp_t)
+       call setval(cfine, ZERO)
     end if
 
     if ( .not. lzero_only ) then
@@ -454,8 +455,6 @@ contains
     logical             :: pmask(get_dim(dst))
 
     integer,    parameter :: TAG  = 1111
-    real(dp_t), parameter :: ZERO = 0.0_dp_t
-    real(dp_t), parameter :: ONE  = 1.0_dp_t
 
     type(box_intersector), pointer :: bisrc(:), bidst(:)
 

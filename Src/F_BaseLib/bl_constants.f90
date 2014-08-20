@@ -38,6 +38,8 @@ module bl_constants_module
   real(kind = dp_t), parameter :: FOUR3RD   = FOUR/THREE
   real(kind = dp_t), parameter :: FIVE3RD   = FIVE/THREE
 
+  real(kind = dp_t), parameter :: THREE4TH  = 0.75_dp_t
+
   real(kind = dp_t), parameter :: SEVEN12TH = SEVEN/TWELVE
 
   !! Pi

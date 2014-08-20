@@ -271,11 +271,11 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   allocate(mgts%cell_coeffs(nlev))
 
   call  build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%cell_coeffs(nlev), 0.0_dp_t, all=.true.)
+  call setval(mgts%cell_coeffs(nlev), ZERO, all=.true.)
 
   ! These only exist at amr levels, not the lower multigrid levels
   call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%amr_coeffs(flev), 0.0_dp_t, all=.true.)
+  call setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
 
 end subroutine mgt_init_nodal_coeffs_lev
 

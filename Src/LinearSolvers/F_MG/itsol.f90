@@ -1,5 +1,6 @@
 module itsol_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use cc_stencil_module
@@ -223,7 +224,6 @@ contains
 
       integer         :: i, j
       real(kind=dp_t) :: ss0
-      real(kind=dp_t), parameter :: TWOTHIRDS = 2.d0 / 3.d0
       !
       ! NOTE NOTE : we only diagonalize the RHS here --
       !             we will diagnoalize the matrix in the apply routine itself
@@ -245,7 +245,7 @@ contains
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  ss0 = -TWOTHIRDS*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  ss0 = -TWO3RD*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
                   r(i,j) =  r(i,j) / ss0
                end if
             end do
@@ -256,7 +256,7 @@ contains
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  ss0 = -0.75d0*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  ss0 = -THREE4TH*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
                   r(i,j) =  r(i,j) / ss0
                end if
             end do
@@ -278,7 +278,6 @@ contains
 
       integer         :: i, j, k
       real(kind=dp_t) :: ss0
-      real(kind=dp_t), parameter :: FOURTHIRDS = 4.d0 / 3.d0
       !
       ! NOTE NOTE : we only diagonalize the RHS here --
       !             we will diagnolize the matrix in the apply routine itself
@@ -293,7 +292,7 @@ contains
                ss0 = -( sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                        +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
                        +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                       +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0
+                       +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * THREE
                r(i,j,k) =  r(i,j,k) / ss0
             end if
          end do
@@ -311,7 +310,7 @@ contains
                ss0 =  -( sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
                         +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * FOURTHIRDS
+                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * FOUR3RD
                r(i,j,k) =  r(i,j,k) / ss0
             end if
          end do

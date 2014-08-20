@@ -11,6 +11,7 @@ module particle_module
 
   use bl_space
   use bl_constants_module
+  use bl_types
   use vector_i_module, vector_i_size => size
   use multifab_module
   use ml_layout_module
@@ -26,8 +27,8 @@ module particle_module
 
      integer :: cell(MAX_SPACEDIM)
 
-     double precision :: pos(MAX_SPACEDIM)
-     double precision :: origpos(MAX_SPACEDIM)
+     real (kind=dp_t) :: pos(MAX_SPACEDIM)
+     real (kind=dp_t) :: origpos(MAX_SPACEDIM)
 
   end type particle
 
@@ -177,8 +178,8 @@ contains
     type(particle),   intent(in)    :: p
     integer,          intent(in)    :: lev
     type(ml_layout),  intent(in)    :: mla
-    double precision, intent(in)    :: dx(:,:)
-    double precision, intent(in)    :: prob_lo(:)
+    real (kind=dp_t), intent(in)    :: dx(:,:)
+    real (kind=dp_t), intent(in)    :: prob_lo(:)
     integer,          intent(inout) :: iv(:)
 
     integer i
@@ -199,8 +200,8 @@ contains
 
     type(particle),   intent(inout) :: p
     type(ml_layout),  intent(inout) :: mla
-    double precision, intent(in   ) :: dx(:,:)
-    double precision, intent(in   ) :: prob_lo(:)
+    real (kind=dp_t), intent(in   ) :: dx(:,:)
+    real (kind=dp_t), intent(in   ) :: prob_lo(:)
 
     logical, intent(in), optional :: update
 
@@ -292,14 +293,14 @@ contains
 
     type(particle),   intent(inout) :: p
     type(ml_layout),  intent(in   ) :: mla
-    double precision, intent(in)    :: dx(:,:)
-    double precision, intent(in   ) :: prob_lo(:)
-    double precision, intent(in   ) :: prob_hi(:)
+    real (kind=dp_t), intent(in)    :: dx(:,:)
+    real (kind=dp_t), intent(in   ) :: prob_lo(:)
+    real (kind=dp_t), intent(in   ) :: prob_hi(:)
 
     integer                     :: i, dm, iv(MAX_SPACEDIM)
     type(box)                   :: pd
-    double precision            :: plen
-    double precision, parameter :: eps = 1.0d-13
+    real (kind=dp_t)            :: plen
+    real (kind=dp_t), parameter :: eps = 1.0e-13_dp_t
 
     call bl_assert(p%id > 0, 'periodic_shift: not a valid particle')
 
@@ -431,8 +432,8 @@ contains
     type(particle_container), intent(inout) :: d
     real(kind=dp_t),          intent(in   ) :: loc(:)
     type(ml_layout),          intent(inout) :: mla
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
     logical, optional,        intent(in   ) :: conditional
 
     type(particle)          :: p
@@ -594,12 +595,12 @@ contains
     integer,                  intent(in   ) :: icnt
     integer,                  intent(in   ) :: iseed
     type(ml_layout),          intent(inout) :: mla
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: prob_lo(:)
-    double precision,         intent(in   ) :: prob_hi(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: prob_hi(:)
 
     integer          :: i, j, dm, nparticles, nparticles_tot
-    double precision :: rnd, len(MAX_SPACEDIM)
+    real (kind=dp_t) :: rnd, len(MAX_SPACEDIM)
     type(particle)   :: p
 
     dm = mla%dim
@@ -671,12 +672,12 @@ contains
 
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: prob_lo(:)
-    double precision,         intent(in   ) :: prob_hi(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: prob_hi(:)
 
     integer                 :: i, j, dm, sgn
-    double precision        :: pos
+    real (kind=dp_t)        :: pos
     type(particle), pointer :: p
 
     dm = mla%dim
@@ -696,9 +697,9 @@ contains
        do j = 1, dm
           sgn = 1
 
-          if ( genrand_real3() >= 0.5d0 ) sgn = -1
+          if ( genrand_real3() >= HALF ) sgn = -1
 
-          pos = sgn * 0.25d0 * dx(p%lev,j) * genrand_real3()
+          pos = sgn * FOURTH * dx(p%lev,j) * genrand_real3()
 
           p%pos(j) = p%pos(j) + pos
        end do
@@ -743,18 +744,18 @@ contains
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
     type(multifab),           intent(in   ) :: umac(:,:)
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: dt
-    double precision,         intent(in   ) :: prob_lo(:)
-    double precision,         intent(in   ) :: prob_hi(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: dt
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: prob_hi(:)
 
     integer                  :: dm, d, p_id
     type(particle), pointer  :: p
     real(kind=dp_t), pointer :: ump(:,:,:,:)
     real(kind=dp_t), pointer :: vmp(:,:,:,:)
     real(kind=dp_t), pointer :: wmp(:,:,:,:)
-    double precision         :: umac_lo(mla%dim), umac_hi(mla%dim)
-    double precision         :: vel, delta
+    real (kind=dp_t)         :: umac_lo(mla%dim), umac_hi(mla%dim)
+    real (kind=dp_t)         :: vel, delta
     integer                  :: ipass
 
     dm = mla%dim
@@ -869,8 +870,8 @@ contains
 
     type(particle_container), intent(inout) :: particles
     type(ml_layout),          intent(inout) :: mla
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
     !
     ! Has particle_where() been called on all the particles?
     !
@@ -879,12 +880,12 @@ contains
     type(particle)   :: p
     integer          :: i, myproc, nprocs, proc, sCnt, rCnt, iN, rN, ioff, roff, dm
     logical          :: lwhere
-    double precision :: rbeg, rend, rtime
+    real (kind=dp_t) :: rbeg, rend, rtime
 
     integer, allocatable, save :: nSnd(:), nRcv(:), nSndOff(:), nRcvOff(:)
     integer, allocatable, save :: indx(:), nSnd2(:), nRcv2(:)
 
-    double precision, allocatable, save :: SndDataR(:), RcvDataR(:)
+    real (kind=dp_t), allocatable, save :: SndDataR(:), RcvDataR(:)
     integer,          allocatable, save :: SndDataI(:), RcvDataI(:)
     integer,                       save :: sCntMax = 0, rCntMax = 0
 
@@ -1085,11 +1086,11 @@ contains
     character(len=256) :: pdir
     integer            :: i, j, k, nparticles, nparticles_tot, ioproc
     integer            :: un, nprocs, iN, dN, fd, cnt, pid, maxpid
-    double precision   :: rbeg, rend, rtime
+    real (kind=dp_t)   :: rbeg, rend, rtime
 
     integer,          allocatable :: isnd(:), ircv(:)
     integer, save,    allocatable :: rcvc(:), rcvd(:)
-    double precision, allocatable :: dsnd(:), drcv(:)
+    real (kind=dp_t), allocatable :: dsnd(:), drcv(:)
 
     rbeg = parallel_wtime()
 
@@ -1304,18 +1305,18 @@ contains
     type(particle_container), intent(inout) :: particles
     character(len=*),         intent(in   ) :: dir
     type(ml_layout),          intent(inout) :: mla
-    double precision,         intent(in   ) :: dx(:,:)
-    double precision,         intent(in   ) :: prob_lo(:)
+    real (kind=dp_t),         intent(in   ) :: dx(:,:)
+    real (kind=dp_t),         intent(in   ) :: prob_lo(:)
 
     type(particle)           :: p
     type(particle_container) :: tparticles
     character(len=256)       :: pdir, the_version_string
     integer                  :: i, j, k, dm, nparticles, ioproc
     integer                  :: un, nprocs, iN, dN, fd, maxpid
-    double precision         :: rbeg, rend, rtime
+    real (kind=dp_t)         :: rbeg, rend, rtime
 
     integer,          allocatable :: ircv(:)
-    double precision, allocatable :: drcv(:)
+    real (kind=dp_t), allocatable :: drcv(:)
 
     rbeg = parallel_wtime()
 
@@ -1473,12 +1474,12 @@ contains
     type(multifab),           intent(in) :: mf(:)
     integer,                  intent(in) :: idx(:)
     character(len=*),         intent(in) :: names(:)
-    double precision,         intent(in) :: time
+    real (kind=dp_t),         intent(in) :: time
     type(multifab), optional, intent(in) :: vel_mf(:)
 
     integer             :: un, iSet, nOutFiles, nSets, mySet, MyProc, NProcs
     integer             :: i, j, n, dm, iBuff(1), wakeUpPID, waitForPID, tag
-    double precision    :: rbeg, rend, rtime
+    real (kind=dp_t)    :: rbeg, rend, rtime
     character(len=64)   :: filename
     character(len=2)    :: index
     logical             :: itexists

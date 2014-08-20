@@ -1,15 +1,11 @@
 module edge_restriction_module
 
+  use bl_constants_module
   use bl_error_module
   use bl_types
   use bc_functions_module
 
   implicit none
-
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
-  real(dp_t), private, parameter :: TWO  = 2.0_dp_t
-  real(dp_t), private, parameter :: HALF = 0.5_dp_t
 
 contains
 

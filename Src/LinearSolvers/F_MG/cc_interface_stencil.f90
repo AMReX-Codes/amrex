@@ -149,6 +149,7 @@ contains
 
     integer :: i, j, ns
     real (kind = dp_t) :: crse_flux
+    real (kind = dp_t), parameter :: FIFTEEN16TH = 15.0_dp_t/16.0_dp_t
  
     ns = size(ss,1)
 !    ns = size(ss,dim=1)  ! some version of Intel does not like this
@@ -162,8 +163,8 @@ contains
                 crse_flux = ss(2,i,j)*(cc(i,j)-cc(i-1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(2,i,j)*(cc(i-1,j)-cc(i  ,j)) &
-                 +               ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
+                   FIFTEEN16TH*ss(2,i,j)*(cc(i-1,j)-cc(i  ,j)) &
+                 +             ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -176,8 +177,8 @@ contains
                 crse_flux = ss(1,i,j)*(cc(i,j)-cc(i+1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(3,i,j)*(cc(i+1,j)-cc(i  ,j)) &
-                 +               ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
+                   FIFTEEN16TH*ss(3,i,j)*(cc(i+1,j)-cc(i  ,j)) &
+                 +             ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -192,8 +193,8 @@ contains
                 crse_flux = ss(4,i,j)*(cc(i,j)-cc(i,j-1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(6,i,j)*(cc(i,j-1)-cc(i,j  )) &
-                 +               ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
+                   FIFTEEN16TH*ss(6,i,j)*(cc(i,j-1)-cc(i,j  )) &
+                 +             ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -206,8 +207,8 @@ contains
                 crse_flux = ss(3,i,j)*(cc(i,j)-cc(i,j+1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
-                 +               ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
+                   FIFTEEN16TH*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
+                 +             ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do

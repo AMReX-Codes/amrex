@@ -1,16 +1,12 @@
 module nodal_restriction_module
 
+  use bl_constants_module
   use bl_error_module
   use bl_types
   use bc_functions_module
   use impose_neumann_bcs_module
 
   implicit none
-
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
-  real(dp_t), private, parameter :: TWO  = 2.0_dp_t
-  real(dp_t), private, parameter :: HALF = 0.5_dp_t
 
 contains
 
@@ -104,7 +100,7 @@ contains
 
     else if ( mg_restriction_mode == 1 ) then
 
-       fac0 = 1.0_dp_t / ir(1)
+       fac0 = ONE / ir(1)
 
        do i = lo(1),hi(1)
           ifine = i*ir(1)
@@ -119,7 +115,7 @@ contains
 
     else 
 
-       fac0 = 1.0_dp_t / ir(1)
+       fac0 = ONE / ir(1)
 
        do i = lo(1),hi(1)
           ifine = i*ir(1)
@@ -170,7 +166,7 @@ contains
     real(dp_t) :: fac,fac0,fac1
     logical    :: add_lo_x, add_lo_y, add_hi_x, add_hi_y
 
-    real(dp_t), parameter :: one16th = 1.0d0 / 16.0d0
+    real(dp_t), parameter :: one16th = ONE / 16.0_dp_t
 
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
@@ -216,7 +212,7 @@ contains
        !
        call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
-       fac0 = 1.0_dp_t / (ir(1)*ir(2))
+       fac0 = ONE / (ir(1)*ir(2))
 
        do j = lo(2),hi(2)
           jfine = j*ir(2)
@@ -320,7 +316,7 @@ contains
     logical    :: add_lo_x, add_lo_y, add_lo_z, add_hi_x, add_hi_y, add_hi_z
     logical    :: doit, jface, kface
 
-    real(dp_t), parameter :: one64th = 1.0d0 / 64.0d0
+    real(dp_t), parameter :: one64th = ONE / 64.0_dp_t
 
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
@@ -389,7 +385,7 @@ contains
        !
        call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
 
-       fac0 = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
+       fac0 = ONE / (ir(1)*ir(2)*ir(3))
 
        do k = lo(3),hi(3)
           fk    = k*ir(3)

@@ -209,7 +209,7 @@ contains
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
     end do
 
     do n = nlevs, 1, -1
@@ -325,7 +325,7 @@ contains
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
     end do
 
     do n = nlevs, 1, -1
