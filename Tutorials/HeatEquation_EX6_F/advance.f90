@@ -73,10 +73,10 @@ contains
           ! Fill non-periodic domain boundary ghost cells
           call multifab_physbc(phi_old(n),1,1,1,the_bc_tower%bc_tower_array(n))
 
-          call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),the_bc_tower%bc_tower_array(n))
+          call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),dt(n),,the_bc_tower%bc_tower_array(n))
 
           ! Update solution at coarse level (n=1)
-          call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n),dt(n))
+          call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n))
 
           ! ************************
           ! Update the finer solutions by num_substeps steps each, using
@@ -102,7 +102,7 @@ contains
 
              ! Reflux 
              pd = get_pd(mla%la(n)) 
-             call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n),dt(n))
+             call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n))
 
              ! Average the level (n+1) phi down onto level n. This overwrites all
              !     previous values of phi at level n under level (n+1) grids.
@@ -122,10 +122,10 @@ contains
           end do
 
           ! Compute the face-centered gradients in each direction
-          call compute_flux(mla,phi_old,flux,dx,the_bc_tower)
+          call compute_flux(mla,phi_old,flux,dx,dt,the_bc_tower)
 
           ! update phi using forward Euler discretization
-          call update_phi(mla,phi_old,phi_new,flux,dx,dt,the_bc_tower)
+          call update_phi(mla,phi_old,phi_new,flux,dx,the_bc_tower)
 
     end if
 
@@ -192,10 +192,10 @@ contains
     end if
 
     ! Compute fluxes at level n.
-    call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),the_bc_tower%bc_tower_array(n))
+    call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
 
     ! Update solution at level n.
-    call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n),dt(n))
+    call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n))
 
     ! Copy fine fluxes from cell boundaries into boundary registers for use in refluxing.
     call bndry_reg_add_fine_flx(bndry_flx(n),flux(n,:),mla%mba%rr(n-1,:))
@@ -217,7 +217,7 @@ contains
 
        ! Reflux 
        pd = get_pd(mla%la(n)) 
-       call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n),dt(n))
+       call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n))
 
        ! Average the level (n+1) phi down onto level n. This overwrites all
        !     previous values of phi at level n under level (n+1) grids.
