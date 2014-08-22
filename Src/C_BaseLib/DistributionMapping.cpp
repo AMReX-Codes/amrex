@@ -11,6 +11,7 @@
 #include <Geometry.H>
 #include <VisMF.H>
 #include <WritePlotFile.H>
+#include <StateData.H>
 
 #include <iostream>
 #include <fstream>
@@ -2257,24 +2258,38 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
          }
          // ------------ amr_level[lev].restart(*this, is);
 	 is >> level;
+	 std::cout << "level = " << level << std::endl;
 	 is >> levelGeom;
-	 allBoxes[lev].readFrom(is);
+	 std::cout << "levelGeom = " << levelGeom << std::endl;
+	 bool bReadSpecial(false);
+	 if(bReadSpecial) {
+	   BoxLib::readBoxArray(allBoxes[lev], is, bReadSpecial);
+	 } else {
+	   allBoxes[lev].readFrom(is);
+	 }
 	 is >> nstate;
+	 std::cout << "nstate = " << nstate << std::endl;
 
-	 // ------------ state.restart(...);
-	 Box domain;
-	 BoxArray stateGrids;
-	 Real old_time_start, old_time_stop, new_time_start, new_time_stop;
-	 int nsets;
-	 std::string mf_name;
+	 for(int ins(0); ins < nstate; ++ins) {
+	   // ------------ state.restart(...);
+	   Box domain;
+	   BoxArray stateGrids;
+	   Real old_time_start, old_time_stop, new_time_start, new_time_stop;
+	   int nsets;
+	   std::string mf_name;
 
-	 is >> domain;
-	 stateGrids.readFrom(is);
-	 is >> old_time_start >> old_time_stop;
-	 is >> new_time_start >> new_time_stop;
-	 is >> nsets;
-	 if(nsets >= 1) { is >> mf_name; }
-	 if(nsets == 2) { is >> mf_name; }
+	   is >> domain;
+	   if(bReadSpecial) {
+	     BoxLib::readBoxArray(stateGrids, is, bReadSpecial);
+	   } else {
+	     stateGrids.readFrom(is);
+	   }
+	   is >> old_time_start >> old_time_stop;
+	   is >> new_time_start >> new_time_stop;
+	   is >> nsets;
+	   if(nsets >= 1) { is >> mf_name; }
+	   if(nsets == 2) { is >> mf_name; }
+	 }
 
        }
 
