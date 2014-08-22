@@ -1,6 +1,5 @@
 module reflux_module
 
-  use bl_types
   use layout_module
   use multifab_module
   use multifab_fill_ghost_module
@@ -15,19 +14,18 @@ module reflux_module
 
 contains
 
-  subroutine reflux(phi_new,flux,bndry_flx,crse_domain,dx,dt_crse)
+  subroutine reflux(phi_new,flux,bndry_flx,crse_domain,dx)
  
     type(multifab) , intent(inout) :: phi_new
     type(multifab) , intent(inout) :: flux(:)
     type(bndry_reg), intent(inout) :: bndry_flx
     type(box)      , intent(in   ) :: crse_domain
     real(kind=dp_t), intent(in   ) :: dx
-    real(kind=dp_t), intent(in   ) :: dt_crse
 
     integer         :: i
     real(kind=dp_t) :: fac
 
-    fac = dt_crse / dx
+    fac = 1.d0 / dx
  
     do i = 1, get_dim(phi_new)
        call reflux_i(phi_new, bndry_flx%obmf(i,0), flux(i), &
@@ -81,9 +79,6 @@ contains
        cp   => dataptr(crse_flux, j)
 
        select case (dm)
-       case (1)
-          call reflux_1d(pp(:,1,1,1), lor, cp(:,1,1,1), loc, &
-                fp(:,1,1,1), lo, lo, face, efactor)
        case (2)
           call reflux_2d(pp(:,:,1,1), lor, cp(:,:,1,1), loc, &
                 fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
@@ -95,28 +90,6 @@ contains
     !$OMP END PARALLEL DO
 
   end subroutine reflux_i
-
-  subroutine reflux_1d(phi, lor, crse_flux, loc, fine_flux, lof, lo, face, efactor)
-    integer, intent(in) :: lor(:)
-    integer, intent(in) :: loc(:)
-    integer, intent(in) :: lof(:) 
-    integer, intent(in) :: lo(:)
-    real (kind = dp_t), intent(inout) :: phi(lor(1):)
-    real (kind = dp_t), intent(in   ) :: crse_flux(loc(1):)
-    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
-    integer, intent(in) :: face
-    real(kind=dp_t), intent(in) :: efactor
-
-    integer :: i
-
-    i = lo(1)
-    if (face .eq. -1) then
-       phi(i) = phi(i) + efactor*(fine_flux(i)-crse_flux(i+1))
-    else
-       phi(i) = phi(i) - efactor*(fine_flux(i)-crse_flux(i))
-    end if
-
-  end subroutine reflux_1d
 
   subroutine reflux_2d(phi, lor, crse_flux, loc, fine_flux, lof, &
        lo, hi, face, dim, efactor)
@@ -253,11 +226,11 @@ contains
     integer       , intent(in   ) :: facemap(:)
     integer       , intent(in   ) :: indxmap(:)
 
-    integer :: i, j, dm, dim, face
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    type(box)                :: ba, bac
-    integer, allocatable     :: lo(:), hi(:), loc(:)
+    integer              :: i, j, dm, dim, face
+    real(dp_t), pointer  :: fp(:,:,:,:)
+    real(dp_t), pointer  :: up(:,:,:,:)
+    type(box)            :: ba, bac
+    integer, allocatable :: lo(:), hi(:), loc(:)
 
     dm = get_dim(flux)
 
@@ -280,8 +253,6 @@ contains
        up => dataptr(flux, j)
 
        select case(dm)
-       case (1)
-          call flux_add_1d(fp(:,1,1,1), loc, up(:,1,1,1), lo, hi, face)
        case (2)
           call flux_add_2d(fp(:,:,1,1), loc, up(:,:,1,1), lo, hi, &
                             ratio, face, dim)
@@ -295,31 +266,6 @@ contains
 
   end subroutine bndry_reg_add_fine_flx_fab
 
-  subroutine flux_add_1d(brf, loc, flux, lo, hi, face)
-
-    integer           , intent(in   ) ::  lo(:), hi(:)
-    integer           , intent(in   ) :: loc(:)
-    real (kind = dp_t), intent(inout) ::  brf(loc(1):)
-    real (kind = dp_t), intent(in   ) :: flux(lo(1):)
-    integer           , intent(in   ) :: face
-
-    integer            :: i
-
-    ! Note that the bndryreg object, brf, is only one cell wide in the
-    !     direction normal to the face of the grid it is associated with
-    ! 
-    ! The flux arrays, flux, are defined on the faces of every cell in each grid.
-
-    if (face == -1) then 
-       i = lo(1)
-    else 
-       i = hi(1)+1
-    end if
-
-    brf(loc(1)) = brf(loc(1)) + flux(i) 
-
-  end subroutine flux_add_1d
-
   subroutine flux_add_2d(brf, loc, flux, lo, hi, ratio, face, dim)
 
     integer           , intent(in   ) ::  lo(:), hi(:)
@@ -328,7 +274,10 @@ contains
     real (kind = dp_t), intent(in   ) :: flux(lo(1):,lo(2):)
     integer           , intent(in   ) :: ratio, face, dim
 
-    integer            :: i,j,ic,jc
+    integer    :: i,j,ic,jc
+    real(dp_t) :: fac
+
+    fac = 1.d0 / dble(ratio)
 
     ! Note that the bndryreg object, brf, is only one cell wide in the
     !     direction normal to the face of the grid it is associated with
@@ -345,10 +294,8 @@ contains
 
        do j = lo(2), hi(2)
           jc = j/ratio
-          brf(loc(1),jc) = brf(loc(1),jc) + flux(i,j) 
+          brf(loc(1),jc) = brf(loc(1),jc) +  flux(i,j) * fac
        end do
-
-       brf(loc(1),:) = brf(loc(1),:) / dble(ratio)
 
     else if ( dim == 2 ) then
 
@@ -360,10 +307,8 @@ contains
 
        do i = lo(1), hi(1)
           ic = i/ratio
-          brf(ic,loc(2)) = brf(ic,loc(2)) + flux(i,j) 
+          brf(ic,loc(2)) = brf(ic,loc(2)) + flux(i,j) * fac
        end do
-
-       brf(:,loc(2)) = brf(:,loc(2)) / dble(ratio)
 
     end if
 
@@ -377,7 +322,10 @@ contains
     real (kind = dp_t), intent(in   ) :: flux( lo(1):, lo(2):, lo(3):)
     integer           , intent(in   ) :: ratio, face, dim
 
-    integer            :: i,j,k,ic,jc,kc
+    integer    :: i,j,k,ic,jc,kc
+    real(dp_t) :: fac
+
+    fac = 1.d0 / dble(ratio*ratio)
 
     ! Note that the bndryreg object, brf, is only one cell wide in the
     !     direction normal to the face of the grid it is associated with
@@ -396,11 +344,9 @@ contains
        do j = lo(2), hi(2)
           jc = j/ratio
           kc = k/ratio
-          brf(loc(1),jc,kc) = brf(loc(1),jc,kc) + flux(i,j,k) 
+          brf(loc(1),jc,kc) = brf(loc(1),jc,kc) + flux(i,j,k) * fac
        end do
        end do
-
-       brf(loc(1),:,:) = brf(loc(1),:,:) / dble(ratio)
 
     else if ( dim == 2 ) then
 
@@ -414,11 +360,9 @@ contains
        do i = lo(1), hi(1)
           kc = k/ratio
           ic = i/ratio
-          brf(ic,loc(2),kc) = brf(ic,loc(2),kc) + flux(i,j,k)
+          brf(ic,loc(2),kc) = brf(ic,loc(2),kc) + flux(i,j,k) * fac
        end do
        end do
-
-       brf(:,loc(2),:) = brf(:,loc(2),:) / dble(ratio)
 
     else if ( dim == 3 ) then
 
@@ -432,11 +376,9 @@ contains
        do i = lo(1), hi(1)
           jc = j/ratio
           ic = i/ratio
-          brf(ic,jc,loc(3)) = brf(ic,jc,loc(3)) + flux(i,j,k)
+          brf(ic,jc,loc(3)) = brf(ic,jc,loc(3)) + flux(i,j,k) * fac
        end do
        end do
-
-       brf(:,:,loc(3)) = brf(:,:,loc(3)) / dble(ratio)
 
     end if
 

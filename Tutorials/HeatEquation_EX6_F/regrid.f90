@@ -45,13 +45,14 @@ contains
     do n=1,nlevs
        ! create copies of the old data
        ! make sure to use mla_old since we will be destroying mla
-       call multifab_build(phi_orig(n),mla_old%la(n),1,1)
+       call multifab_build(phi_orig(n),mla_old%la(n),1,2)
        call multifab_copy_c(phi_orig(n),1,phi(n),1,1)
 
        ! get rid of the original multifab so we can create a new one
        ! with a new grid structure and the same name
        call multifab_destroy(phi(n))
     end do
+
 
     ! Destroy flux, phi_orig and bndry_reg before regridding -- we will create 
     !     new ones at the end
@@ -97,7 +98,7 @@ contains
     call bc_tower_level_build(the_bc_tower,1,la_array(1))
 
     ! build level 1 multifab
-    call multifab_build(phi(1),la_array(1),1,1)
+    call multifab_build(phi(1),la_array(1),1,2)
     
     ! copy level 1 data from original multifab
     call multifab_copy_c(phi(1),1,phi_orig(1),1,1)
@@ -151,7 +152,7 @@ contains
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
    
                    ! Rebuild the lower level data again if it changed.
-                   call multifab_build(phi(n),la_array(n),1,1)
+                   call multifab_build(phi(n),la_array(n),1,2)
 
                    ! first fill all refined cells by interpolating from coarse 
                    ! data underneath...
@@ -175,7 +176,7 @@ contains
           call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
 
           ! Build the level nl+1 data only.
-          call multifab_build(phi(nl+1),la_array(nl+1),1,1)
+          call multifab_build(phi(nl+1),la_array(nl+1),1,2)
 
           ! first fill all refined cells by interpolating from coarse 
           ! data underneath...

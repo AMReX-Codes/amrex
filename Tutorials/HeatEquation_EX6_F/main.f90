@@ -11,6 +11,9 @@ program main
   use make_new_grids_module
   use regrid_module
 
+  ! This is where we keep the problem-specific values
+  use prob_module
+
   implicit none
 
   ! stuff you can set with the inputs file (otherwise use default values below)
@@ -48,6 +51,7 @@ program main
   integer    :: istep,i,n,nl,nlevs
   logical    :: new_grid
   real(dp_t) :: time,start_time,run_time,run_time_IOproc
+  real(dp_t) :: dt_adv, dt_diff
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
@@ -206,8 +210,8 @@ program main
   ! build the level 1 layout
   call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),is_periodic)
 
-  ! build the level 1 multifab with 1 component and 1 ghost cell
-  call multifab_build(phi_new(1),la_array(1),1,1)
+  ! build the level 1 multifab with 1 component and 2 ghost cells
+  call multifab_build(phi_new(1),la_array(1),1,2)
 
   ! define level 1 of the_bc_tower
   call bc_tower_level_build(the_bc_tower,1,la_array(1))
@@ -233,7 +237,7 @@ program main
         call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
 
         ! Build the level nl+1 data
-        call multifab_build(phi_new(nl+1),la_array(nl+1),1,1)
+        call multifab_build(phi_new(nl+1),la_array(nl+1),1,2)
         
         ! define level nl+1 of the_bc_tower
         call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
@@ -274,9 +278,11 @@ program main
      call bc_tower_level_build(the_bc_tower,n,mla%la(n))
   end do
 
+  ! Note that we need two ghost cells because we construct fluxes for the advective fluxes
+  ! If we were doing pure explicit diffusion we would use just one ghost cell.
   do n=1,nlevs
-     call multifab_build(phi_new(n),mla%la(n),1,1)
-     call multifab_build(phi_old(n),mla%la(n),1,1)
+     call multifab_build(phi_new(n),mla%la(n),1,2)
+     call multifab_build(phi_old(n),mla%la(n),1,2)
   end do
 
   call init_phi(mla,phi_new,dx,prob_lo,the_bc_tower)
@@ -287,15 +293,31 @@ program main
   time = 0.d0
 
   if (.not.do_subcycling) then
+
+     ! Choose a time step with a local advective CFL of 0.9 
+     dt_adv  = 0.9d0*dx(max_levs) / max(abs(uadv),abs(vadv))
+
+     ! Choose a time step with a local diffusive CFL of 0.9 
+     dt_diff = 0.9d0*dx(max_levs)**2/(2.d0*dim*mu)
+
      ! Set the dt for all levels based on the criterion at the finest level
-     dt(:) = 0.9d0*dx(max_levs)**2/(2.d0*dim)
+     ! We must use the most restrictive of the two time steps constraints
+     dt(:) = min(dt_adv,dt_diff)
+
   else
+
      ! num_substeps is the number of fine steps (at level n+1) for each coarse
      ! (at level n) time step in subcycling algorithm. In other words, it is
      ! the time refinement ratio, which depends on the problem type being solved.
 
+     ! Choose a time step with a local advective CFL of 0.9 
+     dt_adv  = 0.9d0*dx(1) / max(abs(uadv),abs(vadv))
+
      ! Choose a time step with a local diffusive CFL of 0.9 
-     dt(1) = 0.9d0*dx(1)**2/(2.d0*dim)
+     dt_diff = 0.9d0*dx(1)**2/(2.d0*dim*mu)
+
+     ! We must use the most restrictive of the two time steps constraints
+     dt(1) = min(dt_adv,dt_diff)
 
      ! In the current implementation, num_substeps must be set to 
      !    2 (for an explicit hyperbolic problem) or 
@@ -343,7 +365,7 @@ program main
 
         ! Create new flux, phi_old and bndry_flx after regridding
         do n = 1,nlevs
-          call multifab_build(phi_old(n),mla%la(n),1,1)
+          call multifab_build(phi_old(n),mla%la(n),1,2)
         end do
 
      end if
