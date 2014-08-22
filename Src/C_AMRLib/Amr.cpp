@@ -1278,6 +1278,19 @@ Amr::restart (const std::string& filename)
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
+    Array<IntVect> refRatio;
+    Array<BoxArray> allBoxes;
+    DistributionMapping::Initialize();
+    DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
+    DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
+      DistributionMapping::CacheStats(std::cout);
+    }
+    ParallelDescriptor::Barrier();
+
+
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
     int i;
@@ -2246,6 +2259,7 @@ using std::endl;
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
+
     //
     // Define the new grids from level start up to new_finest.
     //

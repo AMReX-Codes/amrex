@@ -167,7 +167,10 @@ class DistributionMapping
     static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
     static void ReadCheckPointHeader(const std::string &filename,
+				     Array<IntVect>  &refRatio,
                                      Array<BoxArray> &allBoxes);
+    static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
+                                 const Array<BoxArray> &allBoxes);
 
 
 private:
