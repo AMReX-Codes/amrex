@@ -10,7 +10,7 @@
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
-#include <WritePlotFile.H>
+//#include <WritePlotFile.H>
 #include <StateData.H>
 
 #include <iostream>
@@ -1625,7 +1625,7 @@ ParallelDescriptor::Barrier();
 /*
 // ((((((((((((((((((((((
 PArray<MultiFab> dataMF(nLevels);
-Array<Real> probLo(nLevels), probHi(nLevels);
+Array<Real> probLo(BL_SPACEDIM, 0.0), probHi(BL_SPACEDIM, 1.0);
 Array<int> rr(refRatio.size());
 Array<Box> probDomain(nLevels);
 Array<Array<Real> > dxLevel(nLevels);
@@ -1636,11 +1636,9 @@ Box pd(allBoxes[0].minimalBox());
 for(int iLevel(0); iLevel <= finestLevel; ++iLevel) {
   dataMF.set(iLevel, new MultiFab(allBoxes[iLevel], 1, 0, Fab_allocate));
   dataMF[iLevel].setVal(-42.0);
-  probLo[iLevel] = 0.0;
-  probHi[iLevel] = 1.0;
   dxLevel[iLevel].resize(BL_SPACEDIM);
   for(int i(0); i < dxLevel[iLevel].size(); ++i) {
-    dxLevel[iLevel][i] = 0.0;
+    dxLevel[iLevel][i] = iLevel + 1.0;
   }
   probDomain[iLevel] = pd;
   if(iLevel < finestLevel) {
@@ -1738,6 +1736,25 @@ ParallelDescriptor::Barrier();
 if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] << endl;
       }
     }
+
+if(ParallelDescriptor::IOProcessor()) {
+  Array<long> ncells(nprocs, 0);
+  for(int n(0); n < localPMaps.size(); ++n) {
+    for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+      int index(localPMaps[n][i]);
+      ncells[index] += allBoxes[n][i].numPts();
+    }
+  }
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "MLM_" << count++ << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < ncells.size(); ++i) {
+    bos << i << ' ' << ncells[i] << '\n';
+  }
+  bos.close();
+}
+
 ParallelDescriptor::Barrier();
 //BoxLib::Abort("test");
 
@@ -1753,35 +1770,34 @@ ParallelDescriptor::Barrier();
     }
     */
 
-    /*
-    for(int iProc(0); iProc < nprocs; ++iProc) {
-        const std::vector<int> &vi = vec[iProc];
-        for(int j(0), N(vi.size()); j < N; ++j) {
-          m_ref->m_pmap[vi[j]] = ProximityMap(iProc);
-        }
-    }
-    */
 
-DistributionMapping::FlushCache();
+    DistributionMapping::FlushCache();
+
     for(int n(0); n < localPMaps.size(); ++n) {
       LnClassPtr<Ref> m_ref(new DistributionMapping::Ref(localPMaps[n]));
       m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
     }
 
 
-    /*
     if(ParallelDescriptor::IOProcessor()) {
-        Real sum_wgt = 0, max_wgt = 0;
-        for(int i = 0, N = wgts_per_cpu.size(); i < N; ++i) {
-            const long W = wgts_per_cpu[i];
-            if(W > max_wgt) {
-              max_wgt = W;
-	    }
-            sum_wgt += W;
+
+      Array<long> ncells(nprocs, 0);
+      for(int n(0); n < localPMaps.size(); ++n) {
+        for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+          int index(localPMaps[n][i]);
+          ncells[index] += allBoxes[n][i].numPts();
         }
-        std::cout << "PFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+      }
+      Real sum_wgt(0.0), max_wgt(0.0);
+      for(int i(0), N(ncells.size()); i < N; ++i) {
+        const long W(ncells[i]);
+        if(W > max_wgt) {
+          max_wgt = W;
+	}
+        sum_wgt += W;
+      }
+      std::cout << "PFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
     }
-    */
 }
 
 
@@ -2258,9 +2274,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
          }
          // ------------ amr_level[lev].restart(*this, is);
 	 is >> level;
-	 std::cout << "level = " << level << std::endl;
 	 is >> levelGeom;
-	 std::cout << "levelGeom = " << levelGeom << std::endl;
 	 bool bReadSpecial(false);
 	 if(bReadSpecial) {
 	   BoxLib::readBoxArray(allBoxes[lev], is, bReadSpecial);
@@ -2268,7 +2282,6 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 	   allBoxes[lev].readFrom(is);
 	 }
 	 is >> nstate;
-	 std::cout << "nstate = " << nstate << std::endl;
 
 	 for(int ins(0); ins < nstate; ++ins) {
 	   // ------------ state.restart(...);
