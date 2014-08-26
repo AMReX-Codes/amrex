@@ -247,7 +247,6 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
       mgt_alloc_rhcc_nodal();
     }
   } else {
-    //mgt_finalize_n(&dx[0],&bc[0],&nc,&ncomp);
     mgt_finalize(&dx[0],&bc[0]);
   }
 }

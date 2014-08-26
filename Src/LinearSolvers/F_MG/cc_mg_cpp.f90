@@ -264,12 +264,11 @@ subroutine mgt_finalize(dx,bc)
 
 end subroutine mgt_finalize
 
-subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
+subroutine mgt_finalize_n(dx,bc,nc_in)
   use cpp_mg_module
   implicit none
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
   integer   , intent(in) :: bc(2,mgts%dim)
-  integer   , intent(in) :: ns_in
   integer   , intent(in) :: nc_in
   integer :: i, dm, nlev, n
   integer :: nc
