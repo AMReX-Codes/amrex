@@ -884,6 +884,7 @@ contains
   end function boxarray_box_contains
 
   function boxarray_boxarray_contains(ba1, ba2, allow_empty) result(r)
+    use bl_prof_module
     use bl_error_module
     logical :: r
     type(boxarray), intent(in) :: ba1, ba2
@@ -891,6 +892,9 @@ contains
 
     integer :: i
     logical :: lallow
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ba_ba_contains")
 
     !Note that allow_empty refers to permitting empty boxes, not empty boxarrays
     lallow = .false.; if (present(allow_empty)) lallow=allow_empty
@@ -905,16 +909,24 @@ contains
        do i = 1, nboxes(ba2)
           if (empty(get_box(ba2,i))) cycle !ignore empty boxes
           r = boxarray_box_contains(ba1, get_box(ba2,i)) 
-          if ( .not. r ) return
+          if ( .not. r ) then
+             call destroy(bpt)
+             return
+          end if
        end do
     else
        do i = 1, nboxes(ba2)
           r = boxarray_box_contains(ba1, get_box(ba2,i)) 
-          if ( .not. r ) return
+          if ( .not. r ) then
+             call destroy(bpt)
+             return
+          end if
        end do
     endif
 
     r = .true.
+
+    call destroy(bpt)
 
   end function boxarray_boxarray_contains
 
