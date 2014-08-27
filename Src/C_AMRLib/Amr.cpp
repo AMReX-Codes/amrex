@@ -1278,11 +1278,13 @@ Amr::restart (const std::string& filename)
 
     Real dRestartTime0 = ParallelDescriptor::second();
 
-    Array<IntVect> refRatio;
-    Array<BoxArray> allBoxes;
     DistributionMapping::Initialize();
-    DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
-    DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
+    if(DistributionMapping::strategy() == DistributionMapping::PFC) {
+      Array<IntVect> refRatio;
+      Array<BoxArray> allBoxes;
+      DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
+      DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
+    }
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
