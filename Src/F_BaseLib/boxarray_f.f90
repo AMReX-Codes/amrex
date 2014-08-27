@@ -812,7 +812,10 @@ contains
 
     lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
 
-    if ( size(bxs) .eq. 0 ) return
+    if ( size(bxs) .eq. 0 ) then
+       call destroy(bpt)
+       return
+    end if
     
     if ( empty(ba) ) call boxarray_build_bx(ba, bxs(1))
 
