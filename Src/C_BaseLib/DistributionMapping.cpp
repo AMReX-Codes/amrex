@@ -1876,8 +1876,10 @@ DistributionMapping::InitProximityMap()
 #endif
     if( ! ifs.good())
     {
-      std::cerr << "**** Error in DistributionMapping::InitProximityMap():  "
-                << "cannot open topolcoords.3d.fab" << std::endl;
+      std::cerr << "**** In DistributionMapping::InitProximityMap():  "
+                << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
+
+#ifdef BL_SIM_HOPPER
       // set a reasonable default
 #if (BL_SPACEDIM == 1)
       tBox = Box(IntVect(0), IntVect(3263), IntVect(0));
@@ -1894,18 +1896,28 @@ DistributionMapping::InitProximityMap()
         tFab(iv, 1) = i++;
       }
 
-#ifdef BL_SIM_HOPPER
 #ifdef BL_SIM_HOPPER_MAKE_TCFAB
       std::ofstream ostFab("topolcoords.simhopper.3d.fab");
       tFab.writeOn(ostFab);
       tFab.close();
 #endif
+
+#else
+      // dont use proximity mapping
+      proximityMap.resize(ParallelDescriptor::NProcs(), 0);
+      for(int i(0); i < proximityMap.size(); ++i) {
+        proximityMap[i] = i;
+      }
+      proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
+      for(int i(0); i < proximityOrder.size(); ++i) {
+        proximityOrder[i] = i;
+      }
 #endif
 
     } else {
+
       tFab.readFrom(ifs);
       ifs.close();
-    }
 
       tBox = tFab.box();
       std::cout << "tBox = " << tBox << "  ncomp = " << tFab.nComp() << std::endl;
@@ -2001,31 +2013,32 @@ DistributionMapping::InitProximityMap()
       }
       std::cout << "----------- end order ranks by topological sfc" << std::endl;
 
-    FArrayBox nodeFab(tBox);
-    nodeFab.setVal(-nProcs);
-    for(int i(0); i < nProcs; ++i) {
-      IntVect iv(DistributionMapping::TopIVFromRank(i));
-      nodeFab(iv) = i;  // this overwrites previous ones
-      std::cout << "rank pNum topiv = " << i << "  "
-                << DistributionMapping::ProcNumberFromRank(i) << "  " << iv << std::endl;
-    }
-    std::ofstream osNodeFab("nodes.3d.fab");
-    if( ! osNodeFab.good()) {
-      std::cerr << "Error:  could not open nodes.3d.fab" << std::endl;
-    } else {
-      nodeFab.writeOn(osNodeFab);
-      osNodeFab.close();
-    }
-
-    std::ofstream rpo("RankProxOrder.txt");
-    if( ! rpo.good()) {
-      std::cerr << "Error:  could not open RankProxOrder.txt" << std::endl;
-    } else {
-      rpo << proximityOrder.size() << '\n';
-      for(int i(0); i < proximityOrder.size(); ++i) {
-	rpo << i << ' ' << proximityOrder[i] << '\n';
+      FArrayBox nodeFab(tBox);
+      nodeFab.setVal(-nProcs);
+      for(int i(0); i < nProcs; ++i) {
+        IntVect iv(DistributionMapping::TopIVFromRank(i));
+        nodeFab(iv) = i;  // this overwrites previous ones
+        std::cout << "rank pNum topiv = " << i << "  "
+                  << DistributionMapping::ProcNumberFromRank(i) << "  " << iv << std::endl;
       }
-      rpo.close();
+      std::ofstream osNodeFab("nodes.3d.fab");
+      if( ! osNodeFab.good()) {
+        std::cerr << "Error:  could not open nodes.3d.fab" << std::endl;
+      } else {
+        nodeFab.writeOn(osNodeFab);
+        osNodeFab.close();
+      }
+
+      std::ofstream rpo("RankProxOrder.txt");
+      if( ! rpo.good()) {
+        std::cerr << "Error:  could not open RankProxOrder.txt" << std::endl;
+      } else {
+        rpo << proximityOrder.size() << '\n';
+        for(int i(0); i < proximityOrder.size(); ++i) {
+	  rpo << i << ' ' << proximityOrder[i] << '\n';
+        }
+        rpo.close();
+      }
     }
   }
 

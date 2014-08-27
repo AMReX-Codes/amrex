@@ -66,10 +66,6 @@ AmrLevel::AmrLevel (Amr&            papa,
     ,particle_grids(ba)
 #endif
 {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "))))---- AmrLevel::AmrLevel" << std::endl;
-}
-
     level  = lev;
     parent = &papa;
 
@@ -88,16 +84,8 @@ if(ParallelDescriptor::IOProcessor()) {
     state.resize(desc_lst.size());
 
     // Note that this creates a distribution map associated with grids.
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "))))---- level state.size() = " << level << "  "
-            << state.size() << std::endl;
-}
     for (int i = 0; i < state.size(); i++)
     {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "))))---- whichstate ncomp = " << i << "  "
-            << desc_lst[i].nComp() << std::endl;
-}
         state[i].define(geom.Domain(),
                         grids,
                         desc_lst[i],
@@ -114,9 +102,6 @@ if(ParallelDescriptor::IOProcessor()) {
 #endif
 
     finishConstructor();
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "((((---- AmrLevel::AmrLevel" << std::endl;
-}
 }
 
 void
