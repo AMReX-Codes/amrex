@@ -2395,9 +2395,10 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 
             const int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
-            // If this is not fully periodic then we have to be careful that no
-            // particle's support leaves the domain. We test this by checking the low
-            // and high corners respectively.
+            // If this is not fully periodic then we have to be careful that the
+            // particle's support leaves the domain unless we specifically want to ignore
+            // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
+            // We test this by checking the low and high corners respectively.
             //
             if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
                 if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
@@ -4389,7 +4390,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
-        } 
+        }
     }
 
     if (gv_pointer != &grav_vector) delete gv_pointer;
