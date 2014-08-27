@@ -18,7 +18,7 @@ contains
     use multifab_physbc_module
 
     type(multifab), intent(inout)           :: fine
-    type(multifab), intent(inout),target    :: crse
+    type(multifab), intent(inout)           :: crse
     integer       , intent(in   )           :: ng
     integer       , intent(in   )           :: ir(:)
     type(bc_level), intent(in   )           :: bc_crse, bc_fine
@@ -38,13 +38,12 @@ contains
     type(multifab)  :: cfine, tmpcrse, tmpfine
     type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
-    type(boxarray)  :: ba, tmpba, ba_domain
+    type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
     logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
     logical         :: done
     integer         :: stencil_width
-    integer         :: grow_counter
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -52,9 +51,6 @@ contains
     real(kind=dp_t),       allocatable :: cvcx(:), cvcy(:), cvcz(:)
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
-
-    type(multifab), target  :: gcrse
-    type(multifab), pointer :: pcrse
 
     type(bl_prof_timer), save :: bpt
 
@@ -213,74 +209,24 @@ contains
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
 
-    ! First make sure that cfine will be completely filled by the crse data.
-
-    call boxarray_build_copy(ba,get_boxarray(crse))
-    call boxarray_grow(ba,nghost(crse))
-
-    ! Define this outside the test because we will test on it later.
-    grow_counter = nghost(crse)
-
-    ! In this case the original crse multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
-
-       ! Sanity check
-       cdomain = get_pd(get_layout(crse))
-       cdomain = grow(cdomain,nghost(crse))
-       call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
-          call bl_error('Sanity check failed in fillpatch')
-       call destroy(ba_domain)
-
-       ! We can just use the crse multifab that was passed in.
-       pcrse => crse
- 
-    ! Need to build a larger crse array
-    else
-
-       cdomain = get_pd(get_layout(crse))
-       cdomain = grow(cdomain,nghost(crse))
-
-       done = .false.
-
-       do while (.not. done)
-          grow_counter = grow_counter + 1
-          cdomain = grow(cdomain,1)
-          call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
-          call destroy(ba_domain)
-       end do
-
-       call build(gcrse, get_layout(crse), nc = ncomp(crse), ng = grow_counter)
-       call copy(gcrse, crse)
-       call fill_boundary(gcrse, icomp_crse, nc)
-       call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
-       pcrse => gcrse
-       
-    end if
-
-    call destroy(ba)
-
-    do i = 1, nboxes(pcrse%la)
-       call push_back(bl, grow(box_nodalize(get_box(pcrse%la,i),pcrse%nodal),pcrse%ng))
+    do i = 1, nboxes(crse%la)
+       call push_back(bl, grow(box_nodalize(get_box(crse%la,i),crse%nodal),crse%ng))
     end do
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse)))
+    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(crse)))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
     !$OMP PARALLEL DO PRIVATE(i,src,dst)
-    do i = 1, nfabs(pcrse)
-       src => dataptr(pcrse,   i, icomp_crse, nc)
+    do i = 1, nfabs(crse)
+       src => dataptr(crse,    i, icomp_crse, nc)
        dst => dataptr(tmpcrse, i, 1         , nc)
        ! dst = src failed using Intel compiler 9.1.043
        call cpy_d(dst,src)
     end do
     !$OMP END PARALLEL DO
-
-    if (grow_counter .gt. nghost(crse)) call destroy(gcrse)
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
@@ -288,7 +234,8 @@ contains
        if (multifab_max(tmpcrse, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
           call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
-          call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
+          call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
+               ' (likely because grids are not properly nested)')
        end if
     end if
 
@@ -468,8 +415,8 @@ contains
     use multifab_physbc_module
 
     type(multifab), intent(inout)           :: fine
-    type(multifab), intent(inout),target    :: crse_old
-    type(multifab), intent(inout),target    :: crse_new
+    type(multifab), intent(inout)           :: crse_old
+    type(multifab), intent(inout)           :: crse_new
     real(kind=dp_t), intent(in   )          :: alpha
     integer       , intent(in   )           :: ng
     integer       , intent(in   )           :: ir(:)
@@ -490,13 +437,11 @@ contains
     type(multifab)  :: cfine, tmpcrse, tmpfine
     type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
-    type(boxarray)  :: ba, tmpba, ba_domain
+    type(boxarray)  :: ba, tmpba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
     logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
-    logical         :: done
     integer         :: stencil_width
-    integer         :: grow_counter
     integer         :: ng_crse
 
     type(list_box_node),   pointer     :: bln
@@ -506,9 +451,6 @@ contains
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src_old(:,:,:,:), src_new(:,:,:,:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
-
-    type(multifab), target  :: gcrse_old, gcrse_new
-    type(multifab), pointer :: pcrse_old, pcrse_new
 
     real(kind=dp_t) :: omalpha
 
@@ -678,87 +620,27 @@ contains
     ! Fill cfine from crse.
     ! Got to do it in stages as parallel copy only goes from valid -> valid.
 
-    ! First make sure that cfine will be completely filled by the crse data.
-
-    call boxarray_build_copy(ba,get_boxarray(crse_old))
-    call boxarray_grow(ba,ng_crse)
-
-    ! Define this outside the test because we will test on it later.
-    grow_counter = ng_crse
-
-    ! In this case the original crse_old multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
-
-       ! Sanity check
-       cdomain = get_pd(get_layout(crse_old))
-       cdomain = grow(cdomain,ng_crse)
-       call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
-          call bl_error('Sanity check failed in fillpatch')
-       call destroy(ba_domain)
-
-       ! We can just use the crse multifab that was passed in.
-       pcrse_old => crse_old
-       pcrse_new => crse_new
- 
-    ! Need to build a larger crse array
-    else
-
-       cdomain = get_pd(get_layout(crse_old))
-       cdomain = grow(cdomain,ng_crse)
-
-       done = .false.
-
-       do while (.not. done)
-          grow_counter = grow_counter + 1
-          cdomain = grow(cdomain,1)
-          call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
-          call destroy(ba_domain)
-       end do
-
-       call build(gcrse_old, get_layout(crse_old), nc = ncomp(crse_old), ng = grow_counter)
-       call copy(gcrse_old, crse_old)
-       call fill_boundary(gcrse_old, icomp_crse, nc)
-       call multifab_physbc(gcrse_old,icomp_crse,bcomp,nc,bc_crse)
-       pcrse_old => gcrse_old
-
-       call build(gcrse_new, get_layout(crse_old), nc = ncomp(crse_old), ng = grow_counter)
-       call copy(gcrse_new, crse_new)
-       call fill_boundary(gcrse_new, icomp_crse, nc)
-       call multifab_physbc(gcrse_new,icomp_crse,bcomp,nc,bc_crse)
-       pcrse_new => gcrse_new
-       
-    end if
-
-    call destroy(ba)
-
-    do i = 1, nboxes(pcrse_old%la)
-       call push_back(bl, grow(box_nodalize(get_box(pcrse_old%la,i),pcrse_old%nodal),pcrse_old%ng))
+    do i = 1, nboxes(crse_old%la)
+       call push_back(bl, grow(box_nodalize(get_box(crse_old%la,i),crse_old%nodal),crse_old%ng))
     end do
 
     call build(tmpba, bl, sort = .false.)
     call destroy(bl)
-    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse_old)))
+    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(crse_old)))
     call destroy(tmpba)
     call build(tmpcrse, tmpla, nc = nc, ng = 0)
 
-    ! tmpcrse = alpha * pcrse_old + (ONE-alpha) * pcrse_new
+    ! tmpcrse = alpha * crse_old + (ONE-alpha) * crse_new
     omalpha = ONE - alpha 
 
     !$OMP PARALLEL DO PRIVATE(i)
-    do i = 1, nfabs(pcrse_old)
-       src_old => dataptr(pcrse_old,i,icomp_crse, nc)
-       src_new => dataptr(pcrse_new,i,icomp_crse, nc)
+    do i = 1, nfabs(crse_old)
+       src_old => dataptr(crse_old,i,icomp_crse, nc)
+       src_new => dataptr(crse_new,i,icomp_crse, nc)
        dst     => dataptr(tmpcrse, i, 1         , nc)
        dst = alpha * src_old + omalpha * src_new 
     end do
     !$OMP END PARALLEL DO
-
-    if (grow_counter .gt. ng_crse) then
-        call destroy(gcrse_old)
-        call destroy(gcrse_new)
-    end if
 
     call copy(cfine, 1, tmpcrse, 1, nc)
 
@@ -766,7 +648,8 @@ contains
        if (multifab_max(tmpcrse, allow_empty=.true., local=.true.) .ge. Huge(ONE)-ONE) then
           call bl_error('fillpatch: tmpcrse greater than Huge-1 before trying to fill cfine')
        else
-          call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
+          call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
+               ' (likely because grids are not properly nested)')
        end if
     end if
 
