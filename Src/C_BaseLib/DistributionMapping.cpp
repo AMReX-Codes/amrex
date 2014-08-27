@@ -1904,11 +1904,9 @@ DistributionMapping::InitProximityMap()
 
 #else
       // dont use proximity mapping
-      proximityMap.resize(ParallelDescriptor::NProcs(), 0);
       for(int i(0); i < proximityMap.size(); ++i) {
         proximityMap[i] = i;
       }
-      proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
       for(int i(0); i < proximityOrder.size(); ++i) {
         proximityOrder[i] = i;
       }
