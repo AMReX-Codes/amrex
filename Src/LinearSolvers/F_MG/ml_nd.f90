@@ -13,9 +13,9 @@ contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,do_diagnostics)
 
-    use ml_norm_module          , only : ml_norm_inf
-    use ml_nd_restriction_module, only : ml_nodal_restriction, periodic_add_copy
-    use ml_prolongation_module  , only : ml_nodal_prolongation
+    use ml_norm_module             , only : ml_norm_inf
+    use ml_nodal_restriction_module, only : ml_nodal_restriction, periodic_add_copy
+    use ml_prolongation_module     , only : ml_nodal_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
