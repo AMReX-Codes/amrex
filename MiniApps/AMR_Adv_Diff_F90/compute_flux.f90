@@ -127,7 +127,7 @@ contains
        do j=lo(2),hi(2)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
-          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+          fluxx(i,j) = mu * ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
        end do
     else if (adv_bc(1,1) .eq. FOEXTRAP) then
        ! dphi/dn = 0
@@ -140,7 +140,7 @@ contains
        do j=lo(2),hi(2)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
-          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
+          fluxx(i,j) = mu * ( phi(i,j) - phi(i-1,j) ) / (0.5d0*dx)
        end do
     else if (adv_bc(1,2) .eq. FOEXTRAP) then
        ! dphi/dn = 0
@@ -160,7 +160,7 @@ contains
        do i=lo(1),hi(1)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
-          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
+          fluxy(i,j) = mu * ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
        end do
     else if (adv_bc(2,1) .eq. FOEXTRAP) then
        ! dphi/dn = 0
@@ -173,7 +173,7 @@ contains
        do i=lo(1),hi(1)
           ! divide by 0.5*dx since the ghost cell value represents
           ! the value at the wall, not the ghost cell-center
-          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
+          fluxy(i,j) = mu * ( phi(i,j) - phi(i,j-1) ) / (0.5d0*dx)
        end do
     else if (adv_bc(2,2) .eq. FOEXTRAP) then
        ! dphi/dn = 0
@@ -264,7 +264,7 @@ contains
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)+1
-             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / dx
+             fluxx(i,j,k) = mu * ( phi(i,j,k) - phi(i-1,j,k) ) / dx
           end do
        end do
     end do
@@ -278,7 +278,7 @@ contains
           do j=lo(2),hi(2)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
+             fluxx(i,j,k) = mu * ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -295,7 +295,7 @@ contains
           do j=lo(2),hi(2)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
+             fluxx(i,j,k) = mu * ( phi(i,j,k) - phi(i-1,j,k) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -309,7 +309,7 @@ contains
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
           do i=lo(1),hi(1)
-             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / dx
+             fluxy(i,j,k) = mu * ( phi(i,j,k) - phi(i,j-1,k) ) / dx
           end do
        end do
     end do
@@ -323,7 +323,7 @@ contains
           do i=lo(1),hi(1)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
+             fluxy(i,j,k) = mu * ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -340,7 +340,7 @@ contains
           do i=lo(1),hi(1)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
+             fluxy(i,j,k) = mu * ( phi(i,j,k) - phi(i,j-1,k) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -354,7 +354,7 @@ contains
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / dx
+             fluxz(i,j,k) = mu * ( phi(i,j,k) - phi(i,j,k-1) ) / dx
           end do
        end do
     end do
@@ -368,7 +368,7 @@ contains
           do i=lo(1),hi(1)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
+             fluxz(i,j,k) = mu * ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -385,7 +385,7 @@ contains
           do i=lo(1),hi(1)
              ! divide by 0.5*dx since the ghost cell value represents
              ! the value at the wall, not the ghost cell-center
-             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
+             fluxz(i,j,k) = mu * ( phi(i,j,k) - phi(i,j,k-1) ) / (0.5d0*dx)
           end do
        end do
        !$omp end parallel do
@@ -415,7 +415,7 @@ contains
              endif
              slope = sign(1.d0, dcen) * min( dlim, abs(dcen) )
           
-             phi_edge = phi(i-1,j,k) + 0.5d0 * (dx - uadv*dt)*slope
+             phi_edge = phi(i-1,j,k) + 0.5d0 * (1.d0 - uadv*dt/dx)*slope
    
              fluxx(i,j,k) = fluxx(i,j,k) - uadv * phi_edge
 
@@ -441,7 +441,7 @@ contains
              endif
              slope = sign(1.d0, dcen) * min( dlim, abs(dcen) )
           
-             phi_edge = phi(i,j-1,k) + 0.5d0 * (dx - vadv*dt) * slope
+             phi_edge = phi(i,j-1,k) + 0.5d0 * (1.d0 - vadv*dt/dx) * slope
    
              fluxy(i,j,k) = fluxy(i,j,k) - vadv * phi_edge
    
@@ -467,7 +467,7 @@ contains
              endif
              slope = sign(1.d0, dcen) * min( dlim, abs(dcen) )
              
-             phi_edge = phi(i,j,k-1) + 0.5d0 * (dx - wadv*dt) * slope
+             phi_edge = phi(i,j,k-1) + 0.5d0 * (1.d0 - wadv*dt/dx) * slope
    
              fluxz(i,j,k) = fluxz(i,j,k) - wadv * phi_edge
    
