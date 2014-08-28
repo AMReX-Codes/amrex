@@ -106,8 +106,7 @@ contains
     do n = nlevs,2,-1
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
-       call ml_cc_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+       call ml_cc_restriction(rh(n-1), rh(n), mla%mba%rr(n-1,:))
     end do
 
     !
@@ -120,9 +119,7 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
 
-       call ml_cc_restriction(full_soln(n-1), full_soln(n), &
-            mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-            mla%mba%rr(n-1,:))
+       call ml_cc_restriction(full_soln(n-1), full_soln(n), mla%mba%rr(n-1,:))
     enddo
 
     !  Now make sure full_soln at fine grid has the correct coarse grid bc's in 
@@ -156,8 +153,7 @@ contains
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
             mla%mba%rr(n-1,:), filled=.true.)
 
-       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
     enddo
     !
     ! Test on whether coefficients sum to zero in order to know whether to enforce solvability
@@ -365,8 +361,7 @@ contains
                 ! Restrict FINE Res to COARSE Res (important to do this last
                 !     so we overwrite anything extra which may have been defined
                 !     above near fine-fine interfaces)
-                call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
-                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+                call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
 
                 ! Copy u_hold = uu
                 if (n < nlevs) call multifab_copy(uu_hold(n), uu(n), ng = nghost(uu(n)))
@@ -463,8 +458,7 @@ contains
 
              ! Only do this as long as tangential interp looks under fine grids
              mglev_crse = mgt(n-1)%nlevels
-             call ml_cc_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+             call ml_cc_restriction(full_soln(n-1), full_soln(n), mla%mba%rr(n-1,:))
 
           end do
 
@@ -472,8 +466,7 @@ contains
           do n = nlevs,2,-1
              mglev      = mgt(n)%nlevels
              mglev_crse = mgt(n-1)%nlevels
-             call ml_cc_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
-                  mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+             call ml_cc_restriction(full_soln(n-1), full_soln(n), mla%mba%rr(n-1,:))
           end do
 
           ! Interpolate soln to supply boundary conditions 
@@ -523,8 +516,7 @@ contains
              do n = nlevs,2,-1
                 mglev      = mgt(n  )%nlevels
                 mglev_crse = mgt(n-1)%nlevels
-                call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                     mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+                call ml_cc_restriction(res(n-1), res(n), mla%mba%rr(n-1,:))
              end do
 
              if ( mgt(nlevs)%verbose > 1 ) then
@@ -635,9 +627,7 @@ contains
 
           pdc = layout_get_pd(mla%la(n-1))
 
-          call ml_cc_restriction(full_soln(n-1), full_soln(n), &
-               mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
-               mla%mba%rr(n-1,:))
+          call ml_cc_restriction(full_soln(n-1), full_soln(n), mla%mba%rr(n-1,:))
        enddo
 
        !   Interpolate boundary conditions of soln in order to get correct grad(phi) at

@@ -5,6 +5,7 @@ module nodal_stencil_fill_module
   use bc_module
   use multifab_module
   use nodal_stencil_module
+  use nodal_stencil_bc_module
 
   implicit none
 
