@@ -26,6 +26,7 @@ f90EXE_sources += bl_prof_stubs.f90
 f90EXE_sources += bndry_reg.f90
 f90EXE_sources += box_f.f90
 f90EXE_sources += boxarray_f.f90
+f90EXE_sources += define_bc_tower.f90
 f90EXE_sources += fab.f90
 f90EXE_sources += fabio.f90
 f90EXE_sources += knapsack.f90
