@@ -61,7 +61,7 @@ contains
        ! tag all boxes where the first component of mf >= 1.01
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.01d0) then
+             if (mf(i,j) .gt. 1.01_dp_t) then
                 tagbox(i,j) = .true.
              end if
           end do
@@ -70,7 +70,7 @@ contains
        ! for level 2 tag all boxes where the first component of mf >= 1.1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.1d0) then
+             if (mf(i,j) .gt. 1.1_dp_t) then
                 tagbox(i,j) = .true.
              end if
           end do
@@ -79,7 +79,7 @@ contains
        ! for level 3 or greater tag all boxes where the first component of mf >= 1.5
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             if (mf(i,j) .gt. 1.5d0) then
+             if (mf(i,j) .gt. 1.5_dp_t) then
                 tagbox(i,j) = .true.
              end if
           end do
@@ -108,7 +108,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.01d0) then
+                if (mf(i,j,k) .gt. 1.01_dp_t) then
                    tagbox(i,j,k) = .true.
                 end if
              end do
@@ -119,7 +119,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.1d0) then
+                if (mf(i,j,k) .gt. 1.1_dp_t) then
                    tagbox(i,j,k) = .true.
                 end if
              end do
@@ -130,7 +130,7 @@ contains
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-                if (mf(i,j,k) .gt. 1.5d0) then
+                if (mf(i,j,k) .gt. 1.5_dp_t) then
                    tagbox(i,j,k) = .true.
                 end if
              end do

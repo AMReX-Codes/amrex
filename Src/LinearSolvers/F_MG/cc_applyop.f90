@@ -115,9 +115,9 @@ contains
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
-    use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_interp_bcs
-    use cc_ml_resid_module    , only : crse_fine_residual_cc
+    use ml_cc_restriction_module , only : ml_cc_restriction
+    use ml_prolongation_module   , only : ml_interp_bcs
+    use cc_ml_resid_module       , only : crse_fine_residual_cc
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -175,25 +175,22 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       call multifab_fill_boundary(full_soln(n-1))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), ng_fill, +i)
        end do
-       call multifab_fill_boundary(full_soln(n))
     end do
 
-    !   Make sure all periodic and internal boundaries are filled as well
-    do n = 1,nlevs   
-       call multifab_fill_boundary(full_soln(n))
-    end do
+    call multifab_fill_boundary(full_soln(nlevs))
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross)
+                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -204,15 +201,14 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                                  ref_ratio(n-1,:))
+                                  ref_ratio(n-1,:), filled=.true.)
 
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
     end do
 
     do n = nlevs, 1, -1
@@ -232,9 +228,9 @@ contains
  subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
-    use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_interp_bcs
-    use cc_ml_resid_module    , only : crse_fine_residual_n_cc
+    use ml_cc_restriction_module , only : ml_cc_restriction
+    use ml_prolongation_module   , only : ml_interp_bcs
+    use cc_ml_resid_module       , only : crse_fine_residual_n_cc
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -295,25 +291,22 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
+       call multifab_fill_boundary(full_soln(n-1))
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
                              ref_ratio(n-1,:), ng_fill, -i)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
                              ref_ratio(n-1,:), ng_fill, +i)
        end do
-       call multifab_fill_boundary(full_soln(n))
     end do
 
-    !   Make sure all periodic and internal boundaries are filled as well
-    do n = 1,nlevs   
-       call multifab_fill_boundary(full_soln(n))
-    end do
+    call multifab_fill_boundary(full_soln(nlevs))
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross) 
+                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.) 
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
@@ -324,14 +317,13 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                                    ref_ratio(n-1,:))
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+                                    ref_ratio(n-1,:), filled=.true.)
+       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
     do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,0)
+       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
     end do
 
     do n = nlevs, 1, -1

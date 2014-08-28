@@ -113,9 +113,9 @@ contains
       ny = size(phi,dim=2)-3
       nz = size(phi,dim=3)-3
 
-      ivdx = 1.0d0 / dx(1)
-      ivdy = 1.0d0 / dx(2)
-      ivdz = 1.0d0 / dx(3)
+      ivdx = ONE / dx(1)
+      ivdy = ONE / dx(2)
+      ivdz = ONE / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k,gpx,gpy,gpz)
       do k = 0,nz-1

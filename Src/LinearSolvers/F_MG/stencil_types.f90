@@ -4,11 +4,12 @@ module stencil_types_module
 
    ! Cell-centered stencils
    integer, parameter :: CC_CROSS_STENCIL = 11
-   integer, parameter :: HO_CROSS_STENCIL = 12 
+   integer, parameter :: HO_CROSS_STENCIL = 12
    integer, parameter :: HO_DENSE_STENCIL = 13
 
    ! Node-centered stencils
    integer, parameter :: ND_CROSS_STENCIL = 21
-   integer, parameter :: ND_DENSE_STENCIL = 22 
+   integer, parameter :: ND_DENSE_STENCIL = 22
+   integer, parameter :: ND_VATER_STENCIL = 23
 
 end module stencil_types_module

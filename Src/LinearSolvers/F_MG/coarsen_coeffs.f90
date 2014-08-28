@@ -1,13 +1,10 @@
 module coarsen_coeffs_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
 
   implicit none
-
-  real(kind=dp_t), private, parameter :: HALF   = 0.5_dp_t
-  real(kind=dp_t), private, parameter :: FOURTH = 0.25_dp_t
-  real(kind=dp_t), private, parameter :: EIGHTH = 0.125_dp_t
 
   private :: crse_cell_coeffs_1d, crse_xedge_coeffs_1d
   private :: crse_cell_coeffs_2d, crse_xedge_coeffs_2d, crse_yedge_coeffs_2d

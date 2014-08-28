@@ -1,7 +1,9 @@
 #ifndef _STENCIL_TYPES_H_
 #define _STENCIL_TYPES_H_
 
-// The values here should be consistent with the values in F_MG/stencil_tyeps.f90.
+   //
+   // The values here must be consistent with the values in F_MG/stencil_types.f90.
+   //
 
    // Cell-centered stencils
    const int CC_CROSS_STENCIL = 11;
@@ -11,5 +13,6 @@
    // Node-centered stencils
    const int ND_CROSS_STENCIL = 21;
    const int ND_DENSE_STENCIL = 22;
+   const int ND_VATER_STENCIL = 23;
 
 #endif

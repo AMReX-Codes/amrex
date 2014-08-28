@@ -40,8 +40,6 @@ contains
 
     integer :: bc_int
 
-    bc_int = UNDEFINED
-
     select case (str)
 
     case ("periodic")

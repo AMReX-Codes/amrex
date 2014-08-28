@@ -106,17 +106,12 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
         call init_cell_coeffs(mla,cell_coeffs,pd,coeffs_type)
         call cell_to_edge_coeffs(cell_coeffs,edge_coeffs(mgt(n)%nlevels,:))
         call multifab_destroy(cell_coeffs)
+        if (n.gt.1) then
+           do d = 1,dm
+              call ml_edge_restriction(edge_coeffs(n-1,d),edge_coeffs(n,d),mla%mba%rr(n-1,:),d)
+           end do
+        end if
      end if
-
-  end do
-
-  do n = nlevs,2,-1
-     do d = 1,dm
-        call ml_edge_restriction(edge_coeffs(n-1,d),edge_coeffs(n,d),mla%mba%rr(n-1,:),d)
-     end do
-  end do
-
-  do n = nlevs, 1, -1
 
      pxa = ZERO
      pxb = ZERO
@@ -130,9 +125,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
 
      call stencil_fill_cc_all_mglevels(mgt(n), alpha, edge_coeffs, xa, xb, pxa, pxb, &
                                        stencil_order, domain_bc)
-  end do
 
-  do n = nlevs, 1, -1
      call destroy(alpha(mgt(n)%nlevels))
      deallocate(alpha)
 

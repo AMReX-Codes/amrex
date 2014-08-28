@@ -13,9 +13,9 @@ contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,do_diagnostics)
 
-    use ml_norm_module        , only : ml_norm_inf
-    use ml_restriction_module , only : ml_restriction, periodic_add_copy
-    use ml_prolongation_module, only : ml_nodal_prolongation
+    use ml_norm_module             , only : ml_norm_inf
+    use ml_nodal_restriction_module, only : ml_nodal_restriction, periodic_add_copy
+    use ml_prolongation_module     , only : ml_nodal_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
@@ -45,6 +45,7 @@ contains
     logical :: fine_converged
 
     real(dp_t) :: Anorm, bnorm, fac, tres, ttres, tres0, t1(3), t2(3)
+    real(dp_t) :: mltres(mla%nlevel), lmltres(mla%nlevel)
     real(dp_t) :: stime, bottom_solve_time
 
     character(len=3)          :: number
@@ -205,10 +206,10 @@ contains
                   mgt(n-1)%stencil_type, mgt(n-1)%lcross, mgt(n-1)%uniform_dh)
 
              if ( dm .eq. 3 ) then
-                fac = (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = EIGHT**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = FOUR**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
@@ -226,8 +227,8 @@ contains
              end if
 
              ! Restrict FINE Res to COARSE Res
-             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                                 mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+             call ml_nodal_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                                       mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
@@ -241,10 +242,10 @@ contains
              call setval(uu(n),ZERO,all=.true.)
 
              if ( dm .eq. 3 ) then
-                fac = 1.0_dp_t / (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = ONE / EIGHT**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = 1.0_dp_t / (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = ONE / FOUR**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
 
@@ -328,8 +329,8 @@ contains
        do n = nlevs,2,-1
           mglev      = mgt(n)%nlevels
           mglev_crse = mgt(n-1)%nlevels
-          call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:), inject = .true.)
+          call ml_nodal_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
+                                    mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:), inject = .true.)
        end do
 
         do n = 1,nlevs
@@ -342,7 +343,7 @@ contains
         n = nlevs
         mglev = mgt(n)%nlevels
         call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                       mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh, filled=.true.)
 
         if ( ml_fine_converged(res, bnorm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
@@ -352,7 +353,7 @@ contains
           do n = 1,nlevs-1
              mglev = mgt(n)%nlevels
              call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),soln(n),mgt(n)%mm(mglev), &
-                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
+                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh, filled=.true.)
           end do
 
           do n = nlevs,2,-1
@@ -360,36 +361,38 @@ contains
              mglev      = mgt(n  )%nlevels
              mglev_crse = mgt(n-1)%nlevels
              if ( dm .eq. 3 ) then
-                fac = (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = EIGHT**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = FOUR**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
-             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+             call ml_nodal_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              !  Compute the coarse-fine residual at coarse-fine nodes
              pdc = layout_get_pd(mla%la(n-1))
              call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
                   zero_rh(n),temp_res(n),temp_res(n-1), &
-                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc)
+                  soln(n-1),soln(n),mla%mba%rr(n-1,:),pdc,filled=.true.) ! soln(n) is filled
              if ( dm .eq. 3 ) then
-                fac = 1.0_dp_t / (8.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = ONE / EIGHT**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              else if ( dm .eq. 2 ) then
-                fac = 1.0_dp_t / (4.0_dp_t)**(mla%mba%rr(n-1,1)/2)
+                fac = ONE / FOUR**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
           end do
 
           if ( mgt(nlevs)%verbose > 1 ) then
              do n = 1,nlevs
-                ttres = norm_inf(res(n),local=.true.)
-                call parallel_reduce(tres, ttres, MPI_MAX, proc = parallel_IOProcessorNode())
+                lmltres(n) = norm_inf(res(n),local=.true.)
+             end do
+             call parallel_reduce(mltres, lmltres, MPI_MAX, proc = parallel_IOProcessorNode())
+             do n = 1,nlevs
                 if ( parallel_IOProcessor() ) then
                    write(unit=*, fmt='("F90mg: Iteration   ",i3," Lev ",i1," resid/resid0 = ",g15.8)') &
-                        iter,n,tres/tres0
+                        iter,n,mltres(n)/tres0
                 end if
              end do
           end if
@@ -433,12 +436,12 @@ contains
            call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
 
            if ( parallel_IOProcessor() ) then
-              if ( tres0 .gt. 0.0_dp_t) then
+              if ( tres0 .gt. ZERO) then
                  write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,t2(1)/tres0
                  write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
                  write(unit=*, fmt='("")')
               else
-                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,0.0_dp_t
+                 write(unit=*, fmt='("F90mg: Final Iter. ",i3," resid/resid0 = ",g15.8)') iter,ZERO
                  write(unit=*, fmt='("F90mg: Solve time: ",g13.6, " Bottom Solve time: ", g13.6)') t2(2), t2(3)
                  write(unit=*, fmt='("")')
               end if
@@ -478,7 +481,7 @@ contains
   contains
 
     subroutine crse_fine_residual_nodal(n,mgt,brs_flx,crse_res,fine_rhs,temp_res,temp_crse_res, &
-         crse_soln,fine_soln,ref_ratio,pdc)
+         crse_soln,fine_soln,ref_ratio,pdc,filled)
 
       use nodal_interface_stencil_module , only : ml_crse_contrib, ml_fine_contrib
 
@@ -493,6 +496,7 @@ contains
       type(multifab) , intent(inout) :: fine_soln
       integer        , intent(in   ) :: ref_ratio(:)
       type(box)      , intent(in   ) :: pdc
+      logical, intent(in), optional  :: filled  ! is fine_soln filled?
 
       integer :: i,dm,mglev_crse,mglev_fine
 
@@ -507,7 +511,7 @@ contains
 
       call grid_res(mgt(n)%ss(mglev_fine),temp_res, &
                     fine_rhs,fine_soln,mgt(n)%mm(mglev_fine), &
-                    mgt(n)%lcross,  mgt(n)%stencil_type, mgt(n)%uniform_dh)
+                    mgt(n)%lcross,  mgt(n)%stencil_type, mgt(n)%uniform_dh, filled)
 
       !    Zero out the flux registers which will hold the fine contributions
       call bndry_reg_setval(brs_flx, ZERO, all = .true.)
@@ -563,8 +567,9 @@ contains
       type(multifab), intent(in) :: res(:)
       type(lmultifab), intent(in) :: mask(:)
       real(dp_t), intent(in) :: rel_eps, abs_eps, bnorm
-      real(dp_t) :: ni_res
-      ni_res = ml_norm_inf(res, mask)
+      real(dp_t) :: ni_res, l_ni_res
+      l_ni_res = ml_norm_inf(res, mask, local=.true.)
+      call parallel_reduce(ni_res, l_ni_res, MPI_MAX) 
       r = ( ni_res <= rel_eps*(bnorm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if (ni_res <= rel_eps*bnorm) then
@@ -577,7 +582,7 @@ contains
 
   end subroutine ml_nd
 
-  subroutine grid_res(ss, dd, ff, uu, mm, lcross, stencil_type, uniform_dh)
+  subroutine grid_res(ss, dd, ff, uu, mm, lcross, stencil_type, uniform_dh, filled)
 
     type(multifab), intent(in)    :: ff, ss
     type(multifab), intent(inout) :: dd, uu
@@ -585,6 +590,7 @@ contains
     logical, intent(in) :: lcross
     integer, intent(in) :: stencil_type
     logical, intent(in) :: uniform_dh
+    logical, intent(in), optional :: filled
 
     integer :: i, n
     real(kind=dp_t), pointer :: dp(:,:,:,:)
@@ -593,15 +599,18 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
     integer :: dm,nodal_ng
+    logical :: lfilled
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "grid_res")
+
+    lfilled = .false.;  if (present(filled)) lfilled = filled
 
     nodal_ng = 0; if ( nodal_q(uu) ) nodal_ng = 1
 
     dm = get_dim(uu)
 
-    call multifab_fill_boundary(uu, cross = lcross)
+    if (.not.lfilled) call multifab_fill_boundary(uu, cross = lcross)
 
     do i = 1, nfabs(uu)
        dp  => dataptr(dd, i)
@@ -648,7 +657,7 @@ contains
     call impose_neumann_bcs_1d(uu,mm,lo,ng)
 
     allocate(sg_int(0:nx+1))
-    sg_int(:) = 0.d0 
+    sg_int(:) = ZERO 
 
     ! Copy the interior values only, we do *not* want to fill ghost cells that 
     !      intersect other fine grids.
@@ -689,7 +698,7 @@ contains
     call impose_neumann_bcs_2d(uu,mm,lo,ng)
 
     allocate(sg_int(0:nx+1,0:ny+1))
-    sg_int(:,:) = 0.d0 
+    sg_int(:,:) = ZERO 
 
     ! Copy the interior values only, we do *not* want to fill ghost cells that 
     !      intersect other fine grids.
@@ -702,7 +711,9 @@ contains
     ! Set values across Neumann boundaries
     call set_faces_edges_corners_2d(sg_int, mm, lo, hi)
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error('ND_VATER_STENCIL not implemented in grid_laplace_2d')
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
  
 !     Interior
       do j = 1,ny+1
@@ -772,7 +783,7 @@ contains
     call impose_neumann_bcs_3d(uu,mm,lo,ng)
 
     allocate(sg_int(0:nx+1,0:ny+1,0:nz+1))
-    sg_int(:,:,:) = 0.d0 
+    sg_int(:,:,:) = ZERO 
 
     ! Copy the interior values only, we do *not* want to fill ghost cells that 
     !      intersect other fine grids.
@@ -781,7 +792,7 @@ contains
     ! Set values across Neumann boundaries
     call set_faces_edges_corners_3d(sg_int, mm, lo, hi)
 
-    fx     = 1.d0/36.d0
+    fx     = ONE/36._dp_t
     fy     = fx
     fz     = fx
     f0     = FOUR * (fx + fy + fz)
@@ -790,13 +801,15 @@ contains
     f2x2zy = (TWO*fx+TWO*fz-fy)
     f2x2yz = (TWO*fx+TWO*fy-fz)
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error('ND_VATER_STENCIL not implemented in grid_laplace_3d')
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
       !$OMP PARALLEL DO PRIVATE(i,j,k,ff_fac,ss0)
       do k = 1,nz+1
       do j = 1,ny+1
       do i = 1,nx+1
 
-          ff_fac = 1.0d0
+          ff_fac = ONE
           if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
           if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
           if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
@@ -852,7 +865,7 @@ contains
 
           ! This accounts for the fact that fac = 1/(4*dx*dx) to be compatible with
           !      the cross stencil
-          dd(i,j,k) = 4.0d0 * dd(i,j,k)
+          dd(i,j,k) = FOUR * dd(i,j,k)
       end do
       end do
       end do
@@ -865,7 +878,7 @@ contains
       do j = 1,ny+1
       do i = 1,nx+1
 
-          ff_fac = 1.0d0
+          ff_fac = ONE
           if (i.eq.1 .or. i.eq.nx+1) ff_fac = HALF * ff_fac
           if (j.eq.1 .or. j.eq.ny+1) ff_fac = HALF * ff_fac
           if (k.eq.1 .or. k.eq.nz+1) ff_fac = HALF * ff_fac
@@ -886,7 +899,7 @@ contains
              (sg_int(i-1,j-1,k-1) + sg_int(i-1,j  ,k-1) &
              +sg_int(i  ,j-1,k-1) + sg_int(i  ,j  ,k-1) &
              +sg_int(i-1,j-1,k  ) + sg_int(i-1,j  ,k  ) &
-             +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) * 3.d0 * uu(i  ,j  ,k  ) )
+             +sg_int(i  ,j-1,k  ) + sg_int(i  ,j  ,k  )) * THREE * uu(i  ,j  ,k  ) )
       end do
       end do
       end do
@@ -920,7 +933,7 @@ contains
 
     type(box) :: bx
 
-    call build(bpt, "st_norm")
+    call build(bpt, "st_norm_nd")
 
     llocal = .false.; if ( present(local) ) llocal = local
 
@@ -967,7 +980,7 @@ contains
                    ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                            +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                            +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
-                           +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.d0
+                           +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * THREE
                    sum_comps = abs(ss0) + &
                      abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
                         +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
@@ -1021,7 +1034,7 @@ contains
                 ss0 = -( sp(1,i-1,j-1,k-1) + sp(1,i-1,j  ,k-1) &
                         +sp(1,i  ,j-1,k-1) + sp(1,i  ,j  ,k-1) &
                         +sp(1,i-1,j-1,k  ) + sp(1,i-1,j  ,k  ) &
-                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * 3.0d0
+                        +sp(1,i  ,j-1,k  ) + sp(1,i  ,j  ,k  )) * THREE
                 sum_comps = abs(ss0) + &
                   abs(sp(1,i-1,j-1,k-1) + sp(1,i-1,j-1,k  )    &
                      +sp(1,i-1,j  ,k-1) + sp(1,i-1,j  ,k  )) + &
@@ -1047,7 +1060,7 @@ contains
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-      fx     = 1.d0/36.d0
+      fx     = ONE/36._dp_t
       fy     = fx
       fz     = fx
       f0     = FOUR * (fx + fy + fz)
@@ -1220,6 +1233,73 @@ contains
           end do
           end do
           end do
+          end if
+       end do
+       !$OMP END PARALLEL DO
+
+      end if   ! present(mask) test
+
+    else if (stencil_type .eq. ND_VATER_STENCIL) then
+
+      if (dm .eq. 3) &
+          call bl_error("nodal_stencil_norm: ND_VATER_STENCIL not implemented in 3-d")
+
+      if (present(mask)) then
+      
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp,lp) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          bx = get_box(sg,b)
+
+          sp => dataptr(sg, b)
+          lp => dataptr(mask, b)
+
+          if (dm.eq.2) then
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
+                if ( lp(i,j,1,1) ) then
+                  ss0 = -THREE4TH * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                     sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
+                  sum_comps = abs(ss0) + FOURTH * ( &
+                         abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                         abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                         abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) + &
+                         abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) + &
+                         abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) + &
+                         abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) )
+                  r1 = max(r1,sum_comps)
+                end if ! mask test
+             end do
+             end do
+          end if
+
+       end do ! end nfabs
+       !$OMP END PARALLEL DO
+
+      else   ! present(mask) test
+
+       !$OMP PARALLEL DO PRIVATE(i,j,k,bx,sum_comps,ss0,sp) REDUCTION(max:r1)
+       do b = 1, nfabs(sg)
+          ! This is the cell-centered box with one ghost cell
+          bx = get_box(sg,b)
+          sp => dataptr(sg, b)
+
+          if (dm.eq.2) then
+
+             do j = bx%lo(2), bx%hi(2)+1
+             do i = bx%lo(1), bx%hi(1)+1
+               ss0 = -THREE4TH * (sp(1,i-1,j-1,1) + sp(1,i,j-1,1) + &
+                                  sp(1,i-1,j  ,1) + sp(1,i,j  ,1))
+               sum_comps = abs(ss0) + FOURTH * ( &
+                      abs(sp(1,i-1,j-1,1)) + abs(sp(1,i  ,j-1,1)) + &
+                      abs(sp(1,i-1,j  ,1)) + abs(sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j-1,1) + sp(1,i  ,j-1,1)) + &
+                      abs(sp(1,i-1,j-1,1) + sp(1,i-1,j  ,1)) + &
+                      abs(sp(1,i  ,j-1,1) + sp(1,i  ,j  ,1)) + &
+                      abs(sp(1,i-1,j  ,1) + sp(1,i  ,j  ,1)) )
+               r1 = max(r1,sum_comps)
+             end do ! end i
+             end do ! end j
+
           end if
        end do
        !$OMP END PARALLEL DO

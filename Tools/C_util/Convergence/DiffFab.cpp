@@ -84,56 +84,71 @@ main (int   argc,
         BoxLib::Abort("You must specify `exact' file");
 
     pp.query("outfile", oFile);
-    if (oFile.empty())
-        BoxLib::Abort("You must specify `outfile'");
+    bool do_out = !oFile.empty();
 
     std::ifstream is1(iFile.c_str(),ios::in);
     std::ifstream is2(eFile.c_str(),ios::in);
-    std::ofstream os (oFile.c_str(),ios::out);
+    std::ofstream os;
+    if (do_out) {
+      os.open(oFile.c_str(),ios::out);
+    }
 
     FArrayBox dataI, dataE;
     dataI.readFrom(is1);
     dataE.readFrom(is2);
 
-    BL_ASSERT(dataI.nComp() == dataE.nComp());
+    bool has_nan_I = dataE.contains_nan();
+    bool has_nan_E = dataI.contains_nan();
+    bool fabs_agree = false;
+
+    if (!has_nan_I && !has_nan_E) {
+      BL_ASSERT(dataI.nComp() == dataE.nComp());
 	
-    //
-    // Compute the error
-    //
-    int nComp = dataI.nComp();
-    const Box& domainI = dataI.box();
-    const Box& domainE = dataE.box();
-    IntVect refine_ratio = getRefRatio(domainI, domainE);
+      //
+      // Compute the error
+      //
+      int nComp = dataI.nComp();
+      const Box& domainI = dataI.box();
+      const Box& domainE = dataE.box();
+      IntVect refine_ratio = getRefRatio(domainI, domainE);
 
-    if (refine_ratio == IntVect())
-      BoxLib::Error("Cannot find refinement ratio from data to exact");
+      if (refine_ratio == IntVect())
+        BoxLib::Error("Cannot find refinement ratio from data to exact");
     
-    FArrayBox error(domainI,nComp);
-    error.setVal(GARBAGE);
+      FArrayBox error(domainI,nComp);
+      error.setVal(GARBAGE);
  
-    FArrayBox exactAvg(domainI,nComp);
+      FArrayBox exactAvg(domainI,nComp);
       
-    FORT_CV_AVGDOWN(exactAvg.dataPtr(),
-		    ARLIM(exactAvg.loVect()), 
-		    ARLIM(exactAvg.hiVect()), &nComp,
-		    dataE.dataPtr(),
-		    ARLIM(dataE.loVect()), ARLIM(dataE.hiVect()),
-		    domainI.loVect(), domainI.hiVect(),
-		    refine_ratio.getVect());
+      FORT_CV_AVGDOWN(exactAvg.dataPtr(),
+                      ARLIM(exactAvg.loVect()), 
+                      ARLIM(exactAvg.hiVect()), &nComp,
+                      dataE.dataPtr(),
+                      ARLIM(dataE.loVect()), ARLIM(dataE.hiVect()),
+                      domainI.loVect(), domainI.hiVect(),
+                      refine_ratio.getVect());
 
-    error.copy(exactAvg);
-    error.minus(dataI);
-    error.writeOn(os);
+      error.copy(exactAvg);
+      error.minus(dataI);
+      if (do_out) {
+        error.writeOn(os);
+      }
+      Box bx = error.box();
+      int points = bx.numPts();
 
-    Box bx = error.box();
-    int points = bx.numPts();
+      Real norm0 = error.norm(0);
+      Real norm1 = error.norm(1)/points;
+      Real norm2 = error.norm(2)/sqrt(points);
+      std::cout << "L0 NORM                           = " << norm0 << std::endl;
+      std::cout << "L1 NORM (normalized by 1/N)       = " << norm1 << std::endl;
+      std::cout << "L2 NORM (normalized by 1/sqrt(N)) = " << norm2 << std::endl;
 
-    std::cout << "L0 NORM                           = " << error.norm(0) 
-	      << std::endl;
-    std::cout << "L1 NORM (normalized by 1/N)       = " << error.norm(1)/points
-	      << std::endl;
-    std::cout << "L2 NORM (normalized by 1/sqrt(N)) = " << error.norm(2)/sqrt(points) 
-	      << std::endl;
+      fabs_agree = (norm0 <= 1.e-20) && (norm1 <= 1.e-20) && (norm2 <= 1.e-20);
+    }
+
+    if (!has_nan_I && !has_nan_E && fabs_agree) {
+      std::cout << "FABS AGREE" << std::endl;
+    }
 
     BoxLib::Finalize();
 }

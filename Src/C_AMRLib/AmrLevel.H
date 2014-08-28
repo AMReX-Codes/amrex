@@ -159,8 +159,8 @@ public:
     virtual  int okToContinue () = 0;
     //
     // Should I regrid with this level as base level?
-    // This test is only evaluated when level_count >= regrid_int
-    // as well. Defaults to true.
+    // This test is only evaluated if regrid_int > 0 and 
+    // level_count >= regrid_int as well. Defaults to true.
     //
     virtual  int okToRegrid ();
     //
@@ -246,6 +246,21 @@ public:
     // Returns number of cells on level.
     //
     long countCells () const;
+
+    //
+    // Get the area not to tag.
+    //
+    const BoxArray& getAreaNotToTag();
+    const Box& getAreaToTag();
+    //
+    // Constuct the area not to tag.
+    //
+    void constructAreaNotToTag();
+    //
+    // Set the area not to tag.
+    //
+    void setAreaNotToTag(BoxArray& ba);
+
     //
     // Error estimation for regridding. This is a pure virtual
     // function and hence MUST be implemented by derived classes.
@@ -434,6 +449,9 @@ protected:
     static SlabStatList   slabstat_lst; // List of SlabStats.
 #endif
     Array<StateData>      state;        // Array of state data.
+
+    BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
+    Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
 private:
     //

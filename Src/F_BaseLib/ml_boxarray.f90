@@ -319,6 +319,7 @@ contains
        call destroy(ba_fine)
        if ( .not. r ) then
           call destroy(ba_crse_fine)
+          call destroy(bpt)
           return
        end if
 
@@ -363,6 +364,7 @@ contains
              call destroy(ba)
              if ( .not. r ) then
                 call destroy(ba_crse_fine)
+                call destroy(bpt)
                 return
              end if
           end if
