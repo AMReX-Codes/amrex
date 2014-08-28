@@ -11,7 +11,7 @@ module ml_nodal_restriction_module
 
   private
 
-  public :: periodic_add_copy, ml_nodal_restriction_wrapper
+  public :: periodic_add_copy, ml_nodal_restriction, ml_nodal_restriction_wrapper
 
 contains
 

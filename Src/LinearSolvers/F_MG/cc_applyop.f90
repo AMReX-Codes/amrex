@@ -203,8 +203,7 @@ contains
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                   ref_ratio(n-1,:), filled=.true.)
 
-       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                              mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
@@ -319,8 +318,7 @@ contains
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                     ref_ratio(n-1,:), filled=.true.)
-       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                              mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
