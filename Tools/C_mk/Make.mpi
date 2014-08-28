@@ -63,7 +63,8 @@ ifeq ($(MACHINE), Linux)
       FC := mpif90
       F90 := mpif90
       fC := mpif90
-
+      
+      BL_MPI_LIBS += -lmpi -lmpi_f90
     endif
 
     ifeq ($(WHICHLINUX), BLUE_WATERS)
@@ -418,6 +419,7 @@ ifeq ($(MACHINE), Linux)
       MPI_HOME=/usr/local/mpich
     endif
 
+    ifneq ($(WHICHLINUX), LANL)
     ifneq ($(HOSTNAME), hyades.ucsc.edu)
     ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
@@ -445,6 +447,7 @@ ifeq ($(MACHINE), Linux)
           endif
         endif
       endif
+    endif
     endif
     endif
 
