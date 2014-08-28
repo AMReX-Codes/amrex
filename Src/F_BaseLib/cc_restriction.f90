@@ -3,7 +3,6 @@ module cc_restriction_module
   use bl_constants_module
   use bl_error_module
   use bl_types
-  use bc_functions_module
 
   implicit none
 

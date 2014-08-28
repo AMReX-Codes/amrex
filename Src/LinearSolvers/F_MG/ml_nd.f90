@@ -13,9 +13,9 @@ contains
 
   subroutine ml_nd(mla,mgt,rh,full_soln,fine_mask,do_diagnostics)
 
-    use ml_norm_module        , only : ml_norm_inf
-    use ml_restriction_module , only : ml_restriction, periodic_add_copy
-    use ml_prolongation_module, only : ml_nodal_prolongation
+    use ml_norm_module          , only : ml_norm_inf
+    use ml_nd_restriction_module, only : ml_nodal_restriction, periodic_add_copy
+    use ml_prolongation_module  , only : ml_nodal_prolongation
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower ), intent(inout) :: mgt(:)
@@ -227,8 +227,8 @@ contains
              end if
 
              ! Restrict FINE Res to COARSE Res
-             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                                 mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+             call ml_nodal_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                                       mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              ! Compute CRSE-FINE Res = Rh - Lap(Soln)
              pdc = layout_get_pd(mla%la(n-1))
@@ -329,8 +329,8 @@ contains
        do n = nlevs,2,-1
           mglev      = mgt(n)%nlevels
           mglev_crse = mgt(n-1)%nlevels
-          call ml_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
-               mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:), inject = .true.)
+          call ml_nodal_restriction(soln(n-1), soln(n), mgt(n)%mm(mglev), &
+                                    mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:), inject = .true.)
        end do
 
         do n = 1,nlevs
@@ -367,7 +367,7 @@ contains
                 fac = FOUR**(mla%mba%rr(n-1,1)/2)
                 call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
              end if
-             call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+             call ml_nodal_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                   mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
              !  Compute the coarse-fine residual at coarse-fine nodes

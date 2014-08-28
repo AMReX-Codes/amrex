@@ -14,10 +14,10 @@ contains
                    do_diagnostics, need_grad_phi_in, final_resnorm, status)
 
     use bl_prof_module
-    use ml_norm_module        , only : ml_norm_inf
-    use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_cc_prolongation, ml_interp_bcs
-    use cc_ml_resid_module    , only : crse_fine_residual_cc
+    use ml_norm_module          , only : ml_norm_inf
+    use ml_cc_restriction_module, only : ml_cc_restriction
+    use ml_prolongation_module  , only : ml_cc_prolongation, ml_interp_bcs
+    use cc_ml_resid_module      , only : crse_fine_residual_cc
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -106,7 +106,7 @@ contains
     do n = nlevs,2,-1
        mglev      = mgt(n  )%nlevels
        mglev_crse = mgt(n-1)%nlevels
-       call ml_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
+       call ml_cc_restriction(rh(n-1), rh(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     end do
 
@@ -120,7 +120,7 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
 
-       call ml_restriction(full_soln(n-1), full_soln(n), &
+       call ml_cc_restriction(full_soln(n-1), full_soln(n), &
             mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
             mla%mba%rr(n-1,:))
     enddo
@@ -156,7 +156,7 @@ contains
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
             mla%mba%rr(n-1,:), filled=.true.)
 
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
             mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
     enddo
     !
@@ -365,7 +365,7 @@ contains
                 ! Restrict FINE Res to COARSE Res (important to do this last
                 !     so we overwrite anything extra which may have been defined
                 !     above near fine-fine interfaces)
-                call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
+                call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev), &
                      mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
                 ! Copy u_hold = uu
@@ -463,7 +463,7 @@ contains
 
              ! Only do this as long as tangential interp looks under fine grids
              mglev_crse = mgt(n-1)%nlevels
-             call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
+             call ml_cc_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
                   mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
           end do
@@ -472,7 +472,7 @@ contains
           do n = nlevs,2,-1
              mglev      = mgt(n)%nlevels
              mglev_crse = mgt(n-1)%nlevels
-             call ml_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
+             call ml_cc_restriction(full_soln(n-1), full_soln(n), mgt(n)%mm(mglev), &
                   mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
           end do
 
@@ -523,7 +523,7 @@ contains
              do n = nlevs,2,-1
                 mglev      = mgt(n  )%nlevels
                 mglev_crse = mgt(n-1)%nlevels
-                call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
                      mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
              end do
 
@@ -635,7 +635,7 @@ contains
 
           pdc = layout_get_pd(mla%la(n-1))
 
-          call ml_restriction(full_soln(n-1), full_soln(n), &
+          call ml_cc_restriction(full_soln(n-1), full_soln(n), &
                mgt(n)%mm(mglev),mgt(n-1)%mm(mglev_crse),  &
                mla%mba%rr(n-1,:))
        enddo

@@ -4,7 +4,7 @@ module nodal_divu_module
   use bc_functions_module
   use bndry_reg_module
   use mg_tower_module
-  use ml_restriction_module
+  use ml_nd_restriction_module
   use define_bc_module
 
   implicit none
