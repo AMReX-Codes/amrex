@@ -5,7 +5,7 @@ module compute_flux_module
   use ml_layout_module
   use multifab_physbc_module
   use multifab_fill_ghost_module
-  use ml_restriction_module
+  use ml_cc_restriction_module
   use bndry_reg_module
   use define_bc_module
   use bc_module

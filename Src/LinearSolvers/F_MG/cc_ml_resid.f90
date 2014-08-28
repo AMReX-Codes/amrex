@@ -91,9 +91,9 @@ contains
 
   subroutine ml_resid(mla, mgt, rh, res, full_soln, ref_ratio)
 
-    use ml_restriction_module  , only : ml_restriction
-    use ml_prolongation_module , only : ml_interp_bcs
-    use stencil_defect_module  , only : compute_defect
+    use ml_cc_restriction_module, only : ml_cc_restriction
+    use ml_prolongation_module  , only : ml_interp_bcs
+    use stencil_defect_module   , only : compute_defect
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -160,8 +160,8 @@ contains
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc,ref_ratio(n-1,:), filled=.true.)
 
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-            mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                              mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     do n = nlevs, 1, -1

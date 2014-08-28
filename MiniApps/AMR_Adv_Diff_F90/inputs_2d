@@ -6,7 +6,6 @@
  n_cell = 64
  max_grid_size = 16
 
- nsteps = 100
  nsteps = 10
 
  do_subcycling = T

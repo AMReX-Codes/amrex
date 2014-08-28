@@ -115,9 +115,9 @@ contains
   subroutine ml_cc_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
-    use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_interp_bcs
-    use cc_ml_resid_module    , only : crse_fine_residual_cc
+    use ml_cc_restriction_module , only : ml_cc_restriction
+    use ml_prolongation_module   , only : ml_interp_bcs
+    use cc_ml_resid_module       , only : crse_fine_residual_cc
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -203,8 +203,8 @@ contains
        call crse_fine_residual_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                   ref_ratio(n-1,:), filled=.true.)
 
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                              mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
@@ -229,9 +229,9 @@ contains
  subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
 
     use bl_prof_module
-    use ml_restriction_module , only : ml_restriction
-    use ml_prolongation_module, only : ml_interp_bcs
-    use cc_ml_resid_module    , only : crse_fine_residual_n_cc
+    use ml_cc_restriction_module , only : ml_cc_restriction
+    use ml_prolongation_module   , only : ml_interp_bcs
+    use cc_ml_resid_module       , only : crse_fine_residual_n_cc
 
     type(ml_layout), intent(in)    :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -319,8 +319,8 @@ contains
        pdc = layout_get_pd(mla%la(n-1))
        call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
                                     ref_ratio(n-1,:), filled=.true.)
-       call ml_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
-                           mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
+       call ml_cc_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+                              mgt(n-1)%mm(mglev_crse), ref_ratio(n-1,:))
     enddo
 
     ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
