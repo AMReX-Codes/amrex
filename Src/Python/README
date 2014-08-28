@@ -6,6 +6,13 @@ PyBoxLib is a Python wrapper of the C++ version of `BoxLib`_.
 .. _`BoxLib`: https://ccse.lbl.gov/BoxLib/index.html
 
 
+Install
+=======
+
+$ python setup.py build
+$ python setup.py install
+
+
 Basic usage
 ===========
 
@@ -39,9 +46,8 @@ creating Boxes, BoxArrays, and MultiFabs a bit more Pythonic.
 
 Note that the dimension of all BoxLib objects is set at compile time.
 As such, PyBoxLib compiles three versions of BoxLib (for 1, 2, and 3
-dimensions).  As such, the first time you call one of the convenience
-routines (Box, BoxArray etc), PyBoxLib loads the appropriate shared
-library.
+dimensions).  The first time you call one of the convenience routines
+(Box, BoxArray etc), PyBoxLib loads the appropriate shared library.
 
 To access the raw SWIG generate shared library, simply access the "bl"
 object in boxlib, and index it with the dimensionality that you need.
@@ -68,7 +74,6 @@ Known issues
    sure there is a way around this...
 
 #. The C++ version stores components in a non-interleaved format.
-   That is, in Fortran the indexing is a(i,j,k,c).  An interleaved
-   format is being worked on...
+   That is, in Fortran the indexing is a(i,j,k,c).
 
 

@@ -4,7 +4,7 @@ module nodal_divu_module
   use bc_functions_module
   use bndry_reg_module
   use mg_tower_module
-  use ml_restriction_module
+  use ml_nodal_restriction_module
   use define_bc_module
 
   implicit none
@@ -148,9 +148,9 @@ contains
       
       rh = ZERO
 
-      ivdx = 1.0d0 / dx(1)
-      ivdy = 1.0d0 / dx(2)
-      ivdz = 1.0d0 / dx(3)
+      ivdx = ONE / dx(1)
+      ivdy = ONE / dx(2)
+      ivdz = ONE / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = lo(3),hi(3)+1
@@ -406,9 +406,9 @@ contains
          u(0:nx-1,0:ny-1,nz,3) = ZERO
       end if
 
-      ivdx = 1.0d0 / dx(1)
-      ivdy = 1.0d0 / dx(2)
-      ivdz = 1.0d0 / dx(3)
+      ivdx = ONE / dx(1)
+      ivdy = ONE / dx(2)
+      ivdz = ONE / dx(3)
 
       !$OMP PARALLEL DO PRIVATE(i,j,k)
       do k = 0,nz
@@ -606,7 +606,7 @@ contains
 
 !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
 
-    fac = 1.0_dp_t / dble(ir(1))
+    fac = ONE / ir(1)
 
 !   Lo i side
     if (side == -1) then
@@ -664,7 +664,7 @@ contains
 
 !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
 
-    fac = 1.0_dp_t / dble(ir(1)*ir(2))
+    fac = ONE / (ir(1)*ir(2))
 
 !   Lo i side
     if (side == -1) then
@@ -857,7 +857,7 @@ contains
 
 !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
 
-    fac = 1.0_dp_t / (ir(1)*ir(2)*ir(3))
+    fac = ONE / (ir(1)*ir(2)*ir(3))
 
 !   Lo/Hi i side
     if (( side == -1) .or. (side == 1) ) then

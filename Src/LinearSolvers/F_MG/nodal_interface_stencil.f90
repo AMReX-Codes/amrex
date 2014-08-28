@@ -281,7 +281,10 @@ contains
 
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
 
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error("ml_interface_2d_nodal: ND_VATER_STENCIL not implemented at interfaces")
+
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
     ! Dense stencil
 
       if (side == -1) then
@@ -316,9 +319,9 @@ contains
                 end if
 
                 if (ir(1) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(1) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
 
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
@@ -358,9 +361,9 @@ contains
                 end if
 
                 if (ir(1) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(1) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
 
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
@@ -400,9 +403,9 @@ contains
                 end if
 
                 if (ir(2) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(2) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
 
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
@@ -442,9 +445,9 @@ contains
                 end if
 
                 if (ir(2) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(2) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
 
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
@@ -496,9 +499,9 @@ contains
                 end if
 
                 if (ir(1) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(1) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
 
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
@@ -543,9 +546,9 @@ contains
                         +HALF*HALF*(sg(i-1,j)+sg(i-1,j-1))*(cc(i-1,j)-cc(i,j)) 
                 end if
                 if (ir(1) .eq. 2) then
-                   crse_flux = crse_flux * 4.0_dp_t
+                   crse_flux = crse_flux * FOUR
                 else if (ir(1) .eq. 4) then
-                   crse_flux = crse_flux * 16.0_dp_t
+                   crse_flux = crse_flux * SIXTEEN
                 end if
                 res(i,j) = res(i,j) + crse_flux + fine_flux(i,j)
              end if
@@ -598,9 +601,12 @@ contains
     !   NOTE: THESE STENCILS ONLY WORK FOR DX == DY.
     !   NOTE: MM IS ON THE FINE GRID, NOT THE CRSE
     !
-    if (stencil_type .eq. ND_DENSE_STENCIL) then
+    if (stencil_type .eq. ND_VATER_STENCIL) then
+        call bl_error("ml_interface_3d_nodal: ND_VATER_STENCIL not implemented at interfaces")
+
+    else if (stencil_type .eq. ND_DENSE_STENCIL) then
        ! Dense stencil
-       fx     = 1.d0/36.d0
+       fx     = ONE/36._dp_t
        fy     = fx
        fz     = fx
        fxyz   = fx + fy + fz
@@ -688,7 +694,7 @@ contains
                    end if
 
                    if (ir(1) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(1) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -779,7 +785,7 @@ contains
                    end if
 
                    if (ir(2) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(2) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -870,7 +876,7 @@ contains
                    end if
 
                    if (ir(3) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(3) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -995,7 +1001,7 @@ contains
                    end if
 
                    if (ir(1) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(1) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -1113,7 +1119,7 @@ contains
                    end if
 
                    if (ir(2) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(2) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -1231,7 +1237,7 @@ contains
                    end if
 
                    if (ir(3) .eq. 2) then
-                      crse_flux = crse_flux * 8.0_dp_t
+                      crse_flux = crse_flux * EIGHT
                    else if (ir(3) .eq. 4) then
                       crse_flux = crse_flux * 64.0_dp_t
                    end if
@@ -1616,8 +1622,6 @@ contains
     real (kind = dp_t) :: fac, fac0, fac1, fac2, corner_fac
     logical ll1,ll2,ll3,lh1,lh2,lh3
 
-    real (kind = dp_t), parameter :: VAL = (0.25_dp_t / 3.0_dp_t)
-
     nx = size(mm,dim=1)-1
     ny = size(mm,dim=2)-1
     nz = size(mm,dim=3)-1
@@ -1645,7 +1649,7 @@ contains
       end if
 
       ic   = lod(1)
-      fac0 = 1.0_dp_t / (ratio(2)*ratio(3))
+      fac0 = ONE / (ratio(2)*ratio(3))
       !
       ! First average along the coarse-fine face.
       !
@@ -1692,7 +1696,7 @@ contains
       j  = 0
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),2,-1) .and. (.not. bc_neumann(mm(i,j,k),3,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       jc = hid(2)
@@ -1700,7 +1704,7 @@ contains
       j  = ny
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),2,+1) .and. (.not. bc_neumann(mm(i,j,k),3,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       jc = lod(2)
@@ -1708,7 +1712,7 @@ contains
       j  = 0
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),2,-1) .and. (.not. bc_neumann(mm(i,j,k),3,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       jc = hid(2)
@@ -1716,7 +1720,7 @@ contains
       j  = ny
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),2,+1) .and. (.not. bc_neumann(mm(i,j,k),3,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       j = 0
@@ -1785,7 +1789,7 @@ contains
                 else if ( .not. ( ll2 .or. lh2 ) .and. ( ll3 .or. lh3 ) ) then
                    corner_fac = HALF
                 else
-                   corner_fac = 1.0_dp_t
+                   corner_fac = ONE
                 end if
 
                 ll2 = (j-n >  0); if (.not. ll2) ll2 = bc_neumann(mm(i,j,k),2,-1)
@@ -1834,7 +1838,7 @@ contains
       end if
 
       jc   = lod(2)
-      fac0 = 1.0_dp_t / (ratio(1)*ratio(3))
+      fac0 = ONE / (ratio(1)*ratio(3))
       !
       ! First average along the coarse-fine face.
       !
@@ -1881,7 +1885,7 @@ contains
       i  = 0
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,-1) .and. (.not. bc_neumann(mm(i,j,k),3,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -1889,7 +1893,7 @@ contains
       i  = nx
       k  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,+1) .and. (.not. bc_neumann(mm(i,j,k),3,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = lod(1)
@@ -1897,7 +1901,7 @@ contains
       i  = 0
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),1,-1) .and. (.not. bc_neumann(mm(i,j,k),3,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -1905,7 +1909,7 @@ contains
       i  = nx
       k  = nz
       if ( .not. bc_neumann(mm(i,j,k),1,+1) .and. (.not. bc_neumann(mm(i,j,k),3,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       i = 0
@@ -1975,7 +1979,7 @@ contains
                           ( ll1 .or. lh1 ) .and. ( ll3 .or. lh3 ) ) then
                    corner_fac = HALF
                 else
-                   corner_fac = 1.0_dp_t
+                   corner_fac = ONE
                 end if
 
                 ll1 = (i-n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1)
@@ -2024,7 +2028,7 @@ contains
       end if
 
       kc   = lod(3)
-      fac0 = 1.0_dp_t / (ratio(1)*ratio(2))
+      fac0 = ONE / (ratio(1)*ratio(2))
       !
       ! First average along the coarse-fine face.
       !
@@ -2071,7 +2075,7 @@ contains
       i  = 0
       j  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,-1) .and. (.not. bc_neumann(mm(i,j,k),2,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -2079,7 +2083,7 @@ contains
       i  = nx
       j  = 0
       if ( .not. bc_neumann(mm(i,j,k),1,+1) .and. (.not. bc_neumann(mm(i,j,k),2,-1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = lod(1)
@@ -2087,7 +2091,7 @@ contains
       i  = 0
       j  = ny
       if ( .not. bc_neumann(mm(i,j,k),1,-1) .and. (.not. bc_neumann(mm(i,j,k),2,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       ic = hid(1)
@@ -2095,7 +2099,7 @@ contains
       i  = nx
       j  = ny
       if ( .not. bc_neumann(mm(i,j,k),1,+1) .and. (.not. bc_neumann(mm(i,j,k),2,+1)) ) then
-         dd(ic,jc,kc) = dd(ic,jc,kc) + VAL * res(i,j,k)
+         dd(ic,jc,kc) = dd(ic,jc,kc) + TWELFTH * res(i,j,k)
       end if
 
       i = 0
@@ -2165,7 +2169,7 @@ contains
                           ( ll1 .or. lh1 ) .and. ( ll2 .or. lh2 ) ) then
                    corner_fac = HALF
                 else
-                   corner_fac = 1.0_dp_t
+                   corner_fac = ONE
                 end if
 
                 ll1 = (i-n >  0); if (.not. ll1) ll1 = bc_neumann(mm(i,j,k),1,-1) 

@@ -1,5 +1,6 @@
 module mg_prolongation_module
 
+  use bl_constants_module
   use bl_types
   use box_module
 
@@ -244,8 +245,6 @@ contains
 
     integer :: i, ng, clo(1), chi(1)
 
-    real (dp_t), parameter :: FOURTH = 0.25_dp_t
-
     if ( ir(1) == 2 ) then
 
        clo = int_coarsen(lo, 2)
@@ -297,8 +296,7 @@ contains
     integer :: i, j, ng, clo(2), chi(2), twoi, twoj, twoip1, twojp1
     logical :: interior_i, interior_j
 
-    real (dp_t), parameter :: one6th  = 1.0d0 / 6.0d0
-    real (dp_t), parameter :: one16th = 1.0d0 /16.0d0
+    real (dp_t), parameter :: one16th = 1.0_dp_t /16.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
 
@@ -350,10 +348,10 @@ contains
                 twoi   = 2*i
                 twoip1 = twoi+1
 
-                ff(twoip1, twojp1) = ff(twoip1, twojp1) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
-                ff(twoi,   twojp1) = ff(twoi,   twojp1) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
-                ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + .25d0 * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
-                ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + .25d0 * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
+                ff(twoip1, twojp1) = ff(twoip1, twojp1) + FOURTH * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
+                ff(twoi,   twojp1) = ff(twoi,   twojp1) + FOURTH * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
+                ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + FOURTH * ( 2*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
+                ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + FOURTH * ( 2*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
              end do
           end do
        case ( 2 )
@@ -368,10 +366,10 @@ contains
                 twoi   = 2*i
                 twoip1 = twoi+1
 
-                ff(twoip1, twojp1) = ff(twoip1, twojp1) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
-                ff(twoi,   twojp1) = ff(twoi,   twojp1) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
-                ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + one6th * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
-                ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + one6th * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
+                ff(twoip1, twojp1) = ff(twoip1, twojp1) + SIXTH * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j+1) )
+                ff(twoi,   twojp1) = ff(twoi,   twojp1) + SIXTH * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j+1) )
+                ff(twoip1, twoj  ) = ff(twoip1, twoj  ) + SIXTH * ( 4*cc(i,j) + cc(i+1,j) + cc(i,j-1) )
+                ff(twoi,   twoj  ) = ff(twoi,   twoj  ) + SIXTH * ( 4*cc(i,j) + cc(i-1,j) + cc(i,j-1) )
              end do
           end do
        case ( 3 )
@@ -421,10 +419,8 @@ contains
     integer :: i, j, k, ng, clo(3), chi(3), twoi, twoj, twoip1, twojp1, twok, twokp1
     logical :: interior_i, interior_j, interior_k
 
-    real (dp_t), parameter ::   ONE64TH  = 1.0d0 / 64.0d0
-    real (dp_t), parameter :: THREE64THS = 3.0d0 / 64.0d0
-    real (dp_t), parameter ::     SIXTH  = 1.0d0 /  6.0d0
-    real (dp_t), parameter ::     FOURTH = 0.25_dp_t
+    real (dp_t), parameter ::   ONE64TH  = 1.0_dp_t / 64.0_dp_t
+    real (dp_t), parameter :: THREE64THS = 3.0_dp_t / 64.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
        !
@@ -606,7 +602,7 @@ contains
   pure function cubicInterpolate (p, x) result (r)
     real (dp_t), intent(in) :: p(0:3), x
     real (dp_t) r
-    r=p(1)+0.5_dp_t*x*(p(2)-p(0)+x*(2*p(0)-5*p(1)+4*p(2)-p(3)+x*(3*(p(1)-p(2))+p(3)-p(0))))
+    r=p(1)+HALF*x*(p(2)-p(0)+x*(2*p(0)-5*p(1)+4*p(2)-p(3)+x*(3*(p(1)-p(2))+p(3)-p(0))))
   end function cubicInterpolate
 
   function bicubicInterpolate (p, x, y) result (r)
@@ -659,7 +655,6 @@ contains
 
     integer                :: i, ic, l
     real (dp_t)            :: fac_left, fac_rght
-    real (dp_t), parameter :: ONE = 1.0_dp_t
     !
     ! Direct injection for fine points overlaying coarse ones.
     !
@@ -688,7 +683,6 @@ contains
 
     integer               :: i, ic
     real (dp_t)           :: coeffs(0:3)
-    real(dp_t), parameter :: HALF = 0.5_dp_t
     !
     ! Direct injection for fine points overlaying coarse ones.
     !
@@ -757,8 +751,6 @@ contains
     integer     :: i, j, ic, jc, l, m, clo(2), chi(2)
     real (dp_t) :: fac_left, fac_rght
     real (dp_t) :: temp(lo(1):hi(1),lo(2):hi(2))
-
-    real(dp_t), parameter :: FOURTH = 0.25_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
        !
@@ -847,8 +839,6 @@ contains
 
     integer     :: i, j, ic, jc, m, ng, clo(2), chi(2), istart, jstart, ilo(2), ihi(2)
     real (dp_t) :: coeffs(0:15), ipnt, jpnt
-
-    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 ) then
        clo = int_coarsen(lo, 2)
@@ -956,9 +946,6 @@ contains
     integer     :: i, j, k, ic, jc, kc, l, m, n
     integer     :: clo(3), chi(3)
     real (dp_t) :: fac_left, fac_rght
-
-    real(dp_t), parameter :: EIGHTH = 0.125_dp_t, FOURTH = 0.25_dp_t
-    real(dp_t), parameter :: HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     real (dp_t), allocatable :: temp(:,:,:)
 
@@ -1102,8 +1089,6 @@ contains
     integer     :: i, j, k, ic, jc, kc, m, ng
     integer     :: clo(3), chi(3), istart, jstart, kstart , ilo(3), ihi(3)
     real (dp_t) :: coeffs(0:63), ipnt, jpnt, kpnt
-
-    real(dp_t), parameter :: ZERO = 0.0_dp_t, HALF = 0.5_dp_t, ONE = 1.0_dp_t
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
        clo = int_coarsen(lo, 2)

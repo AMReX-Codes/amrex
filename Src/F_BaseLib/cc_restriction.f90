@@ -1,15 +1,10 @@
 module cc_restriction_module
 
+  use bl_constants_module
   use bl_error_module
   use bl_types
-  use bc_functions_module
 
   implicit none
-
-  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
-  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
-  real(dp_t), private, parameter :: TWO  = 2.0_dp_t
-  real(dp_t), private, parameter :: HALF = 0.5_dp_t
 
 contains
 
@@ -57,7 +52,7 @@ contains
              twoi   = 2*i
              twoip1 = 2*i+1
 
-             cc(i,j) = 0.25d0 * ( ff(twoi,twoj) + ff(twoip1,twoj) + ff(twoi,twojp1) + ff(twoip1,twojp1) )
+             cc(i,j) = FOURTH * ( ff(twoi,twoj) + ff(twoip1,twoj) + ff(twoi,twojp1) + ff(twoip1,twojp1) )
           end do
        end do
 
@@ -106,7 +101,7 @@ contains
                 twoi   = 2*i
                 twoip1 = 2*i+1
 
-                cc(i,j,k) =  0.125d0 * ( &
+                cc(i,j,k) = EIGHTH * ( &
                      ff(twoi,   twoj,   twok  ) + &
                      ff(twoip1, twoj,   twok  ) + &
                      ff(twoi,   twojp1, twok  ) + &

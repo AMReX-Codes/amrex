@@ -1,10 +1,16 @@
+#
+# Makefile for DIM dimensional BoxLib wrapper.
+#
 
-TOP            = $(HOME)/Development
+#
+# Configuration
+#
+
+TOP            = ../../..
 BOXLIB_HOME    = $(TOP)/BoxLib
 
 PRECISION      = DOUBLE
 DEBUG	       = FALSE
-DEBUG	       = TRUE
 PROFILE        = FALSE
 USE_MPI        = TRUE
 USE_OMP        = FALSE
@@ -13,14 +19,12 @@ COMP           = g++
 FCOMP          = gfortran
 
 NEEDSCHEM      = FALSE
+NEEDSGEOM      = FALSE
 
 ifeq ($(NEEDSCHEM), TRUE)
   COMBUSTION_HOME = $(TOP)/Combustion
   CHEMISTRY_DIR   = $(COMBUSTION_HOME)/Chemistry
 
-  #
-  # Define reaction mechanism & thermal properties.
-  #
   CHEMISTRY_MODEL=GRI12
   CHEMISTRY_MODEL=INERT30
   CHEMISTRY_MODEL=CH4-2STEP
@@ -32,40 +36,43 @@ ifeq ($(NEEDSCHEM), TRUE)
   CHEMISTRY_MODEL=LUDME
 endif
 
+#
+# Definitions
+#
+
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+# Override compiler settings from Make.defs, default to using MPI compiler wrappers
+CXX := mpic++
+CC  := mpicc
+FC  := mpif90
+fC  := mpif90
+F90 := mpif90
 
 FFLAGS   += -fPIC
 fFLAGS   += -fPIC
 CFLAGS   += -fPIC
 CXXFLAGS += -fPIC
 
-# fincludes=${includes}
+#
+# Paths
+#
 
-# Chemistry
+Bdirs   += $(BOXLIB_HOME)/Src/C_BaseLib
 ifeq ($(NEEDSCHEM), TRUE)
   Bdirs += $(COMBUSTION_HOME)/Chemistry/src
 endif
-
-# BoxLib
-Bdirs   += $(BOXLIB_HOME)/Src/C_BaseLib
-
-# Remove for now, add later
-#ifeq (${NEEDSGEOM}, TRUE)
-#  Bdirs   += ${BOXLIB_HOME}/Src/C_BoundaryLib
-#endif
-#Bdirs   += ${BOXLIB_HOME}/Src/Extern/amrdata
-#DEFINES += -DBL_PARALLEL_IO -DBL_NOLINEVALUES
-#FEXE_sources += FILCC_${DIM}D.F
+ifeq (${NEEDSGEOM}, TRUE)
+  Bdirs   += ${BOXLIB_HOME}/Src/C_BoundaryLib
+endif
 
 Bpack	+= $(foreach dir, $(Bdirs), $(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(dir))
 
 include $(Bpack)
+
 INCLUDE_LOCATIONS += src $(Blocs)
 VPATH_LOCATIONS   += src $(Blocs)
-
-# Remove for now, add later
-#INCLUDE_LOCATIONS += ${BOXLIB_HOME}/Src/C_AMRLib
 
 ifeq (${NEEDSCHEM}, TRUE)
   ifeq (${CHEMISTRY_MODEL}, DRM19)
@@ -106,13 +113,6 @@ ifeq (${NEEDSCHEM}, TRUE)
   cEXE_sources += ${CHEM_MECHFILE}
 endif
 
-ifeq (${BL_HAS_FORT}, TRUE)
-  FEXE_sources += ${EBASE}_F.F
-endif
-
-# CEXE_sources += support.cpp chemSupport.cpp
-# CEXE_headers += support.H chemSupport.H
-
 vpath %.c   $(VPATH_LOCATIONS)
 vpath %.cpp $(VPATH_LOCATIONS)
 vpath %.h   $(VPATH_LOCATIONS)
@@ -121,24 +121,30 @@ vpath %.F   $(VPATH_LOCATIONS)
 vpath %.f   $(VPATH_LOCATIONS)
 vpath %.f90 $(VPATH_LOCATIONS)
 
+#
+# Python and NumPy
+#
+
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
-NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')/numpy
+NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')
+PYLIBS    := $(shell python-config --libs)
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
+
+#
+# Rules
+#
 
 WRAPPER = src/boxlib_wrap_$(DIM).cpp
 PYSO    = $(OUT)/_bl$(DIM).so
 
 all: $(PYSO)
 
-wrapper: $(WRAPPER)
+$(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
+	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++ ${PYLIBS}
 
+wrapper: $(WRAPPER)
 $(WRAPPER): swig/boxlib.i
 	swig -DDIM$(DIM) -python -c++ -Iswig -Icsrc $(includes) -o $@ -outdir boxlib $<
 
-$(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	mpic++ -shared -o $@ $^ ${SHARED_LIBRARIES}
-
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
-
-

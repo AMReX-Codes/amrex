@@ -40,6 +40,9 @@ typedef void (*mgt_set)(const int* lev, const int* n, const double* uu,
 typedef void (*mgt_setn)(const int* lev, const int* n, const double* uu, 
 		 	 const int* plo, const int* phi, 
 			 const int* lo, const int* hi, const int& nc);
+typedef void (*mgt_setr)(const int* lev, const int* n, const double* uu, 
+			 const int* plo, const int* phi, 
+			 const int* lo, const int* hi, const Real* r);
 typedef void (*mgt_setni)(const int* lev, const int* n, const double* uu, 
 			  const int* plo, const int* phi, 
 			  const int* lo, const int* hi, const int& nuu, const int& iuu);
@@ -70,7 +73,7 @@ mgt_set_c   mgt_set_cfbx_const = mgt_set_cfbx_1d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_1d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_1d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_1d;
-mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
+mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_1d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_1d;
 mgt_set     mgt_set_vold       = mgt_set_vold_1d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_1d;
@@ -95,7 +98,7 @@ mgt_set_c   mgt_set_cfby_const = mgt_set_cfby_2d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_2d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_2d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_2d;
-mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
+mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_2d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_2d;
 mgt_set     mgt_set_vold       = mgt_set_vold_2d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_2d;
@@ -123,7 +126,7 @@ mgt_set_c   mgt_set_cfbz_const = mgt_set_cfbz_3d_const;
 mgt_set     mgt_set_cfs        = mgt_set_cfs_3d;
 mgt_getni   mgt_get_vel        = mgt_get_vel_3d;
 mgt_setni   mgt_set_vel        = mgt_set_vel_3d;
-mgt_set     mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
+mgt_setr    mgt_add_rh_nodal   = mgt_add_rh_nodal_3d;
 mgt_set     mgt_set_sync_msk   = mgt_set_sync_msk_3d;
 mgt_set     mgt_set_vold       = mgt_set_vold_3d;
 mgt_get     mgt_get_sync_res   = mgt_get_sync_res_3d;
@@ -244,7 +247,6 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
       mgt_alloc_rhcc_nodal();
     }
   } else {
-    //mgt_finalize_n(&dx[0],&bc[0],&nc,&ncomp);
     mgt_finalize(&dx[0],&bc[0]);
   }
 }
@@ -1540,6 +1542,11 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 
   mgt_divu(lo_inflow, hi_inflow);
 
+  Real r;
+  Real rhmax = 0.0;
+
+  bool added_nodal_rhs = false;
+
   for ( int lev = 0; lev < rhnd.size(); ++lev ) {
     if (rhnd.defined(lev)) {
       for (MFIter rmfi(rhnd[lev]); rmfi.isValid(); ++rmfi) {
@@ -1552,10 +1559,19 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
         const Real* rhsd = rhsfab.dataPtr();
         const int* rhslo = rhsfab.box().loVect();
         const int* rhshi = rhsfab.box().hiVect();
-        mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi);
+        mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi, &r);
+        rhmax = std::max(rhmax,r);
       }
+      added_nodal_rhs = true;
     }
-  }  
+  }
+
+  if (added_nodal_rhs) 
+  {
+      ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
+      if (ParallelDescriptor::IOProcessor())
+          std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
+  }
   
   if (have_rhcc) {
     BL_ASSERT(rhcc[0] != 0);

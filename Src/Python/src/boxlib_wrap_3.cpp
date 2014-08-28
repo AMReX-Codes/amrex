@@ -2967,17 +2967,20 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #define SWIGTYPE_p_BoxArray swig_types[1]
 #define SWIGTYPE_p_FArrayBox swig_types[2]
 #define SWIGTYPE_p_FabAlloc swig_types[3]
-#define SWIGTYPE_p_IntVect swig_types[4]
-#define SWIGTYPE_p_MultiFab swig_types[5]
-#define SWIGTYPE_p_char swig_types[6]
-#define SWIGTYPE_p_std__ifstream swig_types[7]
-#define SWIGTYPE_p_std__invalid_argument swig_types[8]
-#define SWIGTYPE_p_std__istream swig_types[9]
-#define SWIGTYPE_p_std__ofstream swig_types[10]
-#define SWIGTYPE_p_std__ostream swig_types[11]
-#define SWIGTYPE_p_swig__SwigPyIterator swig_types[12]
-static swig_type_info *swig_types[14];
-static swig_module_info swig_module = {swig_types, 13, 0, 0, 0, 0};
+#define SWIGTYPE_p_Geometry swig_types[4]
+#define SWIGTYPE_p_IntVect swig_types[5]
+#define SWIGTYPE_p_MultiFab swig_types[6]
+#define SWIGTYPE_p_RealBox swig_types[7]
+#define SWIGTYPE_p_char swig_types[8]
+#define SWIGTYPE_p_double swig_types[9]
+#define SWIGTYPE_p_std__ifstream swig_types[10]
+#define SWIGTYPE_p_std__invalid_argument swig_types[11]
+#define SWIGTYPE_p_std__istream swig_types[12]
+#define SWIGTYPE_p_std__ofstream swig_types[13]
+#define SWIGTYPE_p_std__ostream swig_types[14]
+#define SWIGTYPE_p_swig__SwigPyIterator swig_types[15]
+static swig_type_info *swig_types[17];
+static swig_module_info swig_module = {swig_types, 16, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -3086,6 +3089,7 @@ namespace swig {
 #include <MultiFab.H>
 #include <VisMF.H>
 #include <Array.H>
+#include <Geometry.H>
 #include <ParallelDescriptor.H>
 
 #define SWIG_FILE_WITH_INIT
@@ -3111,6 +3115,61 @@ SWIGINTERNINLINE PyObject*
   int rank() {
     return ParallelDescriptor::MyProc();
   }
+  int size() {
+    return ParallelDescriptor::NProcs();
+  }
+  Real ReduceRealMax (Real lval) {
+    Real rvar = lval;
+    ParallelDescriptor::ReduceRealMax(rvar);
+    return rvar;
+  }
+
+
+SWIGINTERN int
+SWIG_AsVal_double (PyObject *obj, double *val)
+{
+  int res = SWIG_TypeError;
+  if (PyFloat_Check(obj)) {
+    if (val) *val = PyFloat_AsDouble(obj);
+    return SWIG_OK;
+  } else if (PyInt_Check(obj)) {
+    if (val) *val = PyInt_AsLong(obj);
+    return SWIG_OK;
+  } else if (PyLong_Check(obj)) {
+    double v = PyLong_AsDouble(obj);
+    if (!PyErr_Occurred()) {
+      if (val) *val = v;
+      return SWIG_OK;
+    } else {
+      PyErr_Clear();
+    }
+  }
+#ifdef SWIG_PYTHON_CAST_MODE
+  {
+    int dispatch = 0;
+    double d = PyFloat_AsDouble(obj);
+    if (!PyErr_Occurred()) {
+      if (val) *val = d;
+      return SWIG_AddCast(SWIG_OK);
+    } else {
+      PyErr_Clear();
+    }
+    if (!dispatch) {
+      long v = PyLong_AsLong(obj);
+      if (!PyErr_Occurred()) {
+	if (val) *val = v;
+	return SWIG_AddCast(SWIG_AddCast(SWIG_OK));
+      } else {
+	PyErr_Clear();
+      }
+    }
+  }
+#endif
+  return res;
+}
+
+
+  #define SWIG_From_double   PyFloat_FromDouble 
 
 
   std::ifstream & open_ifstream(const char *filename) {
@@ -3238,50 +3297,6 @@ SWIG_AsCharPtrAndSize(PyObject *obj, char** cptr, size_t* psize, int *alloc)
 #   define ULLONG_MAX (LLONG_MAX * 2ULL + 1ULL)
 # endif
 #endif
-
-
-SWIGINTERN int
-SWIG_AsVal_double (PyObject *obj, double *val)
-{
-  int res = SWIG_TypeError;
-  if (PyFloat_Check(obj)) {
-    if (val) *val = PyFloat_AsDouble(obj);
-    return SWIG_OK;
-  } else if (PyInt_Check(obj)) {
-    if (val) *val = PyInt_AsLong(obj);
-    return SWIG_OK;
-  } else if (PyLong_Check(obj)) {
-    double v = PyLong_AsDouble(obj);
-    if (!PyErr_Occurred()) {
-      if (val) *val = v;
-      return SWIG_OK;
-    } else {
-      PyErr_Clear();
-    }
-  }
-#ifdef SWIG_PYTHON_CAST_MODE
-  {
-    int dispatch = 0;
-    double d = PyFloat_AsDouble(obj);
-    if (!PyErr_Occurred()) {
-      if (val) *val = d;
-      return SWIG_AddCast(SWIG_OK);
-    } else {
-      PyErr_Clear();
-    }
-    if (!dispatch) {
-      long v = PyLong_AsLong(obj);
-      if (!PyErr_Occurred()) {
-	if (val) *val = v;
-	return SWIG_AddCast(SWIG_AddCast(SWIG_OK));
-      } else {
-	PyErr_Clear();
-      }
-    }
-  }
-#endif
-  return res;
-}
 
 
 #include <float.h>
@@ -3467,9 +3482,6 @@ SWIGINTERN int Box___cmp__(Box *self,Box const *other){
 				return -1;
 			}
 		}
-
-  #define SWIG_From_double   PyFloat_FromDouble 
-
 SWIGINTERN std::string FArrayBox_display(FArrayBox *self){
 	    std::ostringstream str;
             str << *self;
@@ -3829,6 +3841,17 @@ SWIG_AsVal_ptrdiff_t (PyObject * obj, ptrdiff_t *val)
 SWIGINTERN void MultiFab_define__SWIG_0(MultiFab *self,BoxArray const &bxs,int nvar,int ngrow,FabAlloc mem_mode=Fab_allocate){
                 self->FabArray<FArrayBox>::define(bxs,nvar,ngrow,mem_mode);
             }
+
+SWIGINTERN int
+SWIG_AsVal_bool (PyObject *obj, bool *val)
+{
+  int r = PyObject_IsTrue(obj);
+  if (r == -1)
+    return SWIG_ERROR;
+  if (val) *val = r ? true : false;
+  return SWIG_OK;
+}
+
 SWIGINTERN double MultiFab_sum__SWIG_0(MultiFab const *self,int comp=0){
 	        const BoxArray &ba = self->boxArray();
 	        double retval = 0;
@@ -3857,6 +3880,433 @@ SWIGINTERN FArrayBox *MultiFab___getitem__(MultiFab *self,int index){
                     }
                     return 0;
 		}
+
+/* Support older NumPy data type names
+*/
+#if NDARRAY_VERSION < 0x01000000
+#define NPY_BOOL          PyArray_BOOL
+#define NPY_BYTE          PyArray_BYTE
+#define NPY_UBYTE         PyArray_UBYTE
+#define NPY_SHORT         PyArray_SHORT
+#define NPY_USHORT        PyArray_USHORT
+#define NPY_INT           PyArray_INT
+#define NPY_UINT          PyArray_UINT
+#define NPY_LONG          PyArray_LONG
+#define NPY_ULONG         PyArray_ULONG
+#define NPY_LONGLONG      PyArray_LONGLONG
+#define NPY_ULONGLONG     PyArray_ULONGLONG
+#define NPY_FLOAT         PyArray_FLOAT
+#define NPY_DOUBLE        PyArray_DOUBLE
+#define NPY_LONGDOUBLE    PyArray_LONGDOUBLE
+#define NPY_CFLOAT        PyArray_CFLOAT
+#define NPY_CDOUBLE       PyArray_CDOUBLE
+#define NPY_CLONGDOUBLE   PyArray_CLONGDOUBLE
+#define NPY_OBJECT        PyArray_OBJECT
+#define NPY_STRING        PyArray_STRING
+#define NPY_UNICODE       PyArray_UNICODE
+#define NPY_VOID          PyArray_VOID
+#define NPY_NTYPES        PyArray_NTYPES
+#define NPY_NOTYPE        PyArray_NOTYPE
+#define NPY_CHAR          PyArray_CHAR
+#define NPY_USERDEF       PyArray_USERDEF
+#define npy_intp          intp
+
+#define NPY_MAX_BYTE      MAX_BYTE
+#define NPY_MIN_BYTE      MIN_BYTE
+#define NPY_MAX_UBYTE     MAX_UBYTE
+#define NPY_MAX_SHORT     MAX_SHORT
+#define NPY_MIN_SHORT     MIN_SHORT
+#define NPY_MAX_USHORT    MAX_USHORT
+#define NPY_MAX_INT       MAX_INT
+#define NPY_MIN_INT       MIN_INT
+#define NPY_MAX_UINT      MAX_UINT
+#define NPY_MAX_LONG      MAX_LONG
+#define NPY_MIN_LONG      MIN_LONG
+#define NPY_MAX_ULONG     MAX_ULONG
+#define NPY_MAX_LONGLONG  MAX_LONGLONG
+#define NPY_MIN_LONGLONG  MIN_LONGLONG
+#define NPY_MAX_ULONGLONG MAX_ULONGLONG
+#define NPY_MAX_INTP      MAX_INTP
+#define NPY_MIN_INTP      MIN_INTP
+
+#define NPY_FARRAY        FARRAY
+#define NPY_F_CONTIGUOUS  F_CONTIGUOUS
+#endif
+
+
+/* Macros to extract array attributes.
+ */
+#define is_array(a)            ((a) && PyArray_Check((PyArrayObject *)a))
+#define array_type(a)          (int)(PyArray_TYPE(a))
+#define array_numdims(a)       (((PyArrayObject *)a)->nd)
+#define array_dimensions(a)    (((PyArrayObject *)a)->dimensions)
+#define array_size(a,i)        (((PyArrayObject *)a)->dimensions[i])
+#define array_data(a)          (((PyArrayObject *)a)->data)
+#define array_is_contiguous(a) (PyArray_ISCONTIGUOUS(a))
+#define array_is_native(a)     (PyArray_ISNOTSWAPPED(a))
+#define array_is_fortran(a)    (PyArray_ISFORTRAN(a))
+
+
+  /* Given a PyObject, return a string describing its type.
+   */
+  const char* pytype_string(PyObject* py_obj) {
+    if (py_obj == NULL          ) return "C NULL value";
+    if (py_obj == Py_None       ) return "Python None" ;
+    if (PyCallable_Check(py_obj)) return "callable"    ;
+    if (PyString_Check(  py_obj)) return "string"      ;
+    if (PyInt_Check(     py_obj)) return "int"         ;
+    if (PyFloat_Check(   py_obj)) return "float"       ;
+    if (PyDict_Check(    py_obj)) return "dict"        ;
+    if (PyList_Check(    py_obj)) return "list"        ;
+    if (PyTuple_Check(   py_obj)) return "tuple"       ;
+    if (PyFile_Check(    py_obj)) return "file"        ;
+    if (PyModule_Check(  py_obj)) return "module"      ;
+    if (PyInstance_Check(py_obj)) return "instance"    ;
+
+    return "unkown type";
+  }
+
+  /* Given a NumPy typecode, return a string describing the type.
+   */
+  const char* typecode_string(int typecode) {
+    static const char* type_names[25] = {"bool", "byte", "unsigned byte",
+                                   "short", "unsigned short", "int",
+                                   "unsigned int", "long", "unsigned long",
+                                   "long long", "unsigned long long",
+                                   "float", "double", "long double",
+                                   "complex float", "complex double",
+                                   "complex long double", "object",
+                                   "string", "unicode", "void", "ntypes",
+                                   "notype", "char", "unknown"};
+    return typecode < 24 ? type_names[typecode] : type_names[24];
+  }
+
+  /* Make sure input has correct numpy type.  Allow character and byte
+   * to match.  Also allow int and long to match.  This is deprecated.
+   * You should use PyArray_EquivTypenums() instead.
+   */
+  int type_match(int actual_type, int desired_type) {
+    return PyArray_EquivTypenums(actual_type, desired_type);
+  }
+
+
+  /* Given a PyObject pointer, cast it to a PyArrayObject pointer if
+   * legal.  If not, set the python error string appropriately and
+   * return NULL.
+   */
+  PyArrayObject* obj_to_array_no_conversion(PyObject* input, int typecode)
+  {
+    PyArrayObject* ary = NULL;
+    if (is_array(input) && (typecode == NPY_NOTYPE ||
+                            PyArray_EquivTypenums(array_type(input), typecode)))
+    {
+      ary = (PyArrayObject*) input;
+    }
+    else if is_array(input)
+    {
+      const char* desired_type = typecode_string(typecode);
+      const char* actual_type  = typecode_string(array_type(input));
+      PyErr_Format(PyExc_TypeError,
+                   "Array of type '%s' required.  Array of type '%s' given",
+                   desired_type, actual_type);
+      ary = NULL;
+    }
+    else
+    {
+      const char* desired_type = typecode_string(typecode);
+      const char* actual_type  = pytype_string(input);
+      PyErr_Format(PyExc_TypeError,
+                   "Array of type '%s' required.  A '%s' was given",
+                   desired_type, actual_type);
+      ary = NULL;
+    }
+    return ary;
+  }
+
+  /* Convert the given PyObject to a NumPy array with the given
+   * typecode.  On success, return a valid PyArrayObject* with the
+   * correct type.  On failure, the python error string will be set and
+   * the routine returns NULL.
+   */
+  PyArrayObject* obj_to_array_allow_conversion(PyObject* input, int typecode,
+                                               int* is_new_object)
+  {
+    PyArrayObject* ary = NULL;
+    PyObject* py_obj;
+    if (is_array(input) && (typecode == NPY_NOTYPE ||
+                            PyArray_EquivTypenums(array_type(input),typecode)))
+    {
+      ary = (PyArrayObject*) input;
+      *is_new_object = 0;
+    }
+    else
+    {
+      py_obj = PyArray_FROMANY(input, typecode, 0, 0, NPY_DEFAULT);
+      /* If NULL, PyArray_FromObject will have set python error value.*/
+      ary = (PyArrayObject*) py_obj;
+      *is_new_object = 1;
+    }
+    return ary;
+  }
+
+  /* Given a PyArrayObject, check to see if it is contiguous.  If so,
+   * return the input pointer and flag it as not a new object.  If it is
+   * not contiguous, create a new PyArrayObject using the original data,
+   * flag it as a new object and return the pointer.
+   */
+  PyArrayObject* make_contiguous(PyArrayObject* ary, int* is_new_object,
+                                 int min_dims, int max_dims)
+  {
+    PyArrayObject* result;
+    if (array_is_contiguous(ary))
+    {
+      result = ary;
+      *is_new_object = 0;
+    }
+    else
+    {
+      result = (PyArrayObject*) PyArray_ContiguousFromObject((PyObject*)ary,
+                                                             array_type(ary),
+                                                             min_dims,
+                                                             max_dims);
+      *is_new_object = 1;
+    }
+    return result;
+  }
+
+  /* Given a PyArrayObject, check to see if it is Fortran-contiguous.
+   * If so, return the input pointer, but do not flag it as not a new
+   * object.  If it is not Fortran-contiguous, create a new
+   * PyArrayObject using the original data, flag it as a new object
+   * and return the pointer.
+   */
+  PyArrayObject* make_fortran(PyArrayObject* ary, int* is_new_object,
+                              int min_dims, int max_dims)
+  {
+    PyArrayObject* result;
+    if (array_is_fortran(ary))
+    {
+      result = ary;
+      *is_new_object = 0;
+    }
+    else
+    {
+      Py_INCREF(ary->descr);
+      result = (PyArrayObject*) PyArray_FromArray(ary, ary->descr, NPY_FORTRAN);
+      *is_new_object = 1;
+    }
+    return result;
+  }
+
+  /* Convert a given PyObject to a contiguous PyArrayObject of the
+   * specified type.  If the input object is not a contiguous
+   * PyArrayObject, a new one will be created and the new object flag
+   * will be set.
+   */
+  PyArrayObject* obj_to_array_contiguous_allow_conversion(PyObject* input,
+                                                          int typecode,
+                                                          int* is_new_object)
+  {
+    int is_new1 = 0;
+    int is_new2 = 0;
+    PyArrayObject* ary2;
+    PyArrayObject* ary1 = obj_to_array_allow_conversion(input, typecode,
+                                                        &is_new1);
+    if (ary1)
+    {
+      ary2 = make_contiguous(ary1, &is_new2, 0, 0);
+      if ( is_new1 && is_new2)
+      {
+        Py_DECREF(ary1);
+      }
+      ary1 = ary2;
+    }
+    *is_new_object = is_new1 || is_new2;
+    return ary1;
+  }
+
+  /* Convert a given PyObject to a Fortran-ordered PyArrayObject of the
+   * specified type.  If the input object is not a Fortran-ordered
+   * PyArrayObject, a new one will be created and the new object flag
+   * will be set.
+   */
+  PyArrayObject* obj_to_array_fortran_allow_conversion(PyObject* input,
+                                                       int typecode,
+                                                       int* is_new_object)
+  {
+    int is_new1 = 0;
+    int is_new2 = 0;
+    PyArrayObject* ary2;
+    PyArrayObject* ary1 = obj_to_array_allow_conversion(input, typecode,
+                                                        &is_new1);
+    if (ary1)
+    {
+      ary2 = make_fortran(ary1, &is_new2, 0, 0);
+      if (is_new1 && is_new2)
+      {
+        Py_DECREF(ary1);
+      }
+      ary1 = ary2;
+    }
+    *is_new_object = is_new1 || is_new2;
+    return ary1;
+  }
+
+
+
+  /* Test whether a python object is contiguous.  If array is
+   * contiguous, return 1.  Otherwise, set the python error string and
+   * return 0.
+   */
+  int require_contiguous(PyArrayObject* ary)
+  {
+    int contiguous = 1;
+    if (!array_is_contiguous(ary))
+    {
+      PyErr_SetString(PyExc_TypeError,
+                      "Array must be contiguous.  A non-contiguous array was given");
+      contiguous = 0;
+    }
+    return contiguous;
+  }
+
+  /* Require that a numpy array is not byte-swapped.  If the array is
+   * not byte-swapped, return 1.  Otherwise, set the python error string
+   * and return 0.
+   */
+  int require_native(PyArrayObject* ary)
+  {
+    int native = 1;
+    if (!array_is_native(ary))
+    {
+      PyErr_SetString(PyExc_TypeError,
+                      "Array must have native byteorder.  "
+                      "A byte-swapped array was given");
+      native = 0;
+    }
+    return native;
+  }
+
+  /* Require the given PyArrayObject to have a specified number of
+   * dimensions.  If the array has the specified number of dimensions,
+   * return 1.  Otherwise, set the python error string and return 0.
+   */
+  int require_dimensions(PyArrayObject* ary, int exact_dimensions)
+  {
+    int success = 1;
+    if (array_numdims(ary) != exact_dimensions)
+    {
+      PyErr_Format(PyExc_TypeError,
+                   "Array must have %d dimensions.  Given array has %d dimensions",
+                   exact_dimensions, array_numdims(ary));
+      success = 0;
+    }
+    return success;
+  }
+
+  /* Require the given PyArrayObject to have one of a list of specified
+   * number of dimensions.  If the array has one of the specified number
+   * of dimensions, return 1.  Otherwise, set the python error string
+   * and return 0.
+   */
+  int require_dimensions_n(PyArrayObject* ary, int* exact_dimensions, int n)
+  {
+    int success = 0;
+    int i;
+    char dims_str[255] = "";
+    char s[255];
+    for (i = 0; i < n && !success; i++)
+    {
+      if (array_numdims(ary) == exact_dimensions[i])
+      {
+        success = 1;
+      }
+    }
+    if (!success)
+    {
+      for (i = 0; i < n-1; i++)
+      {
+        sprintf(s, "%d, ", exact_dimensions[i]);
+        strcat(dims_str,s);
+      }
+      sprintf(s, " or %d", exact_dimensions[n-1]);
+      strcat(dims_str,s);
+      PyErr_Format(PyExc_TypeError,
+                   "Array must have %s dimensions.  Given array has %d dimensions",
+                   dims_str, array_numdims(ary));
+    }
+    return success;
+  }
+
+  /* Require the given PyArrayObject to have a specified shape.  If the
+   * array has the specified shape, return 1.  Otherwise, set the python
+   * error string and return 0.
+   */
+  int require_size(PyArrayObject* ary, npy_intp* size, int n)
+  {
+    int i;
+    int success = 1;
+    int len;
+    char desired_dims[255] = "[";
+    char s[255];
+    char actual_dims[255] = "[";
+    for(i=0; i < n;i++)
+    {
+      if (size[i] != -1 &&  size[i] != array_size(ary,i))
+      {
+        success = 0;
+      }
+    }
+    if (!success)
+    {
+      for (i = 0; i < n; i++)
+      {
+        if (size[i] == -1)
+        {
+          sprintf(s, "*,");
+        }
+        else
+        {
+          sprintf(s, "%ld,", (long int)size[i]);
+        }
+        strcat(desired_dims,s);
+      }
+      len = strlen(desired_dims);
+      desired_dims[len-1] = ']';
+      for (i = 0; i < n; i++)
+      {
+        sprintf(s, "%ld,", (long int)array_size(ary,i));
+        strcat(actual_dims,s);
+      }
+      len = strlen(actual_dims);
+      actual_dims[len-1] = ']';
+      PyErr_Format(PyExc_TypeError,
+                   "Array must have shape of %s.  Given array has shape of %s",
+                   desired_dims, actual_dims);
+    }
+    return success;
+  }
+
+  /* Require the given PyArrayObject to to be FORTRAN ordered.  If the
+   * the PyArrayObject is already FORTRAN ordered, do nothing.  Else,
+   * set the FORTRAN ordering flag and recompute the strides.
+   */
+  int require_fortran(PyArrayObject* ary)
+  {
+    int success = 1;
+    int nd = array_numdims(ary);
+    int i;
+    if (array_is_fortran(ary)) return success;
+    /* Set the FORTRAN ordered flag */
+    ary->flags = NPY_FARRAY;
+    /* Recompute the strides */
+    ary->strides[0] = ary->strides[nd-1];
+    for (i=1; i < nd; ++i)
+      ary->strides[i] = ary->strides[i-1] * array_size(ary,i-1);
+    return success;
+  }
+
+ 
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -3879,6 +4329,41 @@ SWIGINTERN PyObject *_wrap_rank(PyObject *SWIGUNUSEDPARM(self), PyObject *args) 
   if (!PyArg_ParseTuple(args,(char *)":rank")) SWIG_fail;
   result = (int)rank();
   resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_size(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)":size")) SWIG_fail;
+  result = (int)size();
+  resultobj = SWIG_From_int(static_cast< int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_ReduceRealMax(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Real arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  Real result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:ReduceRealMax",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "ReduceRealMax" "', argument " "1"" of type '" "Real""'");
+  } 
+  arg1 = static_cast< Real >(val1);
+  result = (Real)ReduceRealMax(arg1);
+  resultobj = SWIG_From_double(static_cast< double >(result));
   return resultobj;
 fail:
   return NULL;
@@ -8766,7 +9251,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_BoxArray_maxSize(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_BoxArray_maxSize__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   BoxArray *arg1 = (BoxArray *) 0 ;
   int arg2 ;
@@ -8794,6 +9279,88 @@ SWIGINTERN PyObject *_wrap_BoxArray_maxSize(PyObject *SWIGUNUSEDPARM(self), PyOb
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_BoxArray_maxSize__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  BoxArray *arg1 = (BoxArray *) 0 ;
+  IntVect *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  BoxArray *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:BoxArray_maxSize",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_BoxArray, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "BoxArray_maxSize" "', argument " "1"" of type '" "BoxArray *""'"); 
+  }
+  arg1 = reinterpret_cast< BoxArray * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_IntVect,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "BoxArray_maxSize" "', argument " "2"" of type '" "IntVect const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "BoxArray_maxSize" "', argument " "2"" of type '" "IntVect const &""'"); 
+  }
+  arg2 = reinterpret_cast< IntVect * >(argp2);
+  result = (BoxArray *) &(arg1)->maxSize((IntVect const &)*arg2);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_BoxArray, 0 |  0 );
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_BoxArray_maxSize(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[3];
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_BoxArray, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = SWIG_ConvertPtr(argv[1], 0, SWIGTYPE_p_IntVect, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        return _wrap_BoxArray_maxSize__SWIG_1(self, args);
+      }
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_BoxArray, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_int(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_BoxArray_maxSize__SWIG_0(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'BoxArray_maxSize'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    BoxArray::maxSize(int)\n"
+    "    BoxArray::maxSize(IntVect const &)\n");
+  return 0;
 }
 
 
@@ -11562,7 +12129,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   MultiFab *arg1 = (MultiFab *) 0 ;
   int arg2 ;
@@ -11598,6 +12165,184 @@ SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary(PyObject *SWIGUNUSEDPARM(self),
   return resultobj;
 fail:
   return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  MultiFab *arg1 = (MultiFab *) 0 ;
+  bool arg2 ;
+  bool arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  bool val2 ;
+  int ecode2 = 0 ;
+  bool val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:MultiFab_FillBoundary",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_MultiFab, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "MultiFab_FillBoundary" "', argument " "1"" of type '" "MultiFab *""'"); 
+  }
+  arg1 = reinterpret_cast< MultiFab * >(argp1);
+  ecode2 = SWIG_AsVal_bool(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "MultiFab_FillBoundary" "', argument " "2"" of type '" "bool""'");
+  } 
+  arg2 = static_cast< bool >(val2);
+  ecode3 = SWIG_AsVal_bool(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "MultiFab_FillBoundary" "', argument " "3"" of type '" "bool""'");
+  } 
+  arg3 = static_cast< bool >(val3);
+  (arg1)->FillBoundary(arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary__SWIG_2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  MultiFab *arg1 = (MultiFab *) 0 ;
+  bool arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  bool val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:MultiFab_FillBoundary",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_MultiFab, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "MultiFab_FillBoundary" "', argument " "1"" of type '" "MultiFab *""'"); 
+  }
+  arg1 = reinterpret_cast< MultiFab * >(argp1);
+  ecode2 = SWIG_AsVal_bool(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "MultiFab_FillBoundary" "', argument " "2"" of type '" "bool""'");
+  } 
+  arg2 = static_cast< bool >(val2);
+  (arg1)->FillBoundary(arg2);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary__SWIG_3(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  MultiFab *arg1 = (MultiFab *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:MultiFab_FillBoundary",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_MultiFab, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "MultiFab_FillBoundary" "', argument " "1"" of type '" "MultiFab *""'"); 
+  }
+  arg1 = reinterpret_cast< MultiFab * >(argp1);
+  (arg1)->FillBoundary();
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_MultiFab_FillBoundary(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[4];
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 3) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 1) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_MultiFab, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      return _wrap_MultiFab_FillBoundary__SWIG_3(self, args);
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_MultiFab, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_bool(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_MultiFab_FillBoundary__SWIG_2(self, args);
+      }
+    }
+  }
+  if (argc == 3) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_MultiFab, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_int(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        {
+          int res = SWIG_AsVal_int(argv[2], NULL);
+          _v = SWIG_CheckState(res);
+        }
+        if (_v) {
+          return _wrap_MultiFab_FillBoundary__SWIG_0(self, args);
+        }
+      }
+    }
+  }
+  if (argc == 3) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_MultiFab, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_bool(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        {
+          int res = SWIG_AsVal_bool(argv[2], NULL);
+          _v = SWIG_CheckState(res);
+        }
+        if (_v) {
+          return _wrap_MultiFab_FillBoundary__SWIG_1(self, args);
+        }
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'MultiFab_FillBoundary'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    MultiFab::FillBoundary(int,int)\n"
+    "    MultiFab::FillBoundary(bool,bool)\n"
+    "    MultiFab::FillBoundary(bool)\n"
+    "    MultiFab::FillBoundary()\n");
+  return 0;
 }
 
 
@@ -11859,10 +12604,409 @@ SWIGINTERN PyObject *MultiFab_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObj
   return SWIG_Py_Void();
 }
 
+SWIGINTERN PyObject *_wrap_new_RealBox(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Real *arg1 ;
+  Real *arg2 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
+  PyArrayObject *array2 = NULL ;
+  int is_new_object2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  RealBox *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:new_RealBox",&obj0,&obj1)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      BL_SPACEDIM 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0, NPY_DOUBLE,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (double *) array_data(array1);
+  }
+  {
+    npy_intp size[1] = {
+      BL_SPACEDIM 
+    };
+    array2 = obj_to_array_contiguous_allow_conversion(obj1, NPY_DOUBLE,
+      &is_new_object2);
+    if (!array2 || !require_dimensions(array2, 1) ||
+      !require_size(array2, size, 1)) SWIG_fail;
+    arg2 = (double *) array_data(array2);
+  }
+  result = (RealBox *)new RealBox(arg1,arg2);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_RealBox, SWIG_POINTER_NEW |  0 );
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object2 && array2)
+    {
+      Py_DECREF(array2); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  {
+    if (is_new_object2 && array2)
+    {
+      Py_DECREF(array2); 
+    }
+  }
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_RealBox(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  RealBox *arg1 = (RealBox *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_RealBox",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RealBox, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_RealBox" "', argument " "1"" of type '" "RealBox *""'"); 
+  }
+  arg1 = reinterpret_cast< RealBox * >(argp1);
+  delete arg1;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *RealBox_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_RealBox, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
+SWIGINTERN PyObject *_wrap_new_Geometry(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Box *arg1 = 0 ;
+  RealBox *arg2 = (RealBox *) 0 ;
+  int arg3 ;
+  int *arg4 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  PyArrayObject *array4 = NULL ;
+  int is_new_object4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  Geometry *result = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:new_Geometry",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1, SWIGTYPE_p_Box,  0  | 0);
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "new_Geometry" "', argument " "1"" of type '" "Box const &""'"); 
+  }
+  if (!argp1) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "new_Geometry" "', argument " "1"" of type '" "Box const &""'"); 
+  }
+  arg1 = reinterpret_cast< Box * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_RealBox, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "new_Geometry" "', argument " "2"" of type '" "RealBox const *""'"); 
+  }
+  arg2 = reinterpret_cast< RealBox * >(argp2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "new_Geometry" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = static_cast< int >(val3);
+  {
+    npy_intp size[1] = {
+      BL_SPACEDIM 
+    };
+    array4 = obj_to_array_contiguous_allow_conversion(obj3, NPY_INT,
+      &is_new_object4);
+    if (!array4 || !require_dimensions(array4, 1) ||
+      !require_size(array4, size, 1)) SWIG_fail;
+    arg4 = (int *) array_data(array4);
+  }
+  result = (Geometry *)new Geometry((Box const &)*arg1,(RealBox const *)arg2,arg3,arg4);
+  resultobj = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_Geometry, SWIG_POINTER_NEW |  0 );
+  {
+    if (is_new_object4 && array4)
+    {
+      Py_DECREF(array4); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object4 && array4)
+    {
+      Py_DECREF(array4); 
+    }
+  }
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_Geometry_FillPeriodicBoundary__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Geometry *arg1 = (Geometry *) 0 ;
+  MultiFab *arg2 = 0 ;
+  bool arg3 ;
+  bool arg4 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  bool val3 ;
+  int ecode3 = 0 ;
+  bool val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:Geometry_FillPeriodicBoundary",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Geometry, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "1"" of type '" "Geometry *""'"); 
+  }
+  arg1 = reinterpret_cast< Geometry * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_MultiFab,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  arg2 = reinterpret_cast< MultiFab * >(argp2);
+  ecode3 = SWIG_AsVal_bool(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "3"" of type '" "bool""'");
+  } 
+  arg3 = static_cast< bool >(val3);
+  ecode4 = SWIG_AsVal_bool(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "4"" of type '" "bool""'");
+  } 
+  arg4 = static_cast< bool >(val4);
+  (arg1)->FillPeriodicBoundary(*arg2,arg3,arg4);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_Geometry_FillPeriodicBoundary__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Geometry *arg1 = (Geometry *) 0 ;
+  MultiFab *arg2 = 0 ;
+  bool arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  bool val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:Geometry_FillPeriodicBoundary",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Geometry, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "1"" of type '" "Geometry *""'"); 
+  }
+  arg1 = reinterpret_cast< Geometry * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_MultiFab,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  arg2 = reinterpret_cast< MultiFab * >(argp2);
+  ecode3 = SWIG_AsVal_bool(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "3"" of type '" "bool""'");
+  } 
+  arg3 = static_cast< bool >(val3);
+  (arg1)->FillPeriodicBoundary(*arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_Geometry_FillPeriodicBoundary__SWIG_2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Geometry *arg1 = (Geometry *) 0 ;
+  MultiFab *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:Geometry_FillPeriodicBoundary",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Geometry, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "1"" of type '" "Geometry *""'"); 
+  }
+  arg1 = reinterpret_cast< Geometry * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_MultiFab,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "Geometry_FillPeriodicBoundary" "', argument " "2"" of type '" "MultiFab &""'"); 
+  }
+  arg2 = reinterpret_cast< MultiFab * >(argp2);
+  (arg1)->FillPeriodicBoundary(*arg2);
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_Geometry_FillPeriodicBoundary(PyObject *self, PyObject *args) {
+  int argc;
+  PyObject *argv[5];
+  int ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? (int)PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 4) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_Geometry, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[1], &vptr, SWIGTYPE_p_MultiFab, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        return _wrap_Geometry_FillPeriodicBoundary__SWIG_2(self, args);
+      }
+    }
+  }
+  if (argc == 3) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_Geometry, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[1], &vptr, SWIGTYPE_p_MultiFab, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        {
+          int res = SWIG_AsVal_bool(argv[2], NULL);
+          _v = SWIG_CheckState(res);
+        }
+        if (_v) {
+          return _wrap_Geometry_FillPeriodicBoundary__SWIG_1(self, args);
+        }
+      }
+    }
+  }
+  if (argc == 4) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_Geometry, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[1], &vptr, SWIGTYPE_p_MultiFab, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        {
+          int res = SWIG_AsVal_bool(argv[2], NULL);
+          _v = SWIG_CheckState(res);
+        }
+        if (_v) {
+          {
+            int res = SWIG_AsVal_bool(argv[3], NULL);
+            _v = SWIG_CheckState(res);
+          }
+          if (_v) {
+            return _wrap_Geometry_FillPeriodicBoundary__SWIG_0(self, args);
+          }
+        }
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'Geometry_FillPeriodicBoundary'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    Geometry::FillPeriodicBoundary(MultiFab &,bool,bool)\n"
+    "    Geometry::FillPeriodicBoundary(MultiFab &,bool)\n"
+    "    Geometry::FillPeriodicBoundary(MultiFab &)\n");
+  return 0;
+}
+
+
+SWIGINTERN PyObject *_wrap_delete_Geometry(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  Geometry *arg1 = (Geometry *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject * obj0 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:delete_Geometry",&obj0)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Geometry, SWIG_POINTER_DISOWN |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "delete_Geometry" "', argument " "1"" of type '" "Geometry *""'"); 
+  }
+  arg1 = reinterpret_cast< Geometry * >(argp1);
+  delete arg1;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *Geometry_swigregister(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *obj;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigregister", &obj)) return NULL;
+  SWIG_TypeNewClientData(SWIGTYPE_p_Geometry, SWIG_NewClientData(obj));
+  return SWIG_Py_Void();
+}
+
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { (char *)"StartParallel", _wrap_StartParallel, METH_VARARGS, NULL},
 	 { (char *)"rank", _wrap_rank, METH_VARARGS, NULL},
+	 { (char *)"size", _wrap_size, METH_VARARGS, NULL},
+	 { (char *)"ReduceRealMax", _wrap_ReduceRealMax, METH_VARARGS, NULL},
 	 { (char *)"open_ifstream", _wrap_open_ifstream, METH_VARARGS, NULL},
 	 { (char *)"open_ofstream", _wrap_open_ofstream, METH_VARARGS, NULL},
 	 { (char *)"close_ofstream", _wrap_close_ofstream, METH_VARARGS, NULL},
@@ -12005,6 +13149,13 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"MultiFab_copyComp", _wrap_MultiFab_copyComp, METH_VARARGS, NULL},
 	 { (char *)"MultiFab___getitem__", _wrap_MultiFab___getitem__, METH_VARARGS, NULL},
 	 { (char *)"MultiFab_swigregister", MultiFab_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_RealBox", _wrap_new_RealBox, METH_VARARGS, NULL},
+	 { (char *)"delete_RealBox", _wrap_delete_RealBox, METH_VARARGS, NULL},
+	 { (char *)"RealBox_swigregister", RealBox_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_Geometry", _wrap_new_Geometry, METH_VARARGS, NULL},
+	 { (char *)"Geometry_FillPeriodicBoundary", _wrap_Geometry_FillPeriodicBoundary, METH_VARARGS, NULL},
+	 { (char *)"delete_Geometry", _wrap_delete_Geometry, METH_VARARGS, NULL},
+	 { (char *)"Geometry_swigregister", Geometry_swigregister, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -12015,9 +13166,12 @@ static swig_type_info _swigt__p_Box = {"_p_Box", "Box *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_BoxArray = {"_p_BoxArray", "BoxArray *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_FArrayBox = {"_p_FArrayBox", "FArrayBox *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_FabAlloc = {"_p_FabAlloc", "FabAlloc *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_Geometry = {"_p_Geometry", "Geometry *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_IntVect = {"_p_IntVect", "IntVect *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_MultiFab = {"_p_MultiFab", "MultiFab *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_RealBox = {"_p_RealBox", "RealBox *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_double = {"_p_double", "double *|Real *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_std__ifstream = {"_p_std__ifstream", "std::ifstream *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_std__invalid_argument = {"_p_std__invalid_argument", "std::invalid_argument *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_std__istream = {"_p_std__istream", "std::istream *", 0, 0, (void*)0, 0};
@@ -12030,9 +13184,12 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_BoxArray,
   &_swigt__p_FArrayBox,
   &_swigt__p_FabAlloc,
+  &_swigt__p_Geometry,
   &_swigt__p_IntVect,
   &_swigt__p_MultiFab,
+  &_swigt__p_RealBox,
   &_swigt__p_char,
+  &_swigt__p_double,
   &_swigt__p_std__ifstream,
   &_swigt__p_std__invalid_argument,
   &_swigt__p_std__istream,
@@ -12045,9 +13202,12 @@ static swig_cast_info _swigc__p_Box[] = {  {&_swigt__p_Box, 0, 0, 0},{0, 0, 0, 0
 static swig_cast_info _swigc__p_BoxArray[] = {  {&_swigt__p_BoxArray, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_FArrayBox[] = {  {&_swigt__p_FArrayBox, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_FabAlloc[] = {  {&_swigt__p_FabAlloc, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_Geometry[] = {  {&_swigt__p_Geometry, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_IntVect[] = {  {&_swigt__p_IntVect, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_MultiFab[] = {  {&_swigt__p_MultiFab, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_RealBox[] = {  {&_swigt__p_RealBox, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_double, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__ifstream[] = {  {&_swigt__p_std__ifstream, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__invalid_argument[] = {  {&_swigt__p_std__invalid_argument, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_std__istream[] = {  {&_swigt__p_std__istream, 0, 0, 0},{0, 0, 0, 0}};
@@ -12060,9 +13220,12 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_BoxArray,
   _swigc__p_FArrayBox,
   _swigc__p_FabAlloc,
+  _swigc__p_Geometry,
   _swigc__p_IntVect,
   _swigc__p_MultiFab,
+  _swigc__p_RealBox,
   _swigc__p_char,
+  _swigc__p_double,
   _swigc__p_std__ifstream,
   _swigc__p_std__invalid_argument,
   _swigc__p_std__istream,

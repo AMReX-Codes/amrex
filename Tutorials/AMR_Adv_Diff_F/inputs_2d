@@ -1,0 +1,25 @@
+&probin
+
+ max_levs = 3
+ dim = 2
+ plot_int = 1
+ n_cell = 64
+ max_grid_size = 16
+
+ nsteps = 10
+
+ do_subcycling = T
+
+ ! allowable options for this example are
+ ! -1 = PERIODIC
+ ! 12 = OUTLET (dphi/dn=0 at boundary)
+ ! 15 = NO_SLIP_WALL (wall with fixed phi=1)
+ bc_x_lo = -1
+ bc_x_hi = -1
+ bc_y_lo = -1
+ bc_y_hi = -1
+
+ amr_buf_width = 2
+ cluster_blocking_factor = 2
+ regrid_int = 1
+/

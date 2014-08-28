@@ -203,6 +203,9 @@ subroutine mgt_nodal_finalize(dx,bc)
   else if (mgts%stencil_type .eq. ND_CROSS_STENCIL) then
      if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
          print *,'Using cross stencil in nodal solver ...'
+  else if (mgts%stencil_type .eq. ND_VATER_STENCIL) then
+     if ( parallel_ioprocessor() .and. mgts%verbose > 0 ) &
+         print *,'Using Vater dense stencil in nodal solver ...'
   else
      if ( parallel_ioprocessor()) &
          print *,'Dont know this stencil type ',mgts%stencil_type
@@ -268,11 +271,11 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   allocate(mgts%cell_coeffs(nlev))
 
   call  build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%cell_coeffs(nlev), 0.0_dp_t, all=.true.)
+  call setval(mgts%cell_coeffs(nlev), ZERO, all=.true.)
 
   ! These only exist at amr levels, not the lower multigrid levels
   call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%amr_coeffs(flev), 0.0_dp_t, all=.true.)
+  call setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
 
 end subroutine mgt_init_nodal_coeffs_lev
 
@@ -614,52 +617,102 @@ subroutine mgt_get_pr_3d(lev, n, uu, plo, phi, lo, hi, np, ip)
 
 end subroutine mgt_get_pr_3d
 
-subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi)
+subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
-  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
+  real(kind=dp_t), intent(inout) :: rhmax
+  real(kind=dp_t), intent(in   ) :: rh_in(plo(1):phi(1))
+  real(kind=dp_t), pointer       :: rp(:,:,:,:)
+  integer        , pointer       :: mp(:,:,:,:)
+  integer                        :: flev, fn, i
   fn = n + 1
   flev = lev+1
 
   rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  rp(lo(1):hi(1),1,1,1) = rp(lo(1):hi(1),1,1,1) + rh_in(lo(1):hi(1))
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
+                local_index(mgts%rh(flev),fn))
+
+  rhmax = -Huge(rhmax)
+
+  ! Only add in the nodal RHS if it is on a non-Dirichlet node
+  do i = lo(1),hi(1)
+      if (.not. bc_dirichlet(mp(i,1,1,1),1,0)) &
+          rp(i,1,1,1) = rp(i,1,1,1) + rh_in(i)
+      rhmax = max(rhmax, abs(rp(i,1,1,1)))
+  end do
+
+  ! rp(lo(1):hi(1),1,1,1) = rp(lo(1):hi(1),1,1,1) + rh_in(lo(1):hi(1))
 
 end subroutine mgt_add_rh_nodal_1d
 
-subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi)
+subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
+! subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
-  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1), plo(2):phi(2))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
+  real(kind=dp_t), intent(inout) :: rhmax
+  real(kind=dp_t), intent(in   ) :: rh_in(plo(1):phi(1), plo(2):phi(2))
+  real(kind=dp_t), pointer       :: rp(:,:,:,:)
+  integer        , pointer       :: mp(:,:,:,:)
+  integer                        :: flev, fn, i, j
   fn = n + 1
   flev = lev+1
 
   rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  rp(lo(1):hi(1),lo(2):hi(2),1,1) = &
-       rp(lo(1):hi(1),lo(2):hi(2),1,1) +  &
-       rh_in(lo(1):hi(1),lo(2):hi(2))
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
+                local_index(mgts%rh(flev),fn))
+
+  rhmax = -Huge(rhmax)
+
+  ! Only add in the nodal RHS if it is on a non-Dirichlet node
+  do j = lo(2),hi(2)
+  do i = lo(1),hi(1)
+      if (.not. bc_dirichlet(mp(i,j,1,1),1,0)) &
+          rp(i,j,1,1) = rp(i,j,1,1) + rh_in(i,j)
+      rhmax = max(rhmax, abs(rp(i,j,1,1)))
+  end do
+  end do
+
+  ! rp(lo(1):hi(1),lo(2):hi(2),1,1) = &
+  !      rp(lo(1):hi(1),lo(2):hi(2),1,1) +  &
+  !      rh_in(lo(1):hi(1),lo(2):hi(2))
 
 end subroutine mgt_add_rh_nodal_2d
 
-subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi)
+subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
+!subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
-  real(kind=dp_t), intent(in) :: rh_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
-  real(kind=dp_t), pointer :: rp(:,:,:,:)
-  integer :: flev, fn
+  real(kind=dp_t), intent(inout) :: rhmax
+  real(kind=dp_t), intent(in   ) :: rh_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+  real(kind=dp_t), pointer       :: rp(:,:,:,:)
+  integer        , pointer       :: mp(:,:,:,:)
+  integer                        :: flev, fn, i, j, k
   fn = n + 1
   flev = lev+1
 
   rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
-       rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) + &
-       rh_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
+                local_index(mgts%rh(flev),fn))
+
+  rhmax = -Huge(rhmax)
+
+  ! Only add in the nodal RHS if it is on a non-Dirichlet node
+  do k = lo(3),hi(3)
+  do j = lo(2),hi(2)
+  do i = lo(1),hi(1)
+      if (.not. bc_dirichlet(mp(i,j,k,1),1,0)) &
+          rp(i,j,k,1) = rp(i,j,k,1) + rh_in(i,j,k)
+      rhmax = max(rhmax, abs(rp(i,j,1,1)))
+  end do
+  end do
+  end do
+
+  ! rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
+  !      rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) + &
+  !      rh_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 
 end subroutine mgt_add_rh_nodal_3d
 
@@ -887,7 +940,7 @@ subroutine mgt_add_divucc()
      call parallel_reduce(r, rhmax, MPI_MAX, proc = parallel_IOProcessorNode())
      rhmax = r
      if (parallel_IOProcessor()) then
-        print *,'F90: Source norm after adding rhs is ',rhmax
+        print *,'F90: Source norm after adding cc    RHS is ',rhmax
      endif
   end if
 
