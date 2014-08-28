@@ -6,7 +6,7 @@ module advance_module
   use bc_module
   use multifab_physbc_module
   use multifab_fill_ghost_module
-  use ml_restriction_module
+  use ml_cc_restriction_module
 
   implicit none
 
