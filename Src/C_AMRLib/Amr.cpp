@@ -1226,8 +1226,6 @@ Amr::FinalizeInit (Real              strt_time,
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_init(stop_time);
 
-    for (int lev = 0; lev <= finest_level; lev++)
-
     if (ParallelDescriptor::IOProcessor())
     {
        if (verbose > 1)
