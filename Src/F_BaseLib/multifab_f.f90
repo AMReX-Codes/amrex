@@ -3655,15 +3655,20 @@ contains
 
   end subroutine mf_copy_fancy_z
 
-  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, bndry_reg_to_other)
-    type(multifab), intent(inout) :: mdst
-    type(multifab), intent(in)    :: msrc
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, bndry_reg_to_other, ngsrc)
+    type(multifab), intent(inout)        :: mdst
+    type(multifab), intent(in)   ,target :: msrc
     integer, intent(in)           :: dstcomp, srccomp
     integer, intent(in), optional :: nc
-    integer, intent(in), optional :: ng
+    integer, intent(in), optional :: ng, ngsrc
     logical, intent(in), optional :: bndry_reg_to_other
     real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
-    integer                       :: i, lnc, lng
+    type(multifab), pointer       :: pmfsrc
+    type(multifab), target        :: msrctmp
+    type(layout)                  :: lasrctmp
+    type(boxarray)                :: batmp
+    type(list_box)                :: bl
+    integer                       :: i, lnc, lng, lngsrc, scomp
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3676,11 +3681,13 @@ contains
     call build(bpt, "mf_copy_c")
     lnc     = 1;       if ( present(nc)     ) lnc = nc
     lng     = 0;       if ( present(ng)     ) lng = ng
+    lngsrc  = 0;       if ( present(ngsrc)  ) lngsrc = ngsrc
     if ( lnc < 1 )                   call bl_error('MULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
-    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
     if ( mdst%la == msrc%la ) then
+       if ( lng > 0 ) &
+            call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
        do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
@@ -3692,16 +3699,48 @@ contains
           call cpy_d(pdst, psrc, filter)
        end do
     else
-       if ( lng > 0 ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter, bndry_reg_to_other)
+       if (lng    > mdst%ng) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
+       if (lngsrc > msrc%ng) call bl_error('MULTIFAB_COPY_C: ngsrc > msrc%ng')
+
+       if (lngsrc > 0) then
+          do i = 1, nboxes(msrc%la)
+             call push_back(bl, grow(box_nodalize(get_box(msrc%la,i),msrc%nodal),lngsrc))
+          end do
+          call build(batmp, bl, sort = .false.)
+          call destroy(bl)
+          call build(lasrctmp, batmp, boxarray_bbox(batmp), explicit_mapping = get_proc(msrc%la))
+          call destroy(batmp)
+          call build(msrctmp, lasrctmp, nc = lnc, ng = 0)
+
+          !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
+          do i = 1, nfabs(msrc)
+             psrc => dataptr(msrc   , i, grow(get_ibox(msrc,i), lngsrc),  srccomp, lnc)
+             pdst => dataptr(msrctmp, i,                                  1      , lnc)
+             call cpy_d(pdst,psrc)
+          end do
+          !$OMP END PARALLEL DO
+
+          pmfsrc => msrctmp
+          scomp = 1
+       else
+          pmfsrc => msrc
+          scomp = srccomp
+       end if
+
+       call mf_copy_fancy_double(mdst, dstcomp, pmfsrc, scomp, lnc, filter, bndry_reg_to_other)
+
+       if (lngsrc > 0) then
+          call destroy(msrctmp)
+          call destroy(lasrctmp)
+       end if
     end if
     call destroy(bpt)
   end subroutine multifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, ng, filter, bndry_reg_to_other)
+  subroutine multifab_copy(mdst, msrc, ng, filter, bndry_reg_to_other, ngsrc)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
-    integer, intent(in), optional :: ng
+    integer, intent(in), optional :: ng, ngsrc
     logical, intent(in), optional :: bndry_reg_to_other
     interface
        subroutine filter(out, in)
@@ -3712,7 +3751,7 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
-    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, bndry_reg_to_other)
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, bndry_reg_to_other, ngsrc)
   end subroutine multifab_copy
 
   subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter)
@@ -4156,38 +4195,56 @@ contains
     end do
   end subroutine multifab_rescale
 
-  subroutine multifab_saxpy_5(a, b1, b, c1, c)
+  subroutine multifab_saxpy_5(a, b1, b, c1, c, all)
     real(dp_t), intent(in) :: b1, c1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in)  :: b, c
+    logical, intent(in), optional :: all
     real(dp_t), pointer :: ap(:,:,:,:)
     real(dp_t), pointer :: bp(:,:,:,:)
     real(dp_t), pointer :: cp(:,:,:,:)
     integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
     !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
     do i = 1, nlocal(a%la)
-       ap => dataptr(a, i, get_ibox(a, i))
-       bp => dataptr(b, i, get_ibox(b, i))
-       cp => dataptr(c, i, get_ibox(c, i))
+       if ( lall ) then
+          ap => dataptr(a, i)
+          bp => dataptr(b, i)
+          cp => dataptr(c, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+          bp => dataptr(b, i, get_ibox(b, i))
+          cp => dataptr(c, i, get_ibox(c, i))
+       end if
        ap = b1*bp + c1*cp
     end do
-    !$OMP END PARALLEL DO
   end subroutine multifab_saxpy_5
 
-  subroutine multifab_saxpy_4(a, b, c1, c)
+  subroutine multifab_saxpy_4(a, b, c1, c, all)
     real(dp_t),     intent(in)    :: c1
     type(multifab), intent(inout) :: a
     type(multifab), intent(in   ) :: b,c
+    logical, intent(in), optional :: all
     real(dp_t), pointer           :: ap(:,:,:,:)
     real(dp_t), pointer           :: bp(:,:,:,:)
     real(dp_t), pointer           :: cp(:,:,:,:)
-
+    
     integer :: ii, i, j, k, n, lo(4), hi(4)
+    logical :: lall
+
+    lall = .false.; if ( present(all) ) lall = all
 
     do ii = 1, nlocal(a%la)
-       ap => dataptr(a, ii, get_ibox(a,ii))
-       bp => dataptr(b, ii, get_ibox(b,ii))
-       cp => dataptr(c, ii, get_ibox(c,ii))
+       if (lall) then
+          ap => dataptr(a, ii)
+          bp => dataptr(b, ii)
+          cp => dataptr(c, ii)
+       else
+          ap => dataptr(a, ii, get_ibox(a,ii))
+          bp => dataptr(b, ii, get_ibox(b,ii))
+          cp => dataptr(c, ii, get_ibox(c,ii))
+       end if
 
        lo = lbound(ap)
        hi = ubound(ap)
