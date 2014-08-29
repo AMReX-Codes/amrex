@@ -271,7 +271,7 @@ public:
 
     ParticleContainer (Amr* amr)
         :
-        m_verbose(1), m_amr(amr), allow_particles_near_boundary(false) { BL_ASSERT(amr != 0); }
+        m_verbose(1), m_relativistic(0), m_csq(-1.), m_amr(amr), allow_particles_near_boundary(false) { BL_ASSERT(amr != 0); }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
 
@@ -426,6 +426,10 @@ public:
 
     void SetVerbose (int verbose) { m_verbose = verbose; }
 
+    void SetRelativistic (int relativistic) { m_relativistic = relativistic; }
+
+    void SetCSquared (Real csq) { m_csq = csq; }
+
 protected:
     //
     // Helper function for Checkpoint() and WritePlotFile().
@@ -460,6 +464,8 @@ protected:
     // The data.
     //
     int         m_verbose;
+    int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
+    Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
     Amr*        m_amr;
     Array<PMap> m_particles;
 
@@ -2308,6 +2314,10 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     BL_ASSERT(N >= 1);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
+#ifdef NEUTRINO_PARTICLES
+    BL_ASSERT(m_csq > 0.);
+#endif
+
     MultiFab* mf_pointer;
 
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
@@ -2385,9 +2395,10 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 
             const int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
-            // If this is not fully periodic then we have to be careful that no
-            // particle's support leaves the domain. We test this by checking the low
-            // and high corners respectively.
+            // If this is not fully periodic then we have to be careful that the
+            // particle's support leaves the domain unless we specifically want to ignore
+            // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
+            // We test this by checking the low and high corners respectively.
             //
             if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
                 if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
@@ -2405,7 +2416,20 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
                 //
                 // Sum up mass in first component.
                 //
-                fab(cells[i],0) += p.m_data[0] * fracs[i];
+#ifdef NEUTRINO_PARTICLES
+                if (m_relativistic)
+                {
+                    Real vsq = 0.0;
+                    for (int n = 1; n < ncomp; n++)
+                       vsq += p.m_data[n] * p.m_data[n];
+                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
+                }
+                else 
+#endif
+                {
+                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                }
                 // 
                 // Sum up momenta in next components.
                 //
@@ -2488,6 +2512,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     BL_ASSERT(N >= 1);
     BL_ASSERT(N >= ncomp);
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
+
+#ifdef NEUTRINO_PARTICLES
+    BL_ASSERT(m_csq > 0.);
+#endif
 
     if (finest_level == -1)
     {
@@ -2809,7 +2837,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                         //
                         // Sum up mass in first component.
                         //
-                        fab(cells[i],0) += p.m_data[0] * fracs[i];
+#ifdef NEUTRINO_PARTICLES
+                        if (m_relativistic)
+                        {
+                            Real vsq = 0.0;
+                            for (int n = 1; n < ncomp; n++)
+                               vsq += p.m_data[n] * p.m_data[n];
+                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                            fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
+                        }
+                        else 
+#endif
+                        {
+                            fab(cells[i],0) += p.m_data[0] * fracs[i];
+                        }
                         //
                         // Sum up momenta in next components.
                         //
@@ -2863,7 +2904,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        (*mf)[lev_index+1][grid](fcells[j],0) += p.m_data[0] * ffracs[j];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2878,7 +2932,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    pb.m_data[0] = p.m_data[0] *  ffracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        pb.m_data[0] = p.m_data[0] *  ffracs[j] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        pb.m_data[0] = p.m_data[0] *  ffracs[j];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2912,8 +2979,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 if (!pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
-                                    ccells[j] = ccells[j] - pshifts[0];
-                                }
+                                    ccells[j] = ccells[j] - pshifts[0]; }
                                 //
                                 // Find its resident grid.
                                 //
@@ -2927,7 +2993,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        (*mf)[lev_index-1][grid](ccells[j],0) += p.m_data[0] * cfracs[j];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2942,7 +3021,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    pb.m_data[0] = p.m_data[0] * cfracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        pb.m_data[0] = p.m_data[0] * cfracs[j] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        pb.m_data[0] = p.m_data[0] * cfracs[j];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -2990,7 +3082,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             //
                             // Sum up mass in first component.
                             //
-                            fab(cells[i],0) += p.m_data[0] * fracs[i];
+#ifdef NEUTRINO_PARTICLES
+                            if (m_relativistic)
+                            {
+                                Real vsq = 0.0;
+                                for (int n = 1; n < ncomp; n++)
+                                   vsq += p.m_data[n] * p.m_data[n];
+                                Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
+                            }
+                            else 
+#endif
+                            {
+                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+                            }
                             //
                             // Sum up momenta in next components.
                             //
@@ -3031,7 +3136,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        (*mf)[lev_index-1][cgrid[i]](ccells[i],0) += p.m_data[0] * cfracs[i];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -3046,7 +3164,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     //
                                     // Sum up mass in first component.
                                     //
-                                    pb.m_data[0] = p.m_data[0] * cfracs[i];
+#ifdef NEUTRINO_PARTICLES
+                                    if (m_relativistic)
+                                    {
+                                        Real vsq = 0.0;
+                                        for (int n = 1; n < ncomp; n++)
+                                           vsq += p.m_data[n] * p.m_data[n];
+                                        Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                        pb.m_data[0] = p.m_data[0] * cfracs[i] * gamma;
+                                    }
+                                    else 
+#endif
+                                    {
+                                        pb.m_data[0] = p.m_data[0] * cfracs[i];
+                                    }
                                     //
                                     // Sum up momenta in next components.
                                     //
@@ -3086,7 +3217,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+#ifdef NEUTRINO_PARTICLES
+                                if (m_relativistic)
+                                {
+                                    Real vsq = 0.0;
+                                    for (int n = 1; n < ncomp; n++)
+                                       vsq += p.m_data[n] * p.m_data[n];
+                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
+                                }
+                                else 
+#endif
+                                {
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                }
                                 //
                                 // Sum up momenta in next components.
                                 //
@@ -3128,7 +3272,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-                                fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
+#ifdef NEUTRINO_PARTICLES
+                                if (m_relativistic)
+                                {
+                                    Real vsq = 0.0;
+                                    for (int n = 1; n < ncomp; n++)
+                                       vsq += p.m_data[n] * p.m_data[n];
+                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * mult * gamma;
+                                }
+                                else 
+#endif
+                                {
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * mult;
+                                }
                                 //
                                 // Sum up momenta in next components.
                                 //
@@ -3157,7 +3314,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Sum up mass in first component.
                                 //
-                                fab(cells[i],0) += p.m_data[0] * fracs[i];
+#ifdef NEUTRINO_PARTICLES
+                                if (m_relativistic)
+                                {
+                                    Real vsq = 0.0;
+                                    for (int n = 1; n < ncomp; n++)
+                                       vsq += p.m_data[n] * p.m_data[n];
+                                    Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
+                                }
+                                else 
+#endif
+                                {
+                                    fab(cells[i],0) += p.m_data[0] * fracs[i];
+                                }
                                 //
                                 // Sum up momenta in next components.
                                 //
@@ -3182,7 +3352,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up mass in first component.
                                         //
-                                        (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                        if (m_relativistic)
+                                        {
+                                            Real vsq = 0.0;
+                                            for (int n = 1; n < ncomp; n++)
+                                               vsq += p.m_data[n] * p.m_data[n];
+                                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j] * gamma;
+                                        }
+                                        else 
+#endif
+                                        {
+                                            (*mf)[lev_index+1][fgrid[j]](fcells[j],0) += p.m_data[0] * fracs[i] * ffracs[j];
+                                        }
                                         //
                                         // Sum up momenta in next components.
                                         //
@@ -3197,7 +3380,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                         //
                                         // Sum up mass in first component.
                                         //
-                                        pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+#ifdef NEUTRINO_PARTICLES
+                                        if (m_relativistic)
+                                        {
+                                            Real vsq = 0.0;
+                                            for (int n = 1; n < ncomp; n++)
+                                               vsq += p.m_data[n] * p.m_data[n];
+                                            Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
+                                            pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j] * gamma;
+                                        }
+                                        else 
+#endif
+                                        {
+                                            pb.m_data[0] = p.m_data[0] * fracs[i] * ffracs[j];
+                                        }
                                         //
                                         // Sum up momenta in next components.
                                         //
@@ -4200,7 +4396,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
             D_TERM(p.m_pos[0] += dt_a_half_inv * p.m_data[1];,
                    p.m_pos[1] += dt_a_half_inv * p.m_data[2];,
                    p.m_pos[2] += dt_a_half_inv * p.m_data[3];);
-        } 
+        }
     }
 
     if (gv_pointer != &grav_vector) delete gv_pointer;

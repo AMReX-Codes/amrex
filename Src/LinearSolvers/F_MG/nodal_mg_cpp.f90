@@ -271,11 +271,11 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   allocate(mgts%cell_coeffs(nlev))
 
   call  build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%cell_coeffs(nlev), 0.0_dp_t, all=.true.)
+  call setval(mgts%cell_coeffs(nlev), ZERO, all=.true.)
 
   ! These only exist at amr levels, not the lower multigrid levels
   call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%amr_coeffs(flev), 0.0_dp_t, all=.true.)
+  call setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
 
 end subroutine mgt_init_nodal_coeffs_lev
 
@@ -705,7 +705,7 @@ subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   do i = lo(1),hi(1)
       if (.not. bc_dirichlet(mp(i,j,k,1),1,0)) &
           rp(i,j,k,1) = rp(i,j,k,1) + rh_in(i,j,k)
-      rhmax = max(rhmax, abs(rp(i,j,1,1)))
+      rhmax = max(rhmax, abs(rp(i,j,k,1)))
   end do
   end do
   end do

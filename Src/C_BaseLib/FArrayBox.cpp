@@ -19,6 +19,11 @@
 #include <Looping.H>
 #include <Utility.H>
 
+#ifdef BL_Darwin
+using std::isinf;
+using std::isnan;
+#endif
+
 static const char sys_name[] = "IEEE";
 //
 // Default Ordering to Normal Order.
@@ -165,7 +170,7 @@ FArrayBox::operator= (const Real& v)
 bool 
 FArrayBox::contains_nan () const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
+#ifndef _CRAYC
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (isnan(*dp++))
@@ -177,13 +182,13 @@ FArrayBox::contains_nan () const
 bool 
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
+#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -205,13 +210,13 @@ FArrayBox::contains_nan (IntVect& where) const
 bool 
 FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
     BL_ASSERT(ncomp <= nComp());
     BL_ASSERT(domain.contains(bx));
 
+#ifndef _CRAYC
     for (int i = 0; i < ncomp; i++)
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
@@ -231,19 +236,16 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
 bool 
 FArrayBox::contains_inf () const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
         if (isinf(*dp++))
             return true;
-#endif
     return false;
 }
 
 bool 
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
@@ -258,7 +260,6 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
                 return true;
         }
     }
-#endif
     return false;
 }
 
@@ -271,7 +272,6 @@ FArrayBox::contains_inf (IntVect& where) const
 bool 
 FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const
 {
-#if defined(_GNU_SOURCE) || defined(__INTEL_COMPILER) || defined(_AIX) || defined(__PATHSCALE__)
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(scomp <  nComp());
@@ -290,7 +290,6 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
             }
         }
     }
-#endif
     return false;
 }
 

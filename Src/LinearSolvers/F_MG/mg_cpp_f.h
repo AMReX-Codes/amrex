@@ -446,7 +446,7 @@ extern "C"
 		           const int* pmap);
 
   void mgt_finalize(const Real* dx, const int* bc);
-  void mgt_finalize_n(const Real* dx, const int* bc, const int* nc_in, const int* ns_in);
+  void mgt_finalize_n(const Real* dx, const int* bc, const int* nc_in);
   void mgt_nodal_finalize(const Real* dx, const int* bc);
 
   void mgt_init_coeffs_lev(const int* lev);

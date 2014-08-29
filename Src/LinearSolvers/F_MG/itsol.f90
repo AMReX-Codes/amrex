@@ -1,5 +1,6 @@
 module itsol_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use cc_stencil_module
@@ -223,7 +224,6 @@ contains
 
       integer         :: i, j
       real(kind=dp_t) :: ss0
-      real(kind=dp_t), parameter :: TWOTHIRDS = 2.d0 / 3.d0
       !
       ! NOTE NOTE : we only diagonalize the RHS here --
       !             we will diagnoalize the matrix in the apply routine itself
@@ -245,7 +245,7 @@ contains
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  ss0 = -TWOTHIRDS*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  ss0 = -TWO3RD*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
                   r(i,j) =  r(i,j) / ss0
                end if
             end do
@@ -256,7 +256,7 @@ contains
          do j = lo(2),hi(2)+1
             do i = lo(1),hi(1)+1
                if (.not. bc_dirichlet(mm(i,j),1,0)) then
-                  ss0 = -0.75d0*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
+                  ss0 = -THREE4TH*(sg(i-1,j-1)+sg(i,j-1)+sg(i-1,j)+sg(i,j))
                   r(i,j) =  r(i,j) / ss0
                end if
             end do
@@ -278,7 +278,6 @@ contains
 
       integer         :: i, j, k
       real(kind=dp_t) :: ss0
-      real(kind=dp_t), parameter :: FOURTHIRDS = 4.d0 / 3.d0
       !
       ! NOTE NOTE : we only diagonalize the RHS here --
       !             we will diagnolize the matrix in the apply routine itself
@@ -293,7 +292,7 @@ contains
                ss0 = -( sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                        +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
                        +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                       +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0
+                       +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * THREE
                r(i,j,k) =  r(i,j,k) / ss0
             end if
          end do
@@ -311,7 +310,7 @@ contains
                ss0 =  -( sg(i-1,j-1,k-1) + sg(i,j-1,k-1) &
                         +sg(i-1,j  ,k-1) + sg(i,j  ,k-1) &
                         +sg(i-1,j-1,k  ) + sg(i,j-1,k  ) &
-                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * FOURTHIRDS
+                        +sg(i-1,j  ,k  ) + sg(i,j  ,k  ) ) * FOUR3RD
                r(i,j,k) =  r(i,j,k) / ss0
             end if
          end do
@@ -445,7 +444,7 @@ contains
       if ( ioproc .and. verbose > 0 ) then
          print *,'   ...singular adjustment to rhs: ', rho
       endif
-      call saxpy(rh_local,-rho,ss)
+      call sub_sub(rh_local, rho)
       call setval(ss,ZERO,all=.true.)
     end if
 
@@ -515,7 +514,8 @@ contains
           end if
           beta = (rho/rho_1)*(alpha/omega)
           call saxpy(pp, -omega, vv)
-          call saxpy(pp, rr, beta, pp)
+          call rescale(pp, beta)
+          call plus_plus(pp, rr)
        end if
        call copy(ph,pp)
       
@@ -799,7 +799,7 @@ contains
        if ( ioproc .and. verbose > 0 ) then
           print *,'   ...singular adjustment to rhs: ', rho
        endif
-       call saxpy(rh_local,-rho,ss)
+       call sub_sub(rh_local,rho)
        call destroy(ss)
     end if
 
@@ -1279,7 +1279,7 @@ contains
     if ( singular .and. nodal_solve ) then
       call setval(zz,ONE)
       rho = dot(rr, zz, nodal_mask) / dot(zz,zz)
-      call saxpy(rr,-rho,zz)
+      call sub_sub(rr,rho)
       call setval(zz,ZERO,all=.true.)
     end if
     !
@@ -1323,7 +1323,8 @@ contains
              call bl_error("CG_solve: failure 1")
           end if
           beta = rho/rho_1
-          call saxpy(pp, zz, beta, pp)
+          call rescale(pp, beta)
+          call plus_plus(pp, zz)
        end if
        if ( cell_centered_q(pp) ) then
            call stencil_apply(aa_local, qq, pp, mm, stencil_type, lcross, uniform_dh, bottom_solver=.true.)

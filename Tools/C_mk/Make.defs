@@ -153,7 +153,7 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
   endif
-  ifeq ($(findstring donev, $(HOSTNAMEF)), donev)
+  ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
   endif
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)

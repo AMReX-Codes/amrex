@@ -41,6 +41,7 @@
     F90FLAGS += -mp1 -fltconsistency
     FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
+    CFLAGS   += -std=c99
     ifdef OMP
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2

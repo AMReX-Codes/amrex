@@ -3387,10 +3387,11 @@ contains
     end do
   end subroutine zmultifab_print
 
-  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, filter)
+  subroutine mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, nc, filter, bndry_reg_to_other)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer, intent(in)           :: dstcomp, srccomp, nc
+    logical, intent(in), optional :: bndry_reg_to_other
 
     interface
        subroutine filter(out, in)
@@ -3408,8 +3409,16 @@ contains
     integer, parameter      :: tag = 1102
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
+    logical :: br_to_other
+    
+    br_to_other = .false.  
+    if (present(bndry_reg_to_other)) br_to_other = bndry_reg_to_other
 
-    cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+    if (br_to_other) then
+       call copyassoc_build_br_to_other(cpasc, mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+    else
+       cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
+    end if
 
     do i = 1, cpasc%l_con%ncpy
        ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
@@ -3421,7 +3430,10 @@ contains
 
     np = parallel_nprocs()
 
-    if (np == 1) return
+    if (np == 1) then
+       if (br_to_other) call copyassoc_destroy(cpasc)
+       return
+    end if
 
     allocate(g_snd_d(nc*cpasc%r_con%svol))
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
@@ -3448,6 +3460,8 @@ contains
        p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
+
+    if (br_to_other) call copyassoc_destroy(cpasc)
 
   end subroutine mf_copy_fancy_double
 
@@ -3641,12 +3655,13 @@ contains
 
   end subroutine mf_copy_fancy_z
 
-  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter)
+  subroutine multifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter, bndry_reg_to_other)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer, intent(in)           :: dstcomp, srccomp
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
+    logical, intent(in), optional :: bndry_reg_to_other
     real(dp_t), pointer           :: pdst(:,:,:,:), psrc(:,:,:,:)
     integer                       :: i, lnc, lng
     interface
@@ -3678,15 +3693,16 @@ contains
        end do
     else
        if ( lng > 0 ) call bl_error('MULTIFAB_COPY_C: copying ghostcells allowed only when layouts are the same')
-       call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter)
+       call mf_copy_fancy_double(mdst, dstcomp, msrc, srccomp, lnc, filter, bndry_reg_to_other)
     end if
     call destroy(bpt)
   end subroutine multifab_copy_c
 
-  subroutine multifab_copy(mdst, msrc, ng, filter)
+  subroutine multifab_copy(mdst, msrc, ng, filter, bndry_reg_to_other)
     type(multifab), intent(inout) :: mdst
     type(multifab), intent(in)    :: msrc
     integer, intent(in), optional :: ng
+    logical, intent(in), optional :: bndry_reg_to_other
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3696,7 +3712,7 @@ contains
     end interface
     optional filter
     if ( mdst%nc .ne. msrc%nc ) call bl_error('MULTIFAB_COPY: multifabs must have same number of components')
-    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter)
+    call multifab_copy_c(mdst, 1, msrc, 1, mdst%nc, ng, filter, bndry_reg_to_other)
   end subroutine multifab_copy
 
   subroutine imultifab_copy_c(mdst, dstcomp, msrc, srccomp, nc, ng, filter)
@@ -5393,41 +5409,55 @@ contains
     end subroutine c_3d
   end subroutine multifab_fab_copy
 
-  function multifab_min(mf, all) result(r)
+  function multifab_min(mf, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
+    logical :: llocal
+    llocal = .false. ; if (present(local)) llocal = local
     r1 = +Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = min(r1,min_val(mf%fbs(i), all))
     end do
-    call parallel_reduce(r, r1, MPI_MIN)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MIN)
+    end if
   end function multifab_min
-  function multifab_min_c(mf, c, nc, all) result(r)
+  function multifab_min_c(mf, c, nc, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     real(kind=dp_t) :: r1
     integer :: i
+    logical :: llocal
+    llocal = .false. ; if (present(local)) llocal = local
     r1 = +Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
     end do
-    call parallel_reduce(r, r1, MPI_MIN)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MIN)
+    end if
   end function multifab_min_c
   
-  function multifab_max(mf, all, allow_empty) result(r)
+  function multifab_max(mf, all, allow_empty, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all, allow_empty
+    logical, intent(in), optional :: all, allow_empty, local
     logical :: lallow
     integer :: i
     real(kind=dp_t) :: r1
+    logical :: llocal
     r1 = -Huge(r1)
+    llocal = .false.; if (present(local))       llocal=local
     lallow = .false.; if (present(allow_empty)) lallow=allow_empty
     if (lallow) then
        do i = 1, nlocal(mf%la)
@@ -5439,21 +5469,31 @@ contains
           r1 = max(r1, max_val(mf%fbs(i), all))
        end do
     endif
-    call parallel_reduce(r, r1, MPI_MAX)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MAX)
+    end if
   end function multifab_max
-  function multifab_max_c(mf, c, nc, all) result(r)
+  function multifab_max_c(mf, c, nc, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
-    logical, intent(in), optional :: all
+    logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
-    r1 = -Huge(r1)
+    logical :: llocal
+    llocal = .false.; if (present(local)) llocal=local
+     r1 = -Huge(r1)
     do i = 1, nlocal(mf%la)
        r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
     end do
-    call parallel_reduce(r, r1, MPI_MAX)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_MAX)
+    end if
   end function multifab_max_c
   
 end module multifab_module

@@ -61,9 +61,9 @@ module mg_tower_module
      integer :: max_iter = 50
      logical :: abort_on_max_iter = .true.
      real(kind=dp_t) ::     eps = 1.0e-10_dp_t
-     real(kind=dp_t) :: abs_eps = -1.0_dp_t
+     real(kind=dp_t) :: abs_eps = -ONE
 
-     real(kind=dp_t) :: max_L0_growth = -1.0_dp_t
+     real(kind=dp_t) :: max_L0_growth = -ONE
 
      type(box), pointer :: pd(:) => Null()
      real(kind=dp_t), pointer :: dh(:,:) => Null()
