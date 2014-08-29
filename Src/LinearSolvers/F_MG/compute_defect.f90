@@ -23,11 +23,13 @@ contains
     logical, intent(in), optional :: uniform_dh, bottom_solver, diagonalize
     type(bl_prof_timer), save     :: bpt
 
+    call bl_proffortfuncstart("compute_defect")
     call build(bpt, "compute_defect")
     call stencil_apply(ss, dd, uu, mm, stencil_type, lcross, &
                        uniform_dh, bottom_solver, diagonalize)
     call saxpy(dd, ff, -1.0_dp_t, dd)
     call destroy(bpt)
+    call bl_proffortfuncstop("compute_defect")
 
   end subroutine compute_defect
 

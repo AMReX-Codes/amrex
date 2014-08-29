@@ -1935,6 +1935,7 @@ contains
 
     if ( built_q(cpasc) ) call bl_error("copyassoc_build(): already built")
 
+    call bl_proffortfuncstart("copyassoc_build")
     call build(bpt, "copyassoc_build")
 
     call boxarray_build_copy(cpasc%ba_src, get_boxarray(la_src))
@@ -2109,6 +2110,7 @@ contains
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
     call destroy(bpt)
+    call bl_proffortfuncstop("copyassoc_build")
 
   end subroutine copyassoc_build
 

@@ -32,6 +32,7 @@ contains
     type(bl_prof_timer), save :: bpt
     logical :: pmask(mgt%dim)
 
+    call bl_proffortfuncstart("nodal_mg_tower_smoother")
     pmask = get_pmask(get_layout(uu))
     !
     ! Make sure to define this here so we don't assume a certain number of ghost cells for uu.
@@ -132,6 +133,7 @@ contains
     call multifab_internal_sync(uu)
 
     call destroy(bpt)
+    call bl_proffortfuncstop("nodal_mg_tower_smoother")
 
   end subroutine nodal_mg_tower_smoother
 
