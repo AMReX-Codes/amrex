@@ -492,6 +492,9 @@ contains
     if (fourth_order .and. (stencil_width < 2)) &
        call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
 
+    if (nghost(crse_new) < stencil_width .or. nghost(crse_old) < stencil_width) &
+         call bl_error('fillpatch: crse does not have enough ghost cells compared with stencil width');
+
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
     ! in case has more than ng).
@@ -666,6 +669,7 @@ contains
     do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
+       if (empty(cbx)) cycle
 
        if ( n_extra_valid_regions > 0 ) then
           fine_box = get_ibox(tmpfine,i)
