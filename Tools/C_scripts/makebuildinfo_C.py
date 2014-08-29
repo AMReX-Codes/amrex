@@ -120,7 +120,7 @@ running_dir = os.getcwd()
 ngit = len(GIT)
 git_hashes = []
 for d in GIT:
-    if d:
+    if d and os.path.isdir(d):
         os.chdir(d)
         git_hashes.append(runcommand("git rev-parse HEAD"))
         os.chdir(running_dir)
