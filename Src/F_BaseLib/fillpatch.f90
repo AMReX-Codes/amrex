@@ -42,7 +42,6 @@ contains
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
     logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
-    logical         :: done
     integer         :: stencil_width
 
     type(list_box_node),   pointer     :: bln
@@ -81,6 +80,9 @@ contains
 
     if (fourth_order .and. (stencil_width < 2)) &
        call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
+
+    if (nghost(crse) < stencil_width) &
+         call bl_error('fillpatch: crse does not have enough ghost cells compared with stencil width');
 
     !
     ! Force crse to have good data in ghost cells (only the ng that are needed 
@@ -249,6 +251,7 @@ contains
     do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
+       if (empty(cbx)) cycle
 
        if ( n_extra_valid_regions > 0 ) then
           fine_box = get_ibox(tmpfine,i)
