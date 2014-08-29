@@ -60,6 +60,7 @@ contains
           if ( stencil_width_input < 2) &
             call bl_error('fillpatch: fourth_order but stencil_width < 2')
        end if
+       stencil_width = stencil_width_input
     else
        if ( fourth_order) then
           stencil_width = 2
@@ -199,6 +200,7 @@ contains
           if ( stencil_width_input < 2) &
             call bl_error('fillpatch: fourth_order but stencil_width < 2')
        end if
+       stencil_width = stencil_width_input
     else
        if ( fourth_order) then
           stencil_width = 2
