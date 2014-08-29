@@ -149,13 +149,13 @@ contains
                 orig_corr_fact = voffx(i)*lc_xslope(ic,n)
                 fine(i,n) = crse(ic,n) + orig_corr_fact
                 if ( fine(i,n)  >  cmax(ic,n) ) then
-                   if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,n)) ) then
+                   if ( abs(orig_corr_fact)  >  1.e-10_dp_t*abs(crse(ic,n)) ) then
                       corr_fact = (cmax(ic,n) - crse(ic,n)) / orig_corr_fact
                       alpha(ic,n) = min(alpha(ic,n),corr_fact)
                    end if
                 end if
                 if ( fine(i,n)  <  cmin(ic,n) ) then
-                   if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,n)) ) then
+                   if ( abs(orig_corr_fact)  >  1.e-10_dp_t*abs(crse(ic,n)) ) then
                       corr_fact = (cmin(ic,n) - crse(ic,n)) / orig_corr_fact
                       alpha(ic,n) = min(alpha(ic,n),corr_fact)
                       end if
@@ -438,13 +438,13 @@ contains
                    orig_corr_fact = voffx(i)*lc_xslope(ic,jc,n)+ voffy(j)*lc_yslope(ic,jc,n) 
                    fine(i,j,n) = crse(ic,jc,n) + orig_corr_fact
                    if ( fine(i,j,n)  >  cmax(ic,jc,n) ) then
-                      if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,n)) ) then
+                      if ( abs(orig_corr_fact)  >  1.e-10_dp_t*abs(crse(ic,jc,n)) ) then
                          corr_fact = (cmax(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                          alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                       end if
                    end if
                    if ( fine(i,j,n)  <  cmin(ic,jc,n) ) then
-                      if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,n)) ) then
+                      if ( abs(orig_corr_fact)  >  1.e-10_dp_t*abs(crse(ic,jc,n)) ) then
                          corr_fact = (cmin(ic,jc,n) - crse(ic,jc,n)) / orig_corr_fact
                          alpha(ic,jc,n) = min(alpha(ic,jc,n),corr_fact)
                       end if
@@ -599,7 +599,7 @@ contains
     !
     ! Prevent underflow for small crse values.
     !
-    where(abs(crse) < 1.0d-20) crse = ZERO
+    where(abs(crse) < 1.e-20_dp_t) crse = ZERO
     !
     ! Computed unlimited and limited slopes
     !
@@ -883,13 +883,13 @@ contains
                            + voffz(k)*lc_zslope(ic,jc,kc,n)
                       fine(i,j,k,n) = crse(ic,jc,kc,n) + orig_corr_fact
                       if ( fine(i,j,k,n) > cmax(ic,jc,kc) ) then
-                         if ( abs(orig_corr_fact) > 1.d-10*abs(crse(ic,jc,kc,n)) ) then
+                         if ( abs(orig_corr_fact) > 1.e-10_dp_t*abs(crse(ic,jc,kc,n)) ) then
                             corr_fact = (cmax(ic,jc,kc) - crse(ic,jc,kc,n)) / orig_corr_fact
                             alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                          end if
                       end if
                       if ( fine(i,j,k,n)  <  cmin(ic,jc,kc) ) then
-                         if ( abs(orig_corr_fact)  >  1.d-10*abs(crse(ic,jc,kc,n)) ) then
+                         if ( abs(orig_corr_fact)  >  1.e-10_dp_t*abs(crse(ic,jc,kc,n)) ) then
                             corr_fact = (cmin(ic,jc,kc) - crse(ic,jc,kc,n)) / orig_corr_fact
                             alpha(ic,jc,kc,n) = min(alpha(ic,jc,kc,n),corr_fact)
                          end if
@@ -1038,7 +1038,7 @@ contains
              b( 18) = crse(ic+2, jc-1, n)
              b( 19) = crse(ic+2, jc+0, n)
              b( 20) = crse(ic+2, jc+1, n)
-             b( 21) = 1000.0D0*crse(ic+0, jc+0, n)
+             b( 21) = 1000.0_dp_t*crse(ic+0, jc+0, n)
 
              c = matmul(P2, b)
 

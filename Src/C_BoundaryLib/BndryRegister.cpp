@@ -218,6 +218,24 @@ void BndryRegister::setVal (Real v)
 }
 
 BndryRegister&
+BndryRegister::operator+= (const BndryRegister& rhs)
+{
+    BL_ASSERT(grids == rhs.grids);
+    for (OrientationIter face; face; ++face) {
+	for (FabSetIter bfsi(rhs[face()]); bfsi.isValid(); ++bfsi) {
+	    bndry[face()][bfsi] += rhs[face()][bfsi];
+	}
+    }
+    return *this;
+}
+
+BndryRegister&
+BndryRegister::plus (const BndryRegister& rhs)
+{
+    return operator+=(rhs);
+}
+
+BndryRegister&
 BndryRegister::linComb (Real            a,
                         const MultiFab& mfa,
                         int             a_comp,

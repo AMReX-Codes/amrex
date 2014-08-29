@@ -846,10 +846,6 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-#ifndef NDEBUG
-    Box cbox = BoxLib::coarsen(flux.box(),ratio);
-#endif
-
     const Box&  flxbox = flux.box();
     const int*  flo    = flxbox.loVect();
     const int*  fhi    = flxbox.hiVect();
@@ -857,7 +853,10 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
+#ifndef NDEBUG
+    Box cbox = BoxLib::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
+#endif
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
@@ -867,7 +866,9 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
+#ifndef NDEBUG
     BL_ASSERT(cbox.contains(hireg.box()));
+#endif
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
@@ -889,10 +890,6 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-#ifndef NDEBUG
-    Box cbox = BoxLib::coarsen(flux.box(),ratio);
-#endif
-
     const Real* area_dat = area.dataPtr();
     const int*  alo      = area.loVect();
     const int*  ahi      = area.hiVect();
@@ -903,7 +900,10 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
+#ifndef NDEBUG
+    Box cbox = BoxLib::coarsen(flux.box(),ratio);
     BL_ASSERT(cbox.contains(loreg.box()));
+#endif
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
@@ -914,7 +914,9 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
+#ifndef NDEBUG
     BL_ASSERT(cbox.contains(hireg.box()));
+#endif
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);

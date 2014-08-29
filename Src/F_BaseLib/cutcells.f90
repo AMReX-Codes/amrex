@@ -1,6 +1,8 @@
 
 module cutcell_module
 
+  use bl_types
+  use bl_constants_module
   use bl_error_module
 
   implicit none
@@ -18,19 +20,19 @@ module cutcell_module
      integer          :: cutNumber        ! its index in the cutcell list
      integer          :: cutDim           ! Dimension of cutcell         
      integer          :: cutIndex(3)      ! its Cartesian index (i,j,k)
-     double precision :: centroid(3)      ! centroid coordinates (x,y,z)
-     double precision :: volume           ! volume of cell
-     double precision :: bdyArea          ! area of boundary face (the actual cut face)
-     double precision :: bdyNormal(3)     ! normalized normal vector for boundary face
-     double precision :: bdyCentroid(3)   ! centroid of boundary face
+     real (kind=dp_t) :: centroid(3)      ! centroid coordinates (x,y,z)
+     real (kind=dp_t) :: volume           ! volume of cell
+     real (kind=dp_t) :: bdyArea          ! area of boundary face (the actual cut face)
+     real (kind=dp_t) :: bdyNormal(3)     ! normalized normal vector for boundary face
+     real (kind=dp_t) :: bdyCentroid(3)   ! centroid of boundary face
      integer          :: splitIndex       ! -99999 if unsplit
                                           ! if split index points to split kids
      logical          :: FaceExist(3,2)  ! 1st comp: x,y,z face
                                           ! 2nd comp: lo,hi face
                                           ! says whether the face of the cutcell exists or not
-     double precision :: FaceCentroid(3,2,3)  ! 1st and 2nd comp: as for face_exist
+     real (kind=dp_t) :: FaceCentroid(3,2,3)  ! 1st and 2nd comp: as for face_exist
                                                ! 3rd component: actual centroid coord
-     double precision :: FaceArea(3,2)   ! 1st and 2nd comp as for face_centroid
+     real (kind=dp_t) :: FaceArea(3,2)   ! 1st and 2nd comp as for face_centroid
                                           ! area of face
 
   end type cutcell
@@ -84,18 +86,18 @@ contains
     integer,          intent(in   ) :: aaa    ! cutNumber
     integer,          intent(in   ) :: aab    ! cutDim
     integer,          intent(in   ) :: a(:)   ! cutIndex
-    double precision, intent(in   ) :: b(:)   ! centroid
-    double precision, intent(in   ) :: c      ! volume
-    double precision, intent(in   ) :: e      ! bdyArea
-    double precision, intent(in   ) :: f(:)   ! bdyNormal
-    double precision, intent(in   ) :: g(:)   ! bdyCentroid
+    real (kind=dp_t), intent(in   ) :: b(:)   ! centroid
+    real (kind=dp_t), intent(in   ) :: c      ! volume
+    real (kind=dp_t), intent(in   ) :: e      ! bdyArea
+    real (kind=dp_t), intent(in   ) :: f(:)   ! bdyNormal
+    real (kind=dp_t), intent(in   ) :: g(:)   ! bdyCentroid
     integer,          intent(in   ) :: h      ! splitIndex
     logical,          intent(in   ) :: arr_a(:,:)   ! FaceExist(3,2) 
-    double precision, intent(in   ) :: arr_b(:,:,:) ! FaceCentroid(3,2,3)
-    double precision, intent(in   ) :: arr_c(:,:)   ! FaceArea(3,2)
+    real (kind=dp_t), intent(in   ) :: arr_b(:,:,:) ! FaceCentroid(3,2,3)
+    real (kind=dp_t), intent(in   ) :: arr_c(:,:)   ! FaceArea(3,2)
 
     integer i,j,k
-    double precision :: my_z_cent
+    real (kind=dp_t) :: my_z_cent
 
     if (aab == 3) then   ! for 3d problem
 
@@ -132,7 +134,7 @@ contains
        dcut%centroid  = b
        dcut%volume    = c     ! if we assume Delta z = 1
        dcut%bdyArea   = e     ! if we assume Delta z = 1
-       if (abs(f(3)) > 1.E-10) call bl_error("cutcells.f90: bdyNormal(3) not equal 0.")
+       if (abs(f(3)) > 1.e-10_dp_t) call bl_error("cutcells.f90: bdyNormal(3) not equal 0.")
        dcut%bdyNormal = f
        dcut%bdyCentroid = g
        dcut%splitIndex = h
@@ -144,27 +146,27 @@ contains
              dcut%FaceArea(i,j)  = arr_c(i,j)
           end do
           dcut%FaceExist(3,j) = .FALSE.
-          dcut%FaceArea(3,j)  = 0.0d0
+          dcut%FaceArea(3,j)  = ZERO
        end do
        do k=1,3
           do j=1,2
              do i=1,2
                 dcut%FaceCentroid(i,j,k) = arr_b(i,j,k)
              end do
-             dcut%FaceCentroid(3,j,k) = 0.0d0
+             dcut%FaceCentroid(3,j,k) = ZERO
           end do
        end do    
 
        ! centroid sanity check:
        my_z_cent = dcut%centroid(3)
-       if (abs(dcut%bdyCentroid(3)-my_z_cent) > 1.E-10) then
+       if (abs(dcut%bdyCentroid(3)-my_z_cent) > 1.e-10_dp_t) then
           call bl_error("cutcells.f90: bdyCentroid and centroid don't have same z-comp")
        end if
-       if (abs(arr_b(3,1,1)-arr_b(3,2,1)) > 1.E-10 .OR. &
-            abs(arr_b(3,1,2)-arr_b(3,2,2)) > 1.E-10) then
+       if (abs(arr_b(3,1,1)-arr_b(3,2,1)) > 1.e-10_dp_t .OR. &
+            abs(arr_b(3,1,2)-arr_b(3,2,2)) > 1.e-10_dp_t) then
           call bl_error("cutcells.f90: centroids from upper and lower z-face don't match")
        end if
-       if (abs(arr_b(1,1,3)-my_z_cent) > 1.E-10 .AND. dcut%FaceExist(1,1)) then
+       if (abs(arr_b(1,1,3)-my_z_cent) > 1.e-10_dp_t .AND. dcut%FaceExist(1,1)) then
           call bl_error("cutcells.f90: facecentroid and centroid don't have same z-comp")
        end if
 
@@ -312,7 +314,7 @@ end module cutcell_module
 !            !
 !            ! Populate the container.
 !            !
-!            call build(r(j), (/j,j,j/) , (/ 1.d0,1.d0,1.d0 /))
+!            call build(r(j), (/j,j,j/) , (/ ONE,ONE,ONE /))
 !            ! cell%cell(1) = j
 !            ! cell%cell(2) = j
 !            ! cell%cell(3) = j

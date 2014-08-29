@@ -1,5 +1,6 @@
 module cpp_mg_module
 
+  use bl_constants_module
   use mg_module
   use multifab_module
   use ml_layout_module
@@ -263,12 +264,11 @@ subroutine mgt_finalize(dx,bc)
 
 end subroutine mgt_finalize
 
-subroutine mgt_finalize_n(dx,bc,nc_in,ns_in)
+subroutine mgt_finalize_n(dx,bc,nc_in)
   use cpp_mg_module
   implicit none
   real(dp_t), intent(in) :: dx(mgts%nlevel,mgts%dim)
   integer   , intent(in) :: bc(2,mgts%dim)
-  integer   , intent(in) :: ns_in
   integer   , intent(in) :: nc_in
   integer :: i, dm, nlev, n
   integer :: nc
@@ -366,11 +366,11 @@ subroutine mgt_init_coeffs_lev(lev)
   allocate(mgts%edge_coeffs(nlev,dm))
 
   call multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la,nc=1,ng=0)
-  call setval(mgts%cell_coeffs(nlev), 0.0_dp_t, all=.true.)
+  call setval(mgts%cell_coeffs(nlev), zero, all=.true.)
 
   do i = 1,dm
     call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=1,ng=0,dir=i)
-    call setval(mgts%edge_coeffs(nlev,i), 0.0_dp_t, all=.true.)
+    call setval(mgts%edge_coeffs(nlev,i), zero, all=.true.)
   end do
 
 end subroutine mgt_init_coeffs_lev
@@ -410,11 +410,11 @@ subroutine mgt_init_mc_coeffs_lev(lev,nccomp,nc_opt)
   !    etc
 
   call  multifab_build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, nc=nc_cell, ng=1)
-  call setval(mgts% cell_coeffs(nlev), 0.0_dp_t, all=.true.)
+  call setval(mgts% cell_coeffs(nlev), zero, all=.true.)
 
   do i = 1,dm
     call multifab_build_edge(mgts%edge_coeffs(nlev,i), mgts%mgt(flev)%ss(nlev)%la,nc=nc_edge,ng=0,dir=i)
-    call setval(mgts%edge_coeffs(nlev,i), 0.0_dp_t, all=.true.)
+    call setval(mgts%edge_coeffs(nlev,i), zero, all=.true.)
   end do
 
 end subroutine mgt_init_mc_coeffs_lev

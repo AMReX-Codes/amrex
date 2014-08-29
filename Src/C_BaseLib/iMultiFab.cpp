@@ -574,10 +574,7 @@ iMultiFab::minus (const iMultiFab& mf,
     BL_ASSERT(boxarray == mf.boxarray);
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
-#ifndef NDEBUG
-    int lst_comp = strt_comp + num_comp - 1;
-#endif
-    BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -597,10 +594,7 @@ iMultiFab::divide (const iMultiFab& mf,
     BL_ASSERT(boxarray == mf.boxarray);
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
-#ifndef NDEBUG
-    int lst_comp = strt_comp + num_comp - 1;
-#endif
-    BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
@@ -656,10 +650,7 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(boxarray == mf.boxarray);
     BL_ASSERT(strt_comp >= 0);
     BL_ASSERT(num_comp > 0);
-#ifndef NDEBUG
-    int lst_comp = strt_comp + num_comp - 1;
-#endif
-    BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)

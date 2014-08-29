@@ -435,8 +435,6 @@ contains
     real(kind=dp_t) :: temp_vely_lo(lo(1)-1:hi(1)+1)
     real(kind=dp_t) :: temp_vely_hi(lo(1)-1:hi(1)+1)
 
-    real(kind=dp_t), parameter :: threefourths = (3.d0/4.d0)
-
     if (dir .eq. 1) then
 
        ! for each normal velocity in the first fine ghost cell in the normal direction
@@ -460,8 +458,8 @@ contains
           else
              signy = -1
           end if
-          vel(lo(1)-1,j) = threefourths*vel(lo(1)-1,j) + FOURTH*temp_velx_lo(j+signy)
-          vel(hi(1)+2,j) = threefourths*vel(hi(1)+2,j) + FOURTH*temp_velx_hi(j+signy)
+          vel(lo(1)-1,j) = THREE4TH*vel(lo(1)-1,j) + FOURTH*temp_velx_lo(j+signy)
+          vel(hi(1)+2,j) = THREE4TH*vel(hi(1)+2,j) + FOURTH*temp_velx_hi(j+signy)
        end do
 
        ! average the grid edge value with the velocity from the first coarse ghost cell
@@ -476,8 +474,8 @@ contains
        ! first coarse ghost cell value
        ! we linearly interpolate to get a better estimate of this value
        do i=lo(1),hi(1)+1
-          vel(i,lo(2)-1) = threefourths*vel(i,lo(2)-1) + EIGHTH*(vel(i,lo(2))+vel(i,lo(2)+1))
-          vel(i,hi(2)+1) = threefourths*vel(i,hi(2)+1) + EIGHTH*(vel(i,hi(2))+vel(i,hi(2)-1))
+          vel(i,lo(2)-1) = THREE4TH*vel(i,lo(2)-1) + EIGHTH*(vel(i,lo(2))+vel(i,lo(2)+1))
+          vel(i,hi(2)+1) = THREE4TH*vel(i,hi(2)+1) + EIGHTH*(vel(i,hi(2))+vel(i,hi(2)-1))
        end do
 
     else
@@ -503,8 +501,8 @@ contains
           else
              signx = -1
           end if
-          vel(i,lo(2)-1) = threefourths*vel(i,lo(2)-1) + FOURTH*temp_vely_lo(i+signx)
-          vel(i,hi(2)+2) = threefourths*vel(i,hi(2)+2) + FOURTH*temp_vely_hi(i+signx)
+          vel(i,lo(2)-1) = THREE4TH*vel(i,lo(2)-1) + FOURTH*temp_vely_lo(i+signx)
+          vel(i,hi(2)+2) = THREE4TH*vel(i,hi(2)+2) + FOURTH*temp_vely_hi(i+signx)
        end do
 
        ! average the grid edge value with the velocity from the first coarse ghost cell
@@ -519,8 +517,8 @@ contains
        ! first coarse ghost cell value
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2),hi(2)+1
-          vel(lo(1)-1,j) = threefourths*vel(lo(1)-1,j) + EIGHTH*(vel(lo(1),j)+vel(lo(1)+1,j))
-          vel(hi(1)+1,j) = threefourths*vel(hi(1)+1,j) + EIGHTH*(vel(hi(1),j)+vel(hi(1)-1,j))
+          vel(lo(1)-1,j) = THREE4TH*vel(lo(1)-1,j) + EIGHTH*(vel(lo(1),j)+vel(lo(1)+1,j))
+          vel(hi(1)+1,j) = THREE4TH*vel(hi(1)+1,j) + EIGHTH*(vel(hi(1),j)+vel(hi(1)-1,j))
        end do
 
     end if
@@ -547,7 +545,6 @@ contains
      real(kind=dp_t), allocatable :: temp_velz_lo(:,:)
      real(kind=dp_t), allocatable :: temp_velz_hi(:,:)
 
-     real(kind=dp_t), parameter :: threefourths    = (3.d0/4.d0)
      real(kind=dp_t), parameter :: onesixteenth    = (1.d0/16.d0)
      real(kind=dp_t), parameter :: threesixteenths = (3.d0/16.d0)
      real(kind=dp_t), parameter :: ninesixteenths  = (9.d0/16.d0)
@@ -614,18 +611,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2)-1,hi(2)+1
           do i=lo(1),hi(1)+1
-             vel(i,j,lo(3)-1) = threefourths*vel(i,j,lo(3)-1) &
+             vel(i,j,lo(3)-1) = THREE4TH*vel(i,j,lo(3)-1) &
                   + EIGHTH*(vel(i,j,lo(3))+vel(i,j,lo(3)+1))
-             vel(i,j,hi(3)+1) = threefourths*vel(i,j,hi(3)+1) &
+             vel(i,j,hi(3)+1) = THREE4TH*vel(i,j,hi(3)+1) &
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
 
        do k=lo(3)-1,hi(3)+1
           do i=lo(1),hi(1)+1
-             vel(i,lo(2)-1,k) = threefourths*vel(i,lo(2)-1,k) &
+             vel(i,lo(2)-1,k) = THREE4TH*vel(i,lo(2)-1,k) &
                   + EIGHTH*(vel(i,lo(2),k)+vel(i,lo(2)+1,k))
-             vel(i,hi(2)+1,k) = threefourths*vel(i,hi(2)+1,k) &
+             vel(i,hi(2)+1,k) = THREE4TH*vel(i,hi(2)+1,k) &
                   + EIGHTH*(vel(i,hi(2),k)+vel(i,hi(2)-1,k))
           end do
        end do
@@ -694,18 +691,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do j=lo(2),hi(2)+1
           do i=lo(1)-1,hi(1)+1
-             vel(i,j,lo(3)-1) = threefourths*vel(i,j,lo(3)-1) &
+             vel(i,j,lo(3)-1) = THREE4TH*vel(i,j,lo(3)-1) &
                   + EIGHTH*(vel(i,j,lo(3))+vel(i,j,lo(3)+1))
-             vel(i,j,hi(3)+1) = threefourths*vel(i,j,hi(3)+1) &
+             vel(i,j,hi(3)+1) = THREE4TH*vel(i,j,hi(3)+1) &
                   + EIGHTH*(vel(i,j,hi(3))+vel(i,j,hi(3)-1))
           end do
        end do
 
        do k=lo(3)-1,hi(3)+1
           do j=lo(2),hi(2)+1
-             vel(lo(1)-1,j,k) = threefourths*vel(lo(1)-1,j,k) &
+             vel(lo(1)-1,j,k) = THREE4TH*vel(lo(1)-1,j,k) &
                   + EIGHTH*(vel(lo(1),j,k)+vel(lo(1)+1,j,k))
-             vel(hi(1)+1,j,k) = threefourths*vel(hi(1)+1,j,k) &
+             vel(hi(1)+1,j,k) = THREE4TH*vel(hi(1)+1,j,k) &
                   + EIGHTH*(vel(hi(1),j,k)+vel(hi(1)-1,j,k))
           end do
        end do
@@ -774,18 +771,18 @@ contains
        ! we linearly interpolate to get a better estimate of this value
        do k=lo(3),hi(3)+1
           do i=lo(1)-1,hi(1)+1
-             vel(i,lo(2)-1,k) = threefourths*vel(i,lo(2)-1,k) &
+             vel(i,lo(2)-1,k) = THREE4TH*vel(i,lo(2)-1,k) &
                   + EIGHTH*(vel(i,lo(2),k)+vel(i,lo(2)+1,k))
-             vel(i,hi(2)+1,k) = threefourths*vel(i,hi(2)+1,k) &
+             vel(i,hi(2)+1,k) = THREE4TH*vel(i,hi(2)+1,k) &
                   + EIGHTH*(vel(i,hi(2),k)+vel(i,hi(2)-1,k))
           end do
        end do
 
        do k=lo(3),hi(3)+1
           do j=lo(2)-1,hi(2)+1
-             vel(lo(1)-1,j,k) = threefourths*vel(lo(1)-1,j,k) &
+             vel(lo(1)-1,j,k) = THREE4TH*vel(lo(1)-1,j,k) &
                   + EIGHTH*(vel(lo(1),j,k)+vel(lo(1)+1,j,k))
-             vel(hi(1)+1,j,k) = threefourths*vel(hi(1)+1,j,k) &
+             vel(hi(1)+1,j,k) = THREE4TH*vel(hi(1)+1,j,k) &
                   + EIGHTH*(vel(hi(1),j,k)+vel(hi(1)-1,j,k))
           end do
        end do

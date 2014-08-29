@@ -303,6 +303,8 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
     dom0.refine(2);
     geom[ilev].define(dom0, &real_box, coord, is_per);
   }
+
+  delete[] is_per;
 }
 
 void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph, 

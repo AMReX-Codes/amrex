@@ -6,7 +6,7 @@ module advance_module
   use bc_module
   use multifab_physbc_module
   use multifab_fill_ghost_module
-  use ml_restriction_module
+  use ml_cc_restriction_module
   use mg_module
   use bndry_reg_module
   use cc_stencil_fill_module
@@ -153,13 +153,7 @@ contains
     type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
-    integer :: lo(mla%dim), hi(mla%dim)
     integer :: dm, ng_p, ng_f, i, n, nlevs
-
-    real(kind=dp_t), pointer ::  pp(:,:,:,:)
-    real(kind=dp_t), pointer :: fxp(:,:,:,:)
-    real(kind=dp_t), pointer :: fyp(:,:,:,:)
-    real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
     dm    = mla%dim
     nlevs = mla%nlevel
@@ -168,28 +162,11 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       do i=1,nfabs(phi(n))
-          pp  => dataptr(phi(n),i)
-          fxp => dataptr(flux(n,1),i)
-          fyp => dataptr(flux(n,2),i)
-          lo = lwb(get_box(phi(n),i))
-          hi = upb(get_box(phi(n),i))
-          select case(dm)
-          case (2)
-             call compute_flux_2d(pp(:,:,1,1), ng_p, &
-                                  fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                                  lo, hi, dx(n), &
-                                  the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
-          case (3)
-             fzp => dataptr(flux(n,3),i)
-             call compute_flux_3d(pp(:,:,:,1), ng_p, &
-                                  fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                                  lo, hi, dx(n), &
-                                  the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
-          end select
-       end do
+
+       call compute_flux_single_level(n,mla,phi,flux,dx,the_bc_tower)
+
     end do
-    
+
     ! set level n-1 fluxes to be the average of the level n fluxes covering it
     ! the loop over nlevs must count backwards to make sure the finer grids are done first
     do n=nlevs,2,-1
@@ -199,6 +176,52 @@ contains
     end do
 
   end subroutine compute_flux
+
+  subroutine compute_flux_single_level(n,mla,phi,flux,dx,the_bc_tower)
+
+    integer        , intent(in   ) :: n
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(in   ) :: phi(:)
+    type(multifab) , intent(inout) :: flux(:,:)
+    real(kind=dp_t), intent(in   ) :: dx(:)
+    type(bc_tower) , intent(in   ) :: the_bc_tower
+
+    ! local variables
+    integer :: lo(mla%dim), hi(mla%dim)
+    integer :: dm, ng_p, ng_f, i
+
+    real(kind=dp_t), pointer ::  pp(:,:,:,:)
+    real(kind=dp_t), pointer :: fxp(:,:,:,:)
+    real(kind=dp_t), pointer :: fyp(:,:,:,:)
+    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+
+    dm    = mla%dim
+
+    ng_p = phi(1)%ng
+    ng_f = flux(1,1)%ng
+
+    do i=1,nfabs(phi(n))
+       pp  => dataptr(phi(n),i)
+       fxp => dataptr(flux(n,1),i)
+       fyp => dataptr(flux(n,2),i)
+       lo = lwb(get_box(phi(n),i))
+       hi = upb(get_box(phi(n),i))
+       select case(dm)
+       case (2)
+          call compute_flux_2d(pp(:,:,1,1), ng_p, &
+                               fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
+                               lo, hi, dx(n), &
+                               the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
+       case (3)
+          fzp => dataptr(flux(n,3),i)
+          call compute_flux_3d(pp(:,:,:,1), ng_p, &
+                               fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
+                               lo, hi, dx(n), &
+                               the_bc_tower%bc_tower_array(n)%adv_bc_level_array(i,:,:,1))
+       end select
+    end do
+
+  end subroutine compute_flux_single_level
 
   subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, adv_bc)
 
@@ -441,13 +464,7 @@ contains
     type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
-    integer :: lo(mla%dim), hi(mla%dim)
-    integer :: dm, ng_p, ng_f, i, n, nlevs
-
-    real(kind=dp_t), pointer ::  pp(:,:,:,:)
-    real(kind=dp_t), pointer :: fxp(:,:,:,:)
-    real(kind=dp_t), pointer :: fyp(:,:,:,:)
-    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+    integer :: dm, ng_p, ng_f, n, nlevs
 
     dm    = mla%dim
     nlevs = mla%nlevel
@@ -457,24 +474,7 @@ contains
 
     do n=1,nlevs
 
-       do i=1,nfabs(phi(n))
-          pp  => dataptr(phi(n),i)
-          fxp => dataptr(flux(n,1),i)
-          fyp => dataptr(flux(n,2),i)
-          lo = lwb(get_box(phi(n),i))
-          hi = upb(get_box(phi(n),i))
-          select case(dm)
-          case (2)
-             call update_phi_2d(pp(:,:,1,1), ng_p, &
-                                fxp(:,:,1,1), fyp(:,:,1,1), ng_f, &
-                                lo, hi, dx(n), dt)
-          case (3)
-             fzp => dataptr(flux(n,3),i)
-             call update_phi_3d(pp(:,:,:,1), ng_p, &
-                                fxp(:,:,:,1), fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                                lo, hi, dx(n), dt)
-          end select
-       end do
+       call update_phi_single_level(n,mla,phi,flux,dx,dt)
 
     end do
 
@@ -506,6 +506,50 @@ contains
     end if
 
   end subroutine update_phi
+
+  subroutine update_phi_single_level(n,mla,phi,flux,dx,dt)
+
+    integer        , intent(in   ) :: n
+    type(ml_layout), intent(in   ) :: mla
+    type(multifab) , intent(inout) :: phi(:)
+    type(multifab) , intent(in   ) :: flux(:,:)
+    real(kind=dp_t), intent(in   ) :: dx(:)
+    real(kind=dp_t), intent(in   ) :: dt
+
+    ! local variables
+    integer :: lo(mla%dim), hi(mla%dim)
+    integer :: dm, ng_p, ng_f, i
+
+    real(kind=dp_t), pointer ::  pp(:,:,:,:)
+    real(kind=dp_t), pointer :: fxp(:,:,:,:)
+    real(kind=dp_t), pointer :: fyp(:,:,:,:)
+    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+
+    dm    = mla%dim
+
+    ng_p = phi(1)%ng
+    ng_f = flux(1,1)%ng
+
+    do i=1,nfabs(phi(n))
+       pp  => dataptr(phi(n),i)
+       fxp => dataptr(flux(n,1),i)
+       fyp => dataptr(flux(n,2),i)
+       lo = lwb(get_box(phi(n),i))
+       hi = upb(get_box(phi(n),i))
+       select case(dm)
+       case (2)
+          call update_phi_2d(pp(:,:,1,1), ng_p, &
+                             fxp(:,:,1,1), fyp(:,:,1,1), ng_f, &
+                             lo, hi, dx(n), dt)
+       case (3)
+          fzp => dataptr(flux(n,3),i)
+          call update_phi_3d(pp(:,:,:,1), ng_p, &
+                             fxp(:,:,:,1), fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
+                             lo, hi, dx(n), dt)
+       end select
+    end do
+
+  end subroutine update_phi_single_level
 
   subroutine update_phi_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
 

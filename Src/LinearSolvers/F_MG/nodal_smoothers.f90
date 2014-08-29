@@ -52,12 +52,12 @@ contains
 
     ! Adjust low end for Neumann boundary condition
     if (bc_neumann(mm(is),1,-1)) then
-      c_ls(0) = 2.d0*c_ls(0)
+      c_ls(0) = TWO*c_ls(0)
     end if
 
     ! Adjust high end for Neumann boundary condition
     if (bc_neumann(mm(ie),1,1)) then
-      a_ls(0) = 2.d0*a_ls(0)
+      a_ls(0) = TWO*a_ls(0)
     end if
 
     r_ls(0)      = r_ls(0)      - sg(is-1) * uu(is-1)
@@ -129,7 +129,7 @@ contains
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
-                ss0 = -TWO * THIRD * (  sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j) )
+                ss0 = -TWO3RD * (  sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j) )
                 dd =  THIRD * ( & 
                           sg(i-1,j-1) * uu(i-1,j-1) + &
                           sg(i  ,j-1) * uu(i+1,j-1) + &
@@ -150,7 +150,7 @@ contains
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
              if ( .not. bc_dirichlet(mm(i,j),1,0) ) then
-                ss0 = -0.75d0 * (  sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j) )
+                ss0 = -THREE4TH * (  sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j) )
                 dd =  ss0 * uu(i,j) + &
                       FOURTH * ( & 
                           sg(i-1,j-1) * uu(i-1,j-1) + &
@@ -265,7 +265,7 @@ contains
                      ss0 = -(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                             +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
                             +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                            +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0 
+                            +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * THREE 
                      dd =  (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                            +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) * uu(i-1,j  ,k  ) + &
                            (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
@@ -323,7 +323,7 @@ contains
                      ss0 = -(sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                             +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
                             +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                            +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0 
+                            +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * THREE 
                      dd =  (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                            +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) * uu(i-1,j  ,k  ) + &
                            (sg(i  ,j-1,k-1) + sg(i  ,j-1,k  ) &
@@ -352,7 +352,7 @@ contains
        ! Gauss-Seidel.
        !
  
-       fx     = 1.d0 / 36.d0
+       fx     = ONE / 36._dp_t
        fy     = fx
        fz     = fx
        f0     = FOUR * (fx + fy + fz)
@@ -425,8 +425,8 @@ contains
 
                    ! This accounts for the fact that fac = 1/(4*dx*dx) to be compatible with 
                    !      the cross stencil
-                   dd  = 4.d0 * dd
-                   ss0 = 4.d0 * ss0
+                   dd  = FOUR * dd
+                   ss0 = FOUR * ss0
 
                    uu(i,j,k) = uu(i,j,k) + (one/ss0) * (ff(i,j,k) - dd) 
                 end if
