@@ -705,7 +705,7 @@ subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   do i = lo(1),hi(1)
       if (.not. bc_dirichlet(mp(i,j,k,1),1,0)) &
           rp(i,j,k,1) = rp(i,j,k,1) + rh_in(i,j,k)
-      rhmax = max(rhmax, abs(rp(i,j,1,1)))
+      rhmax = max(rhmax, abs(rp(i,j,k,1)))
   end do
   end do
   end do
