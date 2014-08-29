@@ -54,6 +54,9 @@ contains
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
+    
+    call bl_proffortfuncstart("ml_cc")
+    call bl_proffortfuncstart("ml_cc:0")
 
     call build(bpt, "ml_cc")
 
@@ -175,6 +178,9 @@ contains
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
+    call bl_proffortfuncstop("ml_cc:0")
+    call bl_proffortfuncstart("ml_cc:1")
+
     coeff_sum = t2(1)
     coeff_max = t2(2)
     tres0     = t2(3)
@@ -244,6 +250,8 @@ contains
 
     solved = .false.
 
+    call bl_proffortfuncstart("ml_cc:1.1")
+
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
@@ -298,6 +306,7 @@ contains
              call setval(uu_hold(n), ZERO, all=.true.)
           end do
 
+          call bl_proffortfuncstart("ml_cc:DownV")
           !   Down the V-cycle
           do n = nlevs,1,-1
 
@@ -336,6 +345,7 @@ contains
              end if
 
              ! Relax ...
+             call bl_proffortfuncstart("ml_cc:Relax")
              if (n > 1) then
                 call mini_cycle(mgt(n), mglev, &
                      mgt(n)%ss(mglev), uu(n), res(n), &
@@ -346,6 +356,7 @@ contains
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
                      bottom_solve_time = bottom_solve_time)
              end if
+             call bl_proffortfuncstop("ml_cc:Relax")
 
              ! Add: Soln += uu
              call plus_plus(full_soln(n), uu(n))
@@ -406,7 +417,9 @@ contains
              end if
 
           end do
+          call bl_proffortfuncstop("ml_cc:DownV")
 
+          call bl_proffortfuncstart("ml_cc:UpV")
           !   Back up the V-cycle
           do n = 2, nlevs
 
@@ -441,6 +454,7 @@ contains
              ! Compute Res = Res - Lap(uu)
              call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                             mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
+             call bl_proffortfuncstop("ml_cc:defectUpV")
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
@@ -482,6 +496,7 @@ contains
                   mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
 
           end do
+          call bl_proffortfuncstop("ml_cc:UpV")
 
           !    Average the solution to the coarser grids.
           do n = nlevs,2,-1
@@ -591,6 +606,8 @@ contains
           end if
 
        enddo
+
+    call bl_proffortfuncstop("ml_cc:1.1")
 
        ! if status==0, but not solved then we ran out of iterations
        ! Set status to (neg)num_iters
@@ -702,6 +719,9 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
     end if
+
+    call bl_proffortfuncstop("ml_cc:1")
+    call bl_proffortfuncstop("ml_cc")
 
   contains
 
