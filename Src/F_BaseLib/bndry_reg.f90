@@ -16,10 +16,10 @@ module bndry_reg_module
      type(multifab), pointer :: obmf(:,:) => Null()
      type(layout),   pointer ::  laf(:,:) => Null()
      type(layout),   pointer :: olaf(:,:) => Null()
-     integer, pointer ::  indxmap(:,:) => Null()
-     integer, pointer :: oindxmap(:,:) => Null()
-     integer, pointer ::  facemap(:,:) => Null()
-     integer, pointer :: ofacemap(:,:) => Null()
+     integer, pointer ::  indxmap(:) => Null()
+     integer, pointer :: oindxmap(:) => Null()
+     integer, pointer ::  facemap(:) => Null()
+     integer, pointer :: ofacemap(:) => Null()
   end type bndry_reg
 
   interface destroy
@@ -169,19 +169,15 @@ contains
     logical,         intent(in   ) :: other
 
     logical                        :: pmask(size(rr))
-    integer                        :: i, j, kk, id, dm, nb, cnto, cnt, f, ilocal, nlmax
-    integer                        :: nl, ncell, myproc, nlthin, nlthino(size(rr))
+    integer                        :: i, j, kk, id, dm, nb, cnto, cnt, f, ilocal
+    integer                        :: nl, ncell, myproc, nlthin, nlthino
     integer                        :: lo(size(rr)), hi(size(rr))
-    integer                        :: lof(size(rr),0:1), hif(size(rr),0:1)
-    integer, allocatable           :: prcc(:), prf(:), pshift(:)
+    integer, allocatable           :: prcc(:), prf(:), pshift(:,:)
     type(box)                      :: rbox, bx
     type(box), allocatable         :: bxs(:), bxso(:), bxsc(:)
     type(box_intersector), pointer :: bi(:)
     type(boxarray)                 :: baa
     type(layout)                   :: laftmp
-    integer, pointer :: tindxmap(:), tfacemap(:)
-    integer, allocatable, target :: oindxmap1(:), oindxmap2(:), oindxmap3(:)
-    integer, allocatable, target :: ofacemap1(:), ofacemap2(:), ofacemap3(:)
     type(vector_i) :: oproc, oface
 
     myproc = parallel_myproc()
@@ -206,54 +202,53 @@ contains
        call destroy(baa)
     end if
 
-    allocate(bxs(2*nb))
-    allocate(prf(2*nb))
-    allocate(br%bmf(dm,0:0), br%laf(dm,0:0))
-    allocate(br%indxmap(2*nl,dm), br%facemap(2*nl,dm))
+    allocate(bxs(2*dm*nb))
+    allocate(prf(2*dm*nb))
+    allocate(br%bmf(1,0:0), br%laf(1,0:0))
+    allocate(br%indxmap(2*nl*dm), br%facemap(2*nl*dm))
 
     if (other) then
-       allocate(bxso(2*nb))
-       allocate(pshift(2*nb))
-       allocate(br%obmf(dm,0:0), br%olaf(dm,0:0))
+       allocate(bxso(2*dm*nb))
+       allocate(pshift(dm,2*dm*nb))
+       allocate(br%obmf(1,0:0), br%olaf(1,0:0))
+    end if
+
+    nlthin = 0
+    cnt = 0
+
+    if (other) then
+       nlthino = 0
+       cnto = 0
+       pshift = 0
+       
+       call build(oproc)
+       call build(oface)
     end if
 
     do i = 1, dm
-       nlthin = 0
-       cnt = 0
+       do f = 0, 1
+          do j = 1, nb
 
-       if (other) then
-          nlthino(i) = 0
-          cnto = 0
-          pshift = 0
+             rbox = coarsen(get_box(la,j), rr)
 
-          call build(oproc)
-          call build(oface)
-       end if
-
-       do j = 1, nb
-          rbox = coarsen(get_box(la,j), rr)
-          lo   = lwb(rbox)
-          hi   = upb(rbox)
-          ! lo face
-          lof(:,0) = lo  
-          hif(:,0) = hi
-          lof(i,0) = lof(i,0) - 1
-          hif(i,0) = lof(i,0)
-          ! hi face
-          lof(:,1) = lo  
-          hif(:,1) = hi
-          lof(i,1) = hif(i,1) + 1
-          hif(i,1) = lof(i,1)
-
-          do f = 0, 1
+             lo = lwb(rbox)
+             hi = upb(rbox)
              do id = 1, dm
-                if ( id /= i ) then
-                   lof(id,f) = max(lof(id,f)-width, pdc%lo(id))
-                   hif(id,f) = min(hif(id,f)+width, pdc%hi(id))
+                if ( id .eq. i ) then
+                   if (f.eq.0) then
+                      lo(i) = lo(i) - 1
+                      hi(i) = lo(i)
+                   else
+                      lo(i) = hi(i) + 1
+                      hi(i) = lo(i)
+                   end if
+                else
+                   lo(id) = max(lo(id)-width, pdc%lo(id))
+                   hi(id) = min(hi(id)+width, pdc%hi(id))
                 end if
              end do
 
-             call build(bx, lof(:,f), hif(:,f))
+             call build(bx, lo, hi)
 
              if (bndry_reg_thin) then
                 bi => layout_get_box_intersector(laftmp, bx)
@@ -271,22 +266,22 @@ contains
              prf(cnt) = get_proc(la,j)
              if (myproc .eq. prf(cnt)) then
                 nlthin = nlthin + 1
-                br%indxmap(nlthin,i) = local_index(la,j)
-                br%facemap(nlthin,i) = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
+                br%indxmap(nlthin) = local_index(la,j)
+                br%facemap(nlthin) = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
              end if
 
              bxs(cnt) = bx
 
              if (other) then
                 if (pmask(i)) then
-                   if (lof(i,f) .lt. pdc%lo(i)) then
-                      pshift(cnt) = extent(pdc,i)
-                   else if (hif(i,f) .gt. pdc%hi(i)) then
-                      pshift(cnt) = -extent(pdc,i)
+                   if (lo(i) .lt. pdc%lo(i)) then
+                      pshift(i,cnt) = extent(pdc,i)
+                   else if (hi(i) .gt. pdc%hi(i)) then
+                      pshift(i,cnt) = -extent(pdc,i)
                    end if
                 end if
                 
-                bxso(cnt) = shift(bx, pshift(cnt), i)
+                bxso(cnt) = shift(bx, pshift(:,cnt))
                 
                 bi => layout_get_box_intersector(lac, bxso(cnt))
                 cnto = cnto + size(bi)
@@ -294,89 +289,59 @@ contains
                    if (myproc .eq. get_proc(lac,bi(kk)%i)) then
                       call push_back(oproc, local_index(lac,bi(kk)%i))
                       call push_back(oface, (2*f-1)*i)  ! possible values: -1,+1,-2,+2,-3:+3 
-                      nlthino(i) = nlthino(i)+1
+                      nlthino = nlthino+1
                    end if
                 end do
                 deallocate(bi)
              end if
           end do
        end do
-
-       call build(baa, bxs(1:cnt), sort = .false.)
-       call build(br%laf(i,0), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
-       call build(br%bmf(i,0), br%laf(i,0), nc = nc, ng = 0)
-       call destroy(baa)
-
-       if (other) then
-          allocate(bxsc(cnto), prcc(cnto))
-          if (i .eq. 1) then
-             allocate(oindxmap1(nlthino(i)), ofacemap1(nlthino(i)))
-             tindxmap => oindxmap1
-             tfacemap => ofacemap1
-          else if (i .eq. 2) then
-             allocate(oindxmap2(nlthino(i)), ofacemap2(nlthino(i)))
-             tindxmap => oindxmap2
-             tfacemap => ofacemap2
-          else
-             allocate(oindxmap3(nlthino(i)), ofacemap3(nlthino(i)))
-             tindxmap => oindxmap3
-             tfacemap => ofacemap3
-          end if
-          
-          ilocal = 0
-          cnto = 0
-          do j = 1, cnt
-             
-             bi => layout_get_box_intersector(lac, bxso(j))
-             
-             do kk = 1, size(bi)
-                cnto = cnto + 1
-                bxsc(cnto) = shift(bi(kk)%bx, -pshift(j), i)
-                prcc(cnto) = get_proc(lac,bi(kk)%i)
-                
-                if (myproc .eq. get_proc(lac,bi(kk)%i)) then
-                   ilocal = ilocal + 1
-                   tindxmap(ilocal) = at(oproc, ilocal)
-                   tfacemap(ilocal) = at(oface, ilocal)
-                end if
-             end do
-             
-             deallocate(bi)
-          end do
-          
-          call build(baa, bxsc, sort = .false.)
-          call build(br%olaf(i,0), baa, boxarray_bbox(baa), explicit_mapping = prcc)
-          deallocate(bxsc, prcc)
-          call destroy(baa)
-          call build(br%obmf(i,0), br%olaf(i,0), nc = nc, ng = 0)
-          
-          nullify(tindxmap,tfacemap)
-          call destroy(oproc)
-          call destroy(oface)
-       end if
     end do
 
-    if (other) then
-       nlmax = maxval(nlthino)
-       allocate(br%oindxmap(nlmax, dm))
-       allocate(br%ofacemap(nlmax, dm))
-       
-       br%oindxmap(1:nlthino(1),1) = oindxmap1
-       br%ofacemap(1:nlthino(1),1) = ofacemap1
-       deallocate(oindxmap1,ofacemap1)
-       if (br%dim .gt. 1) then
-          br%oindxmap(1:nlthino(2),2) = oindxmap2
-          br%ofacemap(1:nlthino(2),2) = ofacemap2
-          deallocate(oindxmap2,ofacemap2)
-       end if
-       if (br%dim .gt. 2) then
-          br%oindxmap(1:nlthino(3),3) = oindxmap3
-          br%ofacemap(1:nlthino(3),3) = ofacemap3
-          deallocate(oindxmap3,ofacemap3)
-       end if
-       deallocate(bxso,pshift)
-    end if
+    call build(baa, bxs(1:cnt), sort = .false.)
+    call build(br%laf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
+    call build(br%bmf(1,0), br%laf(1,0), nc = nc, ng = 0)
+    call destroy(baa)
 
+    if (other) then
+       allocate(br%oindxmap(nlthino))
+       allocate(br%ofacemap(nlthino))
+
+       allocate(bxsc(cnto), prcc(cnto))
+          
+       ilocal = 0
+       cnto = 0
+       do j = 1, cnt
+             
+          bi => layout_get_box_intersector(lac, bxso(j))
+             
+          do kk = 1, size(bi)
+             cnto = cnto + 1
+             bxsc(cnto) = shift(bi(kk)%bx, -pshift(:,j))
+             prcc(cnto) = get_proc(lac,bi(kk)%i)
+                
+             if (myproc .eq. get_proc(lac,bi(kk)%i)) then
+                ilocal = ilocal + 1
+                br%oindxmap(ilocal) = at(oproc, ilocal)
+                br%ofacemap(ilocal) = at(oface, ilocal)
+             end if
+          end do
+             
+          deallocate(bi)
+       end do
+          
+       call build(baa, bxsc, sort = .false.)
+       call build(br%olaf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prcc)
+       deallocate(bxsc, prcc)
+       call destroy(baa)
+       call build(br%obmf(1,0), br%olaf(1,0), nc = nc, ng = 0)
+          
+       call destroy(oproc)
+       call destroy(oface)
+
+       deallocate(bxso,pshift)       
+    end if
+    
     deallocate(bxs,prf)
     if (bndry_reg_thin) call destroy(laftmp)
   end subroutine rr_build_cc
@@ -478,7 +443,7 @@ contains
        domain = grow(get_pd(mf_la), nghost(mf), .not. get_pmask(mf_la))
 
        loop: do f = 0, n(2)-1
-          do i = 1, br%dim
+          do i = 1, n(1)
              do j = 1, nboxes(br%bmf(i,f)%la)
                 if ( .not. contains(domain, get_box(br%bmf(i,f)%la,j)) ) then
                    have_periodic_boxes = .true.
@@ -517,7 +482,7 @@ contains
        end do
 
        do f = 0, n(2)-1
-          do i = 1, br%dim
+          do i = 1, n(1)
              call copy(br%bmf(i,f), tmf)
           end do
        end do
@@ -526,7 +491,7 @@ contains
        call destroy(la)
     else
        do f = 0, n(2)-1
-          do i = 1, br%dim
+          do i = 1, n(1)
              call copy(br%bmf(i,f), mf)
           end do
        end do
