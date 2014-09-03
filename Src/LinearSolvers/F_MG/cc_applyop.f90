@@ -179,9 +179,8 @@ contains
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), ng_fill, +i)
+                             ref_ratio(n-1,:), ng_fill, &
+                             brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
        end do
     end do
 
@@ -295,9 +294,8 @@ contains
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), ng_fill, +i)
+                             ref_ratio(n-1,:), ng_fill, &
+                             brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
        end do
     end do
 

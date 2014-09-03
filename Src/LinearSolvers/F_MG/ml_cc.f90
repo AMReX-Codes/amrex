@@ -131,9 +131,8 @@ contains
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        do i = 1, dm
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-               mla%mba%rr(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-               mla%mba%rr(n-1,:), ng_fill, +i)
+               mla%mba%rr(n-1,:), ng_fill, &
+               brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
        end do
     end do
 
@@ -412,9 +411,8 @@ contains
              ng_fill = nghost(uu(n))
              do i = 1, dm
                 call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, -i)
-                call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, &
+                     brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
              end do
              call multifab_fill_boundary(uu(n))
 
@@ -477,9 +475,8 @@ contains
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
              do i = 1, dm
                 call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, -i)
-                call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, +i)
+                     mla%mba%rr(n-1,:), ng_fill, &
+                     brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
              end do
           end do
 
@@ -638,8 +635,9 @@ contains
           call multifab_fill_boundary(full_soln(n-1))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
           do i = 1, dm
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, mla%mba%rr(n-1,:), ng_fill, -i)
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, mla%mba%rr(n-1,:), ng_fill, +i)
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
+                  mla%mba%rr(n-1,:), ng_fill, &
+                  brs_bcs(n)%facemap(:,i), brs_bcs(n)%indxmap(:,i))
           end do
        end do
 
