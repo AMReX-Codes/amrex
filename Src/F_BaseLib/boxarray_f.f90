@@ -11,7 +11,6 @@ module boxarray_module
   implicit none
 
   type boxarray
-     private
      integer :: dim = 0
      integer :: nboxes = 0
      type(box), pointer :: bxs(:) => Null()
@@ -755,107 +754,45 @@ contains
 
   end function boxarray_clean
 
-  subroutine boxarray_add_clean(ba, bx)
+  ! subroutine boxarray_add_clean(ba, bx)
 
-    use bl_prof_module
+  !   use bl_prof_module
 
-    type(boxarray), intent(inout) :: ba
-    type(box), intent(in) :: bx
-    type(list_box) :: check, tmp, tmpbl, bl
-    type(list_box_node), pointer :: cp, lp
-    type(bl_prof_timer), save :: bpt
+  !   type(boxarray), intent(inout) :: ba
+  !   type(box), intent(in) :: bx
+  !   type(list_box) :: check, tmp, tmpbl, bl
+  !   type(list_box_node), pointer :: cp, lp
+  !   type(bl_prof_timer), save :: bpt
 
-    if ( empty(ba) ) then
-       call boxarray_build_bx(ba, bx)
-       return
-    end if
-    call build(bpt, "ba_add_clean")
-    call list_build_v_box(bl, ba%bxs)
-    call push_back(check, bx)
-    lp => begin(bl)
-    do while ( associated(lp) )
-       cp => begin(check)
-       do while ( associated(cp) )
-          if ( intersects(value(cp), value(lp)) ) then
-             tmpbl = boxlist_box_diff(value(cp), value(lp))
-             call splice(tmp, tmpbl)
-             cp => erase(check, cp)
-          else
-             cp => next(cp)
-          end if
-       end do
-       call splice(check, tmp)
-       lp => next(lp)
-    end do
-    call splice(bl, check)
-    call boxlist_simplify(bl)
-    call boxarray_build_copy_l(ba, bl)
-    call list_destroy_box(bl)
-    call destroy(bpt)
+  !   if ( empty(ba) ) then
+  !      call boxarray_build_bx(ba, bx)
+  !      return
+  !   end if
+  !   call build(bpt, "ba_add_clean")
+  !   call list_build_v_box(bl, ba%bxs)
+  !   call push_back(check, bx)
+  !   lp => begin(bl)
+  !   do while ( associated(lp) )
+  !      cp => begin(check)
+  !      do while ( associated(cp) )
+  !         if ( intersects(value(cp), value(lp)) ) then
+  !            tmpbl = boxlist_box_diff(value(cp), value(lp))
+  !            call splice(tmp, tmpbl)
+  !            cp => erase(check, cp)
+  !         else
+  !            cp => next(cp)
+  !         end if
+  !      end do
+  !      call splice(check, tmp)
+  !      lp => next(lp)
+  !   end do
+  !   call splice(bl, check)
+  !   call boxlist_simplify(bl)
+  !   call boxarray_build_copy_l(ba, bl)
+  !   call list_destroy_box(bl)
+  !   call destroy(bpt)
 
-  end subroutine boxarray_add_clean
-
-  subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
-
-    use bl_prof_module
-
-    type(boxarray), intent(inout) :: ba
-    type(box), intent(in) :: bxs(:)
-    logical, intent(in), optional :: simplify
-    logical :: lsimplify
-    type(list_box) :: check, tmp, tmpbl, bl
-    type(list_box_node), pointer :: cp, lp
-    integer :: i
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "ba_add_clean_boxes")
-
-    lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
-
-    if ( size(bxs) .eq. 0 ) then
-       call destroy(bpt)
-       return
-    end if
-    
-    if ( empty(ba) ) call boxarray_build_bx(ba, bxs(1))
-
-    call list_build_v_box(bl, ba%bxs)
-
-    do i = 1, size(bxs)
-       call list_build_v_box(check, bxs(i:i))
-       lp => begin(bl)
-       do while ( associated(lp) )
-          cp => begin(check)
-          do while ( associated(cp) )
-             if ( intersects(value(cp), value(lp)) ) then
-                tmpbl = boxlist_box_diff(value(cp), value(lp))
-                call splice(tmp, tmpbl)
-                cp => erase(check, cp)
-             else
-                cp => next(cp)
-             end if
-          end do
-          call splice(check, tmp)
-          lp => next(lp)
-       end do
-       call splice(bl, check)
-    end do
-
-    if ( lsimplify ) call boxlist_simplify(bl)
-
-    call boxarray_build_copy_l(ba, bl)
-    call list_destroy_box(bl)
-    call destroy(bpt)
-
-  end subroutine boxarray_add_clean_boxes
-
-  subroutine boxarray_to_domain(ba)
-    type(boxarray), intent(inout) :: ba
-    type(boxarray) :: ba1
-    call boxarray_add_clean_boxes(ba1, ba%bxs)
-    call boxarray_destroy(ba)
-    ba = ba1
-  end subroutine boxarray_to_domain
+  ! end subroutine boxarray_add_clean
 
   function boxarray_box_contains(ba, bx) result(r)
     use bl_error_module
