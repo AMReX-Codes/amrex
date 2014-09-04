@@ -56,6 +56,7 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(res)
 
+    ! unsafe to OMP because of overlap in cbox
     do i = 1, nfabs(flux)
        j = indxmap(i)
        dim = abs(facemap(i))
