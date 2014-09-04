@@ -5,34 +5,6 @@ ifeq ($(FCOMP), gfortran)
   LIBRARIES += -lquadmath
 endif
 
-ifeq ($(UNAMEN), maudib.ucolick.org)
-  ifeq ($(FCOMP), gfortran)
-    CXX := g++
-    CC  := gcc
-    FC  := gfortran
-    fC  := gfortran
-    F90 := gfortran
-
-    INCLUDE_LOCATIONS += $(fmoddir)
-
-    MAUDIB_LOC := /Users/cmalone/work/install/gcc/usr/local
-#    LIBRARIES += -lquadmath 
-    _f95_lib:=$(shell $(F90) -print-file-name=libgfortran.a | sed 's/[ ]/\\ /g')
-  else
-    CXX := icpc
-    CC  := icc
-    FC  := ifort
-    fC  := ifort
-    F90 := ifort
-
-    MAUDIB_LOC := /opt/intel/
-  endif
-
-  LIBRARY_LOCATIONS += $(MAUDIB_LOC)/lib
-  INCLUDE_LOCATIONS += $(MAUDIB_LOC)/include
-
-endif
-
 ifeq ($(WHICHDARWIN), Marc)
   ifeq ($(FCOMP), gfortran)
     override XTRALIBS += -lquadmath
