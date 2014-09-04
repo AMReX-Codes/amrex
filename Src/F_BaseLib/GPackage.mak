@@ -101,3 +101,7 @@ endif
 
 ifeq ($(ARCH),OSF1)
 endif
+
+ifdef RANDOM
+  f90sources += mt19937ar.f90
+endif

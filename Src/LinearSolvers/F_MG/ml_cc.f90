@@ -41,7 +41,7 @@ contains
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, dm, ng_fill
+    integer :: n, ng_fill
     integer :: mglev, mglev_crse, iter, iter_solved
     logical :: fine_converged,need_grad_phi
     logical :: using_bnorm
@@ -57,7 +57,6 @@ contains
 
     call build(bpt, "ml_cc")
 
-    dm                = get_dim(rh(1))
     nlevs             = mla%nlevel
     stime             = parallel_wtime()
     bottom_solve_time = zero
@@ -129,12 +128,8 @@ contains
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-       do i = 1, dm
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-               mla%mba%rr(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-               mla%mba%rr(n-1,:), ng_fill, +i)
-       end do
+       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+            mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
@@ -410,12 +405,8 @@ contains
              ! residual calculation
              call bndry_reg_copy(brs_bcs(n), uu(n-1))
              ng_fill = nghost(uu(n))
-             do i = 1, dm
-                call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,0), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, -i)
-                call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(i,1), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, +i)
-             end do
+             call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(1,0), pd, &
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
              call multifab_fill_boundary(uu(n))
 
              ! Compute Res = Res - Lap(uu)
@@ -475,12 +466,8 @@ contains
              pd = layout_get_pd(mla%la(n))
              call multifab_fill_boundary(full_soln(n-1))
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-             do i = 1, dm
-                call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, -i)
-                call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                     mla%mba%rr(n-1,:), ng_fill, +i)
-             end do
+             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
           end do
 
           call multifab_fill_boundary(full_soln(nlevs))
@@ -637,10 +624,8 @@ contains
           pd = layout_get_pd(mla%la(n))
           call multifab_fill_boundary(full_soln(n-1))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-          do i = 1, dm
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, mla%mba%rr(n-1,:), ng_fill, -i)
-             call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, mla%mba%rr(n-1,:), ng_fill, +i)
-          end do
+          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+               mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
        end do
 
        call multifab_fill_boundary(full_soln(nlevs))

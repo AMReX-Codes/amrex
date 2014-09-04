@@ -231,20 +231,19 @@ contains
 
   end subroutine ml_nodal_prolongation
 
-  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, side, nc)
+  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, nc, facemap, indxmap)
     use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:)
-    integer,        intent(in)    :: cf, cc, ng_fill, side
-    integer,        intent(in), optional :: nc
+    integer,        intent(in)    :: cf, cc, ng_fill, nc, facemap(:), indxmap(:)
 
     type(box) :: fbox, fbox_grown, cbox_refined, isect
     integer   :: lo (get_dim(fine)), hi (get_dim(fine))
     integer   :: loc(get_dim(fine)), hic(get_dim(fine))
     integer   :: lof(get_dim(fine))
-    integer   :: dm, i, n, lnc, dir, face
+    integer   :: dm, i, j, n, dir, face, side
     logical   :: pmask(get_dim(fine))
 
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
@@ -252,22 +251,23 @@ contains
 
     call build(bpt, "ml_interp_bcs_c")
 
-    lnc = 1; if ( present(nc) ) lnc = nc
-
     dm   = get_dim(fine)
-    dir  = abs(side)
-    face = sign(1, side)
-
     pmask = get_pmask(get_layout(fine))
 
-    !$OMP PARALLEL DO PRIVATE(i,n,loc,hic,cbox_refined,fbox,lof,fbox_grown,isect,lo,hi,fp,cp)
-    do i = 1, nfabs(fine)
+    ! this loop cannot be OMP'd because there are overlaps in fbox
+    do i = 1, nfabs(crse)
+       side = facemap(i)
+       dir  = abs(side)
+       face = sign(1, side)
+
+       j = indxmap(i)  ! index for fine
 
        loc          = lwb(get_pbox(crse, i))
        hic          = upb(get_pbox(crse, i))
        cbox_refined = refine(get_ibox(crse,i), ir)
-       fbox         = get_ibox(fine, i)
-       lof          = lwb(get_pbox(fine, i))
+
+       fbox         = get_ibox(fine, j)
+       lof          = lwb(get_pbox(fine, j))
 
        if ( .not. nodal_q(crse) ) then
           fbox_grown = grow(fbox, ng_fill, dir, face)
@@ -282,10 +282,10 @@ contains
 
        lo =  lwb(isect)
        hi =  upb(isect)
-       fp => dataptr(fine, i)
+       fp => dataptr(fine, j)
        cp => dataptr(crse, i)
 
-       do n = 0, lnc - 1
+       do n = 0, nc - 1
           select case (dm)
           case (1)
              if ( cell_centered_q(crse) ) then
@@ -314,7 +314,6 @@ contains
           end select
        end do
     end do
-    !$OMP END PARALLEL DO
 
 !   We have moved this call to the routine which calls ml_interp_bcs.
 !   call multifab_fill_boundary(fine)
@@ -323,15 +322,15 @@ contains
 
   end subroutine ml_interp_bcs_c
 
-  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, ng_fill, side)
+  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, ng_fill, facemap, indxmap)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
-    integer,        intent(in)    :: ir(:), ng_fill, side
+    integer,        intent(in)    :: ir(:), ng_fill, facemap(:), indxmap(:)
     if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_interp_bcs: crse & fine must have same # of components')
     end if
-    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, ng_fill, side, ncomp(fine))
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, ng_fill, ncomp(fine), facemap, indxmap)
   end subroutine ml_interp_bcs
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, lo, ir)
