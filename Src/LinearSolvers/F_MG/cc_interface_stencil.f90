@@ -56,7 +56,7 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(res)
 
-    !$OMP PARALLEL DO PRIVATE(fbox,cbox,lor,los,i,j,face,dim,lo,hi,loc,rp,fp,cp,sp)
+    ! unsafe to OMP because of overlap in cbox
     do i = 1, nfabs(flux)
        j = indxmap(i)
        dim = abs(facemap(i))
@@ -95,7 +95,6 @@ contains
                sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
        end select
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
