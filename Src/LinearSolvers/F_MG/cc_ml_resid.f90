@@ -168,7 +168,7 @@ contains
 
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
-    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: uu
     type(imultifab), intent(in) :: mm
     integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
     integer :: i, j, n, dm, dim, face
@@ -279,7 +279,7 @@ contains
 
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in)    :: ss
-    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in)    :: uu
     type(imultifab), intent(in)   :: mm
     integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
     integer :: i, j, n, dm, dim, face
