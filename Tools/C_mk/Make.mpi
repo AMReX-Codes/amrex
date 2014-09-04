@@ -544,25 +544,14 @@ endif
 ifeq ($(MACHINE), Darwin)
   # specifics for maudib
   ifeq ($(findstring maudib, $(HOST)), maudib)
-       ifeq ($(FCOMP),gfortran)
-          CXX := mpic++
-	  CC  := mpicc
- 	  FC  := mpif90
-	  fC  := mpif90
-	  F90 := mpif90
+       CXX := mpic++
+       CC  := mpicc
+       FC  := mpif90
+       fC  := mpif90
+       F90 := mpif90
 
-	  MPI_HOME=/Users/cmalone/work/usr/local
-       else
-	  CXX := mpiic++
-	  CC  := mpiicc
-	  FC  := mpiif90
-	  fC  := mpiif90
-	  F90 := mpiif90
-	
-	  MPI_HOME=/Users/cmalone/work/usr/local/intel
-
-       endif
-
+       MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+       LIBRARIES += -lmpi_mpifh
   else
      ifdef MPIHOME
         #
