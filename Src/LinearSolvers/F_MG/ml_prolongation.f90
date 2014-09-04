@@ -254,8 +254,7 @@ contains
     dm   = get_dim(fine)
     pmask = get_pmask(get_layout(fine))
 
-    !$OMP PARALLEL DO &
-    !$OMP PRIVATE(i,j,n,side,dir,face,loc,hic,cbox_refined,fbox,lof,fbox_grown,isect,lo,hi,fp,cp)
+    ! this loop cannot be OMP'd because there are overlaps in fbox
     do i = 1, nfabs(crse)
        side = facemap(i)
        dir  = abs(side)
@@ -315,7 +314,6 @@ contains
           end select
        end do
     end do
-    !$OMP END PARALLEL DO
 
 !   We have moved this call to the routine which calls ml_interp_bcs.
 !   call multifab_fill_boundary(fine)
