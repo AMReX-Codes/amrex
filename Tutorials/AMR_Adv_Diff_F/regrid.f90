@@ -16,11 +16,10 @@ module regrid_module
 
 contains
 
-  subroutine regrid(mla,phi,flux,bndry_flx,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+  subroutine regrid(mla,phi,bndry_flx,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
     type(ml_layout), intent(inout) :: mla
     type(multifab) , intent(inout) :: phi(:)
-    type(multifab) , intent(inout) :: flux(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     integer        , intent(inout) :: nlevs, max_levs
     real(dp_t)     , intent(in   ) :: dx(:)
@@ -33,7 +32,7 @@ contains
     type(ml_boxarray) :: mba
     type(multifab)    :: phi_orig(max_levs)
 
-    integer :: i,dm,n,nl,n_buffer
+    integer :: dm,n,nl,n_buffer
 
     logical :: new_grid,properly_nested
 
@@ -53,17 +52,8 @@ contains
        call multifab_destroy(phi(n))
     end do
 
-
-    ! Destroy flux, phi_orig and bndry_reg before regridding -- we will create 
-    !     new ones at the end
-    do n = 1,nlevs
-      do i = 1, dm
-          call multifab_destroy(flux(n,i))
-      end do
-    end do
-
     do n = 2,nlevs
-      call bndry_reg_destroy(bndry_flx(n))
+      call destroy(bndry_flx(n))
     end do
 
     ! Get rid of the original mla so we can create a new one
@@ -209,16 +199,9 @@ contains
        call bc_tower_level_build(the_bc_tower,n,la_array(n))
     end do
 
-    ! Create new flux, phi_orig and bndry_flx after regridding
-    do n = 1,nlevs
-      do i = 1, dm
-          call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
-      end do
-    end do
-
     do n = 2,nlevs
-      call bndry_reg_rr_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
-                              ml_layout_get_pd(mla,n-1),other=.true.)
+       call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+            ml_layout_get_pd(mla,n-1),nc=1)
     end do
 
     if (nlevs .eq. 1) then
