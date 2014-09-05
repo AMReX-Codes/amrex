@@ -255,6 +255,7 @@ contains
     pmask = get_pmask(get_layout(fine))
 
     ! this loop cannot be OMP'd because there are overlaps in fbox
+    ! If we really need to OMP, we could pass in bndry_reg instead of crse mf
     do i = 1, nfabs(crse)
        side = facemap(i)
        dir  = abs(side)
