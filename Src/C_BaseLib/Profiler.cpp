@@ -67,6 +67,10 @@ std::stack<int> Profiler::callIndexStack;
 std::map<std::string, int> Profiler::mFNameNumbers;
 int Profiler::callStackDepth(-1);
 int Profiler::prevDepth(0);
+std::vector<int> Profiler::currentRegions;
+std::map<std::string, int> Profiler::mRegionNameNumbers;
+int Profiler::nRegionOverlaps(0);
+int Profiler::CallStats::csVersion = 1;
 #endif
 
 
@@ -235,6 +239,7 @@ void Profiler::start() {
   if(vCallTrace.size() == 0) {
     CallStats cs(callStackDepth, fnameNumber);
     ++cs.nCalls;
+    cs.regions = currentRegions;
     vCallTrace.push_back(cs);
   } else {
     int topNameNumber(fnameNumber);
@@ -243,6 +248,7 @@ void Profiler::start() {
     } else {
       CallStats cs(callStackDepth, fnameNumber);
       ++cs.nCalls;
+      cs.regions = currentRegions;
       vCallTrace.push_back(cs);
     }
   }
@@ -321,6 +327,73 @@ void Profiler::AddStep(const int snum) {
   mStepMap.insert(std::map<int, Real>::value_type(currentStep,
                                                   ParallelDescriptor::second()));
 }
+
+
+#ifdef BL_CALL_TRACE
+void Profiler::RegionStart(const std::string &rname) {
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << ">>>> RegionStart:  " << rname << std::endl;
+  }
+  int rnameNumber;
+  std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
+  if(it == Profiler::mRegionNameNumbers.end()) {
+    rnameNumber = Profiler::mRegionNameNumbers.size();
+    Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
+  } else {
+    rnameNumber = it->second;
+  }
+  currentRegions.push_back(rnameNumber);
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "|||| RegionStart:  rnameNumber = " << rnameNumber << std::endl;
+    for(int i(0); i < currentRegions.size(); ++i) {
+      std::cout << "|||| RegionStart:  currentRegions[" << i << "] = "
+                << currentRegions[i] << std::endl;
+    }
+  }
+}
+
+
+void Profiler::RegionStop(const std::string &rname) {
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "<<<< RegionStop:  " << rname << std::endl;
+  }
+  int rnameNumber;
+  std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
+  if(it == Profiler::mRegionNameNumbers.end()) {
+    // error
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "-------- error in RegionStop:  region " << rname
+                << " never started."  << std::endl;
+    }
+    rnameNumber = Profiler::mRegionNameNumbers.size();
+    Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
+  } else {
+    rnameNumber = it->second;
+  }
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "|||| RegionStop:  rnameNumber = " << rnameNumber << std::endl;
+  }
+  std::vector<int> crTemp;
+  for(int i(0); i < currentRegions.size(); ++i) {
+    if(currentRegions[i] != rnameNumber) {
+      crTemp.push_back(currentRegions[i]);
+    }
+  }
+  //currentRegions.clear();
+  currentRegions = crTemp;
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "|||| RegionStop:  " << rname << std::endl;
+    for(int i(0); i < currentRegions.size(); ++i) {
+      std::cout << "[[[[ RegionStop:  currentRegions[" << i << "] = "
+                << currentRegions[i] << std::endl;
+    }
+    for(int i(0); i < crTemp.size(); ++i) {
+      std::cout << "[[[[ RegionStop:  crTemp[" << i << "] = "
+                << crTemp[i] << std::endl;
+    }
+  }
+}
+#endif
 
 
 void Profiler::Finalize() {
@@ -465,7 +538,9 @@ void Profiler::Finalize() {
     }
     WriteStats(std::cout, bWriteAvg);
 #ifdef BL_CALL_TRACE
+#ifdef BL_CALL_TRACE_HTML
     WriteHTML();
+#endif
 #endif
   }
 
@@ -475,6 +550,12 @@ void Profiler::Finalize() {
     // --------------------- start nfiles block
     std::string cdir("bl_prof");
     if(ParallelDescriptor::IOProcessor()) {
+      if(BoxLib::FileExists(cdir)) {
+        std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
+	std::cout << "Profiler::Finalize():  " << cdir
+	          << " exists.  Renaming to:  " << newoldname << std::endl;
+        std::rename(cdir.c_str(), newoldname.c_str());
+      }
       if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
         BoxLib::CreateDirectoryFailed(cdir);
       }
@@ -530,6 +611,91 @@ void Profiler::Finalize() {
       }
     }
     // --------------------- end nfiles block
+
+#ifdef BL_CALL_TRACE
+    if(ParallelDescriptor::IOProcessor()) {
+      std::string globalHeaderFileName(cdir + '/' + "bl_call_stats_H");
+      std::ofstream csGlobalHeaderFile;
+      csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
+                              std::ios::out | std::ios::trunc);
+      if( ! csGlobalHeaderFile.good()) {
+        BoxLib::FileOpenFailed(globalHeaderFileName);
+      }
+      csGlobalHeaderFile << "CallStatsProfVersion  " << CallStats::csVersion << '\n';
+
+      for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
+          it != mRegionNameNumbers.end(); ++it)
+      {
+        csGlobalHeaderFile << "RegionName " << '"' << it->first << '"'
+	                   << ' ' << it->second << '\n';
+      }
+      for(int i(0); i < nOutFiles; ++i) {
+        std::string headerName("bl_call_stats_H_");
+        headerName = BoxLib::Concatenate(headerName, i, 4);
+        csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+      }
+      csGlobalHeaderFile.flush();
+      csGlobalHeaderFile.close();
+    }
+
+    std::string rFileName(cdir + '/' + "bl_call_stats_H_");
+    std::string rFullName  = BoxLib::Concatenate(rFileName, myProc % nOutFiles, 4);
+
+    for(int iSet = 0; iSet < nSets; ++iSet) {
+      if(mySet == iSet) {
+        {  // scope
+          std::ofstream csFile;
+
+          if(iSet == 0) {   // First set.
+            csFile.open(rFullName.c_str(),
+                        std::ios::out|std::ios::trunc|std::ios::binary);
+          } else {
+            csFile.open(rFullName.c_str(),
+                        std::ios::out|std::ios::app|std::ios::binary);
+            csFile.seekp(0, std::ios::end);   // set to eof
+          }
+          if( ! csFile.good()) {
+            BoxLib::FileOpenFailed(rFullName);
+          }
+
+          // ----------------------------- write to file here
+          csFile << "CallStatsProc " << myProc << '\n';
+	  for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
+	      it != mFNameNumbers.end(); ++it)
+	  {
+	    csFile << "fName " << '"' << it->first << '"' << ' ' << it->second << '\n';
+	  }
+	  for(int i(0); i < vCallTrace.size(); ++i) {
+	    CallStats &cs = vCallTrace[i];
+	    csFile << "fn " << cs.csFNameNumber << " rg ";
+	    for(int r(0); r < cs.regions.size(); ++r) {
+	      csFile << cs.regions[r] << ' ';
+	    }
+	    csFile << std::setiosflags(std::ios::showpoint)
+	           << " tt " << cs.totalTime << " st " << cs.stackTime << '\n';
+	  }
+          // ----------------------------- end write to file here
+
+          csFile.flush();
+          csFile.close();
+        }  // end scope
+
+        int iBuff     = 0;
+        int wakeUpPID = (myProc + nOutFiles);
+        int tag       = (myProc % nOutFiles);
+        if(wakeUpPID < nProcs) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        }
+      }
+      if(mySet == (iSet + 1)) {   // Next set waits.
+        int iBuff;
+        int waitForPID = (myProc - nOutFiles);
+        int tag        = (myProc % nOutFiles);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      }
+    }
+    // --------------------- end nfiles block
+#endif
 
 
     ParallelDescriptor::Barrier("Profiler::Finalize");
@@ -744,6 +910,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 
 #ifdef BL_CALL_TRACE
+#ifdef BL_CALL_TRACE_HTML
 void Profiler::WriteHTML() {
   std::vector<std::string> fNumberNames(mFNameNumbers.size());
   for(std::map<std::string, int>::const_iterator it = Profiler::mFNameNumbers.begin();
@@ -853,6 +1020,7 @@ void Profiler::WriteHTML() {
 
   csHTMLFile.close();
 }
+#endif
 #endif
 
 
