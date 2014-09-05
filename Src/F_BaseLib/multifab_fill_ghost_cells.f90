@@ -196,6 +196,8 @@ contains
     call multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
          .false.,stencil_width_input,fourth_order_input,.false.)
 
+    call destroy(crse)
+
   end subroutine multifab_fill_ghost_cells_t
 
 end module multifab_fill_ghost_module
