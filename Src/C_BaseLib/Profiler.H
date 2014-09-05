@@ -168,6 +168,8 @@ class Profiler
     static inline int AfterCall()  { return -7; }
 
     static inline int ProcNumber() { return procNumber; }
+    static void SetBlProfDirName(const std::string &name) { blProfDirName = name; }
+    static void SetBlCommProfDirName(const std::string &name) { blCommProfDirName = name; }
 
     static void PerfMonProcess();
 
@@ -194,6 +196,8 @@ class Profiler
     static std::vector<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
+    static std::string blProfDirName;
+    static std::string blCommProfDirName;
 
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
