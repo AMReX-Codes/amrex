@@ -60,6 +60,8 @@ std::vector<int> Profiler::CommStats::tagWraps;
 
 std::string Profiler::procName("NoProcName");
 int Profiler::procNumber(-1);
+std::string Profiler::blProfDirName("bl_prof");
+std::string Profiler::blCommProfDirName("bl_comm_prof");
 
 #ifdef BL_CALL_TRACE
 std::vector<Profiler::CallStats> Profiler::vCallTrace;
@@ -548,7 +550,7 @@ void Profiler::Finalize() {
   // --------------------------------------- print all procs stats to a file
   if(bWriteAll) {
     // --------------------- start nfiles block
-    std::string cdir("bl_prof");
+    std::string cdir(blProfDirName);
     if(ParallelDescriptor::IOProcessor()) {
       if(BoxLib::FileExists(cdir)) {
         std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
@@ -1051,7 +1053,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     }
   }
 
-  std::string cdir("bl_comm_prof");
+  std::string cdir(blCommProfDirName);
   if(ParallelDescriptor::IOProcessor()) {
     if(bFirstCommWriteH) {
       if(BoxLib::FileExists(cdir)) {
