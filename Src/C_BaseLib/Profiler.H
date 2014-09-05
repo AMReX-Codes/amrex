@@ -38,6 +38,9 @@ class Profiler
       int callStackDepth, csFNameNumber;
       long nCalls;
       Real totalTime, stackTime;
+      std::vector<int> regions;
+
+      static int csVersion;
     };
 
     enum CommFuncType {
@@ -128,7 +131,9 @@ class Profiler
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
 #ifdef BL_CALL_TRACE
+#ifdef BL_CALL_TRACE_HTML
     static void WriteHTML();
+#endif
 #endif
     static void WriteCommStats(const bool bFlushing = false);
 
@@ -152,6 +157,11 @@ class Profiler
                            const bool writefabs);
     static void AddStep(const int snum);
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
+
+#ifdef BL_CALL_TRACE
+    static void RegionStart(const std::string &rname);
+    static void RegionStop(const std::string &rname);
+#endif
 
     static inline int NoTag()      { return -3; }
     static inline int BeforeCall() { return -5; }
@@ -201,6 +211,9 @@ class Profiler
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
     static int callStackDepth;
     static int prevDepth;
+    static std::vector<int> currentRegions;
+    static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
+    static int nRegionOverlaps;
 
     typedef std::pair<Real, int> RIpair;
     struct fTTComp {
@@ -210,7 +223,6 @@ class Profiler
         return lhs.first > rhs.first;
       }
     };
-
 #endif
 
 };
@@ -289,6 +301,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
                                   Profiler::InitParams(ptl,wall, wfabs);
 #define BL_PROFILE_ADD_STEP(snum)  Profiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
+#define BL_PROFILE_REGION_START(rname) Profiler::RegionStart(rname);
+#define BL_PROFILE_REGION_STOP(rname)  Profiler::RegionStop(rname);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
 
