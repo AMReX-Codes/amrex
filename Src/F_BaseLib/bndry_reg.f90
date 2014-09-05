@@ -3,6 +3,7 @@ module bndry_reg_module
   use layout_module
   use multifab_module
   use bl_error_module
+  use bl_constants_module
 
   implicit none
 
@@ -11,6 +12,11 @@ module bndry_reg_module
   type :: bndry_reg
      integer :: dim   = 0
      integer :: nc    = 1
+     integer ::  nbegin(3),  nend(3)
+     integer :: onbegin(3), onend(3)
+     integer :: ref_ratio(3)
+     type(box) :: crse_domain
+     logical :: pmask(3)
      logical :: other = .false.
      type(multifab), pointer ::  bmf(:,:) => Null()
      type(multifab), pointer :: obmf(:,:) => Null()
@@ -168,10 +174,9 @@ contains
     integer,         intent(in   ) :: width
     logical,         intent(in   ) :: other
 
-    logical                        :: pmask(size(rr))
     integer                        :: i, j, kk, id, dm, nb, cnto, cnt, f, ilocal
     integer                        :: nl, ncell, myproc, nlthin, nlthino
-    integer                        :: lo(size(rr)), hi(size(rr))
+    integer                        :: lo(size(rr)), hi(size(rr)), nfb(3), onfb(3)
     integer, allocatable           :: prcc(:), prf(:), pshift(:,:)
     type(box)                      :: rbox, bx
     type(box), allocatable         :: bxs(:), bxso(:), bxsc(:)
@@ -184,10 +189,12 @@ contains
     dm     = get_dim(la)
     nb     = nboxes(la)
     nl     = nlocal(la)
-    pmask  = get_pmask(lac)
 
-    br%dim   = dm
-    br%nc    = nc
+    br%dim = dm
+    br%nc  = nc
+    br%ref_ratio(1:dm) = rr 
+    br%crse_domain     = pdc
+    br%pmask(1:dm)     = get_pmask(lac)
     br%other = other
 
     if (bndry_reg_thin) then
@@ -214,10 +221,12 @@ contains
     end if
 
     nlthin = 0
+    nfb = 0
     cnt = 0
 
     if (other) then
        nlthino = 0
+       onfb = 0
        cnto = 0
        pshift = 0
        
@@ -266,6 +275,7 @@ contains
              prf(cnt) = get_proc(la,j)
              if (myproc .eq. prf(cnt)) then
                 nlthin = nlthin + 1
+                nfb(i) = nfb(i) + 1
                 br%indxmap(nlthin) = local_index(la,j)
                 br%facemap(nlthin) = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
              end if
@@ -273,7 +283,7 @@ contains
              bxs(cnt) = bx
 
              if (other) then
-                if (pmask(i)) then
+                if (br%pmask(i)) then
                    if (lo(i) .lt. pdc%lo(i)) then
                       pshift(i,cnt) = extent(pdc,i)
                    else if (hi(i) .gt. pdc%hi(i)) then
@@ -290,6 +300,7 @@ contains
                       call push_back(oproc, local_index(lac,bi(kk)%i))
                       call push_back(oface, (2*f-1)*i)  ! possible values: -1,+1,-2,+2,-3:+3 
                       nlthino = nlthino+1
+                      onfb(i) = onfb(i) + 1
                    end if
                 end do
                 deallocate(bi)
@@ -344,6 +355,23 @@ contains
     
     deallocate(bxs,prf)
     if (bndry_reg_thin) call destroy(laftmp)
+
+    br%nbegin(1) = 1
+    br%nend(1) = br%nbegin(1) + nfb(1) - 1
+    do i=2,dm
+       br%nbegin(i) = br%nend(i-1) + 1
+       br%nend(i) = br%nbegin(i) + nfb(i) - 1
+    end do
+
+    if (other) then
+       br%onbegin(1) = 1
+       br%onend(1) = br%onbegin(1) + onfb(1) - 1
+       do i=2,dm
+          br%onbegin(i) = br%onend(i-1) + 1
+          br%onend(i) = br%onbegin(i) + onfb(i) - 1
+       end do
+    end if
+
   end subroutine rr_build_cc
 
 
@@ -600,5 +628,280 @@ contains
        end do
     end do
   end subroutine bndry_reg_print
+
+  subroutine flux_reg_build(br, la, lac, rr, pdc, nc)
+    type(layout),    intent(inout)           :: la, lac
+    type(bndry_reg), intent(out  )           :: br
+    integer,         intent(in   )           :: rr(:)
+    type(box),       intent(in   )           :: pdc
+    integer,         intent(in   ), optional :: nc
+    integer :: lnc
+    lnc = 1;  if (present(nc)) lnc = nc
+    call rr_build_cc(br, la, lac, rr, pdc, lnc, 0, .true.)
+  end subroutine flux_reg_build
+
+  subroutine flux_reg_crse_init(br, flux, s)
+    type(bndry_reg), intent(inout) :: br
+    type(multifab) , intent(in   ) :: flux(:)
+    real(kind=dp_t), intent(in   ) :: s 
+    
+    integer :: ibr, iflx, idim, face 
+    integer, dimension(3) :: blo, bhi
+    type(box) :: br_box
+    real(kind=dp_t), pointer :: bp(:,:,:,:), fp(:,:,:,:)
+
+    call bndry_reg_setval(br, ZERO)  ! zero bmf
+
+    !$omp parallel private(ibr,iflx,idim,face,blo,bhi,br_box,bp,fp)
+    blo = 1; bhi = 1
+    !$omp do
+    do ibr = 1, nfabs(br%obmf(1,0))
+       iflx = br%oindxmap(ibr)
+       idim = abs (   br%ofacemap(ibr))
+       face = sign(1, br%ofacemap(ibr))
+
+       bp     => dataptr(br%obmf(1,0),ibr)
+       br_box = get_ibox(br%obmf(1,0),ibr)
+
+       if (br%pmask(idim) .and. (.not. contains(br%crse_domain,br_box)) ) then
+          if ( face .eq. -1 ) then
+             br_box = shift(br_box,  extent(br%crse_domain,idim), idim)
+          else
+             br_box = shift(br_box, -extent(br%crse_domain,idim), idim)
+          end if
+       end if
+
+       if (face .eq. -1) then
+          br_box = shift(br_box, 1, idim)
+       end if
+
+       blo(1:br%dim) = lwb(br_box)
+       bhi(1:br%dim) = upb(br_box)
+       
+       fp => dataptr(flux(idim),iflx)
+       
+       bp = s * fp(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),:)
+    end do
+    !$omp end do
+    !$omp end parallel
+  end subroutine flux_reg_crse_init
+
+  subroutine flux_reg_fine_add(br, flux, s)
+    type(bndry_reg), intent(inout) :: br
+    type(multifab) , intent(in   ) :: flux(:)
+    real(kind=dp_t), intent(in   ) :: s 
+
+    integer :: ibr, iflx, idim, face, i, j, k, ii, jj, kk, n, ir1, ir2, ir3
+    integer, dimension(br%dim) :: blo, bhi, flo, fhi
+    type(box) :: br_box, flx_box
+    real(kind=dp_t), pointer :: bp(:,:,:,:), fp(:,:,:,:)
+
+    !$omp parallel do private(ibr,iflx,idim,face,i,j,k,ii,jj,kk,n,ir1,ir2,ir3) &
+    !$omp private(blo,bhi,flo,fhi,br_box,flx_box,bp,fp)
+    do ibr = 1, nfabs(br%bmf(1,0))
+       iflx = br%indxmap(ibr)
+       idim = abs (   br%facemap(ibr))
+       face = sign(1, br%facemap(ibr))
+
+       bp     => dataptr(br%bmf(1,0),ibr)
+       br_box = get_ibox(br%bmf(1,0),ibr)
+       blo    = lwb(br_box)
+       bhi    = upb(br_box)
+          
+       fp      => dataptr(flux(idim),iflx)
+       flx_box = get_pbox(flux(idim),iflx)
+       flo     = lwb(flx_box)
+       fhi     = upb(flx_box)
+       
+       ! boxes are globally zero based in active dimensions
+       
+       select case(br%dim)
+       case (1) ! 1D
+          
+          if (face .eq. -1) then
+             bp(blo(1),1,1,:) = bp(blo(1),1,1,:) + s*fp(flo(1),1,1,:)
+          else
+             bp(bhi(1),1,1,:) = bp(bhi(1),1,1,:) + s*fp(fhi(1),1,1,:)
+          end if
+          
+       case (2) ! 2D
+          
+          select case (idim)
+          case (1) ! 2D-x
+
+             if (face .eq. -1) then
+                i  = blo(1)
+                ii = flo(1)
+             else
+                i  = bhi(1)
+                ii = fhi(1) 
+             end if
+             ir1 = 0
+
+             do n=1,size(fp,4)
+                do j=blo(2),bhi(2)
+                   jj = j * br%ref_ratio(2)
+                   do ir2 = 0, br%ref_ratio(2)-1
+                      bp(i,j,1,n) = bp(i,j,1,n) + s*fp(ii+ir1,jj+ir2,1,n)
+                   end do
+                end do
+             end do
+
+          case (2) ! 2D-y
+
+             if (face .eq. -1) then
+                j  = blo(2)
+                jj = flo(2)
+             else
+                j  = bhi(2)
+                jj = fhi(2) 
+             end if
+             ir2 = 0
+             
+             do n=1,size(fp,4)
+                do i=blo(1),bhi(1)
+                   ii = i * br%ref_ratio(1)
+                   do ir1 = 0, br%ref_ratio(1)-1
+                      bp(i,j,1,n) = bp(i,j,1,n) + s*fp(ii+ir1,jj+ir2,1,n)
+                   end do
+                end do
+             end do
+             
+          end select
+
+       case (3) ! 3D
+
+          select case (idim)
+          case (1) ! 3D-x
+
+             if (face .eq. -1) then
+                i  = blo(1)
+                ii = flo(1)
+             else
+                i  = bhi(1)
+                ii = fhi(1) 
+             end if
+             ir1 = 0
+
+             do n=1,size(fp,4)
+                do k=blo(3),bhi(3)
+                   kk = k * br%ref_ratio(3)
+                   do j=blo(2),bhi(2)
+                      jj = j * br%ref_ratio(2)
+                      do ir3 = 0, br%ref_ratio(3)-1
+                         do ir2 = 0, br%ref_ratio(2)-1
+                            bp(i,j,k,n) = bp(i,j,k,n) + s*fp(ii+ir1,jj+ir2,kk+ir3,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+
+          case (2) ! 3D-y
+
+             if (face .eq. -1) then
+                j  = blo(2)
+                jj = flo(2)
+             else
+                j  = bhi(2)
+                jj = fhi(2) 
+             end if
+             ir2 = 0
+
+             do n=1,size(fp,4)
+                do k=blo(3),bhi(3)
+                   kk = k * br%ref_ratio(3)
+                   do i=blo(1),bhi(1)
+                      ii = i * br%ref_ratio(1)
+                      do ir3 = 0, br%ref_ratio(3)-1
+                         do ir1 = 0, br%ref_ratio(1)-1
+                            bp(i,j,k,n) = bp(i,j,k,n) + s*fp(ii+ir1,jj+ir2,kk+ir3,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+
+          case (3)
+
+             if (face .eq. -1) then
+                k  = blo(3)
+                kk = flo(3)
+             else
+                k  = bhi(3)
+                kk = fhi(3) 
+             end if
+             ir3 = 0
+
+             do n=1,size(fp,4)
+                do j=blo(2),bhi(2)
+                   jj = j * br%ref_ratio(2)
+                   do i=blo(1),bhi(1)
+                      ii = i * br%ref_ratio(1)
+                      do ir2 = 0, br%ref_ratio(2)-1
+                         do ir1 = 0, br%ref_ratio(1)-1
+                            bp(i,j,k,n) = bp(i,j,k,n) + s*fp(ii+ir1,jj+ir2,kk+ir3,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+
+          end select
+       end select
+    end do
+    !$omp end parallel do
+  end subroutine flux_reg_fine_add
+    
+  subroutine reflux(u, br, s)
+    type(multifab) , intent(inout) :: u
+    type(bndry_reg), intent(in   ) :: br
+    real(kind=dp_t), intent(in   ) :: s 
+
+    type(multifab) :: obmf2
+    integer :: blo(3), bhi(3)
+    integer :: idim, ibr, iu
+    real(kind=dp_t) :: face
+    type(box) :: br_box
+    real(kind=dp_t), dimension(:,:,:,:), pointer :: b1p, b2p, up
+
+    call build(obmf2, br%olaf(1,0), nc=ncomp(br%obmf(1,0)), ng=0)
+    call copy (obmf2, br%bmf(1,0), bndry_reg_to_other=.true.)
+
+    !$omp parallel private(blo,bhi,idim,ibr,iu,face,br_box,b1p,b2p,up)
+    blo = 1; bhi = 1
+    do idim = 1, br%dim
+       !$omp do
+       do ibr = br%onbegin(idim), br%onend(idim)
+          iu = br%oindxmap(ibr)
+          face = sign(1, br%ofacemap(ibr))
+
+          b1p    => dataptr(br%obmf(1,0), ibr)
+          b2p    => dataptr(   obmf2    , ibr)
+          br_box = get_ibox(   obmf2    , ibr)
+
+          if (br%pmask(idim) .and. (.not. contains(br%crse_domain,br_box)) ) then
+             if ( face .eq. -1 ) then
+                br_box = shift(br_box,  extent(br%crse_domain,idim), idim)
+             else
+                br_box = shift(br_box, -extent(br%crse_domain,idim), idim)
+             end if
+          end if
+
+          blo(1:br%dim) = lwb(br_box)
+          bhi(1:br%dim) = upb(br_box)
+
+          up => dataptr(u, iu)
+
+          up     (blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),:) = &
+               up(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),:)   &
+               - face * s * (b1p + b2p)
+       end do
+       !$omp end do
+    end do
+    !$omp end parallel
+
+    call destroy(obmf2)
+  end subroutine reflux
 
 end module bndry_reg_module
