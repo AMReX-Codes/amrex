@@ -1,7 +1,6 @@
 module sort_i_module
   ! Adapted from Meissner, Adams, et.al., and NR.
 
-  use bl_error_module
   implicit none
 
   interface sort
