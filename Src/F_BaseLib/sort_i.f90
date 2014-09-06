@@ -1,12 +1,18 @@
 module sort_i_module
   ! Adapted from Meissner, Adams, et.al., and NR.
-  
+
+  use bl_error_module
   implicit none
 
   interface sort
      module procedure heapsort_i
      module procedure heapsort_indirect_i
   end interface sort
+
+  interface stable_sort
+     module procedure mergesort_i
+     module procedure mergesort_indirect_i
+  end interface stable_sort
 
   private less_i
   private swap_i
@@ -245,4 +251,153 @@ contains
     end subroutine peck_cmp
 
   end subroutine heapsort_indirect_i
+
+  subroutine mergesort_i( array )
+    integer, dimension(:), intent(inout) :: array
+    integer :: tmp((size(array)+1)/2)
+    call mg_sort_no_cmp(array, tmp)
+  contains
+
+    recursive subroutine mg_sort_no_cmp(a, tmp)
+      integer, intent(inout) :: a(:) 
+      integer, intent(out  ) :: tmp(:)
+      
+      integer :: n, nh
+
+      n = size(a)
+      
+      if (n .eq. 1) then
+
+         return
+
+      else if (n .eq. 2) then
+
+         if (a(2) < a(1)) then
+            a(1:2) = a(2:1:-1)
+         end if
+
+      else
+
+         nh = (n+1)/2
+         call mg_sort_no_cmp(a(1:nh),tmp)
+         call mg_sort_no_cmp(a(nh+1:),tmp)
+         
+         if (a(nh+1) < a(nh)) then
+            tmp(1:nh) = a(1:nh)
+            call merge(tmp(1:nh), a)
+         end if
+
+      end if
+
+      return
+    end subroutine mg_sort_no_cmp
+
+    subroutine merge(tmp, a)
+      integer, intent(inout) :: a(:), tmp(:) 
+      
+      integer :: n, nh, i, j, k
+
+      n = size(a)
+      nh = size(tmp)
+
+      i=1 
+      j=nh+1 
+      k=1
+
+      do while (i .le. nh .and. j .le. n)
+         if (a(j) < tmp(i)) then
+            a(k) = a(j)
+            j = j+1
+         else
+            a(k) = tmp(i)
+            i = i+1
+         end if
+         k = k+1
+      end do
+
+      if (i .le. nh) a(k:) = tmp(i:nh)
+
+      return
+    end subroutine merge
+
+  end subroutine mergesort_i
+
+  subroutine mergesort_indirect_i( array, iarray)
+    integer, dimension(:), intent(in) :: array
+    integer, dimension(:), intent(out) :: iarray
+
+    integer :: tmp((size(array)+1)/2)
+    integer :: i, n
+
+    n = size (array)
+    iarray = (/(i,i=1,n)/)
+    
+    call mg_sort_no_cmp(iarray, tmp)
+    
+  contains
+
+    recursive subroutine mg_sort_no_cmp(idx, tmp)
+      integer, intent(inout) :: idx(:) 
+      integer, intent(out  ) :: tmp(:)
+      
+      integer :: n, nh
+
+      n = size(idx)
+      
+      if (n .eq. 1) then
+
+         return
+
+      else if (n .eq. 2) then
+
+         if (array(idx(2)) < array(idx(1))) then
+            idx(1:2) = idx(2:1:-1)
+         end if
+
+      else
+
+         nh = (n+1)/2
+         call mg_sort_no_cmp(idx(1:nh),tmp)
+         call mg_sort_no_cmp(idx(nh+1:),tmp)
+         
+         if (array(idx(nh+1)) < array(idx(nh))) then
+            tmp(1:nh) = idx(1:nh)
+            call merge(tmp(1:nh), idx)
+         end if
+
+      end if
+
+      return
+    end subroutine mg_sort_no_cmp
+
+    subroutine merge(tmp, idx)
+      integer, intent(inout) :: idx(:), tmp(:) 
+      
+      integer :: n, nh, i, j, k
+
+      n = size(idx)
+      nh = size(tmp)
+
+      i=1 
+      j=nh+1 
+      k=1
+
+      do while (i .le. nh .and. j .le. n)
+         if (array(idx(j)) < array(tmp(i))) then
+            idx(k) = idx(j)
+            j = j+1
+         else
+            idx(k) = tmp(i)
+            i = i+1
+         end if
+         k = k+1
+      end do
+
+      if (i .le. nh) idx(k:) = tmp(i:nh)
+
+      return
+    end subroutine merge
+
+  end subroutine mergesort_indirect_i
+
 end module sort_i_module
