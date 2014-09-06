@@ -709,7 +709,7 @@ contains
        bhi    = upb(br_box)
           
        fp      => dataptr(flux(idim),iflx)
-       flx_box = get_pbox(flux(idim),iflx)
+       flx_box = get_ibox(flux(idim),iflx)
        flo     = lwb(flx_box)
        fhi     = upb(flx_box)
        
