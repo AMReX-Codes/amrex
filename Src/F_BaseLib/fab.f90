@@ -549,7 +549,7 @@ contains
 
     call parallel_allgather(snd, rcv, 1)
 
-    call sort(rcv, idx)
+    call stable_sort(rcv, idx)
 
     r = idx - 1
 
