@@ -7,8 +7,17 @@ module multifab_fill_ghost_module
 contains
 
   subroutine multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
-                                       fill_crse_input,stencil_width_input,fourth_order_input, &
-                                       fill_crse_physbc_input)
+                                       stencil_width_input,fourth_order_input, &
+                                       fill_crse_boundary_input,fill_crse_physbc_input)
+    ! This subroutine used to have an argument called fill_crse_input.  It is renamed
+    ! to fill_crse_boundary_input, and its position has changed.  This is intended to
+    ! break codes that call this subroutine with "fil_crse_input=.false..
+    ! The reason is as follows.  This subroutine is usually called after ml_cc_restriction
+    ! is called.  In an old version of ml_cc_restriction, multifab_fill_boundary wass
+    ! called on the coarse multifab.  In that case, we did not need to call fill_boundary
+    ! here.  However, the new version of ml_cc_restriction no longer calls fill_boundary
+    ! for the coarse multifab.  Therefore, we have to call fill_boundary here.  So we
+    ! like to break codes that rely on the old behaivor of ml_cc_restriction.
 
     use layout_module
     use bl_constants_module
@@ -20,7 +29,7 @@ contains
     integer       , intent(in   ) :: ir(:)
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
     integer       , intent(in   ) :: icomp,bcomp,nc
-    logical       , intent(in   ), optional :: fill_crse_input
+    logical       , intent(in   ), optional :: fill_crse_boundary_input
     integer       , intent(in   ), optional :: stencil_width_input
     logical       , intent(in   ), optional :: fourth_order_input
     logical       , intent(in   ), optional :: fill_crse_physbc_input
@@ -48,8 +57,8 @@ contains
     fill_crse    = .true.
     fourth_order = .false.
 
-    if ( present(fill_crse_input    ) )    fill_crse = fill_crse_input
-    if ( present(fourth_order_input ) ) fourth_order = fourth_order_input
+    if ( present(fill_crse_boundary_input ) )    fill_crse = fill_crse_boundary_input
+    if ( present(fourth_order_input       ) ) fourth_order = fourth_order_input
 
     if ( nghost(fine) <  ng          ) &
          call bl_error('multifab_fill_ghost_cells: fine does NOT have enough ghost cells')
@@ -148,7 +157,8 @@ contains
   !
   subroutine multifab_fill_ghost_cells_t(fine,crse_old,crse_new,alpha,ng, &
                                          ir,bc_crse,bc_fine,icomp,bcomp,nc, &
-                                         fill_crse_input,stencil_width_input,fourth_order_input)
+                                         stencil_width_input,fourth_order_input, &
+                                         fill_crse_boundary_input)
 
     use layout_module
     use bl_constants_module
@@ -162,7 +172,7 @@ contains
     real(kind=dp_t), intent(in   ) :: alpha
     type(bc_level) , intent(in   ) :: bc_crse,bc_fine
     integer        , intent(in   ) :: icomp,bcomp,nc
-    logical        , intent(in   ), optional :: fill_crse_input
+    logical        , intent(in   ), optional :: fill_crse_boundary_input
     integer        , intent(in   ), optional :: stencil_width_input
     logical        , intent(in   ), optional :: fourth_order_input
 
@@ -180,7 +190,7 @@ contains
     end if
 
     fill_crse = .true.
-    if ( present(fill_crse_input) ) fill_crse = fill_crse_input
+    if ( present(fill_crse_boundary_input) ) fill_crse = fill_crse_boundary_input
 
     if (fill_crse) then
        call fill_boundary(crse_new, icomp, nc, ng=nghost(crse_new))
@@ -194,7 +204,7 @@ contains
     call saxpy(crse, alpha, crse_old, (ONE-alpha), crse_new, all=.true.)
 
     call multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
-         .false.,stencil_width_input,fourth_order_input,.false.)
+         stencil_width_input,fourth_order_input,.false., .false.)
 
     call destroy(crse)
 
