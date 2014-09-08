@@ -35,6 +35,7 @@ f90EXE_sources += list_box.f90
 f90EXE_sources += ml_boxarray.f90
 f90EXE_sources += ml_layout.f90
 f90EXE_sources += ml_multifab.f90
+f90EXE_sources += ml_restrict_fill.f90
 f90EXE_sources += cc_restriction.f90
 f90EXE_sources += edge_restriction.f90
 f90EXE_sources += nodal_restriction.f90
