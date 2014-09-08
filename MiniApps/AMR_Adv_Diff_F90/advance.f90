@@ -11,7 +11,6 @@ module advance_module
   use bndry_reg_module
   use compute_flux_module
   use update_phi_module
-  use reflux_module
 
   implicit none
 
@@ -21,12 +20,11 @@ module advance_module
 
 contains
 
-  subroutine advance(mla,phi_old,phi_new,flux,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
+  subroutine advance(mla,phi_old,phi_new,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
-    type(multifab) , intent(inout) :: flux(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt(:)
@@ -35,8 +33,9 @@ contains
     integer        , intent(in   ) :: num_substeps
 
     ! local variables
-    type(box) :: pd
-    integer   :: istep,dm,n,nlevs,ng_p
+    integer   :: i,istep,dm,n,nlevs,ng_p
+    ! Array of edge-based multifabs; one for each direction
+    type(multifab) :: flux(mla%dim,mla%nlevel)
 
     dm    = mla%dim
     nlevs = mla%nlevel
@@ -52,63 +51,11 @@ contains
           ! subcycling in time
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-          ! Start at coarse level (1)
-          n=1
-
-          ! We only want one processor to write to screen
-          if ( parallel_IOProcessor() ) &
-             print*,'   Advancing level: ',n,' with dt = ',dt(n)
-
-          ! Copy phi_new from the previous time step into phi_old for this time step
-          call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
-
-          ! ************************
-          ! Update the coarsest solution by dt(1)
-          ! ************************
-
-          ! Fill ghost cells for two adjacent grids at the same level
-          ! this includes periodic domain boundary ghost cells
-          call multifab_fill_boundary(phi_old(n))
- 
-          ! Fill non-periodic domain boundary ghost cells
-          call multifab_physbc(phi_old(n),1,1,1,the_bc_tower%bc_tower_array(n))
-
-          call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
-
-          ! Update solution at coarse level (n=1)
-          call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n))
-
-          ! ************************
-          ! Update the finer solutions by num_substeps steps each, using
-          !     boundary conditions from the coarser levels interpolated in time and space.
-          ! The call to update_level is a recursive call.
-          ! ************************
-          if (n .lt. nlevs) then
-
-             ! Set sum of fine fluxes to 0 before the first substep at the new level
-             call bndry_reg_setval(bndry_flx(n+1), 0.0d0)
-
-             do istep = 1, num_substeps
-                call update_level(n+1,mla,phi_old,phi_new,flux,bndry_flx, &
-                                  dx,dt,the_bc_tower,istep,num_substeps)
-             end do
-
-             if ( parallel_IOProcessor() ) &
-                print*,'   Refluxing level: ',n
- 
-             ! Copy from the data structure built on the fine layout to the "other"
-             !      data structure which puts the data where t
-             call bndry_reg_copy_to_other(bndry_flx(n+1))
-
-             ! Reflux 
-             pd = get_pd(mla%la(n)) 
-             call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n))
-
-             ! Average the level (n+1) phi down onto level n. This overwrites all
-             !     previous values of phi at level n under level (n+1) grids.
-             call ml_cc_restriction_c(phi_new(n),1,phi_new(n+1),1,mla%mba%rr(n,:),1)
-
-          end if  ! end n < nlevs
+          n = 1
+          istep = 1
+          ! note that update_level is recursive
+          call update_level(n,mla,phi_old,phi_new,bndry_flx,&
+               dx,dt,the_bc_tower,istep,num_substeps)
 
     else
 
@@ -116,6 +63,14 @@ contains
           ! no subcycling in time
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+          ! flux(i,n) has one component, zero ghost cells, and is nodal in direction i,
+          !    i.e. it lives on the i-edges.
+          do n = 1,nlevs
+             do i = 1, dm
+                call multifab_build_edge(flux(i,n),mla%la(n),1,0,i)
+             end do
+          end do
+          
           ! Copy phi_new from the previous time step into phi_old for this time step
           do n = 1, nlevs
              call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
@@ -125,19 +80,24 @@ contains
           call compute_flux(mla,phi_old,flux,dx,dt,the_bc_tower)
 
           ! update phi using forward Euler discretization
-          call update_phi(mla,phi_old,phi_new,flux,dx,the_bc_tower)
+          call update_phi(mla,phi_old,phi_new,flux,dx,dt,the_bc_tower)
+
+          do n = 1,nlevs
+             do i = 1, dm
+                call multifab_destroy(flux(i,n))
+             end do
+          end do
 
     end if
 
   end subroutine advance
 
-  recursive subroutine update_level(n,mla,phi_old,phi_new,flux,bndry_flx,&
+  recursive subroutine update_level(n,mla,phi_old,phi_new,bndry_flx,&
                                     dx,dt,the_bc_tower,step,num_substeps)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
-    type(multifab) , intent(inout) :: flux(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt(:)
@@ -145,11 +105,12 @@ contains
     integer        , intent(in   ) :: n,step
     integer        , intent(in   ) :: num_substeps
 
-    type(box)       :: pd
-    real(kind=dp_t) :: alpha
-    integer         :: istep
-    integer         :: ng_p
+    real(kind=dp_t) :: alpha, scale
+    integer         :: istep, i, dm, ng_p
+    ! Array of edge-based multifabs; one for each direction
+    type(multifab) :: flux(mla%dim)
 
+    dm = mla%dim
     ng_p = phi_new(n)%ng
 
     ! We only want one processor to write to screen
@@ -159,12 +120,21 @@ contains
     ! Copy phi_new from the previous time step into phi_old for this time step
     call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
 
-    ! First update boundary conditions
-    ! Fill level n ghost cells using interpolation from level n-1 data
-    ! Note that multifab_fill_boundary and multifab_physbc are called for
-    ! both levels n-1 and n
+    if (n .eq. 1) then 
 
-    if (step .eq. 1) then
+        ! Fill ghost cells for two adjacent grids at the same level
+        ! this includes periodic domain boundary ghost cells
+        call multifab_fill_boundary(phi_old(n))
+ 
+        ! Fill non-periodic domain boundary ghost cells
+        call multifab_physbc(phi_old(n),1,1,1,the_bc_tower%bc_tower_array(n))
+
+     else if (step .eq. 1) then
+        ! First update boundary conditions
+        ! Fill level n ghost cells using interpolation from level n-1 data
+        ! Note that multifab_fill_boundary and multifab_physbc are called for
+        ! both levels n-1 and n
+        ! The coarsest level
         call multifab_fill_ghost_cells(phi_old(n),phi_old(n-1),ng_p,&
                                        mla%mba%rr(n-1,:), &
                                        the_bc_tower%bc_tower_array(n-1), &
@@ -191,33 +161,48 @@ contains
                                          1,1,1)
     end if
 
+    do i = 1, dm
+       call multifab_build_edge(flux(i),mla%la(n),1,0,i)
+    end do
+
     ! Compute fluxes at level n.
-    call compute_flux_single_level(mla,phi_old(n),flux(n,:),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+    call compute_flux_single_level(mla,phi_old(n),flux,dx(n),dt(n),the_bc_tower%bc_tower_array(n))
 
     ! Update solution at level n.
-    call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n))
+    call update_phi_single_level(mla,phi_old(n),phi_new(n),flux,dx(n),dt(n))
 
-    ! Copy fine fluxes from cell boundaries into boundary registers for use in refluxing.
-    call bndry_reg_add_fine_flx(bndry_flx(n),flux(n,:),mla%mba%rr(n-1,:))
+    if (n .gt. 1) then
+       ! Copy fine fluxes from cell boundaries into boundary registers for use in refluxing.
+       scale = dt(n)*dx(n)**(dm-1) ! dt*area
+       call flux_reg_fine_add(bndry_flx(n),flux,scale)
+    end if
 
-    ! Now recursively update the next finer level
-    if (n .lt. mla%nlevel) then
+    if (n .eq. mla%nlevel) then ! finest level
 
-       ! Set sum of fine fluxes to 0 before the first substep at the new level
-       call bndry_reg_setval(bndry_flx(n+1), 0.0d0)
-
-       do istep = 1, num_substeps
-          call update_level(n+1,mla,phi_old,phi_new,flux,bndry_flx,&
-                            dx,dt,the_bc_tower,istep,num_substeps)
+       do i = 1, dm
+          call multifab_destroy(flux(i))
        end do
 
-       ! Copy from the data structure built on the fine layout to the "other"
-       !      data structure which puts the data where t
-       call bndry_reg_copy_to_other(bndry_flx(n+1))
+    else  ! Now recursively update the next finer level
 
-       ! Reflux 
-       pd = get_pd(mla%la(n)) 
-       call reflux(phi_new(n),flux(n,:),bndry_flx(n+1),pd,dx(n))
+       scale = -dt(n)*dx(n)**(dm-1) ! -dt*area
+       call flux_reg_crse_init(bndry_flx(n+1), flux, scale)
+
+       do i = 1, dm
+          call multifab_destroy(flux(i))
+       end do
+
+       do istep = 1, num_substeps
+          call update_level(n+1,mla,phi_old,phi_new,bndry_flx,&
+               dx,dt,the_bc_tower,istep,num_substeps)
+       end do
+
+       if ( parallel_IOProcessor() ) &
+            print*,'   Refluxing level: ',n
+
+       ! note that bndry_flx contains sum_{fine}{flux*dt*area} - {flux*dt*area}_crse 
+       scale = 1.d0/dx(n)**dm ! 1/volume 
+       call reflux(phi_new(n),bndry_flx(n+1),scale)
 
        ! Average the level (n+1) phi down onto level n. This overwrites all
        !     previous values of phi at level n under level (n+1) grids.
