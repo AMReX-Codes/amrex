@@ -2542,6 +2542,7 @@ contains
     lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
+    if ( lng < 1          ) return
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
