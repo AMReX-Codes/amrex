@@ -2542,17 +2542,10 @@ contains
     lng     = mf%ng;   if ( present(ng)     ) lng     = ng
     if ( lng > mf%ng      ) call bl_error("MULTIFAB_FILL_BOUNDARY_C: ng too large", lng)
     if ( mf%nc < (c+nc-1) ) call bl_error('MULTIFAB_FILL_BOUNDARY_C: nc too large', nc)
-    if ( lng < 1          ) return
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
-
+    if ( lng < 1          ) return
     call build(bpt, "mf_fill_boundary_c")
     call mf_fb_fancy_double(mf, c, nc, lng, lcross, idim)
     call destroy(bpt)
@@ -2581,13 +2574,7 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
-
+    if ( lng < 1          ) return
     call build(bpt, "mf_fill_boundary_nowait_c")
     call mf_fb_fancy_double_nowait(mf, fb_data, c, nc, lng, lcross, idim)
     call destroy(bpt)
@@ -2675,13 +2662,7 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
-
+    if ( lng < 1          ) return
     call build(bpt, "mf_fill_boundary_test_c")
     call mf_fb_fancy_double_test(mf, fb_data, c, nc, lng, lcross, idim)
     call destroy(bpt)
