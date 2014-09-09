@@ -26,6 +26,8 @@ contains
     real(kind=dp_t)          :: time,dx(get_dim(s))
     real(kind=dp_t)          :: prob_lo(get_dim(s)),prob_hi(get_dim(s))
     real(kind=dp_t), pointer :: sp(:,:,:,:)
+
+    if (nghost(s) == 0) return
     
     ! set optional arguments
     time    = ZERO
