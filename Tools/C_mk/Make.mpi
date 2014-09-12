@@ -559,9 +559,6 @@ ifeq ($(MACHINE), Darwin)
         #
         CXX := $(MPIHOME)/bin/mpic++
         CC  := $(MPIHOME)/bin/mpicc
-        FC  := $(MPIHOME)/bin/mpif90
-        fC  := $(MPIHOME)/bin/mpif90
-        F90 := $(MPIHOME)/bin/mpif90
 
         MPI_HOME=$(MPIHOME)
 	LIBRARIES += -lmpi_f77
