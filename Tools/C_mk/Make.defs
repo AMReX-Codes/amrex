@@ -214,12 +214,7 @@ endif
 ifndef USE_MPI
   USE_MPI = FALSE
 endif
-#
-# Set some reasonable defaults.
-#
-CXX = CC
-FC  = f77
-CC  = cc
+
 #
 # Defaults for BoxLib style programs.
 #
@@ -254,12 +249,12 @@ endif
 
 ifdef USE_GCC
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 
+    CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++
-    CC	       := gcc
+    CXX	       ?= g++
+    CC	       ?= gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -287,11 +282,21 @@ ifdef USE_GCC
     #
     COPTF += $(CXXOPTF) -std=c99
     CDEBF += $(CXXDEBF) -std=c99
+
+else
+
+    #
+    # Set some reasonable defaults.
+    #
+    CXX = CC
+    FC  = f77
+    CC  = cc
+
 endif
 
 ifeq ($(findstring rose, $(COMP)), rose)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 
+    CXXOPTF    += -g -O3
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := $(ROSECOMP)
