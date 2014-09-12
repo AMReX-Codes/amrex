@@ -8,6 +8,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
 from distutils.command.build import build
+from distutils.spawn import find_executable
 
 from subprocess import call
 
@@ -23,8 +24,12 @@ class build_boxlib(build):
         def compile():
             cc = os.environ.get('CC', 'mpicc')
             cxx = os.environ.get('CXX', 'mpic++')
+            mpihome = os.environ.get('MPIHOME', None)
+            if mpihome is None:
+                mpicc   = find_executable('mpicc')
+                mpihome = os.path.dirname(os.path.dirname(mpicc))
             print '*' * 80
-            call([ 'make', 'CC=' + cc, 'CXX=' + cxx, 'OUT=' + self.build_temp ])
+            call([ 'make', 'MPI_HOME=' + mpihome, 'CC=' + cc, 'CXX=' + cxx, 'OUT=' + self.build_temp ])
             print '*' * 80
 
         self.execute(compile, [], 'compiling boxlib')

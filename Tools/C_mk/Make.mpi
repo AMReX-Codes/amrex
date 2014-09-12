@@ -563,7 +563,9 @@ ifeq ($(MACHINE), Darwin)
         MPI_HOME=$(MPIHOME)
 	LIBRARIES += -lmpi_f77
      else
-        $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+        ifndef MPI_HOME
+          $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+        endif
      endif
 
   endif
