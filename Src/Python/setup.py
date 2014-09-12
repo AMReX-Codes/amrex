@@ -21,8 +21,10 @@ class build_boxlib(build):
         print 'running build_boxlib'
         self.mkpath(self.build_temp)
         def compile():
+            cc = os.environ.get('CC', 'mpicc')
+            cxx = os.environ.get('CXX', 'mpic++')
             print '*' * 80
-            call([ 'make', 'OUT=' + self.build_temp ])
+            call([ 'make', 'CC=' + cc, 'CXX=' + cxx, 'OUT=' + self.build_temp ])
             print '*' * 80
 
         self.execute(compile, [], 'compiling boxlib')
