@@ -101,7 +101,7 @@ program fcompare
         call get_command_argument(farg, value = fname)
         read(fname, *) norm
 
-     case ('--diffvarfile')
+     case ('--diffvar')
         farg = farg + 1
         call get_command_argument(farg, value = diffvar)
         plot_names(1) = trim(diffvar)
