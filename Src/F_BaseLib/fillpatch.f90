@@ -9,7 +9,7 @@ contains
 
   subroutine fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
                        bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
-                       fill_crse_input, stencil_width_input, fourth_order_input)
+                       fill_crse_input, stencil_width_input, fourth_order_input, fill_crse_physbc_input)
 
     use bc_module
     use layout_module
@@ -29,22 +29,20 @@ contains
     logical       , intent(in   ), optional :: fill_crse_input
     integer       , intent(in   ), optional :: stencil_width_input
     logical       , intent(in   ), optional :: fourth_order_input
-
+    logical       , intent(in   ), optional :: fill_crse_physbc_input
 
     integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
     integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
     integer         :: n_extra_valid_regions, np
-    type(layout)    :: la, fla, tmpla, fine_la
-    type(multifab)  :: cfine, tmpcrse, tmpfine
+    type(layout)    :: cfine_la, tmpfine_la, fine_la, crse_la
+    type(multifab)  :: cfine, tmpfine
     type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
     type(list_box)  :: bl, pbl, pieces, leftover, extra
-    type(boxarray)  :: ba, tmpba, ba_domain
+    type(boxarray)  :: ba
     real(kind=dp_t) :: dx(3)
     logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
-    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
-    logical         :: done
+    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order, fill_crse_physbc
     integer         :: stencil_width
-    integer         :: grow_counter
 
     type(list_box_node),   pointer     :: bln
     type(box_intersector), pointer     :: bi(:)
@@ -53,6 +51,8 @@ contains
     integer,               allocatable :: procmap(:)
     real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
 
+    logical :: touch
+    type(box) :: gcdom
     type(multifab), target  :: gcrse
     type(multifab), pointer :: pcrse
 
@@ -73,6 +73,7 @@ contains
     have_periodic_gcells = .false.
     no_final_physbc      = .false.
     fill_crse            = .true.
+    fill_crse_physbc     = .true.
     stencil_width        = 1
     fourth_order         = .false.
 
@@ -82,25 +83,22 @@ contains
     if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
     if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
     if ( present(fill_crse_input)       ) fill_crse       = fill_crse_input
+    if ( present(fill_crse_physbc_input)) fill_crse_physbc= fill_crse_physbc_input
 
     if (fourth_order .and. (stencil_width < 2)) &
        call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
 
-    !
-    ! Force crse to have good data in ghost cells (only the ng that are needed 
-    ! in case has more than ng).
-    !
-    if ( fill_crse ) call fill_boundary(crse, icomp_crse, nc, ng=nghost(crse))
+    fine_la = get_layout(fine)
+    crse_la = get_layout(crse)
+    fdomain = get_pd(fine_la)
+    cdomain = get_pd(crse_la)
 
-    call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
     !
     ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
     ! We don't try to directly fill anything at fine level outside of the domain.
     !
-    fine_la = get_layout(fine)
-    fdomain = get_pd(fine_la)
 
-    do i = 1, nboxes(fine%la)
+    do i = 1, nboxes(fine_la)
        !
        ! We don't use get_pbox here as we only want to fill ng ghost cells of 
        ! fine & it may have more ghost cells than that.
@@ -111,7 +109,7 @@ contains
        !       multifabs consistent with one another and because it means we
        !       don't have to manage changes to the processor map.
        !
-       bx = intersection(grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng),fdomain)
+       bx = intersection(grow(box_nodalize(get_box(fine_la,i),fine%nodal),ng),fdomain)
        call push_back(bl, bx)
     end do
 
@@ -123,8 +121,8 @@ contains
        !
        nodalflags = nodal_flags(fine)
 
-       do i = 1, nboxes(fine%la)
-          bx = box_nodalize(get_box(fine%la,i),fine%nodal)
+       do i = 1, nboxes(fine_la)
+          bx = box_nodalize(get_box(fine_la,i),fine%nodal)
           call box_periodic_shift(fdomain, bx, nodalflags, pmask, ng, shft, cnt, bxs)
           if ( cnt > 0 ) have_periodic_gcells = .true.
           do j = 1, cnt
@@ -157,9 +155,9 @@ contains
     !
     ! Force first nboxes(fine) in 'tmpfine' to have the same distribution as 'fine'.
     !
-    allocate(procmap(1:nboxes(fine%la)+n_extra_valid_regions))
+    allocate(procmap(1:nboxes(fine_la)+n_extra_valid_regions))
 
-    procmap(1:nboxes(fine%la)) = get_proc(fine_la)
+    procmap(1:nboxes(fine_la)) = get_proc(fine_la)
 
     if ( n_extra_valid_regions > 0 ) then
        np = parallel_nprocs()
@@ -167,13 +165,13 @@ contains
           !
           ! Distribute extra boxes round-robin.
           !
-          procmap(nboxes(fine%la)+i) = mod(i,np)
+          procmap(nboxes(fine_la)+i) = mod(i,np)
        end do
        !
        ! tmpfine looks like fine with extra boxes added.
        !
-       do i = 1, nboxes(fine%la)
-          call push_back(pbl, box_nodalize(get_box(fine%la,i),fine%nodal))
+       do i = 1, nboxes(fine_la)
+          call push_back(pbl, box_nodalize(get_box(fine_la,i),fine%nodal))
        end do
        bln => begin(extra)
        do while (associated(bln))
@@ -182,9 +180,9 @@ contains
        end do
        call build(ba, pbl, sort = .false.)
        call destroy(pbl)
-       call build(fla, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
+       call build(tmpfine_la, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
        call destroy(ba)
-       call build(tmpfine, fla, nc = nc, ng = ng)
+       call build(tmpfine, tmpfine_la, nc = nc, ng = ng)
        !
        ! Now grow the boxes in extra in preparation for building cfine.
        !
@@ -202,106 +200,61 @@ contains
     ! Grow by stencil_width for stencil in interpolation routine. 
     ! Don't grow empty boxes!
     call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
-    call build(la, ba, pd = get_pd(get_layout(crse)), pmask = pmask, explicit_mapping = procmap)
+    call build(cfine_la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
     call destroy(ba)
-    call build(cfine, la, nc = nc, ng = 0)
+    call build(cfine, cfine_la, nc = nc, ng = 0)
  
-    ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
-    ! Empty boxes aren't setval()'d
-    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
     !
     ! Fill cfine from crse.
-    ! Got to do it in stages as parallel copy only goes from valid -> valid.
+    !
 
     ! First make sure that cfine will be completely filled by the crse data.
+    ! This subroutine assumes proper nesting.  However, crse may not have enough 
+    ! ghost cells if cfine touchs physical boundaries 
+    touch = .false.
+    gcdom = grow(cdomain, nghost(crse))
+    do i = 1, nboxes(cfine_la)
+       bx = get_box(cfine_la,i)
+       if ( (.not.empty(bx)) .and. (.not.contains(gcdom,bx)) ) then
+          touch = .true. 
+          exit
+       end if
+    end do
 
-    call boxarray_build_copy(ba,get_boxarray(crse))
-    call boxarray_grow(ba,nghost(crse))
+    ! Force crse to have good data in ghost cells
+    if ( fill_crse ) call fill_boundary(crse, icomp_crse, nc, ng=nghost(crse))
+    if (fill_crse_physbc) call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
 
-    ! Define this outside the test because we will test on it later.
-    grow_counter = nghost(crse)
-
-    ! In this case the original crse multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
-
-       ! Sanity check
-       cdomain = get_pd(get_layout(crse))
-       cdomain = grow(cdomain,nghost(crse))
-       call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
-          call bl_error('Sanity check failed in fillpatch')
-       call destroy(ba_domain)
-
-       ! We can just use the crse multifab that was passed in.
-       pcrse => crse
- 
-    ! Need to build a larger crse array
-    else
-
-       cdomain = get_pd(get_layout(crse))
-       cdomain = grow(cdomain,nghost(crse))
-
-       done = .false.
-
-       do while (.not. done)
-          grow_counter = grow_counter + 1
-          cdomain = grow(cdomain,1)
-          call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
-          call destroy(ba_domain)
-       end do
-
-       call build(gcrse, get_layout(crse), nc = ncomp(crse), ng = grow_counter)
+    if (touch) then
+       call build(gcrse, crse_la, nc = ncomp(crse), ng = stencil_width)
        call copy(gcrse, crse)
-       call fill_boundary(gcrse, icomp_crse, nc)
+       call fill_boundary(gcrse, icomp_crse, nc, ng=nghost(gcrse))
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
        pcrse => gcrse
-       
+    else
+       pcrse => crse
     end if
 
-    call destroy(ba)
+    ! Set all of cfine to huge so that we can make sure it gets completely filled below.
+    ! Empty boxes aren't setval()'d
+    call setval(cfine, Huge(ONE), allow_empty=.true.)
 
-    do i = 1, nboxes(pcrse%la)
-       call push_back(bl, grow(box_nodalize(get_box(pcrse%la,i),pcrse%nodal),pcrse%ng))
-    end do
+    call multifab_copy_c(cfine, 1, pcrse, icomp_crse, nc, ngsrc=nghost(pcrse))
 
-    call build(tmpba, bl, sort = .false.)
-    call destroy(bl)
-    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse)))
-    call destroy(tmpba)
-    call build(tmpcrse, tmpla, nc = nc, ng = 0)
-
-    !$OMP PARALLEL DO PRIVATE(i,src,dst)
-    do i = 1, nfabs(pcrse)
-       src => dataptr(pcrse,   i, icomp_crse, nc)
-       dst => dataptr(tmpcrse, i, 1         , nc)
-       ! dst = src failed using Intel compiler 9.1.043
-       call cpy_d(dst,src)
-    end do
-    !$OMP END PARALLEL DO
-
-    if (grow_counter .gt. nghost(crse)) call destroy(gcrse)
-
-    call copy(cfine, 1, tmpcrse, 1, nc)
-
-    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
-          call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
-       else
-          call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
-       end if
+    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+       call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
+            ' (likely because grids are not properly nested)')
     end if
 
-    call destroy(tmpcrse)
-    call destroy(tmpla)
-
-    cdomain = get_pd(get_layout(crse))
+    nullify(pcrse)
+    if (multifab_built_q(gcrse)) call destroy(gcrse)
 
     !$OMP PARALLEL DO PRIVATE(i,j,cbx,fine_box,fbx,cslope_lo,cslope_hi,local_bc,lo_c,hi_c,lo_f,hi_f) &
     !$OMP PRIVATE(fvcx,fvcy,fvcz,cvcx,cvcy,cvcz,src,fp,dst)
     do i = 1, nfabs(cfine)
 
        cbx = get_ibox(cfine,i)
+       if (empty(cbx)) cycle
 
        if ( n_extra_valid_regions > 0 ) then
           fine_box = get_ibox(tmpfine,i)
@@ -346,24 +299,24 @@ contains
        hi_f(1:dm) = upb(fbx)
 
        allocate(fvcx(lo_f(1):hi_f(1)+1))
-       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
+       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = j
        if ( dm > 1 ) then
           allocate(fvcy(lo_f(2):hi_f(2)+1))
-          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
+          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = j 
           if ( dm > 2 ) then
              allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = dble(j)
+             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = j
           end if
        end if
 
        allocate(cvcx(lo_c(1):hi_c(1)+1))
-       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = dble(j) * TWO
+       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = j * TWO
        if ( dm > 1 ) then
           allocate(cvcy(lo_c(2):hi_c(2)+1))
-          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = dble(j) * TWO
+          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = j * TWO
           if ( dm > 2 ) then
              allocate(cvcz(lo_c(3):hi_c(3)+1))
-             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = dble(j) * TWO
+             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = j * TWO
           end if
        end if
 
@@ -440,11 +393,11 @@ contains
     if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, bc_fine)
 
     call destroy(cfine)
-    call destroy(la)
+    call destroy(cfine_la)
 
     if ( n_extra_valid_regions > 0 ) then
        call destroy(tmpfine)
-       call destroy(fla) 
+       call destroy(tmpfine_la) 
     end if
 
     call destroy(bpt)
@@ -463,7 +416,6 @@ contains
 
     use bc_module
     use layout_module
-    use interp_module
     use bl_constants_module
     use multifab_physbc_module
 
@@ -482,450 +434,36 @@ contains
     integer       , intent(in   ), optional :: stencil_width_input
     logical       , intent(in   ), optional :: fourth_order_input
 
-
-    integer         :: i, j, dm, local_bc(multifab_get_dim(fine),2,nc), shft(3**multifab_get_dim(fine),multifab_get_dim(fine)), cnt
-    integer         :: lo_f(3), lo_c(3), hi_f(3), hi_c(3), cslope_lo(3), cslope_hi(3)
-    integer         :: n_extra_valid_regions, np
-    type(layout)    :: la, fla, tmpla, fine_la
-    type(multifab)  :: cfine, tmpcrse, tmpfine
-    type(box)       :: bx, fbx, cbx, fine_box, fdomain, cdomain, bxs(3**multifab_get_dim(fine))
-    type(list_box)  :: bl, pbl, pieces, leftover, extra
-    type(boxarray)  :: ba, tmpba, ba_domain
-    real(kind=dp_t) :: dx(3)
-    logical         :: lim_slope, lin_limit, pmask(multifab_get_dim(fine)), have_periodic_gcells
-    logical         :: no_final_physbc, fill_crse, nodalflags(multifab_get_dim(fine)), fourth_order
-    logical         :: done
-    integer         :: stencil_width
-    integer         :: grow_counter
-    integer         :: ng_crse
-
-    type(list_box_node),   pointer     :: bln
-    type(box_intersector), pointer     :: bi(:)
-    real(kind=dp_t),       allocatable :: fvcx(:), fvcy(:), fvcz(:)
-    real(kind=dp_t),       allocatable :: cvcx(:), cvcy(:), cvcz(:)
-    integer,               allocatable :: procmap(:)
-    real(kind=dp_t),       pointer     :: src_old(:,:,:,:), src_new(:,:,:,:)
-    real(kind=dp_t),       pointer     :: src(:,:,:,:), dst(:,:,:,:), fp(:,:,:,:)
-
-    type(multifab), target  :: gcrse_old, gcrse_new
-    type(multifab), pointer :: pcrse_old, pcrse_new
-
-    real(kind=dp_t) :: omalpha
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "fillpatch_t")
-
-    ng_crse = nghost(crse_old)
-    if (nghost(crse_new) .ne. ng_crse) &
-       call bl_error('fillpatch: nghost(crse_old) does not equal nghost(crse_new)')
-
-    if ( nghost(fine) < ng ) call bl_error('fillpatch: fine does NOT have enough ghost cells')
-    if ( ng_crse      < ng ) call bl_error('fillpatch: crse_old does NOT have enough ghost cells')
-
-    if ( .not. cell_centered_q(fine)     ) call bl_error('fillpatch: fine is NOT cell centered')
-    if ( .not. cell_centered_q(crse_old) ) call bl_error('fillpatch: crse_old is NOT cell centered')
-    if ( .not. cell_centered_q(crse_new) ) call bl_error('fillpatch: crse_new is NOT cell centered')
-
-    dx                   = ONE
-    dm                   = get_dim(crse_old)
-    lim_slope            = .true.
-    lin_limit            = .false.
-    have_periodic_gcells = .false.
-    no_final_physbc      = .false.
-    fill_crse            = .true.
-    stencil_width        = 1
-    fourth_order         = .false.
-
-    if ( present(stencil_width_input)   ) stencil_width   = stencil_width_input
-    if ( present(fourth_order_input)    ) fourth_order    = fourth_order_input
-    if ( present(lim_slope_input)       ) lim_slope       = lim_slope_input
-    if ( present(lin_limit_input)       ) lin_limit       = lin_limit_input
-    if ( present(no_final_physbc_input) ) no_final_physbc = no_final_physbc_input
-    if ( present(fill_crse_input)       ) fill_crse       = fill_crse_input
-
-    if (fourth_order .and. (stencil_width < 2)) &
-       call bl_error('fillpatch: need at least stencil_width = 2 for fourth order interp')
-
-    !
-    ! Force crse to have good data in ghost cells (only the ng that are needed 
-    ! in case has more than ng).
-    !
-    if ( fill_crse ) then
-        call fill_boundary(crse_old, icomp_crse, nc, ng=ng_crse)
-        call fill_boundary(crse_new, icomp_crse, nc, ng=ng_crse)
+    logical :: fill_crse
+    type(multifab) :: crse
+    
+    if (crse_new%la /= crse_old%la) then
+       call bl_error("fillpatch_t: crse_new and crse_old have different layout")
     end if
 
-    call multifab_physbc(crse_old,icomp_crse,bcomp,nc,bc_crse)
+    if (crse_new%ng /= crse_old%ng) then
+       call bl_error("fillpatch_t: crse_new and crse_old have different number of ghost cells")
+    end if
+
+    fill_crse = .true.
+    if ( present(fill_crse_input) ) fill_crse = fill_crse_input
+
+    if (fill_crse) then
+       call fill_boundary(crse_new, icomp_crse, nc, ng=nghost(crse_new))
+       call fill_boundary(crse_old, icomp_crse, nc, ng=nghost(crse_old))
+    end if
+
     call multifab_physbc(crse_new,icomp_crse,bcomp,nc,bc_crse)
-    !
-    ! Build coarsened version of fine such that the fabs @ i are owned by the same CPUs.
-    ! We don't try to directly fill anything at fine level outside of the domain.
-    !
-    fine_la = get_layout(fine)
-    fdomain = get_pd(fine_la)
+    call multifab_physbc(crse_old,icomp_crse,bcomp,nc,bc_crse)
 
-    do i = 1, nboxes(fine%la)
-       !
-       ! We don't use get_pbox here as we only want to fill ng ghost cells of 
-       ! fine & it may have more ghost cells than that.
-       !
-       ! Note: we let bl contain empty boxes so that we keep the same number of boxes
-       !       in bl as in fine, but in the interpolation later we cycle if it's empty.
-       !       We do this to keep the mapping of boxes between the various
-       !       multifabs consistent with one another and because it means we
-       !       don't have to manage changes to the processor map.
-       !
-       bx = intersection(grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng),fdomain)
-       call push_back(bl, bx)
-    end do
+    call build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng, nodal=crse_old%nodal)
+    call saxpy(crse, alpha, crse_old, (ONE-alpha), crse_new, all=.true.)
 
-    pmask(1:dm) = get_pmask(fine_la)
+    call fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
+         bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
+         .false., stencil_width_input, fourth_order_input, fill_crse_physbc_input=.false.)
 
-    if ( any(pmask) ) then
-       !
-       ! Collect additional boxes that contribute to periodically filling fine ghost cells.
-       !
-       nodalflags = nodal_flags(fine)
-
-       do i = 1, nboxes(fine%la)
-          bx = box_nodalize(get_box(fine%la,i),fine%nodal)
-          call box_periodic_shift(fdomain, bx, nodalflags, pmask, ng, shft, cnt, bxs)
-          if ( cnt > 0 ) have_periodic_gcells = .true.
-          do j = 1, cnt
-             call push_back(pbl, bxs(j))
-          end do
-          bln => begin(pbl)
-          do while (associated(bln))
-             bx =  value(bln)
-             bi => layout_get_box_intersector(fine_la, bx)
-             do j = 1, size(bi)
-                call push_back(pieces, bi(j)%bx)
-             end do
-             deallocate(bi)
-             leftover = boxlist_boxlist_diff(bx, pieces)
-             call splice(extra, leftover)
-             call destroy(pieces)
-             bln => next(bln)
-          end do
-          call destroy(pbl)
-       end do
-    end if
-    !
-    ! n_extra_valid_regions > 0 implies:
-    !
-    !     Must add additional valid regions to 'fine' to enable the setting
-    !     of periodic ghost cells via fill_boundary().  We do this by using
-    !     an intermediate multifab 'tmpfine'.
-    !
-    n_extra_valid_regions = size(extra)
-    !
-    ! Force first nboxes(fine) in 'tmpfine' to have the same distribution as 'fine'.
-    !
-    allocate(procmap(1:nboxes(fine%la)+n_extra_valid_regions))
-
-    procmap(1:nboxes(fine%la)) = get_proc(fine_la)
-
-    if ( n_extra_valid_regions > 0 ) then
-       np = parallel_nprocs()
-       do i = 1, n_extra_valid_regions
-          !
-          ! Distribute extra boxes round-robin.
-          !
-          procmap(nboxes(fine%la)+i) = mod(i,np)
-       end do
-       !
-       ! tmpfine looks like fine with extra boxes added.
-       !
-       do i = 1, nboxes(fine%la)
-          call push_back(pbl, box_nodalize(get_box(fine%la,i),fine%nodal))
-       end do
-       bln => begin(extra)
-       do while (associated(bln))
-          call push_back(pbl, value(bln))
-          bln => next(bln)
-       end do
-       call build(ba, pbl, sort = .false.)
-       call destroy(pbl)
-       call build(fla, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
-       call destroy(ba)
-       call build(tmpfine, fla, nc = nc, ng = ng)
-       !
-       ! Now grow the boxes in extra in preparation for building cfine.
-       !
-       bln => begin(extra)
-       do while (associated(bln))
-          call set(bln, intersection(grow(value(bln),ng),fdomain))
-          bln => next(bln)
-       end do
-    end if
-
-    call splice(bl, extra)
-    call build(ba, bl, sort = .false.)
-    call destroy(bl)
-    call boxarray_coarsen(ba, ir)
-    ! Grow by stencil_width for stencil in interpolation routine. 
-    ! Don't grow empty boxes!
-    call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
-    call build(la, ba, pd = get_pd(get_layout(crse_old)), pmask = pmask, explicit_mapping = procmap)
-    call destroy(ba)
-    call build(cfine, la, nc = nc, ng = 0)
- 
-    ! Set all of cfine to 1d200 so that we can make sure it gets completely filled below.
-    ! Empty boxes aren't setval()'d
-    call setval(cfine, 1.e200_dp_t, allow_empty=.true.)
-    !
-    ! Fill cfine from crse.
-    ! Got to do it in stages as parallel copy only goes from valid -> valid.
-
-    ! First make sure that cfine will be completely filled by the crse data.
-
-    call boxarray_build_copy(ba,get_boxarray(crse_old))
-    call boxarray_grow(ba,ng_crse)
-
-    ! Define this outside the test because we will test on it later.
-    grow_counter = ng_crse
-
-    ! In this case the original crse_old multifab is big enough to cover cfine
-    if (contains(ba,get_boxarray(cfine),allow_empty=.true.)) then
-
-       ! Sanity check
-       cdomain = get_pd(get_layout(crse_old))
-       cdomain = grow(cdomain,ng_crse)
-       call boxarray_build_bx(ba_domain,cdomain)
-       if (.not. contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) &
-          call bl_error('Sanity check failed in fillpatch')
-       call destroy(ba_domain)
-
-       ! We can just use the crse multifab that was passed in.
-       pcrse_old => crse_old
-       pcrse_new => crse_new
- 
-    ! Need to build a larger crse array
-    else
-
-       cdomain = get_pd(get_layout(crse_old))
-       cdomain = grow(cdomain,ng_crse)
-
-       done = .false.
-
-       do while (.not. done)
-          grow_counter = grow_counter + 1
-          cdomain = grow(cdomain,1)
-          call boxarray_build_bx(ba_domain,cdomain)
-          if (contains(ba_domain,get_boxarray(cfine),allow_empty=.true.)) done = .true.
-          call destroy(ba_domain)
-       end do
-
-       call build(gcrse_old, get_layout(crse_old), nc = ncomp(crse_old), ng = grow_counter)
-       call copy(gcrse_old, crse_old)
-       call fill_boundary(gcrse_old, icomp_crse, nc)
-       call multifab_physbc(gcrse_old,icomp_crse,bcomp,nc,bc_crse)
-       pcrse_old => gcrse_old
-
-       call build(gcrse_new, get_layout(crse_old), nc = ncomp(crse_old), ng = grow_counter)
-       call copy(gcrse_new, crse_new)
-       call fill_boundary(gcrse_new, icomp_crse, nc)
-       call multifab_physbc(gcrse_new,icomp_crse,bcomp,nc,bc_crse)
-       pcrse_new => gcrse_new
-       
-    end if
-
-    call destroy(ba)
-
-    do i = 1, nboxes(pcrse_old%la)
-       call push_back(bl, grow(box_nodalize(get_box(pcrse_old%la,i),pcrse_old%nodal),pcrse_old%ng))
-    end do
-
-    call build(tmpba, bl, sort = .false.)
-    call destroy(bl)
-    call build(tmpla, tmpba, boxarray_bbox(tmpba), explicit_mapping = get_proc(get_layout(pcrse_old)))
-    call destroy(tmpba)
-    call build(tmpcrse, tmpla, nc = nc, ng = 0)
-
-    ! tmpcrse = alpha * pcrse_old + (1.0-alpha) * pcrse_new
-    omalpha = 1.d0 - alpha 
-
-    !$OMP PARALLEL DO PRIVATE(i)
-    do i = 1, nfabs(pcrse_old)
-       src_old => dataptr(pcrse_old,i,icomp_crse, nc)
-       src_new => dataptr(pcrse_new,i,icomp_crse, nc)
-       dst     => dataptr(tmpcrse, i, 1         , nc)
-       dst = alpha * src_old + omalpha * src_new 
-    end do
-    !$OMP END PARALLEL DO
-
-    if (grow_counter .gt. ng_crse) then
-        call destroy(gcrse_old)
-        call destroy(gcrse_new)
-    end if
-
-    call copy(cfine, 1, tmpcrse, 1, nc)
-
-    if (multifab_max(cfine, allow_empty=.true.) .ge. 0.99d200) then
-       if (multifab_max(tmpcrse, allow_empty=.true.) .ge. 0.99d200) then
-          call bl_error('fillpatch: tmpcrse greater than 1e200 before trying to fill cfine')
-       else
-          call bl_error('fillpatch: cfine was not completely filled by tmpcrse')
-       end if
-    end if
-
-    call destroy(tmpcrse)
-    call destroy(tmpla)
-
-    cdomain = get_pd(get_layout(crse_old))
-
-    !$OMP PARALLEL DO PRIVATE(i,j,cbx,fine_box,fbx,cslope_lo,cslope_hi,local_bc,lo_c,hi_c,lo_f,hi_f) &
-    !$OMP PRIVATE(fvcx,fvcy,fvcz,cvcx,cvcy,cvcz,src,fp,dst)
-    do i = 1, nfabs(cfine)
-
-       cbx = get_ibox(cfine,i)
-
-       if ( n_extra_valid_regions > 0 ) then
-          fine_box = get_ibox(tmpfine,i)
-       else
-          fine_box = get_ibox(fine,   i)
-       end if
-
-       fbx = intersection(grow(fine_box,ng),fdomain)
-       if (empty(fbx)) cycle
-
-       cslope_lo(1:dm) = lwb(grow(cbx,-stencil_width))
-       cslope_hi(1:dm) = upb(grow(cbx,-stencil_width))
-
-       local_bc(:,:,1:nc) = INTERIOR
-
-       if ( cslope_lo(1) == cdomain%lo(1) ) then
-          local_bc(1,1,1:nc) = bc_crse%adv_bc_level_array(0,1,1,bcomp:bcomp+nc-1)
-       end if
-       if ( cslope_hi(1) == cdomain%hi(1) ) then
-          local_bc(1,2,1:nc) = bc_crse%adv_bc_level_array(0,1,2,bcomp:bcomp+nc-1)
-       end if
-       if ( dm > 1 ) then
-          if ( cslope_lo(2) == cdomain%lo(2) ) then
-             local_bc(2,1,1:nc) = bc_crse%adv_bc_level_array(0,2,1,bcomp:bcomp+nc-1)
-          end if
-          if ( cslope_hi(2) == cdomain%hi(2) ) then
-             local_bc(2,2,1:nc) = bc_crse%adv_bc_level_array(0,2,2,bcomp:bcomp+nc-1)
-          end if
-       end if
-       if ( dm > 2 ) then
-          if ( cslope_lo(dm) == cdomain%lo(dm) ) then
-             local_bc(dm,1,1:nc) = bc_crse%adv_bc_level_array(0,dm,1,bcomp:bcomp+nc-1)
-          end if
-          if ( cslope_hi(dm) == cdomain%hi(dm) ) then
-             local_bc(dm,2,1:nc) = bc_crse%adv_bc_level_array(0,dm,2,bcomp:bcomp+nc-1)
-          end if
-       end if
-
-       lo_c(1:dm) = lwb(cbx)
-       hi_c(1:dm) = upb(cbx)
-       lo_f(1:dm) = lwb(fbx)
-       hi_f(1:dm) = upb(fbx)
-
-       allocate(fvcx(lo_f(1):hi_f(1)+1))
-       forall (j = lo_f(1):hi_f(1)+1) fvcx(j) = dble(j)
-       if ( dm > 1 ) then
-          allocate(fvcy(lo_f(2):hi_f(2)+1))
-          forall (j = lo_f(2):hi_f(2)+1) fvcy(j) = dble(j) 
-          if ( dm > 2 ) then
-             allocate(fvcz(lo_f(3):hi_f(3)+1))
-             forall (j = lo_f(3):hi_f(3)+1) fvcz(j) = dble(j)
-          end if
-       end if
-
-       allocate(cvcx(lo_c(1):hi_c(1)+1))
-       forall (j = lo_c(1):hi_c(1)+1) cvcx(j) = dble(j) * TWO
-       if ( dm > 1 ) then
-          allocate(cvcy(lo_c(2):hi_c(2)+1))
-          forall (j = lo_c(2):hi_c(2)+1) cvcy(j) = dble(j) * TWO
-          if ( dm > 2 ) then
-             allocate(cvcz(lo_c(3):hi_c(3)+1))
-             forall (j = lo_c(3):hi_c(3)+1) cvcz(j) = dble(j) * TWO
-          end if
-       end if
-
-       src => dataptr(cfine, i)
-
-       select case (dm)
-       case (1)
-          allocate(fp(lo_f(1):hi_f(1),1:1,1:1,1:nc))
-          if (fourth_order) then
-             call bl_error('fillpatch: fourth_order_interp not implemented in 1d')
-          else
-             call lin_cc_interp_1d(fp(:,1,1,:), lo_f, src(:,1,1,:), lo_c, ir, local_bc, &
-                fvcx, lo_f(1), cvcx, lo_c(1), &
-                cslope_lo, cslope_hi, lim_slope, lin_limit)
-          endif
-       case (2)
-          allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),1:1,1:nc))
-          if (fourth_order) then
-             call fourth_order_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, &
-                  cslope_lo, cslope_hi)
-          else
-             call lin_cc_interp_2d(fp(:,:,1,:), lo_f, src(:,:,1,:), lo_c, ir, local_bc, &
-                fvcx, lo_f(1), fvcy, lo_f(2), &
-                cvcx, lo_c(1), cvcy, lo_c(2), &
-                cslope_lo, cslope_hi, lim_slope, lin_limit)
-          endif
-       case (3)
-          allocate(fp(lo_f(1):hi_f(1),lo_f(2):hi_f(2),lo_f(3):hi_f(3),1:nc))
-          if (fourth_order) then
-             call bl_error('fillpatch: fourth_order_interp not implemented in 3d')
-          else
-             call lin_cc_interp_3d(fp(:,:,:,:), lo_f, src(:,:,:,:), lo_c, ir, local_bc, &
-                  fvcx, lo_f(1), fvcy, lo_f(2), fvcz, lo_f(3), &
-                  cvcx, lo_c(1), cvcy, lo_c(2), cvcz, lo_c(3), &
-                  cslope_lo, cslope_hi, lim_slope, lin_limit)
-          endif
-       end select
-
-       if ( n_extra_valid_regions > 0 ) then
-          dst => dataptr(tmpfine,  i, fbx, 1         , nc)
-       else
-          dst => dataptr(fine,     i, fbx, icomp_fine, nc)
-       end if
-
-       ! dst = fp failed using Intel 9.1.043
-       call cpy_d(dst,fp)
-
-       deallocate(cvcx, fvcx, fp)
-       if ( dm > 1 ) deallocate(cvcy, fvcy)
-       if ( dm > 2 ) deallocate(cvcz, fvcz)
-
-    end do
-    !$OMP END PARALLEL DO
-
-    if ( have_periodic_gcells ) then
-       if ( n_extra_valid_regions > 0 ) then
-          call fill_boundary(tmpfine, 1, nc, ng)
-          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
-          do i = 1, nfabs(fine)
-             bx  =  grow(get_ibox(fine,i), ng)
-             dst => dataptr(fine,    i, bx, icomp_fine, nc)
-             src => dataptr(tmpfine, i, bx, 1         , nc)
-             call cpy_d(dst,src)
-          end do
-          !$OMP END PARALLEL DO
-       else
-          !
-          ! We can fill periodic ghost cells simply by calling fill_boundary().
-          !
-          call fill_boundary(fine, icomp_fine, nc, ng)
-       end if
-    end if
-
-    if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, bc_fine)
-
-    call destroy(cfine)
-    call destroy(la)
-
-    if ( n_extra_valid_regions > 0 ) then
-       call destroy(tmpfine)
-       call destroy(fla) 
-    end if
-
-    call destroy(bpt)
+    call destroy(crse)
 
   end subroutine fillpatch_t
 

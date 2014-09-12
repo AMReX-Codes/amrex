@@ -1,5 +1,6 @@
 module sparse_solve_module
 
+  use bl_constants_module
   use bl_types
   use box_module
   use multifab_module
@@ -16,7 +17,7 @@ module sparse_solve_module
   end type sparse_matrix
 
   type sparse
-     real(dp_t) :: Anorm = 0.0_dp_t
+     real(dp_t) :: Anorm = ZERO
      type(imultifab) index_into_aa 
      type(sparse_matrix) :: smt
      type(sparse_matrix) :: sil
@@ -29,9 +30,6 @@ module sparse_solve_module
   interface destroy
      module procedure sparse_destroy
   end interface
-
-  real(kind=dp_t), private, parameter :: zero = 0.0_dp_t
-  real(kind=dp_t), private, parameter :: TWO = 2.0_dp_t
 
   private :: ilut_build
 
@@ -93,7 +91,7 @@ contains
     type(sparse), intent(inout) :: spo
     call sparse_matrix_destroy(spo%smt)
     call sparse_matrix_destroy(spo%sil)
-    spo%Anorm = 0.0_dp_t
+    spo%Anorm = ZERO
     call destroy(spo%index_into_aa)
   end subroutine sparse_destroy
 
@@ -2919,13 +2917,13 @@ contains
     ipar(6) = maxits            ! max number of Matrix Vector Multiplies
     fpar(1) = eps               ! The relative tolerance
     fpar(2) = 1.0e-10_dp_t      ! The absoulte tolerance
-    fpar(2) = 0.0_dp_t
-    fpar(11) = 0.0_dp_t         ! Initialize Flop Count
+    fpar(2) = ZERO
+    fpar(11) = ZERO             ! Initialize Flop Count
 
     allocate(wk(nwrk))
 
     do i = 1, nrow
-       sol(i) = 0.0_dp_t
+       sol(i) = ZERO
     end do
 
     select case (slvr)
@@ -2998,10 +2996,10 @@ contains
       !     normal execution
       !
       its = 0
-      res = 0.0_dp_t
+      res = ZERO
       !
       do i = 1, n
-         sol(i) = 0.0_dp_t
+         sol(i) = ZERO
       end do
       !
       ipar(1) = 0
@@ -3067,7 +3065,7 @@ contains
             !! FIXME! this is a bad hack!
             !! unforuntately the test in case(10) above can't be used because the 
             !! current solution is not in wk(ipar(8))
-            sol = 0.0_dp_t
+            sol = ZERO
             ipar(1) = 999
             exit
             print *, 'Iterative solver is facing a break-down.'
@@ -3092,7 +3090,7 @@ contains
 
 !        Local version of dnrm2 so we don't have to include LAPACK
 !        write (*, *) '# the actual residual norm is', dnrm2(n,wk,1)
-         nrm2 = 0.d0
+         nrm2 = ZERO
          do i = 1, n
             nrm2 = nrm2 + wk(i)*wk(i)
          end do

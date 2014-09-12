@@ -41,7 +41,7 @@ contains
     integer,        intent(in   ) :: facemap(:), indxmap(:)
     real(kind=dp_t),intent(in   ) :: efactor
 
-    type(box)      :: fbox, cbox
+    type(box)      :: fbox
     integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm, face, dim
     integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res))
     logical        :: pmask(get_dim(res))
@@ -56,7 +56,8 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(res)
 
-    !$OMP PARALLEL DO PRIVATE(fbox,cbox,lor,los,i,j,face,dim,lo,hi,loc,rp,fp,cp,sp)
+    ! unsafe to OMP because of overlap in crse boxes
+    ! If we really need to OMP, we could pass in bndry_reg instead of crse mf
     do i = 1, nfabs(flux)
        j = indxmap(i)
        dim = abs(facemap(i))
@@ -75,7 +76,6 @@ contains
        hi = upb(fbox)
        fp => dataptr(flux,i,cf)
 
-       cbox =  get_ibox(crse,j)
        loc  =  lwb(get_pbox(crse,j))
        lor  =  lwb(get_pbox(res,j))
        los  =  lwb(get_pbox(ss,j))
@@ -95,7 +95,6 @@ contains
                sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
        end select
     end do
-    !$OMP END PARALLEL DO
 
     call destroy(bpt)
 
@@ -149,6 +148,7 @@ contains
 
     integer :: i, j, ns
     real (kind = dp_t) :: crse_flux
+    real (kind = dp_t), parameter :: FIFTEEN16TH = 15.0_dp_t/16.0_dp_t
  
     ns = size(ss,1)
 !    ns = size(ss,dim=1)  ! some version of Intel does not like this
@@ -162,8 +162,8 @@ contains
                 crse_flux = ss(2,i,j)*(cc(i,j)-cc(i-1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(2,i,j)*(cc(i-1,j)-cc(i  ,j)) &
-                 +               ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
+                   FIFTEEN16TH*ss(2,i,j)*(cc(i-1,j)-cc(i  ,j)) &
+                 +             ss(1,i,j)*(cc(i-2,j)-cc(i+1,j))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -176,8 +176,8 @@ contains
                 crse_flux = ss(1,i,j)*(cc(i,j)-cc(i+1,j))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(3,i,j)*(cc(i+1,j)-cc(i  ,j)) &
-                 +               ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
+                   FIFTEEN16TH*ss(3,i,j)*(cc(i+1,j)-cc(i  ,j)) &
+                 +             ss(4,i,j)*(cc(i+2,j)-cc(i-1,j))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -192,8 +192,8 @@ contains
                 crse_flux = ss(4,i,j)*(cc(i,j)-cc(i,j-1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(6,i,j)*(cc(i,j-1)-cc(i,j  )) &
-                 +               ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
+                   FIFTEEN16TH*ss(6,i,j)*(cc(i,j-1)-cc(i,j  )) &
+                 +             ss(5,i,j)*(cc(i,j-2)-cc(i,j+1))
 
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
@@ -206,8 +206,8 @@ contains
                 crse_flux = ss(3,i,j)*(cc(i,j)-cc(i,j+1))
              else if (ns.eq.9) then
                 crse_flux = &
-                   (15.d0/16.d0)*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
-                 +               ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
+                   FIFTEEN16TH*ss(7,i,j)*(cc(i,j+1)-cc(i,j  )) &
+                 +             ss(8,i,j)*(cc(i,j+2)-cc(i,j-1))
              endif
              res(i,j) = res(i,j) + efactor*(fine_flux(i,j)-crse_flux)
           end do

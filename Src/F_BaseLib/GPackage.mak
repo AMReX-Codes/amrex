@@ -37,11 +37,21 @@ f90sources += cluster_f.f90
 f90sources += interp.f90
 f90sources += fourth_order_interp_coeffs.f90
 f90sources += bc.f90
+f90sources += bc_functions.f90
 f90sources += bndry_reg.f90
 
 f90sources += ml_boxarray.f90
 f90sources += ml_layout.f90
 f90sources += ml_multifab.f90
+f90sources += ml_restrict_fill.f90
+
+f90sources +=    cc_restriction.f90
+f90sources +=  edge_restriction.f90
+f90sources += nodal_restriction.f90
+f90sources += ml_cc_restriction.f90
+f90sources += ml_nd_restriction.f90
+f90sources += nodal_neumann_bcs.f90
+f90sources += nodal_stencil_bc.f90
 
 f90sources += create_umac_grown.f90
 f90sources += define_bc_tower.f90
@@ -91,4 +101,8 @@ ifeq ($(ARCH),AIX)
 endif
 
 ifeq ($(ARCH),OSF1)
+endif
+
+ifdef RANDOM
+  f90sources += mt19937ar.f90
 endif

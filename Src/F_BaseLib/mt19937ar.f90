@@ -177,6 +177,7 @@ contains
 
   subroutine build_random_boxarray(ba, pd, nb, mn, mx, bf)
     use boxarray_module
+    use layout_module
     implicit none
     type(boxarray), intent(out) :: ba
     integer, intent(in) :: nb, mn, mx, bf

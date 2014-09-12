@@ -12,6 +12,7 @@
 # ------------------------------------------------
 
 f90EXE_sources += bc.f90
+f90EXE_sources += bc_functions.f90
 f90EXE_sources += bl_constants.f90
 f90EXE_sources += bl_error.f90
 f90EXE_sources += bl_IO.f90
@@ -25,6 +26,7 @@ f90EXE_sources += bl_prof_stubs.f90
 f90EXE_sources += bndry_reg.f90
 f90EXE_sources += box_f.f90
 f90EXE_sources += boxarray_f.f90
+f90EXE_sources += define_bc_tower.f90
 f90EXE_sources += fab.f90
 f90EXE_sources += fabio.f90
 f90EXE_sources += knapsack.f90
@@ -33,6 +35,13 @@ f90EXE_sources += list_box.f90
 f90EXE_sources += ml_boxarray.f90
 f90EXE_sources += ml_layout.f90
 f90EXE_sources += ml_multifab.f90
+f90EXE_sources += cc_restriction.f90
+f90EXE_sources += edge_restriction.f90
+f90EXE_sources += nodal_restriction.f90
+f90EXE_sources += ml_cc_restriction.f90
+f90EXE_sources += ml_nd_restriction.f90
+f90EXE_sources += nodal_neumann_bcs.f90
+f90EXE_sources += nodal_stencil_bc.f90
 f90EXE_sources += multifab_f.f90
 f90EXE_sources += sort_box.f90
 f90EXE_sources += sort_d.f90

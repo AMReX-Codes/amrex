@@ -14,26 +14,14 @@ endif
 ifeq ($(ARCH),Darwin)
 
   # specifics for maudib
-  # I have both GNU and Intel compilers installed, as well as MPI-wrapped
-  # versions, so I need to be careful here
-  ifeq ($(UNAMEN),maudib.ucolick.org)
+  ifeq ($(findstring maudib, $(UNAMEN)), maudib)
+    FC = mpif90
+    F90 = mpif90
+    CC = mpicc
+    CXX = mpicxx
 
-    # GNU compilers
-    ifeq ($(COMP),gfortran)
-      FC = mpif90
-      F90 = mpif90
-      CC = mpicc
-
-      MPIHOME=/Users/cmalone/work/usr/local
-
-    # Intel compilers
-    else
-      FC  = mpiif90
-      F90 = mpiif90
-      CC  = mpiicc
-
-      MPIHOME=/Users/cmalone/work/usr/local/intel
-    endif 
+    MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+    LIBRARIES += lmpi_mpifh    
 
   # attempt at general support for Mac; only works if MPIHOME env var is set
   # and applies some general defaults
