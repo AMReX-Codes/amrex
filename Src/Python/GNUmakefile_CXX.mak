@@ -117,9 +117,19 @@ vpath %.f90 $(VPATH_LOCATIONS)
 
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
 NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')
-PYLIBS    := -L$(shell python-config --prefix)/lib $(shell python-config --libs)
+PYLIBS    := $(shell python-config --libs)
+ifeq ($(UNAMES), Darwin)
+  PYRPATH   := -Wl,-rpath,$(shell python-config --prefix)/lib
+else
+  PYRPATH   := 
+endif
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
+
+ifeq ($(FCOMP), gfortran)
+  override XTRALIBS += -lquadmath
+endif
+
 
 #
 # Rules
@@ -131,7 +141,7 @@ PYSO    = $(OUT)/_bl$(DIM).so
 all: $(PYSO)
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	$(CXX) -shared -o $@ $^ ${SHARED_LIBRARIES} ${PYLIBS}
+	$(CXX) -shared -o $@ $^ ${SHARED_LIBRARIES} ${XTRALIBS} ${PYRPATH} ${PYLIBS}
 
 wrapper: $(WRAPPER)
 $(WRAPPER): swig/boxlib.i
