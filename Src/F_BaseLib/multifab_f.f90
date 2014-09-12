@@ -2545,12 +2545,14 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
+
+    ! multifab_fill_ghost_cells calls fillpatch with a multifab built
+    ! from a boxarray of ghost boxes of the fine multifab to be filled. 
+    ! And the multifab has ng=0.  So there are "valid" cells that are outside the domain.
+    ! For non-periodic boundaries, these cells outside the domain will be filled
+    ! by multifab_physbc later in multifab_fill_ghost_cells.  However, for
+    ! periodic boundaries, mf_fb_fancy_double must be called for these to be filled.
+    if ( lng < 1 .and. .not.any(mf%la%lap%pmask) ) return
 
     call build(bpt, "mf_fill_boundary_c")
     call mf_fb_fancy_double(mf, c, nc, lng, lcross, idim)
@@ -2580,12 +2582,14 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
+
+    ! multifab_fill_ghost_cells calls fillpatch with a multifab built
+    ! from a boxarray of ghost boxes of the fine multifab to be filled. 
+    ! And the multifab has ng=0.  So there are "valid" cells that are outside the domain.
+    ! For non-periodic boundaries, these cells outside the domain will be filled
+    ! by multifab_physbc later in multifab_fill_ghost_cells.  However, for
+    ! periodic boundaries, mf_fb_fancy_double must be called for these to be filled.
+    if ( lng < 1 .and. .not.any(mf%la%lap%pmask) ) return
 
     call build(bpt, "mf_fill_boundary_nowait_c")
     call mf_fb_fancy_double_nowait(mf, fb_data, c, nc, lng, lcross, idim)
@@ -2674,12 +2678,14 @@ contains
     if ( present(idim) ) then
        if (idim > 0) lcross = .true. 
     end if
-   
-    ! If the boxarray is contained in the domain, then this made sense because nothing will
-    !  be done if ng = 0.  However, sometimes fillpatch calls this with a boxarray that is 
-    !  not contained in the domain, and we need to use fill_boundary to fill regions of the 
-    !  boxarray that are "valid" (i.e. not ghost cells) but that are outside the domain.
-    ! if ( lng < 1          ) return
+
+    ! multifab_fill_ghost_cells calls fillpatch with a multifab built
+    ! from a boxarray of ghost boxes of the fine multifab to be filled. 
+    ! And the multifab has ng=0.  So there are "valid" cells that are outside the domain.
+    ! For non-periodic boundaries, these cells outside the domain will be filled
+    ! by multifab_physbc later in multifab_fill_ghost_cells.  However, for
+    ! periodic boundaries, mf_fb_fancy_double must be called for these to be filled.
+    if ( lng < 1 .and. .not.any(mf%la%lap%pmask) ) return
 
     call build(bpt, "mf_fill_boundary_test_c")
     call mf_fb_fancy_double_test(mf, fb_data, c, nc, lng, lcross, idim)
