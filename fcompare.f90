@@ -11,15 +11,17 @@ program fcompare
   use bl_constants_module
   use bl_IO_module
   use plotfile_module
-  use sort_d_module
+  use multifab_module
 
   implicit none
 
   type(plotfile) :: pf_a, pf_b
   character (len=256) :: plotfile_a, plotfile_b
+  character (len=256) :: diffvar
   integer :: unit_a, unit_b
 
   real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:)
+  real(kind=dp_t), pointer :: mp(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
   integer :: lo_b(MAX_SPACEDIM), hi_b(MAX_SPACEDIM)
@@ -33,6 +35,7 @@ program fcompare
 
   integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
+  integer :: save_var_a
 
   real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
@@ -57,6 +60,13 @@ program fcompare
   integer :: dm
   type(box) :: bx_a, bx_b
 
+  type(multifab), allocatable :: mf_array(:)
+  type(layout) :: la
+  type(boxarray) :: ba
+  type(list_box) :: bl
+  integer, allocatable :: ref_ratio(:)
+
+  character(len=20), allocatable :: plot_names(:)
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -67,6 +77,10 @@ program fcompare
   norm = 0
   plotfile_a = ""
   plotfile_b = ""
+
+  diffvar = ""
+
+  allocate(plot_names(1))
 
   farg = 1
   do while (farg <= narg)
@@ -86,6 +100,11 @@ program fcompare
         farg = farg + 1
         call get_command_argument(farg, value = fname)
         read(fname, *) norm
+
+     case ('--diffvarfile')
+        farg = farg + 1
+        call get_command_argument(farg, value = diffvar)
+        plot_names(1) = trim(diffvar)
 
      case default
         exit
@@ -121,6 +140,7 @@ program fcompare
 
   !---------------------------------------------------------------------------
   ! build the plotfiles and do initial comparisons
+  !---------------------------------------------------------------------------
   
   unit_a = unit_new()
   call build(pf_a, plotfile_a, unit_a)
@@ -175,6 +195,8 @@ program fcompare
 
   any_nans = .false.
 
+  save_var_a = -1
+
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
   allocate(ivar_b(pf_a%nvars))
@@ -194,6 +216,12 @@ program fcompare
      if (ivar_b(n_a) == -1) then
         print *, "WARNING: variable ", trim(pf_a%names(n_a)), &
                  " not found in plotfile 2"
+     endif
+
+     if (.not. diffvar == "") then
+        if (pf_a%names(n_a) == trim(diffvar)) then
+           save_var_a = n_a
+        endif
      endif
 
   enddo
@@ -219,8 +247,46 @@ program fcompare
 
   enddo
 
+
+  !---------------------------------------------------------------------------
+  ! create a multifab to store the difference for output, if desired
+  !---------------------------------------------------------------------------
+
+  if (save_var_a > 0) then
+
+     allocate(mf_array(plotfile_nlevels(pf_a)))
+     allocate(ref_ratio(plotfile_nlevels(pf_a)-1))
+
+     ! define ref_ratio
+     do i = 1, pf_a%flevel-1
+        ref_ratio(i) = pf_a%refrat(i,1)
+     enddo
+
+     ! loop over levels and grids and define the boxes needed to build the
+     ! multifab
+     do i = 1, pf_a%flevel
+
+        do j = 1, nboxes(pf_a, i)
+           call push_back(bl, get_box(pf_a,i,j))
+        enddo
+
+        call build(ba,bl)
+        call layout_build_ba(la,ba,plotfile_get_pd_box(pf_a,1))
+
+        ! destroy the list and boxarray so we start over next level
+        call destroy(bl)
+        call destroy(ba)
+
+        ! create a new multifab with 0 ghost cells and 1 component
+        call multifab_build(mf_array(i),la,1,0)
+
+     enddo
+  
+  endif
+
   !---------------------------------------------------------------------------
   ! go level-by-level and patch-by-patch and compare the data
+  !---------------------------------------------------------------------------
   
 998 format(1x,a24,2x,a24,   2x,a24)
 999 format(1x,70("-"))
@@ -295,6 +361,14 @@ program fcompare
            p_a => dataptr(pf_a, i, j)
            p_b => dataptr(pf_b, i, j)
 
+           ! are we storing the diff?
+           if (n_a == save_var_a) then
+              mp => dataptr(mf_array(i), j, get_box(mf_array(i), j))
+
+              mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
+           endif
+
+
            ! check for NaNs -- comparisons don't work when they are present
            call fab_contains_nan(p_a, &
                                  (hi_a(3)-lo_a(3)+1)* &
@@ -368,6 +442,7 @@ program fcompare
 
      !------------------------------------------------------------------------
      ! print out the comparison report for this level
+     !------------------------------------------------------------------------
      
 1000 format(1x,"level = ", i2)
 1001 format(1x,a24,2x,g24.10,2x,g24.10)
@@ -397,6 +472,15 @@ program fcompare
 
   if (global_error == ZERO .and. .not. any_nans) then
      print *, "PLOTFILES AGREE"
+  endif
+
+  if (save_var_a > 0) then
+     call fabio_ml_multifab_write_d(mf_array, ref_ratio, &
+                                    "diffs", plot_names, &
+                                    plotfile_get_pd_box(pf_a,1), &
+                                    pf_a%plo, pf_a%phi, &
+                                    pf_a%tm, &
+                                    plotfile_get_dx(pf_a,1))
   endif
 
 end program fcompare
