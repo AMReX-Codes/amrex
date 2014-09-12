@@ -1,5 +1,6 @@
 module cc_stencil_apply_module
 
+  use bl_constants_module
   use bl_types
   use bc_module
   use bc_functions_module
@@ -7,9 +8,6 @@ module cc_stencil_apply_module
   use multifab_module
 
   implicit none
-
-  real(kind=dp_t), parameter, private :: ZERO = 0.0_dp_t
-  real(kind=dp_t), parameter, private :: ONE  = 1.0_dp_t
 
   public  :: stencil_apply_1d, stencil_apply_2d, stencil_apply_3d
   private :: stencil_dense_apply_1d, stencil_dense_apply_2d, stencil_dense_apply_3d

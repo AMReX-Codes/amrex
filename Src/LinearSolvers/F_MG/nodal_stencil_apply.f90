@@ -1,5 +1,6 @@
 module nodal_stencil_apply_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use bc_functions_module
@@ -7,22 +8,6 @@ module nodal_stencil_apply_module
   use stencil_types_module
 
   implicit none
-
-  real (kind = dp_t), private, parameter :: ZERO  = 0.0_dp_t
-  real (kind = dp_t), private, parameter :: ONE   = 1.0_dp_t
-  real (kind = dp_t), private, parameter :: TWO   = 2.0_dp_t
-  real (kind = dp_t), private, parameter :: THREE = 3.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR  = 4.0_dp_t
-  real (kind = dp_t), private, parameter :: FIVE  = 5.0_dp_t
-  real (kind = dp_t), private, parameter :: SIX   = 6.0_dp_t
-  real (kind = dp_t), private, parameter :: SEVEN = 7.0_dp_t
-  real (kind = dp_t), private, parameter :: EIGHT = 8.0_dp_t
-  real (kind = dp_t), private, parameter :: TEN   = 10.0_dp_t
-  real (kind = dp_t), private, parameter :: HALF  = 0.5_dp_t
-  real (kind = dp_t), private, parameter :: FOURTH= 0.25_dp_t
-  real (kind = dp_t), private, parameter :: THIRD = 1.0_dp_t/3.0_dp_t
-  real (kind = dp_t), private, parameter :: SIXTH = 1.0_dp_t/6.0_dp_t
-  real (kind = dp_t), private, parameter :: FOUR_THIRD = 4.0_dp_t/3.0_dp_t
 
 contains
 
@@ -159,7 +144,7 @@ contains
              if (zeroit) then
                 dd(i,j) = ZERO
              else
-                ss0 = -0.75d0 * (sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j))
+                ss0 = -THREE4TH * (sg(i-1,j-1) + sg(i,j-1) + sg(i-1,j) + sg(i,j))
                 dd(i,j) = ss0 * uu(i,j) + &
                 FOURTH * ( &
                             sg(i-1,j-1) * uu(i-1,j-1) + &
@@ -221,7 +206,7 @@ contains
                    ss0 = -( sg(i-1,j-1,k-1) + sg(i-1,j  ,k-1) &
                            +sg(i  ,j-1,k-1) + sg(i  ,j  ,k-1) &
                            +sg(i-1,j-1,k  ) + sg(i-1,j  ,k  ) &
-                           +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * 3.d0
+                           +sg(i  ,j-1,k  ) + sg(i  ,j  ,k  )) * THREE
                    dd(i,j,k) = ss0 * uu(i,j,k) + &
                      (sg(i-1,j-1,k-1) + sg(i-1,j-1,k  ) &
                      +sg(i-1,j  ,k-1) + sg(i-1,j  ,k  )) * uu(i-1,j  ,k  ) + &
@@ -246,7 +231,7 @@ contains
 
     else if (stencil_type .eq. ND_DENSE_STENCIL) then
 
-       fx     = 1.d0/36.d0
+       fx     = ONE/36._dp_t
        fy     = fx
        fz     = fx
        f0     = FOUR * (fx + fy + fz)
@@ -318,7 +303,7 @@ contains
                    if (diagonalize) then
                        dd(i,j,k) = dd(i,j,k) / ss0
                    else
-                       dd(i,j,k) = 4.d0 * dd(i,j,k)
+                       dd(i,j,k) = FOUR * dd(i,j,k)
                    end if
 
                 end if

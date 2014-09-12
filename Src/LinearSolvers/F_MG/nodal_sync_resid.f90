@@ -80,9 +80,9 @@ contains
     ny = size(msk,dim=2) - 2
     nz = size(msk,dim=3) - 2
 
-    ivdx = 1.0d0 / dx(1)
-    ivdy = 1.0d0 / dx(2)
-    ivdz = 1.0d0 / dx(3)
+    ivdx = ONE / dx(1)
+    ivdy = ONE / dx(2)
+    ivdz = ONE / dx(3)
 
     !$OMP PARALLEL DO PRIVATE(i,j,k)
     do k = 0, nz

@@ -1,5 +1,6 @@
 module nodal_applyop_module
 
+  use bl_constants_module
   use ml_layout_module
   use mg_module
   use define_bc_module
@@ -99,7 +100,7 @@ contains
 
     do n=1,nlevs
        call multifab_build_nodal(rh(n), mla%la(n), 1, 0)
-       call setval(rh(n), 0.d0, all=.true.)
+       call setval(rh(n), ZERO, all=.true.)
     end do
 
     do n = nlevs,1,-1
@@ -110,7 +111,7 @@ contains
 
     ! multiply by -1 so operator returns +del dot beta grad phi
     do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-1.d0,1,res(n)%ng)
+       call multifab_mult_mult_s_c(res(n),1,-ONE,1,res(n)%ng)
     end do
 
     do n=1,nlevs

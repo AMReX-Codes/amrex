@@ -1,5 +1,6 @@
 module stencil_defect_module
 
+  use bl_constants_module
   use bl_types
   use multifab_module
   use cc_stencil_module
@@ -27,7 +28,7 @@ contains
     call stencil_apply(ss, dd, uu, mm, stencil_type, lcross, &
                        uniform_dh, bottom_solver, diagonalize, filled)
     call sub_sub(dd, ff)
-    call rescale(dd, -1.0_dp_t)
+    call rescale(dd, -one)
     call destroy(bpt)
 
   end subroutine compute_defect

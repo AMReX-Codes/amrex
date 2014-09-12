@@ -2,10 +2,8 @@ module regrid_module
 
   use ml_layout_module
   use multifab_module
-  use multifab_physbc_module
   use make_new_grids_module
-  use ml_restriction_module
-  use multifab_fill_ghost_module
+  use ml_restrict_fill_module
   use bndry_reg_module
 
   implicit none
@@ -16,11 +14,10 @@ module regrid_module
 
 contains
 
-  subroutine regrid(mla,phi,flux,bndry_flx,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+  subroutine regrid(mla,phi,bndry_flx,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
     type(ml_layout), intent(inout) :: mla
     type(multifab) , intent(inout) :: phi(:)
-    type(multifab) , intent(inout) :: flux(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     integer        , intent(inout) :: nlevs, max_levs
     real(dp_t)     , intent(in   ) :: dx(:)
@@ -33,7 +30,7 @@ contains
     type(ml_boxarray) :: mba
     type(multifab)    :: phi_orig(max_levs)
 
-    integer :: i,dm,n,nl,n_buffer
+    integer :: dm,n,nl,n_buffer
 
     logical :: new_grid,properly_nested
 
@@ -45,7 +42,7 @@ contains
     do n=1,nlevs
        ! create copies of the old data
        ! make sure to use mla_old since we will be destroying mla
-       call multifab_build(phi_orig(n),mla_old%la(n),1,1)
+       call multifab_build(phi_orig(n),mla_old%la(n),1,2)
        call multifab_copy_c(phi_orig(n),1,phi(n),1,1)
 
        ! get rid of the original multifab so we can create a new one
@@ -53,16 +50,8 @@ contains
        call multifab_destroy(phi(n))
     end do
 
-    ! Destroy flux, phi_orig and bndry_reg before regridding -- we will create 
-    !     new ones at the end
-    do n = 1,nlevs
-      do i = 1, dm
-          call multifab_destroy(flux(n,i))
-      end do
-    end do
-
     do n = 2,nlevs
-      call bndry_reg_destroy(bndry_flx(n))
+      call destroy(bndry_flx(n))
     end do
 
     ! Get rid of the original mla so we can create a new one
@@ -97,7 +86,7 @@ contains
     call bc_tower_level_build(the_bc_tower,1,la_array(1))
 
     ! build level 1 multifab
-    call multifab_build(phi(1),la_array(1),1,1)
+    call multifab_build(phi(1),la_array(1),1,2)
     
     ! copy level 1 data from original multifab
     call multifab_copy_c(phi(1),1,phi_orig(1),1,1)
@@ -151,7 +140,7 @@ contains
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
    
                    ! Rebuild the lower level data again if it changed.
-                   call multifab_build(phi(n),la_array(n),1,1)
+                   call multifab_build(phi(n),la_array(n),1,2)
 
                    ! first fill all refined cells by interpolating from coarse 
                    ! data underneath...
@@ -175,7 +164,7 @@ contains
           call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
 
           ! Build the level nl+1 data only.
-          call multifab_build(phi(nl+1),la_array(nl+1),1,1)
+          call multifab_build(phi(nl+1),la_array(nl+1),1,2)
 
           ! first fill all refined cells by interpolating from coarse 
           ! data underneath...
@@ -208,46 +197,14 @@ contains
        call bc_tower_level_build(the_bc_tower,n,la_array(n))
     end do
 
-    ! Create new flux, phi_orig and bndry_flx after regridding
-    do n = 1,nlevs
-      do i = 1, dm
-          call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
-      end do
-    end do
-
     do n = 2,nlevs
-      call bndry_reg_rr_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
-                              ml_layout_get_pd(mla,n-1),other=.true.)
+       call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+            ml_layout_get_pd(mla,n-1),nc=1)
     end do
 
-    if (nlevs .eq. 1) then
-
-       ! fill ghost cells for two adjacent grids at the same level
-       ! this includes periodic domain boundary ghost cells
-       call multifab_fill_boundary(phi(nlevs))
-
-       ! fill non-periodic domain boundary ghost cells
-       call multifab_physbc(phi(nlevs),1,1,1,the_bc_tower%bc_tower_array(nlevs))
-
-    else
-
-       ! the loop over nlevs must count backwards to make sure the finer grids are done first
-       do n=nlevs,2,-1
-
-          ! set level n-1 data to be the average of the level n data covering it
-          call ml_cc_restriction(phi(n-1),phi(n),mla%mba%rr(n-1,:))
-
-          ! fill level n ghost cells using interpolation from level n-1 data
-          ! note that multifab_fill_boundary and multifab_physbc are called for
-          ! both levels n-1 and n
-          call multifab_fill_ghost_cells(phi(n),phi(n-1),phi(n)%ng,mla%mba%rr(n-1,:), &
-                                         the_bc_tower%bc_tower_array(n-1), &
-                                         the_bc_tower%bc_tower_array(n), &
-                                         1,1,1)
-
-       enddo
-
-    end if
+    ! restrict the multi-level data, and
+    ! fill all boundaries: same-level, coarse-fine, periodic, and domain boundaries 
+    call ml_restrict_and_fill(nlevs, phi, mla%mba%rr, the_bc_tower%bc_tower_array)
 
     do n=1,mla_old%nlevel
        call destroy(phi_orig(n))

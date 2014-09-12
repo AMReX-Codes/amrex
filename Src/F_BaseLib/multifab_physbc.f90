@@ -1,5 +1,6 @@
 module multifab_physbc_module
 
+  use bl_constants_module
   use multifab_module
   use define_bc_module
 
@@ -25,12 +26,14 @@ contains
     real(kind=dp_t)          :: time,dx(get_dim(s))
     real(kind=dp_t)          :: prob_lo(get_dim(s)),prob_hi(get_dim(s))
     real(kind=dp_t), pointer :: sp(:,:,:,:)
+
+    if (nghost(s) == 0) return
     
     ! set optional arguments
-    time    = 0.d0
-    dx      = 0.d0
-    prob_lo = 0.d0
-    prob_hi = 0.d0
+    time    = ZERO
+    dx      = ZERO
+    prob_lo = ZERO
+    prob_hi = ZERO
     if (present(time_in))       time = time_in
     if (present(dx_in))           dx = dx_in
     if (present(prob_lo_in)) prob_lo = prob_lo_in
@@ -86,7 +89,7 @@ contains
        ! set all ghost cell values to a prescribed dirichlet
        ! value; in this example, we have chosen 1
        do j = lo(2)-ng, hi(2)+ng
-          s(lo(1)-ng:lo(1)-1,j) = 1.d0
+          s(lo(1)-ng:lo(1)-1,j) = ONE
        end do
     else if (bc(1,1) .eq. FOEXTRAP) then
        ! set all ghost cell values to first interior value
@@ -99,7 +102,7 @@ contains
        ! physical location of the first ghost cell-center
        do j = lo(2)-ng, hi(2)+ng
           s(lo(1)-ng:lo(1)-1,j) = EIGHTH* &
-               (15.d0*s(lo(1),j) - 10.d0*s(lo(1)+1,j) + 3.d0*s(lo(1)+2,j))
+               (FIFTEEN*s(lo(1),j) - TEN*s(lo(1)+1,j) + THREE*s(lo(1)+2,j))
        end do
     else if (bc(1,1) .eq. REFLECT_EVEN) then
        ! mirror the interior
@@ -131,7 +134,7 @@ contains
 
     if (bc(1,2) .eq. EXT_DIR) then
        do j = lo(2)-ng, hi(2)+ng
-          s(hi(1)+1:hi(1)+ng,j) = 1.d0
+          s(hi(1)+1:hi(1)+ng,j) = ONE
        end do
     else if (bc(1,2) .eq. FOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
@@ -140,7 +143,7 @@ contains
     else if (bc(1,2) .eq. HOEXTRAP) then
        do j = lo(2)-ng, hi(2)+ng
           s(hi(1)+1:hi(1)+ng,j) = EIGHTH* &
-               (15.d0*s(hi(1),j) - 10.d0*s(hi(1)-1,j) + 3.d0*s(hi(1)-2,j))
+               (FIFTEEN*s(hi(1),j) - TEN*s(hi(1)-1,j) + THREE*s(hi(1)-2,j))
        end do
     else if (bc(1,2) .eq. REFLECT_EVEN) then
        do j = lo(2)-ng, hi(2)+ng
@@ -167,7 +170,7 @@ contains
 
     if (bc(2,1) .eq. EXT_DIR) then
        do i = lo(1)-ng, hi(1)+ng
-          s(i,lo(2)-ng:lo(2)-1) = 1.d0
+          s(i,lo(2)-ng:lo(2)-1) = ONE
        end do
     else if (bc(2,1) .eq. FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -176,7 +179,7 @@ contains
     else if (bc(2,1) .eq. HOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,lo(2)-ng:lo(2)-1) = EIGHTH* &
-               (15.d0*s(i,lo(2)) - 10.d0*s(i,lo(2)+1) + 3.d0*s(i,lo(2)+2))
+               (FIFTEEN*s(i,lo(2)) - TEN*s(i,lo(2)+1) + THREE*s(i,lo(2)+2))
        end do
     else if (bc(2,1) .eq. REFLECT_EVEN) then
        do i = lo(1)-ng, hi(1)+ng
@@ -203,7 +206,7 @@ contains
 
     if (bc(2,2) .eq. EXT_DIR) then
        do i = lo(1)-ng, hi(1)+ng
-          s(i,hi(2)+1:hi(2)+ng) = 1.d0
+          s(i,hi(2)+1:hi(2)+ng) = ONE
        end do
     else if (bc(2,2) .eq. FOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
@@ -212,7 +215,7 @@ contains
     else if (bc(2,2) .eq. HOEXTRAP) then
        do i = lo(1)-ng, hi(1)+ng
           s(i,hi(2)+1:hi(2)+ng) = EIGHTH* &
-               (15.d0*s(i,hi(2)) - 10.d0*s(i,hi(2)-1) + 3.d0*s(i,hi(2)-2))
+               (FIFTEEN*s(i,hi(2)) - TEN*s(i,hi(2)-1) + THREE*s(i,hi(2)-2))
        end do
     else if (bc(2,2) .eq. REFLECT_EVEN) then
        do i = lo(1)-ng, hi(1)+ng
@@ -255,7 +258,7 @@ contains
     if (bc(1,1) .eq. EXT_DIR) then
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
-             s(lo(1)-ng:lo(1)-1,j,k) = 1.d0
+             s(lo(1)-ng:lo(1)-1,j,k) = ONE
           end do
        end do
     else if (bc(1,1) .eq. FOEXTRAP) then
@@ -268,7 +271,7 @@ contains
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              s(lo(1)-ng:lo(1)-1,j,k) = EIGHTH* &
-                  (15.d0*s(lo(1),j,k) - 10.d0*s(lo(1)+1,j,k) + 3.d0*s(lo(1)+2,j,k))
+                  (FIFTEEN*s(lo(1),j,k) - TEN*s(lo(1)+1,j,k) + THREE*s(lo(1)+2,j,k))
           end do
        end do
     else if (bc(1,1) .eq. REFLECT_EVEN) then
@@ -301,7 +304,7 @@ contains
     if (bc(1,2) .eq. EXT_DIR) then
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
-             s(hi(1)+1:hi(1)+ng,j,k) = 1.d0
+             s(hi(1)+1:hi(1)+ng,j,k) = ONE
           end do
        end do
     else if (bc(1,2) .eq. FOEXTRAP) then
@@ -314,7 +317,7 @@ contains
        do k = lo(3)-ng,hi(3)+ng
           do j = lo(2)-ng,hi(2)+ng
              s(hi(1)+1:hi(1)+ng,j,k) = EIGHTH* &
-                  (15.d0*s(hi(1),j,k) - 10.d0*s(hi(1)-1,j,k) + 3.d0*s(hi(1)-2,j,k))
+                  (FIFTEEN*s(hi(1),j,k) - TEN*s(hi(1)-1,j,k) + THREE*s(hi(1)-2,j,k))
           end do
        end do
     else if (bc(1,2) .eq. REFLECT_EVEN) then
@@ -347,7 +350,7 @@ contains
     if (bc(2,1) .eq. EXT_DIR) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,lo(2)-ng:lo(2)-1,k) = 1.d0
+             s(i,lo(2)-ng:lo(2)-1,k) = ONE
           end do
        end do
     else if (bc(2,1) .eq. FOEXTRAP .or. bc(2,1) .eq. REFLECT_EVEN) then
@@ -360,7 +363,7 @@ contains
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
              s(i,lo(2)-ng:lo(2)-1,k) = EIGHTH* &
-                  (15.d0*s(i,lo(2),k) - 10.d0*s(i,lo(2)+1,k) + 3.d0*s(i,lo(2)+2,k))
+                  (FIFTEEN*s(i,lo(2),k) - TEN*s(i,lo(2)+1,k) + THREE*s(i,lo(2)+2,k))
           end do
        end do
     else if (bc(2,1) .eq. REFLECT_EVEN) then
@@ -393,7 +396,7 @@ contains
     if (bc(2,2) .eq. EXT_DIR) then
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,hi(2)+1:hi(2)+ng,k) = 1.d0
+             s(i,hi(2)+1:hi(2)+ng,k) = ONE
           end do
        end do
     else if (bc(2,2) .eq. FOEXTRAP .or. bc(2,2) .eq. REFLECT_EVEN) then
@@ -406,7 +409,7 @@ contains
        do k = lo(3)-ng,hi(3)+ng
           do i = lo(1)-ng,hi(1)+ng
              s(i,hi(2)+1:hi(2)+ng,k) = EIGHTH* &
-                  (15.d0*s(i,hi(2),k) - 10.d0*s(i,hi(2)-1,k) + 3.d0*s(i,hi(2)-2,k))
+                  (FIFTEEN*s(i,hi(2),k) - TEN*s(i,hi(2)-1,k) + THREE*s(i,hi(2)-2,k))
           end do
        end do
     else if (bc(2,2) .eq. REFLECT_EVEN) then
@@ -439,7 +442,7 @@ contains
     if (bc(3,1) .eq. EXT_DIR) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,j,lo(3)-ng:lo(3)-1) = 1.d0
+             s(i,j,lo(3)-ng:lo(3)-1) = ONE
           end do
        end do
     else if (bc(3,1) .eq. FOEXTRAP .or. bc(3,1) .eq. REFLECT_EVEN) then
@@ -452,7 +455,7 @@ contains
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
              s(i,j,lo(3)-ng:lo(3)-1) = EIGHTH* &
-                  (15.d0*s(i,j,lo(3)) - 10.d0*s(i,j,lo(3)+1) + 3.d0*s(i,j,lo(3)+2))
+                  (FIFTEEN*s(i,j,lo(3)) - TEN*s(i,j,lo(3)+1) + THREE*s(i,j,lo(3)+2))
           end do
        end do
     else if (bc(3,1) .eq. REFLECT_EVEN) then
@@ -485,7 +488,7 @@ contains
     if (bc(3,2) .eq. EXT_DIR) then
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
-             s(i,j,hi(3)+1:hi(3)+ng) = 1.d0
+             s(i,j,hi(3)+1:hi(3)+ng) = ONE
           end do
        end do
     else if (bc(3,2) .eq. FOEXTRAP .or. bc(3,2) .eq. REFLECT_EVEN) then
@@ -498,7 +501,7 @@ contains
        do j = lo(2)-ng,hi(2)+ng
           do i = lo(1)-ng,hi(1)+ng
              s(i,j,hi(3)+1:hi(3)+ng) = EIGHTH* &
-                  (15.d0*s(i,j,hi(3)) - 10.d0*s(i,j,hi(3)-1) + 3.d0*s(i,j,hi(3)-2))
+                  (FIFTEEN*s(i,j,hi(3)) - TEN*s(i,j,hi(3)-1) + THREE*s(i,j,hi(3)-2))
           end do
        end do
     else if (bc(3,2) .eq. REFLECT_EVEN) then

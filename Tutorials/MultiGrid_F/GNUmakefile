@@ -9,9 +9,9 @@ PROF      :=
 COMP      := gfortran
 MKVERBOSE := t
 
+RANDOM := t  # this makes it include mt19937ar.f90
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
-f90sources += mt19937ar.f90
 f90sources += main.f90
 f90sources += constants.f90
 f90sources += init_coeffs.f90

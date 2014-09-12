@@ -3053,4 +3053,98 @@ contains
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
 
+  subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
+
+    use bl_prof_module
+
+    type(boxarray), intent(inout) :: ba
+    type(box), intent(in) :: bxs(:)
+    logical, intent(in), optional :: simplify
+    logical :: lsimplify
+    type(box) :: bx
+    type(list_box) :: bl, bltmp, blclean
+    type(layout) :: la
+    type(box_intersector), pointer  :: bi(:)
+    integer :: i, j
+    logical :: intersect
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ba_add_clean_boxes")
+
+    lsimplify = .true.; if ( present(simplify) ) lsimplify = simplify
+
+    if ( size(bxs) .eq. 0 ) then
+       call destroy(bpt)
+       return
+    end if
+    
+    if ( empty(ba) ) then
+       call list_build_v_box(bl, bxs)
+    else
+       call list_build_v_box(bl, ba%bxs)
+       call destroy(ba)
+       call list_build_v_box(bltmp, bxs)
+       call splice(bl, bltmp)
+    end if
+
+    call boxarray_build_l(ba, bl, sort=.false.)
+
+    if (size(bl) .eq. 1) then
+       call destroy(bl)
+       call destroy(bpt)
+       return
+    end if
+
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
+
+    i = 0
+
+    do while (size(bl) > 1)
+       bx = list_front_box(bl)
+       call pop_front(bl)
+       i = i+1
+
+       bi => layout_get_box_intersector(la, bx)
+       
+       if (size(bi) < 1) then
+          call push_back(blclean, bx)
+       else
+          intersect = .false.
+          do j=1, size(bi)
+             if (bi(j)%i > i) then
+                intersect = .true.
+                bltmp = boxlist_box_diff(bx, bi(j)%bx)
+                call splice(blclean, bltmp)
+                exit
+             end if
+          end do
+          if (.not.intersect) call push_back(blclean, bx)
+       end if
+       
+       deallocate(bi)
+    end do
+
+    call destroy(ba)
+    call destroy(la)
+
+    ! there is still one box left in the list
+    call push_back(blclean, list_front_box(bl))
+    call destroy(bl)
+
+    if ( lsimplify ) call boxlist_simplify(blclean)
+
+    call boxarray_build_copy_l(ba, blclean)
+    call destroy(blclean)
+    call destroy(bpt)
+
+  end subroutine boxarray_add_clean_boxes
+
+  subroutine boxarray_to_domain(ba)
+    type(boxarray), intent(inout) :: ba
+    type(boxarray) :: ba1
+    call boxarray_add_clean_boxes(ba1, ba%bxs)
+    call boxarray_destroy(ba)
+    ba = ba1
+  end subroutine boxarray_to_domain
+
 end module layout_module
