@@ -15,9 +15,6 @@ PROFILE        = FALSE
 USE_MPI        = TRUE
 USE_OMP        = FALSE
 
-COMP           = g++
-FCOMP          = gfortran
-
 NEEDSCHEM      = FALSE
 NEEDSGEOM      = FALSE
 
@@ -41,13 +38,6 @@ endif
 #
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
-
-# Override compiler settings from Make.defs, default to using MPI compiler wrappers
-CXX := mpic++
-CC  := mpicc
-FC  := mpif90
-fC  := mpif90
-F90 := mpif90
 
 FFLAGS   += -fPIC
 fFLAGS   += -fPIC
@@ -127,7 +117,7 @@ vpath %.f90 $(VPATH_LOCATIONS)
 
 PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
 NPINCLUDE := $(shell python -c 'import numpy; print numpy.get_include()')
-PYLIBS    := $(shell python-config --libs)
+PYLIBS    := -L$(shell python-config --prefix)/lib $(shell python-config --libs)
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
@@ -141,7 +131,7 @@ PYSO    = $(OUT)/_bl$(DIM).so
 all: $(PYSO)
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	$(F90) -shared -o $@ $^ ${SHARED_LIBRARIES} -lstdc++ ${PYLIBS}
+	$(CXX) -shared -o $@ $^ ${SHARED_LIBRARIES} ${PYLIBS}
 
 wrapper: $(WRAPPER)
 $(WRAPPER): swig/boxlib.i
