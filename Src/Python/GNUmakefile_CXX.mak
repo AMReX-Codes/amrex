@@ -122,7 +122,8 @@ PYLIBS    := $(shell python-config --ldflags)
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
 ifeq ($(FCOMP), gfortran)
-  override XTRALIBS += -lquadmath
+  __quadmath := $(dir $(shell gfortran --print-file-name=libquadmath.a))
+  override XTRALIBS += -L$(__quadmath) -lquadmath
 endif
 
 #
