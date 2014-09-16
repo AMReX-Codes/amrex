@@ -569,16 +569,13 @@ contains
 
   subroutine layout_flush_copyassoc_cache ()
     type(copyassoc), pointer :: cp, ncp
-    integer                  :: i
 
-    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
        cp => ncp
-       i  =  i + 1
     end do
 
     the_copyassoc_cnt  =  0
