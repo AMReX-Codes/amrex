@@ -121,9 +121,16 @@ PYLIBS    := $(shell python-config --ldflags)
 
 INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
+FORTLIBS =
 ifeq ($(FCOMP), gfortran)
-  __quadmath := $(dir $(shell gfortran --print-file-name=libquadmath.a))
-  override XTRALIBS += -L$(__quadmath) -lquadmath
+  __gcc_lib_dir := $(dir $(shell gfortran --print-file-name=libgfortran.so))
+  ifneq ($(_gcc_lib_dir),libgfortran.so)
+    FORTLIBS += -L$(__gcc_lib_dir) -lgfortran
+  endif
+  __gcc_lib_dir := $(dir $(shell gfortran --print-file-name=libquadmath.so))
+  ifneq ($(_gcc_lib_dir),libquadmath.so)
+    FORTLIBS += -L$(__gcc_lib_dir) -lquadmath
+  endif
 endif
 
 #
@@ -136,7 +143,7 @@ PYSO    = $(OUT)/_bl$(DIM).so
 all: $(PYSO)
 
 $(PYSO): $(objForExecs) $(objEXETempDir)/boxlib_wrap_$(DIM).o
-	$(CXX) -shared -o $@ $^ ${SHARED_LIBRARIES} ${XTRALIBS} ${PYLIBS}
+	$(CXX) -shared -o $@ $^ ${SHARED_LIBRARIES} ${PYLIBS} ${FORTLIBS}
 
 wrapper: $(WRAPPER)
 $(WRAPPER): swig/boxlib.i
