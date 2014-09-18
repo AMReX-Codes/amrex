@@ -43,6 +43,14 @@ class Profiler
       static int csVersion;
     };
 
+    struct RStartStop {
+      RStartStop(const bool s, const int r, const Real t)
+        : rssStart(s), rssRNumber(r), rssTime(t)  { }
+      bool rssStart;
+      int  rssRNumber;
+      Real rssTime;
+    };
+
     enum CommFuncType {
       InvalidCFT = 0,  //  0
       AllReduceT,      //  1
@@ -173,6 +181,13 @@ class Profiler
 
     static void PerfMonProcess();
 
+    static void WriteHeader(std::ostream &os, const int colWidth,
+                            const Real maxlen, const bool bwriteavg);
+    static void WriteRow(std::ostream &os, const std::string &fname,
+                         const ProfStats &pstats, const Real percent,
+			 const int colWidth, const Real maxlen,
+			 const bool bwriteavg);
+
   private:
     Real bltstart, bltelapsed;
     std::string fname;
@@ -199,13 +214,6 @@ class Profiler
     static std::string blProfDirName;
     static std::string blCommProfDirName;
 
-    static void WriteHeader(std::ostream &os, const int colWidth,
-                            const Real maxlen, const bool bwriteavg);
-    static void WriteRow(std::ostream &os, const std::string &fname,
-                         const ProfStats &pstats, const Real percent,
-			 const int colWidth, const Real maxlen,
-			 const bool bwriteavg);
-
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
 
@@ -218,6 +226,7 @@ class Profiler
     static std::vector<int> currentRegions;
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
     static int nRegionOverlaps;
+    static std::vector<RStartStop> rStartStop;
 
     typedef std::pair<Real, int> RIpair;
     struct fTTComp {
