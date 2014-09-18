@@ -72,6 +72,7 @@ int Profiler::prevDepth(0);
 std::vector<int> Profiler::currentRegions;
 std::map<std::string, int> Profiler::mRegionNameNumbers;
 int Profiler::nRegionOverlaps(0);
+std::vector<Profiler::RStartStop> Profiler::rStartStop;
 int Profiler::CallStats::csVersion = 1;
 #endif
 
@@ -333,6 +334,7 @@ void Profiler::AddStep(const int snum) {
 
 #ifdef BL_CALL_TRACE
 void Profiler::RegionStart(const std::string &rname) {
+  Real rsTime(ParallelDescriptor::second() - startTime);
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << ">>>> RegionStart:  " << rname << std::endl;
   }
@@ -352,10 +354,12 @@ void Profiler::RegionStart(const std::string &rname) {
                 << currentRegions[i] << std::endl;
     }
   }
+  rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
 }
 
 
 void Profiler::RegionStop(const std::string &rname) {
+  Real rsTime(ParallelDescriptor::second() - startTime);
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << "<<<< RegionStop:  " << rname << std::endl;
   }
@@ -394,6 +398,7 @@ void Profiler::RegionStop(const std::string &rname) {
                 << crTemp[i] << std::endl;
     }
   }
+  rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
 }
 #endif
 
@@ -624,6 +629,8 @@ void Profiler::Finalize() {
         BoxLib::FileOpenFailed(globalHeaderFileName);
       }
       csGlobalHeaderFile << "CallStatsProfVersion  " << CallStats::csVersion << '\n';
+      csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
+      csGlobalHeaderFile << "NOutFiles  " << nOutFiles << '\n';
 
       for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
           it != mRegionNameNumbers.end(); ++it)
@@ -667,6 +674,16 @@ void Profiler::Finalize() {
 	  {
 	    csFile << "fName " << '"' << it->first << '"' << ' ' << it->second << '\n';
 	  }
+	  for(int i(0); i < rStartStop.size(); ++i) {
+	    const RStartStop &rss = rStartStop[i];
+	    if(rss.rssStart) {
+	      csFile << std::setprecision(16)
+	             << "rStart " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
+	    } else {
+	      csFile << std::setprecision(16)
+	             << "rStop  " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
+	    }
+	  }
 	  for(int i(0); i < vCallTrace.size(); ++i) {
 	    CallStats &cs = vCallTrace[i];
 	    csFile << "fn " << cs.csFNameNumber << " rg ";
@@ -674,6 +691,7 @@ void Profiler::Finalize() {
 	      csFile << cs.regions[r] << ' ';
 	    }
 	    csFile << std::setiosflags(std::ios::showpoint)
+	           << std::setprecision(16)
 	           << " tt " << cs.totalTime << " st " << cs.stackTime << '\n';
 	  }
           // ----------------------------- end write to file here
