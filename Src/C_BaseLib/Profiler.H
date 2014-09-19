@@ -178,6 +178,7 @@ class Profiler
     static inline int ProcNumber() { return procNumber; }
     static void SetBlProfDirName(const std::string &name) { blProfDirName = name; }
     static void SetBlCommProfDirName(const std::string &name) { blCommProfDirName = name; }
+    static void SetNoOutput() { bNoOutput = true; }
 
     static void PerfMonProcess();
 
@@ -195,7 +196,7 @@ class Profiler
 
     static bool bWriteAll, bWriteFabs;
     static bool bFirstCommWriteH, bFirstCommWriteD;
-    static bool bInitialized;
+    static bool bInitialized, bNoOutput;
     static int  currentStep, csFlushSize, nProfFiles;
     static int  finestLevel, maxLevel;
     static Real pctTimeLimit;

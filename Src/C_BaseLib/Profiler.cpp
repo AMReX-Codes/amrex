@@ -17,6 +17,7 @@
 
 
 bool Profiler::bWriteAll = true;
+bool Profiler::bNoOutput = false;
 bool Profiler::bWriteFabs = true;
 bool Profiler::bFirstCommWriteH = true;  // header
 bool Profiler::bFirstCommWriteD = true;  // data
@@ -405,6 +406,10 @@ void Profiler::RegionStop(const std::string &rname) {
 
 void Profiler::Finalize() {
   if( ! bInitialized) {
+    return;
+  }
+  if(bNoOutput) {
+    bInitialized = false;
     return;
   }
 
