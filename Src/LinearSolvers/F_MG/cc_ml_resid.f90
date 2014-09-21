@@ -297,7 +297,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
-       j = indxmap(j)
+       j = indxmap(i)
        dim = abs(facemap(i))
        face = sign(1, facemap(i))
 
