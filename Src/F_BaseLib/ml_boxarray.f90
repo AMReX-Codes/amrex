@@ -1,7 +1,6 @@
 module ml_boxarray_module
 
   use boxarray_module
-  use layout_module
 
   implicit none
 
@@ -60,6 +59,8 @@ module ml_boxarray_module
   end interface
 
   type(mem_stats), private, save :: ml_boxarray_ms
+
+  private :: boxarray_intersection_bx
 
 contains
 
@@ -228,6 +229,7 @@ contains
   end subroutine ml_boxarray_maxsize_v
 
   function ml_boxarray_clean(mba) result(r)
+    use layout_module
     logical :: r
     type(ml_boxarray), intent(in) :: mba
     type(box), pointer :: pbxs(:)
@@ -315,7 +317,7 @@ contains
        call boxarray_refine(ba_crse_fine,mba%rr(i-1,:))
        call boxarray_build_copy(ba_fine,mba%bas(i))
        call boxarray_grow(ba_fine, lnp)
-       call boxarray_intersection(ba_fine, mba%pd(i))
+       call boxarray_intersection_bx(ba_fine, mba%pd(i))
        r = contains(ba_crse_fine, ba_fine)
        call destroy(ba_fine)
        if ( .not. r ) then
@@ -391,7 +393,7 @@ contains
        call boxarray_build_copy(ba, mba%bas(i+1))
        call boxarray_coarsen(ba, mba%rr(i,:))
        call boxarray_diff(ba, mba%bas(i))
-       call boxarray_intersection(ba, mba%pd(i))
+       call boxarray_intersection_bx(ba, mba%pd(i))
        if ( .not. empty(ba) ) then
           call boxarray_destroy(ba)
           r = .false.
@@ -401,6 +403,22 @@ contains
     end do
     r = .true.
   end function ml_boxarray_properly_nested_old
+
+  !
+  ! This is a very naive implementation that works perfectly here
+  ! because bx is the physical domain box that intersects with every boxes in ba.
+  !
+  subroutine boxarray_intersection_bx(ba, bx)
+    type(boxarray), intent(inout) :: ba
+    type(box), intent(in) :: bx
+    integer :: i
+    !$OMP PARALLEL DO
+    do i = 1, ba%nboxes
+      ba%bxs(i) = intersection(ba%bxs(i), bx)
+    end do
+    !$OMP END PARALLEL DO
+    call boxarray_simplify(ba)
+  end subroutine boxarray_intersection_bx
 
   subroutine ml_boxarray_print(mba, str, unit, skip)
     use bl_IO_module
