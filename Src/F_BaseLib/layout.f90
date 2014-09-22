@@ -282,10 +282,6 @@ module layout_module
      module procedure layout_get_pmask
   end interface
 
-  interface boxarray_intersection
-     module procedure boxarray_intersection_bx
-  end interface
-
   interface contains
      module procedure boxarray_box_contains
      module procedure boxarray_boxarray_contains
@@ -3059,32 +3055,6 @@ contains
 
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
-
-
-  subroutine boxarray_intersection_bx(ba, bx)
-    type(boxarray), intent(inout) :: ba
-    type(box), intent(in) :: bx
-    integer :: i
-    type(box_intersector), pointer  :: bi(:)
-    type(layout) :: la
-    type(list_box) :: bxl
-
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
-
-    bi => layout_get_box_intersector(la, bx)
-
-    do i=1,size(bi)
-       call push_back(bxl, bi(i)%bx)
-    end do
-    
-    deallocate(bi)
-    call layout_destroy(la)
-    call boxarray_destroy(ba)
-
-    call boxlist_simplify(bxl)
-    call boxarray_build_l(ba, bxl)
-    call destroy(bxl)
-  end subroutine boxarray_intersection_bx
 
 
   function boxarray_clean(boxes) result(r)
