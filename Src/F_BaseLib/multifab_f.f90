@@ -443,10 +443,6 @@ contains
     r = mf%nodal(1:mf%dim)
   end function lmultifab_nodal_flags
 
-  subroutine multifab_set_alltoallv(val)
-    logical val
-  end subroutine multifab_set_alltoallv
-
   function multifab_local_index(mf,i) result(r)
     integer,         intent(in) :: i
     type(multifab),  intent(in) :: mf
