@@ -1,6 +1,7 @@
 module ml_boxarray_module
 
   use boxarray_module
+  use layout_module
 
   implicit none
 
