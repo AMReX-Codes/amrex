@@ -3065,29 +3065,54 @@ contains
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
     integer :: i
-    !$OMP PARALLEL DO
-    do i = 1, ba%nboxes
-      ba%bxs(i) = intersection(ba%bxs(i), bx)
+    type(box_intersector), pointer  :: bi(:)
+    type(layout) :: la
+    type(list_box) :: bxl
+
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
+
+    bi => layout_get_box_intersector(la, bx)
+
+    do i=1,size(bi)
+       call push_back(bxl, bi(i)%bx)
     end do
-    !$OMP END PARALLEL DO
-    call boxarray_simplify(ba)
+    
+    deallocate(bi)
+    call layout_destroy(la)
+    call boxarray_destroy(ba)
+
+    call boxlist_simplify(bxl)
+    call boxarray_build_l(ba, bxl)
+    call destroy(bxl)
   end subroutine boxarray_intersection_bx
 
 
   function boxarray_clean(boxes) result(r)
     logical :: r
     type(box), intent(in), dimension(:) :: boxes
-    integer :: i, j
-
-    do i = 1, size(boxes)-1
-       do j = i+1, size(boxes)
-          if ( intersects(boxes(i),boxes(j)) ) then
-             r = .FALSE.
-             return
-          end if
-       end do
+    integer :: i
+    type(box_intersector), pointer  :: bi(:)
+    type(layout) :: la
+    type(boxarray) :: ba
+    
+    call boxarray_build_v(ba, boxes, sort=.false.)
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    
+    do i=1,size(boxes)
+       bi => layout_get_box_intersector(la, boxes(i))
+       if(size(bi) .ne. 1) then
+          deallocate(bi)
+          call destroy(ba)
+          call destroy(la)
+          r = .false.
+          return
+       end if
+       deallocate(bi)
     end do
-    r = .TRUE.
+    call destroy(ba)
+    call destroy(la)
+    r = .true.
+    return
   end function boxarray_clean
 
 
@@ -3095,36 +3120,15 @@ contains
     use bl_prof_module
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bx
-    type(list_box) :: check, tmp, tmpbl, bl
-    type(list_box_node), pointer :: cp, lp
+    type(box) :: bxs(1)
     type(bl_prof_timer), save :: bpt
-
     if ( empty(ba) ) then
        call boxarray_build_bx(ba, bx)
        return
     end if
     call build(bpt, "ba_add_clean")
-    call list_build_v_box(bl, ba%bxs)
-    call push_back(check, bx)
-    lp => begin(bl)
-    do while ( associated(lp) )
-       cp => begin(check)
-       do while ( associated(cp) )
-          if ( intersects(value(cp), value(lp)) ) then
-             tmpbl = boxlist_box_diff(value(cp), value(lp))
-             call splice(tmp, tmpbl)
-             cp => erase(check, cp)
-          else
-             cp => next(cp)
-          end if
-       end do
-       call splice(check, tmp)
-       lp => next(lp)
-    end do
-    call splice(bl, check)
-    call boxlist_simplify(bl)
-    call boxarray_build_copy_l(ba, bl)
-    call list_destroy_box(bl)
+    bxs(1) = bx
+    call boxarray_add_clean_boxes(ba, bxs, simplify=.true.)
     call destroy(bpt)
   end subroutine boxarray_add_clean
 
@@ -3229,23 +3233,57 @@ contains
     type(box),      intent(in) :: bx
 
     type(list_box) :: bl1, bl
-    type(box)      :: bx1
     integer        :: i
+    type(box_intersector), pointer  :: bi(:)
+    type(layout) :: la
 
     if ( nboxes(ba) .eq. 0 ) &
        call bl_error('Empty boxarray in boxarray_box_contains')
+    
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
 
-    call build(bl1)
-    do i = 1, nboxes(ba)
-       bx1 = intersection(bx, get_box(ba,i))
-       if ( empty(bx1) ) cycle
-       call push_back(bl1, bx1)
+    bi => layout_get_box_intersector(la, bx)    
+
+    do i = 1, size(bi)
+       call push_back(bl1, bi(i)%bx)
     end do
+
+    deallocate(bi)
+    call destroy(la)
+
     bl = boxlist_boxlist_diff(bx, bl1)
     r = empty(bl)
     call destroy(bl)
     call destroy(bl1)
   end function boxarray_box_contains
+
+
+  function layout_box_contains(la, bx) result(r)
+    use bl_error_module
+    logical                    :: r
+    type(layout),   intent(inout) :: la
+    type(box),      intent(in   ) :: bx
+
+    type(list_box) :: bl1, bl
+    integer        :: i
+    type(box_intersector), pointer  :: bi(:)
+
+    if ( nboxes(la) .eq. 0 ) &
+       call bl_error('Empty boxarray in layout_box_contains')
+    
+    bi => layout_get_box_intersector(la, bx)    
+
+    do i = 1, size(bi)
+       call push_back(bl1, bi(i)%bx)
+    end do
+
+    deallocate(bi)
+
+    bl = boxlist_boxlist_diff(bx, bl1)
+    r = empty(bl)
+    call destroy(bl)
+    call destroy(bl1)
+  end function layout_box_contains
 
 
   function boxarray_boxarray_contains(ba1, ba2, allow_empty) result(r)
@@ -3257,6 +3295,7 @@ contains
 
     integer :: i
     logical :: lallow
+    type(layout) :: la1
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ba_ba_contains")
@@ -3270,24 +3309,30 @@ contains
     if ( nboxes(ba2) .eq. 0 ) &
        call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
 
+    call build(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
+
     if ( lallow) then
        do i = 1, nboxes(ba2)
           if (empty(get_box(ba2,i))) cycle !ignore empty boxes
-          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
+          r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
+             call destroy(la1)
              call destroy(bpt)
              return
           end if
        end do
     else
        do i = 1, nboxes(ba2)
-          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
+          r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
+             call destroy(la1)
              call destroy(bpt)
              return
           end if
        end do
     endif
+
+    call destroy(la1)
 
     r = .true.
 
