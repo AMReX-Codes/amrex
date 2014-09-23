@@ -316,7 +316,7 @@ contains
                 call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
                                      mp(:,:,1,1), ng, ratio(dim), face, dim)
              else
-                call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+                call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
                                      mp(:,:,1,1), ng, ratio(dim), face, dim)
              end if
           case (3)
