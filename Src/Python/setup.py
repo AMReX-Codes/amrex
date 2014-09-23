@@ -27,6 +27,8 @@ class build_boxlib(build):
             mpihome = os.environ.get('MPIHOME', None)
             if mpihome is None:
                 mpicc   = find_executable('mpicc')
+                if mpicc is None:
+                    raise ValueError("'mpicc' not found.  Please install MPI so that 'mpicc' and 'mpicxx' are in your PATH, or set MPIHOME appropriately.")
                 mpihome = os.path.dirname(os.path.dirname(mpicc))
             print '*' * 80
             call([ 'make', 'MPI_HOME=' + mpihome, 'CC=' + cc, 'CXX=' + cxx, 'OUT=' + self.build_temp ])
