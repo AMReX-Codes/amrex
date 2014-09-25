@@ -31,6 +31,10 @@ class Profiler
     };
 
     struct CallStats {
+      CallStats() : callStackDepth(-2),
+                    csFNameNumber(-2),
+                    nCalls(0), totalTime(0.0),
+		    stackTime(0.0)  { }
       CallStats(int depth, int fnamenumber) : callStackDepth(depth),
                                               csFNameNumber(fnamenumber),
                                               nCalls(0), totalTime(0.0),
@@ -44,7 +48,9 @@ class Profiler
     };
 
     struct RStartStop {
-      RStartStop(const bool s, const int r, const Real t)
+      RStartStop()
+        : rssStart(false), rssRNumber(-2), rssTime(0.0)  { }
+      RStartStop(bool s, int r, Real t)
         : rssStart(s), rssRNumber(r), rssTime(t)  { }
       bool rssStart;
       int  rssRNumber;
@@ -139,6 +145,7 @@ class Profiler
     static void Finalize();
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
 #ifdef BL_CALL_TRACE
+    static void WriteCallTrace(const bool bFlushing = false);
 #ifdef BL_CALL_TRACE_HTML
     static void WriteHTML();
 #endif
@@ -219,6 +226,7 @@ class Profiler
     static int  NameTagNameIndex(const std::string &name);
 
 #ifdef BL_CALL_TRACE
+    static bool bFirstTraceWriteH, bFirstTraceWriteD;
     static std::vector<CallStats> vCallTrace;
     static std::stack<int> callIndexStack;
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]

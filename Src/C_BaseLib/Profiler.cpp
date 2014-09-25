@@ -65,6 +65,8 @@ std::string Profiler::blProfDirName("bl_prof");
 std::string Profiler::blCommProfDirName("bl_comm_prof");
 
 #ifdef BL_CALL_TRACE
+bool Profiler::bFirstTraceWriteH = true;  // header
+bool Profiler::bFirstTraceWriteD = true;  // data
 std::vector<Profiler::CallStats> Profiler::vCallTrace;
 std::stack<int> Profiler::callIndexStack;
 std::map<std::string, int> Profiler::mFNameNumbers;
@@ -386,7 +388,6 @@ void Profiler::RegionStop(const std::string &rname) {
       crTemp.push_back(currentRegions[i]);
     }
   }
-  //currentRegions.clear();
   currentRegions = crTemp;
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << "|||| RegionStop:  " << rname << std::endl;
@@ -549,6 +550,7 @@ void Profiler::Finalize() {
       bWriteAvg = false;
     }
     WriteStats(std::cout, bWriteAvg);
+
 #ifdef BL_CALL_TRACE
 #ifdef BL_CALL_TRACE_HTML
     WriteHTML();
@@ -625,101 +627,7 @@ void Profiler::Finalize() {
     // --------------------- end nfiles block
 
 #ifdef BL_CALL_TRACE
-    if(ParallelDescriptor::IOProcessor()) {
-      std::string globalHeaderFileName(cdir + '/' + "bl_call_stats_H");
-      std::ofstream csGlobalHeaderFile;
-      csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
-                              std::ios::out | std::ios::trunc);
-      if( ! csGlobalHeaderFile.good()) {
-        BoxLib::FileOpenFailed(globalHeaderFileName);
-      }
-      csGlobalHeaderFile << "CallStatsProfVersion  " << CallStats::csVersion << '\n';
-      csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
-      csGlobalHeaderFile << "NOutFiles  " << nOutFiles << '\n';
-
-      for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
-          it != mRegionNameNumbers.end(); ++it)
-      {
-        csGlobalHeaderFile << "RegionName " << '"' << it->first << '"'
-	                   << ' ' << it->second << '\n';
-      }
-      for(int i(0); i < nOutFiles; ++i) {
-        std::string headerName("bl_call_stats_H_");
-        headerName = BoxLib::Concatenate(headerName, i, 4);
-        csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
-      }
-      csGlobalHeaderFile.flush();
-      csGlobalHeaderFile.close();
-    }
-
-    std::string rFileName(cdir + '/' + "bl_call_stats_H_");
-    std::string rFullName  = BoxLib::Concatenate(rFileName, myProc % nOutFiles, 4);
-
-    for(int iSet = 0; iSet < nSets; ++iSet) {
-      if(mySet == iSet) {
-        {  // scope
-          std::ofstream csFile;
-
-          if(iSet == 0) {   // First set.
-            csFile.open(rFullName.c_str(),
-                        std::ios::out|std::ios::trunc|std::ios::binary);
-          } else {
-            csFile.open(rFullName.c_str(),
-                        std::ios::out|std::ios::app|std::ios::binary);
-            csFile.seekp(0, std::ios::end);   // set to eof
-          }
-          if( ! csFile.good()) {
-            BoxLib::FileOpenFailed(rFullName);
-          }
-
-          // ----------------------------- write to file here
-          csFile << "CallStatsProc " << myProc << '\n';
-	  for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
-	      it != mFNameNumbers.end(); ++it)
-	  {
-	    csFile << "fName " << '"' << it->first << '"' << ' ' << it->second << '\n';
-	  }
-	  for(int i(0); i < rStartStop.size(); ++i) {
-	    const RStartStop &rss = rStartStop[i];
-	    if(rss.rssStart) {
-	      csFile << std::setprecision(16)
-	             << "rStart " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
-	    } else {
-	      csFile << std::setprecision(16)
-	             << "rStop  " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
-	    }
-	  }
-	  for(int i(0); i < vCallTrace.size(); ++i) {
-	    CallStats &cs = vCallTrace[i];
-	    csFile << "fn " << cs.csFNameNumber << " rg ";
-	    for(int r(0); r < cs.regions.size(); ++r) {
-	      csFile << cs.regions[r] << ' ';
-	    }
-	    csFile << std::setiosflags(std::ios::showpoint)
-	           << std::setprecision(16)
-	           << " tt " << cs.totalTime << " st " << cs.stackTime << '\n';
-	  }
-          // ----------------------------- end write to file here
-
-          csFile.flush();
-          csFile.close();
-        }  // end scope
-
-        int iBuff     = 0;
-        int wakeUpPID = (myProc + nOutFiles);
-        int tag       = (myProc % nOutFiles);
-        if(wakeUpPID < nProcs) {
-          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
-        }
-      }
-      if(mySet == (iSet + 1)) {   // Next set waits.
-        int iBuff;
-        int waitForPID = (myProc - nOutFiles);
-        int tag        = (myProc % nOutFiles);
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
-      }
-    }
-    // --------------------- end nfiles block
+    WriteCallTrace();     // --------------------- write call trace data
 #endif
 
 
@@ -731,9 +639,8 @@ void Profiler::Finalize() {
   }
 
 
-  // --------------------------------------- print communication stats
 #ifdef BL_COMM_PROFILING
-  WriteCommStats();
+  WriteCommStats();       // --------------------- write communication data
 #endif
 
   // report any fortran errors.  should really check with all procs, just iop for now
@@ -932,6 +839,162 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 #endif
 }
+
+
+#ifdef BL_CALL_TRACE
+void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
+    std::string cdir(blProfDirName);
+    const int   myProc    = ParallelDescriptor::MyProc();
+    const int   nProcs    = ParallelDescriptor::NProcs();
+    const int   nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
+    const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
+    const int   mySet     = myProc/nOutFiles;
+    std::string cFilePrefix("bl_call_stats");
+    std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
+    std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::string globalHeaderFileName(cdir + '/' + cFilePrefix + "_H");
+      std::ofstream csGlobalHeaderFile;
+      csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
+                              std::ios::out | std::ios::trunc);
+      if( ! csGlobalHeaderFile.good()) {
+        BoxLib::FileOpenFailed(globalHeaderFileName);
+      }
+      csGlobalHeaderFile << "CallStatsProfVersion  " << CallStats::csVersion << '\n';
+      csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
+      csGlobalHeaderFile << "NOutFiles  " << nOutFiles << '\n';
+
+      for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
+          it != mRegionNameNumbers.end(); ++it)
+      {
+        csGlobalHeaderFile << "RegionName " << '"' << it->first << '"'
+	                   << ' ' << it->second << '\n';
+      }
+      for(int i(0); i < nOutFiles; ++i) {
+        std::string headerName(cFilePrefix + "_H_");
+        headerName = BoxLib::Concatenate(headerName, i, 4);
+        csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+      }
+      csGlobalHeaderFile.flush();
+      csGlobalHeaderFile.close();
+    }
+
+    std::string shortDFileName(cFilePrefix + "_D_");
+    shortDFileName  = BoxLib::Concatenate(shortDFileName, myProc % nOutFiles, 4);
+    std::string longDFileName(cdir + '/' + shortDFileName);
+
+    std::string shortHeaderFileName(cFilePrefix + "_H_");
+    shortHeaderFileName  = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
+    std::string longHeaderFileName(cdir + '/' + shortHeaderFileName);
+
+    for(int iSet = 0; iSet < nSets; ++iSet) {
+      if(mySet == iSet) {
+        {  // scope
+          std::ofstream csDFile, csHeaderFile;
+
+          if(iSet == 0 && bFirstTraceWriteH) {   // First set.
+	    bFirstTraceWriteH = false;
+            csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
+          } else {
+            csHeaderFile.open(longHeaderFileName.c_str(), std::ios::out | std::ios::app);
+            csHeaderFile.seekp(0, std::ios::end);   // set to eof
+          }
+          if( ! csHeaderFile.good()) {
+            BoxLib::FileOpenFailed(longHeaderFileName);
+          }
+
+          if(iSet == 0 && bFirstTraceWriteD) {   // First set.
+	    bFirstTraceWriteD = false;
+            csDFile.open(longDFileName.c_str(),
+	                 std::ios::out | std::ios::trunc | std::ios::binary);
+          } else {
+            csDFile.open(longDFileName.c_str(),
+	                 std::ios::out | std::ios::app | std::ios::binary);
+            csDFile.seekp(0, std::ios::end);   // set to eof
+          }
+          if( ! csDFile.good()) {
+            BoxLib::FileOpenFailed(longDFileName);
+          }
+
+          // ----------------------------- write to file here
+          csHeaderFile << "CallStatsProc " << myProc
+		       << " nRSS " << rStartStop.size()
+		       << " nTraceStats " << vCallTrace.size()
+		       << "  datafile  " << shortDFileName
+		       << "  seekpos  " << csDFile.tellp()
+	               << '\n';
+	  for(std::map<std::string, int>::iterator it = mFNameNumbers.begin();
+	      it != mFNameNumbers.end(); ++it)
+	  {
+	    csHeaderFile << "fName " << '"' << it->first << '"'
+	                 << ' ' << it->second << '\n';
+	  }
+
+	  /*
+	  for(int i(0); i < rStartStop.size(); ++i) {
+	    const RStartStop &rss = rStartStop[i];
+	    if(rss.rssStart) {
+	      csFile << std::setprecision(16)
+	             << "rStart " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
+	    } else {
+	      csFile << std::setprecision(16)
+	             << "rStop  " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
+	    }
+	  }
+	  for(int i(0); i < vCallTrace.size(); ++i) {
+	    CallStats &cs = vCallTrace[i];
+	    csFile << "fn " << cs.csFNameNumber << " rg ";
+	    for(int r(0); r < cs.regions.size(); ++r) {
+	      csFile << cs.regions[r] << ' ';
+	    }
+	    csFile << std::setiosflags(std::ios::showpoint)
+	           << std::setprecision(16)
+	           << " tt " << cs.totalTime << " st " << cs.stackTime << '\n';
+	  }
+	  */
+
+          csHeaderFile.flush();
+          csHeaderFile.close();
+
+	  csDFile.write((char *) &rStartStop[0], rStartStop.size() * sizeof(RStartStop));
+	  for(int i(0); i < vCallTrace.size(); ++i) {
+	    csDFile.write((char *) &vCallTrace[i].callStackDepth, sizeof(int));
+	    csDFile.write((char *) &vCallTrace[i].csFNameNumber, sizeof(int));
+	    csDFile.write((char *) &vCallTrace[i].nCalls, sizeof(long));
+	    csDFile.write((char *) &vCallTrace[i].totalTime, sizeof(Real));
+	    csDFile.write((char *) &vCallTrace[i].stackTime, sizeof(Real));
+	    int rsize(vCallTrace[i].regions.size());
+	    csDFile.write((char *) &rsize, sizeof(int));
+	    for(int ir(0); ir < rsize; ++ir) {
+	      int r(vCallTrace[i].regions[ir]);
+	      csDFile.write((char *) &r, sizeof(int));
+	    }
+	  }
+
+	  csDFile.flush();
+	  csDFile.close();
+          // ----------------------------- end write to file here
+        }  // end scope
+
+        int iBuff     = 0;
+        int wakeUpPID = (myProc + nOutFiles);
+        int tag       = (myProc % nOutFiles);
+        if(wakeUpPID < nProcs) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        }
+      }
+      if(mySet == (iSet + 1)) {   // Next set waits.
+        int iBuff;
+        int waitForPID = (myProc - nOutFiles);
+        int tag        = (myProc % nOutFiles);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+      }
+    }
+    // --------------------- end nfiles block
+}
+#endif
+
 
 
 #ifdef BL_CALL_TRACE
