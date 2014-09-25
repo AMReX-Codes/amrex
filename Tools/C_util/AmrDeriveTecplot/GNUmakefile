@@ -11,7 +11,6 @@ AIXLARGEMEM = FALSE
 COMP        = g++
 FCOMP       = gfortran
 BINARY_OUTPUT = FALSE
-BINARY_OUTPUT = TRUE
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
