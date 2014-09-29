@@ -31,18 +31,16 @@ class Profiler
     };
 
     struct CallStats {
-      CallStats() : callStackDepth(-2),
-                    csFNameNumber(-2),
+      CallStats() : callStackDepth(-2), csFNameNumber(-2),
                     nCalls(0), totalTime(0.0),
-		    stackTime(0.0)  { }
+		    stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber) : callStackDepth(depth),
                                               csFNameNumber(fnamenumber),
                                               nCalls(0), totalTime(0.0),
-					      stackTime(0.0)  { }
+					      stackTime(0.0), callTime(0.0)  { }
       int callStackDepth, csFNameNumber;
       long nCalls;
-      Real totalTime, stackTime;
-      std::vector<int> regions;
+      Real totalTime, stackTime, callTime;
 
       static int csVersion;
     };

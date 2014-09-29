@@ -245,7 +245,7 @@ void Profiler::start() {
   if(vCallTrace.size() == 0) {
     CallStats cs(callStackDepth, fnameNumber);
     ++cs.nCalls;
-    cs.regions = currentRegions;
+    cs.callTime = bltstart;
     vCallTrace.push_back(cs);
   } else {
     int topNameNumber(fnameNumber);
@@ -254,7 +254,7 @@ void Profiler::start() {
     } else {
       CallStats cs(callStackDepth, fnameNumber);
       ++cs.nCalls;
-      cs.regions = currentRegions;
+      cs.callTime = bltstart;
       vCallTrace.push_back(cs);
     }
   }
@@ -931,46 +931,11 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 	                 << ' ' << it->second << '\n';
 	  }
 
-	  /*
-	  for(int i(0); i < rStartStop.size(); ++i) {
-	    const RStartStop &rss = rStartStop[i];
-	    if(rss.rssStart) {
-	      csFile << std::setprecision(16)
-	             << "rStart " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
-	    } else {
-	      csFile << std::setprecision(16)
-	             << "rStop  " << rss.rssRNumber << ' ' << rss.rssTime << '\n';
-	    }
-	  }
-	  for(int i(0); i < vCallTrace.size(); ++i) {
-	    CallStats &cs = vCallTrace[i];
-	    csFile << "fn " << cs.csFNameNumber << " rg ";
-	    for(int r(0); r < cs.regions.size(); ++r) {
-	      csFile << cs.regions[r] << ' ';
-	    }
-	    csFile << std::setiosflags(std::ios::showpoint)
-	           << std::setprecision(16)
-	           << " tt " << cs.totalTime << " st " << cs.stackTime << '\n';
-	  }
-	  */
-
           csHeaderFile.flush();
           csHeaderFile.close();
 
 	  csDFile.write((char *) &rStartStop[0], rStartStop.size() * sizeof(RStartStop));
-	  for(int i(0); i < vCallTrace.size(); ++i) {
-	    csDFile.write((char *) &vCallTrace[i].callStackDepth, sizeof(int));
-	    csDFile.write((char *) &vCallTrace[i].csFNameNumber, sizeof(int));
-	    csDFile.write((char *) &vCallTrace[i].nCalls, sizeof(long));
-	    csDFile.write((char *) &vCallTrace[i].totalTime, sizeof(Real));
-	    csDFile.write((char *) &vCallTrace[i].stackTime, sizeof(Real));
-	    int rsize(vCallTrace[i].regions.size());
-	    csDFile.write((char *) &rsize, sizeof(int));
-	    for(int ir(0); ir < rsize; ++ir) {
-	      int r(vCallTrace[i].regions[ir]);
-	      csDFile.write((char *) &r, sizeof(int));
-	    }
-	  }
+	  csDFile.write((char *) &vCallTrace[0], vCallTrace.size() * sizeof(CallStats));
 
 	  csDFile.flush();
 	  csDFile.close();
