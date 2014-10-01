@@ -13,6 +13,7 @@
 #include <cstring>
 #include <stack>
 #include <algorithm>
+#include <limits>
 #include <stdlib.h>
 
 
@@ -47,12 +48,12 @@ std::vector<std::string> Profiler::mFortProfsErrors;
 const int mFortProfMaxErrors(32);
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
-int Profiler::CommStats::barrierNumber = 0;
-int Profiler::CommStats::reductionNumber = 0;
-int Profiler::CommStats::tagWrapNumber = 0;
-int Profiler::CommStats::tagMin = 0;
-int Profiler::CommStats::tagMax = 0;
-int Profiler::CommStats::csVersion = 1;
+int Profiler::CommStats::barrierNumber(0);
+int Profiler::CommStats::reductionNumber(0);
+int Profiler::CommStats::tagWrapNumber(0);
+int Profiler::CommStats::tagMin(0);
+int Profiler::CommStats::tagMax(0);
+int Profiler::CommStats::csVersion(1);
 std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
 std::vector<std::pair<int,int> > Profiler::CommStats::nameTags;
 std::vector<std::string> Profiler::CommStats::nameTagNames;
@@ -65,8 +66,8 @@ std::string Profiler::blProfDirName("bl_prof");
 std::string Profiler::blCommProfDirName("bl_comm_prof");
 
 #ifdef BL_CALL_TRACE
-bool Profiler::bFirstTraceWriteH = true;  // header
-bool Profiler::bFirstTraceWriteD = true;  // data
+bool Profiler::bFirstTraceWriteH(true);  // header
+bool Profiler::bFirstTraceWriteD(true);  // data
 std::vector<Profiler::CallStats> Profiler::vCallTrace;
 std::stack<int> Profiler::callIndexStack;
 std::map<std::string, int> Profiler::mFNameNumbers;
@@ -76,7 +77,9 @@ std::vector<int> Profiler::currentRegions;
 std::map<std::string, int> Profiler::mRegionNameNumbers;
 int Profiler::nRegionOverlaps(0);
 std::vector<Profiler::RStartStop> Profiler::rStartStop;
-int Profiler::CallStats::csVersion = 1;
+int Profiler::CallStats::csVersion(1);
+Real Profiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
+Real Profiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
 #endif
 
 
@@ -146,6 +149,12 @@ void Profiler::Initialize() {
 
 #ifdef BL_CALL_TRACE
   vCallTrace.reserve(128000);
+  BL_PROFILE_REGION_START("__NoRegion__");
+  /*
+  int rnameNumber(Profiler::mRegionNameNumbers.size());
+  std::string rname("__NoRegion__");
+  Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
+  */
 #endif
 
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
@@ -247,6 +256,8 @@ void Profiler::start() {
     ++cs.nCalls;
     cs.callTime = bltstart;
     vCallTrace.push_back(cs);
+    CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart);
+    CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart);
   } else {
     int topNameNumber(fnameNumber);
     if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevDepth) {
@@ -256,6 +267,8 @@ void Profiler::start() {
       ++cs.nCalls;
       cs.callTime = bltstart;
       vCallTrace.push_back(cs);
+      CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart);
+      CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart);
     }
   }
   callIndexStack.push(vCallTrace.size() - 1);
@@ -627,6 +640,7 @@ void Profiler::Finalize() {
     // --------------------- end nfiles block
 
 #ifdef BL_CALL_TRACE
+    BL_PROFILE_REGION_STOP("__NoRegion__");
     WriteCallTrace();     // --------------------- write call trace data
 #endif
 
@@ -930,6 +944,9 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 	    csHeaderFile << "fName " << '"' << it->first << '"'
 	                 << ' ' << it->second << '\n';
 	  }
+	  csHeaderFile << std::setprecision(16) << "timeMinMax  "
+	               << CallStats::minCallTime - startTime << ' '
+	               << CallStats::maxCallTime - startTime << '\n';
 
           csHeaderFile.flush();
           csHeaderFile.close();
