@@ -43,6 +43,7 @@ class Profiler
       Real totalTime, stackTime, callTime;
 
       static int csVersion;
+      static Real minCallTime, maxCallTime;
     };
 
     struct RStartStop {
