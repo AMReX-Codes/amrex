@@ -73,13 +73,13 @@ std::stack<int> Profiler::callIndexStack;
 std::map<std::string, int> Profiler::mFNameNumbers;
 int Profiler::callStackDepth(-1);
 int Profiler::prevDepth(0);
-std::vector<int> Profiler::currentRegions;
 std::map<std::string, int> Profiler::mRegionNameNumbers;
-int Profiler::nRegionOverlaps(0);
+int Profiler::inNRegions(0);
 std::vector<Profiler::RStartStop> Profiler::rStartStop;
 int Profiler::CallStats::csVersion(1);
 Real Profiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
 Real Profiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
+const std::string Profiler::noRegionName("__NoRegion__");
 #endif
 
 
@@ -149,12 +149,7 @@ void Profiler::Initialize() {
 
 #ifdef BL_CALL_TRACE
   vCallTrace.reserve(128000);
-  BL_PROFILE_REGION_START("__NoRegion__");
-  /*
-  int rnameNumber(Profiler::mRegionNameNumbers.size());
-  std::string rname("__NoRegion__");
-  Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
-  */
+  BL_PROFILE_REGION_START(noRegionName);
 #endif
 
   CommStats::cftExclude.insert(AllCFTypes);  // temporarily
@@ -351,9 +346,14 @@ void Profiler::AddStep(const int snum) {
 #ifdef BL_CALL_TRACE
 void Profiler::RegionStart(const std::string &rname) {
   Real rsTime(ParallelDescriptor::second() - startTime);
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << ">>>> RegionStart:  " << rname << std::endl;
+
+  if(rname != noRegionName) {
+    ++inNRegions;
   }
+  if(inNRegions == 1) {
+    RegionStop(noRegionName);
+  }
+
   int rnameNumber;
   std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
   if(it == Profiler::mRegionNameNumbers.end()) {
@@ -362,27 +362,16 @@ void Profiler::RegionStart(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  currentRegions.push_back(rnameNumber);
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "|||| RegionStart:  rnameNumber = " << rnameNumber << std::endl;
-    for(int i(0); i < currentRegions.size(); ++i) {
-      std::cout << "|||| RegionStart:  currentRegions[" << i << "] = "
-                << currentRegions[i] << std::endl;
-    }
-  }
   rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
 }
 
 
 void Profiler::RegionStop(const std::string &rname) {
   Real rsTime(ParallelDescriptor::second() - startTime);
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "<<<< RegionStop:  " << rname << std::endl;
-  }
+
   int rnameNumber;
   std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
-  if(it == Profiler::mRegionNameNumbers.end()) {
-    // error
+  if(it == Profiler::mRegionNameNumbers.end()) {  // ---- error
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "-------- error in RegionStop:  region " << rname
                 << " never started."  << std::endl;
@@ -392,28 +381,14 @@ void Profiler::RegionStop(const std::string &rname) {
   } else {
     rnameNumber = it->second;
   }
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "|||| RegionStop:  rnameNumber = " << rnameNumber << std::endl;
-  }
-  std::vector<int> crTemp;
-  for(int i(0); i < currentRegions.size(); ++i) {
-    if(currentRegions[i] != rnameNumber) {
-      crTemp.push_back(currentRegions[i]);
-    }
-  }
-  currentRegions = crTemp;
-  if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "|||| RegionStop:  " << rname << std::endl;
-    for(int i(0); i < currentRegions.size(); ++i) {
-      std::cout << "[[[[ RegionStop:  currentRegions[" << i << "] = "
-                << currentRegions[i] << std::endl;
-    }
-    for(int i(0); i < crTemp.size(); ++i) {
-      std::cout << "[[[[ RegionStop:  crTemp[" << i << "] = "
-                << crTemp[i] << std::endl;
-    }
-  }
   rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
+
+  if(rname != noRegionName) {
+    --inNRegions;
+  }
+  if(inNRegions == 0) {
+    RegionStart(noRegionName);
+  }
 }
 #endif
 
@@ -640,7 +615,7 @@ void Profiler::Finalize() {
     // --------------------- end nfiles block
 
 #ifdef BL_CALL_TRACE
-    BL_PROFILE_REGION_STOP("__NoRegion__");
+    BL_PROFILE_REGION_STOP(noRegionName);
     WriteCallTrace();     // --------------------- write call trace data
 #endif
 
