@@ -231,16 +231,14 @@ class Profiler
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
     static int callStackDepth;
     static int prevDepth;
-    static std::vector<int> currentRegions;
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
-    static int nRegionOverlaps;
+    static int inNRegions;
     static std::vector<RStartStop> rStartStop;
+    static const std::string noRegionName;
 
     typedef std::pair<Real, int> RIpair;
     struct fTTComp {
-      bool operator()(const RIpair &lhs,
-                      const RIpair &rhs) const
-      {
+      bool operator()(const RIpair &lhs, const RIpair &rhs) const {
         return lhs.first > rhs.first;
       }
     };
@@ -404,6 +402,8 @@ class Profiler
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
+#define BL_PROFILE_REGION_START(rname)
+#define BL_PROFILE_REGION_STOP(rname)
 #define BL_PROFILE_FINALIZE()
 
 #define BL_COMM_PROFILE(cft, size, pid, tag)
