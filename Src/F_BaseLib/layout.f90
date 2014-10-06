@@ -292,7 +292,6 @@ module layout_module
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
-  type(mem_stats), private, save :: avx_ms
   type(mem_stats), private, save :: fgx_ms
   type(mem_stats), private, save :: snx_ms
   type(mem_stats), private, save :: cpx_ms
