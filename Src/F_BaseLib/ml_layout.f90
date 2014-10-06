@@ -233,24 +233,36 @@ contains
 
   end subroutine ml_layout_restricted_build
 
-  subroutine ml_layout_destroy(mla)
+  subroutine ml_layout_destroy(mla, keep_coarse_layout)
     type(ml_layout), intent(inout) :: mla
-    integer :: n
+    logical, intent(in), optional :: keep_coarse_layout
+    integer :: n, n0
+    logical :: lkeepcoarse
+
+    lkeepcoarse = .false.;  if (present(keep_coarse_layout)) lkeepcoarse = keep_coarse_layout
+
     do n = 1, mla%nlevel-1
        if (built_q(mla%mask(n))) call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
 
     if ( mla%destroy_all_layouts ) then
-       do n = 1, mla%nlevel
+       if (lkeepcoarse) then
+          n0 = 2
+       else
+          n0 = 1
+       end if
+       do n = n0, mla%nlevel
           call destroy(mla%la(n))
        end do
     else
-       !
-       ! We need only delete the coarsest level layout
-       ! since it 'owns' the refined levels.
-       !
-       call destroy(mla%la(1))
+       if (.not. lkeepcoarse) then
+          !
+          ! We need only delete the coarsest level layout
+          ! since it 'owns' the refined levels.
+          !
+          call destroy(mla%la(1))
+       end if
     end if
 
     deallocate(mla%la, mla%mask)
