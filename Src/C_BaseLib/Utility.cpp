@@ -1304,6 +1304,7 @@ bool BoxLib::StreamRetry::TryFileOutput()
 void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
                          std::vector<std::string> &syncedStrings, bool &alreadySynced)
 {
+#ifdef BL_USE_MPI
   const int myProc(ParallelDescriptor::MyProc());
   const int nProcs(ParallelDescriptor::NProcs());
   const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
@@ -1369,6 +1370,7 @@ void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
   ParallelDescriptor::ReduceIntMax(nUnmatched);
   if(nUnmatched == 0) {
     alreadySynced = true;
+    syncedStrings = localStrings;
     return;
   }
   alreadySynced = false;
@@ -1454,6 +1456,12 @@ void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
       }
     }
   }
+
+#else
+    alreadySynced = true;
+    syncedStrings = localStrings;
+#endif
+
 }
 
 
