@@ -821,7 +821,7 @@ FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
 void
 FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 {
-    int i, r;
+    int i;
     int rr=0;
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:rr)
@@ -842,7 +842,7 @@ FAB_CONTAINS_NAN (double dptr[], const int* countp, int* result)
 void
 FAB_CONTAINS_INF (double dptr[], const int* countp, int* result)
 {
-    int i, r;
+    int i;
     int rr=0;
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:rr)
