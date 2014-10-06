@@ -348,8 +348,17 @@ program main
           call multifab_destroy(phi_old(n))
         end do
 
-        call regrid(mla,phi_new,bndry_flx,&
+        do n=2,nlevs
+           call destroy(bndry_flx(n))       
+        end do
+
+        call regrid(mla,phi_new, &
                     nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+
+        do n = 2, nlevs
+           call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+                ml_layout_get_pd(mla,n-1),nc=1)
+        end do
 
         ! Create new phi_old after regridding
         do n = 1,nlevs
@@ -370,8 +379,10 @@ program main
      time = time + dt(1)
 
      ! Write plotfile after every plot_int time steps, or if the simulation is done.
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int .gt. 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do
@@ -422,6 +433,9 @@ program main
   if ( parallel_IOProcessor() ) then
      print*,"Run time (s) =",run_time_IOproc
   end if
+
+  ! We put this here for debugging to make sure our print statements get seen.
+  call flush(6)
 
   call boxlib_finalize()
 
