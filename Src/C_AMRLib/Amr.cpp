@@ -938,7 +938,7 @@ Amr::writePlotFile ()
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << '\n';
+            std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
 #endif
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
