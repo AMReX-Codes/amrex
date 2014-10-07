@@ -20,7 +20,6 @@ module cluster_module
   real(kind=dp_t), parameter, private :: min_eff_default  = 0.7_dp_t
 
   integer        , save :: minwidth  = minwidth_default
-  integer        , save :: ref_ratio = ref_ratio_default
   integer        , save :: blocking_factor = blocking_factor_default
   real(kind=dp_t), save :: min_eff = min_eff_default
 
@@ -85,7 +84,7 @@ contains
     r = beta
   end function cluster_get_beta
 
-  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff)
+  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff, ref_ratio)
     use bl_error_module
     use bl_prof_module
 
@@ -93,6 +92,7 @@ contains
     type(lmultifab), intent(in )           :: tagboxes
     integer,         intent(in )           :: buf_wid
     real(dp_t),      intent(out), optional :: overall_eff
+    integer,         intent(in),  optional :: ref_ratio
 
     type(layout)                 :: la, cla, la_buf
     type(list_box)               :: lboxes
@@ -162,7 +162,11 @@ contains
     buf_pd = get_pd(la_buf)
     call pd_mask(buf,buf_pd)
 
-    ratio = max(blocking_factor / ref_ratio, 1)
+    if (present(ref_ratio)) then
+       ratio = max(blocking_factor / ref_ratio, 1)
+    else
+       ratio = max(blocking_factor / ref_ratio_default, 1)
+    end if
 
     call tagboxes_coarsen(buf, cbuf, ratio)
     !

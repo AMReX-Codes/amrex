@@ -32,11 +32,7 @@ module make_new_grids_module
        type(box)         :: pd
        type(boxarray)    :: ba_new
 
-       if (present(aux_tag_mf)) then
-          call make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf)
-       else
-          call make_boxes(mf,ba_new,dx_crse,buf_wid,lev)
-       endif
+       call make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf,ref_ratio=ref_ratio)
 
        if (empty(ba_new)) then 
 
@@ -63,7 +59,7 @@ module make_new_grids_module
 
     end subroutine make_new_grids
 
-    subroutine make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf)
+    subroutine make_boxes(mf,ba_new,dx_crse,buf_wid,lev,aux_tag_mf,ref_ratio)
 
       use tag_boxes_module
 
@@ -73,6 +69,7 @@ module make_new_grids_module
       integer                 , intent(in   ) :: buf_wid
       integer       , optional, intent(in   ) :: lev
       type(multifab), optional, intent(in   ) :: aux_tag_mf
+      integer       , optional, intent(in   ) :: ref_ratio
 
       integer         :: llev
       type(lmultifab) :: tagboxes
@@ -82,11 +79,7 @@ module make_new_grids_module
       call lmultifab_build(tagboxes,get_layout(mf),1,0) 
       call setval(tagboxes, .false.)
 
-      if (present(aux_tag_mf)) then
-         call tag_boxes(mf,tagboxes,dx_crse,llev,aux_tag_mf)
-      else
-         call tag_boxes(mf,tagboxes,dx_crse,llev)
-      endif
+      call tag_boxes(mf,tagboxes,dx_crse,llev,aux_tag_mf)
 
       if (lmultifab_count(tagboxes) == 0) then
 
@@ -94,7 +87,7 @@ module make_new_grids_module
 
       else 
 
-         call cluster(ba_new, tagboxes, buf_wid)
+         call cluster(ba_new, tagboxes, buf_wid, ref_ratio=ref_ratio)
 
       endif
 
@@ -127,7 +120,7 @@ module make_new_grids_module
           call bl_warn('No points tagged at level ',lev)
 
       buff_c = (buff+1) / (ref_ratio*ref_ratio)
-      call cluster(ba_new,tagboxes,buff_c)
+      call cluster(ba_new,tagboxes,buff_c,ref_ratio=ref_ratio)
 
       ! Now refine so we're back to the right level
       call boxarray_refine(ba_new,ref_ratio)
@@ -264,7 +257,7 @@ module make_new_grids_module
                 call boxarray_coarsen(ba_crse_fine,ref_ratio)
                 call setval(tagboxes, .true., ba_crse_fine)
                 call destroy(ba_crse_fine)
-                call cluster(ba_new, tagboxes, 0)
+                call cluster(ba_new, tagboxes, 0, ref_ratio=ref_ratio(1))
                 call destroy(tagboxes)
                 if (nl .eq. 2) then
                    call boxarray_maxsize(ba_new,max_grid_size_2/ref_ratio)
