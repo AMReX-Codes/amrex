@@ -145,9 +145,6 @@ class Profiler
     static void WriteStats(std::ostream &os, bool bwriteavg = false);
 #ifdef BL_CALL_TRACE
     static void WriteCallTrace(const bool bFlushing = false);
-#ifdef BL_CALL_TRACE_HTML
-    static void WriteHTML();
-#endif
 #endif
     static void WriteCommStats(const bool bFlushing = false);
     static void WriteFortProfErrors();
