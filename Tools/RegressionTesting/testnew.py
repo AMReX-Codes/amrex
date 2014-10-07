@@ -924,6 +924,52 @@ def allAreCompileTests(testList):
     return allCompile
 
 
+#==============================================================================
+# getLastRun
+#==============================================================================
+def getLastRun(suite):
+    """ return the name of the directory corresponding to the previous
+        run of the test suite """
+
+    outdir = suite.testTopDir + suite.suiteName + "-tests/"
+    
+    dirs = []
+    for dir in os.listdir(outdir):
+        # this will work through 2099
+        if os.path.isdir(outdir + dir) and dir.startswith("20"):
+            dirs.append(dir)
+
+    dirs.sort()
+
+    return dirs[-1]
+
+
+def getTestFailures(suite, testDir):
+
+    cwd = os.getcwd()
+
+    outdir = suite.testTopDir + suite.suiteName + "-tests/"
+
+    os.chdir(outdir + testDir)
+            
+    failed = []
+
+    for test in os.listdir("."):
+        if not os.path.isdir(test): continue
+
+        # the status files are in the web dir
+        statusFile = suite.webTopDir + testDir + "/%s.status" % (test)
+        sf = open(statusFile, "r")
+        lines = sf.readlines()
+        for line in lines:
+            if string.find(line, "FAILED") >= 0:
+                failed.append(test)
+
+    os.chdir(cwd)
+
+    return failed
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -940,6 +986,7 @@ def testSuite(argv):
                   --extSrcGitHash extsourcehash
                   --note note
                   -d dimensionality
+                  --redo_failed
                   --complete_report_from_crash testdir]
         testfile.ini
 
@@ -1224,6 +1271,9 @@ def testSuite(argv):
           the overall report for all runs.  testdir is the name of the
           testdir (e.g. 20XX-XX-XX) that was running when the suite crashed.
 
+       --redo_failed
+          only run the tests that failed the last time the suite was run
+
     Getting started:
 
       To set up a test suite, it is probably easiest to write the
@@ -1256,7 +1306,8 @@ def testSuite(argv):
                                     "sourceGitHash=",
                                     "extSrcGitHash=",
                                     "note=",
-                                    "complete_report_from_crash="])
+                                    "complete_report_from_crash=",
+                                    "redo_failed"])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -1277,6 +1328,7 @@ def testSuite(argv):
     extSrcGitHash = ""
     note = ""
     completeReportFromCrash = ""
+    redo_failed = 0
 
     for o, a in opts:
 
@@ -1286,6 +1338,9 @@ def testSuite(argv):
         if o == "--make_benchmarks":
             make_benchmarks = 1
             comment = a
+
+        if o == "--redo_failed":
+            redo_failed = 1
 
         if o == "--no_update":
             no_update = a
@@ -1328,6 +1383,18 @@ def testSuite(argv):
     bold("loading " + testFile)
 
     suite, testList = LoadParams(testFile)
+
+    # if we only want to run the tests that failed previously, remove the
+    # others
+    if redo_failed == 1:
+        last_run = getLastRun(suite)
+        failed = getTestFailures(suite, last_run)
+
+        testListold = testList[:]
+        for t in testListold:
+            if not t.name in failed:
+                testList.remove(t)
+
 
     # if we only want to run tests of a certain dimensionality, remove
     # the others
