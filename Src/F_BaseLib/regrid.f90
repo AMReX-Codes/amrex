@@ -55,13 +55,8 @@ contains
     ! even though we know we had nlevs last time, we might 
     ! want more or fewer levels after regrid (if nlevs < max_levs)
     call ml_boxarray_build_n(mba,max_levs,dm)
+    call ml_boxarray_set_ref_ratio(mba)
 
-    ! Tell mba about the ref_ratio between levels
-    ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
-    do n=2,max_levs
-       mba%rr(n-1,:) = mla%mba%rr(1,:)
-    enddo
-    
     ! copy the level 1 boxarray
     call copy(mba%bas(1),mla%mba%bas(1))
 
