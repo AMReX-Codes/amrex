@@ -135,15 +135,14 @@ program main
      end if
   end do
 
+  ! store amr refinement ratio in ml_boxarray_module
+  ! we use refinement ratio of 2 in every direction between all levels
+  call amr_ref_ratio_init(max_levs,dim,2)
+
   ! tell mba how many levels and dimensionality of problem
   call ml_boxarray_build_n(mba,nlevs,dim)
-
   ! tell mba about the ref_ratio between levels
-  ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
-  ! we use refinement ratio of 2 in every direction between all levels
-  do n=2,nlevs
-     mba%rr(n-1,:) = 2
-  enddo
+  call ml_boxarray_set_ref_ratio(mba)
 
   ! set grid spacing at each level
   ! the grid spacing is the same in each direction

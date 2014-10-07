@@ -58,7 +58,15 @@ module ml_boxarray_module
      module procedure ml_boxarray_get_boxarray
   end interface
 
+  interface amr_ref_ratio_init
+     module procedure amr_ref_ratio_init_s
+     module procedure amr_ref_ratio_init_m
+  end interface amr_ref_ratio_init
+
   type(mem_stats), private, save :: ml_boxarray_ms
+
+  integer, allocatable, private, save :: amr_ref_ratio(:,:)
+  integer, private, parameter :: amr_ref_ratio_default = 2
 
   private :: boxarray_intersection_bx
 
@@ -458,6 +466,31 @@ contains
        end if
     end do
   end subroutine ml_boxarray_print
+
+  subroutine amr_ref_ratio_init_s(max_levs,dim,rr)
+    integer, intent(in) :: max_levs, dim, rr
+    allocate(amr_ref_ratio(max_levs-1,dim))
+    amr_ref_ratio = rr
+  end subroutine amr_ref_ratio_init_s
+
+  subroutine amr_ref_ratio_init_m(rr)
+    integer, intent(in) :: rr(:,:)
+    allocate(amr_ref_ratio(size(rr,1)-1,size(rr,2)))
+    amr_ref_ratio = rr
+  end subroutine amr_ref_ratio_init_m
+
+  subroutine ml_boxarray_set_ref_ratio(mba)
+    use bl_error_module
+    type(ml_boxarray), intent(inout) :: mba
+    if (.not. associated(mba%rr)) then
+       call bl_error("ML_BOXARRAY_SET_REF_RATIO: mba%rr not allocated")
+    end if
+    if (allocated(amr_ref_ratio)) then
+       mba%rr(mba%nlevel-1,mba%dim) = amr_ref_ratio(mba%nlevel-1,mba%dim)
+    else
+       mba%rr(mba%nlevel-1,mba%dim) = amr_ref_ratio_default
+    end if
+  end subroutine ml_boxarray_set_ref_ratio
 
 end module ml_boxarray_module
 
