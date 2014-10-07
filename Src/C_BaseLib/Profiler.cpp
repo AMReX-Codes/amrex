@@ -419,79 +419,32 @@ void Profiler::Finalize() {
     ncalls.resize(nProcs);
   }
 
-
   // -------- make sure the set of profiled functions is the same on all processors
-  int pfStringsSize(0);
-  std::ostringstream pfStrings;
-  if(ParallelDescriptor::IOProcessor()) {
-    for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-        it != mProfStats.end(); ++it)
-    {
-      pfStrings << it->first << '\n';
-    }
-    pfStrings << std::ends;
-    pfStringsSize = pfStrings.str().size();
-  }
-  ParallelDescriptor::Bcast(&pfStringsSize, 1);
+  std::vector<std::string> localStrings, syncedStrings;
+  bool alreadySynced;
 
-  char *pfChar = new char[pfStringsSize];
-  if(ParallelDescriptor::IOProcessor()) {
-    std::strcpy(pfChar, pfStrings.str().c_str());
-  }
-  ParallelDescriptor::Bcast(pfChar, pfStringsSize);
-
-  if( ! ParallelDescriptor::IOProcessor()) {
-    std::istringstream pfIn(pfChar);
-    std::string pfName;
-    while( ! pfIn.eof()) {
-      pfIn >> pfName;
-      if( ! pfIn.eof()) {
-        std::map<std::string, ProfStats>::const_iterator it = mProfStats.find(pfName);
-        if(it == mProfStats.end()) {
-	  ProfStats ps;
-          mProfStats.insert(std::pair<std::string, ProfStats>(pfName, ps));
-	  //std::cout << myProc << ":  #### ProfName not found, inserting:  "
-	            //<< pfName << std::endl;
-        }
-      }
-    }
-  }
-
-  // ------- we really need to send names that are not on the ioproc
-  // ------- to the ioproc but for now we will punt
-  // ------- make a copy in case there are names not on the ioproc
-  std::map<std::string, ProfStats> mProfStatsCopy;
-  std::istringstream pfIn(pfChar);
-  std::string pfName;
-  while( ! pfIn.eof()) {
-    pfIn >> pfName;
-    if( ! pfIn.eof()) {
-      std::map<std::string, ProfStats>::const_iterator it = mProfStats.find(pfName);
-      if(it != mProfStats.end()) {
-        mProfStatsCopy.insert(std::pair<std::string, ProfStats>(it->first, it->second));
-      } else {
-	std::cout << myProc << ":  #### Unknown ProfName:  =>" << pfName << "<=" << std::endl;
-      }
-    }
-  }
-  delete [] pfChar;
-
-  // ------- now check for names not on the ioproc
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
-    std::map<std::string, ProfStats>::const_iterator itcopy =
-                                         mProfStatsCopy.find(it->first);
-    //if(itcopy == mProfStatsCopy.end()) {
-      //std::cout << myProc << ":  #### ProfName not on ioproc:  "
-                //<< it->first << std::endl;
-    //}
+    localStrings.push_back(it->first);
+  }
+  BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+
+  if( ! alreadySynced) {  // ---- add the new name
+    for(int i(0); i < syncedStrings.size(); ++i) {
+      std::map<std::string, ProfStats>::const_iterator it =
+                                          mProfStats.find(syncedStrings[i]);
+      if(it == mProfStats.end()) {
+        ProfStats ps;
+        mProfStats.insert(std::pair<std::string, ProfStats>(syncedStrings[i], ps));
+      }
+    }
   }
 
 
   // ---------------------------------- now collect global data onto the ioproc
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStatsCopy.begin();
-      it != mProfStatsCopy.end(); ++it)
+  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
+      it != mProfStats.end(); ++it)
   {
     std::string profName(it->first);
     int pnLen(profName.size());
@@ -501,7 +454,7 @@ void Profiler::Finalize() {
     cpn[profName.size()] = '\0';
 
     ParallelDescriptor::Bcast(cpn, profName.size() + 1);
-    ProfStats &pstats = mProfStatsCopy[profName];
+    ProfStats &pstats = mProfStats[profName];
     if(nProcs == 1) {
       gtimes[0] = pstats.totalTime;
       ncalls[0] = pstats.nCalls;
@@ -632,29 +585,7 @@ void Profiler::Finalize() {
   WriteCommStats();       // --------------------- write communication data
 #endif
 
-  // report any fortran errors.  should really check with all procs, just iop for now
-  if(ParallelDescriptor::IOProcessor()) {
-    if(Profiler::mFortProfs.size() > 0) {
-      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
-      for(std::map<std::string, Profiler *>::iterator it = Profiler::mFortProfs.begin();
-          it != Profiler::mFortProfs.end(); ++it)
-      {
-        std::cout << "FFFF function not stopped:  fname ptr = " << it->first
-	          << "  ---->" << it->second << "<----" << std::endl;
-      }
-      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
-    }
-    if(Profiler::mFortProfsErrors.size() > 0) {
-      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF FORTRAN PROFILING ERRORS" << std::endl;
-      if(Profiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
-        std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF MAX FORTRAN ERRORS EXCEEDED" << std::endl;
-      }
-      for(int i(0); i < Profiler::mFortProfsErrors.size(); ++i) {
-        std::cout << "FFFF " << Profiler::mFortProfsErrors[i] << std::endl;
-      }
-      std::cout << "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF END FORTRAN PROFILING ERRORS" << std::endl;
-    }
-  }
+  WriteFortProfErrors();
 
   bInitialized = false;
 }
@@ -769,17 +700,17 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   {
     fNumberNames[it->second] = it->first;
   }
-  ios << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
-  ios << "**************** ************vvvv" << '\n';
-  for(int i(0); i < vCallTrace.size(); ++i) {
-    CallStats &cs = vCallTrace[i];
-    for(int indent(0); indent < cs.callStackDepth; ++indent) {
-      ios << "----";
-    }
-    ios << "  " << fNumberNames[cs.csFNameNumber] << "  "
-	<< cs.totalTime << "  " << cs.stackTime << '\n';
-  }
-  ios << "**************** ************^^^^" << '\n';
+  //ios << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
+  //ios << "**************** ************vvvv" << '\n';
+  //for(int i(0); i < vCallTrace.size(); ++i) {
+    //CallStats &cs = vCallTrace[i];
+    //for(int indent(0); indent < cs.callStackDepth; ++indent) {
+      //ios << "----";
+    //}
+    //ios << "  " << fNumberNames[cs.csFNameNumber] << "  "
+	//<< cs.totalTime << "  " << cs.stackTime << '\n';
+  //}
+  //ios << "**************** ************^^^^" << '\n';
 
   // sort by total time
   std::vector<RIpair> funcTotalTimes(mFNameNumbers.size());
@@ -1284,6 +1215,32 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   }
 }
 
+
+void Profiler::WriteFortProfErrors() {
+  // report any fortran errors.  should really check with all procs, just iop for now
+  if(ParallelDescriptor::IOProcessor()) {
+    if(Profiler::mFortProfs.size() > 0) {
+      std::cout << "FFFFFFFF -------- FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+      for(std::map<std::string, Profiler *>::iterator it = Profiler::mFortProfs.begin();
+          it != Profiler::mFortProfs.end(); ++it)
+      {
+        std::cout << "FFFF function not stopped:  fname ptr = " << it->first
+	          << "  ---->" << it->second << "<----" << std::endl;
+      }
+      std::cout << "FFFFFFFF -------- END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
+    }
+    if(Profiler::mFortProfsErrors.size() > 0) {
+      std::cout << "FFFFFFFF FORTRAN PROFILING ERRORS" << std::endl;
+      if(Profiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
+        std::cout << "FFFFFFFF -------- MAX FORTRAN ERRORS EXCEEDED" << std::endl;
+      }
+      for(int i(0); i < Profiler::mFortProfsErrors.size(); ++i) {
+        std::cout << "FFFF " << Profiler::mFortProfsErrors[i] << std::endl;
+      }
+      std::cout << "FFFFFFFF -------- END FORTRAN PROFILING ERRORS" << std::endl;
+    }
+  }
+}
 
 
 void Profiler::WriteHeader(std::ostream &ios, const int colWidth,
