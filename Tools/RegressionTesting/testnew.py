@@ -943,8 +943,12 @@ def getLastRun(suite):
 
     return dirs[-1]
 
-
+#==============================================================================
+# getTestFailures
+#==============================================================================
 def getTestFailures(suite, testDir):
+    """ look at the test run in testDir and return the list of tests that 
+        failed """
 
     cwd = os.getcwd()
 
@@ -1384,6 +1388,8 @@ def testSuite(argv):
 
     suite, testList = LoadParams(testFile)
 
+    defined_tests = testList[:]
+
     # if we only want to run the tests that failed previously, remove the
     # others
     if redo_failed == 1:
@@ -1404,7 +1410,7 @@ def testSuite(argv):
             if not t.dim == dimensionality:
                 testList.remove(t)
 
-    activeTestList = [t.name for t in testList]
+    activeTestList = [t.name for t in defined_tests]
 
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
