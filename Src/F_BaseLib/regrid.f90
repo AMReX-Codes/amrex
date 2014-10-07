@@ -58,9 +58,8 @@ contains
 
     ! Tell mba about the ref_ratio between levels
     ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
-    ! we use refinement ratio of 2 in every direction between all levels
     do n=2,max_levs
-       mba%rr(n-1,:) = 2
+       mba%rr(n-1,:) = mla%mba%rr(1,:)
     enddo
     
     ! copy the level 1 boxarray
