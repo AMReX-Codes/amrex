@@ -150,6 +150,7 @@ class Profiler
 #endif
 #endif
     static void WriteCommStats(const bool bFlushing = false);
+    static void WriteFortProfErrors();
 
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
