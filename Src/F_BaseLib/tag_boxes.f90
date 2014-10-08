@@ -5,6 +5,11 @@ module tag_boxes_module
 
   implicit none 
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! MUST set this to .true. if tagging uses ghost cells (e.g., tagging on gradient). !
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  logical, save :: tagging_needs_ghost_cells = .false.
+
 contains
 
   subroutine tag_boxes(mf,tagboxes,dx,lev,aux_tag_mf)

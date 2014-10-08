@@ -4,6 +4,7 @@ module regrid_module
   use multifab_module
   use make_new_grids_module
   use ml_restrict_fill_module
+  use tag_boxes_module, only : tagging_needs_ghost_cells
 
   implicit none
 
@@ -29,7 +30,7 @@ contains
 
     integer :: dm,n,nl,n_buffer, nlevs_old, nc, ng
 
-    logical :: new_grid, properly_nested, pmask(mla%dim)
+    logical :: new_grid, properly_nested, pmask(mla%dim), same_boxarray
 
     dm = mla%dim
     pmask = mla%pmask
@@ -75,9 +76,10 @@ contains
 
     do while ( (nl .lt. max_levs) .and. new_grid )
 
-       ! need to fill ghost cells here in case we use them in tagging
-       call multifab_fill_boundary(phi(nl))
-       call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
+       if (tagging_needs_ghost_cells) then
+          call multifab_fill_boundary(phi(nl))
+          call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
+       end if
 
        ! determine whether we need finer grids based on tagging criteria
        ! if so, return new_grid=T and the la_array(nl+1)
@@ -117,12 +119,22 @@ contains
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,2)
 
-                   ! first fill all refined cells by interpolating from coarse 
-                   ! data underneath...
-                   call fillpatch(phi(n),phi(n-1),phi(n)%ng,mba%rr(n-1,:), &
-                                  the_bc_tower%bc_tower_array(n-1), &
-                                  the_bc_tower%bc_tower_array(n), &
-                                  1,1,1,nc)
+                   same_boxarray = .false.
+                   if (mla%nlevel .ge. n) then
+                      if (boxarray_same_q(get_boxarray(phi     (n)), &
+                           &              get_boxarray(phi_orig(n)))) then
+                         same_boxarray = .true.
+                      end if
+                   end if
+
+                   if (.not. same_boxarray) then
+                      ! first fill all refined cells by interpolating from coarse 
+                      ! data underneath...  no need to fill ghost cells
+                      call fillpatch(phi(n),phi(n-1),0,mba%rr(n-1,:), &
+                           the_bc_tower%bc_tower_array(n-1), &
+                           the_bc_tower%bc_tower_array(n), &
+                           1,1,1,nc,no_final_physbc_input=.true.)
+                   end if
 
                    ! ... then overwrite with the original data at that level, if it existed
                    if (mla%nlevel .ge. n) then
@@ -141,12 +153,23 @@ contains
           ! Build the level nl+1 data only.
           call multifab_build(phi(nl+1),la_array(nl+1),nc,ng)
 
-          ! first fill all refined cells by interpolating from coarse 
-          ! data underneath...
-          call fillpatch(phi(nl+1),phi(nl),phi(nl)%ng,mba%rr(nl,:), &
-                         the_bc_tower%bc_tower_array(nl), &
-                         the_bc_tower%bc_tower_array(nl+1), &
-                         1,1,1,1)
+          same_boxarray = .false.
+          if (mla%nlevel .ge. nl+1) then
+             if (boxarray_same_q(get_boxarray(phi     (nl+1)), &
+                  &              get_boxarray(phi_orig(nl+1)))) then
+                same_boxarray = .true.
+             end if
+          end if
+
+          if (.not.same_boxarray) then
+             ! first fill all refined cells by interpolating from coarse 
+             ! data underneath...
+             ! no need to fill ghost cells
+             call fillpatch(phi(nl+1),phi(nl),0,mba%rr(nl,:), &
+                  the_bc_tower%bc_tower_array(nl), &
+                  the_bc_tower%bc_tower_array(nl+1), &
+                  1,1,1,nc,no_final_physbc_input=.true.)
+          end if
 
           ! ... then overwrite with the original data at that level, if it existed
           if (mla%nlevel .ge. nl+1) then
