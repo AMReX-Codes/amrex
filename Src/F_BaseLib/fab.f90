@@ -226,6 +226,9 @@ module fab_module
   integer,       private, save :: ifab_default_init = -Huge(1)
   logical,       private, save :: lfab_default_init = .false.
 
+  logical,             private, save :: manual_control_least_used_cpus = .false.
+  integer(kind =ll_t), private, save :: mcluc_vol                      = 0_ll_t
+
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
   type(mem_stats), private, save :: ifab_ms
@@ -543,7 +546,11 @@ contains
 
     allocate(snd(1), rcv(parallel_nprocs()), idx(parallel_nprocs()))
 
-    val = fab_ms%num_alloc - fab_ms%num_dealloc
+    if (manual_control_least_used_cpus) then
+       val = mcluc_vol
+    else
+       val = fab_ms%num_alloc - fab_ms%num_dealloc
+    end if
 
     snd(1) = int(val)
 
@@ -2208,5 +2215,15 @@ contains
     end if
     r = count(lp)
   end function lfab_count
+
+  subroutine manual_control_least_used_cpus_set(flag)
+    logical, intent(in) :: flag
+    manual_control_least_used_cpus = flag
+  end subroutine manual_control_least_used_cpus_set
+
+  subroutine luc_vol_set(i)
+    integer(kind=ll_t), intent(in) :: i
+    mcluc_vol = i
+  end subroutine luc_vol_set
 
 end module fab_module
