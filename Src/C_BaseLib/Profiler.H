@@ -142,7 +142,9 @@ class Profiler
 
     static void Initialize();
     static void Finalize();
-    static void WriteStats(std::ostream &os, bool bwriteavg = false);
+    //static void WriteStats(std::ostream &os,
+                           //const std::map<std::string, ProfStats> &mpStats,
+			   //bool bwriteavg = false);
 #ifdef BL_CALL_TRACE
     static void WriteCallTrace(const bool bFlushing = false);
 #endif
@@ -168,6 +170,7 @@ class Profiler
     static void InitParams(const Real ptl, const bool writeall,
                            const bool writefabs);
     static void AddStep(const int snum);
+    static Real GetRunTime() { return calcRunTime; }
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
 
 #ifdef BL_CALL_TRACE
@@ -186,12 +189,14 @@ class Profiler
 
     static void PerfMonProcess();
 
+    /*
     static void WriteHeader(std::ostream &os, const int colWidth,
                             const Real maxlen, const bool bwriteavg);
     static void WriteRow(std::ostream &os, const std::string &fname,
                          const ProfStats &pstats, const Real percent,
 			 const int colWidth, const Real maxlen,
 			 const bool bwriteavg);
+    */
 
   private:
     Real bltstart, bltelapsed;
@@ -212,7 +217,7 @@ class Profiler
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
-    static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
+    //static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
     static std::vector<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
@@ -222,11 +227,12 @@ class Profiler
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
 
+    static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
+    static std::vector<CallStats> vCallTrace;
+
 #ifdef BL_CALL_TRACE
     static bool bFirstTraceWriteH, bFirstTraceWriteD;
-    static std::vector<CallStats> vCallTrace;
     static std::stack<int> callIndexStack;
-    static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
     static int callStackDepth;
     static int prevDepth;
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
@@ -234,6 +240,7 @@ class Profiler
     static std::vector<RStartStop> rStartStop;
     static const std::string noRegionName;
 
+  public:
     typedef std::pair<Real, int> RIpair;
     struct fTTComp {
       bool operator()(const RIpair &lhs, const RIpair &rhs) const {
@@ -243,6 +250,23 @@ class Profiler
 #endif
 
 };
+
+
+namespace ProfilerUtils {
+void WriteHeader(std::ostream &os, const int colWidth,
+                 const Real maxlen, const bool bwriteavg);
+
+void WriteRow(std::ostream &os, const std::string &fname,
+              const Profiler::ProfStats &pstats, const Real percent,
+	      const int colWidth, const Real maxlen,
+	      const bool bwriteavg);
+
+void WriteStats(std::ostream &os,
+                const std::map<std::string, Profiler::ProfStats> &mpStats,
+		const std::map<std::string, int> &fnameNumbers,
+		const std::vector<Profiler::CallStats> &callTraces,
+		bool bwriteavg = false);
+}
 
 
 inline std::ostream &operator<< (std::ostream &os, const Profiler::CommStats &cs) {
