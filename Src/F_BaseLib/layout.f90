@@ -3308,4 +3308,15 @@ contains
     call destroy(bpt)
   end function boxarray_boxarray_contains
 
+  ! volume of boxarray on this cpu
+  function layout_local_volume(la) result(vol)
+    type(layout), intent(in) :: la
+    integer(kind=ll_t) :: vol
+    integer :: i
+    vol = 0_ll_t
+    do i = 1, nlocal(la)
+       vol = vol + int(volume(get_box(la, global_index(la,i))), ll_t)
+    end do
+  end function layout_local_volume
+
 end module layout_module
