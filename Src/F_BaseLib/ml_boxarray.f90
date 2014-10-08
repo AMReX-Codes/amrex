@@ -475,7 +475,7 @@ contains
 
   subroutine amr_ref_ratio_init_m(rr)
     integer, intent(in) :: rr(:,:)
-    allocate(amr_ref_ratio(size(rr,1)-1,size(rr,2)))
+    allocate(amr_ref_ratio(size(rr,1),size(rr,2)))
     amr_ref_ratio = rr
   end subroutine amr_ref_ratio_init_m
 
@@ -486,9 +486,9 @@ contains
        call bl_error("ML_BOXARRAY_SET_REF_RATIO: mba%rr not allocated")
     end if
     if (allocated(amr_ref_ratio)) then
-       mba%rr(mba%nlevel-1,mba%dim) = amr_ref_ratio(mba%nlevel-1,mba%dim)
+       mba%rr = amr_ref_ratio(1:mba%nlevel-1,1:mba%dim)
     else
-       mba%rr(mba%nlevel-1,mba%dim) = amr_ref_ratio_default
+       mba%rr = amr_ref_ratio_default
     end if
   end subroutine ml_boxarray_set_ref_ratio
 
