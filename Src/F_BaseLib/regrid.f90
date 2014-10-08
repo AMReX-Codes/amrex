@@ -119,12 +119,11 @@ contains
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,2)
 
-                   same_boxarray = .false.
                    if (mla%nlevel .ge. n) then
-                      if (boxarray_same_q(get_boxarray(phi     (n)), &
-                           &              get_boxarray(phi_orig(n)))) then
-                         same_boxarray = .true.
-                      end if
+                      same_boxarray = boxarray_same_q(get_boxarray(phi     (n)), &
+                           &                          get_boxarray(phi_orig(n)))
+                   else
+                      same_boxarray = .false.
                    end if
 
                    if (.not. same_boxarray) then
@@ -153,12 +152,11 @@ contains
           ! Build the level nl+1 data only.
           call multifab_build(phi(nl+1),la_array(nl+1),nc,ng)
 
-          same_boxarray = .false.
           if (mla%nlevel .ge. nl+1) then
-             if (boxarray_same_q(get_boxarray(phi     (nl+1)), &
-                  &              get_boxarray(phi_orig(nl+1)))) then
-                same_boxarray = .true.
-             end if
+             same_boxarray = boxarray_same_q(get_boxarray(phi     (nl+1)), &
+                  &                          get_boxarray(phi_orig(nl+1)))
+          else
+             same_boxarray = .false.
           end if
 
           if (.not.same_boxarray) then
