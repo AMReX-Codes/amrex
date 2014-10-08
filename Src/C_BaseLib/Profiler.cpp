@@ -574,7 +574,6 @@ void Profiler::Finalize() {
               << ParallelDescriptor::second() - finalizeStart << std::endl;
   }
 
-
 #ifdef BL_COMM_PROFILING
   WriteCommStats();       // --------------------- write communication data
 #endif
@@ -694,17 +693,6 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   {
     fNumberNames[it->second] = it->first;
   }
-  //ios << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
-  //ios << "**************** ************vvvv" << '\n';
-  //for(int i(0); i < vCallTrace.size(); ++i) {
-    //CallStats &cs = vCallTrace[i];
-    //for(int indent(0); indent < cs.callStackDepth; ++indent) {
-      //ios << "----";
-    //}
-    //ios << "  " << fNumberNames[cs.csFNameNumber] << "  "
-	//<< cs.totalTime << "  " << cs.stackTime << '\n';
-  //}
-  //ios << "**************** ************^^^^" << '\n';
 
   // sort by total time
   std::vector<RIpair> funcTotalTimes(mFNameNumbers.size());
