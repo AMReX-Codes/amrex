@@ -41,7 +41,7 @@ Array<Box> Profiler::probDomain;
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
-std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
+//std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler *> Profiler::mFortProfs;
 std::vector<std::string> Profiler::mFortProfsErrors;
@@ -65,12 +65,13 @@ int Profiler::procNumber(-1);
 std::string Profiler::blProfDirName("bl_prof");
 std::string Profiler::blCommProfDirName("bl_comm_prof");
 
+std::map<std::string, int> Profiler::mFNameNumbers;
+std::vector<Profiler::CallStats> Profiler::vCallTrace;
+
 #ifdef BL_CALL_TRACE
 bool Profiler::bFirstTraceWriteH(true);  // header
 bool Profiler::bFirstTraceWriteD(true);  // data
-std::vector<Profiler::CallStats> Profiler::vCallTrace;
 std::stack<int> Profiler::callIndexStack;
-std::map<std::string, int> Profiler::mFNameNumbers;
 int Profiler::callStackDepth(-1);
 int Profiler::prevDepth(0);
 std::map<std::string, int> Profiler::mRegionNameNumbers;
@@ -403,21 +404,13 @@ void Profiler::Finalize() {
   }
 
   // --------------------------------------- gather global stats
-  Real finalizeStart = ParallelDescriptor::second();  // time the timer
+  Real finalizeStart(ParallelDescriptor::second());  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
-  const int myProc(ParallelDescriptor::MyProc());
+  //const int myProc(ParallelDescriptor::MyProc());
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
 
   // filter out profiler communications.
   CommStats::cftExclude.insert(AllCFTypes);
-
-  int maxlen(0);
-  Array<Real> gtimes(1);
-  Array<long> ncalls(1);
-  if(ParallelDescriptor::IOProcessor()) {
-    gtimes.resize(nProcs);
-    ncalls.resize(nProcs);
-  }
 
   // -------- make sure the set of profiled functions is the same on all processors
   std::vector<std::string> localStrings, syncedStrings;
@@ -441,19 +434,25 @@ void Profiler::Finalize() {
     }
   }
 
-
   // ---------------------------------- now collect global data onto the ioproc
+  int maxlen(0);
+  Array<Real> gtimes(1);
+  Array<long> ncalls(1);
+  if(ParallelDescriptor::IOProcessor()) {
+    gtimes.resize(nProcs);
+    ncalls.resize(nProcs);
+  }
+
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
       it != mProfStats.end(); ++it)
   {
     std::string profName(it->first);
     int pnLen(profName.size());
     maxlen = std::max(maxlen, pnLen);
-    char cpn[profName.size() + 1];
-    strcpy(cpn, profName.c_str());
-    cpn[profName.size()] = '\0';
+    //Array<char> pName(profName.size() + 1);
+    //std::strcpy(pName.dataPtr(), profName.c_str());  // null terminated
+    //ParallelDescriptor::Bcast(pName.dataPtr(), pName.size());
 
-    ParallelDescriptor::Bcast(cpn, profName.size() + 1);
     ProfStats &pstats = mProfStats[profName];
     if(nProcs == 1) {
       gtimes[0] = pstats.totalTime;
@@ -470,7 +469,7 @@ void Profiler::Finalize() {
         tmin = std::min(tmin, gtimes[i]);
         tmax = std::max(tmax, gtimes[i]);
       }
-      ProfStats &pstats = mProfStats[profName];  // not the copy on ioproc
+      //ProfStats &pstats = mProfStats[profName];
       tavg = tsum / static_cast<Real> (gtimes.size());
       pstats.minTime = tmin;
       pstats.maxTime = tmax;
@@ -490,7 +489,7 @@ void Profiler::Finalize() {
     if(nProcs == 1) {
       bWriteAvg = false;
     }
-    WriteStats(std::cout, bWriteAvg);
+    ProfilerUtils::WriteStats(std::cout, mProfStats, mFNameNumbers, vCallTrace, bWriteAvg);
   }
 
 
@@ -538,7 +537,7 @@ void Profiler::Finalize() {
           }
 
           // ----------------------------- write to file here
-          WriteStats(csFile);
+          ProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
           // ----------------------------- end write to file here
 
           csFile.flush();
@@ -584,16 +583,81 @@ void Profiler::Finalize() {
 }
 
 
-void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
+namespace ProfilerUtils {
+
+void WriteHeader(std::ostream &ios, const int colWidth,
+                 const Real maxlen, const bool bwriteavg)
+{
+  if(bwriteavg) {
+    ios << std::setfill('-') << std::setw(maxlen+4 + 5 * (colWidth+2))
+        << std::left << "Total times " << '\n';
+    ios << std::right << std::setfill(' ');
+    ios << std::setw(maxlen + 2) << "Function Name"
+        << std::setw(colWidth + 2) << "NCalls"
+        << std::setw(colWidth + 2) << "Min"
+        << std::setw(colWidth + 2) << "Avg"
+        << std::setw(colWidth + 2) << "Max"
+        << std::setw(colWidth + 4) << "Percent %"
+        << '\n';
+  } else {
+    ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
+        << std::left << "Total times " << '\n';
+    ios << std::right << std::setfill(' ');
+    ios << std::setw(maxlen + 2) << "Function Name"
+        << std::setw(colWidth + 2) << "NCalls"
+        << std::setw(colWidth + 2) << "Time"
+        << std::setw(colWidth + 4) << "Percent %"
+        << '\n';
+  }
+}
+
+
+void WriteRow(std::ostream &ios, const std::string &fname,
+              const Profiler::ProfStats &pstats, const Real percent,
+	      const int colWidth, const Real maxlen,
+	      const bool bwriteavg)
+{
+    int numPrec(4), pctPrec(2);
+    if(bwriteavg) {
+      ios << std::right;
+      ios << std::setw(maxlen + 2) << fname << "  "
+          << std::setw(colWidth) << pstats.nCalls << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.minTime << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.avgTime << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.maxTime << "  "
+          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
+	  << percent << " %" << '\n';
+    } else {
+      ios << std::setw(maxlen + 2) << fname << "  "
+          << std::setw(colWidth) << pstats.nCalls << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.totalTime << "  "
+          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
+	  << percent << " %" << '\n';
+    }
+}
+
+
+void WriteStats(std::ostream &ios,
+                const std::map<std::string, Profiler::ProfStats> &mpStats,
+		const std::map<std::string, int> &fnameNumbers,
+		const std::vector<Profiler::CallStats> &callTraces,
+		bool bwriteavg)
+{
   const int myProc(ParallelDescriptor::MyProc());
   const int colWidth(10);
+  const Real calcRunTime(Profiler::GetRunTime());
 
-  mTimersTotalsSorted.clear();
+  std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
+  //mTimersTotalsSorted.clear();
 
   Real totalTimers(0.0), percent(0.0);
   int maxlen(0);
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
+  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+      it != mpStats.end(); ++it)
   {
     std::string profName(it->first);
     int pnLen(profName.size());
@@ -619,9 +683,9 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
   }
 
   // -------- write timers sorted by name
-  WriteHeader(ios, colWidth, maxlen, bwriteavg);
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
+  ProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
+  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+      it != mpStats.end(); ++it)
   {
     if(pTimeTotal > 0.0) {
       if(bwriteavg) {
@@ -633,8 +697,8 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
       percent = 100.0;
     }
     std::string fname(it->first);
-    const ProfStats &pstats = it->second;
-    WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
+    const Profiler::ProfStats &pstats = it->second;
+    ProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   ios << '\n';
   ios << "Total Timers     = " << std::setw(colWidth) << totalTimers
@@ -648,9 +712,9 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
   // -------- write timers sorted by percent
   ios << '\n' << '\n';
-  WriteHeader(ios, colWidth, maxlen, bwriteavg);
-  for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
-      it != mProfStats.end(); ++it)
+  ProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
+  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+      it != mpStats.end(); ++it)
   {
     Real dsec;
     if(bwriteavg) {
@@ -671,8 +735,13 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
       percent = 100.0;
     }
     std::string fname(it->second);
-    const ProfStats &pstats = mProfStats[fname];
-    WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
+    std::map<std::string, Profiler::ProfStats>::const_iterator mpsit = mpStats.find(fname);
+    if(mpsit != mpStats.end()) {
+      const Profiler::ProfStats &pstats = mpsit->second;
+      ProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
+    } else {
+      // error:  should not be able to get here if names are synced
+    }
   }
   if(bwriteavg) {
     ios << std::setfill('=') << std::setw(maxlen+4 + 5 * (colWidth+2)) << ""
@@ -687,22 +756,22 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 
 #ifdef BL_CALL_TRACE
   // -------- write timers sorted by inclusive times
-  std::vector<std::string> fNumberNames(mFNameNumbers.size());
-  for(std::map<std::string, int>::const_iterator it = Profiler::mFNameNumbers.begin();
-      it != Profiler::mFNameNumbers.end(); ++it)
+  std::vector<std::string> fNumberNames(fnameNumbers.size());
+  for(std::map<std::string, int>::const_iterator it = fnameNumbers.begin();
+      it != fnameNumbers.end(); ++it)
   {
     fNumberNames[it->second] = it->first;
   }
 
   // sort by total time
-  std::vector<RIpair> funcTotalTimes(mFNameNumbers.size());
+  std::vector<Profiler::RIpair> funcTotalTimes(fnameNumbers.size());
   for(int i(0); i < funcTotalTimes.size(); ++i) {
     funcTotalTimes[i].first  = 0.0;
     funcTotalTimes[i].second = i;
   }
   std::vector<int> callStack(1000, -1);  // use vector instead of stack for iterator
-  for(int i(0); i < vCallTrace.size(); ++i) {
-    CallStats &cs = vCallTrace[i];
+  for(int i(0); i < callTraces.size(); ++i) {
+    const Profiler::CallStats &cs = callTraces[i];
     int depth(cs.callStackDepth);
     callStack[depth] = cs.csFNameNumber;
     bool recursiveCall(false);
@@ -717,7 +786,7 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
     }
   }
 
-  std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), fTTComp());
+  std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), Profiler::fTTComp());
 
   int numPrec(4);
   ios << '\n' << '\n';
@@ -743,6 +812,9 @@ void Profiler::WriteStats(std::ostream &ios, bool bwriteavg) {
 }
 
 
+}  // end namespace ProfilerUtils
+
+
 #ifdef BL_CALL_TRACE
 void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
     std::string cdir(blProfDirName);
@@ -754,6 +826,26 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
     std::string cFilePrefix("bl_call_stats");
     std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
     std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
+
+    if( ! bFlushing) {
+      // -------- make sure the set of region names is the same on all processors
+      std::vector<std::string> localStrings, syncedStrings;
+      bool alreadySynced;
+      for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
+          it != mRegionNameNumbers.end(); ++it)
+      {
+        localStrings.push_back(it->first);
+      }
+      BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+
+      if( ! alreadySynced) {  // ---- need to remap names and numbers
+        if(ParallelDescriptor::IOProcessor()) {
+          std::cout << "**** Warning:  region names not synced:  unsupported."
+	            << std::endl;
+        }
+        // unsupported for now
+      }
+    }
 
     if(ParallelDescriptor::IOProcessor()) {
       std::string globalHeaderFileName(cdir + '/' + cFilePrefix + "_H");
@@ -1107,61 +1199,6 @@ void Profiler::WriteFortProfErrors() {
       std::cout << "FFFFFFFF -------- END FORTRAN PROFILING ERRORS" << std::endl;
     }
   }
-}
-
-
-void Profiler::WriteHeader(std::ostream &ios, const int colWidth,
-                           const Real maxlen, const bool bwriteavg)
-{
-  if(bwriteavg) {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 5 * (colWidth+2))
-        << std::left << "Total times " << '\n';
-    ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
-        << std::setw(colWidth + 2) << "NCalls"
-        << std::setw(colWidth + 2) << "Min"
-        << std::setw(colWidth + 2) << "Avg"
-        << std::setw(colWidth + 2) << "Max"
-        << std::setw(colWidth + 4) << "Percent %"
-        << '\n';
-  } else {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 3 * (colWidth+2))
-        << std::left << "Total times " << '\n';
-    ios << std::right << std::setfill(' ');
-    ios << std::setw(maxlen + 2) << "Function Name"
-        << std::setw(colWidth + 2) << "NCalls"
-        << std::setw(colWidth + 2) << "Time"
-        << std::setw(colWidth + 4) << "Percent %"
-        << '\n';
-  }
-}
-
-void Profiler::WriteRow(std::ostream &ios, const std::string &fname,
-                        const ProfStats &pstats, const Real percent,
-			const int colWidth, const Real maxlen,
-			const bool bwriteavg)
-{
-    int numPrec(4), pctPrec(2);
-    if(bwriteavg) {
-      ios << std::right;
-      ios << std::setw(maxlen + 2) << fname << "  "
-          << std::setw(colWidth) << pstats.nCalls << "  "
-          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.minTime << "  "
-          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.avgTime << "  "
-          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.maxTime << "  "
-          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << '\n';
-    } else {
-      ios << std::setw(maxlen + 2) << fname << "  "
-          << std::setw(colWidth) << pstats.nCalls << "  "
-          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.totalTime << "  "
-          << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
-	  << percent << " %" << '\n';
-    }
 }
 
 
