@@ -8,11 +8,18 @@ module regrid_module
 
   implicit none
 
+  logical, save :: ignore_fine_in_layout_mapping = .true.
+
   private
 
-  public :: regrid
+  public :: regrid, ignore_fine_in_layout_mapping_set
 
 contains
+
+  subroutine ignore_fine_in_layout_mapping_set(flag)
+    logical, intent(in) :: flag
+    ignore_fine_in_layout_mapping = flag
+  end subroutine ignore_fine_in_layout_mapping_set
 
   subroutine regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
@@ -31,6 +38,15 @@ contains
     integer :: dm,n,nl,n_buffer, nlevs_old, nc, ng
 
     logical :: new_grid, properly_nested, pmask(mla%dim), same_boxarray
+
+    integer(kind=ll_t), allocatable :: lucvol(:)
+
+    if (ignore_fine_in_layout_mapping) then
+       call manual_control_least_used_cpus_set(.true.)
+       call luc_vol_set(0_ll_t)
+       allocate(lucvol(max_levs))
+       lucvol = 0_ll_t
+    end if
 
     dm = mla%dim
     pmask = mla%pmask
@@ -81,6 +97,11 @@ contains
           call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
        end if
 
+       if (ignore_fine_in_layout_mapping) then
+          lucvol(nl) = layout_local_volume(la_array(nl))
+          call luc_vol_set(sum(lucvol(1:nl)))
+       end if
+
        ! determine whether we need finer grids based on tagging criteria
        ! if so, return new_grid=T and the la_array(nl+1)
        call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi(nl),dx(nl), &
@@ -113,6 +134,14 @@ contains
                 ! when we enforced proper nesting.
                 do n = 2,nl
    
+                   if (ignore_fine_in_layout_mapping) then
+                      call luc_vol_set(sum(lucvol(1:n-1)))
+                      ! Destroy the old layout and build a new one.
+                      call destroy(la_array(n))
+                      call layout_build_ba(la_array(n),mba%bas(n),mba%pd(n),pmask)
+                      lucvol(n) = layout_local_volume(la_array(n))
+                   end if
+
                    ! This makes sure the boundary conditions are properly defined everywhere
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
    
@@ -203,6 +232,11 @@ contains
     call ml_restrict_and_fill(nlevs, phi, mla%mba%rr, the_bc_tower%bc_tower_array)
 
     call destroy(mba)
+
+    if (ignore_fine_in_layout_mapping) then
+       call manual_control_least_used_cpus_set(.false.)
+       deallocate(lucvol)
+    end if
 
   end subroutine regrid
 
