@@ -2761,13 +2761,20 @@ div.verticaltext {text-align: center;
                   -webkit-transform: rotate(-90deg); 
                   -moz-transform: rotate(-90deg);}
 
-th.summary {background-color: grey;
+#summary th {background-color: grey;
     color: yellow;
     text-align: center;
     height: 2em;
     padding-bottom: 3px;
     padding-left: 5px;
     padding-right: 5px;}
+
+ 
+#summary td {background: transparent;}
+ 
+#summary tr:nth-child(even) {background: #dddddd;}
+#summary tr:nth-child(odd) {background: #eeeeee;}
+
 
 th {background-color: grey;
     color: yellow;
@@ -3188,14 +3195,14 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     hf.write("<p>&nbsp;\n")    
 
-    hf.write("<P><div class=\"summary\"><TABLE>\n")
-
+    hf.write("<div id=\"summary\">\n")
+    hf.write("<P><TABLE>\n")
     # header
-    hf.write("<tr><th class=\"summary\">test name</th><th class=\"summary\">dim</th>\n")
-    hf.write("    <th class=\"summary\"># levels</th><th class=\"summary\">MPI (# procs)</th>\n")
-    hf.write("    <th class=\"summary\">OMP (# threads)</th><th class=\"summary\">debug?</th>\n")
-    hf.write("    <th class=\"summary\">compile?</th><th class=\"summary\">restart?</th>\n")
-    hf.write("    <th class=\"summary\">result</th></tr>\n")
+    hf.write("<tr><th>test name</th><th>dim</th>\n")
+    hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
+    hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
+    hf.write("    <th>compile?</th><th>restart?</th>\n")
+    hf.write("    <th>result</th></tr>\n")
     
     # loop over the tests and add a line for each
     for test in testList:
