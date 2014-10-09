@@ -2725,11 +2725,6 @@ a.main:link {color: yellow; text-decoration: none;}
 a.main:visited {color: yellow; text-decoration: none;}
 a.main:hover {color: #00ffff; text-decoration: underline;}
 
-th {background-color: black;
-    padding: 4px;
-    color: yellow;
-    border-width: 0px;}
-
 td {border-width: 0px;
     padding: 5px;
     background-color: white;
@@ -2765,6 +2760,14 @@ div.verticaltext {text-align: center;
                   white-space: nowrap;
                   -webkit-transform: rotate(-90deg); 
                   -moz-transform: rotate(-90deg);}
+
+th.summary {background-color: grey;
+    color: yellow;
+    text-align: center;
+    height: 2em;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 5px;}
 
 th {background-color: grey;
     color: yellow;
@@ -3185,7 +3188,14 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     hf.write("<p>&nbsp;\n")    
 
-    hf.write("<P><TABLE>\n")
+    hf.write("<P><div class=\"summary\"><TABLE>\n")
+
+    # header
+    hf.write("<tr><th class=\"summary\">test name</th><th class=\"summary\">dim</th>\n")
+    hf.write("    <th class=\"summary\"># levels</th><th class=\"summary\">MPI (# procs)</th>\n")
+    hf.write("    <th class=\"summary\">OMP (# threads)</th><th class=\"summary\">debug?</th>\n")
+    hf.write("    <th class=\"summary\">compile?</th><th class=\"summary\">restart?</th>\n")
+    hf.write("    <th class=\"summary\">result</th></tr>\n")
     
     # loop over the tests and add a line for each
     for test in testList:
@@ -3213,21 +3223,59 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             sf.close()
 
             # write out this test's status
-            hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD><TD>&nbsp;</TD>" %
+            hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
                      (test.name, test.name) )
         
-            if (testPassed):
+            # dimensionality
+            hf.write("<td>{}</td>\n".format(test.dim))
+
+            # number of levels
+            if not test.nlevels == None:
+                hf.write("<td>{}</td>\n".format(test.nlevels))
+            else:
+                hf.write("<td> </td>\n")
+
+            # MPI ?
+            if test.useMPI:
+                hf.write("<td>&check; ({})</td>\n".format(test.numprocs))
+            else:
+                hf.write("<td> </td>\n")
+
+            # OMP ?
+            if test.useOMP:
+                hf.write("<td>&check; ({})</td>\n".format(test.numthreads))
+            else:
+                hf.write("<td> </td>\n")
+
+            # debug ?
+            if test.debug:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+
+            # compile ?
+            if test.compileTest:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+
+            # restart ?
+            if test.restartTest:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+                
+
+            if testPassed:
                 hf.write("<TD><H3 class=\"passed\">PASSED</H3></TD></TR>\n")
             else:
                 hf.write("<TD><H3 class=\"failed\">FAILED</H3></TD></TR>\n")
 
         
-            hf.write("<TR><TD>&nbsp;</TD></TR>\n")
-
 
         else:
 
-            if (test.restartTest):
+            if test.restartTest:
                 continue
 
             if (test.compileTest):
@@ -3263,7 +3311,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             hf.write("<TR><TD>&nbsp;</TD></TR>\n")
 
 
-    hf.write("</TABLE>\n")    
+    hf.write("</TABLE></div>\n")    
 
     # close
     hf.write("</BODY>\n")
