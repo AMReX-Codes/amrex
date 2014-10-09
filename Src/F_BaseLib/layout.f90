@@ -96,6 +96,7 @@ module layout_module
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
+     integer                   :: used       = 0       ! how many times used?
      integer                   :: hash
      logical, pointer          :: nd_dst(:)  => Null() ! dst nodal flag
      logical, pointer          :: nd_src(:)  => Null() ! src nodal flag
@@ -143,7 +144,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 50 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -2545,6 +2546,7 @@ contains
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
           call remove_item(cp)
           call add_new_head(cp)
+          cp%used = cp%used + 1
           r = cp
           return
        end if
@@ -2555,6 +2557,7 @@ contains
     !
     allocate(cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
+    cp%used = 1
     the_copyassoc_cnt = the_copyassoc_cnt + 1
     call add_new_head(cp)
     r = cp
@@ -3313,5 +3316,21 @@ contains
        vol = vol + int(volume(get_box(la, global_index(la,i))), ll_t)
     end do
   end function layout_local_volume
+
+  subroutine layout_copyassoc_print()
+    type(copyassoc), pointer :: cp
+    integer :: i
+    if (parallel_IOProcessor()) then
+       print *, 'THE COPYASSOC:  index  used'
+       cp => the_copyassoc_head
+       i = 1
+       do while ( associated(cp) )
+          print *, i, cp%used  
+          cp => cp%next
+          i = i+1
+       end do
+       call flush(6)
+    end if
+  end subroutine layout_copyassoc_print
 
 end module layout_module
