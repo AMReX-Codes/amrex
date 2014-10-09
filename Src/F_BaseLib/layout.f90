@@ -96,13 +96,13 @@ module layout_module
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
-     integer                   :: reused     = 0
      integer                   :: hash
      logical, pointer          :: nd_dst(:)  => Null() ! dst nodal flag
      logical, pointer          :: nd_src(:)  => Null() ! src nodal flag
      type(local_conn)          :: l_con
      type(remote_conn)         :: r_con
      type(copyassoc),  pointer :: next       => Null()
+     type(copyassoc),  pointer :: prev       => Null()
      type(boxarray)            :: ba_src
      type(boxarray)            :: ba_dst
      integer, pointer          :: prc_src(:) => Null()
@@ -140,6 +140,7 @@ module layout_module
   ! Global list of copyassoc's used by multifab copy routines.
   !
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
+  type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
   integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
@@ -585,6 +586,7 @@ contains
 
     the_copyassoc_cnt  =  0
     the_copyassoc_head => Null()
+    the_copyassoc_tail => Null()
   end subroutine layout_flush_copyassoc_cache
 
   recursive subroutine layout_rep_destroy(lap, la_type)
@@ -2534,21 +2536,19 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp, ncp
-    integer                        :: i, cnt, which
+    type(copyassoc), pointer       :: cp
     !
     ! Do we have one stored?
     !
-    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
-          cp%reused = cp%reused + 1
+          call remove_item(cp)
+          call add_new_head(cp)
           r = cp
           return
        end if
        cp => cp%next
-       i  =  i + 1
     end do
     !
     ! Gotta build one.
@@ -2556,51 +2556,46 @@ contains
     allocate(cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
     the_copyassoc_cnt = the_copyassoc_cnt + 1
-    cp%next => the_copyassoc_head
-    the_copyassoc_head => cp
+    call add_new_head(cp)
     r = cp
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
-       !
-       ! We want to remove a least used copyassoc, but we never remove the
-       ! first one.  That's the one we've (potentially) just built and will be
-       ! passing back for use.  We want to get the latest entry in the list
-       ! having the lowest reuse count.
-       !
-       i     =  1
-       cnt   = Huge(1)
-       which = -1
-       cp => the_copyassoc_head
-       do while ( associated(cp) )
-          if ( i .gt. 1 .and. cp%reused .le. cnt ) then
-             cnt   = cp%reused
-             which = i
-          end if
-          cp => cp%next
-          i  =  i + 1
-       end do
-
-       call bl_assert(which .le. the_copyassoc_cnt, 'which not in range')
-       !
-       ! Get rid of "which".
-       !
-       if ( which .gt. 1 ) then
-          i =  1
-          cp => the_copyassoc_head
-          do while ( associated(cp) )
-             if ( i .eq. (which-1) ) then
-                ncp     => cp%next
-                cp%next => ncp%next
-                call copyassoc_destroy(ncp)
-                deallocate(ncp)
-                the_copyassoc_cnt = the_copyassoc_cnt - 1
-                exit
-             end if
-             cp => cp%next
-             i  =  i + 1
-          end do
-       end if
+       cp => the_copyassoc_tail
+       call remove_item(cp)
+       call copyassoc_destroy(cp)
+       deallocate(cp)
     end if
+
+  contains
+
+    subroutine add_new_head(p)
+      type(copyassoc), pointer, intent(inout) :: p
+      p%next => the_copyassoc_head
+      p%prev => Null()
+      if (associated(p%next)) then
+         p%next%prev => p
+      end if
+      the_copyassoc_head => cp
+      if (.not.associated(the_copyassoc_tail)) then
+         the_copyassoc_tail => cp
+      end if
+    end subroutine add_new_head
+
+    subroutine remove_item(p)
+      type(copyassoc), pointer, intent(inout) :: p
+      if (associated(p%prev)) then
+         p%prev%next => p%next
+      end if
+      if (associated(p%next)) then
+         p%next%prev => p%prev
+      end if
+      if (associated(p, the_copyassoc_head)) then
+         the_copyassoc_head => p%next
+      end if
+      if (associated(p, the_copyassoc_tail)) then
+         the_copyassoc_tail => p%prev
+      end if
+    end subroutine remove_item
 
   end function layout_copyassoc
 
