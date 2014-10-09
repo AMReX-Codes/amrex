@@ -90,7 +90,7 @@ program fboxinfo
      call get_command_argument(f, value = fname)
      call build(pf, fname, unit)
 
-     if (.not. gridfile .and. .not. castro .and. .not levels) then
+     if (.not. gridfile .and. .not. castro .and. .not. levels) then
         print *, "plotfile: ", trim(fname)
      end if
 
