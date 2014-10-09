@@ -85,6 +85,7 @@ class testObj:
 
         self.wallTime = 0   # set automatically, not by users
 
+        self.nlevels = None  # set but running fboxinfo on the output
 
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
@@ -1738,6 +1739,15 @@ def testSuite(argv):
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
 
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fboxinfo NDEBUG=t MPI= COMP=%s  >& fboxinfo.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
+    compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
+
+    shutil.copy(compareExecutable, fullTestDir + "/fboxinfo.exe")
+
+
     anyDoVis = {'2D':0, '3D':0}
     for test in testList:
         if test.doVis:
@@ -2339,6 +2349,15 @@ def testSuite(argv):
                 outputFile = test.outputFile
                 compareFile = test.name+'_'+outputFile
 
+
+            # get the number of levels for reporting
+            prog = ["../fboxinfo.exe", "-l", "{}".format(outputFile)]
+            p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT)
+            stdout0, stderr0 = p0.communicate()
+            test.nlevels = stdout0.rstrip('\n')
+            p0.stdout.close()
+            
 
             if (not make_benchmarks):
 
