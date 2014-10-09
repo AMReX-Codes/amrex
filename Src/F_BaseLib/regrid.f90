@@ -171,6 +171,14 @@ contains
 
                 end do
 
+                if (ignore_fine_in_layout_mapping) then
+                   call luc_vol_set(sum(lucvol(1:nl)))
+                   ! Destroy the old layout and build a new one.
+                   call destroy(la_array(nl+1))
+                   call layout_build_ba(la_array(nl+1),mba%bas(nl+1),mba%pd(nl+1),pmask)
+                   lucvol(nl+1) = layout_local_volume(la_array(nl+1))
+                end if
+
              end if ! if (.not. properly_nested)
 
           end if ! if (nl .ge. 2) then
