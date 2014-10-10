@@ -3195,16 +3195,27 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     hf.write("<p>&nbsp;\n")    
 
-    hf.write("<div id=\"summary\">\n")
-    hf.write("<P><TABLE>\n")
-    # header
-    hf.write("<tr><th>test name</th><th>dim</th>\n")
-    hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
-    hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
-    hf.write("    <th>compile?</th><th>restart?</th>\n")
-    hf.write("    <th>wall time</th>\n")
-    hf.write("    <th>result</th></tr>\n")
-    
+    if not make_benchmarks:
+
+        hf.write("<div id=\"summary\">\n")
+        hf.write("<P><TABLE>\n")
+        # header
+        hf.write("<tr><th>test name</th><th>dim</th>\n")
+        hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
+        hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
+        hf.write("    <th>compile?</th><th>restart?</th>\n")
+        hf.write("    <th>wall time</th>\n")
+        hf.write("    <th>result</th></tr>\n")
+        
+    else:
+
+        hf.write("<div id=\"summary\">\n")
+        hf.write("<P><TABLE>\n")
+        # header
+        hf.write("<tr><th>test name</th>\n")
+        hf.write("    <th>result</th><th>comment</th></tr>\n")
+
+
     # loop over the tests and add a line for each
     for test in testList:
 
@@ -3312,14 +3323,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
             if (not benchFile == "none"):
                     
-                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>&nbsp;</TD><TD>(new benchmark file is %s)</TD></TR>\n" %
+                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>(new benchmark file is %s)</TD></TR>\n" %
                           (test.name, benchFile) )
             else:
-                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>&nbsp;</TD><TD>(compilation or execution failed)</TD></TR>\n" %
+                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>(compilation or execution failed)</TD></TR>\n" %
                           (test.name) )
                  
-            hf.write("<TR><TD>&nbsp;</TD></TR>\n")
-
 
     hf.write("</TABLE></div>\n")    
 
