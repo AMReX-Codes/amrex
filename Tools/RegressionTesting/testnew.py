@@ -3202,6 +3202,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
     hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
     hf.write("    <th>compile?</th><th>restart?</th>\n")
+    hf.write("    <th>wall time</th>\n")
     hf.write("    <th>result</th></tr>\n")
     
     # loop over the tests and add a line for each
@@ -3272,6 +3273,8 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             else:
                 hf.write("<td> </td>\n")
                 
+            # wallclock time
+            hf.write("<td>{:.3f} s</td>\n".format(test.wallTime))
 
             if testPassed:
                 hf.write("<TD><H3 class=\"passed\">PASSED</H3></TD></TR>\n")
