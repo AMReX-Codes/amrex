@@ -228,6 +228,7 @@ module fab_module
 
   logical,             private, save :: manual_control_least_used_cpus = .false.
   integer(kind =ll_t), private, save :: mcluc_vol                      = 0_ll_t
+  logical,             private, save :: luc_keep_cpu_order             = .false.
 
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
@@ -537,14 +538,16 @@ contains
     use sort_i_module
 
     integer, pointer     :: r(:)
-    integer              :: i
+    integer              :: i, tluc, nprocs
     integer, allocatable :: snd(:), rcv(:), idx(:)
 
     integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
 
-    allocate(r(0:parallel_nprocs()-1))
+    nprocs = parallel_nprocs()
 
-    allocate(snd(1), rcv(parallel_nprocs()), idx(parallel_nprocs()))
+    allocate(r(0:nprocs-1))
+
+    allocate(snd(1), rcv(nprocs))
 
     if (manual_control_least_used_cpus) then
        val = mcluc_vol
@@ -556,18 +559,53 @@ contains
 
     call parallel_allgather(snd, rcv, 1)
 
-    call stable_sort(rcv, idx)
-
-    r = idx - 1
+    if (luc_keep_cpu_order) then
+       tluc = minloc(rcv,1) - 1
+       do i = 0, nprocs-tluc-1
+          r(i) = i+tluc
+       end do
+       do i = nprocs-tluc, nprocs-1
+          r(i) = i - (nprocs-tluc)
+       end do
+    else
+       allocate(idx(nprocs))
+       call stable_sort(rcv, idx)
+       r = idx - 1
+    end if
 
     if ( .false. .and. parallel_ioprocessor() ) then
        print*, '*** least_used_cpus(): '
-       do i = 0, parallel_nprocs()-1
+       do i = 0, nprocs-1
           print*, i, ' : ', r(i)
        end do
     end if
 
   end function least_used_cpus
+
+  function the_least_used_cpu() result(r)
+
+    use parallel
+
+    integer :: r
+    integer, allocatable :: snd(:), rcv(:)
+
+    integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
+    
+    allocate(snd(1), rcv(parallel_nprocs()))
+
+    if (manual_control_least_used_cpus) then
+       val = mcluc_vol
+    else
+       val = fab_ms%num_alloc - fab_ms%num_dealloc
+    end if
+
+    snd(1) = int(val)
+
+    call parallel_allgather(snd, rcv, 1)
+
+    r = minloc(rcv,1) - 1
+
+  end function the_least_used_cpu
 
   subroutine fab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -2221,9 +2259,24 @@ contains
     manual_control_least_used_cpus = flag
   end subroutine manual_control_least_used_cpus_set
 
+  function get_manual_control_least_used_cpus_flag() result(r)
+    logical :: r
+    r = manual_control_least_used_cpus
+  end function get_manual_control_least_used_cpus_flag
+
   subroutine luc_vol_set(i)
     integer(kind=ll_t), intent(in) :: i
     mcluc_vol = i
   end subroutine luc_vol_set
+
+  subroutine luc_keep_cpu_order_set(flag)
+    logical, intent(in) :: flag
+    luc_keep_cpu_order = flag
+  end subroutine luc_keep_cpu_order_set
+
+  function get_luc_keep_cpu_order_flag() result(r)
+    logical :: r
+    r = luc_keep_cpu_order
+  end function get_luc_keep_cpu_order_flag
 
 end module fab_module

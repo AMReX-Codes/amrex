@@ -39,10 +39,14 @@ contains
 
     logical :: new_grid, properly_nested, pmask(mla%dim), same_boxarray
 
+    logical :: mc_flag, order_flag
     integer(kind=ll_t), allocatable :: lucvol(:)
 
     if (ignore_fine_in_layout_mapping) then
+       mc_flag = get_manual_control_least_used_cpus_flag()
+       order_flag = get_luc_keep_cpu_order_flag()
        call manual_control_least_used_cpus_set(.true.)
+       call luc_keep_cpu_order_set(.true.)
        call luc_vol_set(0_ll_t)
        allocate(lucvol(max_levs))
        lucvol = 0_ll_t
@@ -242,7 +246,8 @@ contains
     call destroy(mba)
 
     if (ignore_fine_in_layout_mapping) then
-       call manual_control_least_used_cpus_set(.false.)
+       call manual_control_least_used_cpus_set(mc_flag)
+       call luc_keep_cpu_order_set(order_flag)
        deallocate(lucvol)
     end if
 
