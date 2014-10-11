@@ -41,7 +41,6 @@ Array<Box> Profiler::probDomain;
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
-//std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler *> Profiler::mFortProfs;
 std::vector<std::string> Profiler::mFortProfsErrors;
@@ -250,10 +249,10 @@ void Profiler::start() {
   if(vCallTrace.size() == 0) {
     CallStats cs(callStackDepth, fnameNumber);
     ++cs.nCalls;
-    cs.callTime = bltstart;
+    cs.callTime = bltstart - startTime;
     vCallTrace.push_back(cs);
-    CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart);
-    CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart);
+    CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart - startTime);
+    CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
   } else {
     int topNameNumber(fnameNumber);
     if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevDepth) {
@@ -261,10 +260,10 @@ void Profiler::start() {
     } else {
       CallStats cs(callStackDepth, fnameNumber);
       ++cs.nCalls;
-      cs.callTime = bltstart;
+      cs.callTime = bltstart - startTime;
       vCallTrace.push_back(cs);
-      CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart);
-      CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart);
+      CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart - startTime);
+      CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
     }
   }
   callIndexStack.push(vCallTrace.size() - 1);
@@ -652,7 +651,6 @@ void WriteStats(std::ostream &ios,
   const Real calcRunTime(Profiler::GetRunTime());
 
   std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
-  //mTimersTotalsSorted.clear();
 
   Real totalTimers(0.0), percent(0.0);
   int maxlen(0);
@@ -925,8 +923,8 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 	                 << ' ' << it->second << '\n';
 	  }
 	  csHeaderFile << std::setprecision(16) << "timeMinMax  "
-	               << CallStats::minCallTime - startTime << ' '
-	               << CallStats::maxCallTime - startTime << '\n';
+	               << CallStats::minCallTime << ' '
+	               << CallStats::maxCallTime << '\n';
 
           csHeaderFile.flush();
           csHeaderFile.close();
