@@ -142,9 +142,7 @@ class Profiler
 
     static void Initialize();
     static void Finalize();
-    //static void WriteStats(std::ostream &os,
-                           //const std::map<std::string, ProfStats> &mpStats,
-			   //bool bwriteavg = false);
+
 #ifdef BL_CALL_TRACE
     static void WriteCallTrace(const bool bFlushing = false);
 #endif
@@ -188,15 +186,6 @@ class Profiler
     static void SetNoOutput() { bNoOutput = true; }
 
     static void PerfMonProcess();
-
-    /*
-    static void WriteHeader(std::ostream &os, const int colWidth,
-                            const Real maxlen, const bool bwriteavg);
-    static void WriteRow(std::ostream &os, const std::string &fname,
-                         const ProfStats &pstats, const Real percent,
-			 const int colWidth, const Real maxlen,
-			 const bool bwriteavg);
-    */
 
   private:
     Real bltstart, bltelapsed;
@@ -253,19 +242,19 @@ class Profiler
 
 
 namespace ProfilerUtils {
-void WriteHeader(std::ostream &os, const int colWidth,
-                 const Real maxlen, const bool bwriteavg);
+  void WriteHeader(std::ostream &os, const int colWidth,
+                   const Real maxlen, const bool bwriteavg);
 
-void WriteRow(std::ostream &os, const std::string &fname,
-              const Profiler::ProfStats &pstats, const Real percent,
-	      const int colWidth, const Real maxlen,
-	      const bool bwriteavg);
+  void WriteRow(std::ostream &os, const std::string &fname,
+                const Profiler::ProfStats &pstats, const Real percent,
+	        const int colWidth, const Real maxlen,
+	        const bool bwriteavg);
 
-void WriteStats(std::ostream &os,
-                const std::map<std::string, Profiler::ProfStats> &mpStats,
-		const std::map<std::string, int> &fnameNumbers,
-		const std::vector<Profiler::CallStats> &callTraces,
-		bool bwriteavg = false);
+  void WriteStats(std::ostream &os,
+                  const std::map<std::string, Profiler::ProfStats> &mpStats,
+		  const std::map<std::string, int> &fnameNumbers,
+		  const std::vector<Profiler::CallStats> &callTraces,
+		  bool bwriteavg = false);
 }
 
 
