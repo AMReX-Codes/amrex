@@ -308,7 +308,8 @@ contains
        iorder(i) = i
     end do
 
-    call sort(iorder, sfc_greater_i)
+!    call sort(iorder, sfc_greater_i)
+    call mergesort_i(iorder, sfc_greater_i)
     !
     ! "iorder" now indexes the boxes in morton space-filling-curve order.
     !
