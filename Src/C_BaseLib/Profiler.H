@@ -42,7 +42,7 @@ class Profiler
       long nCalls;
       Real totalTime, stackTime, callTime;
 
-      static int csVersion;
+      static int cstatsVersion;
       static Real minCallTime, maxCallTime;
     };
 
@@ -143,9 +143,7 @@ class Profiler
     static void Initialize();
     static void Finalize();
 
-#ifdef BL_CALL_TRACE
     static void WriteCallTrace(const bool bFlushing = false);
-#endif
     static void WriteCommStats(const bool bFlushing = false);
     static void WriteFortProfErrors();
 
@@ -171,10 +169,8 @@ class Profiler
     static Real GetRunTime() { return calcRunTime; }
     static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
 
-#ifdef BL_CALL_TRACE
     static void RegionStart(const std::string &rname);
     static void RegionStop(const std::string &rname);
-#endif
 
     static inline int NoTag()      { return -3; }
     static inline int BeforeCall() { return -5; }
@@ -206,7 +202,6 @@ class Profiler
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
-    //static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
     static std::vector<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
@@ -219,15 +214,18 @@ class Profiler
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
     static std::vector<CallStats> vCallTrace;
 
-#ifdef BL_CALL_TRACE
-    static bool bFirstTraceWriteH, bFirstTraceWriteD;
-    static std::stack<int> callIndexStack;
-    static int callStackDepth;
-    static int prevDepth;
+    // region support
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
     static int inNRegions;
     static std::vector<RStartStop> rStartStop;
     static const std::string noRegionName;
+
+    static bool bFirstTraceWriteH, bFirstTraceWriteD;
+
+#ifdef BL_TRACE_PROFILING
+    static std::stack<int> callIndexStack;
+    static int callStackDepth;
+    static int prevDepth;
 
   public:
     typedef std::pair<Real, int> RIpair;
@@ -318,6 +316,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 
 
 #define BL_PROFILE_INITIALIZE()  Profiler::Initialize();
+#define BL_PROFILE_FINALIZE()    Profiler::Finalize();
+
 #define BL_PROFILE(fname) Profiler bl_profiler__((fname));
 #define BL_PROFILE_T(fname, T)                                      \
 		     std::string pname(fname);                      \
@@ -327,13 +327,21 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
+
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)  \
                                   Profiler::InitParams(ptl,wall, wfabs);
 #define BL_PROFILE_ADD_STEP(snum)  Profiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
+
 #define BL_PROFILE_REGION_START(rname) Profiler::RegionStart(rname);
 #define BL_PROFILE_REGION_STOP(rname)  Profiler::RegionStop(rname);
-#define BL_PROFILE_FINALIZE()  Profiler::Finalize();
+// these combine regions with profile variables
+#define BL_PROFILE_REGION_VAR(fname, rvname) Profiler::RegionStart(fname);  \
+                                             Profiler bl_profiler__##rvname((fname));
+#define BL_PROFILE_REGION_VAR_START(fname, rvname) Profiler::RegionStart(fname);  \
+                                            bl_profiler__##rvname.start();
+#define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
+                                                   Profiler::RegionStop(fname);
 
 
 #ifdef BL_COMM_PROFILING
@@ -358,21 +366,6 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd) {                \
                              Profiler::InitAMR(flev, mlev, rr, pd);  \
 }
-
-#else
-
-#define BL_COMM_PROFILE(cft, size, pid, tag)
-#define BL_COMM_PROFILE_BARRIER(message, bc)
-#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc)
-#define BL_COMM_PROFILE_REDUCE(cft, size, pid)
-#define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc)
-#define BL_COMM_PROFILE_NAMETAG(message)
-#define BL_COMM_PROFILE_FILTER(cft)
-#define BL_COMM_PROFILE_UNFILTER(cft)
-#define BL_COMM_PROFILE_FLUSH()
-#define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
-#define BL_COMM_PROFILE_TAGWRAP()
-#define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
 
 #endif
 
@@ -400,6 +393,7 @@ class Profiler
 };
 
 #define BL_PROFILE_INITIALIZE()
+#define BL_PROFILE_FINALIZE()
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_TIMER(var, a)
@@ -415,7 +409,14 @@ class Profiler
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
-#define BL_PROFILE_FINALIZE()
+#define BL_PROFILE_REGION_VAR(fname, rvname)
+#define BL_PROFILE_REGION_VAR_START(fname, rvname)
+#define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+
+
+#endif
+
+#ifndef BL_COMM_PROFILING
 
 #define BL_COMM_PROFILE(cft, size, pid, tag)
 #define BL_COMM_PROFILE_BARRIER(message, bc)
