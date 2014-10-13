@@ -641,6 +641,11 @@ contains
     r = lfab_ms
   end function lfab_mem_stats
 
+  function fab_get_high_water_mark() result(r)
+    integer(ll_t) :: r
+    r = fab_high_water_mark
+  end function fab_get_high_water_mark
+
   function fab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
     type(fab), intent(in) :: fb
