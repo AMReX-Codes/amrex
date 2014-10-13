@@ -830,6 +830,7 @@ Amr::writePlotFile ()
 {
     if ( ! Plot_Files_Output()) return;
 
+    BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
@@ -953,6 +954,7 @@ Amr::writePlotFile ()
     //
 
   }  // end while
+  BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
 
 void
@@ -1021,6 +1023,7 @@ void
 Amr::init (Real strt_time,
            Real stop_time)
 {
+    BL_PROFILE_REGION_START("Amr::init()");
     if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
@@ -1047,6 +1050,7 @@ Amr::init (Real strt_time,
     }
     BL_COMM_PROFILE_INITAMR(finest_level, max_level, ref_ratio, probDomain);
 #endif
+    BL_PROFILE_REGION_STOP("Amr::init()");
 }
 
 void
@@ -1265,6 +1269,7 @@ Amr::FinalizeInit (Real              strt_time,
 void
 Amr::restart (const std::string& filename)
 {
+    BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
     // Just initialize this here for the heck of it
@@ -1550,6 +1555,7 @@ Amr::restart (const std::string& filename)
             std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
 #endif
     }
+    BL_PROFILE_REGION_STOP("Amr::restart()");
 }
 
 void
@@ -1557,6 +1563,7 @@ Amr::checkPoint ()
 {
     if ( ! checkpoint_files_output) return;
 
+    BL_PROFILE_REGION_START("Amr::checkPoint()");
     BL_PROFILE("Amr::checkPoint()");
 
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -1717,6 +1724,7 @@ Amr::checkPoint ()
   //
   FArrayBox::setFormat(thePrevFormat);
 
+  BL_PROFILE_REGION_STOP("Amr::checkPoint()");
 }
 
 void
@@ -1825,7 +1833,9 @@ Amr::timeStep (int  level,
                   << dt_level[level]
                   << std::endl;
     }
+    BL_PROFILE_REGION_START("amr_level.advance");
     Real dt_new = amr_level[level].advance(time,dt_level[level],iteration,niter);
+    BL_PROFILE_REGION_STOP("amr_level.advance");
 
     dt_min[level] = iteration == 1 ? dt_new : std::min(dt_min[level],dt_new);
 
@@ -1886,6 +1896,7 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
+    BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
 
     const Real run_strt = ParallelDescriptor::second() ;
@@ -2063,6 +2074,7 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
+    BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
 }
 
 bool
