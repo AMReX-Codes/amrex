@@ -327,7 +327,7 @@ contains
 
    integer :: n,nlevs,i
 
-   type(box) :: pd,bx,nbx,pd_periodic
+   type(box) :: pd,bx,nbx
    integer :: id,lo_grid,hi_grid,lo_dom,hi_dom
 
    logical :: nodal_flag(mla%dim)
@@ -374,7 +374,6 @@ contains
        do i = 1, nfabs(mf(n))
           bx  = get_box(mf(n),i)
           nbx = box_nodalize(bx,nodal_flag)
-          ! AJN - should pd be pd_periodic = get_pd(get_layout(mf(n)))?
           la = mla%la(n)
           call stencil_set_bc_nodal(mla%dim, bx, nbx, i, mm(n), face_type, pd, la)
        end do

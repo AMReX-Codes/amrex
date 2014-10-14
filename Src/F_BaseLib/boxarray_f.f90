@@ -88,10 +88,6 @@ module boxarray_module
      module procedure boxarray_shift_i
   end interface
 
-  interface boxarray_intersection
-     module procedure boxarray_intersection_bx
-  end interface
-
   interface boxarray_grow
      module procedure boxarray_grow_n
      module procedure boxarray_grow_n_f
@@ -106,11 +102,6 @@ module boxarray_module
 
   interface print
      module procedure boxarray_print
-  end interface
-
-  interface contains
-     module procedure boxarray_box_contains
-     module procedure boxarray_boxarray_contains
   end interface
 
   interface equal
@@ -514,20 +505,6 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine boxarray_refine_i
-  !
-  ! This is a very naive implementation.
-  !
-  subroutine boxarray_intersection_bx(ba, bx)
-    type(boxarray), intent(inout) :: ba
-    type(box), intent(in) :: bx
-    integer :: i
-    !$OMP PARALLEL DO
-    do i = 1, ba%nboxes
-      ba%bxs(i) = intersection(ba%bxs(i), bx)
-    end do
-    !$OMP END PARALLEL DO
-    call boxarray_simplify(ba)
-  end subroutine boxarray_intersection_bx
 
   subroutine boxarray_box_boundary_n(bao, bx, n)
     type(boxarray), intent(out) :: bao
@@ -736,135 +713,5 @@ contains
        end if
     end do
   end subroutine boxarray_print
-
-  function boxarray_clean(boxes) result(r)
-    logical :: r
-    type(box), intent(in), dimension(:) :: boxes
-    integer :: i, j
-
-    do i = 1, size(boxes)-1
-       do j = i+1, size(boxes)
-          if ( intersects(boxes(i),boxes(j)) ) then
-             r = .FALSE.
-             return
-          end if
-       end do
-    end do
-    r = .TRUE.
-
-  end function boxarray_clean
-
-  ! subroutine boxarray_add_clean(ba, bx)
-
-  !   use bl_prof_module
-
-  !   type(boxarray), intent(inout) :: ba
-  !   type(box), intent(in) :: bx
-  !   type(list_box) :: check, tmp, tmpbl, bl
-  !   type(list_box_node), pointer :: cp, lp
-  !   type(bl_prof_timer), save :: bpt
-
-  !   if ( empty(ba) ) then
-  !      call boxarray_build_bx(ba, bx)
-  !      return
-  !   end if
-  !   call build(bpt, "ba_add_clean")
-  !   call list_build_v_box(bl, ba%bxs)
-  !   call push_back(check, bx)
-  !   lp => begin(bl)
-  !   do while ( associated(lp) )
-  !      cp => begin(check)
-  !      do while ( associated(cp) )
-  !         if ( intersects(value(cp), value(lp)) ) then
-  !            tmpbl = boxlist_box_diff(value(cp), value(lp))
-  !            call splice(tmp, tmpbl)
-  !            cp => erase(check, cp)
-  !         else
-  !            cp => next(cp)
-  !         end if
-  !      end do
-  !      call splice(check, tmp)
-  !      lp => next(lp)
-  !   end do
-  !   call splice(bl, check)
-  !   call boxlist_simplify(bl)
-  !   call boxarray_build_copy_l(ba, bl)
-  !   call list_destroy_box(bl)
-  !   call destroy(bpt)
-
-  ! end subroutine boxarray_add_clean
-
-  function boxarray_box_contains(ba, bx) result(r)
-    use bl_error_module
-    logical                    :: r
-    type(boxarray), intent(in) :: ba
-    type(box),      intent(in) :: bx
-
-    type(list_box) :: bl1, bl
-    type(box)      :: bx1
-    integer        :: i
-
-    if ( nboxes(ba) .eq. 0 ) &
-       call bl_error('Empty boxarray in boxarray_box_contains')
-
-    call build(bl1)
-    do i = 1, nboxes(ba)
-       bx1 = intersection(bx, get_box(ba,i))
-       if ( empty(bx1) ) cycle
-       call push_back(bl1, bx1)
-    end do
-    bl = boxlist_boxlist_diff(bx, bl1)
-    r = empty(bl)
-    call destroy(bl)
-    call destroy(bl1)
-
-  end function boxarray_box_contains
-
-  function boxarray_boxarray_contains(ba1, ba2, allow_empty) result(r)
-    use bl_prof_module
-    use bl_error_module
-    logical :: r
-    type(boxarray), intent(in) :: ba1, ba2
-    logical, intent(in), optional :: allow_empty
-
-    integer :: i
-    logical :: lallow
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "ba_ba_contains")
-
-    !Note that allow_empty refers to permitting empty boxes, not empty boxarrays
-    lallow = .false.; if (present(allow_empty)) lallow=allow_empty
-
-    if ( nboxes(ba1) .eq. 0 ) &
-       call bl_error('Empty boxarray ba1 in boxarray_boxarray_contains')
-
-    if ( nboxes(ba2) .eq. 0 ) &
-       call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
-
-    if ( lallow) then
-       do i = 1, nboxes(ba2)
-          if (empty(get_box(ba2,i))) cycle !ignore empty boxes
-          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
-          if ( .not. r ) then
-             call destroy(bpt)
-             return
-          end if
-       end do
-    else
-       do i = 1, nboxes(ba2)
-          r = boxarray_box_contains(ba1, get_box(ba2,i)) 
-          if ( .not. r ) then
-             call destroy(bpt)
-             return
-          end if
-       end do
-    endif
-
-    r = .true.
-
-    call destroy(bpt)
-
-  end function boxarray_boxarray_contains
 
 end module boxarray_module

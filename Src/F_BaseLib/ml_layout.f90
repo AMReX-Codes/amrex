@@ -176,38 +176,10 @@ contains
   end subroutine ml_layout_build_la_array
 
   subroutine ml_layout_build(mla, mba, pmask)
-
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
     logical, optional                :: pmask(:)
-
-    type(boxarray) :: bac
-    integer :: n
-    logical :: lpmask(mba%dim)
-
-    lpmask = .false.; if (present(pmask)) lpmask = pmask
-    allocate(mla%pmask(mba%dim))
-    mla%pmask  = lpmask
-
-    mla%nlevel = mba%nlevel
-    mla%dim    = mba%dim
-
-    call copy(mla%mba, mba)
-    allocate(mla%la(mla%nlevel))
-    allocate(mla%mask(mla%nlevel-1))
-    call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
-    do n = 2, mla%nlevel
-       call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
-    end do
-    do n = mla%nlevel-1,  1, -1
-       call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
-       call setval(mla%mask(n), val = .TRUE.)
-       call copy(bac, mba%bas(n+1))
-       call boxarray_coarsen(bac, mba%rr(n,:))
-       call setval(mla%mask(n), .false., bac)
-       call destroy(bac)
-    end do
-
+    call ml_layout_restricted_build(mla, mba, mba%nlevel, pmask)
   end subroutine ml_layout_build
 
   subroutine ml_layout_restricted_build(mla, mba, nlevs, pmask)
@@ -261,24 +233,36 @@ contains
 
   end subroutine ml_layout_restricted_build
 
-  subroutine ml_layout_destroy(mla)
+  subroutine ml_layout_destroy(mla, keep_coarse_layout)
     type(ml_layout), intent(inout) :: mla
-    integer :: n
+    logical, intent(in), optional :: keep_coarse_layout
+    integer :: n, n0
+    logical :: lkeepcoarse
+
+    lkeepcoarse = .false.;  if (present(keep_coarse_layout)) lkeepcoarse = keep_coarse_layout
+
     do n = 1, mla%nlevel-1
        if (built_q(mla%mask(n))) call destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
 
     if ( mla%destroy_all_layouts ) then
-       do n = 1, mla%nlevel
+       if (lkeepcoarse) then
+          n0 = 2
+       else
+          n0 = 1
+       end if
+       do n = n0, mla%nlevel
           call destroy(mla%la(n))
        end do
     else
-       !
-       ! We need only delete the coarsest level layout
-       ! since it 'owns' the refined levels.
-       !
-       call destroy(mla%la(1))
+       if (.not. lkeepcoarse) then
+          !
+          ! We need only delete the coarsest level layout
+          ! since it 'owns' the refined levels.
+          !
+          call destroy(mla%la(1))
+       end if
     end if
 
     deallocate(mla%la, mla%mask)

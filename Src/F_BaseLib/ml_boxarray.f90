@@ -58,7 +58,17 @@ module ml_boxarray_module
      module procedure ml_boxarray_get_boxarray
   end interface
 
+  interface amr_ref_ratio_init
+     module procedure amr_ref_ratio_init_s
+     module procedure amr_ref_ratio_init_m
+  end interface amr_ref_ratio_init
+
   type(mem_stats), private, save :: ml_boxarray_ms
+
+  integer, allocatable, private, save :: amr_ref_ratio(:,:)
+  integer, private, parameter :: amr_ref_ratio_default = 2
+
+  private :: boxarray_intersection_bx
 
 contains
 
@@ -227,6 +237,7 @@ contains
   end subroutine ml_boxarray_maxsize_v
 
   function ml_boxarray_clean(mba) result(r)
+    use layout_module
     logical :: r
     type(ml_boxarray), intent(in) :: mba
     type(box), pointer :: pbxs(:)
@@ -314,7 +325,7 @@ contains
        call boxarray_refine(ba_crse_fine,mba%rr(i-1,:))
        call boxarray_build_copy(ba_fine,mba%bas(i))
        call boxarray_grow(ba_fine, lnp)
-       call boxarray_intersection(ba_fine, mba%pd(i))
+       call boxarray_intersection_bx(ba_fine, mba%pd(i))
        r = contains(ba_crse_fine, ba_fine)
        call destroy(ba_fine)
        if ( .not. r ) then
@@ -390,7 +401,7 @@ contains
        call boxarray_build_copy(ba, mba%bas(i+1))
        call boxarray_coarsen(ba, mba%rr(i,:))
        call boxarray_diff(ba, mba%bas(i))
-       call boxarray_intersection(ba, mba%pd(i))
+       call boxarray_intersection_bx(ba, mba%pd(i))
        if ( .not. empty(ba) ) then
           call boxarray_destroy(ba)
           r = .false.
@@ -400,6 +411,22 @@ contains
     end do
     r = .true.
   end function ml_boxarray_properly_nested_old
+
+  !
+  ! This is a very naive implementation that works perfectly here
+  ! because bx is the physical domain box that intersects with every boxes in ba.
+  !
+  subroutine boxarray_intersection_bx(ba, bx)
+    type(boxarray), intent(inout) :: ba
+    type(box), intent(in) :: bx
+    integer :: i
+    !$OMP PARALLEL DO
+    do i = 1, ba%nboxes
+      ba%bxs(i) = intersection(ba%bxs(i), bx)
+    end do
+    !$OMP END PARALLEL DO
+    call boxarray_simplify(ba)
+  end subroutine boxarray_intersection_bx
 
   subroutine ml_boxarray_print(mba, str, unit, skip)
     use bl_IO_module
@@ -439,6 +466,31 @@ contains
        end if
     end do
   end subroutine ml_boxarray_print
+
+  subroutine amr_ref_ratio_init_s(max_levs,dim,rr)
+    integer, intent(in) :: max_levs, dim, rr
+    allocate(amr_ref_ratio(max_levs-1,dim))
+    amr_ref_ratio = rr
+  end subroutine amr_ref_ratio_init_s
+
+  subroutine amr_ref_ratio_init_m(rr)
+    integer, intent(in) :: rr(:,:)
+    allocate(amr_ref_ratio(size(rr,1),size(rr,2)))
+    amr_ref_ratio = rr
+  end subroutine amr_ref_ratio_init_m
+
+  subroutine ml_boxarray_set_ref_ratio(mba)
+    use bl_error_module
+    type(ml_boxarray), intent(inout) :: mba
+    if (.not. associated(mba%rr)) then
+       call bl_error("ML_BOXARRAY_SET_REF_RATIO: mba%rr not allocated")
+    end if
+    if (allocated(amr_ref_ratio)) then
+       mba%rr = amr_ref_ratio(1:mba%nlevel-1,1:mba%dim)
+    else
+       mba%rr = amr_ref_ratio_default
+    end if
+  end subroutine ml_boxarray_set_ref_ratio
 
 end module ml_boxarray_module
 

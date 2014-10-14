@@ -85,7 +85,7 @@ contains
                       case (2)
                          call nodal_smoother_2d(sp(1,:,:,1), up(:,:,1,n), &
                               fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                              pmask, mgt%stencil_type, k)
+                              mgt%stencil_type, k)
                       case (3)
                          call nodal_smoother_3d(sp(1,:,:,:), up(:,:,:,n), &
                               fp(:,:,:,n), mp(:,:,:,1), lo, ng, &
@@ -118,7 +118,7 @@ contains
                 case (2)
                    call nodal_smoother_2d(sp(1,:,:,1), up(:,:,1,n), &
                         fp(:,:,1,n), mp(:,:,1,1), lo, ng, &
-                        pmask, mgt%stencil_type, 0)
+                        mgt%stencil_type, 0)
                 case (3)
                    call nodal_smoother_3d(sp(1,:,:,:), up(:,:,:,n), &
                         fp(:,:,:,n), mp(:,:,:,1), lo, ng, &

@@ -12,6 +12,19 @@ Install
 $ python setup.py build
 $ python setup.py install
 
+Compiling options
+-----------------
+
+To compile PyBoxLib without MPI support, build using:
+
+$ python setup.py build --disable-mpi
+
+If you are building with MPI support, the MPI compilers wrapper
+'mpicc' and 'mpic++' should be in your PATH.  If not, you can set the
+MPIHOME environment variable:
+
+$ env MPIHOME=$HOME/opt python setup.py build
+
 
 Basic usage
 ===========
@@ -75,5 +88,3 @@ Known issues
 
 #. The C++ version stores components in a non-interleaved format.
    That is, in Fortran the indexing is a(i,j,k,c).
-
-

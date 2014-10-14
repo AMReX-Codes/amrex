@@ -263,7 +263,7 @@ ifdef USE_GCC
         # Necessary to compile in situ analysis
         CXXFLAGS += -ftemplate-depth-256
     else
-        CXXFLAGS += -ftemplate-depth-64
+        CXXFLAGS += -ftemplate-depth-128
     endif
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)

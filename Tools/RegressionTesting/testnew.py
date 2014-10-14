@@ -85,6 +85,7 @@ class testObj:
 
         self.wallTime = 0   # set automatically, not by users
 
+        self.nlevels = None  # set but running fboxinfo on the output
 
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
@@ -924,6 +925,56 @@ def allAreCompileTests(testList):
     return allCompile
 
 
+#==============================================================================
+# getLastRun
+#==============================================================================
+def getLastRun(suite):
+    """ return the name of the directory corresponding to the previous
+        run of the test suite """
+
+    outdir = suite.testTopDir + suite.suiteName + "-tests/"
+    
+    dirs = []
+    for dir in os.listdir(outdir):
+        # this will work through 2099
+        if os.path.isdir(outdir + dir) and dir.startswith("20"):
+            dirs.append(dir)
+
+    dirs.sort()
+
+    return dirs[-1]
+
+#==============================================================================
+# getTestFailures
+#==============================================================================
+def getTestFailures(suite, testDir):
+    """ look at the test run in testDir and return the list of tests that 
+        failed """
+
+    cwd = os.getcwd()
+
+    outdir = suite.testTopDir + suite.suiteName + "-tests/"
+
+    os.chdir(outdir + testDir)
+            
+    failed = []
+
+    for test in os.listdir("."):
+        if not os.path.isdir(test): continue
+
+        # the status files are in the web dir
+        statusFile = suite.webTopDir + testDir + "/%s.status" % (test)
+        sf = open(statusFile, "r")
+        lines = sf.readlines()
+        for line in lines:
+            if string.find(line, "FAILED") >= 0:
+                failed.append(test)
+
+    os.chdir(cwd)
+
+    return failed
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -940,6 +991,7 @@ def testSuite(argv):
                   --extSrcGitHash extsourcehash
                   --note note
                   -d dimensionality
+                  --redo_failed
                   --complete_report_from_crash testdir]
         testfile.ini
 
@@ -1224,6 +1276,9 @@ def testSuite(argv):
           the overall report for all runs.  testdir is the name of the
           testdir (e.g. 20XX-XX-XX) that was running when the suite crashed.
 
+       --redo_failed
+          only run the tests that failed the last time the suite was run
+
     Getting started:
 
       To set up a test suite, it is probably easiest to write the
@@ -1256,7 +1311,8 @@ def testSuite(argv):
                                     "sourceGitHash=",
                                     "extSrcGitHash=",
                                     "note=",
-                                    "complete_report_from_crash="])
+                                    "complete_report_from_crash=",
+                                    "redo_failed"])
 
     except getopt.GetoptError:
         print "invalid calling sequence"
@@ -1277,6 +1333,7 @@ def testSuite(argv):
     extSrcGitHash = ""
     note = ""
     completeReportFromCrash = ""
+    redo_failed = 0
 
     for o, a in opts:
 
@@ -1286,6 +1343,9 @@ def testSuite(argv):
         if o == "--make_benchmarks":
             make_benchmarks = 1
             comment = a
+
+        if o == "--redo_failed":
+            redo_failed = 1
 
         if o == "--no_update":
             no_update = a
@@ -1329,6 +1389,20 @@ def testSuite(argv):
 
     suite, testList = LoadParams(testFile)
 
+    defined_tests = testList[:]
+
+    # if we only want to run the tests that failed previously, remove the
+    # others
+    if redo_failed == 1:
+        last_run = getLastRun(suite)
+        failed = getTestFailures(suite, last_run)
+
+        testListold = testList[:]
+        for t in testListold:
+            if not t.name in failed:
+                testList.remove(t)
+
+
     # if we only want to run tests of a certain dimensionality, remove
     # the others
     if dimensionality >= 1 and dimensionality <= 3:
@@ -1337,7 +1411,7 @@ def testSuite(argv):
             if not t.dim == dimensionality:
                 testList.remove(t)
 
-    activeTestList = [t.name for t in testList]
+    activeTestList = [t.name for t in defined_tests]
 
     # store the full path to the testFile
     testFilePath = os.getcwd() + '/' + testFile
@@ -1663,6 +1737,15 @@ def testSuite(argv):
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
 
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
+
+
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fboxinfo NDEBUG=t MPI= COMP=%s  >& fboxinfo.make.out" % \
+                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
+    print "  " + compString
+    systemCall(compString)
+    compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
+
+    shutil.copy(compareExecutable, fullTestDir + "/fboxinfo.exe")
 
 
     anyDoVis = {'2D':0, '3D':0}
@@ -2267,6 +2350,15 @@ def testSuite(argv):
                 compareFile = test.name+'_'+outputFile
 
 
+            # get the number of levels for reporting
+            prog = ["../fboxinfo.exe", "-l", "{}".format(outputFile)]
+            p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT)
+            stdout0, stderr0 = p0.communicate()
+            test.nlevels = stdout0.rstrip('\n')
+            p0.stdout.close()
+            
+
             if (not make_benchmarks):
 
                 print "  doing the comparison..."
@@ -2633,11 +2725,6 @@ a.main:link {color: yellow; text-decoration: none;}
 a.main:visited {color: yellow; text-decoration: none;}
 a.main:hover {color: #00ffff; text-decoration: underline;}
 
-th {background-color: black;
-    padding: 4px;
-    color: yellow;
-    border-width: 0px;}
-
 td {border-width: 0px;
     padding: 5px;
     background-color: white;
@@ -2673,6 +2760,21 @@ div.verticaltext {text-align: center;
                   white-space: nowrap;
                   -webkit-transform: rotate(-90deg); 
                   -moz-transform: rotate(-90deg);}
+
+#summary th {background-color: grey;
+    color: yellow;
+    text-align: center;
+    height: 2em;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 5px;}
+
+ 
+#summary td {background: transparent;}
+ 
+#summary tr:nth-child(even) {background: #dddddd;}
+#summary tr:nth-child(odd) {background: #eeeeee;}
+
 
 th {background-color: grey;
     color: yellow;
@@ -3093,8 +3195,27 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     hf.write("<p>&nbsp;\n")    
 
-    hf.write("<P><TABLE>\n")
-    
+    if not make_benchmarks:
+
+        hf.write("<div id=\"summary\">\n")
+        hf.write("<P><TABLE>\n")
+        # header
+        hf.write("<tr><th>test name</th><th>dim</th>\n")
+        hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
+        hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
+        hf.write("    <th>compile?</th><th>restart?</th>\n")
+        hf.write("    <th>wall time</th>\n")
+        hf.write("    <th>result</th></tr>\n")
+        
+    else:
+
+        hf.write("<div id=\"summary\">\n")
+        hf.write("<P><TABLE>\n")
+        # header
+        hf.write("<tr><th>test name</th>\n")
+        hf.write("    <th>result</th><th>comment</th></tr>\n")
+
+
     # loop over the tests and add a line for each
     for test in testList:
 
@@ -3121,21 +3242,61 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             sf.close()
 
             # write out this test's status
-            hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD><TD>&nbsp;</TD>" %
+            hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
                      (test.name, test.name) )
         
-            if (testPassed):
+            # dimensionality
+            hf.write("<td>{}</td>\n".format(test.dim))
+
+            # number of levels
+            if not test.nlevels == None:
+                hf.write("<td>{}</td>\n".format(test.nlevels))
+            else:
+                hf.write("<td> </td>\n")
+
+            # MPI ?
+            if test.useMPI:
+                hf.write("<td>&check; ({})</td>\n".format(test.numprocs))
+            else:
+                hf.write("<td> </td>\n")
+
+            # OMP ?
+            if test.useOMP:
+                hf.write("<td>&check; ({})</td>\n".format(test.numthreads))
+            else:
+                hf.write("<td> </td>\n")
+
+            # debug ?
+            if test.debug:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+
+            # compile ?
+            if test.compileTest:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+
+            # restart ?
+            if test.restartTest:
+                hf.write("<td>&check;</td>\n")
+            else:
+                hf.write("<td> </td>\n")
+                
+            # wallclock time
+            hf.write("<td>{:.3f} s</td>\n".format(test.wallTime))
+
+            if testPassed:
                 hf.write("<TD><H3 class=\"passed\">PASSED</H3></TD></TR>\n")
             else:
                 hf.write("<TD><H3 class=\"failed\">FAILED</H3></TD></TR>\n")
 
         
-            hf.write("<TR><TD>&nbsp;</TD></TR>\n")
-
 
         else:
 
-            if (test.restartTest):
+            if test.restartTest:
                 continue
 
             if (test.compileTest):
@@ -3162,16 +3323,14 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
             if (not benchFile == "none"):
                     
-                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>&nbsp;</TD><TD>(new benchmark file is %s)</TD></TR>\n" %
+                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>(new benchmark file is %s)</TD></TR>\n" %
                           (test.name, benchFile) )
             else:
-                 hf.write("<TR><TD>%s</TD><TD>&nbsp;</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>&nbsp;</TD><TD>(compilation or execution failed)</TD></TR>\n" %
+                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>(compilation or execution failed)</TD></TR>\n" %
                           (test.name) )
                  
-            hf.write("<TR><TD>&nbsp;</TD></TR>\n")
 
-
-    hf.write("</TABLE>\n")    
+    hf.write("</TABLE></div>\n")    
 
     # close
     hf.write("</BODY>\n")

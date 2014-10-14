@@ -2,6 +2,7 @@ module nodal_mask_module
 
   use nodal_stencil_module
   use ml_layout_module
+  use bl_prof_module
 
   implicit none
 
@@ -30,6 +31,10 @@ module nodal_mask_module
   type(lmultifab)  :: cfmask
 
   integer :: lo(get_dim(mask)),hi(get_dim(mask)),lof(get_dim(mask)),j
+
+  type(bl_prof_timer), save :: bpt
+
+  call build(bpt, "create_nodal_mask")
 
   dm = get_dim(mask)
 
@@ -90,6 +95,8 @@ module nodal_mask_module
      end select
   end do
   !$OMP END PARALLEL DO
+
+  call destroy(bpt)
 
   end subroutine create_nodal_mask
 

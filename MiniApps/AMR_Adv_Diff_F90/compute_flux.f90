@@ -207,8 +207,8 @@ contains
     end do
 
     ! y-fluxes: add the advective fluxes
-    do j=lo(2),hi(2)
-       do i=lo(1),hi(1)+1
+    do j=lo(2),hi(2)+1
+       do i=lo(1),hi(1)
 
           ! Assume that vadv > 0, which means we need the slope in (i,j-1)
           dlft = 2.d0*(phi(i,j-1) - phi(i,j-2))

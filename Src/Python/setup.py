@@ -8,6 +8,7 @@ from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
 from distutils.command.build import build
+from distutils.spawn import find_executable
 
 from subprocess import call
 
@@ -15,14 +16,36 @@ import numpy as np
 
 
 class build_boxlib(build):
+
+    user_options = build.user_options + [ ('disable-mpi', None, "disable MPI support") ]
+    boolean_options = build.boolean_options + [ 'disable-mpi' ]
+
+    def initialize_options(self):
+        build.initialize_options(self)
+        self.disable_mpi = 0
+
+
     def run(self):
         build.run(self)
+
+        use_mpi = self.disable_mpi == 0
 
         print 'running build_boxlib'
         self.mkpath(self.build_temp)
         def compile():
             print '*' * 80
-            call([ 'make', 'OUT=' + self.build_temp ])
+            if use_mpi:
+                cc = os.environ.get('CC', 'mpicc')
+                cxx = os.environ.get('CXX', 'mpic++')
+                mpihome = os.environ.get('MPIHOME', None)
+                if mpihome is None:
+                    mpicc   = find_executable('mpicc')
+                    if mpicc is None:
+                        raise ValueError("'mpicc' not found.  Please install MPI so that 'mpicc' and 'mpicxx' are in your PATH, or set MPIHOME appropriately.")
+                    mpihome = os.path.dirname(os.path.dirname(mpicc))
+                call([ 'make', 'MPI_HOME=' + mpihome, 'CC=' + cc, 'CXX=' + cxx, 'OUT=' + self.build_temp ])
+            else:
+                call([ 'make', 'USE_MPI=FALSE', 'OUT=' + self.build_temp ])
             print '*' * 80
 
         self.execute(compile, [], 'compiling boxlib')

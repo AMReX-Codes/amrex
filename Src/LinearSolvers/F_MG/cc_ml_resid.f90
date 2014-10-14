@@ -297,7 +297,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
-       j = indxmap(j)
+       j = indxmap(i)
        dim = abs(facemap(i))
        face = sign(1, facemap(i))
 
@@ -316,7 +316,7 @@ contains
                 call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
                                      mp(:,:,1,1), ng, ratio(dim), face, dim)
              else
-                call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+                call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
                                      mp(:,:,1,1), ng, ratio(dim), face, dim)
              end if
           case (3)
