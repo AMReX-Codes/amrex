@@ -897,7 +897,7 @@ contains
        ibxs(i) = volume(get_box(bxs,i))
     end do
 
-    if ( (nboxes(bxs)/parallel_nprocs()) > sfc_threshold ) then
+    if ( (nboxes(bxs)/parallel_nprocs()) >= sfc_threshold ) then
        !
        ! Use Morton space-filling-curve distribution if we have "enough" grids.
        !
