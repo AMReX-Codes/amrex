@@ -2165,6 +2165,7 @@ contains
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer                 :: i, ii, jj, np, istart, iend, nsize
     type(boxassoc)          :: bxasc
+    logical                 :: cc
 
     ! make sure fb_data is clean
     fb_data%sent = .false.
@@ -2177,7 +2178,8 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2)
+    cc = multifab_cell_centered_q(mf)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (cc)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2247,6 +2249,7 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
+    logical :: cc
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
@@ -2262,7 +2265,8 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       !$omp parallel do private(i,sh,p)
+       cc = multifab_cell_centered_q(mf)
+       !$omp parallel do private(i,sh,p) if (cc)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
@@ -2288,6 +2292,7 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
+    logical :: cc
 
     if (fb_data%rcvd) return
 
@@ -2296,7 +2301,8 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       !$omp parallel do private(i,sh,p)
+       cc = multifab_cell_centered_q(mf)
+       !$omp parallel do private(i,sh,p) if (cc)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
@@ -2322,6 +2328,7 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
+    logical :: cc
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
@@ -2341,7 +2348,8 @@ contains
     if (fb_data%rcvd .and. associated(fb_data%recv_buffer)) then
        bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-       !$omp parallel do private(i,sh,p)
+       cc = multifab_cell_centered_q(mf)
+       !$omp parallel do private(i,sh,p) if (cc)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
