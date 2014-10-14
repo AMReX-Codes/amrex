@@ -532,16 +532,21 @@ contains
   ! fab memory in use on the CPU to largest amount of fab memory in use
   ! on that CPU.  The pointer must be deallocated by the calling routine.
   !
-  function least_used_cpus () result(r)
+  function least_used_cpus (always_sort) result(r)
 
     use parallel
     use sort_i_module
 
+    logical, intent(in), optional :: always_sort
     integer, pointer     :: r(:)
     integer              :: i, tluc, nprocs
     integer, allocatable :: snd(:), rcv(:), idx(:)
 
     integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
+    
+    logical :: lsort
+
+    lsort = .true.;  if (present(always_sort)) lsort = always_sort
 
     nprocs = parallel_nprocs()
 
@@ -559,7 +564,7 @@ contains
 
     call parallel_allgather(snd, rcv, 1)
 
-    if (luc_keep_cpu_order) then
+    if (luc_keep_cpu_order .and. lsort .eqv. .false.) then
        tluc = minloc(rcv,1) - 1
        do i = 0, nprocs-tluc-1
           r(i) = i+tluc
