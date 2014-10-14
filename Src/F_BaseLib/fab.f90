@@ -582,31 +582,6 @@ contains
 
   end function least_used_cpus
 
-  function the_least_used_cpu() result(r)
-
-    use parallel
-
-    integer :: r
-    integer, allocatable :: snd(:), rcv(:)
-
-    integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
-    
-    allocate(snd(1), rcv(parallel_nprocs()))
-
-    if (manual_control_least_used_cpus) then
-       val = mcluc_vol
-    else
-       val = fab_ms%num_alloc - fab_ms%num_dealloc
-    end if
-
-    snd(1) = int(val)
-
-    call parallel_allgather(snd, rcv, 1)
-
-    r = minloc(rcv,1) - 1
-
-  end function the_least_used_cpu
-
   subroutine fab_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
     fab_ms = ms
