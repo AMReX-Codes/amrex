@@ -285,7 +285,7 @@ contains
     subroutine owner_mask(mask)
       type(lmultifab), intent(inout) :: mask
       integer, parameter :: OneByte = selected_int_kind(1)
-      integer :: i, j, k, n, lo(4), hi(4), dm, vol_safe
+      integer :: i, j, k, n, lo(4), hi(4), dm, vol_safe, ierr
       type(box) :: bbox, bxi, bxj, bxij
       logical, pointer :: lp(:,:,:,:)
       integer(kind=OneByte), allocatable :: imask(:,:,:)
@@ -306,11 +306,13 @@ contains
       hi(1:dm) = upb(bbox)
 
       if (product(hi-lo+1) < vol_safe) then  
+         allocate(imask(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)), stat=ierr)
+      end if
 
-         allocate(imask(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
-
-         imask = 0_OneByte
+      if (allocated(imask)) then
          
+         imask = 0_OneByte
+
          do n = 1, nfabs(mask)
             lp => dataptr(mask,n)
             lo = lbound(lp)
