@@ -951,6 +951,7 @@ contains
       call bl_error("READ_BOX: this is as far as I got")
       call bl_stream_expect(strm, "]")
     end subroutine read_box
+
     subroutine read_a_legacy_box
       use bl_error_module
       character(len=1) :: c

@@ -251,11 +251,86 @@ contains
 
   end subroutine heapsort_indirect_i
 
-  subroutine mergesort_i( array )
+  subroutine mergesort_i( array, cmp )
     integer, dimension(:), intent(inout) :: array
+    interface
+       function cmp(a,b) result(r)         
+         implicit none
+         logical :: r
+         integer, intent(in) :: a, b
+       end function cmp
+    end interface
+    optional cmp
+
     integer :: tmp((size(array)+1)/2)
-    call mg_sort_no_cmp(array, tmp)
+    if (present(cmp)) then
+       call mg_sort_cmp(array, tmp)
+    else
+       call mg_sort_no_cmp(array, tmp)
+    end if
   contains
+
+    recursive subroutine mg_sort_cmp(a, tmp)
+      integer, intent(inout) :: a(:) 
+      integer, intent(out  ) :: tmp(:)
+      
+      integer :: n, nh
+
+      n = size(a)
+      
+      if (n .eq. 1) then
+
+         return
+
+      else if (n .eq. 2) then
+
+         if (cmp(a(2),a(1))) then
+            a(1:2) = a(2:1:-1)
+         end if
+
+      else
+
+         nh = (n+1)/2
+         call mg_sort_cmp(a(1:nh),tmp)
+         call mg_sort_cmp(a(nh+1:),tmp)
+         
+         if (cmp(a(nh+1),a(nh))) then
+            tmp(1:nh) = a(1:nh)
+            call merge_cmp(tmp(1:nh), a)
+         end if
+
+      end if
+
+      return
+    end subroutine mg_sort_cmp
+
+    subroutine merge_cmp(tmp, a)
+      integer, intent(inout) :: a(:), tmp(:) 
+      
+      integer :: n, nh, i, j, k
+
+      n = size(a)
+      nh = size(tmp)
+
+      i=1 
+      j=nh+1 
+      k=1
+
+      do while (i .le. nh .and. j .le. n)
+         if (cmp(a(j),tmp(i))) then
+            a(k) = a(j)
+            j = j+1
+         else
+            a(k) = tmp(i)
+            i = i+1
+         end if
+         k = k+1
+      end do
+
+      if (i .le. nh) a(k:) = tmp(i:nh)
+
+      return
+    end subroutine merge_cmp
 
     recursive subroutine mg_sort_no_cmp(a, tmp)
       integer, intent(inout) :: a(:) 
@@ -283,7 +358,7 @@ contains
          
          if (a(nh+1) < a(nh)) then
             tmp(1:nh) = a(1:nh)
-            call merge(tmp(1:nh), a)
+            call merge_no_cmp(tmp(1:nh), a)
          end if
 
       end if
@@ -291,7 +366,7 @@ contains
       return
     end subroutine mg_sort_no_cmp
 
-    subroutine merge(tmp, a)
+    subroutine merge_no_cmp(tmp, a)
       integer, intent(inout) :: a(:), tmp(:) 
       
       integer :: n, nh, i, j, k
@@ -317,7 +392,7 @@ contains
       if (i .le. nh) a(k:) = tmp(i:nh)
 
       return
-    end subroutine merge
+    end subroutine merge_no_cmp
 
   end subroutine mergesort_i
 
@@ -361,7 +436,7 @@ contains
          
          if (array(idx(nh+1)) < array(idx(nh))) then
             tmp(1:nh) = idx(1:nh)
-            call merge(tmp(1:nh), idx)
+            call merge_no_cmp(tmp(1:nh), idx)
          end if
 
       end if
@@ -369,7 +444,7 @@ contains
       return
     end subroutine mg_sort_no_cmp
 
-    subroutine merge(tmp, idx)
+    subroutine merge_no_cmp(tmp, idx)
       integer, intent(inout) :: idx(:), tmp(:) 
       
       integer :: n, nh, i, j, k
@@ -395,7 +470,7 @@ contains
       if (i .le. nh) idx(k:) = tmp(i:nh)
 
       return
-    end subroutine merge
+    end subroutine merge_no_cmp
 
   end subroutine mergesort_indirect_i
 

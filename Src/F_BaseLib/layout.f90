@@ -96,13 +96,14 @@ module layout_module
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
-     integer                   :: reused     = 0
+     integer                   :: used       = 0       ! how many times used?
      integer                   :: hash
      logical, pointer          :: nd_dst(:)  => Null() ! dst nodal flag
      logical, pointer          :: nd_src(:)  => Null() ! src nodal flag
      type(local_conn)          :: l_con
      type(remote_conn)         :: r_con
      type(copyassoc),  pointer :: next       => Null()
+     type(copyassoc),  pointer :: prev       => Null()
      type(boxarray)            :: ba_src
      type(boxarray)            :: ba_dst
      integer, pointer          :: prc_src(:) => Null()
@@ -140,9 +141,10 @@ module layout_module
   ! Global list of copyassoc's used by multifab copy routines.
   !
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
+  type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 25 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 50 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -282,11 +284,16 @@ module layout_module
      module procedure layout_get_pmask
   end interface
 
+  interface contains
+     module procedure boxarray_box_contains
+     module procedure boxarray_boxarray_contains
+  end interface
+
+
   private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
-  type(mem_stats), private, save :: avx_ms
   type(mem_stats), private, save :: fgx_ms
   type(mem_stats), private, save :: snx_ms
   type(mem_stats), private, save :: cpx_ms
@@ -569,20 +576,18 @@ contains
 
   subroutine layout_flush_copyassoc_cache ()
     type(copyassoc), pointer :: cp, ncp
-    integer                  :: i
 
-    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
        ncp => cp%next
        call copyassoc_destroy(cp)
        deallocate(cp)
        cp => ncp
-       i  =  i + 1
     end do
 
     the_copyassoc_cnt  =  0
     the_copyassoc_head => Null()
+    the_copyassoc_tail => Null()
   end subroutine layout_flush_copyassoc_cache
 
   recursive subroutine layout_rep_destroy(lap, la_type)
@@ -2532,73 +2537,68 @@ contains
     type(layout),    intent(inout) :: la_dst
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
-    type(copyassoc), pointer       :: cp, ncp
-    integer                        :: i, cnt, which
+    type(copyassoc), pointer       :: cp
     !
     ! Do we have one stored?
     !
-    i  =  1
     cp => the_copyassoc_head
     do while ( associated(cp) )
        if ( copyassoc_check(cp, la_dst, la_src, nd_dst, nd_src) ) then
-          cp%reused = cp%reused + 1
+          call remove_item(cp)
+          call add_new_head(cp)
+          cp%used = cp%used + 1
           r = cp
           return
        end if
        cp => cp%next
-       i  =  i + 1
     end do
     !
     ! Gotta build one.
     !
     allocate(cp)
     call copyassoc_build(cp, la_dst, la_src, nd_dst, nd_src)
+    cp%used = 1
     the_copyassoc_cnt = the_copyassoc_cnt + 1
-    cp%next => the_copyassoc_head
-    the_copyassoc_head => cp
+    call add_new_head(cp)
     r = cp
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
-       !
-       ! We want to remove a least used copyassoc, but we never remove the
-       ! first one.  That's the one we've (potentially) just built and will be
-       ! passing back for use.  We want to get the latest entry in the list
-       ! having the lowest reuse count.
-       !
-       i     =  1
-       cnt   = Huge(1)
-       which = -1
-       cp => the_copyassoc_head
-       do while ( associated(cp) )
-          if ( i .gt. 1 .and. cp%reused .le. cnt ) then
-             cnt   = cp%reused
-             which = i
-          end if
-          cp => cp%next
-          i  =  i + 1
-       end do
-
-       call bl_assert(which .le. the_copyassoc_cnt, 'which not in range')
-       !
-       ! Get rid of "which".
-       !
-       if ( which .gt. 1 ) then
-          i =  1
-          cp => the_copyassoc_head
-          do while ( associated(cp) )
-             if ( i .eq. (which-1) ) then
-                ncp     => cp%next
-                cp%next => ncp%next
-                call copyassoc_destroy(ncp)
-                deallocate(ncp)
-                the_copyassoc_cnt = the_copyassoc_cnt - 1
-                exit
-             end if
-             cp => cp%next
-             i  =  i + 1
-          end do
-       end if
+       cp => the_copyassoc_tail
+       call remove_item(cp)
+       call copyassoc_destroy(cp)
+       deallocate(cp)
     end if
+
+  contains
+
+    subroutine add_new_head(p)
+      type(copyassoc), pointer, intent(inout) :: p
+      p%next => the_copyassoc_head
+      p%prev => Null()
+      if (associated(p%next)) then
+         p%next%prev => p
+      end if
+      the_copyassoc_head => cp
+      if (.not.associated(the_copyassoc_tail)) then
+         the_copyassoc_tail => cp
+      end if
+    end subroutine add_new_head
+
+    subroutine remove_item(p)
+      type(copyassoc), pointer, intent(inout) :: p
+      if (associated(p%prev)) then
+         p%prev%next => p%next
+      end if
+      if (associated(p%next)) then
+         p%next%prev => p%prev
+      end if
+      if (associated(p, the_copyassoc_head)) then
+         the_copyassoc_head => p%next
+      end if
+      if (associated(p, the_copyassoc_tail)) then
+         the_copyassoc_tail => p%prev
+      end if
+    end subroutine remove_item
 
   end function layout_copyassoc
 
@@ -3053,10 +3053,55 @@ contains
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
 
-  subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
 
+  function boxarray_clean(boxes) result(r)
+    logical :: r
+    type(box), intent(in), dimension(:) :: boxes
+    integer :: i
+    type(box_intersector), pointer  :: bi(:)
+    type(layout) :: la
+    type(boxarray) :: ba
+    
+    call boxarray_build_v(ba, boxes, sort=.false.)
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    
+    do i=1,size(boxes)
+       bi => layout_get_box_intersector(la, boxes(i))
+       if(size(bi) .ne. 1) then
+          deallocate(bi)
+          call destroy(ba)
+          call destroy(la)
+          r = .false.
+          return
+       end if
+       deallocate(bi)
+    end do
+    call destroy(ba)
+    call destroy(la)
+    r = .true.
+    return
+  end function boxarray_clean
+
+
+  subroutine boxarray_add_clean(ba, bx)
     use bl_prof_module
+    type(boxarray), intent(inout) :: ba
+    type(box), intent(in) :: bx
+    type(box) :: bxs(1)
+    type(bl_prof_timer), save :: bpt
+    if ( empty(ba) ) then
+       call boxarray_build_bx(ba, bx)
+       return
+    end if
+    call build(bpt, "ba_add_clean")
+    bxs(1) = bx
+    call boxarray_add_clean_boxes(ba, bxs, simplify=.true.)
+    call destroy(bpt)
+  end subroutine boxarray_add_clean
 
+
+  subroutine boxarray_add_clean_boxes(ba, bxs, simplify)
+    use bl_prof_module
     type(boxarray), intent(inout) :: ba
     type(box), intent(in) :: bxs(:)
     logical, intent(in), optional :: simplify
@@ -3136,8 +3181,8 @@ contains
     call boxarray_build_copy_l(ba, blclean)
     call destroy(blclean)
     call destroy(bpt)
-
   end subroutine boxarray_add_clean_boxes
+
 
   subroutine boxarray_to_domain(ba)
     type(boxarray), intent(inout) :: ba
@@ -3146,5 +3191,146 @@ contains
     call boxarray_destroy(ba)
     ba = ba1
   end subroutine boxarray_to_domain
+
+
+  function boxarray_box_contains(ba, bx) result(r)
+    use bl_error_module
+    logical                    :: r
+    type(boxarray), intent(in) :: ba
+    type(box),      intent(in) :: bx
+
+    type(list_box) :: bl1, bl
+    integer        :: i
+    type(box_intersector), pointer  :: bi(:)
+    type(layout) :: la
+
+    if ( nboxes(ba) .eq. 0 ) &
+       call bl_error('Empty boxarray in boxarray_box_contains')
+    
+    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+
+    bi => layout_get_box_intersector(la, bx)    
+
+    do i = 1, size(bi)
+       call push_back(bl1, bi(i)%bx)
+    end do
+
+    deallocate(bi)
+    call destroy(la)
+
+    bl = boxlist_boxlist_diff(bx, bl1)
+    r = empty(bl)
+    call destroy(bl)
+    call destroy(bl1)
+  end function boxarray_box_contains
+
+
+  function layout_box_contains(la, bx) result(r)
+    use bl_error_module
+    logical                    :: r
+    type(layout),   intent(inout) :: la
+    type(box),      intent(in   ) :: bx
+
+    type(list_box) :: bl1, bl
+    integer        :: i
+    type(box_intersector), pointer  :: bi(:)
+
+    if ( nboxes(la) .eq. 0 ) &
+       call bl_error('Empty boxarray in layout_box_contains')
+    
+    bi => layout_get_box_intersector(la, bx)    
+
+    do i = 1, size(bi)
+       call push_back(bl1, bi(i)%bx)
+    end do
+
+    deallocate(bi)
+
+    bl = boxlist_boxlist_diff(bx, bl1)
+    r = empty(bl)
+    call destroy(bl)
+    call destroy(bl1)
+  end function layout_box_contains
+
+
+  function boxarray_boxarray_contains(ba1, ba2, allow_empty) result(r)
+    use bl_prof_module
+    use bl_error_module
+    logical :: r
+    type(boxarray), intent(in) :: ba1, ba2
+    logical, intent(in), optional :: allow_empty
+
+    integer :: i
+    logical :: lallow
+    type(layout) :: la1
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "ba_ba_contains")
+
+    !Note that allow_empty refers to permitting empty boxes, not empty boxarrays
+    lallow = .false.; if (present(allow_empty)) lallow=allow_empty
+
+    if ( nboxes(ba1) .eq. 0 ) &
+       call bl_error('Empty boxarray ba1 in boxarray_boxarray_contains')
+
+    if ( nboxes(ba2) .eq. 0 ) &
+       call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
+
+    call build(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
+
+    if ( lallow) then
+       do i = 1, nboxes(ba2)
+          if (empty(get_box(ba2,i))) cycle !ignore empty boxes
+          r = layout_box_contains(la1, get_box(ba2,i)) 
+          if ( .not. r ) then
+             call destroy(la1)
+             call destroy(bpt)
+             return
+          end if
+       end do
+    else
+       do i = 1, nboxes(ba2)
+          r = layout_box_contains(la1, get_box(ba2,i)) 
+          if ( .not. r ) then
+             call destroy(la1)
+             call destroy(bpt)
+             return
+          end if
+       end do
+    endif
+
+    call destroy(la1)
+
+    r = .true.
+
+    call destroy(bpt)
+  end function boxarray_boxarray_contains
+
+  ! volume of boxarray on this cpu
+  function layout_local_volume(la) result(vol)
+    type(layout), intent(in) :: la
+    integer(kind=ll_t) :: vol
+    integer :: i
+    vol = 0_ll_t
+    do i = 1, nlocal(la)
+       vol = vol + int(volume(get_box(la, global_index(la,i))), ll_t)
+    end do
+  end function layout_local_volume
+
+  subroutine layout_copyassoc_print()
+    type(copyassoc), pointer :: cp
+    integer :: i
+    if (parallel_IOProcessor()) then
+       print *, 'THE COPYASSOC:  index  used'
+       cp => the_copyassoc_head
+       i = 1
+       do while ( associated(cp) )
+          print *, i, cp%used  
+          cp => cp%next
+          i = i+1
+       end do
+       call flush(6)
+    end if
+  end subroutine layout_copyassoc_print
 
 end module layout_module
