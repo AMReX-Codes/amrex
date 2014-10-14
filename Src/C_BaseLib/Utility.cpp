@@ -1301,8 +1301,8 @@ bool BoxLib::StreamRetry::TryFileOutput()
 }
 
 
-void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
-                         std::vector<std::string> &syncedStrings, bool &alreadySynced)
+void BoxLib::SyncStrings(const Array<std::string> &localStrings,
+                         Array<std::string> &syncedStrings, bool &alreadySynced)
 {
 #ifdef BL_USE_MPI
   const int myProc(ParallelDescriptor::MyProc());
@@ -1310,7 +1310,7 @@ void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
   const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
   int nUnmatched(0);
 
-  std::vector<std::string> localStringsCopy = localStrings;
+  Array<std::string> localStringsCopy = localStrings;
 
   // ---- broadcast ioproc strings
   int pfStringsSize(0);
@@ -1330,7 +1330,7 @@ void BoxLib::SyncStrings(const std::vector<std::string> &localStrings,
   ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
 
   // ---- extract the ioproc strings
-  std::vector<std::string> ioprocStrings, sendStrings;
+  Array<std::string> ioprocStrings, sendStrings;
   if( ! ParallelDescriptor::IOProcessor()) {
     std::istringstream pfIn(pfCharArray.dataPtr());
     std::string pfName;

@@ -349,8 +349,8 @@ namespace BoxLib
 	static int nStreamErrors;
     };
 
-    void SyncStrings(const std::vector<std::string> &localStrings,
-                     std::vector<std::string> &syncedStrings, bool &alreadySynced);
+    void SyncStrings(const Array<std::string> &localStrings,
+                     Array<std::string> &syncedStrings, bool &alreadySynced);
 }
 
 //

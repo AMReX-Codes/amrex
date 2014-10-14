@@ -14,7 +14,6 @@
 #include <stack>
 #include <set>
 #include <map>
-#include <vector>
 #include <list>
 #include <utility>
 #include <typeinfo>
@@ -121,11 +120,11 @@ class Profiler
       static int tagWrapNumber;
       static int tagMin;
       static int tagMax;
-      static std::vector<std::pair<std::string,int> > barrierNames;  // [name, seek]
-      static std::vector<std::pair<int,int> > nameTags;              // [nameindex, seek]
-      static std::vector<std::string> nameTagNames;                  // [name]
-      static std::vector<int> reductions;                            // [index]
-      static std::vector<int> tagWraps;                              // [index]
+      static Array<std::pair<std::string,int> > barrierNames;  // [name, seek]
+      static Array<std::pair<int,int> > nameTags;              // [nameindex, seek]
+      static Array<std::string> nameTagNames;                  // [name]
+      static Array<int> reductions;                            // [index]
+      static Array<int> tagWraps;                              // [index]
       static int csVersion;
 
       CommFuncType cfType;
@@ -134,7 +133,7 @@ class Profiler
     };
 
     static std::map<std::string, Profiler *> mFortProfs;  // [fname, fortfunc]
-    static std::vector<std::string> mFortProfsErrors;     // [error string]
+    static Array<std::string> mFortProfsErrors;     // [error string]
 
     explicit Profiler(const std::string &funcname);
 
@@ -202,7 +201,7 @@ class Profiler
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
-    static std::vector<CommStats> vCommStats;
+    static Array<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
     static std::string blProfDirName;
@@ -212,12 +211,12 @@ class Profiler
     static int  NameTagNameIndex(const std::string &name);
 
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
-    static std::vector<CallStats> vCallTrace;
+    static Array<CallStats> vCallTrace;
 
     // region support
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
     static int inNRegions;
-    static std::vector<RStartStop> rStartStop;
+    static Array<RStartStop> rStartStop;
     static const std::string noRegionName;
 
     static bool bFirstTraceWriteH, bFirstTraceWriteD;
@@ -251,7 +250,7 @@ namespace ProfilerUtils {
   void WriteStats(std::ostream &os,
                   const std::map<std::string, Profiler::ProfStats> &mpStats,
 		  const std::map<std::string, int> &fnameNumbers,
-		  const std::vector<Profiler::CallStats> &callTraces,
+		  const Array<Profiler::CallStats> &callTraces,
 		  bool bwriteavg = false);
 }
 

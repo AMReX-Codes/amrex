@@ -41,9 +41,9 @@ Array<Box> Profiler::probDomain;
 std::stack<Real> Profiler::nestedTimeStack;
 std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
-std::vector<Profiler::CommStats> Profiler::vCommStats;
+Array<Profiler::CommStats> Profiler::vCommStats;
 std::map<std::string, Profiler *> Profiler::mFortProfs;
-std::vector<std::string> Profiler::mFortProfsErrors;
+Array<std::string> Profiler::mFortProfsErrors;
 const int mFortProfMaxErrors(32);
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
@@ -53,11 +53,11 @@ int Profiler::CommStats::tagWrapNumber(0);
 int Profiler::CommStats::tagMin(0);
 int Profiler::CommStats::tagMax(0);
 int Profiler::CommStats::csVersion(1);
-std::vector<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
-std::vector<std::pair<int,int> > Profiler::CommStats::nameTags;
-std::vector<std::string> Profiler::CommStats::nameTagNames;
-std::vector<int> Profiler::CommStats::reductions;
-std::vector<int> Profiler::CommStats::tagWraps;
+Array<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
+Array<std::pair<int,int> > Profiler::CommStats::nameTags;
+Array<std::string> Profiler::CommStats::nameTagNames;
+Array<int> Profiler::CommStats::reductions;
+Array<int> Profiler::CommStats::tagWraps;
 
 std::string Profiler::procName("NoProcName");
 int Profiler::procNumber(-1);
@@ -65,12 +65,12 @@ std::string Profiler::blProfDirName("bl_prof");
 std::string Profiler::blCommProfDirName("bl_comm_prof");
 
 std::map<std::string, int> Profiler::mFNameNumbers;
-std::vector<Profiler::CallStats> Profiler::vCallTrace;
+Array<Profiler::CallStats> Profiler::vCallTrace;
 
 // Region support
 std::map<std::string, int> Profiler::mRegionNameNumbers;
 int Profiler::inNRegions(0);
-std::vector<Profiler::RStartStop> Profiler::rStartStop;
+Array<Profiler::RStartStop> Profiler::rStartStop;
 const std::string Profiler::noRegionName("__NoRegion__");
 
 bool Profiler::bFirstTraceWriteH(true);  // header
@@ -202,7 +202,7 @@ void Profiler::Initialize() {
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
-  std::vector<CommFuncType> vEx;
+  Array<CommFuncType> vEx;
 
   Array<char> fileCharPtr;
   bool bExitOnError(false);  // in case the file does not exist
@@ -413,7 +413,7 @@ void Profiler::Finalize() {
   CommStats::cftExclude.insert(AllCFTypes);
 
   // -------- make sure the set of profiled functions is the same on all processors
-  std::vector<std::string> localStrings, syncedStrings;
+  Array<std::string> localStrings, syncedStrings;
   bool alreadySynced;
 
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
@@ -642,7 +642,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 void WriteStats(std::ostream &ios,
                 const std::map<std::string, Profiler::ProfStats> &mpStats,
 		const std::map<std::string, int> &fnameNumbers,
-		const std::vector<Profiler::CallStats> &callTraces,
+		const Array<Profiler::CallStats> &callTraces,
 		bool bwriteavg)
 {
   const int myProc(ParallelDescriptor::MyProc());
@@ -753,7 +753,7 @@ void WriteStats(std::ostream &ios,
 
 #ifdef BL_TRACE_PROFILING
   // -------- write timers sorted by inclusive times
-  std::vector<std::string> fNumberNames(fnameNumbers.size());
+  Array<std::string> fNumberNames(fnameNumbers.size());
   for(std::map<std::string, int>::const_iterator it = fnameNumbers.begin();
       it != fnameNumbers.end(); ++it)
   {
@@ -761,12 +761,12 @@ void WriteStats(std::ostream &ios,
   }
 
   // sort by total time
-  std::vector<Profiler::RIpair> funcTotalTimes(fnameNumbers.size());
+  Array<Profiler::RIpair> funcTotalTimes(fnameNumbers.size());
   for(int i(0); i < funcTotalTimes.size(); ++i) {
     funcTotalTimes[i].first  = 0.0;
     funcTotalTimes[i].second = i;
   }
-  std::vector<int> callStack(1000, -1);  // use vector instead of stack for iterator
+  Array<int> callStack(1000, -1);  // use Array instead of stack for iterator
   for(int i(0); i < callTraces.size(); ++i) {
     const Profiler::CallStats &cs = callTraces[i];
     int depth(cs.callStackDepth);
@@ -825,7 +825,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 
     if( ! bFlushing) {
       // -------- make sure the set of region names is the same on all processors
-      std::vector<std::string> localStrings, syncedStrings;
+      Array<std::string> localStrings, syncedStrings;
       bool alreadySynced;
       for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
           it != mRegionNameNumbers.end(); ++it)
@@ -930,10 +930,12 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
           csHeaderFile.close();
 
 	  if(rStartStop.size() > 0) {
-	    csDFile.write((char *) &rStartStop[0], rStartStop.size() * sizeof(RStartStop));
+	    csDFile.write((char *) rStartStop.dataPtr(),
+	                  rStartStop.size() * sizeof(RStartStop));
 	  }
 	  if(vCallTrace.size() > 0) {
-	    csDFile.write((char *) &vCallTrace[0], vCallTrace.size() * sizeof(CallStats));
+	    csDFile.write((char *) vCallTrace.dataPtr(),
+	                  vCallTrace.size() * sizeof(CallStats));
 	  }
 
 	  csDFile.flush();
@@ -1134,7 +1136,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
 	csHeaderFile.flush();
         csHeaderFile.close();
 
-	csDFile.write((char *) &vCommStats[0], vCommStats.size() * sizeof(CommStats));
+	csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
 
         csDFile.flush();
         csDFile.close();
