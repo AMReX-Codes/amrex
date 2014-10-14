@@ -1,3 +1,7 @@
+! The cluster module decides how to place fine grids that contain all
+! newly-tagged coarse cells, and satisfy other constraints such as
+! blocking factor, efficiency, etc.
+
 module cluster_module
 
   use bl_types
