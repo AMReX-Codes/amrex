@@ -274,7 +274,7 @@ contains
           xb = ZERO
        end if
 
-       ! xa and xb tell the stencil how far away the ghost cell values are in physical
+       ! pxa and pxb tell the stencil how far away the ghost cell values are in physical
        ! dimensions from the edge of the grid if the grid is at the domain boundary
        pxa = ZERO
        pxb = ZERO
