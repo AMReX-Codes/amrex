@@ -903,14 +903,16 @@ contains
        !
        pbxs => dataptr(bxs)
        call sfc_i(tprc, ibxs, pbxs, parallel_nprocs())
+
+       luc => least_used_cpus(always_sort=.false.)
     else
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
        !
        call knapsack_i(tprc, ibxs, parallel_nprocs())
-    end if
 
-    luc => least_used_cpus()
+       luc => least_used_cpus(always_sort=.true.)
+    end if
 
     do i = 1, size(prc,1)
        prc(i) = luc(tprc(i))
