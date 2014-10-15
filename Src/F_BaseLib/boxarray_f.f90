@@ -552,7 +552,7 @@ contains
     r = 0_ll_t
     !$OMP PARALLEL DO REDUCTION(+:r)
     do i = 1, ba%nboxes
-       r = r + box_volume(ba%bxs(i))
+       r = r + box_i8volume(ba%bxs(i))
     end do
     !$OMP END PARALLEL DO
   end function boxarray_volume
