@@ -112,7 +112,7 @@ FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
 {
   int lflag;
   int lmode;
-  char filename[128];
+  char filename[256];
 
   int_2_str(filename, sizeof(filename), ifilename);
   switch ( *flagp ) 
@@ -759,7 +759,7 @@ FABIO_MKDIR_STR(const int* idirname, int* statp)
 {
   mode_t mode = DIR_MODE;
   int st = *statp;
-  char dirname[128];
+  char dirname[256];
 
   int_2_str(dirname, sizeof(dirname), idirname);
 
@@ -785,7 +785,7 @@ void
 FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
 {
   int fd;
-  char filename[128];
+  char filename[256];
   int lmode = FILE_MODE;
   int pos;
 
