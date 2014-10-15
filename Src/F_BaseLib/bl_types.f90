@@ -81,4 +81,14 @@ contains
 !    r = bigendian
 !  end function bl_is_bigendian
 
+  function quad_precision_supported()
+    logical :: quad_precision_supported
+    quad_precision_supported = qp_t_0 .eq. qp_t
+  end function quad_precision_supported
+
+  function int8_supported()
+    logical :: int8_supported
+    int8_supported = i8_t .eq. ll_t
+  end function int8_supported
+
 end module bl_types
