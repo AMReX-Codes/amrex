@@ -181,7 +181,6 @@ contains
     type(ml_layout), intent(in   ) :: mla_in
 
     integer :: n
-    type(boxarray) :: bac
 
     mla%dim    = mla_in%dim
     mla%nlevel = mla_in%nlevel
@@ -199,13 +198,9 @@ contains
        call layout_build_pn(mla%la(n), mla%la(n-1), mla%mba%bas(n), mla%mba%rr(n-1,:), &
             explicit_mapping=get_proc(mla_in%la(n)))
     end do
-    do n = mla%nlevel-1,  1, -1
+    do n = 1, mla%nlevel-1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
-       call setval(mla%mask(n), val = .TRUE.)
-       call copy(bac, mla%mba%bas(n+1))
-       call boxarray_coarsen(bac, mla%mba%rr(n,:))
-       call setval(mla%mask(n), .false., bac)
-       call destroy(bac)
+       call lmultifab_copy(mla%mask(n), mla_in%mask(n))
     end do
 
   end subroutine ml_layout_build_la
