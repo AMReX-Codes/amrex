@@ -25,8 +25,8 @@ contains
     use bl_string_module
     integer, intent(out), dimension(:) :: r, g, b, a
     character(len=*), intent(in) :: fname
-    integer :: istr(128)
-    call str2int(istr, 128, fname)
+    integer :: istr(256)
+    call str2int(istr, 256, fname)
     call load_palette_str(istr, r, g, b, a)
   end subroutine load_palette
 
@@ -36,10 +36,10 @@ contains
     character(len=*), intent(in) :: fname
     integer :: width, height
     integer, allocatable :: iimage(:)
-    integer :: istr(128)
+    integer :: istr(256)
     integer :: i, j, n
 
-    call str2int(istr, 128, fname)
+    call str2int(istr, 256, fname)
     width = size(image,dim=1); height = size(image,dim=2)
     allocate(iimage(width*height))
 
@@ -61,10 +61,10 @@ contains
     character(len=*), intent(in) :: fname
     integer :: width, height
     integer, allocatable :: iimage(:)
-    integer :: istr(128)
+    integer :: istr(256)
     integer :: i, j, n
 
-    call str2int(istr, 128, fname)
+    call str2int(istr, 256, fname)
     width = size(image,dim=1); height = size(image,dim=2)
     allocate(iimage(width*height))
 
