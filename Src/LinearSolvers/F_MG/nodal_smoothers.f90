@@ -101,7 +101,6 @@ contains
 
   subroutine nodal_smoother_2d(sg, uu, ff, mm, lo, ng, stencil_type, red_black)
 
-    use bl_prof_module
     use impose_neumann_bcs_module
 
     integer, intent(in) :: ng
@@ -115,9 +114,6 @@ contains
 
     integer            :: j, i, ipar, hi(size(lo))
     real (kind = dp_t) :: dd, ss0
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "nodal_smoother_2d")
 
     hi = ubound(uu)-ng
 
@@ -187,13 +183,10 @@ contains
       call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)
     end if
 
-    call destroy(bpt)
-
   end subroutine nodal_smoother_2d
 
   subroutine nodal_smoother_3d(sg, uu, ff, mm, lo, ng, uniform_dh, pmask, stencil_type, red_black)
 
-    use bl_prof_module
     use impose_neumann_bcs_module
 
     integer,            intent(in   ) :: ng
@@ -212,10 +205,6 @@ contains
     real (kind = dp_t) :: dd, ss0
     real (kind = dp_t) :: f0, fx, fy, fz, fxyz, f2y2zx, f2x2zy, f2x2yz
     real (kind = dp_t), allocatable :: wrk(:,:,:)
-
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "nodal_smoother_3d")
 
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
@@ -436,8 +425,6 @@ contains
     else
       call bl_error('BAD STENCIL_TYPE IN NODAL_SMOOTHER ',stencil_type)
     end if
-
-    call destroy(bpt)
 
   end subroutine nodal_smoother_3d
 
