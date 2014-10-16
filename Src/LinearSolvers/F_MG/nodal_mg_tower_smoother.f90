@@ -38,7 +38,7 @@ contains
     !
     ng = nghost(uu)
 
-    call build(bpt, "mgt_smoother")
+    call build(bpt, "nodal_mgt_smoother")
 
     !
     ! Nodal stencils.
