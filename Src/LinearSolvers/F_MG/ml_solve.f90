@@ -315,27 +315,14 @@ contains
     type(bndry_reg), intent(inout) :: fine_flx(2:)
     integer        , intent(in   ) :: do_diagnostics
 
-    type(boxarray)  :: bac
-    type(lmultifab) :: fine_mask(mla%nlevel)
     integer         :: i, dm, n, nlevs, mglev
 
     dm    = mla%dim
     nlevs = mla%nlevel
 
-    do n = nlevs, 1, -1
-       call lmultifab_build(fine_mask(n), mla%la(n), 1, 0)
-       call setval(fine_mask(n), val = .true., all = .true.)
-    end do
-    do n = nlevs-1, 1, -1
-       call copy(bac, get_boxarray(mla%la(n+1)))
-       call boxarray_coarsen(bac, mla%mba%rr(n,:))
-       call setval(fine_mask(n), .false., bac)
-       call destroy(bac)
-    end do
-
     ! ****************************************************************************
 
-    call ml_cc(mla,mgt,rh,full_soln,fine_mask,do_diagnostics, &
+    call ml_cc(mla,mgt,rh,full_soln,mla%mask,do_diagnostics, &
                need_grad_phi_in=.true.)
 
     ! ****************************************************************************
@@ -352,10 +339,6 @@ contains
                                    full_soln(n), mgt(n)%mm(mglev),  1, i, &
                                    mgt(n)%lcross)
        end do
-    end do
-
-    do n = 1,nlevs
-       call lmultifab_destroy(fine_mask(n))
     end do
 
   end subroutine ml_cc_solve_2
