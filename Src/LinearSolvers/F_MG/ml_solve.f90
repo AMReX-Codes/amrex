@@ -255,12 +255,12 @@ contains
        la = mla%la(n)
 
        ! we will use this to tell mgt about alpha
-       call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, 1)
+       call multifab_build(cell_coeffs(mgt(n)%nlevels), la, 1, alpha(n)%ng)
        call multifab_copy_c(cell_coeffs(mgt(n)%nlevels),1,alpha(n),1,1,alpha(n)%ng)
 
        ! we will use this to tell mgt about beta
        do i=1,dm
-          call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,i),la,1,1,i)
+          call multifab_build_edge(edge_coeffs(mgt(n)%nlevels,i),la,1,beta(n,i)%ng,i)
           call multifab_copy_c(edge_coeffs(mgt(n)%nlevels,i),1,beta(n,i),1,1,beta(n,i)%ng)
        end do
 
