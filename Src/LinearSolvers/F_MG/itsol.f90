@@ -393,9 +393,12 @@ contains
 
     comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
 
-    if ( comm == parallel_null_communicator() ) return
-
     call build(bpt, "its_BiCGStab_solve")
+
+    if ( comm == parallel_null_communicator() ) then
+       call destroy(bpt)
+       return
+    end if
 
     la     = get_layout(aa)
     nodal  = nodal_flags(rh)
@@ -736,9 +739,12 @@ contains
 
     comm = parallel_communicator() ; if ( present(comm_in) ) comm = comm_in
 
-    if ( comm == parallel_null_communicator() ) return
-
     call build(bpt, "its_CABiCGStab_solve")
+
+    if ( comm == parallel_null_communicator() ) then
+       call destroy(bpt)
+       return
+    end if
 
     la     = get_layout(aa)
     nodal  = nodal_flags(rh)
@@ -1456,9 +1462,8 @@ contains
     integer                                      :: i,dm
     integer                                      :: ng_a, ng_r, ng_m
     integer                                      :: lo(get_dim(rh)),hi(get_dim(rh))
-    type(bl_prof_timer), save                    :: bpt
 
-    call build(bpt, "diag_initialize")
+    ! do NOT add bl_prof_timer in this subroutine becuase not every MPI rank calls this
 
     ng_a = nghost(aa)
     ng_r = nghost(rh)
@@ -1498,8 +1503,6 @@ contains
        end select
     end do
     !$OMP END PARALLEL DO
-
-    call destroy(bpt)
 
   end subroutine diag_initialize
 
