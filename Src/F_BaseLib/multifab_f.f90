@@ -3419,7 +3419,7 @@ contains
     integer, parameter      :: tag = 1102
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
-    logical :: br_to_other
+    logical                 :: br_to_other, cc
     
     br_to_other = .false.  
     if (present(bndry_reg_to_other)) br_to_other = bndry_reg_to_other
@@ -3430,6 +3430,9 @@ contains
        cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
     end if
 
+    cc = multifab_cell_centered_q(mdst)
+
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc) if (cc)
     do i = 1, cpasc%l_con%ncpy
        ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
        jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
@@ -3437,6 +3440,7 @@ contains
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
     end do
+    !$OMP END PARALLEL DO
 
     np = parallel_nprocs()
 
@@ -3448,10 +3452,12 @@ contains
     allocate(g_snd_d(nc*cpasc%r_con%svol))
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
+    !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, cpasc%r_con%nsnd
        p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
+    !$OMP END PARALLEL DO
 
     allocate(rst(cpasc%r_con%nrp))
     do i = 1, cpasc%r_con%nrp
@@ -3464,12 +3470,14 @@ contains
     end do
     call parallel_wait(rst)
 
+    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cc)
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
        p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
+    !$OMP END PARALLEL DO    
 
     if (br_to_other) call copyassoc_destroy(cpasc)
 
@@ -3698,6 +3706,7 @@ contains
     if ( mdst%la == msrc%la ) then
        if ( lng > 0 ) &
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
+       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
        do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
              pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
@@ -3708,6 +3717,7 @@ contains
           end if
           call cpy_d(pdst, psrc, filter)
        end do
+       !$OMP END PARALLEL DO
     else
        if (lng    > mdst%ng) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
        if (lngsrc > msrc%ng) call bl_error('MULTIFAB_COPY_C: ngsrc > msrc%ng')
