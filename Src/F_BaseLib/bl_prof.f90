@@ -329,7 +329,7 @@ contains
        do i = 2, size(cksums)
           if ( cksums(i-1) /= cksums(i) ) then
              ok = .false.
-             print*, 'these two check sums are different', i-1, i
+             write(un,*) "*** these two processors' check sums are different", i-1, i
           end if
        end do
     end if
