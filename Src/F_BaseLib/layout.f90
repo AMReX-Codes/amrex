@@ -2533,6 +2533,7 @@ contains
 
   function layout_copyassoc(la_dst, la_src, nd_dst, nd_src) result(r)
 
+    use bl_prof_module
     use bl_error_module
 
     type(copyassoc)                :: r
@@ -2540,6 +2541,8 @@ contains
     type(layout),    intent(in)    :: la_src
     logical,         intent(in)    :: nd_dst(:), nd_src(:)
     type(copyassoc), pointer       :: cp
+    type(bl_prof_timer), save      :: bpt
+    call build(bpt, "layout_copyassoc")
     !
     ! Do we have one stored?
     !
@@ -2550,6 +2553,7 @@ contains
           call add_new_head(cp)
           cp%used = cp%used + 1
           r = cp
+          call destroy(bpt)
           return
        end if
        cp => cp%next
@@ -2570,6 +2574,8 @@ contains
        call copyassoc_destroy(cp)
        deallocate(cp)
     end if
+
+    call destroy(bpt)
 
   contains
 
