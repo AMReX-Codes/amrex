@@ -97,7 +97,8 @@ module layout_module
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
      integer                   :: used       = 0       ! how many times used?
-     integer                   :: hash
+     integer                   :: hash_dst   = -1
+     integer                   :: hash_src   = -1
      logical, pointer          :: nd_dst(:)  => Null() ! dst nodal flag
      logical, pointer          :: nd_src(:)  => Null() ! src nodal flag
      type(local_conn)          :: l_con
@@ -143,8 +144,8 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_head => Null()
   type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
-  integer, save, private :: the_copyassoc_cnt = 0  ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 50 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_cnt = 0   ! Count of copyassocs on list.
+  integer, save, private :: the_copyassoc_max = 128 ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -172,6 +173,7 @@ module layout_module
      type(coarsened_layout), pointer :: crse_la     => Null()
      type(pn_layout), pointer        :: pn_children => Null()
      ! Box Hashing
+     integer                         :: bahash              = -1
      integer                         :: crsn                = -1
      integer                         :: plo(MAX_SPACEDIM)   = 0
      integer                         :: phi(MAX_SPACEDIM)   = 0
@@ -529,6 +531,9 @@ contains
     end if
 
     call boxarray_build_copy(lap%bxa, ba)
+
+    if (lmapping .ne. LA_LOCAL) & 
+         lap%bahash = layout_boxarray_hash(ba)
 
     lap%dim    = get_dim(lap%bxa)
     lap%nboxes = nboxes(lap%bxa)
@@ -1948,7 +1953,8 @@ contains
     call boxarray_build_copy(cpasc%ba_dst, get_boxarray(la_dst))
 
     cpasc%dim  = get_dim(cpasc%ba_src)
-    cpasc%hash = layout_boxarray_hash(cpasc%ba_src) + layout_boxarray_hash(cpasc%ba_dst)
+    cpasc%hash_src = la_src%lap%bahash 
+    cpasc%hash_dst = la_dst%lap%bahash
 
     allocate(cpasc%prc_src(la_src%lap%nboxes))
     allocate(cpasc%prc_dst(la_dst%lap%nboxes))
@@ -2458,6 +2464,8 @@ contains
     deallocate(cpasc%r_con%rtr)
     deallocate(cpasc%prc_src)
     deallocate(cpasc%prc_dst)
+    cpasc%hash_dst = -1
+    cpasc%hash_src = -1
     cpasc%dim = 0
   end subroutine copyassoc_destroy
 
@@ -2499,19 +2507,32 @@ contains
     type(layout),    intent(in) :: la_src, la_dst
     logical,         intent(in) :: nd_dst(:), nd_src(:)
     logical                     :: r
-    integer                     :: hash
     r = all(cpasc%nd_dst .eqv. nd_dst) .and. all(cpasc%nd_src .eqv. nd_src)
     if (.not. r) return
-    hash = layout_boxarray_hash(get_boxarray(la_src)) + layout_boxarray_hash(get_boxarray(la_dst))
-    r = (hash .eq. cpasc%hash)
+
+    r =  size(cpasc%prc_src) .eq. size(la_src%lap%prc)
+    if (.not. r) return    
+
+    r =  size(cpasc%prc_dst) .eq. size(la_dst%lap%prc)
+    if (.not. r) return    
+
+    r = cpasc%hash_dst .eq. la_dst%lap%bahash
     if (.not. r) return
-    r = boxarray_same_q(cpasc%ba_src, get_boxarray(la_src))
+
+    r = cpasc%hash_src .eq. la_src%lap%bahash
     if (.not. r) return
-    r = boxarray_same_q(cpasc%ba_dst, get_boxarray(la_dst))
-    if (.not. r) return
+
     r =  all(cpasc%prc_src == la_src%lap%prc)
     if (.not. r) return
+
     r =  all(cpasc%prc_dst == la_dst%lap%prc)
+    if (.not. r) return
+
+    r = boxarray_same_q(cpasc%ba_dst, get_boxarray(la_dst))
+    if (.not. r) return
+
+    r = boxarray_same_q(cpasc%ba_src, get_boxarray(la_src))
+    return
   end function copyassoc_check
 
   pure function fluxassoc_check(flasc, la_dst, la_src, nd_dst, nd_src, side, crse_domain, ir) result(r)
