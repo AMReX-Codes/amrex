@@ -201,6 +201,9 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
 #define BL_PROFILE_FINALIZE()  Profiler::Finalize();
 
+#define BL_PROFILE_REGION_START(rname)
+#define BL_PROFILE_REGION_STOP(rname)
+
 
 #ifdef BL_COMM_PROFILING
 
@@ -269,6 +272,9 @@ class Profiler
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
 #define BL_PROFILE_FINALIZE()
+
+#define BL_PROFILE_REGION_START(rname)
+#define BL_PROFILE_REGION_STOP(rname)
 
 #define BL_COMM_PROFILE(cft, size, pid, tag)
 #define BL_COMM_PROFILE_BARRIER(message, bc)

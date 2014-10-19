@@ -430,6 +430,8 @@ public:
 
     void SetCSquared (Real csq) { m_csq = csq; }
 
+    const PMap& GetParticles(int lev) const { return m_particles[lev]; }
+
 protected:
     //
     // Helper function for Checkpoint() and WritePlotFile().

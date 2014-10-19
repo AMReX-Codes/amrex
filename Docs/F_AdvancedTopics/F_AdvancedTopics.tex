@@ -353,13 +353,13 @@ is equivalent to
 Thus, we will set $\alpha=1$, each $\beta=\Delta t$, and RHS = $\phi^n$.
 
 \section{Subcycling in Time}\label{Sec:Subcycling}
-In {\tt BoxLib/Tutorials/HeatEquation\_EX6\_F/} we have expanded the
-explicit version of the heat equation example in {\tt
-  BoxLib/Tutorials/HeatEquation\_EX4\_F/} to include an example of
+In {\tt BoxLib/Tutorials/AMR\_Adv\_Diff\_F} we have expanded the
+explicit version of the heat equation example in 
+{\tt BoxLib/Tutorials/HeatEquation\_EX4\_F/} to include an example of
 subcycling in time.  In the previous examples, which did not use
 subcycling in time, each level was advanced with the same time step,
 which was determined by imposing the CFL criterion at the finest
-level.  In the example in {\tt BoxLib/Tutorials/HeatEquation\_EX6\_F/}, 
+level.  In the example in {\tt BoxLib/Tutorials/AMR\_Adv\_Diff\_F},
 we use both temporal and spatial refinement; 
 $\Delta t$ decreases as $\Delta x$ decreases so
 that each level is running at a different time step.  For explicit
