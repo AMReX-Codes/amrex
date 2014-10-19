@@ -45,7 +45,8 @@ contains
        call multifab_build(cell_coeffs(i), get_layout(mgt%ss(i)), ncomp(cell_coeffs(maxlev)), nghost(cell_coeffs(maxlev)))
        call setval(cell_coeffs(i), ZERO, 1, ncomp(cell_coeffs(maxlev)), all=.true.)
        call coarsen_cell_coeffs ( cell_coeffs(i+1), cell_coeffs(i))
-       call multifab_fill_boundary(cell_coeffs(i))
+       if (nghost(cell_coeffs(i)) .gt. 0) &
+            call multifab_fill_boundary(cell_coeffs(i))
     end do
 
     do i = maxlev-1, 1, -1
@@ -56,7 +57,8 @@ contains
        end do
        call coarsen_edge_coeffs(edge_coeffs(i+1,:),edge_coeffs(i,:))
        do d = 1,dm
-          call multifab_fill_boundary(edge_coeffs(i,d))
+          if (nghost(edge_coeffs(i,d)) .gt. 0) &
+               call multifab_fill_boundary(edge_coeffs(i,d))
        end do
     end do
 
@@ -75,7 +77,8 @@ contains
             ncomp(cell_coeffs(1)), nghost(cell_coeffs(1)))
        call setval(coarse_cell_coeffs(maxlev_bottom),ZERO,all=.true.)
        call multifab_copy_c(coarse_cell_coeffs(maxlev_bottom),1,cell_coeffs(1),1,ncomp(cell_coeffs(1)),ng=0)
-       call multifab_fill_boundary(coarse_cell_coeffs(maxlev_bottom))
+       if (nghost(coarse_cell_coeffs(maxlev_bottom)) .gt. 0) &
+            call multifab_fill_boundary(coarse_cell_coeffs(maxlev_bottom))
 
        ! Make space for the coarsened edge coefficients but don't copy directly
        allocate(coarse_edge_coeffs(maxlev_bottom,dm))

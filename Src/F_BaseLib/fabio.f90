@@ -95,7 +95,7 @@ module fabio_module
   integer, parameter :: FABIO_APPEND = 3
 
   integer, parameter :: FABIO_MAX_VAR_NAME = 20
-  integer, parameter :: FABIO_MAX_PATH_NAME = 128
+  integer, parameter :: FABIO_MAX_PATH_NAME = 256
 
 contains
 
@@ -109,12 +109,12 @@ contains
          integer, intent(out) :: stat
        end subroutine fabio_mkdir_str
     end interface
-    integer :: istr(128)
+    integer :: istr(256)
     integer :: lstat
 
     ! octal conversion 0755
     lstat = 0; if ( present(stat) ) lstat = 1
-    call str2int(istr, 128, dirname)
+    call str2int(istr, 256, dirname)
     call fabio_mkdir_str(istr, lstat)
     if ( present(stat) ) stat = lstat
 
@@ -132,7 +132,7 @@ contains
          integer, intent(in) :: mode
        end subroutine fabio_open_str
     end interface
-    integer :: istr(128)
+    integer :: istr(256)
     integer :: lmode
 
     lmode = FABIO_RDONLY
@@ -140,7 +140,7 @@ contains
        if ( mode /= 0 ) lmode = mode
     end if
 
-    call str2int(istr, 128, filename)
+    call str2int(istr, 256, filename)
     call fabio_open_str(fd, istr, lmode)
 
   end subroutine fabio_open
@@ -153,9 +153,9 @@ contains
          integer, intent(in) :: ifilename(*)
        end subroutine fabio_unlink_if_empty_str
     end interface
-    integer :: istr(128)
+    integer :: istr(256)
 
-    call str2int(istr, 128, filename)
+    call str2int(istr, 256, filename)
     call fabio_unlink_if_empty_str(istr)
 
   end subroutine fabio_unlink_if_empty
@@ -230,7 +230,7 @@ contains
     logical,          intent(in), optional :: lUsingNFiles
 
     type(layout) :: mf_la
-    character(len=128) :: fname
+    character(len=FABIO_MAX_PATH_NAME) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j, ng, ii
     integer, allocatable :: offset(:), loffset(:)

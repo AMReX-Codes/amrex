@@ -104,7 +104,7 @@ class AmrData {
   int NGrow() const	        { return nGrow; }
   int CoordSys() const	        { return coordSys; }
   Real Time() const	        { return time; }
-  const string &PlotFileVersion() { return plotFileVersion; }
+  const string &PlotFileVersion() const { return plotFileVersion; }
   
   // fill a databox using conservative interpolation
   void FillVar(FArrayBox *destFab, const Box &destBox,
