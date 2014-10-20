@@ -1898,6 +1898,8 @@ Amr::coarseTimeStep (Real stop_time)
 {
     BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
+    std::stringstream stepName;
+    stepName << "timeStep STEP " << level_steps[0];
 
     const Real run_strt = ParallelDescriptor::second() ;
     //
@@ -1924,7 +1926,12 @@ Amr::coarseTimeStep (Real stop_time)
                                       dt_level,
                                       stop_time);
     }
+
+    BL_PROFILE_REGION_START(stepName.str());
+
     timeStep(0,cumtime,1,1,stop_time);
+
+    BL_PROFILE_REGION_STOP(stepName.str());
 
     cumtime += dt_level[0];
 
@@ -1969,8 +1976,6 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
  #ifdef BL_COMM_PROFILING
-    std::stringstream stepName;
-    stepName << "STEP " << level_steps[0];
     BL_COMM_PROFILE_NAMETAG(stepName.str());
     BL_COMM_PROFILE_FLUSH();
  #endif
