@@ -3,7 +3,9 @@
     _icc := icc 
     _ifc_version := $(shell $(_ifc) -V 2>&1 | grep 'Version')
     _icc_version := $(shell $(_icc) -V 2>&1 | grep 'Version')
-    ifeq ($(findstring Version 14, $(_ifc_version)), Version 14)
+    ifeq ($(findstring Version 15, $(_ifc_version)), Version 15)
+        _comp := Intel15
+    else ifeq ($(findstring Version 14, $(_ifc_version)), Version 14)
         _comp := Intel14
     else ifeq ($(findstring Version 13, $(_ifc_version)), Version 13)
         _comp := Intel13
