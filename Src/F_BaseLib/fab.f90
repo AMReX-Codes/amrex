@@ -517,11 +517,11 @@ contains
        !
        ! This assumes sizeof(dp_t) == 8
        !
-       ilo = int(8*lo,ll_t)
-       ihi = int(8*hi,ll_t)
-       iav = int(8*av,ll_t) / parallel_nprocs()
+       ilo = int(lo*(8._dp_t/(1024._dp_t**2)))
+       ihi = int(hi*(8._dp_t/(1024._dp_t**2)))
+       iav = int(av/parallel_nprocs()*(8._dp_t/(1024._dp_t**2)))
        print*, ''
-       write(6,fmt='("FAB byte spread across MPI nodes: [",i11," - ",i11," [avg: ",i11,"]]")') ilo, ihi, iav
+       write(6,fmt='("FAB Megabyte spread across MPI nodes: [",i9," - ",i9," [avg: ",i9,"]]")') ilo, ihi, iav
        print*, ''
     end if
     fab_high_water_mark = 0

@@ -85,6 +85,8 @@ class Profiler
       Real timeStamp;
     };
 
+    static std::map<std::string, Profiler *> mFortProfs;  // [fname, fortfunc]
+    static Array<std::string> mFortProfsErrors;     // [error string]
 
     explicit Profiler(const std::string &funcname);
 
