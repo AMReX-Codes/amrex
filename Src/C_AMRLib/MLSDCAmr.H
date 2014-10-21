@@ -47,13 +47,14 @@ typedef struct {
 class MLSDCAmrLevel : public AmrLevel
 {
 public:
-  MLSDCAmrLevel ();
+
+  MLSDCAmrLevel () : AmrLevel() { };
 
   MLSDCAmrLevel (Amr&            papa,
                  int             lev,
                  const Geometry& level_geom,
                  const BoxArray& bl,
-                 Real            time);
+                 Real            time) : AmrLevel(papa, lev, level_geom, bl, time) { };
 
   MLSDCAmr* getMLSDCAmr()
   {
