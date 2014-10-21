@@ -71,6 +71,14 @@ module bl_prof_module
      module procedure bl_prof_timer_destroy
   end interface
 
+  interface bl_proffortfuncstart
+     module procedure proffortfuncstart
+  end interface
+
+  interface bl_proffortfuncstop
+     module procedure proffortfuncstop
+  end interface
+
   type(bl_prof_reg), private, save, pointer :: timers(:)
 
   !! By default, we don't profile should be relatively low-overhead if
@@ -554,6 +562,15 @@ contains
     ! does nothing -- this is needed by the backtrace version
   end subroutine print_stack
 
+  subroutine proffortfuncstart(name)
+    character(len=*), intent(in) :: name
+    ! does nothing --
+  end subroutine proffortfuncstart
+
+  subroutine proffortfuncstop(name)
+    character(len=*), intent(in) :: name
+    ! does nothing --
+  end subroutine proffortfuncstop
 
 end module bl_prof_module
 
