@@ -15,25 +15,25 @@
         _comp := Intel11
     else ifeq ($(findstring Version 10, $(_ifc_version)), Version 10)
         _comp := Intel10
-    else ifeq ($(findstring Version 9, $(_ifc_version)), Version 9)
-        _comp := Intel9
-    else ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
-      _comp := Intel8
     else
       $(error "$(_ifc_version) of IFC is not supported")
     endif
 #   _ifc += -auto
+
     F90 := $(_ifc)
     FC  := $(_ifc)
     CC  := $(_icc)
+
     FFLAGS   += -module $(mdir) -I $(mdir)
     F90FLAGS += -module $(mdir) -I $(mdir)
     CFLAGS   += -std=c99
+
     ifdef OMP
       FFLAGS   += -openmp -openmp-report2
       F90FLAGS += -openmp -openmp-report2
       CFLAGS   += -openmp -openmp-report2
     endif
+
     ifeq ($(_comp),Intel14)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
@@ -54,6 +54,7 @@
         F90FLAGS += -pg
       endif
     endif
+
     ifeq ($(_comp),Intel13)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
@@ -76,6 +77,7 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
+
     ifeq ($(_comp),Intel12)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
@@ -98,6 +100,7 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
+
     ifeq ($(_comp),Intel11)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 -check all -warn all -u
@@ -120,6 +123,7 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
+
     ifeq ($(_comp),Intel10)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0
@@ -153,66 +157,4 @@
       endif
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel9)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0
-        FFLAGS   += -g -traceback -O0
-        F90FLAGS += -check all -warn all -u
-        FFLAGS   += -check all -warn all -u
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O -mp1 
-          FFLAGS += -O -mp1
-          CFLAGS += -O -mp1
-#  ifndef GPROF
-          F90FLAGS += #-ipo
-          FFLAGS += #-ipo
-          CFLAGS += #-ipo
-#  endif
-	endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
-    ifeq ($(_comp),Intel8)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback
-        FFLAGS   += -g -traceback
-        F90FLAGS += -check all
-        FFLAGS   += -check all
-#       F90FLAGS += -check noshape -check nopointer
-#       FFLAGS   += -check noshape -check nopointer
-        CFLAGS   += -g -Wcheck
-#	LDFLAGS  += -Bstatic
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	else
-          F90FLAGS += -O3
-          FFLAGS += -O3
-          CFLAGS += -O3
-          ifndef GPROF
-            F90FLAGS += #-ipo
-            FFLAGS += #-ipo
-            CFLAGS += #-ipo
-          endif
-	endif
-#       LDFLAGS += -static
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-      # F90FLAGS += -stand f95
-      # FFLAGS += -stand f95
     endif

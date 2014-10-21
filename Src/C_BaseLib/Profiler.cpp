@@ -32,6 +32,9 @@ std::map<int, Real> Profiler::mStepMap;
 std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
 std::map<Real, std::string, std::greater<Real> > Profiler::mTimersTotalsSorted;
 std::vector<Profiler::CommStats> Profiler::vCommStats;
+std::map<std::string, Profiler *> Profiler::mFortProfs;
+Array<std::string> Profiler::mFortProfsErrors;
+const int mFortProfMaxErrors(32);
 std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
 std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
 int Profiler::CommStats::barrierNumber = 0;
@@ -864,7 +867,85 @@ void Profiler::CommStats::UnFilter(CommFuncType cft) {
 }
 
 
+namespace {
+  const int EOS(-1);
+
+  std::string Trim(const std::string &str) {
+    int n;
+    for(n = str.size(); --n >= 0; ) {
+      if(str[n] != ' ' ) {
+        break;
+      }
+    }
+    std::string result;
+    for(int i(0); i <= n; ++i) {
+      result += str[i];
+    }
+    return result;
+  }
+
+  std::string Fint_2_string(const int *iarr, int nlen) {
+    std::string res;
+    for(int i(0); i < nlen && *iarr != EOS; ++i) {
+      res += *iarr++;
+    }
+    return Trim(res);
+  }
+}
+
+#include <BLFort.H>
+
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
+  (const int istr[], const int *NSTR)
+{
+  std::string fName(Fint_2_string(istr, *NSTR));
+  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
+  if(it == Profiler::mFortProfs.end()) {  // make a new profiler
+    Profiler::mFortProfs.insert(std::pair<std::string, Profiler *>(fName, new Profiler(fName)));
+  } else {  // error:  fname is already being profiled
+    std::string estring("bl_proffortfuncstart error:  mFortProfs function already being profiled:  ");
+    estring += fName;
+    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      Profiler::mFortProfsErrors.push_back(estring);
+    }
+  }
+}
+
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP, bl_proffortfuncstop_cpp)
+  (const int istr[], const int *NSTR)
+{
+  std::string fName(Fint_2_string(istr, *NSTR));
+  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
+  if(it == Profiler::mFortProfs.end()) {  // error:  fname not found
+    std::string estring("bl_proffortfuncstop error:  mFortProfs function not started:  ");
+    estring += fName;
+    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      Profiler::mFortProfsErrors.push_back(estring);
+    }
+  } else {  // delete the pointer and remove fname from map
+    delete it->second;
+    Profiler::mFortProfs.erase(fName);
+  }
+}
+
 
 #else
+
+#include <BLFort.H>
+
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP,bl_proffortfuncstart_cpp)
+  (
+   const int istr[], const int *NSTR
+   )
+{
+}
+
+BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP,bl_proffortfuncstop_cpp)
+  (
+   const int istr[], const int *NSTR
+   )
+{
+}
+
 
 #endif

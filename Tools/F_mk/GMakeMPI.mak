@@ -199,16 +199,6 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn
     endif
 endif
-ifeq ($(findstring kraken, $(UNAMEN)), kraken)
-    #
-    # kraken
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
-    endif
-endif
 ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     #
     # Blue Waters

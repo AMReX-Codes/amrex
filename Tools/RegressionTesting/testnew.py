@@ -3501,11 +3501,11 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
                 
             # write out this test's status
             if (status == 1):
-                hf.write("<TD ALIGN=CENTER class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (dir, test))
+                hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (test, dir, test))
             elif (status == -1):
-                hf.write("<TD ALIGN=CENTER class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (dir, test))
+                hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (test, dir, test))
             elif (status == 10):
-                hf.write("<TD ALIGN=CENTER class=\"benchmade\"><H3>U</H3></TD>\n")
+                hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"benchmade\"><H3>U</H3></TD>\n" % (test))
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
 
