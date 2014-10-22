@@ -198,7 +198,7 @@ program fwrite2d
      end do
 
      call build(ba,bl)
-     call layout_build_ba(la,ba)
+     call layout_build_ba(la,ba,plotfile_get_pd_box(pf,1))
      call print(ba,'BA')
 
      ! Destroy this list and boxarray so we can start over at the new level
