@@ -11,15 +11,17 @@ program fcompare
   use bl_constants_module
   use bl_IO_module
   use plotfile_module
-  use sort_d_module
+  use multifab_module
 
   implicit none
 
   type(plotfile) :: pf_a, pf_b
   character (len=256) :: plotfile_a, plotfile_b
+  character (len=256) :: diffvar
   integer :: unit_a, unit_b
 
   real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:)
+  real(kind=dp_t), pointer :: mp(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
   integer :: lo_b(MAX_SPACEDIM), hi_b(MAX_SPACEDIM)
@@ -33,8 +35,9 @@ program fcompare
 
   integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
+  integer :: save_var_a
 
-  real(kind=dp_t), allocatable :: aerror(:), rerror(:)
+  real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
   logical, allocatable :: has_nan_a(:), has_nan_b(:)
   logical :: any_nans
@@ -57,6 +60,13 @@ program fcompare
   integer :: dm
   type(box) :: bx_a, bx_b
 
+  type(multifab), allocatable :: mf_array(:)
+  type(layout) :: la
+  type(boxarray) :: ba
+  type(list_box) :: bl
+  integer, allocatable :: ref_ratio(:)
+
+  character(len=20), allocatable :: plot_names(:)
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -67,6 +77,10 @@ program fcompare
   norm = 0
   plotfile_a = ""
   plotfile_b = ""
+
+  diffvar = ""
+
+  allocate(plot_names(1))
 
   farg = 1
   do while (farg <= narg)
@@ -87,6 +101,11 @@ program fcompare
         call get_command_argument(farg, value = fname)
         read(fname, *) norm
 
+     case ('--diffvar')
+        farg = farg + 1
+        call get_command_argument(farg, value = diffvar)
+        plot_names(1) = trim(diffvar)
+
      case default
         exit
 
@@ -94,12 +113,15 @@ program fcompare
      farg = farg + 1
   enddo
 
-  if (len_trim(plotfile_a) == 0) &
+  if (len_trim(plotfile_a) == 0) then
      call get_command_argument(farg, value = plotfile_a)
+     farg = farg + 1
+  endif
 
-  if (len_trim(plotfile_b) == 0) &
+  if (len_trim(plotfile_b) == 0) then
      call get_command_argument(farg, value = plotfile_b)
-
+     farg = farg + 1
+  endif
 
   if (len_trim(plotfile_a) == 0 .OR. len_trim(plotfile_b) == 0) then
      print *, " "
@@ -118,6 +140,7 @@ program fcompare
 
   !---------------------------------------------------------------------------
   ! build the plotfiles and do initial comparisons
+  !---------------------------------------------------------------------------
   
   unit_a = unit_new()
   call build(pf_a, plotfile_a, unit_a)
@@ -165,11 +188,14 @@ program fcompare
 
   allocate(aerror(pf_a%nvars))
   allocate(rerror(pf_a%nvars))
+  allocate(rerror_denom(pf_a%nvars))
 
   allocate(has_nan_a(pf_a%nvars))
   allocate(has_nan_b(pf_a%nvars))
 
   any_nans = .false.
+
+  save_var_a = -1
 
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
@@ -190,6 +216,12 @@ program fcompare
      if (ivar_b(n_a) == -1) then
         print *, "WARNING: variable ", trim(pf_a%names(n_a)), &
                  " not found in plotfile 2"
+     endif
+
+     if (.not. diffvar == "") then
+        if (pf_a%names(n_a) == trim(diffvar)) then
+           save_var_a = n_a
+        endif
      endif
 
   enddo
@@ -215,20 +247,60 @@ program fcompare
 
   enddo
 
+
+  !---------------------------------------------------------------------------
+  ! create a multifab to store the difference for output, if desired
+  !---------------------------------------------------------------------------
+
+  if (save_var_a > 0) then
+
+     allocate(mf_array(plotfile_nlevels(pf_a)))
+     allocate(ref_ratio(plotfile_nlevels(pf_a)-1))
+
+     ! define ref_ratio
+     do i = 1, pf_a%flevel-1
+        ref_ratio(i) = pf_a%refrat(i,1)
+     enddo
+
+     ! loop over levels and grids and define the boxes needed to build the
+     ! multifab
+     do i = 1, pf_a%flevel
+
+        do j = 1, nboxes(pf_a, i)
+           call push_back(bl, get_box(pf_a,i,j))
+        enddo
+
+        call build(ba,bl)
+        call layout_build_ba(la,ba,plotfile_get_pd_box(pf_a,1))
+
+        ! destroy the list and boxarray so we start over next level
+        call destroy(bl)
+        call destroy(ba)
+
+        ! create a new multifab with 0 ghost cells and 1 component
+        call multifab_build(mf_array(i),la,1,0)
+
+     enddo
+  
+  endif
+
   !---------------------------------------------------------------------------
   ! go level-by-level and patch-by-patch and compare the data
+  !---------------------------------------------------------------------------
   
-998 format(1x,a24,2x,a20,   2x,a20)
+998 format(1x,a24,2x,a24,   2x,a24)
 999 format(1x,70("-"))
 
   write (*,*) " "
-  write (*,998) "variable name", "absolute error", "relative error"
+  write (*,998) "variable name", "absolute error",  "relative error"
+  write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
   write (*,999)
 
   do i = 1, pf_a%flevel
 
      aerror(:) = ZERO
      rerror(:) = ZERO
+     rerror_denom(:) = ZERO
 
      has_nan_a(:) = .false.
      has_nan_b(:) = .false.
@@ -289,6 +361,14 @@ program fcompare
            p_a => dataptr(pf_a, i, j)
            p_b => dataptr(pf_b, i, j)
 
+           ! are we storing the diff?
+           if (n_a == save_var_a) then
+              mp => dataptr(mf_array(i), j, get_box(mf_array(i), j))
+
+              mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
+           endif
+
+
            ! check for NaNs -- comparisons don't work when they are present
            call fab_contains_nan(p_a, &
                                  (hi_a(3)-lo_a(3)+1)* &
@@ -318,22 +398,14 @@ program fcompare
 
                     if (norm == 0) then
                        aerror(n_a) = max(aerror(n_a),pd)
-                       if (pa .ne. 0.d0) then 
-                          rerror(n_a) = max(rerror(n_a), pd/pa)
-                       else if (pb .ne. 0.d0) then 
-                          rerror(n_a) = max(rerror(n_a), pd/pb)
-                       else 
-                          ! The relative error is zero so do nothing
-                       end if
+
+                       rerror(n_a) = max(rerror(n_a), pd)
+                       rerror_denom(n_a) = max(rerror_denom(n_a), pa)
                     else
                        aerror(n_a) = aerror(n_a) + pd**norm
-                       if (pa .ne. 0.d0) then 
-                           rerror(n_a) = rerror(n_a) + (pd/pa)**norm
-                       else if (pb .ne. 0.d0) then 
-                           rerror(n_a) = rerror(n_a) + (pd/pb)**norm
-                       else 
-                          ! The relative error is zero so do nothing
-                       end if
+
+                       rerror(n_a) = rerror(n_a) + pd**norm
+                       rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
                     endif
 
                  enddo
@@ -354,8 +426,15 @@ program fcompare
            aerror(n_a) = aerror(n_a)*product(dx_a(1:pf_a%dim))
            aerror(n_a) = aerror(n_a)**(ONE/real(norm,dp_t))
 
-           rerror(n_a) = rerror(n_a)*product(dx_a(1:pf_a%dim))
-           rerror(n_a) = rerror(n_a)**(ONE/real(norm,dp_t))
+           ! since we are taking the ratio of two norms, no grid normalization
+           ! is needed
+           rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
+        enddo
+        
+     else
+
+        do n_a = 1, pf_a%nvars
+           rerror(n_a) = rerror(n_a)/rerror_denom(n_a)
         enddo
 
      endif
@@ -363,10 +442,11 @@ program fcompare
 
      !------------------------------------------------------------------------
      ! print out the comparison report for this level
+     !------------------------------------------------------------------------
      
 1000 format(1x,"level = ", i2)
-1001 format(1x,a24,2x,g20.10,2x,g20.10)
-1002 format(1x,a24,2x,a42)
+1001 format(1x,a24,2x,g24.10,2x,g24.10)
+1002 format(1x,a24,2x,a50)
 
      write (*,1000) i
 
@@ -392,6 +472,15 @@ program fcompare
 
   if (global_error == ZERO .and. .not. any_nans) then
      print *, "PLOTFILES AGREE"
+  endif
+
+  if (save_var_a > 0) then
+     call fabio_ml_multifab_write_d(mf_array, ref_ratio, &
+                                    "diffs", plot_names, &
+                                    plotfile_get_pd_box(pf_a,1), &
+                                    pf_a%plo, pf_a%phi, &
+                                    pf_a%tm, &
+                                    plotfile_get_dx(pf_a,1))
   endif
 
 end program fcompare
