@@ -21,13 +21,14 @@ program fboxinfo
   integer :: narg, farg
   character(len=256) :: fname
 
-  logical :: full, gridfile, castro
+  logical :: full, gridfile, castro, levels
 
   unit = unit_new()
 
   full = .false.
   gridfile = .false.
   castro = .false.
+  levels = .false.
 
   narg = command_argument_count()
 
@@ -42,6 +43,9 @@ program fboxinfo
 
      case ('-g', '--gridfile')
          gridfile = .true.
+
+     case ('-l', '--levels')
+         levels = .true.
 
      case ('-c', '--castro')
          castro = .true.
@@ -75,6 +79,7 @@ program fboxinfo
      print *, "   [-f|--full]     output detailed information about the boxes"
      print *, "   [-g|--gridfile] output a gridfile for use with test_average"
      print *, "   [-c|--castro]   output a gridfile for use with castro restart"
+     print *, "   [-l|--levels]   just output the number of levels"
      print *, " "
      stop
   end if
@@ -85,7 +90,7 @@ program fboxinfo
      call get_command_argument(f, value = fname)
      call build(pf, fname, unit)
 
-     if (.not. gridfile .and. .not. castro) then
+     if (.not. gridfile .and. .not. castro .and. .not. levels) then
         print *, "plotfile: ", trim(fname)
      end if
 
@@ -97,6 +102,12 @@ program fboxinfo
 1001 format(1x,"      ", 1x, "  maximum zones =   ", i5)
 1002 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5)
 1003 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5, " x " i5)
+
+     if (levels) then
+        print *, pf%flevel
+        cycle
+     endif
+
 
      if (.not. gridfile .and. .not. castro) then
         do i = 1, pf%flevel
@@ -149,43 +160,43 @@ program fboxinfo
                  write (*,2003) j, lo(1), lo(2), lo(3), hi(1), hi(2), hi(3)
                  
               end select
-
+              
            end do
         end do
-
+        
      endif
-
+     
 2990 format(1x,i2)
-
+     
 2997 format(3x,"((",i5,              ") ("i5,") ( 0 ))  ", i5 )
 2998 format(3x,"((",i5,",",i5,       ") ("i5,",",i5,") ( 0, 0 ))  ", i5)
 2999 format(3x,"((",i5,",",i5,",",i5,") ("i5,",",i5,",",i5,") ( 0, 0, 0 ))  ", i5)
-
+     
 3001 format(6x,"((",i5,              ") ("i5,") ( 0 ))  ")
 3002 format(6x,"((",i5,",",i5,       ") ("i5,",",i5,") ( 0, 0 ))  ")
 3003 format(6x,"((",i5,",",i5,",",i5,") ("i5,",",i5,",",i5,") ( 0, 0, 0 ))  ")
-
-
+     
+     
      if (gridfile) then
-
+        
         write (*,2990) pf%flevel
-
+        
         do i = 1, pf%flevel
-
+           
            lo = lwb(plotfile_get_pd_box(pf, i))
            hi = upb(plotfile_get_pd_box(pf, i))
-
+           
            select case (dim)
            case (1)
               write (*,2997) lo(1), hi(1), nboxes(pf, i)
-
+              
            case (2)
               write (*,2998) lo(1), lo(2), hi(1), hi(2), nboxes(pf, i)
-
+              
            case (3)
               write (*,2999) lo(1), lo(2), lo(3), hi(1), hi(2), hi(3), nboxes(pf, i)
            end select
-              
+           
            do j = 1, nboxes(pf, i)
               
               lo = lwb(get_box(pf, i, j))
@@ -202,25 +213,25 @@ program fboxinfo
                  write (*,3003) lo(1), lo(2), lo(3), hi(1), hi(2), hi(3)
                  
               end select
-
+              
            end do
         end do
-
+        
      endif
-
-       if (castro) then
-
+     
+     if (castro) then
+        
         if (pf%flevel .eq. 1) then
            print*, "ERROR: only use --castro option for multilevel"
            stop
         end if
-
+        
         print*,pf%flevel-1
-
+        
         do i = 2, pf%flevel
-
+           
            print*, nboxes(pf, i)
-
+           
            do j = 1, nboxes(pf, i)
               
               lo = lwb(get_box(pf, i, j))
@@ -237,16 +248,16 @@ program fboxinfo
                  write (*,3003) lo(1)/2, lo(2)/2, lo(3)/2, (hi(1)-1)/2, (hi(2)-1)/2, (hi(3)-1)/2
                  
               end select
-
+              
            end do
         end do
-
-     endif  
-
-
+        
+     endif
+     
+     
      print *, " "
      call destroy(pf)
-
+     
   enddo
 
 end program fboxinfo

@@ -26,12 +26,13 @@ program fsubchandra
   implicit none
 
   !Data, variables
-  type(plotfile) pf
-  type(state_comps) sc
-  type(geometry) geo
-  type(radial_averages) radav
-  type(globals) glb
-  type(hheap) hspots
+  type(plotfile) :: pf
+  type(state_comps) :: sc
+  type(geometry) :: geo
+  type(radial_averages) :: radav
+  type(globals) :: glb
+  type(hheap) :: hspots
+  type(temp_hist) :: thist
 
   real(kind=dp_t) :: hpcnt
   integer :: i
@@ -51,21 +52,21 @@ program fsubchandra
   !domain applying calculations (averages, globals, etc...) based on the arguments passed.
   if(globals_only) then
     print *, 'analyze globals only...'
-    call analyze(pf, geo, sc, glb=glb)
+    call analyze(pf, geo, sc, thist, glb=glb)
   else if(hpcnt > 0.0) then
     !Only calculate hotspot statistics if hpcnt > 0.0
     print *, 'analyze with hotspots, hpcnt = ', hpcnt
-    call analyze(pf, geo, sc, glb=glb, radav=radav, hh=hspots, hheap_frac_input=hpcnt)
+    call analyze(pf, geo, sc, thist, glb=glb, radav=radav, hh=hspots, hheap_frac_input=hpcnt)
   else
     print *, 'analyze without hotspots...'
-    call analyze(pf, geo, sc, glb=glb, radav=radav)
+    call analyze(pf, geo, sc, thist, glb=glb, radav=radav)
   end if
 
   !Write output
   if(globals_only) then
-    call writeout(pf, slicefile, geo, sc, glb=glb)
+    call writeout(pf, slicefile, geo, sc, thist, glb=glb)
   else
-    call writeout(pf, slicefile, geo, sc, glb=glb, radav=radav, hh=hspots)
+    call writeout(pf, slicefile, geo, sc, thist, glb=glb, radav=radav, hh=hspots)
   end if
 
   !Clean up

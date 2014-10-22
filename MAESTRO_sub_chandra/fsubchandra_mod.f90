@@ -82,6 +82,22 @@ module subchandra
     integer :: level = -1
   end type hotspot
 
+  !Histogram data for average temperatures at various lengthscales
+  type temp_hist
+     !Lengthscales for each level (nlevs)
+     real(kind=dp_t), allocatable :: ell(:)
+
+     !Temperature limits and delta
+     real(kind=dp_t) :: min_temp = 9.0d6
+     real(kind=dp_t) :: max_temp = 9.0d8
+     real(kind=dp_t) :: dT = 1.0d5
+     
+     !Histogram temperature data (nlevs, nbins)
+     integer, allocatable :: tavg(:,:)
+     integer :: nbins = nint((9.0d8 - 9.0d6)/1.0d5)
+  end type temp_hist
+
+
   !A min-heap of the hottest hotspots with metadata about the heap.
   !The min-heap implementation allows for quick (log(n)) removal of the
   !lowest temperature hotspot.
@@ -125,6 +141,7 @@ module subchandra
   public :: analyze, writeout
   !Public types
   public :: globals, radial_averages, state_comps, geometry, hheap, hotspot
+  public :: temp_hist
 
 contains
   !Parse command line args, initialize variables
@@ -520,7 +537,7 @@ contains
     radav%entropy_rms_bin(:) = ZERO
   end subroutine init_averages
   
-  subroutine analyze(pf, geo, sc, glb, radav, hh, hheap_frac_input)
+  subroutine analyze(pf, geo, sc, thist, glb, radav, hh, hheap_frac_input)
     !Modules
     implicit none
 
@@ -528,6 +545,7 @@ contains
     type(plotfile), intent(inout) :: pf  !Must be inout because fab binding writes to pf
     type(geometry), intent(in) :: geo
     type(state_comps), intent(in) :: sc
+    type(temp_hist), intent(out) :: thist
 
     type(globals), intent(out), optional :: glb
     type(radial_averages), intent(out), optional :: radav
@@ -538,17 +556,18 @@ contains
     integer, parameter :: HHEAP_LEN = 100000
     real(kind=dp_t), parameter :: HHEAP_FRAC = 0.005
     type(box) :: cur_box
-    logical, allocatable :: imask(:,:,:)
+    logical, allocatable :: imask(:,:,:), fmask(:,:,:)
     logical :: do_globals, do_averages, do_hotspots
     integer :: r1, rr, n, i, j, ii, jj, kk
     integer :: il, ir, jl, jr, kl, kr
-    integer :: indx
+    integer :: indx, b
     integer, allocatable :: cell_count(:)
     real(kind=dp_t) :: xx, yy, zz, r_zone
     real(kind=dp_t) :: xlo, xhi, cur_xlo, cur_xhi
     real(kind=dp_t) :: ylo, yhi, cur_ylo, cur_yhi
     real(kind=dp_t) :: zlo, zhi, cur_zlo, cur_zhi, eps, lhheap_frac
     real(kind=dp_t), pointer :: p(:,:,:,:)
+
     !See which optional arguments are available
     do_globals = present(glb)
     do_averages = present(radav)
@@ -571,12 +590,21 @@ contains
       call init_averages(size(geo%r), radav)
     end if
 
+    !Initialize temperature histogram
+    allocate(thist%ell(pf%flevel))
+    allocate(thist%tavg(pf%flevel,thist%nbins))
+    thist%tavg = 0
+
     ! imask will be set to false if we've already output the data.
     ! Note, imask is defined in terms of the finest level.  As we loop
     ! over levels, we will compare to the finest level index space to
     ! determine if we've already output here
+    !
+    ! fmask is used to mark cells covered by the finest level of refinement.
     allocate(imask(geo%flo(1):geo%fhi(1),geo%flo(2):geo%fhi(2),geo%flo(3):geo%fhi(3)))
     imask(:,:,:) = .true.
+    allocate(fmask(geo%flo(1):geo%fhi(1),geo%flo(2):geo%fhi(2),geo%flo(3):geo%fhi(3)))
+    fmask(:,:,:) = .false.
     allocate(cell_count(pf%flevel))
     cell_count(:) = 0
 
@@ -645,11 +673,16 @@ contains
       ! the current level
       rr = product(pf%refrat(1:i-1,1))
 
+      ! Set the lengthscale for this level
+      !  ASSUMPTION: dx is the same for all dimensions
+      thist%ell(i) = geo%dx(1)/rr
+      
+
       !If we're doing more than just globals to stdout, update the user on progress
       if ( any((/do_averages, do_hotspots/)) ) then
          print *, 'processing level ', i, ' rr = ', rr
       endif
-
+      
       do j = 1, nboxes(pf, i)
          ! read in the data 1 patch at a time -- read in all the variables
          call fab_bind(pf, i, j)
@@ -657,6 +690,22 @@ contains
          !These were never used -- should they be?
          !lo = lwb(get_box(pf, i, j))
          !hi = upb(get_box(pf, i, j))
+
+         !Get bounds of current box
+         cur_box = get_box(pf, i, j)
+         il = lwb(cur_box,1)
+         ir = upb(cur_box,1)
+         jl = lwb(cur_box,2)
+         jr = upb(cur_box,2)
+         kl = lwb(cur_box,3)
+         kr = upb(cur_box,3)
+
+         !Mark the finest level
+         if(i == pf%flevel) then
+            fmask(il*r1:(ir+1)*r1-1,  &
+                  jl*r1:(jr+1)*r1-1,  &
+                  kl*r1:(kr+1)*r1-1) = .true.
+         endif
 
          ! get a pointer to the current patch
          p => dataptr(pf, i, j)
@@ -698,6 +747,19 @@ contains
                            jj*r1:(jj+1)*r1-1, &
                            kk*r1:(kk+1)*r1-1) = .false.
                   end if
+
+                  !The finest level tracks the regions of vigorous burning, so
+                  !we use it to mark where we want to calculate turbulent
+                  !fluctuations at varying lengthscales.
+                  if ( any(fmask(ii*r1:(ii+1)*r1-1, &
+                                 jj*r1:(jj+1)*r1-1, &
+                                 kk*r1:(kk+1)*r1-1) ) ) then
+                     b = min( &
+                           nint((p(ii,jj,kk,sc%temp_comp) - thist%min_temp)/thist%dT), &
+                           thist%nbins - 1 &
+                         )
+                     thist%tavg(i,b) = thist%tavg(i,b) + 1
+                  endif
                end do
             enddo
          enddo
@@ -893,7 +955,7 @@ contains
 
   !An innermost loop kernel for calculating the hottest cells
   !Assumptions: 
-  !   +the hheap object is initialized approriately before the first call to this routine
+  !   +the hheap object is initialized appropriately before the first call to this routine
   !   +p is properly initialized, bound to a plotfile patch
   subroutine hotspots_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, lev, hh)
     !Modules
@@ -925,8 +987,47 @@ contains
     end if
   end subroutine hotspots_kernel
 
+  !An innermost loop kernel for calculating the temperatures at
+  !the lenghthscale of each level to compare with fluctuation expectations 
+  !from Kolmogorov theory.
+  !Assumptions: 
+  !   +
+  subroutine fluct_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, lev, hh)
+    !Modules
+    implicit none
+
+    !Args
+    real(kind=dp_t), intent(in) :: xx, yy, zz
+    integer, intent(in) :: ii, jj, kk
+    real(kind=dp_t), pointer, intent(in) :: p(:,:,:,:)
+    type(geometry), intent(in) :: geo
+    type(state_comps), intent(in) :: sc
+    integer, intent(in) :: lev
+    type(hheap), intent(inout) :: hh
+
+    !Local
+    type(hotspot) :: newhs
+    integer :: i
+
+    !!If temp is more than hh's minimum, add this cell to the list
+    !if(p(ii,jj,kk,sc%temp_comp) > hh%min_temp) then
+    !  newhs%temp = p(ii,jj,kk,sc%temp_comp)
+    !  newhs%rho = p(ii,jj,kk,sc%dens_comp)
+    !  newhs%x = xx
+    !  newhs%y = yy
+    !  newhs%z = zz
+    !  newhs%level = lev
+    !
+    !  call hheap_add(hh, newhs)
+    !end if
+    !!Generate file with (l, <T>)
+    !ell = 
+    !T_avg = 
+  end subroutine fluct_kernel
+
+
   !Write output for all arguments passed
-  subroutine writeout(pf, slicefile, geo, sc, glb, radav, hh)
+  subroutine writeout(pf, slicefile, geo, sc, thist, glb, radav, hh)
     !Modules
     implicit none
 
@@ -935,6 +1036,7 @@ contains
     character(len=256), intent(in) :: slicefile
     type(geometry), intent(in) :: geo
     type(state_comps), intent(in) :: sc
+    type(temp_hist), intent(in) :: thist
     type(radial_averages), intent(inout), optional :: radav
     type(globals), intent(in), optional :: glb
     type(hheap), intent(inout), optional :: hh
@@ -959,9 +1061,10 @@ contains
     character(len=*), parameter :: fmt_hdata = '(1x,5(g24.12,1x),I24)'
     integer, parameter :: EXT_LEN = 6 !Length of '.slice'
 
-    character(len=256) :: hotfile
+    character(len=256) :: hotfile, histfile
     logical :: write_globals, write_averages, write_hotspots
-    integer :: uno, i
+    integer :: uno, i, j
+    real(kind=dp_t) :: cur_temp
 
     !See which args passed
     write_globals = present(glb)
@@ -1054,6 +1157,31 @@ contains
 
       close(unit=uno)
     endif
+
+    ! temp histogram file
+    !build filename
+    histfile = trim(slicefile)
+    histfile = histfile(1:len(trim(histfile)) - EXT_LEN) // ".temphist"
+
+    !Get unit, open file
+    uno = unit_new()
+    open(unit=uno, file=histfile, status = 'replace')
+
+    !Write header
+    write(uno,fmt_header) pf%tm
+    write(uno,fmt_labels) "lengthscale"
+    write(uno,fmt_labels) "  temperature", "counts"
+    write(uno,fmt_section)
+
+    !Write data
+    do i = pf%flevel, 1, -1
+       write(uno,fmt_data) thist%ell(i)
+       do j = 1, thist%nbins
+          cur_temp = thist%min_temp + (j-1) * thist%dT
+          write(uno,fmt_data) cur_temp, thist%tavg(i,j)
+       enddo
+    enddo
+    close(unit=uno)
 
     !stdout output
     if (any((/ write_averages/))) then
