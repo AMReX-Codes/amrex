@@ -128,14 +128,14 @@ module subchandra
 
 contains
   !Parse command line args, initialize variables
-  subroutine parse_args(slicefile, pltfile, globals_only, hpcnt, pf)
+  subroutine parse_args(slicefile, pltfile, globals_only, fullstar, hpcnt, pf)
     !Modules 
     use f2kcli
     implicit none
 
     !Arguments
     real(kind=dp_t),    intent(out) :: hpcnt
-    logical,            intent(out) :: globals_only
+    logical,            intent(out) :: globals_only, fullstar
     character(len=256), intent(out) :: slicefile, pltfile
     type(plotfile),     intent(out) :: pf
 
@@ -146,6 +146,7 @@ contains
     ! set the defaults
     slicefile = ''
     globals_only = .false.
+    fullstar = .false.
     hpcnt = -1.0_dp_t !hpcnt < 0 indicates we don't want to do hotspot statistics
 
     ! read user's command line options 
@@ -170,6 +171,9 @@ contains
 
       case ('--globals_only', '--globals-only')
         globals_only = .true.
+
+      case ('-f', '--full-star')
+        fullstar = .true.
 
       case default
         !if it's not the last argument (plotfile) and we don't recognize
@@ -219,6 +223,7 @@ contains
     print *, "      [-h|--do-hotspots] pcnt       : calculate hotspot statistics"
     print *, "                                      for hottest pcnt of cells"
     print *, "                                      WARNING: can generate lots of data."
+    print *, "      [-f|--full-star]              : the plotfile comes from a full star simulation (not octant)"
     print *, "      --globals-only                : only output global quantities "
     stop
   end subroutine usage
@@ -405,11 +410,11 @@ contains
   end subroutine init_comps
 
   !Initialize geometry
-  subroutine init_geometry(pf, globals_only, geo)
+  subroutine init_geometry(pf, globals_only, fullstar, geo)
     implicit none
 
     !Args
-    logical, intent(in) :: globals_only
+    logical, intent(in) :: globals_only, fullstar
     type(plotfile), intent(in) :: pf
 
     type(geometry), intent(out) :: geo
@@ -430,10 +435,19 @@ contains
        print *, 'Size of domain (zones): ', geo%fhi(1)-geo%flo(1)+1, geo%fhi(2)-geo%flo(2)+1, geo%fhi(3)-geo%flo(3)+1
     endif
 
-    ! the default for the center of the star will be the origin (octants)
-    geo%xctr = ZERO
-    geo%yctr = ZERO
-    geo%zctr = ZERO
+    ! determine location of star's center
+    if(fullstar) then
+      ! full star simulation, center is at 
+      ! the center of the computational domain
+      geo%xctr = HALF*(pf%phi(1) - pf%plo(1))
+      geo%yctr = HALF*(pf%phi(2) - pf%plo(2))
+      geo%zctr = HALF*(pf%phi(3) - pf%plo(3))
+    else
+      ! we have an octant simulation, center is origin
+      geo%xctr = ZERO
+      geo%yctr = ZERO
+      geo%zctr = ZERO
+    endif
 
     if (.not. globals_only) then
        print *, 'Center of the star: ', geo%xctr, geo%yctr, geo%zctr
@@ -568,9 +582,7 @@ contains
 
     !Initialize hotspot list
     if(do_hotspots) then
-      !Calculate 0.1% of total number of valid cells.
-      !This'll be the number of hotspots we track
-      !TODO: Make the percent a user-specified value
+      !Track the hottest (lhheap_frac)*(total number of valid cells) cells
       r1  = 1 !Refinement ratio of current:finest
       do n = pf%flevel, 1, -1 !Loop over all levels, finest to coarsest
         !rr = product(pf%refrat(1:n-1,1)) !Refinement ratio of current:coarsest
@@ -612,7 +624,6 @@ contains
         print *, 'Unique cells on level ', n , ': ', cell_count(n)
       enddo
       
-      !call init_hheap(hh, HHEAP_LEN)
       call init_hheap(hh, int(lhheap_frac*sum(cell_count)))
       print *, 'Tracking ', int(lhheap_frac*sum(cell_count)), ' hotspots'
 
@@ -1043,8 +1054,6 @@ contains
 
       close(unit=uno)
     endif
-
-
 
     !stdout output
     if (any((/ write_averages/))) then

@@ -36,16 +36,16 @@ program fsubchandra
   real(kind=dp_t) :: hpcnt
   integer :: i
   character(len=256) :: slicefile, pltfile
-  logical :: globals_only
+  logical :: globals_only, fullstar
 
   !Read command line args, build pf
-  call parse_args(slicefile, pltfile, globals_only, hpcnt, pf)
+  call parse_args(slicefile, pltfile, globals_only, fullstar, hpcnt, pf)
 
   !Initialize the component indices
   call init_comps(pf, sc)
 
   !Initialize geometry attributes 
-  call init_geometry(pf, globals_only, geo)
+  call init_geometry(pf, globals_only, fullstar, geo)
 
   !This is the main analysis subroutine. It loops over the entire computational
   !domain applying calculations (averages, globals, etc...) based on the arguments passed.
@@ -53,7 +53,7 @@ program fsubchandra
     print *, 'analyze globals only...'
     call analyze(pf, geo, sc, glb=glb)
   else if(hpcnt > 0.0) then
-    !Only calculate hotspot statistics of hpcnt > 0.0
+    !Only calculate hotspot statistics if hpcnt > 0.0
     print *, 'analyze with hotspots, hpcnt = ', hpcnt
     call analyze(pf, geo, sc, glb=glb, radav=radav, hh=hspots, hheap_frac_input=hpcnt)
   else
