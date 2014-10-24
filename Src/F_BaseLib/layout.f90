@@ -166,6 +166,8 @@ module layout_module
      logical, pointer                :: pmask(:)    => Null() ! Periodic mask.
      integer, pointer                :: prc(:)      => Null() ! Which processor owns each box.
      integer, pointer                :: idx(:)      => Null() ! Global indices of boxes we own.
+     integer, pointer                :: sfc_order(:)=> Null()
+
      type(boxarray)                  :: bxa
      type(boxassoc), pointer         :: bxasc       => Null()
      type(fgassoc), pointer          :: fgasc       => Null()
@@ -558,7 +560,7 @@ contains
     case (LA_ROUNDROBIN)
        call layout_roundrobin(lap%prc, ba)
     case (LA_KNAPSACK)
-       call layout_knapsack(lap%prc, ba)
+       call layout_knapsack(lap%prc, ba, lap%sfc_order)
     case default
        call bl_error("layout_rep_build(): unknown mapping:", lmapping)
     end select
@@ -604,6 +606,7 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
+    if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
@@ -882,44 +885,52 @@ contains
 
   end subroutine layout_roundrobin
 
-  subroutine layout_knapsack(prc, bxs)
+  subroutine layout_knapsack(prc, bxs, sfc_order)
     use fab_module
     use bl_error_module
     use knapsack_module
     integer,        intent(out), dimension(:) :: prc
     type(boxarray), intent(in )               :: bxs
+    integer,        intent(inout),    pointer :: sfc_order(:)
 
-    integer              :: i
+    integer              :: i, nbxs, nprocs
     integer, pointer     :: luc(:)
     integer, allocatable :: ibxs(:), tprc(:)
     type(box), pointer   :: pbxs(:)
 
-    if ( nboxes(bxs) /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
+    nbxs = nboxes(bxs)
+    nprocs = parallel_nprocs()
 
-    allocate(ibxs(nboxes(bxs)), tprc(nboxes(bxs)))
+    if ( nbxs /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
 
-    do i = 1, size(ibxs,1)
+    allocate(ibxs(nbxs), tprc(nbxs))
+
+    do i = 1, nbxs
        ibxs(i) = volume(get_box(bxs,i))
     end do
 
-    if ( (nboxes(bxs)/parallel_nprocs()) >= sfc_threshold ) then
+    if ( nbxs >= sfc_threshold*nprocs ) then
        !
        ! Use Morton space-filling-curve distribution if we have "enough" grids.
        !
        pbxs => dataptr(bxs)
-       call sfc_i(tprc, ibxs, pbxs, parallel_nprocs())
+       allocate(sfc_order(nbxs))
+       call make_sfc(sfc_order, pbxs)
+       nullify(pbxs)
+
+       call distribute_sfc(tprc, sfc_order, ibxs, nprocs)
 
        luc => least_used_cpus(always_sort=.false.)
     else
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
        !
-       call knapsack_i(tprc, ibxs, parallel_nprocs())
+       call knapsack_i(tprc, ibxs, nprocs)
 
        luc => least_used_cpus(always_sort=.true.)
     end if
 
-    do i = 1, size(prc,1)
+    do i = 1, nbxs
        prc(i) = luc(tprc(i))
     end do
 
