@@ -259,38 +259,21 @@ contains
 
   end subroutine knapsack_i
 
-  subroutine sfc_i(prc, ibxs, bxs, np, verbose)
-
+  subroutine make_sfc(iorder, bxs)
     use sfc_module
-    use parallel
     use box_module
     use sort_i_module
     use bl_error_module
     use bl_prof_module
-
-    integer,   intent(out)           :: prc(:)
-    integer,   intent(in )           :: ibxs(:)
+    
+    integer,   intent(out)           :: iorder(:)
     type(box), intent(in ), target   :: bxs(:)
-    integer,   intent(in )           :: np
-    logical,   intent(in ), optional :: verbose
-
-    logical         :: lverb
-    integer         ::  i
-    real(kind=dp_t) :: t1, t2, efficiency
-
-    integer, allocatable :: iorder(:), whichcpu(:)
-
+    
+    integer :: i
     type(bl_prof_timer), save :: bpt
 
-    if ( np < 1 ) call bl_error('sfc_i(): np < 1')
-
-    if ( size(ibxs) < 1 ) call bl_error('sfc_i(): size(ibxs) < 1')
-
     call build(bpt, 'sfc')
-
-    call cpu_time(t1)
-
-    lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
+    
     !
     ! Set dm, mpower & pbxs in sfc_module so they're accessible to sfc_greater_i().
     !
@@ -298,111 +281,111 @@ contains
     mpower =  maxpower()
     pbxs   => bxs
 
-    allocate(iorder(size(ibxs)), whichcpu(size(ibxs)))
-    !
-    ! Set to "bad" value that we can check for later to ensure array filled correctly.
-    !
-    whichcpu = -1
-
-    do i = 1, size(ibxs)
+    do i = 1, size(bxs)
        iorder(i) = i
     end do
 
-!    call sort(iorder, sfc_greater_i)
     call mergesort_i(iorder, sfc_greater_i)
-    !
-    ! "iorder" now indexes the boxes in morton space-filling-curve order.
-    !
-    call distribute()
-    !
-    ! "whichcpu(i)" now contains the CPU on which to place the iorder(i)'th box.
-    !
-    if ( minval(whichcpu) < 0 ) call bl_error('sfc_i(): improper CPU number')
-
-    do i = 1, size(ibxs)
-       prc(iorder(i)) = whichcpu(i)
-    end do
-
-    call cpu_time(t2)
-
-    if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
-       print *, 'SFC effi = ', efficiency
-       print *, 'SFC time = ', t2-t1
-    end if
+    
+    nullify(pbxs)
 
     call destroy(bpt)
 
-    contains
+  contains
 
-      function maxpower() result(r)
+    function maxpower() result(r)
+      
+      integer :: r, maxijk, i, d
+      
+      maxijk = lwb(bxs(1),1)
+      
+      do i = 1,size(bxs)
+         do d = 1, dm
+            maxijk = max(maxijk,lwb(bxs(i),d))
+         end do
+      end do
+      
+      r = 0
+      do while ( ishft(1,r) <= maxijk )
+         r = r + 1
+      end do
+      
+    end function maxpower
+    
+  end subroutine make_sfc
 
-        integer :: r, maxijk, i, d
+  subroutine distribute_sfc(prc, iorder, ibxs, np, verbose)
 
-        maxijk = lwb(bxs(1),1)
+    use parallel
 
-        do i = 1,size(bxs)
-           do d = 1, dm
-              maxijk = max(maxijk,lwb(bxs(i),d))
-           end do
-        end do
+    integer,   intent(out)           :: prc(:)
+    integer,   intent(in )           :: iorder(:)
+    integer,   intent(in )           :: ibxs(:)
+    integer,   intent(in )           :: np
+    logical,   intent(in ), optional :: verbose
 
-        r = 0
-        do while ( ishft(1,r) <= maxijk )
-           r = r + 1
-        end do
+    integer :: i, k, cnt, sz, nbxs
+    integer, allocatable :: whichcpu(:)
+    real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol, efficiency
+    logical :: lverb
 
-      end function maxpower
+    lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
 
-      subroutine distribute()
+    nbxs = size(prc)
 
-        integer         :: k, cnt, sz
-        real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol
+    allocate(whichcpu(nbxs))
 
-        maxvol = -Huge(1.0_dp_t)
+    maxvol = -Huge(1.0_dp_t)
+    
+    volpercpu = 0.0_dp_t
+    do i = 1, size(ibxs)
+       volpercpu = volpercpu + ibxs(i)
+    end do
+    volpercpu = volpercpu / np
+    
+    k        = 1
+    sz       = size(ibxs)
+    totalvol = 0.0_dp_t
 
-        volpercpu = 0.0_dp_t
-        do i = 1, size(ibxs)
-           volpercpu = volpercpu + ibxs(i)
-        end do
-        volpercpu = volpercpu / np
+    do i = 1, np
+       
+       cnt = 0
+       vol = 0.0_dp_t
+       
+       do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
+          whichcpu(k) = i
+          vol = vol + ibxs(iorder(k))
+          k   = k   + 1
+          cnt = cnt + 1
+       end do
+       
+       totalvol = totalvol + vol
+       
+       if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
+          k        = k - 1
+          vol      = vol - ibxs(iorder(k))
+          totalvol = totalvol - ibxs(iorder(k))
+       endif
+       
+       maxvol = max(maxvol,vol)
+       
+    end do
+    !
+    ! Force "whichcpu" values to be zero-based instead of one-based.
+    !
+    whichcpu = whichcpu - 1
 
-        k        = 1
-        sz       = size(ibxs)
-        totalvol = 0.0_dp_t
+    do i = 1, nbxs
+       prc(iorder(i)) = whichcpu(i)
+    end do
+    
+    efficiency = volpercpu / maxvol
 
-        do i = 1, np
-
-           cnt = 0
-           vol = 0.0_dp_t
-
-           do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
-              whichcpu(k) = i
-              vol = vol + ibxs(iorder(k))
-              k   = k   + 1
-              cnt = cnt + 1
-           end do
-
-           totalvol = totalvol + vol
-
-           if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
-              k        = k - 1
-              vol      = vol - ibxs(iorder(k))
-              totalvol = totalvol - ibxs(iorder(k))
-           endif
-
-           maxvol = max(maxvol,vol)
-
-        end do
-        !
-        ! Force "whichcpu" values to be zero-based instead of one-based.
-        !
-        whichcpu = whichcpu - 1
-
-        efficiency = volpercpu / maxvol
-
-      end subroutine distribute
-
-  end subroutine sfc_i
+    if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'SFC effi = ', efficiency
+    end if
+    
+  end subroutine distribute_sfc
 
   function sfc_greater_i(ilhs,irhs) result(r)
 
