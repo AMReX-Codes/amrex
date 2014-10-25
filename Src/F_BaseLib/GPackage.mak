@@ -40,6 +40,9 @@ f90sources += bc.f90
 f90sources += bc_functions.f90
 f90sources += bndry_reg.f90
 
+f90sources += ml_optimization.f90
+f90sources += ml_layout_remap.f90
+
 f90sources += ml_boxarray.f90
 f90sources += ml_layout.f90
 f90sources += ml_multifab.f90

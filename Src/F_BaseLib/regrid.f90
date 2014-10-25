@@ -1,6 +1,7 @@
 module regrid_module
 
   use ml_layout_module
+  use ml_layout_remap_module
   use multifab_module
   use make_new_grids_module
   use ml_restrict_fill_module
@@ -229,21 +230,23 @@ contains
        call multifab_destroy(phi_orig(n))
     end do
 
+    ! try to optimize ml layout
+    call ml_layout_remap(la_array, phi, nlevs, mba%rr)
+
     ! Note: This build actually sets mla%la(n) = la_array(n) so we mustn't delete 
     !       la_array(n).  Doing the build this way means we don't have to re-create 
     !       all the multifabs because we have kept the same layouts.
     ! this destroys everything in mla except the fine layout
     call destroy(mla, keep_coarse_layout=.true.)  
     call build(mla,mba,la_array,pmask,nlevs)
+    call destroy(mba)
 
     ! This makes sure the boundary conditions are properly defined everywhere
     do n=1,nlevs
-       call bc_tower_level_build(the_bc_tower,n,la_array(n))
+       call bc_tower_level_build(the_bc_tower,n,mla%la(n))
     end do
 
     call ml_restrict_and_fill(nlevs, phi, mla%mba%rr, the_bc_tower%bc_tower_array)
-
-    call destroy(mba)
 
     if (ignore_fine_in_layout_mapping) then
        call manual_control_least_used_cpus_set(mc_flag)
