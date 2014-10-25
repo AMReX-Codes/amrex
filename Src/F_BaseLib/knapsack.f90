@@ -6,8 +6,9 @@ module sfc_module
   ! while inside the sfc_i() routine, so that they're accessible via
   ! sfc_greater_i().
   !
-  integer            :: dm, mpower
-  type(box), pointer :: pbxs(:)
+  integer              :: dm, mpower
+  integer, allocatable :: boxkeys(:,:)
+  type(box), pointer   :: pbxs(:)
 end module sfc_module
 
 module knapsack_module
@@ -274,12 +275,7 @@ contains
 
     call build(bpt, 'sfc')
     
-    !
-    ! Set dm, mpower & pbxs in sfc_module so they're accessible to sfc_greater_i().
-    !
-    dm     =  get_dim(bxs(1))
-    mpower =  maxpower()
-    pbxs   => bxs
+    call init_sfc_module()
 
     do i = 1, size(bxs)
        iorder(i) = i
@@ -287,22 +283,43 @@ contains
 
     call mergesort_i(iorder, sfc_greater_i)
     
-    nullify(pbxs)
+    call close_sfc_module()
 
     call destroy(bpt)
 
   contains
 
+    subroutine init_sfc_module
+      integer :: i
+      dm     =  get_dim(bxs(1))
+      allocate(boxkeys(dm,size(bxs)))
+      do i = 1, size(bxs)
+         boxkeys(:,i) = make_box_key(i)
+      end do
+      mpower =  maxpower()
+      pbxs   => bxs
+    end subroutine init_sfc_module
+
+    subroutine close_sfc_module()
+      deallocate(boxkeys)
+      nullify(pbxs)
+    end subroutine close_sfc_module
+
+    function make_box_key(i) result(r)
+      integer :: r(dm)
+      integer, intent(in) :: i
+!      r = lwb(bxs(i))
+      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
+    end function make_box_key
+
     function maxpower() result(r)
       
-      integer :: r, maxijk, i, d
+      integer :: r, maxijk, i
       
-      maxijk = lwb(bxs(1),1)
+      maxijk = -Huge(1)
       
       do i = 1,size(bxs)
-         do d = 1, dm
-            maxijk = max(maxijk,lwb(bxs(i),d))
-         end do
+         maxijk = max(maxijk, maxval(boxkeys(:,i)))
       end do
       
       r = 0
@@ -394,21 +411,21 @@ contains
     logical             :: r
     integer, intent(in) :: ilhs,irhs
 
-    integer m,d,NNN,llwb,rlwb
+    integer m,d,NNN,lkey,rkey
 
-    do m = mpower,0,-1
+    do m = mpower-1,0,-1
 
        NNN = ishft(1,m)
 
        do d = 1, dm
 
-          llwb = lwb(pbxs(ilhs),d)/NNN
-          rlwb = lwb(pbxs(irhs),d)/NNN
+          lkey = boxkeys(d,ilhs) / NNN
+          rkey = boxkeys(d,irhs) / NNN
 
-          if ( llwb < rlwb ) then
+          if ( lkey < rkey ) then
              r = .true.
              return
-          else if ( llwb > rlwb ) then
+          else if ( lkey > rkey ) then
              r = .false.
              return
           end if
