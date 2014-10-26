@@ -262,12 +262,14 @@ program main
      call enforce_proper_nesting(mba,la_array,max_grid_size)
   end if
 
-  do n=1,nlevs
-     call destroy(la_array(n))
+  call build(mla,la_array,mba,is_periodic,nlevs)
+
+  ! We need to destroy layouts that are not used by mla.
+  do n = 1,nlevs
+     if (mla%la(n) .ne. la_array(n)) call destroy(la_array(n))
   end do
 
-  ! tell mla that there are nlevs levels, not max_levs
-  call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
+  call destroy(mba)
 
   ! this makes sure the boundary conditions are properly defined everywhere
   do n = 1,nlevs
@@ -282,8 +284,6 @@ program main
   end do
 
   call init_phi(mla,phi_new,dx,prob_lo,the_bc_tower)
-
-  call destroy(mba)
 
   istep = 0
   time = 0.d0

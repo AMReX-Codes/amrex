@@ -15,6 +15,19 @@ module ml_layout_module
      logical        , pointer :: pmask(:) => Null() ! periodic mask
   end type ml_layout
 
+  ! wz: this is my note for myself. Will make this clearer when finishing implementation
+
+  ! 0: do nothing
+  ! 1: sfc on each level;  ignore fine when distribute;  keep sfc order
+  ! 2: do sfc on the finest level first and keep its order; work our way
+  !    down; mark coarse grids with fine proc id; honor them if not over
+  !    volpercpu; do rest with sfc
+  ! 3: work our way up; mark fine grids with coarse proc id.  Do sfc and
+  !    cut into chunks.  Let the ones that can benefit most pick first.  Then
+  !    let the ones with most works pick.  Try to think how to minimize mpi
+  !    gather.
+  integer, private, save :: ml_optimization_strategy = 1
+
   interface build
      module procedure ml_layout_build
      module procedure ml_layout_build_n
@@ -54,6 +67,11 @@ module ml_layout_module
   end interface
 
 contains
+
+  subroutine set_ml_optimization_strategy(i)
+    integer, intent(in) :: i
+    ml_optimization_strategy = i
+  end subroutine set_ml_optimization_strategy
 
   function ml_layout_built_q(mla) result(r)
     logical :: r
@@ -119,11 +137,18 @@ contains
     call build(mla%mba, nlevel, dm)
   end subroutine ml_layout_build_n
 
-  subroutine ml_layout_build_la_array(mla, mba, la_array, pmask, nlevel)
+  ! The behavior of this subroutine has changed!!!
+  ! The layouts in mla are no longer simple copies of la_array.
+  ! They might be a simple copy, or a different one built on the same boxarray.
+  ! It is now caller's responsibility to check and delete the layouts in la_array
+  ! that are not used in mla.  We cannot do it for the caller because there
+  ! could be multifabs that are still using those layouts.  
+  ! See Tutorials/AMR_Adv_Diff_F/main.f90 and Src/F_BaseLib/regrid.f90 for examples.
+  subroutine ml_layout_build_la_array(mla, la_array, mba, pmask, nlevel)
 
     type(ml_layout  ), intent(  out) :: mla
-    type(ml_boxarray), intent(in   ) :: mba
     type(   layout  ), intent(inout) :: la_array(:)
+    type(ml_boxarray), intent(in   ) :: mba
     integer,           intent(in   ) :: nlevel
     logical                        :: pmask(:)
 
@@ -151,9 +176,8 @@ contains
 
     ! Point to the existing la_array(:)
     allocate(mla%la(mla%nlevel))
-    do n = 1, nlevel
-       mla%la(n) = la_array(n)
-    end do
+    
+    call optimize_layouts(mla%la, la_array, mla%nlevel, mla%mba%rr)
 
     allocate(mla%mask(mla%nlevel-1))
 
@@ -213,6 +237,7 @@ contains
     logical, optional                :: pmask(:)
 
     type(boxarray) :: bac
+    type(layout), allocatable :: la_array(:)
     integer :: n
     logical :: lpmask(mba%dim)
 
@@ -236,11 +261,16 @@ contains
       call copy(mla%mba%bas(n),mba%bas(n))
     end do
 
-    allocate(mla%la(mla%nlevel))
-    allocate(mla%mask(mla%nlevel-1))
+    allocate(mla%la(mla%nlevel), la_array(mla%nlevel))
+
     do n = 1, mla%nlevel
-       call build(mla%la(n), mba%bas(n), mba%pd(n), pmask=lpmask)
+       call build(la_array(n), mba%bas(n), mba%pd(n), pmask=lpmask)
     end do
+
+    call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr)
+
+    allocate(mla%mask(mla%nlevel-1))
+
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
@@ -329,5 +359,18 @@ contains
        end if
     end do
   end subroutine ml_layout_print
+
+  subroutine optimize_layouts(la_new, la_old, nlevs, rr)
+    type(layout), intent(out) :: la_new(:)
+    type(layout), intent(in) :: la_old(:)
+    integer, intent(in) :: nlevs, rr(:,:)
+
+    integer :: n
+
+    do n=1,nlevs
+       la_new(n) = la_old(n)
+    end do
+
+  end subroutine optimize_layouts
 
 end module ml_layout_module
