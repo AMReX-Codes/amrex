@@ -262,12 +262,11 @@ program main
      call enforce_proper_nesting(mba,la_array,max_grid_size)
   end if
 
-  call build(mla,la_array,mba,is_periodic,nlevs)
-
-  ! We need to destroy layouts that are not used by mla.
   do n = 1,nlevs
-     if (mla%la(n) .ne. la_array(n)) call destroy(la_array(n))
+     call destroy(la_array(n))
   end do
+
+  call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
 
   call destroy(mba)
 

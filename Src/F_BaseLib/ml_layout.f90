@@ -26,12 +26,11 @@ module ml_layout_module
   !    cut into chunks.  Let the ones that can benefit most pick first.  Then
   !    let the ones with most works pick.  Try to think how to minimize mpi
   !    gather.
-  integer, private, save :: ml_optimization_strategy = 1
+  integer, private, save :: ml_layout_strategy = 1
 
   interface build
      module procedure ml_layout_build
      module procedure ml_layout_build_n
-     module procedure ml_layout_build_la_array
      module procedure ml_layout_build_mla
   end interface
 
@@ -68,10 +67,10 @@ module ml_layout_module
 
 contains
 
-  subroutine set_ml_optimization_strategy(i)
+  subroutine ml_layout_set_strategy(i)
     integer, intent(in) :: i
-    ml_optimization_strategy = i
-  end subroutine set_ml_optimization_strategy
+    ml_layout_strategy = i
+  end subroutine ml_layout_set_strategy
 
   function ml_layout_built_q(mla) result(r)
     logical :: r
@@ -369,7 +368,7 @@ contains
 
     integer :: n
 
-    select case (ml_optimization_strategy)
+    select case (ml_layout_strategy)
     case (0)
        do n=1,nlevs
           la_new(n) = la_old(n)
