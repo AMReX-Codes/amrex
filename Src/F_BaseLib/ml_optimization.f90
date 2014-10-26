@@ -1,5 +1,8 @@
 module ml_optimization_module
 
+  use layout_module
+  use multifab_module
+
   implicit none
 
   ! 0: do nothing
@@ -13,6 +16,11 @@ module ml_optimization_module
   !    gather.
   integer, save :: ml_optimization_strategy = 1
 
+  interface optimize_ml_layout
+     module procedure optimize_ml_layout_array
+     module procedure optimize_ml_layout_mla
+  end interface optimize_ml_layout
+
   private
 
   public :: set_ml_optimization_strategy
@@ -24,7 +32,18 @@ contains
     ml_optimization_strategy = i
   end subroutine set_ml_optimization_strategy
 
-  
+  subroutine optimize_ml_layout_array(la_new, la_old, nlevs, rr)
+    type(layout), intent(out) :: la_new(:)
+    type(layout), intent(in) :: la_old(:)
+    integer, intent(in) :: nlevs, rr(:,:)
+  end subroutine optimize_ml_layout_array
+
+  ! Because layouts in mla may be destroyed in this subroutine, 
+  ! there should be no mulitfabs existing anywhere that were built with layouts in mla.
+  subroutine optimize_ml_layout_mla(mla, nlevs)
+    type(ml_layout), intentin(inout) :: mla(:)
+    integer, intent(in) :: nlevs
+  end subroutine optimize_ml_layout_mla
 
 end module ml_optimization_module
 
