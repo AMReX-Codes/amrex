@@ -13,18 +13,13 @@ module ml_layout_module
      type(layout)   , pointer ::    la(:) => Null()
      type(lmultifab), pointer ::  mask(:) => Null() ! cell-centered mask
      logical        , pointer :: pmask(:) => Null() ! periodic mask
-     !
-     ! Have to destroy all layouts, not just the coarsest one, if we're
-     ! build using ml_layout_build_n().
-     !
-     logical                  :: destroy_all_layouts = .false.
   end type ml_layout
 
   interface build
      module procedure ml_layout_build
-     module procedure ml_layout_build_la
      module procedure ml_layout_build_n
      module procedure ml_layout_build_la_array
+     module procedure ml_layout_build_mla
   end interface
 
   interface destroy
@@ -118,7 +113,6 @@ contains
 
     mla%nlevel              = nlevel
     mla%dim                 = dm
-    mla%destroy_all_layouts = .true.
     allocate(mla%pmask(mla%dim))
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
@@ -135,8 +129,6 @@ contains
 
     type(boxarray) :: bac
     integer        :: n
-
-    mla%destroy_all_layouts = .true.
 
     mla%nlevel = nlevel
     mla%dim    = get_dim(mba)
@@ -176,7 +168,7 @@ contains
 
   end subroutine ml_layout_build_la_array
 
-  subroutine ml_layout_build_la(mla, mla_in)
+  subroutine ml_layout_build_mla(mla, mla_in)
     type(ml_layout), intent(inout) :: mla
     type(ml_layout), intent(in   ) :: mla_in
 
@@ -192,10 +184,8 @@ contains
 
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
-    call build(mla%la(1), mla%mba%bas(1), mla%mba%pd(1), pmask=mla%pmask, &
-         explicit_mapping=get_proc(mla_in%la(1)))
-    do n = 2, mla%nlevel
-       call layout_build_pn(mla%la(n), mla%la(n-1), mla%mba%bas(n), mla%mba%rr(n-1,:), &
+    do n = 1, mla%nlevel
+       call build(mla%la(n), mla%mba%bas(n), mla%mba%pd(n), pmask=mla%pmask, &
             explicit_mapping=get_proc(mla_in%la(n)))
     end do
     do n = 1, mla%nlevel-1
@@ -203,7 +193,7 @@ contains
        call lmultifab_copy(mla%mask(n), mla_in%mask(n))
     end do
 
-  end subroutine ml_layout_build_la
+  end subroutine ml_layout_build_mla
 
   subroutine ml_layout_build(mla, mba, pmask)
     type(ml_layout)  , intent(inout) :: mla
@@ -248,9 +238,8 @@ contains
 
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
-    call build(mla%la(1), mba%bas(1), mba%pd(1), pmask=lpmask)
-    do n = 2, mla%nlevel
-       call layout_build_pn(mla%la(n), mla%la(n-1), mba%bas(n), mba%rr(n-1,:))
+    do n = 1, mla%nlevel
+       call build(mla%la(n), mba%bas(n), mba%pd(n), pmask=lpmask)
     end do
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
@@ -276,24 +265,14 @@ contains
     end do
     call destroy(mla%mba)
 
-    if ( mla%destroy_all_layouts ) then
-       if (lkeepcoarse) then
-          n0 = 2
-       else
-          n0 = 1
-       end if
-       do n = n0, mla%nlevel
-          call destroy(mla%la(n))
-       end do
+    if (lkeepcoarse) then
+       n0 = 2
     else
-       if (.not. lkeepcoarse) then
-          !
-          ! We need only delete the coarsest level layout
-          ! since it 'owns' the refined levels.
-          !
-          call destroy(mla%la(1))
-       end if
+       n0 = 1
     end if
+    do n = n0, mla%nlevel
+       call destroy(mla%la(n))
+    end do
 
     deallocate(mla%la, mla%mask)
     mla%dim = 0

@@ -9,8 +9,6 @@ module layout_module
   integer, private, parameter :: LA_UNDF = 0
   integer, private, parameter :: LA_BASE = 1
   integer, private, parameter :: LA_CRSN = 2
-  integer, private, parameter :: LA_PCHD = 3
-  integer, private, parameter :: LA_PPRT = 4
 
   integer, parameter :: LA_KNAPSACK   = 101
   integer, parameter :: LA_ROUNDROBIN = 102
@@ -173,7 +171,6 @@ module layout_module
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
-     type(pn_layout), pointer        :: pn_children => Null()
      ! Box Hashing
      integer                         :: bahash              = -1
      integer                         :: crsn                = -1
@@ -194,13 +191,6 @@ module layout_module
      type(layout)                    :: la
      type(coarsened_layout), pointer :: next => Null()
   end type coarsened_layout
-
-  type pn_layout
-     integer                  :: dim = 0
-     integer, pointer         :: refr(:) => Null()
-     type(layout)             :: la
-     type(pn_layout), pointer :: next => Null()
-  end type pn_layout
 
   integer, private :: g_layout_next_id = 0
 
@@ -601,7 +591,6 @@ contains
     type(layout_rep), pointer :: lap
     integer, intent(in) :: la_type
     type(coarsened_layout), pointer :: clp, oclp
-    type(pn_layout), pointer :: pnp, opnp
     type(boxassoc),  pointer :: bxa, obxa
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
@@ -612,7 +601,7 @@ contains
        deallocate(lap%idx)
     end if
     call destroy(lap%bxa)
-    if ( (la_type == LA_BASE) .or. (la_type == LA_PCHD) ) then
+    if ( (la_type == LA_BASE) ) then
        deallocate(lap%pmask)
     end if
     clp => lap%crse_la
@@ -622,14 +611,6 @@ contains
        call layout_rep_destroy(clp%la%lap, LA_CRSN)
        deallocate(clp)
        clp => oclp
-    end do
-    pnp => lap%pn_children
-    do while ( associated(pnp) )
-       opnp => pnp%next
-       deallocate(pnp%refr)
-       call layout_rep_destroy(pnp%la%lap, LA_PCHD)
-       deallocate(pnp)
-       pnp  => opnp
     end do
     !
     ! Get rid of boxassocs.
@@ -717,53 +698,6 @@ contains
     call layout_rep_destroy(la%lap, LA_BASE)
     call mem_stats_dealloc(la_ms)
   end subroutine layout_destroy
-
-  subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
-    use bl_error_module
-    type(layout), intent(out)   :: lapn
-    type(layout), intent(inout) :: la
-    type(boxarray), intent(in) :: ba
-    integer, intent(in) :: rr(:)
-    integer, intent(in), optional :: mapping
-    integer, intent(in), optional :: explicit_mapping(:)
-    type(pn_layout), pointer :: pla
-    type(box) :: rpd
-
-    if ( size(rr) /= la%lap%dim ) then
-       call bl_error("layout_build_pn(): incommensurate refinement ratio")
-    end if
-
-    ! This is wrong: I need to make sure that the boxarray and the
-    ! refinement match.  This will be OK until we do regridding
-
-    pla => la%lap%pn_children
-    do while ( associated(pla) )
-       if ( all(pla%refr == rr) ) then
-          lapn = pla%la
-          return
-       end if
-       pla => pla%next
-    end do
-
-    ! Should also check for the proper nestedness
-
-    allocate(pla)
-    allocate(pla%refr(la%lap%dim))
-    pla%dim = la%lap%dim
-    pla%refr = rr
-
-    pla%la%la_type = LA_PCHD
-
-    allocate(pla%la%lap)
-    rpd = refine(la%lap%pd, pla%refr)
-    call layout_rep_build(pla%la%lap, ba, rpd, la%lap%pmask, &
-        mapping, explicit_mapping)
-
-    ! install the new coarsened layout into the layout
-    pla%next => la%lap%pn_children
-    la%lap%pn_children => pla
-    lapn = pla%la
-  end subroutine layout_build_pn
 
   subroutine layout_build_coarse(lac, la, cr)
     use bl_error_module
