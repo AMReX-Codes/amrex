@@ -308,8 +308,8 @@ contains
     function make_box_key(i) result(r)
       integer :: r(dm)
       integer, intent(in) :: i
-!      r = lwb(bxs(i))
-      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
+      r = lwb(bxs(i))
+!      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
     end function make_box_key
 
     function maxpower() result(r)
