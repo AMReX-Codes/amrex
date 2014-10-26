@@ -278,6 +278,18 @@ module layout_module
      module procedure layout_get_pmask
   end interface
 
+  interface sfc_order_built_q
+     module procedure layout_sfc_order_built_q
+  end interface
+
+  interface get_sfc_order
+     module procedure layout_get_sfc_order
+  end interface
+
+  interface set_sfc_order
+     module procedure layout_set_sfc_order
+  end interface
+
   interface contains
      module procedure boxarray_box_contains
      module procedure boxarray_boxarray_contains
@@ -501,6 +513,26 @@ contains
     logical :: r(la%lap%dim)
     r = la%lap%pmask
   end function layout_get_pmask
+
+  pure function layout_sfc_order_built_q(la) result (r)
+    type(layout), intent(in) :: la
+    logical :: r
+    r = associated(la%lap%sfc_order)
+  end function layout_sfc_order_built_q
+
+  pure function layout_get_sfc_order(la) result(r)
+    type(layout), intent(in) :: la
+    integer :: r(la%lap%nboxes)
+    r = la%lap%sfc_order
+  end function layout_get_sfc_order
+
+  subroutine layout_set_sfc_order(la, sfc_order)
+    type(layout), intent(inout) :: la
+    integer, intent(in) :: sfc_order(:)
+    if (associated(la%lap%sfc_order)) deallocate(la%lap%sfc_order)
+    allocate(la%lap%sfc_order(la%lap%nboxes))
+    la%lap%sfc_order = sfc_order
+  end subroutine layout_set_sfc_order
 
   subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
     use bl_error_module

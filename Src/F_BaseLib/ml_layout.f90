@@ -361,15 +361,105 @@ contains
   end subroutine ml_layout_print
 
   subroutine optimize_layouts(la_new, la_old, nlevs, rr)
-    type(layout), intent(out) :: la_new(:)
-    type(layout), intent(in) :: la_old(:)
+    use fab_module
+    use knapsack_module
+    type(layout), intent(out  ) :: la_new(:)
+    type(layout), intent(inout) :: la_old(:)
     integer, intent(in) :: nlevs, rr(:,:)
 
     integer :: n
 
-    do n=1,nlevs
-       la_new(n) = la_old(n)
-    end do
+    select case (ml_optimization_strategy)
+    case (0)
+       do n=1,nlevs
+          la_new(n) = la_old(n)
+       end do
+    case (1)
+       call layout_opt_ignore_fine()
+    end select
+    
+  contains
+
+    subroutine build_new_layout(lao, lai)
+      type(layout), intent(out) :: lao
+      type(layout), intent(in ) :: lai
+
+      integer :: nbxs, nprocs, i
+      integer, pointer     :: luc(:)
+      integer, allocatable :: sfc_order(:), prc(:), ibxs(:)
+
+      if (sfc_order_built_q(lai)) then
+         
+         nbxs = nboxes(lai)
+         nprocs = parallel_nprocs()
+
+         allocate(sfc_order(nbxs), prc(nbxs), ibxs(nbxs))
+
+         sfc_order = get_sfc_order(lai)
+
+         do i = 1, nbxs
+            ibxs(i) = volume(get_box(lai,i))
+         end do
+         
+         call distribute_sfc(prc, sfc_order, ibxs, nprocs)
+
+         luc => least_used_cpus(always_sort=.false.)
+
+         do i = 1, nbxs
+            prc(i) = luc(prc(i))
+         end do
+
+         deallocate(luc)
+
+         if (all(prc .eq. get_proc(lai))) then
+            lao = lai
+         else
+
+            call layout_build_ba(lao, get_boxarray(lai), get_pd(lai), get_pmask(lai), &
+                 explicit_mapping=prc)
+            call set_sfc_order(lao, sfc_order)
+
+         end if
+
+      else
+
+         call layout_build_ba(lao, get_boxarray(lai), get_pd(lai), get_pmask(lai))
+         
+         if (all(get_proc(lao) .eq. get_proc(lai))) then
+            call destroy(lao)
+            lao = lai
+         end if
+
+      end if
+
+    end subroutine build_new_layout
+
+    subroutine layout_opt_ignore_fine()
+      logical :: mc_flag, order_flag
+      integer(kind=ll_t), allocatable :: lucvol(:)
+      
+      mc_flag = get_manual_control_least_used_cpus_flag()
+      order_flag = get_luc_keep_cpu_order_flag()
+      call manual_control_least_used_cpus_set(.true.)
+      call luc_keep_cpu_order_set(.true.)
+
+      allocate(lucvol(nlevs-1))
+      do n = 1, nlevs-1
+         lucvol(n) = layout_local_volume(la_old(n))         
+      end do
+
+      call luc_vol_set(0_ll_t) 
+      call build_new_layout(la_new(1), la_old(1))
+
+      do n = 2, nlevs
+         call luc_vol_set(sum(lucvol(1:n-1)))
+         call build_new_layout(la_new(n), la_old(n))
+      end do
+       
+      call manual_control_least_used_cpus_set(mc_flag)
+      call luc_keep_cpu_order_set(order_flag)
+      deallocate(lucvol)
+    end subroutine layout_opt_ignore_fine
 
   end subroutine optimize_layouts
 
