@@ -660,8 +660,8 @@ contains
 
                vtot = vtot + vol
 
-               if ( (real(vtot,dp_t)/real(i,dp_t)) .gt. volpercpu &
-                    .and. (icnt.gt.1) .and. (k.le.nbxs) ) then
+               if ( (real(vtot,dp_t)/real(i,dp_t)) .gt. volpercpu .and. (k.le.nbxs) &
+                    .and. (icnt.gt.1 .or. (icnt.eq.1 .and. vprc(iproc).gt.0_ll_t)) ) then
                   k    = k -1
                   vol  = vol  - vbx(indxmap(sfc_order(k)))
                   vtot = vtot - vbx(indxmap(sfc_order(k)))
