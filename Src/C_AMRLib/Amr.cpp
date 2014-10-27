@@ -936,12 +936,10 @@ Amr::writePlotFile ()
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << '\n';
-#endif
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
@@ -1116,7 +1114,6 @@ Amr::readProbinFile (int& init)
         Real      piTotal    = piEnd - piStart;
         Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
@@ -1125,7 +1122,6 @@ Amr::readProbinFile (int& init)
             std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
             std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
         }
-#endif
     }
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
@@ -1548,12 +1544,10 @@ Amr::restart (const std::string& filename)
     {
         Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
-#endif
     }
     BL_PROFILE_REGION_STOP("Amr::restart()");
 }
@@ -1702,13 +1696,11 @@ Amr::checkPoint ()
     {
         Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
-#endif
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
@@ -1975,10 +1967,10 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
- #ifdef BL_COMM_PROFILING
+    BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
+    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_NAMETAG(stepName.str());
     BL_COMM_PROFILE_FLUSH();
- #endif
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
@@ -2079,7 +2071,6 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
-    BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
 }
 
 bool
@@ -2954,12 +2945,10 @@ Amr::grid_places (int              lbase,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
-#endif
     }
 }
 
