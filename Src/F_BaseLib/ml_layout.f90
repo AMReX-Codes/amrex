@@ -268,6 +268,12 @@ contains
 
     call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr)
 
+    do n = 1, mla%nlevel
+       if (mla%la(n) .ne. la_array(n)) then
+          call destroy(la_array(n))
+       end if
+    end do
+
     allocate(mla%mask(mla%nlevel-1))
 
     do n = mla%nlevel-1,  1, -1
