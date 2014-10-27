@@ -490,7 +490,7 @@ contains
       integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp, icnt
       integer :: myproc, nprocs, nbxs, ntbxs
       integer, allocatable :: prc(:), prc2(:), cnt(:), sfc_order(:), vbx(:), &
-           vbxtmp(:), itmp(:), indxmap(:), whichcpu(:)
+           itmp(:), indxmap(:), whichcpu(:), novlp(:), novlp2(:), novlptmp(:)
       integer, pointer :: p(:,:,:,:), luc(:)
       integer (kind=ll_t) :: vtot, vol, maxvol
       integer (kind=ll_t), allocatable :: vprc(:)
@@ -522,6 +522,7 @@ contains
 
          nbxs = nboxes(la_old(n))
          allocate(prc(nbxs), prc2(nbxs), vbx(nbxs))
+         allocate(novlp(nbxs), novlp2(nbxs))
 
          call layout_build_coarse(lacfine, la_new(n+1), rr(n,:))
 
@@ -535,7 +536,8 @@ contains
          call setval(mfc, 0)
          call imultifab_copy(mfc, mff)
 
-         prc2 = 0
+         prc2   = 0
+         novlp2 = 0
 
          do m = 1, nfabs(mfc)
 
@@ -557,7 +559,9 @@ contains
             end do
 
             if (overlap) then
-               prc2(layout_global_index(la_old(n),m)) = maxloc(cnt,1)
+               i = layout_global_index(la_old(n),m)
+               prc2  (i) = maxloc(cnt,1)
+               novlp2(i) = maxval(cnt)
             end if
 
          end do
@@ -565,9 +569,11 @@ contains
          call destroy(mff)
          call destroy(mfc)
 
-         call parallel_reduce(prc, prc2, MPI_SUM)
-         ! prc now contains the preferred proc. no. for each box
-         deallocate(prc2)
+         call parallel_reduce(prc  ,   prc2, MPI_SUM)
+         call parallel_reduce(novlp, novlp2, MPI_SUM)
+         ! prc contains the preferred proc. no. for each box
+         ! novlp contains the number of points overlaping with fine level on the preferred proc. 
+         deallocate(prc2,novlp2)
 
          do iproc=1,nprocs
             call clear(bxid(iproc))
@@ -592,18 +598,19 @@ contains
             if (vprc(iproc) .gt. volpercpu) then
                ntmp = size(bxid(iproc))
                if (ntmp .gt. 1) then
-                  allocate(vbxtmp(ntmp), itmp(ntmp))
+                  allocate(novlptmp(ntmp), itmp(ntmp))
                   do j = 1, ntmp
-                     vbxtmp(j) = vbx(at(bxid(iproc),j))
+                     novlptmp(j) = novlp(at(bxid(iproc),j))
                   end do
-                  call sort(vbxtmp,itmp)
+                  call sort(novlptmp,itmp)
                   do j = 1, ntmp-1
-                     prc(at(bxid(iproc),itmp(j))) = 0
-                     vprc(iproc) = vprc(iproc) - vbxtmp(j)
+                     m = at(bxid(iproc),itmp(j))
+                     prc(m) = 0
+                     vprc(iproc) = vprc(iproc) - vbx(m)
                      if (vprc(iproc) .le. volpercpu) exit
                   end do
                end if
-               deallocate(vbxtmp,itmp)
+               deallocate(novlptmp,itmp)
             end if
             call clear(bxid(iproc))
          end do
@@ -689,7 +696,7 @@ contains
          call layout_build_ba(la_new(n), bac, get_pd(la_old(n)), get_pmask(la_old(n)), &
               explicit_mapping=prc)
 
-         deallocate(prc,vbx)
+         deallocate(prc,vbx,novlp)
       end do
 
       deallocate(cnt,vprc)
