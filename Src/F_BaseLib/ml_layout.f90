@@ -142,7 +142,7 @@ contains
   ! It is now caller's responsibility to check and delete the layouts in la_array
   ! that are not used in mla.  We cannot do it for the caller because there
   ! could be multifabs that are still using those layouts.  
-  ! See Tutorials/AMR_Adv_Diff_F/main.f90 and Src/F_BaseLib/regrid.f90 for examples.
+  ! See Src/F_BaseLib/regrid.f90 for examples.
   subroutine ml_layout_build_la_array(mla, la_array, mba, pmask, nlevel)
 
     type(ml_layout  ), intent(  out) :: mla
