@@ -61,6 +61,7 @@ Array<int> Profiler::CommStats::tagWraps;
 
 std::string Profiler::procName("NoProcName");
 int Profiler::procNumber(-1);
+bool Profiler::blProfDirCreated(false);
 std::string Profiler::blProfDirName("bl_prof");
 std::string Profiler::blCommProfDirName("bl_comm_prof");
 
@@ -78,9 +79,10 @@ bool Profiler::bFirstTraceWriteD(true);  // data
 int Profiler::CallStats::cstatsVersion(1);
 
 #ifdef BL_TRACE_PROFILING
-std::stack<int> Profiler::callIndexStack;
+Array<Profiler::CallStatsStack> Profiler::callIndexStack;
+Array<Profiler::CallStatsPatch> Profiler::callIndexPatch;
 int Profiler::callStackDepth(-1);
-int Profiler::prevDepth(0);
+int Profiler::prevCallStackDepth(0);
 Real Profiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
 Real Profiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
 #endif
@@ -258,7 +260,7 @@ void Profiler::start() {
     CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
   } else {
     int topNameNumber(fnameNumber);
-    if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevDepth) {
+    if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevCallStackDepth) {
       ++(vCallTrace.back().nCalls);
     } else {
       CallStats cs(callStackDepth, fnameNumber);
@@ -269,8 +271,8 @@ void Profiler::start() {
       CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
     }
   }
-  callIndexStack.push(vCallTrace.size() - 1);
-  prevDepth = callStackDepth;
+  callIndexStack.push_back(CallStatsStack(vCallTrace.size() - 1));
+  prevCallStackDepth = callStackDepth;
 #endif
 }
 }
@@ -297,7 +299,7 @@ void Profiler::stop() {
   mProfStats[fname].totalTime += thisFuncTime;
 
 #ifdef BL_TRACE_PROFILING
-  prevDepth = callStackDepth;
+  prevCallStackDepth = callStackDepth;
   --callStackDepth;
   if(vCallTrace.size() > 0) {
     if(vCallTrace.back().csFNameNumber == mFNameNumbers[fname]) {
@@ -306,10 +308,16 @@ void Profiler::stop() {
     }
   }
   if( ! callIndexStack.empty()) {
-    int index(callIndexStack.top());
-    vCallTrace[index].totalTime = thisFuncTime + nestedTime;
-    vCallTrace[index].stackTime = thisFuncTime;
-    callIndexStack.pop();
+    CallStatsStack &cis(callIndexStack.back());
+    int myProc(ParallelDescriptor::MyProc());
+    if(cis.bFlushed) {
+      callIndexPatch[cis.index].callStats.totalTime = thisFuncTime + nestedTime;
+      callIndexPatch[cis.index].callStats.stackTime = thisFuncTime;
+    } else {
+      vCallTrace[cis.index].totalTime = thisFuncTime + nestedTime;
+      vCallTrace[cis.index].stackTime = thisFuncTime;
+    }
+    callIndexStack.pop_back();
   }
 #endif
 }
@@ -365,6 +373,7 @@ void Profiler::RegionStart(const std::string &rname) {
     rnameNumber = it->second;
   }
   rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
+  if(ParallelDescriptor::IOProcessor()) std::cout << "RSTARTSTOP::start = " << rnameNumber << "  " << rsTime << std::endl;
 }
 
 
@@ -384,6 +393,7 @@ void Profiler::RegionStop(const std::string &rname) {
     rnameNumber = it->second;
   }
   rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
+  if(ParallelDescriptor::IOProcessor()) std::cout << "RSTARTSTOP::stop = " << rnameNumber << "  " << rsTime << std::endl;
 
   if(rname != noRegionName) {
     --inNRegions;
@@ -497,19 +507,22 @@ void Profiler::Finalize() {
   if(bWriteAll) {
     // --------------------- start nfiles block
     std::string cdir(blProfDirName);
-    if(ParallelDescriptor::IOProcessor()) {
-      if(BoxLib::FileExists(cdir)) {
-        std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
-	std::cout << "Profiler::Finalize():  " << cdir
-	          << " exists.  Renaming to:  " << newoldname << std::endl;
-        std::rename(cdir.c_str(), newoldname.c_str());
+    if( ! blProfDirCreated) {
+      if(ParallelDescriptor::IOProcessor()) {
+        if(BoxLib::FileExists(cdir)) {
+          std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
+	  std::cout << "Profiler::Finalize():  " << cdir
+	            << " exists.  Renaming to:  " << newoldname << std::endl;
+          std::rename(cdir.c_str(), newoldname.c_str());
+        }
+        if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
+          BoxLib::CreateDirectoryFailed(cdir);
+        }
       }
-      if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
-        BoxLib::CreateDirectoryFailed(cdir);
-      }
+      // Force other processors to wait until directory is built.
+      ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
+      blProfDirCreated = true;
     }
-    // Force other processors to wait until directory is built.
-    ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
 
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
@@ -766,21 +779,34 @@ void WriteStats(std::ostream &ios,
     funcTotalTimes[i].first  = 0.0;
     funcTotalTimes[i].second = i;
   }
-  Array<int> callStack(1000, -1);  // use Array instead of stack for iterator
+  Array<int> callStack(64, -1);
+  int maxCSD(0);
+  std::set<int> recursiveFuncs;
   for(int i(0); i < callTraces.size(); ++i) {
     const Profiler::CallStats &cs = callTraces[i];
     int depth(cs.callStackDepth);
+    maxCSD = std::max(maxCSD, depth);
+    if(depth >= callStack.size()) {
+      std::cout << "************ depth callStack.size() = " << depth << "  " << callStack.size() << std::endl;
+      callStack.resize(depth + 1);
+    }
     callStack[depth] = cs.csFNameNumber;
     bool recursiveCall(false);
     for(int d(0); d <  depth; ++d) {
       if(cs.csFNameNumber == callStack[d]) {
-        ios << " RECURSIVE:  " << fNumberNames[cs.csFNameNumber] << '\n';
+	recursiveFuncs.insert(cs.csFNameNumber);
         recursiveCall = true;
       }
     }
     if( ! recursiveCall) {
       funcTotalTimes[cs.csFNameNumber].first += cs.totalTime;
     }
+  }
+
+  //ios << " MaxCallStackDepth = " << Profiler::MaxCallStackDepth() << '\n';
+  ios << " MaxCallStackDepth = " << maxCSD << '\n';
+  for(std::set<int>::iterator rfi = recursiveFuncs.begin(); rfi != recursiveFuncs.end(); ++rfi) {
+    ios << " RCURSIVE function:  " << fNumberNames[*rfi] << '\n';
   }
 
   std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), Profiler::fTTComp());
@@ -823,6 +849,23 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
     std::string cFileName(cdir + '/' + cFilePrefix + "_D_");
     std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
+    if( ! blProfDirCreated) {
+      if(ParallelDescriptor::IOProcessor()) {
+        if(BoxLib::FileExists(cdir)) {
+          std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
+	  std::cout << "Profiler::Finalize():  " << cdir
+	            << " exists.  Renaming to:  " << newoldname << std::endl;
+          std::rename(cdir.c_str(), newoldname.c_str());
+        }
+        if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
+          BoxLib::CreateDirectoryFailed(cdir);
+        }
+      }
+      // Force other processors to wait until directory is built.
+      ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
+      blProfDirCreated = true;
+    }
+
     if( ! bFlushing) {
       // -------- make sure the set of region names is the same on all processors
       Array<std::string> localStrings, syncedStrings;
@@ -843,7 +886,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
       }
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
+    if(ParallelDescriptor::IOProcessor() && ! bFlushing) {
       std::string globalHeaderFileName(cdir + '/' + cFilePrefix + "_H");
       std::ofstream csGlobalHeaderFile;
       csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
@@ -877,6 +920,8 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
     std::string shortHeaderFileName(cFilePrefix + "_H_");
     shortHeaderFileName  = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
     std::string longHeaderFileName(cdir + '/' + shortHeaderFileName);
+
+    long baseSeekPos(-1);
 
     for(int iSet = 0; iSet < nSets; ++iSet) {
       if(mySet == iSet) {
@@ -934,6 +979,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 	                  rStartStop.size() * sizeof(RStartStop));
 	  }
 	  if(vCallTrace.size() > 0) {
+	    baseSeekPos = csDFile.tellp();
 	    csDFile.write((char *) vCallTrace.dataPtr(),
 	                  vCallTrace.size() * sizeof(CallStats));
 	  }
@@ -958,6 +1004,52 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
       }
     }
     // --------------------- end nfiles block
+
+
+    if(bFlushing) {  // ---- save stacked CallStats
+      for(int ci(0); ci < callIndexStack.size(); ++ci) {
+	CallStatsStack &csStack = callIndexStack[ci];
+	if( ! csStack.bFlushed) {
+	  if(baseSeekPos < 0) {
+	    std::cout << "**** Error:  baseSeekPos = " << baseSeekPos << std::endl;
+	    BoxLib::Abort("bad bsp");
+	  }
+	  long spos(baseSeekPos + csStack.index * sizeof(CallStats));
+	  callIndexPatch.push_back(CallStatsPatch(spos, vCallTrace[csStack.index], longDFileName));
+	  csStack.bFlushed = true;
+	  csStack.index    = callIndexPatch.size() - 1;
+	}
+      }
+    } else { // ---- patch the incomplete CallStats on disk
+             // ---- probably should throttle these for large nprocs
+      for(int ci(0); ci < callIndexPatch.size(); ++ci) {
+	CallStatsPatch &csPatch = callIndexPatch[ci];
+
+        std::fstream csDFile;
+        CallStats csOnDisk;
+        csDFile.open(csPatch.fileName.c_str(), std::ios::in | std::ios::out |
+	                                       std::ios::binary);
+        csDFile.seekg(csPatch.seekPos, std::ios::beg);
+        csDFile.read((char *) &csOnDisk, sizeof(CallStats));
+	std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime << "  "
+	          << csOnDisk.totalTime << '\n'
+		  << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime << "  "
+	          << csPatch.callStats.totalTime << std::endl;
+	csOnDisk.totalTime = csPatch.callStats.totalTime;
+	csOnDisk.stackTime = csPatch.callStats.stackTime;
+        csDFile.seekp(csPatch.seekPos, std::ios::beg);
+        csDFile.write((char *) &csOnDisk, sizeof(CallStats));
+	csDFile.close();
+      }
+      callIndexPatch.clear();
+      Array<CallStatsPatch>().swap(callIndexPatch);
+    }
+
+    // --------------------- delete the data
+    rStartStop.clear();
+    Array<RStartStop>().swap(rStartStop);
+    vCallTrace.clear();
+    Array<CallStats>().swap(vCallTrace);
 }
 
 
@@ -1160,11 +1252,15 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   // --------------------- end nfiles block
 
 
-  // --------------------- flush the data
+  // --------------------- delete the data
   vCommStats.clear();
+  Array<CommStats>().swap(vCommStats);
   CommStats::barrierNames.clear();
+  Array<std::pair<std::string,int> >().swap(CommStats::barrierNames);
   CommStats::nameTags.clear();
+  Array<std::pair<int,int> >().swap(CommStats::nameTags);
   CommStats::reductions.clear();
+  Array<int>().swap(CommStats::reductions);
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.erase(AllCFTypes);
   }

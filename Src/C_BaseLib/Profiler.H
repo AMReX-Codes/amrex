@@ -45,6 +45,22 @@ class Profiler
       static Real minCallTime, maxCallTime;
     };
 
+    struct CallStatsStack {
+      CallStatsStack()        : bFlushed(false), index(-1)   { }
+      CallStatsStack(int idx) : bFlushed(false), index(idx)  { }
+      bool bFlushed;
+      int index;
+    };
+
+    struct CallStatsPatch {
+      CallStatsPatch() : seekPos(-1), callStats(), fileName("")        { }
+      CallStatsPatch(long spos, const CallStats &cs, const std::string &fname)
+                       : seekPos(spos), callStats(cs), fileName(fname) { }
+      long seekPos;
+      CallStats callStats;
+      std::string fileName;
+    };
+
     struct RStartStop {
       RStartStop()
         : rssStart(false), rssRNumber(-2), rssTime(0.0)  { }
@@ -204,6 +220,7 @@ class Profiler
     static Array<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
+    static bool blProfDirCreated;
     static std::string blProfDirName;
     static std::string blCommProfDirName;
 
@@ -222,9 +239,10 @@ class Profiler
     static bool bFirstTraceWriteH, bFirstTraceWriteD;
 
 #ifdef BL_TRACE_PROFILING
-    static std::stack<int> callIndexStack;
+    static Array<CallStatsStack> callIndexStack;  // need Array for iterator
+    static Array<CallStatsPatch> callIndexPatch;
     static int callStackDepth;
-    static int prevDepth;
+    static int prevCallStackDepth;
 
   public:
     typedef std::pair<Real, int> RIpair;
@@ -342,6 +360,8 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
                                                    Profiler::RegionStop(fname);
 
+#define BL_TRACE_PROFILE_FLUSH() { Profiler::WriteCallTrace(true); }
+
 
 #ifdef BL_COMM_PROFILING
 
@@ -411,6 +431,7 @@ class Profiler
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_TRACE_PROFILE_FLUSH()
 
 
 #endif
