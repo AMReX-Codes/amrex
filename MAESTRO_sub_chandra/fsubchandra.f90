@@ -16,13 +16,15 @@
 !
 
 !TODO:
-! 1) Add ability to handle full star simulations
+! 1) XXAdd ability to handle full star simulations
 ! 2) Add ability to select specific analysis to carry out
 
 program fsubchandra
   !Modules
   use plotfile_module
   use subchandra
+  use eos_module, only: eos_init, eos_finalize
+  use network, only: network_init, network_finalize 
   implicit none
 
   !Data, variables
@@ -47,6 +49,10 @@ program fsubchandra
 
   !Initialize geometry attributes 
   call init_geometry(pf, globals_only, fullstar, geo)
+
+  !Initialize microphysics
+  call eos_init()
+  call network_init()
 
   !This is the main analysis subroutine. It loops over the entire computational
   !domain applying calculations (averages, globals, etc...) based on the arguments passed.
@@ -74,5 +80,7 @@ program fsubchandra
      call fab_unbind_level(pf, i)
   end do
 
+  call network_finalize()
+  call eos_finalize()
   call destroy(pf)
 end program fsubchandra

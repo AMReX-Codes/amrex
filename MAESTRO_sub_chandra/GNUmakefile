@@ -8,7 +8,7 @@ COMP := gfortran
 
 # some routines need an eos/network (i.e. to compute thermodynamic 
 # quantities.  If that is the case, set NEED_EOS_NETWORK := t
-NEED_EOS_NETWORK :=
+NEED_EOS_NETWORK := t
 
 # define the location of the MAESTRO root directory
 MAESTRO_TOP_DIR := $(MAESTRO_HOME)
@@ -39,7 +39,7 @@ ifdef NEED_EOS_NETWORK
                     $(NETWORK_TOP_DIR)/$(NETWORK_DIR)
 
   ifeq ($(findstring helmeos, $(EOS_DIR)), helmeos)
-    Fmincludes += Microphysics/helmeos
+    Fmincludes += Microphysics/EOS/helmeos
   endif
 
   f90sources += probin.f90

@@ -15,7 +15,7 @@ module subchandra
   !A collection of state variable component indexes
   type state_comps
     integer :: dens_comp = -1, temp_comp = -1, pi_comp = -1, p0_comp = -1
-    integer :: magv_comp = -1
+    integer :: magv_comp = -1, h_comp = -1
     integer :: XC12_comp = -1, XO16_comp = -1, XHe4_comp = -1, rhopert_comp = -1
     integer :: XdotC12_comp = -1, XdotO16_comp = -1, XdotHe4_comp = -1
     integer :: tpert_comp = -1, enuc_comp = -1, xvel_comp = -1
@@ -93,7 +93,8 @@ module subchandra
      real(kind=dp_t) :: dT = 1.0d5
      
      !Histogram temperature data (nlevs, nbins)
-     integer, allocatable :: tavg(:,:)
+     integer, allocatable :: tavg(:,:)   !Use the temperature of the cell
+     integer, allocatable :: tfeavg(:,:) !Derive temp from EoS
      integer :: nbins = nint((9.0d8 - 9.0d6)/1.0d5)
   end type temp_hist
 
@@ -395,6 +396,7 @@ contains
     type(state_comps), intent(out) :: sc
 
     sc%dens_comp    = plotfile_var_index(pf, "density")
+    sc%h_comp       = plotfile_var_index(pf, "h")
     sc%temp_comp    = plotfile_var_index(pf, "tfromp") 
     sc%pi_comp      = plotfile_var_index(pf, "pi") 
     sc%p0_comp      = plotfile_var_index(pf, "p0") 
@@ -414,7 +416,7 @@ contains
     sc%s_comp       = plotfile_var_index(pf, "entropy")
     sc%spert_comp   = plotfile_var_index(pf, "entropypert")
 
-    if ( sc%dens_comp < 0 .or. sc%temp_comp < 0 .or. &
+    if ( sc%dens_comp < 0 .or. sc%temp_comp < 0 .or. sc%h_comp < 0 .or. &
          sc%pi_comp < 0 .or. sc%p0_comp < 0 .or. sc%magv_comp < 0 .or. &
          sc%XHe4_comp < 0 .or. sc%XC12_comp < 0 .or. sc%XO16_comp < 0 .or. &
          sc%XdotHe4_comp < 0 .or. sc%XdotC12_comp < 0 .or. sc%XdotO16_comp < 0 .or. &
@@ -539,6 +541,9 @@ contains
   
   subroutine analyze(pf, geo, sc, thist, glb, radav, hh, hheap_frac_input)
     !Modules
+    use eos_module, only: eos_input_rh, eos_input_re, eos
+    use eos_type_module, only: eos_t
+    use network, only: nspec, network_species_index
     implicit none
 
     !Args
@@ -556,6 +561,7 @@ contains
     integer, parameter :: HHEAP_LEN = 100000
     real(kind=dp_t), parameter :: HHEAP_FRAC = 0.005
     type(box) :: cur_box
+    type(eos_t) :: eos_state
     logical, allocatable :: imask(:,:,:), fmask(:,:,:)
     logical :: do_globals, do_averages, do_hotspots
     integer :: r1, rr, n, i, j, ii, jj, kk
@@ -565,6 +571,7 @@ contains
     real(kind=dp_t) :: xx, yy, zz, r_zone
     real(kind=dp_t) :: xlo, xhi, cur_xlo, cur_xhi
     real(kind=dp_t) :: ylo, yhi, cur_ylo, cur_yhi
+    real(kind=dp_t) :: tfe, xmass(nspec)
     real(kind=dp_t) :: zlo, zhi, cur_zlo, cur_zhi, eps, lhheap_frac
     real(kind=dp_t), pointer :: p(:,:,:,:)
 
@@ -593,7 +600,9 @@ contains
     !Initialize temperature histogram
     allocate(thist%ell(pf%flevel))
     allocate(thist%tavg(pf%flevel,thist%nbins))
+    allocate(thist%tfeavg(pf%flevel,thist%nbins))
     thist%tavg = 0
+    thist%tfeavg = 0
 
     ! imask will be set to false if we've already output the data.
     ! Note, imask is defined in terms of the finest level.  As we loop
@@ -759,6 +768,25 @@ contains
                            thist%nbins - 1 &
                          )
                      thist%tavg(i,b) = thist%tavg(i,b) + 1
+
+                     xmass(network_species_index('He4')) = p(ii,jj,kk,sc%XHe4_comp)
+                     xmass(network_species_index('C12')) = p(ii,jj,kk,sc%XC12_comp)
+                     xmass(network_species_index('O16')) = p(ii,jj,kk,sc%XO16_comp)
+                     xmass(network_species_index('Fe56')) = 0.0_dp_t
+
+                     eos_state%rho   = p(ii,jj,kk,sc%dens_comp)
+                     eos_state%h     = p(ii,jj,kk,sc%h_comp)
+                     eos_state%T     = p(ii,jj,kk,sc%temp_comp) !initial guess
+                     eos_state%xn(:) = xmass(:)
+                       
+                     call eos(eos_input_rh, eos_state, .false.)
+                     
+                     b = min( &
+                           nint((eos_state%T - thist%min_temp)/thist%dT), &
+                           thist%nbins - 1 &
+                         )
+                     b = max(1,b)
+                     thist%tfeavg(i,b) = thist%tfeavg(i,b) + 1
                   endif
                end do
             enddo
@@ -1170,7 +1198,7 @@ contains
     !Write header
     write(uno,fmt_header) pf%tm
     write(uno,fmt_labels) "lengthscale"
-    write(uno,fmt_labels) "  temperature", "counts"
+    write(uno,fmt_labels) "  temperature", "cell T counts", "T from EoS counts"
     write(uno,fmt_section)
 
     !Write data
@@ -1178,7 +1206,7 @@ contains
        write(uno,fmt_data) thist%ell(i)
        do j = 1, thist%nbins
           cur_temp = thist%min_temp + (j-1) * thist%dT
-          write(uno,fmt_data) cur_temp, thist%tavg(i,j)
+          write(uno,fmt_data) cur_temp, thist%tavg(i,j), thist%tfeavg(i,j)
        enddo
     enddo
     close(unit=uno)
