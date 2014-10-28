@@ -487,18 +487,16 @@ contains
       use sort_i_module
 
       logical :: overlap
-      integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp, icnt
-      integer :: myproc, nprocs, nbxs, ntbxs
-      integer, allocatable :: prc(:), prc2(:), cnt(:), sfc_order(:), vbx(:), &
-           itmp(:), indxmap(:), whichcpu(:), novlp(:), novlp2(:), novlptmp(:)
-      integer, pointer :: p(:,:,:,:), luc(:)
-      integer (kind=ll_t) :: vtot, vol, maxvol
+      integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp
+      integer :: myproc, nprocs, nbxs, nlft
+      integer, allocatable :: prc(:), prc2(:), cnt(:), vbx(:), itmp(:), novlp(:), novlp2(:),&
+           novlptmp(:), vbxlft(:), prclft(:)
+      integer, pointer :: p(:,:,:,:)
+      integer (kind=ll_t) :: vtot, maxvol
       integer (kind=ll_t), allocatable :: vprc(:)
       real(kind=dp_t) :: volpercpu
       type(vector_i), allocatable :: bxid(:)
-      type(box), pointer   :: pbxs(:)
-      type(list_box) :: bl
-      type(boxarray) :: bac, tba
+      type(boxarray) :: bac
       type(layout) :: lacfine
       type(imultifab) :: mff, mfc
 
@@ -615,81 +613,42 @@ contains
             call clear(bxid(iproc))
          end do
 
-         if (any(prc .eq. 0)) then
+         nlft = count(prc .eq. 0)
 
-            do m = 1, nbxs
-               if (prc(m) .eq. 0) then
-                  call push_back(bl, get_box(bac,m))
-               end if
-            end do
+         if (nlft .gt. 0) then
 
-            call build(tba, bl, sort=.false.)
-            call destroy(bl)
-
-            ntbxs = nboxes(tba)
-
-            allocate(sfc_order(ntbxs), indxmap(ntbxs), whichcpu(ntbxs))
-
-            pbxs => dataptr(tba)
-
-            k = 1
-            do m = 1, nbxs
-               if (prc(m) .eq. 0) then
-                  indxmap(k) = m
-                  k = k+1
-               end if
-            end do
-
-            call make_sfc(sfc_order, pbxs)
-
-            call destroy(tba)
-
-            k      = 1
-            vtot   = 0_ll_t
-            maxvol = 0_ll_t
-
-            luc => least_used_cpus(always_sort=.false.)
+            allocate(vbxlft(nlft),prclft(nlft))
+            vbxlft = 0
             
-            do i = 1, nprocs
-               
-               iproc = mod(i-1+luc(0), nprocs) + 1
-
-               icnt = 0
-               vol = vprc(iproc)
-               vtot = vtot + vol
-
-               do while ( (k .le. ntbxs) .and. ((i.eq.nprocs) .or. (real(vol,dp_t).le.volpercpu)) )
-                  whichcpu(k) = iproc
-                  vol  = vol  + vbx(indxmap(sfc_order(k)))
-                  k    = k    + 1
-                  icnt = icnt + 1
-               end do
-
-               vtot = vtot + vol
-
-               if ( (real(vtot,dp_t)/real(i,dp_t)) .gt. volpercpu .and. (k.le.nbxs) &
-                    .and. (icnt.gt.1 .or. (icnt.eq.1 .and. vprc(iproc).gt.0_ll_t)) ) then
-                  k    = k -1
-                  vol  = vol  - vbx(indxmap(sfc_order(k)))
-                  vtot = vtot - vbx(indxmap(sfc_order(k)))
+            j = 1
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  vbxlft(j) = vbx(m)
+                  j = j + 1
                end if
-
-               maxvol = max(maxvol,vol)
             end do
 
-            if (.false.) then
+            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.false.)
+
+            j = 1
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  prc(m) = prclft(j) + 1
+                  j = j+1
+               end if
+            end do
+
+            if (.true.) then
                if (parallel_ioprocessor()) then
-                  print *, 'layout_opt_from_fine_to_coarse() SFC efficiency: ', &
-                       n, volpercpu/real(maxvol,dp_t)
+                  vprc = 0_ll_t
+                  do m = 1, nbxs
+                     vprc(prc(m)) =  vprc(prc(m)) + vbx(m)
+                  end do
+                  maxvol = maxval(vprc)
                end if
             end if
 
-            do k = 1, ntbxs
-               prc(indxmap(sfc_order(k))) = whichcpu(k)
-            end do
-
-            deallocate(sfc_order,indxmap,whichcpu)
-            deallocate(luc)
+            deallocate(vbxlft,prclft)
          end if
 
          prc = prc - 1
