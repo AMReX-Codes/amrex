@@ -143,21 +143,19 @@ contains
 
     prc = prc - 1   ! Processor numbers start at 0.
 
-    call cpu_time(t2)
-
-     if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
-        xmean  = sum(ibxs)/size(ibxs)
-        stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
-        print *, 'np               = ', np
-        print *, 'n                = ', size(ibxs)
-        print *, 'max box weight   = ', maxval(ibxs)
-        print *, 'min box weight   = ', minval(ibxs)
-        print *, 'mean bx weight   = ', xmean
-        print *, 'stdd bx weight   = ', stddev
-        print *, 'max weight       = ', weight(1)
-        print *, 'max weight       = ', weight(np)
-        print *, 'total weight     = ', sum(weights(np))
-     end if
+    if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       xmean  = sum(ibxs)/size(ibxs)
+       stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
+       print *, 'np               = ', np
+       print *, 'n                = ', size(ibxs)
+       print *, 'max box weight   = ', maxval(ibxs)
+       print *, 'min box weight   = ', minval(ibxs)
+       print *, 'mean bx weight   = ', xmean
+       print *, 'stdd bx weight   = ', stddev
+       print *, 'max weight       = ', weight(1)
+       print *, 'max weight       = ', weight(np)
+       print *, 'total weight     = ', sum(weights(np))
+    end if
 
     efficiency = sum(weights(np))/(np*weight(1))
 
@@ -259,6 +257,244 @@ contains
     end subroutine reheap_procs
 
   end subroutine knapsack_i
+
+
+  subroutine knapsack_pf(prc, ibxs, np, prefill, verbose, threshold)
+
+    use parallel
+    use box_module
+    use vector_i_module
+    use sort_d_module
+    use bl_error_module
+    use bl_prof_module
+
+    integer,           intent(out), dimension(:) :: prc
+    integer,           intent(in ), dimension(:) :: ibxs
+    integer,           intent(in )               :: np
+    integer(kind=ll_t),intent(in ), optional     :: prefill(np) 
+    real(kind=dp_t),   intent(in ), optional     :: threshold
+    logical,           intent(in ), optional     :: verbose
+
+    logical            :: lverb
+    integer            :: i, j, k, isizes(size(ibxs)), imlp, illp
+    integer(kind=ll_t) :: w_mlp, wi_mlp, w_llp, wnew_mlp, wnew_llp, dif
+    real(kind=dp_t) :: efficiency, lthresh, t1, t2
+    real(kind=dp_t) :: average_weight, sizes(size(ibxs))
+
+    integer,            allocatable :: iprocs(:)
+    type(vector_i),     allocatable :: procs(:)
+    integer(kind=ll_t), allocatable :: lpf(:), pweights(:)
+
+    type(bl_prof_timer), save :: bpt
+
+    if ( np < 1 ) call bl_error('knapsack_i(): np < 1')
+
+    call build(bpt, 'knapsack')
+
+    call cpu_time(t1)
+
+    lverb   = knapsack_verbose  ; if ( present(verbose  ) ) lverb   = verbose
+    lthresh = knapsack_threshold; if ( present(threshold) ) lthresh = threshold
+
+    allocate(procs(np), iprocs(np), lpf(np), pweights(np))
+
+    if ( present(prefill) ) then
+       lpf = prefill     
+    else
+       lpf = 0._dp_t
+    end if
+
+    !
+    ! Each processor maintains a list of its boxes in a dynamic array,
+    ! which is addressed indirectly through the array iprocs.
+    !
+    do i = 1, size(procs)
+       call build(procs(i))
+       iprocs(i) = i
+    end do
+    sizes = ibxs
+    call sort(sizes, isizes, greater_d)
+
+    if ( present(prefill) ) then
+       call heapify(lpf, iprocs, np)
+    end if
+
+    do i = 1, size(ibxs)
+       call push_back(procs(iprocs(1)), isizes(i))
+       call update_pweights()
+       call siftDown(pweights, iprocs, 1, np)  ! to reheap
+    end do
+
+    call sort_procs() ! now, they need to be sorted.
+
+    average_weight = real(sum(pweights)) / real(np, dp_t)
+
+    outer: do
+       imlp = iprocs(1)   ! the most loaded processor
+       w_mlp = pweights(iprocs(1))   ! weight on the most loaded processor  
+       efficiency = average_weight/real(w_mlp,dp_t)
+       if ( efficiency > lthresh ) exit outer
+       !
+       ! For each box in the most loaded processor.
+       !
+       do i = 1, size(procs(imlp))
+          wi_mlp = weight_ball(imlp,i)  ! weight of ball i on the most loaded processor
+          !
+          ! Check each less lightly loaded processor...
+          !
+          do j = 2, size(procs)
+             illp = iprocs(j)  ! a less loaded processor
+             w_llp = pweights(illp)  ! weight on a less loaded processor
+             !
+             ! By looking at each box in that processor.
+             !
+             do k = 1, size(procs(illp))
+                dif = wi_mlp - weight_ball(illp,k)
+                wnew_mlp = w_mlp - dif
+                wnew_llp = w_llp + dif
+                if ( wnew_mlp < w_mlp .AND. wnew_llp < w_mlp ) then
+                   !
+                   ! We can improve efficiency be swap these two balls
+                   !
+                   call swap_balls(imlp,i,illp,k)
+                   !
+                   ! Reorder the processors.
+                   !
+                   call sort_procs()
+                   !
+                   ! Start over again.
+                   !
+                   cycle outer
+                end if
+             end do
+          end do
+       end do
+       exit outer
+    end do outer
+
+    do i = 1, size(procs)
+       do j = 1, size(procs(i))
+          prc(ball(i,j)) = i
+       end do
+    end do
+    
+    prc = prc - 1   ! Processor numbers start at 0.
+    
+    if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'np               = ', np
+       print *, 'n                = ', size(ibxs)
+       print *, 'max       weight = ', pweights(iprocs(1))
+       print *, 'min       weight = ', pweights(iprocs(np))
+       print *, 'average   weight = ', int(average_weight,ll_t)
+       print *, 'prefilled weight = ', sum(lpf)
+       print *, 'total     weight = ', sum(pweights)
+    end if
+
+    efficiency = average_weight / real(pweights(iprocs(1)))
+
+    do i = 1, size(procs)
+       call destroy(procs(i))
+    end do
+
+    call cpu_time(t2)
+
+    if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'KNAPSACK effi = ', efficiency
+       print *, 'KNAPSACK time = ', t2-t1
+    end if
+
+    call destroy(bpt)
+
+  contains
+
+    subroutine heapify(a, ia, n)
+      integer, intent(in) :: n
+      integer(kind=ll_t), intent(in ) :: a(n)
+      integer           , intent(out) :: ia(n)
+      integer :: i
+      ia = (/(i,i=1,n)/)
+      ! This loops over parent nodes from last (i.e., n/2) to first (i.e., 1)
+      do i = n/2, 1, -1  
+         call siftDown(a, ia, i, n)
+      end do
+    end subroutine heapify
+
+    subroutine siftDown(a, ia, i, n)
+      integer, intent(in) :: i, n
+      integer(kind=ll_t), intent(in   ) :: a(n)
+      integer           , intent(inout) :: ia(n)
+      integer :: root, child, swap, itmp
+      root = i
+      do while (2*root .le. n)  ! root has at least one child
+         child = 2*root
+         swap = root
+         if ( a(ia(swap)) .gt. a(ia(child)) ) then
+            swap = child
+         end if
+         if ( child .ne. n ) then ! there is right child
+            if ( a(ia(child)) .gt. a(ia(child+1)) ) then ! right child is smaller
+               swap = child+1
+            end if
+         end if
+         if (swap .ne. root) then
+            itmp = ia(swap)
+            ia(swap) = ia(root)
+            ia(root) = itmp
+            root = swap
+         else
+            exit
+         end if
+      end do
+    end subroutine siftDown
+
+    subroutine update_pweights()
+      integer :: i
+      do i = 1, np
+         pweights(i) = weight(i)
+      end do
+    end subroutine update_pweights
+    
+    function weight(i) result(r)
+      integer, intent(in) :: i
+      integer(kind=ll_t)  :: r
+      integer :: j
+      r = lpf(i)
+      do j = 1, size(procs(i))
+         r = r + sizes(ball(i,j))
+      end do
+    end function weight
+
+    function ball(i,j) result(r)
+      integer, intent(in) :: i, j
+      integer :: r
+      r = at(procs(i),j)
+    end function ball
+
+    function weight_ball(i,j) result(r)
+      integer, intent(in) :: i, j
+      integer(kind=ll_t) :: r
+      r = sizes(ball(i,j))
+    end function weight_ball
+
+    subroutine sort_procs()
+      real(kind=dp_t) :: iss(np)
+      call update_pweights()
+      iss = pweights
+      call sort(iss, iprocs, greater_d)
+    end subroutine sort_procs
+
+    subroutine swap_balls(m,i,j,k)
+      integer, intent(in) :: m, i, j, k
+      integer :: dmi, djk, ii, kk
+      dmi = ball(m,i)
+      ii = erase(procs(m), i)
+      djk = ball(j,k)
+      kk = erase(procs(j), k)
+      call push_back(procs(j), dmi)
+      call push_back(procs(m), djk)
+    end subroutine swap_balls
+
+  end subroutine knapsack_pf
 
   subroutine make_sfc(iorder, bxs)
     use sfc_module
