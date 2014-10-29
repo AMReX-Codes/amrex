@@ -104,6 +104,10 @@ namespace BoxLib
     //
     std::string UniqueString();
     //
+    // Create a new directory, renaming the old one if it exists
+    //
+    void UtilCreateCleanDirectory (const std::string &path);
+    //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
     // set_new_handler() function for BoxLib applications.
