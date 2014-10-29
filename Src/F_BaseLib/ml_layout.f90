@@ -27,7 +27,7 @@ module ml_layout_module
   !    cut into chunks.  Let the ones that can benefit most pick first.  Then
   !    let the ones with most works pick.  Try to think how to minimize mpi
   !    gather.
-  integer, private, save :: ml_layout_strategy = 2
+  integer, private, save :: ml_layout_strategy = 1
 
   interface build
      module procedure ml_layout_build
@@ -374,11 +374,11 @@ contains
     integer, intent(in) :: nlevs, rr(:,:)
 
     integer :: n
-    logical :: mc_flag, order_flag
+    logical :: mc_flag
     integer(kind=ll_t), allocatable :: lucvol(:)
     type(bl_prof_timer), save :: bpt
 
-    if (ml_layout_strategy .eq. 0) then
+    if (ml_layout_strategy .eq. 0 .or. nlevs.eq.1) then
        la_new(1:nlevs) = la_old(1:nlevs)
        return
     end if
@@ -386,9 +386,7 @@ contains
     call build(bpt, "optimize_layouts")       
 
     mc_flag = get_manual_control_least_used_cpus_flag()
-    order_flag = get_luc_keep_cpu_order_flag()
-    call manual_control_least_used_cpus_set(.true.)
-    call luc_keep_cpu_order_set(.true.)
+    call set_manual_control_least_used_cpus(.true.)
 
     allocate(lucvol(nlevs))
     do n = 1, nlevs
@@ -406,8 +404,7 @@ contains
 
     deallocate(lucvol)
     
-    call manual_control_least_used_cpus_set(mc_flag)
-    call luc_keep_cpu_order_set(order_flag)
+    call set_manual_control_least_used_cpus(mc_flag)
 
     call destroy(bpt)
 
@@ -417,65 +414,70 @@ contains
       type(layout), intent(out) :: lao
       type(layout), intent(in ) :: lai
 
+      logical :: natural_order
       integer :: nbxs, nprocs, i
       integer, pointer     :: luc(:)
       integer, allocatable :: sfc_order(:), prc(:), ibxs(:)
+      type(boxarray) :: ba
+      type(box), pointer :: pbxs(:)
+
+      nbxs = nboxes(lai)
+      nprocs = parallel_nprocs()
+      
+      ba = get_boxarray(lai)
+
+      allocate(sfc_order(nbxs), prc(nbxs), ibxs(nbxs))
 
       if (sfc_order_built_q(lai)) then
-         
-         nbxs = nboxes(lai)
-         nprocs = parallel_nprocs()
-
-         allocate(sfc_order(nbxs), prc(nbxs), ibxs(nbxs))
-
          sfc_order = get_sfc_order(lai)
-
-         do i = 1, nbxs
-            ibxs(i) = volume(get_box(lai,i))
-         end do
-         
-         call distribute_sfc(prc, sfc_order, ibxs, nprocs)
-
-         luc => least_used_cpus(always_sort=.false.)
-
-         do i = 1, nbxs
-            prc(i) = luc(prc(i))
-         end do
-
-         deallocate(luc)
-
-         if (all(prc .eq. get_proc(lai))) then
-            lao = lai
-         else
-
-            call layout_build_ba(lao, get_boxarray(lai), get_pd(lai), get_pmask(lai), &
-                 explicit_mapping=prc)
-            call set_sfc_order(lao, sfc_order)
-
-         end if
-
       else
-
-         call layout_build_ba(lao, get_boxarray(lai), get_pd(lai), get_pmask(lai))
-         
-         if (all(get_proc(lao) .eq. get_proc(lai))) then
-            call destroy(lao)
-            lao = lai
-         end if
-
+         pbxs => dataptr(ba)
+         call make_sfc(sfc_order, pbxs)
+         nullify(pbxs)
       end if
+
+      luc => least_used_cpus()  ! 0 based
+
+      natural_order = .true.
+      do i = 0, nprocs-1
+         if (luc(i) .ne. i) then
+            natural_order = .false.
+            exit
+         end if
+      end do
+
+      do i = 1, nbxs
+         ibxs(i) = volume(get_box(lai,i))
+      end do
+      
+      ! If the processors are not in natural order, let's sort sfc chunks in reverse order
+      call distribute_sfc(prc, sfc_order, ibxs, nprocs, sort_chunks = .not.natural_order)
+      
+      do i = 1, nbxs
+         prc(i) = luc(prc(i))
+      end do
+      
+      deallocate(luc)
+
+      if (all(prc .eq. get_proc(lai))) then
+         lao = lai
+      else
+         call layout_build_ba(lao, ba, get_pd(lai), get_pmask(lai), explicit_mapping=prc)
+      end if
+
+      call set_sfc_order(lao, sfc_order)
 
     end subroutine build_new_layout
 
 
     subroutine layout_opt_ignore_fine() ! aka strategy 1
       ! build the coarest level first
-      call luc_vol_set(0_ll_t) 
+      call set_luc_vol(0_ll_t) 
       call build_new_layout(la_new(1), la_old(1))
       do n = 2, nlevs
          ! ignore the finer levels in least_used_cpus() in fab.f90
          ! Note that layout is affected by the results of least_used_cpus()
-         call luc_vol_set(sum(lucvol(1:n-1)))
+         call set_luc_vol(sum(lucvol(1:n-1)))
          call build_new_layout(la_new(n), la_old(n))
       end do
     end subroutine layout_opt_ignore_fine
@@ -511,12 +513,12 @@ contains
       end do
 
       ! First, let build the finest layout
-      call luc_vol_set(0_ll_t)
+      call set_luc_vol(0_ll_t)
       call build_new_layout(la_new(nlevs), la_old(nlevs))
 
       do n = nlevs-1, 1, -1
 
-         call luc_vol_set(sum(lucvol(n+1:nlevs)))
+         call set_luc_vol(sum(lucvol(n+1:nlevs)))
 
          nbxs = nboxes(la_old(n))
          allocate(prc(nbxs), prc2(nbxs), vbx(nbxs))

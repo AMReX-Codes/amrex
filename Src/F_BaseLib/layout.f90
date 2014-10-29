@@ -886,14 +886,14 @@ contains
 
        call distribute_sfc(tprc, sfc_order, ibxs, nprocs)
 
-       luc => least_used_cpus(always_sort=.false.)
+       luc => least_used_cpus()
     else
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
        !
        call knapsack_i(tprc, ibxs, nprocs)
 
-       luc => least_used_cpus(always_sort=.true.)
+       luc => least_used_cpus()
     end if
 
     do i = 1, nbxs

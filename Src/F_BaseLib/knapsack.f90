@@ -567,22 +567,25 @@ contains
     
   end subroutine make_sfc
 
-  subroutine distribute_sfc(prc, iorder, ibxs, np, verbose)
+  subroutine distribute_sfc(prc, iorder, ibxs, np, verbose, sort_chunks)
 
     use parallel
+    use sort_i_module
 
     integer,   intent(out)           :: prc(:)
     integer,   intent(in )           :: iorder(:)
     integer,   intent(in )           :: ibxs(:)
     integer,   intent(in )           :: np
-    logical,   intent(in ), optional :: verbose
+    logical,   intent(in ), optional :: verbose, sort_chunks
 
     integer :: i, k, cnt, sz, nbxs
-    integer, allocatable :: whichcpu(:)
+    integer, allocatable :: whichcpu(:), iwork(:), indxmap(:)
+    integer(kind=ll_t), allocatable :: work(:)
     real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol, efficiency
-    logical :: lverb
+    logical :: lverb, lsort
 
     lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
+    lsort = .false.          ; if ( present(sort_chunks) ) lsort = sort_chunks
 
     nbxs = size(prc)
 
@@ -623,21 +626,37 @@ contains
        maxvol = max(maxvol,vol)
        
     end do
-    !
-    ! Force "whichcpu" values to be zero-based instead of one-based.
-    !
-    whichcpu = whichcpu - 1
 
     do i = 1, nbxs
        prc(iorder(i)) = whichcpu(i)
     end do
     
+    if (lsort) then
+       allocate(work(np), iwork(np), indxmap(np))
+       work = 0_ll_t
+       do i = 1, nbxs
+          work(prc(i)) = work(prc(i)) + ibxs(i)
+       end do
+
+       call stable_sort(work, iwork, ascending=.false.)
+
+       do i = 1, np
+          indxmap(iwork(i)) = i
+       end do
+
+       do i = 1, nbxs
+          prc(i) = indxmap(prc(i))
+       end do
+    end if
+    
+    prc = prc - 1  ! make it 0-based
+
     efficiency = volpercpu / maxvol
 
     if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
        print *, 'SFC effi = ', efficiency
     end if
-    
+
   end subroutine distribute_sfc
 
   function sfc_greater_i(ilhs,irhs) result(r)
