@@ -106,7 +106,8 @@ namespace BoxLib
     //
     // Create a new directory, renaming the old one if it exists
     //
-    void UtilCreateCleanDirectory (const std::string &path);
+    void UtilCreateCleanDirectory (const std::string &path,
+                                   bool callbarrier = true);
     //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"

@@ -444,7 +444,7 @@ BoxLib::UniqueString()
 }
 
 void
-BoxLib::UtilCreateCleanDirectory (const std::string &path)
+BoxLib::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
   if(ParallelDescriptor::IOProcessor()) {
     if(BoxLib::FileExists(path)) {
@@ -457,8 +457,10 @@ BoxLib::UtilCreateCleanDirectory (const std::string &path)
       BoxLib::CreateDirectoryFailed(path);
     }
   }
-  // Force other processors to wait until directory is built.
-  ParallelDescriptor::Barrier("BoxLib::UtilCreateCleanDirectory");
+  if(callbarrier) {
+    // Force other processors to wait until directory is built.
+    ParallelDescriptor::Barrier("BoxLib::UtilCreateCleanDirectory");
+  }
 }
 
 void
