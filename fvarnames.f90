@@ -36,7 +36,7 @@ program fvarnames
   call build(pf, fname, unit)
 
   do n = 1, pf%nvars
-     write(*,100) n, pf%names(n)
+     write(*,100) n, trim(pf%names(n))
   enddo
 
   call destroy(pf)
