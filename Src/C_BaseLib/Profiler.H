@@ -193,7 +193,6 @@ class Profiler
 
     static inline int ProcNumber() { return procNumber; }
     static void SetBlProfDirName(const std::string &name) { blProfDirName = name; }
-    static void SetBlCommProfDirName(const std::string &name) { blCommProfDirName = name; }
     static void SetNoOutput() { bNoOutput = true; }
 
     static void PerfMonProcess();
@@ -206,7 +205,7 @@ class Profiler
     static bool bWriteAll, bWriteFabs;
     static bool bFirstCommWriteH, bFirstCommWriteD;
     static bool bInitialized, bNoOutput;
-    static int  currentStep, csFlushSize, nProfFiles;
+    static int  currentStep, csFlushSize, traceFlushSize, nProfFiles;
     static int  finestLevel, maxLevel;
     static Real pctTimeLimit;
     static Real calcRunTime;
@@ -222,7 +221,6 @@ class Profiler
     static int procNumber;
     static bool blProfDirCreated;
     static std::string blProfDirName;
-    static std::string blCommProfDirName;
 
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
@@ -238,9 +236,10 @@ class Profiler
 
     static bool bFirstTraceWriteH, bFirstTraceWriteD;
 
-#ifdef BL_TRACE_PROFILING
     static Array<CallStatsStack> callIndexStack;  // need Array for iterator
     static Array<CallStatsPatch> callIndexPatch;
+
+#ifdef BL_TRACE_PROFILING
     static int callStackDepth;
     static int prevCallStackDepth;
 
@@ -269,7 +268,7 @@ namespace ProfilerUtils {
                   const std::map<std::string, Profiler::ProfStats> &mpStats,
 		  const std::map<std::string, int> &fnameNumbers,
 		  const Array<Profiler::CallStats> &callTraces,
-		  bool bwriteavg = false);
+		  bool bwriteavg = false, bool bwriteinclusivetimes = false);
 }
 
 

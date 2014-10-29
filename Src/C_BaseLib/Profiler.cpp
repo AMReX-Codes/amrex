@@ -26,6 +26,7 @@ bool Profiler::bInitialized = false;
 
 int Profiler::currentStep = 0;
 int Profiler::csFlushSize = 2000000;
+int Profiler::traceFlushSize = 2000000;
 int Profiler::nProfFiles  = 64;
 int Profiler::finestLevel = -1;
 int Profiler::maxLevel    = -1;
@@ -63,7 +64,6 @@ std::string Profiler::procName("NoProcName");
 int Profiler::procNumber(-1);
 bool Profiler::blProfDirCreated(false);
 std::string Profiler::blProfDirName("bl_prof");
-std::string Profiler::blCommProfDirName("bl_comm_prof");
 
 std::map<std::string, int> Profiler::mFNameNumbers;
 Array<Profiler::CallStats> Profiler::vCallTrace;
@@ -78,9 +78,10 @@ bool Profiler::bFirstTraceWriteH(true);  // header
 bool Profiler::bFirstTraceWriteD(true);  // data
 int Profiler::CallStats::cstatsVersion(1);
 
-#ifdef BL_TRACE_PROFILING
 Array<Profiler::CallStatsStack> Profiler::callIndexStack;
 Array<Profiler::CallStatsPatch> Profiler::callIndexPatch;
+
+#ifdef BL_TRACE_PROFILING
 int Profiler::callStackDepth(-1);
 int Profiler::prevCallStackDepth(0);
 Real Profiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
@@ -149,11 +150,11 @@ void Profiler::Initialize() {
   startTime = ParallelDescriptor::second();
 
 #ifdef BL_COMM_PROFILING
-  vCommStats.reserve(csFlushSize);
+  vCommStats.reserve(csFlushSize / 4);
 #endif
 
 #ifdef BL_TRACE_PROFILING
-  vCallTrace.reserve(128000);
+  vCallTrace.reserve(traceFlushSize / 4);
 #endif
   BL_PROFILE_REGION_START(noRegionName);
 
@@ -373,7 +374,6 @@ void Profiler::RegionStart(const std::string &rname) {
     rnameNumber = it->second;
   }
   rStartStop.push_back(RStartStop(true, rnameNumber, rsTime));
-  if(ParallelDescriptor::IOProcessor()) std::cout << "RSTARTSTOP::start = " << rnameNumber << "  " << rsTime << std::endl;
 }
 
 
@@ -393,7 +393,6 @@ void Profiler::RegionStop(const std::string &rname) {
     rnameNumber = it->second;
   }
   rStartStop.push_back(RStartStop(false, rnameNumber, rsTime));
-  if(ParallelDescriptor::IOProcessor()) std::cout << "RSTARTSTOP::stop = " << rnameNumber << "  " << rsTime << std::endl;
 
   if(rname != noRegionName) {
     --inNRegions;
@@ -508,6 +507,7 @@ void Profiler::Finalize() {
     // --------------------- start nfiles block
     std::string cdir(blProfDirName);
     if( ! blProfDirCreated) {
+      /*
       if(ParallelDescriptor::IOProcessor()) {
         if(BoxLib::FileExists(cdir)) {
           std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
@@ -521,6 +521,8 @@ void Profiler::Finalize() {
       }
       // Force other processors to wait until directory is built.
       ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
+      */
+      BoxLib::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
 
@@ -656,7 +658,7 @@ void WriteStats(std::ostream &ios,
                 const std::map<std::string, Profiler::ProfStats> &mpStats,
 		const std::map<std::string, int> &fnameNumbers,
 		const Array<Profiler::CallStats> &callTraces,
-		bool bwriteavg)
+		bool bwriteavg, bool bwriteinclusivetimes)
 {
   const int myProc(ParallelDescriptor::MyProc());
   const int colWidth(10);
@@ -804,32 +806,34 @@ void WriteStats(std::ostream &ios,
   }
 
   //ios << " MaxCallStackDepth = " << Profiler::MaxCallStackDepth() << '\n';
-  ios << " MaxCallStackDepth = " << maxCSD << '\n';
+  ios << " MaxCallStackDepth = " << maxCSD << '\n' << '\n';
   for(std::set<int>::iterator rfi = recursiveFuncs.begin(); rfi != recursiveFuncs.end(); ++rfi) {
     ios << " RCURSIVE function:  " << fNumberNames[*rfi] << '\n';
   }
 
-  std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), Profiler::fTTComp());
+  if(bwriteinclusivetimes) {
+    std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), Profiler::fTTComp());
 
-  int numPrec(4);
-  ios << '\n' << '\n';
-  ios << std::setfill('-') << std::setw(maxlen+4 + 1 * (colWidth+2))
-      << std::left << "Inclusive times " << '\n';
-  ios << std::right << std::setfill(' ');
-  ios << std::setw(maxlen + 2) << "Function Name"
-      << std::setw(colWidth + 4) << "Time s"
-      << '\n';
-
-  for(int i(0); i < funcTotalTimes.size(); ++i) {
-    ios << std::setw(maxlen + 2) << fNumberNames[funcTotalTimes[i].second] << "  "
-        << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-        << funcTotalTimes[i].first << " s"
+    int numPrec(4);
+    ios << '\n' << '\n';
+    ios << std::setfill('-') << std::setw(maxlen+4 + 1 * (colWidth+2))
+        << std::left << "Inclusive times " << '\n';
+    ios << std::right << std::setfill(' ');
+    ios << std::setw(maxlen + 2) << "Function Name"
+        << std::setw(colWidth + 4) << "Time s"
         << '\n';
+
+    for(int i(0); i < funcTotalTimes.size(); ++i) {
+      ios << std::setw(maxlen + 2) << fNumberNames[funcTotalTimes[i].second] << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+          << funcTotalTimes[i].first << " s"
+          << '\n';
+    }
+    ios << std::setfill('=') << std::setw(maxlen+4 + 1 * (colWidth+2)) << ""
+        << '\n';
+    ios << std::setfill(' ');
+    ios << std::endl;
   }
-  ios << std::setfill('=') << std::setw(maxlen+4 + 1 * (colWidth+2)) << ""
-      << '\n';
-  ios << std::setfill(' ');
-  ios << std::endl;
 
 #endif
 }
@@ -839,6 +843,19 @@ void WriteStats(std::ostream &ios,
 
 
 void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
+
+    if(bFlushing) {
+      int nCT(vCallTrace.size());
+      ParallelDescriptor::ReduceIntMax(nCT);
+      if(nCT < traceFlushSize) {
+      }
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "Bypassing call crace flush, nCT < traceFlushSize:  " << nCT
+                  << "  " << traceFlushSize << std::endl;
+      }
+      return;
+    }
+
     std::string cdir(blProfDirName);
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
@@ -850,19 +867,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
     std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
 
     if( ! blProfDirCreated) {
-      if(ParallelDescriptor::IOProcessor()) {
-        if(BoxLib::FileExists(cdir)) {
-          std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
-	  std::cout << "Profiler::Finalize():  " << cdir
-	            << " exists.  Renaming to:  " << newoldname << std::endl;
-          std::rename(cdir.c_str(), newoldname.c_str());
-        }
-        if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
-          BoxLib::CreateDirectoryFailed(cdir);
-        }
-      }
-      // Force other processors to wait until directory is built.
-      ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
+      BoxLib::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
 
@@ -1070,7 +1075,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
         CommStats::cftExclude.erase(AllCFTypes);
       }
       if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Bypassing flush, nCS < csFlushSize:  " << nCS
+        std::cout << "Bypassing comm stats flush, nCS < csFlushSize:  " << nCS
 	          << "  " << csFlushSize << std::endl;
       }
       return;
@@ -1081,22 +1086,12 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     }
   }
 
-  std::string cdir(blCommProfDirName);
-  if(ParallelDescriptor::IOProcessor()) {
-    if(bFirstCommWriteH) {
-      if(BoxLib::FileExists(cdir)) {
-        std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
-        std::cout << "Profiler::WriteCommStats():  " << cdir
-                  << " exists.  Renaming to:  " << newoldname << std::endl;
-        std::rename(cdir.c_str(), newoldname.c_str());
-      }
-    }
-    if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
-      BoxLib::CreateDirectoryFailed(cdir);
-    }
+  std::string cdir(blProfDirName);
+  std::string commprofPrefix("bl_comm_prof");
+  if( ! blProfDirCreated) {
+    BoxLib::UtilCreateCleanDirectory(cdir);
+    blProfDirCreated = true;
   }
-  // Force other processors to wait until directory is built.
-  ParallelDescriptor::Barrier("Profiler::WriteCommStats::waitfordir");
 
   bool bUseRelativeTimeStamp(true);
   if(bUseRelativeTimeStamp) {
@@ -1114,18 +1109,18 @@ void Profiler::WriteCommStats(const bool bFlushing) {
   const int   nSets     = (nProcs + (nOutFiles - 1)) / nOutFiles;
   const int   mySet     = myProc/nOutFiles;
 
-  std::string shortDFileName(cdir + "_D_");
+  std::string shortDFileName(commprofPrefix + "_D_");
   shortDFileName = BoxLib::Concatenate(shortDFileName, myProc % nOutFiles, 4);
   std::string longDFileName  = cdir + '/' + shortDFileName;
 
-  std::string shortHeaderFileName(cdir + "_H_");
+  std::string shortHeaderFileName(commprofPrefix + "_H_");
   shortHeaderFileName = BoxLib::Concatenate(shortHeaderFileName, myProc % nOutFiles, 4);
   std::string longHeaderFileName  = cdir + '/' + shortHeaderFileName;
 
   //double mpiWTick(MPI_Wtick());
 
   if(ParallelDescriptor::IOProcessor() && bFirstCommWriteH) {
-    std::string globalHeaderFileName(cdir + '/' + cdir + "_H");
+    std::string globalHeaderFileName(cdir + '/' + commprofPrefix + "_H");
     std::ofstream csGlobalHeaderFile;
     csGlobalHeaderFile.open(globalHeaderFileName.c_str(), std::ios::out | std::ios::trunc);
     if( ! csGlobalHeaderFile.good()) {
@@ -1144,7 +1139,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
       csGlobalHeaderFile << "ProbDomain  " << i << "  " << probDomain[i] << '\n';
     }
     for(int i(0); i < nOutFiles; ++i) {
-      std::string headerName(cdir + "_H_");
+      std::string headerName(commprofPrefix + "_H_");
       headerName = BoxLib::Concatenate(headerName, i, 4);
       csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
     }
