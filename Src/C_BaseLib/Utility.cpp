@@ -442,6 +442,25 @@ BoxLib::UniqueString()
   int tsl(tempstring.str().length());
   return(tempstring.str().substr(tsl/2, tsl));
 }
+
+void
+BoxLib::UtilCreateCleanDirectory (const std::string &path)
+{
+  if(ParallelDescriptor::IOProcessor()) {
+    if(BoxLib::FileExists(path)) {
+      std::string newoldname(path + ".old." + BoxLib::UniqueString());
+      std::cout << "BoxLib::UtilCreateCleanDirectory():  " << path
+                << " exists.  Renaming to:  " << newoldname << std::endl;
+      std::rename(path.c_str(), newoldname.c_str());
+    }
+    if( ! BoxLib::UtilCreateDirectory(path, 0755)) {
+      BoxLib::CreateDirectoryFailed(path);
+    }
+  }
+  // Force other processors to wait until directory is built.
+  ParallelDescriptor::Barrier("BoxLib::UtilCreateCleanDirectory");
+}
+
 void
 BoxLib::OutOfMemory ()
 {
