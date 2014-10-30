@@ -55,7 +55,7 @@ contains
   !      |           |           |           |           |           |
   !      |-----Y-----|-----Y-----|-----Y-----|-----Y-----|-----Y-----|
 
-  subroutine create_umac_grown(fine,crse,bc_crse,bc_fine)
+  subroutine create_umac_grown(fine,crse,bc_crse,bc_fine, fill_fine_boundary)
 
     use define_bc_module
     use multifab_physbc_edgevel_module, only: multifab_physbc_edgevel
@@ -63,6 +63,7 @@ contains
     type(multifab), intent(inout) :: fine(:)
     type(multifab), intent(inout) :: crse(:)
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
+    logical       , intent(in   ) :: fill_fine_boundary
 
     ! local
     integer         :: i,j,k,it,ng_f,ng_c,dm
@@ -210,10 +211,10 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       call multifab_fill_boundary(fine(i))
+       if (fill_fine_boundary) call multifab_fill_boundary(fine(i))
     end do
 
-    call multifab_physbc_edgevel(fine,bc_fine)
+    if (fill_fine_boundary) call multifab_physbc_edgevel(fine,bc_fine)
 
     call destroy(f_ba)
     call destroy(c_ba)
