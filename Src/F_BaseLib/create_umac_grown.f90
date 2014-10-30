@@ -69,7 +69,7 @@ contains
     integer         :: c_lo(get_dim(crse(1))),c_hi(get_dim(crse(1)))
     integer         :: f_lo(get_dim(crse(1))),f_hi(get_dim(crse(1)))
 
-    type(ghstassoc) :: goasc
+    type(fgassoc)   :: fgasc
     type(boxarray)  :: f_ba,c_ba,tba
     type(multifab)  :: f_mf,c_mf,tcrse,tfine
     type(layout)    :: f_la,c_la,tla,fine_la
@@ -94,10 +94,10 @@ contains
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
-    goasc   = layout_ghstassoc(fine_la, 1)
+    fgasc   = layout_fgassoc(fine_la, 1)
 
-    call boxarray_build_copy(f_ba,goasc%ba)
-    call boxarray_build_copy(c_ba,goasc%ba)
+    call boxarray_build_copy(f_ba,fgasc%ba)
+    call boxarray_build_copy(c_ba,fgasc%ba)
 
     do i=1,nboxes(f_ba)
        call set_box(c_ba,i,coarsen(get_box(f_ba,i),2))
