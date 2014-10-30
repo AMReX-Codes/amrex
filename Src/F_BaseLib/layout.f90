@@ -78,7 +78,7 @@ module layout_module
      integer                :: dim    = 0       ! spatial dimension 1, 2, or 3
      integer                :: grwth  = 0       ! growth factor
      integer, pointer       :: prc(:) => Null()
-     integer, pointer       :: idx(:) => Null()
+     integer, pointer       :: idx(:) => Null() ! local index
      type(boxarray)         :: ba
      type(fgassoc), pointer :: next   => Null()
   end type fgassoc
@@ -1507,15 +1507,16 @@ contains
   subroutine fgassoc_build(fgasc, la, ng)
     use bl_prof_module
     use bl_error_module
+    use vector_i_module
 
     integer,       intent(in   ) :: ng
     type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
     type(fgassoc), intent(inout) :: fgasc
 
-    integer                        :: i, j, k, ke, nbxs
-    integer, allocatable           :: idx(:)
-    type(box)                      :: bx, bxla
-    type(list_box)                 :: bl, pieces, leftover, blsimple
+    integer                        :: i, j, k, nbxs, myproc, nlocal
+    type(vector_i)                 :: idx, idx2
+    type(box)                      :: bx
+    type(list_box)                 :: bl, pieces, leftover
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
 
@@ -1534,6 +1535,7 @@ contains
        call boxarray_box_diff(fgasc%ba, grow(bx,ng), bx)
        do j = 1, nboxes(fgasc%ba)
           call push_back(bl, get_box(fgasc%ba,j))
+          call push_back(idx, i)
        end do
        call boxarray_destroy(fgasc%ba)
     end do
@@ -1550,57 +1552,45 @@ contains
        end do
        deallocate(bi)
        leftover = boxlist_boxlist_diff(bx, pieces)
+       call boxlist_simplify(leftover)
+       do k=1,size(leftover)
+          call push_back(idx2, at(idx,i))
+       end do
        call splice(bl, leftover)
        call list_destroy_box(pieces)
     end do
 
+    call destroy(idx)
+
     call clear_box_hash_bin(la%lap)
-    !
-    ! Remove any overlaps on remaining cells.
-    !
+
     call boxarray_destroy(fgasc%ba)
     call boxarray_build_l(fgasc%ba, bl, sort = .false.)
     call list_destroy_box(bl)
-    ! do not simplify so that order is maintained
-    call boxarray_to_domain(fgasc%ba, simplify=.false.)  
 
     nbxs = nboxes(fgasc%ba)
 
-    allocate(idx(nbxs))
-    idx = 0
+    myproc = parallel_myproc()
 
-    j = 1
-    k = 1
-    do i = 1, nboxes(la)
-       bxla = grow(get_box(la,i), ng)
-       do while (contains(bxla, get_box(fgasc%ba,j)))
-          call push_back(bl, get_box(fgasc%ba,j))
-          j = j+1
-          if (j .gt. nbxs) exit
-       end do
-       call boxlist_simplify(bl)
-       ke = k + size(bl) - 1
-       idx(k:ke) = i
-       k = ke+1
-       call splice(blsimple, bl)
+    allocate(fgasc%prc(nbxs))
+    do i = 1, nbxs
+       fgasc%prc(i) = get_proc(la, at(idx2,i))
     end do
 
-    if (size(blsimple) .lt. nbxs) then
-       call destroy(fgasc%ba)
-       call boxarray_build_l(fgasc%ba, blsimple, sort=.false.)
-       call destroy(blsimple)
+    nlocal = count(fgasc%prc .eq. myproc)
+
+    if (nlocal .gt. 0) then
+       allocate(fgasc%idx(nlocal))
+       j = 1
+       do i = 1, nbxs
+          if (fgasc%prc(i) .eq. myproc) then
+             fgasc%idx(j) = local_index(la, at(idx2,i))
+             j = j+1
+          end if
+       end do
     end if
 
-    nbxs = nboxes(fgasc%ba)
-
-    allocate(fgasc%idx(nbxs))
-    allocate(fgasc%prc(nbxs))
-
-    fgasc%idx = idx(1:nbxs)
-
-    do i = 1, nbxs
-       fgasc%prc(i) = get_proc(la, fgasc%idx(i))
-    end do
+    call destroy(idx2)
 
     call mem_stats_alloc(fgx_ms, volume(fgasc%ba))
 
@@ -1920,10 +1910,10 @@ contains
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("fgassoc_destroy(): not built")
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
-    deallocate(fgasc%prc, fgasc%idx)
+    if (associated(fgasc%prc)) deallocate(fgasc%prc) 
+    if (associated(fgasc%idx)) deallocate(fgasc%idx)
     call destroy(fgasc%ba)
-    call destroy(fgasc%ba)
-  end subroutine fgassoc_destroy
+   end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
     use bl_error_module
