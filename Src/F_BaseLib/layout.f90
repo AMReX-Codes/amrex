@@ -81,6 +81,15 @@ module layout_module
      type(fgassoc), pointer :: next  => Null()
   end type fgassoc
 
+  type ghstassoc
+     integer                  :: dim    = 0
+     integer                  :: grwth  = 0
+     integer, pointer         :: prc(:) => Null()
+     integer, pointer         :: idx(:) => Null()
+     type(boxarray)           :: ba
+     type(ghstassoc), pointer :: next   => Null()     
+  end type ghstassoc
+
   type syncassoc
      integer                  :: dim      = 0       ! spatial dimension 1, 2, or 3
      integer                  :: nboxes   = 0       ! number of boxes
@@ -169,6 +178,7 @@ module layout_module
      type(boxarray)                  :: bxa
      type(boxassoc), pointer         :: bxasc       => Null()
      type(fgassoc), pointer          :: fgasc       => Null()
+     type(ghstassoc), pointer        :: goasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
      ! Box Hashing
@@ -198,6 +208,7 @@ module layout_module
      module procedure layout_built_q
      module procedure boxassoc_built_q
      module procedure fgassoc_built_q
+     module procedure ghstassoc_built_q
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
      module procedure fluxassoc_built_q
@@ -301,6 +312,7 @@ module layout_module
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
   type(mem_stats), private, save :: fgx_ms
+  type(mem_stats), private, save :: gox_ms
   type(mem_stats), private, save :: snx_ms
   type(mem_stats), private, save :: cpx_ms
   type(mem_stats), private, save :: flx_ms
@@ -357,6 +369,10 @@ contains
     type(mem_stats), intent(in) :: ms
     fgx_ms = ms
   end subroutine fgassoc_set_mem_stats
+  subroutine ghstassoc_set_mem_stats(ms)
+    type(mem_stats), intent(in) :: ms
+    gox_ms = ms
+  end subroutine ghstassoc_set_mem_stats
   subroutine syncassoc_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
     snx_ms = ms
@@ -382,6 +398,10 @@ contains
     type(mem_stats) :: r
     r = fgx_ms
   end function fgassoc_mem_stats
+  function ghstassoc_mem_stats() result(r)
+    type(mem_stats) :: r
+    r = gox_ms
+  end function ghstassoc_mem_stats
   function syncassoc_mem_stats() result(r)
     type(mem_stats) :: r
     r = snx_ms
@@ -625,6 +645,7 @@ contains
     type(coarsened_layout), pointer :: clp, oclp
     type(boxassoc),  pointer :: bxa, obxa
     type(fgassoc),   pointer :: fgxa, ofgxa
+    type(ghstassoc), pointer :: goxa, ogoxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
     if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
@@ -663,6 +684,16 @@ contains
        call fgassoc_destroy(fgxa)
        deallocate(fgxa)
        fgxa => ofgxa
+    end do
+    !
+    ! Get rid of ghstassocs.
+    !
+    goxa => lap%goasc
+    do while ( associated(goxa) )
+       ogoxa => goxa%next
+       call ghstassoc_destroy(goxa)
+       deallocate(goxa)
+       goxa => ogoxa
     end do
     !
     ! Get rid of syncassocs.
@@ -980,6 +1011,13 @@ contains
     r = (fgxa%grwth == ng)
   end function fgassoc_check
 
+  pure function ghstassoc_check(goxa, ng) result(r)
+    type(ghstassoc), intent(in) :: goxa
+    integer,         intent(in) :: ng
+    logical                     :: r
+    r = (goxa%grwth == ng)
+  end function ghstassoc_check
+
   pure function syncassoc_check(snxa, ng, nodal, lall) result(r)
     type(syncassoc), intent(in) :: snxa
     integer,         intent(in) :: ng
@@ -1042,6 +1080,31 @@ contains
     r = fgp
   end function layout_fgassoc
 
+  function layout_ghstassoc(la, ng) result(r)
+    type(ghstassoc)              :: r
+    type(layout) , intent(inout) :: la
+    integer, intent(in)          :: ng
+
+    type(ghstassoc), pointer :: p
+
+    p => la%lap%goasc
+    do while ( associated(p) )
+       if ( ghstassoc_check(p, ng) ) then
+          r = p
+          return
+       end if
+       p => p%next
+    end do
+    !
+    ! Have to go build one.
+    !
+    allocate (p)
+    call ghstassoc_build(p, la, ng)
+    p%next       => la%lap%goasc
+    la%lap%goasc => p
+    r = p
+  end function layout_ghstassoc
+
   function layout_syncassoc(la, ng, nodal, lall) result(r)
     type(syncassoc)              :: r
     type(layout) , intent(inout) :: la
@@ -1079,6 +1142,12 @@ contains
     type(fgassoc), intent(in) :: fgasc
     r = fgasc%dim /= 0
   end function fgassoc_built_q
+
+  pure function ghstassoc_built_q(goasc) result(r)
+    logical :: r
+    type(ghstassoc), intent(in) :: goasc
+    r = goasc%dim /= 0
+  end function ghstassoc_built_q
 
   pure function syncassoc_built_q(snasc) result(r)
     logical :: r
@@ -1574,6 +1643,98 @@ contains
 
   end subroutine fgassoc_build
 
+  subroutine ghstassoc_build(goasc, la, ng)
+    use bl_prof_module
+    use bl_error_module
+
+    integer,       intent(in   ) :: ng
+    type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
+    type(ghstassoc), intent(inout) :: goasc
+
+    integer                        :: i, j, nbxs
+    type(box)                      :: bx, bxla
+    type(list_box)                 :: bl, pieces, leftover
+    type(box_intersector), pointer :: bi(:)
+    type(bl_prof_timer), save      :: bpt
+
+    if ( built_q(goasc) ) call bl_error("ghstassoc_build(): already built")
+
+    call build(bpt, "ghstassoc_build")
+
+    goasc%dim   = la%lap%dim
+    goasc%grwth = ng
+
+    !
+    ! Build list of all ghost cells not covered by valid region.
+    !
+    do i = 1, nboxes(la%lap%bxa)
+       bx = get_box(la%lap%bxa,i)
+       call boxarray_box_diff(goasc%ba, grow(bx,ng), bx)
+       do j = 1, nboxes(goasc%ba)
+          call push_back(bl, get_box(goasc%ba,j))
+       end do
+       call boxarray_destroy(goasc%ba)
+    end do
+
+    call boxarray_build_l(goasc%ba, bl, sort = .false.)
+
+    call list_destroy_box(bl)
+
+    do i = 1, nboxes(goasc%ba)
+       bx = get_box(goasc%ba,i)
+       bi => layout_get_box_intersector(la, bx)
+       do j = 1, size(bi)
+          call push_back(pieces, bi(j)%bx)
+       end do
+       deallocate(bi)
+       leftover = boxlist_boxlist_diff(bx, pieces)
+       call splice(bl, leftover)
+       call list_destroy_box(pieces)
+    end do
+
+    call clear_box_hash_bin(la%lap)
+    !
+    ! Remove any overlaps on remaining cells.
+    !
+    call boxarray_destroy(goasc%ba)
+    call boxarray_build_l(goasc%ba, bl, sort = .false.)
+    call list_destroy_box(bl)
+    ! do not simplify so that order is maintained
+    call boxarray_to_domain(goasc%ba, simplify=.false.)  
+
+    nbxs = nboxes(goasc%ba)
+
+    allocate(goasc%idx(nbxs))
+
+    j = 1
+    do i = 1, nboxes(la)
+       bxla = grow(get_box(la,i), ng)
+       do while (contains(bxla, get_box(goasc%ba,j)))
+          goasc%idx(j) = i
+          j = j+1
+          if (j .gt. nbxs) exit
+       end do
+    end do
+
+    if (parallel_ioprocessor()) then
+       print *, ' xxxxx ', goasc%idx
+    end if
+
+    nbxs = nboxes(goasc%ba)
+
+    allocate(goasc%prc(nbxs))
+    do i = 1, nbxs
+       goasc%prc(i) = get_proc(la, goasc%idx(i))
+    end do
+
+    call mem_stats_alloc(gox_ms, volume(goasc%ba))
+
+    call destroy(bpt)
+
+    stop
+
+  end subroutine ghstassoc_build
+
   subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
     use bl_error_module
 
@@ -1887,6 +2048,15 @@ contains
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
     call destroy(fgasc%ba)
   end subroutine fgassoc_destroy
+
+  subroutine ghstassoc_destroy(goasc)
+    use bl_error_module
+    type(ghstassoc), intent(inout) :: goasc
+    if ( .not. built_q(goasc) ) call bl_error("ghstassoc_destroy(): not built")
+    call mem_stats_dealloc(fgx_ms, volume(goasc%ba))
+    deallocate(goasc%prc, goasc%idx)
+    call destroy(goasc%ba)
+  end subroutine ghstassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
     use bl_error_module
@@ -3184,16 +3354,17 @@ contains
 
     if ( lsimplify ) call boxlist_simplify(blclean)
 
-    call boxarray_build_copy_l(ba, blclean)
+    call boxarray_build_copy_l(ba, blclean, sort=.false.)
     call destroy(blclean)
     call destroy(bpt)
   end subroutine boxarray_add_clean_boxes
 
 
-  subroutine boxarray_to_domain(ba)
+  subroutine boxarray_to_domain(ba, simplify)
     type(boxarray), intent(inout) :: ba
+    logical, intent(in), optional :: simplify
     type(boxarray) :: ba1
-    call boxarray_add_clean_boxes(ba1, ba%bxs)
+    call boxarray_add_clean_boxes(ba1, ba%bxs, simplify)
     call boxarray_destroy(ba)
     ba = ba1
   end subroutine boxarray_to_domain

@@ -218,11 +218,12 @@ contains
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
   end subroutine boxarray_build_copy
 
-  subroutine boxarray_build_copy_l(ba, bl)
+  subroutine boxarray_build_copy_l(ba, bl,sort)
     type(boxarray), intent(inout) :: ba
     type(list_box), intent(in) :: bl
+    logical, intent(in), optional :: sort
     if ( built_q(ba) ) call destroy(ba)
-    call boxarray_build_l(ba, bl)
+    call boxarray_build_l(ba, bl, sort)
   end subroutine boxarray_build_copy_l
 
   subroutine boxarray_build_v(ba, bxs, sort)
