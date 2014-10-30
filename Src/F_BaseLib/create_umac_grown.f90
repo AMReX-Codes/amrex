@@ -1,6 +1,7 @@
 module create_umac_grown_module
 
   use multifab_module
+  use fab_module
   use bl_constants_module
 
   private
@@ -54,12 +55,11 @@ contains
   !      |           |           |           |           |           |
   !      |-----Y-----|-----Y-----|-----Y-----|-----Y-----|-----Y-----|
 
-  subroutine create_umac_grown(finelev,fine,crse,bc_crse,bc_fine)
+  subroutine create_umac_grown(fine,crse,bc_crse,bc_fine)
 
     use define_bc_module
     use multifab_physbc_edgevel_module, only: multifab_physbc_edgevel
 
-    integer       , intent(in   ) :: finelev
     type(multifab), intent(inout) :: fine(:)
     type(multifab), intent(inout) :: crse(:)
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
@@ -72,8 +72,8 @@ contains
     type(fgassoc)   :: fgasc
     type(box)       :: bx
     type(boxarray)  :: f_ba,c_ba,tba
-    type(multifab)  :: f_mf,c_mf,tfine
-    type(layout)    :: f_la,c_la,tla,fine_la
+    type(multifab)  :: f_mf,c_mf
+    type(layout)    :: f_la,c_la,fine_la
 
     real(kind=dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:), fn(:,:,:,:)
 
@@ -83,11 +83,6 @@ contains
 
     dm = get_dim(crse(1))
 
-    ! Call multifab_fill_boundary and impose_phys_bcs_on_edges on the coarse level.
-    ! We will call multifab_fill_boundary and impose_phys_bcs_on_edges on the fine level
-    ! later in this subroutine
-    ! this can be optimized by putting if (finelev .eq. nlevs) around these lines, but
-    ! nlevs isn't available in this subroutine yet
     do i=1,dm
        call multifab_fill_boundary(crse(i))
     end do
@@ -164,6 +159,18 @@ contains
 
        call destroy(c_mf)
        call destroy(c_la)
+
+       !
+       ! zero out ghost cells of fine
+       !
+       do j = 1, nfabs(fine(i))
+          call boxarray_box_diff(tba, get_pbox(fine(i),j), get_ibox(fine(i),j))
+          do it = 1, nboxes(tba)
+             bx = get_box(tba,it)
+             call fab_setval_bx(fine(i)%fbs(j), 0._dp_t, bx)
+          end do
+          call destroy(tba)
+       end do
 
        !
        ! Update ghost regions of fine where they overlap with f_mf.
