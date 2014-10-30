@@ -1651,9 +1651,10 @@ contains
     type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
     type(ghstassoc), intent(inout) :: goasc
 
-    integer                        :: i, j, nbxs
+    integer                        :: i, j, k, ke, nbxs
+    integer, allocatable           :: idx(:)
     type(box)                      :: bx, bxla
-    type(list_box)                 :: bl, pieces, leftover
+    type(list_box)                 :: bl, pieces, leftover, blsimple
     type(box_intersector), pointer :: bi(:)
     type(bl_prof_timer), save      :: bpt
 
@@ -1704,25 +1705,38 @@ contains
 
     nbxs = nboxes(goasc%ba)
 
-    allocate(goasc%idx(nbxs))
+    allocate(idx(nbxs))
+    idx = 0
 
     j = 1
+    k = 1
     do i = 1, nboxes(la)
        bxla = grow(get_box(la,i), ng)
        do while (contains(bxla, get_box(goasc%ba,j)))
-          goasc%idx(j) = i
+          call push_back(bl, get_box(goasc%ba,j))
           j = j+1
           if (j .gt. nbxs) exit
        end do
+       call boxlist_simplify(bl)
+       ke = k + size(bl) - 1
+       idx(k:ke) = i
+       k = ke+1
+       call splice(blsimple, bl)
     end do
 
-    if (parallel_ioprocessor()) then
-       print *, ' xxxxx ', goasc%idx
+    if (size(blsimple) .lt. nbxs) then
+       call destroy(goasc%ba)
+       call boxarray_build_l(goasc%ba, blsimple, sort=.false.)
+       call destroy(blsimple)
     end if
 
     nbxs = nboxes(goasc%ba)
 
+    allocate(goasc%idx(nbxs))
     allocate(goasc%prc(nbxs))
+
+    goasc%idx = idx(1:nbxs)
+
     do i = 1, nbxs
        goasc%prc(i) = get_proc(la, goasc%idx(i))
     end do
@@ -1730,8 +1744,6 @@ contains
     call mem_stats_alloc(gox_ms, volume(goasc%ba))
 
     call destroy(bpt)
-
-    stop
 
   end subroutine ghstassoc_build
 
