@@ -164,6 +164,7 @@ contains
        !
        ! zero out ghost cells of fine
        !
+       !$OMP PARALLEL DO PRIVATE(j,tba,it,bx)
        do j = 1, nfabs(fine(i))
           call boxarray_box_diff(tba, get_pbox(fine(i),j), get_ibox(fine(i),j))
           do it = 1, nboxes(tba)
@@ -172,10 +173,12 @@ contains
           end do
           call destroy(tba)
        end do
+       !$OMP END PARALLEL DO       
 
        !
        ! Update ghost regions of fine where they overlap with f_mf.
        !
+       ! OMP unsafe
        do j = 1, nfabs(f_mf)
           k = fgasc%idx(j)
           bx = box_intersection(get_ibox(f_mf,j), get_pbox(fine(i),k))
