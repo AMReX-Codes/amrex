@@ -86,7 +86,6 @@ contains
 
     do i=1,dm
        call multifab_fill_boundary(crse(i))
-       call multifab_fill_boundary(fine(i))
     end do
     call multifab_physbc_edgevel(crse,bc_crse)
 
@@ -184,6 +183,10 @@ contains
        
        ng_f = nghost(fine(1))
 
+       ! Must fill bounday because correct_umac_goown_?d uses ghost cells of fine
+       ! For those ghost cells that also overlap with other valid boxes of fine,
+       ! f_mf did not touch them, and they must be filled with fill_boundary.
+       call multifab_fill_boundary(fine(i))
        !
        ! Now fix up umac grown due to the low order interpolation we used.
        !
