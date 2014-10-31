@@ -284,6 +284,8 @@ public:
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
                      const Real particleMass, const Real shift[]);
     void InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass);
+    void InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[], const Real vel_fac[], const Real particleMass, 
+                                 int disp_idx, int vel_idx, BoxArray &baWhereNot, int lev);
 
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
@@ -1436,6 +1438,147 @@ ParticleContainer<N>::InitFromBinaryMetaFile (const std::string& metafile,
         if (ParallelDescriptor::IOProcessor())
             std::cout << "InitFromBinaryMetaFile() time: " << runtime << '\n';
     }
+}
+
+template <int N>
+void
+ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[], const Real vel_fac[], 
+                                              const Real particleMass, int disp_idx, int vel_idx, 
+                                              BoxArray &baWhereNot, int lev)
+{
+    const int       MyProc   = ParallelDescriptor::MyProc();
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_amr->Geom(lev);
+    const Real*     dx       = geom.CellSize();
+
+    static Array<int> calls;
+
+    calls.resize(m_amr->initialBaLevels()+1);
+
+    calls[lev]++;
+
+    if (calls[lev] > 1) return;
+
+    m_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
+
+    m_particles.resize(m_amr->initialBaLevels()+1);
+
+    ParticleType p;
+    Real         disp[BL_SPACEDIM];
+    Real         vel[BL_SPACEDIM];
+    
+    Real 	mean_disp[BL_SPACEDIM]={0,0,0};
+
+
+    //
+    // The mf should be initialized according to the ics...
+    //
+    int outside_counter=0;
+    long outcount[3]={0,0,0};
+    long outcountminus[3]={0,0,0};
+    long totalcount=0;
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox&  myFab  = mf[mfi];
+        const int  *fab_lo = mfi.validbox().loVect();
+        const int  *fab_hi = mfi.validbox().hiVect();
+        const int   fab_ix = fab_hi[0] - fab_lo[0] + 1;
+        const int   fab_jx = fab_hi[1] - fab_lo[1] + 1;
+        const int   fab_kx = fab_hi[2] - fab_lo[2] + 1;
+
+        for (int kx = fab_lo[2]; kx <= fab_hi[2]; kx++)
+        {
+            for (int jx = fab_lo[1]; jx <= fab_hi[1]; jx++)
+            {
+                for (int ix = fab_lo[0]; ix <= fab_hi[0]; ix++)
+                {
+            	    IntVect indices(D_DECL(ix, jx, kx));
+		    totalcount++;
+		    if (baWhereNot.contains(indices)) 
+		    {
+                       continue;
+		    }
+
+	            for (int n = 0; n < BL_SPACEDIM; n++)
+	            {
+                        disp[n] = myFab(indices,disp_idx+n);
+                        //
+			// Start with homogeneous distribution (for 1 p per cell in the center of the cell),
+			//
+	                p.m_pos[n] = geom.ProbLo(n) + 
+                                      (indices[n]+0.5)*dx[n];
+			if(disp[n]*disp_fac[n]>dx[n]/2.0)
+			  outcount[n]++;
+			if(disp[n]*disp_fac[n]<-dx[n]/2.0)
+			  outcountminus[n]++;
+			mean_disp[n]+=fabs(disp[n]);
+			//
+                        // then add the displacement (input values weighted by domain length).
+                        //
+	                p.m_pos[n] += disp[n] * disp_fac[n];
+
+                        //
+			// Set the velocities.
+                        //
+                        vel[n] = myFab(indices,vel_idx+n);
+	                p.m_data[n+1] = vel[n] * vel_fac[n];
+	            }
+                    //
+		    // Set the mass of the particle from the input value.
+                    //
+	            p.m_data[0] = particleMass;
+	            p.m_id      = ParticleBase::NextID();
+	            p.m_cpu     = MyProc;
+	
+	            if (!ParticleBase::Where(p,m_amr))
+                    {
+      		        ParticleBase::PeriodicShift(p,m_amr);
+
+                        if (!ParticleBase::Where(p,m_amr))
+                            BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+		    }
+		    BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_amr->finestLevel());
+		    //handle particles that ran out of this level into a finer one. 
+		    if (baWhereNot.contains(p.m_cell))
+		    {
+		      outside_counter++;
+		      ParticleType newp[8];
+		      for (int i=0;i<8;i++)
+		      {
+			newp[i].m_data[0] = particleMass/8.0;
+			newp[i].m_id = ParticleBase::NextID();
+			newp[i].m_cpu     = MyProc;
+			for (int dim=0;dim<BL_SPACEDIM;dim++)
+			{
+			  newp[i].m_pos[dim]=p.m_pos[dim]+(2*((i/(1 << dim)) % 2)-1)*dx[dim]/4.0;
+			  newp[i].m_data[dim+1]=p.m_data[dim+1];
+			  
+			  
+			}
+		      
+			if (!ParticleBase::Where(newp[i],m_amr))
+			{
+				  ParticleBase::PeriodicShift(newp[i],m_amr);
+    
+			    if (!ParticleBase::Where(newp[i],m_amr))
+				BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
+			}
+			m_particles[newp[i].m_lev][newp[i].m_grid].push_back(newp[i]);
+		      }
+		      
+		    }
+	            
+	            //
+	            // Add it to the appropriate PBox at the appropriate level.
+	            //
+		    else
+		      m_particles[p.m_lev][p.m_grid].push_back(p);
+                }
+            }
+        }
+    }
+    Redistribute();
 }
 
 template <int N>
@@ -2981,7 +3124,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 if (!pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
-                                    ccells[j] = ccells[j] - pshifts[0]; }
+                                    ccells[j] = ccells[j] - pshifts[0]; 
+                                }
                                 //
                                 // Find its resident grid.
                                 //
@@ -4704,7 +4848,6 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     }
 }
 
-
 //
 // This version takes as input the normal gravity component on each face
 //
@@ -6200,6 +6343,11 @@ ParticleContainer<N>::WritePlotFile (const std::string& dir,
 {
     BL_ASSERT(OK());
     bool is_checkpoint = false;
+
+    // For yt we need exactly the chk particle format so would need to set is_checkpoint = true
+    // Anyway, it's not too bad to have particle ids on disk,
+    // think of merger trees or backtracing of particles for nested ics
+    // is_checkpoint = true; 
     Checkpoint(dir,name,is_checkpoint);
 }
 
