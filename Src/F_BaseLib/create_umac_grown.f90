@@ -86,10 +86,9 @@ contains
 
     do i=1,dm
        call multifab_fill_boundary(crse(i))
+       call multifab_fill_boundary(fine(i))
     end do
     call multifab_physbc_edgevel(crse,bc_crse)
-
-    call multifab_fill_boundary(fine(i))
 
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
