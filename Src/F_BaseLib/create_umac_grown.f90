@@ -89,6 +89,8 @@ contains
     end do
     call multifab_physbc_edgevel(crse,bc_crse)
 
+    call multifab_fill_boundary(fine(i))
+
     ! Grab the cached boxarray of all ghost cells not covered by valid region.
     fine_la = get_layout(fine(1))
     fgasc   = layout_fgassoc(fine_la, 1)
@@ -160,20 +162,6 @@ contains
 
        call destroy(c_mf)
        call destroy(c_la)
-
-       !
-       ! zero out ghost cells of fine
-       !
-       !$OMP PARALLEL DO PRIVATE(j,tba,it,bx)
-       do j = 1, nfabs(fine(i))
-          call boxarray_box_diff(tba, get_pbox(fine(i),j), get_ibox(fine(i),j))
-          do it = 1, nboxes(tba)
-             bx = get_box(tba,it)
-             call fab_setval_bx(fine(i)%fbs(j), 0._dp_t, bx)
-          end do
-          call destroy(tba)
-       end do
-       !$OMP END PARALLEL DO       
 
        !
        ! Update ghost regions of fine where they overlap with f_mf.
