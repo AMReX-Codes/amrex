@@ -344,7 +344,7 @@ ifeq ($(MACHINE), Linux)
       ifeq ($(MPIVENDOR),OpenMPI)
          mpihome=$(HOME)/HPC/Libraries/OMPI
          CPPFLAGS += -DOMPI_SKIP_MPICXX
-         BL_MPI_LIBS += -lmpi_f77 -lmpi      
+         BL_MPI_LIBS += -lmpi -lmpi_mpifh # Used to be mpi_f77 -lmpi      
       else
          mpihome=$(HOME)/HPC/Libraries/MPI
          CPPFLAGS += -DMPICH_SKIP_MPICXX
@@ -356,7 +356,7 @@ ifeq ($(MACHINE), Linux)
       ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
         mpihome=/usr/lib64/openmpi
         CPPFLAGS += -DOMPI_SKIP_MPICXX
-        BL_MPI_LIBS += -lmpi_f77 -lmpi      
+        BL_MPI_LIBS += -lmpi -lmpi_mpifh # Used to be mpi_f77 -lmpi  
         LIBRARY_LOCATIONS += $(mpihome)/lib
         INCLUDE_LOCATIONS += /usr/include/openmpi-x86_64
       endif
