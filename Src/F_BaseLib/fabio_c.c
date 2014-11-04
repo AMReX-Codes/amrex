@@ -86,6 +86,9 @@ typedef int mode_t;
 #define VAL_IS_NAN        val_is_nan
 #endif
 
+static const int BUFFER_SIZE = 512;
+static const int FABIO_MAX_PATH_NAME = 512;
+
 static
 void
 int_2_str(char f[], int n, const int* fi)
@@ -112,7 +115,7 @@ FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
 {
   int lflag;
   int lmode;
-  char filename[256];
+  char filename[FABIO_MAX_PATH_NAME];
 
   int_2_str(filename, sizeof(filename), ifilename);
   switch ( *flagp ) 
@@ -576,12 +579,12 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   int nc = *ncp;
   size_t count = *countp;
   off_t offset;
-  char buffer[256];
+  char buffer[BUFFER_SIZE];
   int ilen;
   double* dp = (double*)vp;
 
   offset = lseek(fd, 0, SEEK_END);
-  if ( snprintf(buffer, 256, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d) >= 256 )
+  if ( snprintf(buffer, BUFFER_SIZE, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d) >= BUFFER_SIZE )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_D: buffer too small");
       exit(1);
@@ -596,15 +599,15 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   switch ( dm ) 
     {
     case 1:
-      ilen = snprintf(buffer, 256, "((%d) (%d) (%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d) (%d) (%d)) %d\n", 
                       lo[0], hi[0], nd[0], nc);
       break;
     case 2:
-      ilen = snprintf(buffer, 256, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
                       lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
       break;
     case 3:
-      ilen = snprintf(buffer, 256, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
                       lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
@@ -612,7 +615,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
       exit(1);
     }
 
-  if ( ilen >= 256 )
+  if ( ilen >= BUFFER_SIZE )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_D: buffer too small");
       exit(1);
@@ -653,12 +656,12 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   int nc = *ncp;
   size_t count = *countp;
   off_t offset;
-  char buffer[256];
+  char buffer[BUFFER_SIZE];
   int ilen;
   float* sp = (float*)vp;
 
   offset = lseek(fd, 0, SEEK_END);
-  if ( snprintf(buffer, 256, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f) >= 256 )
+  if ( snprintf(buffer, BUFFER_SIZE, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f) >= BUFFER_SIZE )
   {
       fprintf(stderr, "FABIO_WRITE_RAW_S: buffer too small");
       exit(1);
@@ -673,15 +676,15 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   switch ( dm ) 
     {
     case 1:
-      ilen = snprintf(buffer, 256, "((%d) (%d) (%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d) (%d) (%d)) %d\n", 
                       lo[0], hi[0], nd[0], nc);
       break;
     case 2:
-      ilen = snprintf(buffer, 256, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d,%d) (%d,%d) (%d,%d)) %d\n", 
                       lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
       break;
     case 3:
-      ilen = snprintf(buffer, 256, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
+      ilen = snprintf(buffer, BUFFER_SIZE, "((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
                       lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
@@ -689,7 +692,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
       exit(1);
     }
 
-  if ( ilen >= 256 )
+  if ( ilen >= BUFFER_SIZE )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_S: buffer too small");
       exit(1);
@@ -759,7 +762,7 @@ FABIO_MKDIR_STR(const int* idirname, int* statp)
 {
   mode_t mode = DIR_MODE;
   int st = *statp;
-  char dirname[256];
+  char dirname[FABIO_MAX_PATH_NAME];
 
   int_2_str(dirname, sizeof(dirname), idirname);
 
@@ -785,7 +788,7 @@ void
 FABIO_UNLINK_IF_EMPTY_STR(const int* ifilename)
 {
   int fd;
-  char filename[256];
+  char filename[FABIO_MAX_PATH_NAME];
   int lmode = FILE_MODE;
   int pos;
 
