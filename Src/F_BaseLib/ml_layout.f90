@@ -389,9 +389,6 @@ contains
     call set_manual_control_least_used_cpus(.true.)
 
     allocate(lucvol(nlevs))
-    do n = 1, nlevs
-       lucvol(n) = layout_local_volume(la_old(n))         
-    end do
 
     select case (ml_layout_strategy)
     case (1)
@@ -474,11 +471,13 @@ contains
       ! build the coarest level first
       call set_luc_vol(0_ll_t) 
       call build_new_layout(la_new(1), la_old(1))
+      lucvol(1) = layout_local_volume(la_new(1))
       do n = 2, nlevs
          ! ignore the finer levels in least_used_cpus() in fab.f90
          ! Note that layout is affected by the results of least_used_cpus()
          call set_luc_vol(sum(lucvol(1:n-1)))
          call build_new_layout(la_new(n), la_old(n))
+         lucvol(n) = layout_local_volume(la_new(n))
       end do
     end subroutine layout_opt_ignore_fine
 
@@ -489,16 +488,18 @@ contains
       use sort_i_module
 
       logical :: overlap
-      integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp
-      integer :: myproc, nprocs, nbxs, nlft
+      integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp, icnt
+      integer :: myproc, nprocs, nbxs, ntbxs, nlft
       integer, allocatable :: prc(:), prc2(:), cnt(:), vbx(:), itmp(:), novlp(:), novlp2(:),&
-           novlptmp(:), vbxlft(:), prclft(:)
+           novlptmp(:), sfc_order(:), indxmap(:), whichcpu(:), vbxlft(:), prclft(:) 
       integer, pointer :: p(:,:,:,:)
-      integer (kind=ll_t) :: vtot, maxvol
+      integer (kind=ll_t) :: vtot, vol, maxvol
       integer (kind=ll_t), allocatable :: vprc(:)
       real(kind=dp_t) :: volpercpu
       type(vector_i), allocatable :: bxid(:)
-      type(boxarray) :: bac
+      type(box), pointer   :: pbxs(:)
+      type(boxarray) :: bac, tba
+      type(list_box) :: bl
       type(layout) :: lacfine
       type(imultifab) :: mff, mfc
 
@@ -515,10 +516,9 @@ contains
       ! First, let build the finest layout
       call set_luc_vol(0_ll_t)
       call build_new_layout(la_new(nlevs), la_old(nlevs))
+      lucvol(nlevs) = layout_local_volume(la_new(nlevs))
 
       do n = nlevs-1, 1, -1
-
-         call set_luc_vol(sum(lucvol(n+1:nlevs)))
 
          nbxs = nboxes(la_old(n))
          allocate(prc(nbxs), prc2(nbxs), vbx(nbxs))
@@ -597,7 +597,7 @@ contains
          do iproc=1,nprocs
             if (vprc(iproc) .gt. volpercpu) then
                ntmp = size(bxid(iproc))
-               if (ntmp .gt. 1) then
+               if (ntmp .gt. 1) then  ! return boxes only if we have more than 1 box
                   allocate(novlptmp(ntmp), itmp(ntmp))
                   do j = 1, ntmp
                      novlptmp(j) = novlp(at(bxid(iproc),j))
@@ -609,15 +609,82 @@ contains
                      vprc(iproc) = vprc(iproc) - vbx(m)
                      if (vprc(iproc) .le. volpercpu) exit
                   end do
+                  deallocate(novlptmp,itmp)
                end if
-               deallocate(novlptmp,itmp)
             end if
             call clear(bxid(iproc))
          end do
 
+         if (any(prc .eq. 0)) then  ! try to distribute with SFC
+
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  call push_back(bl, get_box(bac,m))
+               end if
+            end do
+
+            call build(tba, bl, sort=.false.)
+            call destroy(bl)
+
+            ntbxs = nboxes(tba)
+
+            allocate(sfc_order(ntbxs), indxmap(ntbxs), whichcpu(ntbxs))
+
+            pbxs => dataptr(tba)
+
+            k = 1
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  indxmap(k) = m
+                  k = k+1
+               end if
+            end do
+
+            call make_sfc(sfc_order, pbxs)
+
+            call destroy(tba)
+
+            k        = 1
+            vtot     = 0_ll_t
+            whichcpu = 0
+            
+            do i = 1, nprocs
+               
+               icnt = 0
+               vol = vprc(i)
+               vtot = vtot + vol
+
+               do while ( k.le.ntbxs .and. real(vol,dp_t).le.volpercpu )
+                  whichcpu(k) = i
+                  vol  = vol  + vbx(indxmap(sfc_order(k)))
+                  k    = k    + 1
+                  icnt = icnt + 1
+               end do
+
+               vtot = vtot + vol
+
+               if (real(vol,dp_t) .gt. volpercpu) then
+                  if ( (vprc(i).gt.0_ll_t .and. icnt.gt.0) .or. icnt.gt.1) then
+                     k    = k -1
+                     vol  = vol  - vbx(indxmap(sfc_order(k)))
+                     vtot = vtot - vbx(indxmap(sfc_order(k))) 
+                     whichcpu(k) = 0
+                  end if
+               end if
+
+               if (k.eq.ntbxs) exit
+            end do
+
+            do k = 1, ntbxs
+               prc(indxmap(sfc_order(k))) = whichcpu(k)
+            end do
+
+            deallocate(sfc_order,indxmap,whichcpu)
+         end if
+
          nlft = count(prc .eq. 0)
 
-         if (nlft .gt. 0) then
+         if (nlft .gt. 0) then  ! use knapsack for the rest
 
             allocate(vbxlft(nlft),prclft(nlft))
             vbxlft = 0
@@ -630,7 +697,7 @@ contains
                end if
             end do
 
-            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.false.)
+            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.true.)!false.)
 
             j = 1
             do m = 1, nbxs
@@ -656,6 +723,8 @@ contains
          prc = prc - 1
          call layout_build_ba(la_new(n), bac, get_pd(la_old(n)), get_pmask(la_old(n)), &
               explicit_mapping=prc)
+
+         lucvol(n) = layout_local_volume(la_new(n))
 
          deallocate(prc,vbx,novlp)
       end do
