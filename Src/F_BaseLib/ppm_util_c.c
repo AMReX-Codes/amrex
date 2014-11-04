@@ -7,6 +7,7 @@
 static const char PGM_MAGIC1 = 'P';
 static const char RPGM_MAGIC2 = '5';
 static const char RPGM_MAGIC3 = '6';
+static const int MAX_PATH_NAME = 512;
 #define NCOLOR 256
 
 #if defined(BL_FORT_USE_UNDERSCORE)
@@ -49,7 +50,7 @@ STORE_PPM_STR (const int ifilename[], const int* width, const int* height, int i
 {
   FILE *image_fp;	/* file descriptor for image (output) */
   int i, j, wid, hgt;
-  char filename[256];
+  char filename[MAX_PATH_NAME];
   unsigned char* image;
   
   /* create image file */
@@ -93,7 +94,7 @@ STORE_PGM_STR (const int ifilename[], const int* width, const int* height, int i
 {
   FILE *image_fp;	/* file descriptor for image (output) */
   int i, wid, hgt;
-  char filename[256];
+  char filename[MAX_PATH_NAME];
   unsigned char* image;
   
   /* create image file */
@@ -127,7 +128,7 @@ STORE_PGM_STR (const int ifilename[], const int* width, const int* height, int i
 void
 LOAD_PALETTE_STR (const int ifilename[], int r[], int g[], int b[], int a[])
 {
-  char filename[256];
+  char filename[MAX_PATH_NAME];
   FILE *pal_fp;	/* file descriptor for image (output) */
   unsigned char c[NCOLOR];
   int i;

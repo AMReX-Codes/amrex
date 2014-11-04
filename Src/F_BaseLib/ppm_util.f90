@@ -18,6 +18,7 @@ module ppm_util_module
   end interface
 
   private :: store_pgm_str, load_palette_str, store_ppm_str
+  integer, private, parameter :: MAX_PATH_NAME = 512
 
 contains
 
@@ -25,8 +26,8 @@ contains
     use bl_string_module
     integer, intent(out), dimension(:) :: r, g, b, a
     character(len=*), intent(in) :: fname
-    integer :: istr(256)
-    call str2int(istr, 256, fname)
+    integer :: istr(MAX_PATH_NAME)
+    call str2int(istr, MAX_PATH_NAME, fname)
     call load_palette_str(istr, r, g, b, a)
   end subroutine load_palette
 
@@ -36,10 +37,10 @@ contains
     character(len=*), intent(in) :: fname
     integer :: width, height
     integer, allocatable :: iimage(:)
-    integer :: istr(256)
+    integer :: istr(MAX_PATH_NAME)
     integer :: i, j, n
 
-    call str2int(istr, 256, fname)
+    call str2int(istr, MAX_PATH_NAME, fname)
     width = size(image,dim=1); height = size(image,dim=2)
     allocate(iimage(width*height))
 
@@ -61,10 +62,10 @@ contains
     character(len=*), intent(in) :: fname
     integer :: width, height
     integer, allocatable :: iimage(:)
-    integer :: istr(256)
+    integer :: istr(MAX_PATH_NAME)
     integer :: i, j, n
 
-    call str2int(istr, 256, fname)
+    call str2int(istr, MAX_PATH_NAME, fname)
     width = size(image,dim=1); height = size(image,dim=2)
     allocate(iimage(width*height))
 
