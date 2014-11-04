@@ -16,18 +16,23 @@ module ml_layout_module
      logical        , pointer :: pmask(:) => Null() ! periodic mask
   end type ml_layout
 
-  ! wz: this is my note for myself. Will make this clearer when finishing implementation
-
-  ! 0: do nothing
-  ! 1: sfc on each level;  ignore fine when distribute;  keep sfc order
-  ! 2: do sfc on the finest level first and keep its order; work our way
-  !    down; mark coarse grids with fine proc id; honor them if not over
-  !    volpercpu; do rest with sfc
-  ! 3: work our way up; mark fine grids with coarse proc id.  Do sfc and
-  !    cut into chunks.  Let the ones that can benefit most pick first.  Then
-  !    let the ones with most works pick.  Try to think how to minimize mpi
-  !    gather.
-  integer, private, save :: ml_layout_strategy = 1
+  ! This prarmeter has no impact on single-level runs!
+  ! 
+  ! 0: This uses either knapsack or sfc on each level.  Before boxes are 
+  !    distributed, MPI ranks are sorted according to the memory usage by 
+  !    all levels.  This is our traditional approach.
+  ! 1: This uses sfc on each level.  MPI ranks are sorted according to the 
+  !    memory usage by lower levels.
+  ! 2: First, the finest level uses sfc.  We then work our way down.  We
+  !    try to make the coarse level have more overlaps with the fine on
+  !    the same MPI rank, while trying to keep load balanced.
+  ! 3: First, the coarset level uses sfc.  We then work our way up.  We
+  !    try to make the fine level have more overlaps with the corase on
+  !    the same MPI rank, while trying to keep load balanced.
+  !
+  ! Strategies 2 and 3 are experimental.
+  integer, private, save :: ml_layout_strategy = 0
+  logical, private, save :: verbose=.true.
 
   interface build
      module procedure ml_layout_build
@@ -378,7 +383,8 @@ contains
     integer(kind=ll_t), allocatable :: lucvol(:)
     type(bl_prof_timer), save :: bpt
 
-    if (ml_layout_strategy .eq. 0 .or. nlevs.eq.1) then
+    if (ml_layout_strategy .eq. 0 .or. nlevs.eq.1 &
+         .or. parallel_nprocs().eq.1) then
        la_new(1:nlevs) = la_old(1:nlevs)
        return
     end if
@@ -395,6 +401,8 @@ contains
        call layout_opt_ignore_fine()
     case (2)
        call layout_opt_from_fine_to_coarse()
+    case (3)
+       call layout_opt_from_coarse_to_fine()
     case default
        call bl_error("unknown ml_layout_strategy", ml_layout_strategy)
     end select
@@ -492,10 +500,10 @@ contains
       integer :: myproc, nprocs, nbxs, ntbxs, nlft
       integer, allocatable :: prc(:), prc2(:), cnt(:), vbx(:), itmp(:), novlp(:), novlp2(:),&
            novlptmp(:), sfc_order(:), indxmap(:), whichcpu(:), vbxlft(:), prclft(:) 
-      integer, pointer :: p(:,:,:,:)
+      integer, pointer :: p(:,:,:,:), luc(:)
       integer (kind=ll_t) :: vtot, vol, maxvol
       integer (kind=ll_t), allocatable :: vprc(:)
-      real(kind=dp_t) :: volpercpu
+      real(kind=dp_t) :: volpercpu, vol_max
       type(vector_i), allocatable :: bxid(:)
       type(box), pointer   :: pbxs(:)
       type(boxarray) :: bac, tba
@@ -593,9 +601,10 @@ contains
             end if
          end do
          volpercpu = real(vtot,dp_t) / real(nprocs,dp_t)
+         vol_max = 1.1_dp_t*volpercpu
 
          do iproc=1,nprocs
-            if (vprc(iproc) .gt. volpercpu) then
+            if (vprc(iproc) .gt. vol_max) then
                ntmp = size(bxid(iproc))
                if (ntmp .gt. 1) then  ! return boxes only if we have more than 1 box
                   allocate(novlptmp(ntmp), itmp(ntmp))
@@ -607,7 +616,7 @@ contains
                      m = at(bxid(iproc),itmp(j))
                      prc(m) = 0
                      vprc(iproc) = vprc(iproc) - vbx(m)
-                     if (vprc(iproc) .le. volpercpu) exit
+                     if (vprc(iproc) .le. vol_max) exit
                   end do
                   deallocate(novlptmp,itmp)
                end if
@@ -615,7 +624,14 @@ contains
             call clear(bxid(iproc))
          end do
 
-         if (any(prc .eq. 0)) then  ! try to distribute with SFC
+         nlft = count(prc .eq. 0)
+
+         if (verbose .and. parallel_ioprocessor()) then
+            print *, 'ml_layout: level = ', n, ', total # of boxes = ', nbxs, &
+                 ', # of boxes left for SFC = ', nlft
+         end if
+
+         if (nlft .gt. 0) then  ! try to distribute with SFC
 
             do m = 1, nbxs
                if (prc(m) .eq. 0) then
@@ -644,18 +660,23 @@ contains
 
             call destroy(tba)
 
+            call set_luc_vol(vprc(myproc+1))
+            luc => least_used_cpus()  ! 0 based
+
             k        = 1
             vtot     = 0_ll_t
             whichcpu = 0
             
             do i = 1, nprocs
                
+               iproc = luc(i-1) + 1
+
                icnt = 0
-               vol = vprc(i)
+               vol = vprc(iproc)
                vtot = vtot + vol
 
-               do while ( k.le.ntbxs .and. real(vol,dp_t).le.volpercpu )
-                  whichcpu(k) = i
+               do while ( k.le.ntbxs .and. real(vol,dp_t).le.vol_max )
+                  whichcpu(k) = iproc
                   vol  = vol  + vbx(indxmap(sfc_order(k)))
                   k    = k    + 1
                   icnt = icnt + 1
@@ -663,8 +684,8 @@ contains
 
                vtot = vtot + vol
 
-               if (real(vol,dp_t) .gt. volpercpu) then
-                  if ( (vprc(i).gt.0_ll_t .and. icnt.gt.0) .or. icnt.gt.1) then
+               if (real(vol,dp_t) .gt. vol_max) then
+                  if ( (vprc(iproc).gt.0_ll_t .and. icnt.gt.0) .or. icnt.gt.1) then
                      k    = k -1
                      vol  = vol  - vbx(indxmap(sfc_order(k)))
                      vtot = vtot - vbx(indxmap(sfc_order(k))) 
@@ -684,6 +705,11 @@ contains
 
          nlft = count(prc .eq. 0)
 
+         if (verbose .and. parallel_ioprocessor()) then
+            print *, 'ml_layout: level = ', n, ', # of boxes = ', nbxs, &
+                 ', # of boxes left for knapsack = ', nlft
+         end if
+
          if (nlft .gt. 0) then  ! use knapsack for the rest
 
             allocate(vbxlft(nlft),prclft(nlft))
@@ -697,27 +723,207 @@ contains
                end if
             end do
 
-            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.true.)!false.)
+            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.false.)
 
             j = 1
             do m = 1, nbxs
                if (prc(m) .eq. 0) then
-                  prc(m) = prclft(j) + 1
+                  prc(m) = prclft(j) + 1 ! knapsack_pf returns 0-based proc. id.
                   j = j+1
                end if
             end do
 
-            if (.true.) then
-               if (parallel_ioprocessor()) then
-                  vprc = 0_ll_t
-                  do m = 1, nbxs
-                     vprc(prc(m)) =  vprc(prc(m)) + vbx(m)
+            deallocate(vbxlft,prclft)
+         end if
+         
+         if (verbose .and. parallel_ioprocessor()) then
+            vprc = 0_ll_t
+            do m = 1, nbxs
+               vprc(prc(m)) =  vprc(prc(m)) + vbx(m)
+            end do
+            maxvol = maxval(vprc)
+            print *, 'ml_layout: efficiency on level', n, 'is', volpercpu/maxvol
+         end if
+         
+         prc = prc - 1
+         call layout_build_ba(la_new(n), bac, get_pd(la_old(n)), get_pmask(la_old(n)), &
+              explicit_mapping=prc)
+
+         lucvol(n) = layout_local_volume(la_new(n))
+
+         deallocate(prc,vbx,novlp)
+      end do
+
+      deallocate(cnt,vprc)
+      do iproc = 1, nprocs
+         call destroy(bxid(iproc))
+      end do
+      deallocate(bxid)
+
+    end subroutine layout_opt_from_fine_to_coarse
+
+
+    subroutine layout_opt_from_coarse_to_fine() ! aka strategy 3
+
+      use vector_i_module
+      use sort_i_module
+
+      integer :: i, j, k, m, lo(4), hi(4), iproc, ntmp
+      integer :: myproc, nprocs, nbxs, nlft
+      integer, allocatable :: prc(:), prc2(:), cnt(:), vbx(:), itmp(:), novlp(:), novlp2(:),&
+           novlptmp(:), vbxlft(:), prclft(:) 
+      integer, pointer :: p(:,:,:,:)
+      integer (kind=ll_t) :: vtot, maxvol
+      integer (kind=ll_t), allocatable :: vprc(:)
+      real(kind=dp_t) :: volpercpu, vol_max
+      type(vector_i), allocatable :: bxid(:)
+      type(boxarray) :: bac
+      type(layout) :: lacfine
+      type(imultifab) :: mff, mfc
+
+      myproc = parallel_myproc()
+      nprocs = parallel_nprocs()
+
+      allocate(cnt(nprocs), vprc(nprocs))
+      allocate(bxid(nprocs))
+
+      do iproc = 1,nprocs
+         call build(bxid(iproc))
+      end do
+
+      ! First, let build the finest layout
+      call set_luc_vol(0_ll_t)
+      call build_new_layout(la_new(1), la_old(1))
+
+      do n=2,nlevs
+
+         nbxs = nboxes(la_old(n))
+         allocate(prc(nbxs), prc2(nbxs), vbx(nbxs))
+         allocate(novlp(nbxs), novlp2(nbxs))
+
+         call layout_build_coarse(lacfine, la_old(n), rr(n-1,:))
+
+         call imultifab_build(mff, lacfine    , 1, 0)
+         call imultifab_build(mfc, la_new(n-1), 1, 0)
+
+         do m = 1, nfabs(mfc)
+            call setval(mfc%fbs(m), myproc+1)  ! make it 1-based
+         end do
+
+         call imultifab_copy(mff, mfc)
+
+         prc2   = 0
+         novlp2 = 0
+
+         do m = 1, nfabs(mff)
+
+            p => dataptr(mff, m)
+            lo = lbound(p)
+            hi = ubound(p)
+
+            cnt = 0
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     cnt(p(i,j,k,1)) = cnt(p(i,j,k,1)) + 1
                   end do
-                  maxvol = maxval(vprc)
+               end do
+            end do
+
+            i = layout_global_index(la_old(n),m)
+            prc2  (i) = maxloc(cnt,1)
+            novlp2(i) = maxval(cnt)
+
+         end do
+         
+         call destroy(mff)
+         call destroy(mfc)
+         
+         call parallel_reduce(prc  ,   prc2, MPI_SUM)
+         call parallel_reduce(novlp, novlp2, MPI_SUM)
+         ! prc contains the preferred proc. no. for each box
+         ! novlp contains the number of points overlaping with coarse level on the preferred proc. 
+         deallocate(prc2,novlp2)
+
+         do iproc=1,nprocs
+            call clear(bxid(iproc))
+         end do
+         
+         bac = get_boxarray(la_old(n))
+
+         vtot = 0_ll_t
+         vprc = 0_ll_t
+         do m = 1, nbxs
+            vbx(m) = volume(get_box(bac,m))
+            vtot = vtot + vbx(m)
+            iproc = prc(m)
+            vprc(iproc) = vprc(iproc) + vbx(m)
+            call push_back(bxid(iproc), m)
+         end do
+         volpercpu = real(vtot,dp_t) / real(nprocs,dp_t)
+         vol_max = 1.1_dp_t*volpercpu
+
+         do iproc=1,nprocs
+            if (vprc(iproc) .gt. vol_max) then
+               ntmp = size(bxid(iproc))
+               if (ntmp .gt. 1) then  ! return boxes only if we have more than 1 box
+                  allocate(novlptmp(ntmp), itmp(ntmp))
+                  do j = 1, ntmp
+                     novlptmp(j) = novlp(at(bxid(iproc),j))
+                  end do
+                  call sort(novlptmp,itmp)
+                  do j = 1, ntmp-1
+                     m = at(bxid(iproc),itmp(j))
+                     prc(m) = 0
+                     vprc(iproc) = vprc(iproc) - vbx(m)
+                     if (vprc(iproc) .le. vol_max) exit
+                  end do
+                  deallocate(novlptmp,itmp)
                end if
             end if
+            call clear(bxid(iproc))
+         end do
+
+         nlft = count(prc .eq. 0)
+
+         if (verbose .and. parallel_ioprocessor()) then
+            print *, 'ml_layout: level = ', n, ', # of boxes = ', nbxs, &
+                 ', # of boxes left for knapsack = ', nlft
+         end if
+
+         if (nlft .gt. 0) then  ! use knapsack for the rest
+
+            allocate(vbxlft(nlft),prclft(nlft))
+            vbxlft = 0
+            
+            j = 1
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  vbxlft(j) = vbx(m)
+                  j = j + 1
+               end if
+            end do
+
+            call knapsack_pf(prclft, vbxlft, nprocs, vprc, verbose=.false.)
+
+            j = 1
+            do m = 1, nbxs
+               if (prc(m) .eq. 0) then
+                  prc(m) = prclft(j) + 1 ! knapsack_pf returns 0-based proc. id.
+                  j = j+1
+               end if
+            end do
 
             deallocate(vbxlft,prclft)
+         end if
+
+         if (verbose .and. parallel_ioprocessor()) then
+            vprc = 0_ll_t
+            do m = 1, nbxs
+               vprc(prc(m)) =  vprc(prc(m)) + vbx(m)
+            end do
+            maxvol = maxval(vprc)
+            print *, 'ml_layout: efficiency on level', n, 'is', volpercpu/maxvol
          end if
 
          prc = prc - 1
@@ -735,7 +941,7 @@ contains
       end do
       deallocate(bxid)
 
-    end subroutine layout_opt_from_fine_to_coarse
+    end subroutine layout_opt_from_coarse_to_fine
 
   end subroutine optimize_layouts
 
