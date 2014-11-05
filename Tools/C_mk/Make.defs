@@ -375,7 +375,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
-    override XTRALIBS += $(_f95_lib)
+    ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+       XTRALIBS += -lgfortran
+    else
+       override XTRALIBS += $(_f95_lib)       
+    endif
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
