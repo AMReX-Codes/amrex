@@ -1553,7 +1553,7 @@ contains
        deallocate(bi)
        leftover = boxlist_boxlist_diff(bx, pieces)
        call boxlist_simplify(leftover)
-       do k=1,size(leftover)
+       do k=1,list_size_box(leftover)
           call push_back(idx2, at(idx,i))
        end do
        call splice(bl, leftover)
