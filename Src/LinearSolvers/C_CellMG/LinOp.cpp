@@ -359,7 +359,8 @@ LinOp::jacobi_smooth (MultiFab&       solnL,
                       const MultiFab& rhsL,
                       int             level,
                       LinOp::BC_Mode  bc_mode)
-{
+{        
+    applyBC(solnL, 0, 1, level, bc_mode);
     Fsmooth_jacobi(solnL, rhsL, level);
 }
 
