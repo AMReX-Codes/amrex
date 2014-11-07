@@ -1438,41 +1438,44 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         const int N_rcvs = thecpc.m_RcvTags->size();
 
-        stats.resize(N_rcvs);
-
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-
-	for (int k = 0; k < N_rcvs; k++)
+	if (N_rcvs > 0)
 	{
-	    const value_type* dptr = recv_data[k];
-
-	    BL_ASSERT(dptr != 0);
+	    stats.resize(N_rcvs);
 	    
-	    CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
-	    BL_ASSERT(m_it != thecpc.m_RcvTags->end());
-	    
-	    for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-		     End = m_it->second.end();
-		 it != End;
-		 ++it)
+	    for (int k = 0; k < N_rcvs; k++)
 	    {
-		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*NC;
+		const value_type* dptr = recv_data[k];
 		
-		if (op == FabArrayBase::COPY)
+		BL_ASSERT(dptr != 0);
+		
+		CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+		
+		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
+		
+		for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+			 End = m_it->second.end();
+		     it != End;
+		     ++it)
 		{
-		    get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
-		}
-		else
-		{
-		    fab.resize(bx,NC);
-		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+		    const Box& bx  = it->box;
+		    const int  Cnt = bx.numPts()*NC;
 		    
-		    get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+		    if (op == FabArrayBase::COPY)
+		    {
+			get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+		    }
+		    else
+		    {
+			fab.resize(bx,NC);
+			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
+			
+			get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+		    }
+		    
+		    dptr += Cnt;
 		}
-		
-		dptr += Cnt;
 	    }
 	}
 	
@@ -2112,50 +2115,54 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     //
 
     int N_rcvs = recv_reqs.size();
-    stats.resize(N_rcvs);
 
-    std::pair<FCDMapIter,FCDMapIter> match;
-    std::map< int,FabComTagIterContainer >::const_iterator found;
-
-    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-
-    for (int k = 0; k < N_rcvs; k++)
+    if (N_rcvs > 0) 
     {
-	const int         Who     = who_R[k];
-	const value_type* dptr    = &recv_data[roffset[k]];
+	stats.resize(N_rcvs);
 	
-	BL_ASSERT(dptr != 0);
+	std::pair<FCDMapIter,FCDMapIter> match;
+	std::map< int,FabComTagIterContainer >::const_iterator found;
 	
-	found = RcvTags.find(Who);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	
-	BL_ASSERT(found != RcvTags.end());
-	
-	const FabComTagIterContainer& tags = found->second;
-	
-	for (FabComTagIterContainer::const_iterator it = tags.begin(), End = tags.end();
-	     it != End;
-	     ++it)
+	for (int k = 0; k < N_rcvs; k++)
 	{
-	    const FabArrayBase::FabComTag& tag = **it;                  
+	    const int         Who     = who_R[k];
+	    const value_type* dptr    = &recv_data[roffset[k]];
 	    
-	    BL_ASSERT(tag.procThatHasData == Who);
+	    BL_ASSERT(dptr != 0);
 	    
-	    match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
+	    found = RcvTags.find(Who);
 	    
-	    for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
+	    BL_ASSERT(found != RcvTags.end());
+	    
+	    const FabComTagIterContainer& tags = found->second;
+	    
+	    for (FabComTagIterContainer::const_iterator it = tags.begin(), End = tags.end();
+		 it != End;
+		 ++it)
 	    {
-		FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
+		const FabArrayBase::FabComTag& tag = **it;                  
 		
-		BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
+		BL_ASSERT(tag.procThatHasData == Who);
 		
-		if (fcdp->subBox == tag.box)
+		match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
+		
+		for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
 		{
-		    BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
-		    BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-		    const int Cnt = tag.box.numPts()*tag.nComp;
-		    fcdp->localFabSource->copyFromMem(tag.box,0,tag.nComp,dptr);
-		    dptr += Cnt;
-		    break;
+		    FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
+		    
+		    BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
+		    
+		    if (fcdp->subBox == tag.box)
+		    {
+			BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);
+			BL_ASSERT(fcdp->localFabSource->box() == tag.box);
+			const int Cnt = tag.box.numPts()*tag.nComp;
+			fcdp->localFabSource->copyFromMem(tag.box,0,tag.nComp,dptr);
+			dptr += Cnt;
+			break;
+		    }
 		}
 	    }
 	}
@@ -2405,29 +2412,32 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     const int N_rcvs = TheSI.m_RcvTags->size();
 
-    stats.resize(N_rcvs);
-
-    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-
-    for (int k = 0; k < N_rcvs; k++)
+    if (N_rcvs > 0)
     {
-	const value_type* dptr = recv_data[k];
+	stats.resize(N_rcvs);
 	
-	BL_ASSERT(dptr != 0);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	
-	SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
-	
-	BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-	
-	for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-		 End = m_it->second.end();
-	     it != End;
-	     ++it)
+	for (int k = 0; k < N_rcvs; k++)
 	{
-	    const Box& bx  = it->box;
-	    const int  Cnt = bx.numPts()*ncomp;
-	    get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
-	    dptr += Cnt;
+	    const value_type* dptr = recv_data[k];
+	    
+	    BL_ASSERT(dptr != 0);
+	    
+	    SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
+	    
+	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+	    
+	    for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
+		     End = m_it->second.end();
+		 it != End;
+		 ++it)
+	    {
+		const Box& bx  = it->box;
+		const int  Cnt = bx.numPts()*ncomp;
+		get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
+		dptr += Cnt;
+	    }
 	}
     }
 
