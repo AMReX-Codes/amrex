@@ -299,11 +299,11 @@ c-----------------------------------------------------------------------
                end do
             end do
           end do
+!$omp end parallel do
 
          phi(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n) = 
      $         phinew(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 
-!$omp end parallel do
       end do
 
       deallocate(phinew)
