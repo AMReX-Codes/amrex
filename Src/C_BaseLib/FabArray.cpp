@@ -28,7 +28,7 @@ FabArrayBase::Initialize ()
     // Set default values here!!!
     //
     FabArrayBase::Verbose           = true;
-    FabArrayBase::do_async_sends    = false;
+    FabArrayBase::do_async_sends    = true;
     FabArrayBase::do_random_shuffle = false;
     FabArrayBase::MaxComp           = 25;
 
