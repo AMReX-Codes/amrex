@@ -507,21 +507,6 @@ void Profiler::Finalize() {
     // --------------------- start nfiles block
     std::string cdir(blProfDirName);
     if( ! blProfDirCreated) {
-      /*
-      if(ParallelDescriptor::IOProcessor()) {
-        if(BoxLib::FileExists(cdir)) {
-          std::string newoldname(cdir + ".old." + BoxLib::UniqueString());
-	  std::cout << "Profiler::Finalize():  " << cdir
-	            << " exists.  Renaming to:  " << newoldname << std::endl;
-          std::rename(cdir.c_str(), newoldname.c_str());
-        }
-        if( ! BoxLib::UtilCreateDirectory(cdir, 0755)) {
-          BoxLib::CreateDirectoryFailed(cdir);
-        }
-      }
-      // Force other processors to wait until directory is built.
-      ParallelDescriptor::Barrier("Profiler::Finalize::waitfordir");
-      */
       BoxLib::UtilCreateCleanDirectory(cdir);
       blProfDirCreated = true;
     }
@@ -805,7 +790,6 @@ void WriteStats(std::ostream &ios,
     }
   }
 
-  //ios << " MaxCallStackDepth = " << Profiler::MaxCallStackDepth() << '\n';
   ios << " MaxCallStackDepth = " << maxCSD << '\n' << '\n';
   for(std::set<int>::iterator rfi = recursiveFuncs.begin(); rfi != recursiveFuncs.end(); ++rfi) {
     ios << " RCURSIVE function:  " << fNumberNames[*rfi] << '\n';
@@ -850,7 +834,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
       if(nCT < traceFlushSize) {
       }
       if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Bypassing call crace flush, nCT < traceFlushSize:  " << nCT
+        std::cout << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
                   << "  " << traceFlushSize << std::endl;
       }
       return;
