@@ -7,7 +7,7 @@
 #
 
 TOP            = ../../..
-BOXLIB_HOME    = $(TOP)/BoxLib
+BOXLIB_HOME    = ../..
 
 PRECISION      = DOUBLE
 DEBUG	       = FALSE
