@@ -441,7 +441,7 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
-     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+     CXXOPTF += -g -O2 -ip -fp-model source
    endif
    endif
    CXXDEBF += -g -O0
@@ -714,8 +714,8 @@ ifeq ($(FCOMP),Intel)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
-     FOPTF += -O2 -ip -fp-model source -xHost
-     fOPTF += -O2 -ip -fp-model source -xHost
+     FOPTF += -O2 -ip -fp-model source
+     fOPTF += -O2 -ip -fp-model source
    endif
    endif
 
