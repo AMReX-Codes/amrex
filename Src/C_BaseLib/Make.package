@@ -106,6 +106,8 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
+
+  f90$(BOXLIB_BASE)_sources += threadbox.f90
 endif
 
 C$(BOXLIB_BASE)_sources += Profiler.cpp
