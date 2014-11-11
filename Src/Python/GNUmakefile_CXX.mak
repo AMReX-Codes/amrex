@@ -123,9 +123,8 @@ INCLUDE_LOCATIONS += $(PYINCLUDE) $(NPINCLUDE)
 
 FORTLIBS =
 ifeq ($(FCOMP), gfortran)
-  __gcc_lib_dir := $(dir $(shell gfortran -print-libgcc-file-name))
-    FORTLIBS += -L$(__gcc_lib_dir) -lgfortran
-    FORTLIBS += -L$(__gcc_lib_dir) -lquadmath
+  __gcc_lib_dir := $(dir $(shell gfortran -print-file-name=libgfortran.a))
+ FORTLIBS += -L$(__gcc_lib_dir) -lgfortran
 endif
 
 #
