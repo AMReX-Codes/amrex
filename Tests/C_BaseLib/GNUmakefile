@@ -13,8 +13,10 @@ DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-PROFILE      = FALSE
-COMM_PROFILE = FALSE
+PROFILE       = FALSE
+COMM_PROFILE  = FALSE
+TRACE_PROFILE = FALSE
+
 
 BOXLIB_HOME = ../..
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
@@ -35,8 +37,11 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 _progs  := tMF
 #_progs  := tFB
 #_progs  := tMFcopy
+#_progs  := tProfiler
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
 
 ifeq ($(COMP),g++)
   ifeq ($(__gcc_major_version),2)
@@ -48,10 +53,21 @@ ifeq ($(_progs),tFillFab)
   fEXE_sources += fillfab.f
 endif
 
-VPATH = $(BOXLIB_HOME)/Src/C_BaseLib
+VPATH += $(BOXLIB_HOME)/Src/C_BaseLib
+VPATH += $(BOXLIB_HOME)/Src/C_AMRLib
+VPATH += $(BOXLIB_HOME)/Src/C_BoundaryLib
+
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+#include $(BOXLIB_HOME)/Src/C_AMRLib/Make.package
+#include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
+
+CEXE_sources += StateData.cpp
+CEXE_sources += StateDescriptor.cpp
+CEXE_sources += BCRec.cpp
+
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
+
 
 $(addsuffix $(optionsSuffix).ex, $(_progs)) \
    : %$(optionsSuffix).ex : %.cpp $(objForExecs)
