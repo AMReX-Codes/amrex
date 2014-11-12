@@ -5,6 +5,7 @@ __all__ = [ 'fab' ]
 from ctypes import *
 from base import BLObject
 from pybl import bl
+
 import blnpy
 
 import numpy as np

@@ -32,4 +32,5 @@ VPATH_LOCATIONS += src
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
 $(OUT)/libboxlib.so: $(objects)
+	mkdir -p $(OUT)
 	$(F90) $(F90FLAGS) -shared -o $@ $^ $(PYLDFLAGS)

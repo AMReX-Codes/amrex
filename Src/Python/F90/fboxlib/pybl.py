@@ -9,8 +9,7 @@ import os
 
 from ctypes import *
 
-#bl = CDLL(os.path.dirname(__file__) + '/libboxlib.so')
-bl = CDLL('/Users/mwemmett/opt/lib/libboxlib.so')
+bl = CDLL(os.path.dirname(__file__) + '/libboxlib.so')
 c_int_p = POINTER(c_int)
 c_double_p = POINTER(c_double)
 
