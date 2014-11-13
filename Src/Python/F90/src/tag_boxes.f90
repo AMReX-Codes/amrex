@@ -24,7 +24,6 @@ contains
 
     procedure(tag_boxes_p), pointer :: tag
     call c_f_procpointer(tag_boxes_cb, tag)
-    print *, "c addr of mf", c_loc(mf)
     call tag(c_loc(mf), c_loc(tagboxes), dx, lev)
   end subroutine tag_boxes
 

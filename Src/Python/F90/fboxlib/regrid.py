@@ -1,41 +1,20 @@
 
-import fboxlib
+import fcboxlib
+import numpy as np
 
-from fboxlib.pybl import bl
-
-from ctypes import byref, c_void_p, c_int, c_double, CFUNCTYPE, POINTER
-
-# see tag_boxes.f90
-TAGBOXES = CFUNCTYPE(None, c_void_p, c_void_p, c_double, c_int)
+from multifab import multifab
 
 def regrid(layouts, multifabs, dxs, tag_boxes, max_levs=8, amr_buf_width=2, max_grid_size=64):
 
-    # type(ml_layout), intent(inout) :: mla
-    # type(multifab) , intent(inout) :: phi(:)
-    # integer        , intent(inout) :: nlevs, max_levs
-    # real(dp_t)     , intent(in   ) :: dx(:)
-    # type(bc_tower) , intent(inout) :: the_bc_tower
-    # integer        , intent(in   ) :: amr_buf_width, max_grid_size
+    # XXX: passing layouts here is a bit redundant...
 
     nlevs = len(layouts)
+    lacptrs = np.zeros((max_levs,), np.long)
+    mfcptrs = np.zeros((max_levs,), np.long)
+    for i in range(nlevs):
+        lacptrs[i] = layouts[i].cptr
+        mfcptrs[i] = multifabs[i].cptr
 
-    lacptrs = (max_levs*c_void_p)()
-    for i, l in enumerate(layouts):
-      lacptrs[i] = l.cptr
+    nlevs = fcboxlib.regrid(lacptrs, mfcptrs, nlevs, max_levs, tag_boxes)
 
-    mfcptrs = (max_levs*c_void_p)()
-    for i, l in enumerate(multifabs):
-      mfcptrs[i] = l.cptr
-
-    nlevs = c_int(nlevs)
-    print "regridding..."
-    bl.pybl_regrid(lacptrs, mfcptrs, byref(nlevs), c_int(max_levs), TAGBOXES(tag_boxes))
-    print "regridding... done."
-
-    mfs = []
-    for i in range(nlevs.value):
-        mf = fboxlib.multifab(mfcptrs[i])
-        mf.get_info()
-        mfs.append(mf)
-
-    return mfs
+    return [ multifab(cptr=x) for x in mfcptrs[:nlevs] ]
