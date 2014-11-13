@@ -65,9 +65,9 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! boxarray routines
 
-  subroutine pybl_create_boxarray_from_boxes(boxes,nboxes,dim,cptr) bind(c)
+  subroutine pybl_boxarray_create_from_boxes(boxes,nboxes,dim,cptr) bind(c)
     integer(c_int), intent(in   ), value :: dim, nboxes
-    integer(c_int), intent(in   )        :: boxes(nboxes,2,dim)
+    integer(c_int), intent(in   )        :: boxes(dim,2,nboxes)
     type(c_ptr),    intent(  out)        :: cptr
 
     type(boxarray), pointer :: ba
@@ -75,12 +75,19 @@ contains
     type(box) :: bs(nboxes)
 
     do i=1,nboxes
-       bs(i) = make_box(boxes(i,1,:), boxes(i,2,:))
+       bs(i) = make_box(boxes(:,1,i), boxes(:,2,i))
     end do
 
     call pybl_boxarray_new(cptr,ba)
     call build(ba, bs)
-  end subroutine pybl_create_boxarray_from_boxes
+  end subroutine pybl_boxarray_create_from_boxes
+
+  subroutine pybl_boxarray_print(cptr) bind(c)
+    type(c_ptr), intent(in   ), value :: cptr
+    type(boxarray), pointer :: ba
+    call pybl_boxarray_get(cptr, ba)
+    call print(ba)
+  end subroutine pybl_boxarray_print
 
   subroutine pybl_boxarray_nboxes(cptr,nb) bind(c)
     type(c_ptr),    intent(in   ), value :: cptr
@@ -90,7 +97,15 @@ contains
     nb = nboxes(ba)
   end subroutine pybl_boxarray_nboxes
 
-  subroutine pybl_boxarray_maxsize(maxsize,ndim,cptr) bind(c)
+  subroutine pybl_boxarray_dim(cptr,dim) bind(c)
+    type(c_ptr),    intent(in   ), value :: cptr
+    integer(c_int), intent(  out)        :: dim
+    type(boxarray), pointer :: ba
+    call pybl_boxarray_get(cptr, ba)
+    dim = ba%dim
+  end subroutine pybl_boxarray_dim
+
+  subroutine pybl_boxarray_maxsize(cptr,maxsize,ndim) bind(c)
     type(c_ptr),    intent(in   ), value :: cptr
     integer(c_int), intent(in   ), value :: ndim
     integer(c_int), intent(in   )        :: maxsize(ndim)
@@ -99,18 +114,11 @@ contains
     call boxarray_maxsize(ba, maxsize)
   end subroutine pybl_boxarray_maxsize
 
-  subroutine pybl_print_boxarray(cptr) bind(c)
-    type(c_ptr), intent(in   ), value :: cptr
-    type(boxarray), pointer :: ba
-    call pybl_boxarray_get(cptr, ba)
-    call print(ba)
-  end subroutine pybl_print_boxarray
-
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! layout routines
 
-  subroutine pybl_create_layout_from_boxarray(ba_cptr,dim,pmask,cptr) bind(c)
-    type(c_ptr),    intent(in   ),  value :: ba_cptr
+  subroutine pybl_layout_create_from_boxarray(bacptr,dim,pmask,cptr) bind(c)
+    type(c_ptr),    intent(in   ),  value :: bacptr
     type(c_ptr),    intent(  out)         :: cptr
     integer(c_int), intent(in   ),  value :: dim
     integer(c_int), intent(in   )         :: pmask(dim)
@@ -119,75 +127,19 @@ contains
     type(layout), pointer   :: la
     logical                 :: lpmask(dim)
 
-    call pybl_boxarray_get(ba_cptr, ba)
+    call pybl_boxarray_get(bacptr, ba)
     call pybl_layout_new(cptr, la)
 
     lpmask = pmask == 1
     call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
-  end subroutine pybl_create_layout_from_boxarray
+  end subroutine pybl_layout_create_from_boxarray
 
-  subroutine pybl_create_layout_from_boxes(boxes,nboxes,dim,pmask,cptr) bind(c)
-    integer(c_int), intent(in   ),  value :: dim, nboxes
-    integer(c_int), intent(in   )         :: boxes(nboxes,2,dim), pmask(dim)
-    type(c_ptr),    intent(  out)         :: cptr
-
-    type(layout), pointer :: la
-    integer        :: i
-    type(box)      :: bs(nboxes)
-    type(boxarray) :: ba
-    logical        :: lpmask(dim)
-
-    do i=1,nboxes
-       bs(i) = make_box(boxes(i,1,:), boxes(i,2,:))
-    end do
-    call pybl_layout_new(cptr,la)
-    call build(ba, bs)
-
-    print *, "BOXES"
-
-    lpmask = pmask == 1
-    call build(la, ba, boxarray_bbox(ba), pmask=lpmask)
-  end subroutine pybl_create_layout_from_boxes
-
-  subroutine pybl_create_ml_layout_from_layouts(lacptrs,nlevels,cptr) bind(c)
-    integer(c_int), intent(in   ), value :: nlevels
-    type(c_ptr),    intent(in   )        :: lacptrs(nlevels)
-    type(c_ptr),    intent(  out)        :: cptr
-
-
-    type(ml_layout), pointer :: mla
-    type(layout), pointer    :: la
-    integer           :: i, dim
-    type(ml_boxarray) :: mba
-
-    call pybl_ml_layout_new(cptr,mla)
-    call pybl_layout_get(lacptrs(1),la)
-
-    dim = get_dim(la)
-
-    call build(mba, nlevels, dim)
-
-    do i=1,nlevels
-       call pybl_layout_get(lacptrs(i),la)
-       mba%bas(i) = get_boxarray(la)
-    end do
-
-    call build(mla,mba)
-  end subroutine pybl_create_ml_layout_from_layouts
-
-  subroutine pybl_print_layout(cptr) bind(c)
+  subroutine pybl_layout_print(cptr) bind(c)
     type(c_ptr), intent(in   ), value :: cptr
     type(layout), pointer :: la
     call pybl_layout_get(cptr, la)
     call print(la)
-  end subroutine pybl_print_layout
-
-  subroutine pybl_print_ml_layout(cptr) bind(c)
-    type(c_ptr), intent(in   ), value :: cptr
-    type(ml_layout), pointer :: mla
-    call pybl_ml_layout_get(cptr, mla)
-    call print(mla)
-  end subroutine pybl_print_ml_layout
+  end subroutine pybl_layout_print
 
   subroutine pybl_layout_nboxes(cptr, boxes) bind(c)
     type(c_ptr),    intent(in   ), value :: cptr
