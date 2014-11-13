@@ -48,6 +48,12 @@ module box_module
      module procedure box_volume
   end interface
 
+  !! Returns the volume of the box as an 8-byte integer if supported; 
+  !! otherwise calls box_volume
+  interface i8volume
+     module procedure box_i8volume
+  end interface
+
   !! Returns the volume of the box as REAL(kind=dp_t)
   interface dvolume
      module procedure box_dvolume
@@ -819,6 +825,20 @@ contains
     end do
   end function box_volume
 
+  function box_i8volume(bx) result(r)
+    type(box), intent(in) :: bx
+    integer (kind=ll_t) :: r
+    integer :: i
+    if (int8_supported()) then
+       r = 1_ll_t
+       do i = 1, bx%dim
+          r = r*int(bx%hi(i)-bx%lo(i)+1, kind=ll_t)
+       end do
+    else
+       r = box_volume(bx)
+    end if
+  end function box_i8volume
+
   elemental function box_dvolume(bx) result(r)
     type(box), intent(in) :: bx
     real(dp_t) :: r
@@ -951,6 +971,7 @@ contains
       call bl_error("READ_BOX: this is as far as I got")
       call bl_stream_expect(strm, "]")
     end subroutine read_box
+
     subroutine read_a_legacy_box
       use bl_error_module
       character(len=1) :: c

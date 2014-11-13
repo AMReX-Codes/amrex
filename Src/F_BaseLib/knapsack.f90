@@ -6,8 +6,9 @@ module sfc_module
   ! while inside the sfc_i() routine, so that they're accessible via
   ! sfc_greater_i().
   !
-  integer            :: dm, mpower
-  type(box), pointer :: pbxs(:)
+  integer              :: dm, mpower
+  integer, allocatable :: boxkeys(:,:)
+  type(box), pointer   :: pbxs(:)
 end module sfc_module
 
 module knapsack_module
@@ -142,21 +143,19 @@ contains
 
     prc = prc - 1   ! Processor numbers start at 0.
 
-    call cpu_time(t2)
-
-     if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
-        xmean  = sum(ibxs)/size(ibxs)
-        stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
-        print *, 'np               = ', np
-        print *, 'n                = ', size(ibxs)
-        print *, 'max box weight   = ', maxval(ibxs)
-        print *, 'min box weight   = ', minval(ibxs)
-        print *, 'mean bx weight   = ', xmean
-        print *, 'stdd bx weight   = ', stddev
-        print *, 'max weight       = ', weight(1)
-        print *, 'max weight       = ', weight(np)
-        print *, 'total weight     = ', sum(weights(np))
-     end if
+    if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       xmean  = sum(ibxs)/size(ibxs)
+       stddev = sqrt(sum((ibxs-xmean)**2)/(size(ibxs)-1))
+       print *, 'np               = ', np
+       print *, 'n                = ', size(ibxs)
+       print *, 'max box weight   = ', maxval(ibxs)
+       print *, 'min box weight   = ', minval(ibxs)
+       print *, 'mean bx weight   = ', xmean
+       print *, 'stdd bx weight   = ', stddev
+       print *, 'max weight       = ', weight(1)
+       print *, 'max weight       = ', weight(np)
+       print *, 'total weight     = ', sum(weights(np))
+    end if
 
     efficiency = sum(weights(np))/(np*weight(1))
 
@@ -259,149 +258,406 @@ contains
 
   end subroutine knapsack_i
 
-  subroutine sfc_i(prc, ibxs, bxs, np, verbose)
 
-    use sfc_module
+  subroutine knapsack_pf(prc, ibxs, np, prefill, verbose, threshold)
+
     use parallel
     use box_module
-    use sort_i_module
+    use vector_i_module
+    use sort_d_module
     use bl_error_module
     use bl_prof_module
 
-    integer,   intent(out)           :: prc(:)
-    integer,   intent(in )           :: ibxs(:)
-    type(box), intent(in ), target   :: bxs(:)
-    integer,   intent(in )           :: np
-    logical,   intent(in ), optional :: verbose
+    integer,           intent(out), dimension(:) :: prc
+    integer,           intent(in ), dimension(:) :: ibxs
+    integer,           intent(in )               :: np
+    integer(kind=ll_t),intent(in ), optional     :: prefill(np) 
+    real(kind=dp_t),   intent(in ), optional     :: threshold
+    logical,           intent(in ), optional     :: verbose
 
-    logical         :: lverb
-    integer         ::  i
-    real(kind=dp_t) :: t1, t2, efficiency
+    logical            :: lverb
+    integer            :: i, j, k, isizes(size(ibxs)), imlp, illp
+    integer(kind=ll_t) :: w_mlp, wi_mlp, w_llp, wnew_mlp, wnew_llp, dif
+    real(kind=dp_t) :: efficiency, lthresh, t1, t2
+    real(kind=dp_t) :: average_weight, sizes(size(ibxs))
 
-    integer, allocatable :: iorder(:), whichcpu(:)
+    integer,            allocatable :: iprocs(:)
+    type(vector_i),     allocatable :: procs(:)
+    integer(kind=ll_t), allocatable :: lpf(:), pweights(:)
 
     type(bl_prof_timer), save :: bpt
 
-    if ( np < 1 ) call bl_error('sfc_i(): np < 1')
+    if ( np < 1 ) call bl_error('knapsack_i(): np < 1')
 
-    if ( size(ibxs) < 1 ) call bl_error('sfc_i(): size(ibxs) < 1')
-
-    call build(bpt, 'sfc')
+    call build(bpt, 'knapsack')
 
     call cpu_time(t1)
 
-    lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
-    !
-    ! Set dm, mpower & pbxs in sfc_module so they're accessible to sfc_greater_i().
-    !
-    dm     =  get_dim(bxs(1))
-    mpower =  maxpower()
-    pbxs   => bxs
+    lverb   = knapsack_verbose  ; if ( present(verbose  ) ) lverb   = verbose
+    lthresh = knapsack_threshold; if ( present(threshold) ) lthresh = threshold
 
-    allocate(iorder(size(ibxs)), whichcpu(size(ibxs)))
+    allocate(procs(np), iprocs(np), lpf(np), pweights(np))
+
+    if ( present(prefill) ) then
+       lpf = prefill     
+    else
+       lpf = 0._dp_t
+    end if
+
     !
-    ! Set to "bad" value that we can check for later to ensure array filled correctly.
+    ! Each processor maintains a list of its boxes in a dynamic array,
+    ! which is addressed indirectly through the array iprocs.
     !
-    whichcpu = -1
+    do i = 1, size(procs)
+       call build(procs(i))
+       iprocs(i) = i
+    end do
+    sizes = ibxs
+    call sort(sizes, isizes, greater_d)
+
+    if ( present(prefill) ) then
+       call heapify(lpf, iprocs, np)
+    end if
 
     do i = 1, size(ibxs)
-       iorder(i) = i
+       call push_back(procs(iprocs(1)), isizes(i))
+       call update_pweights()
+       call siftDown(pweights, iprocs, 1, np)  ! to reheap
     end do
 
-    call sort(iorder, sfc_greater_i)
-    !
-    ! "iorder" now indexes the boxes in morton space-filling-curve order.
-    !
-    call distribute()
-    !
-    ! "whichcpu(i)" now contains the CPU on which to place the iorder(i)'th box.
-    !
-    if ( minval(whichcpu) < 0 ) call bl_error('sfc_i(): improper CPU number')
+    call sort_procs() ! now, they need to be sorted.
 
-    do i = 1, size(ibxs)
-       prc(iorder(i)) = whichcpu(i)
+    average_weight = real(sum(pweights)) / real(np, dp_t)
+
+    outer: do
+       imlp = iprocs(1)   ! the most loaded processor
+       w_mlp = pweights(iprocs(1))   ! weight on the most loaded processor  
+       efficiency = average_weight/real(w_mlp,dp_t)
+       if ( efficiency > lthresh ) exit outer
+       !
+       ! For each box in the most loaded processor.
+       !
+       do i = 1, size(procs(imlp))
+          wi_mlp = weight_ball(imlp,i)  ! weight of ball i on the most loaded processor
+          !
+          ! Check each less lightly loaded processor...
+          !
+          do j = 2, size(procs)
+             illp = iprocs(j)  ! a less loaded processor
+             w_llp = pweights(illp)  ! weight on a less loaded processor
+             !
+             ! By looking at each box in that processor.
+             !
+             do k = 1, size(procs(illp))
+                dif = wi_mlp - weight_ball(illp,k)
+                wnew_mlp = w_mlp - dif
+                wnew_llp = w_llp + dif
+                if ( wnew_mlp < w_mlp .AND. wnew_llp < w_mlp ) then
+                   !
+                   ! We can improve efficiency be swap these two balls
+                   !
+                   call swap_balls(imlp,i,illp,k)
+                   !
+                   ! Reorder the processors.
+                   !
+                   call sort_procs()
+                   !
+                   ! Start over again.
+                   !
+                   cycle outer
+                end if
+             end do
+          end do
+       end do
+       exit outer
+    end do outer
+
+    do i = 1, size(procs)
+       do j = 1, size(procs(i))
+          prc(ball(i,j)) = i
+       end do
+    end do
+    
+    prc = prc - 1   ! Processor numbers start at 0.
+    
+    if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'np               = ', np
+       print *, 'n                = ', size(ibxs)
+       print *, 'max       weight = ', pweights(iprocs(1))
+       print *, 'min       weight = ', pweights(iprocs(np))
+       print *, 'average   weight = ', int(average_weight,ll_t)
+       print *, 'prefilled weight = ', sum(lpf)
+       print *, 'total     weight = ', sum(pweights)
+    end if
+
+    efficiency = average_weight / real(pweights(iprocs(1)))
+
+    do i = 1, size(procs)
+       call destroy(procs(i))
     end do
 
     call cpu_time(t2)
 
     if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
-       print *, 'SFC effi = ', efficiency
-       print *, 'SFC time = ', t2-t1
+       print *, 'KNAPSACK effi = ', efficiency
+       print *, 'KNAPSACK time = ', t2-t1
     end if
 
     call destroy(bpt)
 
-    contains
+  contains
 
-      function maxpower() result(r)
+    subroutine heapify(a, ia, n)
+      integer, intent(in) :: n
+      integer(kind=ll_t), intent(in ) :: a(n)
+      integer           , intent(out) :: ia(n)
+      integer :: i
+      ia = (/(i,i=1,n)/)
+      ! This loops over parent nodes from last (i.e., n/2) to first (i.e., 1)
+      do i = n/2, 1, -1  
+         call siftDown(a, ia, i, n)
+      end do
+    end subroutine heapify
 
-        integer :: r, maxijk, i, d
+    subroutine siftDown(a, ia, i, n)
+      integer, intent(in) :: i, n
+      integer(kind=ll_t), intent(in   ) :: a(n)
+      integer           , intent(inout) :: ia(n)
+      integer :: root, child, swap, itmp
+      root = i
+      do while (2*root .le. n)  ! root has at least one child
+         child = 2*root
+         swap = root
+         if ( a(ia(swap)) .gt. a(ia(child)) ) then
+            swap = child
+         end if
+         if ( child .ne. n ) then ! there is right child
+            if ( a(ia(child)) .gt. a(ia(child+1)) ) then ! right child is smaller
+               swap = child+1
+            end if
+         end if
+         if (swap .ne. root) then
+            itmp = ia(swap)
+            ia(swap) = ia(root)
+            ia(root) = itmp
+            root = swap
+         else
+            exit
+         end if
+      end do
+    end subroutine siftDown
 
-        maxijk = lwb(bxs(1),1)
+    subroutine update_pweights()
+      integer :: i
+      do i = 1, np
+         pweights(i) = weight(i)
+      end do
+    end subroutine update_pweights
+    
+    function weight(i) result(r)
+      integer, intent(in) :: i
+      integer(kind=ll_t)  :: r
+      integer :: j
+      r = lpf(i)
+      do j = 1, size(procs(i))
+         r = r + sizes(ball(i,j))
+      end do
+    end function weight
 
-        do i = 1,size(bxs)
-           do d = 1, dm
-              maxijk = max(maxijk,lwb(bxs(i),d))
-           end do
-        end do
+    function ball(i,j) result(r)
+      integer, intent(in) :: i, j
+      integer :: r
+      r = at(procs(i),j)
+    end function ball
 
-        r = 0
-        do while ( ishft(1,r) <= maxijk )
-           r = r + 1
-        end do
+    function weight_ball(i,j) result(r)
+      integer, intent(in) :: i, j
+      integer(kind=ll_t) :: r
+      r = sizes(ball(i,j))
+    end function weight_ball
 
-      end function maxpower
+    subroutine sort_procs()
+      real(kind=dp_t) :: iss(np)
+      call update_pweights()
+      iss = pweights
+      call sort(iss, iprocs, greater_d)
+    end subroutine sort_procs
 
-      subroutine distribute()
+    subroutine swap_balls(m,i,j,k)
+      integer, intent(in) :: m, i, j, k
+      integer :: dmi, djk, ii, kk
+      dmi = ball(m,i)
+      ii = erase(procs(m), i)
+      djk = ball(j,k)
+      kk = erase(procs(j), k)
+      call push_back(procs(j), dmi)
+      call push_back(procs(m), djk)
+    end subroutine swap_balls
 
-        integer         :: k, cnt, sz
-        real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol
+  end subroutine knapsack_pf
 
-        maxvol = -Huge(1.0_dp_t)
+  subroutine make_sfc(iorder, bxs)
+    use sfc_module
+    use box_module
+    use sort_i_module
+    use bl_error_module
+    use bl_prof_module
+    
+    integer,   intent(out)           :: iorder(:)
+    type(box), intent(in ), target   :: bxs(:)
+    
+    integer :: i
+    type(bl_prof_timer), save :: bpt
 
-        volpercpu = 0.0_dp_t
-        do i = 1, size(ibxs)
-           volpercpu = volpercpu + ibxs(i)
-        end do
-        volpercpu = volpercpu / np
+    call build(bpt, 'sfc')
+    
+    call init_sfc_module()
 
-        k        = 1
-        sz       = size(ibxs)
-        totalvol = 0.0_dp_t
+    do i = 1, size(bxs)
+       iorder(i) = i
+    end do
 
-        do i = 1, np
+    call mergesort_i(iorder, sfc_greater_i)
+    
+    call close_sfc_module()
 
-           cnt = 0
-           vol = 0.0_dp_t
+    call destroy(bpt)
 
-           do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
-              whichcpu(k) = i
-              vol = vol + ibxs(iorder(k))
-              k   = k   + 1
-              cnt = cnt + 1
-           end do
+  contains
 
-           totalvol = totalvol + vol
+    subroutine init_sfc_module
+      integer :: i
+      dm     =  get_dim(bxs(1))
+      allocate(boxkeys(dm,size(bxs)))
+      do i = 1, size(bxs)
+         boxkeys(:,i) = make_box_key(i)
+      end do
+      mpower =  maxpower()
+      pbxs   => bxs
+    end subroutine init_sfc_module
 
-           if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
-              k        = k - 1
-              vol      = vol - ibxs(iorder(k))
-              totalvol = totalvol - ibxs(iorder(k))
-           endif
+    subroutine close_sfc_module()
+      deallocate(boxkeys)
+      nullify(pbxs)
+    end subroutine close_sfc_module
 
-           maxvol = max(maxvol,vol)
+    function make_box_key(i) result(r)
+      integer :: r(dm)
+      integer, intent(in) :: i
+      r = lwb(bxs(i))
+!      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
+    end function make_box_key
 
-        end do
-        !
-        ! Force "whichcpu" values to be zero-based instead of one-based.
-        !
-        whichcpu = whichcpu - 1
+    function maxpower() result(r)
+      
+      integer :: r, maxijk, i
+      
+      maxijk = -Huge(1)
+      
+      do i = 1,size(bxs)
+         maxijk = max(maxijk, maxval(boxkeys(:,i)))
+      end do
+      
+      r = 0
+      do while ( ishft(1,r) <= maxijk )
+         r = r + 1
+      end do
+      
+    end function maxpower
+    
+  end subroutine make_sfc
 
-        efficiency = volpercpu / maxvol
+  subroutine distribute_sfc(prc, iorder, ibxs, np, verbose, sort_chunks)
 
-      end subroutine distribute
+    use parallel
+    use sort_i_module
 
-  end subroutine sfc_i
+    integer,   intent(out)           :: prc(:)
+    integer,   intent(in )           :: iorder(:)
+    integer,   intent(in )           :: ibxs(:)
+    integer,   intent(in )           :: np
+    logical,   intent(in ), optional :: verbose, sort_chunks
+
+    integer :: i, k, cnt, sz, nbxs
+    integer, allocatable :: whichcpu(:), iwork(:), indxmap(:)
+    integer(kind=ll_t), allocatable :: work(:)
+    real(kind=dp_t) :: totalvol, volpercpu, vol, maxvol, efficiency
+    logical :: lverb, lsort
+
+    lverb = knapsack_verbose ; if ( present(verbose) ) lverb = verbose
+    lsort = .false.          ; if ( present(sort_chunks) ) lsort = sort_chunks
+
+    nbxs = size(prc)
+
+    allocate(whichcpu(nbxs))
+
+    maxvol = -Huge(1.0_dp_t)
+    
+    volpercpu = 0.0_dp_t
+    do i = 1, size(ibxs)
+       volpercpu = volpercpu + ibxs(i)
+    end do
+    volpercpu = volpercpu / np
+    
+    k        = 1
+    sz       = size(ibxs)
+    totalvol = 0.0_dp_t
+
+    do i = 1, np
+       
+       cnt = 0
+       vol = 0.0_dp_t
+       
+       do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
+          whichcpu(k) = i
+          vol = vol + ibxs(iorder(k))
+          k   = k   + 1
+          cnt = cnt + 1
+       end do
+       
+       totalvol = totalvol + vol
+       
+       if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
+          k        = k - 1
+          vol      = vol - ibxs(iorder(k))
+          totalvol = totalvol - ibxs(iorder(k))
+       endif
+       
+       maxvol = max(maxvol,vol)
+       
+    end do
+
+    do i = 1, nbxs
+       prc(iorder(i)) = whichcpu(i)
+    end do
+    
+    if (lsort) then
+       allocate(work(np), iwork(np), indxmap(np))
+       work = 0_ll_t
+       do i = 1, nbxs
+          work(prc(i)) = work(prc(i)) + ibxs(i)
+       end do
+
+       call stable_sort(work, iwork, ascending=.false.)
+
+       do i = 1, np
+          indxmap(iwork(i)) = i
+       end do
+
+       do i = 1, nbxs
+          prc(i) = indxmap(prc(i))
+       end do
+    end if
+    
+    prc = prc - 1  ! make it 0-based
+
+    efficiency = volpercpu / maxvol
+
+    if ( lverb .and. np > 1 .and. parallel_ioprocessor() ) then
+       print *, 'SFC effi = ', efficiency
+    end if
+
+  end subroutine distribute_sfc
 
   function sfc_greater_i(ilhs,irhs) result(r)
 
@@ -410,21 +666,21 @@ contains
     logical             :: r
     integer, intent(in) :: ilhs,irhs
 
-    integer m,d,NNN,llwb,rlwb
+    integer m,d,NNN,lkey,rkey
 
-    do m = mpower,0,-1
+    do m = mpower-1,0,-1
 
        NNN = ishft(1,m)
 
        do d = 1, dm
 
-          llwb = lwb(pbxs(ilhs),d)/NNN
-          rlwb = lwb(pbxs(irhs),d)/NNN
+          lkey = boxkeys(d,ilhs) / NNN
+          rkey = boxkeys(d,irhs) / NNN
 
-          if ( llwb < rlwb ) then
+          if ( lkey < rkey ) then
              r = .true.
              return
-          else if ( llwb > rlwb ) then
+          else if ( lkey > rkey ) then
              r = .false.
              return
           end if

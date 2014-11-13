@@ -65,12 +65,13 @@ contains
     logical, intent(in), optional :: use_lininterp
     integer, intent(in), optional :: ptype
 
-    integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
+    integer         :: n, i, id, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
-    logical         :: nodal_flag
+    logical         :: nodal_flag, eq_vol
     real(kind=dp_t) :: dvol, dvol_pd
+    integer(kind=ll_t) :: vol, vol_pd
     type(bl_prof_timer), save :: bpt
 
     ! These are added to help build the bottom_mgt
@@ -239,7 +240,6 @@ contains
               mgt%uniform_dh = .false.
           end if
        case (3)
-          mgt%uniform_dh = ((dh(1) == dh(2)) .and. (dh(1) == dh(3)))
           if (dh(1) > (ONE-1.0e-8_dp_t) * dh(2) .and. &
               dh(1) < (ONE+1.0e-8_dp_t) * dh(2) .and. & 
               dh(1) > (ONE-1.0e-8_dp_t) * dh(3) .and. &
@@ -291,14 +291,6 @@ contains
        end do
     end if
     !
-    ! Do we cover the entire domain?
-    ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
-    ! Need these to be real, not int, so we can handle large numbers.
-    !
-    ba      = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
-    dvol    = boxarray_dvolume(ba)
-    dvol_pd = box_dvolume(pd)
-    !
     ! Set both of these to false as default -- both must be true in order to subtract off sum(res)
     !
     mgt%bottom_singular    = .false.
@@ -307,8 +299,28 @@ contains
     if ( present(is_singular) ) then
        mgt%bottom_singular = is_singular
     else
+
+       !
+       ! Do we cover the entire domain?
+       ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
+       !
+       ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
+       
+       if (int8_supported()) then
+          vol    = boxarray_volume(ba)
+          vol_pd = box_i8volume(pd)
+          eq_vol = vol .eq. vol_pd
+       else
+          !
+          ! Need these to be real, not int, so we can handle large numbers.
+          !
+          dvol    = boxarray_dvolume(ba)
+          dvol_pd = box_dvolume(pd)
+          eq_vol = abs(dvol-dvol_pd).lt.1.0e-2_dp_t
+       end if
+
        ! If we cover the entire domain, then just test on the domain_bc values
-       if ( abs(dvol-dvol_pd).lt.1.0e-2_dp_t ) then
+       if ( eq_vol ) then
           mgt%bottom_singular = .true.
           do id = 1,mgt%dim
              if ( domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR ) &

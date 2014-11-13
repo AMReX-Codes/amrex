@@ -145,15 +145,14 @@ program main
   call cluster_set_blocking_factor(cluster_blocking_factor)
   call cluster_set_min_eff(cluster_min_eff)
 
+  ! store amr refinement ratio in ml_boxarray_module
+  ! we use refinement ratio of 2 in every direction between all levels
+  call amr_ref_ratio_init(max_levs,dim,2)
+
   ! tell mba about max_levs and dimensionality of problem
   call ml_boxarray_build_n(mba,max_levs,dim)
-
   ! tell mba about the ref_ratio between levels
-  ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
-  ! we use refinement ratio of 2 in every direction between all levels
-  do n=2,max_levs
-     mba%rr(n-1,:) = 2
-  enddo
+  call ml_boxarray_set_ref_ratio(mba)
 
   ! physical problem is a box on (-1,-1) to (1,1)
   prob_lo(:) = -1.d0

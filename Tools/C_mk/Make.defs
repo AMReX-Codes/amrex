@@ -218,12 +218,7 @@ endif
 ifndef USE_MPI
   USE_MPI = FALSE
 endif
-#
-# Set some reasonable defaults.
-#
-CXX = CC
-FC  = f77
-CC  = cc
+
 #
 # Defaults for BoxLib style programs.
 #
@@ -258,12 +253,12 @@ endif
 
 ifdef USE_GCC
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 
+    CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       := g++
-    CC	       := gcc
+    CXX	       ?= g++
+    CC	       ?= gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -272,7 +267,7 @@ ifdef USE_GCC
         # Necessary to compile in situ analysis
         CXXFLAGS += -ftemplate-depth-256
     else
-        CXXFLAGS += -ftemplate-depth-64
+        CXXFLAGS += -ftemplate-depth-128
     endif
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
@@ -291,11 +286,21 @@ ifdef USE_GCC
     #
     COPTF += $(CXXOPTF) -std=c99
     CDEBF += $(CXXDEBF) -std=c99
+
+else
+
+    #
+    # Set some reasonable defaults.
+    #
+    CXX = CC
+    FC  = f77
+    CC  = cc
+
 endif
 
 ifeq ($(findstring rose, $(COMP)), rose)
     CXXPRFF    := -p
-    CXXOPTF    += -g -O3 
+    CXXOPTF    += -g -O3
     CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := $(ROSECOMP)
@@ -374,7 +379,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
-    override XTRALIBS += $(_f95_lib)
+    ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+       XTRALIBS += -lgfortran
+    else
+       override XTRALIBS += $(_f95_lib)       
+    endif
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
@@ -436,7 +445,7 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
-     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+     CXXOPTF += -g -O2 -ip -fp-model source
    endif
    endif
    CXXDEBF += -g -O0
@@ -709,8 +718,8 @@ ifeq ($(FCOMP),Intel)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
-     FOPTF += -O2 -ip -fp-model source -xHost
-     fOPTF += -O2 -ip -fp-model source -xHost
+     FOPTF += -O2 -ip -fp-model source
+     fOPTF += -O2 -ip -fp-model source
    endif
    endif
 

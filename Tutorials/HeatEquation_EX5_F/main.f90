@@ -256,6 +256,8 @@ program main
   ! tell mla that there are nlevs levels, not max_levs
   call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
 
+  call destroy(mba)
+
   ! this makes sure the boundary conditions are properly defined everywhere
   do n = 1,nlevs
      call bc_tower_level_build(the_bc_tower,n,mla%la(n))
@@ -266,8 +268,6 @@ program main
   end do
 
   call init_phi(mla,phi,dx,prob_lo,the_bc_tower)
-
-  call destroy(mba)
 
   istep = 0
   time = 0.d0

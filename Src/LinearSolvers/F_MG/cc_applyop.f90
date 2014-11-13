@@ -126,14 +126,13 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-
+    type(multifab) , allocatable :: rh(:) ! this will be set to zero
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, ng_fill, dm
+    integer :: n, ng_fill
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
@@ -168,8 +167,6 @@ contains
 
     end do
 
-    dm = get_dim(rh(1))
-
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
@@ -177,12 +174,8 @@ contains
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-       do i = 1, dm
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), ng_fill, +i)
-       end do
+       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+            ref_ratio(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
@@ -239,14 +232,13 @@ contains
     integer        , intent(in   ) :: ref_ratio(:,:)
 
     integer :: nlevs
-    type(multifab), allocatable  ::        rh(:) ! this will be set to zero
-
+    type(multifab) , allocatable :: rh(:) ! this will be set to zero
     type(bndry_reg), allocatable :: brs_flx(:)
     type(bndry_reg), allocatable :: brs_bcs(:)
 
     type(box) :: pd, pdc
     type(layout) :: la, lac
-    integer :: i, n, ng_fill, dm, nComp
+    integer :: n, ng_fill, nComp
     integer :: mglev, mglev_crse
 
     type(bl_prof_timer), save :: bpt
@@ -260,7 +252,6 @@ contains
     allocate(brs_flx(2:nlevs))
     allocate(brs_bcs(2:nlevs))
 
-    dm    = 2
     nComp = 2
 
     do n = nlevs, 1, -1
@@ -284,8 +275,6 @@ contains
 
     end do
 
-    dm = get_dim(rh(1))
-
     !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
     !  its ghost cells before we evaluate the initial residual  
     do n = 2,nlevs
@@ -293,12 +282,8 @@ contains
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-       do i = 1, dm
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, &
-                             ref_ratio(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, &
-                             ref_ratio(n-1,:), ng_fill, +i)
-       end do
+       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+            ref_ratio(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
