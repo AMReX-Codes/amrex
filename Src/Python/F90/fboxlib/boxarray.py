@@ -1,11 +1,7 @@
 """PyBoxLib boxarray class."""
 
-# import base
-# from ctypes import *
-# from pybl import bl
-
 import numpy as np
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 
 class boxarray():
   """BoxArray."""

@@ -1,8 +1,8 @@
 
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 import numpy as np
 
-from multifab import multifab
+from fboxlib.multifab import multifab
 
 def regrid(layouts, multifabs, dxs, tag_boxes, max_levs=8, amr_buf_width=2, max_grid_size=64):
 

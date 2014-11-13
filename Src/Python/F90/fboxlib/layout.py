@@ -1,7 +1,7 @@
 """PyBoxLib layout class."""
 
 import numpy as np
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 
 class layout():
   """BoxLib layout."""
@@ -20,34 +20,3 @@ class layout():
 
   def echo(self):
     fcboxlib.layout_print(self.cptr)
-
-  # @property
-  # def local_boxes(self):
-  #   """Return list of local boxes."""
-  #   boxes = []
-  #   for k in range(self.nboxes):
-  #     if self.local(k+1):
-  #       boxes.append(k+1)
-  #   return boxes
-
-
-  # def local(self, box):
-  #   """Return True if box is local."""
-  #   local = c_int()
-  #   bl.pybl_layout_local(self.cptr, box, byref(local))
-  #   return local.value != 0
-
-
-  # def get_box(self, i):
-  #   bx = box()
-  #   bl.pybl_layout_get_box(self.cptr, byref(bx), i)
-  #   return bx
-
-
-  # def from_regrid(self, lmfab):
-  #   """Create a layout from re-gridding a tagged multifab."""
-
-  #   ba = boxarray()
-  #   ba.from_regrid(lmfab)
-
-  #   self.create(boxarray=ba)

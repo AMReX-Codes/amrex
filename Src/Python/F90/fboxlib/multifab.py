@@ -1,10 +1,10 @@
 """PyBoxLib multifab class."""
 
 import numpy as np
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 
-from fab import fab
-from layout import layout
+from fboxlib.fab import fab
+from fboxlib.layout import layout
 
 class multifab():
   """MultiFAB."""

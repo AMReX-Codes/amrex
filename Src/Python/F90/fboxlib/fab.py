@@ -2,7 +2,7 @@
 
 __all__ = [ 'fab' ]
 
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 import numpy as np
 
 class fab():
@@ -47,70 +47,3 @@ class fab():
   @property
   def size(self):
     return self.array.size
-
-
-#   def bxrange(self, dim):
-#     """Return an iterator to cycle over the global indicies for the
-#     given dimension.
-
-#     Essentially this returns ``range(lo(dim), hi(dim)+1)``.
-#     """
-
-#     return range(self.bx[0][dim-1], self.bx[1][dim-1]+1)
-
-
-#   def __getitem__(self, key):
-#     lbound = list(self.pbx[0])
-#     if self.nc > 1:
-#       lbound.append(0)
-
-#     key = adjust_indexes(lbound, key)
-
-#     return self.array[key]
-
-
-#   def __setitem__(self, key, value):
-#     lbound = list(self.pbx[0])
-#     if self.nc > 1:
-#       lbound.append(0)
-
-#     key = adjust_indexes(lbound, key)
-
-#     self.array[key] = value
-
-
-# # adapted from petsc4py
-# def adjust_indexes(lbounds, index):
-#    if not isinstance(index, tuple):
-#        return adjust_index(lounds[0], index)
-
-#    index = list(index)
-#    for i, start in enumerate(lbounds):
-#        index[i] = adjust_index(start, index[i])
-#    index = tuple(index)
-
-#    return index
-
-
-# # adapted from petsc4py
-# def adjust_index(lbound, index):
-
-#   if index is None:
-#       return index
-
-#   if index is Ellipsis:
-#       return index
-
-#   if isinstance(index, slice):
-#       start = index.start
-#       stop  = index.stop
-#       step  = index.step
-#       if start is not None: start -= lbound
-#       if stop  is not None: stop  -= lbound
-#       return slice(start, stop, step)
-
-#   try:
-#       return index - lbound
-
-#   except TypeError:
-#       return index
