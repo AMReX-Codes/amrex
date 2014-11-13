@@ -478,7 +478,7 @@ contains
     call cluster(boxes, tags, buffer_width)
   end subroutine pybl_cluster
 
-  subroutine pybl_regrid(lacptrs, mfcptrs, nlevs, max_levs) bind(c)
+  subroutine pybl_regrid(lacptrs, mfcptrs, nlevs, max_levs, tag_boxes_cb) bind(c)
     use bc_module
     use define_bc_module
     use regrid_module
@@ -486,6 +486,7 @@ contains
     integer(c_int), intent(in   ), value :: max_levs
     integer(c_int), intent(inout)        :: nlevs
     type(c_ptr),    intent(in   )        :: lacptrs(max_levs), mfcptrs(max_levs)
+    type(c_ptr),    intent(in   ), value :: tag_boxes_cb
 
     type(multifab), pointer :: mf
     type(layout), pointer   :: la
@@ -530,7 +531,7 @@ contains
        call bc_tower_level_build(bct,n,mla%la(n))
     end do
 
-    call regrid(mla, mfs, nlevs, max_levs, dx, bct, 2, 64)
+    call regrid(mla, mfs, nlevs, max_levs, dx, bct, 2, 64, tag_boxes_cb)
   end subroutine pybl_regrid
 
 end module fboxlib

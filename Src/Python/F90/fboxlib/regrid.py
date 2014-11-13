@@ -1,9 +1,14 @@
 
 import fboxlib
 
-from fboxlib.pybl import bl, byref, c_void_p, c_int
+from fboxlib.pybl import bl
 
-def regrid(layouts, multifabs, dxs, max_levs=8, amr_buf_width=2, max_grid_size=64):
+from ctypes import byref, c_void_p, c_int, c_double, CFUNCTYPE, POINTER
+
+# see tag_boxes.f90
+TAGBOXES = CFUNCTYPE(None, c_void_p, c_void_p, c_double, c_int)
+
+def regrid(layouts, multifabs, dxs, tag_boxes, max_levs=8, amr_buf_width=2, max_grid_size=64):
 
     # type(ml_layout), intent(inout) :: mla
     # type(multifab) , intent(inout) :: phi(:)
@@ -24,7 +29,7 @@ def regrid(layouts, multifabs, dxs, max_levs=8, amr_buf_width=2, max_grid_size=6
 
     nlevs = c_int(nlevs)
     print "regridding..."
-    bl.pybl_regrid(lacptrs, mfcptrs, byref(nlevs), c_int(max_levs))
+    bl.pybl_regrid(lacptrs, mfcptrs, byref(nlevs), c_int(max_levs), TAGBOXES(tag_boxes))
     print "regridding... done."
 
     mfs = []
