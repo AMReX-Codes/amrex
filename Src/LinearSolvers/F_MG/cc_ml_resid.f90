@@ -24,27 +24,22 @@ contains
       integer        , intent(in   ) :: ref_ratio(:)
       logical, intent(in), optional  :: filled
 
-      integer :: i, dm, mglev
+      integer :: mglev
       logical :: lfilled
 
       lfilled = .false.;  if (present(filled)) lfilled = filled
 
-      dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
       if (.not.lfilled) call multifab_fill_boundary(uu(n))
 
-      do i = 1, dm
-         call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), &
-              brs_flx%facemap(:,i), brs_flx%indxmap(:,i))
-      end do
+      call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(1,0), &
+           uu(n), mgt(n)%mm(mglev), ref_ratio, &
+           brs_flx%facemap, brs_flx%indxmap)
       call bndry_reg_copy_to_other(brs_flx)
-      do i = 1, dm
-         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
-              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap(:,i), brs_flx%oindxmap(:,i), ONE)
-      end do
+      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
+           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
+           brs_flx%ofacemap, brs_flx%oindxmap, ONE)
 
   end subroutine crse_fine_residual_cc
 
@@ -61,27 +56,22 @@ contains
       integer        , intent(in   ) :: ref_ratio(:)
       logical, intent(in), optional  :: filled
 
-      integer :: i, dm, mglev
+      integer :: mglev
       logical :: lfilled
 
       lfilled = .false.;  if (present(filled)) lfilled = filled
 
-      dm = brs_flx%dim
       mglev = mgt(n)%nlevels
 
       if (.not.lfilled) call multifab_fill_boundary(uu(n))
 
-      do i = 1, dm
-         call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(i,0), &
-              uu(n), mgt(n)%mm(mglev), ref_ratio(i), &
-              brs_flx%facemap(:,i), brs_flx%indxmap(:,i))
-      end do
+      call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(1,0), &
+           uu(n), mgt(n)%mm(mglev), ref_ratio, &
+           brs_flx%facemap, brs_flx%indxmap)
       call bndry_reg_copy_to_other(brs_flx)
-      do i = 1, dm
-         call ml_interface(crse_res, brs_flx%obmf(i,0), uu(n-1), &
-              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-              brs_flx%ofacemap(:,i), brs_flx%oindxmap(:,i), ONE)
-      end do
+      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
+           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
+           brs_flx%ofacemap, brs_flx%oindxmap, ONE)
 
   end subroutine crse_fine_residual_n_cc
 
@@ -107,9 +97,7 @@ contains
 
     type(box)    :: pd, pdc
     type(layout) :: la, lac
-    integer      :: i, n, ng_fill, dm, nlevs, mglev, mglev_crse
-
-    dm = get_dim(rh(1))
+    integer      :: n, ng_fill, nlevs, mglev, mglev_crse
 
     nlevs = mla%nlevel
 
@@ -139,10 +127,9 @@ contains
        pd = layout_get_pd(mla%la(n))
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-       do i = 1, dm
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,0), pd, ref_ratio(n-1,:), ng_fill, -i)
-          call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(i,1), pd, ref_ratio(n-1,:), ng_fill, +i)
-       end do
+       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+            ref_ratio(n-1,:), ng_fill, &
+            brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
@@ -181,9 +168,9 @@ contains
 
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
-    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in) :: uu
     type(imultifab), intent(in) :: mm
-    integer, intent(in) :: ratio, facemap(:), indxmap(:)
+    integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
     integer :: i, j, n, dm, dim, face
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
@@ -217,13 +204,13 @@ contains
           select case(dm)
           case (1)
              call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
-                                  mp(:,1,1,1), ng, ratio, face, dim)
+                                  mp(:,1,1,1), ng, ratio(dim), face, dim)
           case (2)
              call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
-                                  mp(:,:,1,1), ng, ratio, face, dim)
+                                  mp(:,:,1,1), ng, ratio(dim), face, dim)
           case (3)
              call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), ng, ratio, face, dim)
+                                  mp(:,:,:,1), ng, ratio(dim), face, dim)
           end select
        end do
     end do
@@ -292,9 +279,9 @@ contains
 
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in)    :: ss
-    type(multifab), intent(inout) :: uu
+    type(multifab), intent(in)    :: uu
     type(imultifab), intent(in)   :: mm
-    integer, intent(in) :: ratio, facemap(:), indxmap(:)
+    integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
     integer :: i, j, n, dm, dim, face
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
@@ -310,7 +297,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,sp,mp,n)
     do i = 1, nfabs(flux)
-       j = indxmap(j)
+       j = indxmap(i)
        dim = abs(facemap(i))
        face = sign(1, facemap(i))
 
@@ -323,18 +310,18 @@ contains
           select case(dm)
           case (1)
              call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
-                                  mp(:,1,1,1), ng, ratio, face, dim)
+                                  mp(:,1,1,1), ng, ratio(dim), face, dim)
           case (2)
              if ( ncomp(flux) > 1 ) then
                 call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
-                                     mp(:,:,1,1), ng, ratio, face, dim)
+                                     mp(:,:,1,1), ng, ratio(dim), face, dim)
              else
-                call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
-                                     mp(:,:,1,1), ng, ratio, face, dim)
+                call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
+                                     mp(:,:,1,1), ng, ratio(dim), face, dim)
              end if
           case (3)
              call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), ng, ratio, face, dim)
+                                  mp(:,:,:,1), ng, ratio(dim), face, dim)
           end select
        end do
     end do

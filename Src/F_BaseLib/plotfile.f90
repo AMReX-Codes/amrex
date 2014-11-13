@@ -6,7 +6,7 @@ module plotfile_module
 
   implicit none
 
-  integer, private, parameter :: MAX_PATH_NAME = 128
+  integer, private, parameter :: MAX_PATH_NAME = 512
   integer, private, parameter :: MAX_VAR_NAME  = 128
 
   interface destroy

@@ -336,18 +336,6 @@ MGT_Solver::initialize(bool nodal)
         pp.query("v", def_cg_verbose);
     }
 
-    {
-        ParmParse pp("fabarray");
-        int doit = 0;
-        pp.query("do_alltoallv", doit);
-        if (doit)
-        {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Using Do_AllToAllV in fParallel code ...\n";
-            mgt_use_alltoallv();
-        }
-    }
-
     if (def_usecg == 1)
     {
         //

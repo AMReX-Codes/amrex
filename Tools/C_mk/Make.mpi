@@ -344,7 +344,7 @@ ifeq ($(MACHINE), Linux)
       ifeq ($(MPIVENDOR),OpenMPI)
          mpihome=$(HOME)/HPC/Libraries/OMPI
          CPPFLAGS += -DOMPI_SKIP_MPICXX
-         BL_MPI_LIBS += -lmpi_f77 -lmpi      
+         BL_MPI_LIBS += -lmpi -lmpi_mpifh # Used to be mpi_f77 -lmpi      
       else
          mpihome=$(HOME)/HPC/Libraries/MPI
          CPPFLAGS += -DMPICH_SKIP_MPICXX
@@ -356,7 +356,7 @@ ifeq ($(MACHINE), Linux)
       ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
         mpihome=/usr/lib64/openmpi
         CPPFLAGS += -DOMPI_SKIP_MPICXX
-        BL_MPI_LIBS += -lmpi_f77 -lmpi      
+        BL_MPI_LIBS += -lmpi -lmpi_mpifh # Used to be mpi_f77 -lmpi  
         LIBRARY_LOCATIONS += $(mpihome)/lib
         INCLUDE_LOCATIONS += /usr/include/openmpi-x86_64
       endif
@@ -544,25 +544,14 @@ endif
 ifeq ($(MACHINE), Darwin)
   # specifics for maudib
   ifeq ($(findstring maudib, $(HOST)), maudib)
-       ifeq ($(FCOMP),gfortran)
-          CXX := mpic++
-	  CC  := mpicc
- 	  FC  := mpif90
-	  fC  := mpif90
-	  F90 := mpif90
+       CXX := mpic++
+       CC  := mpicc
+       FC  := mpif90
+       fC  := mpif90
+       F90 := mpif90
 
-	  MPI_HOME=/Users/cmalone/work/usr/local
-       else
-	  CXX := mpiic++
-	  CC  := mpiicc
-	  FC  := mpiif90
-	  fC  := mpiif90
-	  F90 := mpiif90
-	
-	  MPI_HOME=/Users/cmalone/work/usr/local/intel
-
-       endif
-
+       MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+       LIBRARIES += -lmpi_mpifh
   else
      ifdef MPIHOME
         #
@@ -570,19 +559,18 @@ ifeq ($(MACHINE), Darwin)
         #
         CXX := $(MPIHOME)/bin/mpic++
         CC  := $(MPIHOME)/bin/mpicc
-        FC  := $(MPIHOME)/bin/mpif90
-        fC  := $(MPIHOME)/bin/mpif90
-        F90 := $(MPIHOME)/bin/mpif90
 
         MPI_HOME=$(MPIHOME)
+	LIBRARIES += -lmpi_f77
      else
-        $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+        ifndef MPI_HOME
+          $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)
+        endif
      endif
 
   endif
 
   LIBRARY_LOCATIONS += $(MPI_HOME)/lib
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
-  LIBRARIES += -lmpi_f77
 
 endif

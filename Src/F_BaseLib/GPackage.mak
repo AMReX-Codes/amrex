@@ -43,6 +43,7 @@ f90sources += bndry_reg.f90
 f90sources += ml_boxarray.f90
 f90sources += ml_layout.f90
 f90sources += ml_multifab.f90
+f90sources += ml_restrict_fill.f90
 
 f90sources +=    cc_restriction.f90
 f90sources +=  edge_restriction.f90
@@ -69,6 +70,7 @@ f90sources += ppm_util.f90
 
 f90sources += cutcells.f90
 
+f90sources += regrid.f90
 f90sources += make_new_grids.f90
 f90sources += tag_boxes.f90
 
@@ -100,4 +102,8 @@ ifeq ($(ARCH),AIX)
 endif
 
 ifeq ($(ARCH),OSF1)
+endif
+
+ifdef RANDOM
+  f90sources += mt19937ar.f90
 endif

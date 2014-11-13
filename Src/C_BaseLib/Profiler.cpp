@@ -1471,7 +1471,7 @@ namespace {
     int n;
     for(n = str.size(); --n >= 0; ) {
       if(str[n] != ' ' ) {
-	break;
+        break;
       }
     }
     std::string result;

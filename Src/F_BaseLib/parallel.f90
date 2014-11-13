@@ -1296,7 +1296,7 @@ contains
 
   ! Broadcast
   subroutine parallel_bcast_d(a, root, comm)
-    real(kind=dp_t), intent(in) :: a
+    real(kind=dp_t) :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1308,7 +1308,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
   end subroutine parallel_bcast_d
   subroutine parallel_bcast_r(a, root, comm)
-    real(kind=sp_t), intent(in) :: a
+    real(kind=sp_t) :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1320,7 +1320,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_REAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_r
   subroutine parallel_bcast_i(a, root, comm)
-    integer, intent(in) :: a
+    integer :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1332,7 +1332,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_INTEGER, l_root, l_comm, ierr)
   end subroutine parallel_bcast_i
   subroutine parallel_bcast_l(a, root, comm)
-    logical, intent(in) :: a
+    logical :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1344,7 +1344,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_l
   subroutine parallel_bcast_c(a, root, comm)
-    complex(kind=sp_t), intent(in) :: a
+    complex(kind=sp_t) :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1356,7 +1356,7 @@ contains
     CALL MPI_Bcast(a, 1, MPI_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_c
   subroutine parallel_bcast_z(a, root, comm)
-    complex(kind=dp_t), intent(in) :: a
+    complex(kind=dp_t) :: a
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1369,7 +1369,7 @@ contains
   end subroutine parallel_bcast_z
   ! vector versions
   subroutine parallel_bcast_dv(a, root, comm)
-    real(kind=dp_t), intent(in) :: a(:)
+    real(kind=dp_t) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1381,7 +1381,7 @@ contains
     CALL MPI_Bcast(a, size(a), MPI_DOUBLE_PRECISION, l_root, l_comm, ierr)
   end subroutine parallel_bcast_dv
   subroutine parallel_bcast_rv(a, root, comm)
-    real(kind=sp_t), intent(in) :: a(:)
+    real(kind=sp_t) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1393,7 +1393,7 @@ contains
     CALL MPI_Bcast(a, size(a), MPI_REAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_rv
   subroutine parallel_bcast_iv(a, root, comm)
-    integer, intent(in) :: a(:)
+    integer :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1405,7 +1405,7 @@ contains
     CALL MPI_Bcast(a, size(a), MPI_INTEGER, l_root, l_comm, ierr)
   end subroutine parallel_bcast_iv
   subroutine parallel_bcast_lv(a, root, comm)
-    logical, intent(in) :: a(:)
+    logical :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1417,7 +1417,7 @@ contains
     CALL MPI_Bcast(a, size(a), MPI_LOGICAL, l_root, l_comm, ierr)
   end subroutine parallel_bcast_lv
   subroutine parallel_bcast_cv(a, root, comm)
-    complex(kind=sp_t), intent(in) :: a(:)
+    complex(kind=sp_t) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root
@@ -1429,7 +1429,7 @@ contains
     CALL MPI_Bcast(a, size(a), MPI_COMPLEX, l_root, l_comm, ierr)
   end subroutine parallel_bcast_cv
   subroutine parallel_bcast_zv(a, root, comm)
-    complex(kind=dp_t), intent(in) :: a(:)
+    complex(kind=dp_t) :: a(:)
     integer, intent(in), optional :: root
     integer, intent(in), optional :: comm
     integer ierr, l_comm, l_root

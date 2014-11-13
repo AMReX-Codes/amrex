@@ -1,3 +1,7 @@
+! The cluster module decides how to place fine grids that contain all
+! newly-tagged coarse cells, and satisfy other constraints such as
+! blocking factor, efficiency, etc.
+
 module cluster_module
 
   use bl_types
@@ -20,7 +24,6 @@ module cluster_module
   real(kind=dp_t), parameter, private :: min_eff_default  = 0.7_dp_t
 
   integer        , save :: minwidth  = minwidth_default
-  integer        , save :: ref_ratio = ref_ratio_default
   integer        , save :: blocking_factor = blocking_factor_default
   real(kind=dp_t), save :: min_eff = min_eff_default
 
@@ -85,7 +88,7 @@ contains
     r = beta
   end function cluster_get_beta
 
-  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff)
+  subroutine cls_3d_mf(boxes, tagboxes, buf_wid, overall_eff, ref_ratio)
     use bl_error_module
     use bl_prof_module
 
@@ -93,6 +96,7 @@ contains
     type(lmultifab), intent(in )           :: tagboxes
     integer,         intent(in )           :: buf_wid
     real(dp_t),      intent(out), optional :: overall_eff
+    integer,         intent(in),  optional :: ref_ratio
 
     type(layout)                 :: la, cla, la_buf
     type(list_box)               :: lboxes
@@ -162,7 +166,11 @@ contains
     buf_pd = get_pd(la_buf)
     call pd_mask(buf,buf_pd)
 
-    ratio = max(blocking_factor / ref_ratio, 1)
+    if (present(ref_ratio)) then
+       ratio = max(blocking_factor / ref_ratio, 1)
+    else
+       ratio = max(blocking_factor / ref_ratio_default, 1)
+    end if
 
     call tagboxes_coarsen(buf, cbuf, ratio)
     !
@@ -280,20 +288,81 @@ contains
 
     subroutine owner_mask(mask)
       type(lmultifab), intent(inout) :: mask
-      integer :: i, j
-      type(box) :: bxi, bxj, bxij
+      integer, parameter :: OneByte = selected_int_kind(1)
+      integer :: i, j, k, n, lo(4), hi(4), dm, vol_safe, ierr
+      type(box) :: bbox, bxi, bxj, bxij
       logical, pointer :: lp(:,:,:,:)
+      integer(kind=OneByte), allocatable :: imask(:,:,:)
+      type(mem_stats) :: ms
+      integer(kind=ll_t) :: hwm, current_usage
 
-      do i = 1, nfabs(mask)
-         bxi = get_pbox(mask, i)
-         do j = 1, i-1
-            bxj = get_pbox(mask, j)
-            bxij = intersection(bxi, bxj)
-            if ( empty(bxij) ) cycle
-            lp => dataptr(mask, j, bxij)
-            lp = .false.
+      ms  = fab_mem_stats()
+      current_usage = ms%num_alloc-ms%num_dealloc
+      hwm = fab_get_high_water_mark()
+      ! 8: real*8 in fab_mem_stats
+      ! 1/8: 12.5% of the current usage should be safe
+      vol_safe = 8*max(hwm-current_usage, current_usage/8)
+      
+      bbox = boxarray_bbox(get_boxarray(mask))
+      dm = get_dim(bbox)
+      lo = 1;  hi = 1;
+      lo(1:dm) = lwb(bbox)
+      hi(1:dm) = upb(bbox)
+
+      if (product(hi-lo+1) < vol_safe) then  
+         allocate(imask(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)), stat=ierr)
+      end if
+
+      if (allocated(imask)) then
+         
+         imask = 0_OneByte
+
+         do n = 1, nfabs(mask)
+            lp => dataptr(mask,n)
+            lo = lbound(lp)
+            hi = ubound(lp)
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               if (lp(i,j,k,1)) imask(i,j,k) = imask(i,j,k) + 1_OneByte
+            end do
+            end do
+            end do
          end do
-      end do
+         
+         do n = 1, nfabs(mask)
+            lp => dataptr(mask,n)
+            lo = lbound(lp)
+            hi = ubound(lp)
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               if (imask(i,j,k) .gt. 1_OneByte) then
+                  lp(i,j,k,1) = .false.
+                  imask(i,j,k) = imask(i,j,k) - 1_OneByte
+               end if
+            end do
+            end do
+            end do
+         end do
+
+         deallocate(imask)
+
+      else
+
+         do i = 1, nfabs(mask)
+            bxi = get_pbox(mask, i)
+            do j = 1, i-1
+               bxj = get_pbox(mask, j)
+               bxij = intersection(bxi, bxj)
+               if ( empty(bxij) ) cycle
+               lp => dataptr(mask, j, bxij)
+               lp = .false.
+            end do
+         end do
+
+      end if
+
     end subroutine owner_mask
 
     subroutine buffer_1d(bb, tt, ng)

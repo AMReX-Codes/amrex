@@ -36,14 +36,14 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       call compute_flux_single_level(mla,phi(n),flux(n,:),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+       call compute_flux_single_level(mla,phi(n),flux(:,n),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
     end do
 
     ! set level n-1 fluxes to be the average of the level n fluxes covering it
     ! the loop over nlevs must count backwards to make sure the finer grids are done first
     do n=nlevs,2,-1
        do i=1,dm
-          call ml_edge_restriction_c(flux(n-1,i),1,flux(n,i),1,mla%mba%rr(n-1,:),i,1)
+          call ml_edge_restriction_c(flux(i,n-1),1,flux(i,n),1,mla%mba%rr(n-1,:),i,1)
        end do
     end do
 
@@ -207,8 +207,8 @@ contains
     end do
 
     ! y-fluxes: add the advective fluxes
-    do j=lo(2),hi(2)
-       do i=lo(1),hi(1)+1
+    do j=lo(2),hi(2)+1
+       do i=lo(1),hi(1)
 
           ! Assume that vadv > 0, which means we need the slope in (i,j-1)
           dlft = 2.d0*(phi(i,j-1) - phi(i,j-2))
@@ -227,14 +227,6 @@ contains
 
        end do
     end do
-
-    ! ****************************************************************
-    ! Multiply by dt
-    ! ****************************************************************
-
-    ! Note that we multiply by dt here to make the refluxing easier
-    fluxx(:,:) = dt * fluxx(:,:)
-    fluxy(:,:) = dt * fluxy(:,:)
 
   end subroutine compute_flux_2d
 
@@ -475,15 +467,6 @@ contains
        end do
     end do
     !$omp end parallel do
-
-    ! ****************************************************************
-    ! Multiply by dt
-    ! ****************************************************************
-
-    ! Note that we multiply by dt here to make the refluxing easier
-    fluxx(:,:,:) = dt * fluxx(:,:,:)
-    fluxy(:,:,:) = dt * fluxy(:,:,:)
-    fluxz(:,:,:) = dt * fluxz(:,:,:)
 
   end subroutine compute_flux_3d
 

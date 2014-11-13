@@ -15,7 +15,7 @@ subroutine t_cc_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, do_diagnostic
   use box_util_module
   use bl_IO_module
   use fabio_module
-  use ml_restriction_module
+  use ml_cc_restriction_module
   use ml_prolongation_module
   use ml_cc_module
 

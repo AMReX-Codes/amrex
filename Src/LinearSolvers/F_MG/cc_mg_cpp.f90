@@ -106,11 +106,6 @@ subroutine mgt_flush_output()
   call flush(6)
 end subroutine mgt_flush_output
 
-subroutine mgt_use_alltoallv ()
-  use multifab_module
-  call multifab_set_alltoallv(.true.)
-end subroutine mgt_use_alltoallv
-
 subroutine mgt_cc_alloc(dm, nlevel, stencil_type)
 
   use cpp_mg_module

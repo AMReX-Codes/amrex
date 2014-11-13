@@ -58,9 +58,6 @@ program main
   type(ml_layout)   :: mla
   type(layout), allocatable :: la_array(:)
 
-  ! Array of edge-based multifabs; one for each direction
-  type(multifab) , allocatable :: flux(:,:)
-
   ! Boundary register to hold the fine flux contributions at the coarse resolution
   type(bndry_reg), allocatable :: bndry_flx(:)
 
@@ -166,15 +163,14 @@ program main
   call cluster_set_blocking_factor(cluster_blocking_factor)
   call cluster_set_min_eff(cluster_min_eff)
 
+  ! store amr refinement ratio in ml_boxarray_module
+  ! we use refinement ratio of 2 in every direction between all levels
+  call amr_ref_ratio_init(max_levs,dim,2)
+
   ! tell mba about max_levs and dimensionality of problem
   call ml_boxarray_build_n(mba,max_levs,dim)
-
   ! tell mba about the ref_ratio between levels
-  ! mba%rr(n-1,i) is the refinement ratio between levels n-1 and n in direction i
-  ! we use refinement ratio of 2 in every direction between all levels
-  do n=2,max_levs
-     mba%rr(n-1,:) = 2
-  enddo
+  call ml_boxarray_set_ref_ratio(mba)
 
   ! physical problem is a box on (-1,-1) to (1,1)
   prob_lo(:) = -1.d0
@@ -266,12 +262,13 @@ program main
      call enforce_proper_nesting(mba,la_array,max_grid_size)
   end if
 
-  do n=1,nlevs
+  do n = 1,nlevs
      call destroy(la_array(n))
   end do
 
-  ! tell mla that there are nlevs levels, not max_levs
   call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
+
+  call destroy(mba)
 
   ! this makes sure the boundary conditions are properly defined everywhere
   do n = 1,nlevs
@@ -286,8 +283,6 @@ program main
   end do
 
   call init_phi(mla,phi_new,dx,prob_lo,the_bc_tower)
-
-  call destroy(mba)
 
   istep = 0
   time = 0.d0
@@ -336,17 +331,8 @@ program main
   !       fine grids at the coarse resolution.
   allocate(bndry_flx(2:nlevs))
   do n = 2, nlevs
-     call bndry_reg_rr_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
-                             ml_layout_get_pd(mla,n-1),other=.true.)
-  end do
-
-  ! flux(n,i) has one component, zero ghost cells, and is nodal in direction i,
-  !    i.e. it lives on the i-edges.
-  allocate(flux(nlevs,dim))
-  do n = 1,nlevs
-    do i = 1, dim
-        call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
-    end do
+     call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+          ml_layout_get_pd(mla,n-1),nc=1)
   end do
 
   do istep=1,nsteps
@@ -360,10 +346,19 @@ program main
           call multifab_destroy(phi_old(n))
         end do
 
-        call regrid(mla,phi_new,flux,bndry_flx,&
+        do n=2,nlevs
+           call destroy(bndry_flx(n))       
+        end do
+
+        call regrid(mla,phi_new, &
                     nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
-        ! Create new flux, phi_old and bndry_flx after regridding
+        do n = 2, nlevs
+           call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
+                ml_layout_get_pd(mla,n-1),nc=1)
+        end do
+
+        ! Create new phi_old after regridding
         do n = 1,nlevs
           call multifab_build(phi_old(n),mla%la(n),1,2)
         end do
@@ -377,13 +372,15 @@ program main
      end if
 
      ! Advance phi by one coarse time step
-     call advance(mla,phi_old,phi_new,flux,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
+     call advance(mla,phi_old,phi_new,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
 
      time = time + dt(1)
 
      ! Write plotfile after every plot_int time steps, or if the simulation is done.
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int .gt. 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do
@@ -394,17 +391,10 @@ program main
      call destroy(phi_new(n))
   end do
 
-  do n = 1,nlevs
-     do i = 1, dim
-        call multifab_destroy(flux(n,i))
-     end do
-  end do
-  deallocate(flux)
-
   call bc_tower_destroy(the_bc_tower)
 
   do n = 2, nlevs
-     call bndry_reg_destroy(bndry_flx(n))
+     call destroy(bndry_flx(n))
   end do
   deallocate(bndry_flx)
 
@@ -441,6 +431,9 @@ program main
   if ( parallel_IOProcessor() ) then
      print*,"Run time (s) =",run_time_IOproc
   end if
+
+  ! We put this here for debugging to make sure our print statements get seen.
+  call flush(6)
 
   call boxlib_finalize()
 
