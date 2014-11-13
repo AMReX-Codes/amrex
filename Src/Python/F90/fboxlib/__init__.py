@@ -1,10 +1,10 @@
 
-import fcboxlib
+import fboxlib.fcboxlib as fcboxlib
 
-from boxarray import boxarray
-from layout import layout
-from multifab import multifab, lmultifab
-from regrid import regrid
+from fboxlib.boxarray import boxarray
+from fboxlib.layout import layout
+from fboxlib.multifab import multifab, lmultifab
+from fboxlib.regrid import regrid
 
 open     = fcboxlib.open
 close    = fcboxlib.close
