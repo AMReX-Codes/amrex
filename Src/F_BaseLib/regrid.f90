@@ -18,10 +18,10 @@ contains
 
     type(ml_layout), intent(inout) :: mla
     type(multifab) , intent(inout) :: phi(:)
-    integer        , intent(inout) :: nlevs, max_levs
+    integer        , intent(inout) :: nlevs
     real(dp_t)     , intent(in   ) :: dx(:)
     type(bc_tower) , intent(inout) :: the_bc_tower
-    integer        , intent(in   ) :: amr_buf_width, max_grid_size
+    integer        , intent(in   ) :: amr_buf_width, max_grid_size, max_levs
 
     ! local variables
     type(layout)      :: la_array(max_levs)
@@ -32,6 +32,8 @@ contains
     integer :: dm,n,nl,n_buffer, nlevs_old, nc, ng
 
     logical :: new_grid, properly_nested, pmask(mla%dim), same_boxarray
+
+    nlevs_old = nlevs
 
     dm = mla%dim
     pmask = mla%pmask
@@ -54,7 +56,7 @@ contains
     end do
 
     ! mba is big enough to hold max_levs levels
-    ! even though we know we had nlevs last time, we might 
+    ! even though we know we had nlevs last time, we might
     ! want more or fewer levels after regrid (if nlevs < max_levs)
     call ml_boxarray_build_n(mba,max_levs,dm)
     call ml_boxarray_set_ref_ratio(mba)
@@ -70,7 +72,7 @@ contains
 
     nl = 1
     new_grid = .true.
-    
+
     ! this is the number of level n+1 buffer cells we require between levels
     ! n and n+2 for proper nesting
     n_buffer = 4
@@ -92,7 +94,7 @@ contains
           ! set the level nl+1 boxarray
           call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
 
-          ! enforce proper nesting within the grid creation procedure 
+          ! enforce proper nesting within the grid creation procedure
           if (nl .ge. 2) then
 
              ! Test on whether grids are already properly nested
@@ -106,17 +108,17 @@ contains
                    call destroy(phi(n))
                 end do
 
-                ! Change the layout at levels 2 through nl so the new grid 
+                ! Change the layout at levels 2 through nl so the new grid
                 ! structure is properly nested
                 call enforce_proper_nesting(mba,la_array,max_grid_size)
 
-                ! Loop over all the lower levels which we might have changed 
+                ! Loop over all the lower levels which we might have changed
                 ! when we enforced proper nesting.
                 do n = 2,nl
-   
+
                    ! This makes sure the boundary conditions are properly defined everywhere
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
-   
+
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,2)
 
@@ -128,7 +130,7 @@ contains
                    end if
 
                    if (.not. same_boxarray) then
-                      ! first fill all refined cells by interpolating from coarse 
+                      ! first fill all refined cells by interpolating from coarse
                       ! data underneath...  no need to fill ghost cells
                       call fillpatch(phi(n),phi(n-1),0,mba%rr(n-1,:), &
                            the_bc_tower%bc_tower_array(n-1), &
@@ -161,7 +163,7 @@ contains
           end if
 
           if (.not.same_boxarray) then
-             ! first fill all refined cells by interpolating from coarse 
+             ! first fill all refined cells by interpolating from coarse
              ! data underneath...
              ! no need to fill ghost cells
              call fillpatch(phi(nl+1),phi(nl),0,mba%rr(nl,:), &
@@ -176,13 +178,12 @@ contains
           end if
 
           nl = nl+1
-          nlevs = nl          
+          nlevs = nl
 
        end if
 
     end do  ! end do while ( (nl .lt. max_levs) .and. new_grid )
 
-    nlevs_old = nlevs
     nlevs = nl
 
     do n=2, nlevs_old
@@ -190,7 +191,7 @@ contains
     end do
 
     ! this destroys everything in mla except the coarsest layout
-    call destroy(mla, keep_coarse_layout=.true.)  
+    call destroy(mla, keep_coarse_layout=.true.)
 
     call ml_layout_build_la_array(mla,la_array,mba,pmask,nlevs)
     call destroy(mba)
