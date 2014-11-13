@@ -7,8 +7,11 @@ from pybl import bl
 class BLObject(object):
 
 
-  def __init__(self):
-    self.cptr   = c_void_p(None)
+  def __init__(self, cptr=None):
+    if cptr is None:
+      self.cptr   = c_void_p(None)
+    else:
+      self.ctpr = cptr
     self.c_int_attrs = []
 
 
@@ -18,8 +21,9 @@ class BLObject(object):
 
   def echo(self):
     pr = 'pybl_print_' + self.__class__.__name__
-    pr = getattr(bl, pr)
-    pr(self.cptr)
+    pr = getattr(bl, pr, None)
+    if pr is not None:
+      pr(self.cptr)
 
 
   @property
@@ -39,4 +43,4 @@ class BLObject(object):
       attr = getattr(self, '_' + name)
       return attr.value
 
-    raise AttributeError()
+    # raise AttributeError()
