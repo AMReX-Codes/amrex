@@ -13,9 +13,9 @@ DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-PROFILE       = FALSE
+PROFILE       = TRUE
 COMM_PROFILE  = FALSE
-TRACE_PROFILE = FALSE
+TRACE_PROFILE = TRUE
 
 
 BOXLIB_HOME = ../..
@@ -34,10 +34,10 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 #_progs  := tBA
 #_progs  := tDM
 #_progs  := tFillFab
-_progs  := tMF
+#_progs  := tMF
 #_progs  := tFB
 #_progs  := tMFcopy
-#_progs  := tProfiler
+_progs  := tProfiler
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
@@ -47,6 +47,10 @@ ifeq ($(COMP),g++)
   ifeq ($(__gcc_major_version),2)
     INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib/std
   endif
+endif
+
+ifeq ($(_progs),tProfiler)
+  FEXE_sources += TPROFILER.F
 endif
 
 ifeq ($(_progs),tFillFab)
