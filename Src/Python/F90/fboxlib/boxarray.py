@@ -10,7 +10,7 @@ from pybl import bl
 class boxarray(base.BLObject):
   """BoxArray."""
 
-  def create(self, boxes=[]):
+  def create(self, boxes):
     """Create a boxarray from a list of boxes."""
 
     nboxes = len(boxes)
