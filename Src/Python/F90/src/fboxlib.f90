@@ -179,44 +179,21 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! multifab routines
 
-  subroutine pybl_get_multifab_info(cptr, dim, nboxes, nc, ng) bind(c)
-    type(c_ptr),    intent(in   ), value :: cptr
-    integer(c_int), intent(  out)        :: dim, nboxes, nc, ng
-    type(multifab), pointer :: mfab
-    call pybl_multifab_get(cptr,mfab)
-    dim = mfab%dim
-    nboxes = nfabs(mfab)
-    nc = mfab%nc
-    ng = mfab%ng
-  end subroutine pybl_get_multifab_info
+  subroutine pybl_lmultifab_create_from_layout(la_cptr,cptr) bind(c)
+    type(c_ptr),    intent(in   ), value :: la_cptr
+    type(c_ptr),    intent(  out)        :: cptr
 
-  subroutine pybl_get_multifab_fab_info(cptr, nbox, dim, nc, bx_lo, bx_hi, pbx_lo, pbx_hi, ibx_lo, ibx_hi) bind(c)
-    type(c_ptr),            intent(in   ), value        :: cptr
-    integer(c_int),         intent(in   ), value        :: nbox
-    integer(c_int),         intent(  out)               :: dim, nc
-    integer(c_int),         intent(  out), dimension(3) :: bx_lo, bx_hi, pbx_lo, pbx_hi, ibx_lo, ibx_hi
+    type(layout), pointer   :: la
+    type(lmultifab), pointer :: mfab
 
-    type(multifab), pointer :: mfab
-    type(box) :: bx
+    call pybl_layout_get(la_cptr,la)
+    call pybl_lmultifab_new(cptr,mfab)
 
-    call pybl_multifab_get(cptr,mfab)
-    dim = get_dim(mfab%fbs(nbox))
-    nc = ncomp(mfab%fbs(nbox))
+    call build(mfab, la)
+    call setval(mfab, .false.)
+  end subroutine pybl_lmultifab_create_from_layout
 
-    bx = get_box(mfab%fbs(nbox))
-    bx_lo = bx%lo
-    bx_hi = bx%hi
-
-    bx = get_pbox(mfab%fbs(nbox))
-    pbx_lo = bx%lo
-    pbx_hi = bx%hi
-
-    bx = get_ibox(mfab%fbs(nbox))
-    ibx_lo = bx%lo
-    ibx_hi = bx%hi
-  end subroutine pybl_get_multifab_fab_info
-
-  subroutine pybl_create_multifab_from_layout(la_cptr,nc,ng,cptr) bind(c)
+  subroutine pybl_multifab_create_from_layout(la_cptr,nc,ng,cptr) bind(c)
     type(c_ptr),    intent(in   ), value :: la_cptr
     integer(c_int), intent(in   ), value :: nc, ng
     type(c_ptr),    intent(  out)        :: cptr
@@ -229,31 +206,14 @@ contains
 
     call build(mfab, la, nc=nc, ng=ng) !, interleave=interleave)
     call setval(mfab, 0.0d0)
-  end subroutine pybl_create_multifab_from_layout
+  end subroutine pybl_multifab_create_from_layout
 
-  subroutine pybl_create_multifab_from_bbox(cptr1,nc,ng,cptr) bind(c)
-    type(c_ptr),    intent(in   ), value :: cptr1
-    integer(c_int), intent(in   )        :: nc, ng
-    type(c_ptr),    intent(  out)        :: cptr
-
-    type(multifab), pointer :: mfab1, mfab
-    type(layout)   :: la
-    type(boxarray) :: ba
-
-    call pybl_multifab_get(cptr1, mfab1)
-    call build(ba, boxarray_bbox(get_boxarray(get_layout(mfab1))))
-    call build(la, ba, boxarray_bbox(ba))
-    call pybl_multifab_new(cptr,mfab)
-    call build(mfab, la, nc=nc, ng=ng) !, interleave=interleave)
-    call setval(mfab, 0.0d0)
-  end subroutine pybl_create_multifab_from_bbox
-
-  subroutine pybl_print_multifab(cptr) bind(c)
+  subroutine pybl_multifab_print(cptr) bind(c)
     type(c_ptr), intent(in   ), value :: cptr
     type(multifab), pointer :: mfab
     call pybl_multifab_get(cptr, mfab)
     call print(mfab)
-  end subroutine pybl_print_multifab
+  end subroutine pybl_multifab_print
 
   subroutine pybl_multifab_destroy(cptr) bind(c)
     type(c_ptr), intent(in   ), value :: cptr
@@ -310,125 +270,66 @@ contains
     call copy(dmfab, 1, smfab, 1, ncomp(smfab))
   end subroutine pybl_multifab_copy
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! plotfile
-
-  subroutine pybl_create_plotfile(dname, dlen, cptr) bind(c)
-    use bl_io_module
-    use plotfile_module
-    type(c_ptr),    intent(in   ), value :: dname
-    integer(c_int), intent(in   ), value :: dlen
-    type(c_ptr),    intent(  out)        :: cptr
-
-    type(plotfile), pointer :: pf
-    character(len=dlen), pointer :: root
-    integer :: un
-
-    call c_f_pointer(dname, root)
-    call pybl_plotfile_new(cptr, pf)
-    un = unit_new()
-    call build(pf, root, un)
-  end subroutine pybl_create_plotfile
-
-  subroutine pybl_get_plotfile_info(cptr, dim, nvars, flevel) bind(c)
-    use plotfile_module, only: plotfile
+  subroutine pybl_multifab_info(cptr, dim, nboxes, nc, ng) bind(c)
     type(c_ptr),    intent(in   ), value :: cptr
-    integer(c_int), intent(  out)        :: dim, nvars, flevel
+    integer(c_int), intent(  out)        :: dim, nboxes, nc, ng
+    type(multifab), pointer :: mfab
+    call pybl_multifab_get(cptr,mfab)
+    dim = mfab%dim
+    nboxes = nfabs(mfab)
+    nc = mfab%nc
+    ng = mfab%ng
+  end subroutine pybl_multifab_info
 
-    type(plotfile), pointer :: pf
-    call pybl_plotfile_get(cptr, pf)
-    dim    = pf%dim
-    nvars  = pf%nvars
-    flevel = pf%flevel
-  end subroutine pybl_get_plotfile_info
+  subroutine pybl_multifab_layout(cptr, laptr) bind(c)
+    type(c_ptr), intent(in   ), value :: cptr
+    type(c_ptr), intent(  out)        :: laptr
+    type(multifab), pointer :: mfab
+    type(layout), pointer :: la
+    call pybl_multifab_get(cptr,mfab)
+    la => mfab%la
+    laptr = c_loc(la)
+  end subroutine pybl_multifab_layout
 
-  subroutine pybl_get_plotfile_grid_info(cptr, level, nboxes) bind(c)
-    use plotfile_module, only: plotfile
+  subroutine pybl_lmultifab_info(cptr, dim, nboxes, nc, ng) bind(c)
     type(c_ptr),    intent(in   ), value :: cptr
-    integer(c_int), intent(in   ), value :: level
-    integer(c_int), intent(  out)        :: nboxes
-    type(plotfile), pointer :: pf
-    call pybl_plotfile_get(cptr, pf)
-    nboxes = plotfile_nboxes_n(pf, level)
-  end subroutine pybl_get_plotfile_grid_info
+    integer(c_int), intent(  out)        :: dim, nboxes, nc, ng
+    type(lmultifab), pointer :: mfab
+    call pybl_lmultifab_get(cptr,mfab)
+    dim = mfab%dim
+    nboxes = nfabs(mfab)
+    nc = mfab%nc
+    ng = mfab%ng
+  end subroutine pybl_lmultifab_info
 
-  subroutine pybl_get_plotfile_name(cptr, nvar, nlen, nameptr) bind(c)
-    use plotfile_module
-    type(c_ptr),    intent(in   ), value :: cptr
-    integer(c_int), intent(in   ), value :: nvar, nlen
-    type(c_ptr),    intent(in   ), value :: nameptr
+  subroutine pybl_fab_info(cptr, nbox, dim, nc, bx_lo, bx_hi, pbx_lo, pbx_hi, ibx_lo, ibx_hi) bind(c)
+    type(c_ptr),            intent(in   ), value        :: cptr
+    integer(c_int),         intent(in   ), value        :: nbox
+    integer(c_int),         intent(  out)               :: dim, nc
+    integer(c_int),         intent(  out), dimension(3) :: bx_lo, bx_hi, pbx_lo, pbx_hi, ibx_lo, ibx_hi
 
-    type(plotfile), pointer :: pf
-    character(len=nlen), pointer :: name
-
-    call pybl_plotfile_get(cptr, pf)
-    call c_f_pointer(nameptr, name)
-    name = pf%names(nvar)
-  end subroutine pybl_get_plotfile_name
-
-  subroutine pybl_plotfile_bind(cptr, i, j, c) bind(c)
-    use plotfile_module
-    type(c_ptr),    intent(in), value :: cptr
-    integer(c_int), intent(in), value :: i, j, c
-
-    type(plotfile), pointer :: pf
-
-    call pybl_plotfile_get(cptr, pf)
-    call fab_bind_comp_vec(pf, i, j, (/ c /) )
-  end subroutine pybl_plotfile_bind
-
-  subroutine pybl_plotfile_unbind(cptr, i, j) &
-       bind(c, name='pybl_plotfile_unbind')
-    use plotfile_module
-    type(c_ptr),    intent(in), value :: cptr
-    integer(c_int), intent(in), value :: i, j
-
-    type(plotfile), pointer :: pf
-
-    call pybl_plotfile_get(cptr, pf)
-    call fab_unbind(pf, i, j)
-  end subroutine pybl_plotfile_unbind
-
-  subroutine pybl_get_plotfile_fab_info(cptr, level, nbox, dim, nc, &
-       pbx_lo, pbx_hi) &
-       bind(c, name='pybl_get_plotfile_fab_info')
-    use plotfile_module
-    implicit none
-    type(c_ptr), intent(in), value :: cptr
-    integer(c_int), intent(in), value :: level, nbox
-    integer(c_int), intent(out) :: dim, nc
-    integer(c_int), intent(out), dimension(3) :: pbx_lo, pbx_hi
-
-    type(plotfile), pointer :: pf
+    type(multifab), pointer :: mfab
     type(box) :: bx
-    call pybl_plotfile_get(cptr, pf)
-    dim = pf%dim
-    nc  = pf%nvars
 
-    bx = get_box(pf, level, nbox)
+    call pybl_multifab_get(cptr,mfab)
+    dim = get_dim(mfab%fbs(nbox))
+    nc = ncomp(mfab%fbs(nbox))
+
+    bx = get_box(mfab%fbs(nbox))
+    bx_lo = bx%lo
+    bx_hi = bx%hi
+
+    bx = get_pbox(mfab%fbs(nbox))
     pbx_lo = bx%lo
     pbx_hi = bx%hi
-  end subroutine pybl_get_plotfile_fab_info
+
+    bx = get_ibox(mfab%fbs(nbox))
+    ibx_lo = bx%lo
+    ibx_hi = bx%hi
+  end subroutine pybl_fab_info
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! cluster/regrid
-
-  subroutine pybl_cluster(tags_cptr, buffer_width, boxes_cptr) bind(c)
-    use cluster_module
-    implicit none
-
-    type(c_ptr),    intent(in), value :: tags_cptr
-    integer(c_int), intent(in), value :: buffer_width
-    type(c_ptr),    intent(out) :: boxes_cptr
-
-    type(lmultifab), pointer :: tags
-    type(boxarray),  pointer :: boxes
-
-    call pybl_boxarray_new(boxes_cptr, boxes)
-    call pybl_lmultifab_get(tags_cptr, tags)
-
-    call cluster(boxes, tags, buffer_width)
-  end subroutine pybl_cluster
+  ! regrid
 
   subroutine pybl_regrid(lacptrs, mfcptrs, nlevs, max_levs, tag_boxes_cb) bind(c)
     use bc_module
@@ -437,14 +338,14 @@ contains
 
     integer(c_int), intent(in   ), value :: max_levs
     integer(c_int), intent(inout)        :: nlevs
-    type(c_ptr),    intent(in   )        :: lacptrs(max_levs), mfcptrs(max_levs)
+    type(c_ptr),    intent(inout)        :: lacptrs(max_levs), mfcptrs(max_levs)
     type(c_ptr),    intent(in   ), value :: tag_boxes_cb
 
     type(multifab), pointer :: mf
     type(layout), pointer   :: la
+    type(multifab), target  :: mfs(max_levs)
 
     integer           :: i, n, dim, new_nlevs, phys_bc_in(3,2)
-    type(multifab)    :: mfs(max_levs)
     type(ml_boxarray) :: mba
     type(ml_layout)   :: mla
     type(bc_tower)    :: bct
@@ -484,6 +385,11 @@ contains
     end do
 
     call regrid(mla, mfs, nlevs, max_levs, dx, bct, 2, 64, tag_boxes_cb)
+
+    do i=1,nlevs
+       mfcptrs(i) = c_loc(mfs(i))
+    end do
+
   end subroutine pybl_regrid
 
 end module fboxlib

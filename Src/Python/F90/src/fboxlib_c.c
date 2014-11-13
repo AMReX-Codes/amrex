@@ -193,6 +193,145 @@ pyblw_layout_nboxes (PyObject * self, PyObject * args)
   return PyInt_FromLong(nboxes);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_lmultifab_create_from_layout(void*,void*);
+
+PyObject *
+pyblw_lmultifab_create_from_layout (PyObject * self, PyObject * args)
+{
+  long laptr, ptr;
+  if (!PyArg_ParseTuple (args, "l", &laptr))
+    return NULL;
+  pybl_lmultifab_create_from_layout((void*)laptr,&ptr);
+  return PyLong_FromLong(ptr);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_lmultifab_info(void*,int*,int*,int*,int*);
+
+PyObject *
+pyblw_lmultifab_info (PyObject * self, PyObject * args)
+{
+  long ptr;
+  int dim, nboxes, nc, ng;
+  if (!PyArg_ParseTuple (args, "l", &ptr))
+    return NULL;
+  pybl_lmultifab_info((void*)ptr,&dim,&nboxes,&nc,&ng);
+  return Py_BuildValue("(iiii)", dim, nboxes, nc, ng);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_multifab_create_from_layout(void*,int,int,void*);
+
+PyObject *
+pyblw_multifab_create_from_layout (PyObject * self, PyObject * args)
+{
+  int nc, ng;
+  long laptr, ptr;
+  if (!PyArg_ParseTuple (args, "lii", &laptr, &nc, &ng))
+    return NULL;
+  pybl_multifab_create_from_layout((void*)laptr,nc,ng,&ptr);
+  return PyLong_FromLong(ptr);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_multifab_print(void*);
+
+PyObject *
+pyblw_multifab_print (PyObject * self, PyObject * args)
+{
+  long ptr;
+  if (!PyArg_ParseTuple (args, "l", &ptr))
+    return NULL;
+  pybl_multifab_print((void*)ptr);
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_multifab_info(void*,int*,int*,int*,int*);
+
+PyObject *
+pyblw_multifab_info (PyObject * self, PyObject * args)
+{
+  long ptr;
+  int dim, nboxes, nc, ng;
+  if (!PyArg_ParseTuple (args, "l", &ptr))
+    return NULL;
+  pybl_multifab_info((void*)ptr,&dim,&nboxes,&nc,&ng);
+  return Py_BuildValue("(iiii)", dim, nboxes, nc, ng);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_multifab_layout(void*,void*);
+
+PyObject *
+pyblw_multifab_layout (PyObject * self, PyObject * args)
+{
+  long ptr, laptr;
+  if (!PyArg_ParseTuple (args, "l", &ptr))
+    return NULL;
+  pybl_multifab_layout((void*)ptr,(void*)&laptr);
+  return PyLong_FromLong(laptr);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void pybl_multifab_fill_boundary(void*);
+
+PyObject *
+pyblw_multifab_fill_boundary (PyObject * self, PyObject * args)
+{
+  long ptr;
+  if (!PyArg_ParseTuple (args, "l", &ptr))
+    return NULL;
+  pybl_multifab_fill_boundary((void*)ptr);
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+PyObject *tag_boxes_callback;
+
+// this is called by fortran, and calls python. see tag_boxes.f90
+void pyblw_tag_boxes_callback(void *mf, void *tb, double dx, int lev)
+{
+  PyObject *arglist, *result;
+  arglist = Py_BuildValue("lldi", (long)mf, (long)tb, dx, lev);
+  result = PyObject_CallObject(tag_boxes_callback, arglist);
+  Py_DECREF(arglist);
+  if (result==NULL)
+    return;
+  Py_DECREF(result);
+}
+
+void pybl_regrid(void**,void**,int*,int,void(*)(void*,void*,double,int));
+
+PyObject *
+pyblw_regrid (PyObject * self, PyObject * args)
+{
+  PyArrayObject *laptrs, *mfptrs;
+  PyObject *tb_cb;
+  int nlevs, max_levs;
+  if (!PyArg_ParseTuple (args, "O&O&iiO", PyArray_Converter, &laptrs, PyArray_Converter, &mfptrs, &nlevs, &max_levs, &tb_cb))
+    return NULL;
+  if (!PyCallable_Check(tb_cb)) {
+    PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+    return NULL;
+  }
+  tag_boxes_callback = tb_cb;
+  pybl_regrid(PyArray_DATA(laptrs),PyArray_DATA(mfptrs),&nlevs,max_levs,pyblw_tag_boxes_callback);
+  return PyInt_FromLong(nlevs);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void multifab_as_numpy_f(void *cptr, int nbox, int *dims, void *ptr);
@@ -200,7 +339,7 @@ void multifab_as_numpy_f(void *cptr, int nbox, int *dims, void *ptr);
 PyObject *
 multifab_as_numpy (PyObject * self, PyObject * args)
 {
-  int nbox, ndim, nc;
+  int nbox;
   long cptr;
   double *ptr;
 
@@ -208,7 +347,7 @@ multifab_as_numpy (PyObject * self, PyObject * args)
   npy_intp dims[4];
   int idims[4];
 
-  if (!PyArg_ParseTuple (args, "liii", &cptr, &nbox, &ndim, &nc))
+  if (!PyArg_ParseTuple (args, "li", &cptr, &nbox))
     return NULL;
 
   multifab_as_numpy_f((void *) cptr, nbox, idims, &ptr);
@@ -216,18 +355,48 @@ multifab_as_numpy (PyObject * self, PyObject * args)
   dims[1] = idims[1];
   dims[2] = idims[2];
   dims[3] = idims[3];
-  dims[ndim] = nc;
 
   arr = PyArray_NewFromDescr(&PyArray_Type,
-                             PyArray_DescrFromType(NPY_DOUBLE), ndim+1, dims, NULL,
+                             PyArray_DescrFromType(NPY_DOUBLE), 4, dims, NULL,
                              ptr, NPY_FORTRAN|NPY_WRITEABLE, NULL);
 
   Py_INCREF(arr);
   return arr;
 }
 
+////////////////////////////////////////////////////////////////////////////////
 
+void lmultifab_as_numpy_f(void *cptr, int nbox, int *dims, void *ptr);
 
+PyObject *
+lmultifab_as_numpy (PyObject * self, PyObject * args)
+{
+  int nbox;
+  long cptr;
+  double *ptr;
+
+  PyObject *arr = NULL;
+  npy_intp dims[4];
+  int idims[4];
+
+  if (!PyArg_ParseTuple (args, "li", &cptr, &nbox))
+    return NULL;
+
+  lmultifab_as_numpy_f((void *) cptr, nbox, idims, &ptr);
+  dims[0] = idims[0];
+  dims[1] = idims[1];
+  dims[2] = idims[2];
+  dims[3] = idims[3];
+
+  arr = PyArray_NewFromDescr(&PyArray_Type,
+                             PyArray_DescrFromType(NPY_INT), 4, dims, NULL,
+                             ptr, NPY_FORTRAN|NPY_WRITEABLE, NULL);
+
+  Py_INCREF(arr);
+  return arr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 static PyMethodDef fcboxlib_methods[] = {
   {"open", pyblw_open, METH_VARARGS, "Oepn (initialize) BoxLib."},
@@ -243,7 +412,15 @@ static PyMethodDef fcboxlib_methods[] = {
   {"layout_create_from_boxarray", pyblw_layout_create_from_boxarray, METH_VARARGS, ""},
   {"layout_print", pyblw_layout_print, METH_VARARGS, ""},
   {"layout_nboxes", pyblw_layout_nboxes, METH_VARARGS, ""},
+  {"lmultifab_create_from_layout", pyblw_lmultifab_create_from_layout, METH_VARARGS, ""},
+  {"lmultifab_info", pyblw_lmultifab_info, METH_VARARGS, ""},
+  {"multifab_create_from_layout", pyblw_multifab_create_from_layout, METH_VARARGS, ""},
+  {"multifab_print", pyblw_multifab_print, METH_VARARGS, ""},
+  {"multifab_info", pyblw_multifab_info, METH_VARARGS, ""},
+  {"multifab_layout", pyblw_multifab_layout, METH_VARARGS, ""},
+  {"regrid", pyblw_regrid, METH_VARARGS, ""},
   {"multifab_as_numpy", multifab_as_numpy, METH_VARARGS, "Return NumPy array associated with a BoxLib multifab."},
+  {"lmultifab_as_numpy", lmultifab_as_numpy, METH_VARARGS, "Return NumPy array associated with a BoxLib multifab."},
   {NULL, NULL},
 };
 

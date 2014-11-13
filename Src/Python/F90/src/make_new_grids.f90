@@ -77,23 +77,13 @@ module make_new_grids_module
 
       llev = 1; if (present(lev)) llev = lev
 
-      call lmultifab_build(tagboxes,get_layout(mf),1,0)
+      call build(tagboxes,get_layout(mf),1,0)
       call setval(tagboxes, .false.)
-
       call tag_boxes(mf,tagboxes,dx_crse,llev,tag_boxes_cb)
-
-      if (lmultifab_count(tagboxes) == 0) then
-
-          call bl_warn('No points tagged at level ',lev)
-
-      else
-
+      if (lmultifab_count(tagboxes) > 0) then
          call cluster(ba_new, tagboxes, buf_wid, ref_ratio=ref_ratio)
-
       endif
-
       call destroy(tagboxes)
-
     end subroutine make_boxes
 
     subroutine buffer(lev,la_np1,la_nm1,ba_new,ref_ratio,buff)

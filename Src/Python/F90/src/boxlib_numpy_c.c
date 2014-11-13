@@ -20,7 +20,7 @@ void multifab_as_numpy_f(void *cptr, int nbox, int *dims, void *ptr);
 PyObject *
 multifab_as_numpy (PyObject * self, PyObject * args)
 {
-  int nbox, ndim, nc;
+  int ndim;
   long cptr;
   double *ptr;
 
@@ -28,7 +28,7 @@ multifab_as_numpy (PyObject * self, PyObject * args)
   npy_intp dims[4];
   int idims[4];
 
-  if (!PyArg_ParseTuple (args, "liii", &cptr, &nbox, &ndim, &nc))
+  if (!PyArg_ParseTuple (args, "li", &cptr, &nbox))
     return NULL;
 
   multifab_as_numpy_f((void *) cptr, nbox, idims, &ptr);

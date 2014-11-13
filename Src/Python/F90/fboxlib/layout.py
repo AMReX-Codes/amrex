@@ -6,9 +6,12 @@ import fcboxlib
 class layout():
   """BoxLib layout."""
 
-  def __init__(self, boxarray):
-    pmask = np.ones(boxarray.dim, np.int32)
-    self.cptr = fcboxlib.layout_create_from_boxarray(boxarray.cptr, pmask)
+  def __init__(self, boxarray=None, cptr=None):
+    if cptr:
+      self.cptr = cptr
+    else:
+      pmask = np.ones(boxarray.dim, np.int32)
+      self.cptr = fcboxlib.layout_create_from_boxarray(boxarray.cptr, pmask)
 
   @property
   def nboxes(self):
