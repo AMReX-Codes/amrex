@@ -54,10 +54,10 @@ class multifab():
     _, _, _, d = fcboxlib.multifab_info(self.cptr)
     return d
 
-  # def write(self, dirname, header):
-  #   bl.pybl_multifab_write(self.cptr,
-  #                          dirname, len(dirname),
-  #                          header, len(header))
+  def write(self, dirname, header):
+    fcboxlib.multifab_write(self.cptr,
+                            dirname, len(dirname),
+                            header, len(header))
 
   # def read(self, dirname, header):
   #   bl.pybl_multifab_read(dirname, len(dirname), header, len(header),
