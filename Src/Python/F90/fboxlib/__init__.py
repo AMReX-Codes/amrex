@@ -10,3 +10,5 @@ open     = fcboxlib.open
 close    = fcboxlib.close
 mpi_size = fcboxlib.size
 mpi_rank = fcboxlib.rank
+
+reduce_max = fcboxlib.reduce_max
