@@ -2,10 +2,6 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 
-#ifdef NODEV
-#undef NODEV
-#endif
-
 #include <iosfwd>
 
 #include <ccse-mpi.H>
