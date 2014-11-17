@@ -17,11 +17,12 @@ class BoxArray;
 //  FabArray in a multi-processor environment.  By distribution is meant what
 //  CPU in the multi-processor environment owns what FAB.  Only the BoxArray
 //  on which the FabArray is built is used in determining the distribution.
-//  The two types of distributions supported are round-robin and knapsack.  In
-//  the round-robin distribution FAB i is owned by CPU i%N where N is total
+//  The three types of distributions supported are round-robin, knapsack, and SFC.
+//  In the round-robin distribution FAB i is owned by CPU i%N where N is total
 //  number of CPUs.  In the knapsack distribution the FABs are partitioned
 //  across CPUs such that the total volume of the Boxes in the underlying
-//  BoxArray are as equal across CPUs as is possible.
+//  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
+//  based on a space filling curve.
 //
 
 class DistributionMapping
