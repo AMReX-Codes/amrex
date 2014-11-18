@@ -19,15 +19,8 @@
 
 namespace BoxLib
 {
-//
-// On 64-bit machines, most Unix systems adopt the LP64 data model, in which long and long long 
-// are 64 bits wide (i.e., [-2e63+1,2e63-1]).  However, Windows adopts the LLP64 data
-// model, in which long is only 32 bits wide (i.e., [-2e31+1,w231-1]).  Furthermore, the C++ 
-// standard only specifies that long must be at least -2,147,483,647 to 2,147,483,647.  So we
-// use long long here.
-//
-    extern long long total_bytes_allocated_in_fabs;     // total bytes at any given time
-    extern long long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
+    extern long total_bytes_allocated_in_fabs;     // total bytes at any given time
+    extern long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
     extern long total_cells_allocated_in_fabs;     // total cells at any given time
     extern long total_cells_allocated_in_fabs_hwm; // high-water-mark over a given interval
 }
@@ -1113,7 +1106,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-    long long tst = ((long long)truesize)*sizeof(T);
+    long tst = truesize*sizeof(T);
 #ifdef _OPENMP
 #pragma omp critical(basefab)
 #endif
@@ -1226,7 +1219,7 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
-	long long tst = ((long long)truesize)*sizeof(T);
+	long tst = truesize*sizeof(T);
 #ifdef _OPENMP
 #pragma omp atomic
 #endif

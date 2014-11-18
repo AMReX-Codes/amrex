@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <new>
 #include <stack>
+#include <limits>
 
 #include <BoxLib.H>
 #include <DistributionMapping.H>
@@ -275,6 +276,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     std::cout << std::setprecision(10);
 
+    if (double(std::numeric_limits<long>::max()) < 9.e18)
+    {
+	if (ParallelDescriptor::IOProcessor())
+	{
+	    std::cout << "!\n! WARNING: Maximum of long int, "
+		      << std::numeric_limits<long>::max() 
+		      << ", might be too small for big runs.\n!\n";
+	}
+    }
 }
 
 void

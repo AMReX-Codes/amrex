@@ -441,18 +441,6 @@ namespace ParallelDescriptor
     void ReduceLongAnd (long& rvar, int cpu);
 
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
-    // 
-    // long long sum reduction.
-    //
-    void ReduceLongLongSum (long long& rvar);
-
-    void ReduceLongLongSum (long long* rvar, int cnt);
-    //
-    // Long long sum reduction to specified cpu.
-    //
-    void ReduceLongLongSum (long long& rvar, int cpu);
-
-    void ReduceLongLongSum (long long* rvar, int cnt, int cpu);
     //
     // Parallel gather.
     //
