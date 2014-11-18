@@ -31,22 +31,18 @@ namespace ParallelDescriptor
 	// Reduce helper functons.
 	//
 	void DoAllReduceReal     (Real&      r, MPI_Op op);
-	void DoAllReduceLongLong (long long& r, MPI_Op op);
 	void DoAllReduceLong     (long&      r, MPI_Op op);
 	void DoAllReduceInt      (int&       r, MPI_Op op);
 
 	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
-	void DoAllReduceLongLong (long long* r, MPI_Op op, int cnt);
 	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt);
 	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
 
 	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
-	void DoReduceLongLong (long long& r, MPI_Op op, int cpu);
 	void DoReduceLong     (long&      r, MPI_Op op, int cpu);
 	void DoReduceInt      (int&       r, MPI_Op op, int cpu);
 
 	void DoReduceReal     (Real*      r, MPI_Op op, int cnt, int cpu);
-	void DoReduceLongLong (long long* r, MPI_Op op, int cnt, int cpu);
 	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
@@ -501,107 +497,6 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
     util::DoReduceReal(r,MPI_SUM,cnt,cpu);
 }
 
-void
-ParallelDescriptor::util::DoAllReduceLongLong (long long&  r,
-					       MPI_Op op)
-{
-    long long recv;
-
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_LONG_LONG,
-                                  op,
-                                  Communicator()) );
-    r = recv;
-}
-
-void
-ParallelDescriptor::util::DoAllReduceLongLong (long long*  r,
-					       MPI_Op op,
-					       int    cnt)
-{
-    BL_ASSERT(cnt > 0);
-
-    Array<long long> recv(cnt);
-
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_LONG_LONG,
-                                  op,
-                                  Communicator()) );
-    for (int i = 0; i < cnt; i++)
-        r[i] = recv[i];
-}
-
-void
-ParallelDescriptor::util::DoReduceLongLong (long long&  r,
-					    MPI_Op op,
-					    int    cpu)
-{
-    long long recv;
-
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_LONG_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
-
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
-}
-
-void
-ParallelDescriptor::util::DoReduceLongLong (long long*  r,
-					    MPI_Op op,
-					    int    cnt,
-					    int    cpu)
-{
-    BL_ASSERT(cnt > 0);
-
-    Array<long long> recv(cnt);
-
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_LONG_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
-
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++)
-            r[i] = recv[i];
-    }
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long& r)
-{
-    util::DoAllReduceLongLong(r,MPI_SUM);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long* r, int cnt)
-{
-    util::DoAllReduceLongLong(r,MPI_SUM,cnt);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long& r, int cpu)
-{
-    util::DoReduceLongLong(r,MPI_SUM,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long* r, int cnt, int cpu)
-{
-    util::DoReduceLongLong(r,MPI_SUM,cnt,cpu);
-}
 
 void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
@@ -1049,13 +944,6 @@ ParallelDescriptor::Mpi_typemap<long>::type ()
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<long long>::type ()
-{
-    return  MPI_LONG_LONG;
-}
-
-template <>
-MPI_Datatype
 ParallelDescriptor::Mpi_typemap<unsigned char>::type ()
 {
     return  MPI_UNSIGNED_CHAR;
@@ -1212,11 +1100,6 @@ void ParallelDescriptor::ReduceRealSum (Real*,int) {}
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
-
-void ParallelDescriptor::ReduceLongLongSum (long long&) {}
-void ParallelDescriptor::ReduceLongLongSum (long long&,int) {}
-void ParallelDescriptor::ReduceLongLongSum (long long*,int) {}
-void ParallelDescriptor::ReduceLongLongSum (long long*,int,int) {}
 
 void ParallelDescriptor::ReduceLongAnd (long&) {}
 void ParallelDescriptor::ReduceLongSum (long&) {}
