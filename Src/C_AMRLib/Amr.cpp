@@ -2044,9 +2044,6 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Array<int>* pmap)
 {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::defBaseLevel ---->>>>" << std::endl;
-}
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
@@ -2110,22 +2107,13 @@ if(ParallelDescriptor::IOProcessor()) {
     //
     // Now build level 0 grids.
     //
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::defBaseLevel:  calling levelbld" << std::endl;
-}
     amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::defBaseLevel:  after levelbld" << std::endl;
-}
 
     lev0.clear();
     //
     // Now init level 0 grids with data.
     //
     amr_level[0].initData();
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::defBaseLevel <<<<----" << std::endl;
-}
 }
 
 void
@@ -2133,9 +2121,6 @@ Amr::regrid (int  lbase,
              Real time,
              bool initial)
 {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::regrid ====>>>>" << std::endl;
-}
     BL_PROFILE("Amr::regrid()");
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
@@ -2173,22 +2158,6 @@ if(ParallelDescriptor::IOProcessor()) {
             return;
         }
     }
-
-
-if(ParallelDescriptor::IOProcessor()) {
-using std::cout;
-using std::endl;
-  cout << endl;
-  cout << "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" << endl;
-  cout << "_in regrid:  lbase = " << lbase << "  new_grid_places.size() = " << endl;
-  for(int i(0); i < new_grid_places.size(); ++i) {
-    cout << "Level " << i << ":  " << endl
-         << new_grid_places[i].size() << endl;
-  }
-  cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << endl;
-  cout << endl;
-}
-
 
     //
     // Reclaim old-time grid space for all remain levels > lbase.
@@ -2308,10 +2277,6 @@ using std::endl;
            printGridSummary(std::cout,start,finest_level);
         }
     }
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "Amr::regrid <<<<====" << std::endl;
-  std::cout << "DistributionMapping::CacheSize = " << DistributionMapping::CacheSize() << std::endl;
-}
 }
 
 void
@@ -2906,20 +2871,6 @@ Amr::bldFineLevels (Real strt_time)
         int new_finest;
 
         grid_places(finest_level,strt_time,new_finest,grids);
-
-if(ParallelDescriptor::IOProcessor()) {
-using std::cout;
-using std::endl;
-  cout << endl;
-  cout << "VVVV----VVVV----VVVV----VVVV----VVVVVV" << endl;
-  cout << "_in bldFineLevels:  new_finest = " << new_finest << "  grids = " << endl;
-  for(int i(0); i < grids.size(); ++i) {
-    cout << "Level " << i << ":  " << endl
-         << "grids.size() = " << grids[i].size() << endl;
-  }
-  cout << "^^^^----^^^^----^^^^----^^^^----^^^^^^" << endl;
-  cout << endl;
-}
 
         if (new_finest <= finest_level) break;
         //
