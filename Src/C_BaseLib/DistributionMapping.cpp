@@ -176,12 +176,12 @@ DistributionMapping::Sort (std::vector<LIpair>& vec,
 {
     if (vec.size() > 1)
     {
-        std::stable_sort(vec.begin(), vec.end(), LIpairComp());
-
-        if (reverse)
-        {
-            std::reverse(vec.begin(), vec.end());
-        }
+	if (reverse) {
+	    std::stable_sort(vec.begin(), vec.end(), LIpairGT());
+	}
+	else {
+	    std::stable_sort(vec.begin(), vec.end(), LIpairLT());
+	}
     }
 }
 

@@ -152,12 +152,21 @@ private:
 
     typedef std::pair<long,int> LIpair;
 
-    struct LIpairComp
+    struct LIpairLT
     {
         bool operator () (const LIpair& lhs,
                           const LIpair& rhs) const
             {
                 return lhs.first < rhs.first;
+            }
+    };
+
+    struct LIpairGT
+    {
+        bool operator () (const LIpair& lhs,
+                          const LIpair& rhs) const
+            {
+                return lhs.first > rhs.first;
             }
     };
 
