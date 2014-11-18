@@ -8,14 +8,24 @@
 
 c     ----------------------------------------------------------
       subroutine FORT_TESTPROFILER ()
+        integer  i
+        print *, "_in FORT_TESTPROFILER"
+        do i = 1, 12000000
+c         call bl_proffortfuncstart("testprofiler")
+c         call bl_proffortfuncstop("testprofiler")
+          call bl_proffortfuncstart("t")
+          call bl_proffortfuncstop("t")
+        enddo
+        print *, "_out FORT_TESTPROFILER"
+      end
 
-      integer  i
-      
-      print *, "_in FORT_TESTPROFILER"
-      do i = 1, 1000000
-      call bl_proffortfuncstart("testprofiler")
-      call bl_proffortfuncstop("testprofiler")
-      enddo
-      print *, "_out FORT_TESTPROFILER"
-
+c     ----------------------------------------------------------
+      subroutine FORT_TESTPROFILERINT ()
+        integer  i
+        print *, "_in FORT_TESTPROFILERINT"
+        do i = 1, 12000000
+          call bl_proffortfuncstart_int(3)
+          call bl_proffortfuncstop_int(3)
+        enddo
+        print *, "_out FORT_TESTPROFILERINT"
       end

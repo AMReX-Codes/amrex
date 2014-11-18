@@ -7,15 +7,15 @@ DIM          = 2
 COMP         = g++
 FCOMP        = gfortran
 
-DEBUG        = FALSE
 DEBUG        = TRUE
+DEBUG        = FALSE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
 PROFILE       = TRUE
 COMM_PROFILE  = FALSE
-TRACE_PROFILE = TRUE
+TRACE_PROFILE = FALSE
 
 
 BOXLIB_HOME = ../..

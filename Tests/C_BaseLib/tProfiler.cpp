@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
 
 
 
+/*
   if(myProc == nProcs - 1) {
     BL_PROFILE_VAR("NProcs-1 func(2)", pnpm1);
     sleep(2);
@@ -184,12 +185,12 @@ int main(int argc, char *argv[]) {
     sleep(1);
     BL_PROFILE_VAR_STOP(p0fun);
   }
-/*
 */
 
   //sleep(2);
   //nap(3);
 
+/*
   BL_PROFILE_REGION_START("R::Part 1");
   //nap(1);
   //nonap();
@@ -206,10 +207,20 @@ int main(int argc, char *argv[]) {
   nonap();
   BL_PROFILE_REGION_STOP("R::Part 2");
   //Sleep(2);
-
-/*
 */
+
+  Real tpStart(ParallelDescriptor::second());
+  BL_PROFILE_VAR("TESTPROF", ptp);
   FORT_TESTPROFILER();
+  BL_PROFILE_VAR_STOP(ptp);
+  cout << "Test fort time = " << ParallelDescriptor::second() - tpStart << endl;
+
+  Real tpiStart(ParallelDescriptor::second());
+  BL_PROFILE_CHANGE_FORT_INT_NAME("eos3", 3);
+  BL_PROFILE_VAR("TESTPROFINT", ptpi);
+  FORT_TESTPROFILERINT();
+  BL_PROFILE_VAR_STOP(ptpi);
+  cout << "Test fort int time = " << ParallelDescriptor::second() - tpiStart << endl;
 
   BL_PROFILE_VAR_STOP(pmain);
   BL_PROFILE_REGION_STOP("R::main");
