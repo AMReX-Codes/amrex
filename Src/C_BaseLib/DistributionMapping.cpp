@@ -286,17 +286,11 @@ DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_ca
         // We want to save this pmap in the cache.
         // It's an error if a pmap of this length has already been cached.
         //
-        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
-             it != m_Cache.end();
-             ++it)
-        {
-            if (it->first == m_ref->m_pmap.size())
-            {
-                BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
-            }
-        }
-
-        m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
+	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+	if (r.second == false) {
+	    BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
+	}
     }
 }
 
