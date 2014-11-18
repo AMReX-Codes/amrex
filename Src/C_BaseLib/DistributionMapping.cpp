@@ -197,7 +197,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     Array<long> bytes(nprocs);
     long thisbyte = BoxLib::total_bytes_allocated_in_fabs/1024;
 
-    MPI_Allgather(&thisbyte
+    MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   bytes.dataPtr(),
