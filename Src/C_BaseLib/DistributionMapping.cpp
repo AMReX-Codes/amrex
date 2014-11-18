@@ -800,7 +800,7 @@ namespace
 
         int     m_box;
         IntVect m_idx;
-        Real    m_vol;
+        long    m_vol;
 
         static int MaxPower;
     };
@@ -846,12 +846,12 @@ Distribute (const std::vector<SFCToken>&     tokens,
     BL_ASSERT(v.size() == nprocs);
 
     int  K        = 0;
-    Real totalvol = 0;
+    long totalvol = 0;
 
     for (int i = 0; i < nprocs; i++)
     {
         int  cnt = 0;
-        Real vol = 0;
+        long vol = 0;
 
         for ( int TSZ = tokens.size();
               K < TSZ && (i == (nprocs-1) || vol < volpercpu);
@@ -864,7 +864,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
 
         totalvol += vol;
 
-        if ((totalvol/(i+1)) > volpercpu &&
+        if ((Real(totalvol)/Real(i+1)) > volpercpu &&
             cnt > 1                      &&
             K < tokens.size())
         {
@@ -921,10 +921,10 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     // Split'm up as equitably as possible per CPU.
     //
-    Real volpercpu = 0;
+    long vpc = 0;
     for (int i = 0, N = tokens.size(); i < N; i++)
-        volpercpu += tokens[i].m_vol;
-    volpercpu /= nprocs;
+        vpc += tokens[i].m_vol;
+    Real volpercpu = Real(vpc) / Real(nprocs);
 
     std::vector< std::vector<int> > vec(nprocs);
 
