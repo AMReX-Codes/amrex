@@ -150,8 +150,11 @@ class Profiler
 
     static std::map<std::string, Profiler *> mFortProfs;  // [fname, fortfunc]
     static Array<std::string> mFortProfsErrors;     // [error string]
+    static Array<Profiler *> mFortProfsInt;     // [fortfuncindex]
+    static Array<std::string> mFortProfsIntNames;     // [fortfuncindex name]
 
     explicit Profiler(const std::string &funcname);
+    Profiler(const std::string &funcname, bool bstart);
 
     ~Profiler();
 
@@ -177,6 +180,9 @@ class Profiler
 
     void start();
     void stop();
+    void PStart();
+    void PStop();
+    static void ChangeFortIntName(const std::string &fname, int intname);
 
     static void InitParams(const Real ptl, const bool writeall,
                            const bool writefabs);
@@ -335,10 +341,14 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_FINALIZE()    Profiler::Finalize();
 
 #define BL_PROFILE(fname) Profiler bl_profiler__((fname));
-#define BL_PROFILE_T(fname, T)                                      \
-		     std::string pname(fname);                      \
-		     pname += typeid(T).name();                     \
-                     Profiler bl_profiler__((pname));                
+#define BL_PROFILE_T(fname, T) Profiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#ifdef BL_PROFILING_SPECIAL
+#define BL_PROFILE_S(fname) Profiler bl_profiler__((fname));
+#define BL_PROFILE_T_S(fname, T) Profiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#else
+#define BL_PROFILE_S(fname)
+#define BL_PROFILE_T_S(fname, T)
+#endif
  
 #define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
@@ -361,6 +371,7 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 
 #define BL_TRACE_PROFILE_FLUSH() { Profiler::WriteCallTrace(true); }
 
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { Profiler::ChangeFortIntName(fname, intname); }
 
 #ifdef BL_COMM_PROFILING
 
@@ -414,6 +425,8 @@ class Profiler
 #define BL_PROFILE_FINALIZE()
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
+#define BL_PROFILE_S(fname)
+#define BL_PROFILE_T_S(fname, T)
 #define BL_PROFILE_TIMER(var, a)
 #define BL_PROFILE_START(var)
 #define BL_PROFILE_STOP(var)
@@ -431,6 +444,7 @@ class Profiler
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
 #define BL_TRACE_PROFILE_FLUSH()
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
 
 #endif
