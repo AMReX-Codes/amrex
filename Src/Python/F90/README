@@ -1,0 +1,17 @@
+PyBoxLib
+========
+
+This version of PyBoxLib wraps the Fortran version of BoxLib.
+
+
+Install
+=======
+
+$ make OUT=build CC=mpicc FC=mpif90 MPIHOME=$(dirname $(dirname $(which mpicc)))
+$ python setup.py install --user
+
+
+Basic usage
+===========
+
+Please see 'test.py'.

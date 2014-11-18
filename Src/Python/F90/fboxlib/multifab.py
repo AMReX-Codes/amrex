@@ -1,90 +1,102 @@
 """PyBoxLib multifab class."""
 
-from ctypes import *
-
 import numpy as np
-import base
+import fboxlib.fcboxlib as fcboxlib
 
-from pybl import bl
-from fab import fab
+from fboxlib.fab import fab
+from fboxlib.layout import layout
 
-class multifab(base.BLObject):
+class multifab():
   """MultiFAB."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, layout=None, nc=1, ng=0, cptr=None):
+    if cptr:
+      self.cptr = cptr
+    else:
+      self.cptr = fcboxlib.multifab_create_from_layout(layout.cptr, nc, ng)
 
-    super(multifab, self).__init__(*args, **kwargs)
+  def echo(self):
+    fcboxlib.multifab_print(self.cptr)
 
-    self.c_int_attrs = [ 'dim', 'nboxes', 'nc', 'ng' ]
-    self.init_c_int_attrs()
-
-  def __del__(self):
-    bl.pybl_multifab_destroy(self.cptr)
-
-  def create(self, layout, components=1, ghost_cells=0):
-    """Create a multifab from a layout."""
-
-    # XXX: nodal?
-
-    mftype = self.__class__.__name__
-    create = getattr(bl, 'pybl_create_' + mftype + '_from_layout')
-    create(layout.cptr, components, ghost_cells, byref(self.cptr))
-
-    self.get_info()
-
-
-  def get_info(self):
-
-    mftype = self.__class__.__name__
-
-    if self.associated:
-      get_info = getattr(bl, 'pybl_get_' + mftype + '_info')
-      get_info(self.cptr,
-               byref(self._dim),
-               byref(self._nboxes),
-               byref(self._nc),
-               byref(self._ng))
-
-
-  def create_from_bbox(self, mf, components=1, ghost_cells=0):
-    """Creat a multifab from the bounding box of the existing mf multifab."""
-
-    mftype = self.__class__.__name__
-
-    create    = getattr(bl, 'pybl_create_' + mftype + '_from_bbox')
-    self.cptr = create(mf.cptr, components, ghost_cells, byref(self.cptr))
-
-    self.get_info()
-
-
-  def copy(self, dest):
-    """Copy self into *dest* (multifab)."""
-    bl.pybl_multifab_copy(dest.cptr, self.cptr)
-
+  # def copy(self, dest):
+  #   """Copy self into *dest* (multifab)."""
+  #   bl.pybl_multifab_copy(dest.cptr, self.cptr)
 
   def fill_boundary(self):
     """Fill ghost cells between processors."""
-    bl.pybl_multifab_fill_boundary(self.cptr)
-
+    fcboxlib.multifab_fill_boundary(self.cptr)
 
   def fab(self, i):
     """Return fab corresponding to box *i*."""
     return fab(self, i)
 
+  @property
+  def layout(self):
+    return layout(cptr=fcboxlib.multifab_layout(self.cptr))
+
+  @property
+  def dim(self):
+    d, _, _, _ = fcboxlib.multifab_info(self.cptr)
+    return d
+
+  @property
+  def nboxes(self):
+    _, d, _, _ = fcboxlib.multifab_info(self.cptr)
+    return d
+
+  @property
+  def ncomp(self):
+    _, _, d, _ = fcboxlib.multifab_info(self.cptr)
+    return d
+
+  @property
+  def nghost(self):
+    _, _, _, d = fcboxlib.multifab_info(self.cptr)
+    return d
 
   def write(self, dirname, header):
-    bl.pybl_multifab_write(self.cptr,
-                           dirname, len(dirname),
-                           header, len(header))
+    fcboxlib.multifab_write(self.cptr,
+                            dirname, len(dirname),
+                            header, len(header))
+
+  # def read(self, dirname, header):
+  #   bl.pybl_multifab_read(dirname, len(dirname), header, len(header),
+  #                         byref(self.cptr))
+  #   self.get_info()
 
 
-  def read(self, dirname, header):
-    bl.pybl_multifab_read(dirname, len(dirname), header, len(header),
-                          byref(self.cptr))
-    self.get_info()
-
-
-class lmultifab(multifab):
+class lmultifab():
   """Logical MultiFAB."""
 
-  pass
+  def __init__(self, layout=None, cptr=None):
+    if cptr:
+      self.cptr = cptr
+    else:
+      self.cptr = fcboxlib.lmultifab_create_from_layout(layout.cptr)
+
+  def echo(self):
+    fcboxlib.lmultifab_print(self.cptr)
+
+  def fab(self, i):
+    """Return fab corresponding to box *i*."""
+    return fab(self, i, logical=True, squeeze=True)
+
+  @property
+  def dim(self):
+    d, _, _, _ = fcboxlib.lmultifab_info(self.cptr)
+    return d
+
+  @property
+  def nboxes(self):
+    _, d, _, _ = fcboxlib.lmultifab_info(self.cptr)
+    return d
+
+  @property
+  def ncomp(self):
+    _, _, d, _ = fcboxlib.lmultifab_info(self.cptr)
+    return d
+
+  @property
+  def nghost(self):
+    _, _, _, d = fcboxlib.lmultifab_info(self.cptr)
+    return d
