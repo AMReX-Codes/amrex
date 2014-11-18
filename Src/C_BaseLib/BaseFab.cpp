@@ -11,8 +11,8 @@
 #include <SPECIALIZE_F.H>
 #endif
 
-long long BoxLib::total_bytes_allocated_in_fabs     = 0;
-long long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+long BoxLib::total_bytes_allocated_in_fabs     = 0;
+long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
 long BoxLib::total_cells_allocated_in_fabs     = 0;
 long BoxLib::total_cells_allocated_in_fabs_hwm = 0;
 

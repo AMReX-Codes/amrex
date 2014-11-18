@@ -48,22 +48,18 @@ namespace ParallelDescriptor
 	// Reduce helper functons.
 	//
 	void DoAllReduceReal     (Real&      r, MPI_Op op);
-	void DoAllReduceLongLong (long long& r, MPI_Op op);
 	void DoAllReduceLong     (long&      r, MPI_Op op);
 	void DoAllReduceInt      (int&       r, MPI_Op op);
 
 	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
-	void DoAllReduceLongLong (long long* r, MPI_Op op, int cnt);
 	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt);
 	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
 
 	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
-	void DoReduceLongLong (long long& r, MPI_Op op, int cpu);
 	void DoReduceLong     (long&      r, MPI_Op op, int cpu);
 	void DoReduceInt      (int&       r, MPI_Op op, int cpu);
 
 	void DoReduceReal     (Real*      r, MPI_Op op, int cnt, int cpu);
-	void DoReduceLongLong (long long* r, MPI_Op op, int cnt, int cpu);
 	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
@@ -609,124 +605,6 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
 }
 
 void
-ParallelDescriptor::util::DoAllReduceLongLong (long long&  r,
-					       MPI_Op op)
-{
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLongLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, Profiler::BeforeCall(), true);  // really need AllReduceLL
-
-    long long recv;
-
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_LONG_LONG,
-                                  op,
-                                  Communicator()) );
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, sizeof(long long), false);
-    r = recv;
-}
-
-void
-ParallelDescriptor::util::DoAllReduceLongLong (long long*  r,
-					       MPI_Op op,
-					       int    cnt)
-{
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLongLong()");
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, Profiler::BeforeCall(), true);  // really need AllReduceLL
-
-    BL_ASSERT(cnt > 0);
-
-    Array<long long> recv(cnt);
-
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_LONG_LONG,
-                                  op,
-                                  Communicator()) );
-    BL_COMM_PROFILE_ALLREDUCE(Profiler::AllReduceL, cnt * sizeof(long long), false);
-    for (int i = 0; i < cnt; i++)
-        r[i] = recv[i];
-}
-
-void
-ParallelDescriptor::util::DoReduceLongLong (long long&  r,
-					    MPI_Op op,
-					    int    cpu)
-{
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLongLong()");
-    BL_COMM_PROFILE_REDUCE(Profiler::AllReduceL, sizeof(long long), cpu);
-
-    long long recv;
-
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_LONG_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
-
-    BL_COMM_PROFILE_REDUCE(Profiler::AllReduceL, Profiler::AfterCall(), cpu);
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
-}
-
-void
-ParallelDescriptor::util::DoReduceLongLong (long long*  r,
-					    MPI_Op op,
-					    int    cnt,
-					    int    cpu)
-{
-    BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLongLong()");
-    BL_COMM_PROFILE_REDUCE(Profiler::AllReduceL, cnt * sizeof(long long), cpu);
-
-    BL_ASSERT(cnt > 0);
-
-    Array<long long> recv(cnt);
-
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_LONG_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
-
-    BL_COMM_PROFILE_REDUCE(Profiler::AllReduceL, Profiler::AfterCall(), cpu);
-    if (ParallelDescriptor::MyProc() == cpu)
-    {
-        for (int i = 0; i < cnt; i++)
-            r[i] = recv[i];
-    }
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long& r)
-{
-    util::DoAllReduceLongLong(r,MPI_SUM);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long* r, int cnt)
-{
-    util::DoAllReduceLongLong(r,MPI_SUM,cnt);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long& r, int cpu)
-{
-    util::DoReduceLongLong(r,MPI_SUM,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongLongSum (long long* r, int cnt, int cpu)
-{
-    util::DoReduceLongLong(r,MPI_SUM,cnt,cpu);
-}
-
-void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
@@ -1181,13 +1059,6 @@ ParallelDescriptor::Mpi_typemap<long>::type ()
 
 template <>
 MPI_Datatype
-ParallelDescriptor::Mpi_typemap<long long>::type ()
-{
-    return  MPI_LONG_LONG;
-}
-
-template <>
-MPI_Datatype
 ParallelDescriptor::Mpi_typemap<unsigned char>::type ()
 {
     return  MPI_UNSIGNED_CHAR;
@@ -1359,11 +1230,6 @@ void ParallelDescriptor::ReduceRealSum (Real*,int) {}
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
-
-void ParallelDescriptor::ReduceLongLongSum (long long&) {}
-void ParallelDescriptor::ReduceLongLongSum (long long&,int) {}
-void ParallelDescriptor::ReduceLongLongSum (long long*,int) {}
-void ParallelDescriptor::ReduceLongLongSum (long long*,int,int) {}
 
 void ParallelDescriptor::ReduceLongAnd (long&) {}
 void ParallelDescriptor::ReduceLongSum (long&) {}
