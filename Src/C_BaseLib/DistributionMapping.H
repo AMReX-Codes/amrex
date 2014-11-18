@@ -18,11 +18,12 @@ class BoxArray;
 //  FabArray in a multi-processor environment.  By distribution is meant what
 //  MPI process in the multi-processor environment owns what FAB.  Only the BoxArray
 //  on which the FabArray is built is used in determining the distribution.
-//  The three types of distributions supported are round-robin, knapsack, and
-//  space filling curve.  In the round-robin distribution FAB i is owned by CPU
-//  i%N where N is total number of MPI processes.  In the knapsack distribution
-//  the FABs are partitioned across CPUs such that the total volume of the
-//  Boxes in the underlying BoxArray are as equal across CPUs as is possible.
+//  The three types of distributions supported are round-robin, knapsack, and SFC.
+//  In the round-robin distribution FAB i is owned by CPU i%N where N is total
+//  number of CPUs.  In the knapsack distribution the FABs are partitioned
+//  across CPUs such that the total volume of the Boxes in the underlying
+//  BoxArray are as equal across CPUs as is possible.  The SFC distribution is
+//  based on a space filling curve.
 //
 
 class DistributionMapping
@@ -184,12 +185,21 @@ private:
 
     typedef std::pair<long,int> LIpair;
 
-    struct LIpairComp
+    struct LIpairLT
     {
         bool operator () (const LIpair& lhs,
                           const LIpair& rhs) const
             {
                 return lhs.first < rhs.first;
+            }
+    };
+
+    struct LIpairGT
+    {
+        bool operator () (const LIpair& lhs,
+                          const LIpair& rhs) const
+            {
+                return lhs.first > rhs.first;
             }
     };
 

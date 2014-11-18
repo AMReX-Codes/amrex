@@ -122,6 +122,7 @@ public:
     bool empty () const;
 
     long numPts() const;
+    long long ll_numPts() const;
     //
     // Returns the number of points contained in the BoxArray.
     // This is inteded for use only in diagnostic messages.

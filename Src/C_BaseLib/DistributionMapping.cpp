@@ -211,12 +211,12 @@ DistributionMapping::Sort (std::vector<LIpair>& vec,
 {
     if (vec.size() > 1)
     {
-        std::stable_sort(vec.begin(), vec.end(), LIpairComp());
-
-        if (reverse)
-        {
-            std::reverse(vec.begin(), vec.end());
-        }
+	if (reverse) {
+	    std::stable_sort(vec.begin(), vec.end(), LIpairGT());
+	}
+	else {
+	    std::stable_sort(vec.begin(), vec.end(), LIpairLT());
+	}
     }
 }
 
@@ -230,10 +230,11 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
     Array<long> bytes(nprocs);
+    long thisbyte = BoxLib::total_bytes_allocated_in_fabs/1024;
 
     BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
                     Profiler::NoTag());
-    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+    MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   bytes.dataPtr(),

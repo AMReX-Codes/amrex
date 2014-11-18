@@ -94,7 +94,7 @@ protected:
 //  A Smart Pointer for User-Defined Types
 //
 //  The template class CpClassPtr<T> is derived from CpPtr<T>.  It provides a
-//  simple wrapper around a pointer to type T (a T*) that "does the right thing"
+//  simple wrapper around a pointer to type T (a T*) that builds an independent copy
 //  when copied from one CpPtr<T> to another.  The type T MUST be a user-defined
 //  type, not an intrinsic type.  Given this restriction, we can supply
 //  an operator->().

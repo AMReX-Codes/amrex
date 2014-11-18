@@ -1,5 +1,6 @@
 module regrid_module
 
+  use iso_c_binding
   use ml_layout_module
   use multifab_module
   use make_new_grids_module
@@ -14,7 +15,7 @@ module regrid_module
 
 contains
 
-  subroutine regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
+  subroutine regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size,tag_boxes_cb)
 
     type(ml_layout), intent(inout) :: mla
     type(multifab) , intent(inout) :: phi(:)
@@ -22,6 +23,7 @@ contains
     real(dp_t)     , intent(in   ) :: dx(:)
     type(bc_tower) , intent(inout) :: the_bc_tower
     integer        , intent(in   ) :: amr_buf_width, max_grid_size, max_levs
+    type(c_funptr) , intent(in   ) :: tag_boxes_cb
 
     ! local variables
     type(layout)      :: la_array(max_levs)
@@ -87,7 +89,7 @@ contains
        ! determine whether we need finer grids based on tagging criteria
        ! if so, return new_grid=T and the la_array(nl+1)
        call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi(nl),dx(nl), &
-                           amr_buf_width,mba%rr(nl,1),nl,max_grid_size)
+                           amr_buf_width,mba%rr(nl,1),nl,max_grid_size,tag_boxes_cb)
 
        if (new_grid) then
 

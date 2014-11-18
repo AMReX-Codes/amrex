@@ -240,12 +240,6 @@ Box::numPtsOK () const
     return numPtsOK(ignore);
 }
 
-bool
-Box::isEmpty () const
-{
-    return numPts() == 0;
-}
-
 double
 Box::d_numPts () const
 {

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 
 #include <BLassert.H>
 #include <Box.H>
@@ -18,8 +19,15 @@
 
 namespace BoxLib
 {
-    extern long total_bytes_allocated_in_fabs;     // total bytes at any given time
-    extern long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
+//
+// On 64-bit machines, most Unix systems adopt the LP64 data model, in which long and long long 
+// are 64 bits wide (i.e., [-2e63+1,2e63-1]).  However, Windows adopts the LLP64 data
+// model, in which long is only 32 bits wide (i.e., [-2e31+1,w231-1]).  Furthermore, the C++ 
+// standard only specifies that long must be at least -2,147,483,647 to 2,147,483,647.  So we
+// use long long here.
+//
+    extern long long total_bytes_allocated_in_fabs;     // total bytes at any given time
+    extern long long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
     extern long total_cells_allocated_in_fabs;     // total cells at any given time
     extern long total_cells_allocated_in_fabs_hwm; // high-water-mark over a given interval
 }
@@ -1089,6 +1097,7 @@ BaseFab<T>::define ()
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
     BL_ASSERT(numpts > 0);
+    BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize = nvar*numpts;
     dptr     = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
@@ -1104,7 +1113,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-    long tst = truesize*sizeof(T);
+    long long tst = ((long long)truesize)*sizeof(T);
 #ifdef _OPENMP
 #pragma omp critical(basefab)
 #endif
@@ -1217,7 +1226,7 @@ BaseFab<T>::clear ()
 
         dptr = 0;
 
-	long tst = truesize*sizeof(T);
+	long long tst = ((long long)truesize)*sizeof(T);
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
