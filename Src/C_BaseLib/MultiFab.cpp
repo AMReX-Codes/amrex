@@ -1200,12 +1200,10 @@ MultiFab::SumBoundary (int scomp,
         if (FabArrayBase::do_async_sends)
         {
             send_data.push_back(data);
-	    BL_COMM_PROFILE_NAMETAG("ASEND::SumBoundary()");
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
-	    BL_COMM_PROFILE_NAMETAG("SEND::SumBoundary()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }

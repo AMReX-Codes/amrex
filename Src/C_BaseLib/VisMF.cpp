@@ -557,6 +557,9 @@ VisMF::Header::Header (const MultiFab& mf,
 
     Array<Real> recvdata(mf.size()*2*m_ncomp);
 
+    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
@@ -566,6 +569,9 @@ VisMF::Header::Header (const MultiFab& mf,
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
+
+    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -799,6 +805,9 @@ VisMF::Write (const MultiFab&    mf,
 
     Array<long> recvdata(mf.size());
 
+    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -808,6 +817,9 @@ VisMF::Write (const MultiFab&    mf,
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
+
+    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1233,6 +1245,7 @@ VisMF::Check (const std::string& mf_name)
         std::cout << "**** Error in file:  " << FullName << "  Bad Fab at index = "
 	          << i << "   at seekpos = " << fod.m_head << std::endl;
       }
+      ifs.close();
 
     }
     if(nBadFabs) {

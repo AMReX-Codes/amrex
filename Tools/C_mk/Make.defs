@@ -195,6 +195,10 @@ ifndef PROFILE
   PROFILE = FALSE
 endif
 
+ifndef TRACE_PROFILE
+  TRACE_PROFILE = FALSE
+endif
+
 ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
 endif
@@ -772,6 +776,7 @@ ifeq ($(DEBUG),TRUE)
     fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
+    CPPFLAGS	+= -DDEBUG
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
@@ -789,15 +794,30 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(TRACE_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
+
 ifeq ($(COMM_PROFILE),TRUE)
   PROFILE = TRUE
 endif
+
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ifeq ($(COMM_PROFILE),TRUE)
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMTR_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        ProfSuffix	:= .TRACE_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
         CPPFLAGS    += -DBL_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
-    else
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
         ProfSuffix	:= .PROF
     endif
 else

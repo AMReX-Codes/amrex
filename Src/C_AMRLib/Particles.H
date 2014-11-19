@@ -3677,6 +3677,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
         //
         return;
 
+    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -3685,6 +3688,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
+
+    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
 
     typedef std::map<int,int> IntIntMap;
 
@@ -5684,6 +5690,9 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         return;
 
+    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -5692,6 +5701,9 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
+
+    BL_COMM_PROFILE(Profiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
 
     typedef std::map<int,int> IntIntMap;
 

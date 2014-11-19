@@ -930,6 +930,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm)
 {
+  BL_PROFILE("MGT_Solver::solve(1)");
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
@@ -997,6 +998,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   int need_grad_phi, Real& final_resnorm)
 {
+  BL_PROFILE("MGT_Solver::solve(2)");
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
@@ -1051,6 +1053,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData bd[], int need_grad_phi, Real& final_resnorm)
 {
+  BL_PROFILE("MGT_Solver::solve(3)");
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       // Copy the boundary register values into the solution array to
@@ -1125,6 +1128,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   const BndryData& bd, int need_grad_phi, Real& final_resnorm, int& status)
 {
+  BL_PROFILE("MGT_Solver::solve(4)");
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
   for (OrientationIter oitr; oitr; ++oitr)
@@ -1186,6 +1190,7 @@ void
 MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
                   int need_grad_phi, Real& final_resnorm,int& status)
 {
+  BL_PROFILE("MGT_Solver::solve(5)");
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)

@@ -36,6 +36,8 @@ contains
     logical :: pmask(mgt%dim), singular_test
     real(kind=dp_t) :: local_eps
 
+    call bl_proffortfuncstart("cc_mg_tower_smoother")
+
     singular_test = ( mgt%bottom_singular .and. mgt%coeffs_sum_to_zero )
 
     pmask = get_pmask(get_layout(uu))
@@ -239,6 +241,7 @@ contains
     end if ! if (mgt%dim > 1)
     
     call destroy(bpt)
+    call bl_proffortfuncstop("cc_mg_tower_smoother")
 
   end subroutine cc_mg_tower_smoother
 
@@ -260,6 +263,7 @@ contains
     integer :: i, n, ng, iter
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_jacobi_smoother")
     call build(bpt, "mgt_jacobi_smoother")
 
     ng = nghost(uu)
@@ -302,6 +306,7 @@ contains
     end do
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_jacobi_smoother")
 
   end subroutine mg_jacobi_smoother
 

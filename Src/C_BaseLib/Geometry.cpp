@@ -411,12 +411,10 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         if (FabArrayBase::do_async_sends)
         {
             send_data.push_back(data);
-	    BL_COMM_PROFILE_NAMETAG("ASEND::SumPeriodicBoundaryInnards()");
             send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
         }
         else
         {
-	    BL_COMM_PROFILE_NAMETAG("SEND::SumPeriodicBoundaryInnards()");
             ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
             BoxLib::The_Arena()->free(data);
         }
