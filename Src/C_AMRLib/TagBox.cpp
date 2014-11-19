@@ -397,8 +397,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     if (!work_to_do) return;
 
-    BL_COMM_PROFILE_NAMETAG("CD::TagBoxArray::mapPeriodic()");
-
     facd.CollectData();
 
     const int N = IDs.size();
@@ -503,6 +501,8 @@ TagBoxArray::collate (long& numtags) const
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
+    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
+                    Profiler::BeforeCall());
     MPI_Gather(&count,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -511,6 +511,9 @@ TagBoxArray::collate (long& numtags) const
                ParallelDescriptor::Mpi_typemap<int>::type(),
                IOProc,
                ParallelDescriptor::Communicator());
+
+    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
+                    Profiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -528,6 +531,9 @@ TagBoxArray::collate (long& numtags) const
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
+    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+
     MPI_Gatherv(reinterpret_cast<int*>(TheLocalCollateSpace),
                 count*BL_SPACEDIM,
                 ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -537,6 +543,9 @@ TagBoxArray::collate (long& numtags) const
                 ParallelDescriptor::Mpi_typemap<int>::type(),
                 IOProc,
                 ParallelDescriptor::Communicator());
+
+    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
 #else
     //
     // Copy TheLocalCollateSpace to TheGlobalCollateSpace.

@@ -44,6 +44,21 @@ int main(...) {
 Profiling macros are empty if profiling is off.
 
 
+--------------------------------------------- fortran90 f90 interface
+
+fortran90 functions can be profiled, add these functions:
+
+call bl_proffortfuncstart("copyassoc_build")
+...
+call bl_proffortfuncstop("copyassoc_build")
+
+you will need to add bl_proffortfuncstop calls
+before any returns.  the profiling output will
+warn of any bl_proffortfuncstart calls that were
+not stopped with bl_proffortfuncstop
+
+
+
 --------------------------------------------- Communications timings.
 Timings for communication functions such as ParallelDescriptor::Send(...)
 are shown in the regular profiling's function timing section.  BoxLib

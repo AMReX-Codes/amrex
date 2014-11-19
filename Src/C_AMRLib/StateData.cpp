@@ -39,6 +39,7 @@ StateData::define (const Box&             p_domain,
                    Real                   time,
                    Real                   dt)
 {
+    BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
     grids.define(grds);

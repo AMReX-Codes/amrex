@@ -37,6 +37,9 @@ int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
 
+    BL_PROFILE_VAR("main()", pmain);
+    BL_PROFILE_REGION_START("main");
+
     VisMF::SetNOutFiles(nFiles);  // ---- this will enforce the range [1, nprocs]
 
     // ---- make a box, then a boxarray with maxSize
@@ -75,7 +78,9 @@ int main(int argc, char *argv[]) {
     VisMF::Read(mfInOut, infile);
 
     std::string inoutfile = "MF_InOut";
+    BL_PROFILE_REGION_START("VisMF::Write()");
     VisMF::Write(mfInOut, inoutfile);
+    BL_PROFILE_REGION_STOP("VisMF::Write()");
 
     // ---- make a new distribution map
     DistributionMapping dmap(mf.DistributionMap());
@@ -112,7 +117,9 @@ int main(int argc, char *argv[]) {
     mfNewMap.setVal(-42.0);
 
     // ---- now copy from mf
+    BL_PROFILE_REGION_START("MFCopy");
     mfNewMap.copy(mf);
+    BL_PROFILE_REGION_STOP("MFCopy");
 
     std::string mfnmoutfile = "MF_NewMap";
     VisMF::Write(mfNewMap, mfnmoutfile);
@@ -121,6 +128,9 @@ int main(int argc, char *argv[]) {
 
     // ---- this will fill the ghost regions from intersecting fabs
     mf.FillBoundary();
+
+    BL_PROFILE_REGION_STOP("main");
+    BL_PROFILE_VAR_STOP(pmain);
 
     BoxLib::Finalize();
     return 0;

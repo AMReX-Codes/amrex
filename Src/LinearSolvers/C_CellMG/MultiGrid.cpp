@@ -220,6 +220,7 @@ MultiGrid::errorEstimate (int            level,
                           LinOp::BC_Mode bc_mode,
                           bool           local)
 {
+    BL_PROFILE("MultiGrid::errorEstimate()");
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     return norm_inf(*res[level], local);
 }
@@ -227,6 +228,7 @@ MultiGrid::errorEstimate (int            level,
 void
 MultiGrid::prepareForLevel (int level)
 {
+    BL_PROFILE("MultiGrid::prepareForLevel()");
     //
     // Build this level by allocating reqd internal MultiFabs if necessary.
     //
@@ -258,6 +260,7 @@ MultiGrid::residualCorrectionForm (MultiFab&       resL,
                                    LinOp::BC_Mode  bc_mode,
                                    int             level)
 {
+    BL_PROFILE("MultiGrid::residualCorrectionForm()");
     //
     // Using the linearity of the operator, Lp, we can solve this system
     // instead by solving for the correction required to the initial guess.
@@ -274,6 +277,7 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
+    BL_PROFILE("MultiGrid::solve()");
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -293,6 +297,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    LinOp::BC_Mode bc_mode,
                    int            level)
 {
+    BL_PROFILE("MultiGrid::solve_()");
   //
   // If do_fixed_number_of_iters = 1, then do maxiter iterations without checking for convergence 
   // 
@@ -509,6 +514,7 @@ MultiGrid::relax (MultiFab&      solL,
                   LinOp::BC_Mode bc_mode,
                   Real&          cg_time)
 {
+    BL_PROFILE("MultiGrid::relax()");
     //
     // Recursively relax system.  Equivalent to multigrid V-cycle.
     // At coarsest grid, call coarsestSmooth.
@@ -603,6 +609,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                            int            local_usecg,
                            Real&          cg_time)
 {
+    BL_PROFILE("MultiGrid::coarsestSmooth()");
     prepareForLevel(level);
 
     if ( local_usecg == 0 )
@@ -686,6 +693,7 @@ void
 MultiGrid::average (MultiFab&       c,
                     const MultiFab& f)
 {
+    BL_PROFILE("MultiGrid::average()");
     //
     // Use Fortran function to average down (restrict) f to c.
     //
@@ -710,6 +718,7 @@ void
 MultiGrid::interpolate (MultiFab&       f,
                         const MultiFab& c)
 {
+    BL_PROFILE("MultiGrid::interpolate()");
     //
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.

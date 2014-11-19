@@ -1379,6 +1379,8 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
   integer :: do_diag
   logical :: lneedgradphi
 
+  call bl_proffortfuncstart("mgt_solve")
+
   call mgt_verify("MGT_SOLVE")
   if ( .not. mgts%final ) then
      call bl_error("MGT_SOLVE: MGT not finalized")
@@ -1399,6 +1401,8 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
        need_grad_phi_in = lneedgradphi,&
        final_resnorm = final_resnorm,&
        status = status)
+
+  call bl_proffortfuncstop("mgt_solve")
 
 end subroutine mgt_solve
 
