@@ -12,10 +12,6 @@
 class RealBox;
 class StateDescriptor;
 
-namespace BoxLib
-{
-    void readBoxArray (BoxArray&, std::istream&, bool);
-}
 //
 // Current and previous level-time data.
 //
