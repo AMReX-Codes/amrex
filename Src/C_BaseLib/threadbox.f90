@@ -87,7 +87,7 @@ contains
   end subroutine build_threadbox_2d
 
   subroutine fa()
-    integer :: facs(100), f, rem, ifac
+    integer :: facs(100), f, rem
 
     nfacs = 0
     f = 2
