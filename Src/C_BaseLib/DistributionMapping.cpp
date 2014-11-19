@@ -10,8 +10,6 @@
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
-//#include <WritePlotFile.H>
-#include <StateData.H>
 
 #include <iostream>
 #include <fstream>
@@ -2281,12 +2279,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
          // ------------ amr_level[lev].restart(*this, is);
 	 is >> level;
 	 is >> levelGeom;
-	 bool bReadSpecial(false);
-	 if(bReadSpecial) {
-	   BoxLib::readBoxArray(allBoxes[lev], is, bReadSpecial);
-	 } else {
-	   allBoxes[lev].readFrom(is);
-	 }
+	 allBoxes[lev].readFrom(is);
 	 is >> nstate;
 
 	 for(int ins(0); ins < nstate; ++ins) {
@@ -2298,11 +2291,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 	   std::string mf_name;
 
 	   is >> domain;
-	   if(bReadSpecial) {
-	     BoxLib::readBoxArray(stateGrids, is, bReadSpecial);
-	   } else {
-	     stateGrids.readFrom(is);
-	   }
+	   stateGrids.readFrom(is);
 	   is >> old_time_start >> old_time_stop;
 	   is >> new_time_start >> new_time_stop;
 	   is >> nsets;
