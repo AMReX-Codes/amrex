@@ -182,6 +182,8 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   // If it's true we use it since the user had to have set it somehow.
   // Otherwise we use def_verbose which is set generically using mg.v.
   //
+  std::cout << "verbose: " << verbose << std::endl;
+  std::cout << "def_verbose: " << def_verbose << std::endl;
   int lverbose = (verbose > 0) ? verbose : def_verbose;
 
   if (m_nodal) {

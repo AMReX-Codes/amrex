@@ -2,23 +2,26 @@
 # solver_type = BoxLib_F
 # solver_type = BoxLib_C
 solver_type = All
+solver_type = BoxLib_C
 
 # bc_type = Neumann
-# bc_type = Periodic
+#bc_type = Periodic
 bc_type = Dirichlet
+#bc_type = Neumann
 
 a = 1.e-3
 b = 1.0
 # a case with constant diffusion coefficient
 sigma = 1.0
+#sigma = 2.0
 w     = 0.05
 # a case with variable diffusion coefficient
-# sigma = 10.0    # controls the size of jump
-# w     = 0.05    # controls the width of the jump 
+#sigma = 10.0    # controls the size of jump
+#w     = 0.05    # controls the width of the jump 
 
 plot_rhs  = 0 # plot the RHS
 plot_beta = 0 # plot diffusion coefficient
-plot_soln = 0 # plot the solution
+plot_soln = 1 # plot the solution
 plot_asol = 0 # plot analytic solution
 plot_err  = 0 # plot the error
 comp_norm = 1 # compute 2 norm of the error

@@ -469,7 +469,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     SetMonomialBasis(Tp,Tpp,SSS);
 
-    const int ncomp = 1, nghost = 1;
+    const int ncomp = 1, nghost = sol.nGrow();
     //
     // Contains the matrix powers of p[] and r[].
     //
@@ -1390,7 +1390,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 {
     BL_PROFILE("CGSolver::solve_bicgstab()");
 
-    const int nghost = 1, ncomp = 1;
+    const int nghost = sol.nGrow(), ncomp = 1;
 
     BL_ASSERT(sol.nComp() == ncomp);
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
@@ -1614,7 +1614,7 @@ CGSolver::solve_cg (MultiFab&       sol,
 {
     BL_PROFILE("CGSolver::solve_cg()");
 
-    const int nghost = 1, ncomp = 1;
+    const int nghost = sol.nGrow(), ncomp = 1;
 
     BL_ASSERT(sol.nComp() == ncomp);
     BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
@@ -1788,7 +1788,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
     int                  lev_loc = lev;
     const Real           eps_rel = 1.e-2;
     const Real           eps_abs = 1.e-16;
-    const int            nghost  = 1;
+    const int            nghost  = sol.nGrow();
     const int            ncomp   = sol.nComp();
     const bool           local   = true;
     const LinOp::BC_Mode bc_mode = LinOp::Homogeneous_BC;

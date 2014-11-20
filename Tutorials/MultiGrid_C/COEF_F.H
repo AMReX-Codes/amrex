@@ -35,7 +35,8 @@ extern "C"
 {
     void FORT_COMP_ASOL (
         Real* asol      , ARLIM_P(asol_lo), ARLIM_P(asol_hi),
-        const int* lo, const int* hi, const Real* dx, const int& ibnd);
+        const int* lo, const int* hi, const Real* dx, const int& ibnd,
+        const Real* offset);
 
     void FORT_SET_ALPHA (
         Real* alpha     , ARLIM_P(alpha_lo), ARLIM_P(alpha_hi),

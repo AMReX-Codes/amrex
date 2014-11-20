@@ -421,6 +421,7 @@ LinOp::prepareForLevel (int level)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
+    int nGrow = NGrow(level);
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -432,7 +433,7 @@ LinOp::prepareForLevel (int level)
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
-            const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
+            const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, nGrow);
              ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
             Mask&  curmask = *( ma[face]);
