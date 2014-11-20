@@ -65,12 +65,13 @@ contains
     logical, intent(in), optional :: use_lininterp
     integer, intent(in), optional :: ptype
 
-    integer         :: n, i, id, vol, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
+    integer         :: n, i, id, j, lo_grid, hi_grid, lo_dom, hi_dom, ng_for_res
     type(layout)    :: la1, la2
     type(box)       :: bounding_box
     type(boxarray)  :: ba
-    logical         :: nodal_flag
+    logical         :: nodal_flag, eq_vol
     real(kind=dp_t) :: dvol, dvol_pd
+    integer(kind=ll_t) :: vol, vol_pd
     type(bl_prof_timer), save :: bpt
 
     ! These are added to help build the bottom_mgt
@@ -81,6 +82,7 @@ contains
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
 
+    call bl_proffortfuncstart("mg_tower_build")
     call build(bpt, "mgt_build")
 
     ! Need to set this here because so many things below depend on it.
@@ -238,7 +240,6 @@ contains
               mgt%uniform_dh = .false.
           end if
        case (3)
-          mgt%uniform_dh = ((dh(1) == dh(2)) .and. (dh(1) == dh(3)))
           if (dh(1) > (ONE-1.0e-8_dp_t) * dh(2) .and. &
               dh(1) < (ONE+1.0e-8_dp_t) * dh(2) .and. & 
               dh(1) > (ONE-1.0e-8_dp_t) * dh(3) .and. &
@@ -290,14 +291,6 @@ contains
        end do
     end if
     !
-    ! Do we cover the entire domain?
-    ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
-    ! Need these to be real, not int, so we can handle large numbers.
-    !
-    ba      = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
-    dvol    = boxarray_dvolume(ba)
-    dvol_pd = box_dvolume(pd)
-    !
     ! Set both of these to false as default -- both must be true in order to subtract off sum(res)
     !
     mgt%bottom_singular    = .false.
@@ -306,8 +299,28 @@ contains
     if ( present(is_singular) ) then
        mgt%bottom_singular = is_singular
     else
+
+       !
+       ! Do we cover the entire domain?
+       ! Note that the volume is number of cells so it increments in units of 1, not dx*dy
+       !
+       ba = get_boxarray(get_layout(mgt%cc(mgt%nlevels)))
+       
+       if (int8_supported()) then
+          vol    = boxarray_volume(ba)
+          vol_pd = box_i8volume(pd)
+          eq_vol = vol .eq. vol_pd
+       else
+          !
+          ! Need these to be real, not int, so we can handle large numbers.
+          !
+          dvol    = boxarray_dvolume(ba)
+          dvol_pd = box_dvolume(pd)
+          eq_vol = abs(dvol-dvol_pd).lt.1.0e-2_dp_t
+       end if
+
        ! If we cover the entire domain, then just test on the domain_bc values
-       if ( abs(dvol-dvol_pd).lt.1.0e-2_dp_t ) then
+       if ( eq_vol ) then
           mgt%bottom_singular = .true.
           do id = 1,mgt%dim
              if ( domain_bc(id,1) .eq. BC_DIR .or. domain_bc(id,2) .eq. BC_DIR ) &
@@ -442,6 +455,8 @@ contains
                            mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%cc(1))
     end if
+
+    call bl_proffortfuncstop("mg_tower_build")
 
   end subroutine mg_tower_build
 
@@ -763,6 +778,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_bottom_solve")
     call build(bpt, "mgt_bottom_solve")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
@@ -880,6 +896,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_bottom_solve")
 
   end subroutine mg_tower_bottom_solve
 
@@ -909,6 +926,7 @@ contains
     integer :: mg_restriction_mode
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_restriction")
     call build(bpt, "mgt_restriction")
 
     ir = 2
@@ -971,6 +989,7 @@ contains
     !$OMP END PARALLEL DO
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_restriction")
 
   end subroutine mg_tower_restriction
   !
@@ -1273,6 +1292,7 @@ contains
     type(box)                 :: dmn
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_prolongation")
     call build(bpt, "mgt_prolongation")
 
     call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
@@ -1426,6 +1446,7 @@ contains
     endif
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_prolongation")
 
   end subroutine mg_tower_prolongation
 
@@ -1492,6 +1513,7 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
+    call bl_proffortfuncstart("mg_tower_fmg_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -1555,6 +1577,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_fmg_cycle")
    
   end subroutine mg_tower_fmg_cycle
 
@@ -1580,6 +1603,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_v_cycle")
     call build(bpt, "mgt_v_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
@@ -1662,8 +1686,10 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
+          call bl_proffortfuncstop("mg_tower_v_cycle")
           call mg_tower_v_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
+          call bl_proffortfuncstart("mg_tower_v_cycle")
        end do
 
        call mg_tower_prolongation(mgt, uu, lev-1)
@@ -1693,6 +1719,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_v_cycle")
 
 1000 format('AT LEVEL ',i2)
 
@@ -1711,6 +1738,8 @@ contains
     integer    :: i
     logical    :: do_diag
     real(dp_t) :: nrm
+
+    call bl_proffortfuncstart("mini_cycle")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
     !
@@ -1784,6 +1813,8 @@ contains
        end if
 
     end if
+
+    call bl_proffortfuncstop("mini_cycle")
 
   end subroutine mini_cycle
 

@@ -723,7 +723,6 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
         }
     }
 
-    BL_COMM_PROFILE_NAMETAG("CD::FPIH::Initialize()");
     m_mfcd.CollectData();
 
     m_init = true;

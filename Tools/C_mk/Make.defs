@@ -195,6 +195,10 @@ ifndef PROFILE
   PROFILE = FALSE
 endif
 
+ifndef TRACE_PROFILE
+  TRACE_PROFILE = FALSE
+endif
+
 ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
 endif
@@ -375,7 +379,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
-    override XTRALIBS += $(_f95_lib)
+    ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+       XTRALIBS += -lgfortran
+    else
+       override XTRALIBS += $(_f95_lib)       
+    endif
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
@@ -437,7 +445,7 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
-     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+     CXXOPTF += -g -O2 -ip -fp-model source
    endif
    endif
    CXXDEBF += -g -O0
@@ -710,8 +718,8 @@ ifeq ($(FCOMP),Intel)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
-     FOPTF += -O2 -ip -fp-model source -xHost
-     fOPTF += -O2 -ip -fp-model source -xHost
+     FOPTF += -O2 -ip -fp-model source
+     fOPTF += -O2 -ip -fp-model source
    endif
    endif
 
@@ -768,6 +776,7 @@ ifeq ($(DEBUG),TRUE)
     fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
+    CPPFLAGS	+= -DDEBUG
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
@@ -785,15 +794,30 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(TRACE_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
+
 ifeq ($(COMM_PROFILE),TRUE)
   PROFILE = TRUE
 endif
+
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ifeq ($(COMM_PROFILE),TRUE)
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMTR_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        ProfSuffix	:= .TRACE_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
         CPPFLAGS    += -DBL_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
-    else
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
         ProfSuffix	:= .PROF
     endif
 else

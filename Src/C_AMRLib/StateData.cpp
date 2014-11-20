@@ -39,6 +39,7 @@ StateData::define (const Box&             p_domain,
                    Real                   time,
                    Real                   dt)
 {
+    BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
     grids.define(grds);
@@ -553,37 +554,3 @@ StateData::printTimeInterval (std::ostream &os) const
        << '\n';
 }
 
-//
-// The following is from the asci version of StateData.C
-//
-
-const int BL_IGNORE_MAX = 100000;
-
-void
-BoxLib::readBoxArray (BoxArray&     ba,
-                      std::istream& is,
-                      bool          bReadSpecial)
-{
-    if (bReadSpecial == false)
-    {
-        ba.readFrom(is);
-    }
-    else
-    {
-        BL_ASSERT(ba.size() == 0);
-        int maxbox;
-        unsigned long in_hash; // will be ignored
-        is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;
-        ba.resize(maxbox);
-        for (int i = 0; i < maxbox; i++)
-        {
-            Box b;
-            is >> b;
-            ba.set(i, b);
-        }
-        is.ignore(BL_IGNORE_MAX, ')');
-
-        if (is.fail())
-            BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
-    }
-}

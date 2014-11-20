@@ -13,6 +13,8 @@
 
 long BoxLib::total_bytes_allocated_in_fabs     = 0;
 long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+long BoxLib::total_cells_allocated_in_fabs     = 0;
+long BoxLib::total_cells_allocated_in_fabs_hwm = 0;
 
 int BoxLib::BF_init::m_cnt = 0;
 

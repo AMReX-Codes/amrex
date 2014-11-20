@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
+#include <limits>
 
 #include <BLassert.H>
 #include <Box.H>
@@ -20,6 +21,8 @@ namespace BoxLib
 {
     extern long total_bytes_allocated_in_fabs;     // total bytes at any given time
     extern long total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
+    extern long total_cells_allocated_in_fabs;     // total cells at any given time
+    extern long total_cells_allocated_in_fabs_hwm; // high-water-mark over a given interval
 }
 
 /*
@@ -1087,6 +1090,7 @@ BaseFab<T>::define ()
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
     BL_ASSERT(numpts > 0);
+    BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize = nvar*numpts;
     dptr     = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
@@ -1108,11 +1112,20 @@ BaseFab<T>::define ()
 #endif
     {
         BoxLib::total_bytes_allocated_in_fabs += tst;
+	if(sizeof(T) == sizeof(Real)) {
+          BoxLib::total_cells_allocated_in_fabs += numpts;
+	}
 
         if (BoxLib::total_bytes_allocated_in_fabs > BoxLib::total_bytes_allocated_in_fabs_hwm)
         {
             BoxLib::total_bytes_allocated_in_fabs_hwm = BoxLib::total_bytes_allocated_in_fabs;
         }
+	if(sizeof(T) == sizeof(Real)) {
+        if (BoxLib::total_cells_allocated_in_fabs > BoxLib::total_cells_allocated_in_fabs_hwm)
+        {
+            BoxLib::total_cells_allocated_in_fabs_hwm = BoxLib::total_cells_allocated_in_fabs;
+        }
+	}
     }
 }
 
@@ -1211,6 +1224,11 @@ BaseFab<T>::clear ()
 #pragma omp atomic
 #endif
         BoxLib::total_bytes_allocated_in_fabs -= tst;
+	if(nvar > 0) {
+	if(sizeof(T) == sizeof(Real)) {
+          BoxLib::total_cells_allocated_in_fabs -= truesize / nvar;;
+	}
+	}
     }
 }
 

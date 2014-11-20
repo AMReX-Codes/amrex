@@ -199,16 +199,6 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn
     endif
 endif
-ifeq ($(findstring kraken, $(UNAMEN)), kraken)
-    #
-    # kraken
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
-    endif
-endif
 ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     #
     # Blue Waters
@@ -350,7 +340,8 @@ ifeq ($(HOST),angilas)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
-ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
+
+ifeq ($(findstring donev, $(HOSTNAME)), donev)
    ifeq ($(MPIVENDOR),OpenMPIv1)
       MPIHOME=/usr/lib64/compat-openmpi
       mpi_include_dir = /usr/include/compat-openmpi-x86_64
@@ -358,7 +349,7 @@ ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
       mpi_lib_dir = $(MPIHOME)/lib
    else ifeq ($(MPIVENDOR),OpenMPI) # Latest version
       MPIHOME=$(HOME)/HPC/Libraries/OMPI
-      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_libraries += -lmpi -lmpi_mpifh # -lmpi -lmpi_f77 #-lmpi_f90
       mpi_include_dir = $(MPIHOME)/include
       mpi_lib_dir = $(MPIHOME)/lib
    else
@@ -371,11 +362,12 @@ else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
    # OpenMPI v2
    MPIHOME=/usr/lib64/openmpi
    mpi_include_dir = /usr/include/openmpi-x86_64
+   mpi_libraries += -lmpi -lmpi_mpifh
    # OpenMPI v1
    #MPIHOME=/usr/lib64/compat-openmpi
    #mpi_include_dir = /usr/include/compat-openmpi-x86_64
+   #mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    # Generic stuff:
-   mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    mpi_lib_dir = $(MPIHOME)/lib
 endif
 

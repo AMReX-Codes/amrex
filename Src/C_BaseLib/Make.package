@@ -102,11 +102,12 @@ ifneq ($(BL_NO_FORT),TRUE)
   f$(BOXLIB_BASE)_sources += BLutil_F.f
   f$(BOXLIB_BASE)_sources += BLParmParse_F.f
   f$(BOXLIB_BASE)_sources += BLBoxLib_F.f
+  f$(BOXLIB_BASE)_sources += BLProfiler_F.f
 
   F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
+
+  f90$(BOXLIB_BASE)_sources += threadbox.f90
 endif
 
-ifeq ($(PROFILE),TRUE)
-  C$(BOXLIB_BASE)_sources += Profiler.cpp
-endif
+C$(BOXLIB_BASE)_sources += Profiler.cpp

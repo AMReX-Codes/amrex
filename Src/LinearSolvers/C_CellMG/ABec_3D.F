@@ -247,14 +247,18 @@ c-----------------------------------------------------------------------
       integer  i, j, k, n
 
       REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-      REAL_T delta, gamma
+      REAL_T delta, gamma, rho
+
+      REAL_T, allocatable :: phinew(:,:,:)
+
+      allocate(phinew(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma)
+!$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma,rho)
 !$omp&if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
@@ -282,13 +286,27 @@ c-----------------------------------------------------------------------
      $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
      $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
 
-                  phi(i,j,k,n) = rhs(i,j,k,n) / (gamma - delta)
+                  rho =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
+     $                 +       bX(i+1,j,k)*phi(i+1,j,k,n) )
+     $                 + dhy*( bY(i,j  ,k)*phi(i,j-1,k,n)
+     $                 +       bY(i,j+1,k)*phi(i,j+1,k,n) )
+     $                 + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
+     $                 +       bZ(i,j,k+1)*phi(i,j,k+1,n) )
+
+                  phinew(i,j,k) = (rhs(i,j,k,n)+rho-phi(i,j,k,n)*delta)
+     $                 /                   (gamma - delta)
 
                end do
             end do
           end do
 !$omp end parallel do
+
+         phi(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n) = 
+     $         phinew(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+
       end do
+
+      deallocate(phinew)
 
       end
 c-----------------------------------------------------------------------

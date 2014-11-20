@@ -13,9 +13,6 @@ FCOMP=gfortran
 
 USE_MPI=FALSE
 
-#USE_F90_SOLVERS=TRUE
-USE_F90_SOLVERS=FALSE
-
 EBASE = main
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs

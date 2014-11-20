@@ -95,7 +95,7 @@ module fabio_module
   integer, parameter :: FABIO_APPEND = 3
 
   integer, parameter :: FABIO_MAX_VAR_NAME = 20
-  integer, parameter :: FABIO_MAX_PATH_NAME = 128
+  integer, parameter :: FABIO_MAX_PATH_NAME = 512
 
 contains
 
@@ -109,12 +109,12 @@ contains
          integer, intent(out) :: stat
        end subroutine fabio_mkdir_str
     end interface
-    integer :: istr(128)
+    integer :: istr(FABIO_MAX_PATH_NAME)
     integer :: lstat
 
     ! octal conversion 0755
     lstat = 0; if ( present(stat) ) lstat = 1
-    call str2int(istr, 128, dirname)
+    call str2int(istr, FABIO_MAX_PATH_NAME, dirname)
     call fabio_mkdir_str(istr, lstat)
     if ( present(stat) ) stat = lstat
 
@@ -132,7 +132,7 @@ contains
          integer, intent(in) :: mode
        end subroutine fabio_open_str
     end interface
-    integer :: istr(128)
+    integer :: istr(FABIO_MAX_PATH_NAME)
     integer :: lmode
 
     lmode = FABIO_RDONLY
@@ -140,7 +140,7 @@ contains
        if ( mode /= 0 ) lmode = mode
     end if
 
-    call str2int(istr, 128, filename)
+    call str2int(istr, FABIO_MAX_PATH_NAME, filename)
     call fabio_open_str(fd, istr, lmode)
 
   end subroutine fabio_open
@@ -153,9 +153,9 @@ contains
          integer, intent(in) :: ifilename(*)
        end subroutine fabio_unlink_if_empty_str
     end interface
-    integer :: istr(128)
+    integer :: istr(FABIO_MAX_PATH_NAME)
 
-    call str2int(istr, 128, filename)
+    call str2int(istr, FABIO_MAX_PATH_NAME, filename)
     call fabio_unlink_if_empty_str(istr)
 
   end subroutine fabio_unlink_if_empty
@@ -230,7 +230,7 @@ contains
     logical,          intent(in), optional :: lUsingNFiles
 
     type(layout) :: mf_la
-    character(len=128) :: fname
+    character(len=FABIO_MAX_PATH_NAME) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j, ng, ii
     integer, allocatable :: offset(:), loffset(:)
@@ -402,7 +402,7 @@ contains
     character(len=*), intent(in) :: dirname, header
     integer :: lun
     type(bl_stream) :: strm
-    character(len=256) :: str
+    character(len=FABIO_MAX_PATH_NAME) :: str
 
     call build(strm)
     lun = bl_stream_the_unit(strm)
@@ -653,7 +653,7 @@ contains
     integer, intent(in), optional :: ng
     integer :: lun
     type(bl_stream) :: strm
-    character(len=256) :: str
+    character(len=FABIO_MAX_PATH_NAME) :: str
     integer :: lng
     logical :: useoldplotreader = .false.
 
@@ -748,8 +748,8 @@ contains
       type(box) :: bx_dummy, bx
       type(boxarray) :: ba
       type(layout) :: la
-      character(len=256), allocatable :: fileprefix(:)
-      character(len=256), allocatable :: header(:)
+      character(len=FABIO_MAX_PATH_NAME), allocatable :: fileprefix(:)
+      character(len=FABIO_MAX_PATH_NAME), allocatable :: header(:)
       real(kind=dp_t), pointer :: pp(:,:,:,:)
       logical :: nodal(MAX_SPACEDIM)
 
@@ -865,8 +865,8 @@ contains
       type(boxarray) :: ba
       type(boxarray), allocatable :: balevs(:)
       type(layout) :: la
-      character(len=256), allocatable :: fileprefix(:)
-      character(len=256), allocatable :: header(:)
+      character(len=FABIO_MAX_PATH_NAME), allocatable :: fileprefix(:)
+      character(len=FABIO_MAX_PATH_NAME), allocatable :: header(:)
       real(kind=dp_t), pointer :: pp(:,:,:,:)
       logical :: nodal(MAX_SPACEDIM)
       integer :: nSets, mySet, iSet, wakeUpPID, waitForPID, tag, nAtOnce, iBuff(2)
@@ -1138,15 +1138,15 @@ contains
       use bl_error_module
       integer :: i, n, k
       integer :: j, nc
-      character(len=256) :: str, str1, cdummy
+      character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy
       integer :: idummy, lun1
       real(kind=dp_t) :: rdummy
       integer :: nvars, dm, flevel
       integer :: nboxes
       type(box), allocatable :: bxs(:)
       type(box) :: bdummy
-      character(len=256) :: fileprefix
-      character(len=256) :: header
+      character(len=FABIO_MAX_PATH_NAME) :: fileprefix
+      character(len=FABIO_MAX_PATH_NAME) :: header
 
       read(unit=lun,fmt=*) nvars
       do i = 1, nvars

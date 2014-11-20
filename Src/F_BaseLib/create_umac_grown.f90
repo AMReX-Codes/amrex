@@ -1,6 +1,7 @@
 module create_umac_grown_module
 
   use multifab_module
+  use fab_module
   use bl_constants_module
 
   private
@@ -54,27 +55,28 @@ contains
   !      |           |           |           |           |           |
   !      |-----Y-----|-----Y-----|-----Y-----|-----Y-----|-----Y-----|
 
-  subroutine create_umac_grown(finelev,fine,crse,bc_crse,bc_fine)
+  subroutine create_umac_grown(fine,crse,bc_crse,bc_fine, fill_fine_boundary)
 
     use define_bc_module
     use multifab_physbc_edgevel_module, only: multifab_physbc_edgevel
 
-    integer       , intent(in   ) :: finelev
     type(multifab), intent(inout) :: fine(:)
     type(multifab), intent(inout) :: crse(:)
     type(bc_level), intent(in   ) :: bc_crse,bc_fine
+    logical       , intent(in   ) :: fill_fine_boundary
 
     ! local
-    integer        :: i,j,k,ng_f,ng_c,dm
-    integer        :: c_lo(get_dim(crse(1))),c_hi(get_dim(crse(1)))
-    integer        :: f_lo(get_dim(crse(1))),f_hi(get_dim(crse(1)))
+    integer         :: i,j,k,it,ng_f,ng_c,dm
+    integer         :: c_lo(get_dim(crse(1))),c_hi(get_dim(crse(1)))
+    integer         :: f_lo(get_dim(crse(1))),f_hi(get_dim(crse(1)))
 
-    type(fgassoc)  :: fgasc
-    type(boxarray) :: f_ba,c_ba,tba
-    type(multifab) :: f_mf,c_mf,tcrse,tfine
-    type(layout)   :: f_la,c_la,tla,fine_la
+    type(fgassoc)   :: fgasc
+    type(box)       :: bx
+    type(boxarray)  :: f_ba,c_ba,tba
+    type(multifab)  :: f_mf,c_mf
+    type(layout)    :: f_la,c_la,fine_la
 
-    real(kind=dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    real(kind=dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:), fn(:,:,:,:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -82,11 +84,6 @@ contains
 
     dm = get_dim(crse(1))
 
-    ! Call multifab_fill_boundary and impose_phys_bcs_on_edges on the coarse level.
-    ! We will call multifab_fill_boundary and impose_phys_bcs_on_edges on the fine level
-    ! later in this subroutine
-    ! this can be optimized by putting if (finelev .eq. nlevs) around these lines, but
-    ! nlevs isn't available in this subroutine yet
     do i=1,dm
        call multifab_fill_boundary(crse(i))
     end do
@@ -106,40 +103,17 @@ contains
 
     do i=1,dm
 
-       call build(f_la,f_ba,get_pd(get_layout(fine(i))),get_pmask(get_layout(fine(i))))
+       call build(f_la,f_ba,get_pd(get_layout(fine(i))),get_pmask(get_layout(fine(i))), &
+                  explicit_mapping=fgasc%prc)
        call build(c_la,c_ba,get_pd(get_layout(crse(i))),get_pmask(get_layout(crse(i))), &
-                  explicit_mapping=get_proc(f_la))
+                  explicit_mapping=fgasc%prc)
 
        ! Create c_mf and f_mf on the same proc.
        call build(f_mf,f_la,1,0,nodal_flags(fine(i)))
        call build(c_mf,c_la,1,0,nodal_flags(crse(i)))
 
-       ! Update c_mf with valid and ghost regions from crse.
-       call boxarray_build_copy(tba, get_boxarray(crse(i)))
-       do j=1,nboxes(tba)
-          call set_box(tba,j,grow(get_box(crse(i)%la,j),1))
-       end do
-       call build(tla, tba, get_pd(get_layout(crse(i))), get_pmask(get_layout(crse(i))), &
-                  explicit_mapping = get_proc(get_layout(crse(i))))
-       call destroy(tba)
-       call build(tcrse, tla, 1, 0, nodal_flags(crse(i)))
+       call multifab_copy_c(c_mf, 1, crse(i), 1, 1, ngsrc=1)
 
-       if (nghost(crse(i)) .lt. 1) &
-           call bl_error("Need at least one ghost cell in crse in create_umac_grown")
-
-       !$OMP PARALLEL DO PRIVATE(j,fp,cp)
-       do j=1,nfabs(tcrse)
-          fp => dataptr(tcrse,  j)
-          cp => dataptr(crse(i),j, get_ibox(tcrse,j))
-          call cpy_d(fp,cp)
-       end do
-       !$OMP END PARALLEL DO
-
-       call copy(c_mf, tcrse)
-
-       call destroy(tcrse)
-       call destroy(tla)
-       
        ng_f = nghost(f_mf)
        ng_c = nghost(c_mf)
        !
@@ -161,7 +135,11 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       call copy(f_mf,fine(i))
+       !
+       ! parallel copy from fine(i)
+       ! 
+       call copy(f_mf, fine(i))
+
        !
        ! Fill in the rest of the fine ghost cells.
        !
@@ -183,38 +161,31 @@ contains
        call destroy(c_mf)
        call destroy(c_la)
 
+       !
        ! Update ghost regions of fine where they overlap with f_mf.
-       call boxarray_build_copy(tba, get_boxarray(fine(i)))
-       do j = 1, nboxes(tba)
-          call set_box(tba,j,grow(get_box(fine(i)%la,j),nghost(fine(i))))
-       end do
-       call build(tla, tba, get_pd(get_layout(fine(i))), get_pmask(get_layout(fine(i))), &
-                  explicit_mapping=get_proc(get_layout(fine(i))))
-       call destroy(tba)
-       call build(tfine, tla, 1, 0, nodal_flags(fine(i)))
-
-       call copy(tfine, f_mf)
-
-       call destroy(f_mf)
-       call destroy(f_la)
-
-       !$OMP PARALLEL DO PRIVATE(j,k,fp,cp,tba)
-       do j=1,nfabs(tfine)
-          call boxarray_box_diff(tba, get_ibox(tfine,j), get_ibox(fine(i),j))
-          do k = 1, nboxes(tba)
-             fp => dataptr(fine(i), j, get_box(tba,k))
-             cp => dataptr(tfine,   j, get_box(tba,k))
-             call cpy_d(fp,cp)
+       !
+       ! OMP unsafe
+       do j = 1, nfabs(f_mf)
+          k = fgasc%idx(j)
+          bx = box_intersection(get_ibox(f_mf,j), get_pbox(fine(i),k))
+          call boxarray_box_diff(tba, bx, get_ibox(fine(i),k))
+          do it = 1, nboxes(tba)
+             bx = get_box(tba,it)
+             fp => dataptr(f_mf   , j, bx, 1, 1)
+             fn => dataptr(fine(i), k, bx, 1, 1)
+             call cpy_d(fn,fp)
           end do
           call destroy(tba)
        end do
-       !$OMP END PARALLEL DO
 
-       call destroy(tfine)
-       call destroy(tla)
-
+       call destroy(f_mf)
+       call destroy(f_la)
+       
        ng_f = nghost(fine(1))
 
+       ! Must fill bounday because correct_umac_goown_?d uses ghost cells of fine
+       ! For those ghost cells that also overlap with other valid boxes of fine,
+       ! f_mf did not touch them, and they must be filled with fill_boundary.
        call multifab_fill_boundary(fine(i))
        !
        ! Now fix up umac grown due to the low order interpolation we used.
@@ -233,10 +204,10 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       call multifab_fill_boundary(fine(i))
+       if (fill_fine_boundary) call multifab_fill_boundary(fine(i))
     end do
 
-    call multifab_physbc_edgevel(fine,bc_fine)
+    if (fill_fine_boundary) call multifab_physbc_edgevel(fine,bc_fine)
 
     call destroy(f_ba)
     call destroy(c_ba)
