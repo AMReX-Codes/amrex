@@ -324,7 +324,11 @@ c
       integer  i, j, n
 c
       REAL_T dhx, dhy, cf0, cf1, cf2, cf3
-      REAL_T delta, gamma
+      REAL_T delta, gamma, rho
+
+      REAL_T, allocatable :: phinew(:,:)
+
+      allocate(phinew(lo(1):hi(1),lo(2):hi(2)))
 c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
@@ -349,11 +353,20 @@ c
      $              +   dhx*( bX(i,j) + bX(i+1,j) )
      $              +   dhy*( bY(i,j) + bY(i,j+1) )
 c     
-               phi(i,j,n) = rhs(i,j,n) / (gamma - delta)
+               rho = dhx*(bX(i,j)*phi(i-1,j,n) + bX(i+1,j)*phi(i+1,j,n))
+     $              +dhy*(bY(i,j)*phi(i,j-1,n) + bY(i,j+1)*phi(i,j+1,n))
+c     
+               phinew(i,j) = (rhs(i,j,n) + rho - phi(i,j,n)*delta)
+     $              /                (gamma - delta)
 c     
             end do
          end do
+
+         phi(lo(1):hi(1),lo(2):hi(2),n) = phinew(lo(1):hi(1),lo(2):hi(2))
+
       end do
+
+      deallocate(phinew)
 
       end
 c-----------------------------------------------------------------------

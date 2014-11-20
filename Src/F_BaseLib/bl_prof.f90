@@ -71,6 +71,14 @@ module bl_prof_module
      module procedure bl_prof_timer_destroy
   end interface
 
+  interface bl_proffortfuncstart
+     module procedure proffortfuncstart
+  end interface
+
+  interface bl_proffortfuncstop
+     module procedure proffortfuncstop
+  end interface
+
   type(bl_prof_reg), private, save, pointer :: timers(:)
 
   !! By default, we don't profile should be relatively low-overhead if
@@ -329,51 +337,55 @@ contains
        do i = 2, size(cksums)
           if ( cksums(i-1) /= cksums(i) ) then
              ok = .false.
-             exit
+             write(un,*) "*** these two processors' check sums are different", i-1, i
           end if
        end do
     end if
     call parallel_bcast(ok)
 
-    if ( .not. ok) then
-       !
-       ! Attempt to print out something to help track down why trees are not the same.
-       !
-       call sort(sm(:,2), ism, greater_d)
-       do j = 0, parallel_nprocs()-1
-          if (j == parallel_myproc()) then
-             print*, 'glean on CPU# ', j, 'size(ism):', size(ism)
-             do i = 1, size(ism)
-                ii = ism(i)
-                print*, trim(timers(ii)%name)
-             end do
-          end if
-          call parallel_barrier()
-       end do
-       call bl_error("*** bl_prof_glean: proc trees are NOT identical !!!")
+ !    if ( .not. ok) then
+!        !
+!        ! Attempt to print out something to help track down why trees are not the same.
+!        !
+!        call sort(sm(:,2), ism, greater_d)
+!        do j = 0, parallel_nprocs()-1
+!           if (j == parallel_myproc()) then
+!              print*, 'glean on CPU# ', j, 'size(ism):', size(ism)
+!              do i = 1, size(ism)
+!                 ii = ism(i)
+!                 print*, trim(timers(ii)%name)
+!              end do
+!           end if
+!           call parallel_barrier()
+!        end do
+!        call bl_error("*** bl_prof_glean: proc trees are NOT identical !!!")
+!     end if
+
+    if (ok) then
+
+       call s_activation(the_call_tree, sm, local = .false.)
+
+       if ( parallel_ioprocessor() ) then
+          !! Print the summary informationreg
+          write(unit = un, fmt = '("* GLOBAL")')
+          write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
+          call sort(sm(:,2), ism, greater_d)
+          write(unit = un, fmt = '("REGION",TR40,"COUNT",TR8,"TOTAL",TR22,"SELF",TR23,"MAX",TR10,"MIN")')
+          do i = 1, size(ism)
+             ii = ism(i)
+             write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
+          end do
+       end if
+       
+       if ( parallel_ioprocessor() ) then
+          write(unit = un, fmt = '()')
+          write(unit = un, fmt = &
+               '("REGION",TR40,"COUNT",TR8,"TOTAL",TR8,"CHILD",TR9,"SELF",TR10,"AVG",TR10,"MAX",TR10,"MIN")')
+       end if
+       
+       call p_activation(the_call_tree, un, 0, local = .false.)
+
     end if
-
-    call s_activation(the_call_tree, sm, local = .false.)
-
-    if ( parallel_ioprocessor() ) then
-       !! Print the summary informationreg
-       write(unit = un, fmt = '("* GLOBAL")')
-       write(unit = un, fmt = '("  NPROCS = ", i5,/)') parallel_nprocs()
-       call sort(sm(:,2), ism, greater_d)
-       write(unit = un, fmt = '("REGION",TR40,"COUNT",TR8,"TOTAL",TR22,"SELF",TR23,"MAX",TR10,"MIN")')
-       do i = 1, size(ism)
-          ii = ism(i)
-          write(unit = un, fmt = '(A40,1x,I10,F13.3,TR13,F13.3,TR13,2F13.3)') trim(timers(ii)%name), int(sm(ii,0)), sm(ii,1:)
-       end do
-    end if
-
-    if ( parallel_ioprocessor() ) then
-       write(unit = un, fmt = '()')
-       write(unit = un, fmt = &
-            '("REGION",TR40,"COUNT",TR8,"TOTAL",TR8,"CHILD",TR9,"SELF",TR10,"AVG",TR10,"MAX",TR10,"MIN")')
-    end if
-
-    call p_activation(the_call_tree, un, 0, local = .false.)
 
     if ( parallel_ioprocessor() ) then
        close(unit = un)
@@ -550,6 +562,15 @@ contains
     ! does nothing -- this is needed by the backtrace version
   end subroutine print_stack
 
+  subroutine proffortfuncstart(name)
+    character(len=*), intent(in) :: name
+    ! does nothing --
+  end subroutine proffortfuncstart
+
+  subroutine proffortfuncstop(name)
+    character(len=*), intent(in) :: name
+    ! does nothing --
+  end subroutine proffortfuncstop
 
 end module bl_prof_module
 

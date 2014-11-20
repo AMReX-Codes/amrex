@@ -14,7 +14,7 @@ subroutine t_nodal_ml_multigrid(mla, mgt, rh, coeffs_type, domain_bc, &
   use fabio_module
   use ml_nd_module
   use nodal_mask_module
-  use ml_restriction_module
+  use ml_nodal_restriction_module
   use ml_prolongation_module
   use bndry_reg_module
   use ml_norm_module

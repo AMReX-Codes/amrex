@@ -5,7 +5,6 @@
 #define mgt_init                  MGT_INIT
 #define mgt_flush_copyassoc_cache MGT_FLUSH_COPYASSOC_CACHE
 #define mgt_flush_output          MGT_FLUSH_OUTPUT
-#define mgt_use_alltoallv         MGT_USE_ALLTOALLV
 #define mgt_cc_alloc              MGT_CC_ALLOC
 #define mgt_nodal_alloc           MGT_NODAL_ALLOC
 #define mgt_set_level             MGT_SET_LEVEL
@@ -144,7 +143,6 @@
 #define mgt_init                  mgt_init_
 #define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache_
 #define mgt_flush_output          mgt_flush_output_
-#define mgt_use_alltoallv         mgt_use_alltoallv_
 #define mgt_alloc                 mgt_alloc_
 #define mgt_cc_alloc              mgt_cc_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc_
@@ -282,7 +280,6 @@
 #define mgt_init                  mgt_init__
 #define mgt_flush_copyassoc_cache mgt_flush_copyassoc_cache__
 #define mgt_flush_output          mgt_flush_output__
-#define mgt_use_alltoallv         mgt_use_alltoallv__
 #define mgt_cc_alloc              mgt_cc_alloc_
 #define mgt_nodal_alloc           mgt_nodal_alloc__
 #define mgt_set_level             mgt_set_level__
@@ -427,8 +424,6 @@ extern "C"
   void mgt_flush_copyassoc_cache();
 
   void mgt_flush_output();
-
-  void mgt_use_alltoallv();
 
   void mgt_cc_alloc   (const int* dm, const int* nlevel, const int* stencil_type);
   void mgt_nodal_alloc(const int* dm, const int* nlevel, const int* stencil_type);

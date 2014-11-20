@@ -340,6 +340,7 @@ endif
 
 ifeq ($(WHICHLINUX), HOPPER)
   DEFINES += -DMPICH_SKIP_MPICXX
+  DEFINES += -DBL_HOPPER
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
     CC  := cc -target=linux

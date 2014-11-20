@@ -51,6 +51,8 @@ int main(int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
 
+  BL_PROFILE_VAR("main()", pmain);
+
   std::cout << std::setprecision(15);
 
   solver_type = BoxLib_C;
@@ -149,11 +151,15 @@ int main(int argc, char* argv[])
 
   solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
 
+  BL_PROFILE_VAR_STOP(pmain);
+
   BoxLib::Finalize();
 }
 
 void compute_analyticSolution(MultiFab& anaSoln)
 {
+  BL_PROFILE("compute_analyticSolution");
+
   int ibnd = static_cast<int>(bc_type); 
 
   for (MFIter mfi(anaSoln); mfi.isValid(); ++mfi) {
@@ -168,6 +174,7 @@ void compute_analyticSolution(MultiFab& anaSoln)
 
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom)
 {
+  BL_PROFILE("setup_coeffs");
 
   Real sigma = 1.0;
   Real     w = 1.0;
@@ -207,6 +214,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom, Real a, Real b)
 {
+  BL_PROFILE("setup_rhs");
   Real sigma = 1.0;
   Real     w = 1.0;
 
@@ -238,6 +246,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom, Real a, Real b)
 
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 {
+  BL_PROFILE("set_boundary");
   Real bc_value = 0.0;
 
   for (int n=0; n<BL_SPACEDIM; ++n) {
@@ -297,6 +306,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver)
 {
+  BL_PROFILE("solve");
   soln.setVal(0.0);
 
   const Real run_strt = ParallelDescriptor::second();

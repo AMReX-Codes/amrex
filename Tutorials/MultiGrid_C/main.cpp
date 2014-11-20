@@ -79,6 +79,8 @@ int main(int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
 
+  BL_PROFILE_VAR("main()", pmain);
+
   std::cout << std::setprecision(15);
 
   ParmParse ppmg("mg");  
@@ -280,11 +282,14 @@ int main(int argc, char* argv[])
     std::cout << "----------------------------------------" << std::endl;
   }
   
+  BL_PROFILE_VAR_STOP(pmain);
+
   BoxLib::Finalize();
 }
 
 void compute_analyticSolution(MultiFab& anaSoln, const Array<Real> offset)
 {
+  BL_PROFILE("compute_analyticSolution()");
   int ibnd = static_cast<int>(bc_type); 
 
   for (MFIter mfi(anaSoln); mfi.isValid(); ++mfi) {
@@ -299,6 +304,7 @@ void compute_analyticSolution(MultiFab& anaSoln, const Array<Real> offset)
 
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom)
 {
+  BL_PROFILE("setup_coeffs()");
   ParmParse pp;
 
   Real sigma, w;
@@ -373,6 +379,7 @@ void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom)
 {
+  BL_PROFILE("setup_rhs()");
   ParmParse pp;
 
   Real a, b, sigma, w;
@@ -413,6 +420,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
 
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 {
+  BL_PROFILE("set_boundary()");
   Real bc_value = 0.0;
 
   for (int n=0; n<BL_SPACEDIM; ++n) {
@@ -565,6 +573,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver)
 {
+  BL_PROFILE("solve()");
   std::string ss;
 
   soln.setVal(0.0);
@@ -629,6 +638,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_Cpp()");
   BndryData bd(bs, 1, geom);
   set_boundary(bd, rhs);
 
@@ -645,6 +655,7 @@ void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_F90()");
   // Translate into F90 solver
   std::vector<BoxArray> bav(1);
   bav[0] = bs;
@@ -730,6 +741,7 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_hypre()");
   BndryData bd(bs, 1, geom);
   set_boundary(bd, rhs);
 

@@ -226,6 +226,9 @@ module fab_module
   integer,       private, save :: ifab_default_init = -Huge(1)
   logical,       private, save :: lfab_default_init = .false.
 
+  logical,             private, save :: manual_control_least_used_cpus = .false.
+  integer(kind =ll_t), private, save :: mcluc_vol                      = 0_ll_t
+
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
   type(mem_stats), private, save :: ifab_ms
@@ -513,11 +516,11 @@ contains
        !
        ! This assumes sizeof(dp_t) == 8
        !
-       ilo = int(8*lo,ll_t)
-       ihi = int(8*hi,ll_t)
-       iav = int(8*av,ll_t) / parallel_nprocs()
+       ilo = int(lo*(8._dp_t/(1024._dp_t**2)))
+       ihi = int(hi*(8._dp_t/(1024._dp_t**2)))
+       iav = int(av/parallel_nprocs()*(8._dp_t/(1024._dp_t**2)))
        print*, ''
-       write(6,fmt='("FAB byte spread across MPI nodes: [",i11," - ",i11," [avg: ",i11,"]]")') ilo, ihi, iav
+       write(6,fmt='("FAB Megabyte spread across MPI nodes: [",i9," - ",i9," [avg: ",i9,"]]")') ilo, ihi, iav
        print*, ''
     end if
     fab_high_water_mark = 0
@@ -534,28 +537,34 @@ contains
     use sort_i_module
 
     integer, pointer     :: r(:)
-    integer              :: i
+    integer              :: i, nprocs
     integer, allocatable :: snd(:), rcv(:), idx(:)
 
     integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
+    
+    nprocs = parallel_nprocs()
 
-    allocate(r(0:parallel_nprocs()-1))
+    allocate(r(0:nprocs-1))
 
-    allocate(snd(1), rcv(parallel_nprocs()), idx(parallel_nprocs()))
+    allocate(snd(1), rcv(nprocs))
 
-    val = fab_ms%num_alloc - fab_ms%num_dealloc
+    if (manual_control_least_used_cpus) then
+       val = mcluc_vol
+    else
+       val = fab_ms%num_alloc - fab_ms%num_dealloc
+    end if
 
     snd(1) = int(val)
 
     call parallel_allgather(snd, rcv, 1)
 
+    allocate(idx(nprocs))
     call stable_sort(rcv, idx)
-
     r = idx - 1
 
     if ( .false. .and. parallel_ioprocessor() ) then
        print*, '*** least_used_cpus(): '
-       do i = 0, parallel_nprocs()-1
+       do i = 0, nprocs-1
           print*, i, ' : ', r(i)
        end do
     end if
@@ -595,6 +604,11 @@ contains
     type(mem_stats) :: r
     r = lfab_ms
   end function lfab_mem_stats
+
+  function fab_get_high_water_mark() result(r)
+    integer(ll_t) :: r
+    r = fab_high_water_mark
+  end function fab_get_high_water_mark
 
   function fab_volume(fb, all) result(r)
     integer(kind=ll_t) :: r
@@ -2208,5 +2222,25 @@ contains
     end if
     r = count(lp)
   end function lfab_count
+
+  subroutine set_manual_control_least_used_cpus(flag)
+    logical, intent(in) :: flag
+    manual_control_least_used_cpus = flag
+  end subroutine set_manual_control_least_used_cpus
+
+  function get_manual_control_least_used_cpus_flag() result(r)
+    logical :: r
+    r = manual_control_least_used_cpus
+  end function get_manual_control_least_used_cpus_flag
+
+  subroutine set_luc_vol(i)
+    integer(kind=ll_t), intent(in) :: i
+    mcluc_vol = i
+  end subroutine set_luc_vol
+
+  function get_luc_vol() result(r)
+    integer(kind=ll_t) :: r
+    r = mcluc_vol
+  end function get_luc_vol
 
 end module fab_module

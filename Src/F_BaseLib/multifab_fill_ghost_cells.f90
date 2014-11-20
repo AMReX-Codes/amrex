@@ -35,12 +35,9 @@ contains
     logical       , intent(in   ), optional :: fill_crse_physbc_input
 
     integer         :: i, j
-    type(multifab)  :: ghost, tmpfine
+    type(multifab)  :: ghost
     type(box)       :: bx
-    type(boxarray)  :: ba
-    type(list_box)  :: bl
-    type(layout)    :: la, tmpla, fine_la
-    real(kind=dp_t) :: dx(3)
+    type(layout)    :: la, fine_la
     type(fgassoc)   :: fgasc
     logical         :: fill_crse
     integer         :: stencil_width
@@ -90,7 +87,7 @@ contains
     !
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
-    call build(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la))
+    call build(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la), explicit_mapping=fgasc%prc)
 
     ! Don't need to make any ghost cells.
     call build(ghost, la, nc, ng = 0)
@@ -103,48 +100,22 @@ contains
 
     !
     ! Copy fillpatch()d ghost cells to fine.
-    ! We want to copy the valid region of ghost -> valid + ghost region of fine.
-    ! Got to do it in two stages since copy()s only go from valid -> valid.
     !
-    do i = 1, nboxes(fine%la)
-       call push_back(bl, grow(box_nodalize(get_box(fine%la,i),fine%nodal),ng))
-    end do
-
-    call build(ba, bl, sort = .false.)
-    call destroy(bl)
-    call build(tmpla, ba, get_pd(fine_la), get_pmask(fine_la), explicit_mapping = get_proc(fine_la))
-    call destroy(ba)
-    call build(tmpfine, tmpla, nc = nc, ng = 0)
-    call setval(tmpfine, 0.0_dp_t, all = .true. )
-
-    call copy(tmpfine, 1, ghost, 1, nc)  ! parallel copy
-
-    !$OMP PARALLEL DO PRIVATE(i,ba,j,bx,dst,src)
-    do i = 1, nfabs(fine)
-       call boxarray_box_diff(ba, get_ibox(tmpfine,i), get_ibox(fine,i))
-       do j = 1, nboxes(ba)
-          bx  =  get_box(ba,j)
-          dst => dataptr(fine,    i, bx, icomp, nc)
-          src => dataptr(tmpfine, i, bx, 1    , nc)
-          call cpy_d(dst,src)
-       end do
-       call destroy(ba)
+    !$OMP PARALLEL DO PRIVATE(i,j,bx,src,dst)
+    do i = 1, nfabs(ghost)
+       j = fgasc%idx(i)
+       bx = box_intersection(get_ibox(ghost,i), get_pbox(fine,j))
+       src => dataptr(ghost, i, bx, 1    , nc)
+       dst => dataptr(fine , j, bx, icomp, nc)
+       call cpy_d(dst,src)
     end do
     !$OMP END PARALLEL DO
-    !
-    ! Finish up.
-    !
-    call fill_boundary(fine, icomp, nc, ng)
-
-    dx = ONE
-
-    call multifab_physbc(fine, icomp, bcomp, nc, bc_fine)
 
     call destroy(ghost)
-    call destroy(tmpfine)
-
     call destroy(la)
-    call destroy(tmpla)
+
+    call fill_boundary(fine, icomp, nc, ng)
+    call multifab_physbc(fine, icomp, bcomp, nc, bc_fine)
 
     call destroy(bpt)
 
@@ -200,7 +171,7 @@ contains
     call multifab_physbc(crse_new,icomp,bcomp,nc,bc_crse)
     call multifab_physbc(crse_old,icomp,bcomp,nc,bc_crse)
 
-    call build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng, nodal=crse_old%nodal)
+    call build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng)
     call saxpy(crse, alpha, crse_old, (ONE-alpha), crse_new, all=.true.)
 
     call multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &

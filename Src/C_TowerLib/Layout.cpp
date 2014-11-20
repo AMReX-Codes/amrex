@@ -467,8 +467,12 @@ Layout::Build(const Array<BoxArray>&  aba,
   // Adjust node numbers to be globally unique
   int num_size = ParallelDescriptor::NProcs();
   Array<int> num_nodes_p(num_size);
+  BL_COMM_PROFILE(Profiler::Allgather, sizeof(int), Profiler::BeforeCall(),
+                  Profiler::NoTag());
   BL_MPI_REQUIRE(MPI_Allgather(&nNodes_local, 1, MPI_INT, num_nodes_p.dataPtr(), 1, MPI_INT, 
                                ParallelDescriptor::Communicator()));
+  BL_COMM_PROFILE(Profiler::Allgather, sizeof(int), Profiler::AfterCall(),
+                  Profiler::NoTag());
 
   int offset = 0;
   for (int i=0; i<ParallelDescriptor::MyProc(); ++i) {

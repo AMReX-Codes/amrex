@@ -16,7 +16,7 @@ include_directories(${CBOXLIB_INCLUDE_DIRS})
 set(CXX_source_files Arena.cpp BArena.cpp BaseFab.cpp BoxArray.cpp Box.cpp BoxDomain.cpp BoxLib.cpp BoxList.cpp CArena.cpp CoordSys.cpp DistributionMapping.cpp FabArray.cpp FabConv.cpp FArrayBox.cpp FPC.cpp Geometry.cpp IArrayBox.cpp IndexType.cpp IntVect.cpp iMultiFab.cpp MultiFab.cpp Orientation.cpp ParallelDescriptor.cpp ParmParse.cpp RealBox.cpp UseCount.cpp Utility.cpp VisMF.cpp)
 set(F77_source_files BLBoxLib_F.f bl_flush.f BLParmParse_F.f BLutil_F.f)
 set(FPP_source_files COORDSYS_${BL_SPACEDIM}D.F SPECIALIZE_${BL_SPACEDIM}D.F)
-set(F90_source_files)
+set(F90_source_files threadbox.f90)
 
 set(CXX_header_files Arena.H Array.H ArrayLim.H BArena.H BaseFab.H BLassert.H BLFort.H BoxArray.H BoxDomain.H Box.H BoxLib.H BoxList.H CArena.H ccse-mpi.H CONSTANTS.H CoordSys.H DistributionMapping.H FabArray.H FabConv.H FArrayBox.H FPC.H Geometry.H IArrayBox.H IndexType.H IntVect.H Looping.H iMultiFab.H MultiFab.H Orientation.H ParallelDescriptor.H ParmParse.H PArray.H PList.H Pointers.H Profiler.H RealBox.H REAL.H SPACE.H Tuple.H UseCount.H Utility.H VisMF.H winstd.H)
 set(F77_header_files)
