@@ -8,6 +8,11 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <algorithm>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <BLassert.H>
 #include <Array.H>
@@ -348,15 +353,27 @@ public:
     explicit MFIter (const FabArrayBase& fabarray)
         :
         fabArray(fabarray),
-        currentIndex(0) {}
+        currentIndex(0),
+	tileSize(D_DECL(10240,10240,10240))
+	{
+	    Initialize();
+	}
+    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+        :
+        fabArray(fabarray),
+        currentIndex(0),
+	tileSize(tilesize)
+	{
+	    Initialize();
+	}
     //
-    // Returns the Box at the current index in the underlying BoxArray.
+    // Returns the Box at the current index.
     //
-    const Box& validbox () const { return fabArray.box(fabArray.IndexMap()[currentIndex]); }
+    const Box& validbox () const { return tileArray[currentIndex]; }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    const Box fabbox () const { return fabArray.fabbox(fabArray.IndexMap()[currentIndex]); }
+    const Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
     //
     // Increments iterator to the next FAB in the FabArray that we own.
     //
@@ -364,11 +381,11 @@ public:
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid () { return currentIndex < fabArray.IndexMap().size(); }
+    bool isValid () { return currentIndex < indexMap.size(); }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return fabArray.IndexMap()[currentIndex]; }
+    int index () const { return indexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -378,6 +395,122 @@ private:
 
     const FabArrayBase& fabArray;
     int                 currentIndex;
+    IntVect             tileSize;
+    Array<int>          indexMap;
+    Array<Box>          tileArray;
+
+    void Initialize () {
+
+	int tid = 0;
+	int nthreads = 1;
+
+#ifdef _OPENMP
+	if (omp_in_parallel()) {
+	    tid = omp_get_thread_num();
+	    nthreads = omp_get_num_threads();
+	}
+#endif
+
+	// First let's figure out how many tiles we are going to have
+	int n_tot_tiles=0;
+	Array<IntVect> nt_in_fab;
+	for (int i=0; i<fabArray.IndexMap().size(); i++) {
+	    int K = fabArray.IndexMap()[i]; 
+	    const Box bx = fabArray.box(K);
+
+	    int ntiles = 1;
+	    IntVect nt;
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		nt[d] = std::max(bx.length(d)/tileSize[d], 1);
+		ntiles *= nt[d];
+	    }
+
+	    nt_in_fab.push_back(nt);
+	    n_tot_tiles += ntiles;
+	}
+
+	// the tile no range for this thread
+	int tlo, thi;
+	if (n_tot_tiles < nthreads) { // there are more threads than tiles
+	    if (tid < n_tot_tiles) {
+		tlo = thi = tid;
+	    }
+	    else {
+		return;
+	    }
+	}
+	else {
+	    int tiles_per_thread = n_tot_tiles/nthreads;
+	    int nleft = n_tot_tiles - tiles_per_thread*nthreads;
+	    if (tid < nleft) {
+		tlo = tid*(tiles_per_thread+1);
+		thi = tlo + tiles_per_thread;
+	    }
+	    else {
+		tlo = tid*tiles_per_thread + nleft;
+		thi = tlo + tiles_per_thread - 1;
+	    }
+	}
+
+	indexMap.reserve(thi-tlo+1);
+	tileArray.reserve(thi-tlo+1);
+
+	int it = 0;
+	for (int i=0; i<fabArray.IndexMap().size(); i++) {
+
+	    int ntiles = 1;
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		ntiles *= nt_in_fab[i][d];
+	    }
+
+	    if (it+ntiles-1 < tlo) {
+		it += ntiles;
+		continue;
+	    }
+
+	    int K = fabArray.IndexMap()[i]; 
+	    const Box bx = fabArray.box(K);
+
+	    IntVect tsize, nleft;
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		int ncells = bx.length(d);
+		tsize[d] = ncells/nt_in_fab[i][d];
+		nleft[d] = ncells - nt_in_fab[i][d]*tsize[d];
+	    }
+
+	    IntVect small, big, ijk;  // note that the initial values are all zero.
+	    ijk[0] = -1;
+	    for (int t=0; t<ntiles; t++) {
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d]<nt_in_fab[i][d]-1) {
+			ijk[d]++;
+			break;
+		    }
+		    else {
+			ijk[d] = 0;
+		    }
+		}
+		
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d] < nleft[d]) {
+			small[d] = ijk[d]*(tsize[d]+1);
+			big[d] = small[d] + tsize[d];
+		    }
+		    else {
+			small[d] = ijk[d]*tsize[d] + nleft[d];
+			big[d] = small[d] + tsize[d] - 1;
+		    }
+		}
+
+		indexMap.push_back(K);
+		Box tbx(small, big);
+		tbx.shift(bx.smallEnd());
+		tileArray.push_back(tbx);
+		it++;
+		if (it > thi) return;
+	    }
+	}
+    }
 };
 
 //
