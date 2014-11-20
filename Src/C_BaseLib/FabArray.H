@@ -503,7 +503,7 @@ private:
 		}
 
 		indexMap.push_back(K);
-		Box tbx(small, big);
+		Box tbx(small, big, bx.ixType());
 		tbx.shift(bx.smallEnd());
 		tileArray.push_back(tbx);
 		it++;
