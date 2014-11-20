@@ -137,15 +137,15 @@ public:
     //
     // Smooth the level system L(solnL)=rhsL.
     //
-    void smooth (MultiFab&       solnL,
-                 const MultiFab& rhsL,
-                 int             level   = 0,
-                 LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    virtual void smooth (MultiFab&       solnL,
+                         const MultiFab& rhsL,
+                         int             level   = 0,
+                         LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
 
-    void jacobi_smooth (MultiFab&       solnL,
-                        const MultiFab& rhsL,
-                        int             level   = 0,
-                        LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    virtual void jacobi_smooth (MultiFab&       solnL,
+                                const MultiFab& rhsL,
+                                int             level   = 0,
+                                LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     // Estimate the norm of the operator.
     //
@@ -167,7 +167,7 @@ public:
     //
     // Return the box array.
     //
-    const BoxArray& boxArray (int level = 0) const
+    virtual const BoxArray& boxArray (int level = 0) const
     {
         BL_ASSERT(level < numLevels()); return gbox[level];
     }
@@ -178,15 +178,15 @@ public:
     //
     // Return the number of levels.
     //
-    int numLevels () const { return h.size(); }
+    virtual int numLevels () const { return h.size(); }
     //
     // Return the order of the boundary condition interpolant.
     //
-    int maxOrder () const { return maxorder; }
+    virtual int maxOrder () const { return maxorder; }
     //
     // Set the order of the boundary condition interpolant.
     //
-    int maxOrder (int maxorder_);
+    virtual int maxOrder (int maxorder_);
     //
     // Construct/allocate internal data necessary for adding a new level.
     //
@@ -214,6 +214,8 @@ public:
     // Return reference to "b" coefficients for base level.
     //
     virtual const MultiFab& bCoefficients (int dir, int level=0);
+
+    virtual int NGrow(int level = 0) const {return 1;}
     
 protected:
     //

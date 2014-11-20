@@ -332,12 +332,16 @@ ifeq ($(MACHINE), Linux)
 
     ifeq ($(HOST),hedorah)
       #mpihome=/usr/lib/openmpi
-      mpihome=/usr/local
+      #mpihome=/usr/local
+      #mpihome=/home/moulton/packages/mpi/openmpi-1.4.5-gcc-4.8.2
+      mpihome=/home/marc/lib/anaconda
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      #BL_MPI_LIBS += -lpthread -lmpi -lmpi_cxx
+      # for MPICH
       BL_MPI_LIBS += -lmpi -lmpl -lpthread
+      # for OPENMPI
+      #BL_MPI_LIBS += -lmpi_f77 -lmpi_cxx -lmpi -lmpl -lpthread
     endif
 
     ifeq ($(findstring donev, $(HOSTNAME)), donev)

@@ -12,6 +12,7 @@
 #include <CGSolver.H>
 #include <Laplacian.H>
 #include <ABecLaplacian.H>
+#include <ABec4.H>
 #include <ParallelDescriptor.H>
 #include <MacBndry.H>
 #ifdef USE_F90_SOLVERS
@@ -49,14 +50,18 @@ bc_t     bc_type;
 
 int Ncomp = 1;
 
-void compute_analyticSolution(MultiFab& anaSoln);
+void compute_analyticSolution(MultiFab& anaSoln, const Array<Real> offset = Array<Real>(BL_SPACEDIM,0.5));
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom);
+void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry& geom);
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
-void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
+void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0);
 void solve(MultiFab& soln, const MultiFab& anaSoln, 
 	   Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver);
+void solve4(MultiFab& soln, const MultiFab& anaSoln, 
+	     Real a, Real b, MultiFab& alpha, MultiFab& beta, 
+	     MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 
@@ -174,17 +179,14 @@ int main(int argc, char* argv[])
   int coord = 0;
   
   // This sets the boundary conditions to be periodic or not
-  int* is_per = new int[BL_SPACEDIM];
+  Array<int> is_per(BL_SPACEDIM,1);
   
   if (bc_type == Dirichlet || bc_type == Neumann) {
     for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
   } 
-  else {
-    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 1;
-  }
  
   // This defines a Geometry object which is useful for writing the plotfiles
-  Geometry geom(domain,&real_box,coord,is_per);
+  Geometry geom(domain,&real_box,coord,is_per.dataPtr());
 
   for ( int n=0; n<BL_SPACEDIM; n++ ) {
     dx[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/domain.length(n);
@@ -197,7 +199,7 @@ int main(int argc, char* argv[])
   }
 
   // Allocate and define the right hand side.
-  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
+  MultiFab rhs(bs, Ncomp, 1, Fab_allocate); 
   setup_rhs(rhs, geom);
 
   MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
@@ -208,6 +210,10 @@ int main(int argc, char* argv[])
   }
 
   setup_coeffs(bs, alpha, beta, geom);
+
+  MultiFab alpha4(bs, Ncomp, 4, Fab_allocate);
+  MultiFab beta4(bs, Ncomp, 3);
+  setup_coeffs4(bs, alpha4, beta4, geom);
 
   MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
@@ -222,6 +228,7 @@ int main(int argc, char* argv[])
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
   MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+  MultiFab soln4(bs, Ncomp, 3, Fab_allocate);
 
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
@@ -240,7 +247,22 @@ int main(int argc, char* argv[])
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
 
-    solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
+    //solve(soln, anaSoln, a, b, alpha, beta, rhs, bs, geom, BoxLib_C);
+    solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
+#if 0
+    BndryData bd(bs, 1, geom);
+    set_boundary(bd, rhs);
+    ABecLaplacian abec_operator(bd, dx);
+    abec_operator.setScalars(a, b);
+    abec_operator.setCoefficients(alpha, beta);
+
+    MultiFab out(bs,1,1);
+    MultiFab::Copy(soln,anaSoln,0,0,1,0);
+    abec_operator.apply(out,soln);
+    writePlotFile("APPLY", out, geom);
+
+    writePlotFile("SOLN", soln, geom);
+#endif
   }
 
 #ifdef USE_F90_SOLVERS
@@ -261,7 +283,7 @@ int main(int argc, char* argv[])
   BoxLib::Finalize();
 }
 
-void compute_analyticSolution(MultiFab& anaSoln)
+void compute_analyticSolution(MultiFab& anaSoln, const Array<Real> offset)
 {
   int ibnd = static_cast<int>(bc_type); 
 
@@ -271,7 +293,7 @@ void compute_analyticSolution(MultiFab& anaSoln)
     const Box& bx = mfi.validbox();
 
     FORT_COMP_ASOL(anaSoln[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
-		   bx.loVect(),bx.hiVect(),dx, ibnd);
+		   bx.loVect(),bx.hiVect(),dx, ibnd, offset.dataPtr());
   }
 }
 
@@ -320,6 +342,35 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
   }
 }
 
+void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry& geom)
+{
+  ParmParse pp;
+
+  Real sigma, w;
+  pp.get("sigma", sigma);
+  pp.get("w", w);
+
+  for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) {
+    const Box& bx = mfi.validbox();
+
+    const int* alo = alpha[mfi].loVect();
+    const int* ahi = alpha[mfi].hiVect();
+    const Box& abx = alpha[mfi].box();
+    FORT_SET_ALPHA(alpha[mfi].dataPtr(),ARLIM(alo),ARLIM(ahi),
+    		   abx.loVect(),abx.hiVect(),dx);
+
+    const int* clo = beta[mfi].loVect();
+    const int* chi = beta[mfi].hiVect();
+
+    FORT_SET_CC_COEF(beta[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
+		     bx.loVect(),bx.hiVect(),dx, sigma, w);
+  }
+
+  if (plot_beta == 1) {
+    writePlotFile("BETA4", beta, geom);
+  }
+}
+
 void setup_rhs(MultiFab& rhs, const Geometry& geom)
 {
   ParmParse pp;
@@ -338,7 +389,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
   for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     const int* rlo = rhs[mfi].loVect();
     const int* rhi = rhs[mfi].hiVect();
-    const Box& bx = mfi.validbox();
+    const Box& bx = rhs[mfi].box();
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
                  bx.loVect(),bx.hiVect(),dx, a, b, sigma, w, ibnd);
@@ -360,7 +411,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
   }
 }
 
-void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
+void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 {
   Real bc_value = 0.0;
 
@@ -396,6 +447,16 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 	  // Set the Dirichlet/Neumann boundary values 
 	  bd.setValue(Orientation(n, Orientation::low) ,i, bc_value);
 	  
+#if 1
+          Array<Real> offset(BL_SPACEDIM,0.5);
+          Orientation face(n,Orientation::low);
+          offset[n] = (face.isHigh() ? 0 : 1);
+          const BoxArray& ba = bd[face].boxArray();
+          MultiFab b(ba,1,0);
+          compute_analyticSolution(b,offset);
+          bd[face].copyFrom(b,0,0,0,1);
+#endif
+
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,ibnd);
 	}
@@ -407,11 +468,94 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 	  
 	  // Set the Dirichlet/Neumann boundary values
 	  bd.setValue(Orientation(n, Orientation::high) ,i, bc_value);
-	  
+
+#if 1
+          Array<Real> offset(BL_SPACEDIM,0.5);
+          Orientation face(n,Orientation::high);
+          offset[n] = (face.isHigh() ? 0 : 1);
+          const BoxArray& ba = bd[face].boxArray();
+          MultiFab b(ba,1,0);
+          compute_analyticSolution(b,offset);
+          bd[face].copyFrom(b,0,0,0,1);
+#endif
+
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
 	}
-      } 
+      }
+    }
+  }
+}
+
+void solve4(MultiFab& soln, const MultiFab& anaSoln, 
+	     Real a, Real b, MultiFab& alpha, MultiFab& beta, 
+	     MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
+{
+  std::string ss = "CPP";
+  soln.setVal(0.0);
+
+  const Real run_strt = ParallelDescriptor::second();
+
+  BndryData bd(bs, 1, geom);
+  set_boundary(bd, rhs);
+
+  ABec4 abec_operator(bd, dx);
+  abec_operator.setScalars(a, b);
+
+  MultiFab betaca(bs,1,2);
+  ABec4::cc2ca(beta,betaca,0,0,1);
+
+  MultiFab alphaca(bs,1,2);
+  ABec4::cc2ca(alpha,alphaca,0,0,1);
+  abec_operator.setCoefficients(alphaca, betaca);
+
+  MultiFab rhsca(bs,1,0);
+  ABec4::cc2ca(rhs,rhsca,0,0,1);
+
+  MultiFab out(bs,1,0);
+
+  compute_analyticSolution(soln);
+  
+  MultiFab solnca(bs,1,2);
+  ABec4::cc2ca(soln,solnca,0,0,1);
+  abec_operator.apply(out,solnca);
+
+  MultiGrid mg(abec_operator);
+
+  mg.setVerbose(verbose);
+  mg.solve(solnca, rhsca, tolerance_rel, tolerance_abs);
+
+  Real run_time = ParallelDescriptor::second() - run_strt;
+
+  ParallelDescriptor::ReduceRealMax(run_time, ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor()) {
+    std::cout << "   Run time      : " << run_time << std::endl;
+  }
+
+  if (plot_soln) {
+    writePlotFile("SOLN-"+ss, solnca, geom);
+  }
+
+  if (plot_err || comp_norm) {
+    soln.minus(anaSoln, 0, Ncomp, 0); // soln contains errors now
+    MultiFab& err = soln;
+
+    if (plot_err) {
+      writePlotFile("ERR-"+ss, soln, geom);
+    }
+    
+    if (comp_norm) {
+      Real twoNorm = err.norm2();
+      Real maxNorm = err.norm0();
+      
+      err.setVal(1.0);
+      Real vol = err.norm2();
+      twoNorm /= vol;
+      
+      if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "   2 norm error  : " << twoNorm << std::endl;
+	std::cout << "   max norm error: " << maxNorm << std::endl;
+      }
     }
   }
 }
