@@ -305,6 +305,10 @@ public:
     //
     static FBCacheIter TheFB (bool cross, const FabArrayBase& mf);
     //
+    // Default tilesize in MFIter
+    //
+    static IntVect mfiter_tile_size;
+    //
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
@@ -358,6 +362,16 @@ public:
 	{
 	    Initialize();
 	}
+    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling)
+        :
+        fabArray(fabarray),
+        currentIndex(0),
+	tileSize(D_DECL(10240,10240,10240))
+	{
+	    if (do_tiling) 
+		tileSize = FabArrayBase::mfiter_tile_size;
+	    Initialize();
+	}
     explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize)
         :
         fabArray(fabarray),
@@ -367,15 +381,19 @@ public:
 	    Initialize();
 	}
     //
-    // Returns the Box at the current index.
+    // Returns the tile Box at the current index.
     //
-    const Box& validbox () const { return tileArray[currentIndex]; }
+    const Box& tilebox () const { return tileArray[currentIndex]; }
+    //
+    // Returns the valid Box that current tile resides.
+    //
+    const Box& validbox () const { return fabArray.box(indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
     const Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
     //
-    // Increments iterator to the next FAB in the FabArray that we own.
+    // Increments iterator to the next tile we own.
     //
     void operator++ () { ++currentIndex;}
     //
