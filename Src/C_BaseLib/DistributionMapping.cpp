@@ -1255,18 +1255,6 @@ if(ParallelDescriptor::IOProcessor()) {
 }
 
 
-static
-void
-Distribute (const std::vector<PFCToken>&     tokens,
-            int                              nprocs,
-            Real                             volpercpu,
-            std::vector< std::vector<int> >& v)
-
-{
-BoxLib::Abort("PFC Distribute not used.");
-}
-
-
 void
 DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
@@ -1356,7 +1344,7 @@ for(int i(0); i < nprocs; ++i) {
       for(int i(0); i < nprocs; ++i) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0), oldCells(aCurrentCells[i]);
+	long accVol(0), oldAccVol(0);
         vec[i].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
@@ -1564,7 +1552,7 @@ DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
     std::vector< std::vector<int> > vec(nprocs);
     std::vector<PFCMultiLevelToken> tokens;
     tokens.reserve(nBoxes);
-    int maxijk(0), idxAll(0);
+    int idxAll(0);
     IntVect cRR(IntVect::TheUnitVector());
 
     for(int level(finestLevel); level >= 0; --level) {
@@ -1659,7 +1647,7 @@ ParallelDescriptor::Barrier();
 */
 
 
-    long totalCurrentCells(0);
+    //long totalCurrentCells(0);
 
       int  K(0);
       Real totalvol(0.0), volpercpu(0.0);
@@ -1832,13 +1820,13 @@ void
 DistributionMapping::InitProximityMap()
 {
   int nProcs(ParallelDescriptor::NProcs());
-  int procNumber(GetProcNumber());
   Array<int> procNumbers(nProcs, -1);
 
   proximityMap.resize(ParallelDescriptor::NProcs(), 0);
   proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
 
 #ifdef BL_USE_MPI
+  int procNumber(GetProcNumber());
   MPI_Allgather(&procNumber, 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 procNumbers.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 ParallelDescriptor::Communicator());
