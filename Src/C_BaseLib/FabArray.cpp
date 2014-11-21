@@ -5,10 +5,17 @@
 //
 // Set default values in Initialize()!!!
 //
-bool FabArrayBase::Verbose;
-bool FabArrayBase::do_async_sends;
-bool FabArrayBase::do_random_shuffle;
-int  FabArrayBase::MaxComp;
+bool    FabArrayBase::Verbose;
+bool    FabArrayBase::do_async_sends;
+bool    FabArrayBase::do_random_shuffle;
+int     FabArrayBase::MaxComp;
+#if BL_SPACEDIM == 1
+IntVect FabArrayBase::mfiter_tile_size(10240);
+#elif BL_SPACEDIM == 2
+IntVect FabArrayBase::mfiter_tile_size(10240,10240);
+#else
+IntVect FabArrayBase::mfiter_tile_size(10240,8,8);
+#endif
 
 namespace
 {
@@ -37,6 +44,11 @@ FabArrayBase::Initialize ()
 
     ParmParse pp("fabarray");
 
+    Array<int> tilesize(BL_SPACEDIM);
+    if (pp.queryarr("mfiter_tile_size", tilesize, 0, BL_SPACEDIM))
+    {
+	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
+    }
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
