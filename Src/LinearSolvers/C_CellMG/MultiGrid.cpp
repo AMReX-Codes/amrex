@@ -220,7 +220,6 @@ MultiGrid::errorEstimate (int            level,
                           LinOp::BC_Mode bc_mode,
                           bool           local)
 {
-    BL_PROFILE("MultiGrid::errorEstimate()");
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     return norm_inf(*res[level], local);
 }
@@ -228,7 +227,6 @@ MultiGrid::errorEstimate (int            level,
 void
 MultiGrid::prepareForLevel (int level)
 {
-    BL_PROFILE("MultiGrid::prepareForLevel()");
     //
     // Build this level by allocating reqd internal MultiFabs if necessary.
     //
@@ -260,7 +258,6 @@ MultiGrid::residualCorrectionForm (MultiFab&       resL,
                                    LinOp::BC_Mode  bc_mode,
                                    int             level)
 {
-    BL_PROFILE("MultiGrid::residualCorrectionForm()");
     //
     // Using the linearity of the operator, Lp, we can solve this system
     // instead by solving for the correction required to the initial guess.
@@ -277,7 +274,6 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE("MultiGrid::solve()");
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized

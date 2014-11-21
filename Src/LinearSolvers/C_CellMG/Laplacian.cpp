@@ -27,6 +27,8 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		     MultiFab& in, const BC_Mode& bc_mode,
 		     int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
+    BL_PROFILE("Laplacian::compFlux()");
+
     const int level    = 0;
     applyBC(in,src_comp,num_comp,level,bc_mode,bnd_comp);
 
@@ -63,6 +65,8 @@ Laplacian::Fsmooth (MultiFab&       solnL,
                     int             level,
                     int             redBlackFlag)
 {
+    BL_PROFILE("Laplacian::Fsmooth()");
+
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -192,6 +196,7 @@ Laplacian::Fapply (MultiFab&       y,
 		   int             num_comp,
                    int             level)
 {
+    BL_PROFILE("Laplacian::Fapply()");
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
         const Box&       vbx  = ymfi.validbox();
