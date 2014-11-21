@@ -217,6 +217,7 @@ LinOp::applyBC (MultiFab&      inout,
                 bool           local,
 		int            bndry_comp)
 {
+    BL_PROFILE("LinOp::applyBC()");
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
@@ -313,6 +314,8 @@ LinOp::residual (MultiFab&       residL,
                  LinOp::BC_Mode  bc_mode,
                  bool            local)
 {
+    BL_PROFILE("LinOp::residual()");
+
     apply(residL, solnL, level, bc_mode, local);
 
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
@@ -374,6 +377,8 @@ LinOp::norm (int nm, int level, const bool local)
 void
 LinOp::prepareForLevel (int level)
 {
+    BL_PROFILE("LinOp::prepareForLevel()");
+
     if (level == 0) return;
 
     LinOp::prepareForLevel(level-1);
@@ -484,6 +489,8 @@ LinOp::makeCoefficients (MultiFab&       cs,
                          const MultiFab& fn,
                          int             level)
 {
+    BL_PROFILE("LinOp::makeCoefficients()");
+
     int nc = 1;
     //
     // Determine index type of incoming MultiFab.

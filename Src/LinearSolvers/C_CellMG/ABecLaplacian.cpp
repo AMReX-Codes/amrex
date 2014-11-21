@@ -47,6 +47,8 @@ ABecLaplacian::~ABecLaplacian ()
 Real
 ABecLaplacian::norm (int nm, int level, const bool local)
 {
+    BL_PROFILE("ABecLaplacian::norm()");
+
     BL_ASSERT(nm == 0);
     const MultiFab& a   = aCoefficients(level);
 
@@ -291,6 +293,8 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
                          MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode,
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
+    BL_PROFILE("ABecLaplacian::compFlux()");
+
     const int level = 0;
     BL_ASSERT(num_comp==1);
 
@@ -356,6 +360,8 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                         int             level,
                         int             redBlackFlag)
 {
+    BL_PROFILE("ABecLaplacian::Fsmooth()");
+
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -459,6 +465,8 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
                                const MultiFab& rhsL,
                                int             level)
 {
+    BL_PROFILE("ABecLaplacian::Fsmooth_jacobi()");
+
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -576,6 +584,8 @@ ABecLaplacian::Fapply (MultiFab&       y,
 		       int             num_comp,
                        int             level)
 {
+    BL_PROFILE("ABecLaplacian::Fapply()");
+
     BL_ASSERT(y.nComp()>=dst_comp+num_comp);
     BL_ASSERT(x.nComp()>=src_comp+num_comp);
 

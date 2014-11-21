@@ -200,6 +200,8 @@ sxay (MultiFab&       ss,
       const MultiFab& yy,
       int             yycomp)
 {
+    BL_PROFILE("CGSolver::sxay()");
+
     BL_ASSERT(yy.nComp() > yycomp);
 
     const int ncomp  = 1;
@@ -251,6 +253,8 @@ dotxy (const MultiFab& r,
        int             zcomp,
        bool            local)
 {
+    BL_PROFILE("CGSolver::dotxy()");
+
     BL_ASSERT(r.nComp() > rcomp);
     BL_ASSERT(z.nComp() > zcomp);
     BL_ASSERT(r.boxArray() == z.boxArray());
