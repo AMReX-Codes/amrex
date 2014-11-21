@@ -67,6 +67,7 @@ std::string Profiler::procName("NoProcName");
 int Profiler::procNumber(-1);
 bool Profiler::blProfDirCreated(false);
 std::string Profiler::blProfDirName("bl_prof");
+int Profiler::BLProfVersion(1);
 
 std::map<std::string, int> Profiler::mFNameNumbers;
 Array<Profiler::CallStats> Profiler::vCallTrace;
@@ -123,6 +124,9 @@ void Profiler::Initialize() {
   if(bInitialized) {
     return;
   }
+
+  startTime = ParallelDescriptor::second();
+
   int resultLen(-1);
   char cProcName[MPI_MAX_PROCESSOR_NAME + 11];
 #ifdef BL_USE_MPI
@@ -160,8 +164,6 @@ void Profiler::Initialize() {
     timerTime += t1 - t0;
   }
   timerTime /= static_cast<Real> (nTimerTimes);
-
-  startTime = ParallelDescriptor::second();
 
 #ifdef BL_COMM_PROFILING
   vCommStats.reserve(csFlushSize / 4);
@@ -508,9 +510,6 @@ void Profiler::Finalize() {
     std::string profName(it->first);
     int pnLen(profName.size());
     maxlen = std::max(maxlen, pnLen);
-    //Array<char> pName(profName.size() + 1);
-    //std::strcpy(pName.dataPtr(), profName.c_str());  // null terminated
-    //ParallelDescriptor::Bcast(pName.dataPtr(), pName.size());
 
     ProfStats &pstats = mProfStats[profName];
     if(nProcs == 1) {
@@ -554,6 +553,21 @@ void Profiler::Finalize() {
 
   // --------------------------------------- print all procs stats to a file
   if(bWriteAll) {
+    // ----
+    // ---- if we use an unordered_map for mProfStats, copy to a sorted container
+    // ----
+    Array<long> nCallsOut(mProfStats.size(), 0);
+    Array<Real> totalTimesOut(mProfStats.size(), 0.0);
+    int count(0);
+    for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
+        phit != mProfStats.end(); ++phit)
+    {
+      nCallsOut[count] = phit->second.nCalls;
+      totalTimesOut[count] = phit->second.totalTime;
+      ++count;
+    }
+
+
     // --------------------- start nfiles block
     std::string cdir(blProfDirName);
     if( ! blProfDirCreated) {
@@ -568,6 +582,8 @@ void Profiler::Finalize() {
     const int   mySet     = myProc/nOutFiles;
     std::string cFileName(cdir + '/' + cdir + "_D_");
     std::string FullName  = BoxLib::Concatenate(cFileName, myProc % nOutFiles, 4);
+
+    long seekPos(0);
 
     for(int iSet = 0; iSet < nSets; ++iSet) {
       if(mySet == iSet) {
@@ -587,7 +603,12 @@ void Profiler::Finalize() {
           }
 
           // ----------------------------- write to file here
-          ProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
+          //ProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
+	  seekPos = csFile.tellp();
+          csFile.write((char *) nCallsOut.dataPtr(),
+	               nCallsOut.size() * sizeof(long));
+          csFile.write((char *) totalTimesOut.dataPtr(),
+	               totalTimesOut.size() * sizeof(Real));
           // ----------------------------- end write to file here
 
           csFile.flush();
@@ -609,6 +630,38 @@ void Profiler::Finalize() {
       }
     }
     // --------------------- end nfiles block
+
+    Array<long> seekPosOut;
+    if(ParallelDescriptor::IOProcessor) {
+      seekPosOut.resize(nProcs, 0);
+    }
+    ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
+
+    if(ParallelDescriptor::IOProcessor) {
+      std::string phFilePrefix("bl_prof");
+      std::string phFileName(cdir + '/' + phFilePrefix + "_H");
+      std::ofstream phHeaderFile;
+      phHeaderFile.open(phFileName.c_str(), std::ios::out | std::ios::trunc);
+      phHeaderFile << "BLProfVersion " << BLProfVersion << '\n';
+      phHeaderFile << "NProcs  " << nProcs << '\n';
+      phHeaderFile << "NOutFiles  " << nOutFiles << '\n';
+      for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
+          phit != mProfStats.end(); ++phit)
+      {
+        phHeaderFile << "phFName " << '"' << phit->first << '"' << '\n';
+      }
+
+      std::string dFileName(cdir + "_D_");
+      for(int p(0); p < nProcs; ++p) {
+        std::string dFullName  = BoxLib::Concatenate(dFileName, p % nOutFiles, 4);
+	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
+	             << " seekpos " << seekPosOut[p] << '\n';
+      }
+      phHeaderFile << "calcEndTime " << std::setprecision(16)
+                   << ParallelDescriptor::second() - startTime << '\n';
+      phHeaderFile.close();
+    }
+
 
     BL_PROFILE_REGION_STOP(noRegionName);
 
