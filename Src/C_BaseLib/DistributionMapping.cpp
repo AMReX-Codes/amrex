@@ -850,6 +850,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
 
+/*
 if(ParallelDescriptor::IOProcessor()) {
   Array<long> ncells(nprocs, 0);
   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
@@ -865,7 +866,6 @@ if(ParallelDescriptor::IOProcessor()) {
   }
   bos.close();
 }
-/*
 */
 
 }
@@ -973,7 +973,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                      nprocs)
 {
-//BoxLib::Abort("SFCDoIt");
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
     std::vector<SFCToken> tokens;
