@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
   int coord = 0;
   
   // This sets the boundary conditions to be periodic or not
-  int* is_per = new int[BL_SPACEDIM];
+  int is_per[BL_SPACEDIM];
   
   if (bc_type == Dirichlet || bc_type == Neumann) {
     for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
