@@ -106,6 +106,18 @@ public:
     //
     const Array<int>& IndexMap () const { return indexMap; }
     //
+    // Returns local index in the vector of FABs.
+    //
+    int localindex (int K) const { 
+	std::vector<int>::const_iterator it = std::find(indexMap.begin(),indexMap.end(),K);
+	if (it != indexMap.end()) {
+	    return *it;
+	}
+	else {
+	    return -1;
+	}
+    }
+    //
     // Flush the cache of self-intersection info used by FillBoundary.
     //
     static void FlushSICache ();
@@ -404,6 +416,10 @@ public:
     // The index into the underlying BoxArray of the current FAB.
     //
     int index () const { return indexMap[currentIndex]; }
+    //
+    // local index
+    //
+    int CurrentIndex () const { return currentIndex; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -814,12 +830,6 @@ public:
 
 protected:
     //
-    // Some useful typedefs.
-    //
-    typedef typename std::map<int,FAB*>::value_type     ValueType;
-    typedef typename std::map<int,FAB*>::iterator       Iterator;
-    typedef typename std::map<int,FAB*>::const_iterator Const_Iterator;
-    //
     // Helper function for define().
     //
     void defineDoit (const BoxArray&            bxs,
@@ -830,9 +840,10 @@ protected:
     //
     // The data.
     //
-    std::map<int,FAB*> m_fabs;
+    std::vector<FAB*> m_fabs;
 
 private:
+    typedef typename std::vector<FAB*>::iterator    Iterator;
     //
     // These are disallowed.
     //
@@ -1151,68 +1162,58 @@ FabArrayBase::GrokAsyncSends (int                 N_snds,
 
 template <class FAB>
 bool
-FabArray<FAB>::defined (int i) const
+FabArray<FAB>::defined (int K) const
 {
-    bool result = false;
-
-    Const_Iterator it = m_fabs.find(i);
-
-    if (it != m_fabs.end()) result = (it->second != 0);
-
-    return result;
+    int li = localindex(K);
+    if (li >= 0 && li < m_fabs.size() && m_fabs[li] != 0) {
+	return true;
+    }
+    else {
+	return false;
+    }
 }
 
 template <class FAB>
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
-    Const_Iterator it = m_fabs.find(mfi.index());
-
-    BL_ASSERT(it != m_fabs.end());
-
-    return *(it->second);
+    BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
+    return *m_fabs[mfi.CurrentIndex()];
 }
 
 template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
-    Iterator it = m_fabs.find(mfi.index());
-
-    BL_ASSERT(it != m_fabs.end());
-
-    return *(it->second);
+    BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
+    return *m_fabs[mfi.CurrentIndex()];
 }
 
 template <class FAB>
 const FAB&
 FabArray<FAB>::operator[] (int K) const
 {
-    Const_Iterator it = m_fabs.find(K);
-
-    BL_ASSERT(it != m_fabs.end());
-
-    return *(it->second);
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexMap.size());
+    return *m_fabs[li];
 }
 
 template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (int K)
 {
-    Iterator it = m_fabs.find(K);
-
-    BL_ASSERT(it != m_fabs.end());
-
-    return *(it->second);
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexMap.size());
+    return *m_fabs[li];
 }
 
 template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    for (Iterator it = m_fabs.begin(), End = m_fabs.end(); it != End; ++it)
-        delete it->second;
-
+    for (Iterator it = m_fabs.begin(); it != m_fabs.end(); ++it) 
+	delete *it;
+    
     m_fabs.clear();
     boxarray.clear();
 }
@@ -1351,11 +1352,12 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
+    m_fabs.reserve(indexMap.size());
+
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         const Box tmp = BoxLib::grow(fai.validbox(), n_grow);
-
-        m_fabs.insert(m_fabs.end(),ValueType(fai.index(),new FAB(tmp, n_comp)));
+	m_fabs.push_back(new FAB(tmp, n_comp));
     }
 }
 
@@ -1376,7 +1378,11 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
-    m_fabs[boxno] = elem;
+    if (m_fabs.size() == 0) {
+	m_fabs.resize(indexMap.size());
+    }
+
+    m_fabs[localindex(boxno)] = elem;
 }
 
 template <class FAB>
