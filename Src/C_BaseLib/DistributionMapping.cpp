@@ -451,9 +451,9 @@ DistributionMapping::FlushCache ()
     }
 
     //totalCells = 0;
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "_here 1 totalCells = " << totalCells << std::endl;
-    }
+    //    if(ParallelDescriptor::IOProcessor()) {
+    //      std::cout << "_here 1 totalCells = " << totalCells << std::endl;
+    //    }
 }
 
 void
