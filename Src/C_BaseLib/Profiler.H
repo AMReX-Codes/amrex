@@ -227,6 +227,7 @@ class Profiler
     static int procNumber;
     static bool blProfDirCreated;
     static std::string blProfDirName;
+    static int BLProfVersion;
 
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
