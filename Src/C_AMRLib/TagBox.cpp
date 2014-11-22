@@ -627,8 +627,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (int i = 0; i < N; i++)
     {
-        TagBox*   tfine = m_fabs[i];
-        m_fabs[i]       = tfine->coarsen(ratio);
+        TagBox* tfine = m_fabs_v[i];
+        m_fabs_v[i]   = tfine->coarsen(ratio);
         delete tfine;
     }
 

@@ -843,7 +843,7 @@ protected:
     //
     // The data.
     //
-    std::vector<FAB*> m_fabs;
+    std::vector<FAB*> m_fabs_v;
 
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
@@ -1168,7 +1168,7 @@ bool
 FabArray<FAB>::defined (int K) const
 {
     int li = localindex(K);
-    if (li >= 0 && li < m_fabs.size() && m_fabs[li] != 0) {
+    if (li >= 0 && li < m_fabs_v.size() && m_fabs_v[li] != 0) {
 	return true;
     }
     else {
@@ -1181,7 +1181,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const
 {
     int li = mfi.CurrentIndex();
-    if (li < m_fabs.size() && m_fabs[li] != 0) {
+    if (li < m_fabs_v.size() && m_fabs_v[li] != 0) {
 	return true;
     }
     else {
@@ -1194,7 +1194,7 @@ const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
-    return *m_fabs[mfi.CurrentIndex()];
+    return *m_fabs_v[mfi.CurrentIndex()];
 }
 
 template <class FAB>
@@ -1202,7 +1202,7 @@ FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
-    return *m_fabs[mfi.CurrentIndex()];
+    return *m_fabs_v[mfi.CurrentIndex()];
 }
 
 template <class FAB>
@@ -1211,7 +1211,7 @@ FabArray<FAB>::operator[] (int K) const
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexMap.size());
-    return *m_fabs[li];
+    return *m_fabs_v[li];
 }
 
 template <class FAB>
@@ -1220,17 +1220,17 @@ FabArray<FAB>::operator[] (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexMap.size());
-    return *m_fabs[li];
+    return *m_fabs_v[li];
 }
 
 template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    for (Iterator it = m_fabs.begin(); it != m_fabs.end(); ++it) 
+    for (Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) 
 	delete *it;
     
-    m_fabs.clear();
+    m_fabs_v.clear();
     boxarray.clear();
 }
 
@@ -1368,12 +1368,12 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    m_fabs.reserve(indexMap.size());
+    m_fabs_v.reserve(indexMap.size());
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         const Box tmp = BoxLib::grow(fai.validbox(), n_grow);
-	m_fabs.push_back(new FAB(tmp, n_comp));
+	m_fabs_v.push_back(new FAB(tmp, n_comp));
     }
 }
 
@@ -1394,11 +1394,11 @@ FabArray<FAB>::setFab (int  boxno,
     BL_ASSERT(!this->defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
-    if (m_fabs.size() == 0) {
-	m_fabs.resize(indexMap.size());
+    if (m_fabs_v.size() == 0) {
+	m_fabs_v.resize(indexMap.size());
     }
 
-    m_fabs[localindex(boxno)] = elem;
+    m_fabs_v[localindex(boxno)] = elem;
 }
 
 template <class FAB>
@@ -1418,11 +1418,11 @@ FabArray<FAB>::setFab (const MFIter& mfi,
     BL_ASSERT(!this->defined(mfi));
     BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
 
-    if (m_fabs.size() == 0) {
-	m_fabs.resize(indexMap.size());
+    if (m_fabs_v.size() == 0) {
+	m_fabs_v.resize(indexMap.size());
     }
 
-    m_fabs[mfi.CurrentIndex()] = elem;
+    m_fabs_v[mfi.CurrentIndex()] = elem;
 }
 
 template <class FAB>
