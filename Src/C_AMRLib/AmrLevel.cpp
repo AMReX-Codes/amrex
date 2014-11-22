@@ -770,7 +770,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 
         for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
         {
-            fph->fill(m_fabs[mfi.index()],DComp,mfi.index());
+            fph->fill(m_fabs[mfi],DComp,mfi.index());
         }
 
         DComp += NComp;
@@ -1310,9 +1310,9 @@ AmrLevel::derive (const std::string& name,
         {
             int         grid_no = mfi.index();
             RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
-            Real*       ddat    = (*mf)[grid_no].dataPtr();
-            const int*  dlo     = (*mf)[grid_no].loVect();
-            const int*  dhi     = (*mf)[grid_no].hiVect();
+            Real*       ddat    = (*mf)[mfi].dataPtr();
+            const int*  dlo     = (*mf)[mfi].loVect();
+            const int*  dhi     = (*mf)[mfi].hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
             const int*  clo     = srcMF[mfi].loVect();
@@ -1396,9 +1396,9 @@ AmrLevel::derive (const std::string& name,
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
-            Real*       ddat    = mf[idx].dataPtr(dcomp);
-            const int*  dlo     = mf[idx].loVect();
-            const int*  dhi     = mf[idx].hiVect();
+            Real*       ddat    = mf[mfi].dataPtr(dcomp);
+            const int*  dlo     = mf[mfi].loVect();
+            const int*  dhi     = mf[mfi].hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
             const int*  clo     = srcMF[mfi].loVect();
@@ -1408,7 +1408,7 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox temp  = RealBox(mf[idx].box(),geom.CellSize(),geom.ProbLo());
+            const RealBox temp  = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 

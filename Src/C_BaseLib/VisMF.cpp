@@ -1174,7 +1174,7 @@ VisMF::Read (MultiFab&          mf,
 #else
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
+        mf.setFab(mfi, VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
 #endif
 

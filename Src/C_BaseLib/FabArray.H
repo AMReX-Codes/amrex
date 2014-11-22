@@ -684,7 +684,7 @@ public:
 
     const FAB& get (const MFIter& mfi) const { return this->operator[](mfi); }
     //
-    // Returns a reference to the FAB associated with the Kth element.
+    // Returns a reference to the FAB associated mfi.
     //
     FAB& operator[] (const MFIter& mfi);
 
@@ -705,6 +705,8 @@ public:
     // Explicitly set the Kth FAB in the FabArray to point to elem.
     //
     void setFab (int K, FAB* elem);
+
+    void setFab (const MFIter&mfi, FAB* elem);
     //
     // Releases FAB memory in the FabArray.
     //
@@ -816,6 +818,7 @@ public:
     void shift (const IntVect& v);
 
     bool defined (int i) const;
+    bool defined (const MFIter& mfi) const;
     //
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
@@ -1174,6 +1177,19 @@ FabArray<FAB>::defined (int K) const
 }
 
 template <class FAB>
+bool
+FabArray<FAB>::defined (const MFIter& mfi) const
+{
+    int li = mfi.CurrentIndex();
+    if (li < m_fabs.size() && m_fabs[li] != 0) {
+	return true;
+    }
+    else {
+	return false;
+    }
+}
+
+template <class FAB>
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
@@ -1272,7 +1288,7 @@ FabArray<FAB>::ok () const
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
-        if (defined(fai.index()))
+        if (defined(fai))
         {
             if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
             {
@@ -1383,6 +1399,30 @@ FabArray<FAB>::setFab (int  boxno,
     }
 
     m_fabs[localindex(boxno)] = elem;
+}
+
+template <class FAB>
+void
+FabArray<FAB>::setFab (const MFIter& mfi,
+                       FAB* elem)
+{
+    //
+    // Must check it is of the proper size.
+    //
+    if (n_comp == 0)
+        n_comp = elem->nComp();
+
+    BL_ASSERT(n_comp == elem->nComp());
+    BL_ASSERT(boxarray.size() > 0);
+    BL_ASSERT(elem->box() == BoxLib::grow(boxarray[mfi.index()],n_grow));
+    BL_ASSERT(!this->defined(mfi));
+    BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
+
+    if (m_fabs.size() == 0) {
+	m_fabs.resize(indexMap.size());
+    }
+
+    m_fabs[mfi.CurrentIndex()] = elem;
 }
 
 template <class FAB>

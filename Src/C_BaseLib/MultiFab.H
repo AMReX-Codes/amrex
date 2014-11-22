@@ -449,13 +449,15 @@ public:
 
     FArrayBox& operator[] (int K);
 
-    const FArrayBox& operator[] (const MFIter& mfi) const { return operator[](mfi.index()); }
+    const FArrayBox& operator[] (const MFIter& mfi) const { 
+	return this->FabArray<FArrayBox>::get(mfi); } 
 
-    const FArrayBox& get (const MFIter& mfi) const { return operator[](mfi.index()); }
+    const FArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
 
-    FArrayBox& operator[] (const MFIter& mfi) { return operator[](mfi.index()); }
+    FArrayBox& operator[] (const MFIter& mfi) { 
+	return this->FabArray<FArrayBox>::get(mfi); } 
 
-    FArrayBox& get (const MFIter& mfi) { return operator[](mfi.index()); }
+    FArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //
