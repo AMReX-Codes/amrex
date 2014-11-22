@@ -295,7 +295,7 @@ MultiFab::contains_nan (int scomp,
     {
         const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
 
-        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_nan(bx,scomp,ncomp))
+        if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
             r = true;
     }
 
@@ -326,7 +326,7 @@ MultiFab::contains_inf (int scomp,
     {
         const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
 
-        if (this->FabArray<FArrayBox>::get(mfi.index()).contains_inf(bx,scomp,ncomp))
+        if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
             r = true;
     }
 
@@ -1077,7 +1077,7 @@ MultiFab::FillBoundary (int  scomp,
 
                 if (i != iii && DMap[iii] == MyProc)
                 {
-                    (*this)[i].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
+                    (*this)[mfi].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
                 }
             }
         }

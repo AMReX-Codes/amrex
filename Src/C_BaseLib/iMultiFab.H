@@ -345,13 +345,15 @@ public:
 
     IArrayBox& operator[] (int K);
 
-    const IArrayBox& operator[] (const MFIter& mfi) const { return operator[](mfi.index()); }
+    const IArrayBox& operator[] (const MFIter& mfi) const { 
+	return this->FabArray<IArrayBox>::get(mfi); } 
 
-    const IArrayBox& get (const MFIter& mfi) const { return operator[](mfi.index()); }
+    const IArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
 
-    IArrayBox& operator[] (const MFIter& mfi) { return operator[](mfi.index()); }
+    IArrayBox& operator[] (const MFIter& mfi) { 
+	return this->FabArray<IArrayBox>::get(mfi); } 
 
-    IArrayBox& get (const MFIter& mfi) { return operator[](mfi.index()); }
+    IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
     //
     // Set ghost cells that are covered by valid cells to the value of valid cells.
     //

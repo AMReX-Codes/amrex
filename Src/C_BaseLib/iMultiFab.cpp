@@ -761,7 +761,7 @@ iMultiFab::FillBoundary (int  scomp,
 
                 if (i != iii && DMap[iii] == MyProc)
                 {
-                    (*this)[i].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
+                    (*this)[mfi].copy((*this)[iii], bx, scomp, bx, scomp, ncomp);
                 }
             }
         }
