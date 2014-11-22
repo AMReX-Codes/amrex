@@ -111,7 +111,7 @@ public:
     int localindex (int K) const { 
 	std::vector<int>::const_iterator it = std::find(indexMap.begin(),indexMap.end(),K);
 	if (it != indexMap.end()) {
-	    return *it;
+	    return it - indexMap.begin();
 	}
 	else {
 	    return -1;
