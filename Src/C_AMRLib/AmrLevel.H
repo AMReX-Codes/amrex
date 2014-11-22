@@ -493,7 +493,7 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    FArrayBox& operator() () { return m_fabs[MFIter::CurrentIndex()]; }
+    FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
