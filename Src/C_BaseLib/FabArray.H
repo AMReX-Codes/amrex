@@ -417,9 +417,9 @@ public:
     //
     int index () const { return indexMap[currentIndex]; }
     //
-    // local index
+    // local index into the vector of fab pointers, m_fabs_v
     //
-    int CurrentIndex () const { return currentIndex; }
+    int LocalIndex () const { return localIndexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -431,6 +431,7 @@ private:
     int                 currentIndex;
     IntVect             tileSize;
     Array<int>          indexMap;
+    Array<int>          localIndexMap;
     Array<Box>          tileArray;
 
     void Initialize () {
@@ -486,8 +487,10 @@ private:
 	    }
 	}
 
-	indexMap.reserve(thi-tlo+1);
-	tileArray.reserve(thi-tlo+1);
+	int sz = thi-tlo+1;
+	indexMap.reserve(sz);
+	indexMap.reserve(sz);
+	tileArray.reserve(sz);
 
 	int it = 0;
 	for (int i=0; i<fabArray.IndexMap().size(); i++) {
@@ -537,9 +540,12 @@ private:
 		}
 
 		indexMap.push_back(K);
+		localIndexMap.push_back(i);
+
 		Box tbx(small, big, bx.ixType());
 		tbx.shift(bx.smallEnd());
 		tileArray.push_back(tbx);
+
 		it++;
 		if (it > thi) return;
 	    }
@@ -1180,7 +1186,7 @@ template <class FAB>
 bool
 FabArray<FAB>::defined (const MFIter& mfi) const
 {
-    int li = mfi.CurrentIndex();
+    int li = mfi.LocalIndex();
     if (li < m_fabs_v.size() && m_fabs_v[li] != 0) {
 	return true;
     }
@@ -1193,16 +1199,16 @@ template <class FAB>
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
-    BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
-    return *m_fabs_v[mfi.CurrentIndex()];
+    BL_ASSERT(mfi.LocalIndex() < indexMap.size());
+    return *m_fabs_v[mfi.LocalIndex()];
 }
 
 template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
-    BL_ASSERT(mfi.CurrentIndex() < indexMap.size());
-    return *m_fabs_v[mfi.CurrentIndex()];
+    BL_ASSERT(mfi.LocalIndex() < indexMap.size());
+    return *m_fabs_v[mfi.LocalIndex()];
 }
 
 template <class FAB>
@@ -1422,7 +1428,7 @@ FabArray<FAB>::setFab (const MFIter& mfi,
 	m_fabs_v.resize(indexMap.size());
     }
 
-    m_fabs_v[mfi.CurrentIndex()] = elem;
+    m_fabs_v[mfi.LocalIndex()] = elem;
 }
 
 template <class FAB>
