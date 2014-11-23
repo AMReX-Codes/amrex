@@ -127,13 +127,6 @@ public:
 	    }
 	}
 	return r;
-	// std::vector<int>::const_iterator it = std::find(indexMap.begin(),indexMap.end(),K);
-	// if (it != indexMap.end()) {
-	//     return it - indexMap.begin();
-	// }
-	// else {
-	//     return -1;
-	// }
     }
     //
     // Flush the cache of self-intersection info used by FillBoundary.
@@ -507,7 +500,7 @@ private:
 
 	int sz = thi-tlo+1;
 	indexMap.reserve(sz);
-	indexMap.reserve(sz);
+	localIndexMap.reserve(sz);
 	tileArray.reserve(sz);
 
 	int it = 0;
