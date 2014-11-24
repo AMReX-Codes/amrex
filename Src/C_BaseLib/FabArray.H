@@ -539,23 +539,25 @@ private:
 		    }
 		}
 		
-		for (int d=0; d<BL_SPACEDIM; d++) {
-		    if (ijk[d] < nleft[d]) {
-			small[d] = ijk[d]*(tsize[d]+1);
-			big[d] = small[d] + tsize[d];
+		if (it >= tlo) {
+		    for (int d=0; d<BL_SPACEDIM; d++) {
+			if (ijk[d] < nleft[d]) {
+			    small[d] = ijk[d]*(tsize[d]+1);
+			    big[d] = small[d] + tsize[d];
+			}
+			else {
+			    small[d] = ijk[d]*tsize[d] + nleft[d];
+			    big[d] = small[d] + tsize[d] - 1;
+			}
 		    }
-		    else {
-			small[d] = ijk[d]*tsize[d] + nleft[d];
-			big[d] = small[d] + tsize[d] - 1;
-		    }
+
+		    indexMap.push_back(K);
+		    localIndexMap.push_back(i);
+		    
+		    Box tbx(small, big, bx.ixType());
+		    tbx.shift(bx.smallEnd());
+		    tileArray.push_back(tbx);
 		}
-
-		indexMap.push_back(K);
-		localIndexMap.push_back(i);
-
-		Box tbx(small, big, bx.ixType());
-		tbx.shift(bx.smallEnd());
-		tileArray.push_back(tbx);
 
 		it++;
 		if (it > thi) return;
