@@ -310,10 +310,10 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
     for ( MFIter mfi(beta[n]); mfi.isValid(); ++mfi ) {
       int i = mfi.index();
       Box bx(bs[i]);
-      const int* clo = cc_coef[i].loVect();
-      const int* chi = cc_coef[i].hiVect();
-      const int* edgelo = beta[n][i].loVect();
-      const int* edgehi = beta[n][i].hiVect();
+      const int* clo = cc_coef[mfi].loVect();
+      const int* chi = cc_coef[mfi].hiVect();
+      const int* edgelo = beta[n][mfi].loVect();
+      const int* edgehi = beta[n][mfi].hiVect();
       
       FORT_COEF_TO_EDGES(&n,beta[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
 			 cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),

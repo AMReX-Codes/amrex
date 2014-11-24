@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
     /*
     for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
       const int index(mfi.index());
-      FArrayBox &fab = mf[index];
+      FArrayBox &fab = mf[mfi];
       std::string fname = BoxLib::Concatenate("FAB_", index, 4);
       std::ofstream fabs(fname.c_str());
       fab.writeOn(fabs);

@@ -187,32 +187,32 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 
     FArrayBox *f;
     if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-      f = &soln[i];
+      f = &soln[mfi];
     }
     else {
       f = new FArrayBox(reg);
-      f->copy(soln[i], 0, 0, 1);
+      f->copy(soln[mfi], 0, 0, 1);
     }
     vec = f->dataPtr(); // sharing space, soln will be overwritten below
 
     HYPRE_StructVectorSetBoxValues(x, loV(reg), hiV(reg), vec);
 
-    f->copy(rhs[i], 0, 0, 1); 
+    f->copy(rhs[mfi], 0, 0, 1); 
     // vec now contains rhs, but we need to add bc's before SetBoxValues
 
     int volume = reg.numPts();
     mat = hypre_CTAlloc(double, size*volume);
 
     // build matrix interior
-    const int* alo = (*acoefs)[i].loVect();
-    const int* ahi = (*acoefs)[i].hiVect();
-    FORT_HPACOEF(mat, (*acoefs)[i].dataPtr(), ARLIM(alo), ARLIM(ahi),
+    const int* alo = (*acoefs)[mfi].loVect();
+    const int* ahi = (*acoefs)[mfi].hiVect();
+    FORT_HPACOEF(mat, (*acoefs)[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
 		 reg.loVect(), reg.hiVect(), scalar_a);
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-      const int* blo = (*bcoefs[idim])[i].loVect();
-      const int* bhi = (*bcoefs[idim])[i].hiVect();
-      FORT_HPBCOEF(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+      const int* blo = (*bcoefs[idim])[mfi].loVect();
+      const int* bhi = (*bcoefs[idim])[mfi].hiVect();
+      FORT_HPBCOEF(mat, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		   reg.loVect(), reg.hiVect(), scalar_b, dx, idim);
     }
 
@@ -223,10 +223,10 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       int idim = oitr().coordDir();
       const BoundCond &bct = bndry.bndryConds(oitr())[i][0];
       const Real      &bcl = bndry.bndryLocs(oitr())[i];
-      const FArrayBox &bcv = bndry.bndryValues(oitr())[i];
+      const FArrayBox &bcv = bndry.bndryValues(oitr())[mfi];
       const Mask      &msk = bndry.bndryMasks(oitr())[i];
-      const int* blo = (*bcoefs[idim])[i].loVect();
-      const int* bhi = (*bcoefs[idim])[i].hiVect();
+      const int* blo = (*bcoefs[idim])[mfi].loVect();
+      const int* bhi = (*bcoefs[idim])[mfi].hiVect();
       const int* mlo = msk.loVect();
       const int* mhi = msk.hiVect();
       const int* bvlo = bcv.loVect();
@@ -234,11 +234,11 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       
       if (reg[oitr()] == domain[oitr()] && is_periodic[idim] == 0) {
 	int bctype = bct;
-	FORT_HPBVEC3(vec, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	FORT_HPBVEC3(vec, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi),
 		     bcv.dataPtr(), ARLIM(bvlo), ARLIM(bvhi));
-	FORT_HPBMAT3(mat, (*bcoefs[idim])[i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	FORT_HPBMAT3(mat, (*bcoefs[idim])[mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		     reg.loVect(), reg.hiVect(), scalar_b, dx, cdir, bctype, bcl, 
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
       }
@@ -337,7 +337,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 
     FArrayBox *f;
     if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
-      f = &soln[i];
+      f = &soln[mfi];
     }
     else {
       f = new FArrayBox(reg);
@@ -347,7 +347,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     HYPRE_StructVectorGetBoxValues(x, loV(reg), hiV(reg), vec);
 
     if (soln.nGrow() != 0) {
-      soln[i].copy(*f, 0, 0, 1);
+      soln[mfi].copy(*f, 0, 0, 1);
       delete f;
     }
   }
