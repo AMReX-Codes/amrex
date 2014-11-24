@@ -1225,9 +1225,13 @@ BaseFab<T>::clear ()
 #endif
         BoxLib::total_bytes_allocated_in_fabs -= tst;
 	if(nvar > 0) {
-	if(sizeof(T) == sizeof(Real)) {
-          BoxLib::total_cells_allocated_in_fabs -= truesize / nvar;;
-	}
+	    if(sizeof(T) == sizeof(Real)) {
+		long ncells = truesize/nvar;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+		BoxLib::total_cells_allocated_in_fabs -= ncells;
+	    }
 	}
     }
 }
