@@ -466,20 +466,20 @@ MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
 
            mgt_set_cfa_const (&lev, &n, lo, hi, &value_zero);
  
-           const int* bxlo = coeffs[lev][0][n].box().loVect();
-           const int* bxhi = coeffs[lev][0][n].box().hiVect();
-           mgt_set_cfbx(&lev, &n, coeffs[lev][0][n].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
+           const int* bxlo = coeffs[lev][0][mfi].box().loVect();
+           const int* bxhi = coeffs[lev][0][mfi].box().hiVect();
+           mgt_set_cfbx(&lev, &n, coeffs[lev][0][mfi].dataPtr(), &value_one, bxlo, bxhi, lo, hi);
  
 #if (BL_SPACEDIM >= 2) 
-           const int* bylo = coeffs[lev][1][n].box().loVect(); 
-           const int* byhi = coeffs[lev][1][n].box().hiVect();
-   	   mgt_set_cfby(&lev, &n, coeffs[lev][1][n].dataPtr(), &value_one, bylo, byhi, lo, hi);
+           const int* bylo = coeffs[lev][1][mfi].box().loVect(); 
+           const int* byhi = coeffs[lev][1][mfi].box().hiVect();
+   	   mgt_set_cfby(&lev, &n, coeffs[lev][1][mfi].dataPtr(), &value_one, bylo, byhi, lo, hi);
 #endif
  
 #if (BL_SPACEDIM == 3)
-           const int* bzlo = coeffs[lev][2][n].box().loVect();
-           const int* bzhi = coeffs[lev][2][n].box().hiVect();
-	   mgt_set_cfbz(&lev, &n, coeffs[lev][2][n].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
+           const int* bzlo = coeffs[lev][2][mfi].box().loVect();
+           const int* bzhi = coeffs[lev][2][mfi].box().hiVect();
+	   mgt_set_cfbz(&lev, &n, coeffs[lev][2][mfi].dataPtr(), &value_one, bzlo, bzhi, lo, hi);
 #endif
         }
 
@@ -1632,7 +1632,7 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int n = mfi.index();
-    const FArrayBox& mskfab = msk[n];
+    const FArrayBox& mskfab = msk[mfi];
     const Real* md = mskfab.dataPtr();
     const int* lo = mfi.validbox().loVect();
     const int* hi = mfi.validbox().hiVect();
@@ -1644,7 +1644,7 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 
   for (MFIter mfi(vold); mfi.isValid(); ++mfi) {
     int n = mfi.index();
-    const FArrayBox& vfab = vold[n];
+    const FArrayBox& vfab = vold[mfi];
     const Real* vd = vfab.dataPtr();
     const int* lo = mfi.validbox().loVect();
     const int* hi = mfi.validbox().hiVect();
@@ -1663,7 +1663,7 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 
   for (MFIter mfi(*sync_resid); mfi.isValid(); ++mfi) {
     int n = mfi.index();
-    FArrayBox& sfab = (*sync_resid)[n];
+    FArrayBox& sfab = (*sync_resid)[mfi];
     Real* sd = sfab.dataPtr();
     const int* lo = mfi.validbox().loVect();
     const int* hi = mfi.validbox().hiVect();

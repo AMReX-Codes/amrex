@@ -137,8 +137,8 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 //
                 // Physical bndry, copy from grid.
                 //
-                FArrayBox& bnd_fab = bndry[face][mfi.index()];
-                bnd_fab.copy(mf[mfi.index()],mf_start,bnd_start,num_comp);
+                FArrayBox& bnd_fab = bndry[face][mfi];
+                bnd_fab.copy(mf[mfi],mf_start,bnd_start,num_comp);
             }
         }
     }
@@ -219,11 +219,11 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     const int*       mlo            = mask.loVect();
                     const int*       mhi            = mask.hiVect();
                     const int*       mdat           = mask.dataPtr();
-                    const FArrayBox& crse_fab       = crse[face][fine_mfi.index()];
+                    const FArrayBox& crse_fab       = crse[face][fine_mfi];
                     const int*       clo            = crse_fab.loVect();
                     const int*       chi            = crse_fab.hiVect();
                     const Real*      cdat           = crse_fab.dataPtr(c_start);
-                    FArrayBox&       bnd_fab        = bndry[face][fine_mfi.index()];
+                    FArrayBox&       bnd_fab        = bndry[face][fine_mfi];
                     const int*       blo            = bnd_fab.loVect();
                     const int*       bhi            = bnd_fab.hiVect();
                     Real*            bdat           = bnd_fab.dataPtr(bnd_start);
@@ -253,7 +253,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     //
                     // Physical bndry, copy from ghost region of corresponding grid
                     //
-                    FArrayBox& bnd_fab = bndry[face][fine_mfi.index()];
+                    FArrayBox& bnd_fab = bndry[face][fine_mfi];
                     bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
                 }
             }
