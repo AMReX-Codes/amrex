@@ -322,8 +322,8 @@ void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph,
       int i = mfi.index();
       const Box& bx = grids[ilev][i];
     
-      FORT_SET_COEF(exac[ilev][i].dataPtr(), alph[ilev][i].dataPtr(),
-		    beta[ilev][i].dataPtr(), rhs[ilev][i].dataPtr(),
+      FORT_SET_COEF(exac[ilev][mfi].dataPtr(), alph[ilev][mfi].dataPtr(),
+		    beta[ilev][mfi].dataPtr(), rhs[ilev][mfi].dataPtr(),
 		    bx.loVect(), bx.hiVect(), geo.ProbLo(), geo.ProbHi(),
 		    dx, a, b, sigma, w, ibnd);
     }

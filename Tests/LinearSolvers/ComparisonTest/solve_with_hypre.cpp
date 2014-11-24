@@ -78,14 +78,14 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 	for (MFIter mfi(bcoeffs); mfi.isValid(); ++mfi) {
 	  int i = mfi.index();
 	  const Box& bx = grids[level][i];
-	  const int* betalo = beta[level][i].loVect();
-	  const int* betahi = beta[level][i].hiVect();
-	  const int* edgelo = bcoeffs[i].loVect();
-	  const int* edgehi = bcoeffs[i].hiVect();
+	  const int* betalo = beta[level][mfi].loVect();
+	  const int* betahi = beta[level][mfi].hiVect();
+	  const int* edgelo = bcoeffs[mfi].loVect();
+	  const int* edgehi = bcoeffs[mfi].hiVect();
 	  
-	  FORT_COEF_TO_EDGES(&n, bcoeffs[i].dataPtr(),
+	  FORT_COEF_TO_EDGES(&n, bcoeffs[mfi].dataPtr(),
 			     ARLIM(edgelo), ARLIM(edgehi),
-			     beta[level][i].dataPtr(),
+			     beta[level][mfi].dataPtr(),
 			     ARLIM(betalo), ARLIM(betahi),
 			     bx.loVect(),bx.hiVect());
 	}
