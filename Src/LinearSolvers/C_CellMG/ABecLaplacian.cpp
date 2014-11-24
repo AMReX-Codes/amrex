@@ -398,21 +398,21 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m5 = *mtuple[oitr()]; oitr++;
 #endif
         const Box&       vbx     = solnLmfi.validbox();
-        FArrayBox&       solnfab = solnL[gn];
-        const FArrayBox& rhsfab  = rhsL[gn];
-        const FArrayBox& afab    = a[gn];
+        FArrayBox&       solnfab = solnL[solnLmfi];
+        const FArrayBox& rhsfab  = rhsL[solnLmfi];
+        const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[gn];,
-               const FArrayBox& byfab = bY[gn];,
-               const FArrayBox& bzfab = bZ[gn];);
+        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+               const FArrayBox& byfab = bY[solnLmfi];,
+               const FArrayBox& bzfab = bZ[solnLmfi];);
 
-        const FArrayBox& f0fab = f0[gn];
-        const FArrayBox& f1fab = f1[gn];
-        const FArrayBox& f2fab = f2[gn];
-        const FArrayBox& f3fab = f3[gn];
+        const FArrayBox& f0fab = f0[solnLmfi];
+        const FArrayBox& f1fab = f1[solnLmfi];
+        const FArrayBox& f2fab = f2[solnLmfi];
+        const FArrayBox& f3fab = f3[solnLmfi];
 #if (BL_SPACEDIM > 2)
-        const FArrayBox& f4fab = f4[gn];
-        const FArrayBox& f5fab = f5[gn];
+        const FArrayBox& f4fab = f4[solnLmfi];
+        const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -503,21 +503,21 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
         const Mask& m5 = *mtuple[oitr()]; oitr++;
 #endif
         const Box&       vbx     = solnLmfi.validbox();
-        FArrayBox&       solnfab = solnL[gn];
-        const FArrayBox& rhsfab  = rhsL[gn];
-        const FArrayBox& afab    = a[gn];
+        FArrayBox&       solnfab = solnL[solnLmfi];
+        const FArrayBox& rhsfab  = rhsL[solnLmfi];
+        const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[gn];,
-               const FArrayBox& byfab = bY[gn];,
-               const FArrayBox& bzfab = bZ[gn];);
+        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+               const FArrayBox& byfab = bY[solnLmfi];,
+               const FArrayBox& bzfab = bZ[solnLmfi];);
 
-        const FArrayBox& f0fab = f0[gn];
-        const FArrayBox& f1fab = f1[gn];
-        const FArrayBox& f2fab = f2[gn];
-        const FArrayBox& f3fab = f3[gn];
+        const FArrayBox& f0fab = f0[solnLmfi];
+        const FArrayBox& f1fab = f1[solnLmfi];
+        const FArrayBox& f2fab = f2[solnLmfi];
+        const FArrayBox& f3fab = f3[solnLmfi];
 #if (BL_SPACEDIM > 2)
-        const FArrayBox& f4fab = f4[gn];
-        const FArrayBox& f5fab = f5[gn];
+        const FArrayBox& f4fab = f4[solnLmfi];
+        const FArrayBox& f5fab = f5[solnLmfi];
 #endif
 
 #if (BL_SPACEDIM == 2)

@@ -3858,7 +3858,7 @@ SWIGINTERN double MultiFab_sum__SWIG_0(MultiFab const *self,int comp=0){
 	        for(MFIter mfi(*self);mfi.isValid(); ++mfi){
 		    int idx = mfi.index();
 		    const Box &bx = ba[idx];
-		    const FArrayBox &fab = (*self)[idx];
+		    const FArrayBox &fab = (*self)[mfi];
 		    retval += fab.sum(bx,comp,1);
 	        }
 		ParallelDescriptor::ReduceRealSum(retval);
