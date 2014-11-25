@@ -4466,6 +4466,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
                                      Real            a_old,
                                      Real            a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
     BL_ASSERT(grav_vector.nGrow() >= 2);
@@ -4610,6 +4611,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                                 Real            a_half, 
                                 int             start_comp_for_accel)
 {
+    BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
@@ -4710,6 +4712,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                                      Real            a_old,
                                      Real            a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -4866,6 +4869,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
                                 Real              a_new,
                                 Real              a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -5481,6 +5485,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                     int  lev_min,
                                     int  nGrow)
 {
+    BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
     //
