@@ -438,12 +438,15 @@ contains
 
                mgt%bottom_solver = 1
 
+               call boxarray_destroy(new_coarse_ba)
+
                if ( parallel_IOProcessor() .and. verbose > 1 ) then
                    print *,'F90mg: Unsuccessful in get_bottom_box_size'
                    print *,'F90mg: Setting bottom_solver to 1 instead'
                end if
 
            end if
+
        end if
     end if
     !
