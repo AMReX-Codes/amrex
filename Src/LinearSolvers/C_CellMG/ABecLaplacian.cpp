@@ -381,9 +381,14 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
     //const int nc = solnL.nComp(); // FIXME: This LinOp only really supports single-component
     const int nc = 1;
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
-        oitr.rewind();
+	OrientationIter oitr;
 
         const int gn = solnLmfi.index();
 
@@ -397,6 +402,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m4 = *mtuple[oitr()]; oitr++;
         const Mask& m5 = *mtuple[oitr()]; oitr++;
 #endif
+	const Box&       tbx     = solnLmfi.tilebox();
         const Box&       vbx     = solnLmfi.validbox();
         FArrayBox&       solnfab = solnL[solnLmfi];
         const FArrayBox& rhsfab  = rhsL[solnLmfi];
@@ -430,7 +436,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                   m2.dataPtr(), ARLIM(m2.loVect()),   ARLIM(m2.hiVect()),
                   f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
                   m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
-                  vbx.loVect(), vbx.hiVect(),
+                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
                   &nc, h[level], &redBlackFlag);
 #endif
 
@@ -454,7 +460,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                   m4.dataPtr(), ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
                   f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
                   m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
-                  vbx.loVect(), vbx.hiVect(),
+                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
                   &nc, h[level], &redBlackFlag);
 #endif
     }
