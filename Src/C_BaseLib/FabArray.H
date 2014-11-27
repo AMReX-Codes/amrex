@@ -109,24 +109,14 @@ public:
     // Returns local index in the vector of FABs.
     //
     int localindex (int K) const { 
-	int r = -1;
-	int lo = 0;
-	int hi = indexMap.size()-1;
-	int mid;
-	while (lo <= hi) {
-	    mid = (lo + hi) / 2;
-	    if (indexMap[mid] == K) {
-		r = mid;
-		break;
-	    }
-	    else if (indexMap[mid] > K) {
-		hi = mid - 1;
-	    }
-	    else {
-		lo = mid + 1;
-	    }
+	std::vector<int>::const_iterator low
+	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
+	if (low != indexMap.end()) {
+	    return low - indexMap.begin();
 	}
-	return r;
+	else {
+	    return -1;
+	}
     }
     //
     // Flush the cache of self-intersection info used by FillBoundary.
