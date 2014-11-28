@@ -82,15 +82,8 @@ T& BLMap<T>::operator[] (int k)
     }
     else {
 	int i = local_index(k);
-	if (i >= 0) {
-	    return values[i];
-	} else {
-	    keys.push_back(k);
-	    size_t sz = keys.size();
-	    BL_ASSERT( sz==1 || keys[sz-1] > keys[sz-2]);
-	    values.resize(sz);
-	    return values.back();
-	}
+	BL_ASSERT(i >= 0);
+	return values[i];
     }
 }
 
@@ -99,11 +92,8 @@ const T& BLMap<T>::operator[] (int k) const
 {
     BL_ASSERT(keys.size() == values.size());
     int i = local_index(k);
-    if (i >= 0) {
-	return values[i];
-    } else {
-	BoxLib::Abort("BLMap::operator[] const: unknown key");
-    }
+    BL_ASSERT(i >= 0);
+    return values[i];
 }
 
 #endif /*BLMAP_H*/
