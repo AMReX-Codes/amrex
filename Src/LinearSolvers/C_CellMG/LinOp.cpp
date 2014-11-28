@@ -166,6 +166,8 @@ LinOp::initConstruct (const Real* _h)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
+    maskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
+    lmaskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -421,6 +423,8 @@ LinOp::prepareForLevel (int level)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
+    maskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
+    lmaskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)

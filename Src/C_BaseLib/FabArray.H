@@ -98,6 +98,10 @@ public:
     //
     int size () const { return boxarray.size(); }
     //
+    // Returns the number of local FABs in the FabArray..
+    //
+    int local_size () const { return indexMap.size(); }
+    //
     // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const { return distributionMap; }
@@ -111,7 +115,7 @@ public:
     int localindex (int K) const { 
 	std::vector<int>::const_iterator low
 	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
-	if (low != indexMap.end()) {
+	if (low != indexMap.end() && *low == K) {
 	    return low - indexMap.begin();
 	}
 	else {

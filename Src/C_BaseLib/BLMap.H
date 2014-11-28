@@ -46,6 +46,8 @@ public:
     //
     T& operator[] (int k);
     const T& operator[] (int k) const;
+    //
+    void reserve (int n) { keys.reserve(n); values.reserve(n); }
 private:
     std::vector<int> keys;
     std::vector<T>   values;
@@ -60,7 +62,7 @@ template <class T>
 int BLMap<T>::local_index (int k) const { 
     std::vector<int>::const_iterator low
 	= std::lower_bound(keys.begin(), keys.end(), k);
-    if (low != keys.end()) {
+    if (low != keys.end() && *low == k) {
 	return low - keys.begin();
     }
     else {
@@ -72,15 +74,23 @@ template <class T>
 T& BLMap<T>::operator[] (int k)
 {
     BL_ASSERT(keys.size() == values.size());
-    int i = local_index(k);
-    if (i >= 0) {
-	return values[i];
-    } else {
+
+    if (keys.empty() || k > keys.back()) {
 	keys.push_back(k);
-	size_t sz = keys.size();
-	BL_ASSERT( sz==1 || keys[sz-1] > keys[sz-2]);
-	values.resize(sz);
-	return values[sz-1];
+	values.resize(keys.size());
+	return values.back();	
+    }
+    else {
+	int i = local_index(k);
+	if (i >= 0) {
+	    return values[i];
+	} else {
+	    keys.push_back(k);
+	    size_t sz = keys.size();
+	    BL_ASSERT( sz==1 || keys[sz-1] > keys[sz-2]);
+	    values.resize(sz);
+	    return values.back();
+	}
     }
 }
 
