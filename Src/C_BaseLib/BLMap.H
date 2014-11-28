@@ -13,6 +13,11 @@ template <class T> class BLMap;
   elements in this class must be inserted following the order of keys.
   Another important difference is that unlike std::map thread safety
   is guaranteed in case of simultaneously reading.
+
+  The key in this class is usually the global box index.  Note that
+  MFIter::index() and FabSetIter.index() return the global box index
+  in increasing order.  Thus, it is safe to insert new elements with
+  global box index as key inside MFIter or FabSetIter.
  */
 
 template <class T>
