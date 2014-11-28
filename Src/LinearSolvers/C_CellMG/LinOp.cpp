@@ -104,12 +104,9 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
-        for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
-                 End = maskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
+	for (int j = 0, M = maskvals[i].size(); j < M; ++j)
+	{
+            MaskTuple& a = maskvals[i].at_local(j);
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -117,12 +114,9 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = lmaskvals.size(); i < N; ++i)
     {
-        for (std::map<int,MaskTuple>::iterator it = lmaskvals[i].begin(),
-                 End = lmaskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
+	for (int j = 0, M = lmaskvals[i].size(); j < M; ++j)
+	{
+            MaskTuple& a = lmaskvals[i].at_local(j);
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -261,8 +255,8 @@ LinOp::applyBC (MultiFab&      inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
+        BL_ASSERT(level<maskvals.size() && maskvals[level].local_index(gn)>=0);
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].local_index(gn)>=0);
         BL_ASSERT(level<undrrelxr.size());
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
@@ -633,7 +627,7 @@ operator<< (std::ostream& os,
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
 
-        const std::map<int,LinOp::MaskTuple>& m = lp.maskvals[level];
+        const BLMap<LinOp::MaskTuple>& m = lp.maskvals[level];
 
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
@@ -645,12 +639,9 @@ operator<< (std::ostream& os,
                 {
                     const Orientation face = oitr();
 
-                    for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
-                             End = m.end();
-                         it != End;
-                         ++it)
+		    for (int i=0, N=m.size(); i<N; ++i)
                     {
-                        os << *(it->second[face]);
+                        os << m.at_local(i)[face];
                     }
                 }
             }

@@ -1,0 +1,93 @@
+
+#ifndef BLMAP_H
+#define BLMAP_H
+
+#include <vector>
+
+template <class T> class BLMap;
+
+/*
+  This class implements a special purpose and lightweight map.  It is
+  somewhat similar to std::map with int as keys.  But there are some
+  important differences.  The most important difference is that
+  elements in this class must be inserted following the order of keys.
+  Another important difference is that unlike std::map thread safety
+  is guaranteed in case of simultaneously reading.
+ */
+
+template <class T>
+class BLMap
+{
+public:
+    //
+    // constructs a BLMap<T> with no elements
+    //
+    BLMap ();
+
+    int size () const { 
+	BL_ASSERT(keys.size() == values.size()); return keys.size(); }
+    //
+    // Returns a reference to the value at local index (not the key)
+    //
+    T& at_local (int i) { return values[i]; }
+    const T& at_local (int i) const { return values[i]; }
+    //
+    // Returns local index associated with the key
+    //
+    int local_index (int k) const;
+    //
+    // Returns a refence to the value associated with the key
+    //
+    T& operator[] (int k);
+    const T& operator[] (int k) const;
+private:
+    std::vector<int> keys;
+    std::vector<T>   values;
+};
+
+template <class T>
+BLMap<T>::BLMap ()
+    : keys(), values()
+{}
+
+template <class T>
+int BLMap<T>::local_index (int k) const { 
+    std::vector<int>::const_iterator low
+	= std::lower_bound(keys.begin(), keys.end(), k);
+    if (low != keys.end()) {
+	return low - keys.begin();
+    }
+    else {
+	return -1;
+    }
+}
+
+template <class T>
+T& BLMap<T>::operator[] (int k)
+{
+    BL_ASSERT(keys.size() == values.size());
+    int i = local_index(k);
+    if (i >= 0) {
+	return values[i];
+    } else {
+	keys.push_back(k);
+	size_t sz = keys.size();
+	BL_ASSERT( sz==1 || keys[sz-1] > keys[sz-2]);
+	values.resize(sz);
+	return values[sz-1];
+    }
+}
+
+template <class T>
+const T& BLMap<T>::operator[] (int k) const
+{
+    BL_ASSERT(keys.size() == values.size());
+    int i = local_index(k);
+    if (i >= 0) {
+	return values[i];
+    } else {
+	BoxLib::Abort("BLMap::operator[] const: unknown key");
+    }
+}
+
+#endif /*BLMAP_H*/

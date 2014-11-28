@@ -30,7 +30,7 @@ C$(BOXLIB_BASE)_headers += BLFort.H
 #
 # Container classes.
 #
-T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H
+T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H BLMap.H
 
 #
 # FAB I/O stuff.
