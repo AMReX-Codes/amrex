@@ -12,7 +12,8 @@ template <class T> class BLMap;
   important differences.  The most important difference is that
   elements in this class must be inserted following the order of keys.
   Another important difference is that unlike std::map thread safety
-  is guaranteed in case of simultaneously reading.
+  is guaranteed in case of simultaneously reading.  Modifying the
+  values of different ***existing*** elements is also thread safe.
 
   The key in this class is usually the global box index.  Note that
   MFIter::index() and FabSetIter.index() return the global box index
