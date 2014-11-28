@@ -62,6 +62,10 @@ public:
     //
     using MultiFab::nComp;
     //
+    // Returns number of Fabs owned by this MPI rank
+    //
+    using MultiFab::local_size;
+    //
     // Returns a constant reference to the BoxArray.
     //
     using MultiFab::boxArray;
