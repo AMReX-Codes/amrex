@@ -17,7 +17,7 @@ template <class T> class BLMap;
   The key in this class is usually the global box index.  Note that
   MFIter::index() and FabSetIter.index() return the global box index
   in increasing order.  Thus, it is safe to insert new elements with
-  global box index as key inside MFIter or FabSetIter.
+  global box index as key inside a loop of MFIter or FabSetIter.
  */
 
 template <class T>
