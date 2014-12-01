@@ -402,6 +402,18 @@ public:
     //
     const Box& tilebox () const { return tileArray[currentIndex]; }
     //
+    // Returns the dir-flux Box at the current index.
+    //
+    const Box fluxbox (int dir) const { 
+	if (tileArray[currentIndex].bigEnd(dir) 
+	    == fabArray.box(indexMap[currentIndex]).bigEnd(dir))
+	{
+	    return BoxLib::surroundingNodes(tileArray[currentIndex], dir); 
+	} else {
+	    return tileArray[currentIndex];
+	}
+    }
+    //
     // Returns the valid Box that current tile resides.
     //
     const Box& validbox () const { return fabArray.box(indexMap[currentIndex]); }
