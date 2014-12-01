@@ -481,14 +481,18 @@ c
      $     a, DIMS(a),
      $     bX,DIMS(bX),
      $     bY,DIMS(bY),
-     $     lo,hi,nc,
+     $     xlo,xhi,
+     $     ylo,yhi,
+     $     nc,
      $     h,
      $     xflux,DIMS(xflux),
      $     yflux,DIMS(yflux)
      $     )
       implicit none
       REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+      integer nc
       integer DIMDEC(x)
       integer DIMDEC(a)
       integer DIMDEC(bX)
@@ -510,15 +514,15 @@ c
       dhy = one/h(2)
 c
       do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
+         do j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
                xflux(i,j,n) = - dhx*bX(i,j)*( x(i,j,n) - x(i-1,j,n) )
             end do
          end do
       end do
       do n = 1, nc
-         do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
+         do j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
                yflux(i,j,n) = - dhy*bY(i,j)*( x(i,j,n) - x(i,j-1,n) )
             end do
          end do

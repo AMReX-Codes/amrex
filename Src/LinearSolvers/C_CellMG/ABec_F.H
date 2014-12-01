@@ -144,7 +144,7 @@ extern "C"
         const Real* alpha, const Real* beta,
         const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
         const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
-        const int *lo, const int *hi, const int *nc,
+        const int *xlo, const int *xhi, const int *nc,
         const Real *h,
         const Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
         );
@@ -215,7 +215,9 @@ extern "C"
         const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
         const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
         const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
-        const int *lo, const int *hi, const int *nc,
+        const int *xlo, const int *xhi, 
+        const int *ylo, const int *yhi, 
+	const int *nc,
         const Real *h,
         const Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
         const Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
@@ -301,7 +303,10 @@ extern "C"
         const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
         const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
         const Real* bZ, ARLIM_P(bZ_lo), ARLIM_P(bZ_hi),
-        const int *lo, const int *hi, const int *nc,
+        const int *xlo, const int *xhi, 
+        const int *ylo, const int *yhi, 
+        const int *zlo, const int *zhi, 
+	const int *nc,
         const Real *h,
         Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
         Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi),
