@@ -246,14 +246,13 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
-    const int N = inout.IndexMap().size();
-
+    IntVect tilesize(D_DECL(1024000,1024000,1024000)); // make this OMP over boxes
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(inout,tilesize); mfi.isValid(); ++mfi)
     {
-        const int gn = inout.IndexMap()[i];
+        const int gn = mfi.index();
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
@@ -279,12 +278,12 @@ LinOp::applyBC (MultiFab&      inout,
             int           bct = bdc[o][bndry_comp];
 
             const Box&       vbx   = inout.box(gn);
-            FArrayBox&       iofab = inout[gn];
+            FArrayBox&       iofab = inout[mfi];
             BL_ASSERT(f.size()>gn);
             BL_ASSERT(fs.size()>gn);
 
-            FArrayBox&       ffab  = f[gn];
-            const FArrayBox& fsfab = fs[gn];
+            FArrayBox&       ffab  = f[mfi];
+            const FArrayBox& fsfab = fs[mfi];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          iofab.dataPtr(src_comp),
@@ -314,7 +313,12 @@ LinOp::residual (MultiFab&       residL,
 
     apply(residL, solnL, level, bc_mode, local);
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
         const int nc = residL.nComp();
         //
@@ -322,9 +326,9 @@ LinOp::residual (MultiFab&       residL,
         //
         BL_ASSERT(nc == 1);
 
-        const Box& vbx = solnLmfi.validbox();
+        const Box& tbx = solnLmfi.tilebox();
 
-        BL_ASSERT(gbox[level][solnLmfi.index()] == vbx);
+        BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
 
         FArrayBox& residfab = residL[solnLmfi];
         const FArrayBox& rhsfab = rhsL[solnLmfi];
@@ -336,7 +340,7 @@ LinOp::residual (MultiFab&       residL,
             ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
             residfab.dataPtr(), 
             ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-            vbx.loVect(), vbx.hiVect(), &nc);
+            tbx.loVect(), tbx.hiVect(), &nc);
     }
 }
 
@@ -535,23 +539,24 @@ LinOp::makeCoefficients (MultiFab&       cs,
     const int nGrow=0;
     cs.define(d, nComp, nGrow, Fab_allocate);
 
-    const BoxArray& grids = gbox[level];
-
-    MFIter csmfi(cs);
+    const bool tiling = true;
 
     switch (cdir)
     {
     case -1:
-        for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
         {
+            const Box& tbx = csmfi.tilebox();
             FArrayBox&       csfab = cs[csmfi];
             const FArrayBox& fnfab = fn[csmfi];
 
             FORT_AVERAGECC(csfab.dataPtr(), ARLIM(csfab.loVect()),
                            ARLIM(csfab.hiVect()),fnfab.dataPtr(),
                            ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
-                           grids[csmfi.index()].loVect(),
-                           grids[csmfi.index()].hiVect(), &nc);
+                           tbx.loVect(),tbx.hiVect(), &nc);
         }
         break;
     case 0:
@@ -559,8 +564,12 @@ LinOp::makeCoefficients (MultiFab&       cs,
     case 2:
         if (harmavg)
         {
-            for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  	    for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
             {
+	        const Box& tbx = csmfi.tilebox();
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
@@ -570,23 +579,26 @@ LinOp::makeCoefficients (MultiFab&       cs,
                                         fnfab.dataPtr(),
                                         ARLIM(fnfab.loVect()),
                                         ARLIM(fnfab.hiVect()),
-                                        grids[csmfi.index()].loVect(),
-                                        grids[csmfi.index()].hiVect(),
+                                        tbx.loVect(),tbx.hiVect(),
                                         &nc,&cdir);
             }
         }
         else
         {
-            for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
             {
+                const Box& tbx = csmfi.tilebox();
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
                 FORT_AVERAGEEC(csfab.dataPtr(),ARLIM(csfab.loVect()),
                                ARLIM(csfab.hiVect()),fnfab.dataPtr(), 
                                ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
-                               grids[csmfi.index()].loVect(),
-                               grids[csmfi.index()].hiVect(),&nc, &cdir);
+	                       tbx.loVect(),tbx.hiVect(),
+                               &nc, &cdir);
             }
         }
         break;

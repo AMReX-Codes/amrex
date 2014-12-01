@@ -59,11 +59,17 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     //const int nc = a.nComp(); // FIXME: This LinOp only really support single-component
     const int nc = 1;
     Real res = 0.0;
-    for (MFIter amfi(a); amfi.isValid(); ++amfi)
+
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter amfi(a,tiling); amfi.isValid(); ++amfi)
     {
         Real tres;
 
-        const Box&       vbx  = amfi.validbox();
+        const Box&       tbx  = amfi.tilebox();
         const FArrayBox& afab = a[amfi];
 
         D_TERM(const FArrayBox& bxfab = bX[amfi];,
@@ -76,7 +82,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
                    afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
                    bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   tbx.loVect(), tbx.hiVect(), &nc,
                    h[level]);
 #elif (BL_SPACEDIM==3)
 
@@ -86,10 +92,16 @@ ABecLaplacian::norm (int nm, int level, const bool local)
                    bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
                    bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &nc,
+                   tbx.loVect(), tbx.hiVect(), &nc,
                    h[level]);
 #endif
-        res = std::max(res, tres);
+
+#ifdef _OPENMP
+#pragma omp critical(ABec_norm)
+#endif
+	{ // reduction(max:) only became available in OpenMP 3.1, so we still use omp critical here
+	    res = std::max(res, tres);
+	}
     }
     if (!local)
         ParallelDescriptor::ReduceRealMax(res);
@@ -307,9 +319,17 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
-    for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        const Box& vbx   = inmfi.validbox();
+        D_TERM(const Box& xbx   = inmfi.fluxbox(0);,
+	       const Box& ybx   = inmfi.fluxbox(1);,
+	       const Box& zbx   = inmfi.fluxbox(2););
+
         FArrayBox& infab = in[inmfi];
 
         D_TERM(const FArrayBox& bxfab = bX[inmfi];,
@@ -334,7 +354,14 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 		  ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
 #endif
 #endif
-		  vbx.loVect(), vbx.hiVect(), &num_comp,
+		  xbx.loVect(), xbx.hiVect(), 
+#if (BL_SPACEDIM >= 2)
+		  ybx.loVect(), ybx.hiVect(), 
+#if (BL_SPACEDIM == 3)
+		  zbx.loVect(), zbx.hiVect(), 
+#endif
+#endif
+		  &num_comp,
 		  h[level],
 		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
@@ -601,9 +628,14 @@ ABecLaplacian::Fapply (MultiFab&       y,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
-    for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter ymfi(y,tiling); ymfi.isValid(); ++ymfi)
     {
-        const Box&       vbx  = ymfi.validbox();
+        const Box&       tbx  = ymfi.tilebox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
@@ -623,7 +655,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
                    byfab.dataPtr(), 
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &num_comp,
+                   tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
 #endif
 #if (BL_SPACEDIM ==3)
@@ -639,7 +671,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
                    ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
                    bzfab.dataPtr(), 
                    ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &num_comp,
+                   tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
 #endif
     }
