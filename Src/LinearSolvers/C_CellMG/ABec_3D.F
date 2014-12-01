@@ -256,8 +256,6 @@ c-----------------------------------------------------------------------
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma,rho)
-!$omp&if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1),hi(1)
@@ -297,7 +295,6 @@ c-----------------------------------------------------------------------
                end do
             end do
           end do
-!$omp end parallel do
 
          phi(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n) = 
      $         phinew(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))

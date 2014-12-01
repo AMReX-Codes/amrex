@@ -693,12 +693,16 @@ MultiGrid::average (MultiFab&       c,
     //
     // Use Fortran function to average down (restrict) f to c.
     //
-    for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
+    const bool tiling = true;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter cmfi(c,tiling); cmfi.isValid(); ++cmfi)
     {
         BL_ASSERT(c.boxArray().get(cmfi.index()) == cmfi.validbox());
 
         const int        nc   = c.nComp();
-        const Box&       bx   = cmfi.validbox();
+        const Box&       bx   = cmfi.tilebox();
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
 
@@ -719,18 +723,17 @@ MultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.
     //
-    const int N = f.IndexMap().size();
-
+    IntVect tilesize(D_DECL(1024000,1024000,1024000)); // make this OMP over boxes
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(c,tilesize); mfi.isValid(); ++mfi)
     {
-        const int           k = f.IndexMap()[i];
+        const int           k = mfi.index();
         const Box&         bx = c.boxArray()[k];
         const int          nc = f.nComp();
-        const FArrayBox& cfab = c[k];
-        FArrayBox&       ffab = f[k];
+        const FArrayBox& cfab = c[mfi];
+        FArrayBox&       ffab = f[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
