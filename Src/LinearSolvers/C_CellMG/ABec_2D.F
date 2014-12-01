@@ -521,8 +521,8 @@ c
          end do
       end do
       do n = 1, nc
-         do j = xlo(2), xhi(2)
-            do i = xlo(1), xhi(1)
+         do j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
                yflux(i,j,n) = - dhy*bY(i,j)*( x(i,j,n) - x(i,j-1,n) )
             end do
          end do
