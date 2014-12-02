@@ -1620,6 +1620,8 @@ FabArray<FAB>::copy (FAB&       dest,
                      int        dcomp,
                      int        ncomp) const
 {
+    BL_PROFILE("FabArray::copy(fab)");
+
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
