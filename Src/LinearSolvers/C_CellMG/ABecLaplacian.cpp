@@ -65,44 +65,51 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter amfi(a,tiling); amfi.isValid(); ++amfi)
     {
-        Real tres;
+	Real pres = 0.0;
 
-        const Box&       tbx  = amfi.tilebox();
-        const FArrayBox& afab = a[amfi];
-
-        D_TERM(const FArrayBox& bxfab = bX[amfi];,
-               const FArrayBox& byfab = bY[amfi];,
-               const FArrayBox& bzfab = bZ[amfi];);
-
+	for (MFIter amfi(a,tiling); amfi.isValid(); ++amfi)
+	{
+	    Real tres;
+	    
+	    const Box&       tbx  = amfi.tilebox();
+	    const FArrayBox& afab = a[amfi];
+	    
+	    D_TERM(const FArrayBox& bxfab = bX[amfi];,
+		   const FArrayBox& byfab = bY[amfi];,
+		   const FArrayBox& bzfab = bZ[amfi];);
+	    
 #if (BL_SPACEDIM==2)
-        FORT_NORMA(&tres,
-                   &alpha, &beta,
-                   afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                   bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                   byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   tbx.loVect(), tbx.hiVect(), &nc,
-                   h[level]);
+	    FORT_NORMA(&tres,
+		       &alpha, &beta,
+		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+		       tbx.loVect(), tbx.hiVect(), &nc,
+		       h[level]);
 #elif (BL_SPACEDIM==3)
-
-        FORT_NORMA(&tres,
-                   &alpha, &beta,
-                   afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                   bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                   byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                   bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                   tbx.loVect(), tbx.hiVect(), &nc,
-                   h[level]);
+	    
+	    FORT_NORMA(&tres,
+		       &alpha, &beta,
+		       afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+		       bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+		       byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
+		       bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
+		       tbx.loVect(), tbx.hiVect(), &nc,
+		       h[level]);
 #endif
+
+	    pres = std::max(pres, tres);
+	}
 
 #ifdef _OPENMP
 #pragma omp critical(ABec_norm)
 #endif
 	{ // reduction(max:) only became available in OpenMP 3.1, so we still use omp critical here
-	    res = std::max(res, tres);
+	    res = std::max(res, pres);
 	}
     }
+
     if (!local)
         ParallelDescriptor::ReduceRealMax(res);
     return res;
