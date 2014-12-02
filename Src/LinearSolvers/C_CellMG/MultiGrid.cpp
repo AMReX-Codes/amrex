@@ -113,7 +113,7 @@ MultiGrid::Initialize ()
 void
 MultiGrid::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 static
