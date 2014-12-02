@@ -723,11 +723,11 @@ MultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.
     //
-    IntVect tilesize(D_DECL(1024000,1024000,1024000)); // make this OMP over boxes
+    // OMP over boxes
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(c,tilesize); mfi.isValid(); ++mfi)
+    for (MFIter mfi(c); mfi.isValid(); ++mfi)
     {
         const int           k = mfi.index();
         const Box&         bx = c.boxArray()[k];

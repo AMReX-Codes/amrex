@@ -246,11 +246,11 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
-    IntVect tilesize(D_DECL(1024000,1024000,1024000)); // make this OMP over boxes
+    // OMP over boxes
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(inout,tilesize); mfi.isValid(); ++mfi)
+    for (MFIter mfi(inout); mfi.isValid(); ++mfi)
     {
         const int gn = mfi.index();
 
