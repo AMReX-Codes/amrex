@@ -274,9 +274,7 @@ c
 
       sm = 0.0d0
 
-!$omp parallel private(i,j,k,l) reduction(+ : sm)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -284,9 +282,7 @@ c
                end do
             end do
          end do
-!$omp end do
       end do
-!$omp end parallel
 
       end
 c
