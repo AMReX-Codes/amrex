@@ -324,9 +324,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -334,9 +332,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c
@@ -374,9 +370,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -384,9 +378,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c
@@ -475,9 +467,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -485,9 +475,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c
@@ -525,9 +513,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -535,9 +521,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c
@@ -615,9 +599,7 @@ c
       jmax = hi(2)
       kmax = hi(3)
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do 
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -625,9 +607,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 

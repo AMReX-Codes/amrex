@@ -43,9 +43,12 @@ MultiFab::Add (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -64,9 +67,12 @@ MultiFab::Copy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
@@ -85,9 +91,12 @@ MultiFab::Subtract (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -106,9 +115,12 @@ MultiFab::Multiply (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -127,9 +139,12 @@ MultiFab::Divide (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -746,9 +761,12 @@ MultiFab::minus (const MultiFab& mf,
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         get(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -766,9 +784,12 @@ MultiFab::divide (const MultiFab& mf,
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         get(mfi).divide(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -784,9 +805,12 @@ MultiFab::plus (Real val,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        get(mfi).plus(val,BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).plus(val,mfi.growntilebox(nghost),comp,num_comp);
     }
 }
 
@@ -801,9 +825,12 @@ MultiFab::plus (Real       val,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
+        Box b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).plus(val,b,comp,num_comp);
@@ -822,9 +849,12 @@ MultiFab::plus (const MultiFab& mf,
     BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(mfi.validbox(),nghost);
+        Box bx = mfi.growntilebox(nghost);
 
         get(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -840,9 +870,12 @@ MultiFab::mult (Real val,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        get(mfi).mult(val, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).mult(val, mfi.growntilebox(nghost), comp, num_comp);
     }
 }
 
@@ -857,9 +890,12 @@ MultiFab::mult (Real       val,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
+        Box b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).mult(val, b, comp, num_comp);
@@ -876,9 +912,12 @@ MultiFab::invert (Real numerator,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        get(mfi).invert(numerator, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).invert(numerator, mfi.growntilebox(nghost), comp, num_comp);
     }
 }
 
@@ -893,9 +932,12 @@ MultiFab::invert (Real       numerator,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
+        Box b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).invert(numerator,b,comp,num_comp);
@@ -910,9 +952,12 @@ MultiFab::negate (int comp,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        get(mfi).negate(BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).negate(mfi.growntilebox(nghost), comp, num_comp);
     }
 }
 
@@ -925,9 +970,12 @@ MultiFab::negate (const Box& region,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
+        Box b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).negate(b,comp,num_comp);
