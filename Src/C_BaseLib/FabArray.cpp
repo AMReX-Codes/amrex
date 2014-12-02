@@ -10,11 +10,11 @@ bool    FabArrayBase::do_async_sends;
 bool    FabArrayBase::do_random_shuffle;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
-IntVect FabArrayBase::mfiter_tile_size(10240);
+IntVect FabArrayBase::mfiter_tile_size(1024000);
 #elif BL_SPACEDIM == 2
-IntVect FabArrayBase::mfiter_tile_size(10240,10240);
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
-IntVect FabArrayBase::mfiter_tile_size(10240,8,8);
+IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
 
 namespace
@@ -706,7 +706,7 @@ MFIter::MFIter (const FabArrayBase& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0),
-    tileSize(D_DECL(10240,10240,10240))
+    tileSize(D_DECL(1024000,1024000,1024000))
 {
     Initialize();
 }
@@ -715,7 +715,7 @@ MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
     :
     fabArray(fabarray),
     currentIndex(0),
-    tileSize(D_DECL(10240,10240,10240))
+    tileSize(D_DECL(1024000,1024000,1024000))
 {
     if (do_tiling) 
 	tileSize = FabArrayBase::mfiter_tile_size;

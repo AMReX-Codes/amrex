@@ -132,14 +132,14 @@ FluxRegister::SumReg (int comp) const
 {
     Real sum = 0.0;
 
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:sum)
-#endif
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         const FabSet& lofabs = bndry[Orientation(dir,Orientation::low) ];
         const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sum)
+#endif
         for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
         {
             sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
