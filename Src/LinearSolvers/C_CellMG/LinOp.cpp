@@ -59,7 +59,7 @@ LinOp::Initialize ()
 void
 LinOp::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 void
