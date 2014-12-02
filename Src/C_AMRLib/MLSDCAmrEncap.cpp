@@ -121,6 +121,9 @@ void mf_encap_copy(void *dstp, const void *srcp, int flags)
 void mf_encap_saxpy_flux(FluxRegister& y, sdc_dtype a, FluxRegister& x)
 {
   for (OrientationIter face; face; ++face)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (FabSetIter bfsi(y[face()]); bfsi.isValid(); ++bfsi)
       y[face()][bfsi].saxpy(a, x[face()][bfsi]);
 }
@@ -134,6 +137,9 @@ void mf_encap_saxpy(void *yp, sdc_dtype a, void *xp, int flags)
 
   BL_ASSERT(Uy.boxArray() == Ux.boxArray());
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter mfi(Uy); mfi.isValid(); ++mfi)
     Uy[mfi].saxpy(a, Ux[mfi]);
 
