@@ -306,12 +306,19 @@ MultiFab::contains_nan (int scomp,
 
     bool r = false;
 
-    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(|:r)
+#endif
     {
-        const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
-
-        if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
-            r = true;
+	bool pr = false;
+	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
+	{
+	    const Box bx = mfi.growntilebox(ngrow);
+	    
+	    if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
+		pr = true;
+	}
+	r |= pr;
     }
 
     ParallelDescriptor::ReduceBoolOr(r);
@@ -337,12 +344,19 @@ MultiFab::contains_inf (int scomp,
 
     bool r = false;
 
-    for (MFIter mfi(*this); mfi.isValid() && !r; ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(|:r)
+#endif
     {
-        const Box bx = BoxLib::grow(mfi.validbox(),ngrow);
+	bool pr = false;
+	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
+	{
+	    const Box bx = mfi.growntilebox(ngrow);
 
-        if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
-            r = true;
+	    if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
+		pr = true;
+	}
+	r |= pr;
     }
 
     ParallelDescriptor::ReduceBoolOr(r);
