@@ -388,7 +388,7 @@ public:
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
-    const Box growntilebox () const;
+    const Box growntilebox (int ng=-1) const;
     //
     // Returns the valid Box that current tile resides.
     //
@@ -1665,9 +1665,13 @@ template <class FAB>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
-        get(fai).setVal(val);
+	Box bx = fai.growntilebox();
+        get(fai).setVal(val, bx, 0, n_comp);
     }
 }
 
@@ -1688,9 +1692,13 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
-        get(fai).setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
+	Box bx = fai.growntilebox(nghost);
+        get(fai).setVal(val, bx, comp, ncomp);
     }
 }
 
@@ -1705,9 +1713,12 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
-        Box b = BoxLib::grow(fai.validbox(),nghost) & region;
+        Box b = fai.growntilebox(nghost) & region;
 
         if (b.ok())
             get(fai).setVal(val, b, comp, ncomp);

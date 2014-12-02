@@ -862,9 +862,9 @@ MFIter::fluxbox (int dir) const
 }
 
 const Box 
-MFIter::growntilebox () const 
+MFIter::growntilebox (int ng) const 
 {
-    int ng = fabArray.nGrow();
+    if (ng < 0) ng = fabArray.nGrow();
     if (ng == 0) {
 	return tileArray[currentIndex];
     } else {
