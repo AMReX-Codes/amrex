@@ -106,7 +106,7 @@ CGSolver::Initialize ()
 void
 CGSolver::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 CGSolver::CGSolver (LinOp& _Lp,
