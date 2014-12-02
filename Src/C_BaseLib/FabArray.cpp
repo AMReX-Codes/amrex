@@ -701,3 +701,183 @@ FabArrayBase::SICacheSize ()
     return m_TheFBCache.size();
 }
 
+
+MFIter::MFIter (const FabArrayBase& fabarray)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(D_DECL(10240,10240,10240))
+{
+    Initialize();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(D_DECL(10240,10240,10240))
+{
+    if (do_tiling) 
+	tileSize = FabArrayBase::mfiter_tile_size;
+    Initialize();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(tilesize)
+{
+    Initialize();
+}
+
+void 
+MFIter::Initialize () 
+{
+    int tid = 0;
+    int nthreads = 1;
+    
+#ifdef _OPENMP
+    if (omp_in_parallel()) {
+	tid = omp_get_thread_num();
+	nthreads = omp_get_num_threads();
+    }
+#endif
+    
+    // First let's figure out how many tiles we are going to have
+    int n_tot_tiles=0;
+    Array<IntVect> nt_in_fab;
+    for (int i=0; i<fabArray.IndexMap().size(); i++) {
+	int K = fabArray.IndexMap()[i]; 
+	const Box bx = fabArray.box(K);
+	
+	int ntiles = 1;
+	IntVect nt;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    nt[d] = std::max(bx.length(d)/tileSize[d], 1);
+	    ntiles *= nt[d];
+	}
+	
+	nt_in_fab.push_back(nt);
+	n_tot_tiles += ntiles;
+    }
+    
+    // the tile no range for this thread
+    int tlo, thi;
+    if (n_tot_tiles < nthreads) { // there are more threads than tiles
+	if (tid < n_tot_tiles) {
+	    tlo = thi = tid;
+	} else {
+	    return;
+	}
+    } else {
+	int tiles_per_thread = n_tot_tiles/nthreads;
+	int nleft = n_tot_tiles - tiles_per_thread*nthreads;
+	if (tid < nleft) {
+	    tlo = tid*(tiles_per_thread+1);
+	    thi = tlo + tiles_per_thread;
+	} else {
+	    tlo = tid*tiles_per_thread + nleft;
+	    thi = tlo + tiles_per_thread - 1;
+	}
+    }
+    
+    int sz = thi-tlo+1;
+    indexMap.reserve(sz);
+    localIndexMap.reserve(sz);
+    tileArray.reserve(sz);
+    
+    int it = 0;
+    for (int i=0; i<fabArray.IndexMap().size(); i++) {
+	
+	int ntiles = 1;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    ntiles *= nt_in_fab[i][d];
+	}
+	
+	if (it+ntiles-1 < tlo) {
+	    it += ntiles;
+	    continue;
+	}
+	
+	int K = fabArray.IndexMap()[i]; 
+	const Box bx = fabArray.box(K);
+	
+	IntVect tsize, nleft;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    int ncells = bx.length(d);
+	    tsize[d] = ncells/nt_in_fab[i][d];
+	    nleft[d] = ncells - nt_in_fab[i][d]*tsize[d];
+	}
+	
+	IntVect small, big, ijk;  // note that the initial values are all zero.
+	ijk[0] = -1;
+	for (int t=0; t<ntiles; t++) {
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		if (ijk[d]<nt_in_fab[i][d]-1) {
+		    ijk[d]++;
+		    break;
+		} else {
+		    ijk[d] = 0;
+		}
+	    }
+	    
+	    if (it >= tlo) {
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d] < nleft[d]) {
+			small[d] = ijk[d]*(tsize[d]+1);
+			big[d] = small[d] + tsize[d];
+		    } else {
+			small[d] = ijk[d]*tsize[d] + nleft[d];
+			big[d] = small[d] + tsize[d] - 1;
+		    }
+		}
+		
+		indexMap.push_back(K);
+		localIndexMap.push_back(i);
+		
+		Box tbx(small, big, bx.ixType());
+		tbx.shift(bx.smallEnd());
+		tileArray.push_back(tbx);
+	    }
+	    
+	    it++;
+	    if (it > thi) return;
+	}
+    }
+}
+
+const Box
+MFIter::fluxbox (int dir) const 
+{ 
+    if ( tileArray[currentIndex].type(dir) == IndexType::CELL
+	 && tileArray[currentIndex].bigEnd(dir) 
+	 == validbox().bigEnd(dir) )
+    {
+	Box bx(tileArray[currentIndex]);
+	return bx.growHi(dir,1); 
+    } else {
+	return tileArray[currentIndex];
+    }
+}
+
+const Box 
+MFIter::growntilebox () const 
+{
+    int ng = fabArray.nGrow();
+    if (ng == 0) {
+	return tileArray[currentIndex];
+    } else {
+	Box bx(tileArray[currentIndex]);
+	const Box& vbx = validbox();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+		bx.growLo(d, ng);
+	    }
+	    if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+		bx.growHi(d, ng);
+	    }
+	}
+	return bx;
+    }
+}
