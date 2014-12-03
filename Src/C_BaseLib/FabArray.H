@@ -384,11 +384,11 @@ public:
     //
     // Returns the dir-flux Box at the current index.
     //
-    const Box fluxbox (int dir) const;
+    Box fluxbox (int dir) const;
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
-    const Box growntilebox (int ng=-1) const;
+    Box growntilebox (int ng=-1) const;
     //
     // Returns the valid Box that current tile resides.
     //
