@@ -847,7 +847,7 @@ MFIter::Initialize ()
     }
 }
 
-const Box
+Box
 MFIter::fluxbox (int dir) const 
 { 
     if ( tileArray[currentIndex].type(dir) == IndexType::CELL
@@ -861,7 +861,7 @@ MFIter::fluxbox (int dir) const
     }
 }
 
-const Box 
+Box 
 MFIter::growntilebox (int ng) const 
 {
     if (ng < 0) ng = fabArray.nGrow();

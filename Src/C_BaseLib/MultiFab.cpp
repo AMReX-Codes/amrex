@@ -48,7 +48,7 @@ MultiFab::Add (MultiFab&       dst,
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -72,7 +72,7 @@ MultiFab::Copy (MultiFab&       dst,
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
@@ -96,7 +96,7 @@ MultiFab::Subtract (MultiFab&       dst,
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -120,7 +120,7 @@ MultiFab::Multiply (MultiFab&       dst,
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -144,7 +144,7 @@ MultiFab::Divide (MultiFab&       dst,
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok())
             dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -313,7 +313,7 @@ MultiFab::contains_nan (int scomp,
 	bool pr = false;
 	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
 	{
-	    const Box bx = mfi.growntilebox(ngrow);
+	    const Box& bx = mfi.growntilebox(ngrow);
 	    
 	    if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
 		pr = true;
@@ -351,7 +351,7 @@ MultiFab::contains_inf (int scomp,
 	bool pr = false;
 	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
 	{
-	    const Box bx = mfi.growntilebox(ngrow);
+	    const Box& bx = mfi.growntilebox(ngrow);
 
 	    if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
 		pr = true;
@@ -780,7 +780,7 @@ MultiFab::minus (const MultiFab& mf,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         get(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -803,7 +803,7 @@ MultiFab::divide (const MultiFab& mf,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         get(mfi).divide(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -844,7 +844,7 @@ MultiFab::plus (Real       val,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = mfi.growntilebox(nghost) & region;
+        const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).plus(val,b,comp,num_comp);
@@ -868,7 +868,7 @@ MultiFab::plus (const MultiFab& mf,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.growntilebox(nghost);
+        const Box& bx = mfi.growntilebox(nghost);
 
         get(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
@@ -909,7 +909,7 @@ MultiFab::mult (Real       val,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = mfi.growntilebox(nghost) & region;
+        const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).mult(val, b, comp, num_comp);
@@ -951,7 +951,7 @@ MultiFab::invert (Real       numerator,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = mfi.growntilebox(nghost) & region;
+        const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).invert(numerator,b,comp,num_comp);
@@ -989,7 +989,7 @@ MultiFab::negate (const Box& region,
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        Box b = mfi.growntilebox(nghost) & region;
+        const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok())
             get(mfi).negate(b,comp,num_comp);
