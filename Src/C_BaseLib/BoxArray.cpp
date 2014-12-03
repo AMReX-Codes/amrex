@@ -790,6 +790,8 @@ BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
 			 bool first_only) const
 {
+    BL_PROFILE("BoxArray::intersections()");
+
     BoxHashMapType& BoxHashMap = m_ref->hash;
 
 #ifdef _OPENMP
