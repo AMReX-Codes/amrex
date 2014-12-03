@@ -1353,9 +1353,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         // we're doing plus()s on cell-centered data.  Don't do plus()s on
         // non-cell-centered data this simplistic way.
         //
-        for (MFIter fai(*this); fai.isValid(); ++fai)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
-            const Box& bx = fai.validbox();
+            const Box& bx = fai.tilebox();
 
             if (op == FabArrayBase::COPY)
             {
