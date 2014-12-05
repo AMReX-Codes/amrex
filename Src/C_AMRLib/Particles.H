@@ -5299,7 +5299,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect iv = ParticleBase::Index(*it,level+1,m_amr);
+            const IntVect& iv = ParticleBase::Index(*it,level+1,m_amr);
             //
             // Is it in the grown finer level?
             //
@@ -5407,7 +5407,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                                                        (p.m_pos[1]-plo[1])/dx[1] + 0.5,
                                                        (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-                const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+                const IntVect& cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
                 const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
@@ -7111,7 +7111,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (p.m_id <= 0) continue;
 
-                        const IntVect iv = ParticleBase::Index(p, lev, m_amr);
+                        const IntVect& iv = ParticleBase::Index(p, lev, m_amr);
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
