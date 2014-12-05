@@ -2790,7 +2790,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         {
             if (gm.isAnyPeriodic())
             {
-                const Box dest = BoxLib::grow(grids[i],dgrow);
+                const Box& dest = BoxLib::grow(grids[i],dgrow);
 
                 if (!dm.contains(dest))
                 {
@@ -2802,8 +2802,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                         for (int k = 0; k < pshifts.size(); k++)
                         {
-                            const Box sbx = grids[j] + pshifts[k];
-                            const Box dbx = dest & sbx;
+                            const Box& sbx = grids[j] + pshifts[k];
+                            const Box& dbx = dest & sbx;
 
                             BL_ASSERT(dbx.ok());
 
@@ -2857,7 +2857,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 if (gm.isAnyPeriodic())
                 {
-                    const Box dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
+                    const Box& dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
 
                     if (!dm.contains(dest))
                     {
@@ -2869,7 +2869,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                             for (int k = 0; k < pshifts.size(); k++)
                             {
-                                const Box sbx = cfba[i] - pshifts[k];
+                                const Box& sbx = cfba[i] - pshifts[k];
 
                                 cvalid.push_back(sbx);
                             }

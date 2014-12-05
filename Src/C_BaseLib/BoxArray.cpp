@@ -851,8 +851,8 @@ BoxArray::intersections (const Box&                         bx,
                      v_it != v_end;
                      ++v_it)
                 {
-                    const int index = *v_it;
-                    const Box isect = bx & get(index);
+                    const int  index = *v_it;
+                    const Box& isect = bx & get(index);
 
                     if (isect.ok())
                     {

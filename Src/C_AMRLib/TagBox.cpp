@@ -156,7 +156,7 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    const Box bx = domain & src.domain;
+    const Box& bx = domain & src.domain;
 
     if (bx.ok())
     {
@@ -367,7 +367,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
              ++it)
         {
             const IntVect& iv   = *it;
-            const Box      shft = boxarray[i] + iv;
+            const Box&     shft = boxarray[i] + iv;
 
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {

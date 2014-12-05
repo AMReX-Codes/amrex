@@ -1255,7 +1255,7 @@ FabArray<FAB>::AllocFabs ()
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        const Box tmp = BoxLib::grow(fai.validbox(), n_grow);
+        const Box& tmp = BoxLib::grow(fai.validbox(), n_grow);
 	m_fabs_v.push_back(new FAB(tmp, n_comp));
     }
 }

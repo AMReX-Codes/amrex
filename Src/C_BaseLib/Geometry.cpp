@@ -232,9 +232,9 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                 {
                     const IntVect& iv = *it;
 
-                    const Box shft = src + iv;
-                    const Box dbx  = dst & shft;
-                    const Box sbx  = dbx - iv;
+                    const Box& shft = src + iv;
+                    const Box& dbx  = dst & shft;
+                    const Box& sbx  = dbx - iv;
 
                     mf[mfidst].copy(mf[mfisrc],sbx,scomp,dbx,scomp,ncomp);
                 }
@@ -308,7 +308,7 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            const Box src = BoxLib::grow(srcba[j],ngrow);
+            const Box& src = BoxLib::grow(srcba[j],ngrow);
 
             if (TheDomain.contains(src)) continue;
 
@@ -319,9 +319,9 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                  ++it)
             {
                 const IntVect& iv  = *it;
-                const Box     shft = src + iv;
-                const Box     dbx  = dst & shft;
-                const Box     sbx  = dbx - iv;
+                const Box&    shft = src + iv;
+                const Box&    dbx  = dst & shft;
+                const Box&    sbx  = dbx - iv;
 
                 FabArrayBase::CopyComTag tag;
 
@@ -862,7 +862,7 @@ Geometry::GetFPB (const Geometry&      geom,
 
     for (int i = 0, N = ba.size(); i < N; i++)
     {
-        const Box dst       = BoxLib::grow(ba[i],fpb.m_ngrow);
+        const Box& dst      = BoxLib::grow(ba[i],fpb.m_ngrow);
         const int dst_owner = dm[i];
 
         if (TheDomain.contains(dst)) continue;
@@ -896,7 +896,7 @@ Geometry::GetFPB (const Geometry&      geom,
                  ++it)
             {
                 const IntVect& iv   = *it;
-                const Box      shft = src + iv;
+                const Box&     shft = src + iv;
 
                 FPBComTag tag;
 
