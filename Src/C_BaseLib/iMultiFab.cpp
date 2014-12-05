@@ -386,8 +386,8 @@ iMultiFab::minIndex (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const Box box = BoxLib::grow(mfi.validbox(),nghost);
-        const int lmn = get(mfi).min(box,comp);
+        const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+        const int  lmn = get(mfi).min(box,comp);
 
         if (lmn < mn)
         {
@@ -453,8 +453,8 @@ iMultiFab::maxIndex (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const Box box = BoxLib::grow(mfi.validbox(),nghost);
-        const int lmx = get(mfi).max(box,comp);
+        const Box& box = BoxLib::grow(mfi.validbox(),nghost);
+        const int  lmx = get(mfi).max(box,comp);
 
         if (lmx > mx)
         {

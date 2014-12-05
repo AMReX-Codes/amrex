@@ -154,7 +154,7 @@ ParticleBase::CrseToFine (const BoxArray&       cfba,
             {
                 BL_ASSERT(pshifts.size() == 1);
 
-                const Box dbx = bx - pshifts[0];
+                const Box& dbx = bx - pshifts[0];
 
                 BL_ASSERT(dbx.ok());
 
@@ -211,7 +211,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         which[i] =  0;
     }
 
-    const Box ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
+    const Box& ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -305,7 +305,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < amr->finestLevel());
 
-    const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
+    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
     const BoxArray& fba = amr->ParticleBoxArray(lev+1);
     const Real*     plo = amr->Geom(lev).ProbLo();
     const Real*     dx  = amr->Geom(lev).CellSize();

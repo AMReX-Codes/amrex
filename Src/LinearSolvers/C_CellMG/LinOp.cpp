@@ -440,7 +440,7 @@ LinOp::prepareForLevel (int level)
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation face = oitr();
-            const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
+            const Box&        bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
              ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
             Mask&  curmask = *( ma[face]);

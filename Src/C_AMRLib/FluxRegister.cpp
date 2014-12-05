@@ -226,9 +226,9 @@ RefluxIt (const Rec&       rf,
     const int*       slo        = fab_S.loVect();
     const int*       shi        = fab_S.hiVect();
     const Real*      vol_dat    = fab_volume.dataPtr();
-    const Box        fine_face  = BoxLib::adjCell(grids[rf.m_sIndex],rf.m_face);
-    const Box        sftbox     = S.box(rf.m_dIndex) + rf.m_shift;
-    const Box        ovlp       = sftbox & fine_face;
+    const Box&       fine_face  = BoxLib::adjCell(grids[rf.m_sIndex],rf.m_face);
+    const Box&       sftbox     = S.box(rf.m_dIndex) + rf.m_shift;
+    const Box&       ovlp       = sftbox & fine_face;
     const int*       lo         = ovlp.loVect();
     const int*       hi         = ovlp.hiVect();
     const int*       shft       = rf.m_shift.getVect();
@@ -290,7 +290,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 //
                 const Orientation face = fi();
 
-                const Box ovlp = vbx & BoxLib::adjCell(grids[k],face);
+                const Box& ovlp = vbx & BoxLib::adjCell(grids[k],face);
 
                 if (ovlp.ok())
                 {
@@ -342,7 +342,7 @@ FluxRegister::Reflux (MultiFab&       S,
                      ++it)
                 {
                     const IntVect& iv     = *it;
-                    const Box      sftbox = vbx + iv;
+                    const Box&     sftbox = vbx + iv;
 
                     BL_ASSERT(bx.intersects(sftbox));
 
@@ -354,7 +354,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         //
                         const Orientation face = fi();
 
-                        const Box ovlp = sftbox & BoxLib::adjCell(kgrid,face);
+                        const Box& ovlp = sftbox & BoxLib::adjCell(kgrid,face);
 
                         if (ovlp.ok())
                         {

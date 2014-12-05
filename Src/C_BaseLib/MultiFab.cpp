@@ -510,7 +510,7 @@ MultiFab::minIndex (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const Box  box = BoxLib::grow(mfi.validbox(),nghost);
+        const Box& box = BoxLib::grow(mfi.validbox(),nghost);
         const Real lmn = get(mfi).min(box,comp);
 
         if (lmn < mn)
@@ -577,7 +577,7 @@ MultiFab::maxIndex (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const Box  box = BoxLib::grow(mfi.validbox(),nghost);
+        const Box& box = BoxLib::grow(mfi.validbox(),nghost);
         const Real lmx = get(mfi).max(box,comp);
 
         if (lmx > mx)

@@ -749,7 +749,7 @@ MFIter::Initialize ()
     Array<IntVect> nt_in_fab;
     for (int i=0; i<fabArray.IndexMap().size(); i++) {
 	int K = fabArray.IndexMap()[i]; 
-	const Box bx = fabArray.box(K);
+	const Box& bx = fabArray.box(K);
 	
 	int ntiles = 1;
 	IntVect nt;
@@ -801,7 +801,7 @@ MFIter::Initialize ()
 	}
 	
 	int K = fabArray.IndexMap()[i]; 
-	const Box bx = fabArray.box(K);
+	const Box& bx = fabArray.box(K);
 	
 	IntVect tsize, nleft;
 	for (int d=0; d<BL_SPACEDIM; d++) {

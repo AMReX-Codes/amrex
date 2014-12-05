@@ -634,7 +634,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                 if (l != m_amrlevel.level)
                 {
-                    const Box cbox = m_map->CoarseBox(*fit,fine_ratio);
+                    const Box& cbox = m_map->CoarseBox(*fit,fine_ratio);
 
 		    crse_boxes.back() = cbox;
 
@@ -990,11 +990,11 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                     for (int j = 0; j < NC; j++)
                     {
                         const FArrayBox& srcfab = CrseFabs[j];
-                        const Box        srcbox = fullsrcbox & srcfab.box();
+                        const Box&       srcbox = fullsrcbox & srcfab.box();
 
                         if (srcbox.ok())
                         {
-                            const Box dstbox = srcbox - iv;
+                            const Box& dstbox = srcbox - iv;
 
                             dstfab.copy(srcfab,srcbox,0,dstbox,0,m_ncomp);
                         }
