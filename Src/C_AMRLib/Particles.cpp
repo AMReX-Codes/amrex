@@ -18,7 +18,7 @@ ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
                                            (p.m_pos[1]-plo[1])/dx[1] + 0.5,
                                            (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
 
-    const IntVect& cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
+    const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
     const Real frac[BL_SPACEDIM] = { D_DECL(len[0]-cell[0], len[1]-cell[1], len[2]-cell[2]) };
 
@@ -53,9 +53,9 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
                                              (p.m_pos[1]-plo[1]-dx_part[1]/2)/dx_geom[1],
                                              (p.m_pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
-    const IntVect& hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
+    const IntVect hicell(D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
     
-    const IntVect& locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
+    const IntVect locell(D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
     
     const Real cell_density = D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
     
