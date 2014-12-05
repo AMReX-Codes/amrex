@@ -198,9 +198,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     // but with different edgeness of boxes.  We also want to
     // differentiate dst.copy(src) from src.copy(dst).
     //
-    CPCCache&     TheCopyCache = FabArrayBase::m_TheCopyCache;
-    const IntVect Typ          = cpc.m_dstba[0].type();
-    const int     Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    CPCCache&      TheCopyCache = FabArrayBase::m_TheCopyCache;
+    const IntVect& Typ          = cpc.m_dstba[0].type();
+    const int      Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
 
     int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
     Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
@@ -485,9 +485,9 @@ FabArrayBase::TheFB (bool                cross,
 
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
-    const IntVect Typ   = mf.boxArray()[0].type();
-    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
-    const int     Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
+    const IntVect& Typ   = mf.boxArray()[0].type();
+    const int      Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    const int      Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
 
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
 

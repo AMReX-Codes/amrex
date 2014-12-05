@@ -834,8 +834,8 @@ BoxArray::intersections (const Box&                         bx,
         BL_ASSERT(bx.sameType(get(0)));
 
         Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        const IntVect  sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect  bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         cbx = Box(sm,bg,bx.ixType());
 

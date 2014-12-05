@@ -164,14 +164,14 @@ cout << pedge0 << " " << pedge1 << endl;
     
     for (MultiFabIterator mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
     {
-        const Box box = ::grow(mf0_mfi.validbox(),mf0.nGrow()) & datEdge0[0].box();
+        const Box& box = ::grow(mf0_mfi.validbox(),mf0.nGrow()) & datEdge0[0].box();
         if (box.ok())
             datEdge0[0].copy(mf0_mfi(),box,comp0,box,0,nComp);
     }
 
     for (MultiFabIterator mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
     {
-        const Box box = ::grow(mf1_mfi.validbox(),mf1.nGrow()) & datEdge1[0].box();
+        const Box& box = ::grow(mf1_mfi.validbox(),mf1.nGrow()) & datEdge1[0].box();
         if (box.ok())
             datEdge1[0].copy(mf1_mfi(),box,comp1,box,0,nComp);
     }

@@ -695,7 +695,7 @@ Darcy::initData ()
     const Real rho = snes->density;
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
-    const Box vbox = mfi.validbox();
+    const Box& vbox = mfi.validbox();
     FArrayBox& p = S_new[mfi];
     for (IntVect iv=vbox.smallEnd(); iv<=vbox.bigEnd(); vbox.next(iv)) {
       Real mag = 0;

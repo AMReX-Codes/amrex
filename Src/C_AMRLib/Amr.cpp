@@ -2702,9 +2702,9 @@ Amr::grid_places (int              lbase,
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                              nerr/ref_ratio[levf][1],
-                                              nerr/ref_ratio[levf][2]));
+            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                               nerr/ref_ratio[levf][1],
+                                               nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
             BoxList blF;
             blF.complementIn(mboxF,blFcomp);
