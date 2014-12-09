@@ -352,7 +352,7 @@ Layout::Build(const Array<BoxArray>&  aba,
             fnodeFab.resize(fbox,1);
             Box cbox = Box(fbox).coarsen(refRatio[lev-1]);
             for (IntVect civ = cbox.smallEnd(), End=cbox.bigEnd(); civ<=End; cbox.next(civ)) {
-              const IntVect baseIV = refRatio[lev-1] * civ;
+              const IntVect& baseIV = refRatio[lev-1] * civ;
               for (IntVect ivt = rangeBox.smallEnd(), End=rangeBox.bigEnd(); ivt<=End;rangeBox.next(ivt)) {
                 fnodeFab(baseIV + ivt,0) = crseNodes[lev][mfi](civ,0);
               }
@@ -513,7 +513,7 @@ Layout::Build(const Array<BoxArray>&  aba,
       if (lev>0) 
       {
         const IntVect& ref = refRatio[lev-1];
-        const IntVect refm = ref - IntVect::TheUnitVector();
+        const IntVect& refm = ref - IntVect::TheUnitVector();
         BoxArray bndC = BoxArray(bndryCells[lev]).coarsen(ref);
         
         crseIds.set(lev-1,new MultiIntFab(bndC,1,0,Fab_allocate)); crseIds[lev-1].setVal(-1);

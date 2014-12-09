@@ -786,7 +786,7 @@ Geometry::GetFPB (const Geometry&      geom,
     const BoxArray&            ba     = fpb.m_ba;
     const DistributionMapping& dm     = fpb.m_dm;
     const int                  MyProc = ParallelDescriptor::MyProc();
-    const IntVect              Typ    = ba[0].type();
+    const IntVect&             Typ    = ba[0].type();
     const int                  Scale  = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
     const int                  Key    = ba.size() + ba[0].numPts() + Scale + fpb.m_ngrow;
 

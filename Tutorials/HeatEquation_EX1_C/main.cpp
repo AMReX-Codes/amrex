@@ -205,7 +205,7 @@ main (int argc, char* argv[])
   if (plot_int > 0)
   {
      int n = 0;
-     const std::string pltfile = BoxLib::Concatenate("plt",n,5);
+     const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
      writePlotFile(pltfile, *new_phi, geom);
   }
 
@@ -234,7 +234,7 @@ main (int argc, char* argv[])
      // Write a plotfile of the current data (plot_int was defined in the inputs file)
      if (plot_int > 0 && n%plot_int == 0)
      {
-        const std::string pltfile = BoxLib::Concatenate("plt",n,5);
+        const std::string& pltfile = BoxLib::Concatenate("plt",n,5);
         writePlotFile(pltfile, *new_phi, geom);
      }
   }

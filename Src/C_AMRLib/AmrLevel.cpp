@@ -1408,7 +1408,7 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox temp  = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
+            const RealBox& temp = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 

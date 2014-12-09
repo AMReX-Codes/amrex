@@ -721,12 +721,12 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
     for (MFIter mfi(pmf); mfi.isValid(); ++mfi) {
       const FArrayBox& pfab = pmf[mfi];
       FArrayBox& sfab = smf[mfi];
-      const Box gbox = Box(mfi.validbox()).grow(nGrowOp);
+      const Box& gbox = Box(mfi.validbox()).grow(nGrowOp);
       ifab.resize(gbox,1);
       ifab.setVal(0);
-      const Box obox = gbox & layout.GeomArray()[lev].Domain();
+      const Box& obox = gbox & layout.GeomArray()[lev].Domain();
       layout.SetNodeIds(ifab,lev,mfi.index(),obox);
-      const Box ovlp = sfab.box() & gbox;
+      const Box& ovlp = sfab.box() & gbox;
       ReducedSaturationGivenPressure(pfab,pComp+pressure.BaseComp(),sfab,rsComp+rhoSat.BaseComp(),ovlp,ifab); // For the moment rhoSat holds se
     }
   }
@@ -763,10 +763,10 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
         fc[d] = darcy_flux[d].BaseComp() + fComp;
       }
       const Box& vbox = mfi.validbox();
-      const Box gbox = Box(vbox).grow(nGrowOp);
+      const Box& gbox = Box(vbox).grow(nGrowOp);
       ifab.resize(gbox,1);
       ifab.setVal(0);
-      const Box obox = gbox & geom.Domain();
+      const Box& obox = gbox & geom.Domain();
       layout.SetNodeIds(ifab,lev,mfi.index(),obox);
       int iComp = 0;
 

@@ -172,7 +172,7 @@ GetBndryCells (const BoxArray& ba,
     {
         Array<IntVect> pshifts(27);
 
-        const Box domain = geom.Domain();
+        const Box& domain = geom.Domain();
 
         for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
         {
@@ -185,9 +185,9 @@ GetBndryCells (const BoxArray& ba,
 
                 for (int i = 0; i < pshifts.size(); i++)
                 {
-                    const Box shftbox = *it + pshifts[i];
+                    const Box& shftbox = *it + pshifts[i];
 
-                    const Box ovlp = domain & shftbox;
+                    const Box& ovlp = domain & shftbox;
                     BoxList bl = BoxLib::complementIn(ovlp,BoxList(ba));
                     bcells.catenate(bl);
                 }
@@ -473,7 +473,7 @@ main (int   argc,
         for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
         {
             NodeFab& ifab = nodes[lev][fai];
-            const Box box = ifab.box() & subboxArray[lev];
+            const Box& box = ifab.box() & subboxArray[lev];
             for (IntVect iv=box.smallEnd(); iv<=box.bigEnd(); box.next(iv))
                 ifab(iv,0) = Node(iv,lev,fai.index(),Node::VALID);
         }
@@ -481,14 +481,14 @@ main (int   argc,
         if (lev != 0)
         {
             const int ref = amrData.RefRatio()[lev-1];
-            const Box rangeBox = Box(IntVect::TheZeroVector(),
+            const Box& rangeBox = Box(IntVect::TheZeroVector(),
                                      (ref-1)*IntVect::TheUnitVector());
 
             BoxArray bndryCells = GetBndryCells(nodes[lev].boxArray(),ref,geom[lev]);
 
             for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
             {
-                const Box box = Box(fai.validbox()).grow(ref) & subboxArray[lev];
+                const Box& box = Box(fai.validbox()).grow(ref) & subboxArray[lev];
                 NodeFab& ifab = nodes[lev][fai];
                 std::vector< std::pair<int,Box> > isects = bndryCells.intersections(box);
                 for (int i = 0; i < isects.size(); i++)
@@ -505,11 +505,11 @@ main (int   argc,
                          iv<=srcBox.bigEnd();
                          srcBox.next(iv))
                     {
-                        const IntVect baseIV = ref*iv;
+                        const IntVect& baseIV = ref*iv;
                         for (IntVect ivt(rangeBox.smallEnd());ivt<=rangeBox.bigEnd();rangeBox.next(ivt))
                             dst(baseIV + ivt,0) = Node(iv,lev-1,-1,Node::VALID);
                     }
-                    const Box ovlp = dstBox & ifab.box();
+                    const Box& ovlp = dstBox & ifab.box();
 
                     Box mo = ovlp & fai.validbox();
                     if (mo.ok())
@@ -585,7 +585,7 @@ main (int   argc,
                     n3.type==Node::VALID && n4.type==Node::VALID )
                     elements.insert(Element(n1,n2,n3,n4));
 #else
-                const IntVect ivu = IntVect(iv).shift(BoxLib::BASISV(2));
+                const IntVect& ivu = IntVect(iv).shift(BoxLib::BASISV(2));
                 const Node& n1 = ifab(iv ,0);
                 const Node& n2 = ifab(IntVect(iv ).shift(BoxLib::BASISV(0)),0);
                 const Node& n3 = ifab(IntVect(iv ).shift(BoxLib::BASISV(0)).shift(BoxLib::BASISV(1)),0);

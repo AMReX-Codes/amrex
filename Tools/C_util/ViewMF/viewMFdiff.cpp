@@ -121,13 +121,13 @@ int main (int   argc,
     
         for (MFIter mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
         {
-            const Box box = BoxLib::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box& box = BoxLib::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
                 fabs[i].copy(mf0[mf0_mfi],box,comp0,box,0,nComp);
         }
         for (MFIter mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
         {
-            const Box box = BoxLib::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
+            const Box& box = BoxLib::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
             if (box.ok())
                 fabs[i].minus(mf1[mf1_mfi],box,box,comp1,0,nComp);
         }
