@@ -24,9 +24,9 @@ class Profiler
   public:
     struct ProfStats {
       ProfStats() : nCalls(0), totalTime(0.0), minTime(0.0),
-                    maxTime(0.0), avgTime(0.0) { }
+                    maxTime(0.0), avgTime(0.0), variance(0.0) { }
       long nCalls;
-      Real totalTime, minTime, maxTime, avgTime;
+      Real totalTime, minTime, maxTime, avgTime, variance;
     };
 
     struct CallStats {
