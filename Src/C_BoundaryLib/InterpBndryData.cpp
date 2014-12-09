@@ -96,7 +96,7 @@ InterpBndryData::setBndryConds (const BCRec& phys_bc,
                                 int          ratio)
 {
 
-    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
@@ -276,6 +276,6 @@ InterpBndryData::setBndryValues (::BndryRegister&  crse,
                                  const BCRec&    bc,
                                  int             max_order)
 {
-    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
 }

@@ -843,7 +843,7 @@ Amr::writePlotFile ()
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -1540,7 +1540,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
+    const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
@@ -2702,9 +2702,9 @@ Amr::grid_places (int              lbase,
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                              nerr/ref_ratio[levf][1],
-                                              nerr/ref_ratio[levf][2]));
+            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                               nerr/ref_ratio[levf][1],
+                                               nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
             BoxList blF;
             blF.complementIn(mboxF,blFcomp);

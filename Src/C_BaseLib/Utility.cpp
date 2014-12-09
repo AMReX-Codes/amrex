@@ -1296,8 +1296,8 @@ bool BoxLib::StreamRetry::TryFileOutput()
         bTryOutput = false;
       } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
-          const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
-                                                              tries - 1, 2);
+          const std::string& badFileName = BoxLib::Concatenate(fileName + ".bad",
+                                                               tries - 1, 2);
           std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
                     << fileName << "  to  " << badFileName << std::endl;
           std::rename(fileName.c_str(), badFileName.c_str());

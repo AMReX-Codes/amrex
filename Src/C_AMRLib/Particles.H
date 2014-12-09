@@ -5299,7 +5299,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect iv = ParticleBase::Index(*it,level+1,m_amr);
+            const IntVect& iv = ParticleBase::Index(*it,level+1,m_amr);
             //
             // Is it in the grown finer level?
             //
@@ -7111,7 +7111,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (p.m_id <= 0) continue;
 
-                        const IntVect iv = ParticleBase::Index(p, lev, m_amr);
+                        const IntVect& iv = ParticleBase::Index(p, lev, m_amr);
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 

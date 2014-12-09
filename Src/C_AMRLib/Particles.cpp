@@ -233,7 +233,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     // Otherwise ...
     //
     const Geometry& cgm = amr->Geom(flev-1);
-    const IntVect   rr  = amr->refRatio(flev-1);
+    const IntVect&  rr  = amr->refRatio(flev-1);
     const BoxArray& cba = amr->ParticleBoxArray(flev-1);
 
     ParticleBase::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
@@ -388,7 +388,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             // Update to the correct fine cell needing updating.
             // Note that "cshift" is from the coarse perspective.
             //
-            const IntVect fshift = cshift * amr->refRatio(lev);
+            const IntVect& fshift = cshift * amr->refRatio(lev);
             //
             // Update fcells[j] to indicate a shifted fine cell needing updating.
             //
@@ -566,7 +566,7 @@ ParticleBase::Where (ParticleBase& p,
         BL_ASSERT(p.m_id > 0);
         BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->ParticleBoxArray(p.m_lev).size());
 
-        const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+        const IntVect& iv = ParticleBase::Index(p,p.m_lev,amr);
 
         if (p.m_cell == iv)
             //
@@ -596,7 +596,7 @@ ParticleBase::Where (ParticleBase& p,
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect iv = ParticleBase::Index(p,lev,amr);
+        const IntVect& iv = ParticleBase::Index(p,lev,amr);
 
         amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
 
@@ -637,7 +637,7 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
-            const IntVect iv = ParticleBase::Index(p_prime,lev,amr);
+            const IntVect& iv = ParticleBase::Index(p_prime,lev,amr);
 
             amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
 
@@ -668,7 +668,7 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+    const IntVect& iv = ParticleBase::Index(p,p.m_lev,amr);
 
     if (BoxLib::grow(amr->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
@@ -687,7 +687,7 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect iv = ParticleBase::Index(p,level,amr);
+    const IntVect& iv = ParticleBase::Index(p,level,amr);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -720,7 +720,7 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     const Geometry& geom    = amr->Geom(0);
     const Box&      dmn     = geom.Domain();
-    const IntVect   iv      = ParticleBase::Index(p,0,amr);
+    const IntVect&  iv      = ParticleBase::Index(p,0,amr);
     bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)

@@ -1027,7 +1027,7 @@ ADR::enforce_nonnegative_species (MultiFab& S_new)
 {
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
-       const Box bx = mfi.validbox();
+       const Box& bx = mfi.validbox();
        BL_FORT_PROC_CALL(ENFORCE_NONNEGATIVE_SPECIES,enforce_nonnegative_species)
            (BL_TO_FORTRAN(S_new[mfi]),bx.loVect(),bx.hiVect());
     }
