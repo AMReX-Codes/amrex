@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdlib.h>
+#include <tgmath.h>
 
 
 bool Profiler::bWriteAll = true;
@@ -519,7 +520,7 @@ void Profiler::Finalize() {
       ParallelDescriptor::Gather(&pstats.totalTime, 1, gtimes.dataPtr(), 1, iopNum);
       ParallelDescriptor::Gather(&pstats.nCalls, 1, ncalls.dataPtr(), 1, iopNum);
     }
-    Real tsum(0.0), tmin(gtimes[0]), tmax(gtimes[0]), tavg(0.0);
+    Real tsum(0.0), tmin(gtimes[0]), tmax(gtimes[0]), tavg(0.0), variance(0.0);
     long ncsum(0);
     if(ParallelDescriptor::IOProcessor()) {
       for(int i(0); i < gtimes.size(); ++i) {
@@ -529,9 +530,13 @@ void Profiler::Finalize() {
       }
       //ProfStats &pstats = mProfStats[profName];
       tavg = tsum / static_cast<Real> (gtimes.size());
+      for(int i(0); i < gtimes.size(); ++i) {
+        variance += (gtimes[i] - tavg) * (gtimes[i] - tavg);
+      }
       pstats.minTime = tmin;
       pstats.maxTime = tmax;
       pstats.avgTime = tavg;
+      pstats.variance = variance / static_cast<Real> (gtimes.size());  // n - 1 for sample
 
       for(int i(0); i < ncalls.size(); ++i) {
         ncsum += ncalls[i];
@@ -696,7 +701,7 @@ void WriteHeader(std::ostream &ios, const int colWidth,
                  const Real maxlen, const bool bwriteavg)
 {
   if(bwriteavg) {
-    ios << std::setfill('-') << std::setw(maxlen+4 + 5 * (colWidth+2))
+    ios << std::setfill('-') << std::setw(maxlen+4 + 7 * (colWidth+2))
         << std::left << "Total times " << '\n';
     ios << std::right << std::setfill(' ');
     ios << std::setw(maxlen + 2) << "Function Name"
@@ -704,6 +709,8 @@ void WriteHeader(std::ostream &ios, const int colWidth,
         << std::setw(colWidth + 2) << "Min"
         << std::setw(colWidth + 2) << "Avg"
         << std::setw(colWidth + 2) << "Max"
+        << std::setw(colWidth + 2) << "StdDev"
+        << std::setw(colWidth + 2) << "Variance"
         << std::setw(colWidth + 4) << "Percent %"
         << '\n';
   } else {
@@ -735,6 +742,10 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 	  << pstats.avgTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.maxTime << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << std::sqrt(pstats.variance) << "  "
+          << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
+	  << pstats.variance << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << '\n';
     } else {
@@ -850,7 +861,7 @@ void WriteStats(std::ostream &ios,
     }
   }
   if(bwriteavg) {
-    ios << std::setfill('=') << std::setw(maxlen+4 + 5 * (colWidth+2)) << ""
+    ios << std::setfill('=') << std::setw(maxlen+4 + 7 * (colWidth+2)) << ""
         << '\n';
   } else {
     ios << std::setfill('=') << std::setw(maxlen+4 + 3 * (colWidth+2)) << ""
