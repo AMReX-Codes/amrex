@@ -5,8 +5,10 @@
 
 #include <REAL.H>
 #include <Array.H>
+#ifndef BL_AMRPROF
 #include <IntVect.H>
 #include <Box.H>
+#endif
 
 #include <iostream>
 #include <ostream>
@@ -19,7 +21,7 @@
 #include <typeinfo>
 
 
-class Profiler 
+class BLProfiler 
 {
   public:
     struct ProfStats {
@@ -148,15 +150,15 @@ class Profiler
       Real timeStamp;
     };
 
-    static std::map<std::string, Profiler *> mFortProfs;  // [fname, fortfunc]
+    static std::map<std::string, BLProfiler *> mFortProfs;  // [fname, fortfunc]
     static Array<std::string> mFortProfsErrors;     // [error string]
-    static Array<Profiler *> mFortProfsInt;     // [fortfuncindex]
+    static Array<BLProfiler *> mFortProfsInt;     // [fortfuncindex]
     static Array<std::string> mFortProfsIntNames;     // [fortfuncindex name]
 
-    explicit Profiler(const std::string &funcname);
-    Profiler(const std::string &funcname, bool bstart);
+    explicit BLProfiler(const std::string &funcname);
+    BLProfiler(const std::string &funcname, bool bstart);
 
-    ~Profiler();
+    ~BLProfiler();
 
     static void Initialize();
     static void Finalize();
@@ -175,8 +177,10 @@ class Profiler
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
     static void TagRange(const int tagmin, const int tagmax);
     static void AddTagWrap();
+#ifndef BL_AMRPROF
     static void InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
                         const Array<Box> pd);
+#endif
 
     void start();
     void stop();
@@ -217,8 +221,10 @@ class Profiler
     static Real calcRunTime;
     static Real startTime;
     static Real timerTime;
+#ifndef BL_AMRPROF
     static Array<IntVect> refRatio;
     static Array<Box> probDomain;
+#endif
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
@@ -262,32 +268,32 @@ class Profiler
 };
 
 
-namespace ProfilerUtils {
+namespace BLProfilerUtils {
   void WriteHeader(std::ostream &os, const int colWidth,
                    const Real maxlen, const bool bwriteavg);
 
   void WriteRow(std::ostream &os, const std::string &fname,
-                const Profiler::ProfStats &pstats, const Real percent,
+                const BLProfiler::ProfStats &pstats, const Real percent,
 	        const int colWidth, const Real maxlen,
 	        const bool bwriteavg);
 
   void WriteStats(std::ostream &os,
-                  const std::map<std::string, Profiler::ProfStats> &mpStats,
+                  const std::map<std::string, BLProfiler::ProfStats> &mpStats,
 		  const std::map<std::string, int> &fnameNumbers,
-		  const Array<Profiler::CallStats> &callTraces,
+		  const Array<BLProfiler::CallStats> &callTraces,
 		  bool bwriteavg = false, bool bwriteinclusivetimes = false);
 }
 
 
-inline std::ostream &operator<< (std::ostream &os, const Profiler::CommStats &cs) {
-  os << Profiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
+inline std::ostream &operator<< (std::ostream &os, const BLProfiler::CommStats &cs) {
+  os << BLProfiler::CommStats::CFTToString(cs.cfType) << "   " << cs.size
      << "  " << cs.commpid << "  " << cs.tag << "  " << cs.timeStamp;
   return os;
 }
 
 
 
-inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
+inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
   switch(cft) {
     case InvalidCFT:     return "InvalidCFT";
     case AllReduceT:     return "AllReduceT";
@@ -338,63 +344,63 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 
 
 
-#define BL_PROFILE_INITIALIZE()  Profiler::Initialize();
-#define BL_PROFILE_FINALIZE()    Profiler::Finalize();
+#define BL_PROFILE_INITIALIZE()  BLProfiler::Initialize();
+#define BL_PROFILE_FINALIZE()    BLProfiler::Finalize();
 
-#define BL_PROFILE(fname) Profiler bl_profiler__((fname));
-#define BL_PROFILE_T(fname, T) Profiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE(fname) BLProfiler bl_profiler__((fname));
+#define BL_PROFILE_T(fname, T) BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
 #ifdef BL_PROFILING_SPECIAL
-#define BL_PROFILE_S(fname) Profiler bl_profiler__((fname));
-#define BL_PROFILE_T_S(fname, T) Profiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE_S(fname) BLProfiler bl_profiler__((fname));
+#define BL_PROFILE_T_S(fname, T) BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
 #else
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
 #endif
  
-#define BL_PROFILE_VAR(fname, vname) Profiler bl_profiler__##vname((fname));
+#define BL_PROFILE_VAR(fname, vname) BLProfiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
 
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)  \
-                                  Profiler::InitParams(ptl,wall, wfabs);
-#define BL_PROFILE_ADD_STEP(snum)  Profiler::AddStep(snum);
-#define BL_PROFILE_SET_RUN_TIME(rtime)  Profiler::SetRunTime(rtime);
+                                  BLProfiler::InitParams(ptl,wall, wfabs);
+#define BL_PROFILE_ADD_STEP(snum)  BLProfiler::AddStep(snum);
+#define BL_PROFILE_SET_RUN_TIME(rtime)  BLProfiler::SetRunTime(rtime);
 
-#define BL_PROFILE_REGION_START(rname) Profiler::RegionStart(rname);
-#define BL_PROFILE_REGION_STOP(rname)  Profiler::RegionStop(rname);
+#define BL_PROFILE_REGION_START(rname) BLProfiler::RegionStart(rname);
+#define BL_PROFILE_REGION_STOP(rname)  BLProfiler::RegionStop(rname);
 // these combine regions with profile variables
-#define BL_PROFILE_REGION_VAR(fname, rvname) Profiler::RegionStart(fname);  \
-                                             Profiler bl_profiler__##rvname((fname));
-#define BL_PROFILE_REGION_VAR_START(fname, rvname) Profiler::RegionStart(fname);  \
+#define BL_PROFILE_REGION_VAR(fname, rvname) BLProfiler::RegionStart(fname);  \
+                                             BLProfiler bl_profiler__##rvname((fname));
+#define BL_PROFILE_REGION_VAR_START(fname, rvname) BLProfiler::RegionStart(fname);  \
                                             bl_profiler__##rvname.start();
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
-                                                   Profiler::RegionStop(fname);
+                                                   BLProfiler::RegionStop(fname);
 
-#define BL_TRACE_PROFILE_FLUSH() { Profiler::WriteCallTrace(true); }
+#define BL_TRACE_PROFILE_FLUSH() { BLProfiler::WriteCallTrace(true); }
 
-#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { Profiler::ChangeFortIntName(fname, intname); }
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { BLProfiler::ChangeFortIntName(fname, intname); }
 
 #ifdef BL_COMM_PROFILING
 
 #define BL_COMM_PROFILE(cft, size, pid, tag) {                       \
-                        Profiler::AddCommStat(cft, size, pid, tag);  \
+                        BLProfiler::AddCommStat(cft, size, pid, tag);  \
 }
-#define BL_COMM_PROFILE_BARRIER(message, bc) { Profiler::AddBarrier(message, bc); }
-#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { Profiler::AddAllReduce(cft, size, bc); }
+#define BL_COMM_PROFILE_BARRIER(message, bc) { BLProfiler::AddBarrier(message, bc); }
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { BLProfiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
-                          Profiler::AddCommStat(cft, size, pid, Profiler::NoTag()); }
+                          BLProfiler::AddCommStat(cft, size, pid, BLProfiler::NoTag()); }
 #define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc) {                \
-                          Profiler::AddWaitsome(cft, reqs, completed, indx, status, bc);  \
+                          BLProfiler::AddWaitsome(cft, reqs, completed, indx, status, bc);  \
 }
-#define BL_COMM_PROFILE_NAMETAG(message) { Profiler::AddNameTag(message); }
-#define BL_COMM_PROFILE_FILTER(cft) { Profiler::CommStats::Filter(cft); }
-#define BL_COMM_PROFILE_UNFILTER(cft) { Profiler::CommStats::UnFilter(cft); }
-#define BL_COMM_PROFILE_FLUSH() { Profiler::WriteCommStats(true); }
+#define BL_COMM_PROFILE_NAMETAG(message) { BLProfiler::AddNameTag(message); }
+#define BL_COMM_PROFILE_FILTER(cft) { BLProfiler::CommStats::Filter(cft); }
+#define BL_COMM_PROFILE_UNFILTER(cft) { BLProfiler::CommStats::UnFilter(cft); }
+#define BL_COMM_PROFILE_FLUSH() { BLProfiler::WriteCommStats(true); }
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
-                             Profiler::TagRange(tagmin, tagmax); }
-#define BL_COMM_PROFILE_TAGWRAP() { Profiler::AddTagWrap(); }
+                             BLProfiler::TagRange(tagmin, tagmax); }
+#define BL_COMM_PROFILE_TAGWRAP() { BLProfiler::AddTagWrap(); }
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd) {                \
-                             Profiler::InitAMR(flev, mlev, rr, pd);  \
+                             BLProfiler::InitAMR(flev, mlev, rr, pd);  \
 }
 
 #endif
@@ -406,10 +412,10 @@ inline std::string Profiler::CommStats::CFTToString(CommFuncType cft) {
 #include <string>
 #include <REAL.H>
 
-class Profiler
+class BLProfiler
 {
   public:
-    Profiler(const std::string &funcname) { }
+    BLProfiler(const std::string &funcname) { }
     static void Initialize() { }
     static void Finalize() { }
     static void WriteStats(std::ostream &os) { }

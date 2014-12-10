@@ -8,7 +8,7 @@
 #include <ParmParse.H>
 #include <MultiFab.H>
 #include <FArrayBox.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 //
 // The definition of some static data members.
 //

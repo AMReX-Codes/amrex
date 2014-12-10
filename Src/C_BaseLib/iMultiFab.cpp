@@ -10,7 +10,7 @@
 #include <BLassert.H>
 #include <iMultiFab.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <ParmParse.H>
 #include <PArray.H>
 

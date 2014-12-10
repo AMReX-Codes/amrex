@@ -5,7 +5,7 @@
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <ccse-mpi.H>
 
 #include <vector>

@@ -18,7 +18,7 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 #include <ParallelDescriptor.H>
 

@@ -1,12 +1,11 @@
 
 #include <winstd.H>
 
-#include <Profiler.H>
 #include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
@@ -230,8 +229,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     Array<long> bytes(nprocs);
     long thisbyte = BoxLib::total_bytes_allocated_in_fabs/1024;
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
     MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -239,8 +238,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 
     std::vector<LIpair> LIpairV;
 
@@ -1171,8 +1170,8 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
     BL_PROFILE("DistributionMapping::CurrentBytesUsed()");
 
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
     MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -1180,8 +1179,8 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 #endif
 
     for (int i(0); i < nprocs; ++i)
@@ -1217,8 +1216,8 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
     BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
 
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
     MPI_Allgather(&BoxLib::total_cells_allocated_in_fabs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -1226,8 +1225,8 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 #endif
 
     for(int i(0); i < nprocs; ++i) {

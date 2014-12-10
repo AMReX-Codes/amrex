@@ -9,7 +9,7 @@
 #include <TagBox.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <ccse-mpi.H>
 
 TagBox::TagBox () {}
@@ -501,8 +501,8 @@ TagBoxArray::collate (long& numtags) const
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
-    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
-                    Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
+                    BLProfiler::BeforeCall());
     MPI_Gather(&count,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -512,8 +512,8 @@ TagBoxArray::collate (long& numtags) const
                IOProc,
                ParallelDescriptor::Communicator());
 
-    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
-                    Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
+                    BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -531,8 +531,8 @@ TagBoxArray::collate (long& numtags) const
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
     MPI_Gatherv(reinterpret_cast<int*>(TheLocalCollateSpace),
                 count*BL_SPACEDIM,
@@ -544,8 +544,8 @@ TagBoxArray::collate (long& numtags) const
                 IOProc,
                 ParallelDescriptor::Communicator());
 
-    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 #else
     //
     // Copy TheLocalCollateSpace to TheGlobalCollateSpace.

@@ -24,7 +24,7 @@ C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
-C$(BOXLIB_BASE)_headers += Profiler.H
+C$(BOXLIB_BASE)_headers += BLProfiler.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
 #
@@ -110,4 +110,4 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += threadbox.f90
 endif
 
-C$(BOXLIB_BASE)_sources += Profiler.cpp
+C$(BOXLIB_BASE)_sources += BLProfiler.cpp

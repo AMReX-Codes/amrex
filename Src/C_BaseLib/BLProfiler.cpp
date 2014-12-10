@@ -1,6 +1,6 @@
 #ifdef BL_PROFILING
 
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <REAL.H>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -18,83 +18,85 @@
 #include <tgmath.h>
 
 
-bool Profiler::bWriteAll = true;
-bool Profiler::bNoOutput = false;
-bool Profiler::bWriteFabs = true;
-bool Profiler::bFirstCommWriteH = true;  // header
-bool Profiler::bFirstCommWriteD = true;  // data
-bool Profiler::bInitialized = false;
+bool BLProfiler::bWriteAll = true;
+bool BLProfiler::bNoOutput = false;
+bool BLProfiler::bWriteFabs = true;
+bool BLProfiler::bFirstCommWriteH = true;  // header
+bool BLProfiler::bFirstCommWriteD = true;  // data
+bool BLProfiler::bInitialized = false;
 
-int Profiler::currentStep = 0;
-int Profiler::csFlushSize = 2000000;
-int Profiler::traceFlushSize = 2000000;
-int Profiler::nProfFiles  = 64;
-int Profiler::finestLevel = -1;
-int Profiler::maxLevel    = -1;
+int BLProfiler::currentStep = 0;
+int BLProfiler::csFlushSize = 2000000;
+int BLProfiler::traceFlushSize = 2000000;
+int BLProfiler::nProfFiles  = 64;
+int BLProfiler::finestLevel = -1;
+int BLProfiler::maxLevel    = -1;
 
-Real Profiler::pctTimeLimit = 5.0;
-Real Profiler::calcRunTime  = 0.0;
-Real Profiler::startTime    = 0.0;
-Real Profiler::timerTime    = 0.0;
+Real BLProfiler::pctTimeLimit = 5.0;
+Real BLProfiler::calcRunTime  = 0.0;
+Real BLProfiler::startTime    = 0.0;
+Real BLProfiler::timerTime    = 0.0;
 
-Array<IntVect> Profiler::refRatio;
-Array<Box> Profiler::probDomain;
+#ifndef BL_AMRPROF
+Array<IntVect> BLProfiler::refRatio;
+Array<Box> BLProfiler::probDomain;
+#endif
 
-std::stack<Real> Profiler::nestedTimeStack;
-std::map<int, Real> Profiler::mStepMap;
-std::map<std::string, Profiler::ProfStats> Profiler::mProfStats;
-Array<Profiler::CommStats> Profiler::vCommStats;
-std::map<std::string, Profiler *> Profiler::mFortProfs;
-Array<std::string> Profiler::mFortProfsErrors;
+std::stack<Real> BLProfiler::nestedTimeStack;
+std::map<int, Real> BLProfiler::mStepMap;
+std::map<std::string, BLProfiler::ProfStats> BLProfiler::mProfStats;
+Array<BLProfiler::CommStats> BLProfiler::vCommStats;
+std::map<std::string, BLProfiler *> BLProfiler::mFortProfs;
+Array<std::string> BLProfiler::mFortProfsErrors;
 const int mFortProfMaxErrors(32);
-Array<Profiler *> Profiler::mFortProfsInt;
-Array<std::string> Profiler::mFortProfsIntNames;
+Array<BLProfiler *> BLProfiler::mFortProfsInt;
+Array<std::string> BLProfiler::mFortProfsIntNames;
 const int mFortProfsIntMaxFuncs(32);
-std::map<std::string, Profiler::CommFuncType> Profiler::CommStats::cftNames;
-std::set<Profiler::CommFuncType> Profiler::CommStats::cftExclude;
-int Profiler::CommStats::barrierNumber(0);
-int Profiler::CommStats::reductionNumber(0);
-int Profiler::CommStats::tagWrapNumber(0);
-int Profiler::CommStats::tagMin(0);
-int Profiler::CommStats::tagMax(0);
-int Profiler::CommStats::csVersion(1);
-Array<std::pair<std::string,int> > Profiler::CommStats::barrierNames;
-Array<std::pair<int,int> > Profiler::CommStats::nameTags;
-Array<std::string> Profiler::CommStats::nameTagNames;
-Array<int> Profiler::CommStats::reductions;
-Array<int> Profiler::CommStats::tagWraps;
+std::map<std::string, BLProfiler::CommFuncType> BLProfiler::CommStats::cftNames;
+std::set<BLProfiler::CommFuncType> BLProfiler::CommStats::cftExclude;
+int BLProfiler::CommStats::barrierNumber(0);
+int BLProfiler::CommStats::reductionNumber(0);
+int BLProfiler::CommStats::tagWrapNumber(0);
+int BLProfiler::CommStats::tagMin(0);
+int BLProfiler::CommStats::tagMax(0);
+int BLProfiler::CommStats::csVersion(1);
+Array<std::pair<std::string,int> > BLProfiler::CommStats::barrierNames;
+Array<std::pair<int,int> > BLProfiler::CommStats::nameTags;
+Array<std::string> BLProfiler::CommStats::nameTagNames;
+Array<int> BLProfiler::CommStats::reductions;
+Array<int> BLProfiler::CommStats::tagWraps;
 
-std::string Profiler::procName("NoProcName");
-int Profiler::procNumber(-1);
-bool Profiler::blProfDirCreated(false);
-std::string Profiler::blProfDirName("bl_prof");
-int Profiler::BLProfVersion(1);
+std::string BLProfiler::procName("NoProcName");
+int BLProfiler::procNumber(-1);
+bool BLProfiler::blProfDirCreated(false);
+std::string BLProfiler::blProfDirName("bl_prof");
+int BLProfiler::BLProfVersion(1);
 
-std::map<std::string, int> Profiler::mFNameNumbers;
-Array<Profiler::CallStats> Profiler::vCallTrace;
+std::map<std::string, int> BLProfiler::mFNameNumbers;
+Array<BLProfiler::CallStats> BLProfiler::vCallTrace;
 
 // Region support
-std::map<std::string, int> Profiler::mRegionNameNumbers;
-int Profiler::inNRegions(0);
-Array<Profiler::RStartStop> Profiler::rStartStop;
-const std::string Profiler::noRegionName("__NoRegion__");
+std::map<std::string, int> BLProfiler::mRegionNameNumbers;
+int BLProfiler::inNRegions(0);
+Array<BLProfiler::RStartStop> BLProfiler::rStartStop;
+const std::string BLProfiler::noRegionName("__NoRegion__");
 
-bool Profiler::bFirstTraceWriteH(true);  // header
-bool Profiler::bFirstTraceWriteD(true);  // data
-int Profiler::CallStats::cstatsVersion(1);
+bool BLProfiler::bFirstTraceWriteH(true);  // header
+bool BLProfiler::bFirstTraceWriteD(true);  // data
+int BLProfiler::CallStats::cstatsVersion(1);
 
-Array<Profiler::CallStatsStack> Profiler::callIndexStack;
-Array<Profiler::CallStatsPatch> Profiler::callIndexPatch;
+Array<BLProfiler::CallStatsStack> BLProfiler::callIndexStack;
+Array<BLProfiler::CallStatsPatch> BLProfiler::callIndexPatch;
 
 #ifdef BL_TRACE_PROFILING
-int Profiler::callStackDepth(-1);
-int Profiler::prevCallStackDepth(0);
-Real Profiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
-Real Profiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
+int BLProfiler::callStackDepth(-1);
+int BLProfiler::prevCallStackDepth(0);
+Real BLProfiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
+Real BLProfiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
 #endif
 
 
-Profiler::Profiler(const std::string &funcname)
+BLProfiler::BLProfiler(const std::string &funcname)
     : bltstart(0.0), bltelapsed(0.0)
     , fname(funcname)
     , bRunning(false)
@@ -103,7 +105,7 @@ Profiler::Profiler(const std::string &funcname)
 }
 
 
-Profiler::Profiler(const std::string &funcname, bool bstart)
+BLProfiler::BLProfiler(const std::string &funcname, bool bstart)
     : bltstart(0.0), bltelapsed(0.0)
     , fname(funcname)
     , bRunning(false)
@@ -114,14 +116,14 @@ Profiler::Profiler(const std::string &funcname, bool bstart)
 }
 
 
-Profiler::~Profiler() {
+BLProfiler::~BLProfiler() {
   if(bRunning) {
     stop();
   }
 }
 
 
-void Profiler::Initialize() {
+void BLProfiler::Initialize() {
   if(bInitialized) {
     return;
   }
@@ -256,37 +258,37 @@ void Profiler::Initialize() {
 #ifdef DEBUG
     mFortProfsInt[i] = 0;
 #else
-    mFortProfsInt[i] = new Profiler(mFortProfsIntNames[i], false);  // dont start
+    mFortProfsInt[i] = new BLProfiler(mFortProfsIntNames[i], false);  // dont start
 #endif
   }
   bInitialized = true;
 }
 
 
-void Profiler::ChangeFortIntName(const std::string &fname, int intname) {
+void BLProfiler::ChangeFortIntName(const std::string &fname, int intname) {
 #ifdef DEBUG
     mFortProfsIntNames[intname] = fname;
 #else
     delete mFortProfsInt[intname];
-    mFortProfsInt[intname] = new Profiler(fname, false);  // dont start
+    mFortProfsInt[intname] = new BLProfiler(fname, false);  // dont start
 #endif
 }
 
 
-void Profiler::PStart() {
+void BLProfiler::PStart() {
   bltelapsed = 0.0;
   start();
 }
 
 
-void Profiler::PStop() {
+void BLProfiler::PStop() {
   if(bRunning) {
     stop();
   }
 }
 
 
-void Profiler::start() {
+void BLProfiler::start() {
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -298,10 +300,10 @@ void Profiler::start() {
 
 #ifdef BL_TRACE_PROFILING
   int fnameNumber;
-  std::map<std::string, int>::iterator it = Profiler::mFNameNumbers.find(fname);
-  if(it == Profiler::mFNameNumbers.end()) {
-    fnameNumber = Profiler::mFNameNumbers.size();
-    Profiler::mFNameNumbers.insert(std::pair<std::string, int>(fname, fnameNumber));
+  std::map<std::string, int>::iterator it = BLProfiler::mFNameNumbers.find(fname);
+  if(it == BLProfiler::mFNameNumbers.end()) {
+    fnameNumber = BLProfiler::mFNameNumbers.size();
+    BLProfiler::mFNameNumbers.insert(std::pair<std::string, int>(fname, fnameNumber));
   } else {
     fnameNumber = it->second;
   }
@@ -333,7 +335,7 @@ void Profiler::start() {
 }
 
   
-void Profiler::stop() {
+void BLProfiler::stop() {
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -378,14 +380,15 @@ void Profiler::stop() {
 }
 
 
-void Profiler::InitParams(const Real ptl, const bool writeall, const bool writefabs) {
+void BLProfiler::InitParams(const Real ptl, const bool writeall, const bool writefabs) {
   pctTimeLimit = ptl;
   bWriteAll = writeall;
   bWriteFabs = writefabs;
 }
 
 
-void Profiler::InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
+#ifndef BL_AMRPROF
+void BLProfiler::InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
                         const Array<Box> pd)
 {
   finestLevel = flev;
@@ -399,16 +402,17 @@ void Profiler::InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
     probDomain[i] = pd[i];
   }
 }
+#endif
 
 
-void Profiler::AddStep(const int snum) {
+void BLProfiler::AddStep(const int snum) {
   currentStep = snum;
   mStepMap.insert(std::map<int, Real>::value_type(currentStep,
                                                   ParallelDescriptor::second()));
 }
 
 
-void Profiler::RegionStart(const std::string &rname) {
+void BLProfiler::RegionStart(const std::string &rname) {
   Real rsTime(ParallelDescriptor::second() - startTime);
 
   if(rname != noRegionName) {
@@ -419,10 +423,10 @@ void Profiler::RegionStart(const std::string &rname) {
   }
 
   int rnameNumber;
-  std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
-  if(it == Profiler::mRegionNameNumbers.end()) {
-    rnameNumber = Profiler::mRegionNameNumbers.size();
-    Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
+  std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
+  if(it == BLProfiler::mRegionNameNumbers.end()) {
+    rnameNumber = BLProfiler::mRegionNameNumbers.size();
+    BLProfiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
   } else {
     rnameNumber = it->second;
   }
@@ -430,18 +434,18 @@ void Profiler::RegionStart(const std::string &rname) {
 }
 
 
-void Profiler::RegionStop(const std::string &rname) {
+void BLProfiler::RegionStop(const std::string &rname) {
   Real rsTime(ParallelDescriptor::second() - startTime);
 
   int rnameNumber;
-  std::map<std::string, int>::iterator it = Profiler::mRegionNameNumbers.find(rname);
-  if(it == Profiler::mRegionNameNumbers.end()) {  // ---- error
+  std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
+  if(it == BLProfiler::mRegionNameNumbers.end()) {  // ---- error
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "-------- error in RegionStop:  region " << rname
                 << " never started."  << std::endl;
     }
-    rnameNumber = Profiler::mRegionNameNumbers.size();
-    Profiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
+    rnameNumber = BLProfiler::mRegionNameNumbers.size();
+    BLProfiler::mRegionNameNumbers.insert(std::pair<std::string, int>(rname, rnameNumber));
   } else {
     rnameNumber = it->second;
   }
@@ -456,7 +460,7 @@ void Profiler::RegionStop(const std::string &rname) {
 }
 
 
-void Profiler::Finalize() {
+void BLProfiler::Finalize() {
   if( ! bInitialized) {
     return;
   }
@@ -552,7 +556,7 @@ void Profiler::Finalize() {
     if(nProcs == 1) {
       bWriteAvg = false;
     }
-    ProfilerUtils::WriteStats(std::cout, mProfStats, mFNameNumbers, vCallTrace, bWriteAvg);
+    BLProfilerUtils::WriteStats(std::cout, mProfStats, mFNameNumbers, vCallTrace, bWriteAvg);
   }
 
 
@@ -608,7 +612,7 @@ void Profiler::Finalize() {
           }
 
           // ----------------------------- write to file here
-          //ProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
+          //BLProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
 	  seekPos = csFile.tellp();
           csFile.write((char *) nCallsOut.dataPtr(),
 	               nCallsOut.size() * sizeof(long));
@@ -672,10 +676,10 @@ void Profiler::Finalize() {
 
     WriteCallTrace();
 
-    ParallelDescriptor::Barrier("Profiler::Finalize");
+    ParallelDescriptor::Barrier("BLProfiler::Finalize");
   }
   if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "Profiler::Finalize():  time:  "   // time the timer
+    std::cout << "BLProfiler::Finalize():  time:  "   // time the timer
               << ParallelDescriptor::second() - finalizeStart << std::endl;
   }
 
@@ -695,7 +699,7 @@ void Profiler::Finalize() {
 }
 
 
-namespace ProfilerUtils {
+namespace BLProfilerUtils {
 
 void WriteHeader(std::ostream &ios, const int colWidth,
                  const Real maxlen, const bool bwriteavg)
@@ -727,7 +731,7 @@ void WriteHeader(std::ostream &ios, const int colWidth,
 
 
 void WriteRow(std::ostream &ios, const std::string &fname,
-              const Profiler::ProfStats &pstats, const Real percent,
+              const BLProfiler::ProfStats &pstats, const Real percent,
 	      const int colWidth, const Real maxlen,
 	      const bool bwriteavg)
 {
@@ -760,20 +764,20 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 
 
 void WriteStats(std::ostream &ios,
-                const std::map<std::string, Profiler::ProfStats> &mpStats,
+                const std::map<std::string, BLProfiler::ProfStats> &mpStats,
 		const std::map<std::string, int> &fnameNumbers,
-		const Array<Profiler::CallStats> &callTraces,
+		const Array<BLProfiler::CallStats> &callTraces,
 		bool bwriteavg, bool bwriteinclusivetimes)
 {
   const int myProc(ParallelDescriptor::MyProc());
   const int colWidth(10);
-  const Real calcRunTime(Profiler::GetRunTime());
+  const Real calcRunTime(BLProfiler::GetRunTime());
 
   std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
 
   Real totalTimers(0.0), percent(0.0);
   int maxlen(0);
-  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+  for(std::map<std::string, BLProfiler::ProfStats>::const_iterator it = mpStats.begin();
       it != mpStats.end(); ++it)
   {
     std::string profName(it->first);
@@ -800,8 +804,8 @@ void WriteStats(std::ostream &ios,
   }
 
   // -------- write timers sorted by name
-  ProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
-  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+  BLProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
+  for(std::map<std::string, BLProfiler::ProfStats>::const_iterator it = mpStats.begin();
       it != mpStats.end(); ++it)
   {
     if(pTimeTotal > 0.0) {
@@ -814,8 +818,8 @@ void WriteStats(std::ostream &ios,
       percent = 100.0;
     }
     std::string fname(it->first);
-    const Profiler::ProfStats &pstats = it->second;
-    ProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
+    const BLProfiler::ProfStats &pstats = it->second;
+    BLProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
   }
   ios << '\n';
   ios << "Total Timers     = " << std::setw(colWidth) << totalTimers
@@ -829,8 +833,8 @@ void WriteStats(std::ostream &ios,
 
   // -------- write timers sorted by percent
   ios << '\n' << '\n';
-  ProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
-  for(std::map<std::string, Profiler::ProfStats>::const_iterator it = mpStats.begin();
+  BLProfilerUtils::WriteHeader(ios, colWidth, maxlen, bwriteavg);
+  for(std::map<std::string, BLProfiler::ProfStats>::const_iterator it = mpStats.begin();
       it != mpStats.end(); ++it)
   {
     Real dsec;
@@ -852,10 +856,10 @@ void WriteStats(std::ostream &ios,
       percent = 100.0;
     }
     std::string fname(it->second);
-    std::map<std::string, Profiler::ProfStats>::const_iterator mpsit = mpStats.find(fname);
+    std::map<std::string, BLProfiler::ProfStats>::const_iterator mpsit = mpStats.find(fname);
     if(mpsit != mpStats.end()) {
-      const Profiler::ProfStats &pstats = mpsit->second;
-      ProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
+      const BLProfiler::ProfStats &pstats = mpsit->second;
+      BLProfilerUtils::WriteRow(ios, fname, pstats, percent, colWidth, maxlen, bwriteavg);
     } else {
       // error:  should not be able to get here if names are synced
     }
@@ -881,7 +885,7 @@ void WriteStats(std::ostream &ios,
   }
 
   // sort by total time
-  Array<Profiler::RIpair> funcTotalTimes(fnameNumbers.size());
+  Array<BLProfiler::RIpair> funcTotalTimes(fnameNumbers.size());
   for(int i(0); i < funcTotalTimes.size(); ++i) {
     funcTotalTimes[i].first  = 0.0;
     funcTotalTimes[i].second = i;
@@ -890,7 +894,7 @@ void WriteStats(std::ostream &ios,
   int maxCSD(0);
   std::set<int> recursiveFuncs;
   for(int i(0); i < callTraces.size(); ++i) {
-    const Profiler::CallStats &cs = callTraces[i];
+    const BLProfiler::CallStats &cs = callTraces[i];
     int depth(cs.callStackDepth);
     maxCSD = std::max(maxCSD, depth);
     if(depth >= callStack.size()) {
@@ -916,7 +920,7 @@ void WriteStats(std::ostream &ios,
   }
 
   if(bwriteinclusivetimes) {
-    std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), Profiler::fTTComp());
+    std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), BLProfiler::fTTComp());
 
     int numPrec(4);
     ios << '\n' << '\n';
@@ -943,10 +947,10 @@ void WriteStats(std::ostream &ios,
 }
 
 
-}  // end namespace ProfilerUtils
+}  // end namespace BLProfilerUtils
 
 
-void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
+void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
 
     if(bFlushing) {
       int nCT(vCallTrace.size());
@@ -1163,7 +1167,7 @@ void Profiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace
 
 
 
-void Profiler::WriteCommStats(const bool bFlushing) {
+void BLProfiler::WriteCommStats(const bool bFlushing) {
 
   Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
@@ -1199,8 +1203,8 @@ void Profiler::WriteCommStats(const bool bFlushing) {
 
   bool bUseRelativeTimeStamp(true);
   if(bUseRelativeTimeStamp) {
-    for(int ics(0); ics < Profiler::vCommStats.size(); ++ics) {
-      CommStats &cs = Profiler::vCommStats[ics];
+    for(int ics(0); ics < BLProfiler::vCommStats.size(); ++ics) {
+      CommStats &cs = BLProfiler::vCommStats[ics];
       cs.timeStamp -= startTime;
     }
   }
@@ -1234,6 +1238,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     csGlobalHeaderFile << "NProcs  " << nProcs << '\n';
     csGlobalHeaderFile << "CommStatsSize  " << sizeof(CommStats) << '\n';
     csGlobalHeaderFile << "NOutFiles  " << nOutFiles << '\n';
+#ifndef BL_AMRPROF
     csGlobalHeaderFile << "FinestLevel  " << finestLevel << '\n';
     csGlobalHeaderFile << "MaxLevel  " << maxLevel << '\n';
     for(int i(0); i < refRatio.size(); ++i) {
@@ -1242,6 +1247,7 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     for(int i(0); i < probDomain.size(); ++i) {
       csGlobalHeaderFile << "ProbDomain  " << i << "  " << probDomain[i] << '\n';
     }
+#endif
     for(int i(0); i < nOutFiles; ++i) {
       std::string headerName(commprofPrefix + "_H_");
       headerName = BoxLib::Concatenate(headerName, i, 4);
@@ -1364,35 +1370,35 @@ void Profiler::WriteCommStats(const bool bFlushing) {
     CommStats::cftExclude.erase(AllCFTypes);
   }
 
-  ParallelDescriptor::Barrier("Profiler::WriteCommStats::end");
+  ParallelDescriptor::Barrier("BLProfiler::WriteCommStats::end");
 
   if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "Profiler::WriteCommStats():  time:  "
+    std::cout << "BLProfiler::WriteCommStats():  time:  "
               << ParallelDescriptor::second() - wcsStart << std::endl;
   }
 }
 
 
-void Profiler::WriteFortProfErrors() {
+void BLProfiler::WriteFortProfErrors() {
   // report any fortran errors.  should really check with all procs, just iop for now
   if(ParallelDescriptor::IOProcessor()) {
-    if(Profiler::mFortProfs.size() > 0) {
+    if(BLProfiler::mFortProfs.size() > 0) {
       std::cout << "FFFFFFFF -------- FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
-      for(std::map<std::string, Profiler *>::iterator it = Profiler::mFortProfs.begin();
-          it != Profiler::mFortProfs.end(); ++it)
+      for(std::map<std::string, BLProfiler *>::iterator it = BLProfiler::mFortProfs.begin();
+          it != BLProfiler::mFortProfs.end(); ++it)
       {
         std::cout << "FFFF function not stopped:  fname ptr = " << it->first
 	          << "  ---->" << it->second << "<----" << std::endl;
       }
       std::cout << "FFFFFFFF -------- END FORTRAN PROFILING UNSTOPPED ERRORS" << std::endl;
     }
-    if(Profiler::mFortProfsErrors.size() > 0) {
+    if(BLProfiler::mFortProfsErrors.size() > 0) {
       std::cout << "FFFFFFFF FORTRAN PROFILING ERRORS" << std::endl;
-      if(Profiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
+      if(BLProfiler::mFortProfsErrors.size() >= mFortProfMaxErrors) {
         std::cout << "FFFFFFFF -------- MAX FORTRAN ERRORS EXCEEDED" << std::endl;
       }
-      for(int i(0); i < Profiler::mFortProfsErrors.size(); ++i) {
-        std::cout << "FFFF " << Profiler::mFortProfsErrors[i] << std::endl;
+      for(int i(0); i < BLProfiler::mFortProfsErrors.size(); ++i) {
+        std::cout << "FFFF " << BLProfiler::mFortProfsErrors[i] << std::endl;
       }
       std::cout << "FFFFFFFF -------- END FORTRAN PROFILING ERRORS" << std::endl;
     }
@@ -1400,7 +1406,7 @@ void Profiler::WriteFortProfErrors() {
 }
 
 
-bool Profiler::OnExcludeList(CommFuncType cft) {
+bool BLProfiler::OnExcludeList(CommFuncType cft) {
   // 
   // the idea for NoCFTypes is to allow local filtering/unfiltering
   // while preserving the users exclude list
@@ -1428,7 +1434,7 @@ bool Profiler::OnExcludeList(CommFuncType cft) {
 }
 
 
-void Profiler::AddCommStat(const CommFuncType cft, const int size,
+void BLProfiler::AddCommStat(const CommFuncType cft, const int size,
                            const int pid, const int tag)
 {
   if(OnExcludeList(cft)) {
@@ -1438,8 +1444,8 @@ void Profiler::AddCommStat(const CommFuncType cft, const int size,
 }
 
 
-void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
-  const CommFuncType cft(Profiler::Barrier);
+void BLProfiler::AddBarrier(const std::string &message, const bool beforecall) {
+  const CommFuncType cft(BLProfiler::Barrier);
   if(OnExcludeList(cft)) {
     return;
   }
@@ -1457,14 +1463,14 @@ void Profiler::AddBarrier(const std::string &message, const bool beforecall) {
 }
 
 
-void Profiler::TagRange(const int mintag, const int maxtag) {
+void BLProfiler::TagRange(const int mintag, const int maxtag) {
   CommStats::tagMin = mintag;
   CommStats::tagMax = maxtag;
 }
 
 
-void Profiler::AddTagWrap() {
-  const CommFuncType cft(Profiler::TagWrap);
+void BLProfiler::AddTagWrap() {
+  const CommFuncType cft(BLProfiler::TagWrap);
   if(OnExcludeList(cft)) {
     return;
   }
@@ -1477,7 +1483,7 @@ void Profiler::AddTagWrap() {
 }
 
 
-void Profiler::AddAllReduce(const CommFuncType cft, const int size,
+void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
                             const bool beforecall)
 {
   if(OnExcludeList(cft)) {
@@ -1497,7 +1503,7 @@ void Profiler::AddAllReduce(const CommFuncType cft, const int size,
 }
 
 
-void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
+void BLProfiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
                            const int completed, const Array<int> &indx,
 			   const Array<MPI_Status> &status, const bool beforecall)
 {
@@ -1521,7 +1527,7 @@ void Profiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &req
 }
 
 
-int Profiler::NameTagNameIndex(const std::string &name) {  // prob need to opt this
+int BLProfiler::NameTagNameIndex(const std::string &name) {  // prob need to opt this
   for(int i(0); i < CommStats::nameTagNames.size(); ++i) {
     if(CommStats::nameTagNames[i] == name) {
       return i;
@@ -1532,8 +1538,8 @@ int Profiler::NameTagNameIndex(const std::string &name) {  // prob need to opt t
 }
 
 
-void Profiler::AddNameTag(const std::string &name) {
-  const CommFuncType cft(Profiler::NameTag);
+void BLProfiler::AddNameTag(const std::string &name) {
+  const CommFuncType cft(BLProfiler::NameTag);
   if(OnExcludeList(cft)) {
     return;
   }
@@ -1545,26 +1551,26 @@ void Profiler::AddNameTag(const std::string &name) {
 }
 
 
-Profiler::CommFuncType Profiler::CommStats::StringToCFT(const std::string &s) {
+BLProfiler::CommFuncType BLProfiler::CommStats::StringToCFT(const std::string &s) {
   return CommStats::cftNames[s];
 }
 
 
-void Profiler::CommStats::Filter(CommFuncType cft) {
+void BLProfiler::CommStats::Filter(CommFuncType cft) {
   if( ! OnExcludeList(cft)) {
     CommStats::cftExclude.insert(cft);
   }
 }
 
 
-void Profiler::CommStats::UnFilter(CommFuncType cft) {
+void BLProfiler::CommStats::UnFilter(CommFuncType cft) {
   if(OnExcludeList(cft)) {
     CommStats::cftExclude.erase(cft);
   }
 }
 
 
-void Profiler::PerfMonProcess() {
+void BLProfiler::PerfMonProcess() {
 #ifdef BL_USE_MPI
   MPI_Status status;
   bool finished(false);
@@ -1616,14 +1622,14 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP, bl_proffortfuncstart_cpp)
   (const int istr[], const int *NSTR)
 {
   std::string fName(Fint_2_string(istr, *NSTR));
-  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
-  if(it == Profiler::mFortProfs.end()) {  // make a new profiler
-    Profiler::mFortProfs.insert(std::pair<std::string, Profiler *>(fName, new Profiler(fName)));
+  std::map<std::string, BLProfiler *>::const_iterator it = BLProfiler::mFortProfs.find(fName);
+  if(it == BLProfiler::mFortProfs.end()) {  // make a new profiler
+    BLProfiler::mFortProfs.insert(std::pair<std::string, BLProfiler *>(fName, new BLProfiler(fName)));
   } else {  // error:  fname is already being profiled
     std::string estring("bl_proffortfuncstart error:  mFortProfs function already being profiled:  ");
     estring += fName;
-    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
-      Profiler::mFortProfsErrors.push_back(estring);
+    if(BLProfiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      BLProfiler::mFortProfsErrors.push_back(estring);
     }
   }
 }
@@ -1632,16 +1638,16 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP, bl_proffortfuncstop_cpp)
   (const int istr[], const int *NSTR)
 {
   std::string fName(Fint_2_string(istr, *NSTR));
-  std::map<std::string, Profiler *>::const_iterator it = Profiler::mFortProfs.find(fName);
-  if(it == Profiler::mFortProfs.end()) {  // error:  fname not found
+  std::map<std::string, BLProfiler *>::const_iterator it = BLProfiler::mFortProfs.find(fName);
+  if(it == BLProfiler::mFortProfs.end()) {  // error:  fname not found
     std::string estring("bl_proffortfuncstop error:  mFortProfs function not started:  ");
     estring += fName;
-    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
-      Profiler::mFortProfsErrors.push_back(estring);
+    if(BLProfiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      BLProfiler::mFortProfsErrors.push_back(estring);
     }
   } else {  // delete the pointer and remove fname from map
     delete it->second;
-    Profiler::mFortProfs.erase(fName);
+    BLProfiler::mFortProfs.erase(fName);
   }
 }
 
@@ -1650,17 +1656,17 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTART_CPP_INT, bl_proffortfuncstart_cpp_int)
   (const int *i)
 {
 #ifdef DEBUG
-  if(Profiler::mFortProfsInt[*i] == 0) {  // make a new profiler
-    Profiler::mFortProfsInt[*i] =  new Profiler(Profiler::mFortProfsIntNames[*i]);
+  if(BLProfiler::mFortProfsInt[*i] == 0) {  // make a new profiler
+    BLProfiler::mFortProfsInt[*i] =  new BLProfiler(BLProfiler::mFortProfsIntNames[*i]);
   } else {  // error:  fname is already being profiled
     std::string estring("bl_proffortfuncstart error:  mFortProfs function already being profiled:  ");
-    estring += Profiler::mFortProfsIntNames[*i];
-    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
-      Profiler::mFortProfsErrors.push_back(estring);
+    estring += BLProfiler::mFortProfsIntNames[*i];
+    if(BLProfiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      BLProfiler::mFortProfsErrors.push_back(estring);
     }
   }
 #else
-  Profiler::mFortProfsInt[*i]->PStart();
+  BLProfiler::mFortProfsInt[*i]->PStart();
 #endif
 }
 
@@ -1669,18 +1675,18 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT, bl_proffortfuncstop_cpp_int)
   (const int *i)
 {
 #ifdef DEBUG
-  if(Profiler::mFortProfsInt[*i] == 0) {  // error:  fname not found
+  if(BLProfiler::mFortProfsInt[*i] == 0) {  // error:  fname not found
     std::string estring("bl_proffortfuncstop error:  mFortProfs function not started:  ");
-    estring += Profiler::mFortProfsIntNames[*i];
-    if(Profiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
-      Profiler::mFortProfsErrors.push_back(estring);
+    estring += BLProfiler::mFortProfsIntNames[*i];
+    if(BLProfiler::mFortProfsErrors.size() < mFortProfMaxErrors) {
+      BLProfiler::mFortProfsErrors.push_back(estring);
     }
   } else {  // delete the pointer and remove fname from map
-    delete Profiler::mFortProfsInt[*i];
-    Profiler::mFortProfsInt[*i] = 0;
+    delete BLProfiler::mFortProfsInt[*i];
+    BLProfiler::mFortProfsInt[*i] = 0;
   }
 #else
-  Profiler::mFortProfsInt[*i]->PStop();
+  BLProfiler::mFortProfsInt[*i]->PStop();
 #endif
 }
 

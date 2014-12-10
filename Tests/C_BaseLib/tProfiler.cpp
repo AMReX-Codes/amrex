@@ -11,7 +11,7 @@
 using std::cout;
 using std::endl;
 
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <TPROFILER_F.H>

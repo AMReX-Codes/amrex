@@ -14,7 +14,7 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <REAL.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <PArray.H>
 
 namespace BoxLib
