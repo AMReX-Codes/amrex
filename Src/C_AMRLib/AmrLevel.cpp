@@ -7,7 +7,7 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <ParmParse.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;

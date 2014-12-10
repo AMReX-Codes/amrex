@@ -10,14 +10,17 @@
 #include <limits>
 
 #include <BoxLib.H>
+#include <ParallelDescriptor.H>
+#include <BLProfiler.H>
+#include <Utility.H>
+
+#ifndef BL_AMRPROF
+#include <ParmParse.H>
 #include <DistributionMapping.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <Profiler.H>
-#include <Utility.H>
 #include <MultiFab.H>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -224,7 +227,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
       if(ParallelDescriptor::MyProcAll() == ParallelDescriptor::MyProcAllPerfMon()) {
         std::cout << "Starting PerfMonProc:  myprocall = "
                   << ParallelDescriptor::MyProcAll() << std::endl;
-        Profiler::PerfMonProcess();
+        BLProfiler::PerfMonProcess();
         BoxLib::Finalize();
         return;
       }
@@ -255,6 +258,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif
 
+#ifndef BL_AMRPROF
     if (build_parm_parse)
     {
         if (argc == 1)
@@ -273,6 +277,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
             }
         }
     }
+#endif
 
     std::cout << std::setprecision(10);
 

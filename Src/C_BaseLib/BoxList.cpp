@@ -6,7 +6,7 @@
 
 #include <BoxArray.H>
 #include <BoxList.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 void
 BoxList::clear ()

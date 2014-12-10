@@ -557,8 +557,8 @@ VisMF::Header::Header (const MultiFab& mf,
 
     Array<Real> recvdata(mf.size()*2*m_ncomp);
 
-    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(Real),
-                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
@@ -570,8 +570,8 @@ VisMF::Header::Header (const MultiFab& mf,
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
 
-    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(Real),
-                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -805,8 +805,8 @@ VisMF::Write (const MultiFab&    mf,
 
     Array<long> recvdata(mf.size());
 
-    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(long),
-                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
@@ -818,8 +818,8 @@ VisMF::Write (const MultiFab&    mf,
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
 
-    BL_COMM_PROFILE(Profiler::Gatherv, recvdata.size() * sizeof(long),
-                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {

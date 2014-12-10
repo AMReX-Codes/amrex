@@ -21,6 +21,8 @@ TRACE_PROFILE = FALSE
 BOXLIB_HOME = ../..
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
+CXXFLAGS += -std=c++0x
+
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
