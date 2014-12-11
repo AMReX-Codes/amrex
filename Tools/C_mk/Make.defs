@@ -156,6 +156,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
   endif
+  ifeq ($(findstring CIMS.NYU.EDU, $(HOSTNAMEF)), CIMS.NYU.EDU)
+    WHICHLINUX := DONEV
+  endif
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     WHICHLINUX := BLUE_WATERS
   endif
