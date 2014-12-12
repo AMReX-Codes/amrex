@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <cmath>
 
-#ifndef __PGI
+#ifdef BL_Darwin
 using std::isinf;
 #endif
 
