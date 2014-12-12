@@ -1217,12 +1217,12 @@ MultiFab::SumBoundary (int scomp,
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from, index;
-    Array<double*>     recv_data, send_data;
+    Array<Real*>     recv_data, send_data;
     Array<MPI_Request> recv_reqs, send_reqs;
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    double* the_recv_data = 0;
+    Real* the_recv_data = 0;
 
     FabArrayBase::PostRcvs(*TheSI.m_SndTags,*TheSI.m_SndVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
     //
@@ -1243,8 +1243,8 @@ MultiFab::SumBoundary (int scomp,
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
-        double* data = static_cast<double*>(BoxLib::The_Arena()->alloc(N*sizeof(double)));
-        double* dptr = data;
+        Real* data = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
+        Real* dptr = data;
 
         for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
                  End = m_it->second.end();
@@ -1299,7 +1299,7 @@ MultiFab::SumBoundary (int scomp,
 
         for (int k = 0; k < completed; k++)
         {
-            const double* dptr = recv_data[index[k]];
+            const Real* dptr = recv_data[index[k]];
 
             BL_ASSERT(dptr != 0);
 
@@ -1316,7 +1316,7 @@ MultiFab::SumBoundary (int scomp,
                 const Box& bx = it->box;
                 fab.resize(bx,ncomp);
                 const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(double));
+                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
                 mf[it->srcIndex].plus(fab,bx,bx,0,scomp,ncomp);
                 dptr += Cnt;
             }
