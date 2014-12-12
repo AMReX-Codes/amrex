@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <limits>
 #include <stdlib.h>
-#include <tgmath.h>
 #include <cmath>
 
 
@@ -748,7 +747,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.maxTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << sqrt(pstats.variance) << "  "
+	  << std::sqrt(pstats.variance) << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.variance << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
