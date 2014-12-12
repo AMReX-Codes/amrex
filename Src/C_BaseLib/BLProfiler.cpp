@@ -16,6 +16,7 @@
 #include <limits>
 #include <stdlib.h>
 #include <tgmath.h>
+#include <cmath>
 
 
 bool BLProfiler::bWriteAll = true;
@@ -641,12 +642,12 @@ void BLProfiler::Finalize() {
     // --------------------- end nfiles block
 
     Array<long> seekPosOut;
-    if(ParallelDescriptor::IOProcessor) {
+    if(ParallelDescriptor::IOProcessor()) {
       seekPosOut.resize(nProcs, 0);
     }
     ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
 
-    if(ParallelDescriptor::IOProcessor) {
+    if(ParallelDescriptor::IOProcessor()) {
       std::string phFilePrefix("bl_prof");
       std::string phFileName(cdir + '/' + phFilePrefix + "_H");
       std::ofstream phHeaderFile;
@@ -747,7 +748,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.maxTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << std::sqrt(pstats.variance) << "  "
+	  << sqrt(pstats.variance) << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.variance << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
