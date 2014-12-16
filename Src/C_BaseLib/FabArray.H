@@ -2395,17 +2395,20 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
+    const bool cc = boxArray()[0].cellCentered();
+
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
-        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-                 End = TheSI.m_LocTags->end();
-             it != End;
-             ++it)
+	int N_loc = (*TheSI.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = *it;
+            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
             BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
             BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
@@ -2447,6 +2450,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     // Get the indices of SndTags and shuffle'm a bit.
     //
     Array<int> indices;
+    indices.reserve(TheSI.m_SndTags->size());
 
     for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
              m_End = TheSI.m_SndTags->end();
@@ -2459,7 +2463,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
     if (FabArrayBase::do_random_shuffle)
         std::random_shuffle(indices.begin(), indices.end());
 
-    for (int j = 0, NN = indices.size(); j < NN; j++)
+    const int NN = indices.size();
+
+    for (int j = 0; j < NN; j++)
     {
         SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(indices[j]);
 
@@ -2498,15 +2504,17 @@ FabArray<FAB>::FillBoundary (int  scomp,
             BoxLib::The_Arena()->free(data);
         }
     }
+
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-             End = TheSI.m_LocTags->end();
-         it != End;
-         ++it)
+    int N_loc = (*TheSI.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+    for (int i=0; i<N_loc; ++i)
     {
-        const CopyComTag& tag = *it;
+        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
         BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
