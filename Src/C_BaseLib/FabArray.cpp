@@ -595,8 +595,8 @@ FabArrayBase::TheFB (bool                cross,
 
             for (int j = 0, M = isects.size(); j < M; j++)
             {
-                const Box& bx        = isects[j].second;
                 const int  k         = isects[j].first;
+                const Box& bx        = isects[j].second;
                 const int  src_owner = dm[k];
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
