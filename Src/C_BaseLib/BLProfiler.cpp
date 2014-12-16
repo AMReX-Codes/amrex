@@ -532,7 +532,6 @@ void BLProfiler::Finalize() {
         tmin = std::min(tmin, gtimes[i]);
         tmax = std::max(tmax, gtimes[i]);
       }
-      //ProfStats &pstats = mProfStats[profName];
       tavg = tsum / static_cast<Real> (gtimes.size());
       for(int i(0); i < gtimes.size(); ++i) {
         variance += (gtimes[i] - tavg) * (gtimes[i] - tavg);
@@ -640,7 +639,7 @@ void BLProfiler::Finalize() {
     }
     // --------------------- end nfiles block
 
-    Array<long> seekPosOut;
+    Array<long> seekPosOut(1);
     if(ParallelDescriptor::IOProcessor()) {
       seekPosOut.resize(nProcs, 0);
     }
