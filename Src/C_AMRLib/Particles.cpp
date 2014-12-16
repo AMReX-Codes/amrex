@@ -544,7 +544,6 @@ ParticleBase::Index (const ParticleBase& p,
 bool
 ParticleBase::Where (ParticleBase& p,
                      const Amr*    amr,
-                     bool          update,
                      int           lev_min,
                      int           finest_level)
 {
@@ -555,46 +554,20 @@ ParticleBase::Where (ParticleBase& p,
 
     BL_ASSERT(finest_level <= amr->finestLevel());
 
-    if (update)
-    {
-        //
-        // We have a valid particle whose position has changed slightly.
-        // Try to update m_cell and m_grid smartly.
-        //
-        BL_ASSERT(p.m_id > 0);
-        BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->ParticleBoxArray(p.m_lev).size());
-
-        const IntVect& iv = ParticleBase::Index(p,p.m_lev,amr);
-
-        if (p.m_cell == iv)
-            //
-            // The particle hasn't left its cell.
-            //
-            return true;
-
-        if (p.m_lev == amr->finestLevel())
-        {
-            //
-            // If the particle is at the true finest level, we check if it has
-            // moved to a different point in the same grid.  This doesn't work
-            // for coarser levels, since coarse grids can be partially covered by
-            // finer grids.
-            //
-            p.m_cell = iv;
-
-            if (amr->ParticleBoxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
-                //
-                // It has left its cell but is still in the same grid.
-                //
-                return true;
-        }
-    }
-
     std::vector< std::pair<int,Box> > isects;
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
         const IntVect& iv = ParticleBase::Index(p,lev,amr);
+
+	if (lev == p.m_lev) { 
+            // We may take a shortcut because the fact that we are here means 
+            // this particle does not belong to any finer grids.
+	    if (amr->ParticleBoxArray(p.m_lev)[p.m_grid].contains(iv)) {
+		p.m_cell = iv;
+		return true;
+	    }
+	}
 
         amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 

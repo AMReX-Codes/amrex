@@ -66,7 +66,7 @@ struct ParticleBase
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
-    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0, int finest_level = -1);
+    static bool Where (ParticleBase& prt, const Amr* amr, int lev_min = 0, int finest_level = -1);
     //
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
@@ -5530,7 +5530,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                 {
                     if (!where_already_called)
                     {
-                        if (!ParticleBase::Where(p,m_amr, false, lev_min, theEffectiveFinestLevel))
+                        if (!ParticleBase::Where(p,m_amr, lev_min, theEffectiveFinestLevel))
                         {                                
                             if (full_where) // Lengthier checks for subcycling.
                             {
@@ -6007,7 +6007,7 @@ ParticleContainer<N>::OK (bool full_where,
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!ParticleBase::Where(p,m_amr, false, lev_min, finest_level))
+                    if (!ParticleBase::Where(p,m_amr, lev_min, finest_level))
                     {
                         if (full_where)
                         {
