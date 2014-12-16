@@ -279,10 +279,9 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
             //
             // Which grid at the crse level do we need to update?
             //
-            cba.intersections(cbx,isects);
+            cba.intersections(cbx,isects,true);
 
             BL_ASSERT(!isects.empty());
-            BL_ASSERT(isects.size() == 1);
 
             cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
         }
@@ -395,10 +394,9 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             iv -= fshift;
         }
 
-        fba.intersections(Box(iv,iv),isects);
+        fba.intersections(Box(iv,iv),isects,true);
 
         BL_ASSERT(!isects.empty());
-        BL_ASSERT(isects.size() == 1);
 
         fgrid.push_back(isects[0].first);
     }
@@ -598,12 +596,10 @@ ParticleBase::Where (ParticleBase& p,
     {
         const IntVect& iv = ParticleBase::Index(p,lev,amr);
 
-        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
+        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
         if (!isects.empty())
         {
-            BL_ASSERT(isects.size() == 1);
-
             p.m_lev  = lev;
             p.m_grid = isects[0].first;
             p.m_cell = iv;
@@ -639,12 +635,10 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
         {
             const IntVect& iv = ParticleBase::Index(p_prime,lev,amr);
 
-            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
+            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
             if (!isects.empty())
             {
-                BL_ASSERT(isects.size() == 1);
-
                 D_TERM(p.m_pos[0] = p_prime.m_pos[0];,
                        p.m_pos[1] = p_prime.m_pos[1];,
                        p.m_pos[2] = p_prime.m_pos[2];);
@@ -691,12 +685,10 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
     std::vector< std::pair<int,Box> > isects;
 
-    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects);
+    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true);
 
     if (!isects.empty())
     {
-        BL_ASSERT(isects.size() == 1);
-
         p.m_lev  = level;
         p.m_grid = isects[0].first;
         p.m_cell = iv;

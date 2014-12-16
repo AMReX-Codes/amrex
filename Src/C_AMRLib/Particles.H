@@ -3038,7 +3038,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects);
+                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true);
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first; 
@@ -3129,7 +3129,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Find its resident grid.
                                 //
-                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects);
+                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true);
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first;
