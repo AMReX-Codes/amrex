@@ -702,16 +702,16 @@ FabArrayBase::SICacheSize ()
 }
 
 
-MFIter::MFIter (const FabArrayBase& fabarray)
+MFIter::MFIter (const FabArrayBase& fabarray, int threading)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(D_DECL(1024000,1024000,1024000))
 {
-    Initialize();
+    Initialize(threading);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
+MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int threading)
     :
     fabArray(fabarray),
     currentIndex(0),
@@ -719,26 +719,26 @@ MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
 {
     if (do_tiling) 
 	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize();
+    Initialize(threading);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int threading)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(tilesize)
 {
-    Initialize();
+    Initialize(threading);
 }
 
 void 
-MFIter::Initialize () 
+MFIter::Initialize (int threading) 
 {
     int tid = 0;
     int nthreads = 1;
     
 #ifdef _OPENMP
-    if (omp_in_parallel()) {
+    if (omp_in_parallel() && threading) {
 	tid = omp_get_thread_num();
 	nthreads = omp_get_num_threads();
     }

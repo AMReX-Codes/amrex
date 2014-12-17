@@ -372,11 +372,11 @@ public:
     // Construct a MFIter.
     //
     // no tiling
-    explicit MFIter (const FabArrayBase& fabarray);
+    explicit MFIter (const FabArrayBase& fabarray, int threading=1);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling); 
+    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int threading=1); 
     // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize);
+    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int threading=1);
     //
     // Returns the tile Box at the current index.
     //
@@ -427,7 +427,7 @@ private:
     Array<int>          localIndexMap;
     Array<Box>          tileArray;
 
-    void Initialize ();
+    void Initialize (int threading);
 };
 
 //
