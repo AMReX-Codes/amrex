@@ -2449,7 +2449,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
     const int N_snds = TheSI.m_SndTags->size();
 
     Array<value_type*>                     send_data;
-    Array<MPI_Request>                     send_reqs;
     Array<int>                             send_N;
     Array<int>                             send_rank;
     Array<const SI::CopyComTagsContainer*> send_cctc;
@@ -2500,6 +2499,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
             dptr += Cnt;
         }
     }
+
+    Array<MPI_Request> send_reqs;
 
     if (FabArrayBase::do_async_sends)
     {
