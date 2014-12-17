@@ -1381,17 +1381,20 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC& thecpc = cache_it->second;
 
+    const bool cc = boxArray()[0].cellCentered();
+
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
-        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
-                 End = thecpc.m_LocTags->end();
-             it != End;
-             ++it)
+	int N_loc = (*thecpc.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = *it;
+            const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 
             if (op == FabArrayBase::COPY)
             {
@@ -1429,38 +1432,35 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         Array<MPI_Status>  stats;
         Array<int>         recv_from;
-        Array<value_type*> recv_data, send_data;
-        Array<MPI_Request> recv_reqs, send_reqs;
+        Array<value_type*> recv_data;
+        Array<MPI_Request> recv_reqs;
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
         value_type* the_recv_data = 0;
 
         FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
-        //
-        // Send the FAB data.
-        //
-        FAB fab;
-        //
-        // Get the indices of SndTags and shuffle'm a bit.
-        //
-        Array<int> indices;
+
+	//
+	// Post send's
+	// 
+	const int N_snds = thecpc.m_SndTags->size();
+
+	Array<value_type*>                      send_data;
+	Array<int>                              send_N;
+	Array<int>                              send_rank;
+	Array<const CPC::CopyComTagsContainer*> send_cctc;
+
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_cctc.reserve(N_snds);
 
         for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
                  m_End = thecpc.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
-            indices.push_back(m_it->first);
-        }
-
-        if (FabArrayBase::do_random_shuffle)
-            std::random_shuffle(indices.begin(), indices.end());
-
-        for (int j = 0, NN = indices.size(); j < NN; j++)
-        {
-            CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->find(indices[j]);
-
             std::map<int,int>::const_iterator vol_it = thecpc.m_SndVols->find(m_it->first);
 
             BL_ASSERT(vol_it != thecpc.m_SndVols->end());
@@ -1470,51 +1470,69 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-            value_type* dptr = data;
+ 
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_cctc.push_back(&(m_it->second));
+	}
 
-            for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+	for (int j=0; j<N_snds; ++j)
+	{
+	    value_type* dptr = send_data[j];
+	    BL_ASSERT(dptr != 0);
+
+	    const CPC::CopyComTagsContainer& cctc = *send_cctc[j];
+
+            for (CPC::CopyComTagsContainer::const_iterator it = cctc.begin();
+                 it != cctc.end(); ++it)
             {
                 const Box& bx = it->box;
                 src[it->srcIndex].copyToMem(bx,SC,NC,dptr);
                 const int Cnt = bx.numPts()*NC;
                 dptr += Cnt;
             }
-            BL_ASSERT(data+N == dptr);
+	}
 
-            if (FabArrayBase::do_async_sends)
-            {
-                send_data.push_back(data);
-                send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+	Array<MPI_Request> send_reqs;
+
+	if (FabArrayBase::do_async_sends)
+	{
+	    send_reqs.reserve(N_snds);
+	    for (int j=0; j<N_snds; ++j)
+	    {
+                send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[j],send_N[j],send_rank[j],SeqNum).req());
             }
-            else
-            {
-                ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-                BoxLib::The_Arena()->free(data);
+	} else {
+	    for (int j=0; j<N_snds; ++j)
+	    {
+                ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
+                BoxLib::The_Arena()->free(send_data[j]);
             }
         }
+
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
-        for (CPC::CopyComTagsContainer::const_iterator it = thecpc.m_LocTags->begin(),
-                 End = thecpc.m_LocTags->end();
-             it != End;
-             ++it)
+	int N_loc = (*thecpc.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+	for (int j=0; j<N_loc; ++j)
         {
-            const CopyComTag& tag = *it;
-
-            BL_ASSERT(    distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(src.distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+            const CopyComTag& tag = (*thecpc.m_LocTags)[j];
 
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
             }
         }
 
@@ -1526,24 +1544,38 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 	if (N_rcvs > 0)
 	{
-	    stats.resize(N_rcvs);
+	    Array<const CPC::CopyComTagsContainer*> recv_cctc;
+	    recv_cctc.reserve(N_rcvs);
+
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 	    
+		recv_cctc.push_back(&(m_it->second));
+	    }
+
+	    stats.resize(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
+#ifdef _OPENMP
+#pragma omp parallel if (cc)
+#endif
+        {
+	    FAB fab;
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
 	    for (int k = 0; k < N_rcvs; k++)
 	    {
 		const value_type* dptr = recv_data[k];
-		
 		BL_ASSERT(dptr != 0);
 		
-		CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+		const CPC::CopyComTagsContainer& cctc = *recv_cctc[k];
 		
-		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
-		
-		for (CPC::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-			 End = m_it->second.end();
-		     it != End;
-		     ++it)
+		for (CPC::CopyComTagsContainer::const_iterator it = cctc.begin();
+		     it != cctc.end(); ++it)
 		{
 		    const Box& bx  = it->box;
 		    const int  Cnt = bx.numPts()*NC;
@@ -1564,9 +1596,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		}
 	    }
 	}
+	}
 	
         BoxLib::The_Arena()->free(the_recv_data);
-
+	
         if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
             FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 
