@@ -721,7 +721,7 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
     for (MFIter mfi(pmf); mfi.isValid(); ++mfi) {
       const FArrayBox& pfab = pmf[mfi];
       FArrayBox& sfab = smf[mfi];
-      const Box& gbox = Box(mfi.validbox()).grow(nGrowOp);
+      const Box& gbox = BoxLib::grow(mfi.validbox(),nGrowOp);
       ifab.resize(gbox,1);
       ifab.setVal(0);
       const Box& obox = gbox & layout.GeomArray()[lev].Domain();
@@ -763,7 +763,7 @@ DarcySNES::ComputeDarcyFlux(PArray<MFTower>& darcy_flux,
         fc[d] = darcy_flux[d].BaseComp() + fComp;
       }
       const Box& vbox = mfi.validbox();
-      const Box& gbox = Box(vbox).grow(nGrowOp);
+      const Box& gbox = BoxLib::grow(vbox,nGrowOp);
       ifab.resize(gbox,1);
       ifab.setVal(0);
       const Box& obox = gbox & geom.Domain();
