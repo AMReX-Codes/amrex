@@ -326,18 +326,20 @@ namespace BoxLib
 
         const Geometry::FPB& TheFPB = cache_it->second;
 
+	const bool cc = mf.boxArray()[0].cellCentered();
+
         if (ParallelDescriptor::NProcs() == 1)
         {
             //
             // There can only be local work to do.
             //
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                     End = TheFPB.m_LocTags->end();
-                 it != End;
-                 ++it)
-            {
-                const Geometry::FPBComTag& tag = *it;
-
+	    int N_loc = (*TheFPB.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (cc)
+#endif
+	    for (int i=0; i<N_loc; ++i)
+	    {
+                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
                 mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
             }
 
