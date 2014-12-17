@@ -915,7 +915,7 @@ void WriteStats(std::ostream &ios,
 
   ios << " MaxCallStackDepth = " << maxCSD << '\n' << '\n';
   for(std::set<int>::iterator rfi = recursiveFuncs.begin(); rfi != recursiveFuncs.end(); ++rfi) {
-    ios << " RCURSIVE function:  " << fNumberNames[*rfi] << '\n';
+    ios << " RECURSIVE function:  " << fNumberNames[*rfi] << '\n';
   }
 
   if(bwriteinclusivetimes) {
