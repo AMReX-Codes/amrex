@@ -488,7 +488,7 @@ main (int   argc,
 
             for (MFIter fai(nodes[lev]); fai.isValid(); ++fai)
             {
-                const Box& box = Box(fai.validbox()).grow(ref) & subboxArray[lev];
+                const Box& box = BoxLib::grow(fai.validbox(),ref) & subboxArray[lev];
                 NodeFab& ifab = nodes[lev][fai];
                 std::vector< std::pair<int,Box> > isects = bndryCells.intersections(box);
                 for (int i = 0; i < isects.size(); i++)
