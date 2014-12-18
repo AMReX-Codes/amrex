@@ -326,7 +326,9 @@ namespace BoxLib
 
         const Geometry::FPB& TheFPB = cache_it->second;
 
+#ifdef _OPENMP
 	const bool cc = mf.boxArray()[0].cellCentered();
+#endif
 
         if (ParallelDescriptor::NProcs() == 1)
         {
