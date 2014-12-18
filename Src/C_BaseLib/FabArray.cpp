@@ -191,6 +191,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
                       const FabArrayBase& src)
 {
+    BL_PROFILE("FabArrayBase::TheCPC()");
+
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
     // We want to choose our keys wisely to minimize search time.
@@ -481,6 +483,8 @@ FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
 {
+    BL_PROFILE("FabArray::TheFB");
+
     BL_ASSERT(mf.size() > 0);
 
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
