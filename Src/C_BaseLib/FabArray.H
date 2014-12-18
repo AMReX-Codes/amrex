@@ -1381,7 +1381,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC& thecpc = cache_it->second;
 
+#ifdef _OPENMP
     const bool cc = boxArray()[0].cellCentered();
+#endif
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -1426,7 +1428,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     int NCompLeft = ncomp;
 
-    for (int i = 0, SC = scomp, DC = dcomp; i < ncomp; )
+    for (int ipass = 0, SC = scomp, DC = dcomp; ipass < ncomp; )
     {
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
@@ -1528,11 +1530,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,scomp,tag.box,dcomp,ncomp);
+                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,scomp,dcomp,ncomp);
+                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
             }
         }
 
@@ -1603,7 +1605,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
             FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
 
-        i         += NC;
+        ipass     += NC;
         SC        += NC;
         DC        += NC;
         NCompLeft -= NC;
@@ -2428,7 +2430,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
+#ifdef _OPENMP
     const bool cc = boxArray()[0].cellCentered();
+#endif
 
     if (ParallelDescriptor::NProcs() == 1)
     {
