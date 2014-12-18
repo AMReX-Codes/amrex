@@ -194,6 +194,11 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         //
         // Do what you can with the FABs you own.  No parallelism allowed.
         //
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
         Array<IntVect> pshifts(27);
 
         for (MFIter mfidst(mf); mfidst.isValid(); ++mfidst)
@@ -204,7 +209,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
             if (TheDomain.contains(dst)) continue;
 
-            for (MFIter mfisrc(mf); mfisrc.isValid(); ++mfisrc)
+	    int threading = 0;
+            for (MFIter mfisrc(mf,threading); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;
 
@@ -240,6 +246,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                 }
             }
         }
+    }
     }
     else
     {
