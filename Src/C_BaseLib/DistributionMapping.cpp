@@ -93,6 +93,9 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case PFC:
         m_BuildMap = &DistributionMapping::PFCProcessorMap;
         break;
+    case RRSFC:
+        m_BuildMap = &DistributionMapping::RRSFCProcessorMap;
+        break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
     }
@@ -160,6 +163,10 @@ DistributionMapping::Initialize ()
         {
             strategy(PFC);
 	    DistributionMapping::InitProximityMap();
+        }
+        else if (theStrategy == "RRSFC")
+        {
+            strategy(RRSFC);
         }
         else
         {
@@ -1126,6 +1133,71 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     {
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
     }
+}
+
+void
+DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
+				int                      nprocs)
+{
+    BL_PROFILE("DistributionMapping::RRSFCDoIt()");
+
+    std::vector<SFCToken> tokens;
+
+    const int nboxes = boxes.size();
+
+    tokens.reserve(nboxes);
+
+    int maxijk = 0;
+
+    for (int i = 0; i < nboxes; ++i)
+    {
+        tokens.push_back(SFCToken(i,boxes[i].smallEnd(),0.0));
+
+        const SFCToken& token = tokens.back();
+
+        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+               maxijk = std::max(maxijk, token.m_idx[1]);,
+               maxijk = std::max(maxijk, token.m_idx[2]););
+    }
+    //
+    // Set SFCToken::MaxPower for BoxArray.
+    //
+    int m = 0;
+    for ( ; (1 << m) <= maxijk; ++m) {
+        ;  // do nothing
+    }
+    SFCToken::MaxPower = m;
+    //
+    // Put'm in Morton space filling curve order.
+    //
+    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
+
+    // Distribute boxes using roundrobin
+    for (int i = 0; i < nboxes; ++i) {
+	m_ref->m_pmap[i] = ord[i%nprocs];
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_ref->m_pmap[nboxes] = ParallelDescriptor::MyProc();
+}
+
+void
+DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
+                                        int                      nprocs)
+{
+    BL_ASSERT(boxes.size() > 0);
+ 
+    if (m_ref->m_pmap.size() != boxes.size() + 1)
+    {
+        m_ref->m_pmap.resize(boxes.size() + 1);
+    }
+
+    RRSFCDoIt(boxes,nprocs);
 }
 
 
