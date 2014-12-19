@@ -922,14 +922,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         CrseFabs.resize(NC,PArrayManage);
 
+        for (int i = 0; i < NC; i++)
+        {
+            BL_ASSERT(CrseBoxes[i].ok());
+            CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < NC; i++)
         {
-            BL_ASSERT(CrseBoxes[i].ok());
-
-            CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
             //
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
