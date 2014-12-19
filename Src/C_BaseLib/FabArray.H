@@ -1480,7 +1480,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for
 #endif
 	for (int j=0; j<N_snds; ++j)
 	{
@@ -2517,7 +2517,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for
 #endif
     for (int i=0; i<N_snds; ++i)
     {
@@ -2531,7 +2531,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
         {
             BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
-            get(it->srcIndex). copyToMem(bx,scomp,ncomp,dptr);
+            get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
             const int Cnt = bx.numPts()*ncomp;
             dptr += Cnt;
         }
