@@ -1184,19 +1184,13 @@ MultiFab::SumBoundary (int scomp,
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-#ifdef _OPENMP
-    const bool cc = boxArray()[0].cellCentered();
-#endif
-
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
 	int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (cc)
-#endif
+	// unsafe to use OMP here
 	for (int i=0; i<N_loc; ++i)
         {
             const CopyComTag& tag = (*TheSI.m_LocTags)[i];
@@ -1307,9 +1301,7 @@ MultiFab::SumBoundary (int scomp,
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
     int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (cc)
-#endif
+    // unsafe to use OMP here
     for (int i=0; i<N_loc; ++i)
     {
         const CopyComTag& tag = (*TheSI.m_LocTags)[i];
@@ -1341,14 +1333,10 @@ MultiFab::SumBoundary (int scomp,
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 
-#ifdef _OPENMP
-#pragma omp parallel if (cc)
-#endif
+	// unsafe to use OMP here
 	{
 	    FArrayBox fab;
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
 		const Real* dptr = recv_data[k];
