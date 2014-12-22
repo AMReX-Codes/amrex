@@ -3433,7 +3433,7 @@ contains
        end if
     end do
     !$omp end do
-    tsall = tsall .and. tsall
+    tsall = tsall .and. tsthis
     !$omp end parallel
     r_con%threadsafe = tsall
   end subroutine remote_conn_set_threadsafety
