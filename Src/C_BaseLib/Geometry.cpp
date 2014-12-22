@@ -373,10 +373,6 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         //
         return;
 
-#ifdef _OPENMP
-	const bool cc = dstmf.boxArray()[0].cellCentered();
-#endif
-
     Array<MPI_Status>  stats;
     Array<int>         recv_from;
     Array<Real*>       recv_data;
@@ -459,8 +455,7 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 	    BoxLib::The_Arena()->free(send_data[i]);
 	}
     }
-    
-    
+        
     //
     // wait and unpack
     //
@@ -482,15 +477,10 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
-#ifdef _OPENMP
-#pragma omp parallel if (cc)
-#endif
+	// unsafe to use OMP here
 	{
 	    FArrayBox fab;
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
 		Real* dptr = recv_data[k];
