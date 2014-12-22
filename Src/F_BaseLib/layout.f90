@@ -36,6 +36,7 @@ module layout_module
   end type trns_dsc
 
   type remote_conn
+     logical                 :: threadsafe = .false.
      integer                 :: svol = 0          ! numpts in snd volume
      integer                 :: rvol = 0          ! numpts in rcv volume
      integer                 :: nsnd = 0          ! Number of snd chunks
@@ -56,6 +57,7 @@ module layout_module
   end type local_copy_desc
 
   type local_conn
+     logical                        :: threadsafe = .false.
      integer                        :: ncpy   ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
@@ -1341,6 +1343,7 @@ contains
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary, idim)
     use bl_prof_module
     use bl_error_module
+    use omp_module
 
     integer,          intent(in)           :: ng
     logical,          intent(in)           :: nodal(:)
@@ -1497,6 +1500,11 @@ contains
           pi_s = pi_s + 1
        end if
     end do
+
+    if (omp_get_max_threads() > 1) then
+       call local_conn_set_threadsafety(bxasc%l_con)
+       call remote_conn_set_threadsafety(bxasc%r_con)
+    end if
 
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
@@ -1931,6 +1939,7 @@ contains
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
+    use omp_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -2123,6 +2132,11 @@ contains
           pi_s = pi_s + 1
        end if
     end do
+
+    if (omp_get_max_threads() > 1) then
+       call local_conn_set_threadsafety(cpasc%l_con)
+       call remote_conn_set_threadsafety(cpasc%r_con)
+    end if
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
@@ -3083,6 +3097,9 @@ contains
        end if
     end do
 
+    cpasc%l_con%threadsafe = .true.
+    cpasc%r_con%threadsafe = .true.
+
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
     deallocate(pvol, ppvol, parr)
@@ -3368,5 +3385,57 @@ contains
        call flush(6)
     end if
   end subroutine layout_copyassoc_print
+
+
+  subroutine local_conn_set_threadsafety(l_con)
+    type(local_conn), intent(inout) :: l_con
+    integer :: i, j
+    logical :: tsthis, tsall
+    tsall = .true.
+    !$omp parallel private(tsthis,i,j) reduction(.and.:tsall)
+    tsthis = .true.
+    !$omp do schedule(static,1)
+    do i = 1, l_con%ncpy-1
+       if (tsthis) then
+          do j = i+1, l_con%ncpy
+             if (l_con%cpy(i)%nd .eq. l_con%cpy(j)%nd) then
+                if (box_intersects(l_con%cpy(i)%dbx, l_con%cpy(j)%dbx)) then
+                   tsthis = .false.
+                end if
+             end if
+          end do
+       end if
+    end do
+    !$omp end do
+    tsall = tsall .and. tsthis
+    !$omp end parallel
+    l_con%threadsafe = tsall
+  end subroutine local_conn_set_threadsafety
+
+
+  subroutine remote_conn_set_threadsafety(r_con)
+    type(remote_conn), intent(inout) :: r_con
+    integer :: i, j
+    logical :: tsthis, tsall
+    tsall = .true.
+    !$omp parallel private(tsthis,i,j) reduction(.and.:tsall)
+    tsthis = .true.
+    !$omp do schedule(static,1)
+    do i = 1, r_con%nrcv-1
+       if (tsthis) then
+          do j = i+1, r_con%nrcv
+             if (r_con%rcv(i)%nd .eq. r_con%rcv(j)%nd) then
+                if (box_intersects(r_con%rcv(i)%dbx, r_con%rcv(j)%dbx)) then
+                   tsthis = .false.
+                end if
+             end if
+          end do
+       end if
+    end do
+    !$omp end do
+    tsall = tsall .and. tsall
+    !$omp end parallel
+    r_con%threadsafe = tsall
+  end subroutine remote_conn_set_threadsafety
 
 end module layout_module
