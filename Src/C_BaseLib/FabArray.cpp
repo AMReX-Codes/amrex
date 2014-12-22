@@ -7,7 +7,6 @@
 //
 bool    FabArrayBase::Verbose;
 bool    FabArrayBase::do_async_sends;
-bool    FabArrayBase::do_random_shuffle;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
@@ -36,7 +35,6 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::Verbose           = true;
     FabArrayBase::do_async_sends    = true;
-    FabArrayBase::do_random_shuffle = false;
     FabArrayBase::MaxComp           = 25;
 
     copy_cache_max_size = 25;
@@ -52,7 +50,6 @@ FabArrayBase::Initialize ()
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
-    pp.query("do_random_shuffle",   FabArrayBase::do_random_shuffle);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //

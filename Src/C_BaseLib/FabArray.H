@@ -338,13 +338,6 @@ public:
     //
     static bool do_async_sends;
     //
-    // Shuffle the order in which we send MPI data in copy(), FillBoundary() and
-    // FillPeriodicBoundary() in hopes of evening out any networking bottlenecks.
-    //
-    // Default is false.
-    //
-    static bool do_random_shuffle;
-    //
     // Print out some stuff; default is false.
     //
     static bool Verbose;
