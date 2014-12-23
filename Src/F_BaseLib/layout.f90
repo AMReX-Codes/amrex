@@ -3401,6 +3401,7 @@ contains
              if (l_con%cpy(i)%nd .eq. l_con%cpy(j)%nd) then
                 if (box_intersects(l_con%cpy(i)%dbx, l_con%cpy(j)%dbx)) then
                    tsthis = .false.
+                   exit
                 end if
              end if
           end do
@@ -3427,6 +3428,7 @@ contains
              if (r_con%rcv(i)%nd .eq. r_con%rcv(j)%nd) then
                 if (box_intersects(r_con%rcv(i)%dbx, r_con%rcv(j)%dbx)) then
                    tsthis = .false.
+                   exit
                 end if
              end if
           end do
