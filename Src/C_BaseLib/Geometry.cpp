@@ -829,6 +829,8 @@ Geometry::GetFPB (const Geometry&      geom,
                   const Geometry::FPB& fpb,
                   const FabArrayBase&  mf)
 {
+    BL_PROFILE("Geometry::GetFPB");
+
     BL_ASSERT(fpb.m_ngrow > 0);
     BL_ASSERT(fpb.m_ba.size() > 0);
     BL_ASSERT(geom.isAnyPeriodic());
@@ -993,6 +995,86 @@ Geometry::GetFPB (const Geometry&      geom,
 
         it->second.swap(tmp);
     }
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    bool tsall;
+
+    // local work
+    int N_loc = (*TheFPB.m_LocTags).size();
+    if (N_loc > 0) {
+	tsall = true;
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_loc-1; ++i) {
+		if (tsthis) {
+		    const Geometry::FPBComTag& tagi = (*TheFPB.m_LocTags)[i];
+		    for (int j=i+1; j<N_loc; ++j) {
+			const Geometry::FPBComTag& tagj = (*TheFPB.m_LocTags)[j];
+			if ( tagi.dstIndex == tagj.dstIndex &&
+			     tagi.dbox.intersects(tagj.dbox) ) {
+			    tsthis = false;
+			    break;
+			}
+		    }
+		}
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheFPB.m_threadsafe_loc = tsall;
+    }
+
+    // receiving from remote processors
+    const int N_rcvs = TheFPB.m_RcvTags->size();
+    if (N_rcvs > 0) {
+	tsall = true;
+	
+	Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
+	recv_fctc.reserve(N_rcvs);
+	
+	for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->begin(),
+		 m_End = TheFPB.m_RcvTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    recv_fctc.push_back(&(m_it->second));
+	}
+	
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_rcvs-1; ++i) {
+		if (tsthis) {
+		    const Geometry::FPB::FPBComTagsContainer& fctci = *recv_fctc[i];
+		    for (Geometry::FPB::FPBComTagsContainer::const_iterator iti = fctci.begin();
+			 iti != fctci.end(); ++iti)
+		    {
+			for (int j=i+1; j<N_rcvs; ++j) {
+			    const Geometry::FPB::FPBComTagsContainer& fctcj = *recv_fctc[j];
+			    for (Geometry::FPB::FPBComTagsContainer::const_iterator itj = fctcj.begin();
+				 itj != fctcj.end(); ++itj)
+			    {
+				if ( iti->dstIndex == itj->dstIndex &&
+				     (iti->dbox).intersects(itj->dbox) ) {
+				    tsthis = false;
+				    goto labelFPB;
+				}
+			    }			    
+			}
+		    }
+		}
+	    labelFPB: ;
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheFPB.m_threadsafe_rcv = tsall;
+    }
+#endif	
 
     return cache_it;
 }
