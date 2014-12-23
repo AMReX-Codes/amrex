@@ -1231,17 +1231,17 @@ MultiFab::SumBoundary (int scomp,
     //
     const int N_snds = TheSI.m_SndTags->size();
 
-    Array<Real*>                           send_data;
-    Array<int>                             send_N;
-    Array<int>                             send_rank;
-    Array<const SI::CopyComTagsContainer*> send_cctc;
+    Array<Real*>                       send_data;
+    Array<int>                         send_N;
+    Array<int>                         send_rank;
+    Array<const CopyComTagsContainer*> send_cctc;
 
     send_data.reserve(N_snds);
     send_N   .reserve(N_snds);
     send_rank.reserve(N_snds);
     send_cctc.reserve(N_snds);
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
              m_End = TheSI.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
@@ -1270,9 +1270,9 @@ MultiFab::SumBoundary (int scomp,
 	Real*dptr = send_data[i];
 	BL_ASSERT(dptr != 0);
 
-	const SI::CopyComTagsContainer& cctc = *send_cctc[i];
+	const CopyComTagsContainer& cctc = *send_cctc[i];
 
-        for (SI::CopyComTagsContainer::const_iterator it = cctc.begin();
+        for (CopyComTagsContainer::const_iterator it = cctc.begin();
              it != cctc.end(); ++it)
         {
             BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
@@ -1323,12 +1323,12 @@ MultiFab::SumBoundary (int scomp,
 
     if (N_rcvs > 0)
     {
-	Array<const SI::CopyComTagsContainer*> recv_cctc;
+	Array<const CopyComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
 
         for (int k = 0; k < N_rcvs; k++)
         {
-            SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[k]);
+            MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[k]);
             BL_ASSERT(m_it != TheSI.m_SndTags->end());
 
 	    recv_cctc.push_back(&(m_it->second));
@@ -1351,9 +1351,9 @@ MultiFab::SumBoundary (int scomp,
 		const Real* dptr = recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
-		const SI::CopyComTagsContainer& cctc = *recv_cctc[k];
+		const CopyComTagsContainer& cctc = *recv_cctc[k];
 		
-		for (SI::CopyComTagsContainer::const_iterator it = cctc.begin();
+		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
 		    BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());

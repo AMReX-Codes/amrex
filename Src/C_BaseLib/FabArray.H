@@ -178,6 +178,11 @@ public:
         typedef std::map<int,CopyComTagsContainer> MapOfCopyComTagContainers;
     };
     //
+    // Some useful typedefs.
+    //
+    typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
+    typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
+    //
     // Used in caching self-intersection info for FillBoundary().
     //
     struct SI
@@ -195,12 +200,6 @@ public:
         bool operator!= (const SI& rhs) const { return !operator==(rhs); }
 
         int bytes () const;
-        //
-        // Some useful typedefs.
-        //
-        typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-
-        typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
         //
         // Basic data.
         //
@@ -258,12 +257,6 @@ public:
         bool                m_reused;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
-        //
-        // Some useful typedefs.
-        //
-        typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-
-        typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
         //
         // The cache of local and send/recv info per FabArray::copy().
         //
@@ -360,6 +353,10 @@ protected:
     Array<int>          indexMap;
     int                 n_grow;
     int                 n_comp;
+
+private:
+    static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
+    static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
 };
 
 class MFIter
@@ -1441,17 +1438,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	// 
 	const int N_snds = thecpc.m_SndTags->size();
 
-	Array<value_type*>                      send_data;
-	Array<int>                              send_N;
-	Array<int>                              send_rank;
-	Array<const CPC::CopyComTagsContainer*> send_cctc;
+	Array<value_type*>                 send_data;
+	Array<int>                         send_N;
+	Array<int>                         send_rank;
+	Array<const CopyComTagsContainer*> send_cctc;
 
 	send_data.reserve(N_snds);
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
 	send_cctc.reserve(N_snds);
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
+        for (MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_SndTags->begin(),
                  m_End = thecpc.m_SndTags->end();
              m_it != m_End;
              ++m_it)
@@ -1480,9 +1477,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    value_type* dptr = send_data[j];
 	    BL_ASSERT(dptr != 0);
 
-	    const CPC::CopyComTagsContainer& cctc = *send_cctc[j];
+	    const CopyComTagsContainer& cctc = *send_cctc[j];
 
-            for (CPC::CopyComTagsContainer::const_iterator it = cctc.begin();
+            for (CopyComTagsContainer::const_iterator it = cctc.begin();
                  it != cctc.end(); ++it)
             {
                 const Box& bx = it->box;
@@ -1539,12 +1536,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 	if (N_rcvs > 0)
 	{
-	    Array<const CPC::CopyComTagsContainer*> recv_cctc;
+	    Array<const CopyComTagsContainer*> recv_cctc;
 	    recv_cctc.reserve(N_rcvs);
 
 	    for (int k = 0; k < N_rcvs; k++)
 	    {
-		CPC::MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
+		MapOfCopyComTagContainers::const_iterator m_it = thecpc.m_RcvTags->find(recv_from[k]);
 		BL_ASSERT(m_it != thecpc.m_RcvTags->end());
 	    
 		recv_cctc.push_back(&(m_it->second));
@@ -1567,9 +1564,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		const value_type* dptr = recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
-		const CPC::CopyComTagsContainer& cctc = *recv_cctc[k];
+		const CopyComTagsContainer& cctc = *recv_cctc[k];
 		
-		for (CPC::CopyComTagsContainer::const_iterator it = cctc.begin();
+		for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
 		    const Box& bx  = it->box;
@@ -2474,17 +2471,17 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     const int N_snds = TheSI.m_SndTags->size();
 
-    Array<value_type*>                     send_data;
-    Array<int>                             send_N;
-    Array<int>                             send_rank;
-    Array<const SI::CopyComTagsContainer*> send_cctc;
+    Array<value_type*>                 send_data;
+    Array<int>                         send_N;
+    Array<int>                         send_rank;
+    Array<const CopyComTagsContainer*> send_cctc;
     
     send_data.reserve(N_snds);
     send_N   .reserve(N_snds);
     send_rank.reserve(N_snds);
     send_cctc.reserve(N_snds);
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
+    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
              m_End = TheSI.m_SndTags->end();
          m_it != m_End;
          ++m_it)
@@ -2513,9 +2510,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
 	value_type* dptr = send_data[i];
 	BL_ASSERT(dptr != 0);
 
-	const SI::CopyComTagsContainer& cctc = *send_cctc[i];
+	const CopyComTagsContainer& cctc = *send_cctc[i];
 
-	for (SI::CopyComTagsContainer::const_iterator it = cctc.begin();
+	for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
         {
             BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
@@ -2567,12 +2564,12 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     if (N_rcvs > 0)
     {
-	Array<const SI::CopyComTagsContainer*> recv_cctc;
+	Array<const CopyComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
+	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    
 	    recv_cctc.push_back(&(m_it->second));
@@ -2589,9 +2586,9 @@ FabArray<FAB>::FillBoundary (int  scomp,
 	    value_type*  dptr = recv_data[k];
 	    BL_ASSERT(dptr != 0);
 
-	    const SI::CopyComTagsContainer& cctc = *recv_cctc[k];
+	    const CopyComTagsContainer& cctc = *recv_cctc[k];
 
-	    for (SI::CopyComTagsContainer::const_iterator it = cctc.begin();
+	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
 	    {
 		const Box& bx  = it->box;

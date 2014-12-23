@@ -483,6 +483,12 @@ private:
 
     static bool check_for_nan;
     static bool check_for_inf;
+
+    //
+    // Some useful typedefs.
+    //
+    typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
+    typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 };
 
 class MultiFabCopyDescriptor
