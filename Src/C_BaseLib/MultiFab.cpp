@@ -1344,7 +1344,7 @@ MultiFab::SumBoundary (int scomp,
 	    FArrayBox fab;
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
