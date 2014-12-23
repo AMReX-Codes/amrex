@@ -335,6 +335,86 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
     TheCPC.m_srcba.clear_hash_bin();
 
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    bool tsall;
+
+    // local work
+    int N_loc = (*TheCPC.m_LocTags).size();
+    if (N_loc > 0) {
+	tsall = true;
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_loc-1; ++i) {
+		if (tsthis) {
+		    const CopyComTag& tagi = (*TheCPC.m_LocTags)[i];
+		    for (int j=i+1; j<N_loc; ++j) {
+			const CopyComTag& tagj = (*TheCPC.m_LocTags)[j];
+			if ( tagi.fabIndex == tagj.fabIndex &&
+			     tagi.box.intersects(tagj.box) ) {
+			    tsthis = false;
+			    break;
+			}
+		    }
+		}
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheCPC.m_threadsafe_loc = tsall;
+    }
+
+    // receiving from remote processors
+    const int N_rcvs = TheCPC.m_RcvTags->size();
+    if (N_rcvs > 0) {
+	tsall = true;
+	
+	Array<const CPC::CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+	
+	for (CPC::MapOfCopyComTagContainers::const_iterator m_it = TheCPC.m_RcvTags->begin(),
+		 m_End = TheCPC.m_RcvTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    recv_cctc.push_back(&(m_it->second));
+	}
+	
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_rcvs-1; ++i) {
+		if (tsthis) {
+		    const CPC::CopyComTagsContainer& cctci = *recv_cctc[i];
+		    for (CPC::CopyComTagsContainer::const_iterator iti = cctci.begin();
+			 iti != cctci.end(); ++iti)
+		    {
+			for (int j=i+1; j<N_rcvs; ++j) {
+			    const CPC::CopyComTagsContainer& cctcj = *recv_cctc[j];
+			    for (CPC::CopyComTagsContainer::const_iterator itj = cctcj.begin();
+				 itj != cctcj.end(); ++itj)
+			    {
+				if ( iti->fabIndex == itj->fabIndex &&
+				     (iti->box).intersects(itj->box) ) {
+				    tsthis = false;
+				    goto labelCPC;
+				}
+			    }			    
+			}
+		    }
+		}
+	    labelCPC: ;
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheCPC.m_threadsafe_rcv = tsall;
+    }
+#endif	
+
     return cache_it;
 }
 
@@ -656,6 +736,86 @@ FabArrayBase::TheFB (bool                cross,
     }
 
     ba.clear_hash_bin();
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    bool tsall;
+
+    // local work
+    int N_loc = (*TheFB.m_LocTags).size();
+    if (N_loc > 0) {
+	tsall = true;
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_loc-1; ++i) {
+		if (tsthis) {
+		    const CopyComTag& tagi = (*TheFB.m_LocTags)[i];
+		    for (int j=i+1; j<N_loc; ++j) {
+			const CopyComTag& tagj = (*TheFB.m_LocTags)[j];
+			if ( tagi.fabIndex == tagj.fabIndex &&
+			     tagi.box.intersects(tagj.box) ) {
+			    tsthis = false;
+			    break;
+			}
+		    }
+		}
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheFB.m_threadsafe_loc = tsall;
+    }
+
+    // receiving from remote processors
+    const int N_rcvs = TheFB.m_RcvTags->size();
+    if (N_rcvs > 0) {
+	tsall = true;
+	
+	Array<const CPC::CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+	
+	for (CPC::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),
+		 m_End = TheFB.m_RcvTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    recv_cctc.push_back(&(m_it->second));
+	}
+	
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_rcvs-1; ++i) {
+		if (tsthis) {
+		    const CPC::CopyComTagsContainer& cctci = *recv_cctc[i];
+		    for (CPC::CopyComTagsContainer::const_iterator iti = cctci.begin();
+			 iti != cctci.end(); ++iti)
+		    {
+			for (int j=i+1; j<N_rcvs; ++j) {
+			    const CPC::CopyComTagsContainer& cctcj = *recv_cctc[j];
+			    for (CPC::CopyComTagsContainer::const_iterator itj = cctcj.begin();
+				 itj != cctcj.end(); ++itj)
+			    {
+				if ( iti->fabIndex == itj->fabIndex &&
+				     (iti->box).intersects(itj->box) ) {
+				    tsthis = false;
+				    goto labelFB;
+				}
+			    }			    
+			}
+		    }
+		}
+	    labelFB: ;
+	    }
+	    tsall = tsall && tsthis;
+	}
+	TheFB.m_threadsafe_rcv = tsall;
+    }
+#endif	
 
     return cache_it;
 }
