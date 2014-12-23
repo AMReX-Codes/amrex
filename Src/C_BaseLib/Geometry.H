@@ -238,6 +238,8 @@ public:
         int                 m_ngrow;
         bool                m_do_corners;
         bool                m_reused;
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
         //
         // Some useful typedefs.
         //
@@ -326,10 +328,6 @@ namespace BoxLib
 
         const Geometry::FPB& TheFPB = cache_it->second;
 
-#ifdef _OPENMP
-	const bool cc = mf.boxArray()[0].cellCentered();
-#endif
-
         if (ParallelDescriptor::NProcs() == 1)
         {
             //
@@ -337,7 +335,7 @@ namespace BoxLib
             //
 	    int N_loc = (*TheFPB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
 #endif
 	    for (int i=0; i<N_loc; ++i)
 	    {
@@ -411,7 +409,7 @@ namespace BoxLib
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for
 #endif
 	for (int i=0; i<N_snds; ++i)
 	{
@@ -451,7 +449,7 @@ namespace BoxLib
         //
 	int N_loc = (*TheFPB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
 	{
@@ -485,7 +483,7 @@ namespace BoxLib
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
 #endif
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
