@@ -209,6 +209,8 @@ public:
         int                 m_ngrow;
         bool                m_cross;
         bool                m_reused;
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
         //
         // The cache of local and send/recv per FillBoundary().
         //
@@ -254,6 +256,8 @@ public:
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
         bool                m_reused;
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
         //
         // Some useful typedefs.
         //
@@ -1374,10 +1378,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const CPC& thecpc = cache_it->second;
 
-#ifdef _OPENMP
-    const bool cc = boxArray()[0].cellCentered();
-#endif
-
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
@@ -1385,7 +1385,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (thecpc.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -1515,7 +1515,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (thecpc.m_threadsafe_loc)
 #endif
 	for (int j=0; j<N_loc; ++j)
         {
@@ -1554,7 +1554,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
-#pragma omp parallel if (cc)
+#pragma omp parallel if (thecpc.m_threadsafe_rcv)
 #endif
         {
 	    FAB fab;
@@ -2423,10 +2423,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-#ifdef _OPENMP
-    const bool cc = boxArray()[0].cellCentered();
-#endif
-
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
@@ -2434,7 +2430,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
         //
 	int N_loc = (*TheSI.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -2551,7 +2547,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     int N_loc = (*TheSI.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
     for (int i=0; i<N_loc; ++i)
     {
@@ -2586,7 +2582,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 
 #ifdef _OPENMP
-#pragma omp parallel for if (cc)
+#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
 #endif
 	for (int k = 0; k < N_rcvs; k++) 
 	{
