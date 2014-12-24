@@ -669,8 +669,13 @@ FabArrayBase::TheFB (bool                cross,
     // set thread safety
     //
 #ifdef _OPENMP
-    TheFB.m_threadsafe_loc = LocThreadSafety(TheFB.m_LocTags);
-    TheFB.m_threadsafe_rcv = RcvThreadSafety(TheFB.m_RcvTags);
+    if (ba[0].cellCentered()) {
+	TheFB.m_threadsafe_loc = true;
+	TheFB.m_threadsafe_rcv = true;
+    } else {
+	TheFB.m_threadsafe_loc = false;
+	TheFB.m_threadsafe_rcv = false;
+    }
 #endif
 
     return cache_it;
