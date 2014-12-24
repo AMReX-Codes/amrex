@@ -2789,7 +2789,7 @@ contains
 
     call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc) if (bxasc%l_con%threadsafe)
+    ! unsafe to do OMP
     do i = 1, bxasc%l_con%ncpy
        ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2797,7 +2797,6 @@ contains
        psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call sum_d(pdst,psrc)
     end do
-    !$OMP END PARALLEL DO
 
     np = parallel_nprocs()
 
@@ -2824,7 +2823,7 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (bxasc%r_con%threadsafe)
+    ! unsafe to do OMP
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc

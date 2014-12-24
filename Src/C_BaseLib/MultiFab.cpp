@@ -1190,9 +1190,7 @@ MultiFab::SumBoundary (int scomp,
         // There can only be local work to do.
         //
 	int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
+	// undafe to do OMP
 	for (int i=0; i<N_loc; ++i)
         {
             const CopyComTag& tag = (*TheSI.m_LocTags)[i];
@@ -1303,9 +1301,7 @@ MultiFab::SumBoundary (int scomp,
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
     int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
+    // undafe to do OMP
     for (int i=0; i<N_loc; ++i)
     {
         const CopyComTag& tag = (*TheSI.m_LocTags)[i];
@@ -1337,15 +1333,10 @@ MultiFab::SumBoundary (int scomp,
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 
-#ifdef _OPENMP
-#pragma omp parallel if (TheSI.m_threadsafe_rcv)
-#endif
+	// unsafe to do OMP
 	{
 	    FArrayBox fab;
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
 		const Real* dptr = recv_data[k];

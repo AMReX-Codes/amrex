@@ -1501,9 +1501,12 @@ contains
        end if
     end do
 
-    if (omp_get_max_threads() > 1 .and. .not.anynodal) then
-       call local_conn_set_threadsafety(bxasc%l_con)
-       call remote_conn_set_threadsafety(bxasc%r_con)
+    if (anynodal) then
+       bxasc%l_con%threadsafe = .false.
+       bxasc%r_con%threadsafe = .false.
+    else
+       bxasc%l_con%threadsafe = .true.
+       bxasc%r_con%threadsafe = .true.
     end if
 
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
