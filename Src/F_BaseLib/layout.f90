@@ -1501,7 +1501,7 @@ contains
        end if
     end do
 
-    if (omp_get_max_threads() > 1) then
+    if (omp_get_max_threads() > 1 .and. .not.anynodal) then
        call local_conn_set_threadsafety(bxasc%l_con)
        call remote_conn_set_threadsafety(bxasc%r_con)
     end if
