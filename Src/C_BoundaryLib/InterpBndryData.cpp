@@ -122,6 +122,9 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     for (int n = bnd_start; n < bnd_start+num_comp; ++n)
 	setBndryConds(bc, ref_ratio, n);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         BL_ASSERT(grids[mfi.index()] == mfi.validbox());

@@ -440,14 +440,19 @@ FluxRegister::CrseInit (const MultiFab& mflx,
  
     MultiFab mf(mflx.boxArray(),numcomp,0);
 
-    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
+    for (MFIter mfi(mflx,true); mfi.isValid(); ++mfi)
     {
-        mf[mfi].copy(mflx[mfi],srccomp,0,numcomp);
+	const Box& bx = mfi.tilebox();
+	
+        mf[mfi].copy(mflx[mfi],bx,srccomp,bx,0,numcomp);
 
-        mf[mfi].mult(mult,0,numcomp);
+        mf[mfi].mult(mult,bx,0,numcomp);
 
         for (int i = 0; i < numcomp; i++)
-            mf[mfi].mult(area[mfi],0,i,1);
+            mf[mfi].mult(area[mfi],bx,bx,0,i,1);
     }
 
     for (int pass = 0; pass < 2; pass++)
