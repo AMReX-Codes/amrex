@@ -213,8 +213,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
             if (TheDomain.contains(dst)) continue;
 
-	    int threading = 0;  // must be 0 for this MFIter is inside another MFIter
-            for (MFIter mfisrc(mf,threading); mfisrc.isValid(); ++mfisrc)
+	    int sharing = 0;  // must be 0 to turn off work sharing for this MFIter is inside another MFIter
+            for (MFIter mfisrc(mf,sharing); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;
 

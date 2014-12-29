@@ -366,11 +366,11 @@ public:
     // Construct a MFIter.
     //
     // no tiling
-    explicit MFIter (const FabArrayBase& fabarray, int threading=1);
+    explicit MFIter (const FabArrayBase& fabarray, int sharing=1);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int threading=1); 
+    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int sharing=1); 
     // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int threading=1);
+    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int sharing=1);
     //
     // Returns the tile Box at the current index.
     //
