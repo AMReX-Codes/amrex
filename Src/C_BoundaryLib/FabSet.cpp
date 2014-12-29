@@ -214,7 +214,7 @@ FabSet::DoIt (const MultiFab& src,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(src,true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(tmpsrc,true); mfi.isValid(); ++mfi) {
 	    const Box& bx = mfi.tilebox();
             tmpsrc[mfi].copy(src[mfi], bx, scomp, bx, 0, ncomp);
 	}
