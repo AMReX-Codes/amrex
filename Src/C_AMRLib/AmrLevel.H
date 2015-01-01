@@ -497,6 +497,8 @@ class FillPatchIterator
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
+    MultiFab& get_mf() { return m_fabs; }
+    
   private:
     //
     // Disallowed.
