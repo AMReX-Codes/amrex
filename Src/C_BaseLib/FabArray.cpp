@@ -964,11 +964,10 @@ MFIter::Initialize (int sharing)
 }
 
 Box
-MFIter::fluxbox (int dir) const 
+MFIter::nodalbox (int dir) const 
 { 
     if ( tileArray[currentIndex].type(dir) == IndexType::CELL
-	 && tileArray[currentIndex].bigEnd(dir) 
-	 == validbox().bigEnd(dir) )
+	 && tileArray[currentIndex].bigEnd(dir) == validbox().bigEnd(dir) )
     {
 	Box bx(tileArray[currentIndex]);
 	return bx.growHi(dir,1); 
