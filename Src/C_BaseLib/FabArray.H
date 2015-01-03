@@ -376,9 +376,9 @@ public:
     //
     const Box& tilebox () const { return tileArray[currentIndex]; }
     //
-    // Returns the dir-flux Box at the current index.
+    // Returns the dir-nodal Box at the current index.
     //
-    Box fluxbox (int dir) const;
+    Box nodalbox (int dir) const;
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
