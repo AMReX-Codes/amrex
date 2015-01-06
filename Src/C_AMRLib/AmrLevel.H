@@ -414,6 +414,14 @@ public:
 
 #endif
 
+    static void FillPatch(AmrLevel& amrlevel,
+			  MultiFab& leveldata,
+			  int       boxGrow,
+			  Real      time,
+			  int       index,
+			  int       scomp,
+			  int       ncomp);
+    
 protected:
     //
     // The constructors -- for derived classes.

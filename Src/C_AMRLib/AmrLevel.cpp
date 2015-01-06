@@ -1616,3 +1616,21 @@ void AmrLevel::constructAreaNotToTag()
     }
 }
 
+void
+AmrLevel::FillPatch(AmrLevel& amrlevel,
+		    MultiFab& leveldata,
+		    int       boxGrow,
+		    Real      time,
+		    int       index,
+		    int       scomp,
+		    int       ncomp)
+{
+    FillPatchIterator fpi(amrlevel, leveldata, boxGrow,	time, index, scomp, ncomp);
+    const MultiFab& mf_fillpatched = fpi.get_mf();
+    int ndstcomp = leveldata.nComp();
+    int dstcomp = (ndstcomp == ncomp) ? 0 : scomp;
+    BL_ASSERT(dstcomp+ncomp-1 <= ndstcomp);
+    MultiFab::Copy(leveldata, mf_fillpatched, 0, dstcomp, ncomp, boxGrow);
+}
+
+    
