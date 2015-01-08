@@ -90,6 +90,10 @@ public:
     //
     void tags_and_untags (const Array<int>& ar);
 
+    void get_itags(Array<int>& ar, const Box& tilebx) const;
+    void tags (const Array<int>& ar, const Box& tilebx);
+    void tags_and_untags (const Array<int>& ar, const Box&tilebx);
+
 private:
     //
     // Disallowed.
