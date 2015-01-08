@@ -308,7 +308,7 @@ void
 TagBox::get_itags(Array<int>& ar, const Box& tilebx) const
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -316,7 +316,7 @@ TagBox::get_itags(Array<int>& ar, const Box& tilebx) const
 
     long Ntb = 1, stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	Ntb *= Ltb[idim];
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
@@ -346,7 +346,7 @@ void
 TagBox::tags (const Array<int>& ar, const Box& tilebx)
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -354,7 +354,7 @@ TagBox::tags (const Array<int>& ar, const Box& tilebx)
 
     long stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
@@ -377,7 +377,7 @@ void
 TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
 {
     int Lbx[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
     }
     
@@ -385,7 +385,7 @@ TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
 
     long stb=0;
     int Ltb[] = {1,1,1};
-    for (int idim=0; idim<3; idim++) {
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
 	Ltb[idim] = tilebx.length(idim);
 	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
     }
