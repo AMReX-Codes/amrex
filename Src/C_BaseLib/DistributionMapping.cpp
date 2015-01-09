@@ -234,7 +234,7 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
     Array<long> bytes(nprocs);
-    long thisbyte = BoxLib::total_bytes_allocated_in_fabs/1024;
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
@@ -1241,10 +1241,11 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentBytesUsed()");
 
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
-    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+    MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   bytes.dataPtr(),
@@ -1287,10 +1288,11 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
 
+    long thiscell = BoxLib::TotalCellsAllocatedInFabs();
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
                     BLProfiler::NoTag());
-    MPI_Allgather(&BoxLib::total_cells_allocated_in_fabs,
+    MPI_Allgather(&thiscell,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   cells.dataPtr(),
@@ -2227,7 +2229,9 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
     int nprocs(ParallelDescriptor::NProcs());
     Array<long> bytes(nprocs, 0);
 
-    ParallelDescriptor::Gather(&BoxLib::total_bytes_allocated_in_fabs,
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
+
+    ParallelDescriptor::Gather(&thisbyte,
                                1,
                                bytes.dataPtr(),
                                1,
