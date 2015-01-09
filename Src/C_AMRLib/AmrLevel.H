@@ -420,7 +420,8 @@ public:
 			  Real      time,
 			  int       index,
 			  int       scomp,
-			  int       ncomp);
+			  int       ncomp,
+	                  int       dcomp=0);
     
 protected:
     //

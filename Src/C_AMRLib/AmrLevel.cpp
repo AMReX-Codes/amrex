@@ -1290,7 +1290,7 @@ AmrLevel::derive (const std::string& name,
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
             rec->getRange(k, index, scomp, ncomp);
-            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp);
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
         }
 
         mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
@@ -1365,7 +1365,7 @@ AmrLevel::derive (const std::string& name,
         {
             rec->getRange(k,index,scomp,ncomp);
 
-            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp);
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
         }
 
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
@@ -1595,12 +1595,12 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
 		    Real      time,
 		    int       index,
 		    int       scomp,
-		    int       ncomp)
+		    int       ncomp,
+                    int       dcomp)
 {
+    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
-    int dstcomp = (leveldata.nComp() == ncomp) ? 0 : scomp;
-    BL_ASSERT(dstcomp+ncomp-1 <= leveldata.nComp());
-    BL_ASSERT(boxGrow <= leveldata.nGrow());
-    MultiFab::Copy(leveldata, mf_fillpatched, 0, dstcomp, ncomp, boxGrow);
+    MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
