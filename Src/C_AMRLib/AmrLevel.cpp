@@ -1295,6 +1295,38 @@ AmrLevel::derive (const std::string& name,
 
         mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
 
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(srcMF,true); mfi.isValid(); ++mfi)
+        {
+            int         grid_no = mfi.index();
+            RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
+            Real*       ddat    = (*mf)[mfi].dataPtr();
+            const int*  dlo     = (*mf)[mfi].loVect();
+            const int*  dhi     = (*mf)[mfi].hiVect();
+	    const Box&  gtbx    = mfi.growntilebox();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
+            int         n_der   = rec->numDerive();
+            Real*       cdat    = srcMF[mfi].dataPtr();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
+            int         n_state = rec->numState();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
+            const Real* dx      = geom.CellSize();
+            const int*  bcr     = rec->getBC();
+            const Real* xlo     = gridloc.lo();
+            Real        dt      = parent->dtLevel(level);
+
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&grid_no);
+        }
+#else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
@@ -1319,6 +1351,7 @@ AmrLevel::derive (const std::string& name,
                            dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
                            &level,&grid_no);
         }
+#endif
     }
     else
     {
@@ -1368,6 +1401,38 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
         }
 
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(srcMF,true); mfi.isValid(); ++mfi)
+        {
+            int         idx     = mfi.index();
+            Real*       ddat    = mf[mfi].dataPtr(dcomp);
+            const int*  dlo     = mf[mfi].loVect();
+            const int*  dhi     = mf[mfi].hiVect();
+	    const Box&  gtbx    = mfi.growntilebox();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
+            int         n_der   = rec->numDerive();
+            Real*       cdat    = srcMF[mfi].dataPtr();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
+            int         n_state = rec->numState();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
+            const Real* dx      = geom.CellSize();
+            const int*  bcr     = rec->getBC();
+            const RealBox& temp = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = temp.lo();
+            Real        dt      = parent->dtLevel(level);
+
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&idx);
+        }
+#else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
@@ -1392,6 +1457,7 @@ AmrLevel::derive (const std::string& name,
                            dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
                            &level,&idx);
         }
+#endif
     }
     else
     {
