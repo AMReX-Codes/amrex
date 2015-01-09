@@ -1271,15 +1271,7 @@ AmrLevel::derive (const std::string& name,
     if (isStateVariable(name, index, scomp))
     {
         mf = new MultiFab(state[index].boxArray(), 1, ngrow);
-
-        FillPatchIterator fpi(*this,get_new_data(index),ngrow,time,index,scomp,1);
-
-        for ( ; fpi.isValid(); ++fpi)
-        {
-            BL_ASSERT((*mf)[fpi].box() == fpi().box());
-
-            (*mf)[fpi].copy(fpi());
-        }
+        FillPatch(*this,*mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1298,13 +1290,7 @@ AmrLevel::derive (const std::string& name,
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
             rec->getRange(k, index, scomp, ncomp);
-
-            FillPatchIterator fpi(*this,srcMF,ngrow,time,index,scomp,ncomp);
-
-            for ( ; fpi.isValid(); ++fpi)
-            {
-                srcMF[fpi].copy(fpi(), 0, dc, ncomp);
-            }
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp);
         }
 
         mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
@@ -1361,14 +1347,7 @@ AmrLevel::derive (const std::string& name,
 
     if (isStateVariable(name,index,scomp))
     {
-        FillPatchIterator fpi(*this,mf,ngrow,time,index,scomp,1);
-
-        for ( ; fpi.isValid(); ++fpi)
-        {
-            BL_ASSERT(mf[fpi].box() == fpi().box());
-
-            mf[fpi].copy(fpi(),0,dcomp,1);
-        }
+        FillPatch(*this,mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1386,14 +1365,7 @@ AmrLevel::derive (const std::string& name,
         {
             rec->getRange(k,index,scomp,ncomp);
 
-            FillPatchIterator fpi(*this,srcMF,ngrow,time,index,scomp,ncomp);
-
-            for ( ; fpi.isValid(); ++fpi)
-            {
-                BL_ASSERT(srcMF[fpi].box() == fpi().box());
-
-                srcMF[fpi].copy(fpi(),0,dc,ncomp);
-            }
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp);
         }
 
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
