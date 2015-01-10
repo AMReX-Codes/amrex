@@ -1302,7 +1302,6 @@ AmrLevel::derive (const std::string& name,
         for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
-            RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
             Real*       ddat    = (*mf)[mfi].dataPtr();
             const int*  dlo     = (*mf)[mfi].loVect();
             const int*  dhi     = (*mf)[mfi].hiVect();
@@ -1318,7 +1317,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const Real* xlo     = gridloc.lo();
+            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
             rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
@@ -1423,7 +1423,7 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox& temp = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
+            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
