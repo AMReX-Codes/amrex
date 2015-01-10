@@ -65,7 +65,7 @@ MultiFab::Copy (MultiFab&       dst,
 {
 // don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
 #pragma omp parallel
