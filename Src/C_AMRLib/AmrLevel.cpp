@@ -1299,7 +1299,7 @@ AmrLevel::derive (const std::string& name,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(srcMF,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
             RealBox     gridloc = RealBox(grids[grid_no],geom.CellSize(),geom.ProbLo());
@@ -1405,7 +1405,7 @@ AmrLevel::derive (const std::string& name,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(srcMF,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
