@@ -16,6 +16,9 @@ using std::endl;
 #include <ParallelDescriptor.H>
 #include <TPROFILER_F.H>
 
+#include <FArrayBox.H>
+#include <FabConv.H>
+#include <FPC.H>
 
 // --------------------------------------------------------------
 void Sleep(unsigned int sleeptime) {
@@ -222,12 +225,161 @@ int main(int argc, char *argv[]) {
   BL_PROFILE_VAR_STOP(ptpi);
   cout << "Test fort int time = " << ParallelDescriptor::second() - tpiStart << endl;
 
+  //sleep(1);
+
+/*
+*/
+  Box b(IntVect(0,0), IntVect(80,80));
+  Box b0(IntVect(0,0), IntVect(39,80));
+  Box b1(IntVect(40,0), IntVect(80,80));
+  FArrayBox dfab(b);
+  dfab.setVal(42.0e-128, b0, 0, 1);
+  dfab.setVal(42.0e+128, b1, 0, 1);
+  std::ofstream dfabos("fab.fab");
+  dfab.writeOn(dfabos);
+  dfabos.close();
+
+  FArrayBox::setFormat(FABio::FAB_IEEE_32);
+  FArrayBox sfab(b);
+  sfab.copy(dfab);
+  std::ofstream sfabos("fab_ieee_32.fab");
+  sfab.writeOn(sfabos);
+  sfabos.close();
+
+  FArrayBox::setFormat(FABio::FAB_NATIVE);
+  FArrayBox nfab(b);
+  nfab.copy(dfab);
+  std::ofstream nfabos("fab_native.fab");
+  nfab.writeOn(nfabos);
+  nfabos.close();
+
+  FArrayBox::setFormat(FABio::FAB_NATIVE_32);
+  FArrayBox n32fab(b);
+  n32fab.copy(dfab);
+  std::ofstream n32fabos("fab_native32.fab");
+  n32fab.writeOn(n32fabos);
+  n32fabos.close();
+
+  cout << "minmax double = " << std::numeric_limits<double>::min()
+       << "  " << std::numeric_limits<double>::max() << endl;
+  cout << "minmax float  = " << std::numeric_limits<float>::min()
+       << "  " << std::numeric_limits<float>::max() << endl;
+
+  int nTimes(100);
+  long nPts(128 * 128 * 128);
+  Array<Real> nativeVals(nPts);
+  Array<float> floatVals(nPts);
+  Real nMin(std::numeric_limits<Real>::max());
+  Real nMax(-std::numeric_limits<Real>::max());
+  float fMin(std::numeric_limits<float>::max());
+  float fMax(-std::numeric_limits<float>::max());
+  unsigned int rint(std::numeric_limits<unsigned int>::max());
+  cout << "rint = " << rint << endl;
+
+  for(int i(0); i < nPts; ++i) {
+    int ri(BoxLib::Random_int(rint));
+    nativeVals[i] = ri;
+    if(i == 0) {
+      nativeVals[i] = 1.234e+123;
+    }
+    if(i == 1) {
+      nativeVals[i] = 2.341e-231;
+    }
+    if(i < 256) {
+      cout << "nativeVals[" << i << "] = " << nativeVals[i] << endl;
+    }
+    nMin = std::min(nMin, nativeVals[i]);
+    nMax = std::max(nMax, nativeVals[i]);
+  }
+  cout << "nMin nMax = " << nMin << "  " << nMax << endl;
+
+  RealDescriptor rdNative(FPC::NativeRealDescriptor());
+  cout << "rdNative = " << rdNative << endl;
+  RealDescriptor rdIEEE32(FPC::Ieee32NormalRealDescriptor());
+  cout << "rdIEEE32 = " << rdIEEE32 << endl;
+  RealDescriptor rdNative32(FPC::ieee_float, FPC::reverse_float_order, 4);
+  cout << "rdNative32 = " << rdNative32 << endl;
+  RealDescriptor n32RD(FPC::Native32RealDescriptor());
+  cout << "n32RD = " << n32RD << endl;
+
+/*
+// ----
+  BL_PROFILE_VAR("TestPD_convert_native", tpdcnative);
+  for(int nt(0); nt < nTimes; ++nt) {
+    RealDescriptor::convertFromNativeFormat(floatVals.dataPtr(), nPts,
+                                            nativeVals.dataPtr(), rdNative32);
+  }
+  BL_PROFILE_VAR_STOP(tpdcnative);
+
+  fMin = std::numeric_limits<float>::max();
+  fMax = -std::numeric_limits<float>::max();
+  for(int i(0); i < nPts; ++i) {
+    fMin = std::min(fMin, floatVals[i]);
+    fMax = std::max(fMax, floatVals[i]);
+  }
+  cout << "after TestPD_convert_native:  fMin fMax = " << fMin << "  " << fMax << endl;
+
+  // ----
+  BL_PROFILE_VAR("TestPD_convert", tpdc);
+  for(int nt(0); nt < nTimes; ++nt) {
+    RealDescriptor::convertFromNativeFormat(floatVals.dataPtr(), nPts,
+                                            nativeVals.dataPtr(), rdIEEE32);
+  }
+  BL_PROFILE_VAR_STOP(tpdc);
+
+  fMin = std::numeric_limits<float>::max();
+  fMax = -std::numeric_limits<float>::max();
+  for(int i(0); i < nPts; ++i) {
+    fMin = std::min(fMin, floatVals[i]);
+    fMax = std::max(fMax, floatVals[i]);
+  }
+  cout << "after TestPD_convert:  fMin fMax = " << fMin << "  " << fMax << endl;
+*/
+
+  // ----
+  BL_PROFILE_VAR("TestPD_convert_native32", tpdcn32);
+  for(int nt(0); nt < nTimes; ++nt) {
+    RealDescriptor::convertFromNativeFormat(floatVals.dataPtr(), nPts,
+                                            nativeVals.dataPtr(), n32RD);
+  }
+  BL_PROFILE_VAR_STOP(tpdcn32);
+
+  fMin = std::numeric_limits<float>::max();
+  fMax = -std::numeric_limits<float>::max();
+  for(int i(0); i < nPts; ++i) {
+    fMin = std::min(fMin, floatVals[i]);
+    fMax = std::max(fMax, floatVals[i]);
+  }
+  cout << "after TestPD_convert_native32:  fMin fMax = " << fMin << "  " << fMax << endl;
+
+  // ----
+  BL_PROFILE_VAR("TestCast_convert", tcc);
+  for(int nt(0); nt < nTimes; ++nt) {
+    for(int i(0); i < nPts; ++i) {
+      floatVals[i] = nativeVals[i];
+    }
+  }
+  BL_PROFILE_VAR_STOP(tcc);
+
+  fMin = std::numeric_limits<float>::max();
+  fMax = -std::numeric_limits<float>::max();
+  for(int i(0); i < nPts; ++i) {
+    fMin = std::min(fMin, floatVals[i]);
+    fMax = std::max(fMax, floatVals[i]);
+  }
+  cout << "after TestCast_convert:  fMin fMax = " << fMin << "  " << fMax << endl;
+
+
+
   BL_PROFILE_VAR_STOP(pmain);
   BL_PROFILE_REGION_STOP("R::main");
-  //sleep(1);
 
   BL_PROFILE_FINALIZE();
   BoxLib::Finalize();
 }
+
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+
+
+
