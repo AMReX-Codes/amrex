@@ -33,14 +33,19 @@ class BLProfiler
 
     struct CallStats {
       CallStats() : callStackDepth(-2), csFNameNumber(-2),
-                    nCalls(0), totalTime(0.0),
+                    nCSCalls(0), totalTime(0.0),
 		    stackTime(0.0), callTime(0.0)  { }
       CallStats(int depth, int fnamenumber) : callStackDepth(depth),
                                               csFNameNumber(fnamenumber),
-                                              nCalls(0), totalTime(0.0),
+                                              nCSCalls(0), totalTime(0.0),
 					      stackTime(0.0), callTime(0.0)  { }
+      CallStats(int depth, int fnamenumber, int ncalls, Real totaltime,
+                Real stacktime, Real calltime) : callStackDepth(depth),
+                                                 csFNameNumber(fnamenumber),
+                                                 nCSCalls(ncalls), totalTime(totaltime),
+					         stackTime(stacktime), callTime(calltime)  { }
       int callStackDepth, csFNameNumber;
-      long nCalls;
+      long nCSCalls;
       Real totalTime, stackTime, callTime;
 
       static int cstatsVersion;
