@@ -372,6 +372,9 @@ FArrayBox::setFormat (FABio::Format fmt)
     case FABio::FAB_IEEE_32:
         fio = new FABio_binary(FPC::Ieee32NormalRealDescriptor().clone());
         break;
+    case FABio::FAB_NATIVE_32:
+        fio = new FABio_binary(FPC::Native32RealDescriptor().clone());
+        break;
     default:
         std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         BoxLib::Abort();
@@ -476,6 +479,11 @@ FArrayBox::Initialize ()
         {
             FArrayBox::format = FABio::FAB_NATIVE;
             fio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+        }
+        else if (fmt == "NATIVE_32")
+        {
+            FArrayBox::format = FABio::FAB_NATIVE_32;
+            fio = new FABio_binary(FPC::Native32RealDescriptor().clone());
         }
         else if (fmt == "IEEE" || fmt == "IEEE32")
         {
@@ -662,6 +670,7 @@ FABio::read_header (std::istream& is,
         case FABio::FAB_ASCII: fio = new FABio_ascii; break;
         case FABio::FAB_8BIT:  fio = new FABio_8bit;  break;
         case FABio::FAB_NATIVE:
+        case FABio::FAB_NATIVE_32:
         case FABio::FAB_IEEE:
             rd = RealDescriptor::newRealDescriptor(typ_in,
                                                    wrd_in,
@@ -743,6 +752,7 @@ FABio::read_header (std::istream& is,
         case FABio::FAB_ASCII: fio = new FABio_ascii; break;
         case FABio::FAB_8BIT:  fio = new FABio_8bit;  break;
         case FABio::FAB_NATIVE:
+        case FABio::FAB_NATIVE_32:
         case FABio::FAB_IEEE:
             rd = RealDescriptor::newRealDescriptor(typ_in,
                                                    wrd_in,
