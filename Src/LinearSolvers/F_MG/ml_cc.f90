@@ -425,7 +425,6 @@ contains
              ! Compute Res = Res - Lap(uu)
              call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                             mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
-             call bl_proffortfuncstop("ml_cc:defectUpV")
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
