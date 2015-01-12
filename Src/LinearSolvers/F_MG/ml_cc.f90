@@ -569,8 +569,6 @@ contains
 
        enddo
 
-    call bl_proffortfuncstop("ml_cc:1.1")
-
        ! if status==0, but not solved then we ran out of iterations
        ! Set status to (neg)num_iters
        if ( present(status) ) then 
@@ -610,6 +608,8 @@ contains
        end if
 
     end if
+
+    call bl_proffortfuncstop("ml_cc:1.1")
 
     if (solved) then
        do n = 1,nlevs
