@@ -414,6 +414,15 @@ public:
 
 #endif
 
+    static void FillPatch(AmrLevel& amrlevel,
+			  MultiFab& leveldata,
+			  int       boxGrow,
+			  Real      time,
+			  int       index,
+			  int       scomp,
+			  int       ncomp,
+	                  int       dcomp=0);
+    
 protected:
     //
     // The constructors -- for derived classes.
@@ -497,6 +506,8 @@ class FillPatchIterator
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
+    MultiFab& get_mf() { return m_fabs; }
+    
   private:
     //
     // Disallowed.

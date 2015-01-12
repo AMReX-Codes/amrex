@@ -922,14 +922,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         CrseFabs.resize(NC,PArrayManage);
 
+        for (int i = 0; i < NC; i++)
+        {
+            BL_ASSERT(CrseBoxes[i].ok());
+            CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
         for (int i = 0; i < NC; i++)
         {
-            BL_ASSERT(CrseBoxes[i].ok());
-
-            CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
             //
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
@@ -1268,15 +1271,7 @@ AmrLevel::derive (const std::string& name,
     if (isStateVariable(name, index, scomp))
     {
         mf = new MultiFab(state[index].boxArray(), 1, ngrow);
-
-        FillPatchIterator fpi(*this,get_new_data(index),ngrow,time,index,scomp,1);
-
-        for ( ; fpi.isValid(); ++fpi)
-        {
-            BL_ASSERT((*mf)[fpi].box() == fpi().box());
-
-            (*mf)[fpi].copy(fpi());
-        }
+        FillPatch(*this,*mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1295,17 +1290,43 @@ AmrLevel::derive (const std::string& name,
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
             rec->getRange(k, index, scomp, ncomp);
-
-            FillPatchIterator fpi(*this,srcMF,ngrow,time,index,scomp,ncomp);
-
-            for ( ; fpi.isValid(); ++fpi)
-            {
-                srcMF[fpi].copy(fpi(), 0, dc, ncomp);
-            }
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
         }
 
         mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
 
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
+        {
+            int         grid_no = mfi.index();
+            Real*       ddat    = (*mf)[mfi].dataPtr();
+            const int*  dlo     = (*mf)[mfi].loVect();
+            const int*  dhi     = (*mf)[mfi].hiVect();
+	    const Box&  gtbx    = mfi.growntilebox();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
+            int         n_der   = rec->numDerive();
+            Real*       cdat    = srcMF[mfi].dataPtr();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
+            int         n_state = rec->numState();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
+            const Real* dx      = geom.CellSize();
+            const int*  bcr     = rec->getBC();
+            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = temp.lo();
+            Real        dt      = parent->dtLevel(level);
+
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&grid_no);
+        }
+#else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
@@ -1330,6 +1351,7 @@ AmrLevel::derive (const std::string& name,
                            dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
                            &level,&grid_no);
         }
+#endif
     }
     else
     {
@@ -1358,14 +1380,7 @@ AmrLevel::derive (const std::string& name,
 
     if (isStateVariable(name,index,scomp))
     {
-        FillPatchIterator fpi(*this,mf,ngrow,time,index,scomp,1);
-
-        for ( ; fpi.isValid(); ++fpi)
-        {
-            BL_ASSERT(mf[fpi].box() == fpi().box());
-
-            mf[fpi].copy(fpi(),0,dcomp,1);
-        }
+        FillPatch(*this,mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1383,16 +1398,41 @@ AmrLevel::derive (const std::string& name,
         {
             rec->getRange(k,index,scomp,ncomp);
 
-            FillPatchIterator fpi(*this,srcMF,ngrow,time,index,scomp,ncomp);
-
-            for ( ; fpi.isValid(); ++fpi)
-            {
-                BL_ASSERT(srcMF[fpi].box() == fpi().box());
-
-                srcMF[fpi].copy(fpi(),0,dc,ncomp);
-            }
+            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
         }
 
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        {
+            int         idx     = mfi.index();
+            Real*       ddat    = mf[mfi].dataPtr(dcomp);
+            const int*  dlo     = mf[mfi].loVect();
+            const int*  dhi     = mf[mfi].hiVect();
+	    const Box&  gtbx    = mfi.growntilebox();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
+            int         n_der   = rec->numDerive();
+            Real*       cdat    = srcMF[mfi].dataPtr();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
+            int         n_state = rec->numState();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
+            const Real* dx      = geom.CellSize();
+            const int*  bcr     = rec->getBC();
+            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = temp.lo();
+            Real        dt      = parent->dtLevel(level);
+
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&idx);
+        }
+#else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
@@ -1417,6 +1457,7 @@ AmrLevel::derive (const std::string& name,
                            dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
                            &level,&idx);
         }
+#endif
     }
     else
     {
@@ -1613,3 +1654,19 @@ void AmrLevel::constructAreaNotToTag()
     }
 }
 
+void
+AmrLevel::FillPatch(AmrLevel& amrlevel,
+		    MultiFab& leveldata,
+		    int       boxGrow,
+		    Real      time,
+		    int       index,
+		    int       scomp,
+		    int       ncomp,
+                    int       dcomp)
+{
+    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
+    FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
+    const MultiFab& mf_fillpatched = fpi.get_mf();
+    MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
+}

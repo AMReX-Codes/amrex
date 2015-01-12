@@ -7,7 +7,6 @@
 //
 bool    FabArrayBase::Verbose;
 bool    FabArrayBase::do_async_sends;
-bool    FabArrayBase::do_random_shuffle;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
@@ -36,7 +35,6 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::Verbose           = true;
     FabArrayBase::do_async_sends    = true;
-    FabArrayBase::do_random_shuffle = false;
     FabArrayBase::MaxComp           = 25;
 
     copy_cache_max_size = 25;
@@ -52,7 +50,6 @@ FabArrayBase::Initialize ()
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
-    pp.query("do_random_shuffle",   FabArrayBase::do_random_shuffle);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //
@@ -90,6 +87,8 @@ FabArrayBase::fabbox (int K) const
 FabArrayBase::CPC::CPC ()
     :
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -106,6 +105,8 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_dstdm(dstdm),
     m_srcdm(srcdm),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -191,6 +192,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
                       const FabArrayBase& src)
 {
+    BL_PROFILE("FabArrayBase::TheCPC()");
+
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
     // We want to choose our keys wisely to minimize search time.
@@ -312,25 +315,33 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     //
     // Squeeze out any unused memory ...
     //
-    CPC::CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
+    CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
 
     TheCPC.m_LocTags->swap(tmp);
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
     TheCPC.m_srcba.clear_hash_bin();
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    TheCPC.m_threadsafe_loc = LocThreadSafety(TheCPC.m_LocTags);
+    TheCPC.m_threadsafe_rcv = RcvThreadSafety(TheCPC.m_RcvTags);
+#endif
 
     return cache_it;
 }
@@ -381,6 +392,8 @@ FabArrayBase::SI::SI ()
     m_ngrow(-1),
     m_cross(false),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -397,6 +410,8 @@ FabArrayBase::SI::SI (const BoxArray&            ba,
     m_ngrow(ngrow),
     m_cross(cross),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -438,7 +453,7 @@ FabArrayBase::SI::bytes () const
 
         cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
                  m_End = m_SndTags->end();
              it != m_End;
              ++it)
@@ -453,7 +468,7 @@ FabArrayBase::SI::bytes () const
 
         cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
                  m_End = m_RcvTags->end();
              it != m_End;
              ++it)
@@ -481,6 +496,8 @@ FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
 {
+    BL_PROFILE("FabArray::TheFB");
+
     BL_ASSERT(mf.size() > 0);
 
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
@@ -595,8 +612,8 @@ FabArrayBase::TheFB (bool                cross,
 
             for (int j = 0, M = isects.size(); j < M; j++)
             {
-                const Box& bx        = isects[j].second;
                 const int  k         = isects[j].first;
+                const Box& bx        = isects[j].second;
                 const int  src_owner = dm[k];
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
@@ -628,25 +645,38 @@ FabArrayBase::TheFB (bool                cross,
     //
     // Squeeze out any unused memory ...
     //
-    CPC::CopyComTagsContainer tmp(*TheFB.m_LocTags); 
+    CopyComTagsContainer tmp(*TheFB.m_LocTags); 
 
     TheFB.m_LocTags->swap(tmp);
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
     ba.clear_hash_bin();
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    if (ba[0].cellCentered()) {
+	TheFB.m_threadsafe_loc = true;
+	TheFB.m_threadsafe_rcv = true;
+    } else {
+	TheFB.m_threadsafe_loc = false;
+	TheFB.m_threadsafe_rcv = false;
+    }
+#endif
 
     return cache_it;
 }
@@ -701,17 +731,103 @@ FabArrayBase::SICacheSize ()
     return m_TheFBCache.size();
 }
 
+bool
+FabArrayBase::LocThreadSafety(const CopyComTagsContainer* LocTags)
+{
+#ifdef _OPENMP
+    bool tsall = true;
+    int N_loc = (*LocTags).size();
+    if (N_loc > 0) {
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_loc-1; ++i) {
+		if (tsthis) {
+		    const CopyComTag& tagi = (*LocTags)[i];
+		    for (int j=i+1; j<N_loc; ++j) {
+			const CopyComTag& tagj = (*LocTags)[j];
+			if ( tagi.fabIndex == tagj.fabIndex &&
+			     tagi.box.intersects(tagj.box) ) {
+			    tsthis = false;
+			    break;
+			}
+		    }
+		}
+	    }
+	    tsall = tsall && tsthis;
+	}
+    }
+    return tsall;
+#else
+    return true;
+#endif
+}
 
-MFIter::MFIter (const FabArrayBase& fabarray)
+bool 
+FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
+{
+#ifdef _OPENMP
+    bool tsall = true;
+    const int N_rcvs = RcvTags->size();
+    if (N_rcvs > 0) {
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+	
+	for (MapOfCopyComTagContainers::const_iterator m_it = RcvTags->begin(),
+		 m_End = RcvTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    recv_cctc.push_back(&(m_it->second));
+	}
+	
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_rcvs-1; ++i) {
+		if (tsthis) {
+		    const CopyComTagsContainer& cctci = *recv_cctc[i];
+		    for (CopyComTagsContainer::const_iterator iti = cctci.begin();
+			 iti != cctci.end(); ++iti)
+		    {
+			for (int j=i+1; j<N_rcvs; ++j) {
+			    const CopyComTagsContainer& cctcj = *recv_cctc[j];
+			    for (CopyComTagsContainer::const_iterator itj = cctcj.begin();
+				 itj != cctcj.end(); ++itj)
+			    {
+				if ( iti->fabIndex == itj->fabIndex &&
+				     (iti->box).intersects(itj->box) ) {
+				    tsthis = false;
+				    goto labelRTS;
+				}
+			    }			    
+			}
+		    }
+		}
+	    labelRTS: ;
+	    }
+	    tsall = tsall && tsthis;
+	}
+    }
+    return tsall;
+#else
+    return true;
+#endif
+}
+
+
+MFIter::MFIter (const FabArrayBase& fabarray, int sharing)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(D_DECL(1024000,1024000,1024000))
 {
-    Initialize();
+    Initialize(sharing);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
+MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int sharing)
     :
     fabArray(fabarray),
     currentIndex(0),
@@ -719,26 +835,26 @@ MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling)
 {
     if (do_tiling) 
 	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize();
+    Initialize(sharing);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int sharing)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(tilesize)
 {
-    Initialize();
+    Initialize(sharing);
 }
 
 void 
-MFIter::Initialize () 
+MFIter::Initialize (int sharing) 
 {
     int tid = 0;
     int nthreads = 1;
     
 #ifdef _OPENMP
-    if (omp_in_parallel()) {
+    if (omp_in_parallel() && sharing) {
 	tid = omp_get_thread_num();
 	nthreads = omp_get_num_threads();
     }
@@ -848,11 +964,10 @@ MFIter::Initialize ()
 }
 
 Box
-MFIter::fluxbox (int dir) const 
+MFIter::nodalbox (int dir) const 
 { 
     if ( tileArray[currentIndex].type(dir) == IndexType::CELL
-	 && tileArray[currentIndex].bigEnd(dir) 
-	 == validbox().bigEnd(dir) )
+	 && tileArray[currentIndex].bigEnd(dir) == validbox().bigEnd(dir) )
     {
 	Box bx(tileArray[currentIndex]);
 	return bx.growHi(dir,1); 

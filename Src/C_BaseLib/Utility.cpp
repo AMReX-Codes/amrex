@@ -699,13 +699,13 @@ BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
 #pragma omp parallel
   {
     init_seed = seed + omp_get_thread_num() * numprocs;
-#else
-    init_seed = seed;
-#endif
     mti = N;
     sgenrand(init_seed);
-#ifdef _OPENMP
   }
+#else
+    init_seed = seed;
+    mti = N;
+    sgenrand(init_seed);
 #endif
 }
 

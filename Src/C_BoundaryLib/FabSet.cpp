@@ -211,8 +211,13 @@ FabSet::DoIt (const MultiFab& src,
 
         MultiFab tmpsrc(ba, ncomp, 0);
 
-        for (MFIter mfi(src); mfi.isValid(); ++mfi)
-            tmpsrc[mfi].copy(src[mfi], ba[mfi.index()], scomp, ba[mfi.index()], 0, ncomp);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(tmpsrc,true); mfi.isValid(); ++mfi) {
+	    const Box& bx = mfi.tilebox();
+            tmpsrc[mfi].copy(src[mfi], bx, scomp, bx, 0, ncomp);
+	}
 
         this->copy(tmpsrc,0,dcomp,ncomp,op);
     }
