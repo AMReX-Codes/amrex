@@ -174,6 +174,9 @@ void BLProfiler::Initialize() {
 
 #ifdef BL_TRACE_PROFILING
   vCallTrace.reserve(traceFlushSize / 4);
+  // ---- make sure there is always at least one so we dont need to check in start()
+  CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
+  vCallTrace.push_back(unusedCS);
 #endif
   BL_PROFILE_REGION_START(noRegionName);
 
@@ -308,28 +311,27 @@ void BLProfiler::start() {
     fnameNumber = it->second;
   }
   ++callStackDepth;
-  if(vCallTrace.size() == 0) {
-    CallStats cs(callStackDepth, fnameNumber);
-    ++cs.nCalls;
-    cs.callTime = bltstart - startTime;
-    vCallTrace.push_back(cs);
-    CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart - startTime);
-    CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
+  BL_ASSERT(vCallTrace.size() > 0);
+  if(vCallTrace.back().csFNameNumber == fnameNumber && callStackDepth != prevCallStackDepth) {
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "pCSD:  fname csd pcsd = " << fname << "  " << callStackDepth << "  " << prevCallStackDepth << std::endl;
+}
+    ++(vCallTrace.back().nCSCalls);
   } else {
-    int topNameNumber(fnameNumber);
-    if(vCallTrace.back().csFNameNumber == topNameNumber && callStackDepth != prevCallStackDepth) {
-      ++(vCallTrace.back().nCalls);
-    } else {
-      CallStats cs(callStackDepth, fnameNumber);
-      ++cs.nCalls;
-      cs.callTime = bltstart - startTime;
-      vCallTrace.push_back(cs);
-      CallStats::minCallTime = std::min(CallStats::minCallTime, bltstart - startTime);
-      CallStats::maxCallTime = std::max(CallStats::maxCallTime, bltstart - startTime);
-    }
+    Real calltime(bltstart - startTime);
+    vCallTrace.push_back(CallStats(callStackDepth, fnameNumber, 1, 0.0, 0.0, calltime));
+    CallStats::minCallTime = std::min(CallStats::minCallTime, calltime);
+    CallStats::maxCallTime = std::max(CallStats::maxCallTime, calltime);
   }
   callIndexStack.push_back(CallStatsStack(vCallTrace.size() - 1));
   prevCallStackDepth = callStackDepth;
+
+//std::cout << "fname fnum = " << fname << "  " << fnameNumber << std::endl;
+//std::cout << "callIndexStack.size() = " << (callIndexStack.size()) << std::endl;
+//for(int i(0); i < callIndexStack.size(); ++i) {
+  //std::cout << "callIndexStack[" << i << "].fnum = "
+            //<< vCallTrace[callIndexStack[i].index].csFNameNumber << std::endl;
+//}
 #endif
 }
 }
@@ -358,11 +360,10 @@ void BLProfiler::stop() {
 #ifdef BL_TRACE_PROFILING
   prevCallStackDepth = callStackDepth;
   --callStackDepth;
-  if(vCallTrace.size() > 0) {
-    if(vCallTrace.back().csFNameNumber == mFNameNumbers[fname]) {
-      vCallTrace.back().totalTime = thisFuncTime + nestedTime;
-      vCallTrace.back().stackTime = thisFuncTime;
-    }
+  BL_ASSERT(vCallTrace.size() > 0);
+  if(vCallTrace.back().csFNameNumber == mFNameNumbers[fname]) {
+    vCallTrace.back().totalTime = thisFuncTime + nestedTime;
+    vCallTrace.back().stackTime = thisFuncTime;
   }
   if( ! callIndexStack.empty()) {
     CallStatsStack &cis(callIndexStack.back());
@@ -894,10 +895,12 @@ void WriteStats(std::ostream &ios,
   std::set<int> recursiveFuncs;
   for(int i(0); i < callTraces.size(); ++i) {
     const BLProfiler::CallStats &cs = callTraces[i];
+    if(cs.csFNameNumber < 0) {  // ---- an unused cs
+      continue;
+    }
     int depth(cs.callStackDepth);
     maxCSD = std::max(maxCSD, depth);
     if(depth >= callStack.size()) {
-      std::cout << "************ depth callStack.size() = " << depth << "  " << callStack.size() << std::endl;
       callStack.resize(depth + 1);
     }
     callStack[depth] = cs.csFNameNumber;
@@ -913,10 +916,11 @@ void WriteStats(std::ostream &ios,
     }
   }
 
-  ios << " MaxCallStackDepth = " << maxCSD << '\n' << '\n';
+  ios << " MaxCallStackDepth = " << maxCSD << '\n';
   for(std::set<int>::iterator rfi = recursiveFuncs.begin(); rfi != recursiveFuncs.end(); ++rfi) {
-    ios << " RECURSIVE function:  " << fNumberNames[*rfi] << '\n';
+    ios << " Recursive function:  " << fNumberNames[*rfi] << '\n';
   }
+  ios << '\n';
 
   if(bwriteinclusivetimes) {
     std::sort(funcTotalTimes.begin(), funcTotalTimes.end(), BLProfiler::fTTComp());
@@ -955,12 +959,12 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);
       if(nCT < traceFlushSize) {
+        if(ParallelDescriptor::IOProcessor()) {
+          std::cout << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
+                    << "  " << traceFlushSize << std::endl;
+        }
+        return;
       }
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
-                  << "  " << traceFlushSize << std::endl;
-      }
-      return;
     }
 
     std::string cdir(blProfDirName);
@@ -1124,7 +1128,7 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
 	if( ! csStack.bFlushed) {
 	  if(baseSeekPos < 0) {
 	    std::cout << "**** Error:  baseSeekPos = " << baseSeekPos << std::endl;
-	    BoxLib::Abort("bad bsp");
+	    break;
 	  }
 	  long spos(baseSeekPos + csStack.index * sizeof(CallStats));
 	  callIndexPatch.push_back(CallStatsPatch(spos, vCallTrace[csStack.index], longDFileName));
@@ -1162,6 +1166,8 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
     Array<RStartStop>().swap(rStartStop);
     vCallTrace.clear();
     Array<CallStats>().swap(vCallTrace);
+    CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
+    vCallTrace.push_back(unusedCS);
 }
 
 
