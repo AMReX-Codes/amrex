@@ -850,25 +850,33 @@ PD_convert (void*                 out,
             const void*           in,
             long                  nitems,
             int                   boffs,
-            const RealDescriptor& od,
-            const RealDescriptor& id,
-            const IntDescriptor&  ld,
+            const RealDescriptor& ord,
+            const RealDescriptor& ird,
+            const IntDescriptor&  iid,
             int                   onescmp = 0)
 {
-    if (od == id && boffs == 0)
+    if (ord == ird && boffs == 0)
     {
         size_t n = size_t(nitems);
         BL_ASSERT(int(n) == nitems);
-        memcpy(out, in, n*od.numBytes());
+        memcpy(out, in, n*ord.numBytes());
     }
-    else if (od.formatarray() == id.formatarray() && boffs == 0 && !onescmp)
-        permute_real_word_order(out, in, nitems, od.order(), id.order());
+    else if (ord.formatarray() == ird.formatarray() && boffs == 0 && !onescmp) {
+        permute_real_word_order(out, in, nitems, ord.order(), ird.order());
+    }
+    else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
+      const Real *rIn = static_cast<const Real *>(in);
+      float *rOut= static_cast<float *>(out);
+      for(long i(0); i < nitems; ++i) {
+        rOut[i] = rIn[i];
+      }
+    }
     else
     {
-        PD_fconvert(out, in, nitems, boffs, od.format(), od.order(),
-                    id.format(), id.order(), ld.order(), ld.numBytes(),
+        PD_fconvert(out, in, nitems, boffs, ord.format(), ord.order(),
+                    ird.format(), ird.order(), iid.order(), iid.numBytes(),
                     onescmp);
-        PD_fixdenormals(out, nitems, od.format(), od.order());
+        PD_fixdenormals(out, nitems, ord.format(), ord.order());
     }
 }
 
