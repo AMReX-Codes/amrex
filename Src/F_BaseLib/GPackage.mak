@@ -1,6 +1,8 @@
 f90sources += boxlib_f.f90
 f90sources += f2kcli$(f2kcli_suf).f90
 
+f90sources += BLProfiler_f90.f90
+
 f90sources += bl_constants.f90
 f90sources += bl_IO.f90
 ifdef BACKTRACE
