@@ -53,6 +53,8 @@ Geometry::FPB::FPB ()
     m_ngrow(-1),
     m_do_corners(false),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -71,6 +73,8 @@ Geometry::FPB::FPB (const BoxArray&            ba,
     m_ngrow(ngrow),
     m_do_corners(do_corners),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -194,6 +198,11 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         //
         // Do what you can with the FABs you own.  No parallelism allowed.
         //
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
         Array<IntVect> pshifts(27);
 
         for (MFIter mfidst(mf); mfidst.isValid(); ++mfidst)
@@ -204,7 +213,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
             if (TheDomain.contains(dst)) continue;
 
-            for (MFIter mfisrc(mf); mfisrc.isValid(); ++mfisrc)
+	    int sharing = 0;  // must be 0 to turn off work sharing for this MFIter is inside another MFIter
+            for (MFIter mfisrc(mf,sharing); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;
 
@@ -240,6 +250,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                 }
             }
         }
+    }
     }
     else
     {
@@ -281,7 +292,6 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         if (srcmf.boxArray()[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
-    FArrayBox                  fab;
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
     Array<IntVect>             pshifts(27);
@@ -368,18 +378,31 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         return;
 
     Array<MPI_Status>  stats;
-    Array<int>         recv_from, index;
-    Array<Real*>     recv_data, send_data;
-    Array<MPI_Request> recv_reqs, send_reqs;
+    Array<int>         recv_from;
+    Array<Real*>       recv_data;
+    Array<MPI_Request> recv_reqs;
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
     Real* the_recv_data = 0;
 
     FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+
     //
-    // Send the data.
+    // Post send's
     //
+    const int N_snds = m_SndTags.size();
+
+    Array<Real*>                       send_data;
+    Array<int>                         send_N;
+    Array<int>                         send_rank;
+    Array<const CopyComTagsContainer*> send_cctc;
+
+    send_data.reserve(N_snds);
+    send_N   .reserve(N_snds);
+    send_rank.reserve(N_snds);
+    send_cctc.reserve(N_snds);
+
     for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
              m_End = m_SndTags.end();
          m_it != m_End;
@@ -394,65 +417,92 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
         Real* data = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
-        Real* dptr = data;
 
-        for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                 End = m_it->second.end();
-             it != End;
-             ++it)
-        {
-            const Box& bx = it->box;
-            srcmf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
-            const int Cnt = bx.numPts()*ncomp;
-            dptr += Cnt;
-        }
-        BL_ASSERT(data+N == dptr);
-
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
-        }
-        else
-        {
-            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-            BoxLib::The_Arena()->free(data);
-        }
+	send_data.push_back(data);
+	send_N   .push_back(N);
+	send_rank.push_back(m_it->first);
+	send_cctc.push_back(&(m_it->second));
     }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i=0; i<N_snds; ++i)
+    {
+	Real* dptr = send_data[i];
+	BL_ASSERT(dptr != 0);
+	
+	const CopyComTagsContainer& cctc = *send_cctc[i];
+	
+	for (CopyComTagsContainer::const_iterator it = cctc.begin();
+	     it != cctc.end(); ++it)
+	{
+	    const Box& bx = it->box;
+	    srcmf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
+	    const int Cnt = bx.numPts()*ncomp;
+	    dptr += Cnt;
+	}
+    }
+    
+    Array<MPI_Request> send_reqs;
+    
+    if (FabArrayBase::do_async_sends)
+    {
+	send_reqs.reserve(N_snds);
+	for (int i=0; i<N_snds; ++i) {
+	    send_reqs.push_back(ParallelDescriptor::Asend
+				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
+	}
+    } else {
+	for (int i=0; i<N_snds; ++i) {
+	    ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+	    BoxLib::The_Arena()->free(send_data[i]);
+	}
+    }
+        
     //
-    // Now receive and unpack FAB data as it becomes available.
+    // wait and unpack
     //
     const int N_rcvs = m_RcvTags.size();
 
-    index.resize(N_rcvs);
-    stats.resize(N_rcvs);
-
-    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    if (N_rcvs > 0)
     {
-        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
 
-        for (int k = 0; k < completed; k++)
-        {
-            const Real* dptr = recv_data[index[k]];
-
-            BL_ASSERT(dptr != 0);
-
-            MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[index[k]]);
-
+	for (int k=0; k<N_rcvs; k++)
+	{
+	    MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[k]);
             BL_ASSERT(m_it != m_RcvTags.end());
 
-            for (CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(),dptr,Cnt*sizeof(Real));
-                dstmf[it->fabIndex].plus(fab,bx,bx,0,dcomp,ncomp);
-                dptr += Cnt;
-            }
+	    recv_cctc.push_back(&(m_it->second));
+	}
+
+	stats.resize(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    
+	// unsafe to use OMP here
+	{
+	    FArrayBox fab;
+
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		Real* dptr = recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const CopyComTagsContainer& cctc = *recv_cctc[k];
+		
+		for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		     it != cctc.end(); ++it)
+		{
+		    const Box& bx = it->box;
+		    fab.resize(bx,ncomp);
+		    const int Cnt = bx.numPts()*ncomp;
+		    memcpy(fab.dataPtr(),dptr,Cnt*sizeof(Real));
+		    dstmf[it->fabIndex].plus(fab,bx,bx,0,dcomp,ncomp);
+		    dptr += Cnt;
+		}
+	    }
         }
     }
 
@@ -779,6 +829,8 @@ Geometry::GetFPB (const Geometry&      geom,
                   const Geometry::FPB& fpb,
                   const FabArrayBase&  mf)
 {
+    BL_PROFILE("Geometry::GetFPB");
+
     BL_ASSERT(fpb.m_ngrow > 0);
     BL_ASSERT(fpb.m_ba.size() > 0);
     BL_ASSERT(geom.isAnyPeriodic());
@@ -942,6 +994,17 @@ Geometry::GetFPB (const Geometry&      geom,
         FPB::FPBComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
+    }
+
+    //
+    // set thread safety
+    //
+    if ( ba[0].cellCentered() ) {
+	TheFPB.m_threadsafe_loc = true;
+	TheFPB.m_threadsafe_rcv = true;
+    } else {
+	TheFPB.m_threadsafe_loc = false;
+	TheFPB.m_threadsafe_rcv = false;
     }
 
     return cache_it;

@@ -38,9 +38,9 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.fluxbox(0);,
-	       const Box& ybx   = inmfi.fluxbox(1);,
-	       const Box& zbx   = inmfi.fluxbox(2););
+        D_TERM(const Box& xbx   = inmfi.nodalbox(0);,
+	       const Box& ybx   = inmfi.nodalbox(1);,
+	       const Box& zbx   = inmfi.nodalbox(2););
 
         FArrayBox& infab = in[inmfi];
 

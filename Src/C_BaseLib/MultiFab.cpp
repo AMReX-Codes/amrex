@@ -63,9 +63,9 @@ MultiFab::Copy (MultiFab&       dst,
                 int             numcomp,
                 int             nghost)
 {
-    BL_ASSERT(dst.boxArray() == src.boxArray());
+// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1189,13 +1189,11 @@ MultiFab::SumBoundary (int scomp,
         //
         // There can only be local work to do.
         //
-        for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-                 End = TheSI.m_LocTags->end();
-             it != End;
-             ++it)
+	int N_loc = (*TheSI.m_LocTags).size();
+	// undafe to do OMP
+	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = *it;
-
+            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
             mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
         }
 
@@ -1216,21 +1214,32 @@ MultiFab::SumBoundary (int scomp,
         return;
 
     Array<MPI_Status>  stats;
-    Array<int>         recv_from, index;
-    Array<Real*>     recv_data, send_data;
-    Array<MPI_Request> recv_reqs, send_reqs;
+    Array<int>         recv_from;
+    Array<Real*>       recv_data;
+    Array<MPI_Request> recv_reqs;
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
     Real* the_recv_data = 0;
 
     FabArrayBase::PostRcvs(*TheSI.m_SndTags,*TheSI.m_SndVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
-    //
-    // Send the FAB data.
-    //
-    FArrayBox fab;
 
-    for (SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
+    //
+    // Post send's
+    //
+    const int N_snds = TheSI.m_SndTags->size();
+
+    Array<Real*>                       send_data;
+    Array<int>                         send_N;
+    Array<int>                         send_rank;
+    Array<const CopyComTagsContainer*> send_cctc;
+
+    send_data.reserve(N_snds);
+    send_N   .reserve(N_snds);
+    send_rank.reserve(N_snds);
+    send_cctc.reserve(N_snds);
+
+    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
              m_End = TheSI.m_RcvTags->end();
          m_it != m_End;
          ++m_it)
@@ -1244,12 +1253,25 @@ MultiFab::SumBoundary (int scomp,
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
         Real* data = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
-        Real* dptr = data;
 
-        for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                 End = m_it->second.end();
-             it != End;
-             ++it)
+	send_data.push_back(data);
+	send_N   .push_back(N);
+	send_rank.push_back(m_it->first);
+	send_cctc.push_back(&(m_it->second));
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i=0; i<N_snds; ++i)
+    {
+	Real*dptr = send_data[i];
+	BL_ASSERT(dptr != 0);
+
+	const CopyComTagsContainer& cctc = *send_cctc[i];
+
+        for (CopyComTagsContainer::const_iterator it = cctc.begin();
+             it != cctc.end(); ++it)
         {
             BL_ASSERT(distributionMap[it->fabIndex] == ParallelDescriptor::MyProc());
             const Box& bx = it->box;
@@ -1257,69 +1279,83 @@ MultiFab::SumBoundary (int scomp,
             const int Cnt = bx.numPts()*ncomp;
             dptr += Cnt;
         }
-        BL_ASSERT(data+N == dptr);
+    }
 
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+    Array<MPI_Request> send_reqs;
+
+    if (FabArrayBase::do_async_sends)
+    {
+	send_reqs.reserve(N_snds);
+	for (int i=0; i<N_snds; ++i) {
+            send_reqs.push_back(ParallelDescriptor::Asend
+				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
         }
-        else
-        {
-            ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-            BoxLib::The_Arena()->free(data);
+    } else {
+	for (int i=0; i<N_snds; ++i) {
+            ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+            BoxLib::The_Arena()->free(send_data[i]);
         }
     }
+
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    for (SI::CopyComTagsContainer::const_iterator it = TheSI.m_LocTags->begin(),
-             End = TheSI.m_LocTags->end();
-         it != End;
-         ++it)
+    int N_loc = (*TheSI.m_LocTags).size();
+    // undafe to do OMP
+    for (int i=0; i<N_loc; ++i)
     {
-        const CopyComTag& tag = *it;
+        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
         BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
         mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
     }
-    //
-    // Now receive and unpack FAB data as it becomes available.
-    //
-    const int N_rcvs = TheSI.m_SndTags->size();
 
-    index.resize(N_rcvs);
-    stats.resize(N_rcvs);
+    //
+    //  wait and unpack
+    //
+    const int N_rcvs = TheSI.m_RcvTags->size();
 
-    for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
+    if (N_rcvs > 0)
     {
-        ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
 
-        for (int k = 0; k < completed; k++)
+        for (int k = 0; k < N_rcvs; k++)
         {
-            const Real* dptr = recv_data[index[k]];
-
-            BL_ASSERT(dptr != 0);
-
-            SI::MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[index[k]]);
-
+            MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[k]);
             BL_ASSERT(m_it != TheSI.m_SndTags->end());
 
-            for (SI::CopyComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
-            {
-                BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-                const Box& bx = it->box;
-                fab.resize(bx,ncomp);
-                const int Cnt = bx.numPts()*ncomp;
-                memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
-                mf[it->srcIndex].plus(fab,bx,bx,0,scomp,ncomp);
-                dptr += Cnt;
-            }
+	    recv_cctc.push_back(&(m_it->second));
+	}
+
+	stats.resize(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+
+	// unsafe to do OMP
+	{
+	    FArrayBox fab;
+
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		const Real* dptr = recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const CopyComTagsContainer& cctc = *recv_cctc[k];
+		
+		for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		     it != cctc.end(); ++it)
+		{
+		    BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
+		    const Box& bx = it->box;
+		    fab.resize(bx,ncomp);
+		    const int Cnt = bx.numPts()*ncomp;
+		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
+		    mf[it->srcIndex].plus(fab,bx,bx,0,scomp,ncomp);
+		    dptr += Cnt;
+		}
+	    }
         }
     }
 

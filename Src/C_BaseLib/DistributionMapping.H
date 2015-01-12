@@ -32,7 +32,7 @@ class DistributionMapping
     //
     // The distribution strategies
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC };
+    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
     //
     // The default constructor.
     //
@@ -132,6 +132,7 @@ class DistributionMapping
                               double* efficiency = 0,
 			      bool do_full_knapsack = true);
     void RoundRobinProcessorMap(int nboxes, int nprocs);
+    void RRSFCProcessorMap(const BoxArray&boxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -141,6 +142,7 @@ class DistributionMapping
     //   DistributionMapping.strategy = KNAPSACK
     //   DistributionMapping.strategy = SFC
     //   DistributionMapping.strategy = PFC
+    //   DistributionMapping.strategy = RRFC
     //
     static void Initialize ();
 
@@ -182,6 +184,7 @@ private:
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
+    void RRFCProcessorMap       (const BoxArray& boxes, int nprocs);
 
     typedef std::pair<long,int> LIpair;
 
@@ -220,6 +223,9 @@ private:
 
     void PFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
+                              int                      nprocs);
+
+    void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
     //
     // Current # of bytes of FAB data.
