@@ -1317,6 +1317,9 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow > 0)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
@@ -1763,6 +1766,9 @@ FabArray<FAB>::shift (const IntVect& v)
     {
       boxarray.shift(id, v[id]);
     }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).shift(v);
