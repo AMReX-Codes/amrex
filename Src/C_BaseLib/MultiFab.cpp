@@ -465,7 +465,7 @@ MultiFab::min (const Box& region,
 	Real priv_mn = std::numeric_limits<Real>::max();
 	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
-	    Box b = mfi.growntilebox(nghost) & region;
+	    const Box& b = mfi.growntilebox(nghost) & region;
 
 	    if (b.ok())
 		priv_mn = std::min(priv_mn, get(mfi).min(b,comp));
@@ -530,7 +530,7 @@ MultiFab::max (const Box& region,
 	Real priv_mx = -std::numeric_limits<Real>::max();
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
-	    Box b = mfi.growntilebox(nghost) & region;
+	    const Box& b = mfi.growntilebox(nghost) & region;
 
 	    if (b.ok())
 		priv_mx = std::max(priv_mx, get(mfi).max(b,comp));
@@ -721,13 +721,13 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
-    std::vector< std::pair<int,Box> > isects;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
+	std::vector< std::pair<int,Box> > isects;
 	Real priv_nm0 = -std::numeric_limits<Real>::max();
+
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    ba.intersections(mfi.validbox(),isects);
