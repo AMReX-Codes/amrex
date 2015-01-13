@@ -66,18 +66,12 @@ c
 c     Local variables.
 c
       integer i,j,k,cnt
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       cnt = 1
 
       do k = 1, ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                dst(cnt) = data(i,j,k)
                cnt = cnt + 1
             end do
@@ -100,18 +94,12 @@ c
 c     Local variables.
 c
       integer i,j,k,cnt
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       cnt = 1
 
       do k = 1, ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                data(i,j,k) = src(cnt)
                cnt = cnt + 1
             end do
@@ -135,16 +123,10 @@ c
 c     Local variables
 c 
       integer i,j,k
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       do k = 1, ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                dest(i,j,k) = val
             end do
          end do
@@ -166,18 +148,12 @@ c
 c     Local variables.
 c
       integer i,j,k
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       nrm = 0.0d0
 
       do k = 1,ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                nrm = max(nrm, abs(src(i,j,k)))
             end do
          end do
@@ -199,18 +175,12 @@ c
 c     Local variables.
 c
       integer i,j,k
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       nrm = 0.0d0
 
       do k = 1, ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                nrm = nrm + abs(src(i,j,k))
             end do
          end do
@@ -232,18 +202,12 @@ c
 c     Local variables.
 c
       integer i,j,k
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       sm = 0.0d0
 
       do k = 1, ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                sm = sm + src(i,j,k)
             end do
          end do
@@ -525,16 +489,10 @@ c
 c     Local variables.
 c
       integer i,j,k
-      integer imin,jmin,imax,jmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      imax = hi(1)
-      jmax = hi(2)
 
       do k = 1,ncomp
-         do j = jmin,jmax
-            do i = imin,imax
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                src(i,j,k) = val / src(i,j,k)
             end do
          end do
