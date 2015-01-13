@@ -438,10 +438,10 @@ MultiFab::min (int comp,
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_min)
+#endif
 	{
 	    mn = std::min(mn, priv_mn);
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -472,10 +472,10 @@ MultiFab::min (const Box& region,
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_min_region)
+#endif
 	{
 	    mn = std::min(mn, priv_mn);
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -503,10 +503,10 @@ MultiFab::max (int comp,
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_max)
+#endif
 	{
 	    mx = std::max(mx, priv_mx);
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealMax(mx);
@@ -537,10 +537,10 @@ MultiFab::max (const Box& region,
         }
 #ifdef _OPENMP
 #pragma omp critical (multifab_max_region)
+#endif
 	{
 	    mx = std::max(mx, priv_mx);
 	}
-#endif
     }
 	
     ParallelDescriptor::ReduceRealMax(mx);
@@ -578,13 +578,13 @@ MultiFab::minIndex (int comp,
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
+#endif
 	{
 	    if (priv_mn < mn) {
 		mn = priv_mn;
 		loc = priv_loc;
 	    }
 	}
-#endif
     }
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -739,10 +739,10 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_norm0_ba)
+#endif
 	{
 	    nm0 = std::max(nm0, priv_nm0);
 	}
-#endif
     }
  
     ParallelDescriptor::ReduceRealMax(nm0);
@@ -766,10 +766,10 @@ MultiFab::norm0 (int comp) const
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_norm0)
+#endif
 	{
 	    nm0 = std::max(nm0, priv_nm0);
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealMax(nm0);
@@ -796,12 +796,12 @@ MultiFab::norm0 (const Array<int>& comps) const
         }
 #ifdef _OPENMP
 #pragma omp critical (multifab_norm0_s)
+#endif
 	{
             for (int i=0; i<n; i++) {
 	        nm0[i] = std::max(priv_nm0[i], nm0[i]);
             }	    
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
@@ -851,12 +851,12 @@ MultiFab::norm2 (const Array<int>& comps) const
         }
 #ifdef _OPENMP
 #pragma omp critical (multifab_norm2_s)
+#endif
 	{
 	    for (int i=0; i<n; i++) {
 		nm2[i] += priv_nm2[i];
 	    }
 	}
-#endif
     }
 
     ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n);
