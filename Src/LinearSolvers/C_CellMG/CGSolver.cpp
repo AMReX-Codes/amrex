@@ -869,20 +869,28 @@ qdotxy (const MultiFab& r,
 
     Array<Real> ldots(N);
 
-    FArrayBox tmp;
-
-    for (int n = 0; n < N; n++)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        const int k = r.IndexMap()[n];
+	FArrayBox tmp;
 
-        tmp.resize(r.box(k),2);
-
-        tmp.copy(r[k], rcomp, 0, 1);
-        tmp.copy(z[k], zcomp, 1, 1);
-
-        const int NumPts = tmp.box().numPts();
-
-        ldots[n] = qdot(tmp.dataPtr(0), tmp.dataPtr(1), NumPts);
+#ifdef _OPENMP
+#pragma omp for
+#endif
+	for (int n = 0; n < N; n++)
+	{
+	    const int k = r.IndexMap()[n];
+	    
+	    tmp.resize(r.box(k),2);
+	    
+	    tmp.copy(r[k], rcomp, 0, 1);
+	    tmp.copy(z[k], zcomp, 1, 1);
+	    
+	    const int NumPts = tmp.box().numPts();
+	    
+	    ldots[n] = qdot(tmp.dataPtr(0), tmp.dataPtr(1), NumPts);
+	}
     }
 
     Real dot = 0;
