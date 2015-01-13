@@ -443,17 +443,19 @@ iMultiFab::minIndex (int comp,
     {
 	IntVect priv_loc;
 	int priv_mn = std::numeric_limits<int>::max();
-
+	
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& box = BoxLib::grow(mfi.validbox(),nghost);
 	    const int  lmn = get(mfi).min(box,comp);
-
+	    
 	    if (lmn < priv_mn)
 	    {
 		priv_mn  = lmn;
 		priv_loc = get(mfi).minIndex(box,comp);
 	    }
+	}
+
 #ifdef _OPENMP
 #pragma omp critical (imultifab_minindex)
 #endif
@@ -537,6 +539,8 @@ iMultiFab::maxIndex (int comp,
 		priv_mx  = lmx;
 		priv_loc = get(mfi).maxIndex(box,comp);
 	    }
+	}
+
 #ifdef _OPENMP
 #pragma omp critical (imultifab_maxindex)
 #endif
@@ -613,6 +617,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba) const
 	    {
 		priv_nm0 = std::max(priv_nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
 	    }
+	}
 #ifdef _OPENMP
 #pragma omp critical (imultifab_norm0_ba)
 #endif
