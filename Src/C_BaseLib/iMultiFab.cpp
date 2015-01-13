@@ -302,9 +302,23 @@ iMultiFab::min (int comp,
 
     int mn = std::numeric_limits<int>::max();
 
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        mn = std::min(mn,get(mfi).min(BoxLib::grow(mfi.validbox(),nghost),comp));
+	int priv_mn = std::numeric_limits<int>::max();
+
+	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.growntilebox(nghost);
+	    priv_mn = std::min(priv_mn,get(mfi).min(bx,comp));
+	}
+#ifdef _OPENMP
+#pragma omp critical (imultifab_min)
+	{
+	    mn = std::min(mn, priv_mn);
+	}
+#endif
     }
 
     ParallelDescriptor::ReduceIntMin(mn);
@@ -321,12 +335,25 @@ iMultiFab::min (const Box& region,
 
     int mn = std::numeric_limits<int>::max();
 
-    for ( MFIter mfi(*this); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
+	int priv_mn = std::numeric_limits<int>::max();
 
-        if (b.ok())
-            mn = std::min(mn, get(mfi).min(b,comp));
+	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+	{
+            const Box& b = mfi.growntilebox(nghost) & region;
+
+	    if (b.ok())
+		priv_mn = std::min(priv_mn, get(mfi).min(b,comp));
+        }
+#ifdef _OPENMP
+#pragma omp critical (multifab_min_region)
+#endif
+	{
+	    mn = std::min(mn, priv_mn);
+	}
     }
 
     ParallelDescriptor::ReduceIntMin(mn);
