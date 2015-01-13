@@ -69,21 +69,13 @@ c
 c     Local variables.
 c
       integer i,j,k,l,cnt
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       cnt = 1
 
       do l = 1, ncomp
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   dst(cnt) = data(i,j,k,l)
                   cnt = cnt + 1
                end do
@@ -107,21 +99,13 @@ c
 c     Local variables.
 c
       integer i,j,k,l,cnt
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       cnt = 1
 
       do l = 1, ncomp
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   data(i,j,k,l) = src(cnt)
                   cnt = cnt + 1
                end do
@@ -146,19 +130,11 @@ c
 c     Local variables.
 c
       integer i,j,k,l
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       do l = 1, ncomp
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   dest(i,j,k,l) = val
                end do
             end do
@@ -181,30 +157,18 @@ c
 c     Local variables.
 c
       integer i,j,k,l
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       nrm = 0.0d0
 
-!$omp parallel private(i,j,k,l) reduction(max : nrm)
       do l = 1, ncomp
-!$omp do
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
                   nrm = max(nrm, abs(src(i,j,k,l)))
                end do
             end do
          end do
-!$omp end do
       end do
-!$omp end parallel
 
       end
 c
@@ -222,30 +186,18 @@ c
 c     Local variables.
 c
       integer i,j,k,l
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       nrm = 0.0d0
 
-!$omp parallel private(i,j,k,l) reduction(+ : nrm)
       do l = 1, ncomp
-!$omp do
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   nrm = nrm + abs(src(i,j,k,l))
                end do
             end do
          end do
-!$omp end do
       end do
-!$omp end parallel
 
       end
 c
@@ -263,21 +215,13 @@ c
 c     Local variables.
 c
       integer i,j,k,l
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       sm = 0.0d0
 
       do l = 1, ncomp
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   sm = sm + src(i,j,k,l)
                end do
             end do
@@ -552,9 +496,7 @@ c
       joff=jmn-jmin
       koff=kmn-kmin
 
-!$omp parallel private(i,j,k,l)
       do l = 1, ncomp
-!$omp do
          do k = kmin,kmax
             do j = jmin,jmax
                do i = imin,imax
@@ -564,9 +506,7 @@ c
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 
@@ -582,19 +522,11 @@ c
 c     Local variables.
 c
       integer i,j,k,l
-      integer imin,jmin,kmin,imax,jmax,kmax
-
-      imin = lo(1)
-      jmin = lo(2)
-      kmin = lo(3)
-      imax = hi(1)
-      jmax = hi(2)
-      kmax = hi(3)
 
       do l = 1, ncomp
-         do k = kmin,kmax
-            do j = jmin,jmax
-               do i = imin,imax
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   src(i,j,k,l) = val / src(i,j,k,l)
                end do
             end do

@@ -61,15 +61,11 @@ c
 c     Local variables.
 c
       integer i,k,cnt
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
 
       cnt = 1
 
       do k = 1, ncomp
-         do i = imin,imax
+         do i = lo(1), hi(1)
             dst(cnt) = data(i,k)
             cnt = cnt + 1
          end do
@@ -91,15 +87,11 @@ c
 c     Local variables.
 c
       integer i,k,cnt
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
-
+ 
       cnt = 1
 
       do k = 1, ncomp
-         do i = imin,imax
+         do i = lo(1), hi(1)
             data(i,k) = src(cnt)
             cnt = cnt + 1
          end do
@@ -122,14 +114,10 @@ c
 c     Local variables
 c 
       integer i,k
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
 
       do k = 1, ncomp
-            do i = imin,imax
-               dest(i,k) = val
+         do i = lo(1), hi(1)
+            dest(i,k) = val
          end do
       end do
 
@@ -150,15 +138,11 @@ c
 c     Local variables.
 c
       integer i,k
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
 
       nrm = 0.0d0
 
       do k = 1,ncomp
-         do i = imin,imax
+         do i = lo(1), hi(1)
             nrm = max(nrm, abs(src(i,k)))
          end do
       end do
@@ -179,15 +163,11 @@ c
 c     Local variables.
 c
       integer i,k
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
 
       nrm = 0.0d0
 
       do k = 1, ncomp
-         do i = imin,imax
+         do i = lo(1), hi(1)
             nrm = nrm + abs(src(i,k))
          end do
       end do
@@ -208,15 +188,11 @@ c
 c     Local variables.
 c
       integer i,k
-      integer imin,imax
-
-      imin = lo(1)
-      imax = hi(1)
 
       sm = 0.0d0
 
       do k = 1, ncomp
-         do i = imin,imax
+         do i = lo(1), hi(1)
             sm = sm + src(i,k)
          end do
       end do

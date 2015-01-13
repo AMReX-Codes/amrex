@@ -134,14 +134,18 @@ void mf_encap_saxpy(void *yp, sdc_dtype a, void *xp, int flags)
   MLSDCAmrEncap& Qx = *((MLSDCAmrEncap*) xp);
   MultiFab& Uy = *Qy.U;
   MultiFab& Ux = *Qx.U;
+  int ncomp = Uy.nComp();
+  int ngrow = std::min(Ux.nGrow(), Uy.nGrow());
 
   BL_ASSERT(Uy.boxArray() == Ux.boxArray());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for (MFIter mfi(Uy); mfi.isValid(); ++mfi)
-    Uy[mfi].saxpy(a, Ux[mfi]);
+  for (MFIter mfi(Uy,true); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.growntilebox(ng);
+      Uy[mfi].saxpy(a, Ux[mfi], bx, bx, 0, 0, ncomp);
+  }
 
   if ((Qy.type==SDC_TAU) && (Qx.fine_flux!=NULL)) mf_encap_saxpy_flux(*Qy.fine_flux, a, *Qx.fine_flux);
   if ((Qy.type==SDC_TAU) && (Qx.crse_flux!=NULL)) mf_encap_saxpy_flux(*Qy.crse_flux, a, *Qx.crse_flux);

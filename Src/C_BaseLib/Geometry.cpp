@@ -685,7 +685,7 @@ Geometry::GetVolume (MultiFab&       vol,
     vol.define(grds,1,ngrow,Fab_noallocate);
     for (MFIter mfi(vol); mfi.isValid(); ++mfi)
     {
-        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
+        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         vol.setFab(mfi,CoordSys::GetVolume(gbx));
     }
 }
@@ -709,7 +709,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
     dloga.define(grds,1,ngrow,Fab_noallocate);
     for (MFIter mfi(dloga); mfi.isValid(); ++mfi)
     {
-        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
+        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         dloga.setFab(mfi,CoordSys::GetDLogA(gbx,dir));
     }
 }
@@ -726,7 +726,7 @@ Geometry::GetFaceArea (MultiFab&       area,
     area.define(edge_boxes,1,ngrow,Fab_noallocate);
     for (MFIter mfi(area); mfi.isValid(); ++mfi)
     {
-        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
+        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         area.setFab(mfi,CoordSys::GetFaceArea(gbx,dir));
     }
 }
