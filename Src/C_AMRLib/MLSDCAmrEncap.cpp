@@ -143,7 +143,7 @@ void mf_encap_saxpy(void *yp, sdc_dtype a, void *xp, int flags)
 #pragma omp parallel
 #endif
   for (MFIter mfi(Uy,true); mfi.isValid(); ++mfi) {
-      const Box& bx = mfi.growntilebox(ng);
+      const Box& bx = mfi.growntilebox(ngrow);
       Uy[mfi].saxpy(a, Ux[mfi], bx, bx, 0, 0, ncomp);
   }
 
