@@ -116,6 +116,10 @@ class DistributionMapping
     //
     static void CacheStats (std::ostream& os);
     //
+    // Put in cache
+    //
+    void PutInCache();
+    //
     // Are the distributions equal?
     //
     bool operator== (const DistributionMapping& rhs) const;
