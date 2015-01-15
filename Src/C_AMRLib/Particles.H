@@ -5663,7 +5663,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         ByteSpread();
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << '\n\n';
+            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << "\n\n";
     }
 }
 
