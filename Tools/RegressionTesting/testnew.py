@@ -2990,7 +2990,9 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
             # build directory.  
             index = string.rfind(file, "/")
             if (index > 0):
-                root_file = file[index+1:]	   
+                root_file = file[index+1:]
+            else:
+                root_file = file
             
             hf.write("<P><b>aux%dFile:</b> <A HREF=\"%s.%s\">%s</A>\n" %
                      (i+1, test.name, root_file, file) )
