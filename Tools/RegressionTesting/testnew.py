@@ -2950,29 +2950,26 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     hf.write("<P>&nbsp;\n")
 
-    if (not test.compileTest):
+    if not test.compileTest:
 
-        if (test.debug):
+        if test.debug:
             hf.write("<p><b>Debug test</b>\n")
             hf.write("<p>&nbsp;\n")
 
-        if (test.useMPI):
-
+        if test.useMPI:
             hf.write("<P><b>Parallel (MPI) Run</b><br>numprocs = %d\n" % (test.numprocs) )
             hf.write("<P>&nbsp;\n")
 
 
-        if (test.useOMP):
-
+        if test.useOMP:
             hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
             hf.write("<P>&nbsp;\n")
-
 
         hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
 
 
         # is this a restart test?
-        if (test.restartTest):
+        if test.restartTest:
 
             hf.write("<P><b>Restart Test</b><br>Job was run as normal and then restarted from checkpoint # %d, and the two final outputs were compared\n" % (test.restartFileNum) )
 
@@ -2988,11 +2985,15 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
                      (test.name, test.probinFile, test.probinFile) )    
 
 
-        i = 1
-        for file in test.auxFiles:
+        for i, file in enumerate(test.auxFiles):
+            # sometimes the auxFile was in a subdirectory under the
+            # build directory.  
+            index = string.rfind(file, "/")
+            if (index > 0):
+                root_file = file[index+1:]	   
+            
             hf.write("<P><b>aux%dFile:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                     (i, test.name, file, file) )
-            i = i + 1
+                     (i+1, test.name, root_file, file) )
         
 
         hf.write("<P><b>dimensionality:</b> %s\n" % (test.dim) )
@@ -3001,7 +3002,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     
     # write out the compilation report
-    if (compileSuccessful):
+    if compileSuccessful:
         hf.write("<P><H3 CLASS=\"passed\">Compilation Successful</H3></P>\n")
     else:
         hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
@@ -3012,17 +3013,16 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     hf.write("<P>&nbsp;\n")
 
     
-    if (not test.compileTest):
+    if not test.compileTest:
 
         # write out the comparison report
-        if (compareSuccessful):
+        if compareSuccessful:
             hf.write("<P><H3 CLASS=\"passed\">Comparison Successful</H3></P>\n")
         else:
             hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
 
         hf.write("<P>Execution command:<br>\n&nbsp; %s\n" % (runCommand) )
         hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
-
 
         hf.write("<P>&nbsp;\n")
         hf.write("<PRE>\n")
@@ -3033,13 +3033,13 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("</PRE>\n")
 
         # show any visualizations
-        if (test.doVis):
+        if test.doVis:
             pngFile = getRecentFileName(fullWebDir, test.name, ".png")
             hf.write("<P>&nbsp;\n")
             hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
 
         # show any analysis
-        if (not test.analysisOutputImage == ""):
+        if not test.analysisOutputImage == "":
             hf.write("<P>&nbsp;\n")
             hf.write("<P><IMG SRC='%s' BORDER=0>" % (test.analysisOutputImage) )
     
