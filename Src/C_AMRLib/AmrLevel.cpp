@@ -104,6 +104,58 @@ AmrLevel::AmrLevel (Amr&            papa,
     finishConstructor();
 }
 
+AmrLevel::AmrLevel (Amr&            papa,
+                    int             lev,
+                    const Geometry& level_geom,
+                    const BoxArray& ba,
+		    const DistributionMapping& dm,
+                    Real            time)
+    :
+    geom(level_geom),
+    grids(ba)
+#ifdef USE_PARTICLES
+    ,particle_grids(ba)
+#endif
+{
+    level  = lev;
+    parent = &papa;
+
+    fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
+    crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
+
+    if (level > 0)
+    {
+        crse_ratio = parent->refRatio(level-1);
+    }
+    if (level < parent->maxLevel())
+    {
+        fine_ratio = parent->refRatio(level);
+    }
+
+    state.resize(desc_lst.size());
+
+    // Note that this creates a distribution map associated with grids.
+    for (int i = 0; i < state.size(); i++)
+    {
+        state[i].define(geom.Domain(),
+                        grids,
+			dm,
+                        desc_lst[i],
+                        time,
+                        parent->dtLevel(lev));
+    }
+
+    if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
+
+#ifdef USE_PARTICLES
+    // Note: it is important to call make_particle_dmap *after* the state
+    //       has been defined because it makes use of the state's DistributionMap
+    make_particle_dmap();
+#endif
+
+    finishConstructor();
+}
+
 void
 AmrLevel::restart (Amr&          papa,
                    std::istream& is,

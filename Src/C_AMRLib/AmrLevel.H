@@ -434,6 +434,13 @@ protected:
               const Geometry& level_geom,
               const BoxArray& bl,
               Real            time);
+
+    AmrLevel (Amr&            papa,
+              int             lev,
+              const Geometry& level_geom,
+              const BoxArray& bl,
+	      const DistributionMapping& dm,
+              Real            time);
     //
     // Common code used by all constructors.
     //
