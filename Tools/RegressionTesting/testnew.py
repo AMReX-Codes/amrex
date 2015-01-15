@@ -2040,7 +2040,7 @@ def testSuite(argv):
         # the next test
         skip_to_next_test = 0
         for file in test.linkFiles:
-            if (not os.path.isfile(file)):
+            if (not os.path.exists(file)):
                 errorMsg = "    ERROR: link file %s does not exist" % file
                 reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 skip_to_next_test = 1
