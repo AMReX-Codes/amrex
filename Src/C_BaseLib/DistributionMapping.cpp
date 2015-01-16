@@ -1227,7 +1227,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 
 static
 void
-RRKS (const std::vector<long>&         wgts,
+rrks (const std::vector<long>&         wgts,
       int                              nprocs,
       std::vector< std::vector<int> >& result)
 {
@@ -1381,13 +1381,13 @@ RRKStop:
 
 void
 DistributionMapping::RRKSDoIt (const std::vector<long>& wgts,
-				 int                      nprocs)
+			       int                      nprocs)
 {
     BL_PROFILE("DistributionMapping::RRKSDoIt()");
 
     std::vector< std::vector<int> > vec;
 
-    RRKS(wgts,nprocs,vec);
+    rrks(wgts,nprocs,vec);
 
     BL_ASSERT(vec.size() == nprocs);
 
