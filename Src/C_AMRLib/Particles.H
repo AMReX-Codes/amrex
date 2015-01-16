@@ -547,7 +547,7 @@ ParticleContainer<N>::ByteSpread () const
         }
     }
 
-    long mn = cnt*sizeof(ParticleType), mx = mn;
+    long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -558,10 +558,12 @@ ParticleContainer<N>::ByteSpread () const
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "ParticleContainer<N> byte spread across MPI nodes: ["
-                  << mn
+                  << mn*sizeof(ParticleType)
+		  << " (" << mn << ")"
                   << " ... "
-                  << mx
-                  << "] total particles: " << cnt << '\n';
+                  << mx*sizeof(ParticleType)
+		  << " (" << mx << ")"
+                  << "] total particles: (" << cnt << ")\n";
     }
 }
 
