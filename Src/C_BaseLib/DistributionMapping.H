@@ -2,6 +2,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 #include <map>
+#include <limits>
 
 #include <Pointers.H>
 #include <BoxLib.H>
@@ -32,7 +33,7 @@ class DistributionMapping
     //
     // The distribution strategies
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC, RRKS };
+    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
     //
     // The default constructor.
     //
@@ -134,10 +135,10 @@ class DistributionMapping
                          int nprocs);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               double* efficiency = 0,
-			      bool do_full_knapsack = true);
+			      bool do_full_knapsack = true,
+			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
     void RRSFCProcessorMap(const BoxArray&boxes, int nprocs);
-    void RRKSProcessorMap(const std::vector<long>& wgts, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -148,7 +149,6 @@ class DistributionMapping
     //   DistributionMapping.strategy = SFC
     //   DistributionMapping.strategy = PFC
     //   DistributionMapping.strategy = RRFC
-    //   DistributionMapping.strategy = RRKS
     //
     static void Initialize ();
 
@@ -191,7 +191,6 @@ private:
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void RRFCProcessorMap       (const BoxArray& boxes, int nprocs);
-    void RRKSProcessorMap     (const BoxArray& boxes, int nprocs);
 
     typedef std::pair<long,int> LIpair;
 
@@ -222,7 +221,8 @@ private:
     void KnapSackDoIt (const std::vector<long>& wgts,
                        int                      nprocs,
                        double&                  efficiency,
-                       bool                     do_full_knapsack);
+                       bool                     do_full_knapsack,
+		       int                      nmax=std::numeric_limits<int>::max());
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
@@ -235,8 +235,6 @@ private:
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
 
-    void RRKSDoIt (const std::vector<long>& wgts,
-		   int                      nprocs);
     //
     // Current # of bytes of FAB data.
     //
