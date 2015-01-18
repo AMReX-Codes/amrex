@@ -96,9 +96,6 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case RRSFC:
         m_BuildMap = &DistributionMapping::RRSFCProcessorMap;
         break;
-    case RRKS:
-        m_BuildMap = &DistributionMapping::RRKSProcessorMap;
-        break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
     }
@@ -170,10 +167,6 @@ DistributionMapping::Initialize ()
         else if (theStrategy == "RRSFC")
         {
             strategy(RRSFC);
-        }
-        else if (theStrategy == "RRKS")
-        {
-            strategy(RRKS);
         }
         else
         {
@@ -616,7 +609,8 @@ knapsack (const std::vector<long>&         wgts,
           int                              nprocs,
           std::vector< std::vector<int> >& result,
           double&                          efficiency,
-          bool                             do_full_knapsack)
+          bool                             do_full_knapsack,
+	  int                              nmax)
 {
     //
     // Sort balls by size largest first.
@@ -643,15 +637,18 @@ knapsack (const std::vector<long>&         wgts,
         wblq.push(WeightedBoxList(vbbs[i]));
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
+    std::list<WeightedBoxList> wblqg;
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         WeightedBoxList wbl = wblq.top();
         wblq.pop();
         wbl.push_back(lb[i]);
-        wblq.push(wbl);
+	if (wbl.size() < nmax) {
+	    wblq.push(wbl);
+	} else {
+	    wblqg.push_back(wbl);
+	}
     }
-    BL_ASSERT(int(wblq.size()) == nprocs);
-    std::list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
@@ -767,7 +764,8 @@ void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs,
                                    double&                  efficiency,
-                                   bool                     do_full_knapsack)
+                                   bool                     do_full_knapsack,
+				   int                      nmax)
 {
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
@@ -775,7 +773,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     efficiency = 0;
 
-    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack);
+    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack,nmax);
 
     BL_ASSERT(vec.size() == nprocs);
 
@@ -834,7 +832,8 @@ void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs,
                                            double*                  efficiency,
-                                           bool                     do_full_knapsack)
+                                           bool                     do_full_knapsack,
+					   int                      nmax)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -852,7 +851,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     else
     {
         double eff = 0;
-        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack);
+        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax);
         if (efficiency) *efficiency = eff;
     }
 }
@@ -1222,261 +1221,6 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
     }
 
     RRSFCDoIt(boxes,nprocs);
-}
-
-
-static
-void
-rrks (const std::vector<long>&         wgts,
-      int                              nprocs,
-      std::vector< std::vector<int> >& result)
-{
-    //
-    // Sort balls by size largest first.
-    //
-    result.resize(nprocs);
-
-    int nballs = wgts.size();
-
-    std::vector<WeightedBox> lb;
-    lb.reserve(nballs);
-    for (unsigned int i = 0; i < nballs; ++i)
-    {
-        lb.push_back(WeightedBox(i, wgts[i]));
-    }
-    std::sort(lb.begin(), lb.end());
-
-    std::list<WeightedBoxList> lwbl;
-    std::vector< std::list<WeightedBox>* > vbbs(nprocs);
-    for (int i=0; i<nprocs; i++) {
-	vbbs[i] = new std::list<WeightedBox>;
-	lwbl.push_back(WeightedBoxList(vbbs[i]));
-    }
-
-    int nround = (nballs+nprocs-1) / nprocs;
-    int iball = 0;
-    for (int iround=0; iround<nround; iround++) {
-	for (int i=0; i<nprocs; i++) {
-	    if (iball < nballs) {
-		WeightedBoxList wbl = lwbl.back();
-		lwbl.pop_back();
-		wbl.push_back(lb[iball++]);
-		lwbl.push_front(wbl);
-	    }
-	    else {
-		break;
-	    }
-	}
-	lwbl.sort();
-    }
-
-    //
-    // Compute the max weight and the sum of the weights.
-    //
-    double max_weight = 0;
-    double sum_weight = 0;
-    std::list<WeightedBoxList>::iterator it = lwbl.begin();
-    for (std::list<WeightedBoxList>::const_iterator End =  lwbl.end(); it != End; ++it)
-    {
-        long wgt = (*it).weight();
-        sum_weight += wgt;
-        max_weight = (wgt > max_weight) ? wgt : max_weight;
-    }
-
-    double efficiency = sum_weight/(nprocs*max_weight);
-
-RRKStop:
-
-    std::list<WeightedBoxList>::iterator it_top = lwbl.begin();
-
-    WeightedBoxList wbl_top = *it_top;
-    //
-    // For each ball in the heaviest box.
-    //
-    std::list<WeightedBox>::iterator it_wb = wbl_top.begin();
-
-    if (efficiency > max_efficiency) goto RRKSbottom;
-
-    for ( ; it_wb != wbl_top.end(); ++it_wb )
-    {
-        //
-        // For each ball not in the heaviest box.
-        //
-        std::list<WeightedBoxList>::iterator it_chk = it_top;
-        it_chk++;
-        for ( ; it_chk != lwbl.end(); ++it_chk)
-        {
-            WeightedBoxList wbl_chk = *it_chk;
-            std::list<WeightedBox>::iterator it_owb = wbl_chk.begin();
-            for ( ; it_owb != wbl_chk.end(); ++it_owb)
-            {
-                //
-                // If exchanging these two balls reduces the load balance,
-                // then exchange them and go to top.  The way we are doing
-                // things, sum_weight cannot change.  So the efficiency will
-                // increase if after we switch the two balls *it_wb and
-                // *it_owb the max weight is reduced.
-                //
-                double w_tb = (*it_top).weight() + (*it_owb).weight() - (*it_wb).weight();
-                double w_ob = (*it_chk).weight() + (*it_wb).weight() - (*it_owb).weight();
-                //
-                // If the other ball reduces the weight of the top box when
-                // swapped, then it will change the efficiency.
-                //
-                if (w_tb < (*it_top).weight() && w_ob < (*it_top).weight())
-                {
-                    //
-                    // Adjust the sum weight and the max weight.
-                    //
-                    WeightedBox wb = *it_wb;
-                    WeightedBox owb = *it_owb;
-                    lwbl.erase(it_top);
-                    lwbl.erase(it_chk);
-                    wbl_top.erase(it_wb);
-                    wbl_chk.erase(it_owb);
-                    wbl_top.push_back(owb);
-                    wbl_chk.push_back(wb);
-                    std::list<WeightedBoxList> tmp;
-                    tmp.push_back(wbl_top);
-                    tmp.push_back(wbl_chk);
-                    tmp.sort();
-                    lwbl.merge(tmp);
-                    max_weight = (*lwbl.begin()).weight();
-                    efficiency = sum_weight/(nprocs*max_weight);
-                    goto RRKStop;
-                }
-            }
-        }
-    }
-
- RRKSbottom:
-    //
-    // Here I am "load-balanced".
-    //
-    std::list<WeightedBoxList>::const_iterator cit = lwbl.begin();
-
-    for (int i = 0; i < nprocs; ++i)
-    {
-        const WeightedBoxList& wbl = *cit;
-
-        result[i].reserve(wbl.size());
-
-        for (std::list<WeightedBox>::const_iterator it1 = wbl.begin(), End = wbl.end();
-            it1 != End;
-              ++it1)
-        {
-            result[i].push_back((*it1).boxid());
-        }
-        ++cit;
-    }
-
-    for (int i  = 0; i < nprocs; ++i)
-        delete vbbs[i];
-
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "RRKS efficiency: " << efficiency << '\n';
-    }
-}
-
-void
-DistributionMapping::RRKSDoIt (const std::vector<long>& wgts,
-			       int                      nprocs)
-{
-    BL_PROFILE("DistributionMapping::RRKSDoIt()");
-
-    std::vector< std::vector<int> > vec;
-
-    rrks(wgts,nprocs,vec);
-
-    BL_ASSERT(vec.size() == nprocs);
-
-    Array<long> wgts_per_cpu(nprocs,0);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        for (std::vector<int>::iterator lit = vec[i].begin(), End = vec[i].end();
-             lit != End;
-             ++lit)
-        {
-            wgts_per_cpu[i] += wgts[*lit];
-        }
-    }
-
-    std::vector<LIpair> LIpairV;
-
-    LIpairV.reserve(nprocs);
-
-    for (int i = 0; i < nprocs; ++i)
-    {
-        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
-    }
-
-    Sort(LIpairV, true);
-
-    Array<int> ord;
-
-    LeastUsedCPUs(nprocs,ord);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        const int idx = LIpairV[i].second;
-        const int cpu = ord[i];
-
-        for (std::vector<int>::iterator lit = vec[idx].begin(), End = vec[idx].end();
-             lit != End;
-             ++lit)
-        {
-            m_ref->m_pmap[*lit] = cpu;
-        }
-    }
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_ref->m_pmap[wgts.size()] = ParallelDescriptor::MyProc();
-}
-
-void
-DistributionMapping::RRKSProcessorMap (const std::vector<long>& wgts,
-					 int                      nprocs)
-{
-    BL_ASSERT(wgts.size() > 0);
-
-    if (m_ref->m_pmap.size() !=  wgts.size() + 1)
-    {
-        m_ref->m_pmap.resize(wgts.size() + 1);
-    }
-
-    if (wgts.size() <= nprocs || nprocs < 2)
-    {
-        RoundRobinProcessorMap(wgts.size(),nprocs);
-    }
-    else
-    {
-        RRKSDoIt(wgts, nprocs);
-    }
-}
-
-void
-DistributionMapping::RRKSProcessorMap (const BoxArray& boxes,
-					 int             nprocs)
-{
-    BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(m_ref->m_pmap.size() == boxes.size()+1);
-
-    if (boxes.size() <= nprocs || nprocs < 2)
-    {
-        RoundRobinProcessorMap(boxes,nprocs);
-    }
-    else
-    {
-        std::vector<long> wgts(boxes.size());
-
-        for (unsigned int i = 0, N = boxes.size(); i < N; ++i)
-            wgts[i] = boxes[i].numPts();
-
-        RRKSDoIt(wgts, nprocs);
-    }
 }
 
 namespace
