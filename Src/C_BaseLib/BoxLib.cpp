@@ -1,4 +1,5 @@
 
+#include <unistd.h>
 #include <winstd.H>
 #include <cstdio>
 #include <cstdlib>
@@ -24,6 +25,10 @@
 
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#ifdef __linux__
+#include <execinfo.h>
 #endif
 
 #define bl_str(s)  # s
@@ -197,6 +202,13 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
+#ifdef __linux__
+    void *array[10];
+    size_t size;
+    size = backtrace(array, 10);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+#endif
+    
     ParallelDescriptor::Abort();
 }
 
