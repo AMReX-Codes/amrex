@@ -305,7 +305,7 @@ ifeq ($(HOST),atragon)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),ebirah)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
