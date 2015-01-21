@@ -753,32 +753,30 @@ ParticleBase::Reset (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    if (!ParticleBase::Where(p,amr,update))
-    {
-        //
-        // Here's where we need to deal with boundary conditions.
-        //
-        // Attempt to shift the particle back into the domain if it
-        // crossed a periodic boundary.  Otherwise (for now) we
-        // invalidate the particle.
-        //
-        ParticleBase::PeriodicShift(p,amr);
+    bool ok = ParticleBase::Where(p,amr);
 
-        if (!ParticleBase::Where(p,amr))
-        {
-	    if (verbose) {
+    if (!ok && amr->Geom(0).isAnyPeriodic())
+    {
+        // Attempt to shift the particle back into the domain if it
+        // crossed a periodic boundary.
+	ParticleBase::PeriodicShift(p,amr);
+	ok = ParticleBase::Where(p,amr);
+    }
+    
+    if (!ok) {
+        // invalidate the particle.
+	if (verbose) {
 #ifdef _OPENMP
 #pragma omp critical(reset_lock)
 #endif
-	      {
+	    {
 		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-	      }
 	    }
+	}
 
-            BL_ASSERT(p.m_id > 0);
+	BL_ASSERT(p.m_id > 0);
 
-            p.m_id = -p.m_id;
-        }
+	p.m_id = -p.m_id;
     }
 }
 
