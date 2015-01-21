@@ -378,7 +378,7 @@ public:
     //
     // Returns the dir-nodal Box at the current index.
     //
-    Box nodalbox (int dir) const;
+    Box nodaltilebox (int dir) const;
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
