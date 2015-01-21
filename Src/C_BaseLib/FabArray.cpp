@@ -964,7 +964,7 @@ MFIter::Initialize (int sharing)
 }
 
 Box
-MFIter::nodalbox (int dir) const 
+MFIter::nodaltilebox (int dir) const 
 { 
     if ( tileArray[currentIndex].type(dir) == IndexType::CELL
 	 && tileArray[currentIndex].bigEnd(dir) == validbox().bigEnd(dir) )
