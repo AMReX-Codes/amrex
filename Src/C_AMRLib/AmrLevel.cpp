@@ -221,12 +221,20 @@ AmrLevel::make_particle_dmap ()
     // Right now particle_grids is identical to grids, but the whole point is that 
     // particle_grids can be optimized for distributing the particle work. 
 
+    // take a shortcut if possible
+    if (grids == particle_grids) {
+	particle_dmap = get_new_data(0).DistributionMap();
+	particles_on_same_grids = true;
+	return;
+    }
+
     Array<int> ParticleProcMap;
     ParticleProcMap.resize(particle_grids.size()+1); // +1 is a historical thing
 
     for (int i = 0; i <= particle_grids.size(); i++)
         ParticleProcMap[i] = -1;
 
+    // Warning: O(N^2)!
     for (int j = 0; j < grids.size(); j++)
     {
         const int who = get_new_data(0).DistributionMap()[j];
