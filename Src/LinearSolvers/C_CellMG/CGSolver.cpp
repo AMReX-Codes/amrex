@@ -207,18 +207,16 @@ sxay (MultiFab&       ss,
     const int ncomp  = 1;
     const int sscomp = 0;
     const int xxcomp = 0;
-    const int N      = ss.IndexMap().size();
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int n = 0; n < N; n++)
+    for (MFIter mfi(ss,true); mfi.isValid(); ++mfi)
     {
-        const int        k     = ss.IndexMap()[n];
-        const Box&       ssbx  = ss.box(k);
-        FArrayBox&       ssfab = ss[k];
-        const FArrayBox& xxfab = xx[k];
-        const FArrayBox& yyfab = yy[k];
+        const Box&       bx    = mfi.tilebox();
+        FArrayBox&       ssfab = ss[mfi];
+        const FArrayBox& xxfab = xx[mfi];
+        const FArrayBox& yyfab = yy[mfi];
 
         FORT_CGSXAY(ssfab.dataPtr(sscomp),
                     ARLIM(ssfab.loVect()), ARLIM(ssfab.hiVect()),
@@ -227,7 +225,7 @@ sxay (MultiFab&       ss,
                     &a,
                     yyfab.dataPtr(yycomp),
                     ARLIM(yyfab.loVect()), ARLIM(yyfab.hiVect()),
-                    ssbx.loVect(), ssbx.hiVect(),
+                    bx.loVect(), bx.hiVect(),
                     &ncomp);
     }
 }
@@ -875,21 +873,17 @@ qdotxy (const MultiFab& r,
     {
 	FArrayBox tmp;
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
-	for (int n = 0; n < N; n++)
+	for (MFIter mfi(r); mfi.isValid(); ++mfi)
 	{
-	    const int k = r.IndexMap()[n];
-	    
-	    tmp.resize(r.box(k),2);
-	    
-	    tmp.copy(r[k], rcomp, 0, 1);
-	    tmp.copy(z[k], zcomp, 1, 1);
+	    const Box& bx = mfi.validbox();
+	    tmp.resize(bx,2);
+
+	    tmp.copy(r[mfi], rcomp, 0, 1);
+	    tmp.copy(z[mfi], zcomp, 1, 1);
 	    
 	    const int NumPts = tmp.box().numPts();
-	    
-	    ldots[n] = qdot(tmp.dataPtr(0), tmp.dataPtr(1), NumPts);
+
+	    ldots[mfi.LocalIndex()] = qdot(tmp.dataPtr(0), tmp.dataPtr(1), NumPts);
 	}
     }
 
