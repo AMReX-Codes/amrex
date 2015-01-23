@@ -281,10 +281,10 @@ ifeq ($(HOST),lijewski)
   endif
 endif
 ifeq ($(HOST),manda)
-  MPIHOME=/home/almgren/bin/mpich2-install
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),hedorah)
   MPIHOME=/home/share
