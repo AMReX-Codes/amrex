@@ -368,9 +368,9 @@ public:
     // no tiling
     explicit MFIter (const FabArrayBase& fabarray, int sharing=1);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int sharing=1); 
+    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize=0); 
     // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int sharing=1);
+    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize=0);
     //
     // Returns the tile Box at the current index.
     //
@@ -421,7 +421,7 @@ private:
     Array<int>          localIndexMap;
     Array<Box>          tileArray;
 
-    void Initialize (int threading);
+    void Initialize (int sharing, int chunksize);
 };
 
 //

@@ -824,10 +824,10 @@ MFIter::MFIter (const FabArrayBase& fabarray, int sharing)
     currentIndex(0),
     tileSize(D_DECL(1024000,1024000,1024000))
 {
-    Initialize(sharing);
+    Initialize(sharing,0);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int sharing)
+MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize)
     :
     fabArray(fabarray),
     currentIndex(0),
@@ -835,20 +835,20 @@ MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int sharing)
 {
     if (do_tiling) 
 	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize(sharing);
+    Initialize(1,chunksize);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int sharing)
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(tilesize)
 {
-    Initialize(sharing);
+    Initialize(1,chunksize);
 }
 
 void 
-MFIter::Initialize (int sharing) 
+MFIter::Initialize (int sharing, int chunksize) 
 {
     int tid = 0;
     int nthreads = 1;
@@ -877,32 +877,44 @@ MFIter::Initialize (int sharing)
 	nt_in_fab.push_back(nt);
 	n_tot_tiles += ntiles;
     }
-    
-    // the tile no range for this thread
-    int tlo, thi;
-    if (n_tot_tiles < nthreads) { // there are more threads than tiles
-	if (tid < n_tot_tiles) {
-	    tlo = thi = tid;
+
+    int tlo, thi, sz;
+    if (chunksize <= 0) {
+	// figure out the tile no range, tlo and thi for this thread
+	if (n_tot_tiles < nthreads) { // there are more threads than tiles
+	    if (tid < n_tot_tiles) {
+		tlo = thi = tid;
+	    } else {
+		return;
+	    }
 	} else {
-	    return;
-	}
-    } else {
-	int tiles_per_thread = n_tot_tiles/nthreads;
-	int nleft = n_tot_tiles - tiles_per_thread*nthreads;
-	if (tid < nleft) {
-	    tlo = tid*(tiles_per_thread+1);
-	    thi = tlo + tiles_per_thread;
-	} else {
+	    int tiles_per_thread = n_tot_tiles/nthreads;
+	    int nleft = n_tot_tiles - tiles_per_thread*nthreads;
+	    if (tid < nleft) {
+		tlo = tid*(tiles_per_thread+1);
+		thi = tlo + tiles_per_thread;
+	    } else {
 	    tlo = tid*tiles_per_thread + nleft;
 	    thi = tlo + tiles_per_thread - 1;
+	    }
 	}
+
+	sz = thi-tlo+1;
     }
-    
-    int sz = thi-tlo+1;
+    else {
+	tlo = -1;
+	thi = n_tot_tiles;
+	int nchunks = (n_tot_tiles+chunksize-1) / chunksize;
+	int chunks_per_thread = nchunks/nthreads;
+	int nleft = nchunks-chunks_per_thread*nthreads;
+	if (tid < nleft) chunks_per_thread++;
+	sz = chunks_per_thread*chunksize;
+    }
+
     indexMap.reserve(sz);
     localIndexMap.reserve(sz);
     tileArray.reserve(sz);
-    
+	
     int it = 0;
     for (int i=0; i<fabArray.IndexMap().size(); i++) {
 	
@@ -938,7 +950,8 @@ MFIter::Initialize (int sharing)
 		}
 	    }
 	    
-	    if (it >= tlo) {
+	    if (chunksize > 0 && (it/chunksize)%nthreads == tid
+		|| chunksize <=0 && it >= tlo) {
 		for (int d=0; d<BL_SPACEDIM; d++) {
 		    if (ijk[d] < nleft[d]) {
 			small[d] = ijk[d]*(tsize[d]+1);
