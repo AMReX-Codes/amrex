@@ -979,14 +979,14 @@ MFIter::Initialize (int sharing, int chunksize)
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    if ( tileArray[currentIndex].type(dir) == IndexType::CELL
-	 && tileArray[currentIndex].bigEnd(dir) == validbox().bigEnd(dir) )
-    {
-	Box bx(tileArray[currentIndex]);
-	return bx.growHi(dir,1); 
-    } else {
-	return tileArray[currentIndex];
+    Box bx(tileArray[currentIndex]);
+    if (bx.type(dir) == IndexType::CELL) {
+	bx.surroundingNodes(dir);
+	if (bx.bigEnd(dir) != validbox().bigEnd(dir)+1) {
+	    bx.growHi(dir,-1);
+	}
     }
+    return bx;
 }
 
 Box 
