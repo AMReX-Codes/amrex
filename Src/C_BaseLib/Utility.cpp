@@ -1326,7 +1326,6 @@ void BoxLib::SyncStrings(const Array<std::string> &localStrings,
                          Array<std::string> &syncedStrings, bool &alreadySynced)
 {
 #ifdef BL_USE_MPI
-  const int myProc(ParallelDescriptor::MyProc());
   const int nProcs(ParallelDescriptor::NProcs());
   const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
   int nUnmatched(0);

@@ -2978,7 +2978,6 @@ Amr::bldFineLevels (Real strt_time)
 	    regrid(0,strt_time,true);
 
 	    grids_the_same = true;
-	    int min_level  = 0;
 
 	    for (int i = 0; i <= finest_level && grids_the_same; i++)
 	      if (!(grids[i] == amr_level[i].boxArray()))
