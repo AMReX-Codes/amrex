@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
     compute_rhs(rhs,domain,hr);
 
     // This sets the boundary conditions to be periodic or not
-    int* is_per = new int[BL_SPACEDIM];
+    int is_per[BL_SPACEDIM];
     for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -202,7 +202,7 @@ DumpMF(std::string filename, MultiFab& mf, Box& domain, std::vector<double> hr)
     {
        // This is all in order to define a Geometry object which is needed for writing the plotfiles
        int coord = 0;
-       int* is_per = new int[BL_SPACEDIM];
+       int is_per[BL_SPACEDIM];
        for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 0;
         RealBox real_box;
         for (int n = 0; n < BL_SPACEDIM; n++) {

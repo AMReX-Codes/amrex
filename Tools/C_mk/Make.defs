@@ -156,6 +156,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
   endif
+  ifeq ($(findstring CIMS.NYU.EDU, $(HOSTNAMEF)), CIMS.NYU.EDU)
+    WHICHLINUX := DONEV
+  endif
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     WHICHLINUX := BLUE_WATERS
   endif
@@ -193,6 +196,10 @@ endif
 
 ifndef PROFILE
   PROFILE = FALSE
+endif
+
+ifndef TRACE_PROFILE
+  TRACE_PROFILE = FALSE
 endif
 
 ifndef COMM_PROFILE
@@ -251,7 +258,7 @@ ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
-    CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
+    CXXDEBF    += -g -rdynamic -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       ?= g++
     CC	       ?= gcc
@@ -441,7 +448,7 @@ ifeq ($(COMP),Intel)
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
-     CXXOPTF += -g -O2 -ip -fp-model source -xHost
+     CXXOPTF += -g -O2 -ip -fp-model source
    endif
    endif
    CXXDEBF += -g -O0
@@ -714,8 +721,8 @@ ifeq ($(FCOMP),Intel)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
-     FOPTF += -O2 -ip -fp-model source -xHost
-     fOPTF += -O2 -ip -fp-model source -xHost
+     FOPTF += -O2 -ip -fp-model source
+     fOPTF += -O2 -ip -fp-model source
    endif
    endif
 
@@ -772,6 +779,7 @@ ifeq ($(DEBUG),TRUE)
     fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
+    CPPFLAGS	+= -DDEBUG
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
@@ -789,15 +797,30 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(TRACE_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
+
 ifeq ($(COMM_PROFILE),TRUE)
   PROFILE = TRUE
 endif
+
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ifeq ($(COMM_PROFILE),TRUE)
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMTR_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        ProfSuffix	:= .TRACE_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
         CPPFLAGS    += -DBL_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
-    else
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
         ProfSuffix	:= .PROF
     endif
 else

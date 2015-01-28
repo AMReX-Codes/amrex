@@ -6,7 +6,7 @@
 
 #include <BoxArray.H>
 #include <BoxList.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 void
 BoxList::clear ()
@@ -218,7 +218,7 @@ BoxList::intersect (const Box& b)
 
     for (iterator bli = begin(), End = end(); bli != End; )
     {
-        const Box bx = *bli & b;
+        const Box& bx = *bli & b;
 
         if (bx.ok())
         {
@@ -244,7 +244,7 @@ BoxList::intersect (const BoxList& b)
     {
         for (const_iterator rhs = b.begin(), End = b.end(); rhs != End; ++rhs)
         {
-            const Box bx = *lhs & *rhs;
+            const Box& bx = *lhs & *rhs;
             if (bx.ok())
                 bl.push_back(bx);
         }
@@ -295,7 +295,7 @@ BoxList::complementIn (const Box&     b,
 
         for (BoxList::const_iterator bli = mesh.begin(), End = mesh.end(); bli != End; ++bli)
         {
-            const Box bx = *bli & b;
+            const Box& bx = *bli & b;
 
             if (!bx.ok()) continue;
 

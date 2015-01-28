@@ -73,6 +73,7 @@ public:
     // on how the version of BoxLib was built.
     //
     static const RealDescriptor& NativeRealDescriptor ();
+    static const RealDescriptor& Native32RealDescriptor ();
     //
     // Returns a constant reference to a RealDescriptor detailing
     // the IEEE 32-bit normal FP format.

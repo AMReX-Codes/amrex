@@ -113,7 +113,7 @@ MultiGrid::Initialize ()
 void
 MultiGrid::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 static
@@ -293,6 +293,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    LinOp::BC_Mode bc_mode,
                    int            level)
 {
+    BL_PROFILE("MultiGrid::solve_()");
   //
   // If do_fixed_number_of_iters = 1, then do maxiter iterations without checking for convergence 
   // 
@@ -509,6 +510,7 @@ MultiGrid::relax (MultiFab&      solL,
                   LinOp::BC_Mode bc_mode,
                   Real&          cg_time)
 {
+    BL_PROFILE("MultiGrid::relax()");
     //
     // Recursively relax system.  Equivalent to multigrid V-cycle.
     // At coarsest grid, call coarsestSmooth.
@@ -603,6 +605,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                            int            local_usecg,
                            Real&          cg_time)
 {
+    BL_PROFILE("MultiGrid::coarsestSmooth()");
     prepareForLevel(level);
 
     if ( local_usecg == 0 )
@@ -686,15 +689,20 @@ void
 MultiGrid::average (MultiFab&       c,
                     const MultiFab& f)
 {
+    BL_PROFILE("MultiGrid::average()");
     //
     // Use Fortran function to average down (restrict) f to c.
     //
-    for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
+    const bool tiling = true;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter cmfi(c,tiling); cmfi.isValid(); ++cmfi)
     {
         BL_ASSERT(c.boxArray().get(cmfi.index()) == cmfi.validbox());
 
         const int        nc   = c.nComp();
-        const Box&       bx   = cmfi.validbox();
+        const Box&       bx   = cmfi.tilebox();
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
 
@@ -710,22 +718,22 @@ void
 MultiGrid::interpolate (MultiFab&       f,
                         const MultiFab& c)
 {
+    BL_PROFILE("MultiGrid::interpolate()");
     //
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.
     //
-    const int N = f.IndexMap().size();
-
+    // OMP over boxes
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(c); mfi.isValid(); ++mfi)
     {
-        const int           k = f.IndexMap()[i];
+        const int           k = mfi.index();
         const Box&         bx = c.boxArray()[k];
         const int          nc = f.nComp();
-        const FArrayBox& cfab = c[k];
-        FArrayBox&       ffab = f[k];
+        const FArrayBox& cfab = c[mfi];
+        FArrayBox&       ffab = f[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),

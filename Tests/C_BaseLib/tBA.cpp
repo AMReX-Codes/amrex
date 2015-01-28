@@ -198,7 +198,7 @@ intersections_old (const BoxArray& ba)
 
     for (int j = 0; j < ba.size(); j++)
     {
-        const Box bx = BoxLib::grow(ba[j], ngrow);
+        const Box& bx = BoxLib::grow(ba[j], ngrow);
 
         for (int i = 0; i < ba.size(); i++)
         {

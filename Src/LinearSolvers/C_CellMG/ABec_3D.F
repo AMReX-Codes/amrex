@@ -53,8 +53,8 @@ c-----------------------------------------------------------------------
      $     m4, DIMS(m4),
      $     f5, DIMS(f5),
      $     m5, DIMS(m5),
-     $     lo,hi,nc,
-     $     h,redblack
+     $     lo,hi,blo,bhi,
+     $     nc, h,redblack
      $     )
       implicit none
       REAL_T alpha, beta
@@ -65,6 +65,7 @@ c-----------------------------------------------------------------------
       integer DIMDEC(bY)
       integer DIMDEC(bZ)
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
       integer nc
       integer redblack
       integer DIMDEC(f0)
@@ -109,25 +110,23 @@ c-----------------------------------------------------------------------
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,ioff,cf0,cf1,cf2,cf3,cf4,cf5,delta)
-!$omp&private(gamma,rho) if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
-               ioff = MOD(j + k + redblack,2)
+               ioff = MOD(lo(1) + j + k + redblack,2)
                do i = lo(1) + ioff,hi(1),2
 
-                  cf0 = merge(f0(lo(1),j,k), 0.0D0,
-     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
-                  cf1 = merge(f1(i,lo(2),k), 0.D00,
-     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
-                  cf2 = merge(f2(i,j,lo(3)), 0.0D0,
-     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
-                  cf3 = merge(f3(hi(1),j,k), 0.0D0,
-     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
-                  cf4 = merge(f4(i,hi(2),k), 0.0D0,
-     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
-                  cf5 = merge(f5(i,j,hi(3)), 0.0D0,
-     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+                  cf0 = merge(f0(blo(1),j,k), 0.0D0,
+     $                 (i .eq. blo(1)) .and. (m0(blo(1)-1,j,k).gt.0))
+                  cf1 = merge(f1(i,blo(2),k), 0.D00,
+     $                 (j .eq. blo(2)) .and. (m1(i,blo(2)-1,k).gt.0))
+                  cf2 = merge(f2(i,j,blo(3)), 0.0D0,
+     $                 (k .eq. blo(3)) .and. (m2(i,j,blo(3)-1).gt.0))
+                  cf3 = merge(f3(bhi(1),j,k), 0.0D0,
+     $                 (i .eq. bhi(1)) .and. (m3(bhi(1)+1,j,k).gt.0))
+                  cf4 = merge(f4(i,bhi(2),k), 0.0D0,
+     $                 (j .eq. bhi(2)) .and. (m4(i,bhi(2)+1,k).gt.0))
+                  cf5 = merge(f5(i,j,bhi(3)), 0.0D0,
+     $                 (k .eq. bhi(3)) .and. (m5(i,j,bhi(3)+1).gt.0))
 
                   delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
      $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
@@ -151,7 +150,6 @@ c-----------------------------------------------------------------------
                end do
             end do
           end do
-!$omp end parallel do
       end do
 
       end
@@ -258,8 +256,6 @@ c-----------------------------------------------------------------------
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma,rho)
-!$omp&if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1),hi(1)
@@ -299,7 +295,6 @@ c-----------------------------------------------------------------------
                end do
             end do
           end do
-!$omp end parallel do
 
          phi(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n) = 
      $         phinew(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
@@ -349,7 +344,6 @@ c
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k) if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -366,7 +360,6 @@ c
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -399,7 +392,7 @@ c
       REAL_T h(BL_SPACEDIM)
 
       integer i,j,k,n
-      REAL_T dhx,dhy,dhz,val
+      REAL_T dhx,dhy,dhz
 
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
@@ -408,23 +401,19 @@ c
       res = 0.0D0
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,val) reduction(max:res)
-!$omp&if((hi(3)-lo(3)).ge.3)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  val = abs(alpha*a(i,j,k)
+                  res = max(res, abs(alpha*a(i,j,k)
      &                 + dhx*(bX(i+1,j,k) + bX(i,j,k))
      &                 + dhy*(bY(i,j+1,k) + bY(i,j,k))
      $                 + dhz*(bZ(i,j,k+1) + bZ(i,j,k)))
      &                 + abs( -dhx*bX(i+1,j,k)) + abs( -dhx*bX(i,j,k))
      &                 + abs( -dhy*bY(i,j+1,k)) + abs( -dhy*bY(i,j,k))
-     &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k))
-                  res = max(res, val)
+     &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k)))
                end do
             end do
          end do
-!$omp end parallel do
       end do
 
       end
@@ -439,7 +428,10 @@ c
      $     bX,DIMS(bX),
      $     bY,DIMS(bY),
      $     bZ,DIMS(bZ),
-     $     lo,hi,nc,
+     $     xlo,xhi,
+     $     ylo,yhi,
+     $     zlo,zhi,
+     $     nc,
      $     h,
      $     xflux,DIMS(xflux),
      $     yflux,DIMS(yflux),
@@ -447,7 +439,10 @@ c
      $     )
       implicit none
       REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+      integer zlo(BL_SPACEDIM), zhi(BL_SPACEDIM)
+      integer nc
       integer DIMDEC(x)
       integer DIMDEC(a)
       integer DIMDEC(bX)
@@ -473,40 +468,31 @@ c
       dhy = one/h(2)
       dhz = one/h(3)
 
-!$omp parallel private(i,j,k,n)
       do n = 1, nc
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)+1
+         do k = xlo(3), xhi(3)
+            do j = xlo(2), xhi(2)
+               do i = xlo(1), xhi(1)
                   xflux(i,j,k,n) = - dhx*bX(i,j,k)*( x(i,j,k,n) - x(i-1,j,k,n) )
                end do
             end do
          end do
-!$omp end do nowait
 
-!$omp do
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)+1
-               do i = lo(1), hi(1)
+         do k = ylo(3), yhi(3)
+            do j = ylo(2), yhi(2)
+               do i = ylo(1), yhi(1)
                   yflux(i,j,k,n) = - dhy*bY(i,j,k)*( x(i,j,k,n) - x(i,j-1,k,n) )
                end do
             end do
          end do
-!$omp end do nowait
 
-!$omp do
-         do k = lo(3), hi(3)+1
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
+         do k = zlo(3), zhi(3)
+            do j = zlo(2), zhi(2)
+               do i = zlo(1), zhi(1)
                   zflux(i,j,k,n) = - dhz*bZ(i,j,k)*( x(i,j,k,n) - x(i,j,k-1,n) )
                end do
             end do
          end do
-!$omp end do nowait
-
       end do
-!$omp end parallel
 
       end
 

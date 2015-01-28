@@ -2104,12 +2104,10 @@ contains
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
-    logical                 :: cc
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    cc = multifab_cell_centered_q(mf)
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (cc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (bxasc%l_con%threadsafe)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2144,7 +2142,7 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cc)
+    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (bxasc%r_con%threadsafe)
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
@@ -2165,7 +2163,6 @@ contains
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer                 :: i, ii, jj, np, istart, iend, nsize
     type(boxassoc)          :: bxasc
-    logical                 :: cc
 
     ! make sure fb_data is clean
     fb_data%sent = .false.
@@ -2178,8 +2175,7 @@ contains
 
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-    cc = multifab_cell_centered_q(mf)
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (cc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (bxasc%l_con%threadsafe)
     do i = 1, bxasc%l_con%ncpy
        ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2249,7 +2245,6 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
-    logical :: cc
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
@@ -2265,8 +2260,7 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       cc = multifab_cell_centered_q(mf)
-       !$omp parallel do private(i,sh,p) if (cc)
+       !$omp parallel do private(i,sh,p) if (bxasc%r_con%threadsafe)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
@@ -2292,7 +2286,6 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
-    logical :: cc
 
     if (fb_data%rcvd) return
 
@@ -2301,8 +2294,7 @@ contains
 
        call parallel_wait(fb_data%recv_request)
 
-       cc = multifab_cell_centered_q(mf)
-       !$omp parallel do private(i,sh,p) if (cc)
+       !$omp parallel do private(i,sh,p) if (bxasc%r_con%threadsafe)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
@@ -2328,7 +2320,6 @@ contains
     real(dp_t), pointer :: p(:,:,:,:)
     integer :: i, sh(MAX_SPACEDIM+1)
     type(boxassoc) :: bxasc
-    logical :: cc
 
     if (fb_data%sent .and. fb_data%rcvd) return
 
@@ -2348,8 +2339,7 @@ contains
     if (fb_data%rcvd .and. associated(fb_data%recv_buffer)) then
        bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross, idim)
 
-       cc = multifab_cell_centered_q(mf)
-       !$omp parallel do private(i,sh,p) if (cc)
+       !$omp parallel do private(i,sh,p) if (bxasc%r_con%threadsafe)
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
@@ -2799,6 +2789,7 @@ contains
 
     call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
+    ! unsafe to do OMP
     do i = 1, bxasc%l_con%ncpy
        ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
        jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
@@ -2814,10 +2805,12 @@ contains
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
+    !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
        p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
+    !$OMP END PARALLEL DO
 
     allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
     do i = 1, bxasc%r_con%nrp
@@ -2830,6 +2823,7 @@ contains
     end do
     call parallel_wait(rst)
 
+    ! unsafe to do OMP
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
@@ -3419,7 +3413,7 @@ contains
     integer, parameter      :: tag = 1102
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
-    logical                 :: br_to_other, cc
+    logical                 :: br_to_other
     
     br_to_other = .false.  
     if (present(bndry_reg_to_other)) br_to_other = bndry_reg_to_other
@@ -3430,9 +3424,7 @@ contains
        cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
     end if
 
-    cc = multifab_cell_centered_q(mdst)
-
-    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc) if (cc)
+    !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc) if (cpasc%l_con%threadsafe)
     do i = 1, cpasc%l_con%ncpy
        ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
        jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
@@ -3470,7 +3462,7 @@ contains
     end do
     call parallel_wait(rst)
 
-    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cc)
+    !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cpasc%r_con%threadsafe)
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc

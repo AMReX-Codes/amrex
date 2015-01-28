@@ -44,6 +44,39 @@ int main(...) {
 Profiling macros are empty if profiling is off.
 
 
+--------------------------------------------- fortran90 f90 interface
+
+fortran90 functions can be profiled, add these functions:
+
+call bl_proffortfuncstart("copyassoc_build")
+...
+call bl_proffortfuncstop("copyassoc_build")
+
+you will need to add bl_proffortfuncstop calls
+before any returns.  the profiling output will
+warn of any bl_proffortfuncstart calls that were
+not stopped with bl_proffortfuncstop (in debug mode only).
+you will need to add bl_proffortfuncstop before any
+returns and at the end of the function (or at the
+point in the function you want to stop profiling).
+for functions with a high number of calls, there is
+a lighterweight interface:
+
+call bl_proffortfuncstart_int(n)
+...
+call bl_proffortfuncstop_int(n)
+
+where 'n' is an integer in the range [1,mFortProfsIntMaxFuncs]
+mFortProfsIntMaxFuncs is currently set to 32.  the profiled
+function will be named FORTFUNC_n in the profiler output,
+unless you rename it with BL_PROFILE_CHANGE_FORT_INT_NAME(fname, int)
+where fname is a std::string and the int is the integer 'n'
+in the bl_proffortfuncstart_int/bl_proffortfuncstop_int calls.
+BL_PROFILE_CHANGE_FORT_INT_NAME should be called in main().
+
+
+
+
 --------------------------------------------- Communications timings.
 Timings for communication functions such as ParallelDescriptor::Send(...)
 are shown in the regular profiling's function timing section.  BoxLib

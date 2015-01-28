@@ -5,7 +5,7 @@
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <ccse-mpi.H>
 
 #include <vector>
@@ -132,14 +132,14 @@ FluxRegister::SumReg (int comp) const
 {
     Real sum = 0.0;
 
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:sum)
-#endif
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         const FabSet& lofabs = bndry[Orientation(dir,Orientation::low) ];
         const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sum)
+#endif
         for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
         {
             sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
@@ -226,9 +226,9 @@ RefluxIt (const Rec&       rf,
     const int*       slo        = fab_S.loVect();
     const int*       shi        = fab_S.hiVect();
     const Real*      vol_dat    = fab_volume.dataPtr();
-    const Box        fine_face  = BoxLib::adjCell(grids[rf.m_sIndex],rf.m_face);
-    const Box        sftbox     = S.box(rf.m_dIndex) + rf.m_shift;
-    const Box        ovlp       = sftbox & fine_face;
+    const Box&       fine_face  = BoxLib::adjCell(grids[rf.m_sIndex],rf.m_face);
+    const Box&       sftbox     = S.box(rf.m_dIndex) + rf.m_shift;
+    const Box&       ovlp       = sftbox & fine_face;
     const int*       lo         = ovlp.loVect();
     const int*       hi         = ovlp.hiVect();
     const int*       shft       = rf.m_shift.getVect();
@@ -290,7 +290,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 //
                 const Orientation face = fi();
 
-                const Box ovlp = vbx & BoxLib::adjCell(grids[k],face);
+                const Box& ovlp = vbx & BoxLib::adjCell(grids[k],face);
 
                 if (ovlp.ok())
                 {
@@ -342,7 +342,7 @@ FluxRegister::Reflux (MultiFab&       S,
                      ++it)
                 {
                     const IntVect& iv     = *it;
-                    const Box      sftbox = vbx + iv;
+                    const Box&     sftbox = vbx + iv;
 
                     BL_ASSERT(bx.intersects(sftbox));
 
@@ -354,7 +354,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         //
                         const Orientation face = fi();
 
-                        const Box ovlp = sftbox & BoxLib::adjCell(kgrid,face);
+                        const Box& ovlp = sftbox & BoxLib::adjCell(kgrid,face);
 
                         if (ovlp.ok())
                         {
@@ -383,8 +383,6 @@ FluxRegister::Reflux (MultiFab&       S,
     }
 
     ba.clear_hash_bin();
-
-    BL_COMM_PROFILE_NAMETAG("CD::FluxRegister::Reflux()");
 
     fscd.CollectData();
 
@@ -442,14 +440,19 @@ FluxRegister::CrseInit (const MultiFab& mflx,
  
     MultiFab mf(mflx.boxArray(),numcomp,0);
 
-    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
+    for (MFIter mfi(mflx,true); mfi.isValid(); ++mfi)
     {
-        mf[mfi].copy(mflx[mfi],srccomp,0,numcomp);
+	const Box& bx = mfi.tilebox();
+	
+        mf[mfi].copy(mflx[mfi],bx,srccomp,bx,0,numcomp);
 
-        mf[mfi].mult(mult,0,numcomp);
+        mf[mfi].mult(mult,bx,0,numcomp);
 
         for (int i = 0; i < numcomp; i++)
-            mf[mfi].mult(area[mfi],0,i,1);
+            mf[mfi].mult(area[mfi],bx,bx,0,i,1);
     }
 
     for (int pass = 0; pass < 2; pass++)

@@ -74,6 +74,8 @@ int main(int argc, char* argv[])
 {
   BoxLib::Initialize(argc,argv);
 
+  BL_PROFILE_VAR("main()", pmain);
+
   std::cout << std::setprecision(15);
 
   ParmParse ppmg("mg");  
@@ -174,7 +176,7 @@ int main(int argc, char* argv[])
   int coord = 0;
   
   // This sets the boundary conditions to be periodic or not
-  int* is_per = new int[BL_SPACEDIM];
+  int is_per[BL_SPACEDIM];
   
   if (bc_type == Dirichlet || bc_type == Neumann) {
     for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
@@ -258,11 +260,14 @@ int main(int argc, char* argv[])
     std::cout << "----------------------------------------" << std::endl;
   }
   
+  BL_PROFILE_VAR_STOP(pmain);
+
   BoxLib::Finalize();
 }
 
 void compute_analyticSolution(MultiFab& anaSoln)
 {
+  BL_PROFILE("compute_analyticSolution()");
   int ibnd = static_cast<int>(bc_type); 
 
   for (MFIter mfi(anaSoln); mfi.isValid(); ++mfi) {
@@ -277,6 +282,7 @@ void compute_analyticSolution(MultiFab& anaSoln)
 
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom)
 {
+  BL_PROFILE("setup_coeffs()");
   ParmParse pp;
 
   Real sigma, w;
@@ -304,10 +310,10 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
     for ( MFIter mfi(beta[n]); mfi.isValid(); ++mfi ) {
       int i = mfi.index();
       Box bx(bs[i]);
-      const int* clo = cc_coef[i].loVect();
-      const int* chi = cc_coef[i].hiVect();
-      const int* edgelo = beta[n][i].loVect();
-      const int* edgehi = beta[n][i].hiVect();
+      const int* clo = cc_coef[mfi].loVect();
+      const int* chi = cc_coef[mfi].hiVect();
+      const int* edgelo = beta[n][mfi].loVect();
+      const int* edgehi = beta[n][mfi].hiVect();
       
       FORT_COEF_TO_EDGES(&n,beta[n][mfi].dataPtr(),ARLIM(edgelo),ARLIM(edgehi),
 			 cc_coef[mfi].dataPtr(),ARLIM(clo),ARLIM(chi),
@@ -322,6 +328,7 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom)
 {
+  BL_PROFILE("setup_rhs()");
   ParmParse pp;
 
   Real a, b, sigma, w;
@@ -362,6 +369,7 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
 
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
 {
+  BL_PROFILE("set_boundary()");
   Real bc_value = 0.0;
 
   for (int n=0; n<BL_SPACEDIM; ++n) {
@@ -421,6 +429,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver)
 {
+  BL_PROFILE("solve()");
   std::string ss;
 
   soln.setVal(0.0);
@@ -485,6 +494,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_Cpp()");
   BndryData bd(bs, 1, geom);
   set_boundary(bd, rhs);
 
@@ -501,6 +511,7 @@ void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_F90()");
   // Translate into F90 solver
   std::vector<BoxArray> bav(1);
   bav[0] = bs;
@@ -586,6 +597,7 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
+  BL_PROFILE("solve_with_hypre()");
   BndryData bd(bs, 1, geom);
   set_boundary(bd, rhs);
 

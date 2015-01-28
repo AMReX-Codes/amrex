@@ -29,9 +29,7 @@ c-----------------------------------------------------------------------
 
       integer i,j,k,n
 
-!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do 
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -39,9 +37,7 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
       end
 c-----------------------------------------------------------------------
       subroutine FORT_HARMONIC_AVERAGEEC (
@@ -63,15 +59,13 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       select case(cdir)
 
       case (0)
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)+1
+                  do i = lo(1), hi(1)
 
                      c(i,j,k,n) = four/(
      $                    + 1.0D0/f(2*i,2*j  ,2*k  ,n)
@@ -82,14 +76,12 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
 
       case (1)
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
-               do j = lo(2), hi(2)+1
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 
                      c(i,j,k,n) = four/(
@@ -101,12 +93,10 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
       case (2)
          do n = 1, nc
-!$omp do
-            do k = lo(3), hi(3)+1
+            do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 
@@ -119,11 +109,9 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
 
       end select
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -146,15 +134,13 @@ c-----------------------------------------------------------------------
 
       integer n, i, j, k
 
-!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       select case(cdir)
 
       case (0)
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)+1
+                  do i = lo(1), hi(1)
 
                      c(i,j,k,n) = fourth*(
      $                    + f(2*i,2*j  ,2*k  ,n)
@@ -165,14 +151,12 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
 
       case (1)
          do n = 1, nc
-!$omp do
             do k = lo(3), hi(3)
-               do j = lo(2), hi(2)+1
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 
                      c(i,j,k,n) = fourth*(
@@ -184,13 +168,11 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
 
       case (2)
          do n = 1, nc
-!$omp do
-            do k = lo(3), hi(3)+1
+            do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
 
@@ -203,11 +185,9 @@ c-----------------------------------------------------------------------
                   end do
                end do
             end do
-!$omp end do nowait
          end do
 
       end select
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------
@@ -228,9 +208,7 @@ c-----------------------------------------------------------------------
 
       integer i, j, k, n
 
-!$omp parallel private(i,j,k,n) if((hi(3)-lo(3)).ge.3)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
@@ -248,9 +226,7 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 c-----------------------------------------------------------------------

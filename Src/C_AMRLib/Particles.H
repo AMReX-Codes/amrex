@@ -66,7 +66,7 @@ struct ParticleBase
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
     //
-    static bool Where (ParticleBase& prt, const Amr* amr, bool update = false, int lev_min = 0, int finest_level = -1);
+    static bool Where (ParticleBase& prt, const Amr* amr, int lev_min = 0, int finest_level = -1);
     //
     // Checks/sets whether the particle has crossed a periodic boundary in such a way
     // that it is on levels lev_min and higher.
@@ -295,7 +295,7 @@ public:
 
     void Increment (MultiFab& mf, int level);
 
-    long long IncrementWithTotal (MultiFab& mf, int level);
+    long IncrementWithTotal (MultiFab& mf, int level);
 
     void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
 
@@ -343,13 +343,13 @@ public:
     //
     // If "only_valid" is true it only counts valid particles.
     //
-    long long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
+    long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
     //
     // Returns # of particles at all levels
     //
     // If "only_valid" is true it only counts valid particles.
     //
-    long long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
+    long TotalNumberOfParticles (bool only_valid=true, bool only_local=false) const;
 
     void MoveRandom ();
 
@@ -477,22 +477,22 @@ protected:
 };
 
 template <int N>
-long long
+long
 ParticleContainer<N>::TotalNumberOfParticles (bool only_valid, bool only_local) const
 {
-    long long nparticles = 0;
+    long nparticles = 0;
     for (int lev = 0; lev <= m_amr->finestLevel(); lev++)
         nparticles += NumberOfParticlesAtLevel(lev,only_valid,only_local);
     return nparticles;
 }
 
 template <int N>
-long long
+long
 ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
                                                 bool only_valid,
                                                 bool only_local) const
 {
-    long long nparticles = 0;
+    long nparticles = 0;
 
     if (lev >= 0 && lev < m_particles.size())
     {
@@ -522,7 +522,7 @@ ParticleContainer<N>::NumberOfParticlesAtLevel (int  lev,
     }
 
     if (!only_local)
-        ParallelDescriptor::ReduceLongLongSum(nparticles);
+        ParallelDescriptor::ReduceLongSum(nparticles);
 
     return nparticles;
 }
@@ -535,7 +535,7 @@ template <int N>
 void
 ParticleContainer<N>::ByteSpread () const
 {
-    long long cnt = 0;
+    long cnt = 0;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -547,21 +547,23 @@ ParticleContainer<N>::ByteSpread () const
         }
     }
 
-    long mn = cnt*sizeof(ParticleType), mx = mn;
+    long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    ParallelDescriptor::ReduceLongMin    (mn, IOProc);
-    ParallelDescriptor::ReduceLongMax    (mx, IOProc);
-    ParallelDescriptor::ReduceLongLongSum(cnt,IOProc);
+    ParallelDescriptor::ReduceLongMin(mn, IOProc);
+    ParallelDescriptor::ReduceLongMax(mx, IOProc);
+    ParallelDescriptor::ReduceLongSum(cnt,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "ParticleContainer<N> byte spread across MPI nodes: ["
-                  << mn
+                  << mn*sizeof(ParticleType)
+		  << " (" << mn << ")"
                   << " ... "
-                  << mx
-                  << "] total particles: " << cnt << '\n';
+                  << mx*sizeof(ParticleType)
+		  << " (" << mx << ")"
+                  << "] total particles: (" << cnt << ")\n";
     }
 }
 
@@ -2176,7 +2178,7 @@ ParticleContainer<N>::Increment (MultiFab& mf,
 }
 
 template <int N>
-long long
+long
 ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
                                           int       lev)
 {
@@ -2188,7 +2190,7 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
     const PMap& pmap = m_particles[lev];
   
-    long long num_particles_in_domain = 0;
+    long num_particles_in_domain = 0;
 
     MultiFab* mf_pointer;
 
@@ -2232,7 +2234,7 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 	delete mf_pointer;
     }
 
-    ParallelDescriptor::ReduceLongLongSum(num_particles_in_domain);
+    ParallelDescriptor::ReduceLongSum(num_particles_in_domain);
 
     return num_particles_in_domain;
 }
@@ -2273,7 +2275,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
 
     Array<Real> ldt(tnum,1e50);
 
-    long long num_particles_at_level = 0;
+    long num_particles_at_level = 0;
 
     MultiFab* gv_pointer;
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
@@ -2349,7 +2351,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
     //
     // Set dt negative if there are no particles at this level.
     //
-    ParallelDescriptor::ReduceLongLongSum(num_particles_at_level);
+    ParallelDescriptor::ReduceLongSum(num_particles_at_level);
 
     if (num_particles_at_level == 0) dt = -1.e50;
 
@@ -2790,7 +2792,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         {
             if (gm.isAnyPeriodic())
             {
-                const Box dest = BoxLib::grow(grids[i],dgrow);
+                const Box& dest = BoxLib::grow(grids[i],dgrow);
 
                 if (!dm.contains(dest))
                 {
@@ -2802,8 +2804,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                         for (int k = 0; k < pshifts.size(); k++)
                         {
-                            const Box sbx = grids[j] + pshifts[k];
-                            const Box dbx = dest & sbx;
+                            const Box& sbx = grids[j] + pshifts[k];
+                            const Box& dbx = dest & sbx;
 
                             BL_ASSERT(dbx.ok());
 
@@ -2857,7 +2859,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 if (gm.isAnyPeriodic())
                 {
-                    const Box dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
+                    const Box& dest = BoxLib::grow(cfba[i],(*mf)[lev_index].nGrow());
 
                     if (!dm.contains(dest))
                     {
@@ -2869,7 +2871,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
                             for (int k = 0; k < pshifts.size(); k++)
                             {
-                                const Box sbx = cfba[i] - pshifts[k];
+                                const Box& sbx = cfba[i] - pshifts[k];
 
                                 cvalid.push_back(sbx);
                             }
@@ -3038,7 +3040,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
                                 }
-                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects);
+                                (*mf)[lev_index + 1].boxArray().intersections(Box(fcells[j],fcells[j]),isects,true);
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first; 
@@ -3129,7 +3131,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 // Find its resident grid.
                                 //
-                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects);
+                                (*mf)[lev_index - 1].boxArray().intersections(Box(ccells[j],ccells[j]),isects,true);
                                 if (isects.size() == 0)
                                     continue;
                                 const int grid = isects[0].first;
@@ -3677,6 +3679,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
         //
         return;
 
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -3685,6 +3690,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     typedef std::map<int,int> IntIntMap;
 
@@ -4460,6 +4468,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
                                      Real            a_old,
                                      Real            a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0);
     BL_ASSERT(grav_vector.nGrow() >= 2);
@@ -4604,6 +4613,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                                 Real            a_half, 
                                 int             start_comp_for_accel)
 {
+    BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
@@ -4704,6 +4714,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
                                      Real            a_old,
                                      Real            a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKickDrift()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -4860,6 +4871,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
                                 Real              a_new,
                                 Real              a_half) 
 {
+    BL_PROFILE("ParticleContainer::moveKick()");
     BL_ASSERT(OK());
     BL_ASSERT(N >= BL_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
@@ -5289,7 +5301,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect iv = ParticleBase::Index(*it,level+1,m_amr);
+            const IntVect& iv = ParticleBase::Index(*it,level+1,m_amr);
             //
             // Is it in the grown finer level?
             //
@@ -5475,6 +5487,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                                     int  lev_min,
                                     int  nGrow)
 {
+    BL_PROFILE("ParticleContainer::Redistribute()");
     const int MyProc   = ParallelDescriptor::MyProc();
     Real      strttime = ParallelDescriptor::second();
     //
@@ -5519,7 +5532,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
                 {
                     if (!where_already_called)
                     {
-                        if (!ParticleBase::Where(p,m_amr, false, lev_min, theEffectiveFinestLevel))
+                        if (!ParticleBase::Where(p,m_amr, lev_min, theEffectiveFinestLevel))
                         {                                
                             if (full_where) // Lengthier checks for subcycling.
                             {
@@ -5652,7 +5665,7 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         ByteSpread();
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << '\n';
+            std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << "\n\n";
     }
 }
 
@@ -5684,6 +5697,9 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
         //
         return;
 
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
                                  1,
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -5692,6 +5708,9 @@ ParticleContainer<N>::RedistributeMPI (PMap& not_ours)
                                  ParallelDescriptor::Mpi_typemap<int>::type(),
                                  ParallelDescriptor::Communicator()) );
     BL_ASSERT(Rcvs[MyProc] == 0);
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     typedef std::map<int,int> IntIntMap;
 
@@ -5990,7 +6009,7 @@ ParticleContainer<N>::OK (bool full_where,
                     const int     lgrid = p.m_grid;
                     const IntVect cell  = p.m_cell;
 
-                    if (!ParticleBase::Where(p,m_amr, false, lev_min, finest_level))
+                    if (!ParticleBase::Where(p,m_amr, lev_min, finest_level))
                     {
                         if (full_where)
                         {
@@ -6073,7 +6092,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
     //
     std::ofstream HdrFile;
 
-    long long nparticles = 0;
+    long nparticles = 0;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -6094,7 +6113,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
         }
     }
 
-    ParallelDescriptor::ReduceLongLongSum(nparticles,IOProc);
+    ParallelDescriptor::ReduceLongSum(nparticles,IOProc);
 
     int maxnextid = ParticleBase::NextID();
 
@@ -6604,7 +6623,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
     }
     ParallelDescriptor::Bcast(&n, 1, IOProc);
 
-    long long nparticles;
+    long nparticles;
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -7094,7 +7113,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (p.m_id <= 0) continue;
 
-                        const IntVect iv = ParticleBase::Index(p, lev, m_amr);
+                        const IntVect& iv = ParticleBase::Index(p, lev, m_amr);
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
@@ -7176,7 +7195,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
     //
     // Count # of valid particles.
     //
-    long long nparticles = 0;
+    long nparticles = 0;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -7199,7 +7218,7 @@ ParticleContainer<N>::WriteAsciiFile (const std::string& filename)
     //
     // And send count to I/O processor.
     //
-    ParallelDescriptor::ReduceLongLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -7309,7 +7328,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
     //
     // Count # of valid particles.
     //
-    long long nparticles = 0;
+    long nparticles = 0;
 
     for (int lev = 0; lev < m_particles.size(); lev++)
     {
@@ -7334,7 +7353,7 @@ ParticleContainer<N>::WriteCoarsenedAsciiFile (const std::string& filename)
     //
     // And send count to I/O processor.
     //
-    ParallelDescriptor::ReduceLongLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceLongSum(nparticles,ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
     {

@@ -154,7 +154,7 @@ ParticleBase::CrseToFine (const BoxArray&       cfba,
             {
                 BL_ASSERT(pshifts.size() == 1);
 
-                const Box dbx = bx - pshifts[0];
+                const Box& dbx = bx - pshifts[0];
 
                 BL_ASSERT(dbx.ok());
 
@@ -211,7 +211,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         which[i] =  0;
     }
 
-    const Box ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
+    const Box& ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -233,7 +233,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     // Otherwise ...
     //
     const Geometry& cgm = amr->Geom(flev-1);
-    const IntVect   rr  = amr->refRatio(flev-1);
+    const IntVect&  rr  = amr->refRatio(flev-1);
     const BoxArray& cba = amr->ParticleBoxArray(flev-1);
 
     ParticleBase::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
@@ -279,10 +279,9 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
             //
             // Which grid at the crse level do we need to update?
             //
-            cba.intersections(cbx,isects);
+            cba.intersections(cbx,isects,true);
 
             BL_ASSERT(!isects.empty());
-            BL_ASSERT(isects.size() == 1);
 
             cgrid[i] = isects[0].first;  // The grid ID at crse level that we hit.
         }
@@ -305,7 +304,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(lev < amr->finestLevel());
 
-    const Box       fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
+    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
     const BoxArray& fba = amr->ParticleBoxArray(lev+1);
     const Real*     plo = amr->Geom(lev).ProbLo();
     const Real*     dx  = amr->Geom(lev).CellSize();
@@ -388,17 +387,16 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             // Update to the correct fine cell needing updating.
             // Note that "cshift" is from the coarse perspective.
             //
-            const IntVect fshift = cshift * amr->refRatio(lev);
+            const IntVect& fshift = cshift * amr->refRatio(lev);
             //
             // Update fcells[j] to indicate a shifted fine cell needing updating.
             //
             iv -= fshift;
         }
 
-        fba.intersections(Box(iv,iv),isects);
+        fba.intersections(Box(iv,iv),isects,true);
 
         BL_ASSERT(!isects.empty());
-        BL_ASSERT(isects.size() == 1);
 
         fgrid.push_back(isects[0].first);
     }
@@ -546,7 +544,6 @@ ParticleBase::Index (const ParticleBase& p,
 bool
 ParticleBase::Where (ParticleBase& p,
                      const Amr*    amr,
-                     bool          update,
                      int           lev_min,
                      int           finest_level)
 {
@@ -557,53 +554,26 @@ ParticleBase::Where (ParticleBase& p,
 
     BL_ASSERT(finest_level <= amr->finestLevel());
 
-    if (update)
-    {
-        //
-        // We have a valid particle whose position has changed slightly.
-        // Try to update m_cell and m_grid smartly.
-        //
-        BL_ASSERT(p.m_id > 0);
-        BL_ASSERT(p.m_grid >= 0 && p.m_grid < amr->ParticleBoxArray(p.m_lev).size());
-
-        const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
-
-        if (p.m_cell == iv)
-            //
-            // The particle hasn't left its cell.
-            //
-            return true;
-
-        if (p.m_lev == amr->finestLevel())
-        {
-            //
-            // If the particle is at the true finest level, we check if it has
-            // moved to a different point in the same grid.  This doesn't work
-            // for coarser levels, since coarse grids can be partially covered by
-            // finer grids.
-            //
-            p.m_cell = iv;
-
-            if (amr->ParticleBoxArray(p.m_lev)[p.m_grid].contains(p.m_cell))
-                //
-                // It has left its cell but is still in the same grid.
-                //
-                return true;
-        }
-    }
-
     std::vector< std::pair<int,Box> > isects;
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect iv = ParticleBase::Index(p,lev,amr);
+        const IntVect& iv = ParticleBase::Index(p,lev,amr);
 
-        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
+	if (lev == p.m_lev) { 
+            // We may take a shortcut because the fact that we are here means 
+            // this particle does not belong to any finer grids.
+	    const BoxArray& ba = amr->ParticleBoxArray(p.m_lev);
+	    if (p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
+		p.m_cell = iv;
+		return true;
+	    }
+	}
+
+        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
         if (!isects.empty())
         {
-            BL_ASSERT(isects.size() == 1);
-
             p.m_lev  = lev;
             p.m_grid = isects[0].first;
             p.m_cell = iv;
@@ -637,14 +607,12 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
-            const IntVect iv = ParticleBase::Index(p_prime,lev,amr);
+            const IntVect& iv = ParticleBase::Index(p_prime,lev,amr);
 
-            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects);
+            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
             if (!isects.empty())
             {
-                BL_ASSERT(isects.size() == 1);
-
                 D_TERM(p.m_pos[0] = p_prime.m_pos[0];,
                        p.m_pos[1] = p_prime.m_pos[1];,
                        p.m_pos[2] = p_prime.m_pos[2];);
@@ -668,7 +636,7 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect iv = ParticleBase::Index(p,p.m_lev,amr);
+    const IntVect& iv = ParticleBase::Index(p,p.m_lev,amr);
 
     if (BoxLib::grow(amr->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
@@ -687,16 +655,14 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect iv = ParticleBase::Index(p,level,amr);
+    const IntVect& iv = ParticleBase::Index(p,level,amr);
 
     std::vector< std::pair<int,Box> > isects;
 
-    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects);
+    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true);
 
     if (!isects.empty())
     {
-        BL_ASSERT(isects.size() == 1);
-
         p.m_lev  = level;
         p.m_grid = isects[0].first;
         p.m_cell = iv;
@@ -720,7 +686,7 @@ ParticleBase::PeriodicShift (ParticleBase& p,
     //
     const Geometry& geom    = amr->Geom(0);
     const Box&      dmn     = geom.Domain();
-    const IntVect   iv      = ParticleBase::Index(p,0,amr);
+    const IntVect&  iv      = ParticleBase::Index(p,0,amr);
     bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -787,32 +753,30 @@ ParticleBase::Reset (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    if (!ParticleBase::Where(p,amr,update))
-    {
-        //
-        // Here's where we need to deal with boundary conditions.
-        //
-        // Attempt to shift the particle back into the domain if it
-        // crossed a periodic boundary.  Otherwise (for now) we
-        // invalidate the particle.
-        //
-        ParticleBase::PeriodicShift(p,amr);
+    bool ok = ParticleBase::Where(p,amr);
 
-        if (!ParticleBase::Where(p,amr))
-        {
-	    if (verbose) {
+    if (!ok && amr->Geom(0).isAnyPeriodic())
+    {
+        // Attempt to shift the particle back into the domain if it
+        // crossed a periodic boundary.
+	ParticleBase::PeriodicShift(p,amr);
+	ok = ParticleBase::Where(p,amr);
+    }
+    
+    if (!ok) {
+        // invalidate the particle.
+	if (verbose) {
 #ifdef _OPENMP
 #pragma omp critical(reset_lock)
 #endif
-	      {
+	    {
 		std::cout << "Invalidating out-of-domain particle: " << p << '\n';
-	      }
 	    }
+	}
 
-            BL_ASSERT(p.m_id > 0);
+	BL_ASSERT(p.m_id > 0);
 
-            p.m_id = -p.m_id;
-        }
+	p.m_id = -p.m_id;
     }
 }
 

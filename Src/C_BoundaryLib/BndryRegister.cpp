@@ -38,7 +38,7 @@ BndryRegister::init (const BndryRegister& src)
 
         for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
-            bndry[i][mfi.index()].copy(src.bndry[i][mfi]);
+            bndry[i][mfi].copy(src.bndry[i][mfi]);
         }
     }
 }

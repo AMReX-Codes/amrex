@@ -39,8 +39,8 @@ c-----------------------------------------------------------------------
      $     f1, DIMS(f1), m1, DIMS(m1),
      $     f2, DIMS(f2), m2, DIMS(m2),
      $     f3, DIMS(f3), m3, DIMS(m3),
-     $     lo, hi, nc,
-     $     h, redblack
+     $     lo, hi, blo, bhi,
+     $     nc, h, redblack
      $     )
       implicit none
       integer nc
@@ -48,7 +48,8 @@ c-----------------------------------------------------------------------
       REAL_T phi(DIMV(phi),nc)
       integer DIMDEC(rhs)
       REAL_T rhs(DIMV(rhs),nc)
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      integer  lo(BL_SPACEDIM),  hi(BL_SPACEDIM)
+      integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
       integer DIMDEC(f0)
       integer DIMDEC(f1)
       integer DIMDEC(f2)
@@ -76,17 +77,17 @@ c
       gamma = 4.0D0
       do n = 1, nc
          do j = lo(2), hi(2)
-            ioff = MOD(j +  redblack,2)
+            ioff = MOD(lo(1) + j +  redblack, 2)
             do i = lo(1) + ioff,hi(1),2
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = cf0 + cf1 + cf2 + cf3
 c     
@@ -145,13 +146,17 @@ c     Fill in fluxes
 c
       subroutine FORT_FLUX(
      $     x,DIMS(x),
-     $     lo,hi,nc,
+     $     xlo,xhi,
+     $     ylo,yhi,
+     $     nc,
      $     h,
      $     xflux,DIMS(xflux),
      $     yflux,DIMS(yflux)
      $     )
       implicit none
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+      integer nc
       integer DIMDEC(x)
       integer DIMDEC(xflux)
       integer DIMDEC(yflux)
@@ -167,15 +172,15 @@ c
       dhy = one/h(2)
 c
       do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
+         do j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
                xflux(i,j,n) = - dhx*( x(i,j,n) - x(i-1,j,n) )
             end do
          end do
       end do
       do n = 1, nc
-         do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
+         do j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
                yflux(i,j,n) = - dhy*( x(i,j,n) - x(i,j-1,n) )
             end do
          end do

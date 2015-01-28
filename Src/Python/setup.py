@@ -4,24 +4,15 @@ import glob
 import os
 import re
 
-from setuptools import setup
-from distutils.core import Extension
+from distutils.core import setup
+from distutils.extension import Extension
+from distutils.command.install import install
 from distutils.command.build import build
-from setuptools.command.build_ext import build_ext
 from distutils.spawn import find_executable
 
 from subprocess import call
 
 import numpy as np
-
-class BLExtension(Extension):
-    def __init__(self, name):
-        Extension.__init__(self, name, [''])
-
-class build_ext_boxlib(build_ext):
-    def build_extension(self, ext):
-        # boxlib extensions were already built...
-        pass
 
 
 class build_boxlib(build):
@@ -66,7 +57,9 @@ class build_boxlib(build):
                 self.copy_file(os.path.join(self.build_temp, target),
                                os.path.join(self.build_lib, 'boxlib'))
 
+
 setup(
+
     name         = "PyBoxLib",
     packages     = ['boxlib'],
     author       = "Matthew Emmett and Marc Day",
@@ -78,8 +71,5 @@ setup(
 
     cmdclass     = {
         'build': build_boxlib,
-        'build_ext': build_ext_boxlib,
-        },
-
-    ext_modules  = [ BLExtension(name) for name in ['boxlib/_bl1', 'boxlib/_bl2', 'boxlib/_bl3'] ]
+        }
     )

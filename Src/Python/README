@@ -3,6 +3,10 @@ PyBoxLib
 
 PyBoxLib is a Python wrapper of the C++ version of `BoxLib`_.
 
+An alternative version that wraps the Fortran version of `BoxLib`_ is
+available in the 'F90' directory.
+
+
 .. _`BoxLib`: https://ccse.lbl.gov/BoxLib/index.html
 
 
