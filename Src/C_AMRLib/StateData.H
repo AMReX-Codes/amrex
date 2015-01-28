@@ -8,14 +8,11 @@
 #include <BCRec.H>
 #include <Array.H>
 #include <VisMF.H>
+#include <DistributionMapping.H>
 
 class RealBox;
 class StateDescriptor;
 
-namespace BoxLib
-{
-    void readBoxArray (BoxArray&, std::istream&, bool);
-}
 //
 // Current and previous level-time data.
 //
@@ -46,6 +43,13 @@ public:
     //
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
+                 const StateDescriptor& d, 
+                 Real                   cur_time,
+                 Real                   dt);
+
+    void define (const Box&             p_domain,
+                 const BoxArray&        grds,
+		 const DistributionMapping& dm,
                  const StateDescriptor& d, 
                  Real                   cur_time,
                  Real                   dt);

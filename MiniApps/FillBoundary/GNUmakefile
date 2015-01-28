@@ -4,9 +4,9 @@ DEBUG        = FALSE
 USE_MPI      = TRUE
 USE_OMP      = FALSE
 USE_IPM      = FALSE
+PROFILE      = TRUE
+COMM_PROFILE = TRUE
 USE_DUMPI    = FALSE
-PROFILE      = FALSE
-COMM_PROFILE = FALSE
 COMP         = g++
 FCOMP        = gfortran
 #COMP         = Intel
@@ -26,7 +26,8 @@ INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 
 ifeq ($(COMP), g++)
-  CXXFLAGS += -std=c++11
+  #CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=c++0x
   DEFINES += -DBL_CXX11
 endif
 

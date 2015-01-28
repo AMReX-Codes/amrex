@@ -75,7 +75,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
         for (BoxList::iterator it = gcells.begin(); it != gcells.end(); )
         {
-            const Box isect = *it & dmn;
+            const Box& isect = *it & dmn;
 
             if (isect.ok())
             {

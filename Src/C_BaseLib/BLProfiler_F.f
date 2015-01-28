@@ -16,3 +16,13 @@ c-----------------------------------------------------------------------
       call blstr2int(istr, NSTR, str)
       call bl_proffortfuncstop_cpp(istr, NSTR)
       end
+c-----------------------------------------------------------------------
+      subroutine bl_proffortfuncstart_int(i)
+      integer i
+      call bl_proffortfuncstart_cpp_int(i)
+      end
+c-----------------------------------------------------------------------
+      subroutine bl_proffortfuncstop_int(i)
+      integer i
+      call bl_proffortfuncstop_cpp_int(i)
+      end

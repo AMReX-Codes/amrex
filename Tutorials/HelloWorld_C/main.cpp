@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 
     // define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(64,64,64); 
+    IntVect domain_hi(63,63,63); 
  
     // build a box for the domain
     Box domain(domain_lo, domain_hi);
@@ -39,11 +39,11 @@ int main(int argc, char* argv[])
 
     // print some information for checking
     /* I got
-       min      = 3.775134544e-11
+       min      = 7.945268926e-11
        max      = 1
        max norm = 1
-       L1  norm = 8680.74493
-       L2  norm = 56.2435458
+       L1  norm = 8680.319857
+       L2  norm = 56.24354515
     */
     std::cout << "min      = " << data.min(0)  << std::endl;
     std::cout << "max      = " << data.max(0)  << std::endl;

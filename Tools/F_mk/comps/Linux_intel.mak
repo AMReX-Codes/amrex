@@ -65,9 +65,9 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O2 -ip -fp-model source -xHost
-          FFLAGS   += -O2 -ip -fp-model source -xHost
-          CFLAGS   += -O2 -ip -fp-model source -xHost
+          F90FLAGS += -O2 -ip -fp-model source #-xHost
+          FFLAGS   += -O2 -ip -fp-model source #-xHost
+          CFLAGS   += -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF
@@ -88,9 +88,9 @@
 	  FFLAGS += -fast
 	  CFLAGS += -fast
 	else
-          F90FLAGS += -O2 -ip -fp-model source -xHost
-          FFLAGS   += -O2 -ip -fp-model source -xHost
-          CFLAGS   += -O2 -ip -fp-model source -xHost
+          F90FLAGS += -O2 -ip -fp-model source #-xHost
+          FFLAGS   += -O2 -ip -fp-model source #-xHost
+          CFLAGS   += -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF

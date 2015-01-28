@@ -289,7 +289,7 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
   int coord = 0;
   
   // This sets the boundary conditions to be periodic or not
-  int* is_per = new int[BL_SPACEDIM];
+  int is_per[BL_SPACEDIM];
   
   if (bc_type == Dirichlet || bc_type == Neumann) {
     for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
@@ -303,8 +303,6 @@ void build_grids(std::vector<Geometry>& geom, std::vector<BoxArray>& grids)
     dom0.refine(2);
     geom[ilev].define(dom0, &real_box, coord, is_per);
   }
-
-  delete[] is_per;
 }
 
 void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph, 
@@ -324,8 +322,8 @@ void setup_coef(PArray<MultiFab> &exac, PArray<MultiFab> &alph,
       int i = mfi.index();
       const Box& bx = grids[ilev][i];
     
-      FORT_SET_COEF(exac[ilev][i].dataPtr(), alph[ilev][i].dataPtr(),
-		    beta[ilev][i].dataPtr(), rhs[ilev][i].dataPtr(),
+      FORT_SET_COEF(exac[ilev][mfi].dataPtr(), alph[ilev][mfi].dataPtr(),
+		    beta[ilev][mfi].dataPtr(), rhs[ilev][mfi].dataPtr(),
 		    bx.loVect(), bx.hiVect(), geo.ProbLo(), geo.ProbHi(),
 		    dx, a, b, sigma, w, ibnd);
     }

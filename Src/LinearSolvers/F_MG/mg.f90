@@ -82,6 +82,7 @@ contains
     real(kind=dp_t)     :: coarse_dx(pd%dim)
     real(dp_t), pointer :: p(:,:,:,:)
 
+    call bl_proffortfuncstart("mg_tower_build")
     call build(bpt, "mgt_build")
 
     ! Need to set this here because so many things below depend on it.
@@ -437,12 +438,15 @@ contains
 
                mgt%bottom_solver = 1
 
+               call boxarray_destroy(new_coarse_ba)
+
                if ( parallel_IOProcessor() .and. verbose > 1 ) then
                    print *,'F90mg: Unsuccessful in get_bottom_box_size'
                    print *,'F90mg: Setting bottom_solver to 1 instead'
                end if
 
            end if
+
        end if
     end if
     !
@@ -454,6 +458,8 @@ contains
                            mgt%bottom_solver == 3) ) then
        call build_nodal_dot_mask(mgt%nodal_mask,mgt%cc(1))
     end if
+
+    call bl_proffortfuncstop("mg_tower_build")
 
   end subroutine mg_tower_build
 
@@ -775,6 +781,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_bottom_solve")
     call build(bpt, "mgt_bottom_solve")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
@@ -892,6 +899,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_bottom_solve")
 
   end subroutine mg_tower_bottom_solve
 
@@ -921,6 +929,7 @@ contains
     integer :: mg_restriction_mode
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_restriction")
     call build(bpt, "mgt_restriction")
 
     ir = 2
@@ -983,6 +992,7 @@ contains
     !$OMP END PARALLEL DO
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_restriction")
 
   end subroutine mg_tower_restriction
   !
@@ -1285,6 +1295,7 @@ contains
     type(box)                 :: dmn
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_prolongation")
     call build(bpt, "mgt_prolongation")
 
     call bl_assert( mgt%nc == ncomp(uu)         , 'mg_tower_prolongation: ncomp')
@@ -1438,6 +1449,7 @@ contains
     endif
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_prolongation")
 
   end subroutine mg_tower_prolongation
 
@@ -1504,6 +1516,7 @@ contains
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "mgt_f_cycle")
+    call bl_proffortfuncstart("mg_tower_fmg_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
 
@@ -1567,6 +1580,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_fmg_cycle")
    
   end subroutine mg_tower_fmg_cycle
 
@@ -1592,6 +1606,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("mg_tower_v_cycle")
     call build(bpt, "mgt_v_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
@@ -1674,8 +1689,10 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
+          call bl_proffortfuncstop("mg_tower_v_cycle")
           call mg_tower_v_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
+          call bl_proffortfuncstart("mg_tower_v_cycle")
        end do
 
        call mg_tower_prolongation(mgt, uu, lev-1)
@@ -1705,6 +1722,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("mg_tower_v_cycle")
 
 1000 format('AT LEVEL ',i2)
 
@@ -1723,6 +1741,8 @@ contains
     integer    :: i
     logical    :: do_diag
     real(dp_t) :: nrm
+
+    call bl_proffortfuncstart("mini_cycle")
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
     !
@@ -1796,6 +1816,8 @@ contains
        end if
 
     end if
+
+    call bl_proffortfuncstop("mini_cycle")
 
   end subroutine mini_cycle
 

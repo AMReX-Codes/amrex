@@ -66,9 +66,9 @@ ADR::getDiffusionTerm (Real time, MultiFab& DiffTerm, int comp)
        int i = mfi.index();
        BL_FORT_PROC_CALL(FILL_DIFF_COEFF,fill_diff_coeff)
                 (bx.loVect(), bx.hiVect(),
-                 D_DECL(BL_TO_FORTRAN(coeffs[0][i]),
-                        BL_TO_FORTRAN(coeffs[1][i]),
-                        BL_TO_FORTRAN(coeffs[2][i])),
+                 D_DECL(BL_TO_FORTRAN(coeffs[0][mfi]),
+                        BL_TO_FORTRAN(coeffs[1][mfi]),
+                        BL_TO_FORTRAN(coeffs[2][mfi])),
                  dx_fine);
    }
 

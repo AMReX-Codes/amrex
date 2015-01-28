@@ -146,7 +146,7 @@ ADR::advance (Real time,
                 if (fine)
                 {
                     for (int i = 0; i < BL_SPACEDIM ; i++)
-                        fluxes[i][mfiindex].copy(flux[i]);
+                        fluxes[i][fpi].copy(flux[i]);
                 }
                 if (current)
                 {

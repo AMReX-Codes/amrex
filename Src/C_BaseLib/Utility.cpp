@@ -18,7 +18,7 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 #include <ParallelDescriptor.H>
 
@@ -442,6 +442,27 @@ BoxLib::UniqueString()
   int tsl(tempstring.str().length());
   return(tempstring.str().substr(tsl/2, tsl));
 }
+
+void
+BoxLib::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
+{
+  if(ParallelDescriptor::IOProcessor()) {
+    if(BoxLib::FileExists(path)) {
+      std::string newoldname(path + ".old." + BoxLib::UniqueString());
+      std::cout << "BoxLib::UtilCreateCleanDirectory():  " << path
+                << " exists.  Renaming to:  " << newoldname << std::endl;
+      std::rename(path.c_str(), newoldname.c_str());
+    }
+    if( ! BoxLib::UtilCreateDirectory(path, 0755)) {
+      BoxLib::CreateDirectoryFailed(path);
+    }
+  }
+  if(callbarrier) {
+    // Force other processors to wait until directory is built.
+    ParallelDescriptor::Barrier("BoxLib::UtilCreateCleanDirectory");
+  }
+}
+
 void
 BoxLib::OutOfMemory ()
 {
@@ -678,13 +699,13 @@ BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
 #pragma omp parallel
   {
     init_seed = seed + omp_get_thread_num() * numprocs;
-#else
-    init_seed = seed;
-#endif
     mti = N;
     sgenrand(init_seed);
-#ifdef _OPENMP
   }
+#else
+    init_seed = seed;
+    mti = N;
+    sgenrand(init_seed);
 #endif
 }
 
@@ -1275,8 +1296,8 @@ bool BoxLib::StreamRetry::TryFileOutput()
         bTryOutput = false;
       } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
-          const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
-                                                              tries - 1, 2);
+          const std::string& badFileName = BoxLib::Concatenate(fileName + ".bad",
+                                                               tries - 1, 2);
           std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
                     << fileName << "  to  " << badFileName << std::endl;
           std::rename(fileName.c_str(), badFileName.c_str());
@@ -1301,5 +1322,166 @@ bool BoxLib::StreamRetry::TryFileOutput()
 }
 
 
+void BoxLib::SyncStrings(const Array<std::string> &localStrings,
+                         Array<std::string> &syncedStrings, bool &alreadySynced)
+{
+#ifdef BL_USE_MPI
+  const int nProcs(ParallelDescriptor::NProcs());
+  const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
+  int nUnmatched(0);
+
+  Array<std::string> localStringsCopy = localStrings;
+
+  // ---- broadcast ioproc strings
+  int pfStringsSize(0);
+  std::ostringstream pfStrings;
+  if(ParallelDescriptor::IOProcessor()) {
+    for(int i(0); i < localStringsCopy.size(); ++i) {
+      pfStrings << localStringsCopy[i] << '\n';
+    }
+    pfStringsSize = pfStrings.str().size();
+  }
+  ParallelDescriptor::Bcast(&pfStringsSize, 1);
+
+  Array<char> pfCharArray(pfStringsSize + 1);
+  if(ParallelDescriptor::IOProcessor()) {
+    std::strcpy(pfCharArray.dataPtr(), pfStrings.str().c_str());  // null terminated
+  }
+  ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
+
+  // ---- extract the ioproc strings
+  Array<std::string> ioprocStrings, sendStrings;
+  if( ! ParallelDescriptor::IOProcessor()) {
+    std::istringstream pfIn(pfCharArray.dataPtr());
+    std::string pfName;
+    while( ! pfIn.eof()) {
+      std::getline(pfIn, pfName, '\n');
+      if( ! pfIn.eof()) {
+	ioprocStrings.push_back(pfName);
+      }
+    }
+    // ---- now check if they match on non ioprocs
+    for(int n(0); n < ioprocStrings.size(); ++n) {
+      bool matched(false);
+      for(int i(0); i < localStringsCopy.size(); ++i) {
+        if(ioprocStrings[n] == localStringsCopy[i]) {
+          matched = true;
+        }
+      }
+      if( ! matched) {
+        ++nUnmatched;
+        localStringsCopy.push_back(ioprocStrings[n]);  // ---- add to local set
+      }
+    }
+    for(int n(0); n < localStringsCopy.size(); ++n) {
+      bool matched(false);
+      for(int i(0); i < ioprocStrings.size(); ++i) {
+        if(localStringsCopy[n] == ioprocStrings[i]) {
+	  matched = true;
+        }
+      }
+      if( ! matched) {
+        ++nUnmatched;
+        sendStrings.push_back(localStringsCopy[n]);  // ---- send these to the ioproc
+      }
+    }
+  }
+
+  ParallelDescriptor::ReduceIntMax(nUnmatched);
+  if(nUnmatched == 0) {
+    alreadySynced = true;
+    syncedStrings = localStrings;
+    return;
+  }
+  alreadySynced = false;
+
+
+  int sendStringsSize(0);
+  std::ostringstream ossSendStrings;
+  Array<char> sendCharArray(1);  // cannot be zero for gather call
+  if( ! ParallelDescriptor::IOProcessor()) {
+    for(int i(0); i < sendStrings.size(); ++i) {
+      ossSendStrings << sendStrings[i] << '\n';
+    }
+    sendStringsSize = ossSendStrings.str().size();
+    sendCharArray.resize(sendStringsSize + 1);
+    std::strcpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str());  // null terminated
+  }
+
+  Array<int> nChars(nProcs, 0);
+  ParallelDescriptor::Gather(&sendStringsSize, 1, nChars.dataPtr(), 1, ioProcNumber);
+
+  int totalChars(0);
+  Array<char> recvStrings(1);
+  Array<int> offset(nProcs, 0);
+  if(ParallelDescriptor::IOProcessor()) {
+    for(int i(0); i < nChars.size(); ++i) {
+      totalChars += nChars[i];
+    }
+    recvStrings.resize(totalChars + 1);
+
+    int iOffset(0);
+    for(int i(1); i < nChars.size(); ++i) {
+      iOffset += nChars[i-1];
+      offset[i] = iOffset;
+    }
+  }
+
+  BL_MPI_REQUIRE( MPI_Gatherv(sendCharArray.dataPtr(),
+                              sendStringsSize, 
+                              ParallelDescriptor::Mpi_typemap<char>::type(),
+                              recvStrings.dataPtr(),
+                              nChars.dataPtr(),
+                              offset.dataPtr(),
+                              ParallelDescriptor::Mpi_typemap<char>::type(),
+                              ioProcNumber,
+                              ParallelDescriptor::Communicator()) );
+
+  if(ParallelDescriptor::IOProcessor()) {
+    std::istringstream pfIn(recvStrings.dataPtr());
+    std::string pfName;
+    syncedStrings = localStrings;
+    while( ! pfIn.eof()) {
+      std::getline(pfIn, pfName, '\n');
+      if( ! pfIn.eof()) {
+	syncedStrings.push_back(pfName);  // ---- add the gathered strings
+      }
+    }
+  }
+
+  // ---- broadcast synced ioproc strings
+  int syncedStringsSize(0);
+  std::ostringstream syncedStrStr;
+  if(ParallelDescriptor::IOProcessor()) {
+    for(int i(0); i < syncedStrings.size(); ++i) {
+      syncedStrStr << syncedStrings[i] << '\n';
+    }
+    syncedStringsSize = syncedStrStr.str().size();
+  }
+  ParallelDescriptor::Bcast(&syncedStringsSize, 1);
+
+  Array<char> syncedCharArray(syncedStringsSize + 1);
+  if(ParallelDescriptor::IOProcessor()) {
+    std::strcpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str());  // null terminated
+  }
+  ParallelDescriptor::Bcast(syncedCharArray.dataPtr(), syncedCharArray.size());
+
+  if( ! ParallelDescriptor::IOProcessor()) {
+    std::istringstream syncedIn(syncedCharArray.dataPtr());
+    std::string syncedName;
+    while( ! syncedIn.eof()) {
+      std::getline(syncedIn, syncedName, '\n');
+      if( ! syncedIn.eof()) {
+	syncedStrings.push_back(syncedName);
+      }
+    }
+  }
+
+#else
+    alreadySynced = true;
+    syncedStrings = localStrings;
+#endif
+
+}
 
 
