@@ -3711,7 +3711,7 @@ contains
        end do
        !$OMP END PARALLEL DO
     else
-       if (lng    > mdst%ng) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
+       if (lng    >       0) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
        if (lngsrc > msrc%ng) call bl_error('MULTIFAB_COPY_C: ngsrc > msrc%ng')
 
        if (lngsrc > 0) then
