@@ -949,9 +949,9 @@ MFIter::Initialize (int sharing, int chunksize)
 		    ijk[d] = 0;
 		}
 	    }
-	    
+
 	    if ( (chunksize <=0 && it >= tlo) ||
-		 (it/chunksize)%nthreads == tid ) 
+		 (chunksize > 0 && (it/chunksize)%nthreads == tid) ) 
 	    {
 		for (int d=0; d<BL_SPACEDIM; d++) {
 		    if (ijk[d] < nleft[d]) {
