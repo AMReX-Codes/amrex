@@ -17,12 +17,14 @@ CC       := mpicc
 F90FLAGS += -fPIC
 CFLAGS   += -fPIC
 
-PYINCLUDE := -I$(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
-PYINCLUDE += -I$(shell python -c 'import numpy; print numpy.get_include()')
-PYLDFLAGS  =   $(shell python-config --ldflags)
+PYINCLUDE := $(shell python -c 'import distutils.sysconfig; print distutils.sysconfig.get_python_inc()')
+PYINCLUDE += $(shell python -c 'import numpy; print numpy.get_include()')
 
-#all: $(OUT)/libboxlib.so
 all: $(OUT)/fcboxlib.so
+
+VPATH_LOCATIONS += src
+INCLUDE_LOCATIONS += $(PYINCLUDE)
+csources += fboxlib_c.c
 
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 include $(BOXLIB_HOME)/Src/Python/GPackage.mak
@@ -32,10 +34,6 @@ VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
-$(OUT)/libboxlib.so: $(objects)
+$(OUT)/fcboxlib.so: $(objects)
 	mkdir -p $(OUT)
-	$(F90) $(F90FLAGS) -shared -o $@ $^ $(PYLDFLAGS)
-
-$(OUT)/fcboxlib.so: src/fboxlib_c.c $(objects)
-	mkdir -p $(OUT)
-	$(CC) $(CFLAGS) -shared -o $@ $(PYINCLUDE) $^ $(PYLDFLAGS)
+	$(F90) -shared -o $@ $^
