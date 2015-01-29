@@ -323,11 +323,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),baragon)
-      mpihome=/usr/local
+      mpihome=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread -lmpich
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),megalon)
