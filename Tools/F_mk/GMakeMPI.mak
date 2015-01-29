@@ -271,15 +271,6 @@ ifeq ($(HOST),kiryu)
   endif
 endif
 
-ifeq ($(HOST),lijewski)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-endif
 ifeq ($(HOST),manda)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
