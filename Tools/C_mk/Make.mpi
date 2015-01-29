@@ -210,14 +210,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST), lijewski)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lmpl -lpthread
-    endif
-
     ifeq ($(HOST),manda)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -259,7 +251,7 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),atragon)
-      MPI_HOME=/usr/local
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
