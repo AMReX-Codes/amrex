@@ -376,11 +376,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),naphta)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),rodan)
@@ -428,12 +428,10 @@ ifeq ($(MACHINE), Linux)
                 ifneq ($(WHICHLINUX), EUCLID)
                   ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                     ifneq ($(WHICHLINUX), DONEV)
-                      ifneq ($(WHICHLINUX), HEDORAH)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
                           BL_MPI_LIBS += -lmpich
                         endif  
-                      endif  
                       endif  
                     endif  
                   endif
