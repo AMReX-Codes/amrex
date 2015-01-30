@@ -22,19 +22,6 @@ ifeq ($(COMP), Cray)
   endif
 endif
 
-ifeq ($(findstring titan, $(HOST)), titan)
-    #
-    # titan
-    #
-    ifeq ($(USE_MPI),TRUE)
-       CC := cc
-       CXX := CC
-       FC := ftn
-       F90 := ftn
-       fC := ftn
-    endif
-endif
-
 #
 # Use mpicc on Lawrencium
 #
@@ -87,6 +74,16 @@ ifeq ($(MACHINE), Linux)
 	  FFLAGS += -hnoomp
 	endif
       endif
+    endif
+
+    ifeq ($(WHICHLINUX), TITAN)
+	ifeq ($(USE_MPI),TRUE)
+	   CC := cc
+	   CXX := CC
+	   FC := ftn
+	   F90 := ftn
+	   fC := ftn
+	endif
     endif
 
     ifeq ($(WHICHLINUX), INTREPID)
