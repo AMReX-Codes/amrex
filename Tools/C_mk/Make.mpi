@@ -207,14 +207,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST), lijewski)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lmpl -lpthread
-    endif
-
     ifeq ($(HOST),manda)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -256,7 +248,7 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),atragon)
-      MPI_HOME=/usr/local
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
@@ -320,11 +312,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),baragon)
-      mpihome=/usr/local
+      mpihome=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread -lmpich
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),megalon)
@@ -381,11 +373,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),naphta)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),rodan)
@@ -433,12 +425,10 @@ ifeq ($(MACHINE), Linux)
                 ifneq ($(WHICHLINUX), EUCLID)
                   ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                     ifneq ($(WHICHLINUX), DONEV)
-                      ifneq ($(WHICHLINUX), HEDORAH)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
                           BL_MPI_LIBS += -lmpich
                         endif  
-                      endif  
                       endif  
                     endif  
                   endif
