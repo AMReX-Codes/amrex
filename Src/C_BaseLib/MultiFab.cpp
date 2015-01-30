@@ -781,25 +781,41 @@ Array<Real>
 MultiFab::norm0 (const Array<int>& comps) const
 {
     int n = comps.size();
-    Array<Real> nm0(n, -std::numeric_limits<Real>::max());
+    const Real rmax = std::numeric_limits<Real>::max();
+    Array<Real> nm0(n, -rmax);
+
+#ifdef _OPENMP
+    int nthreads = omp_get_max_threads();
+#else
+    int nthreads = 1;
+#endif
+    PArray< Array<Real> > priv_nm0(nthreads, PArrayManage);
+    for (int i=0; i<nthreads; i++) {
+	priv_nm0.set(i, new Array<Real>(n, -rmax));
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-	Array<Real> priv_nm0(n, -std::numeric_limits<Real>::max());
+#ifdef _OPENMP
+	int tid = omp_get_thread_num();
+#else
+	int tid = 0;
+#endif
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
             for (int i=0; i<n; i++) {
-	        priv_nm0[i] = std::max(priv_nm0[i], get(mfi).norm(mfi.tilebox(), 0, comps[i], 1));
+	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], get(mfi).norm(mfi.tilebox(), 0, comps[i], 1));
             }
         }
 #ifdef _OPENMP
-#pragma omp critical (multifab_norm0_s)
+#pragma omp barrier
+#pragma omp for
 #endif
-	{
-            for (int i=0; i<n; i++) {
-	        nm0[i] = std::max(priv_nm0[i], nm0[i]);
+	for (int i=0; i<n; i++) {
+            for (int it=0; it<nthreads; it++) {
+	        nm0[i] = std::max(priv_nm0[it][i], nm0[i]);
             }	    
 	}
     }
@@ -838,23 +854,38 @@ MultiFab::norm2 (const Array<int>& comps) const
     Array<Real> nm2(n, 0.e0);
 
 #ifdef _OPENMP
+    int nthreads = omp_get_max_threads();
+#else
+    int nthreads = 1;
+#endif
+    PArray< Array<Real> > priv_nm2(nthreads, PArrayManage);
+    for (int i=0; i<nthreads; i++) {
+	priv_nm2.set(i, new Array<Real>(n, 0.0));
+    }
+
+#ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<Real> priv_nm2(n, 0.e0);
+#ifdef _OPENMP
+	int tid = omp_get_thread_num();
+#else
+	int tid = 0;
+#endif
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
             for (int i=0; i<n; i++) {
 	        const Real nm_grid = get(mfi).norm(mfi.tilebox(), 2, comps[i], 1);
-		priv_nm2[i] += nm_grid*nm_grid;
+		priv_nm2[tid][i] += nm_grid*nm_grid;
             }
         }
 #ifdef _OPENMP
-#pragma omp critical (multifab_norm2_s)
+#pragma omp barrier
+#pragma omp for
 #endif
-	{
-	    for (int i=0; i<n; i++) {
-		nm2[i] += priv_nm2[i];
+	for (int i=0; i<n; i++) {
+	    for (int it=0; it<nthreads; it++) {
+		nm2[i] += priv_nm2[it][i];
 	    }
 	}
     }
@@ -893,23 +924,38 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow) const
     Array<Real> nm1(n, 0.e0);
 
 #ifdef _OPENMP
+    int nthreads = omp_get_max_threads();
+#else
+    int nthreads = 1;
+#endif
+    PArray< Array<Real> > priv_nm1(nthreads, PArrayManage);
+    for (int i=0; i<nthreads; i++) {
+	priv_nm1.set(i, new Array<Real>(n, 0.0));
+    }
+
+#ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<Real> priv_nm1(n, 0.e0);
+#ifdef _OPENMP
+	int tid = omp_get_thread_num();
+#else
+	int tid = 0;
+#endif
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
             const Box& b = mfi.growntilebox(ngrow);
             for (int i=0; i<n; i++) {
-                priv_nm1[i] += get(mfi).norm(b, 1, comps[i], 1);
+                priv_nm1[tid][i] += get(mfi).norm(b, 1, comps[i], 1);
 	    }
         }
 #ifdef _OPENMP
-#pragma omp critical (multifab_norm1_s)
+#pragma omp barrier
+#pragma omp for
 #endif
-	{
-	    for (int i=0; i<n; i++) {
-		nm1[i] += priv_nm1[i];
+	for (int i=0; i<n; i++) {
+	    for (int it=0; it<nthreads; it++) {
+		nm1[i] += priv_nm1[it][i];
 	    }
 	}
     }
