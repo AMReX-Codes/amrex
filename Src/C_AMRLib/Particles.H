@@ -115,6 +115,8 @@ struct ParticleBase
     // so that we don't reuse particle IDs.
     //
     static int NextID ();
+    // This version can only be used inside omp critical.
+    static int UnprotectedNextID ();
     //
     // Reset on restart.
     //

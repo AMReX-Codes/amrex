@@ -514,6 +514,16 @@ ParticleBase::NextID ()
     return next;
 }
 
+int
+ParticleBase::UnprotectedNextID ()
+{
+    int next;
+    if (the_next_id == std::numeric_limits<int>::max())
+	BoxLib::Abort("ParticleBase::NextID() -- too many particles");
+    next = the_next_id++;
+    return next;
+}
+
 void
 ParticleBase::NextID (int nextid)
 {
