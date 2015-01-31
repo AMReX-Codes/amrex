@@ -49,7 +49,7 @@ ifeq ($(COMP),PGI)
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
-    ifeq ($(findstring titan, $(HOST)), titan)
+    ifeq ($(WHICHLINUX), TITAN)
       CXXOPTF += -O
     else
       COPTF += -fast

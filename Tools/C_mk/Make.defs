@@ -162,6 +162,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     WHICHLINUX := BLUE_WATERS
   endif
+  ifeq ($(findstring titan, $(UNAMEN)), titan)
+    WHICHLINUX := TITAN
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
