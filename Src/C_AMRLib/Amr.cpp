@@ -299,10 +299,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     {
       int num_datalogs = pp.countval("data_log");
       datalog.resize(num_datalogs);
-      Array<std::string> data_file_names(num_datalogs);
-      pp.queryarr("data_log",data_file_names,0,num_datalogs);
+      datalogname.resize(num_datalogs);
+      pp.queryarr("data_log",datalogname,0,num_datalogs);
       for (int i = 0; i < num_datalogs; i++) 
-        setRecordDataInfo(i,data_file_names[i]);
+        setRecordDataInfo(i,datalogname[i]);
     }
 
     probin_file = "probin";  // Make "probin" the default
@@ -772,7 +772,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        datalog.set(i,new std::ofstream);
+        datalog.set(i,new std::fstream);
         datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
         if (!datalog[i].good())
             BoxLib::FileOpenFailed(filename);
