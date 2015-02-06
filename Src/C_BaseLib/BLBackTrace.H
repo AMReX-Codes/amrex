@@ -1,0 +1,47 @@
+#ifndef _BL_BACKTRACE_H_
+#define _BL_BACKTRACE_H_
+
+#ifndef BL_BACKTRACE
+
+#define BL_BACKTRACE_PUSH(S) ((void)0)
+#define BL_BACKTRACE_POP(S) ((void)0)
+
+#else
+
+#include <stack>
+#include <string>
+#include <utility>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#define BL_PASTE2(x, y) x##y
+#define BL_PASTE(x, y) BL_PASTE2(x, y)
+#define BL_BACKTRACE_PUSH( S )  BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
+#define BL_BACKTRACE_POP()   BLBackTrace::bt_stack.pop()
+
+class BLBackTrace
+{
+public:
+
+    static std::stack<std::pair<std::string, std::string> > bt_stack;
+#ifdef _OPENMP
+#pragma omp threadprivate(bt_stack)
+#endif
+
+    static void handler(int s);
+};
+
+class BLBTer
+{
+public:
+    explicit BLBTer(const std::string& s, const char* file, int line);
+    ~BLBTer();
+private:
+    std::string file_line;
+};
+
+#endif
+
+#endif

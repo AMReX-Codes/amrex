@@ -26,6 +26,8 @@ C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
 C$(BOXLIB_BASE)_headers += BLProfiler.H
 
+C$(BOXLIB_BASE)_headers += BLBackTrace.H
+
 C$(BOXLIB_BASE)_headers += BLFort.H
 #
 # Container classes.
@@ -111,3 +113,4 @@ ifneq ($(BL_NO_FORT),TRUE)
 endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
+C$(BOXLIB_BASE)_sources += BLBackTrace.cpp
