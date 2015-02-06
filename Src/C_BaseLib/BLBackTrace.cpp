@@ -23,22 +23,23 @@ BLBackTrace::handler(int s)
     backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
 #endif
 
-#pragma omp parallel 
-    {
-#pragma omp critical(print_bt_stack)
-	{
-	    std::cout << std::endl;
-	    while (!bt_stack.empty()) {
-		std::cout << "== BACKTRACE == proc. " << ParallelDescriptor::MyProc()
 #ifdef _OPENMP
-			  << " thread " << omp_get_thread_num() 
+#pragma omp critical(print_bt_stack)
 #endif
-			  << " : " << bt_stack.top().first
-			  << ", " << bt_stack.top().second << "\n";
-		bt_stack.pop();
+    {
+	std::cout << std::endl;
+	while (!bt_stack.empty()) {
+	    std::cout << "== BACKTRACE == proc. " << ParallelDescriptor::MyProc();
+#ifdef _OPENMP
+	    if (omp_in_parallel()) {
+		std::cout << " thread " << omp_get_thread_num(); 
 	    }
-	    std::cout << std::endl;
+#endif
+	    std::cout << " : " << bt_stack.top().first
+		      << ", " << bt_stack.top().second << "\n";
+	    bt_stack.pop();
 	}
+	std::cout << std::endl;
     }
 
     BoxLib::Abort("exiting due to segfault");
