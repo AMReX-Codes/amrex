@@ -12,6 +12,8 @@ be printed.
 The second type can have finer granularity.  But you must instrument
 your code.  For example,
 
+#include <BLBackTrace.H>
+
 void f()
 {
     BL_BACKTRACE_PUSH("f()");
@@ -29,19 +31,25 @@ void f()
 
 	// Implicit POP of "Block A in f()" at the end of scope.
     }
-    
-    int m[10];
-#pragma omp parallel for
-    for (int i=0; i<11; i++) {
-    // There is a bug here.  "11" should be replaced by "10.
+
+    int m[10] = {0};
+    // backtracer is thread-safe. 
+    #pragma omp parallel for
+    for (int i=0; i<10; i++) {
 	std::string s;
 	{
 	    std::ostringstream ss;
 	    ss << "Loop # " << i;
 	    s = ss.str();  // Backtracer takes a string.
 	}
-	BL_BACKTRACE_PUSH(s); // backtracer is thread-safe. 
-	m[i] = i;
+	if (omp_get_thread_num() == 0) {
+            BL_BACKTRACE_PUSH(s+", i-1000000 bug"); 
+	    m[i-1000000] = i;
+        } else {
+            BL_BACKTRACE_PUSH(s+", i*1000000 bug"); 
+	    m[i*1000000] = i;
+        }
+	std::cout << m[i] << std::endl;
     }
 
     // We can call POP explicitly.
@@ -53,12 +61,19 @@ void f()
     // Implicit POP of "f()".
 }
 
-There is a bug in the above code.  If a segfault happens, the output
+There are bugs in the above code.  If segfaults happen, the output
 might look like,
 
-== BACKTRACE == proc. 0 thread 4 : Loop # 11, File f.cpp, Line 41
-== BACKTRACE == proc. 0 thread 4 : Place A in f(), File f.cpp, Line 21
-== BACKTRACE == proc. 0 thread 4 : f(), File f.cpp, Line 17
+== BACKTRACE == Proc. 1, Thread 0: "Loop # 0, i-1000000 bug", Line 175, File ../../Source/Castro_advance.cpp
+== BACKTRACE == Proc. 1, Master Thread: "Place A in f()", Line 102, File ../../Source/Castro_advance.cpp
+== BACKTRACE == Proc. 1, Master Thread: "f()", Line 94, File ../../Source/Castro_advance.cpp
+
+== BACKTRACE == Proc. 1, Thread 1: "Loop # 5, i*1000000 bug", Line 178, File ../../Source/Castro_advance.cpp
+== BACKTRACE == Proc. 1, Master Thread: "Place A in f()", Line 102, File ../../Source/Castro_advance.cpp
+== BACKTRACE == Proc. 1, Master Thread: "f()", Line 94, File ../../Source/Castro_advance.cpp
+
+Here "Master Thread" means it is outside OpenMP parallel region.  Note
+that "Block A in f()" does not appear. 
 
 
 
@@ -70,5 +85,4 @@ Known Issues:
   out of order.
 
 * On Edison at NERSC, the function names in the first type of tracing
-  are missing.  This might have something to do with static symbols
-  are used.
+  are missing because the executable is statically linked.
