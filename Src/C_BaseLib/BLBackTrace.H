@@ -39,7 +39,8 @@ public:
     explicit BLBTer(const std::string& s, const char* file, int line);
     ~BLBTer();
 private:
-    std::string file_line;
+    std::string line_file;
+    void pop_bt_stack();
 };
 
 #endif
