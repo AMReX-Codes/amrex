@@ -1,0 +1,74 @@
+BoxLib's backtracer can be used to catch segfault.  But it may only
+work with GCC on a unix system. 
+
+To use BoxLib's backtracer, compile the code with BL_BACKTRACE=TRUE in
+command line or your GNUmakefile.  There are two types of backtracing.
+
+The first type is at the function level.  You don't have to do
+anything other than compiling the code with BL_BACKTRACE=TRUE.  If a
+segfault occurs, the names of last 10 functions in the call stack will
+be printed.
+
+The second type can have finer granularity.  But you must instrument
+your code.  For example,
+
+void f()
+{
+    BL_BACKTRACE_PUSH("f()");
+
+    // ... some codes
+
+    BL_BACKTRACE_PUSH("Place A in f()");
+
+    // ... some codes
+
+    { // Block A
+	BL_BACKTRACE_PUSH("Block A in f()");
+
+	// ... some codes
+
+	// Implicit POP of "Block A in f()" at the end of scope.
+    }
+    
+    int m[10];
+#pragma omp parallel for
+    for (int i=0; i<11; i++) {
+    // There is a bug here.  "11" should be replaced by "10.
+	std::string s;
+	{
+	    std::ostringstream ss;
+	    ss << "Loop # " << i;
+	    s = ss.str();  // Backtracer takes a string.
+	}
+	BL_BACKTRACE_PUSH(s); // backtracer is thread-safe. 
+	m[i] = i;
+    }
+
+    // We can call POP explicitly.
+    // This will POP "Place A in f()" if we get here.
+    BL_BACKTRACE_POP();
+
+    // ... some codes
+
+    // Implicit POP of "f()".
+}
+
+There is a bug in the above code.  If a segfault happens, the output
+might look like,
+
+== BACKTRACE == proc. 0 thread 4 : Loop # 11, File f.cpp, Line 41
+== BACKTRACE == proc. 0 thread 4 : Place A in f(), File f.cpp, Line 21
+== BACKTRACE == proc. 0 thread 4 : f(), File f.cpp, Line 17
+
+
+
+**********************************************************************
+
+Known Issues:
+
+* When segfault occur on multiple MPI processes, the outputs can be
+  out of order.
+
+* On Edison at NERSC, the function names in the first type of tracing
+  are missing.  This might have something to do with static symbols
+  are used.

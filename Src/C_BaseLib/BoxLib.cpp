@@ -31,6 +31,11 @@
 #include <execinfo.h>
 #endif
 
+#ifdef BL_BACKTRACE
+#include <BLBackTrace.H>
+#include <signal.h>
+#endif
+
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
 //
@@ -203,10 +208,9 @@ BoxLib::Assert (const char* EX,
     write_to_stderr_without_buffering(buf);
 
 #ifdef __linux__
-    void *array[10];
-    size_t size;
-    size = backtrace(array, 10);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    void *buffer[10];
+    int nptrs = backtrace(buffer, 10);
+    backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
 #endif
     
     ParallelDescriptor::Abort();
@@ -231,6 +235,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     // Make sure to catch new failures.
     //
     std::set_new_handler(BoxLib::OutOfMemory);
+#endif
+
+#ifdef BL_BACKTRACE
+    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
