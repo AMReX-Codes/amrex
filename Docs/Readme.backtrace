@@ -76,7 +76,7 @@ might look like,
 == BACKTRACE == Proc. 1, Master Thread: "f()", Line 94, File ../../Source/Castro_advance.cpp
 
 Here "Master Thread" means it is outside OpenMP parallel region.  Note
-that both "Message B" and "Message C" do not appear. 
+that both "Place B" and "Place C" do not appear. 
 
 
 
@@ -84,7 +84,7 @@ that both "Message B" and "Message C" do not appear.
 
 Known Issues:
 
-* When segfault occur on multiple MPI processes, the outputs can be
+* When segfaults occur on multiple MPI processes, the outputs can be
   out of order.
 
 * On Edison at NERSC, the function names in the first type of tracing
