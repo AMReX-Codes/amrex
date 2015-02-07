@@ -31,7 +31,7 @@
 #include <execinfo.h>
 #endif
 
-#ifdef BL_BACKTRACE
+#ifdef BL_BACKTRACING
 #include <BLBackTrace.H>
 #include <signal.h>
 #endif
@@ -207,13 +207,16 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
+#ifdef BL_BACKTRACING
+    BLBackTrace::handler(-1);
+#else
 #ifdef __linux__
     void *buffer[10];
     int nptrs = backtrace(buffer, 10);
     backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
 #endif
-    
     ParallelDescriptor::Abort();
+#endif
 }
 
 namespace
@@ -237,7 +240,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     std::set_new_handler(BoxLib::OutOfMemory);
 #endif
 
-#ifdef BL_BACKTRACE
+#ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
 #endif
 

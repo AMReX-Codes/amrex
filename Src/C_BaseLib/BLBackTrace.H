@@ -1,7 +1,7 @@
 #ifndef _BL_BACKTRACE_H_
 #define _BL_BACKTRACE_H_
 
-#ifndef BL_BACKTRACE
+#ifndef BL_BACKTRACING
 
 #define BL_BACKTRACE_PUSH(S) ((void)0)
 #define BL_BACKTRACE_POP(S) ((void)0)
