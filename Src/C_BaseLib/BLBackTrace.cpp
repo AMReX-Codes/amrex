@@ -1,12 +1,10 @@
-#ifdef BL_BACKTRACE
+#ifdef BL_BACKTRACING
 
 #include <iostream>
 #include <sstream>
 
-#ifdef __linux__
 #include <unistd.h>
 #include <execinfo.h>
-#endif
 
 #include <BoxLib.H>
 #include <BLBackTrace.H>
@@ -17,11 +15,9 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
-#ifdef __linux__
     void *buffer[10];
     int nptrs = backtrace(buffer, 10);
     backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
-#endif
 
 #ifdef _OPENMP
 #pragma omp critical(print_bt_stack)
@@ -36,7 +32,7 @@ BLBackTrace::handler(int s)
 	std::cout << std::endl;
     }
 
-    BoxLib::Abort("exiting due to segfault");
+    ParallelDescriptor::Abort();
 }
 
 BLBTer::BLBTer(const std::string& s, const char* file, int line)

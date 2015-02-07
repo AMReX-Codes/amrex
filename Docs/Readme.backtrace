@@ -1,91 +1,89 @@
-BoxLib's backtracer can be used to catch segfault.  But it may only
-work with GCC on a unix system. 
 
-To use BoxLib's backtracer, compile the code with BL_BACKTRACE=TRUE in
-command line or your GNUmakefile.  There are two types of backtracing.
+To backtrace segfault and assertion failure in a C++ BoxLib based
+code, compile it with BACKTRACE=TRUE in command line or the
+GNUmakefile.
 
-The first type is at the function level.  You don't have to do
-anything other than compiling the code with BL_BACKTRACE=TRUE.  If a
-segfault occurs, the names of last 10 functions in the call stack will
-be printed.
+***************
+*  Example 1  *
+***************
 
-The second type can have finer granularity.  But you must instrument
-your code.  For example,
+    std::cout << grids[-1000] << std::endl; // grids: BoxArray starting with index 0
 
-#include <BLBackTrace.H>
+The code above results in a segfault (or assertion failure if compiled
+with DEBUG=TRUE).  The output looks like:
 
-void f()
-{
-    BL_BACKTRACE_PUSH("f()");
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN11BLBackTrace7handlerEi+0x17)[0x4bc7a7]
+    /lib64/libc.so.6(+0x34950)[0x7fe6f13c5950]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZlsRSoRK3Box+0xc)[0x4898dc]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro13advance_hydroEddii+0x42)[0x50c902]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro7advanceEddii+0x17)[0x50e017]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr8timeStepEidiid+0x29c)[0x4c83ac]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr14coarseTimeStepEd+0x266)[0x4c3926]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(main+0x1ac)[0x44648c]
+    /lib64/libc.so.6(__libc_start_main+0xf0)[0x7fe6f13b0fe0]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex[0x4468b6]
 
-    // ...
+Here the call stack before the segfault and entry point addresses such
+as [0x4bc7a7] are shown.  More details can be found out by typing:
 
-    BL_BACKTRACE_PUSH("Place A");
+    $ addr2line -Cfie Castro3d.Linux.gcc.gfortran.BT.OMP.ex 0x50c902
 
-    // ...
+This will show the function name, line number and file name:
 
-    BL_BACKTRACE_PUSH("Place B");
+    Castro::advance_hydro(double, double, int, int)
+    /home/wqzhang/mygitrepo/Castro/Exec/Sod/../../Source/Castro_advance.cpp:89
 
-    // ...
+Note that this also works for Fortran subroutines in C++ BoxLib based codes.
 
-    {
-    	BL_BACKTRACE_PUSH("Place C");
+***************
+*  Example 2  *
+***************
 
-	// ... 
+    Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
 
-	// Implicit POP of "Place C" at the end of scope.
-    }
+In this example, a segfault may occur depending on the value of
+"cell".  Suppose the line works most of the time because "cell" is
+usually good, but it fails occasionally on bad "cell".  So we would
+like more information other than that this line sometimes results in a
+segfault.  Using "std::cout" or "printf" often prints out too much.
+The following method is kind of like "printf" except that we will only
+see the information in case of segfault.
 
-    // Explicit POP will pop the top of the stack: "Place B".
-    BL_BACKTRACE_POP(); 
+   #include <BLBackTrace.H>
+   
+   #ifdef BL_BACKTRACING
+       std::ostringstream ss;
+       ss << "state.box() = " << state.box() << " cell = " << cell;
+       BL_BACKTRACE_PUSH(ss.str()); // PUSH takes std::string
+   #endif
+       Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
+   #ifdef BL_BACKTRACING
+       BL_BACKTRACE_POP();
+   #endif
 
-    int m[10] = {0};
-    // Backtracing is thread-safe. 
-    #pragma omp parallel for
-    for (int i=0; i<10; i++) {
-	std::string s;
-	{
-	    std::ostringstream ss;
-	    ss << "Loop # " << i;
-	    s = ss.str();  // Backtracer takes a string.
-	}
-	if (omp_get_thread_num() == 0) {
-            BL_BACKTRACE_PUSH(s+", i-1000000 bug"); 
-	    m[i-1000000] = i;
-        } else {
-            BL_BACKTRACE_PUSH(s+", i*1000000 bug"); 
-	    m[i*1000000] = i;
-        }
-	std::cout << m[i] << std::endl;
-    }
+The result looks like,
 
-    // ... 
+   == BACKTRACE == Proc. 0, Thread 2: "state.box() = ((-4,-4,-4) (7,7,35) (0,0,0)) cell = (-10000,-10000,-10000)", Line 648, File ../../Source/Castro_advance.cpp
 
-    // Implicit POP of "Message A" and "f()".
-}
+Note that "BL_BACKTRACE_PUSH" and "BL_BACKTRACE_POP" are thread-safe.
+Also note that we can have multiple "BL_BACKTRACE_PUSH"s, and we do
+not have to explicitly call "BL_BACKTRACE_POP", which will be
+implicitly called when "PUSH" is out of scope.
 
-There are bugs in the above code.  If segfaults happen, the output
-might look like,
-
-== BACKTRACE == Proc. 1, Thread 0: "Loop # 0, i-1000000 bug", Line 175, File ../../Source/Castro_advance.cpp
-== BACKTRACE == Proc. 1, Master Thread: "Place A", Line 102, File ../../Source/Castro_advance.cpp
-== BACKTRACE == Proc. 1, Master Thread: "f()", Line 94, File ../../Source/Castro_advance.cpp
-
-== BACKTRACE == Proc. 1, Thread 1: "Loop # 5, i*1000000 bug", Line 178, File ../../Source/Castro_advance.cpp
-== BACKTRACE == Proc. 1, Master Thread: "Place A", Line 102, File ../../Source/Castro_advance.cpp
-== BACKTRACE == Proc. 1, Master Thread: "f()", Line 94, File ../../Source/Castro_advance.cpp
-
-Here "Master Thread" means it is outside OpenMP parallel region.  Note
-that both "Place B" and "Place C" do not appear. 
-
+This method currently does not work in Fortran subroutines.
 
 
 **********************************************************************
 
 Known Issues:
 
+* The methods described here probably only work with GCC on a
+  GNU/Linux system.
+
 * When segfaults occur on multiple MPI processes, the outputs can be
   out of order.
 
 * On Edison at NERSC, the function names in the first type of tracing
-  are missing because the executable is statically linked.
+  are missing because the executable is statically linked.  However,
+  you will still get function entry point addresses, and they can be
+  used by "addr2line" to show line number and file name.

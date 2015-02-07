@@ -209,8 +209,8 @@ ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
 endif
 
-ifndef BL_BACKTRACE
-  BL_BACKTRACE = FALSE
+ifndef BACKTRACE
+  BACKTRACE = FALSE
 endif
 
 ifndef DIM
@@ -266,7 +266,7 @@ ifdef USE_GCC
     CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-    ifeq ($(BL_BACKTRACE),TRUE)
+    ifeq ($(BACKTRACE),TRUE)
         LDFLAGS += -rdynamic
     endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
@@ -837,8 +837,8 @@ else
     ProfSuffix	:=
 endif
 
-ifeq ($(BL_BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACE
+ifeq ($(BACKTRACE),TRUE)
+    CPPFLAGS += -DBL_BACKTRACING
     BTSuffix := .BT
 else
     BTSuffix :=
