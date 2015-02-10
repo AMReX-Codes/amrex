@@ -48,8 +48,6 @@ class testObj:
 
         self.dim = -1
 
-        self.needsHelmEOS = 0
-
         self.restartTest = 0
         self.restartFileNum = -1
 
@@ -106,7 +104,6 @@ class suiteObj:
         self.testTopDir = ""
         self.webTopDir = ""
         self.compareToolDir = ""
-        self.helmeosDir = ""
 
         self.useExtSrc = 0     # set automatically -- not by users
         self.extSrcDir = ""
@@ -251,9 +248,6 @@ def LoadParams(file):
 
         elif (opt == "compareToolDir"):
             mysuite.compareToolDir = checkTestDir(value)
-
-        elif (opt == "helmeosDir"):
-            mysuite.helmeosDir = checkTestDir(value)
 
         elif (opt == "extSrcDir"):
             mysuite.extSrcDir = checkTestDir(value)
@@ -444,9 +438,6 @@ def LoadParams(file):
             elif (opt == "dim"):
                 mytest.dim = value
                 
-            elif (opt == "needsHelmEOS"):
-                mytest.needsHelmEOS = value
-                
             elif (opt == "restartTest"):
                 mytest.restartTest = value
 
@@ -589,17 +580,6 @@ def LoadParams(file):
 
     if (anyMPI and mysuite.MPIcommand == ""):
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
-
-    # if any runs use helmeos, make sure that the suite-wide
-    # helmeosDir is defined
-    anyhelmeos = 0
-    for test in testList:
-        if (test.needsHelmEOS == 1):
-            anyhelmeos = 1
-            break
-
-    if (anyhelmeos and mysuite.helmeosDir == ""):
-        fail("ERROR: one or more tests use helmeos, but helmeosDir is not defined")
 
     testList.sort()
 
@@ -1008,8 +988,6 @@ def testSuite(argv):
             testTopDir     = < full path to test output directory >
             webTopDir      = < full path to test web directory >
             compareToolDir = < full path to the AmrPostprocessing/F_Src directory >
-            helmeosDir     = < full path to helm_table.dat, 
-                               no need to set this if not using helmeos>
             extSrcDir      = < directory to an extra source directory other than
                                BoxLib and the main source, if there is one >
             extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
@@ -1049,7 +1027,6 @@ def testSuite(argv):
             inputFile = < input file name >
             probinFile = < probin file name >
             dim = < dimensionality: 1, 2, or 3 >
-            needs_helmeos = < need Helmholtz eos? 0 for no, 1 for yes >
 
             aux1File = < name of additional file needed by the test >
             link1File = < name of additional file needed by the test >
@@ -1118,9 +1095,6 @@ def testSuite(argv):
             containing the comparison tool.  This resides in
             AmrPostprocesing/F_Src
 
-            helmeosDir is the full path to the directory containing
-            the helm_table.dat file needed by the general EOS.
-
             sourceTree is either C_Src for applications in the C++
             BoxLib framework or F_Src for applications in the F90
             BoxLib framework.  For internal BoxLib tests, sourceTree
@@ -1170,10 +1144,6 @@ def testSuite(argv):
 
             dim is the dimensionality for the problem.
 
-            needs_helmeos is set to 1 if the Helmholtz EOS is used.
-            This will ensure that the helm_table.dat file is copied
-            into the run directory.
-            
             aux1File (also aux2File and aux3File) is the name of 
             any additional file needed by the test.  This will be 
             COPIED into the run directory
@@ -2007,16 +1977,6 @@ def testSuite(argv):
             index = string.rfind(test.probinFile, "/")
             if (index > 0):
                test.probinFile = test.probinFile[index+1:]	   
-
-
-        # if we are using the Helmholtz EOS, we need the input table
-        if (test.needsHelmEOS):
-            helmeosFile = suite.helmeosDir + "helm_table.dat"
-            try: os.symlink(helmeosFile, outputDir + "helm_table.dat")
-            except IOError:
-                errorMsg = "    ERROR: unable to links helmeos file: %s" % helmeosFile
-                reportTestFailure(errorMsg, test, testDir, fullWebDir)
-                continue
 
 
         # python doesn't allow labelled continue statements, so we
