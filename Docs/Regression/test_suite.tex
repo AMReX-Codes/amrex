@@ -49,7 +49,6 @@ sourceDir      = /home/zingale/testing/MAESTRO/
 testTopDir     = /home/zingale/testing/
 webTopDir      = /home/www/Maestro/test-suite/
 compareToolDir = /home/zingale/testing/AmrPostprocessing/F_Src/
-helmeosDir     = /home/zingale/testing/MAESTRO/Microphysics/EOS/helmeos/
 
 sourceTree = F_Src
 FCOMP = gfortran
@@ -88,9 +87,6 @@ The first group of options define the necessary paths:
 \item {\tt webTopDir}: the directory in which to place the web output.
 \item {\tt compareToolDir}: the directory that contains the {\tt fcompare.f90}
   comparison tool source
-\item {\tt helmeosDir}: lists the path to the {\tt helm\_table.dat}
-  file used by the general stellar equation of state (this would only
-  apply to astrophysics codes
 \end{itemize}
 
 The source tree for \boxlib\ (Fortran or C++) and compilers to use are set
@@ -170,7 +166,7 @@ example, a test listing for the {\tt test2} problem might look like:
 buildDir = TEST_PROBLEMS/test2/
 inputFile = inputs_2d
 aux1File = model.hse.cool.coulomb
-needsHelmEOS = 1
+link1File = helm_table.dat
 dim = 2
 doVis = 1
 visVar = "tfromp"
@@ -201,10 +197,6 @@ for this test are then:
   to the {\tt buildDir}.
 
 \item {\tt dim}: the problem's dimensionality.
-
-\item {\tt needsHelmEOS}: if the general stellar equation of state is
-  used, then should be set to {\tt 1} to ensure that the EOS table is
-  linked into the run directory.
 
 \item {\tt link1File}, {\tt link2File}, {\tt link3File}: these work
   like the {\tt aux?File}s, but instead of copying the specified file
