@@ -13,7 +13,8 @@ section_sources = Preface/Preface.tex \
                   Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
                   F_AdvancedTopics/F_AdvancedTopics.tex \
-	          C_AdvancedTopics/C_AdvancedTopics.tex
+	          C_AdvancedTopics/C_AdvancedTopics.tex \
+                  Regression/test_suite.tex
 
 UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source) 
 	latex UsersGuide.tex < /dev/null
