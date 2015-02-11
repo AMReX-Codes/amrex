@@ -103,7 +103,6 @@ class suiteObj:
         self.sourceDir = ""
         self.testTopDir = ""
         self.webTopDir = ""
-        self.compareToolDir = ""
 
         self.useExtSrc = 0     # set automatically -- not by users
         self.extSrcDir = ""
@@ -246,9 +245,6 @@ def LoadParams(file):
         elif (opt == "webTopDir"):
             mysuite.webTopDir = os.path.normpath(value) + "/"
 
-        elif (opt == "compareToolDir"):
-            mysuite.compareToolDir = checkTestDir(value)
-
         elif (opt == "extSrcDir"):
             mysuite.extSrcDir = checkTestDir(value)
             mysuite.useExtSrc = 1
@@ -368,10 +364,9 @@ def LoadParams(file):
             mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
 
     if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
-        mysuite.sourceDir == "" or mysuite.testTopDir == "" or
-        mysuite.compareToolDir == ""):
+        mysuite.sourceDir == "" or mysuite.testTopDir == ""):
         fail("ERROR: required suite-wide directory not specified\n" + \
-                 "(sourceTree, boxLibDir, sourceDir, testTopDir, compareToolDir)")
+                 "(sourceTree, boxLibDir, sourceDir, testTopDir)")
 
 
     # if no webTopDir was specified, use the default.  In either case, make
@@ -987,7 +982,6 @@ def testSuite(argv):
             sourceDir      = < directory to the main Source directory >
             testTopDir     = < full path to test output directory >
             webTopDir      = < full path to test web directory >
-            compareToolDir = < full path to the AmrPostprocessing/F_Src directory >
             extSrcDir      = < directory to an extra source directory other than
                                BoxLib and the main source, if there is one >
             extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
@@ -1090,10 +1084,6 @@ def testSuite(argv):
             directories, and the test benchmark directories.  It can
             be the same as sourceDir.  The necessary sub- directories
             will be created at runtime if they don't already exist.
-
-            compareToolDir is the full path to the directory
-            containing the comparison tool.  This resides in
-            AmrPostprocesing/F_Src
 
             sourceTree is either C_Src for applications in the C++
             BoxLib framework or F_Src for applications in the F90
@@ -1693,6 +1683,8 @@ def testSuite(argv):
     print "\n"
     bold("building the comparison tools...")
 
+    suite.compareToolDir = os.path.normpath(suite.boxLibDir) + "/Tools/Postprocessing/F_Src/"
+    
     os.chdir(suite.compareToolDir)
 
     compString = "%s BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
