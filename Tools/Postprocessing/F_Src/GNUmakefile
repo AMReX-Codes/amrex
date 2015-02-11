@@ -15,6 +15,7 @@ MAESTRO_TOP_DIR := $(MAESTRO_HOME)
 
 
 # include the main Makefile stuff
+BOXLIB_HOME := ../../..
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
 # core BoxLib directories
