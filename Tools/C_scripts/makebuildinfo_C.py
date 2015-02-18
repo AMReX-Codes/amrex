@@ -77,7 +77,6 @@ const char* buildInfoGetBuildGitHash() {
   @@BUILDGIT_DECLS@@
 
   return HASH;
-  }
 }
 
 const char* buildInfoGetBuildGitName() {
@@ -86,7 +85,6 @@ const char* buildInfoGetBuildGitName() {
   @@BUILDGIT_NAME@@
 
   return NAME;
-  }
 }
 """
 
