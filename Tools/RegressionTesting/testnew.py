@@ -151,8 +151,11 @@ class suiteObj:
 
         self.globalAddToExecString = ""
 
+        # delete all plot/checkfiles but the plotfile used for comparison upon
+        # completion
+        self.purge_output = 0
 
-
+        
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -219,114 +222,57 @@ def LoadParams(file):
     # "main" is a special section containing the global suite parameters.
     mysuite = suiteObj()
 
+    valid_options = mysuite.__dict__.keys()
+    valid_options.append("extraBuildDir")
+    valid_options.append("extraBuildDir2")    
+    
     for opt in cp.options("main"):
-
+        
         # get the value of the current option
         value = convertType(cp.get("main", opt))
 
-        if (opt == "suiteName"):
-            mysuite.suiteName = value
-
-        elif (opt == "sourceTree"):
-            if (not (value == "C_Src" or value == "F_Src" or value == "BoxLib")):
-                fail("ERROR: invalid sourceTree")
-            else:
-                mysuite.sourceTree = value
-
-        elif (opt == "sourceDir"):
-            mysuite.sourceDir = checkTestDir(value)
-
-        elif (opt == "boxLibDir"):
-            mysuite.boxLibDir = checkTestDir(value)
-
-        elif (opt == "testTopDir"):
-            mysuite.testTopDir = checkTestDir(value)
-
-        elif (opt == "webTopDir"):
-            mysuite.webTopDir = os.path.normpath(value) + "/"
-
-        elif (opt == "extSrcDir"):
-            mysuite.extSrcDir = checkTestDir(value)
-            mysuite.useExtSrc = 1
-
-        elif (opt == "extSrcCompString"):
-            mysuite.extSrcCompString = value
-
-        elif (opt == "boxLibGitBranch"):
-            mysuite.boxLibGitBranch = value
-
-        elif (opt == "sourceGitBranch"):
-            mysuite.sourceGitBranch = value
-
-        elif (opt == "extSrcGitBranch"):
-            mysuite.extSrcGitBranch = value
-
-        # we will keep the extra build directories in a list -- we want them
-        # in the correct order in the list so we can simply index later
-        elif (opt == "extraBuildDir"):
-            if len(mysuite.extraBuildDirs) == 0:
-                mysuite.extraBuildDirs.append(checkTestDir(value))
-            else:
-                mysuite.extraBuildDirs.insert(0,checkTestDir(value))
-
-        elif (opt == "extraBuildDir2"):
-            mysuite.extraBuildDirs.append(checkTestDir(value))
-
-        elif (opt == "extraBuildDirCompString"):
-            mysuite.extraBuildDirCompString = value
-
-        elif (opt == "MPIcommand"):
-            mysuite.MPIcommand = value
-
-        elif (opt == "MPIhost"):
-            mysuite.MPIhost = value
+        if opt in valid_options:
             
-        elif (opt == "FCOMP"):
-            mysuite.FCOMP = value
+            if opt == "sourceTree":
+                if not value in ["C_Src", "F_Src", "BoxLib"]:
+                    fail("ERROR: invalid sourceTree")
+                else:
+                    mysuite.sourceTree = value
 
-        elif (opt == "COMP"):
-            mysuite.COMP = value
+            elif opt == "sourceDir": mysuite.sourceDir = checkTestDir(value)
+            elif opt == "boxLibDir": mysuite.boxLibDir = checkTestDir(value)
+            elif opt == "testTopDir": mysuite.testTopDir = checkTestDir(value)
+            elif opt == "webTopDir": mysuite.webTopDir = os.path.normpath(value) + "/"
+            elif opt == "extSrcDir":
+                mysuite.extSrcDir = checkTestDir(value)
+                mysuite.useExtSrc = 1
 
-        elif (opt == "MAKE"):
-            mysuite.MAKE = value
+            elif opt == "extraBuildDir":
+                # we will keep the extra build directories in a list -- we
+                # want them in the correct order in the list so we can simply
+                # index later
+                if len(mysuite.extraBuildDirs) == 0:
+                    mysuite.extraBuildDirs.append(checkTestDir(value))
+                else:
+                    mysuite.extraBuildDirs.insert(0,checkTestDir(value))
 
-        elif (opt == "numMakeJobs"):
-            mysuite.numMakeJobs = value
+            elif opt == "extraBuildDir2":
+                mysuite.extraBuildDirs.append(checkTestDir(value))
 
-        elif (opt == "reportActiveTestsOnly"):
-            mysuite.reportActiveTestsOnly = value
+            elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
-        elif (opt == "goUpLink"):
-            mysuite.goUpLink = value
-
-        elif (opt == "sendEmailWhenFail"):
-            mysuite.sendEmailWhenFail = value
-
-        elif (opt == "emailFrom"):
-            mysuite.emailFrom = value
-
-        elif (opt == "emailTo"):
-            mysuite.emailTo = value.split(",")
-
-        elif (opt == "emailSubject"):
-            mysuite.emailSubject = value
-
-        elif (opt == "emailBody"):
-            mysuite.emailBody = value
-
-        elif (opt == "globalAddToExecString"):
-            mysuite.globalAddToExecString = value
-
+            else:
+                # generic setting of the object attribute
+                setattr(mysuite, opt, value)
+            
         else:
             warning("WARNING: suite parameter %s not valid" % (opt))
 
 
     mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
-
     mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
 
-    # if there is an extra source directory, update the additional
-    # compilation string
+    # update the additional compilation str for additional source dir
     if mysuite.useExtSrc:
         mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
 
@@ -336,31 +282,27 @@ def LoadParams(file):
     # if there is an extra build directory (some problems defined there),
     # then update the additional compilation string
     if mysuite.useExtraBuild > 0:
-        n = 0
-        while n < len(mysuite.extraBuildDirs):
+        for n in range(len(mysuite.extraBuildDirs)):
             mysuite.extraBuildNames.append(os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n])))
-            n += 1
 
         # since we are building in the extraBuildDir, we need to 
-        # take make where the sourceDir is
+        # tell make where the sourceDir is
         if mysuite.extraBuildDirCompString != "":
             mysuite.extraBuildDirCompString += "="+mysuite.sourceDir
 
 
     # BoxLib-only tests don't have a sourceDir
-    if (mysuite.sourceTree == "BoxLib"):
-        mysuite.sourceDir = mysuite.boxLibDir
-
+    if mysuite.sourceTree == "BoxLib": mysuite.sourceDir = mysuite.boxLibDir
 
     # checks
-    if (mysuite.sendEmailWhenFail):
-        if (mysuite.emailTo == [] or mysuite.emailBody == ""):
+    if mysuite.sendEmailWhenFail:
+        if mysuite.emailTo == [] or mysuite.emailBody == "":
             fail("ERROR: when sendEmailWhenFail = 1, you must specify emailTo and emailBody\n")
             
-        if (mysuite.emailFrom == ""):
+        if mysuite.emailFrom == "":
             mysuite.emailFrom = '@'.join((getpass.getuser(), socket.getfqdn()))
 
-        if (mysuite.emailSubject == ""):
+        if mysuite.emailSubject == "":
             mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
 
     if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
@@ -371,10 +313,10 @@ def LoadParams(file):
 
     # if no webTopDir was specified, use the default.  In either case, make
     # sure that the web directory is valid
-    if (mysuite.webTopDir == ""):
+    if mysuite.webTopDir == "":
         mysuite.webTopDir = "%s/%s-web/" % (mysuite.testTopDir, mysuite.suiteName)
 
-    if (not (os.path.isdir(mysuite.webTopDir)) ):
+    if not os.path.isdir(mysuite.webTopDir):
         try: os.mkdir(mysuite.webTopDir)
         except: fail("ERROR: unable to create the web directory: %s\n" % 
                      (mysuite.webTopDir))
@@ -386,19 +328,15 @@ def LoadParams(file):
 
     for sec in cp.sections():
 
-        if (sec == "main"): continue
+        if sec == "main": continue
 
         print "  %s" % (sec)
-
         
-        # lenTestName is the maximum test name length -- used for HTML
-        # formatting
+        # maximum test name length -- used for HTML formatting
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
-
 
         # create the test object for this test
         mytest = testObj(sec)
-
 
         invalid = 0
 
@@ -424,10 +362,10 @@ def LoadParams(file):
             elif (opt == "probinFile"):
                 mytest.probinFile = value
                 
-            elif (opt == "aux1File" or opt == "aux2File" or opt == "aux3File"):
+            elif opt in ["aux1File", "aux2File", "aux3File"]:
                 mytest.auxFiles.append(value)
 
-            elif (opt == "link1File" or opt == "link2File" or opt == "link3File"):
+            elif opt in ["link1File", "link2File", "link3File"]:
                 mytest.linkFiles.append(value)
                 
             elif (opt == "dim"):
@@ -498,20 +436,20 @@ def LoadParams(file):
 
 
         # make sure that the build directory actually exists
-        if (mytest.useExtraBuildDir > 0):
+        if mytest.useExtraBuildDir > 0:
             bDir = mysuite.extraBuildDirs[mytest.useExtraBuildDir-1] + mytest.buildDir
         else:
             bDir = mysuite.sourceDir + mytest.buildDir
 
-        if (not os.path.isdir(bDir)):
+        if not os.path.isdir(bDir):
             warning("   WARNING: invalid build directory: %s" % (bDir))
             invalid = 1
 
 
 
         # make sure all the require parameters are present
-        if (mytest.compileTest):
-            if (mytest.buildDir == ""):
+        if mytest.compileTest:
+            if mytest.buildDir == "":
                 warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
                 invalid = 1
 
@@ -530,50 +468,48 @@ def LoadParams(file):
 
 
         # check the optional parameters
-        if (mytest.restartTest and mytest.restartFileNum == -1):
+        if mytest.restartTest and mytest.restartFileNum == -1:
             warning("   WARNING: test %s is a restart test but restartFileNum not set" % (sec))
             invalid = 1
 
-        if (mytest.selfTest and mytest.stSuccessString == ""):
+        if mytest.selfTest and mytest.stSuccessString == "":
             warning("   WARNING: test %s is a self-test but stSuccessString not set" % (sec))
             invalid = 1
 
-        if (mytest.useMPI and mytest.numprocs == -1):
+        if mytest.useMPI and mytest.numprocs == -1:
             warning("   WARNING: test %s is an MPI parallel test but numprocs not set" % (sec))
             invalid = 1
 
-        if (mytest.useOMP and mytest.numthreads == -1):
+        if mytest.useOMP and mytest.numthreads == -1:
             warning("   WARNING: test %s is an OpenMP parallel test but numthreads not set" % (sec))
             invalid = 1
 
-        if (mytest.doVis and mytest.visVar == ""):
+        if mytest.doVis and mytest.visVar == "":
             warning("   WARNING: test %s requested visualization visVar not set" % (sec))
             invalid = 1
 
-        if (mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == ""):
+        if mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == "":
             warning("   WARNING: test %s is a BoxLib test but testSrcTree not set" % (sec))
             invalid = 1
         
 
         # add the current test object to the master list
-        if (not invalid):
+        if not invalid:
             testList.append(mytest)
-
         else:
             warning("   WARNING: test %s will be skipped" % (sec))
 
     
     # final checks
     
-    # if any runs are parallel, make sure that the suite-wide
-    # MPIcommand is defined
+    # if any runs are parallel, make sure that the MPIcommand is defined
     anyMPI = 0
     for test in testList:
-        if (test.useMPI):
+        if test.useMPI:
             anyMPI = 1
             break
 
-    if (anyMPI and mysuite.MPIcommand == ""):
+    if anyMPI and mysuite.MPIcommand == "":
         fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
 
     testList.sort()
@@ -1615,14 +1551,12 @@ def testSuite(argv):
     if any(updateExtraBuild):
 
         # extra build directory
-        n = 0
-        while n < suite.useExtraBuild:
+        for n in range(suite.useExtraBuild):
             if updateExtraBuild[n]:
                 extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDirs[n], 
                                                    suite.extraBuildNames[n], fullWebDir,
                                                    "master",
                                                    "")
-            n += 1
 
     if updateBoxLib or boxLibGitHash:
 
@@ -1643,10 +1577,8 @@ def testSuite(argv):
     if suite.useExtSrc:
         saveGITHEAD(suite.extSrcDir, suite.extSrcName, fullWebDir)
 
-    n = 0
-    while n < suite.useExtraBuild:
+    for n in range(suite.useExtraBuild):
         saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
-        n += 1
 
 
     #--------------------------------------------------------------------------
@@ -1665,11 +1597,9 @@ def testSuite(argv):
 
 
     # extra build directories            
-    n = 0
-    while n < suite.useExtraBuild:
+    for n in range(suite.useExtraBuild):
         if updateExtraBuild[n]:
             makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], fullWebDir)
-        n += 1
 
     if updateBoxLib:
 
@@ -2546,24 +2476,33 @@ def testSuite(argv):
             
 
         #----------------------------------------------------------------------
-        # archive the output
+        # archive (or delete) the output
         #----------------------------------------------------------------------
         print "  archiving the output..."
         for file in os.listdir(outputDir):
             if (os.path.isdir(file) and 
                 (file.startswith("%s_plt" % (test.name)) or 
                  file.startswith("%s_chk" % (test.name)) ) ):
-
-                try:
-                    tar = tarfile.open("%s.tgz" % (file), "w:gz")
-                    tar.add("%s" % (file))
-                    tar.close()
-
-                except:
-                    warning("    WARNING: unable to tar output file %s" % (file))
-
+                
+                if suite.purge_output == 1 and not file == outputFile:
+                    # delete the plt/chk file
+                    if os.path.isdir(file):
+                        try: shutil.rmtree(file)
+                        except:
+                            warning("    WARNING: unable to remove {}".format(file))
+                            
                 else:
-                    shutil.rmtree(file)
+                    # tar it up
+                    try:
+                        tar = tarfile.open("%s.tgz" % (file), "w:gz")
+                        tar.add("%s" % (file))
+                        tar.close()
+
+                    except:
+                        warning("    WARNING: unable to tar output file %s" % (file))
+
+                    else:
+                        shutil.rmtree(file)
                     
 
         #----------------------------------------------------------------------
