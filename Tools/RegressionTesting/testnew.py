@@ -342,95 +342,27 @@ def LoadParams(file):
 
         # set the test object data by looking at all the options in
         # the current section of the parameter file
+        valid_options = mytest.__dict__.keys()
+        valid_options += ["aux1File", "aux2File", "aux3File"]
+        valid_options += ["link1File", "link2File", "link3File"]
+        
         for opt in cp.options(sec):
 
             # get the value of the current option
             value = convertType(cp.get(sec, opt))
-
-            if (opt == "buildDir"):
-                mytest.buildDir = value
-
-            elif (opt == "useExtraBuildDir"):
-                mytest.useExtraBuildDir = value
-
-            elif (opt == "testSrcTree"):
-                mytest.testSrcTree = value
-
-            elif (opt == "inputFile"):
-                mytest.inputFile = value
-
-            elif (opt == "probinFile"):
-                mytest.probinFile = value
+            
+            if opt in valid_options:
                 
-            elif opt in ["aux1File", "aux2File", "aux3File"]:
-                mytest.auxFiles.append(value)
+                if opt in ["aux1File", "aux2File", "aux3File"]:
+                    mytest.auxFiles.append(value)
 
-            elif opt in ["link1File", "link2File", "link3File"]:
-                mytest.linkFiles.append(value)
+                elif opt in ["link1File", "link2File", "link3File"]:
+                    mytest.linkFiles.append(value)
                 
-            elif (opt == "dim"):
-                mytest.dim = value
-                
-            elif (opt == "restartTest"):
-                mytest.restartTest = value
-
-            elif (opt == "restartFileNum"):
-                mytest.restartFileNum = value
-                
-            elif (opt == "compileTest"):
-                mytest.compileTest = value
-                
-            elif (opt == "selfTest"):
-                mytest.selfTest = value
-
-            elif (opt == "stSuccessString"):
-                mytest.stSuccessString = value
-                
-            elif (opt == "debug"):
-                mytest.debug = value
-
-            elif (opt == "useMPI"):
-                mytest.useMPI = value
-                
-            elif (opt == "numprocs"):
-                mytest.numprocs = value
-
-            elif (opt == "useOMP"):
-                mytest.useOMP = value
-                
-            elif (opt == "numthreads"):
-                mytest.numthreads = value
-
-            elif (opt == "doVis"):
-                mytest.doVis = value
-
-            elif (opt == "visVar"):
-                mytest.visVar = value
-
-            elif (opt == "analysisRoutine"):
-                mytest.analysisRoutine = value
-
-            elif (opt == "analysisMainArgs"):
-                mytest.analysisMainArgs = value
-
-            elif (opt == "analysisOutputImage"):
-                mytest.analysisOutputImage = value
-
-            elif (opt == "outputFile"):
-                mytest.outputFile = value
-
-            elif (opt == "compareFile"):
-                mytest.compareFile = value
-
-            elif (opt == "diffDir"):
-                mytest.diffDir = value
-
-            elif (opt == "diffOpts"):
-                mytest.diffOpts = value
-
-            elif (opt == "addToCompileString"):
-                mytest.addToCompileString = value
-
+                else:
+                    # generic setting of the object attribute
+                    setattr(mytest, opt, value)
+                    
             else:
                 warning("   WARNING: unrecognized parameter %s for test %s" % (opt, sec))
 
@@ -450,14 +382,14 @@ def LoadParams(file):
         # make sure all the require parameters are present
         if mytest.compileTest:
             if mytest.buildDir == "":
-                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                warning("   WARNING: mandatory parameters for test %s not set" % (sec))
                 invalid = 1
 
         else:
             if (mytest.buildDir == "" or mytest.inputFile == "" or
                 (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or 
                 mytest.dim == -1):
-                warning("   WARNING: mandatory runtime parameters for test %s not set" % (sec))
+                warning("   WARNING: mandatory parameters for test %s not set" % (sec))
                 warning("            buildDir = %s" % (mytest.buildDir))
                 warning("            inputFile = %s" % (mytest.inputFile))
                 if (mysuite.sourceTree == "C_Src"):
@@ -599,7 +531,7 @@ def findBuildDirs(testList):
         # compile line.  If this is the case, then we want to re-make
         # "clean" for ALL tests that use this build directory, just to
         # make sure that any unique build commands are seen.
-        if (not obj.addToCompileString == ""):
+        if not obj.addToCompileString == "":
             reClean.append(obj.buildDir)
 
 
@@ -622,12 +554,12 @@ def getLastPlotfile(outputDir, test):
         
     # start by finding the last plotfile
     for file in os.listdir(outputDir):
-       if (os.path.isdir(file) and file.startswith("%s_plt" % (test.name))):
+       if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
            key = "_plt"
            index = string.rfind(file, key)
            plotNum = max(int(file[index+len(key):]), plotNum)
 
-    if (plotNum == -1):
+    if plotNum == -1:
        warning("WARNING: test did not produce any output")
        compareFile = ""
     else:
@@ -653,7 +585,7 @@ def getRecentFileName(dir,base,extension):
 
           fileInfo = os.stat(file)
           fileCreationTime = fileInfo.st_ctime
-          if (fileCreationTime > ctime):
+          if fileCreationTime > ctime:
              ctime = fileCreationTime
              executableFile = file
 
@@ -668,10 +600,10 @@ def checkTestDir(dirName):
        a valid directory.  If so, return the directory name """
 
    # make sure we end in a "/"
-   if (not (string.rfind(dirName, "/") == len(dirName)-1)):
+   if not (string.rfind(dirName, "/") == len(dirName)-1):
        dirName = dirName + "/"
            
-   if (not os.path.isdir(dirName)):
+   if not os.path.isdir(dirName):
        fail("ERROR: %s is not a valid directory" % (dirName))
 
    return dirName
@@ -715,8 +647,7 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
        bold("'git pull' in %s" % (topDir))
 
        # we need to be tricky here to make sure that the stdin is
-       # presented to the user to get the password.  Therefore, we use
-       # the subprocess class instead of os.system
+       # presented to the user to get the password.  
        prog = ["git", "pull"]
        p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
