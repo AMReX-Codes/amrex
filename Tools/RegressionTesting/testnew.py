@@ -11,19 +11,19 @@ This test framework understands source based out of the F_Src and C_Src BoxLib
 frameworks.
 """
 
+import ConfigParser
+import datetime
+import email
+import getopt
+import getpass
 import os
 import shutil
+import smtplib
+import socket
+import subprocess
 import sys
-import getopt
-import datetime
-import time
 import string
 import tarfile
-import subprocess
-import smtplib
-import email
-import getpass
-import socket
 import time
 
 
@@ -160,10 +160,6 @@ class suiteObj:
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-import ConfigParser
-import string, sys, re
-
-
 #==============================================================================
 # some utility functions to automagically determine what the data types are
 #==============================================================================
@@ -206,25 +202,18 @@ def LoadParams(file):
 
     testList = []
 
-    # check to see whether the file exists
-    try: f = open(file, 'r')
-    except IOError:
-        fail('ERROR: parameter file does not exist: %s' % (file))
-    else:
-        f.close()
-
-
     cp = ConfigParser.ConfigParser()
     cp.optionxform = str
-    cp.read(file)
 
+    try: cp.read(file)
+    except:
+        fail("ERROR: unable to read parameter file {}".format(file))
 
     # "main" is a special section containing the global suite parameters.
     mysuite = suiteObj()
 
     valid_options = mysuite.__dict__.keys()
-    valid_options.append("extraBuildDir")
-    valid_options.append("extraBuildDir2")    
+    valid_options += ["extraBuildDir", "extraBuildDir2"]
     
     for opt in cp.options("main"):
         
@@ -279,8 +268,7 @@ def LoadParams(file):
         if mysuite.extSrcCompString != "":
             mysuite.extSrcCompString += "="+mysuite.extSrcDir
 
-    # if there is an extra build directory (some problems defined there),
-    # then update the additional compilation string
+    # update additional compiled string for any extra build directory
     if mysuite.useExtraBuild > 0:
         for n in range(len(mysuite.extraBuildDirs)):
             mysuite.extraBuildNames.append(os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n])))
@@ -311,8 +299,7 @@ def LoadParams(file):
                  "(sourceTree, boxLibDir, sourceDir, testTopDir)")
 
 
-    # if no webTopDir was specified, use the default.  In either case, make
-    # sure that the web directory is valid
+    # Make sure the web dir is valid (or use the default is none specified)
     if mysuite.webTopDir == "":
         mysuite.webTopDir = "%s/%s-web/" % (mysuite.testTopDir, mysuite.suiteName)
 
@@ -401,23 +388,23 @@ def LoadParams(file):
 
         # check the optional parameters
         if mytest.restartTest and mytest.restartFileNum == -1:
-            warning("   WARNING: test %s is a restart test but restartFileNum not set" % (sec))
+            warning("   WARNING: restart-test %s needs a restartFileNum" % (sec))
             invalid = 1
 
         if mytest.selfTest and mytest.stSuccessString == "":
-            warning("   WARNING: test %s is a self-test but stSuccessString not set" % (sec))
+            warning("   WARNING: self-test %s needs a stSuccessString" % (sec))
             invalid = 1
 
         if mytest.useMPI and mytest.numprocs == -1:
-            warning("   WARNING: test %s is an MPI parallel test but numprocs not set" % (sec))
+            warning("   WARNING: MPI parallel test %s needs numprocs" % (sec))
             invalid = 1
 
         if mytest.useOMP and mytest.numthreads == -1:
-            warning("   WARNING: test %s is an OpenMP parallel test but numthreads not set" % (sec))
+            warning("   WARNING: OpenMP parallel test %s needs numthreads" % (sec))
             invalid = 1
 
         if mytest.doVis and mytest.visVar == "":
-            warning("   WARNING: test %s requested visualization visVar not set" % (sec))
+            warning("   WARNING: test %s has visualization, needs visVar" % (sec))
             invalid = 1
 
         if mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == "":
@@ -432,8 +419,6 @@ def LoadParams(file):
             warning("   WARNING: test %s will be skipped" % (sec))
 
     
-    # final checks
-    
     # if any runs are parallel, make sure that the MPIcommand is defined
     anyMPI = 0
     for test in testList:
@@ -442,7 +427,7 @@ def LoadParams(file):
             break
 
     if anyMPI and mysuite.MPIcommand == "":
-        fail("ERROR: one or more tests are parallel, but MPIcommand is not defined")
+        fail("ERROR: some tests are MPI parallel, but MPIcommand not defined")
 
     testList.sort()
 
@@ -3250,8 +3235,6 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     #--------------------------------------------------------------------------
     # generate the HTML
     #--------------------------------------------------------------------------
-    numTests = len(allTests)
-
     htmlFile = "index.html"
 
     title = "%s regression tests" % (suite.suiteName)
