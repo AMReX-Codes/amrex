@@ -310,8 +310,7 @@ def LoadParams(file):
 
 
     # all other sections are tests
-    print "\n"
-    bold("finding tests and checking parameters...")
+    bold("finding tests and checking parameters...", skip_before=1)
 
     for sec in cp.sections():
 
@@ -448,28 +447,22 @@ class termColors:
     BOLD = '\033[1m'
     ENDC = '\033[0m'
 
-
 def fail(str):
-    new_str = termColors.FAIL + str + termColors.ENDC
-    print new_str
+    print termColors.FAIL + str + termColors.ENDC
     sys.exit()
 
 def testfail(str):
-    new_str = termColors.FAIL + str + termColors.ENDC
-    print new_str
+    print termColors.FAIL + str + termColors.ENDC
 
 def warning(str):
-    new_str = termColors.WARNING + str + termColors.ENDC
-    print new_str
+    print termColors.WARNING + str + termColors.ENDC
 
 def success(str):
-    new_str = termColors.SUCCESS + str + termColors.ENDC
-    print new_str
+    print termColors.SUCCESS + str + termColors.ENDC
 
-def bold(str):
-    new_str = termColors.BOLD + str + termColors.ENDC
-    print new_str
-
+def bold(str, skip_before=0):
+    if skip_before == 1: print ""
+    print termColors.BOLD + str + termColors.ENDC
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -507,18 +500,15 @@ def findBuildDirs(testList):
         else:
             prefix = ""
 
-
         # first find the list of unique build directories
-        if (buildDirs.count(prefix + obj.buildDir) == 0):
+        if buildDirs.count(prefix + obj.buildDir) == 0:
             buildDirs.append(prefix + obj.buildDir)
 
-        # sometimes a problem will specify an extra argument to the
-        # compile line.  If this is the case, then we want to re-make
-        # "clean" for ALL tests that use this build directory, just to
-        # make sure that any unique build commands are seen.
+        # re-make all problems that specify an extra argument to the
+        # compile line, just to make sure that any unique build
+        # commands are seen.
         if not obj.addToCompileString == "":
             reClean.append(obj.buildDir)
-
 
     for bdir in reClean:
         for obj in testList:
@@ -534,10 +524,8 @@ def findBuildDirs(testList):
 def getLastPlotfile(outputDir, test):
     """ given an output directory and the test name, find the last
         plotfile written """
-        
+                
     plotNum = -1
-        
-    # start by finding the last plotfile
     for file in os.listdir(outputDir):
        if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
            key = "_plt"
@@ -585,7 +573,7 @@ def checkTestDir(dirName):
        a valid directory.  If so, return the directory name """
 
    # make sure we end in a "/"
-   if not (string.rfind(dirName, "/") == len(dirName)-1):
+   if not string.rfind(dirName, "/") == len(dirName)-1:
        dirName = dirName + "/"
            
    if not os.path.isdir(dirName):
@@ -616,8 +604,7 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    p0.stdout.close()
 
    if currentBranch != gitbranch:
-       print "\n"
-       bold("git checkout %s in %s" % (gitbranch, topDir))
+       bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
        prog = ["git", "checkout", gitbranch]
        p = subprocess.Popen(prog, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
@@ -627,9 +614,7 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
        p.stdin.close()
 
    if githash == "":
-
-       print "\n"
-       bold("'git pull' in %s" % (topDir))
+       bold("'git pull' in %s" % (topDir), skip_before=1)
 
        # we need to be tricky here to make sure that the stdin is
        # presented to the user to get the password.  
@@ -678,8 +663,7 @@ def saveGITHEAD(topDir, root, outDir):
 
    os.chdir(topDir)
 
-   print "\n"
-   bold("saving git HEAD for %s/" % (root))
+   bold("saving git HEAD for %s/" % (root), skip_before=1)
 
    systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
 
@@ -695,8 +679,7 @@ def doGITback(topDir, root, gitbranch):
 
    os.chdir(topDir)
 
-   print "\n"
-   bold("git checkout %s in %s" % (gitbranch, topDir))
+   bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
 
    prog = ["git", "checkout", gitbranch]
    p = subprocess.Popen(prog, stdin=subprocess.PIPE,
@@ -728,9 +711,7 @@ def makeGITChangeLog(gitDir, root, outDir):
 
     os.chdir(gitDir)
 
-
-    print "\n"
-    bold("generating ChangeLog for %s/" % (root))
+    bold("generating ChangeLog for %s/" % (root), skip_before=1)
     
     systemCall("git log --name-only >& ChangeLog.%s" % (root) )
     
@@ -1422,8 +1403,7 @@ def testSuite(argv):
             testDir = today + "-" + ("%3.3d" % i) + "/"
             fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
-    print "\n"
-    bold("testing directory is: " + testDir)
+    bold("testing directory is: " + testDir, skip_before=1)
     os.mkdir(fullTestDir)
 
     # make the web directory -- this is where all the output and HTML will be
@@ -1526,8 +1506,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # build the comparison and visualization tools
     #--------------------------------------------------------------------------
-    print "\n"
-    bold("building the comparison tools...")
+    bold("building the comparison tools...", skip_before=1)
 
     suite.compareToolDir = os.path.normpath(suite.boxLibDir) + "/Tools/Postprocessing/F_Src/"
     
@@ -1565,8 +1544,7 @@ def testSuite(argv):
                 anyDoVis['3D'] += 1
 
     if anyDoVis['2D'] or anyDoVis['3D']:
-        print "\n"
-        bold("building the visualization tools...")
+        bold("building the visualization tools...", skip_before=1)
 
         if anyDoVis['2D']:
             compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
@@ -1586,8 +1564,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # output test list
     #--------------------------------------------------------------------------
-    print "\n"
-    bold("running tests: ")
+    bold("running tests: ", skip_before=1)
     for obj in testList:
         print "  %s " % obj.name
     
@@ -1597,8 +1574,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     allBuildDirs = findBuildDirs(testList)
 
-    print "\n"
-    bold("make clean in...")
+    bold("make clean in...", skip_before=1)
 
     for dir in allBuildDirs:
 
@@ -1633,9 +1609,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     for test in testList:
 
-
-        print "\n"
-        bold("working on test: %s" % (test.name))
+        bold("working on test: %s" % (test.name), skip_before=1)
 
         if (test.restartTest and make_benchmarks):
             warning("  WARNING: test %s is a restart test -- " % (test.name))
@@ -2432,8 +2406,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
-    print "\n"
-    bold("creating new test report...")
+    bold("creating new test report...", skip_before=1)
     numFailed = reportThisTestRun(suite, make_benchmarks, comment, note, 
                                   updateTime,  updateBoxLib,
                                   updateSource, updateExtSrc,
@@ -2466,8 +2439,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # generate the master report for all test instances 
     #--------------------------------------------------------------------------
-    print "\n"
-    bold("creating suite report...")
+    bold("creating suite report...", skip_before=1)
     tableHeight = min(max(suite.lenTestName, 4), 16)
     reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
 
@@ -2482,8 +2454,7 @@ def testSuite(argv):
         server.quit()
 
     if (numFailed > 0 and suite.sendEmailWhenFail):
-        print "\n"
-        bold("sending email...")
+        bold("sending email...", skip_before=1)
         emailDevelopers()
 
 
