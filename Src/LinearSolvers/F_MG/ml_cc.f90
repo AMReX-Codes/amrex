@@ -425,7 +425,6 @@ contains
              ! Compute Res = Res - Lap(uu)
              call compute_defect(mgt(n)%ss(mglev), temp_res(n), res(n), uu(n), &
                             mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
-             call bl_proffortfuncstop("ml_cc:defectUpV")
              call multifab_copy(res(n), temp_res(n), ng = nghost(res(n)))
 
              if (do_diagnostics == 1 ) then
@@ -569,8 +568,6 @@ contains
 
        enddo
 
-    call bl_proffortfuncstop("ml_cc:1.1")
-
        ! if status==0, but not solved then we ran out of iterations
        ! Set status to (neg)num_iters
        if ( present(status) ) then 
@@ -610,6 +607,8 @@ contains
        end if
 
     end if
+
+    call bl_proffortfuncstop("ml_cc:1.1")
 
     if (solved) then
        do n = 1,nlevs

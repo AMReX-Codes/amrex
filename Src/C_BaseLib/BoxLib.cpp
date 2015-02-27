@@ -1,4 +1,5 @@
 
+#include <unistd.h>
 #include <winstd.H>
 #include <cstdio>
 #include <cstdlib>
@@ -10,17 +11,29 @@
 #include <limits>
 
 #include <BoxLib.H>
+#include <ParallelDescriptor.H>
+#include <BLProfiler.H>
+#include <Utility.H>
+
+#ifndef BL_AMRPROF
+#include <ParmParse.H>
 #include <DistributionMapping.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
-#include <ParallelDescriptor.H>
-#include <ParmParse.H>
-#include <Profiler.H>
-#include <Utility.H>
 #include <MultiFab.H>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#ifdef __linux__
+#include <execinfo.h>
+#endif
+
+#ifdef BL_BACKTRACING
+#include <BLBackTrace.H>
+#include <signal.h>
 #endif
 
 #define bl_str(s)  # s
@@ -194,7 +207,16 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
+#ifdef BL_BACKTRACING
+    BLBackTrace::handler(-1);
+#else
+#ifdef __linux__
+    void *buffer[10];
+    int nptrs = backtrace(buffer, 10);
+    backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
+#endif
     ParallelDescriptor::Abort();
+#endif
 }
 
 namespace
@@ -218,13 +240,17 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     std::set_new_handler(BoxLib::OutOfMemory);
 #endif
 
+#ifdef BL_BACKTRACING
+    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+#endif
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     if(ParallelDescriptor::NProcsPerfMon() > 0) {
       if(ParallelDescriptor::MyProcAll() == ParallelDescriptor::MyProcAllPerfMon()) {
         std::cout << "Starting PerfMonProc:  myprocall = "
                   << ParallelDescriptor::MyProcAll() << std::endl;
-        Profiler::PerfMonProcess();
+        BLProfiler::PerfMonProcess();
         BoxLib::Finalize();
         return;
       }
@@ -255,6 +281,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif
 
+#ifndef BL_AMRPROF
     if (build_parm_parse)
     {
         if (argc == 1)
@@ -273,6 +300,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
             }
         }
     }
+#endif
 
     std::cout << std::setprecision(10);
 

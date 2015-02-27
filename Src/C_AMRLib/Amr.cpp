@@ -7,6 +7,11 @@
 #include <iomanip>
 #include <sstream>
 #include <iomanip>
+#include <limits>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -294,10 +299,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     {
       int num_datalogs = pp.countval("data_log");
       datalog.resize(num_datalogs);
-      Array<std::string> data_file_names(num_datalogs);
-      pp.queryarr("data_log",data_file_names,0,num_datalogs);
+      datalogname.resize(num_datalogs);
+      pp.queryarr("data_log",datalogname,0,num_datalogs);
       for (int i = 0; i < num_datalogs; i++) 
-        setRecordDataInfo(i,data_file_names[i]);
+        setRecordDataInfo(i,datalogname[i]);
     }
 
     probin_file = "probin";  // Make "probin" the default
@@ -767,7 +772,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        datalog.set(i,new std::ofstream);
+        datalog.set(i,new std::fstream);
         datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
         if (!datalog[i].good())
             BoxLib::FileOpenFailed(filename);
@@ -843,7 +848,7 @@ Amr::writePlotFile ()
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -1540,7 +1545,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
+    const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
@@ -1886,8 +1891,8 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_kilobytes  = BoxLib::total_bytes_allocated_in_fabs_hwm/1024;
-        long max_fab_kilobytes  = BoxLib::total_bytes_allocated_in_fabs_hwm/1024;
+        long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
+        long max_fab_kilobytes  = min_fab_kilobytes;
 
         ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
@@ -1903,7 +1908,7 @@ Amr::coarseTimeStep (Real stop_time)
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        BoxLib::ResetTotalBytesAllocatedInFabsHWM();
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
@@ -2401,6 +2406,70 @@ Amr::printGridSummary (std::ostream& os,
            << frac
            << " % of domain"
            << '\n';
+
+	if (numgrid > 1) {
+	    long vmin = std::numeric_limits<long>::max();
+	    long vmax = -1;
+	    int lmax = -1;
+	    int smin = std::numeric_limits<int>::max();
+	    int imax, imin;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	    
+	    {
+		long vmin_this = std::numeric_limits<long>::max();
+		long vmax_this = -1;
+		int lmax_this = -1;
+		int smin_this = std::numeric_limits<int>::max();
+		int imax_this, imin_this;
+#ifdef _OPENMP
+#pragma omp for
+#endif	    	    
+		for (int k = 0; k < numgrid; k++) {
+		    const Box& bx = bs[k];
+		    long v = bx.volume();
+		    int ss = bx.shortside();
+		    int ls = bx.longside();
+		    if (v < vmin_this || (v == vmin_this && ss < smin_this)) {
+			vmin_this = v;
+			smin_this = ss;
+			imin_this = k;
+		    }
+		    if (v > vmax_this || (v == vmax_this && ls > lmax_this)) {
+			vmax_this = v;
+			lmax_this = ls;
+			imax_this = k;
+		    }
+		}
+#ifdef _OPENMP
+#pragma omp critical (amr_prtgs)
+#endif	    	    
+		{
+		    if (vmin_this < vmin || (vmin_this == vmin && smin_this < smin)) {
+			vmin = vmin_this;
+			smin = smin_this;
+			imin = imin_this;
+		    }
+		    if (vmax_this > vmax || (vmax_this == vmax && lmax_this > lmax)) {
+			vmax = vmax_this;
+			lmax = lmax_this;
+			imax = imax_this;
+		    }
+		}
+	    }
+	    const Box& bmin = bs[imin];
+	    const Box& bmax = bs[imax];
+	    os << "           "
+	       << " smallest grid: "
+		D_TERM(<< bmin.length(0),
+		       << " x " << bmin.length(1),
+		       << " x " << bmin.length(2))
+	       << "  biggest grid: "
+		D_TERM(<< bmax.length(0),
+		       << " x " << bmax.length(1),
+		       << " x " << bmax.length(2))
+	       << '\n';
+	}
     }
 
     os << std::endl; // Make sure we flush!
@@ -2702,9 +2771,9 @@ Amr::grid_places (int              lbase,
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                              nerr/ref_ratio[levf][1],
-                                              nerr/ref_ratio[levf][2]));
+            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                               nerr/ref_ratio[levf][1],
+                                               nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
             BoxList blF;
             blF.complementIn(mboxF,blFcomp);
@@ -2909,7 +2978,6 @@ Amr::bldFineLevels (Real strt_time)
 	    regrid(0,strt_time,true);
 
 	    grids_the_same = true;
-	    int min_level  = 0;
 
 	    for (int i = 0; i <= finest_level && grids_the_same; i++)
 	      if (!(grids[i] == amr_level[i].boxArray()))

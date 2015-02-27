@@ -96,7 +96,7 @@ InterpBndryData::setBndryConds (const BCRec& phys_bc,
                                 int          ratio)
 {
 
-    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryConds(phys_bc, ratio_vect);
 }
 
@@ -122,6 +122,9 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     for (int n = bnd_start; n < bnd_start+num_comp; ++n)
 	setBndryConds(bc, ref_ratio, n);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         BL_ASSERT(grids[mfi.index()] == mfi.validbox());
@@ -137,8 +140,8 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 //
                 // Physical bndry, copy from grid.
                 //
-                FArrayBox& bnd_fab = bndry[face][mfi.index()];
-                bnd_fab.copy(mf[mfi.index()],mf_start,bnd_start,num_comp);
+                FArrayBox& bnd_fab = bndry[face][mfi];
+                bnd_fab.copy(mf[mfi],mf_start,bnd_start,num_comp);
             }
         }
     }
@@ -189,7 +192,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
             BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
 
             const Box&       fine_bx  = fine_mfi.validbox();
-            const Box        crse_bx  = BoxLib::coarsen(fine_bx,ratio);
+            const Box&       crse_bx  = BoxLib::coarsen(fine_bx,ratio);
             const int*       cblo     = crse_bx.loVect();
             const int*       cbhi     = crse_bx.hiVect();
             const int        mxlen    = crse_bx.longside() + 2;
@@ -219,11 +222,11 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     const int*       mlo            = mask.loVect();
                     const int*       mhi            = mask.hiVect();
                     const int*       mdat           = mask.dataPtr();
-                    const FArrayBox& crse_fab       = crse[face][fine_mfi.index()];
+                    const FArrayBox& crse_fab       = crse[face][fine_mfi];
                     const int*       clo            = crse_fab.loVect();
                     const int*       chi            = crse_fab.hiVect();
                     const Real*      cdat           = crse_fab.dataPtr(c_start);
-                    FArrayBox&       bnd_fab        = bndry[face][fine_mfi.index()];
+                    FArrayBox&       bnd_fab        = bndry[face][fine_mfi];
                     const int*       blo            = bnd_fab.loVect();
                     const int*       bhi            = bnd_fab.hiVect();
                     Real*            bdat           = bnd_fab.dataPtr(bnd_start);
@@ -253,7 +256,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                     //
                     // Physical bndry, copy from ghost region of corresponding grid
                     //
-                    FArrayBox& bnd_fab = bndry[face][fine_mfi.index()];
+                    FArrayBox& bnd_fab = bndry[face][fine_mfi];
                     bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
                 }
             }
@@ -276,6 +279,6 @@ InterpBndryData::setBndryValues (::BndryRegister&  crse,
                                  const BCRec&    bc,
                                  int             max_order)
 {
-    const IntVect ratio_vect = ratio * IntVect::TheUnitVector();
+    const IntVect& ratio_vect = ratio * IntVect::TheUnitVector();
     setBndryValues(crse,c_start,fine,f_start,bnd_start,num_comp,ratio_vect,bc,max_order);
 }

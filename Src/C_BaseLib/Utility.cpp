@@ -18,7 +18,7 @@
 #include <BoxLib.H>
 #include <Utility.H>
 #include <BLassert.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 #include <ParallelDescriptor.H>
 
@@ -699,13 +699,13 @@ BoxLib::mt19937::mt19937(unsigned long seed, int numprocs)
 #pragma omp parallel
   {
     init_seed = seed + omp_get_thread_num() * numprocs;
-#else
-    init_seed = seed;
-#endif
     mti = N;
     sgenrand(init_seed);
-#ifdef _OPENMP
   }
+#else
+    init_seed = seed;
+    mti = N;
+    sgenrand(init_seed);
 #endif
 }
 
@@ -1296,8 +1296,8 @@ bool BoxLib::StreamRetry::TryFileOutput()
         bTryOutput = false;
       } else {                 // wrote a bad file, rename it
         if(ParallelDescriptor::IOProcessor()) {
-          const std::string badFileName = BoxLib::Concatenate(fileName + ".bad",
-                                                              tries - 1, 2);
+          const std::string& badFileName = BoxLib::Concatenate(fileName + ".bad",
+                                                               tries - 1, 2);
           std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
                     << fileName << "  to  " << badFileName << std::endl;
           std::rename(fileName.c_str(), badFileName.c_str());
@@ -1326,7 +1326,6 @@ void BoxLib::SyncStrings(const Array<std::string> &localStrings,
                          Array<std::string> &syncedStrings, bool &alreadySynced)
 {
 #ifdef BL_USE_MPI
-  const int myProc(ParallelDescriptor::MyProc());
   const int nProcs(ParallelDescriptor::NProcs());
   const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
   int nUnmatched(0);

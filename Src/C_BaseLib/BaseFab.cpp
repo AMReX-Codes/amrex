@@ -11,10 +11,10 @@
 #include <SPECIALIZE_F.H>
 #endif
 
-long BoxLib::total_bytes_allocated_in_fabs     = 0;
-long BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
-long BoxLib::total_cells_allocated_in_fabs     = 0;
-long BoxLib::total_cells_allocated_in_fabs_hwm = 0;
+long BoxLib::private_total_bytes_allocated_in_fabs     = 0;
+long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0;
+long BoxLib::private_total_cells_allocated_in_fabs     = 0;
+long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
 
 int BoxLib::BF_init::m_cnt = 0;
 
@@ -34,6 +34,16 @@ BoxLib::BF_init::BF_init ()
 #else
         the_arena = new BArena;
 #endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+	{
+	    BoxLib::private_total_bytes_allocated_in_fabs     = 0;
+	    BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0;
+	    BoxLib::private_total_cells_allocated_in_fabs     = 0;
+	    BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
+	}
+#endif
     }
 }
 
@@ -41,6 +51,77 @@ BoxLib::BF_init::~BF_init ()
 {
     if (--m_cnt == 0)
         delete the_arena;
+}
+
+long 
+BoxLib::TotalBytesAllocatedInFabs()
+{
+#ifdef _OPENMP
+    long r=0;
+#pragma omp parallel reduction(+:r)
+    {
+	r += private_total_bytes_allocated_in_fabs;
+    }
+    return r;
+#else
+    return private_total_bytes_allocated_in_fabs;
+#endif
+}
+
+long 
+BoxLib::TotalBytesAllocatedInFabsHWM()
+{
+#ifdef _OPENMP
+    long r=0;
+#pragma omp parallel reduction(+:r)
+    {
+	r += private_total_bytes_allocated_in_fabs_hwm;
+    }
+    return r;
+#else
+    return private_total_bytes_allocated_in_fabs_hwm;
+#endif
+}
+
+long 
+BoxLib::TotalCellsAllocatedInFabs()
+{
+#ifdef _OPENMP
+    long r=0;
+#pragma omp parallel reduction(+:r)
+    {
+	r += private_total_cells_allocated_in_fabs;
+    }
+    return r;
+#else
+    return private_total_cells_allocated_in_fabs;
+#endif
+}
+
+long 
+BoxLib::TotalCellsAllocatedInFabsHWM()
+{
+#ifdef _OPENMP
+    long r=0;
+#pragma omp parallel reduction(+:r)
+    {
+	r += private_total_cells_allocated_in_fabs_hwm;
+    }
+    return r;
+#else
+    return private_total_cells_allocated_in_fabs_hwm;
+#endif
+}
+
+void 
+BoxLib::ResetTotalBytesAllocatedInFabsHWM()
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+	private_total_bytes_allocated_in_fabs_hwm = 0;
+    }
 }
 
 Arena*

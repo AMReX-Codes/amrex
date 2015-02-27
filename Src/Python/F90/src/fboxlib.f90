@@ -387,7 +387,8 @@ contains
     call regrid(mla, mfs, nlevs, max_levs, dx, bct, 2, 64, tag_boxes_cb)
 
     do i=1,nlevs
-       mfcptrs(i) = c_loc(mfs(i))
+       call pybl_multifab_new(mfcptrs(i),mf)
+       mf = mfs(i)
     end do
 
   end subroutine pybl_regrid

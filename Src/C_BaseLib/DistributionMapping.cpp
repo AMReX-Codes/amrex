@@ -1,12 +1,11 @@
 
 #include <winstd.H>
 
-#include <Profiler.H>
 #include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
@@ -94,6 +93,9 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case PFC:
         m_BuildMap = &DistributionMapping::PFCProcessorMap;
         break;
+    case RRSFC:
+        m_BuildMap = &DistributionMapping::RRSFCProcessorMap;
+        break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
     }
@@ -162,6 +164,10 @@ DistributionMapping::Initialize ()
             strategy(PFC);
 	    DistributionMapping::InitProximityMap();
         }
+        else if (theStrategy == "RRSFC")
+        {
+            strategy(RRSFC);
+        }
         else
         {
             std::string msg("Unknown strategy: ");
@@ -228,10 +234,10 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
     Array<long> bytes(nprocs);
-    long thisbyte = BoxLib::total_bytes_allocated_in_fabs/1024;
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
     MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -239,8 +245,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 
     std::vector<LIpair> LIpairV;
 
@@ -457,6 +463,23 @@ DistributionMapping::FlushCache ()
 }
 
 void
+DistributionMapping::PutInCache ()
+{
+    if (ParallelDescriptor::NProcs() > 1)
+    {
+        //
+        // We want to save this pmap in the cache.
+        // It's an error if a pmap of this length has already been cached.
+        //
+	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
+	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+	if (r.second == false) {
+	    BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
+	}
+    }
+}
+
+void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
@@ -586,7 +609,8 @@ knapsack (const std::vector<long>&         wgts,
           int                              nprocs,
           std::vector< std::vector<int> >& result,
           double&                          efficiency,
-          bool                             do_full_knapsack)
+          bool                             do_full_knapsack,
+	  int                              nmax)
 {
     //
     // Sort balls by size largest first.
@@ -613,15 +637,18 @@ knapsack (const std::vector<long>&         wgts,
         wblq.push(WeightedBoxList(vbbs[i]));
     }
     BL_ASSERT(int(wblq.size()) == nprocs);
+    std::list<WeightedBoxList> wblqg;
     for (unsigned int i = 0, N = wgts.size(); i < N; ++i)
     {
         WeightedBoxList wbl = wblq.top();
         wblq.pop();
         wbl.push_back(lb[i]);
-        wblq.push(wbl);
+	if (wbl.size() < nmax) {
+	    wblq.push(wbl);
+	} else {
+	    wblqg.push_back(wbl);
+	}
     }
-    BL_ASSERT(int(wblq.size()) == nprocs);
-    std::list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
@@ -737,7 +764,8 @@ void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs,
                                    double&                  efficiency,
-                                   bool                     do_full_knapsack)
+                                   bool                     do_full_knapsack,
+				   int                      nmax)
 {
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
@@ -745,7 +773,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     efficiency = 0;
 
-    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack);
+    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack,nmax);
 
     BL_ASSERT(vec.size() == nprocs);
 
@@ -804,7 +832,8 @@ void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs,
                                            double*                  efficiency,
-                                           bool                     do_full_knapsack)
+                                           bool                     do_full_knapsack,
+					   int                      nmax)
 {
     BL_ASSERT(wgts.size() > 0);
 
@@ -822,7 +851,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     else
     {
         double eff = 0;
-        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack);
+        KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax);
         if (efficiency) *efficiency = eff;
     }
 }
@@ -850,6 +879,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
 
+/*
 if(ParallelDescriptor::IOProcessor()) {
   Array<long> ncells(nprocs, 0);
   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
@@ -865,7 +895,6 @@ if(ParallelDescriptor::IOProcessor()) {
   }
   bos.close();
 }
-/*
 */
 
 }
@@ -973,7 +1002,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
                                           int                      nprocs)
 {
-//BoxLib::Abort("SFCDoIt");
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
     std::vector<SFCToken> tokens;
@@ -1130,6 +1158,70 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     }
 }
 
+void
+DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
+				int                      nprocs)
+{
+    BL_PROFILE("DistributionMapping::RRSFCDoIt()");
+
+    std::vector<SFCToken> tokens;
+
+    const int nboxes = boxes.size();
+
+    tokens.reserve(nboxes);
+
+    int maxijk = 0;
+
+    for (int i = 0; i < nboxes; ++i)
+    {
+        tokens.push_back(SFCToken(i,boxes[i].smallEnd(),0.0));
+
+        const SFCToken& token = tokens.back();
+
+        D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+               maxijk = std::max(maxijk, token.m_idx[1]);,
+               maxijk = std::max(maxijk, token.m_idx[2]););
+    }
+    //
+    // Set SFCToken::MaxPower for BoxArray.
+    //
+    int m = 0;
+    for ( ; (1 << m) <= maxijk; ++m) {
+        ;  // do nothing
+    }
+    SFCToken::MaxPower = m;
+    //
+    // Put'm in Morton space filling curve order.
+    //
+    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+
+    Array<int> ord;
+
+    LeastUsedCPUs(nprocs,ord);
+
+    // Distribute boxes using roundrobin
+    for (int i = 0; i < nboxes; ++i) {
+	m_ref->m_pmap[i] = ord[i%nprocs];
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_ref->m_pmap[nboxes] = ParallelDescriptor::MyProc();
+}
+
+void
+DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
+                                        int                      nprocs)
+{
+    BL_ASSERT(boxes.size() > 0);
+ 
+    if (m_ref->m_pmap.size() != boxes.size() + 1)
+    {
+        m_ref->m_pmap.resize(boxes.size() + 1);
+    }
+
+    RRSFCDoIt(boxes,nprocs);
+}
 
 namespace
 {
@@ -1171,18 +1263,19 @@ DistributionMapping::CurrentBytesUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentBytesUsed()");
 
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
-    MPI_Allgather(&BoxLib::total_bytes_allocated_in_fabs,
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
+    MPI_Allgather(&thisbyte,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   bytes.dataPtr(),
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 #endif
 
     for (int i(0); i < nprocs; ++i)
@@ -1217,18 +1310,19 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::CurrentCellsUsed()");
 
+    long thiscell = BoxLib::TotalCellsAllocatedInFabs();
 
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::BeforeCall(),
-                    Profiler::NoTag());
-    MPI_Allgather(&BoxLib::total_cells_allocated_in_fabs,
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
+    MPI_Allgather(&thiscell,
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   cells.dataPtr(),
                   1,
                   ParallelDescriptor::Mpi_typemap<long>::type(),
                   ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(Profiler::Allgather, sizeof(long), Profiler::AfterCall(),
-                    Profiler::NoTag());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
 #endif
 
     for(int i(0); i < nprocs; ++i) {
@@ -1252,18 +1346,6 @@ if(ParallelDescriptor::IOProcessor()) {
   */
 }
 
-}
-
-
-static
-void
-Distribute (const std::vector<PFCToken>&     tokens,
-            int                              nprocs,
-            Real                             volpercpu,
-            std::vector< std::vector<int> >& v)
-
-{
-BoxLib::Abort("PFC Distribute not used.");
 }
 
 
@@ -1356,7 +1438,7 @@ for(int i(0); i < nprocs; ++i) {
       for(int i(0); i < nprocs; ++i) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0), oldCells(aCurrentCells[i]);
+	long accVol(0), oldAccVol(0);
         vec[i].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
@@ -1564,7 +1646,7 @@ DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
     std::vector< std::vector<int> > vec(nprocs);
     std::vector<PFCMultiLevelToken> tokens;
     tokens.reserve(nBoxes);
-    int maxijk(0), idxAll(0);
+    int idxAll(0);
     IntVect cRR(IntVect::TheUnitVector());
 
     for(int level(finestLevel); level >= 0; --level) {
@@ -1659,7 +1741,7 @@ ParallelDescriptor::Barrier();
 */
 
 
-    long totalCurrentCells(0);
+    //long totalCurrentCells(0);
 
       int  K(0);
       Real totalvol(0.0), volpercpu(0.0);
@@ -1832,13 +1914,13 @@ void
 DistributionMapping::InitProximityMap()
 {
   int nProcs(ParallelDescriptor::NProcs());
-  int procNumber(GetProcNumber());
   Array<int> procNumbers(nProcs, -1);
 
   proximityMap.resize(ParallelDescriptor::NProcs(), 0);
   proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
 
 #ifdef BL_USE_MPI
+  int procNumber(GetProcNumber());
   MPI_Allgather(&procNumber, 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 procNumbers.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
                 ParallelDescriptor::Communicator());
@@ -2169,7 +2251,9 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
     int nprocs(ParallelDescriptor::NProcs());
     Array<long> bytes(nprocs, 0);
 
-    ParallelDescriptor::Gather(&BoxLib::total_bytes_allocated_in_fabs,
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs();
+
+    ParallelDescriptor::Gather(&thisbyte,
                                1,
                                bytes.dataPtr(),
                                1,

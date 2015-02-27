@@ -104,14 +104,14 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       for (MFIter mfi(bcoeffs[ilev][n]); mfi.isValid(); ++mfi) {
   	int i = mfi.index();
   	const Box& bx = grids[ilev][i];
-  	const int* betalo = beta[ilev][i].loVect();
-  	const int* betahi = beta[ilev][i].hiVect();
-  	const int* edgelo = bcoeffs[ilev][n][i].loVect();
-  	const int* edgehi = bcoeffs[ilev][n][i].hiVect();
+  	const int* betalo = beta[ilev][mfi].loVect();
+  	const int* betahi = beta[ilev][mfi].hiVect();
+  	const int* edgelo = bcoeffs[ilev][n][mfi].loVect();
+  	const int* edgehi = bcoeffs[ilev][n][mfi].hiVect();
 	  
-  	FORT_COEF_TO_EDGES(&n, bcoeffs[ilev][n][i].dataPtr(),
+  	FORT_COEF_TO_EDGES(&n, bcoeffs[ilev][n][mfi].dataPtr(),
   			   ARLIM(edgelo), ARLIM(edgehi),
-  			   beta[ilev][i].dataPtr(),
+  			   beta[ilev][mfi].dataPtr(),
   			   ARLIM(betalo), ARLIM(betahi),
   			   bx.loVect(),bx.hiVect());
       }

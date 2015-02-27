@@ -86,7 +86,7 @@ writePlotFile (const std::string&        dir,
 	    grid_loc[j].resize(grids.size());
 	    for (int L=0; L < grids.size(); L++)
 	    {
-		const Box bx = grids[L];
+		const Box& bx = grids[L];
 		grid_loc[j][L] = RealBox(D_DECL( dx[j][0]*bx.smallEnd(0),
 						 dx[j][1]*bx.smallEnd(1),
 						 dx[j][2]*bx.smallEnd(2) ),

@@ -601,7 +601,7 @@ public:
 	        for(MFIter mfi(*self);mfi.isValid(); ++mfi){
 		    int idx = mfi.index();
 		    const Box &bx = ba[idx];
-		    const FArrayBox &fab = (*self)[idx];
+		    const FArrayBox &fab = (*self)[mfi];
 		    retval += fab.sum(bx,comp,1);
 	        }
 		ParallelDescriptor::ReduceRealSum(retval);

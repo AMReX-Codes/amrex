@@ -414,6 +414,15 @@ public:
 
 #endif
 
+    static void FillPatch(AmrLevel& amrlevel,
+			  MultiFab& leveldata,
+			  int       boxGrow,
+			  Real      time,
+			  int       index,
+			  int       scomp,
+			  int       ncomp,
+	                  int       dcomp=0);
+    
 protected:
     //
     // The constructors -- for derived classes.
@@ -424,6 +433,13 @@ protected:
               int             lev,
               const Geometry& level_geom,
               const BoxArray& bl,
+              Real            time);
+
+    AmrLevel (Amr&            papa,
+              int             lev,
+              const Geometry& level_geom,
+              const BoxArray& bl,
+	      const DistributionMapping& dm,
               Real            time);
     //
     // Common code used by all constructors.
@@ -493,10 +509,12 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    FArrayBox& operator() () { return m_fabs[index()]; }
+    FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
+    MultiFab& get_mf() { return m_fabs; }
+    
   private:
     //
     // Disallowed.
