@@ -869,7 +869,7 @@ Amr::writePlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilCreateCleanDirectory(pltfile, false);     // dont call barrier
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
     BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
 
     std::string HeaderFileName(pltfileTemp + "/Header");
@@ -1567,7 +1567,7 @@ Amr::checkPoint ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilCreateCleanDirectory(ckfile, false);     // dont call barrier
+    BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
     BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
 
     std::string HeaderFileName = ckfileTemp + "/Header";
