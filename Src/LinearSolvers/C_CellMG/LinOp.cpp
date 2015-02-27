@@ -59,7 +59,7 @@ LinOp::Initialize ()
 void
 LinOp::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 void
@@ -104,12 +104,9 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
-        for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
-                 End = maskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
+	for (int j = 0, M = maskvals[i].size(); j < M; ++j)
+	{
+            MaskTuple& a = maskvals[i].at_local(j);
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -117,12 +114,9 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = lmaskvals.size(); i < N; ++i)
     {
-        for (std::map<int,MaskTuple>::iterator it = lmaskvals[i].begin(),
-                 End = lmaskvals[i].end();
-             it != End;
-             ++it)
-        {
-            MaskTuple& a = it->second;
+	for (int j = 0, M = lmaskvals[i].size(); j < M; ++j)
+	{
+            MaskTuple& a = lmaskvals[i].at_local(j);
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -172,6 +166,8 @@ LinOp::initConstruct (const Real* _h)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
+    maskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
+    lmaskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -217,6 +213,7 @@ LinOp::applyBC (MultiFab&      inout,
                 bool           local,
 		int            bndry_comp)
 {
+    BL_PROFILE("LinOp::applyBC()");
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
@@ -249,19 +246,18 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Fill boundary cells.
     //
-    const int N = inout.IndexMap().size();
-
+    // OMP over boxes
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(inout); mfi.isValid(); ++mfi)
     {
-        const int gn = inout.IndexMap()[i];
+        const int gn = mfi.index();
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
+        BL_ASSERT(level<maskvals.size() && maskvals[level].local_index(gn)>=0);
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].local_index(gn)>=0);
         BL_ASSERT(level<undrrelxr.size());
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
@@ -282,12 +278,12 @@ LinOp::applyBC (MultiFab&      inout,
             int           bct = bdc[o][bndry_comp];
 
             const Box&       vbx   = inout.box(gn);
-            FArrayBox&       iofab = inout[gn];
+            FArrayBox&       iofab = inout[mfi];
             BL_ASSERT(f.size()>gn);
             BL_ASSERT(fs.size()>gn);
 
-            FArrayBox&       ffab  = f[gn];
-            const FArrayBox& fsfab = fs[gn];
+            FArrayBox&       ffab  = f[mfi];
+            const FArrayBox& fsfab = fs[mfi];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          iofab.dataPtr(src_comp),
@@ -313,9 +309,16 @@ LinOp::residual (MultiFab&       residL,
                  LinOp::BC_Mode  bc_mode,
                  bool            local)
 {
+    BL_PROFILE("LinOp::residual()");
+
     apply(residL, solnL, level, bc_mode, local);
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
         const int nc = residL.nComp();
         //
@@ -323,9 +326,9 @@ LinOp::residual (MultiFab&       residL,
         //
         BL_ASSERT(nc == 1);
 
-        const Box& vbx = solnLmfi.validbox();
+        const Box& tbx = solnLmfi.tilebox();
 
-        BL_ASSERT(gbox[level][solnLmfi.index()] == vbx);
+        BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
 
         FArrayBox& residfab = residL[solnLmfi];
         const FArrayBox& rhsfab = rhsL[solnLmfi];
@@ -337,7 +340,7 @@ LinOp::residual (MultiFab&       residL,
             ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
             residfab.dataPtr(), 
             ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-            vbx.loVect(), vbx.hiVect(), &nc);
+            tbx.loVect(), tbx.hiVect(), &nc);
     }
 }
 
@@ -374,6 +377,8 @@ LinOp::norm (int nm, int level, const bool local)
 void
 LinOp::prepareForLevel (int level)
 {
+    BL_PROFILE("LinOp::prepareForLevel()");
+
     if (level == 0) return;
 
     LinOp::prepareForLevel(level-1);
@@ -423,6 +428,8 @@ LinOp::prepareForLevel (int level)
     // We'll use the low 0 side as the model.
     //
     int nGrow = NGrow(level);
+    maskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
+    lmaskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -435,7 +442,7 @@ LinOp::prepareForLevel (int level)
         {
             const Orientation face = oitr();
             const Box         bx_k = BoxLib::adjCell(gbox[level][gn], face, nGrow);
-             ma[face] = new Mask(bx_k,1);
+	    ma[face] = new Mask(bx_k,1);
             lma[face] = new Mask(bx_k,1);
             Mask&  curmask = *( ma[face]);
             Mask& lcurmask = *(lma[face]);
@@ -485,6 +492,8 @@ LinOp::makeCoefficients (MultiFab&       cs,
                          const MultiFab& fn,
                          int             level)
 {
+    BL_PROFILE("LinOp::makeCoefficients()");
+
     int nc = 1;
     //
     // Determine index type of incoming MultiFab.
@@ -531,23 +540,24 @@ LinOp::makeCoefficients (MultiFab&       cs,
     const int nGrow=0;
     cs.define(d, nComp, nGrow, Fab_allocate);
 
-    const BoxArray& grids = gbox[level];
-
-    MFIter csmfi(cs);
+    const bool tiling = true;
 
     switch (cdir)
     {
     case -1:
-        for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
         {
+            const Box& tbx = csmfi.tilebox();
             FArrayBox&       csfab = cs[csmfi];
             const FArrayBox& fnfab = fn[csmfi];
 
             FORT_AVERAGECC(csfab.dataPtr(), ARLIM(csfab.loVect()),
                            ARLIM(csfab.hiVect()),fnfab.dataPtr(),
                            ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
-                           grids[csmfi.index()].loVect(),
-                           grids[csmfi.index()].hiVect(), &nc);
+                           tbx.loVect(),tbx.hiVect(), &nc);
         }
         break;
     case 0:
@@ -555,8 +565,12 @@ LinOp::makeCoefficients (MultiFab&       cs,
     case 2:
         if (harmavg)
         {
-            for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  	    for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
             {
+	        const Box& tbx = csmfi.tilebox();
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
@@ -566,23 +580,26 @@ LinOp::makeCoefficients (MultiFab&       cs,
                                         fnfab.dataPtr(),
                                         ARLIM(fnfab.loVect()),
                                         ARLIM(fnfab.hiVect()),
-                                        grids[csmfi.index()].loVect(),
-                                        grids[csmfi.index()].hiVect(),
+                                        tbx.loVect(),tbx.hiVect(),
                                         &nc,&cdir);
             }
         }
         else
         {
-            for ( ; csmfi.isValid(); ++csmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter csmfi(cs,tiling); csmfi.isValid(); ++csmfi)
             {
+                const Box& tbx = csmfi.tilebox();
                 FArrayBox&       csfab = cs[csmfi];
                 const FArrayBox& fnfab = fn[csmfi];
 
                 FORT_AVERAGEEC(csfab.dataPtr(),ARLIM(csfab.loVect()),
                                ARLIM(csfab.hiVect()),fnfab.dataPtr(), 
                                ARLIM(fnfab.loVect()),ARLIM(fnfab.hiVect()),
-                               grids[csmfi.index()].loVect(),
-                               grids[csmfi.index()].hiVect(),&nc, &cdir);
+	                       tbx.loVect(),tbx.hiVect(),
+                               &nc, &cdir);
             }
         }
         break;
@@ -627,7 +644,7 @@ operator<< (std::ostream& os,
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
 
-        const std::map<int,LinOp::MaskTuple>& m = lp.maskvals[level];
+        const BLMap<LinOp::MaskTuple>& m = lp.maskvals[level];
 
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
@@ -639,12 +656,9 @@ operator<< (std::ostream& os,
                 {
                     const Orientation face = oitr();
 
-                    for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
-                             End = m.end();
-                         it != End;
-                         ++it)
+		    for (int i=0, N=m.size(); i<N; ++i)
                     {
-                        os << *(it->second[face]);
+                        os << m.at_local(i)[face];
                     }
                 }
             }

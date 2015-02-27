@@ -1213,8 +1213,7 @@ void HypreABecLap::setACoeffs(int level, const MultiFab& alpha)
   BL_ASSERT( alpha.ok() );
   BL_ASSERT( alpha.boxArray() == acoefs[level].boxArray() );
   for (MFIter ai(alpha); ai.isValid(); ++ai) {
-    int k = ai.index();
-    acoefs[level][k].copy(alpha[k]);
+    acoefs[level][ai].copy(alpha[ai]);
   }
 }
 
@@ -1223,8 +1222,7 @@ void HypreABecLap::setBCoeffs(int level, const MultiFab &b, int dir)
   BL_ASSERT( b.ok() );
   BL_ASSERT( b.boxArray() == bcoefs[level][dir].boxArray() );
   for (MFIter bi(b); bi.isValid(); ++bi) {
-    int k = bi.index();
-    bcoefs[level][dir][k].copy(b[k]);
+    bcoefs[level][dir][bi].copy(b[bi]);
   }
 }
 
@@ -1252,8 +1250,8 @@ void HypreABecLap::setRhs(int level, const MultiFab& rhs)
       const Real      &bcl = bd[level].bndryLocs(oitr())[i];
       const FArrayBox &bcv = bd[level].bndryValues(oitr())[i];
       const Mask      &msk = bd[level].bndryMasks(oitr())[i];
-      const int* blo = bcoefs[level][idim][i].loVect();
-      const int* bhi = bcoefs[level][idim][i].hiVect();
+      const int* blo = bcoefs[level][idim][mfi].loVect();
+      const int* bhi = bcoefs[level][idim][mfi].hiVect();
       const int* mlo = msk.loVect();
       const int* mhi = msk.hiVect();
       const int* bvlo = bcv.loVect();
@@ -1302,7 +1300,7 @@ void HypreABecLap::setInitGuess(int level, const MultiFab& guess)
 
     FArrayBox *f;
     f = new FArrayBox(reg);
-    f->copy(guess[i], 0, 0, 1);
+    f->copy(guess[mfi], 0, 0, 1);
     Real* vec = f->dataPtr();
 
     HYPRE_SStructVectorSetBoxValues(x, part, loV(reg), hiV(reg), 0, vec);
@@ -1386,15 +1384,15 @@ void HypreABecLap::loadMatrix()
 
       // build matrix interior
 
-      const int* alo = acoefs[level][i].loVect();
-      const int* ahi = acoefs[level][i].hiVect();
-      FORT_HPACOEF(mat, acoefs[level][i].dataPtr(), ARLIM(alo), ARLIM(ahi),
+      const int* alo = acoefs[level][mfi].loVect();
+      const int* ahi = acoefs[level][mfi].hiVect();
+      FORT_HPACOEF(mat, acoefs[level][mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
 		   reg.loVect(), reg.hiVect(), scalar_a);
       
       for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-	const int* blo = bcoefs[level][idim][i].loVect();
-	const int* bhi = bcoefs[level][idim][i].hiVect();
-	FORT_HPBCOEF(mat, bcoefs[level][idim][i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	const int* blo = bcoefs[level][idim][mfi].loVect();
+	const int* bhi = bcoefs[level][idim][mfi].hiVect();
+	FORT_HPBCOEF(mat, bcoefs[level][idim][mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		     reg.loVect(), reg.hiVect(), scalar_b, geom[level].CellSize(), idim);
       }
       
@@ -1409,8 +1407,8 @@ void HypreABecLap::loadMatrix()
 	int bctype = bct;
 	const Real      &bcl = bd[level].bndryLocs(oitr())[i];
 	const Mask      &msk = bd[level].bndryMasks(oitr())[i];
-	const int* blo = bcoefs[level][idim][i].loVect();
-	const int* bhi = bcoefs[level][idim][i].hiVect();
+	const int* blo = bcoefs[level][idim][mfi].loVect();
+	const int* bhi = bcoefs[level][idim][mfi].hiVect();
 	const int* mlo = msk.loVect();
 	const int* mhi = msk.hiVect();
       
@@ -1420,13 +1418,13 @@ void HypreABecLap::loadMatrix()
           // for the linear solver:
 
 	  if (reg[oitr()] == domain[oitr()]) {
-	    FORT_HPMAT3(mat, bcoefs[level][idim][i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	    FORT_HPMAT3(mat, bcoefs[level][idim][mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 			reg.loVect(), reg.hiVect(), scalar_b, 
 			geom[level].CellSize(), cdir, bctype, bcl, 
 			msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));
 	  }
 	  else {
-	    FORT_HPMAT(mat, bcoefs[level][idim][i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	    FORT_HPMAT(mat, bcoefs[level][idim][mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		       reg.loVect(), reg.hiVect(), scalar_b, 
 		       geom[level].CellSize(), cdir, bctype, bcl, 
 		       msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));	    
@@ -1439,7 +1437,7 @@ void HypreABecLap::loadMatrix()
           // stencil using Neumann BC:
 
 	  int bctype_coarse = LO_NEUMANN;
-	  FORT_HPMAT(mat, bcoefs[level][idim][i].dataPtr(), ARLIM(blo), ARLIM(bhi),
+	  FORT_HPMAT(mat, bcoefs[level][idim][mfi].dataPtr(), ARLIM(blo), ARLIM(bhi),
 		     reg.loVect(), reg.hiVect(), scalar_b, 
 		     geom[level].CellSize(), cdir, bctype_coarse, bcl, 
 		     msk.dataPtr(), ARLIM(mlo), ARLIM(mhi));	    
@@ -1813,7 +1811,7 @@ void HypreABecLap::getSolution(PArray<MultiFab>& soln)
 
       FArrayBox *f;
       if (soln[level].nGrow() == 0) { // need a temporary if dest is the wrong size
-	f = &soln[level][i];
+	f = &soln[level][mfi];
       }
       else {
 	f = new FArrayBox(reg);
@@ -1824,7 +1822,7 @@ void HypreABecLap::getSolution(PArray<MultiFab>& soln)
       HYPRE_SStructVectorGetBoxValues(x, part, loV(reg), hiV(reg), 0, vec);
 
       if (soln[level].nGrow() != 0) {
-	soln[level][i].copy(*f, 0, 0, 1);
+	soln[level][mfi].copy(*f, 0, 0, 1);
 	delete f;
       }
     }

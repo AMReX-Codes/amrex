@@ -113,7 +113,7 @@ MultiGrid::Initialize ()
 void
 MultiGrid::Finalize ()
 {
-    initialized = false;
+    ;
 }
 
 static
@@ -220,7 +220,6 @@ MultiGrid::errorEstimate (int            level,
                           LinOp::BC_Mode bc_mode,
                           bool           local)
 {
-    BL_PROFILE("MultiGrid::errorEstimate()");
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
     return norm_inf(*res[level], local);
 }
@@ -228,7 +227,6 @@ MultiGrid::errorEstimate (int            level,
 void
 MultiGrid::prepareForLevel (int level)
 {
-    BL_PROFILE("MultiGrid::prepareForLevel()");
     //
     // Build this level by allocating reqd internal MultiFabs if necessary.
     //
@@ -260,7 +258,6 @@ MultiGrid::residualCorrectionForm (MultiFab&       resL,
                                    LinOp::BC_Mode  bc_mode,
                                    int             level)
 {
-    BL_PROFILE("MultiGrid::residualCorrectionForm()");
     //
     // Using the linearity of the operator, Lp, we can solve this system
     // instead by solving for the correction required to the initial guess.
@@ -277,7 +274,6 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
-    BL_PROFILE("MultiGrid::solve()");
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -698,12 +694,16 @@ MultiGrid::average (MultiFab&       c,
     //
     // Use Fortran function to average down (restrict) f to c.
     //
-    for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
+    const bool tiling = true;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter cmfi(c,tiling); cmfi.isValid(); ++cmfi)
     {
         BL_ASSERT(c.boxArray().get(cmfi.index()) == cmfi.validbox());
 
         const int        nc   = c.nComp();
-        const Box&       bx   = cmfi.validbox();
+        const Box&       bx   = cmfi.tilebox();
         FArrayBox&       cfab = c[cmfi];
         const FArrayBox& ffab = f[cmfi];
 
@@ -724,18 +724,17 @@ MultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f.
     //
-    const int N = f.IndexMap().size();
-
+    // OMP over boxes
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(c); mfi.isValid(); ++mfi)
     {
-        const int           k = f.IndexMap()[i];
+        const int           k = mfi.index();
         const Box&         bx = c.boxArray()[k];
         const int          nc = f.nComp();
-        const FArrayBox& cfab = c[k];
-        FArrayBox&       ffab = f[k];
+        const FArrayBox& cfab = c[mfi];
+        FArrayBox&       ffab = f[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
                     ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),

@@ -12,3 +12,6 @@ const char* buildInfoGetDif(int i);
 const char* buildInfoGetGitHash(int i);
 const char* buildInfoGetGitBranch(int i);
 const char* buildInfoGetLinkerInfo(int i);
+const char* buildInfoGetBuildGitName();
+const char* buildInfoGetBuildGitHash();
+

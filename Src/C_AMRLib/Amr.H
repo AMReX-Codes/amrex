@@ -342,6 +342,10 @@ public:
     //
     std::ostream& DataLog (int i);
     //
+    // The filename of the ith datalog file.
+    //
+    const std::string DataLogName (int i) const { return datalogname[i]; }
+    //
     // How many datalogs have been opened
     //
     int NumDataLogs ();
@@ -604,7 +608,8 @@ protected:
     std::ofstream    gridlog;
     std::ofstream    runlog;
     std::ofstream    runlog_terse;
-    PArray<std::ofstream> datalog;
+    PArray<std::fstream> datalog;
+    Array<std::string> datalogname;
     int              sub_cycle;
     std::string      restart_chkfile;
     std::string      restart_pltfile;

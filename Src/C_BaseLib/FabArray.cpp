@@ -5,10 +5,16 @@
 //
 // Set default values in Initialize()!!!
 //
-bool FabArrayBase::Verbose;
-bool FabArrayBase::do_async_sends;
-bool FabArrayBase::do_random_shuffle;
-int  FabArrayBase::MaxComp;
+bool    FabArrayBase::Verbose;
+bool    FabArrayBase::do_async_sends;
+int     FabArrayBase::MaxComp;
+#if BL_SPACEDIM == 1
+IntVect FabArrayBase::mfiter_tile_size(1024000);
+#elif BL_SPACEDIM == 2
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+#else
+IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
+#endif
 
 namespace
 {
@@ -29,7 +35,6 @@ FabArrayBase::Initialize ()
     //
     FabArrayBase::Verbose           = true;
     FabArrayBase::do_async_sends    = true;
-    FabArrayBase::do_random_shuffle = false;
     FabArrayBase::MaxComp           = 25;
 
     copy_cache_max_size = 25;
@@ -37,10 +42,14 @@ FabArrayBase::Initialize ()
 
     ParmParse pp("fabarray");
 
+    Array<int> tilesize(BL_SPACEDIM);
+    if (pp.queryarr("mfiter_tile_size", tilesize, 0, BL_SPACEDIM))
+    {
+	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
+    }
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
-    pp.query("do_random_shuffle",   FabArrayBase::do_random_shuffle);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
     pp.query("copy_cache_max_size", copy_cache_max_size);
     //
@@ -78,6 +87,8 @@ FabArrayBase::fabbox (int K) const
 FabArrayBase::CPC::CPC ()
     :
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -94,6 +105,8 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_dstdm(dstdm),
     m_srcdm(srcdm),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -179,6 +192,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
                       const FabArrayBase& src)
 {
+    BL_PROFILE("FabArrayBase::TheCPC()");
+
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
     //
     // We want to choose our keys wisely to minimize search time.
@@ -186,9 +201,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     // but with different edgeness of boxes.  We also want to
     // differentiate dst.copy(src) from src.copy(dst).
     //
-    CPCCache&     TheCopyCache = FabArrayBase::m_TheCopyCache;
-    const IntVect Typ          = cpc.m_dstba[0].type();
-    const int     Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    CPCCache&      TheCopyCache = FabArrayBase::m_TheCopyCache;
+    const IntVect& Typ          = cpc.m_dstba[0].type();
+    const int      Scale        = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
 
     int Key = cpc.m_dstba.size() + cpc.m_srcba.size() + Scale;
     Key    += cpc.m_dstba[0].numPts() + cpc.m_dstba[cpc.m_dstba.size()-1].numPts();
@@ -300,25 +315,33 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     //
     // Squeeze out any unused memory ...
     //
-    CPC::CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
+    CopyComTagsContainer tmp(*TheCPC.m_LocTags); 
 
     TheCPC.m_LocTags->swap(tmp);
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheCPC.m_SndTags->begin(), End = TheCPC.m_SndTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheCPC.m_RcvTags->begin(), End = TheCPC.m_RcvTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
     TheCPC.m_srcba.clear_hash_bin();
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    TheCPC.m_threadsafe_loc = LocThreadSafety(TheCPC.m_LocTags);
+    TheCPC.m_threadsafe_rcv = RcvThreadSafety(TheCPC.m_RcvTags);
+#endif
 
     return cache_it;
 }
@@ -369,6 +392,8 @@ FabArrayBase::SI::SI ()
     m_ngrow(-1),
     m_cross(false),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -385,6 +410,8 @@ FabArrayBase::SI::SI (const BoxArray&            ba,
     m_ngrow(ngrow),
     m_cross(cross),
     m_reused(false),
+    m_threadsafe_loc(false),
+    m_threadsafe_rcv(false),
     m_LocTags(0),
     m_SndTags(0),
     m_RcvTags(0),
@@ -426,7 +453,7 @@ FabArrayBase::SI::bytes () const
 
         cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
+        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
                  m_End = m_SndTags->end();
              it != m_End;
              ++it)
@@ -441,7 +468,7 @@ FabArrayBase::SI::bytes () const
 
         cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
 
-        for (CPC::MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
+        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
                  m_End = m_RcvTags->end();
              it != m_End;
              ++it)
@@ -469,13 +496,15 @@ FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
 {
+    BL_PROFILE("FabArray::TheFB");
+
     BL_ASSERT(mf.size() > 0);
 
     const FabArrayBase::SI si(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), cross);
 
-    const IntVect Typ   = mf.boxArray()[0].type();
-    const int     Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
-    const int     Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
+    const IntVect& Typ   = mf.boxArray()[0].type();
+    const int      Scale = D_TERM(Typ[0],+3*Typ[1],+5*Typ[2]) + 11;
+    const int      Key   = mf.size() + mf.boxArray()[0].numPts() + mf.nGrow() + Scale + cross;
 
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(Key);
 
@@ -583,8 +612,8 @@ FabArrayBase::TheFB (bool                cross,
 
             for (int j = 0, M = isects.size(); j < M; j++)
             {
-                const Box& bx        = isects[j].second;
                 const int  k         = isects[j].first;
+                const Box& bx        = isects[j].second;
                 const int  src_owner = dm[k];
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
@@ -616,25 +645,38 @@ FabArrayBase::TheFB (bool                cross,
     //
     // Squeeze out any unused memory ...
     //
-    CPC::CopyComTagsContainer tmp(*TheFB.m_LocTags); 
+    CopyComTagsContainer tmp(*TheFB.m_LocTags); 
 
     TheFB.m_LocTags->swap(tmp);
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheFB.m_SndTags->begin(), End = TheFB.m_SndTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
-    for (CPC::MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
+    for (MapOfCopyComTagContainers::iterator it = TheFB.m_RcvTags->begin(), End = TheFB.m_RcvTags->end(); it != End; ++it)
     {
-        CPC::CopyComTagsContainer tmp(it->second);
+        CopyComTagsContainer tmp(it->second);
 
         it->second.swap(tmp);
     }
 
     ba.clear_hash_bin();
+
+    //
+    // set thread safety
+    //
+#ifdef _OPENMP
+    if (ba[0].cellCentered()) {
+	TheFB.m_threadsafe_loc = true;
+	TheFB.m_threadsafe_rcv = true;
+    } else {
+	TheFB.m_threadsafe_loc = false;
+	TheFB.m_threadsafe_rcv = false;
+    }
+#endif
 
     return cache_it;
 }
@@ -689,3 +731,282 @@ FabArrayBase::SICacheSize ()
     return m_TheFBCache.size();
 }
 
+bool
+FabArrayBase::LocThreadSafety(const CopyComTagsContainer* LocTags)
+{
+#ifdef _OPENMP
+    bool tsall = true;
+    int N_loc = (*LocTags).size();
+    if (N_loc > 0) {
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_loc-1; ++i) {
+		if (tsthis) {
+		    const CopyComTag& tagi = (*LocTags)[i];
+		    for (int j=i+1; j<N_loc; ++j) {
+			const CopyComTag& tagj = (*LocTags)[j];
+			if ( tagi.fabIndex == tagj.fabIndex &&
+			     tagi.box.intersects(tagj.box) ) {
+			    tsthis = false;
+			    break;
+			}
+		    }
+		}
+	    }
+	    tsall = tsall && tsthis;
+	}
+    }
+    return tsall;
+#else
+    return true;
+#endif
+}
+
+bool 
+FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
+{
+#ifdef _OPENMP
+    bool tsall = true;
+    const int N_rcvs = RcvTags->size();
+    if (N_rcvs > 0) {
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+	
+	for (MapOfCopyComTagContainers::const_iterator m_it = RcvTags->begin(),
+		 m_End = RcvTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    recv_cctc.push_back(&(m_it->second));
+	}
+	
+#pragma omp parallel reduction(&&:tsall)
+	{
+	    bool tsthis = true;
+#pragma omp for schedule(static,1)
+	    for (int i=0; i<N_rcvs-1; ++i) {
+		if (tsthis) {
+		    const CopyComTagsContainer& cctci = *recv_cctc[i];
+		    for (CopyComTagsContainer::const_iterator iti = cctci.begin();
+			 iti != cctci.end(); ++iti)
+		    {
+			for (int j=i+1; j<N_rcvs; ++j) {
+			    const CopyComTagsContainer& cctcj = *recv_cctc[j];
+			    for (CopyComTagsContainer::const_iterator itj = cctcj.begin();
+				 itj != cctcj.end(); ++itj)
+			    {
+				if ( iti->fabIndex == itj->fabIndex &&
+				     (iti->box).intersects(itj->box) ) {
+				    tsthis = false;
+				    goto labelRTS;
+				}
+			    }			    
+			}
+		    }
+		}
+	    labelRTS: ;
+	    }
+	    tsall = tsall && tsthis;
+	}
+    }
+    return tsall;
+#else
+    return true;
+#endif
+}
+
+
+MFIter::MFIter (const FabArrayBase& fabarray, int sharing)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(D_DECL(1024000,1024000,1024000))
+{
+    Initialize(sharing,0);
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(D_DECL(1024000,1024000,1024000))
+{
+    if (do_tiling) 
+	tileSize = FabArrayBase::mfiter_tile_size;
+    Initialize(1,chunksize);
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(tilesize)
+{
+    Initialize(1,chunksize);
+}
+
+void 
+MFIter::Initialize (int sharing, int chunksize) 
+{
+    int tid = 0;
+    int nthreads = 1;
+    
+#ifdef _OPENMP
+    if (omp_in_parallel() && sharing) {
+	tid = omp_get_thread_num();
+	nthreads = omp_get_num_threads();
+    }
+#endif
+    
+    // First let's figure out how many tiles we are going to have
+    int n_tot_tiles=0;
+    Array<IntVect> nt_in_fab;
+    for (int i=0; i<fabArray.IndexMap().size(); i++) {
+	int K = fabArray.IndexMap()[i]; 
+	const Box& bx = fabArray.box(K);
+	
+	int ntiles = 1;
+	IntVect nt;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    nt[d] = std::max(bx.length(d)/tileSize[d], 1);
+	    ntiles *= nt[d];
+	}
+	
+	nt_in_fab.push_back(nt);
+	n_tot_tiles += ntiles;
+    }
+
+    int tlo, thi, sz;
+    if (chunksize <= 0) {
+	// figure out the tile no range, tlo and thi for this thread
+	if (n_tot_tiles < nthreads) { // there are more threads than tiles
+	    if (tid < n_tot_tiles) {
+		tlo = thi = tid;
+	    } else {
+		return;
+	    }
+	} else {
+	    int tiles_per_thread = n_tot_tiles/nthreads;
+	    int nleft = n_tot_tiles - tiles_per_thread*nthreads;
+	    if (tid < nleft) {
+		tlo = tid*(tiles_per_thread+1);
+		thi = tlo + tiles_per_thread;
+	    } else {
+	    tlo = tid*tiles_per_thread + nleft;
+	    thi = tlo + tiles_per_thread - 1;
+	    }
+	}
+
+	sz = thi-tlo+1;
+    }
+    else {
+	tlo = -1;
+	thi = n_tot_tiles;
+	int nchunks = (n_tot_tiles+chunksize-1) / chunksize;
+	int chunks_per_thread = nchunks/nthreads;
+	int nleft = nchunks-chunks_per_thread*nthreads;
+	if (tid < nleft) chunks_per_thread++;
+	sz = chunks_per_thread*chunksize;
+    }
+
+    indexMap.reserve(sz);
+    localIndexMap.reserve(sz);
+    tileArray.reserve(sz);
+	
+    int it = 0;
+    for (int i=0; i<fabArray.IndexMap().size(); i++) {
+	
+	int ntiles = 1;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    ntiles *= nt_in_fab[i][d];
+	}
+	
+	if (it+ntiles-1 < tlo) {
+	    it += ntiles;
+	    continue;
+	}
+	
+	int K = fabArray.IndexMap()[i]; 
+	const Box& bx = fabArray.box(K);
+	
+	IntVect tsize, nleft;
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    int ncells = bx.length(d);
+	    tsize[d] = ncells/nt_in_fab[i][d];
+	    nleft[d] = ncells - nt_in_fab[i][d]*tsize[d];
+	}
+	
+	IntVect small, big, ijk;  // note that the initial values are all zero.
+	ijk[0] = -1;
+	for (int t=0; t<ntiles; t++) {
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		if (ijk[d]<nt_in_fab[i][d]-1) {
+		    ijk[d]++;
+		    break;
+		} else {
+		    ijk[d] = 0;
+		}
+	    }
+
+	    if ( (chunksize <=0 && it >= tlo) ||
+		 (chunksize > 0 && (it/chunksize)%nthreads == tid) ) 
+	    {
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d] < nleft[d]) {
+			small[d] = ijk[d]*(tsize[d]+1);
+			big[d] = small[d] + tsize[d];
+		    } else {
+			small[d] = ijk[d]*tsize[d] + nleft[d];
+			big[d] = small[d] + tsize[d] - 1;
+		    }
+		}
+		
+		indexMap.push_back(K);
+		localIndexMap.push_back(i);
+		
+		Box tbx(small, big, bx.ixType());
+		tbx.shift(bx.smallEnd());
+		tileArray.push_back(tbx);
+	    }
+	    
+	    it++;
+	    if (it > thi) return;
+	}
+    }
+}
+
+Box
+MFIter::nodaltilebox (int dir) const 
+{ 
+    Box bx(tileArray[currentIndex]);
+    if (bx.type(dir) == IndexType::CELL) {
+	bx.surroundingNodes(dir);
+	if (bx.bigEnd(dir) != validbox().bigEnd(dir)+1) {
+	    bx.growHi(dir,-1);
+	}
+    }
+    return bx;
+}
+
+Box 
+MFIter::growntilebox (int ng) const 
+{
+    if (ng < 0) ng = fabArray.nGrow();
+    if (ng == 0) {
+	return tileArray[currentIndex];
+    } else {
+	Box bx(tileArray[currentIndex]);
+	const Box& vbx = validbox();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+		bx.growLo(d, ng);
+	    }
+	    if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+		bx.growHi(d, ng);
+	    }
+	}
+	return bx;
+    }
+}

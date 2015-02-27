@@ -73,6 +73,47 @@ StateData::define (const Box&             p_domain,
 }
 
 void
+StateData::define (const Box&             p_domain,
+                   const BoxArray&        grds,
+		   const DistributionMapping& dm,
+                   const StateDescriptor& d,
+                   Real                   time,
+                   Real                   dt)
+{
+    BL_PROFILE("StateData::define()");
+    domain = p_domain;
+    desc = &d;
+    grids.define(grds);
+    //
+    // Convert to proper type.
+    //
+    IndexType typ(desc->getType());
+    StateDescriptor::TimeCenter t_typ(desc->timeType());
+    if (!typ.cellCentered())
+    {
+        domain.convert(typ);
+        grids.convert(typ);
+    }
+    if (t_typ == StateDescriptor::Point)
+    {
+        new_time.start = new_time.stop = time;
+        old_time.start = old_time.stop = time - dt;
+    }
+    else
+    {
+        new_time.start = time;
+        new_time.stop  = time+dt;
+        old_time.start = time-dt;
+        old_time.stop  = time;
+    }
+    int ncomp = desc->nComp();
+
+    new_data = new MultiFab(grids,ncomp,desc->nExtra(),dm,Fab_allocate);
+
+    old_data = 0;
+}
+
+void
 StateData::reset ()
 {
     new_time = old_time;

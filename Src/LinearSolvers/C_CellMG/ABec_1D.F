@@ -203,13 +203,13 @@ c
      $     alpha, beta,
      $     a, DIMS(a),
      $     bX,DIMS(bX),
-     $     lo,hi,nc,
+     $     xlo,xhi,nc,
      $     h,
      $     xflux,DIMS(xflux)
      $     )
       implicit none
       REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), nc
       integer DIMDEC(x)
       integer DIMDEC(a)
       integer DIMDEC(bX)
@@ -226,7 +226,7 @@ c
       dhx = one/h(1)
 c
       do n = 1, nc
-         do i = lo(1), hi(1)+1
+         do i = xlo(1), xhi(1)
             xflux(i,n) = - dhx*bX(i)*( x(i,n) - x(i-1,n) )
          end do
       end do

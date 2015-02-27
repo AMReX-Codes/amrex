@@ -8,6 +8,7 @@
 #include <BCRec.H>
 #include <Array.H>
 #include <VisMF.H>
+#include <DistributionMapping.H>
 
 class RealBox;
 class StateDescriptor;
@@ -42,6 +43,13 @@ public:
     //
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
+                 const StateDescriptor& d, 
+                 Real                   cur_time,
+                 Real                   dt);
+
+    void define (const Box&             p_domain,
+                 const BoxArray&        grds,
+		 const DistributionMapping& dm,
                  const StateDescriptor& d, 
                  Real                   cur_time,
                  Real                   dt);

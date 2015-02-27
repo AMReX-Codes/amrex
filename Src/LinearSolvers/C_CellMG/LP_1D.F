@@ -119,12 +119,12 @@ c     Fill in fluxes
 c
       subroutine FORT_FLUX(
      $     x,DIMS(x),
-     $     lo,hi,nc,
+     $     xlo,xhi,nc,
      $     h,
      $     xflux,DIMS(xflux)
      $     )
       implicit none
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), nc
       integer DIMDEC(x)
       integer DIMDEC(xflux)
       REAL_T  x(DIMV(x),nc)
@@ -137,7 +137,7 @@ c
       dhx = one/h(1)
 c
       do n = 1, nc
-         do i = lo(1), hi(1)+1
+         do i = xlo(1), xhi(1)
             xflux(i,n) = - dhx*( x(i,n) - x(i-1,n) )
          end do
       end do

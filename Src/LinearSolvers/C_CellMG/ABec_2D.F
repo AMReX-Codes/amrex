@@ -48,8 +48,8 @@ c-----------------------------------------------------------------------
      $     m2, DIMS(m2),
      $     f3, DIMS(f3),
      $     m3, DIMS(m3),
-     $     lo,hi,nc,
-     $     h,redblack
+     $     lo,hi,blo,bhi,
+     $     nc,h,redblack
      $     )
 
       implicit none
@@ -60,7 +60,8 @@ c-----------------------------------------------------------------------
       integer DIMDEC(a)
       integer DIMDEC(bX)
       integer DIMDEC(bY)
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      integer  lo(BL_SPACEDIM),  hi(BL_SPACEDIM)
+      integer blo(BL_SPACEDIM), bhi(BL_SPACEDIM)
       integer nc
       integer redblack
       integer DIMDEC(f0)
@@ -86,7 +87,7 @@ c-----------------------------------------------------------------------
       REAL_T    bX(DIMV(bX))
       REAL_T    bY(DIMV(bY))
 c
-      integer  i, j, ioff, n
+      integer  i, j, ioff, joff, n
 c
       REAL_T dhx, dhy, cf0, cf1, cf2, cf3
       REAL_T delta, gamma, rho, rho_x, rho_y
@@ -126,17 +127,17 @@ c
       do n = 1, nc
        if (do_line .eq. 0) then
          do j = lo(2), hi(2)
-            ioff = MOD(j + redblack,2)
+            ioff = MOD(lo(1) + j + redblack, 2)
             do i = lo(1) + ioff,hi(1),2
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $              +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
@@ -154,17 +155,18 @@ c
             end do
          end do
        else if (do_line .eq. 2) then
-         do i = lo(1) + redblack,hi(1),2
+         ioff = MOD(lo(1) + redblack, 2)
+         do i = lo(1) + ioff,hi(1),2
              do j = lo(2), hi(2)
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $               + dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
@@ -197,17 +199,18 @@ c
 
        else if (do_line .eq. 1) then
 
-           do j = lo(2) + redblack,hi(2),2
+           joff = MOD(lo(2) + redblack, 2)
+           do j = lo(2) + joff,hi(2),2
              do i = lo(1), hi(1)
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $               + dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
@@ -478,14 +481,18 @@ c
      $     a, DIMS(a),
      $     bX,DIMS(bX),
      $     bY,DIMS(bY),
-     $     lo,hi,nc,
+     $     xlo,xhi,
+     $     ylo,yhi,
+     $     nc,
      $     h,
      $     xflux,DIMS(xflux),
      $     yflux,DIMS(yflux)
      $     )
       implicit none
       REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
+      integer nc
       integer DIMDEC(x)
       integer DIMDEC(a)
       integer DIMDEC(bX)
@@ -507,15 +514,15 @@ c
       dhy = one/h(2)
 c
       do n = 1, nc
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
+         do j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
                xflux(i,j,n) = - dhx*bX(i,j)*( x(i,j,n) - x(i-1,j,n) )
             end do
          end do
       end do
       do n = 1, nc
-         do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
+         do j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
                yflux(i,j,n) = - dhy*bY(i,j)*( x(i,j,n) - x(i,j-1,n) )
             end do
          end do

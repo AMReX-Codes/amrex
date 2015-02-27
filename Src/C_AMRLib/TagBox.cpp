@@ -9,7 +9,7 @@
 #include <TagBox.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 #include <ccse-mpi.H>
 
 TagBox::TagBox () {}
@@ -156,7 +156,7 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    const Box bx = domain & src.domain;
+    const Box& bx = domain & src.domain;
 
     if (bx.ok())
     {
@@ -304,6 +304,105 @@ TagBox::tags_and_untags (const Array<int>& ar)
     }
 }
 
+void 
+TagBox::get_itags(Array<int>& ar, const Box& tilebx) const
+{
+    int Lbx[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Lbx[idim] = dlen[idim];
+    }
+    
+    long stride[] = {1, Lbx[0], long(Lbx[0])*long(Lbx[1])};
+
+    long Ntb = 1, stb=0;
+    int Ltb[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Ltb[idim] = tilebx.length(idim);
+	Ntb *= Ltb[idim];
+	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
+    }
+    
+    if (ar.size() < Ntb) ar.resize(Ntb);
+    
+    const TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
+    int*                 iptr = ar.dataPtr();
+
+    for (int k=0; k<Ltb[2]; k++) {
+        for (int j=0; j<Ltb[1]; j++) {
+	    const TagType* cptr = p0 + j*stride[1] + k*stride[2];
+	    for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
+		if (*cptr) {
+		    *iptr = *cptr;
+		}
+		else {
+		    *iptr = TagBox::CLEAR;
+		}
+	    }
+        }
+    }
+}
+
+void 
+TagBox::tags (const Array<int>& ar, const Box& tilebx)
+{
+    int Lbx[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Lbx[idim] = dlen[idim];
+    }
+    
+    long stride[] = {1, Lbx[0], long(Lbx[0])*long(Lbx[1])};
+
+    long stb=0;
+    int Ltb[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Ltb[idim] = tilebx.length(idim);
+	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
+    }
+    
+    TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
+    const int*     iptr = ar.dataPtr();
+
+    for (int k=0; k<Ltb[2]; k++) {
+        for (int j=0; j<Ltb[1]; j++) {
+	    TagType* cptr = p0 + j*stride[1] + k*stride[2];
+	    for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
+		if (*iptr) 
+		    *cptr = *iptr;
+	    }
+        }
+    }
+}
+
+void 
+TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
+{
+    int Lbx[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Lbx[idim] = dlen[idim];
+    }
+    
+    long stride[] = {1, Lbx[0], long(Lbx[0])*long(Lbx[1])};
+
+    long stb=0;
+    int Ltb[] = {1,1,1};
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+	Ltb[idim] = tilebx.length(idim);
+	stb += stride[idim] * (tilebx.smallEnd(idim) - domain.smallEnd(idim));
+    }
+    
+    TagType* const p0   = dataPtr() + stb;  // +stb to the lower corner of tilebox
+    const int*     iptr = ar.dataPtr();
+
+    for (int k=0; k<Ltb[2]; k++) {
+        for (int j=0; j<Ltb[1]; j++) {
+	    TagType* cptr = p0 + j*stride[1] + k*stride[2];
+	    for (int i=0; i<Ltb[0]; i++, cptr++, iptr++) {
+		*cptr = *iptr;
+	    }
+        }
+    }
+}
+
 TagBoxArray::TagBoxArray (const BoxArray& ba,
                           int             ngrow)
     :
@@ -367,7 +466,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
              ++it)
         {
             const IntVect& iv   = *it;
-            const Box      shft = boxarray[i] + iv;
+            const Box&     shft = boxarray[i] + iv;
 
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
@@ -501,8 +600,8 @@ TagBoxArray::collate (long& numtags) const
     //
     // Tell root CPU how many tags each CPU will be sending.
     //
-    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
-                    Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
+                    BLProfiler::BeforeCall());
     MPI_Gather(&count,
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
@@ -512,8 +611,8 @@ TagBoxArray::collate (long& numtags) const
                IOProc,
                ParallelDescriptor::Communicator());
 
-    BL_COMM_PROFILE(Profiler::GatherTi, sizeof(int), Profiler::NoTag(),
-                    Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
+                    BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -531,8 +630,8 @@ TagBoxArray::collate (long& numtags) const
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), Profiler::BeforeCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
 
     MPI_Gatherv(reinterpret_cast<int*>(TheLocalCollateSpace),
                 count*BL_SPACEDIM,
@@ -544,8 +643,8 @@ TagBoxArray::collate (long& numtags) const
                 IOProc,
                 ParallelDescriptor::Communicator());
 
-    BL_COMM_PROFILE(Profiler::Gatherv, numtags * sizeof(IntVect),
-                    ParallelDescriptor::MyProc(), Profiler::AfterCall());
+    BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 #else
     //
     // Copy TheLocalCollateSpace to TheGlobalCollateSpace.
@@ -600,11 +699,14 @@ TagBoxArray::setVal (const BoxArray& ba,
 {
     const int N = IndexMap().size();
 
-    std::vector< std::pair<int,Box> > isects;
-
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
     for (int i = 0; i < N; i++)
     {
         const int idx = IndexMap()[i];
+
+	std::vector< std::pair<int,Box> > isects;
 
         ba.intersections(box(idx),isects);
 
@@ -627,9 +729,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (int i = 0; i < N; i++)
     {
-        const int idx   = IndexMap()[i];
-        TagBox*   tfine = m_fabs[idx];
-        m_fabs[idx]     = tfine->coarsen(ratio);
+        TagBox* tfine = m_fabs_v[i];
+        m_fabs_v[i]   = tfine->coarsen(ratio);
         delete tfine;
     }
 

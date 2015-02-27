@@ -26,17 +26,16 @@ int main(int argc, char* argv[])
     // build a multifab on the box array with 1 component, 0 ghost cells
     MultiFab data(ba, 1, 0);  
 
-    // tiling size
-    IntVect tilesize(D_DECL(10240,8,8));
-
     // loop over boxes and initialize the data
-    // Here, we use tiling version of MFIter.
+	
+    bool tiling = true;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(data,tilesize); mfi.isValid(); ++mfi)
-    {
-	const Box& bx = mfi.validbox();  // box for this tile
+    for (MFIter mfi(data,tiling); mfi.isValid(); ++mfi)
+    { // Tiling with defauly tile size in FabArray.cpp
+
+	const Box& bx = mfi.tilebox();  // box for this tile
 
 	// call a fortran subroutine
 	BL_FORT_PROC_CALL(WORK, work)
@@ -66,11 +65,9 @@ int main(int argc, char* argv[])
 #pragma omp parallel
 #endif
     for (MFIter mfi(data2); mfi.isValid(); ++mfi) 
-    {
-	// Without passing tilesize, there is one tile per box.
-	// So this is OMP over fabs.
+    { // Without explicitly turn on tiling, this becomes OMP over fabs.
 
-	const Box& bx = mfi.validbox();  // box for this tile
+	const Box& bx = mfi.validbox();  // valid box for this fab
 
 	// call a fortran subroutine
 	BL_FORT_PROC_CALL(WORK, work)
@@ -78,14 +75,16 @@ int main(int argc, char* argv[])
 	     BL_TO_FORTRAN(data2[mfi]));
     }
 
-    tilesize[1] = 16; // change tile size
+
+    // This time we will explicitly control tile size.
+    IntVect tilesize(D_DECL(10240,8,32));
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(data2,tilesize); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.validbox();  // box for this tile
+	const Box& bx = mfi.tilebox();
 
 	// call a fortran subroutine
 	BL_FORT_PROC_CALL(WORK, work)

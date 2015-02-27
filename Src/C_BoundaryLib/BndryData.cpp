@@ -211,7 +211,7 @@ BndryData::define (const BoxArray& _grids,
 
             Mask* m = new Mask(face_box);
             m->setVal(outside_domain,0);
-            const Box dbox = geom.Domain() & face_box;
+            const Box& dbox = geom.Domain() & face_box;
             m->setVal(not_covered,dbox,0);
             //
             // Now have to set as not_covered the periodic translates as well.
@@ -226,7 +226,7 @@ BndryData::define (const BoxArray& _grids,
                 {
                     const IntVect& iv = *it;
                     m->shift(iv);
-                    const Box target = geom.Domain() & m->box();
+                    const Box& target = geom.Domain() & m->box();
                     m->setVal(not_covered,target,0);
                     m->shift(-iv);
                 }

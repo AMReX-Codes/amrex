@@ -27,12 +27,21 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		     MultiFab& in, const BC_Mode& bc_mode,
 		     int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
+    BL_PROFILE("Laplacian::compFlux()");
+
     const int level    = 0;
     applyBC(in,src_comp,num_comp,level,bc_mode,bnd_comp);
 
-    for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
+    const bool tiling = true;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        const Box& vbx   = inmfi.validbox();
+        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+	       const Box& ybx   = inmfi.nodaltilebox(1);,
+	       const Box& zbx   = inmfi.nodaltilebox(2););
+
         FArrayBox& infab = in[inmfi];
 
         D_TERM(FArrayBox& xfab  = xflux[inmfi];,
@@ -41,7 +50,14 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 
         FORT_FLUX(infab.dataPtr(src_comp),
 		  ARLIM(infab.loVect()), ARLIM(infab.hiVect()),
-		  vbx.loVect(), vbx.hiVect(), &num_comp,
+		  xbx.loVect(), xbx.hiVect(), 
+#if (BL_SPACEDIM >= 2)
+		  ybx.loVect(), ybx.hiVect(), 
+#if (BL_SPACEDIM == 3)
+		  zbx.loVect(), zbx.hiVect(), 
+#endif
+#endif
+	          &num_comp,
 		  h[level],
 		  xfab.dataPtr(dst_comp),
 		  ARLIM(xfab.loVect()), ARLIM(xfab.hiVect())
@@ -63,6 +79,8 @@ Laplacian::Fsmooth (MultiFab&       solnL,
                     int             level,
                     int             redBlackFlag)
 {
+    BL_PROFILE("Laplacian::Fsmooth()");
+
     OrientationIter oitr;
 
     const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -76,9 +94,14 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 
     const int nc = rhsL.nComp();
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
-        oitr.rewind();
+	OrientationIter oitr;
 
         const int gn = solnLmfi.index();
 
@@ -92,16 +115,17 @@ Laplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m4 = *mtuple[oitr()]; oitr++;
         const Mask& m5 = *mtuple[oitr()]; oitr++;
 #endif
+	const Box&       tbx     = solnLmfi.tilebox();
         const Box&       vbx     = solnLmfi.validbox();
-        FArrayBox&       solnfab = solnL[gn];
-        const FArrayBox& rhsfab  = rhsL[gn];
-        const FArrayBox& f0fab   = f0[gn];
-        const FArrayBox& f1fab   = f1[gn];
-        const FArrayBox& f2fab   = f2[gn];
-        const FArrayBox& f3fab   = f3[gn];
+        FArrayBox&       solnfab = solnL[solnLmfi];
+        const FArrayBox& rhsfab  = rhsL[solnLmfi];
+        const FArrayBox& f0fab   = f0[solnLmfi];
+        const FArrayBox& f1fab   = f1[solnLmfi];
+        const FArrayBox& f2fab   = f2[solnLmfi];
+        const FArrayBox& f3fab   = f3[solnLmfi];
 #if (BL_SPACEDIM == 3)
-        const FArrayBox& f4fab   = f4[gn];
-        const FArrayBox& f5fab   = f5[gn];
+        const FArrayBox& f4fab   = f4[solnLmfi];
+        const FArrayBox& f5fab   = f5[solnLmfi];
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -126,8 +150,8 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             ARLIM(f3fab.loVect()), ARLIM(f3fab.hiVect()),
             m3.dataPtr(), 
             ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-            vbx.loVect(), vbx.hiVect(), &nc,
-            h[level], &redBlackFlag);
+	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
+            &nc, h[level], &redBlackFlag);
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -160,8 +184,8 @@ Laplacian::Fsmooth (MultiFab&       solnL,
             ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
             m5.dataPtr(), 
             ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
-            vbx.loVect(), vbx.hiVect(), &nc,
-            h[level], &redBlackFlag);
+	    tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
+	    &nc, h[level], &redBlackFlag);
 #endif
     }
 }
@@ -192,9 +216,15 @@ Laplacian::Fapply (MultiFab&       y,
 		   int             num_comp,
                    int             level)
 {
-    for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
+    BL_PROFILE("Laplacian::Fapply()");
+
+    const bool tiling = true;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter ymfi(y,tiling); ymfi.isValid(); ++ymfi)
     {
-        const Box&       vbx  = ymfi.validbox();
+        const Box&       tbx  = ymfi.tilebox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
 
@@ -202,7 +232,7 @@ Laplacian::Fapply (MultiFab&       y,
                    ARLIM(yfab.loVect()), ARLIM(yfab.hiVect()),
                    xfab.dataPtr(src_comp), 
                    ARLIM(xfab.loVect()), ARLIM(xfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &num_comp,
+                   tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
     }
 }

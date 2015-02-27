@@ -85,6 +85,34 @@ FPC::NativeRealDescriptor ()
 
 const
 RealDescriptor&
+FPC::Native32RealDescriptor ()
+{
+#if defined(__i486__) || \
+    defined(WIN32) || \
+    defined(i386) || \
+    defined(__i386__) || \
+    defined(__amd64__) || \
+    defined(__LP64__) || \
+    defined(__x86_64)
+    static const RealDescriptor n32rd(ieee_float, reverse_float_order, 4);
+#endif
+
+#if defined(__sgi) || \
+    defined(__sun) || \
+    defined(_AIX)  || \
+    defined(__ppc__) || \
+    defined(__ppc64__) || \
+    defined(_SX)   || \
+    defined(powerpc) || \
+    defined(__hpux)
+    static const RealDescriptor n32rd(ieee_float, normal_float_order, 4);
+#endif
+
+    return n32rd;
+}
+
+const
+RealDescriptor&
 FPC::Ieee32NormalRealDescriptor ()
 {
     static const RealDescriptor i32rd(ieee_float, normal_float_order, 4);
