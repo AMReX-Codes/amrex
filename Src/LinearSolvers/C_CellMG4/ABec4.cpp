@@ -122,8 +122,8 @@ ABec4::applyBC (MultiFab&     inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
+        BL_ASSERT(level<maskvals.size() && maskvals[level].local_index(gn)>=0);
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].local_index(gn)>=0);
         BL_ASSERT(level<undrrelxr.size());
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
