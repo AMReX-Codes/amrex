@@ -232,6 +232,14 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST),gamera)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOST),atragon)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib

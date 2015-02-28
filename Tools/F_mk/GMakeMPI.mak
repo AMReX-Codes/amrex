@@ -255,6 +255,13 @@ ifeq ($(HOST),gigan)
   mpi_libraries += -lmpich -lpthread
 endif
 
+ifeq ($(HOST),gamera)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+
 ifeq ($(HOST),kiryu)
   MPIHOME=/usr/local 
   mpi_include_dir = $(MPIHOME)/include
@@ -263,6 +270,7 @@ ifeq ($(HOST),kiryu)
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
+
 endif
 
 ifeq ($(HOST),manda)
