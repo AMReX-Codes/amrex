@@ -209,8 +209,8 @@ ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
 endif
 
-ifndef BL_BACKTRACE
-  BL_BACKTRACE = FALSE
+ifndef BACKTRACE
+  BACKTRACE = FALSE
 endif
 
 ifndef DIM
@@ -265,9 +265,9 @@ ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
-    CXXDEBF    += -g -rdynamic -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-    ifeq ($(BL_BACKTRACE),TRUE)
-        CXXOPTF += -rdynamic
+    CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
+    ifeq ($(BACKTRACE),TRUE)
+        LDFLAGS += -rdynamic
     endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       ?= g++
@@ -452,14 +452,10 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     CXXOPTF += -g -O2 -ip
-   else
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
      CXXOPTF += -g -O2 -ip -fp-model source
-   endif
    endif
    CXXDEBF += -g -O0
 
@@ -578,10 +574,6 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     CPPFLAGS += -gxx-name=/usr/bin/gcc-4.1
-   endif
-  
 #jfe
    ifeq ($(GWDG), TRUE)
      ifeq ($(USE_MPI),TRUE)
@@ -723,17 +715,12 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     FOPTF += -O2 -ip
-     fOPTF += -O2 -ip
-   else
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
      FOPTF += -O2 -ip -fp-model source
      fOPTF += -O2 -ip -fp-model source
-   endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
@@ -837,8 +824,8 @@ else
     ProfSuffix	:=
 endif
 
-ifeq ($(BL_BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACE
+ifeq ($(BACKTRACE),TRUE)
+    CPPFLAGS += -DBL_BACKTRACING
     BTSuffix := .BT
 else
     BTSuffix :=

@@ -242,23 +242,24 @@ ifeq ($(HOST),naphta)
 endif
 
 ifeq ($(HOST),battra)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
 endif
 
 ifeq ($(HOST),gigan)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread -lmpl
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
+  mpi_libraries += -lmpich -lpthread
+endif
+
+ifeq ($(HOST),gamera)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
 endif
 
 ifeq ($(HOST),kiryu)
@@ -269,6 +270,7 @@ ifeq ($(HOST),kiryu)
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
+
 endif
 
 ifeq ($(HOST),manda)
@@ -301,6 +303,12 @@ ifeq ($(HOST),ebirah)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
 endif
+ifeq ($(HOST),rodan)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
 ifeq ($(HOST),baragon)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
@@ -326,10 +334,10 @@ ifeq ($(HOST),mothra)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),gimantis)
-  MPIHOME=/usr/local/mpich2
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),angilas)
   MPIHOME=/usr/local

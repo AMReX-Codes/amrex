@@ -168,19 +168,12 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/include
     endif
-    ifeq ($(WHICHLINUX), GIGAN)
-         BL_MPI_LIBS += -lpthread
-    endif
-    ifeq ($(WHICHLINUX), NUGIGAN)
-      MPI_HOME=/usr/local/mpi
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-    endif
     ifeq ($(WHICHLINUX), GIMANTIS)
-      MPI_HOME=/usr/local/mpich2
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST), mothra)
@@ -232,11 +225,19 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),battra)
-      MPI_HOME=/usr/local
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),gamera)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),atragon)
@@ -264,11 +265,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),gigan)
-      MPI_HOME=/usr/local
+      MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread -lmpl
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST), kiryu)
@@ -373,11 +374,11 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),rodan)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lmpich -lpthread -lmpl
+      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),varan)
@@ -436,9 +437,6 @@ ifeq ($(MACHINE), Linux)
 
     ifeq ($(WHICHLINUX), COLUMBIA)
       BL_MPI_LIBS += -lmpi
-    endif
-    ifeq ($(WHICHLINUX), GIMANTIS)
-      BL_MPI_LIBS += -lpthread
     endif
     ifeq ($(WHICHLINUX), GENERICLINUX)
       ifdef BOXLIB_USE_MPI_WRAPPERS

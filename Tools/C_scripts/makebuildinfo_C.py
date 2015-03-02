@@ -70,6 +70,22 @@ const char* buildInfoGetGitHash(int i) {
     default: return EMPT;
   }
 }
+
+const char* buildInfoGetBuildGitHash() {
+
+  //static const char HASH[] = "${GIT}";
+  @@BUILDGIT_DECLS@@
+
+  return HASH;
+}
+
+const char* buildInfoGetBuildGitName() {
+
+  //static const char NAME[] = "";
+  @@BUILDGIT_NAME@@
+
+  return NAME;
+}
 """
 
 def runcommand(command):
@@ -83,7 +99,9 @@ try: opts, next = getopt.getopt(sys.argv[1:], "",
                                  "FCOMP=",
                                  "COMP=",
                                  "AUX=",
-                                 "GIT="])
+                                 "GIT=",
+                                 "build_git_name=",
+                                 "build_git_dir="])
 
 except getopt.GetoptError:
     sys.exit("invalid calling sequence")
@@ -93,6 +111,8 @@ FCOMP = ""
 COMP = ""
 AUX = []
 GIT = []
+build_git_name = ""
+build_git_dir = None
 
 for o, a in opts:
 
@@ -108,8 +128,14 @@ for o, a in opts:
     if o == "--GIT":
         if not a == "": GIT = a.split()
 
+    if o == "--build_git_name":
+        if not a == "": build_git_name = a
 
-# build stuff                                                                                           
+    if o == "--build_git_dir":
+        if not a == "": build_git_dir = a
+
+        
+# build stuff
 build_date = str(datetime.datetime.now())
 build_dir = os.getcwd()
 build_machine = runcommand("uname -a")
@@ -127,6 +153,15 @@ for d in GIT:
     else:
         git_hashes.append("")
 
+if not build_git_dir == None:
+    try: os.chdir(build_git_dir)
+    except:
+        build_git_hash = "directory not valid"
+    else:
+        build_git_hash = runcommand("git rev-parse HEAD")
+        os.chdir(running_dir)
+else:
+    build_git_hash = ""
 
 fout = open("buildInfo.cpp", "w")
 
@@ -144,23 +179,23 @@ for line in source.splitlines():
 
         elif keyword == "BUILD_DIR":
             newline = string.replace(line, "@@BUILD_DIR@@", build_dir)
-            fout.write(newline)        
+            fout.write(newline)
 
         elif keyword == "BUILD_MACHINE":
             newline = string.replace(line, "@@BUILD_MACHINE@@", build_machine)
-            fout.write(newline)        
+            fout.write(newline)
 
         elif keyword == "BOXLIB_DIR":
             newline = string.replace(line, "@@BOXLIB_DIR@@", boxlib_home)
-            fout.write(newline)        
+            fout.write(newline)
 
         elif keyword == "COMP":
             newline = string.replace(line, "@@COMP@@", COMP)
-            fout.write(newline)        
+            fout.write(newline)
 
         elif keyword == "FCOMP":
             newline = string.replace(line, "@@FCOMP@@", FCOMP)
-            fout.write(newline)        
+            fout.write(newline)
 
         elif keyword == "AUX_DECLS":
             indent = index
@@ -168,7 +203,7 @@ for line in source.splitlines():
             for i in range(len(AUX)):
                 aux_str += '%sstatic const char AUX%1d[] = "%s";\n' % (indent*" ", i+1, AUX[i])
 
-            fout.write(aux_str)        
+            fout.write(aux_str)
 
         elif keyword == "AUX_CASE":
             indent = index
@@ -184,7 +219,7 @@ for line in source.splitlines():
             for i in range(len(GIT)):
                 git_str += '%sstatic const char HASH%1d[] = "%s";\n' % (indent*" ", i+1, git_hashes[i])
 
-            fout.write(git_str)        
+            fout.write(git_str)
 
         elif keyword == "GIT_CASE":
             indent = index
@@ -194,14 +229,19 @@ for line in source.splitlines():
 
             fout.write(git_str)
 
+        elif keyword == "BUILDGIT_DECLS":
+            indent = index
+            git_str = '%sstatic const char HASH[] = "%s";\n' % (indent*" ", build_git_hash)
+            fout.write(git_str)
+
+        elif keyword == "BUILDGIT_NAME":
+            index = index
+            git_str = '%sstatic const char NAME[] = "%s";\n' % (indent*" ", build_git_name)
+            fout.write(git_str)
+            
     else:
         fout.write(line)
 
     fout.write("\n")
 
 fout.close()
-
-
-
-
-
