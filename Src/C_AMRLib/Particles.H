@@ -1472,7 +1472,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
     Real         disp[BL_SPACEDIM];
     Real         vel[BL_SPACEDIM];
     
-    Real 	mean_disp[BL_SPACEDIM]={0,0,0};
+    Real 	mean_disp[BL_SPACEDIM]={D_DECL(0,0,0)};
 
 
     //

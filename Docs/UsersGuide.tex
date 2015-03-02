@@ -1,14 +1,17 @@
 \documentclass[11pt]{book} 
 
+% Margins
+\usepackage[margin=1in]{geometry}
+
 \tolerance=600
 
 \usepackage{color,longtable,epsfig,epsf,amsmath}
+\usepackage{hyperref}
 
-% Margins
-\usepackage{fullpage}
 
 \newcommand{\BoxArray}{{\tt BoxArray}}
 \newcommand{\BoxLib}{{\tt BoxLib}}
+\newcommand{\boxlib}{{\tt BoxLib}}
 \newcommand{\BoxType}{{\tt Box}}
 \newcommand{\IntVect}{{\tt IntVect}}
 \newcommand{\Fab}{{\tt Fab}}
@@ -19,6 +22,10 @@
 
 \newcommand{\layout}{{\tt layout}}
 \newcommand{\mgtower}{{\tt mg\_tower}}
+
+\newcommand{\maestro}{{\sf Maestro}}
+
+\graphicspath{{Regression/}}
 
 \setlength{\marginparwidth}{0.8in}
 \newcommand{\MarginPar}[1]{\marginpar{%
@@ -123,6 +130,9 @@
 
 \chapter{Advanced Topics With Fortran90 \BoxLib}\label{Chap:Advanced Topics F}
 \input F_AdvancedTopics/F_AdvancedTopics
+
+\chapter{Regression Testing}\label{Chap:Regression Testing}
+\input Regression/test_suite
 
 %\chapter{Advanced Topics With C++ \BoxLib}\label{Chap:Advanced Topics C}
 %\input C_AdvancedTopics/C_AdvancedTopics

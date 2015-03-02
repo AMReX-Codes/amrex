@@ -1,7 +1,7 @@
 #ifndef _BL_BACKTRACE_H_
 #define _BL_BACKTRACE_H_
 
-#ifndef BL_BACKTRACE
+#ifndef BL_BACKTRACING
 
 #define BL_BACKTRACE_PUSH(S) ((void)0)
 #define BL_BACKTRACE_POP(S) ((void)0)
@@ -39,7 +39,8 @@ public:
     explicit BLBTer(const std::string& s, const char* file, int line);
     ~BLBTer();
 private:
-    std::string file_line;
+    std::string line_file;
+    void pop_bt_stack();
 };
 
 #endif
