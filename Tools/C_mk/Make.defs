@@ -355,10 +355,10 @@ ifeq ($(findstring rose, $(FCOMP)), rose)
       _f95_lib:=$(shell gfortran -print-file-name=libgfortran.so)
     endif
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -ffixed-line-length-132 -g -O3
-    fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FOPTF += -ffixed-line-length-0 -g -O3
+    fOPTF += -ffixed-line-length-0 -g -O3
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 endif
 
 ifeq ($(FCOMP),g77)
@@ -398,10 +398,10 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
        override XTRALIBS += $(_f95_lib)       
     endif
 
-    FOPTF += -ffixed-line-length-132 -g -O3
-    fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FOPTF += -ffixed-line-length-0 -g -O3
+    fOPTF += -ffixed-line-length-0 -g -O3
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -418,8 +418,8 @@ ifeq ($(FCOMP),g95)
     fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir) 
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
-    fOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
+    FOPTF += -O2 -g -ffixed-line-length-0 -Wall #-Wextra
+    fOPTF += -O2 -g -ffixed-line-length-0 -Wall #-Wextra
     FDEBF += -g -O0 -fbounds-check
     fDEBF += -g -O0 -fbounds-check
 
