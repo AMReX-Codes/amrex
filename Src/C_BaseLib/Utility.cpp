@@ -464,6 +464,23 @@ BoxLib::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 }
 
 void
+BoxLib::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
+{
+  if(ParallelDescriptor::IOProcessor()) {
+    if(BoxLib::FileExists(path)) {
+      std::string newoldname(path + ".old." + BoxLib::UniqueString());
+      std::cout << "BoxLib::UtilRenameDirectoryToOld():  " << path
+                << " exists.  Renaming to:  " << newoldname << std::endl;
+      std::rename(path.c_str(), newoldname.c_str());
+    }
+  }
+  if(callbarrier) {
+    // Force other processors to wait until directory is renamed.
+    ParallelDescriptor::Barrier("BoxLib::UtilRenameDirectoryToOld");
+  }
+}
+
+void
 BoxLib::OutOfMemory ()
 {
 #ifdef BL_BGL
