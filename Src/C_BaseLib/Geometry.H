@@ -238,6 +238,8 @@ public:
         int                 m_ngrow;
         bool                m_do_corners;
         bool                m_reused;
+	bool                m_threadsafe_loc;
+	bool                m_threadsafe_rcv;
         //
         // Some useful typedefs.
         //
@@ -331,13 +333,13 @@ namespace BoxLib
             //
             // There can only be local work to do.
             //
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                     End = TheFPB.m_LocTags->end();
-                 it != End;
-                 ++it)
-            {
-                const Geometry::FPBComTag& tag = *it;
-
+	    int N_loc = (*TheFPB.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
+#endif
+	    for (int i=0; i<N_loc; ++i)
+	    {
+                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
                 mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
             }
 
@@ -360,39 +362,36 @@ namespace BoxLib
         typedef typename FAB::value_type value_type;
 
         Array<MPI_Status>  stats;
-        Array<int>         recv_from, index;
-        Array<value_type*> recv_data, send_data;
-        Array<MPI_Request> recv_reqs, send_reqs;
+        Array<int>         recv_from;
+        Array<value_type*> recv_data;
+        Array<MPI_Request> recv_reqs;
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
         value_type* the_recv_data = 0;
 
         FabArrayBase::PostRcvs(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+
         //
-        // Send the FAB data.
+        // Post send's
         //
-        FAB fab;
-        //
-        // Get the indices of SndTags and shuffle'm a bit.
-        //
-        Array<int> indices;
+	const int N_snds = TheFPB.m_SndTags->size();
+
+	Array<value_type*>                     send_data;
+	Array<int>                             send_N;
+	Array<int>                             send_rank;
+	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
+
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_fctc.reserve(N_snds);
 
         for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
                  m_End = TheFPB.m_SndTags->end();
              m_it != m_End;
              ++m_it)
         {
-            indices.push_back(m_it->first);
-        }
-
-        if (FabArrayBase::do_random_shuffle)
-            std::random_shuffle(indices.begin(), indices.end());
-
-        for (int j = 0, NN = indices.size(); j < NN; j++)
-        {
-            Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->find(indices[j]);
-
             std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
 
             BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
@@ -402,74 +401,99 @@ namespace BoxLib
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-            value_type* dptr = data;
 
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = m_it->second.begin(),
-                     End = m_it->second.end();
-                 it != End;
-                 ++it)
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_fctc.push_back(&(m_it->second));
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (int i=0; i<N_snds; ++i)
+	{
+	    value_type* dptr = send_data[i];
+	    BL_ASSERT(dptr != 0);
+
+	    const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
+
+            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+                 it != fctc.end(); ++it)
             {
                 const Box& bx = it->sbox;
                 mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
                 const int Cnt = bx.numPts()*ncomp;
                 dptr += Cnt;
             }
-            BL_ASSERT(data+N == dptr);
+	}
 
-            if (FabArrayBase::do_async_sends)
-            {
-                send_data.push_back(data);
-	        BL_COMM_PROFILE_NAMETAG("ASEND::FillPeriodicBoundary()");
-                send_reqs.push_back(ParallelDescriptor::Asend(data,N,m_it->first,SeqNum).req());
+	Array<MPI_Request> send_reqs;
+
+	if (FabArrayBase::do_async_sends)
+	{
+	    send_reqs.reserve(N_snds);
+	    for (int i=0; i<N_snds; ++i) {
+                send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i],send_N[i],send_rank[i],SeqNum).req());
             }
-            else
-            {
-	        BL_COMM_PROFILE_NAMETAG("SEND::FillPeriodicBoundary()");
-                ParallelDescriptor::Send(data,N,m_it->first,SeqNum);
-                BoxLib::The_Arena()->free(data);
+	} else {
+	    for (int i=0; i<N_snds; ++i) {
+                ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+                BoxLib::The_Arena()->free(send_data[i]);
             }
         }
+
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
-        for (Geometry::FPB::FPBComTagsContainer::const_iterator it = TheFPB.m_LocTags->begin(),
-                 End = TheFPB.m_LocTags->end();
-             it != End;
-             ++it)
-        {
-            const Geometry::FPBComTag& tag = *it;
+	int N_loc = (*TheFPB.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
+#endif
+	for (int i=0; i<N_loc; ++i)
+	{
+            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
 
             BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
             BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
 
             mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
-        //
-        // Now receive and unpack FAB data as it becomes available.
-        //
+
+	//
+	// wait and unpack
+
         const int N_rcvs = TheFPB.m_RcvTags->size();
 
-        index.resize(N_rcvs);
-        stats.resize(N_rcvs);
+	if (N_rcvs > 0)
+	{
+	    Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
+	    recv_fctc.reserve(N_rcvs);
 
-        for (int NWaits = N_rcvs, completed; NWaits > 0; NWaits -= completed)
-        {
-            ParallelDescriptor::Waitsome(recv_reqs, completed, index, stats);
-
-            for (int k = 0; k < completed; k++)
-            {
-                const value_type* dptr = recv_data[index[k]];
-
-                BL_ASSERT(dptr != 0);
-
-                Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[index[k]]);
-
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[k]);
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
+		
+		recv_fctc.push_back(&(m_it->second));
+	    }
 
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = m_it->second.begin(),
-                         End = m_it->second.end();
-                     it != End;
-                     ++it)
+	    stats.resize(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
+#endif
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		value_type*  dptr = recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
+
+                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+                     it != fctc.end(); ++it)
                 {
                     const Box& bx  = it->dbox;
                     const int  Cnt = bx.numPts()*ncomp;

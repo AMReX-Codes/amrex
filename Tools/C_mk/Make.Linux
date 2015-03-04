@@ -49,7 +49,7 @@ ifeq ($(COMP),PGI)
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
-    ifeq ($(findstring titan, $(HOST)), titan)
+    ifeq ($(WHICHLINUX), TITAN)
       CXXOPTF += -O
     else
       COPTF += -fast
@@ -340,6 +340,7 @@ endif
 
 ifeq ($(WHICHLINUX), HOPPER)
   DEFINES += -DMPICH_SKIP_MPICXX
+  DEFINES += -DBL_HOPPER
   ifeq ($(USE_MPI),TRUE)
     CXX := CC -target=linux
     CC  := cc -target=linux
@@ -547,6 +548,14 @@ CXXPRFF += -pg
 FPRF    += -pg
 
 override XTRALIBS += -lm
+
+ifeq ($(FCOMP), gfortran)
+  ifeq ($(__gcc_major_version),4)
+    ifeq ($(__gcc_minor_version),9)
+      override XTRALIBS += -lquadmath
+    endif
+  endif
+endif
 
 ifeq ($(WHICHLINUX), PCCLUSTER)
   LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1

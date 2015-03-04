@@ -228,7 +228,6 @@ module fab_module
 
   logical,             private, save :: manual_control_least_used_cpus = .false.
   integer(kind =ll_t), private, save :: mcluc_vol                      = 0_ll_t
-  logical,             private, save :: luc_keep_cpu_order             = .false.
 
   type(mem_stats), private, save ::  fab_ms
   type(mem_stats), private, save :: zfab_ms
@@ -532,22 +531,17 @@ contains
   ! fab memory in use on the CPU to largest amount of fab memory in use
   ! on that CPU.  The pointer must be deallocated by the calling routine.
   !
-  function least_used_cpus (always_sort) result(r)
+  function least_used_cpus () result(r)
 
     use parallel
     use sort_i_module
 
-    logical, intent(in), optional :: always_sort
     integer, pointer     :: r(:)
-    integer              :: i, tluc, nprocs
+    integer              :: i, nprocs
     integer, allocatable :: snd(:), rcv(:), idx(:)
 
     integer(ll_t) :: val  ! Number of double precision values stored in fabs on this CPU.
     
-    logical :: lsort
-
-    lsort = .true.;  if (present(always_sort)) lsort = always_sort
-
     nprocs = parallel_nprocs()
 
     allocate(r(0:nprocs-1))
@@ -564,19 +558,9 @@ contains
 
     call parallel_allgather(snd, rcv, 1)
 
-    if (luc_keep_cpu_order .and. lsort .eqv. .false.) then
-       tluc = minloc(rcv,1) - 1
-       do i = 0, nprocs-tluc-1
-          r(i) = i+tluc
-       end do
-       do i = nprocs-tluc, nprocs-1
-          r(i) = i - (nprocs-tluc)
-       end do
-    else
-       allocate(idx(nprocs))
-       call stable_sort(rcv, idx)
-       r = idx - 1
-    end if
+    allocate(idx(nprocs))
+    call stable_sort(rcv, idx)
+    r = idx - 1
 
     if ( .false. .and. parallel_ioprocessor() ) then
        print*, '*** least_used_cpus(): '
@@ -2239,29 +2223,24 @@ contains
     r = count(lp)
   end function lfab_count
 
-  subroutine manual_control_least_used_cpus_set(flag)
+  subroutine set_manual_control_least_used_cpus(flag)
     logical, intent(in) :: flag
     manual_control_least_used_cpus = flag
-  end subroutine manual_control_least_used_cpus_set
+  end subroutine set_manual_control_least_used_cpus
 
   function get_manual_control_least_used_cpus_flag() result(r)
     logical :: r
     r = manual_control_least_used_cpus
   end function get_manual_control_least_used_cpus_flag
 
-  subroutine luc_vol_set(i)
+  subroutine set_luc_vol(i)
     integer(kind=ll_t), intent(in) :: i
     mcluc_vol = i
-  end subroutine luc_vol_set
+  end subroutine set_luc_vol
 
-  subroutine luc_keep_cpu_order_set(flag)
-    logical, intent(in) :: flag
-    luc_keep_cpu_order = flag
-  end subroutine luc_keep_cpu_order_set
-
-  function get_luc_keep_cpu_order_flag() result(r)
-    logical :: r
-    r = luc_keep_cpu_order
-  end function get_luc_keep_cpu_order_flag
+  function get_luc_vol() result(r)
+    integer(kind=ll_t) :: r
+    r = mcluc_vol
+  end function get_luc_vol
 
 end module fab_module

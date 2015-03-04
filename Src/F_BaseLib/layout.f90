@@ -9,8 +9,6 @@ module layout_module
   integer, private, parameter :: LA_UNDF = 0
   integer, private, parameter :: LA_BASE = 1
   integer, private, parameter :: LA_CRSN = 2
-  integer, private, parameter :: LA_PCHD = 3
-  integer, private, parameter :: LA_PPRT = 4
 
   integer, parameter :: LA_KNAPSACK   = 101
   integer, parameter :: LA_ROUNDROBIN = 102
@@ -38,6 +36,7 @@ module layout_module
   end type trns_dsc
 
   type remote_conn
+     logical                 :: threadsafe = .false.
      integer                 :: svol = 0          ! numpts in snd volume
      integer                 :: rvol = 0          ! numpts in rcv volume
      integer                 :: nsnd = 0          ! Number of snd chunks
@@ -58,6 +57,7 @@ module layout_module
   end type local_copy_desc
 
   type local_conn
+     logical                        :: threadsafe = .false.
      integer                        :: ncpy   ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
@@ -77,10 +77,12 @@ module layout_module
   ! Used to cache the boxarray used by multifab_fill_ghost_cells().
   !
   type fgassoc
-     integer                :: dim   = 0       ! spatial dimension 1, 2, or 3
-     integer                :: grwth = 0       ! growth factor
+     integer                :: dim    = 0       ! spatial dimension 1, 2, or 3
+     integer                :: grwth  = 0       ! growth factor
+     integer, pointer       :: prc(:) => Null()
+     integer, pointer       :: idx(:) => Null() ! local index
      type(boxarray)         :: ba
-     type(fgassoc), pointer :: next  => Null()
+     type(fgassoc), pointer :: next   => Null()
   end type fgassoc
 
   type syncassoc
@@ -166,12 +168,13 @@ module layout_module
      logical, pointer                :: pmask(:)    => Null() ! Periodic mask.
      integer, pointer                :: prc(:)      => Null() ! Which processor owns each box.
      integer, pointer                :: idx(:)      => Null() ! Global indices of boxes we own.
+     integer, pointer                :: sfc_order(:)=> Null()
+
      type(boxarray)                  :: bxa
      type(boxassoc), pointer         :: bxasc       => Null()
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
-     type(pn_layout), pointer        :: pn_children => Null()
      ! Box Hashing
      integer                         :: bahash              = -1
      integer                         :: crsn                = -1
@@ -192,13 +195,6 @@ module layout_module
      type(layout)                    :: la
      type(coarsened_layout), pointer :: next => Null()
   end type coarsened_layout
-
-  type pn_layout
-     integer                  :: dim = 0
-     integer, pointer         :: refr(:) => Null()
-     type(layout)             :: la
-     type(pn_layout), pointer :: next => Null()
-  end type pn_layout
 
   integer, private :: g_layout_next_id = 0
 
@@ -284,6 +280,18 @@ module layout_module
 
   interface get_pmask
      module procedure layout_get_pmask
+  end interface
+
+  interface sfc_order_built_q
+     module procedure layout_sfc_order_built_q
+  end interface
+
+  interface get_sfc_order
+     module procedure layout_get_sfc_order
+  end interface
+
+  interface set_sfc_order
+     module procedure layout_set_sfc_order
   end interface
 
   interface contains
@@ -510,6 +518,26 @@ contains
     r = la%lap%pmask
   end function layout_get_pmask
 
+  pure function layout_sfc_order_built_q(la) result (r)
+    type(layout), intent(in) :: la
+    logical :: r
+    r = associated(la%lap%sfc_order)
+  end function layout_sfc_order_built_q
+
+  pure function layout_get_sfc_order(la) result(r)
+    type(layout), intent(in) :: la
+    integer :: r(la%lap%nboxes)
+    r = la%lap%sfc_order
+  end function layout_get_sfc_order
+
+  subroutine layout_set_sfc_order(la, sfc_order)
+    type(layout), intent(inout) :: la
+    integer, intent(in) :: sfc_order(:)
+    if (associated(la%lap%sfc_order)) deallocate(la%lap%sfc_order)
+    allocate(la%lap%sfc_order(la%lap%nboxes))
+    la%lap%sfc_order = sfc_order
+  end subroutine layout_set_sfc_order
+
   subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
     use bl_error_module
     type(layout_rep), intent(out) :: lap
@@ -558,7 +586,7 @@ contains
     case (LA_ROUNDROBIN)
        call layout_roundrobin(lap%prc, ba)
     case (LA_KNAPSACK)
-       call layout_knapsack(lap%prc, ba)
+       call layout_knapsack(lap%prc, ba, lap%sfc_order)
     case default
        call bl_error("layout_rep_build(): unknown mapping:", lmapping)
     end select
@@ -599,17 +627,17 @@ contains
     type(layout_rep), pointer :: lap
     integer, intent(in) :: la_type
     type(coarsened_layout), pointer :: clp, oclp
-    type(pn_layout), pointer :: pnp, opnp
     type(boxassoc),  pointer :: bxa, obxa
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
+    if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
     end if
     call destroy(lap%bxa)
-    if ( (la_type == LA_BASE) .or. (la_type == LA_PCHD) ) then
+    if ( (la_type == LA_BASE) ) then
        deallocate(lap%pmask)
     end if
     clp => lap%crse_la
@@ -619,14 +647,6 @@ contains
        call layout_rep_destroy(clp%la%lap, LA_CRSN)
        deallocate(clp)
        clp => oclp
-    end do
-    pnp => lap%pn_children
-    do while ( associated(pnp) )
-       opnp => pnp%next
-       deallocate(pnp%refr)
-       call layout_rep_destroy(pnp%la%lap, LA_PCHD)
-       deallocate(pnp)
-       pnp  => opnp
     end do
     !
     ! Get rid of boxassocs.
@@ -714,53 +734,6 @@ contains
     call layout_rep_destroy(la%lap, LA_BASE)
     call mem_stats_dealloc(la_ms)
   end subroutine layout_destroy
-
-  subroutine layout_build_pn(lapn, la, ba, rr, mapping, explicit_mapping)
-    use bl_error_module
-    type(layout), intent(out)   :: lapn
-    type(layout), intent(inout) :: la
-    type(boxarray), intent(in) :: ba
-    integer, intent(in) :: rr(:)
-    integer, intent(in), optional :: mapping
-    integer, intent(in), optional :: explicit_mapping(:)
-    type(pn_layout), pointer :: pla
-    type(box) :: rpd
-
-    if ( size(rr) /= la%lap%dim ) then
-       call bl_error("layout_build_pn(): incommensurate refinement ratio")
-    end if
-
-    ! This is wrong: I need to make sure that the boxarray and the
-    ! refinement match.  This will be OK until we do regridding
-
-    pla => la%lap%pn_children
-    do while ( associated(pla) )
-       if ( all(pla%refr == rr) ) then
-          lapn = pla%la
-          return
-       end if
-       pla => pla%next
-    end do
-
-    ! Should also check for the proper nestedness
-
-    allocate(pla)
-    allocate(pla%refr(la%lap%dim))
-    pla%dim = la%lap%dim
-    pla%refr = rr
-
-    pla%la%la_type = LA_PCHD
-
-    allocate(pla%la%lap)
-    rpd = refine(la%lap%pd, pla%refr)
-    call layout_rep_build(pla%la%lap, ba, rpd, la%lap%pmask, &
-        mapping, explicit_mapping)
-
-    ! install the new coarsened layout into the layout
-    pla%next => la%lap%pn_children
-    la%lap%pn_children => pla
-    lapn = pla%la
-  end subroutine layout_build_pn
 
   subroutine layout_build_coarse(lac, la, cr)
     use bl_error_module
@@ -882,44 +855,52 @@ contains
 
   end subroutine layout_roundrobin
 
-  subroutine layout_knapsack(prc, bxs)
+  subroutine layout_knapsack(prc, bxs, sfc_order)
     use fab_module
     use bl_error_module
     use knapsack_module
     integer,        intent(out), dimension(:) :: prc
     type(boxarray), intent(in )               :: bxs
+    integer,        intent(inout),    pointer :: sfc_order(:)
 
-    integer              :: i
+    integer              :: i, nbxs, nprocs
     integer, pointer     :: luc(:)
     integer, allocatable :: ibxs(:), tprc(:)
     type(box), pointer   :: pbxs(:)
 
-    if ( nboxes(bxs) /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
+    nbxs = nboxes(bxs)
+    nprocs = parallel_nprocs()
 
-    allocate(ibxs(nboxes(bxs)), tprc(nboxes(bxs)))
+    if ( nbxs /= size(prc) ) call bl_error('layout_knapsack: how did this happen?')
 
-    do i = 1, size(ibxs,1)
+    allocate(ibxs(nbxs), tprc(nbxs))
+
+    do i = 1, nbxs
        ibxs(i) = volume(get_box(bxs,i))
     end do
 
-    if ( (nboxes(bxs)/parallel_nprocs()) >= sfc_threshold ) then
+    if ( nbxs >= sfc_threshold*nprocs ) then
        !
        ! Use Morton space-filling-curve distribution if we have "enough" grids.
        !
        pbxs => dataptr(bxs)
-       call sfc_i(tprc, ibxs, pbxs, parallel_nprocs())
+       allocate(sfc_order(nbxs))
+       call make_sfc(sfc_order, pbxs)
+       nullify(pbxs)
 
-       luc => least_used_cpus(always_sort=.false.)
+       call distribute_sfc(tprc, sfc_order, ibxs, nprocs)
+
+       luc => least_used_cpus()
     else
        !
        ! knapsack_i() sorts boxes so that CPU 0 contains largest volume & CPU nprocs-1 the least.
        !
-       call knapsack_i(tprc, ibxs, parallel_nprocs())
+       call knapsack_i(tprc, ibxs, nprocs)
 
-       luc => least_used_cpus(always_sort=.true.)
+       luc => least_used_cpus()
     end if
 
-    do i = 1, size(prc,1)
+    do i = 1, nbxs
        prc(i) = luc(tprc(i))
     end do
 
@@ -1362,6 +1343,7 @@ contains
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary, idim)
     use bl_prof_module
     use bl_error_module
+    use omp_module
 
     integer,          intent(in)           :: ng
     logical,          intent(in)           :: nodal(:)
@@ -1519,6 +1501,14 @@ contains
        end if
     end do
 
+    if (anynodal) then
+       bxasc%l_con%threadsafe = .false.
+       bxasc%r_con%threadsafe = .false.
+    else
+       bxasc%l_con%threadsafe = .true.
+       bxasc%r_con%threadsafe = .true.
+    end if
+
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
     call destroy(bpt)
@@ -1528,12 +1518,14 @@ contains
   subroutine fgassoc_build(fgasc, la, ng)
     use bl_prof_module
     use bl_error_module
+    use vector_i_module
 
     integer,       intent(in   ) :: ng
     type(layout),  intent(inout) :: la     ! Only modified by layout_get_box_intersector()
     type(fgassoc), intent(inout) :: fgasc
 
-    integer                        :: i, j
+    integer                        :: i, j, k, nbxs, myproc, nlocal
+    type(vector_i)                 :: idx, idx2
     type(box)                      :: bx
     type(list_box)                 :: bl, pieces, leftover
     type(box_intersector), pointer :: bi(:)
@@ -1545,6 +1537,7 @@ contains
 
     fgasc%dim   = la%lap%dim
     fgasc%grwth = ng
+
     !
     ! Build list of all ghost cells not covered by valid region.
     !
@@ -1553,6 +1546,7 @@ contains
        call boxarray_box_diff(fgasc%ba, grow(bx,ng), bx)
        do j = 1, nboxes(fgasc%ba)
           call push_back(bl, get_box(fgasc%ba,j))
+          call push_back(idx, i)
        end do
        call boxarray_destroy(fgasc%ba)
     end do
@@ -1569,33 +1563,52 @@ contains
        end do
        deallocate(bi)
        leftover = boxlist_boxlist_diff(bx, pieces)
+       call boxlist_simplify(leftover)
+       do k=1,list_size_box(leftover)
+          call push_back(idx2, at(idx,i))
+       end do
        call splice(bl, leftover)
        call list_destroy_box(pieces)
     end do
 
+    call destroy(idx)
+
     call clear_box_hash_bin(la%lap)
-    !
-    ! Remove any overlaps on remaining cells.
-    !
+
     call boxarray_destroy(fgasc%ba)
     call boxarray_build_l(fgasc%ba, bl, sort = .false.)
     call list_destroy_box(bl)
-    call boxarray_to_domain(fgasc%ba)
-    !
-    ! Chop things up a bit so no one processor gets too much data.
-    !
-    select case ( la%lap%dim ) 
-    case (3)
-       call boxarray_maxsize(fgasc%ba, 32)
-    case (2)
-       call boxarray_maxsize(fgasc%ba, 128)
-    end select
+
+    nbxs = nboxes(fgasc%ba)
+
+    myproc = parallel_myproc()
+
+    allocate(fgasc%prc(nbxs))
+    do i = 1, nbxs
+       fgasc%prc(i) = get_proc(la, at(idx2,i))
+    end do
+
+    nlocal = count(fgasc%prc .eq. myproc)
+
+    if (nlocal .gt. 0) then
+       allocate(fgasc%idx(nlocal))
+       j = 1
+       do i = 1, nbxs
+          if (fgasc%prc(i) .eq. myproc) then
+             fgasc%idx(j) = local_index(la, at(idx2,i))
+             j = j+1
+          end if
+       end do
+    end if
+
+    call destroy(idx2)
 
     call mem_stats_alloc(fgx_ms, volume(fgasc%ba))
-    
+
     call destroy(bpt)
 
   end subroutine fgassoc_build
+
 
   subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
     use bl_error_module
@@ -1908,8 +1921,10 @@ contains
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("fgassoc_destroy(): not built")
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
+    if (associated(fgasc%prc)) deallocate(fgasc%prc) 
+    if (associated(fgasc%idx)) deallocate(fgasc%idx)
     call destroy(fgasc%ba)
-  end subroutine fgassoc_destroy
+   end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
     use bl_error_module
@@ -1927,6 +1942,7 @@ contains
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
+    use omp_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -1947,6 +1963,7 @@ contains
 
     if ( built_q(cpasc) ) call bl_error("copyassoc_build(): already built")
 
+    call bl_proffortfuncstart("copyassoc_build")
     call build(bpt, "copyassoc_build")
 
     call boxarray_build_copy(cpasc%ba_src, get_boxarray(la_src))
@@ -2119,9 +2136,15 @@ contains
        end if
     end do
 
+    if (omp_get_max_threads() > 1) then
+       call local_conn_set_threadsafety(cpasc%l_con)
+       call remote_conn_set_threadsafety(cpasc%r_con)
+    end if
+
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
     call destroy(bpt)
+    call bl_proffortfuncstop("copyassoc_build")
 
   end subroutine copyassoc_build
 
@@ -3077,6 +3100,9 @@ contains
        end if
     end do
 
+    cpasc%l_con%threadsafe = .true.
+    cpasc%r_con%threadsafe = .true.
+
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
     deallocate(pvol, ppvol, parr)
@@ -3207,16 +3233,17 @@ contains
 
     if ( lsimplify ) call boxlist_simplify(blclean)
 
-    call boxarray_build_copy_l(ba, blclean)
+    call boxarray_build_copy_l(ba, blclean, sort=.false.)
     call destroy(blclean)
     call destroy(bpt)
   end subroutine boxarray_add_clean_boxes
 
 
-  subroutine boxarray_to_domain(ba)
+  subroutine boxarray_to_domain(ba, simplify)
     type(boxarray), intent(inout) :: ba
+    logical, intent(in), optional :: simplify
     type(boxarray) :: ba1
-    call boxarray_add_clean_boxes(ba1, ba%bxs)
+    call boxarray_add_clean_boxes(ba1, ba%bxs, simplify)
     call boxarray_destroy(ba)
     ba = ba1
   end subroutine boxarray_to_domain
@@ -3361,5 +3388,59 @@ contains
        call flush(6)
     end if
   end subroutine layout_copyassoc_print
+
+
+  subroutine local_conn_set_threadsafety(l_con)
+    type(local_conn), intent(inout) :: l_con
+    integer :: i, j
+    logical :: tsthis, tsall
+    tsall = .true.
+    !$omp parallel private(tsthis,i,j) reduction(.and.:tsall)
+    tsthis = .true.
+    !$omp do schedule(static,1)
+    do i = 1, l_con%ncpy-1
+       if (tsthis) then
+          do j = i+1, l_con%ncpy
+             if (l_con%cpy(i)%nd .eq. l_con%cpy(j)%nd) then
+                if (box_intersects(l_con%cpy(i)%dbx, l_con%cpy(j)%dbx)) then
+                   tsthis = .false.
+                   exit
+                end if
+             end if
+          end do
+       end if
+    end do
+    !$omp end do
+    tsall = tsall .and. tsthis
+    !$omp end parallel
+    l_con%threadsafe = tsall
+  end subroutine local_conn_set_threadsafety
+
+
+  subroutine remote_conn_set_threadsafety(r_con)
+    type(remote_conn), intent(inout) :: r_con
+    integer :: i, j
+    logical :: tsthis, tsall
+    tsall = .true.
+    !$omp parallel private(tsthis,i,j) reduction(.and.:tsall)
+    tsthis = .true.
+    !$omp do schedule(static,1)
+    do i = 1, r_con%nrcv-1
+       if (tsthis) then
+          do j = i+1, r_con%nrcv
+             if (r_con%rcv(i)%nd .eq. r_con%rcv(j)%nd) then
+                if (box_intersects(r_con%rcv(i)%dbx, r_con%rcv(j)%dbx)) then
+                   tsthis = .false.
+                   exit
+                end if
+             end if
+          end do
+       end if
+    end do
+    !$omp end do
+    tsall = tsall .and. tsthis
+    !$omp end parallel
+    r_con%threadsafe = tsall
+  end subroutine remote_conn_set_threadsafety
 
 end module layout_module

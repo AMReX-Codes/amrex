@@ -27,7 +27,6 @@ namespace ParallelDescriptor
     template <> MPI_Datatype Mpi_typemap<short>::type();
     template <> MPI_Datatype Mpi_typemap<int>::type();
     template <> MPI_Datatype Mpi_typemap<long>::type();
-    template <> MPI_Datatype Mpi_typemap<long long>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned char>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned short>::type();
     template <> MPI_Datatype Mpi_typemap<unsigned int>::type();
@@ -41,12 +40,16 @@ namespace ParallelDescriptor
 
 typedef int MPI_Op;
 typedef int MPI_Comm;
+typedef int MPI_Group;
 typedef int MPI_Datatype;
 struct MPI_Status {};
 typedef int MPI_Request;
 const int MPI_DATATYPE_NULL = 0;
 const int MPI_REQUEST_NULL  = 0;
 const int MPI_COMM_WORLD    = 0;
+const int MPI_COMM_NULL     = 0;
+const int MPI_GROUP_NULL    = 0;
+const int MPI_MAX_PROCESSOR_NAME = 64;
 
 namespace ParallelDescriptor
 {

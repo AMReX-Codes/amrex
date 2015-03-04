@@ -4,8 +4,14 @@
 #include <cstdio>
 #include <list>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <iomanip>
+#include <limits>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -293,10 +299,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     {
       int num_datalogs = pp.countval("data_log");
       datalog.resize(num_datalogs);
-      Array<std::string> data_file_names(num_datalogs);
-      pp.queryarr("data_log",data_file_names,0,num_datalogs);
+      datalogname.resize(num_datalogs);
+      pp.queryarr("data_log",datalogname,0,num_datalogs);
       for (int i = 0; i < num_datalogs; i++) 
-        setRecordDataInfo(i,data_file_names[i]);
+        setRecordDataInfo(i,datalogname[i]);
     }
 
     probin_file = "probin";  // Make "probin" the default
@@ -766,7 +772,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 {
     if (ParallelDescriptor::IOProcessor())
     {
-        datalog.set(i,new std::ofstream);
+        datalog.set(i,new std::fstream);
         datalog[i].open(filename.c_str(),std::ios::out|std::ios::app);
         if (!datalog[i].good())
             BoxLib::FileOpenFailed(filename);
@@ -829,6 +835,7 @@ Amr::writePlotFile ()
 {
     if ( ! Plot_Files_Output()) return;
 
+    BL_PROFILE_REGION_START("Amr::writePlotFile()");
     BL_PROFILE("Amr::writePlotFile()");
 
     VisMF::SetNOutFiles(plot_nfiles);
@@ -841,7 +848,7 @@ Amr::writePlotFile ()
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    const std::string pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
+    const std::string& pltfile = BoxLib::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "PLOTFILE: file = " << pltfile << '\n';
@@ -856,45 +863,14 @@ Amr::writePlotFile ()
 
   while(sretry.TryFileOutput()) {
     //
-    // Only the I/O processor makes the directory.
+    //  if either the pltfile or pltfileTemp exists, rename them
+    //  to move them out of the way.  then create pltfile
+    //  with the temporary name, then rename it back when
+    //  it is finished writing.  then stream retry can rename
+    //  it to a bad suffix if there were stream errors.
     //
-    if (ParallelDescriptor::IOProcessor()) {
-        //
-        //  if either the pltfile or pltfileTemp exists, rename them
-        //  to move them out of the way.  then create pltfile
-        //  with the temporary name, then rename it back when
-        //  it is finished writing.  then stream retry can rename
-        //  it to a bad suffix if there were stream errors.
-        //
-	if(BoxLib::FileExists(pltfile)) {
-          std::string newoldname(pltfile + ".old." + BoxLib::UniqueString());
-          if(verbose > 0) {
-	    std::cout << "Amr::writePlotFile():  " << pltfile
-	              << " exists.  Renaming to:  " << newoldname << std::endl;
-	  }
-	  // should probably check if newoldname exists....
-          std::rename(pltfile.c_str(), newoldname.c_str());
-	}
-	if(BoxLib::FileExists(pltfileTemp)) {
-          std::string newoldname(pltfileTemp + ".old." + BoxLib::UniqueString());
-          if(verbose > 0) {
-	    std::cout << "Amr::writePlotFile():  " << pltfileTemp
-	              << " exists.  Renaming to:  " << newoldname << std::endl;
-	  }
-          std::rename(pltfileTemp.c_str(), newoldname.c_str());
-	}
-        if ( ! BoxLib::UtilCreateDirectory(pltfileTemp, 0755)) {
-            BoxLib::CreateDirectoryFailed(pltfileTemp);
-	}
-    }
-    //
-    // the plotfile file now has the temporary name
-    //
-
-    //
-    // Force other processors to wait until directory is built.
-    //
-    ParallelDescriptor::Barrier("Amr::writePlotFile::dir");
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
 
     std::string HeaderFileName(pltfileTemp + "/Header");
 
@@ -911,7 +887,8 @@ Amr::writePlotFile ()
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+	                                        std::ios::binary);
         if ( ! HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
         old_prec = HeaderFile.precision(15);
@@ -934,12 +911,10 @@ Amr::writePlotFile ()
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
         Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
-#endif
     }
     ParallelDescriptor::Barrier("Amr::writePlotFile::end");
 
@@ -952,6 +927,7 @@ Amr::writePlotFile ()
     //
 
   }  // end while
+  BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
 }
 
 void
@@ -1020,6 +996,7 @@ void
 Amr::init (Real strt_time,
            Real stop_time)
 {
+    BL_PROFILE_REGION_START("Amr::init()");
     if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
@@ -1038,6 +1015,15 @@ Amr::init (Real strt_time,
         amr_level[0].setPlotVariables();
     }
 #endif
+
+#ifdef BL_COMM_PROFILING
+    Array<Box> probDomain(geom.size());
+    for(int i(0); i < probDomain.size(); ++i) {
+      probDomain[i] = geom[i].Domain();
+    }
+    BL_COMM_PROFILE_INITAMR(finest_level, max_level, ref_ratio, probDomain);
+#endif
+    BL_PROFILE_REGION_STOP("Amr::init()");
 }
 
 void
@@ -1103,7 +1089,6 @@ Amr::readProbinFile (int& init)
         Real      piTotal    = piEnd - piStart;
         Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
@@ -1112,7 +1097,6 @@ Amr::readProbinFile (int& init)
             std::cout << "MFRead::: PROBINIT max time   = " << piTotal    << '\n';
             std::cout << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
         }
-#endif
     }
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
@@ -1256,12 +1240,28 @@ Amr::FinalizeInit (Real              strt_time,
 void
 Amr::restart (const std::string& filename)
 {
+    BL_PROFILE_REGION_START("Amr::restart()");
     BL_PROFILE("Amr::restart()");
 
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
     Real dRestartTime0 = ParallelDescriptor::second();
+
+    DistributionMapping::Initialize();
+    if(DistributionMapping::strategy() == DistributionMapping::PFC) {
+      Array<IntVect> refRatio;
+      Array<BoxArray> allBoxes;
+      DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
+      DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
+    }
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
+      DistributionMapping::CacheStats(std::cout);
+    }
+    ParallelDescriptor::Barrier();
+
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1519,13 +1519,12 @@ Amr::restart (const std::string& filename)
     {
         Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Restart time = " << dRestartTime << " seconds." << '\n';
-#endif
     }
+    BL_PROFILE_REGION_STOP("Amr::restart()");
 }
 
 void
@@ -1533,6 +1532,7 @@ Amr::checkPoint ()
 {
     if ( ! checkpoint_files_output) return;
 
+    BL_PROFILE_REGION_START("Amr::checkPoint()");
     BL_PROFILE("Amr::checkPoint()");
 
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -1545,7 +1545,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    const std::string ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
+    const std::string& ckfile = BoxLib::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
         std::cout << "CHECKPOINT: file = " << ckfile << std::endl;
@@ -1561,45 +1561,14 @@ Amr::checkPoint ()
 
   while(sretry.TryFileOutput()) {
     //
-    // Only the I/O processor makes the directory.
+    //  if either the ckfile or ckfileTemp exists, rename them
+    //  to move them out of the way.  then create ckfile
+    //  with the temporary name, then rename it back when
+    //  it is finished writing.  then stream retry can rename
+    //  it to a bad suffix if there were stream errors.
     //
-    if (ParallelDescriptor::IOProcessor()) {
-        //
-        //  if either the ckfile or ckfileTemp exists, rename them
-        //  to move them out of the way.  then create ckfile
-        //  with the temporary name, then rename it back when
-        //  it is finished writing.  then stream retry can rename
-        //  it to a bad suffix if there were stream errors.
-        //
-        if(BoxLib::FileExists(ckfile)) {
-          std::string newoldname(ckfile + ".old." + BoxLib::UniqueString());
-          if(verbose > 0) {
-            std::cout << "Amr::checkPoint():  " << ckfile
-                      << " exists.  Renaming to:  " << newoldname << std::endl;
-	  }
-          std::rename(ckfile.c_str(), newoldname.c_str());
-        }
-        if(BoxLib::FileExists(ckfileTemp)) {
-          std::string newoldname(ckfileTemp + ".old." + BoxLib::UniqueString());
-          if(verbose > 0) {
-            std::cout << "Amr::checkPoint():  " << ckfileTemp
-                      << " exists.  Renaming to:  " << newoldname << std::endl;
-	  }
-          std::rename(ckfileTemp.c_str(), newoldname.c_str());
-        }
-        if ( ! BoxLib::UtilCreateDirectory(ckfileTemp, 0755)) {
-            BoxLib::CreateDirectoryFailed(ckfileTemp);
-	}
-    }
-
-    //
-    // the checkpoint file now has the temporary name
-    //
-
-    //
-    // Force other processors to wait until directory is built.
-    //
-    ParallelDescriptor::Barrier("Amr::checkPoint::dir");
+    BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
+    BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
 
     std::string HeaderFileName = ckfileTemp + "/Header";
 
@@ -1616,7 +1585,8 @@ Amr::checkPoint ()
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+	                                        std::ios::binary);
 
         if ( ! HeaderFile.good())
             BoxLib::FileOpenFailed(HeaderFileName);
@@ -1671,13 +1641,11 @@ Amr::checkPoint ()
     {
         Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "checkPoint() time = " << dCheckPointTime << " secs." << '\n';
-#endif
     }
     ParallelDescriptor::Barrier("Amr::checkPoint::end");
 
@@ -1693,6 +1661,7 @@ Amr::checkPoint ()
   //
   FArrayBox::setFormat(thePrevFormat);
 
+  BL_PROFILE_REGION_STOP("Amr::checkPoint()");
 }
 
 void
@@ -1801,7 +1770,9 @@ Amr::timeStep (int  level,
                   << dt_level[level]
                   << std::endl;
     }
+    BL_PROFILE_REGION_START("amr_level.advance");
     Real dt_new = amr_level[level].advance(time,dt_level[level],iteration,niter);
+    BL_PROFILE_REGION_STOP("amr_level.advance");
 
     dt_min[level] = iteration == 1 ? dt_new : std::min(dt_min[level],dt_new);
 
@@ -1862,7 +1833,10 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
+    BL_PROFILE_REGION_START("Amr::coarseTimeStep()");
     BL_PROFILE("Amr::coarseTimeStep()");
+    std::stringstream stepName;
+    stepName << "timeStep STEP " << level_steps[0];
 
     const Real run_strt = ParallelDescriptor::second() ;
     //
@@ -1889,11 +1863,23 @@ Amr::coarseTimeStep (Real stop_time)
                                       dt_level,
                                       stop_time);
     }
+
+    BL_PROFILE_REGION_START(stepName.str());
+
     timeStep(0,cumtime,1,1,stop_time);
+
+    BL_PROFILE_REGION_STOP(stepName.str());
 
     cumtime += dt_level[0];
 
     amr_level[0].postCoarseTimeStep(cumtime);
+
+#ifdef BL_PROFILING
+    std::stringstream dfss;
+    dfss << "BytesPerProc.STEP_" << std::setw(5) << std::setfill('0')
+         << level_steps[0] - 1 << ".xgr";
+    DistributionMapping::PrintDiagnostics(dfss.str());
+#endif
 
     if (verbose > 0)
     {
@@ -1905,33 +1891,31 @@ Amr::coarseTimeStep (Real stop_time)
         if (ParallelDescriptor::IOProcessor())
             std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
 
-        long min_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
-        long max_fab_bytes  = BoxLib::total_bytes_allocated_in_fabs_hwm;
+        long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
+        long max_fab_kilobytes  = min_fab_kilobytes;
 
-        ParallelDescriptor::ReduceLongMin(min_fab_bytes, IOProc);
-        ParallelDescriptor::ReduceLongMax(max_fab_bytes, IOProc);
+        ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nFAB byte spread across MPI nodes for timestep: ["
-                      << min_fab_bytes
+            std::cout << "\nFAB kilobyte spread across MPI nodes for timestep: ["
+                      << min_fab_kilobytes
                       << " ... "
-                      << max_fab_bytes
+                      << max_fab_kilobytes
                       << "]\n";
         }
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
-        BoxLib::total_bytes_allocated_in_fabs_hwm = 0;
+        BoxLib::ResetTotalBytesAllocatedInFabsHWM();
     }
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
- #ifdef BL_COMM_PROFILING
-    std::stringstream stepName;
-    stepName << "STEP " << level_steps[0];
+    BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
+    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_NAMETAG(stepName.str());
     BL_COMM_PROFILE_FLUSH();
- #endif
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
@@ -2203,6 +2187,7 @@ Amr::regrid (int  lbase,
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
+
     //
     // Define the new grids from level start up to new_finest.
     //
@@ -2421,6 +2406,70 @@ Amr::printGridSummary (std::ostream& os,
            << frac
            << " % of domain"
            << '\n';
+
+	if (numgrid > 1) {
+	    long vmin = std::numeric_limits<long>::max();
+	    long vmax = -1;
+	    int lmax = -1;
+	    int smin = std::numeric_limits<int>::max();
+	    int imax, imin;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	    
+	    {
+		long vmin_this = std::numeric_limits<long>::max();
+		long vmax_this = -1;
+		int lmax_this = -1;
+		int smin_this = std::numeric_limits<int>::max();
+		int imax_this, imin_this;
+#ifdef _OPENMP
+#pragma omp for
+#endif	    	    
+		for (int k = 0; k < numgrid; k++) {
+		    const Box& bx = bs[k];
+		    long v = bx.volume();
+		    int ss = bx.shortside();
+		    int ls = bx.longside();
+		    if (v < vmin_this || (v == vmin_this && ss < smin_this)) {
+			vmin_this = v;
+			smin_this = ss;
+			imin_this = k;
+		    }
+		    if (v > vmax_this || (v == vmax_this && ls > lmax_this)) {
+			vmax_this = v;
+			lmax_this = ls;
+			imax_this = k;
+		    }
+		}
+#ifdef _OPENMP
+#pragma omp critical (amr_prtgs)
+#endif	    	    
+		{
+		    if (vmin_this < vmin || (vmin_this == vmin && smin_this < smin)) {
+			vmin = vmin_this;
+			smin = smin_this;
+			imin = imin_this;
+		    }
+		    if (vmax_this > vmax || (vmax_this == vmax && lmax_this > lmax)) {
+			vmax = vmax_this;
+			lmax = lmax_this;
+			imax = imax_this;
+		    }
+		}
+	    }
+	    const Box& bmin = bs[imin];
+	    const Box& bmax = bs[imax];
+	    os << "           "
+	       << " smallest grid: "
+		D_TERM(<< bmin.length(0),
+		       << " x " << bmin.length(1),
+		       << " x " << bmin.length(2))
+	       << "  biggest grid: "
+		D_TERM(<< bmax.length(0),
+		       << " x " << bmax.length(1),
+		       << " x " << bmax.length(2))
+	       << '\n';
+	}
     }
 
     os << std::endl; // Make sure we flush!
@@ -2722,9 +2771,9 @@ Amr::grid_places (int              lbase,
             blFcomp.simplify();
             bl_tagged.clear();
 
-            const IntVect iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
-                                              nerr/ref_ratio[levf][1],
-                                              nerr/ref_ratio[levf][2]));
+            const IntVect& iv = IntVect(D_DECL(nerr/ref_ratio[levf][0],
+                                               nerr/ref_ratio[levf][1],
+                                               nerr/ref_ratio[levf][2]));
             blFcomp.accrete(iv);
             BoxList blF;
             blF.complementIn(mboxF,blFcomp);
@@ -2870,12 +2919,10 @@ Amr::grid_places (int              lbase,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
-#ifndef BL_PROFILING
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
             std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
-#endif
     }
 }
 
@@ -2931,7 +2978,6 @@ Amr::bldFineLevels (Real strt_time)
 	    regrid(0,strt_time,true);
 
 	    grids_the_same = true;
-	    int min_level  = 0;
 
 	    for (int i = 0; i <= finest_level && grids_the_same; i++)
 	      if (!(grids[i] == amr_level[i].boxArray()))

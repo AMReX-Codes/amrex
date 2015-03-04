@@ -7,6 +7,7 @@
 
 #include <new>
 #include <iostream>
+#include <sstream>
 #include <cstdio>
 #include <cstdlib>
 
@@ -31,6 +32,8 @@ const int maxGrid(64);
 int main(int argc, char *argv[]) {
 
     BoxLib::Initialize(argc,argv);    
+
+    BL_PROFILE_VAR("main()", pmain);
 
     const Real tStart(ParallelDescriptor::second());
 
@@ -100,6 +103,9 @@ int main(int argc, char *argv[]) {
       for(int icomp(0); icomp < nComp.size(); ++icomp) {
         for(int ighost(0); ighost < nGhost.size(); ++ighost) {
 
+          std::ostringstream nametag;
+          nametag << "FB_nGhost" << nGhost[ighost] << "_nComp" << nComp[icomp]
+	          << "_cross" << (cross[icross] ? "True":"False");
 	  if(ParallelDescriptor::IOProcessor()) {
 	    std::cout << "Working on:"
 	              << "  Ghost = " << nGhost[ighost]
@@ -111,7 +117,11 @@ int main(int argc, char *argv[]) {
           MultiFab mf(ba, nComp[icomp], nGhost[ighost]);
           mf.setVal(1.0);
 
+          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_Start");
+
           mf.FillBoundary(local, cross[icross]);
+
+          BL_COMM_PROFILE_NAMETAG(nametag.str() + "_End");
 
         }
       }
@@ -125,6 +135,8 @@ int main(int argc, char *argv[]) {
       std::cout << "Finished." << std::endl;
       std::cout << "Run time = " << runTime << std::endl;
     }
+
+    BL_PROFILE_VAR_STOP(pmain);
 
     BoxLib::Finalize();
     return 0;

@@ -39,6 +39,7 @@ StateData::define (const Box&             p_domain,
                    Real                   time,
                    Real                   dt)
 {
+    BL_PROFILE("StateData::define()");
     domain = p_domain;
     desc = &d;
     grids.define(grds);
@@ -67,6 +68,47 @@ StateData::define (const Box&             p_domain,
     int ncomp = desc->nComp();
 
     new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
+
+    old_data = 0;
+}
+
+void
+StateData::define (const Box&             p_domain,
+                   const BoxArray&        grds,
+		   const DistributionMapping& dm,
+                   const StateDescriptor& d,
+                   Real                   time,
+                   Real                   dt)
+{
+    BL_PROFILE("StateData::define()");
+    domain = p_domain;
+    desc = &d;
+    grids.define(grds);
+    //
+    // Convert to proper type.
+    //
+    IndexType typ(desc->getType());
+    StateDescriptor::TimeCenter t_typ(desc->timeType());
+    if (!typ.cellCentered())
+    {
+        domain.convert(typ);
+        grids.convert(typ);
+    }
+    if (t_typ == StateDescriptor::Point)
+    {
+        new_time.start = new_time.stop = time;
+        old_time.start = old_time.stop = time - dt;
+    }
+    else
+    {
+        new_time.start = time;
+        new_time.stop  = time+dt;
+        old_time.start = time-dt;
+        old_time.stop  = time;
+    }
+    int ncomp = desc->nComp();
+
+    new_data = new MultiFab(grids,ncomp,desc->nExtra(),dm,Fab_allocate);
 
     old_data = 0;
 }
@@ -553,37 +595,3 @@ StateData::printTimeInterval (std::ostream &os) const
        << '\n';
 }
 
-//
-// The following is from the asci version of StateData.C
-//
-
-const int BL_IGNORE_MAX = 100000;
-
-void
-BoxLib::readBoxArray (BoxArray&     ba,
-                      std::istream& is,
-                      bool          bReadSpecial)
-{
-    if (bReadSpecial == false)
-    {
-        ba.readFrom(is);
-    }
-    else
-    {
-        BL_ASSERT(ba.size() == 0);
-        int maxbox;
-        unsigned long in_hash; // will be ignored
-        is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;
-        ba.resize(maxbox);
-        for (int i = 0; i < maxbox; i++)
-        {
-            Box b;
-            is >> b;
-            ba.set(i, b);
-        }
-        is.ignore(BL_IGNORE_MAX, ')');
-
-        if (is.fail())
-            BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
-    }
-}

@@ -47,8 +47,8 @@ void compute_norm(const PArray<MultiFab>& soln, const PArray<MultiFab>& exac,
 
       BL_FORT_PROC_CALL(LST_COMP_NORM, lst_comp_norm)
 	(bx.loVect(), bx.hiVect(),
-	 BL_TO_FORTRAN(soln[ilev][i]),
-	 BL_TO_FORTRAN(exac[ilev][i]),
+	 BL_TO_FORTRAN(soln[ilev][mfi]),
+	 BL_TO_FORTRAN(exac[ilev][mfi]),
 	 BL_TO_FORTRAN(mask),
 	 BL_TO_FORTRAN(volbox),
 	 twonorm.dataPtr(),

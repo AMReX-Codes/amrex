@@ -104,6 +104,16 @@ namespace BoxLib
     //
     std::string UniqueString();
     //
+    // Create a new directory, renaming the old one if it exists
+    //
+    void UtilCreateCleanDirectory (const std::string &path,
+                                   bool callbarrier = true);
+    //
+    // Rename a current directory if it exists
+    //
+    void UtilRenameDirectoryToOld (const std::string &path,
+                                   bool callbarrier = true);
+    //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
     // set_new_handler() function for BoxLib applications.
@@ -348,6 +358,9 @@ namespace BoxLib
 
 	static int nStreamErrors;
     };
+
+    void SyncStrings(const Array<std::string> &localStrings,
+                     Array<std::string> &syncedStrings, bool &alreadySynced);
 }
 
 //

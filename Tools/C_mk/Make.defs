@@ -156,8 +156,14 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
   endif
+  ifeq ($(findstring CIMS.NYU.EDU, $(HOSTNAMEF)), CIMS.NYU.EDU)
+    WHICHLINUX := DONEV
+  endif
   ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     WHICHLINUX := BLUE_WATERS
+  endif
+  ifeq ($(findstring titan, $(UNAMEN)), titan)
+    WHICHLINUX := TITAN
   endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
@@ -195,8 +201,16 @@ ifndef PROFILE
   PROFILE = FALSE
 endif
 
+ifndef TRACE_PROFILE
+  TRACE_PROFILE = FALSE
+endif
+
 ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
+endif
+
+ifndef BACKTRACE
+  BACKTRACE = FALSE
 endif
 
 ifndef DIM
@@ -252,6 +266,9 @@ ifdef USE_GCC
     CXXOPTF    += -g -O3
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
+    ifeq ($(BACKTRACE),TRUE)
+        LDFLAGS += -rdynamic
+    endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       ?= g++
     CC	       ?= gcc
@@ -375,7 +392,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
-    override XTRALIBS += $(_f95_lib)
+    ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
+       XTRALIBS += -lgfortran
+    else
+       override XTRALIBS += $(_f95_lib)       
+    endif
 
     FOPTF += -ffixed-line-length-132 -g -O3
     fOPTF += -ffixed-line-length-132 -g -O3
@@ -431,14 +452,10 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     CXXOPTF += -g -O2 -ip
-   else
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip
    else
-     CXXOPTF += -g -O2 -ip -fp-model source -xHost
-   endif
+     CXXOPTF += -g -O2 -ip -fp-model source
    endif
    CXXDEBF += -g -O0
 
@@ -557,10 +574,6 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     CPPFLAGS += -gxx-name=/usr/bin/gcc-4.1
-   endif
-  
 #jfe
    ifeq ($(GWDG), TRUE)
      ifeq ($(USE_MPI),TRUE)
@@ -702,17 +715,12 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
-   ifeq ($(WHICHLINUX), GIMANTIS)
-     FOPTF += -O2 -ip
-     fOPTF += -O2 -ip
-   else
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip
      fOPTF += -O2 -ip
    else
-     FOPTF += -O2 -ip -fp-model source -xHost
-     fOPTF += -O2 -ip -fp-model source -xHost
-   endif
+     FOPTF += -O2 -ip -fp-model source
+     fOPTF += -O2 -ip -fp-model source
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
@@ -768,6 +776,7 @@ ifeq ($(DEBUG),TRUE)
     fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
+    CPPFLAGS	+= -DDEBUG
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
@@ -785,19 +794,41 @@ ifeq ($(GPROF),TRUE)
    CFLAGS   += -pg
 endif
 
+ifeq ($(TRACE_PROFILE),TRUE)
+  PROFILE = TRUE
+endif
+
 ifeq ($(COMM_PROFILE),TRUE)
   PROFILE = TRUE
 endif
+
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
-    ifeq ($(COMM_PROFILE),TRUE)
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        CPPFLAGS    += -DBL_COMM_PROFILING
+        ProfSuffix	:= .COMTR_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUEFALSE)
+        CPPFLAGS    += -DBL_TRACE_PROFILING
+        ProfSuffix	:= .TRACE_PROF
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSETRUE)
         CPPFLAGS    += -DBL_COMM_PROFILING
         ProfSuffix	:= .COMM_PROF
-    else
+    endif
+    ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
         ProfSuffix	:= .PROF
     endif
 else
     ProfSuffix	:=
+endif
+
+ifeq ($(BACKTRACE),TRUE)
+    CPPFLAGS += -DBL_BACKTRACING
+    BTSuffix := .BT
+else
+    BTSuffix :=
 endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
@@ -925,7 +956,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\

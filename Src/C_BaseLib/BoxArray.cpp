@@ -790,6 +790,8 @@ BoxArray::intersections (const Box&                         bx,
                          std::vector< std::pair<int,Box> >& isects,
 			 bool first_only) const
 {
+    // called too many times  BL_PROFILE("BoxArray::intersections()");
+
     BoxHashMapType& BoxHashMap = m_ref->hash;
 
 #ifdef _OPENMP
@@ -832,8 +834,8 @@ BoxArray::intersections (const Box&                         bx,
         BL_ASSERT(bx.sameType(get(0)));
 
         Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
-        const IntVect  sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
-        const IntVect  bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         cbx = Box(sm,bg,bx.ixType());
 
@@ -849,8 +851,8 @@ BoxArray::intersections (const Box&                         bx,
                      v_it != v_end;
                      ++v_it)
                 {
-                    const int index = *v_it;
-                    const Box isect = bx & get(index);
+                    const int  index = *v_it;
+                    const Box& isect = bx & get(index);
 
                     if (isect.ok())
                     {
@@ -948,3 +950,35 @@ BoxArray::removeOverlap ()
 
     BL_ASSERT(isDisjoint());
 }
+
+
+void
+BoxLib::readBoxArray (BoxArray&     ba,
+                      std::istream& is,
+                      bool          bReadSpecial)
+{
+    if (bReadSpecial == false)
+    {
+        ba.readFrom(is);
+    }
+    else
+    {
+        const int bl_ignore_max(100000);
+        BL_ASSERT(ba.size() == 0);
+        int maxbox;
+        unsigned long in_hash; // will be ignored
+        is.ignore(bl_ignore_max, '(') >> maxbox >> in_hash;
+        ba.resize(maxbox);
+        for (int i = 0; i < maxbox; i++)
+        {
+            Box b;
+            is >> b;
+            ba.set(i, b);
+        }
+        is.ignore(BL_IGNORE_MAX, ')');
+
+        if (is.fail())
+            BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
+    }
+}
+

@@ -62,6 +62,10 @@ public:
     //
     using MultiFab::nComp;
     //
+    // Returns number of Fabs owned by this MPI rank
+    //
+    using MultiFab::local_size;
+    //
     // Returns a constant reference to the BoxArray.
     //
     using MultiFab::boxArray;
@@ -257,6 +261,14 @@ public:
     FabSetIter (const FabSet& fabset)
         :
         MFIter(fabset) {}
+
+    FabSetIter (const FabSet& fabset, bool do_tiling)
+        :
+        MFIter(fabset,do_tiling) {}
+
+    FabSetIter (const FabSet& fabset, const IntVect& tilesize)
+        :
+        MFIter(fabset,tilesize) {}
 };
 
 typedef FabArrayId FabSetId;

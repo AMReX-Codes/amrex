@@ -8,49 +8,32 @@ module regrid_module
 
   implicit none
 
-  logical, save :: ignore_fine_in_layout_mapping = .true.
-
   private
 
-  public :: regrid, ignore_fine_in_layout_mapping_set
+  public :: regrid
 
 contains
-
-  subroutine ignore_fine_in_layout_mapping_set(flag)
-    logical, intent(in) :: flag
-    ignore_fine_in_layout_mapping = flag
-  end subroutine ignore_fine_in_layout_mapping_set
 
   subroutine regrid(mla,phi,nlevs,max_levs,dx,the_bc_tower,amr_buf_width,max_grid_size)
 
     type(ml_layout), intent(inout) :: mla
     type(multifab) , intent(inout) :: phi(:)
-    integer        , intent(inout) :: nlevs, max_levs
+    integer        , intent(inout) :: nlevs
     real(dp_t)     , intent(in   ) :: dx(:)
     type(bc_tower) , intent(inout) :: the_bc_tower
-    integer        , intent(in   ) :: amr_buf_width, max_grid_size
+    integer        , intent(in   ) :: amr_buf_width, max_grid_size, max_levs
 
     ! local variables
     type(layout)      :: la_array(max_levs)
     type(multifab)    :: phi_orig(max_levs)
+    type(multifab), allocatable :: phi_opt(:)
     type(ml_boxarray) :: mba
 
     integer :: dm,n,nl,n_buffer, nlevs_old, nc, ng
 
     logical :: new_grid, properly_nested, pmask(mla%dim), same_boxarray
 
-    logical :: mc_flag, order_flag
-    integer(kind=ll_t), allocatable :: lucvol(:)
-
-    if (ignore_fine_in_layout_mapping) then
-       mc_flag = get_manual_control_least_used_cpus_flag()
-       order_flag = get_luc_keep_cpu_order_flag()
-       call manual_control_least_used_cpus_set(.true.)
-       call luc_keep_cpu_order_set(.true.)
-       call luc_vol_set(0_ll_t)
-       allocate(lucvol(max_levs))
-       lucvol = 0_ll_t
-    end if
+    nlevs_old = nlevs
 
     dm = mla%dim
     pmask = mla%pmask
@@ -73,7 +56,7 @@ contains
     end do
 
     ! mba is big enough to hold max_levs levels
-    ! even though we know we had nlevs last time, we might 
+    ! even though we know we had nlevs last time, we might
     ! want more or fewer levels after regrid (if nlevs < max_levs)
     call ml_boxarray_build_n(mba,max_levs,dm)
     call ml_boxarray_set_ref_ratio(mba)
@@ -89,7 +72,7 @@ contains
 
     nl = 1
     new_grid = .true.
-    
+
     ! this is the number of level n+1 buffer cells we require between levels
     ! n and n+2 for proper nesting
     n_buffer = 4
@@ -99,11 +82,6 @@ contains
        if (tagging_needs_ghost_cells) then
           call multifab_fill_boundary(phi(nl))
           call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
-       end if
-
-       if (ignore_fine_in_layout_mapping) then
-          lucvol(nl) = layout_local_volume(la_array(nl))
-          call luc_vol_set(sum(lucvol(1:nl)))
        end if
 
        ! determine whether we need finer grids based on tagging criteria
@@ -116,7 +94,7 @@ contains
           ! set the level nl+1 boxarray
           call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
 
-          ! enforce proper nesting within the grid creation procedure 
+          ! enforce proper nesting within the grid creation procedure
           if (nl .ge. 2) then
 
              ! Test on whether grids are already properly nested
@@ -130,25 +108,17 @@ contains
                    call destroy(phi(n))
                 end do
 
-                ! Change the layout at levels 2 through nl so the new grid 
+                ! Change the layout at levels 2 through nl so the new grid
                 ! structure is properly nested
                 call enforce_proper_nesting(mba,la_array,max_grid_size)
 
-                ! Loop over all the lower levels which we might have changed 
+                ! Loop over all the lower levels which we might have changed
                 ! when we enforced proper nesting.
                 do n = 2,nl
-   
-                   if (ignore_fine_in_layout_mapping) then
-                      call luc_vol_set(sum(lucvol(1:n-1)))
-                      ! Destroy the old layout and build a new one.
-                      call destroy(la_array(n))
-                      call layout_build_ba(la_array(n),mba%bas(n),mba%pd(n),pmask)
-                      lucvol(n) = layout_local_volume(la_array(n))
-                   end if
 
                    ! This makes sure the boundary conditions are properly defined everywhere
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
-   
+
                    ! Rebuild the lower level data again if it changed.
                    call multifab_build(phi(n),la_array(n),1,2)
 
@@ -160,7 +130,7 @@ contains
                    end if
 
                    if (.not. same_boxarray) then
-                      ! first fill all refined cells by interpolating from coarse 
+                      ! first fill all refined cells by interpolating from coarse
                       ! data underneath...  no need to fill ghost cells
                       call fillpatch(phi(n),phi(n-1),0,mba%rr(n-1,:), &
                            the_bc_tower%bc_tower_array(n-1), &
@@ -174,14 +144,6 @@ contains
                    end if
 
                 end do
-
-                if (ignore_fine_in_layout_mapping) then
-                   call luc_vol_set(sum(lucvol(1:nl)))
-                   ! Destroy the old layout and build a new one.
-                   call destroy(la_array(nl+1))
-                   call layout_build_ba(la_array(nl+1),mba%bas(nl+1),mba%pd(nl+1),pmask)
-                   lucvol(nl+1) = layout_local_volume(la_array(nl+1))
-                end if
 
              end if ! if (.not. properly_nested)
 
@@ -201,7 +163,7 @@ contains
           end if
 
           if (.not.same_boxarray) then
-             ! first fill all refined cells by interpolating from coarse 
+             ! first fill all refined cells by interpolating from coarse
              ! data underneath...
              ! no need to fill ghost cells
              call fillpatch(phi(nl+1),phi(nl),0,mba%rr(nl,:), &
@@ -216,40 +178,44 @@ contains
           end if
 
           nl = nl+1
-          nlevs = nl          
+          nlevs = nl
 
        end if
 
     end do  ! end do while ( (nl .lt. max_levs) .and. new_grid )
 
-    nlevs_old = nlevs
     nlevs = nl
 
     do n=2, nlevs_old
        call multifab_destroy(phi_orig(n))
     end do
 
-    ! Note: This build actually sets mla%la(n) = la_array(n) so we mustn't delete 
-    !       la_array(n).  Doing the build this way means we don't have to re-create 
-    !       all the multifabs because we have kept the same layouts.
-    ! this destroys everything in mla except the fine layout
-    call destroy(mla, keep_coarse_layout=.true.)  
-    call build(mla,mba,la_array,pmask,nlevs)
+    ! this destroys everything in mla except the coarsest layout
+    call destroy(mla, keep_coarse_layout=.true.)
+
+    call ml_layout_build_la_array(mla,la_array,mba,pmask,nlevs)
+    call destroy(mba)
+
+    ! We need to move data if a layout in la_array is not used in mla.
+    ! We also need to destroy any unused layouts.
+    allocate(phi_opt(nlevs))
+    do n=1,nlevs
+       if (mla%la(n) .ne. la_array(n)) then
+          call multifab_build(phi_opt(n), mla%la(n), nc, ng)
+          call multifab_copy(phi_opt(n), phi(n))
+          call destroy(phi(n))
+          call destroy(la_array(n))
+          phi(n) = phi_opt(n)
+       end if
+    end do
+    deallocate(phi_opt)
 
     ! This makes sure the boundary conditions are properly defined everywhere
     do n=1,nlevs
-       call bc_tower_level_build(the_bc_tower,n,la_array(n))
+       call bc_tower_level_build(the_bc_tower,n,mla%la(n))
     end do
 
     call ml_restrict_and_fill(nlevs, phi, mla%mba%rr, the_bc_tower%bc_tower_array)
-
-    call destroy(mba)
-
-    if (ignore_fine_in_layout_mapping) then
-       call manual_control_least_used_cpus_set(mc_flag)
-       call luc_keep_cpu_order_set(order_flag)
-       deallocate(lucvol)
-    end if
 
   end subroutine regrid
 

@@ -1,0 +1,89 @@
+
+To backtrace segfault and assertion failure in a C++ BoxLib based
+code, compile it with BACKTRACE=TRUE in command line or the
+GNUmakefile.
+
+***************
+*  Example 1  *
+***************
+
+    std::cout << grids[-1000] << std::endl; // grids: BoxArray starting with index 0
+
+The code above results in a segfault (or assertion failure if compiled
+with DEBUG=TRUE).  The output looks like:
+
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN11BLBackTrace7handlerEi+0x17)[0x4bc7a7]
+    /lib64/libc.so.6(+0x34950)[0x7fe6f13c5950]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZlsRSoRK3Box+0xc)[0x4898dc]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro13advance_hydroEddii+0x42)[0x50c902]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro7advanceEddii+0x17)[0x50e017]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr8timeStepEidiid+0x29c)[0x4c83ac]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr14coarseTimeStepEd+0x266)[0x4c3926]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(main+0x1ac)[0x44648c]
+    /lib64/libc.so.6(__libc_start_main+0xf0)[0x7fe6f13b0fe0]
+    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex[0x4468b6]
+
+Here the call stack before the segfault and entry point addresses such
+as [0x4bc7a7] are shown.  More details can be found out by typing:
+
+    $ addr2line -Cfie Castro3d.Linux.gcc.gfortran.BT.OMP.ex 0x50c902
+
+This will show the function name, line number and file name:
+
+    Castro::advance_hydro(double, double, int, int)
+    /home/wqzhang/mygitrepo/Castro/Exec/Sod/../../Source/Castro_advance.cpp:89
+
+Note that this also works for Fortran subroutines in C++ BoxLib based codes.
+
+***************
+*  Example 2  *
+***************
+
+    Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
+
+In this example, a segfault may occur depending on the value of
+"cell".  Suppose the line works most of the time because "cell" is
+usually good, but it fails occasionally on bad "cell".  So we would
+like more information other than that this line sometimes results in a
+segfault.  Using "std::cout" or "printf" often prints out too much.
+The following method is kind of like "printf" except that we will only
+see the information in case of segfault.
+
+   #include <BLBackTrace.H>
+   
+   #ifdef BL_BACKTRACING
+       std::ostringstream ss;
+       ss << "state.box() = " << state.box() << " cell = " << cell;
+       BL_BACKTRACE_PUSH(ss.str()); // PUSH takes std::string
+   #endif
+       Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
+   #ifdef BL_BACKTRACING
+       BL_BACKTRACE_POP();
+   #endif
+
+The result looks like,
+
+   == BACKTRACE == Proc. 0, Thread 2: "state.box() = ((-4,-4,-4) (7,7,35) (0,0,0)) cell = (-10000,-10000,-10000)", Line 648, File ../../Source/Castro_advance.cpp
+
+Note that "BL_BACKTRACE_PUSH" and "BL_BACKTRACE_POP" are thread-safe.
+Also note that we can have multiple "BL_BACKTRACE_PUSH"s, and we do
+not have to explicitly call "BL_BACKTRACE_POP", which will be
+implicitly called when "PUSH" is out of scope.
+
+This method currently does not work in Fortran subroutines.
+
+
+**********************************************************************
+
+Known Issues:
+
+* The methods described here probably only work with GCC on a
+  GNU/Linux system.
+
+* When segfaults occur on multiple MPI processes, the outputs can be
+  out of order.
+
+* On Edison at NERSC, the function names in the first type of tracing
+  are missing because the executable is statically linked.  However,
+  you will still get function entry point addresses, and they can be
+  used by "addr2line" to show line number and file name.
