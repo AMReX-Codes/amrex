@@ -56,3 +56,8 @@ ifeq ($(USE_SDCLIB), TRUE)
   CEXE_sources += MLSDCAmr.cpp MLSDCAmrEncap.cpp
   CEXE_headers += MLSDCAmr.H
 endif
+
+ifeq ($(LAZY),TRUE)
+  CEXE_sources += Lazy.cpp
+  CEXE_headers += Lazy.H
+endif
