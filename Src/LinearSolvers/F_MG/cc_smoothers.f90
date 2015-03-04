@@ -282,6 +282,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("gs_rb_smoother_3d")
     call build(bpt, "gs_rb_smoother_3d")
 
     hi = ubound(ff)
@@ -298,6 +299,7 @@ contains
           end if
        end if
        call destroy(bpt)
+       call bl_proffortfuncstop("gs_rb_smoother_3d")
        return
     end if
 
@@ -413,6 +415,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("gs_rb_smoother_3d")
 
   end subroutine gs_rb_smoother_3d
 
@@ -430,6 +433,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("fourth_order_smoother_2d")
     call build(bpt, "fourth_order_smoother_2d")
 
     hi = ubound(ff)
@@ -480,6 +484,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("fourth_order_smoother_2d")
 
   end subroutine fourth_order_smoother_2d
 
@@ -497,6 +502,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
+    call bl_proffortfuncstart("fourth_order_smoother_3d")
     call build(bpt, "fourth_order_smoother_3d")
 
     hi = ubound(ff)
@@ -589,6 +595,7 @@ contains
     end if
 
     call destroy(bpt)
+    call bl_proffortfuncstop("fourth_order_smoother_3d")
 
   end subroutine fourth_order_smoother_3d
 

@@ -35,6 +35,11 @@ namespace BoxLib
     // Find the ghost cells of a given BoxArray.
     //
     BoxList GetBndryCells (const BoxArray& ba, int ngrow);
+    //
+    // Read a BoxArray from a stream.  If b is true,
+    //   read in a special way
+    //
+    void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 }
 
 //

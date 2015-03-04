@@ -54,6 +54,9 @@ contains
     logical :: solved
 
     type(bl_prof_timer), save :: bpt
+    
+    call bl_proffortfuncstart("ml_cc")
+    call bl_proffortfuncstart("ml_cc:0")
 
     call build(bpt, "ml_cc")
 
@@ -163,6 +166,9 @@ contains
 
     call parallel_reduce(t2, t1, MPI_MAX)
 
+    call bl_proffortfuncstop("ml_cc:0")
+    call bl_proffortfuncstart("ml_cc:1")
+
     coeff_sum = t2(1)
     coeff_max = t2(2)
     tres0     = t2(3)
@@ -226,6 +232,8 @@ contains
 
     solved = .false.
 
+    call bl_proffortfuncstart("ml_cc:1.1")
+
     ! Set flag "optimistically", 0 indicates no problems (1: smoother failed, <0: too many mlmg iterations)
     if ( present(status) ) status = 0
 
@@ -280,6 +288,7 @@ contains
              call setval(uu_hold(n), ZERO, all=.true.)
           end do
 
+          call bl_proffortfuncstart("ml_cc:DownV")
           !   Down the V-cycle
           do n = nlevs,1,-1
 
@@ -312,6 +321,7 @@ contains
              end if
 
              ! Relax ...
+             call bl_proffortfuncstart("ml_cc:Relax")
              if (n > 1) then
                 call mini_cycle(mgt(n), mglev, &
                      mgt(n)%ss(mglev), uu(n), res(n), &
@@ -322,6 +332,7 @@ contains
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
                      bottom_solve_time = bottom_solve_time)
              end if
+             call bl_proffortfuncstop("ml_cc:Relax")
 
              ! Add: Soln += uu
              call plus_plus(full_soln(n), uu(n))
@@ -381,7 +392,9 @@ contains
              end if
 
           end do
+          call bl_proffortfuncstop("ml_cc:DownV")
 
+          call bl_proffortfuncstart("ml_cc:UpV")
           !   Back up the V-cycle
           do n = 2, nlevs
 
@@ -452,6 +465,7 @@ contains
              call ml_cc_restriction(full_soln(n-1), full_soln(n), mla%mba%rr(n-1,:))
 
           end do
+          call bl_proffortfuncstop("ml_cc:UpV")
 
           !    Average the solution to the coarser grids.
           do n = nlevs,2,-1
@@ -594,6 +608,8 @@ contains
 
     end if
 
+    call bl_proffortfuncstop("ml_cc:1.1")
+
     if (solved) then
        do n = 1,nlevs
           call multifab_fill_boundary(full_soln(n))
@@ -650,6 +666,9 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             print*, 'Solve Time = ', r1
     end if
+
+    call bl_proffortfuncstop("ml_cc:1")
+    call bl_proffortfuncstop("ml_cc")
 
   contains
 

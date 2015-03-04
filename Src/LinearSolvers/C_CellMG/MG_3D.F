@@ -24,9 +24,7 @@
 
       integer i, i2, i2p1, j, j2, j2p1, k, k2, k2p1, n
 
-!$omp parallel private(i,j,k,k2,k2p1,j2,j2p1,i2,i2p1,n)
       do n = 1, nc
-!$omp do
          do k = lo(3), hi(3)
             k2 = 2*k
             k2p1 = k2 + 1
@@ -45,9 +43,7 @@
                end do
             end do
          end do
-!$omp end do nowait
       end do
-!$omp end parallel
 
       end
 !

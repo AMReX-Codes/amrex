@@ -62,7 +62,7 @@ Layout::GetBndryCells (const BoxArray& ba,
   {
     Array<IntVect> pshifts(27);
 
-    const Box domain = geom.Domain();
+    const Box& domain = geom.Domain();
 
     for (BoxList::const_iterator it = gcells.begin(); it != gcells.end(); ++it)
     {
@@ -75,9 +75,9 @@ Layout::GetBndryCells (const BoxArray& ba,
 
         for (int i = 0; i < pshifts.size(); i++)
         {
-          const Box shftbox = *it + pshifts[i];
+          const Box& shftbox = *it + pshifts[i];
 
-          const Box ovlp = domain & shftbox;
+          const Box& ovlp = domain & shftbox;
           BoxList bl = BoxLib::complementIn(ovlp,BoxList(ba));
           bcells.catenate(bl);
         }
@@ -300,8 +300,8 @@ Layout::Build(const Array<BoxArray>&  aba,
 
     for (MFIter fai(nodesLev); fai.isValid(); ++fai)
     {
-      NodeFab& ifab = nodesLev[fai];
-      const Box box = ifab.box() & gridArray[lev][fai.index()];
+      NodeFab&  ifab = nodesLev[fai];
+      const Box& box = ifab.box() & gridArray[lev][fai.index()];
       for (IntVect iv=box.smallEnd(); iv<=box.bigEnd(); box.next(iv))
         ifab(iv,0) = Node(iv,lev,Node::VALID);
     }
@@ -314,7 +314,7 @@ Layout::Build(const Array<BoxArray>&  aba,
       for (MFIter mfi(crseNodes[lev]); mfi.isValid(); ++mfi)
       {
         NodeFab& nfab=crseNodes[lev][mfi];
-        const Box box = nfab.box() & geomArray[lev-1].Domain();
+        const Box& box = nfab.box() & geomArray[lev-1].Domain();
         for (IntVect iv=box.smallEnd(); iv<=box.bigEnd(); box.next(iv)) {
           nfab(iv,0) = Node(iv,lev-1,Node::VALID);
         }
@@ -323,7 +323,7 @@ Layout::Build(const Array<BoxArray>&  aba,
       for (MFIter mfi(crseNodes[lev]); mfi.isValid(); ++mfi)
       {
         NodeFab& nfab=crseNodes[lev][mfi];
-        const Box box = nfab.box() & geomArray[lev-1].Domain();
+        const Box& box = nfab.box() & geomArray[lev-1].Domain();
         std::vector< std::pair<int,Box> > isects = cba.intersections(box);
         for (int i=0; i<isects.size(); ++i) {
           const Box& ibox=isects[i].second;
@@ -333,7 +333,7 @@ Layout::Build(const Array<BoxArray>&  aba,
         }
       }
 
-      const Box rangeBox = Box(IntVect::TheZeroVector(),
+      const Box& rangeBox = Box(IntVect::TheZeroVector(),
                                refRatio[lev-1] - IntVect::TheUnitVector());
       bndryCells[lev] = BoxLib::intersect( GetBndryCells(nodesLev.boxArray(),refRatio[lev-1],geomArray[lev]),
                                            geomArray[lev].Domain() );
@@ -352,7 +352,7 @@ Layout::Build(const Array<BoxArray>&  aba,
             fnodeFab.resize(fbox,1);
             Box cbox = Box(fbox).coarsen(refRatio[lev-1]);
             for (IntVect civ = cbox.smallEnd(), End=cbox.bigEnd(); civ<=End; cbox.next(civ)) {
-              const IntVect baseIV = refRatio[lev-1] * civ;
+              const IntVect& baseIV = refRatio[lev-1] * civ;
               for (IntVect ivt = rangeBox.smallEnd(), End=rangeBox.bigEnd(); ivt<=End;rangeBox.next(ivt)) {
                 fnodeFab(baseIV + ivt,0) = crseNodes[lev][mfi](civ,0);
               }
@@ -467,8 +467,12 @@ Layout::Build(const Array<BoxArray>&  aba,
   // Adjust node numbers to be globally unique
   int num_size = ParallelDescriptor::NProcs();
   Array<int> num_nodes_p(num_size);
+  BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(int), BLProfiler::BeforeCall(),
+                  BLProfiler::NoTag());
   BL_MPI_REQUIRE(MPI_Allgather(&nNodes_local, 1, MPI_INT, num_nodes_p.dataPtr(), 1, MPI_INT, 
                                ParallelDescriptor::Communicator()));
+  BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(int), BLProfiler::AfterCall(),
+                  BLProfiler::NoTag());
 
   int offset = 0;
   for (int i=0; i<ParallelDescriptor::MyProc(); ++i) {
@@ -509,7 +513,7 @@ Layout::Build(const Array<BoxArray>&  aba,
       if (lev>0) 
       {
         const IntVect& ref = refRatio[lev-1];
-        const IntVect refm = ref - IntVect::TheUnitVector();
+        const IntVect& refm = ref - IntVect::TheUnitVector();
         BoxArray bndC = BoxArray(bndryCells[lev]).coarsen(ref);
         
         crseIds.set(lev-1,new MultiIntFab(bndC,1,0,Fab_allocate)); crseIds[lev-1].setVal(-1);
@@ -523,8 +527,8 @@ Layout::Build(const Array<BoxArray>&  aba,
           const Box& cbox = cIds.box();
           IntFab& fIds = fineIds[mfi];
           for (IntVect iv = cbox.smallEnd(), End=cbox.bigEnd(); iv<=End; cbox.next(iv)) {
-            const IntVect ll = ref * iv;
-            const Box fbox(ll,ll+refm);
+            const IntVect& ll = ref * iv;
+            const Box& fbox(ll,ll+refm);
             BL_ASSERT(fIds.box().contains(fbox));
             fIds.setVal(cIds(iv,0),fbox,0,1);
           }

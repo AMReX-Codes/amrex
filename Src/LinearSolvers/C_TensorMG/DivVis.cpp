@@ -312,28 +312,28 @@ DivVis::Fsmooth (MultiFab&       solnL,
                const Mask& mn = *mtuple[oitr()]; oitr++;,
                const Mask& mt = *mtuple[oitr()]; oitr++;);
 
-        FArrayBox&       solfab = solnL[gn];
-        const FArrayBox& rhsfab = rhsL[gn];
-        const FArrayBox& afab   = a[gn];
-        const FArrayBox& fnfab  = fn[gn];
-        const FArrayBox& fefab  = fe[gn];
-        const FArrayBox& fwfab  = fw[gn];
-        const FArrayBox& fsfab  = fs[gn];
-        const FArrayBox& tdnfab = tdn[gn];
-        const FArrayBox& tdefab = tde[gn];
-        const FArrayBox& tdwfab = tdw[gn];
-        const FArrayBox& tdsfab = tds[gn];
+        FArrayBox&       solfab = solnL[solnLmfi];
+        const FArrayBox& rhsfab = rhsL[solnLmfi];
+        const FArrayBox& afab   = a[solnLmfi];
+        const FArrayBox& fnfab  = fn[solnLmfi];
+        const FArrayBox& fefab  = fe[solnLmfi];
+        const FArrayBox& fwfab  = fw[solnLmfi];
+        const FArrayBox& fsfab  = fs[solnLmfi];
+        const FArrayBox& tdnfab = tdn[solnLmfi];
+        const FArrayBox& tdefab = tde[solnLmfi];
+        const FArrayBox& tdwfab = tdw[solnLmfi];
+        const FArrayBox& tdsfab = tds[solnLmfi];
 
 #if BL_SPACEDIM>2
-        const FArrayBox& ftfab  = ft[gn];
-        const FArrayBox& fbfab  = fb[gn];
-        const FArrayBox& tdtfab = tdt[gn];
-        const FArrayBox& tdbfab = tdb[gn];
+        const FArrayBox& ftfab  = ft[solnLmfi];
+        const FArrayBox& fbfab  = fb[solnLmfi];
+        const FArrayBox& tdtfab = tdt[solnLmfi];
+        const FArrayBox& tdbfab = tdb[solnLmfi];
 #endif
 
-        D_TERM(const FArrayBox& bxfab = bX[gn];,
-               const FArrayBox& byfab = bY[gn];,
-               const FArrayBox& bzfab = bZ[gn];);
+        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+               const FArrayBox& byfab = bY[solnLmfi];,
+               const FArrayBox& bzfab = bZ[solnLmfi];);
 
 	FORT_GSRB(
 	    solfab.dataPtr(), 
@@ -438,25 +438,25 @@ DivVis::compFlux (D_DECL(MultiFab& xflux,
 	       const Mask& mn = *mtuple[oitr()]; oitr++;,
                const Mask& mt = *mtuple[oitr()]; oitr++;);
 
-        FArrayBox&       xfab = x[gn];
-        const FArrayBox& afab = a[gn];
-        const FArrayBox& tdnfab = tdn[gn];
-        const FArrayBox& tdefab = tde[gn];
-        const FArrayBox& tdwfab = tdw[gn];
-        const FArrayBox& tdsfab = tds[gn];
+        FArrayBox&       xfab = x[xmfi];
+        const FArrayBox& afab = a[xmfi];
+        const FArrayBox& tdnfab = tdn[xmfi];
+        const FArrayBox& tdefab = tde[xmfi];
+        const FArrayBox& tdwfab = tdw[xmfi];
+        const FArrayBox& tdsfab = tds[xmfi];
 
 #if BL_SPACEDIM>2
-        const FArrayBox& tdtfab = tdt[gn];
-        const FArrayBox& tdbfab = tdb[gn];
+        const FArrayBox& tdtfab = tdt[xmfi];
+        const FArrayBox& tdbfab = tdb[xmfi];
 #endif
 
-        D_TERM(const FArrayBox& bxfab = bX[gn];,
-               const FArrayBox& byfab = bY[gn];,
-               const FArrayBox& bzfab = bZ[gn];);
+        D_TERM(const FArrayBox& bxfab = bX[xmfi];,
+               const FArrayBox& byfab = bY[xmfi];,
+               const FArrayBox& bzfab = bZ[xmfi];);
 
-        D_TERM(FArrayBox& xfluxfab = xflux[gn];,
-               FArrayBox& yfluxfab = yflux[gn];,
-               FArrayBox& zfluxfab = zflux[gn];);
+        D_TERM(FArrayBox& xfluxfab = xflux[xmfi];,
+               FArrayBox& yfluxfab = yflux[xmfi];,
+               FArrayBox& zfluxfab = zflux[xmfi];);
 
 	FORT_DVFLUX(
 	    xfab.dataPtr(), 
@@ -550,22 +550,22 @@ DivVis::Fapply (MultiFab&       y,
                const Mask& mn = *mtuple[oitr()]; oitr++;,
                const Mask& mt = *mtuple[oitr()]; oitr++;);
 
-        FArrayBox&       yfab = y[gn];
-        const FArrayBox& xfab = x[gn];
+        FArrayBox&       yfab = y[xmfi];
+        const FArrayBox& xfab = x[xmfi];
 
-        const FArrayBox& afab = a[gn];
-        const FArrayBox& tdnfab = tdn[gn];
-        const FArrayBox& tdefab = tde[gn];
-        const FArrayBox& tdwfab = tdw[gn];
-        const FArrayBox& tdsfab = tds[gn];
+        const FArrayBox& afab = a[xmfi];
+        const FArrayBox& tdnfab = tdn[xmfi];
+        const FArrayBox& tdefab = tde[xmfi];
+        const FArrayBox& tdwfab = tdw[xmfi];
+        const FArrayBox& tdsfab = tds[xmfi];
 
 #if BL_SPACEDIM>2
-        const FArrayBox& tdtfab = tdt[gn];
-        const FArrayBox& tdbfab = tdb[gn];
+        const FArrayBox& tdtfab = tdt[xmfi];
+        const FArrayBox& tdbfab = tdb[xmfi];
 #endif
-        D_TERM(const FArrayBox& bxfab = bX[gn];,
-               const FArrayBox& byfab = bY[gn];,
-               const FArrayBox& bzfab = bZ[gn];);
+        D_TERM(const FArrayBox& bxfab = bX[xmfi];,
+               const FArrayBox& byfab = bY[xmfi];,
+               const FArrayBox& bzfab = bZ[xmfi];);
 
 	FORT_DVAPPLY(
 	    xfab.dataPtr(), 

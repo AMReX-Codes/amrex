@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <BoxDomain.H>
-#include <Profiler.H>
+#include <BLProfiler.H>
 
 BoxDomain&
 BoxDomain::intersect (const Box& b)

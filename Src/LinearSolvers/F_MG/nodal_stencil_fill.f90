@@ -225,7 +225,7 @@ contains
     !
     ! Build layout on bxa_periodic.  We use a layout to make the stencil_set_bc_nodal() more efficient.
     !
-    call build(la,bxa_periodic,get_pd(get_layout(sg)))
+    call build(la,bxa_periodic,get_pd(get_layout(sg)),mapping=LA_LOCAL)
 
     nodal_flag(:) = .true.
     do i = 1, nfabs(sg)

@@ -9,6 +9,7 @@
 #include <BoxArray.H>
 #include <MultiFab.H>
 #include <BndryData.H>
+#include <BLMap.H>
 
 /*
         A LinOp is a virtual base class for general linear operators capable
@@ -284,13 +285,13 @@ protected:
     // of pointers to Masks for whether boundary Fabs are covered,
     // not_covered, outside_domain
     //
-    Array< std::map<int,MaskTuple> > maskvals;
+    Array< BLMap<MaskTuple> > maskvals;
     //
     // Similar to maskvals, but only for "local" grids at level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array< std::map<int,MaskTuple> > lmaskvals;
-    //
+    Array< BLMap<MaskTuple> > lmaskvals;
+   //
     // boundary data class
     //
     BndryData* bgb;

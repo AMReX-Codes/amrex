@@ -56,7 +56,7 @@ c
       integer i,n
 c
       do n = 1, nc
-         do i = lo(1), hi(1)+1
+         do i = lo(1), hi(1)
             c(i,n) =  f(2*i,n)
          end do
       end do
@@ -82,7 +82,7 @@ c
       integer i,n
 c
       do n = 1, nc
-         do i = lo(1), hi(1)+1
+         do i = lo(1), hi(1)
             c(i,n) = f(2*i,n)
          end do
       end do

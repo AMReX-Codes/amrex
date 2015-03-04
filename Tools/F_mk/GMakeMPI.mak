@@ -232,33 +232,34 @@ ifeq ($(HOST), orga)
 endif
 
 ifeq ($(HOST),naphta)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
+  mpi_libraries += -lmpich -lpthread
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
 endif
 
 ifeq ($(HOST),battra)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
 endif
 
 ifeq ($(HOST),gigan)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread -lmpl
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
+  mpi_libraries += -lmpich -lpthread
+endif
+
+ifeq ($(HOST),gamera)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
 endif
 
 ifeq ($(HOST),kiryu)
@@ -269,28 +270,20 @@ ifeq ($(HOST),kiryu)
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
+
 endif
 
-ifeq ($(HOST),lijewski)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-endif
 ifeq ($(HOST),manda)
-  MPIHOME=/home/almgren/bin/mpich2-install
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),hedorah)
-  MPIHOME=/home/share
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -L$(MPIHOME)/lib/libmpich.so -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),gojira)
   MPIHOME=/usr/local
@@ -305,13 +298,25 @@ ifeq ($(HOST),atragon)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),ebirah)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+ifeq ($(HOST),rodan)
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),baragon)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+ifeq ($(HOST),megalon)
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
@@ -323,16 +328,16 @@ ifeq ($(HOST),posse)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),mothra)
-  MPIHOME=/usr/local/
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),gimantis)
-  MPIHOME=/usr/local/mpich2
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
+  mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),angilas)
   MPIHOME=/usr/local
@@ -340,7 +345,8 @@ ifeq ($(HOST),angilas)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
-ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
+
+ifeq ($(findstring donev, $(HOSTNAME)), donev)
    ifeq ($(MPIVENDOR),OpenMPIv1)
       MPIHOME=/usr/lib64/compat-openmpi
       mpi_include_dir = /usr/include/compat-openmpi-x86_64
@@ -348,7 +354,7 @@ ifeq ($(findstring donev, $(HOSTNAME)), donev) # TEMP FIXME
       mpi_lib_dir = $(MPIHOME)/lib
    else ifeq ($(MPIVENDOR),OpenMPI) # Latest version
       MPIHOME=$(HOME)/HPC/Libraries/OMPI
-      mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
+      mpi_libraries += -lmpi -lmpi_mpifh # -lmpi -lmpi_f77 #-lmpi_f90
       mpi_include_dir = $(MPIHOME)/include
       mpi_lib_dir = $(MPIHOME)/lib
    else
@@ -361,11 +367,12 @@ else ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
    # OpenMPI v2
    MPIHOME=/usr/lib64/openmpi
    mpi_include_dir = /usr/include/openmpi-x86_64
+   mpi_libraries += -lmpi -lmpi_mpifh
    # OpenMPI v1
    #MPIHOME=/usr/lib64/compat-openmpi
    #mpi_include_dir = /usr/include/compat-openmpi-x86_64
+   #mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    # Generic stuff:
-   mpi_libraries += -lmpi -lmpi_f77 #-lmpi_f90
    mpi_lib_dir = $(MPIHOME)/lib
 endif
 

@@ -73,7 +73,8 @@ public:
         // we don't get confused when we see an old FAB_8BITRLE file.
         //
         FAB_8BIT = 4,
-        FAB_IEEE_32
+        FAB_IEEE_32,
+        FAB_NATIVE_32
     };
     //
     // An enum which controls byte ordering of FAB output.

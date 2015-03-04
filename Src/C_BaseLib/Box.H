@@ -2,10 +2,6 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 
-#ifdef NODEV
-#undef NODEV
-#endif
-
 #include <iosfwd>
 
 #include <ccse-mpi.H>
@@ -153,9 +149,6 @@ std::istream& operator>> (std::istream& os, Box& bx);
 // Box is a dimension dependent class, so SPACEDIM must be 
 // defined as either 1, 2, or 3 when compiling.
 //
-// For historical reasons, BOX is synonomous with Box.  That usage is
-// deprecated, however.
-//
 class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
@@ -245,9 +238,9 @@ public:
     //
     int operator[] (Orientation face) const;
     //
-    // Checks if it is a proper box (including a valid type).
+    // Checks if it is an empty box.
     //
-    bool isEmpty () const;
+    bool isEmpty () const { return !ok(); }
     //
     // Checks if it is a proper Box (including a valid type).
     //

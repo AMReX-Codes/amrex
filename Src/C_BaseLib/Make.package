@@ -24,13 +24,15 @@ C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp Arena.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
-C$(BOXLIB_BASE)_headers += Profiler.H
+C$(BOXLIB_BASE)_headers += BLProfiler.H
+
+C$(BOXLIB_BASE)_headers += BLBackTrace.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
 #
 # Container classes.
 #
-T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H
+T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H BLMap.H
 
 #
 # FAB I/O stuff.
@@ -106,6 +108,9 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
+
+  f90$(BOXLIB_BASE)_sources += threadbox.f90
 endif
 
-C$(BOXLIB_BASE)_sources += Profiler.cpp
+C$(BOXLIB_BASE)_sources += BLProfiler.cpp
+C$(BOXLIB_BASE)_sources += BLBackTrace.cpp

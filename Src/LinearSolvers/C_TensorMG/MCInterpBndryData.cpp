@@ -117,9 +117,9 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 		//
 		// Copy and compute deriv.
                 //
-		bdider[face](bndry[face][mfi.index()].dataPtr(bnd_start),
-			     ARLIM(bndry[face][mfi.index()].loVect()),
-                             ARLIM(bndry[face][mfi.index()].hiVect()),
+		bdider[face](bndry[face][mfi].dataPtr(bnd_start),
+			     ARLIM(bndry[face][mfi].loVect()),
+                             ARLIM(bndry[face][mfi].hiVect()),
 			     bx.loVect(),bx.hiVect(),
 			     mf[mfi].dataPtr(mf_start),
 			     ARLIM(mf[mfi].loVect()),ARLIM(mf[mfi].hiVect()),
@@ -208,7 +208,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 	      if (idir != dir)
                   hfine[kdir++] = h[idir];
 
-	    FArrayBox& bnd_fab = bndry[face][finemfi.index()];
+	    FArrayBox& bnd_fab = bndry[face][finemfi];
 	    const int* blo     = bnd_fab.loVect();
 	    const int* bhi     = bnd_fab.hiVect();
 	    Real* bdat         = bnd_fab.dataPtr(bnd_start);
@@ -223,7 +223,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
                 const int* mhi   = mask.hiVect();
                 const int* mdat  = mask.dataPtr();
 
-                const FArrayBox& crse_fab = crse[face][finemfi.index()];
+                const FArrayBox& crse_fab = crse[face][finemfi];
                 const int* clo            = crse_fab.loVect();
                 const int* chi            = crse_fab.hiVect();
                 const Real* cdat          = crse_fab.dataPtr(c_start);

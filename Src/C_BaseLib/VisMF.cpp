@@ -557,6 +557,9 @@ VisMF::Header::Header (const MultiFab& mf,
 
     Array<Real> recvdata(mf.size()*2*m_ncomp);
 
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
@@ -566,6 +569,9 @@ VisMF::Header::Header (const MultiFab& mf,
                                 ParallelDescriptor::Mpi_typemap<Real>::type(),
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
+
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(Real),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -799,6 +805,9 @@ VisMF::Write (const MultiFab&    mf,
 
     Array<long> recvdata(mf.size());
 
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+
     BL_MPI_REQUIRE( MPI_Gatherv(senddata.dataPtr(),
                                 nmtags[ParallelDescriptor::MyProc()],
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
@@ -808,6 +817,9 @@ VisMF::Write (const MultiFab&    mf,
                                 ParallelDescriptor::Mpi_typemap<long>::type(),
                                 IOProc,
                                 ParallelDescriptor::Communicator()) );
+
+    BL_COMM_PROFILE(BLProfiler::Gatherv, recvdata.size() * sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1162,7 +1174,7 @@ VisMF::Read (MultiFab&          mf,
 #else
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
+        mf.setFab(mfi, VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
 #endif
 
@@ -1233,6 +1245,7 @@ VisMF::Check (const std::string& mf_name)
         std::cout << "**** Error in file:  " << FullName << "  Bad Fab at index = "
 	          << i << "   at seekpos = " << fod.m_head << std::endl;
       }
+      ifs.close();
 
     }
     if(nBadFabs) {
