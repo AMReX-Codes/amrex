@@ -390,6 +390,10 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier (const std::string &message)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::Barrier()");
     BL_COMM_PROFILE_BARRIER(message, true);
 
@@ -401,6 +405,10 @@ ParallelDescriptor::Barrier (const std::string &message)
 void
 ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::Barrier(comm)");
     BL_COMM_PROFILE_BARRIER(message, true);
 
@@ -443,6 +451,10 @@ void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceReal()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, BLProfiler::BeforeCall(), true);
 
@@ -463,6 +475,10 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceReal()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, BLProfiler::BeforeCall(), true);
 
@@ -486,6 +502,10 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceReal()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, sizeof(Real), cpu);
 
@@ -510,6 +530,10 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceReal()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, cnt * sizeof(Real), cpu);
 
@@ -610,6 +634,10 @@ void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLong()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, BLProfiler::BeforeCall(), true);
 
@@ -630,6 +658,10 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceLong()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, BLProfiler::BeforeCall(), true);
 
@@ -653,6 +685,10 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, sizeof(long), cpu);
 
@@ -677,6 +713,10 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceLong()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, cnt * sizeof(long), cpu);
 
@@ -800,6 +840,10 @@ void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceInt()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, BLProfiler::BeforeCall(), true);
 
@@ -820,6 +864,10 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoAllReduceInt()");
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, BLProfiler::BeforeCall(), true);
 
@@ -843,6 +891,10 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceInt()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, sizeof(int), cpu);
 
@@ -867,6 +919,10 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_S("ParallelDescriptor::util::DoReduceInt()");
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, cnt * sizeof(int), cpu);
 

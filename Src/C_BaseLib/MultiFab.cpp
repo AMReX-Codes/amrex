@@ -297,7 +297,8 @@ MultiFab::define (const BoxArray&            bxs,
 bool 
 MultiFab::contains_nan (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -321,21 +322,23 @@ MultiFab::contains_nan (int scomp,
 	r |= pr;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_nan () const
+MultiFab::contains_nan (bool local) const
 {
-    return contains_nan(0,nComp(),nGrow());
+    return contains_nan(0,nComp(),nGrow(),local);
 }
 
 bool 
 MultiFab::contains_inf (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -359,15 +362,16 @@ MultiFab::contains_inf (int scomp,
 	r |= pr;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_inf () const
+MultiFab::contains_inf (bool local) const
 {
-    return contains_inf(0,nComp(),nGrow());
+    return contains_inf(0,nComp(),nGrow(),local);
 }
 
 static
