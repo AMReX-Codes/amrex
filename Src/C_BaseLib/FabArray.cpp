@@ -1,5 +1,9 @@
 #include <winstd.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #include <FabArray.H>
 #include <ParmParse.H>
 //
@@ -370,8 +374,10 @@ FabArrayBase::CPC::FlushCache ()
 
     if (FabArrayBase::Verbose)
     {
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
-
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "CPC::m_TheCopyCache: max size: "
@@ -382,6 +388,9 @@ FabArrayBase::CPC::FlushCache ()
                       << stats[2]
                       << std::endl;
         }
+#ifdef BL_LAZY
+	});
+#endif
     }
 
     m_TheCopyCache.clear();
@@ -708,8 +717,10 @@ FabArrayBase::FlushSICache ()
 
     if (FabArrayBase::Verbose)
     {
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
-
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "SI::TheFBCache: max size: "
@@ -720,6 +731,9 @@ FabArrayBase::FlushSICache ()
                       << stats[2]
                       << std::endl;
         }
+#ifdef BL_LAZY
+	});
+#endif
     }
 
     m_TheFBCache.clear();

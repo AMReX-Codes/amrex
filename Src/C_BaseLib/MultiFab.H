@@ -99,14 +99,16 @@ public:
     // search only the valid regions of the FArrayBoxes.
     //
     Real min (int comp,
-              int nghost = 0) const;
+              int nghost = 0,
+	      bool local = false) const;
     //
     // Identical to the previous min() function, but confines its
     // search to intersection of Box b and the MultiFab.
     //
     Real min (const Box& b,
               int        comp,
-              int        nghost = 0) const;
+              int        nghost = 0,
+	      bool       local = false) const;
     //
     // Returns the maximum value contained in component comp of the
     // MultiFab.  The parameter nghost determines the number of
@@ -114,33 +116,42 @@ public:
     // search only the valid regions of the FArrayBoxes.
     //
     Real max (int comp,
-              int nghost = 0) const;
+              int nghost = 0,
+	      bool local = false) const;
+    //
+    // Identical to the previous max() function, but confines its
+    // search to intersection of Box b and the MultiFab.
+    //
+    Real max (const Box& b,
+              int        comp,
+              int        nghost = 0,
+	      bool       local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the MultiFab.  No ghost cells are used.
     //
-    Real norm0 (int comp = 0) const;
+    Real norm0 (int comp = 0, bool local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the MultiFab in the intersection of the BoxArray
     // and the valid regions of the MultiFab.  No ghost cells are used.
     //
-    Real norm0 (int comp, const BoxArray& ba) const;
+    Real norm0 (int comp, const BoxArray& ba, bool local = false) const;
     //
     // Returns the maximum *absolute* values contained in 
     // each component of "comps" of the MultiFab.  No ghost cells are used.
     //
-    Array<Real> norm0 (const Array<int>& comps) const;
+    Array<Real> norm0 (const Array<int>& comps, bool local = false) const;
     //
     // Returns the L1 norm of component "comp" over the MultiFab.
     // ngrow ghost cells are used.
     //
-    Real norm1 (int comp = 0, int ngrow = 0) const;
+    Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     //
     // Returns the L1 norm of each component of "comps" over the MultiFab.
     // ngrow ghost cells are used.
     //
-    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0) const;
+    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0, bool local = false) const;
     //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
@@ -151,13 +162,6 @@ public:
     // No ghost cells are used.
     //
     Array<Real> norm2 (const Array<int>& comps) const;
-    //
-    // Identical to the previous max() function, but confines its
-    // search to intersection of Box b and the MultiFab.
-    //
-    Real max (const Box& b,
-              int        comp,
-              int        nghost = 0) const;
     //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the MultiFab.  The subregion consists
