@@ -249,7 +249,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     file_name_digits       = 5;
     record_run_info_terse  = false;
     bUserStopRequest       = false;
-
+    message_int            = 10;
+    
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
         isPeriodic[i] = false;
@@ -280,6 +281,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     pp.query("initial_grid_file",initial_grids_file);
     pp.query("regrid_file"      , regrid_grids_file);
 
+    pp.query("message_int", message_int);
+    
     if (pp.contains("run_log"))
     {
         std::string log_file_name;
@@ -1975,35 +1978,37 @@ Amr::coarseTimeStep (Real stop_time)
 
     int to_stop       = 0;    
     int to_checkpoint = 0;
-    if (ParallelDescriptor::IOProcessor())
-    {
-        FILE *fp;
-        if ((fp=fopen("dump_and_continue","r")) != 0)
-        {
-            remove("dump_and_continue");
-            to_checkpoint = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("stop_run","r")) != 0)
-        {
-            remove("stop_run");
-            to_stop = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("dump_and_stop","r")) != 0)
-        {
-            remove("dump_and_stop");
-            to_checkpoint = 1;
-            to_stop = 1;
-            fclose(fp);
-        }
+    if (message_int > 0 && level_steps[0] % message_int == 0) {
+	if (ParallelDescriptor::IOProcessor())
+	{
+	    FILE *fp;
+	    if ((fp=fopen("dump_and_continue","r")) != 0)
+	    {
+		remove("dump_and_continue");
+		to_checkpoint = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("stop_run","r")) != 0)
+	    {
+		remove("stop_run");
+		to_stop = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("dump_and_stop","r")) != 0)
+	    {
+		remove("dump_and_stop");
+		to_checkpoint = 1;
+		to_stop = 1;
+		fclose(fp);
+	    }
+	}
+	int packed_data[2];
+	packed_data[0] = to_stop;
+	packed_data[1] = to_checkpoint;
+	ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+	to_stop = packed_data[0];
+	to_checkpoint = packed_data[1];
     }
-    int packed_data[2];
-    packed_data[0] = to_stop;
-    packed_data[1] = to_checkpoint;
-    ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
-    to_stop = packed_data[0];
-    to_checkpoint = packed_data[1];
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
