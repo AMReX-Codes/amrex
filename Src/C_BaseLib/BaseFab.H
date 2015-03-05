@@ -1130,7 +1130,7 @@ BaseFab<T>::define ()
     
     if(sizeof(T) == sizeof(Real)) {
 	BoxLib::private_total_cells_allocated_in_fabs += numpts;
-	BoxLib::private_total_bytes_allocated_in_fabs_hwm 
+	BoxLib::private_total_cells_allocated_in_fabs_hwm 
 	    = std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
 		       BoxLib::private_total_cells_allocated_in_fabs);
     }
