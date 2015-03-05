@@ -431,9 +431,9 @@ public:
     //
     // This version checks all components and grow cells.
     //
-    bool contains_nan () const;
+    bool contains_nan (bool local=false) const;
 
-    bool contains_nan (int scomp, int ncomp, int ngrow = 0) const;
+    bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     //
     // Are there any Infs in the MF?
     // This may return false, even if the MF contains Infs, if the machine
@@ -441,9 +441,9 @@ public:
     //
     // This version checks all components and grow cells.
     //
-    bool contains_inf () const;
+    bool contains_inf (bool local=false) const;
 
-    bool contains_inf (int scomp, int ncomp, int ngrow = 0) const;
+    bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
 
     const FArrayBox& operator[] (int K) const;
 
