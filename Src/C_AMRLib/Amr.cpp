@@ -33,6 +33,10 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
 #endif
@@ -1764,6 +1768,7 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
+	std::cout << "[level step " << level_steps[level]+1 << "] ";
         std::cout << "ADVANCE grids at level "
                   << level
                   << " with dt = "
@@ -1781,6 +1786,7 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
+	std::cout << "[level step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
                   << " cells at level "
@@ -1885,26 +1891,40 @@ Amr::coarseTimeStep (Real stop_time)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_stop = ParallelDescriptor::second() - run_strt;
+	const int istep    = level_steps[0];
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
-
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
+            std::cout << "\n[STEP " << istep << "] Coarse TimeStep time: " << run_stop << '\n' ;
+#ifdef BL_LAZY
+	});
+#endif
 
         long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nFAB kilobyte spread across MPI nodes for timestep: ["
+            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes for timestep: ["
                       << min_fab_kilobytes
                       << " ... "
                       << max_fab_kilobytes
                       << "]\n";
         }
+#ifdef BL_LAZY
+	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
+	});
+#endif
+
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
@@ -2919,10 +2939,15 @@ Amr::grid_places (int              lbase,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
         if (ParallelDescriptor::IOProcessor())
             std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
