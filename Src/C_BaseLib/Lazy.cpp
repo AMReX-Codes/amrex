@@ -22,10 +22,8 @@ namespace Lazy
 #ifdef BL_USE_MPI
 	++count;
 	if (count == 1) {
-	    std::for_each(reduction_queue.begin(), reduction_queue.end(), [] (Func& f)
-	    {
-	        f();
-            } );
+	    for (auto&& f : reduction_queue)
+		f();
 	    reduction_queue.clear();
             count = 0;
         }
