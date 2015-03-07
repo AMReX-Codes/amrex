@@ -470,6 +470,7 @@ namespace ParallelDescriptor
     template <class T> Message Arecv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag);
+    template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm);
     template <class T> Message Send(const std::vector<T>& buf, int dst_pid, int tag);
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
@@ -586,6 +587,27 @@ ParallelDescriptor::Send (const T* buf,
                              dst_pid,
                              tag,
                              Communicator()) );
+    BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send (const T* buf,
+                          size_t   n,
+                          int      dst_pid,
+                          int      tag,
+			  MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
+    BL_COMM_PROFILE(BLProfiler::SendTsii, n * sizeof(T), dst_pid, tag);
+
+    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
+                             n,
+                             Mpi_typemap<T>::type(),
+                             dst_pid,
+                             tag,
+                             comm) );
     BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
     return Message();
 }
@@ -847,6 +869,13 @@ Asend(const std::vector<T>& buf, int dst_pid, int tag)
 template <class T>
 Message
 Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
     return Message();
 }
