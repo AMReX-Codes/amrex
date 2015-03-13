@@ -303,14 +303,12 @@ ifdef USE_GCC
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
-      COPTF += -fopenmp
-      CDEBF += -fopenmp
     endif
     #
     # Force C to have same flags as C++.
     #
-    COPTF += $(CXXOPTF) -std=c99
-    CDEBF += $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=c99
+    CDEBF := $(CXXDEBF) -std=c99
 
     ifeq ($(LAZY),TRUE)
         CXXOPTF += -std=c++11
