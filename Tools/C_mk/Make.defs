@@ -310,7 +310,7 @@ ifdef USE_GCC
     COPTF := $(CXXOPTF) -std=c99
     CDEBF := $(CXXDEBF) -std=c99
 
-    ifeq ($(LAZY),TRUE)
+    ifeq ($(USE_CXX11),TRUE)
         CXXOPTF += -std=c++11
         CXXDEBF += -std=c++11
     endif
@@ -477,7 +477,7 @@ ifeq ($(COMP),Intel)
    COPTF += $(CXXOPTF) -std=c99
    CDEBF += $(CXXDEBF) -std=c99
 
-   ifeq ($(LAZY),TRUE)
+   ifeq ($(USE_CXX11),TRUE)
        CXXOPTF += -std=c++11
        CXXDEBF += -std=c++11       
    endif
