@@ -70,14 +70,16 @@ public:
     // search only the valid regions of the IArrayBoxes.
     //
     int min (int comp,
-             int nghost = 0) const;
+             int nghost = 0,
+	     bool local = false) const;
     //
     // Identical to the previous min() function, but confines its
     // search to intersection of Box b and the iMultiFab.
     //
     int min (const Box& b,
              int        comp,
-             int        nghost = 0) const;
+             int        nghost = 0,
+	     bool       local = false) const;
     //
     // Returns the maximum value contained in component comp of the
     // iMultiFab.  The parameter nghost determines the number of
@@ -85,37 +87,39 @@ public:
     // search only the valid regions of the IArrayBoxes.
     //
     int max (int comp,
-            int nghost = 0) const;
-    //
-    // Returns the maximum *absolute* value contained in 
-    // component comp of the iMultiFab.  No ghost cells are used.
-    //
-    int norm0 (int comp = 0) const;
-    //
-    // Returns the maximum *absolute* value contained in 
-    // component comp of the iMultiFab in the intersection of the BoxArray
-    // and the valid regions of the iMultiFab.  No ghost cells are used.
-    //
-    int norm0 (int comp, const BoxArray& ba) const;
-
-    //
-    // Returns the L1 norm of component "comp" over the iMultiFab.
-    // ngrow ghost cells are used.
-    //
-    int norm1 (int comp = 0, int ngrow = 0) const;
-    
-    //
-    // Returns the L2 norm of component "comp" over the iMultiFab.
-    // No ghost cells are used.
-    //
-    int norm2 (int comp = 0) const;
+	     int nghost = 0,
+	     bool local = false) const;
     //
     // Identical to the previous max() function, but confines its
     // search to intersection of Box b and the iMultiFab.
     //
     int max (const Box& b,
              int        comp,
-             int        nghost = 0) const;
+             int        nghost = 0,
+	     bool       local = false) const;
+    //
+    // Returns the maximum *absolute* value contained in 
+    // component comp of the iMultiFab.  No ghost cells are used.
+    //
+    int norm0 (int comp = 0, bool local = false) const;
+    //
+    // Returns the maximum *absolute* value contained in 
+    // component comp of the iMultiFab in the intersection of the BoxArray
+    // and the valid regions of the iMultiFab.  No ghost cells are used.
+    //
+    int norm0 (int comp, const BoxArray& ba, bool local = false) const;
+
+    //
+    // Returns the L1 norm of component "comp" over the iMultiFab.
+    // ngrow ghost cells are used.
+    //
+    int norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
+    
+    //
+    // Returns the L2 norm of component "comp" over the iMultiFab.
+    // No ghost cells are used.
+    //
+    int norm2 (int comp = 0) const;
     //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the iMultiFab.  The subregion consists

@@ -213,6 +213,13 @@ ifndef BACKTRACE
   BACKTRACE = FALSE
 endif
 
+ifndef LAZY
+  LAZY = FALSE
+endif
+ifeq ($(LAZY),TRUE)
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIM
   DIM = 2
 endif
@@ -228,6 +235,11 @@ endif
 ifndef USE_MPI
   USE_MPI = FALSE
 endif
+
+ifndef USE_CXX11
+  USE_CXX11 = FALSE
+endif
+
 
 #
 # Defaults for BoxLib style programs.
@@ -291,14 +303,17 @@ ifdef USE_GCC
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
-      COPTF += -fopenmp
-      CDEBF += -fopenmp
     endif
     #
     # Force C to have same flags as C++.
     #
-    COPTF += $(CXXOPTF) -std=c99
-    CDEBF += $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=c99
+    CDEBF := $(CXXDEBF) -std=c99
+
+    ifeq ($(USE_CXX11),TRUE)
+        CXXOPTF += -std=c++11
+        CXXDEBF += -std=c++11
+    endif
 
 else
 
@@ -461,6 +476,11 @@ ifeq ($(COMP),Intel)
 
    COPTF += $(CXXOPTF) -std=c99
    CDEBF += $(CXXDEBF) -std=c99
+
+   ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += -std=c++11
+       CXXDEBF += -std=c++11       
+   endif
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
@@ -831,6 +851,10 @@ else
     BTSuffix :=
 endif
 
+ifeq ($(LAZY),TRUE)
+    CPPFLAGS += -DBL_LAZY
+endif
+
 ifeq ($(USE_ARRAYVIEW), TRUE)
   DEFINES += -DBL_USE_ARRAYVIEW
   ARRAYVIEWDIR ?= $(HOME)/Development/ArrayView
@@ -867,6 +891,10 @@ ifeq ($(USE_OMP),TRUE)
     #include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 else
     OMPSuffix	:=
+endif
+
+ifeq ($(USE_CXX11),TRUE)
+   CPPFLAGS     += -DBL_USE_CXX11
 endif
 
 ifeq ($(USE_OLDPLOTPER),TRUE)
