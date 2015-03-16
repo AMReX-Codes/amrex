@@ -205,14 +205,14 @@ ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     #
     ifdef MPI
         CXX := CC
-	FC  := ftn
-	F90 := ftn
+        FC  := ftn
+        F90 := ftn
     endif
 
     ifeq ($(COMP),Cray)
-      FFLAGS += -hnopgas_runtime
-      F90FLAGS += -hnopgas_runtime
-      CFLAGS += -hnopgas_runtime
+      FFLAGS += -hpgas_runtime
+      F90FLAGS += -hpgas_runtime
+      CFLAGS += -hpgas_runtime
     endif
 endif
 
