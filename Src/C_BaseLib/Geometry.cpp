@@ -9,6 +9,11 @@
 #include <MultiFab.H>
 #include <FArrayBox.H>
 #include <BLProfiler.H>
+
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 //
 // The definition of some static data members.
 //
@@ -1026,8 +1031,10 @@ Geometry::FlushPIRMCache ()
 
     if (verbose)
     {
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMax(&stats[0], 3, ParallelDescriptor::IOProcessorNumber());
-
         if (stats[0] > 0 && ParallelDescriptor::IOProcessor())
         {
             std::cout << "Geometry::TheFPBCache: max size: "
@@ -1038,6 +1045,9 @@ Geometry::FlushPIRMCache ()
                       << stats[2]
                       << std::endl;
         }
+#ifdef BL_LAZY
+	});
+#endif
     }
 
     m_FPBCache.clear();

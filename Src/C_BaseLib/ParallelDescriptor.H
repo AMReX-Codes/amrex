@@ -11,6 +11,10 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #include <vector>
 #include <string>
 #include <typeinfo>
@@ -743,6 +747,10 @@ ParallelDescriptor::Bcast (T*     t,
                            size_t n,
                            int    root)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
