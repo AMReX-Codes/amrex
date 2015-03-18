@@ -296,7 +296,8 @@ iMultiFab::operator[] (int K)
 
 int
 iMultiFab::min (int comp,
-               int nghost) const
+		int nghost,
+		bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -321,7 +322,8 @@ iMultiFab::min (int comp,
 	}
     }
 
-    ParallelDescriptor::ReduceIntMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
@@ -329,7 +331,8 @@ iMultiFab::min (int comp,
 int
 iMultiFab::min (const Box& region,
                 int        comp,
-                int        nghost) const
+                int        nghost,
+		bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -356,14 +359,16 @@ iMultiFab::min (const Box& region,
 	}
     }
 
-    ParallelDescriptor::ReduceIntMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
 
 int
 iMultiFab::max (int comp,
-               int nghost) const
+		int nghost,
+		bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -387,15 +392,17 @@ iMultiFab::max (int comp,
 	}
     }
 
-    ParallelDescriptor::ReduceIntMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
 
 int
 iMultiFab::max (const Box& region,
-               int        comp,
-               int        nghost) const
+		int        comp,
+		int        nghost,
+		bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -422,7 +429,8 @@ iMultiFab::max (const Box& region,
 	}
     }
 
-    ParallelDescriptor::ReduceIntMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -598,7 +606,7 @@ iMultiFab::maxIndex (int comp,
 }
 
 int
-iMultiFab::norm0 (int comp, const BoxArray& ba) const
+iMultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
@@ -626,13 +634,14 @@ iMultiFab::norm0 (int comp, const BoxArray& ba) const
 	}
     }
  
-    ParallelDescriptor::ReduceIntMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(nm0);
  
     return nm0;
 }
 
 int
-iMultiFab::norm0 (int comp) const
+iMultiFab::norm0 (int comp, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
@@ -653,7 +662,8 @@ iMultiFab::norm0 (int comp) const
 	}
     }
 
-    ParallelDescriptor::ReduceIntMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(nm0);
 
     return nm0;
 }
@@ -681,7 +691,7 @@ iMultiFab::norm2 (int comp) const
 }
  
 int
-iMultiFab::norm1 (int comp, int ngrow) const
+iMultiFab::norm1 (int comp, int ngrow, bool local) const
 {
     int nm1 = 0.e0;
 
@@ -693,7 +703,8 @@ iMultiFab::norm1 (int comp, int ngrow) const
         nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
     }
 
-    ParallelDescriptor::ReduceIntSum(nm1);
+    if (!local)
+	ParallelDescriptor::ReduceIntSum(nm1);
 
     return nm1;
 }

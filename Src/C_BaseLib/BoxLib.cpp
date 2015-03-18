@@ -23,6 +23,10 @@
 #include <MultiFab.H>
 #endif
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -319,6 +323,10 @@ void
 BoxLib::Finalize (bool finalize_parallel)
 {
     BL_PROFILE_FINALIZE();
+
+#ifdef BL_LAZY
+    Lazy::Finalize();
+#endif
 
     while (!The_Finalize_Function_Stack.empty())
     {
