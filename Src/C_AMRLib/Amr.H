@@ -593,6 +593,7 @@ protected:
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
+    int              message_int;     // How often checking messages touched by user, such as "stop_run"
     std::string      plot_file_root;  // Root name of plotfile.
 
     int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)

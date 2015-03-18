@@ -33,6 +33,10 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
 #endif
@@ -245,7 +249,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     file_name_digits       = 5;
     record_run_info_terse  = false;
     bUserStopRequest       = false;
-
+    message_int            = 10;
+    
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
         isPeriodic[i] = false;
@@ -276,6 +281,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     pp.query("initial_grid_file",initial_grids_file);
     pp.query("regrid_file"      , regrid_grids_file);
 
+    pp.query("message_int", message_int);
+    
     if (pp.contains("run_log"))
     {
         std::string log_file_name;
@@ -1764,6 +1771,7 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
+	std::cout << "[level step " << level_steps[level]+1 << "] ";
         std::cout << "ADVANCE grids at level "
                   << level
                   << " with dt = "
@@ -1781,6 +1789,7 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
+	std::cout << "[level step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
                   << " cells at level "
@@ -1885,26 +1894,40 @@ Amr::coarseTimeStep (Real stop_time)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_stop = ParallelDescriptor::second() - run_strt;
+	const int istep    = level_steps[0];
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
-
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
+            std::cout << "\n[STEP " << istep << "] Coarse TimeStep time: " << run_stop << '\n' ;
+#ifdef BL_LAZY
+	});
+#endif
 
         long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nFAB kilobyte spread across MPI nodes for timestep: ["
+            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes for timestep: ["
                       << min_fab_kilobytes
                       << " ... "
                       << max_fab_kilobytes
                       << "]\n";
         }
+#ifdef BL_LAZY
+	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
+	});
+#endif
+
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
@@ -1955,35 +1978,37 @@ Amr::coarseTimeStep (Real stop_time)
 
     int to_stop       = 0;    
     int to_checkpoint = 0;
-    if (ParallelDescriptor::IOProcessor())
-    {
-        FILE *fp;
-        if ((fp=fopen("dump_and_continue","r")) != 0)
-        {
-            remove("dump_and_continue");
-            to_checkpoint = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("stop_run","r")) != 0)
-        {
-            remove("stop_run");
-            to_stop = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("dump_and_stop","r")) != 0)
-        {
-            remove("dump_and_stop");
-            to_checkpoint = 1;
-            to_stop = 1;
-            fclose(fp);
-        }
+    if (message_int > 0 && level_steps[0] % message_int == 0) {
+	if (ParallelDescriptor::IOProcessor())
+	{
+	    FILE *fp;
+	    if ((fp=fopen("dump_and_continue","r")) != 0)
+	    {
+		remove("dump_and_continue");
+		to_checkpoint = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("stop_run","r")) != 0)
+	    {
+		remove("stop_run");
+		to_stop = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("dump_and_stop","r")) != 0)
+	    {
+		remove("dump_and_stop");
+		to_checkpoint = 1;
+		to_stop = 1;
+		fclose(fp);
+	    }
+	}
+	int packed_data[2];
+	packed_data[0] = to_stop;
+	packed_data[1] = to_checkpoint;
+	ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+	to_stop = packed_data[0];
+	to_checkpoint = packed_data[1];
     }
-    int packed_data[2];
-    packed_data[0] = to_stop;
-    packed_data[1] = to_checkpoint;
-    ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
-    to_stop = packed_data[0];
-    to_checkpoint = packed_data[1];
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
@@ -2919,10 +2944,15 @@ Amr::grid_places (int              lbase,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
         if (ParallelDescriptor::IOProcessor())
             std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 

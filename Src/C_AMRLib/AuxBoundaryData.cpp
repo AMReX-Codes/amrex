@@ -3,6 +3,10 @@
 #include <iostream>
 #include <AuxBoundaryData.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 AuxBoundaryData::AuxBoundaryData ()
     :
     m_ngrow(0),
@@ -112,11 +116,17 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_time = ParallelDescriptor::second() - strt_time;
+	const int sz       = nba.size();
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "AuxBoundaryData::initialize() size = " << nba.size() << ", time = " << run_time << '\n';
+            std::cout << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
+#ifdef BL_LAZY
+	});
+#endif
     }
 
     m_initialized = true;

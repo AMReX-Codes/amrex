@@ -22,6 +22,10 @@
 #include <Particles_F.H>
 #include <RealBox.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -552,7 +556,11 @@ ParticleContainer<N>::ByteSpread () const
     long mn = cnt, mx = mn;
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const std::size_t sz = sizeof(ParticleType);
 
+#ifdef BL_LAZY
+    Lazy::QueueReduction( [=] () mutable {
+#endif
     ParallelDescriptor::ReduceLongMin(mn, IOProc);
     ParallelDescriptor::ReduceLongMax(mx, IOProc);
     ParallelDescriptor::ReduceLongSum(cnt,IOProc);
@@ -560,13 +568,16 @@ ParticleContainer<N>::ByteSpread () const
     if (ParallelDescriptor::IOProcessor())
     {
         std::cout << "ParticleContainer<N> byte spread across MPI nodes: ["
-                  << mn*sizeof(ParticleType)
+                  << mn*sz
 		  << " (" << mn << ")"
                   << " ... "
-                  << mx*sizeof(ParticleType)
+                  << mx*sz
 		  << " (" << mx << ")"
                   << "] total particles: (" << cnt << ")\n";
     }
+#ifdef BL_LAZY
+    });
+#endif
 }
 
 template <int N>
@@ -5011,6 +5022,9 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
     {
         int maxcnt = cnt;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceIntMax(maxcnt);
 
         if (maxcnt > 0)
@@ -5031,6 +5045,9 @@ ParticleContainer<N>::RemoveParticlesNotAtFinestLevel ()
                 ParallelDescriptor::Barrier();
             }
         }
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
@@ -5469,12 +5486,18 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << '\n';
         }
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
@@ -5662,12 +5685,17 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
-        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
         ByteSpread();
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
         if (ParallelDescriptor::IOProcessor())
             std::cout << "ParticleContainer<N>::Redistribute() time: " << stoptime << "\n\n";
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
@@ -7178,12 +7206,17 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
+#ifdef BL_LAZY
+        Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "ParticleContainer<N>::Timestamp: lev: " << lev << " time: " << stoptime << '\n';
         }
+#ifdef BL_LAZY
+        });
+#endif
     }
 }
 
