@@ -313,9 +313,9 @@ void BLProfiler::start() {
   ++callStackDepth;
   BL_ASSERT(vCallTrace.size() > 0);
   if(vCallTrace.back().csFNameNumber == fnameNumber && callStackDepth != prevCallStackDepth) {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "pCSD:  fname csd pcsd = " << fname << "  " << callStackDepth << "  " << prevCallStackDepth << std::endl;
-}
+//if(ParallelDescriptor::IOProcessor()) {
+  //std::cout << "pCSD:  fname csd pcsd = " << fname << "  " << callStackDepth << "  " << prevCallStackDepth << std::endl;
+//}
     ++(vCallTrace.back().nCSCalls);
   } else {
     Real calltime(bltstart - startTime);
@@ -1318,10 +1318,10 @@ void BLProfiler::WriteCommStats(const bool bFlushing) {
 	               << ' ' << seekindex << '\n';
         }
 	if(vCommStats.size() > 0) {
-	  csHeaderFile << std::setprecision(16)
+	  csHeaderFile << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
 	               << "timeMinMax  " << vCommStats[0].timeStamp << ' '
 	               << vCommStats[vCommStats.size()-1].timeStamp << '\n';
-	  csHeaderFile << std::setprecision(16)
+	  csHeaderFile << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
 	               << "timerTime  " << timerTime << '\n';
 	} else {
 	  csHeaderFile << "timeMinMax  0.0  0.0" << '\n';
