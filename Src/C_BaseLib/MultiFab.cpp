@@ -297,7 +297,8 @@ MultiFab::define (const BoxArray&            bxs,
 bool 
 MultiFab::contains_nan (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -321,21 +322,23 @@ MultiFab::contains_nan (int scomp,
 	r |= pr;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_nan () const
+MultiFab::contains_nan (bool local) const
 {
-    return contains_nan(0,nComp(),nGrow());
+    return contains_nan(0,nComp(),nGrow(),local);
 }
 
 bool 
 MultiFab::contains_inf (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -359,15 +362,16 @@ MultiFab::contains_inf (int scomp,
 	r |= pr;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_inf () const
+MultiFab::contains_inf (bool local) const
 {
-    return contains_inf(0,nComp(),nGrow());
+    return contains_inf(0,nComp(),nGrow(),local);
 }
 
 static
@@ -420,7 +424,8 @@ MultiFab::operator[] (int K)
 
 Real
 MultiFab::min (int comp,
-               int nghost) const
+               int nghost,
+	       bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -444,7 +449,8 @@ MultiFab::min (int comp,
 	}
     }
 
-    ParallelDescriptor::ReduceRealMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
@@ -452,7 +458,8 @@ MultiFab::min (int comp,
 Real
 MultiFab::min (const Box& region,
                int        comp,
-               int        nghost) const
+               int        nghost,
+	       bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -478,14 +485,16 @@ MultiFab::min (const Box& region,
 	}
     }
 
-    ParallelDescriptor::ReduceRealMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
 
 Real
 MultiFab::max (int comp,
-               int nghost) const
+               int nghost,
+	       bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -509,7 +518,8 @@ MultiFab::max (int comp,
 	}
     }
 
-    ParallelDescriptor::ReduceRealMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -517,7 +527,8 @@ MultiFab::max (int comp,
 Real
 MultiFab::max (const Box& region,
                int        comp,
-               int        nghost) const
+               int        nghost,
+	       bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
@@ -543,7 +554,8 @@ MultiFab::max (const Box& region,
 	}
     }
 	
-    ParallelDescriptor::ReduceRealMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -717,7 +729,7 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
-MultiFab::norm0 (int comp, const BoxArray& ba) const
+MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -745,13 +757,14 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 	}
     }
  
-    ParallelDescriptor::ReduceRealMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0);
  
     return nm0;
 }
 
 Real
-MultiFab::norm0 (int comp) const
+MultiFab::norm0 (int comp, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -772,13 +785,14 @@ MultiFab::norm0 (int comp) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0);
 
     return nm0;
 }
 
 Array<Real>
-MultiFab::norm0 (const Array<int>& comps) const
+MultiFab::norm0 (const Array<int>& comps, bool local) const
 {
     int n = comps.size();
     const Real rmax = std::numeric_limits<Real>::max();
@@ -820,7 +834,8 @@ MultiFab::norm0 (const Array<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
 
     return nm0;
 }
@@ -900,7 +915,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 }
  
 Real
-MultiFab::norm1 (int comp, int ngrow) const
+MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
     Real nm1 = 0.e0;
 
@@ -912,13 +927,14 @@ MultiFab::norm1 (int comp, int ngrow) const
         nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
     }
 
-    ParallelDescriptor::ReduceRealSum(nm1);
+    if (!local)
+	ParallelDescriptor::ReduceRealSum(nm1);
 
     return nm1;
 }
 
 Array<Real>
-MultiFab::norm1 (const Array<int>& comps, int ngrow) const
+MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
 {
     int n = comps.size();
     Array<Real> nm1(n, 0.e0);
@@ -960,7 +976,8 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
+    if (!local)
+	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
 
     return nm1;
 }

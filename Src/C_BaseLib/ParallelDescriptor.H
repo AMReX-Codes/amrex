@@ -11,6 +11,10 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #include <vector>
 #include <string>
 #include <typeinfo>
@@ -470,6 +474,7 @@ namespace ParallelDescriptor
     template <class T> Message Arecv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag);
+    template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm);
     template <class T> Message Send(const std::vector<T>& buf, int dst_pid, int tag);
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
@@ -586,6 +591,27 @@ ParallelDescriptor::Send (const T* buf,
                              dst_pid,
                              tag,
                              Communicator()) );
+    BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send (const T* buf,
+                          size_t   n,
+                          int      dst_pid,
+                          int      tag,
+			  MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
+    BL_COMM_PROFILE(BLProfiler::SendTsii, n * sizeof(T), dst_pid, tag);
+
+    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
+                             n,
+                             Mpi_typemap<T>::type(),
+                             dst_pid,
+                             tag,
+                             comm) );
     BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
     return Message();
 }
@@ -743,6 +769,10 @@ ParallelDescriptor::Bcast (T*     t,
                            size_t n,
                            int    root)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
@@ -847,6 +877,13 @@ Asend(const std::vector<T>& buf, int dst_pid, int tag)
 template <class T>
 Message
 Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
     return Message();
 }

@@ -114,3 +114,8 @@ endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
 C$(BOXLIB_BASE)_sources += BLBackTrace.cpp
+
+ifeq ($(LAZY),TRUE)
+  CEXE_sources += Lazy.cpp
+  CEXE_headers += Lazy.H
+endif

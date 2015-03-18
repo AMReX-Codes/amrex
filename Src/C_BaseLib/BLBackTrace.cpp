@@ -15,8 +15,9 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
-    void *buffer[10];
-    int nptrs = backtrace(buffer, 10);
+    const int nbuf = 16;
+    void *buffer[nbuf];
+    int nptrs = backtrace(buffer, nbuf);
     backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
 
 #ifdef _OPENMP

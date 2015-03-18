@@ -155,8 +155,11 @@ source_hash = runcommand("git rev-parse HEAD")
 os.chdir(runningDir)
 
 if (not extra_home == ""):
-    os.chdir(extra_home)
-    extra_hash = runcommand("git rev-parse HEAD")
+    try: os.chdir(extra_home)
+    except:
+        extra_hash = "ERROR: directory not found"
+    else:
+        extra_hash = runcommand("git rev-parse HEAD")
     os.chdir(runningDir)
 
 # we may not be building in a sub-directory of the source directory, in that

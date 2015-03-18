@@ -8,3 +8,10 @@ o/
 t/
 TAGS
 
+# latex
+*.aux
+*.log
+*.bbl
+*.toc
+*.dvi
+*-eps-converted-to.pdf
