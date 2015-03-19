@@ -714,7 +714,7 @@ void WriteHeader(std::ostream &ios, const int colWidth,
         << std::setw(colWidth + 2) << "Avg"
         << std::setw(colWidth + 2) << "Max"
         << std::setw(colWidth + 2) << "StdDev"
-        << std::setw(colWidth + 2) << "Variance"
+        << std::setw(colWidth + 2) << "CoeffVar"
         << std::setw(colWidth + 4) << "Percent %"
         << '\n';
   } else {
@@ -736,6 +736,14 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 	      const bool bwriteavg)
 {
     int numPrec(4), pctPrec(2);
+    Real stdDev(0.0), coeffVariation(0.0);
+    if(pstats.variance > 0.0) {
+      stdDev = std::sqrt(pstats.variance);
+    }
+    if(pstats.avgTime > 0.0) {
+      coeffVariation = stdDev / pstats.avgTime;
+    }
+
     if(bwriteavg) {
       ios << std::right;
       ios << std::setw(maxlen + 2) << fname << "  "
@@ -747,9 +755,9 @@ void WriteRow(std::ostream &ios, const std::string &fname,
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
 	  << pstats.maxTime << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << std::sqrt(pstats.variance) << "  "
+	  << stdDev << "  "
           << std::setprecision(numPrec) << std::fixed << std::setw(colWidth)
-	  << pstats.variance << "  "
+	  << coeffVariation << "  "
           << std::setprecision(pctPrec) << std::fixed << std::setw(colWidth)
 	  << percent << " %" << '\n';
     } else {
