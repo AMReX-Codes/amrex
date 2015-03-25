@@ -614,10 +614,14 @@ void BLProfiler::Finalize() {
           // ----------------------------- write to file here
           //BLProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
 	  seekPos = csFile.tellp();
-          csFile.write((char *) nCallsOut.dataPtr(),
-	               nCallsOut.size() * sizeof(long));
-          csFile.write((char *) totalTimesOut.dataPtr(),
-	               totalTimesOut.size() * sizeof(Real));
+	  if(nCallsOut.size() > 0) {
+            csFile.write((char *) nCallsOut.dataPtr(),
+	                 nCallsOut.size() * sizeof(long));
+	  }
+	  if(totalTimesOut.size() > 0) {
+            csFile.write((char *) totalTimesOut.dataPtr(),
+	                 totalTimesOut.size() * sizeof(Real));
+	  }
           // ----------------------------- end write to file here
 
           csFile.flush();
@@ -741,7 +745,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
       stdDev = std::sqrt(pstats.variance);
     }
     if(pstats.avgTime > 0.0) {
-      coeffVariation = stdDev / pstats.avgTime;
+      coeffVariation = 100.0 * (stdDev / pstats.avgTime);  // ---- percent
     }
 
     if(bwriteavg) {
@@ -1346,7 +1350,9 @@ void BLProfiler::WriteCommStats(const bool bFlushing) {
 	csHeaderFile.flush();
         csHeaderFile.close();
 
-	csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
+	if(vCommStats.size() > 0) {
+	  csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
+	}
 
         csDFile.flush();
         csDFile.close();
