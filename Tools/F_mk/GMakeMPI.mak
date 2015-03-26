@@ -241,7 +241,7 @@ ifeq ($(HOST),naphta)
   endif
 endif
 
-ifeq ($(HOST),battra)
+ifeq ($(HOST),battra.lbl.gov)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
