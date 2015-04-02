@@ -81,6 +81,11 @@ ifeq ($(COMP),PGI)
     CDEBF += -acc
   endif
 
+  ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += --c++11
+       CXXDEBF += --c++11
+  endif
+
 else
 ifeq ($(COMP),xlC)
   CXX     := xlC

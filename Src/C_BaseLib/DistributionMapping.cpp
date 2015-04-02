@@ -42,7 +42,7 @@ namespace
     //
     bool   verbose;
     int    sfc_threshold;
-    double max_efficiency;
+    Real   max_efficiency;
 }
 
 // We default to SFC.
@@ -608,7 +608,7 @@ void
 knapsack (const std::vector<long>&         wgts,
           int                              nprocs,
           std::vector< std::vector<int> >& result,
-          double&                          efficiency,
+          Real&                            efficiency,
           bool                             do_full_knapsack,
 	  int                              nmax)
 {
@@ -659,8 +659,8 @@ knapsack (const std::vector<long>&         wgts,
     //
     // Compute the max weight and the sum of the weights.
     //
-    double max_weight = 0;
-    double sum_weight = 0;
+    Real max_weight = 0;
+    Real sum_weight = 0;
     std::list<WeightedBoxList>::iterator it = wblqg.begin();
     for (std::list<WeightedBoxList>::const_iterator End =  wblqg.end(); it != End; ++it)
     {
@@ -703,8 +703,8 @@ top:
                 // increase if after we switch the two balls *it_wb and
                 // *it_owb the max weight is reduced.
                 //
-                double w_tb = (*it_top).weight() + (*it_owb).weight() - (*it_wb).weight();
-                double w_ob = (*it_chk).weight() + (*it_wb).weight() - (*it_owb).weight();
+                Real w_tb = (*it_top).weight() + (*it_owb).weight() - (*it_wb).weight();
+                Real w_ob = (*it_chk).weight() + (*it_wb).weight() - (*it_owb).weight();
                 //
                 // If the other ball reduces the weight of the top box when
                 // swapped, then it will change the efficiency.
@@ -763,7 +763,7 @@ top:
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    int                      nprocs,
-                                   double&                  efficiency,
+                                   Real&                    efficiency,
                                    bool                     do_full_knapsack,
 				   int                      nmax)
 {
@@ -831,7 +831,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
                                            int                      nprocs,
-                                           double*                  efficiency,
+                                           Real*                    efficiency,
                                            bool                     do_full_knapsack,
 					   int                      nmax)
 {
@@ -850,7 +850,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
     }
     else
     {
-        double eff = 0;
+        Real eff = 0;
         KnapSackDoIt(wgts, nprocs, eff, do_full_knapsack, nmax);
         if (efficiency) *efficiency = eff;
     }
@@ -874,7 +874,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         for (unsigned int i = 0, N = boxes.size(); i < N; ++i)
             wgts[i] = boxes[i].numPts();
 
-        double effi = 0;
+        Real effi = 0;
         bool do_full_knapsack = true;
         KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
