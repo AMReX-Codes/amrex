@@ -134,7 +134,7 @@ class DistributionMapping
     void PFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
                          int nprocs);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
-                              double* efficiency = 0,
+                              Real* efficiency = 0,
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
@@ -220,7 +220,7 @@ private:
 
     void KnapSackDoIt (const std::vector<long>& wgts,
                        int                      nprocs,
-                       double&                  efficiency,
+                       Real&                    efficiency,
                        bool                     do_full_knapsack,
 		       int                      nmax=std::numeric_limits<int>::max());
 
