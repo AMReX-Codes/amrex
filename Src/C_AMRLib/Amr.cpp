@@ -3162,7 +3162,7 @@ Amr::initPltAndChk ()
 
     if (got_plot_int == 1 && got_plot_per == 1)
     {
-        BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
+        BoxLib::Warning("Must only specify amr.plot_int OR amr.plot_per");
     }
 
     stream_max_tries = 4;
