@@ -3141,28 +3141,28 @@ Amr::initPltAndChk ()
     pp.query("check_file",check_file_root);
 
     check_int = -1;
-    int got_check_int = pp.query("check_int",check_int);
+    pp.query("check_int",check_int);
 
     check_per = -1.0;
-    int got_check_per = pp.query("check_per",check_per);
+    pp.query("check_per",check_per);
 
-    if (got_check_int == 1 && got_check_per == 1)
+    if (check_int > 0 && check_per > 0)
     {
-        BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
+        BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
 
     plot_int = -1;
-    int got_plot_int = pp.query("plot_int",plot_int);
+    pp.query("plot_int",plot_int);
 
     plot_per = -1.0;
-    int got_plot_per = pp.query("plot_per",plot_per);
+    pp.query("plot_per",plot_per);
 
-    if (got_plot_int == 1 && got_plot_per == 1)
+    if (plot_int > 0 && plot_per > 0)
     {
-        BoxLib::Warning("Must only specify amr.plot_int OR amr.plot_per");
+        BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
     }
 
     stream_max_tries = 4;
