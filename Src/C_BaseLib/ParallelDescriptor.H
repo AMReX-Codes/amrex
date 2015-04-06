@@ -1014,7 +1014,7 @@ Bcast(T* t, size_t n, int root)
 
 template <class T>
 void
-Bcast(T* t, size_t n, int rootconst MPI_Comm &comm)
+Bcast(T* t, size_t n, int root, const MPI_Comm &comm)
 {}
 
 template <class T, class T1>
