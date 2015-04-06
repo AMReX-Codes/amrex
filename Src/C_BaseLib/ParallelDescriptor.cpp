@@ -347,10 +347,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
-    usleep(m_MyId_all * 1000000 / 10.0);
-    std::cout << m_MyId_all << "::********** npc npp " << m_nProcs_comp << "  "
-              << m_nProcs_perfmon << std::endl;
-
     if(nPerfmonProcs > 0) {
       std::cout << "world: rank " << m_MyId_all << " in [0,"
                 << m_nProcs_all-1 << "]" << std::endl;
