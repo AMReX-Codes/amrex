@@ -359,7 +359,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 
       if(m_MyId_all >= m_nProcs_all - nPerfmonProcs) {  // ---- in perfmon group
         MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
-        MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
         MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
 	m_MyId_comp = myId_notInGroup;
 
@@ -368,11 +367,10 @@ ParallelDescriptor::StartParallel (int*    argc,
 	          << m_nProcs_perfmon-1 << "]" << std::endl;
       } else {                        // ---- in computation group
         MPI_Group_rank(m_group_comp, &m_MyId_comp);
-        MPI_Group_size(m_group_comp, &m_nProcs_comp);
         MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nPerfmonProcs,
 	                     tag, &m_comm_inter);
 	m_MyId_perfmon = myId_notInGroup;
-	//m_nProcs_perfmon = nPerfmonProcs;
+
         usleep(m_MyId_all * 1000000 / 10.0);
         std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0,"
 	          << m_nProcs_comp-1 << "]" << std::endl;
@@ -387,10 +385,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     // Wait until all other processes are properly started.
     //
     BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
-    //if(m_MyId_all == 0) {
-      std::cout << m_MyId_all << ":  ---- end ParallelDescriptor::StartParallel()" << std::endl;
-    //}
-    BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
+
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
        m_MyId_perfmon == myId_undefined)
@@ -401,7 +396,8 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     if(m_nProcs_all     == nProcs_undefined ||
        m_nProcs_comp    == nProcs_undefined ||
-       m_nProcs_perfmon == nProcs_undefined)
+       m_nProcs_perfmon == nProcs_undefined ||
+       (m_nProcs_comp + m_nProcs_perfmon != m_nProcs_all))
     {
       std::cerr << "m_nProcs_all m_nProcs_comp m_nProcs_perfmon = " << m_nProcs_all << "  "
 	          << m_nProcs_comp << "  " << m_nProcs_perfmon << std::endl;
@@ -1246,7 +1242,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     m_MyId_all     = 0;
     m_MyId_comp    = 0;
-    m_MyId_perfmon = 0;
+    m_MyId_perfmon = myId_notInGroup;
 
     m_comm_all     = 0;
     m_comm_comp    = 0;
