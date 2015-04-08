@@ -468,7 +468,7 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
    else
      CXXOPTF += -g -O2 -ip -fp-model source
    endif
@@ -736,8 +736,8 @@ ifeq ($(FCOMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip
-     fOPTF += -O2 -ip
+     FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
    else
      FOPTF += -O2 -ip -fp-model source
      fOPTF += -O2 -ip -fp-model source
