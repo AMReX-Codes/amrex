@@ -14,9 +14,9 @@ ParticleBase::CIC_Cells_Fracs_Basic (const ParticleBase& p,
     //
     // "cells" should be dimensioned: IntVect cells[D_TERM(2,+2,+4)]
     //
-    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
-                                           (p.m_pos[1]-plo[1])/dx[1] + 0.5,
-                                           (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+    const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
+                                           (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
+                                           (p.m_pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
     const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -71,34 +71,34 @@ ParticleBase::CIC_Cells_Fracs (const ParticleBase& p,
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
     {
         cells[i][0] = xi;
-        fracs[i] = (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+        fracs[i] = (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0)))*cell_density;
         i++;
     }
 #elif (BL_SPACEDIM == 2)
     for (int yi = locell[1]; yi <= hicell[1]; yi++)
     {
-        const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+        const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
         for (int xi = locell[0]; xi <= hicell[0]; xi ++)
         {
             cells[i][0] = xi;
             cells[i][1] = yi;
-            fracs[i] = yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0))*cell_density;
+            fracs[i] = yf * (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0)))*cell_density;
             i++;
         }
     }
 #elif (BL_SPACEDIM == 3)
     for (int zi = locell[2]; zi <= hicell[2]; zi++)
     {
-        const Real zf = std::min(hilen[2]-zi,1.0)-std::max(lolen[2]-zi,0.0);
+        const Real zf = std::min(hilen[2]-zi,Real(1))-std::max(lolen[2]-zi,Real(0));
         for (int yi = locell[1]; yi <= hicell[1]; yi++)
         {
-            const Real yf = std::min(hilen[1]-yi,1.0)-std::max(lolen[1]-yi,0.0);
+            const Real yf = std::min(hilen[1]-yi,Real(1))-std::max(lolen[1]-yi,Real(0));
             for (int xi = locell[0]; xi <= hicell[0]; xi++)
             {
                 cells[i][0] = xi;
                 cells[i][1] = yi;
                 cells[i][2] = zi;
-                fracs[i] = zf * yf * (std::min(hilen[0]-xi,1.0)-std::max(lolen[0]-xi,0.0)) * cell_density;
+                fracs[i] = zf * yf * (std::min(hilen[0]-xi,Real(1))-std::max(lolen[0]-xi,Real(0))) * cell_density;
                 i++;
             }
         }

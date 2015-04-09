@@ -17,12 +17,13 @@ import email
 import getopt
 import getpass
 import os
+import shlex
 import shutil
 import smtplib
 import socket
+import string
 import subprocess
 import sys
-import string
 import tarfile
 import time
 
@@ -473,6 +474,19 @@ def systemCall(string):
     return status
 
 
+def run(string):
+
+    # shlex.split will preserve inner quotes
+    prog = shlex.split(string)
+    p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+    stdout0, stderr0 = p0.communicate()
+    rc = p0.returncode
+    
+    return stdout0, stderr0, rc
+
+                                                                                
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   S U I T E   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -552,6 +566,8 @@ def getRecentFileName(dir,base,extension):
     # name of only the most recently created one
     ctime = -1
     executableFile = ""
+    print "searching in {}".format(dir), base, extension
+    
     for file in os.listdir(dir):
        if (os.path.isfile(file) and
            file.startswith(base) and file.endswith(extension)):
@@ -1512,24 +1528,24 @@ def testSuite(argv):
     
     os.chdir(suite.compareToolDir)
 
-    compString = "%s BOXLIB_HOME=%s COMP=%s realclean >& /dev/null" % \
+    compString = "%s BOXLIB_HOME=%s COMP=%s realclean" % \
                    (suite.MAKE, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
-    systemCall(compString)
+    run(compString)
 
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s  >& fcompare.make.out" % \
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s" % \
                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
-    systemCall(compString)
+    so, se, r = run(compString)
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
-
+    
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
 
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fboxinfo NDEBUG=t MPI= COMP=%s  >& fboxinfo.make.out" % \
+    compString = "%s -j%s BOXLIB_HOME=%s programs=fboxinfo NDEBUG=t MPI= COMP=%s" % \
                    (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
     print "  " + compString
-    systemCall(compString)
+    run(compString)
     compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
 
     shutil.copy(compareExecutable, fullTestDir + "/fboxinfo.exe")
@@ -1547,17 +1563,17 @@ def testSuite(argv):
         bold("building the visualization tools...", skip_before=1)
 
         if anyDoVis['2D']:
-            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot2d.make.out" % \
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s" % \
                          (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
             print "  " + compString
-            systemCall(compString)
+            run(compString)
             vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
 
         if anyDoVis['3D']:
-            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s  2>&1 > fsnapshot3d.make.out" % \
+            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s" % \
                          (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
             print "  " + compString
-            systemCall(compString)
+            run(compString)
             vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
     
 
@@ -1596,9 +1612,9 @@ def testSuite(argv):
             print "  %s" % (dir)
             os.chdir(suite.sourceDir + dir)
             
-        systemCall("%s BOXLIB_HOME=%s %s %s realclean >& /dev/null" % 
-                   (suite.MAKE, suite.boxLibDir, 
-                    suite.extSrcCompString, suite.extraBuildDirCompString))
+        run("%s BOXLIB_HOME=%s %s %s realclean" % 
+            (suite.MAKE, suite.boxLibDir, 
+             suite.extSrcCompString, suite.extraBuildDirCompString))
 
             
     os.chdir(suite.testTopDir)
@@ -1653,9 +1669,9 @@ def testSuite(argv):
             # build options, make clean again to be safe
             print "  re-making clean..."
 
-            systemCall("%s BOXLIB_HOME=%s %s %s realclean >& /dev/null" % 
-                       (suite.MAKE, suite.boxLibDir, 
-                        suite.extSrcCompString, suite.extraBuildDirCompString))
+            run("%s BOXLIB_HOME=%s %s %s realclean" % 
+                (suite.MAKE, suite.boxLibDir, 
+                 suite.extSrcCompString, suite.extraBuildDirCompString))
 
         
         print "  building..."
@@ -1688,16 +1704,25 @@ def testSuite(argv):
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
-            compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s  >& %s/%s.make.out" % \
+            compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
                 (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
                  suite.extSrcCompString, test.addToCompileString, 
                  test.dim, buildOptions, suite.COMP, suite.FCOMP, 
-                 executable, outputDir, test.name)
+                 executable)
 
             print "    " + compString
-            systemCall(compString)            
-	       
+            so, se, r = run(compString)
             
+            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
+            except:
+                sys.exit("unable to open make.out")
+
+            for line in so:
+                f.write(line)
+            for line in se:
+                f.write(line)
+            f.close()
+               
         elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
             buildOptions = ""
@@ -1720,14 +1745,22 @@ def testSuite(argv):
             if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
-            compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s >& %s/%s.make.out" % \
+            compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s" % \
                 (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
                  suite.extSrcCompString, test.addToCompileString, 
-                 buildOptions, suite.FCOMP, outputDir, test.name)
+                 buildOptions, suite.FCOMP)
 
             print "    " + compString
-            systemCall(compString)
+            so, se, r = run(compString)
+            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
+            except:
+                sys.exit("unable to open make.out")
 
+            for line in so:
+                f.write(line)
+            for line in se:
+                f.write(line)
+            f.close()
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(bDir,"main",".exe")
