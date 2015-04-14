@@ -231,6 +231,7 @@ void BLProfiler::Initialize() {
 
   Array<char> fileCharPtr;
   bool bExitOnError(false);  // in case the file does not exist
+  //ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError, ParallelDescriptor::CommunicatorAll());
   ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
 
   CommStats::cftExclude.erase(AllCFTypes);
@@ -614,10 +615,14 @@ void BLProfiler::Finalize() {
           // ----------------------------- write to file here
           //BLProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
 	  seekPos = csFile.tellp();
-          csFile.write((char *) nCallsOut.dataPtr(),
-	               nCallsOut.size() * sizeof(long));
-          csFile.write((char *) totalTimesOut.dataPtr(),
-	               totalTimesOut.size() * sizeof(Real));
+	  if(nCallsOut.size() > 0) {
+            csFile.write((char *) nCallsOut.dataPtr(),
+	                 nCallsOut.size() * sizeof(long));
+	  }
+	  if(totalTimesOut.size() > 0) {
+            csFile.write((char *) totalTimesOut.dataPtr(),
+	                 totalTimesOut.size() * sizeof(Real));
+	  }
           // ----------------------------- end write to file here
 
           csFile.flush();
@@ -741,7 +746,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
       stdDev = std::sqrt(pstats.variance);
     }
     if(pstats.avgTime > 0.0) {
-      coeffVariation = stdDev / pstats.avgTime;
+      coeffVariation = 100.0 * (stdDev / pstats.avgTime);  // ---- percent
     }
 
     if(bwriteavg) {
@@ -1346,7 +1351,9 @@ void BLProfiler::WriteCommStats(const bool bFlushing) {
 	csHeaderFile.flush();
         csHeaderFile.close();
 
-	csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
+	if(vCommStats.size() > 0) {
+	  csDFile.write((char *) vCommStats.dataPtr(), vCommStats.size() * sizeof(CommStats));
+	}
 
         csDFile.flush();
         csDFile.close();
@@ -1584,17 +1591,34 @@ void BLProfiler::CommStats::UnFilter(CommFuncType cft) {
 
 
 void BLProfiler::PerfMonProcess() {
+  std::cout << "#### Starting PerfMonProcess:  myProc = " << ParallelDescriptor::MyProcPerfMon() << std::endl << std::flush;
 #ifdef BL_USE_MPI
   MPI_Status status;
   bool finished(false);
   int recstep(-1), rtag(0);
   while( ! finished) {
-    std::cout << "**** _in PerfMonProcess:  waiting for rtag = " << rtag << std::endl;
-    MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorInter(), &status);
-    std::cout << "**** _in PerfMonProcess:  recv step = " << recstep << std::endl;
-    ++rtag;
-    if(recstep < 0) {
-      finished = true;
+    if(ParallelDescriptor::MyProcPerfMon() == 0) {
+      std::cout << "**** _in PerfMonProcess:  waiting for rtag = " << rtag << std::endl;
+      MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorInter(), &status);
+      std::cout << "**** _in PerfMonProcess:  recv step = " << recstep << std::endl;
+      ++rtag;
+      if(recstep < 0) {
+        finished = true;
+	for(int p(1); p < ParallelDescriptor::NProcsPerfMon(); ++p) {
+	  MPI_Send(&recstep, 1, MPI_INT, p, rtag, ParallelDescriptor::CommunicatorPerfMon());
+	}
+      }
+
+    } else {
+      std::cout << "pppp _in PerfMonProcess:  waiting for proc 0" << std::endl;
+      rtag = MPI_ANY_TAG;
+      MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorPerfMon(), &status);
+      std::cout << "pppp _in PerfMonProcess:  recv step = " << recstep << std::endl;
+      ++rtag;
+      if(recstep < 0) {
+        finished = true;
+        std::cout << "pppp _in PerfMonProcess:  finished" << std::endl;
+      }
     }
   }
 #endif
