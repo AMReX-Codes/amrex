@@ -66,6 +66,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     ,particle_grids(ba)
 #endif
 {
+    BL_PROFILE("AmrLevel::AmrLevel()");
     level  = lev;
     parent = &papa;
 
@@ -117,6 +118,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     ,particle_grids(ba)
 #endif
 {
+    BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
     parent = &papa;
 
@@ -161,6 +163,7 @@ AmrLevel::restart (Amr&          papa,
                    std::istream& is,
 		   bool          bReadSpecial)
 {
+    BL_PROFILE("AmrLevel::restart()");
     parent = &papa;
 
     is >> level;
@@ -332,6 +335,7 @@ AmrLevel::checkPoint (const std::string& dir,
                       VisMF::How         how,
                       bool               dump_old)
 {
+    BL_PROFILE("AmrLevel::checkPoint()");
     int ndesc = desc_lst.size(), i;
     //
     // Build directory to hold the MultiFabs in the StateData at this level.

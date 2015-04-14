@@ -227,6 +227,7 @@ Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
 void
 Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 {
+    BL_PROFILE("Amr::InitAmr()");
     //
     // Determine physics class.
     //
@@ -1004,6 +1005,7 @@ Amr::init (Real strt_time,
            Real stop_time)
 {
     BL_PROFILE_REGION_START("Amr::init()");
+    BL_PROFILE("Amr::init()");
     if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
@@ -1116,6 +1118,7 @@ Amr::initialInit (Real              strt_time,
                   const BoxArray*   lev0_grids,
                   const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::initialInit()");
     InitializeInit(strt_time, stop_time, lev0_grids, pmap);
 
     // This is a subtlety, but in the case where we are initializing the data
@@ -1133,7 +1136,8 @@ Amr::InitializeInit(Real              strt_time,
                     const BoxArray*   lev0_grids,
                     const Array<int>* pmap)
 {
-    BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
+    BL_PROFILE("Amr::InitializeInit()");
+    BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1173,6 +1177,7 @@ void
 Amr::FinalizeInit (Real              strt_time,
                    Real              stop_time)
 {
+    BL_PROFILE("Amr::FinalizeInit()");
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -2074,6 +2079,7 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
@@ -2959,6 +2965,7 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
+    BL_PROFILE("Amr::bldFineLevels()");
     finest_level = 0;
 
     Array<BoxArray> grids(max_level+1);
@@ -3022,6 +3029,7 @@ Amr::bldFineLevels (Real strt_time)
 void
 Amr::initSubcycle ()
 {
+    BL_PROFILE("Amr::initSubcycle()");
     ParmParse pp("amr");
     int i;
     sub_cycle = true;

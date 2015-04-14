@@ -1708,12 +1708,21 @@ def testSuite(argv):
                 (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, 
                  suite.extSrcCompString, test.addToCompileString, 
                  test.dim, buildOptions, suite.COMP, suite.FCOMP, 
-                 executable, outputDir, test.name)
+                 executable)
 
             print "    " + compString
-            run(compString)            
-	       
+            so, se, r = run(compString)
             
+            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
+            except:
+                sys.exit("unable to open make.out")
+
+            for line in so:
+                f.write(line)
+            for line in se:
+                f.write(line)
+            f.close()
+               
         elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
 
             buildOptions = ""
@@ -1748,6 +1757,8 @@ def testSuite(argv):
                 sys.exit("unable to open make.out")
 
             for line in so:
+                f.write(line)
+            for line in se:
                 f.write(line)
             f.close()
 

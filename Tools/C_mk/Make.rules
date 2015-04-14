@@ -15,6 +15,7 @@ clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
 	$(SILENT) $(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
+	$(SILENT) $(RM) *.optrpt $(objTempDir)/*.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable) *.pure
 #
 # Rule for building libraries.
