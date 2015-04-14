@@ -482,10 +482,10 @@ def run(string):
                           stderr=subprocess.PIPE)
     stdout0, stderr0 = p0.communicate()
     rc = p0.returncode
+    p0.stdout.close()
     
     return stdout0, stderr0, rc
 
-                                                                                
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   S U I T E   R O U T I N E S
@@ -2145,13 +2145,9 @@ def testSuite(argv):
 
 
             # get the number of levels for reporting
-            prog = ["../fboxinfo.exe", "-l", "{}".format(outputFile)]
-            p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT)
-            stdout0, stderr0 = p0.communicate()
+            prog = "../fboxinfo.exe -l {}".format(outputFile)
+            stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
-            p0.stdout.close()
-            
 
             if (not make_benchmarks):
 
