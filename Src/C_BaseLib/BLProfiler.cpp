@@ -566,6 +566,7 @@ void BLProfiler::Finalize() {
     // ----
     // ---- if we use an unordered_map for mProfStats, copy to a sorted container
     // ----
+    ParallelDescriptor::Barrier();  // ---- wait for everyone (remove after adding filters)
     Array<long> nCallsOut(mProfStats.size(), 0);
     Array<Real> totalTimesOut(mProfStats.size(), 0.0);
     int count(0);
@@ -613,7 +614,6 @@ void BLProfiler::Finalize() {
           }
 
           // ----------------------------- write to file here
-          //BLProfilerUtils::WriteStats(csFile, mProfStats, mFNameNumbers, vCallTrace);
 	  seekPos = csFile.tellp();
 	  if(nCallsOut.size() > 0) {
             csFile.write((char *) nCallsOut.dataPtr(),
