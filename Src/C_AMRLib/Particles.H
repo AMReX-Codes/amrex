@@ -616,9 +616,9 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
     //
     const Geometry& geom = m_amr->Geom(0);
 
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
-                                              .125*geom.CellSize(1),
-                                              .125*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
+                                              Real(.125)*geom.CellSize(1),
+                                              Real(.125)*geom.CellSize(2)) };
     //
     // If particle is right on a domain boundary then move it just inside the boundary.
     //
@@ -756,9 +756,9 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
         const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
         const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-        const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
-                                                  .125*geom.CellSize(1),
-                                                  .125*geom.CellSize(2)) };
+        const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
+                                                  Real(.125)*geom.CellSize(1),
+                                                  Real(.125)*geom.CellSize(2)) };
         for (int i = 0; i < MyCnt; i++)
         {
             //
@@ -1216,9 +1216,9 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
     const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
     const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
-                                              .125*geom.CellSize(1),
-                                              .125*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
+                                              Real(.125)*geom.CellSize(1),
+                                              Real(.125)*geom.CellSize(2)) };
 
     long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
@@ -1522,7 +1522,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
 			// Start with homogeneous distribution (for 1 p per cell in the center of the cell),
 			//
 	                p.m_pos[n] = geom.ProbLo(n) + 
-                                      (indices[n]+0.5)*dx[n];
+                                      (indices[n]+Real(0.5))*dx[n];
 			if(disp[n]*disp_fac[n]>dx[n]/2.0)
 			  outcount[n]++;
 			if(disp[n]*disp_fac[n]<-dx[n]/2.0)
@@ -1648,7 +1648,7 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
                         // then add the displacement (input values weighted by domain length).
                         //
 	                p.m_pos[n] = geom.ProbLo(n) + 
-                                      (indices[n]+0.5)*dx[n] +
+                                      (indices[n]+Real(0.5))*dx[n] +
 		                      disp[n] * len[n];
                         //
 			// Set the velocities.
@@ -1769,7 +1769,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 		    for (int n = 0; n < BL_SPACEDIM; n++)
                     {
   		        pos[n] = geom.ProbLo(n)
-		               + (indices[n] + 0.5)*len[n]/n_part[n]
+		               + (indices[n] + Real(0.5))*len[n]/n_part[n]
 			       + shift[n];
                         //
 			// Make sure particle is not on a boundary...
@@ -2344,7 +2344,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
                                             + gval[1]*gval[1],
                                             + gval[2]*gval[2]));
             if (mag_grav > 0)
-                dt_part = std::min( dt_part, 1/sqrt(mag_grav/dx[0]) );
+                dt_part = std::min( dt_part, 1/std::sqrt(mag_grav/dx[0]) );
 
             int tid = 0;
 
@@ -4420,7 +4420,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
         const int        n        = pbox.size();
         const FArrayBox& gfab     = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
         const FArrayBox& gfab_old = (gv_pointer_old) ? (*gv_pointer_old)[grid] : gv_old[grid];
-        const Real       half_dt  = 0.5 * dt;
+        const Real       half_dt  = Real(0.5) * dt;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -4491,7 +4491,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
         return;
 
     const Real strttime      = ParallelDescriptor::second();
-    const Real half_dt       = 0.5 * dt;
+    const Real half_dt       = Real(0.5) * dt;
     const Real a_half_inv    = 1 / a_half;
     const Real dt_a_half_inv = dt * a_half_inv;
     PMap&      pmap          = m_particles[lev];
@@ -4631,7 +4631,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     const Real strttime  = ParallelDescriptor::second();
-    const Real half_dt   = 0.5 * dt;
+    const Real half_dt   = Real(0.5) * dt;
     const Real a_new_inv = 1 / a_new;
     PMap&      pmap      = m_particles[lev];
 
@@ -4736,7 +4736,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     const Geometry& geom          = m_amr->Geom(lev);
     const Real*     dx            = geom.CellSize();
     const Real*     plo           = geom.ProbLo();
-    const Real      half_dt       = 0.5 * dt;
+    const Real      half_dt       = Real(0.5) * dt;
     const Real      a_half_inv    = 1 / a_half;
     const Real      dt_a_half_inv = dt * a_half_inv;
     PMap&           pmap          = m_particles[lev];
@@ -4893,7 +4893,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     const Geometry& geom      = m_amr->Geom(lev);
     const Real*     dx        = geom.CellSize();
     const Real*     plo       = geom.ProbLo();
-    const Real      half_dt   = 0.5 * dt;
+    const Real      half_dt   = Real(0.5) * dt;
     const Real      a_new_inv = 1 / a_new;
     PMap&           pmap      = m_particles[lev];
 
@@ -5424,9 +5424,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 
                 BL_ASSERT(p.m_grid == grid);
 
-                const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + 0.5,
-                                                       (p.m_pos[1]-plo[1])/dx[1] + 0.5,
-                                                       (p.m_pos[2]-plo[2])/dx[2] + 0.5) };
+                const Real len[BL_SPACEDIM] = { D_DECL((p.m_pos[0]-plo[0])/dx[0] + Real(0.5),
+                                                       (p.m_pos[1]-plo[1])/dx[1] + Real(0.5),
+                                                       (p.m_pos[2]-plo[2])/dx[2] + Real(0.5)) };
 
                 const IntVect cell(D_DECL(floor(len[0]), floor(len[1]), floor(len[2])));
 
@@ -5471,9 +5471,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                         //
                         // Save the velocity for use in Timestamp().
                         //
-                        p.m_pos[d]  = 0.5 * (p.m_data[vcomp + d] + p.m_pos[d] + dt*vel);
+                        p.m_pos[d]  = Real(0.5) * (p.m_data[vcomp + d] + p.m_pos[d] + dt*vel);
 
-                        p.m_data[vcomp + d] = 0.5 * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
+                        p.m_data[vcomp + d] = Real(0.5) * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
                     }
                 }
                 
@@ -6845,9 +6845,9 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
 
     const Real ProbLo[BL_SPACEDIM] = { D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2)) };
     const Real ProbHi[BL_SPACEDIM] = { D_DECL(geom.ProbHi(0), geom.ProbHi(1), geom.ProbHi(2)) };
-    const Real  Delta[BL_SPACEDIM] = { D_DECL(.125*geom.CellSize(0),
-                                              .125*geom.CellSize(1),
-                                              .125*geom.CellSize(2)) };
+    const Real  Delta[BL_SPACEDIM] = { D_DECL(Real(.125)*geom.CellSize(0),
+                                              Real(.125)*geom.CellSize(1),
+                                              Real(.125)*geom.CellSize(2)) };
     ParticleType p;
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
