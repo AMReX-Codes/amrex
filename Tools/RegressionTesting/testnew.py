@@ -75,6 +75,8 @@ class testObj:
         self.outputFile = ""
         self.compareFile = ""
 
+        self.compare_file_used = ""
+        
         self.diffDir = ""
         self.diffOpts = ""
 
@@ -536,23 +538,28 @@ def findBuildDirs(testList):
 # getLastPlotfile
 #==============================================================================
 def getLastPlotfile(outputDir, test):
-    """ given an output directory and the test name, find the last
-        plotfile written """
+    """given an output directory and the test name, find the last
+       plotfile written.  Note: we give an error if the last
+       plotfile is # 0
+    """
                 
-    plotNum = -1
+    plot_num = -1
     for file in os.listdir(outputDir):
        if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
            key = "_plt"
            index = string.rfind(file, key)
-           plotNum = max(int(file[index+len(key):]), plotNum)
+           plot_num = max(int(file[index+len(key):]), plot_num)
 
-    if plotNum == -1:
+    if plot_num == -1:
        warning("WARNING: test did not produce any output")
-       compareFile = ""
+       compare_file = ""
+    elif plot_num == 0:
+        warning("WARNING: only plotfile 0 was output -- skipping comparison")
+        compare_file = ""
     else:
-       compareFile = "%s_plt%5.5d" % (test.name, plotNum)
+       compare_file = "%s_plt%5.5d" % (test.name, plot_num)
 
-    return compareFile
+    return compare_file
 
 
 #==============================================================================
@@ -2165,6 +2172,8 @@ def testSuite(argv):
                 print "  doing the comparison..."
                 print "    comparison file: ", outputFile
 
+                test.compare_file_used = outputFile
+                
                 if (not test.restartTest):
                     benchFile = benchDir + compareFile
                 else:
@@ -3010,6 +3019,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
         hf.write("<P><TABLE>\n")
         # header
         hf.write("<tr><th>test name</th><th>dim</th>\n")
+        hf.write("    <th>compare plotfile\n")        
         hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
         hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
         hf.write("    <th>compile?</th><th>restart?</th>\n")
@@ -3028,7 +3038,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     # loop over the tests and add a line for each
     for test in testList:
 
-        if (not make_benchmarks):
+        if not make_benchmarks:
             
             # check if it passed or failed
             statusFile = "%s.status" % (test.name)
@@ -3039,12 +3049,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             testPassed = 0
         
             for line in lines:
-                if (string.find(line, "PASSED") >= 0):
+                if string.find(line, "PASSED") >= 0:
                     testPassed = 1
                     numPassed += 1
                     break
 
-            if (not testPassed):
+            if not testPassed:
                 numFailed += 1
 
         
@@ -3053,7 +3063,11 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             # write out this test's status
             hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
                      (test.name, test.name) )
-        
+
+
+            # write out the comparison file used
+            hf.write("<td>{}</td>\n".format(test.compare_file_used))
+            
             # dimensionality
             hf.write("<td>{}</td>\n".format(test.dim))
 
@@ -3104,16 +3118,9 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
         
 
         else:
-
-            if test.restartTest:
-                continue
-
-            if (test.compileTest):
-                continue
-
-            if (test.selfTest):
-                continue
-
+            if test.restartTest: continue
+            if test.compileTest: continue
+            if test.selfTest: continue
                 
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
@@ -3125,12 +3132,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
             for line in lines:
                 index = string.find(line, "file:")
-                if (index >= 0):
+                if index >= 0:
                     benchFile = line[index+5:]
                     break
                 
 
-            if (not benchFile == "none"):
+            if not benchFile == "none":
                     
                  hf.write("<TR><TD>%s</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>(new benchmark file is %s)</TD></TR>\n" %
                           (test.name, benchFile) )
@@ -3144,7 +3151,6 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     # close
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")    
-
     hf.close()
 
 
@@ -3160,7 +3166,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     sf = open(statusFile, 'w')
 
-    if (not make_benchmarks):
+    if not make_benchmarks:
         if (numFailed == 0):
             sf.write("ALL PASSED\n")
         elif (numFailed > 0 and numPassed > 0):
@@ -3199,12 +3205,12 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     for file in os.listdir(webTopDir):
 
         # look for a directory of the form 20* (this will work up until 2099
-        if (file.startswith("20") and os.path.isdir(file)):
+        if file.startswith("20") and os.path.isdir(file):
 
             # look for the status file
             statusFile = file + '/' + file + '.status'
 
-            if (os.path.isfile(statusFile)):
+            if os.path.isfile(statusFile):
                 validDirs.append(file)
 
 
@@ -3219,12 +3225,12 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
         for file in os.listdir(webTopDir + dir):
 
-            if (file.endswith(".status") and not file.startswith("20")):
+            if file.endswith(".status") and not file.startswith("20"):
 
                 index = string.rfind(file, ".status")
                 testName = file[0:index]
 
-                if (allTests.count(testName) == 0):
+                if allTests.count(testName) == 0:
                     if (not suite.reportActiveTestsOnly) or (testName in activeTestList):
                         allTests.append(testName)
 
@@ -3242,7 +3248,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     hf = open(htmlFile, 'w')
 
     header = MainHeader.replace("@TITLE@", title)
-    if (suite.goUpLink):
+    if suite.goUpLink:
         header2 = header.replace("<!--GOUPLINK-->", '<a href="../">GO UP</a>')
         hf.write(header2)
     else:
@@ -3266,12 +3272,11 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
         valid = 0
         for test in allTests:
             statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
-            if (os.path.isfile(statusFile)):
+            if os.path.isfile(statusFile):
                 valid = 1
                 break
 
-        if not valid:
-            continue
+        if not valid: continue
 
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
@@ -3284,7 +3289,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
             status = 0
 
-            if (os.path.isfile(statusFile)):            
+            if os.path.isfile(statusFile):            
 
                 sf = open(statusFile, 'r')
                 lines = sf.readlines()
@@ -3293,13 +3298,13 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
                 status = -1  
                                     
                 for line in lines:
-                    if (string.find(line, "PASSED") >= 0):
+                    if string.find(line, "PASSED") >= 0:
                         status = 1
                         break
-                    elif (string.find(line, "FAILED") >= 0):
+                    elif string.find(line, "FAILED") >= 0:
                         status = -1
                         break
-                    elif (string.find(line, "benchmarks updated") >= 0):
+                    elif string.find(line, "benchmarks updated") >= 0:
                         status = 10
                         break
                     
@@ -3307,11 +3312,11 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
                 
             # write out this test's status
-            if (status == 1):
+            if status == 1:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (test, dir, test))
-            elif (status == -1):
+            elif status == -1:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (test, dir, test))
-            elif (status == 10):
+            elif status == 10:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"benchmade\"><H3>U</H3></TD>\n" % (test))
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
@@ -3325,8 +3330,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")    
 
-    hf.close()
-
+    hf.close()    
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
