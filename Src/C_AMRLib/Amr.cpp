@@ -227,6 +227,7 @@ Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
 void
 Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 {
+    BL_PROFILE("Amr::InitAmr()");
     //
     // Determine physics class.
     //
@@ -1004,6 +1005,7 @@ Amr::init (Real strt_time,
            Real stop_time)
 {
     BL_PROFILE_REGION_START("Amr::init()");
+    BL_PROFILE("Amr::init()");
     if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
@@ -1116,6 +1118,7 @@ Amr::initialInit (Real              strt_time,
                   const BoxArray*   lev0_grids,
                   const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::initialInit()");
     InitializeInit(strt_time, stop_time, lev0_grids, pmap);
 
     // This is a subtlety, but in the case where we are initializing the data
@@ -1133,7 +1136,8 @@ Amr::InitializeInit(Real              strt_time,
                     const BoxArray*   lev0_grids,
                     const Array<int>* pmap)
 {
-    BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
+    BL_PROFILE("Amr::InitializeInit()");
+    BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1173,6 +1177,7 @@ void
 Amr::FinalizeInit (Real              strt_time,
                    Real              stop_time)
 {
+    BL_PROFILE("Amr::FinalizeInit()");
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -2074,6 +2079,7 @@ Amr::defBaseLevel (Real              strt_time,
                    const BoxArray*   lev0_grids,
                    const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
@@ -2959,6 +2965,7 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
+    BL_PROFILE("Amr::bldFineLevels()");
     finest_level = 0;
 
     Array<BoxArray> grids(max_level+1);
@@ -3022,6 +3029,7 @@ Amr::bldFineLevels (Real strt_time)
 void
 Amr::initSubcycle ()
 {
+    BL_PROFILE("Amr::initSubcycle()");
     ParmParse pp("amr");
     int i;
     sub_cycle = true;
@@ -3141,28 +3149,28 @@ Amr::initPltAndChk ()
     pp.query("check_file",check_file_root);
 
     check_int = -1;
-    int got_check_int = pp.query("check_int",check_int);
+    pp.query("check_int",check_int);
 
     check_per = -1.0;
-    int got_check_per = pp.query("check_per",check_per);
+    pp.query("check_per",check_per);
 
-    if (got_check_int == 1 && got_check_per == 1)
+    if (check_int > 0 && check_per > 0)
     {
-        BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
+        BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
 
     plot_int = -1;
-    int got_plot_int = pp.query("plot_int",plot_int);
+    pp.query("plot_int",plot_int);
 
     plot_per = -1.0;
-    int got_plot_per = pp.query("plot_per",plot_per);
+    pp.query("plot_per",plot_per);
 
-    if (got_plot_int == 1 && got_plot_per == 1)
+    if (plot_int > 0 && plot_per > 0)
     {
-        BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
+        BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
     }
 
     stream_max_tries = 4;

@@ -48,6 +48,9 @@ module build_info_module
   character (len=128), save :: extra_git_hash = &
 "@@EXTRA_HASH@@"
 
+  character (len=128), save :: extra_git_hash2 = &
+"@@EXTRA_HASH2@@"
+
   logical, parameter :: different_build_tree = @@BUILD_TREE_LOGICAL@@
   character (len=128), save :: build_git_hash = &
 "@@BUILD_HASH@@"
@@ -85,7 +88,8 @@ try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 "link_line=",
                                 "boxlib_home=",
                                 "source_home=",
-                                "extra_home="])
+                                "extra_home=",
+                                "extra_home2="])
 except getopt.GetoptError:
     sys.exit("invalid calling sequence")
 
@@ -99,6 +103,7 @@ link_line = ""
 boxlib_home = ""
 source_home = ""
 extra_home = ""
+extra_home2 = ""
 
 for o, a in opts:
 
@@ -132,6 +137,9 @@ for o, a in opts:
     if o == "--extra_home":
         extra_home = a
 
+    if o == "--extra_home2":
+        extra_home2 = a        
+
 
 MAX_STRING_LENGTH=128
 DBL_STRING_LINE_LENGTH=125
@@ -162,6 +170,14 @@ if (not extra_home == ""):
         extra_hash = runcommand("git rev-parse HEAD")
     os.chdir(runningDir)
 
+if (not extra_home2 == ""):
+    try: os.chdir(extra_home2)
+    except:
+        extra_hash2 = "ERROR: directory not found"
+    else:
+        extra_hash2 = runcommand("git rev-parse HEAD")
+    os.chdir(runningDir)
+    
 # we may not be building in a sub-directory of the source directory, in that
 # case, store an extra hash
 sourceDir = os.path.abspath(source_home)
@@ -296,6 +312,14 @@ for line in sourceString.splitlines():
 
             fout.write(newline)
 
+        elif (keyword == "EXTRA_HASH2"):
+            if (not extra_home2 == ""):
+                newline = string.replace(line, "@@EXTRA_HASH2@@", extra_hash2)
+            else:
+                newline = string.replace(line, "@@EXTRA_HASH2@@", "")
+
+            fout.write(newline)
+            
         elif (keyword == "BUILD_TREE_LOGICAL"):
             if (have_build_hash == 1):
                 newline = string.replace(line, "@@BUILD_TREE_LOGICAL@@", 
