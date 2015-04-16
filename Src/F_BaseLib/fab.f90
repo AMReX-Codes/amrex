@@ -1201,8 +1201,8 @@ contains
     complex(kind=dp_t), pointer :: r(:,:,:,:)
     integer :: lnc
     lnc = 1; if ( present(nc) ) lnc = nc
-    if ( (c+lnc-1) > fb%nc ) call bl_error('fab_dataptr_bx_c: not enough components')
-    if ( .not. contains(fb%pbx, bx) ) call bl_error('fab_dataptr_bx_c: bx is too large')
+    if ( (c+lnc-1) > fb%nc ) call bl_error('zfab_dataptr_bx_c: not enough components')
+    if ( .not. contains(fb%pbx, bx) ) call bl_error('zfab_dataptr_bx_c: bx is too large')
     select case (fb%dim)
     case (1)
        r => fb%p(bx%lo(1):bx%hi(1),:,:,c:c+lnc-1)
