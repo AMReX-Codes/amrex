@@ -153,6 +153,7 @@ namespace ParallelDescriptor
 	int pid () const;
 	MPI_Datatype type () const { return m_type; }
 	MPI_Request  req () const { return m_req; }
+	MPI_Status   stat () const { return m_stat; }
 
     private:
 
@@ -504,6 +505,7 @@ namespace ParallelDescriptor
                           bool bExitOnError = true,
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
+    void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
 }
 
 #define BL_MPI_REQUIRE(x)						\
@@ -750,15 +752,7 @@ ParallelDescriptor::Recv (T*     buf,
 			  MPI_Comm comm)
 {
     BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
-#ifdef BL_COMM_PROFILING
-    int src_pid_world(-1);
-    MPI_Group groupComm, groupWorld;
-    BL_MPI_REQUIRE( MPI_Comm_group(comm, &groupComm) );
-    BL_MPI_REQUIRE( MPI_Comm_group(Communicator(), &groupWorld) );
-    BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupComm, 1, &src_pid, groupWorld, &src_pid_world) );
-
-    BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid_world, tag);
-#endif
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
 
     MPI_Status stat;
     BL_MPI_REQUIRE( MPI_Recv(buf,
@@ -768,7 +762,18 @@ ParallelDescriptor::Recv (T*     buf,
                              tag,
                              comm,
                              &stat) );
-    BL_COMM_PROFILE(BLProfiler::RecvTsii, n * sizeof(T), stat.MPI_SOURCE, stat.MPI_TAG);
+#ifdef BL_COMM_PROFILING
+    int src_pid_comm(stat.MPI_SOURCE);
+    int src_pid_world(stat.MPI_SOURCE);
+    if(src_pid_comm != MPI_ANY_SOURCE) {
+      MPI_Group groupComm, groupWorld;
+      BL_MPI_REQUIRE( MPI_Comm_group(comm, &groupComm) );
+      BL_MPI_REQUIRE( MPI_Comm_group(Communicator(), &groupWorld) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupComm, 1, &src_pid_comm, groupWorld, &src_pid_world) );
+    }
+
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, n * sizeof(T), src_pid_world, stat.MPI_TAG);
+#endif
     return Message(stat, Mpi_typemap<T>::type());
 }
 
