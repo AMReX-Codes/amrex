@@ -1298,7 +1298,7 @@ contains
 
     use parallel
     use fabio_module, only: fabio_open, fabio_close, FABIO_RDONLY, &
-                            fabio_write_raw_array_i, fabio_write_raw_array_d
+                            fabio_read_raw_array_i, fabio_read_raw_array_d
     use bl_IO_module, only: unit_new
     use bl_error_module
 

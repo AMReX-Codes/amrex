@@ -31,16 +31,8 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str_
 #define FABIO_OPEN_STR    fabio_open_str_
 #define FABIO_MKDIR_STR   fabio_mkdir_str_
-#define FABIO_READ_D      fabio_read_d_
-#define FABIO_READ_S      fabio_read_s_
-#define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d_
-#define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i_
-#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d_
-#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i_
 #define FABIO_WRITE_RAW_D fabio_write_raw_d_
 #define FABIO_WRITE_RAW_S fabio_write_raw_s_
-#define FABIO_READ_SKIP_D fabio_read_skip_d_
-#define FABIO_READ_SKIP_S fabio_read_skip_s_
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
 #define FAB_CONTAINS_INF  fab_contains_inf_
@@ -50,16 +42,8 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
 #define FABIO_MKDIR_STR   fabio_mkdir_str__
-#define FABIO_READ_D      fabio_read_d__
-#define FABIO_READ_S      fabio_read_s__
-#define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d__
-#define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i__
-#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d__
-#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i__
 #define FABIO_WRITE_RAW_D fabio_write_raw_d__
 #define FABIO_WRITE_RAW_S fabio_write_raw_s__
-#define FABIO_READ_SKIP_D fabio_read_skip_d__
-#define FABIO_READ_SKIP_S fabio_read_skip_s__
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
 #define FAB_CONTAINS_INF  fab_contains_inf__
@@ -69,16 +53,8 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
 #define FABIO_MKDIR_STR   fabio_mkdir_str
-#define FABIO_READ_D      fabio_read_d
-#define FABIO_READ_S      fabio_read_s
-#define FABIO_WRITE_RAW_ARRAY_D fabio_write_raw_array_d
-#define FABIO_WRITE_RAW_ARRAY_I fabio_write_raw_array_i
-#define FABIO_READ_RAW_ARRAY_D fabio_read_raw_array_d
-#define FABIO_READ_RAW_ARRAY_I fabio_read_raw_array_i
 #define FABIO_WRITE_RAW_D fabio_write_raw_d
 #define FABIO_WRITE_RAW_S fabio_write_raw_s
-#define FABIO_READ_SKIP_D fabio_read_skip_d
-#define FABIO_READ_SKIP_S fabio_read_skip_s
 #define FABIO_CLOSE       fabio_close
 #define FAB_CONTAINS_NAN  fab_contains_nan
 #define FAB_CONTAINS_INF  fab_contains_inf
@@ -232,8 +208,8 @@ scan_buffer(const char* buffer, int border[])
 }
 
 void
-FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp, 
-		  double dp[], const int* countp)
+FABIO_READ_SKIP_D(const int* fdp, const long* offsetp, const long* skipp, 
+		  double dp[], const long* countp)
 {
   int fd = *fdp;
   char c;
@@ -366,8 +342,8 @@ FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp,
 }
 
 void
-FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp, 
-		  float sp[], const int* countp)
+FABIO_READ_SKIP_S(const int* fdp, const long* offsetp, const long* skipp, 
+		  float sp[], const long* countp)
 {
   int fd = *fdp;
   char c;
@@ -570,7 +546,7 @@ FABIO_READ_RAW_ARRAY_I(const int* fdp, int* vp, const int* countp)
 }
 
 void
-FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* countp, 
+FABIO_WRITE_RAW_D(const int* fdp, long* offsetp, const double* vp, const long* countp, 
 		  const int* dmp, const int lo[], const int hi[], const int nd[],
 		  const int* ncp)
 {
@@ -637,7 +613,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
       exit(1);
     }
 
-  if ( offset > INT_MAX )
+  if ( offset > LONG_MAX )
   {
       fprintf(stderr, "FABIO_WRITE_RAW_D: offset will overflow offsetp");
       exit(1);
@@ -647,7 +623,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
 }
 
 void
-FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* countp, 
+FABIO_WRITE_RAW_S(const int* fdp, long* offsetp, const float* vp, const long* countp, 
 		  const int* dmp, const int lo[], const int hi[], const int nd[], 
 		  const int* ncp)
 {
@@ -713,7 +689,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
       exit(1);
     }
 
-  if ( offset > INT_MAX )
+  if ( offset > LONG_MAX )
   {
       fprintf(stderr, "FABIO_WRITE_RAW_S: offset will overflow offsetp");
       exit(1);
@@ -724,16 +700,16 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
 
 
 void
-FABIO_READ_D(const int* fdp, const int* offsetp, double dp[], const int* countp)
+FABIO_READ_D(const int* fdp, const long* offsetp, double dp[], const long* countp)
 {
-  int skip = 0;
+  long skip = 0;
   FABIO_READ_SKIP_D(fdp, offsetp, &skip, dp, countp);
 }
 
 void
-FABIO_READ_S(const int* fdp, const int* offsetp, float sp[], const int* countp)
+FABIO_READ_S(const int* fdp, const long* offsetp, float sp[], const long* countp)
 {
-  int skip = 0;
+  long skip = 0;
   FABIO_READ_SKIP_S(fdp, offsetp, &skip, sp, countp);
 }
 

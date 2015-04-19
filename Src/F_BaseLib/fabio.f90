@@ -8,6 +8,7 @@ module fabio_module
   use multifab_module
   use ml_boxarray_module
   use ml_multifab_module
+  use iso_c_binding
 
   implicit none
 
@@ -20,58 +21,68 @@ module fabio_module
        integer, intent(out) :: fd
      end subroutine fabio_close
 
-     subroutine fabio_read_d(fd, offset, d, count)
-       use bl_types
-       integer, intent(in) :: offset, fd, count
-       real(kind=dp_t), intent(out) :: d(count)
+     subroutine fabio_read_skip_d(fd, offset, skip, d, count) bind(c, name='FABIO_READ_SKIP_D')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd
+       integer(kind=c_long), intent(in) :: offset, skip, count
+       real(kind=c_double), intent(out) :: d(count)
+     end subroutine fabio_read_skip_d
+     subroutine fabio_read_skip_s(fd, offset, skip, s, count) bind(c, name='FABIO_READ_SKIP_S')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd
+       integer(kind=c_long), intent(in) :: offset, skip, count
+       real(kind=c_float), intent(out) :: s(count)
+     end subroutine fabio_read_skip_s
+
+     subroutine fabio_read_d(fd, offset, d, count) bind(c, name='FABIO_READ_D')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd
+       integer(kind=c_long), intent(in) :: offset, count
+       real(kind=c_double), intent(out) :: d(count)
      end subroutine fabio_read_d
-     subroutine fabio_read_s(fd, offset, s, count)
-       use bl_types
-       integer, intent(in) :: offset, fd, count
-       real(kind=sp_t), intent(out) :: s(count)
+     subroutine fabio_read_s(fd, offset, s, count) bind(c, name='FABIO_READ_S')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd
+       integer(kind=c_long), intent(in) :: offset, count
+       real(kind=c_float), intent(out) :: s(count)
      end subroutine fabio_read_s
 
-     subroutine fabio_read_comp_d(fd, offset, skip, d, count)
-       use bl_types
-       integer, intent(in) :: offset, fd, count, skip
-       real(kind=dp_t), intent(out) :: d(count)
-     end subroutine fabio_read_comp_d
-     subroutine fabio_read_comp_s(fd, offset, skip, s, count)
-       use bl_types
-       integer, intent(in) :: offset, fd, count, skip
-       real(kind=sp_t), intent(out) :: s(count)
-     end subroutine fabio_read_comp_s
-
      subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc)
-       use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
-       real(kind=dp_t), intent(in) :: d(count)
-       integer, intent(out) :: offset
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
+       integer(kind=c_long), intent(in) :: count
+       real(kind=c_double), intent(in) :: d(count)
+       integer(kind=c_long), intent(out) :: offset
      end subroutine fabio_write_raw_d
      subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc)
-       use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
-       real(kind=sp_t), intent(in) :: s(count)
-       integer, intent(out) :: offset
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
+       integer(kind=c_long), intent(in) :: count
+       real(kind=c_float), intent(in) :: s(count)
+       integer(kind=c_long), intent(out) :: offset
      end subroutine fabio_write_raw_s
      !
      ! These are used by the particle code.
      !
-     subroutine fabio_write_raw_array_i(fd, iv, count)
-       integer, intent(in) :: fd, count
-       integer, intent(in) :: iv(count)
+     subroutine fabio_write_raw_array_i(fd, iv, count) bind(c, name='FABIO_WRITE_RAW_ARRAY_I')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd, count
+       integer(kind=c_int), intent(in) :: iv(count)
      end subroutine fabio_write_raw_array_i
-     subroutine fabio_write_raw_array_d(fd, rv, count)
-       integer, intent(in)          :: fd, count
-       double precision, intent(in) :: rv(count)
+     subroutine fabio_write_raw_array_d(fd, rv, count) bind(c, name='FABIO_WRITE_RAW_ARRAY_D')
+       use iso_c_binding
+       integer(kind=c_int), intent(in) :: fd, count
+       real(kind=c_double), intent(in) :: rv(count)
      end subroutine fabio_write_raw_array_d
-     subroutine fabio_read_raw_array_i(fd, iv, count)
-       integer, intent(in)    :: fd, count
-       integer, intent(inout) :: iv(count)
+     subroutine fabio_read_raw_array_i(fd, iv, count) bind(c, name='FABIO_READ_RAW_ARRAY_I')
+       use iso_c_binding
+       integer(kind=c_int), intent(in)    :: fd, count
+       integer(kind=c_int), intent(inout) :: iv(count)
      end subroutine fabio_read_raw_array_i
-     subroutine fabio_read_raw_array_d(fd, rv, count)
-       integer, intent(in)             :: fd, count
-       double precision, intent(inout) :: rv(count)
+     subroutine fabio_read_raw_array_d(fd, rv, count) bind(c, name='FABIO_READ_RAW_ARRAY_D')
+       use iso_c_binding
+       integer(kind=c_int), intent(in)    :: fd, count
+       real(kind=c_double), intent(inout) :: rv(count)
      end subroutine fabio_read_raw_array_d
 
   end interface
@@ -163,7 +174,7 @@ contains
   subroutine fabio_fab_write_d(fd, offset, fb, idx, nodal, all, prec)
     use bl_error_module
     integer, intent(in) :: fd, idx
-    integer, intent(out) :: offset
+    integer(kind=c_long), intent(out) :: offset
     type(multifab), intent(in) :: fb
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: all
@@ -174,7 +185,8 @@ contains
 
     real(kind=sp_t), allocatable :: sbp(:)
 
-    integer :: count, lo(get_dim(fb)), hi(get_dim(fb)), nd(get_dim(fb)), nc, lprec
+    integer(kind=c_long) :: count
+    integer :: lo(get_dim(fb)), hi(get_dim(fb)), nd(get_dim(fb)), nc, lprec
 
     integer :: i,j,k,l,m
 
@@ -233,7 +245,7 @@ contains
     character(len=FABIO_MAX_PATH_NAME) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j, ng, ii
-    integer, allocatable :: offset(:), loffset(:)
+    integer(kind=c_long), allocatable :: offset(:), loffset(:)
     type(box) :: bx
     real(kind=dp_t), allocatable :: mx(:,:), mn(:,:)
     real(kind=dp_t), allocatable :: mxl(:),  mnl(:)
@@ -448,8 +460,8 @@ contains
       use bl_error_module
       integer :: j, nc
       character(len=FABIO_MAX_PATH_NAME) :: cdummy, filename
-      integer :: offset
-      integer :: idummy, sz, fd
+      integer(kind=c_long) :: offset, sz
+      integer :: idummy, fd
       integer :: dm
       type(box), allocatable :: bxs(:)
       type(box) :: bx
@@ -739,7 +751,8 @@ contains
       use bl_error_module
       integer :: i, n, k, j, nc, jj
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
-      integer :: offset, idummy, sz, fd, llng
+      integer(kind=c_long) :: offset, sz
+      integer :: idummy, fd, llng
       real(kind=dp_t) :: rdummy, tm
       integer :: nvars, dm, flevel
       integer, allocatable :: refrat(:,:), nboxes(:)
@@ -854,7 +867,8 @@ contains
 
     subroutine build_ns_plotfile()
       use bl_error_module
-      integer :: i, n, k, j, nc, offset, idummy, sz, fd, llng
+      integer(kind=c_long) :: offset, sz
+      integer :: i, n, k, j, nc, idummy, fd, llng
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
       real(kind=dp_t) :: rdummy, tm
       integer :: nvars, dm, flevel, jj
