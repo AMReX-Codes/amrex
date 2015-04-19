@@ -261,7 +261,7 @@ contains
     else
        call parallel_abort("unknown kind(c_long)")
     end if
-    call MPI_Type_create_f90_integer(5, mpi_cl_t, ierr)
+    call MPI_Type_create_f90_integer(r, mpi_cl_t, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
   subroutine parallel_finalize(do_finalize_MPI)
