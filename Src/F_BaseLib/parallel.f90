@@ -29,6 +29,9 @@ module parallel
   integer, private :: m_comm   = -1
   integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
   integer, private :: mpi_cl_t = -1
+  integer, private :: MPI_MAX_C_LONG = -1
+  integer, private :: MPI_MIN_C_LONG = -1
+  integer, private :: MPI_SUM_C_LONG = -1
 
   interface parallel_reduce
      module procedure parallel_reduce_d
@@ -262,6 +265,9 @@ contains
        call parallel_abort("unknown kind(c_long)")
     end if
     call MPI_Type_create_f90_integer(r, mpi_cl_t, ierr)
+    call MPI_Op_create(max_c_long, .true., MPI_MAX_C_LONG, ierr)
+    call MPI_Op_create(min_c_long, .true., MPI_MIN_C_LONG, ierr)
+    call MPI_Op_create(sum_c_long, .true., MPI_SUM_C_LONG, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
   subroutine parallel_finalize(do_finalize_MPI)
@@ -469,15 +475,16 @@ contains
        call MPI_AllReduce(a, r, 1, MPI_INTEGER, op, l_comm, ierr)
     end if
   end subroutine parallel_reduce_i
-  subroutine parallel_reduce_cl(r, a, op, proc, comm)
+  subroutine parallel_reduce_cl(r, a, op_in, proc, comm)
     integer (kind=c_long), intent(in) :: a
-    integer, intent(in) :: op
+    integer, intent(in) :: op_in
     integer, intent(in), optional :: proc
     integer, intent(in), optional :: comm
     integer (kind=c_long), intent(out) :: r
     integer ierr
     external MPI_Reduce, MPI_AllReduce
-    integer :: l_comm
+    integer :: l_comm, op
+    op = mpi_op_c_long(op_in)
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     if ( present(proc) ) then
        CALL MPI_Reduce(a, r, 1, mpi_cl_t, op, proc, l_comm, ierr) 
@@ -551,15 +558,16 @@ contains
        call MPI_AllReduce(a, r, size(a), MPI_INTEGER, op, l_comm, ierr)
     end if
   end subroutine parallel_reduce_iv
-  subroutine parallel_reduce_clv(r, a, op, proc, comm)
+  subroutine parallel_reduce_clv(r, a, op_in, proc, comm)
     integer(kind=c_long), intent(in) :: a(:)
-    integer, intent(in) :: op
+    integer, intent(in) :: op_in
     integer, intent(in), optional :: proc
     integer, intent(in), optional :: comm
     integer(kind=c_long), intent(out) :: r(:)
     integer ierr
     external MPI_Reduce, MPI_AllReduce
-    integer :: l_comm
+    integer :: l_comm, op
+    op = mpi_op_c_long(op_in)
     l_comm = m_comm; if ( present(comm) ) l_comm = comm
     if ( present(proc) ) then
        CALL MPI_Reduce(a, r, size(a), mpi_cl_t, op, proc, l_comm, ierr) 
@@ -2131,5 +2139,45 @@ contains
          rcv, n, MPI_DOUBLE_COMPLEX, &
          l_root, l_comm, ierr)
   end subroutine parallel_scatter_zv
+
+  integer function max_c_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=c_long) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = max(inv(i), inoutv(i))
+    end do
+    return
+  end function max_c_long
+  integer function min_c_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=c_long) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = min(inv(i), inoutv(i))
+    end do
+    return
+  end function min_c_long
+  integer function sum_c_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=c_long) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = inv(i) + inoutv(i)
+    end do
+    return
+  end function sum_c_long
+
+  function mpi_op_c_long(op) result(r)
+    integer, intent(in) :: op
+    integer :: r
+    select case (op)
+       case (MPI_MAX)
+          r = MPI_MAX_C_LONG
+       case (MPI_MIN)
+          r = MPI_MIN_C_LONG
+       case (MPI_SUM)
+          r = MPI_SUM_C_LONG
+       case default
+          call parallel_abort("unknown MPI_op for c_long")
+       end select
+  end function mpi_op_c_long
 
 end module parallel
