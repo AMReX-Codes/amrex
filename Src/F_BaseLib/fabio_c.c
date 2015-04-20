@@ -31,8 +31,6 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str_
 #define FABIO_OPEN_STR    fabio_open_str_
 #define FABIO_MKDIR_STR   fabio_mkdir_str_
-#define FABIO_WRITE_RAW_D fabio_write_raw_d_
-#define FABIO_WRITE_RAW_S fabio_write_raw_s_
 #define FABIO_CLOSE       fabio_close_
 #define FAB_CONTAINS_NAN  fab_contains_nan_
 #define FAB_CONTAINS_INF  fab_contains_inf_
@@ -42,8 +40,6 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str__
 #define FABIO_OPEN_STR    fabio_open_str__
 #define FABIO_MKDIR_STR   fabio_mkdir_str__
-#define FABIO_WRITE_RAW_D fabio_write_raw_d__
-#define FABIO_WRITE_RAW_S fabio_write_raw_s__
 #define FABIO_CLOSE       fabio_close__
 #define FAB_CONTAINS_NAN  fab_contains_nan__
 #define FAB_CONTAINS_INF  fab_contains_inf__
@@ -53,8 +49,6 @@ typedef int mode_t;
 #define FABIO_UNLINK_IF_EMPTY_STR fabio_unlink_if_empty_str
 #define FABIO_OPEN_STR    fabio_open_str
 #define FABIO_MKDIR_STR   fabio_mkdir_str
-#define FABIO_WRITE_RAW_D fabio_write_raw_d
-#define FABIO_WRITE_RAW_S fabio_write_raw_s
 #define FABIO_CLOSE       fabio_close
 #define FAB_CONTAINS_NAN  fab_contains_nan
 #define FAB_CONTAINS_INF  fab_contains_inf
