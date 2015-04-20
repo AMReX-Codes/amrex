@@ -47,20 +47,6 @@ module fabio_module
        real(kind=c_float), intent(out) :: s(count)
      end subroutine fabio_read_s
 
-     subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc)
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
-       integer(kind=c_long), intent(in) :: count
-       real(kind=c_double), intent(in) :: d(count)
-       integer(kind=c_long), intent(out) :: offset
-     end subroutine fabio_write_raw_d
-     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc)
-       use iso_c_binding
-       integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
-       integer(kind=c_long), intent(in) :: count
-       real(kind=c_float), intent(in) :: s(count)
-       integer(kind=c_long), intent(out) :: offset
-     end subroutine fabio_write_raw_s
      !
      ! These are used by the particle code.
      !
@@ -86,9 +72,6 @@ module fabio_module
      end subroutine fabio_read_raw_array_d
 
   end interface
-
-  private :: fabio_write_raw_d
-  private :: fabio_write_raw_s
 
   interface fabio_write
      module procedure fabio_fab_write_d
@@ -179,6 +162,26 @@ contains
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: all
     integer, intent(in), optional :: prec
+
+    interface
+       subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc) &
+            bind(c, name='FABIO_WRITE_RAW_D')
+         use iso_c_binding
+         integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
+         integer(kind=c_long), intent(in) :: count
+         real(kind=c_double), intent(in) :: d(count)
+         integer(kind=c_long), intent(out) :: offset
+       end subroutine fabio_write_raw_d
+       subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc) &
+            bind(c, name='FABIO_WRITE_RAW_S')
+         use iso_c_binding
+         integer(kind=c_int), intent(in) :: fd, dm, lo(dm), hi(dm), nd(dm), nc
+         integer(kind=c_long), intent(in) :: count
+         real(kind=c_float), intent(in) :: s(count)
+         integer(kind=c_long), intent(out) :: offset
+       end subroutine fabio_write_raw_s
+    end interface
+
     type(box) :: bx
     logical :: lall
     real(kind=dp_t), pointer :: fbp(:,:,:,:)
