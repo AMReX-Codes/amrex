@@ -2140,30 +2140,27 @@ contains
          l_root, l_comm, ierr)
   end subroutine parallel_scatter_zv
 
-  integer function max_c_long(inv, inoutv, len, type)
+  subroutine max_c_long(inv, inoutv, len, type)
     integer :: len, type, i
     integer(kind=c_long) :: inv(len), inoutv(len)
     do i = 1, len
        inoutv(i) = max(inv(i), inoutv(i))
     end do
-    return
-  end function max_c_long
-  integer function min_c_long(inv, inoutv, len, type)
+  end subroutine max_c_long
+  subroutine min_c_long(inv, inoutv, len, type)
     integer :: len, type, i
     integer(kind=c_long) :: inv(len), inoutv(len)
     do i = 1, len
        inoutv(i) = min(inv(i), inoutv(i))
     end do
-    return
-  end function min_c_long
-  integer function sum_c_long(inv, inoutv, len, type)
+  end subroutine min_c_long
+  subroutine sum_c_long(inv, inoutv, len, type)
     integer :: len, type, i
     integer(kind=c_long) :: inv(len), inoutv(len)
     do i = 1, len
        inoutv(i) = inv(i) + inoutv(i)
     end do
-    return
-  end function sum_c_long
+  end subroutine sum_c_long
 
   function mpi_op_c_long(op) result(r)
     integer, intent(in) :: op
