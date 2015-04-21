@@ -357,8 +357,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                 //
                 // Use the "group" boundary fill routine.
                 //
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),true);
-
+		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),groupsize);
                 i += groupsize;
             }
             else

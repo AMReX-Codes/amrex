@@ -14,15 +14,15 @@ namespace ParallelDescriptor
     //
     // My processor IDs.
     //
-    const int myId_undefined  = -1;
-    const int myId_notInGroup = -2;
+    const int myId_undefined  = -11;
+    const int myId_notInGroup = -22;
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
     int m_MyId_perfmon     = myId_undefined;
     //
     // The number of processors.
     //
-    const int nProcs_undefined  = -1;
+    const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_perfmon = nProcs_undefined;
@@ -348,6 +348,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
     if(nPerfmonProcs > 0) {
+      usleep(m_MyId_all * 1000000 / 10.0);
       std::cout << "world: rank " << m_MyId_all << " in [0,"
                 << m_nProcs_all-1 << "]" << std::endl;
       int tag(m_MaxTag + 1);
@@ -464,6 +465,18 @@ ParallelDescriptor::IProbe (int src_pid, int tag, int& flag, MPI_Status& status)
     BL_COMM_PROFILE(BLProfiler::Iprobe, sizeof(char), src_pid, tag);
 
     BL_MPI_REQUIRE( MPI_Iprobe(src_pid, tag, ParallelDescriptor::Communicator(),
+                               &flag, &status) );
+
+    BL_COMM_PROFILE(BLProfiler::Iprobe, flag, BLProfiler::AfterCall(), status.MPI_TAG);
+}
+
+void
+ParallelDescriptor::IProbe (int src_pid, int tag, MPI_Comm comm, int& flag, MPI_Status& status)
+{
+    BL_PROFILE_S("ParallelDescriptor::Iprobe(comm)");
+    BL_COMM_PROFILE(BLProfiler::Iprobe, sizeof(char), src_pid, tag);
+
+    BL_MPI_REQUIRE( MPI_Iprobe(src_pid, tag, comm,
                                &flag, &status) );
 
     BL_COMM_PROFILE(BLProfiler::Iprobe, flag, BLProfiler::AfterCall(), status.MPI_TAG);
