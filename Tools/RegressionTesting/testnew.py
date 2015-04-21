@@ -412,11 +412,7 @@ def LoadParams(file):
 
     
     # if any runs are parallel, make sure that the MPIcommand is defined
-    anyMPI = 0
-    for test in testList:
-        if test.useMPI:
-            anyMPI = 1
-            break
+    anyMPI = any([t.useMPI for t in testList])
 
     if anyMPI and mysuite.MPIcommand == "":
         fail("ERROR: some tests are MPI parallel, but MPIcommand not defined")
@@ -719,24 +715,8 @@ def makeGITChangeLog(gitDir, root, outDir):
 
     bold("generating ChangeLog for %s/" % (root), skip_before=1)
     
-    systemCall("git log --name-only >& ChangeLog.%s" % (root) )
-    
+    systemCall("git log --name-only >& ChangeLog.%s" % (root) )    
     shutil.copy("ChangeLog.%s" % (root), outDir)
-
-
-#==============================================================================
-# allAreCompileTests
-#==============================================================================
-def allAreCompileTests(testList):
-    """ return 1 if all the tests in the list are compile tests """
-
-    allCompile = 1
-    for test in testList:
-        if (not test.compileTest):
-            allCompile = 0
-            break
-            
-    return allCompile
 
 
 #==============================================================================
@@ -1333,31 +1313,23 @@ def testSuite(argv):
         fail("ERROR: specify tests either by --single_test or --tests, not both")
 
     if not single_test == "":
-        found = 0
-        for obj in testList:
-            if (obj.name == single_test):
-                found = 1
-                newTestList = [obj]
-                break
-
-        if (not found):
-            fail("ERROR: %s is not a valid test" % (single_test))
-        else:
-            testList = newTestList
-        
+        testsFind = [single_test]
     elif not tests == "":
-        testsFind = list(set(string.split(tests)))
+        testsFind = tests.split()
+    else:
+        testsFind = []
 
+    if len(testsFind) > 0:
         newTestList = []
         for test in testsFind:
             found = 0
             for obj in testList:
-                if (obj.name == test):
+                if obj.name == test:
                     found = 1
                     newTestList.append(obj)
                     break
             
-            if (not found):
+            if not found:
                 fail("ERROR: %s is not a valid test" % (test))
         
         testList = newTestList
@@ -1366,8 +1338,8 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # get the name of the benchmarks directory
     #--------------------------------------------------------------------------
-    allCompile = allAreCompileTests(testList)
-
+    allCompile = all([t.compileTest == 1 for t in testList])
+    
     if not allCompile:
         benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
         if not os.path.isdir(benchDir):
