@@ -75,6 +75,8 @@ class testObj:
         self.outputFile = ""
         self.compareFile = ""
 
+        self.compare_file_used = ""
+        
         self.diffDir = ""
         self.diffOpts = ""
 
@@ -536,23 +538,28 @@ def findBuildDirs(testList):
 # getLastPlotfile
 #==============================================================================
 def getLastPlotfile(outputDir, test):
-    """ given an output directory and the test name, find the last
-        plotfile written """
+    """given an output directory and the test name, find the last
+       plotfile written.  Note: we give an error if the last
+       plotfile is # 0
+    """
                 
-    plotNum = -1
+    plot_num = -1
     for file in os.listdir(outputDir):
        if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
            key = "_plt"
            index = string.rfind(file, key)
-           plotNum = max(int(file[index+len(key):]), plotNum)
+           plot_num = max(int(file[index+len(key):]), plot_num)
 
-    if plotNum == -1:
+    if plot_num == -1:
        warning("WARNING: test did not produce any output")
-       compareFile = ""
+       compare_file = ""
+    elif plot_num == 0:
+        warning("WARNING: only plotfile 0 was output -- skipping comparison")
+        compare_file = ""
     else:
-       compareFile = "%s_plt%5.5d" % (test.name, plotNum)
+       compare_file = "%s_plt%5.5d" % (test.name, plot_num)
 
-    return compareFile
+    return compare_file
 
 
 #==============================================================================
@@ -1411,7 +1418,7 @@ def testSuite(argv):
     if do_temp_run:
         testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
-        systemCall("rm -rf %s" % (fullTestDir))
+        shutil.rmtree(fullTestDir)
     else:
         i = 0
         while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
@@ -1427,7 +1434,7 @@ def testSuite(argv):
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
 
     if do_temp_run:
-        systemCall("rm -rf %s" % (fullWebDir))
+        shutil.rmtree(fullWebDir)
         
     os.mkdir(fullWebDir)
 
@@ -1878,142 +1885,85 @@ def testSuite(argv):
 
         test.wallTime = time.time()
 
-        if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
+        if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-	    if (test.useMPI and test.useOMP):
+            base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk" % \
+                           (executable, test.inputFile, test.name, test.name)
+
+            # keep around the checkpoint files only for the restart runs
+            if test.restartTest:
+                base_command += " amr.checkpoint_files_output=1 amr.check_int=%d" % \
+                                (test.restartFileNum)
+            else:
+                base_command += " amr.checkpoint_files_output=0"
+
+            base_command += " >& %s.run.out < /dev/null" % (test.name)
+            
+	    if test.useMPI and test.useOMP:
 
 	       # create the MPI executable
 	       testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-
-               # keep around the checkpoint files only for the restart runs
-               if (test.restartTest):
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-               else:
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+               testRunCommand = testRunCommand.replace("@command@", base_command)
                    
-               testRunCommand = testRunCommand.replace("@command@", command)
-                   
-               print "    " + testRunCommand
-               systemCall(testRunCommand)
-
-	    elif (test.useMPI):
+	    elif test.useMPI:
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-
-                # keep around the checkpoint files only for the restart runs
-	       if (test.restartTest):               
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-               else:
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
-	       
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
-               systemCall(testRunCommand)
+	       testRunCommand = testRunCommand.replace("@command@", base_command)
 
 	    elif (test.useOMP):
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
-	       
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+                testRunCommand = "OMP_NUM_THREADS=%s " % (test.num_threads)
+                testRunCommand += base_command
 	       
             else:
+                testRunCommand = base_command
+                
+            print "    " + testRunCommand
+            systemCall(testRunCommand)
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                else:
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+        elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+            base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk " % \
+                           (executable, test.inputFile, test.name, test.name)
 
-        elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
+            # keep around the checkpoint files only for the restart runs
+            if not test.restartTest: base_command += " --chk_int 0 "
 
-            if (test.useMPI and test.useOMP):
+            base_command += "%s >& %s.run.out" % \
+                            (suite.globalAddToExecString, test.name)
+            
+            if test.useMPI and test.useOMP:
 
                 # create the MPI executable
                 testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
                 testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                 testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                testRunCommand = testRunCommand.replace("@command@", command)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
-            elif (test.useMPI):
+            elif test.useMPI:
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+	       testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                # keep around the checkpoint files only for the restart runs
-	       if (test.restartTest):
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-               else:
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
+            elif test.useOMP:
 
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
-               systemCall(testRunCommand)
-
-            elif (test.useOMP):
-
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
+                testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                testRunCommand += base_command
 
             else:
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+                testRunCommand = base_command
+                
+            print "    " + testRunCommand
+            systemCall(testRunCommand)
 
 
         # if it is a restart test, then rename the final output file and
@@ -2165,6 +2115,8 @@ def testSuite(argv):
                 print "  doing the comparison..."
                 print "    comparison file: ", outputFile
 
+                test.compare_file_used = outputFile
+                
                 if (not test.restartTest):
                     benchFile = benchDir + compareFile
                 else:
@@ -2251,10 +2203,10 @@ def testSuite(argv):
                     cf.close()
 
                 if (not test.diffDir == ""):
-                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
-                    systemCall("rm -rf %s" % (diffDirBench))
-                    print "     new diffDir: ", test.name + '_' + test.diffDir
-                    systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
+                    diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
+                    shutil.rmtree(diffDirBench)
+                    print "     new diffDir: {}_{}".format(test.name, test.diffDir)
+                    shutil.copytree(test.diffDir, diffDirBench)
 
 
         else:   # selfTest
@@ -3010,6 +2962,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
         hf.write("<P><TABLE>\n")
         # header
         hf.write("<tr><th>test name</th><th>dim</th>\n")
+        hf.write("    <th>compare plotfile\n")        
         hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
         hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
         hf.write("    <th>compile?</th><th>restart?</th>\n")
@@ -3028,7 +2981,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     # loop over the tests and add a line for each
     for test in testList:
 
-        if (not make_benchmarks):
+        if not make_benchmarks:
             
             # check if it passed or failed
             statusFile = "%s.status" % (test.name)
@@ -3039,12 +2992,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             testPassed = 0
         
             for line in lines:
-                if (string.find(line, "PASSED") >= 0):
+                if string.find(line, "PASSED") >= 0:
                     testPassed = 1
                     numPassed += 1
                     break
 
-            if (not testPassed):
+            if not testPassed:
                 numFailed += 1
 
         
@@ -3053,9 +3006,13 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             # write out this test's status
             hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
                      (test.name, test.name) )
-        
+
             # dimensionality
-            hf.write("<td>{}</td>\n".format(test.dim))
+            hf.write("<td>{}</td>\n".format(test.dim))            
+
+            # write out the comparison file used
+            hf.write("<td>{}</td>\n".format(test.compare_file_used))
+            
 
             # number of levels
             if not test.nlevels == None:
@@ -3104,16 +3061,9 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
         
 
         else:
-
-            if test.restartTest:
-                continue
-
-            if (test.compileTest):
-                continue
-
-            if (test.selfTest):
-                continue
-
+            if test.restartTest: continue
+            if test.compileTest: continue
+            if test.selfTest: continue
                 
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
@@ -3125,12 +3075,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
             for line in lines:
                 index = string.find(line, "file:")
-                if (index >= 0):
+                if index >= 0:
                     benchFile = line[index+5:]
                     break
                 
 
-            if (not benchFile == "none"):
+            if not benchFile == "none":
                     
                  hf.write("<TR><TD>%s</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>(new benchmark file is %s)</TD></TR>\n" %
                           (test.name, benchFile) )
@@ -3144,7 +3094,6 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     # close
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")    
-
     hf.close()
 
 
@@ -3160,7 +3109,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     sf = open(statusFile, 'w')
 
-    if (not make_benchmarks):
+    if not make_benchmarks:
         if (numFailed == 0):
             sf.write("ALL PASSED\n")
         elif (numFailed > 0 and numPassed > 0):
@@ -3199,12 +3148,12 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     for file in os.listdir(webTopDir):
 
         # look for a directory of the form 20* (this will work up until 2099
-        if (file.startswith("20") and os.path.isdir(file)):
+        if file.startswith("20") and os.path.isdir(file):
 
             # look for the status file
             statusFile = file + '/' + file + '.status'
 
-            if (os.path.isfile(statusFile)):
+            if os.path.isfile(statusFile):
                 validDirs.append(file)
 
 
@@ -3219,12 +3168,12 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
         for file in os.listdir(webTopDir + dir):
 
-            if (file.endswith(".status") and not file.startswith("20")):
+            if file.endswith(".status") and not file.startswith("20"):
 
                 index = string.rfind(file, ".status")
                 testName = file[0:index]
 
-                if (allTests.count(testName) == 0):
+                if allTests.count(testName) == 0:
                     if (not suite.reportActiveTestsOnly) or (testName in activeTestList):
                         allTests.append(testName)
 
@@ -3242,7 +3191,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     hf = open(htmlFile, 'w')
 
     header = MainHeader.replace("@TITLE@", title)
-    if (suite.goUpLink):
+    if suite.goUpLink:
         header2 = header.replace("<!--GOUPLINK-->", '<a href="../">GO UP</a>')
         hf.write(header2)
     else:
@@ -3266,12 +3215,11 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
         valid = 0
         for test in allTests:
             statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
-            if (os.path.isfile(statusFile)):
+            if os.path.isfile(statusFile):
                 valid = 1
                 break
 
-        if not valid:
-            continue
+        if not valid: continue
 
         # write out the directory (date)
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
@@ -3284,7 +3232,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
             status = 0
 
-            if (os.path.isfile(statusFile)):            
+            if os.path.isfile(statusFile):            
 
                 sf = open(statusFile, 'r')
                 lines = sf.readlines()
@@ -3293,13 +3241,13 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
                 status = -1  
                                     
                 for line in lines:
-                    if (string.find(line, "PASSED") >= 0):
+                    if string.find(line, "PASSED") >= 0:
                         status = 1
                         break
-                    elif (string.find(line, "FAILED") >= 0):
+                    elif string.find(line, "FAILED") >= 0:
                         status = -1
                         break
-                    elif (string.find(line, "benchmarks updated") >= 0):
+                    elif string.find(line, "benchmarks updated") >= 0:
                         status = 10
                         break
                     
@@ -3307,11 +3255,11 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
                 
             # write out this test's status
-            if (status == 1):
+            if status == 1:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"passed\"><H3><a href=\"%s/%s.html\" class=\"passed\">:)</a></H3></TD>\n" % (test, dir, test))
-            elif (status == -1):
+            elif status == -1:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"failed\"><H3><a href=\"%s/%s.html\" class=\"failed\">&nbsp;!&nbsp;</a></H3></TD>\n" % (test, dir, test))
-            elif (status == 10):
+            elif status == 10:
                 hf.write("<TD ALIGN=CENTER title=\"%s\" class=\"benchmade\"><H3>U</H3></TD>\n" % (test))
             else:
                 hf.write("<TD>&nbsp;</TD>\n")
@@ -3325,8 +3273,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")    
 
-    hf.close()
-
+    hf.close()    
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
