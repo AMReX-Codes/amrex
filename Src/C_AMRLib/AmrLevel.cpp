@@ -1069,9 +1069,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         //
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
-        //
-        // Do NOT try and thread this.  Threads don't play well with the Inflow code.
-        //
         for (int i = 0; i < NC; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
@@ -1091,9 +1088,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            //
-            // Do NOT try and thread this.  Threads don't play well with the Inflow code.
-            //
             for (int i = 0; i < NC; i++)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
