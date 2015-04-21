@@ -1418,7 +1418,7 @@ def testSuite(argv):
     if do_temp_run:
         testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
-        systemCall("rm -rf %s" % (fullTestDir))
+        shutil.rmtree(fullTestDir)
     else:
         i = 0
         while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
@@ -1434,7 +1434,7 @@ def testSuite(argv):
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
 
     if do_temp_run:
-        systemCall("rm -rf %s" % (fullWebDir))
+        shutil.rmtree(fullWebDir)
         
     os.mkdir(fullWebDir)
 
@@ -2260,10 +2260,10 @@ def testSuite(argv):
                     cf.close()
 
                 if (not test.diffDir == ""):
-                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
-                    systemCall("rm -rf %s" % (diffDirBench))
-                    print "     new diffDir: ", test.name + '_' + test.diffDir
-                    systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
+                    diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
+                    shutil.rmtree(diffDirBench)
+                    print "     new diffDir: {}_{}".format(test.name, test.diffDir)
+                    shutil.copytree(test.diffDir, diffDirBench)
 
 
         else:   # selfTest
