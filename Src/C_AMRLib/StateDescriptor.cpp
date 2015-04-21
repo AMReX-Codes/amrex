@@ -43,18 +43,38 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 {
     BL_ASSERT(m_func != 0);
 
-    m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool has_ext_dir = false;
+    for (int i=0; i<2*BL_SPACEDIM && !has_ext_dir; ++i)
+	has_ext_dir = bc[i]==EXT_DIR;
+    if (has_ext_dir) {
+#ifdef _OPENMP
+#pragma omp critical (ext_dir)
+#endif
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    } else {
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    }
 }
 
 void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,
-                                         const Real* time, const int* bc, bool) const
+                                         const Real* time, const int* bc, int ng) const
 {
     BL_ASSERT(m_gfunc != 0);
 
-    m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool has_ext_dir = false;
+    for (int i=0; i<2*BL_SPACEDIM*ng && !has_ext_dir; ++i)
+	has_ext_dir = bc[i]==EXT_DIR;
+    if (has_ext_dir) {
+#ifdef _OPENMP
+#pragma omp critical (ext_dir)
+#endif
+	m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    } else {
+	m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    }
 }
 
 DescriptorList::DescriptorList ()

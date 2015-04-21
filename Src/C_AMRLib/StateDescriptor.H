@@ -77,7 +77,7 @@ public:
         virtual void operator () (Real* data, const int* lo, const int* hi,
                                   const int* dom_lo, const int* dom_hi,
                                   const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc, bool) const;
+                                  const Real* time, const int* bc, int ng) const;
     private:
 
         BndryFuncDefault  m_func;

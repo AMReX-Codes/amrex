@@ -832,6 +832,9 @@ FillPatchIterator::Initialize (int  boxGrow,
                                           NComp,
                                           desc.interp(SComp));
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
         {
             fph->fill(m_fabs[mfi],DComp,mfi.index());
@@ -992,9 +995,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             CrseFabs.set(i, new FArrayBox(CrseBoxes[i],m_ncomp));
 	}
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int i = 0; i < NC; i++)
         {
             //
@@ -1031,9 +1031,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill CrseFabs with periodic data in preparation for interp().
             //
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
             for (int i = 0; i < NC; i++)
             {
                 FArrayBox& dstfab = CrseFabs[i];
@@ -1072,9 +1069,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         //
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
-        //
-        // Do NOT try and thread this.  Threads don't play well with the Inflow code.
-        //
         for (int i = 0; i < NC; i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
@@ -1094,9 +1088,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            //
-            // Do NOT try and thread this.  Threads don't play well with the Inflow code.
-            //
             for (int i = 0; i < NC; i++)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
@@ -1115,9 +1106,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         const Array<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
         const int           NF            = FineBoxes.size();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int ifine = 0; ifine < NF; ++ifine)
         {
             Array<BCRec> bcr(m_ncomp);
@@ -1160,13 +1148,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-#ifdef _OPENMP
-#pragma omp critical(fillpatch)
-#endif
-            {
-                for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
-                    FinerCrseFabs[j].copy(finefab);
-            }
+	    for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
+		FinerCrseFabs[j].copy(finefab);
         }
 
         CrseFabs.clear();
