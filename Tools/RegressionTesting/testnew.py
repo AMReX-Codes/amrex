@@ -551,11 +551,11 @@ def getLastPlotfile(outputDir, test):
 #==============================================================================
 # getRecentFileName
 #==============================================================================
-def getRecentFileName(dir,base,extension):
+def getRecentFileName(dir, base, extension):
     """ for F_Src builds, given the base and extension, find the
         most recent corresponding file"""
         
-    # finding all files that are of type base.*.exe and store the
+    # finding all files that are of type base...extension and store the
     # name of only the most recently created one
     ctime = -1
     executableFile = ""
@@ -577,18 +577,16 @@ def getRecentFileName(dir,base,extension):
 #==============================================================================
 # getTestCompDir
 #==============================================================================
-def checkTestDir(dirName):
+def checkTestDir(dir_name):
    """ given a string representing a directory, check if it points to
        a valid directory.  If so, return the directory name """
 
-   # make sure we end in a "/"
-   if not string.rfind(dirName, "/") == len(dirName)-1:
-       dirName = dirName + "/"
+   dir_name = os.path.normpath(dir_name) + "/"
            
-   if not os.path.isdir(dirName):
-       fail("ERROR: %s is not a valid directory" % (dirName))
+   if not os.path.isdir(dir_name):
+       fail("ERROR: {} is not a valid directory".format(dir_name))
 
-   return dirName
+   return dir_name
 
 
 #==============================================================================
@@ -669,7 +667,6 @@ def saveGITHEAD(topDir, root, outDir):
    bold("saving git HEAD for %s/" % (root), skip_before=1)
 
    systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
-
    shutil.copy("git.%s.HEAD" % (root),  outDir)
 
 
@@ -2016,10 +2013,10 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
-        if (not test.selfTest):
+        if not test.selfTest:
 
-            if (test.outputFile == ""):
-                if (test.compareFile == ""):
+            if test.outputFile == "":
+                if test.compareFile == "":
                     compareFile = getLastPlotfile(outputDir, test)
                 else:
                     compareFile = test.compareFile
@@ -2034,14 +2031,14 @@ def testSuite(argv):
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
 
-            if (not make_benchmarks):
+            if not make_benchmarks:
 
                 print "  doing the comparison..."
                 print "    comparison file: ", outputFile
 
                 test.compare_file_used = outputFile
                 
-                if (not test.restartTest):
+                if not test.restartTest:
                     benchFile = benchDir + compareFile
                 else:
                     benchFile = origLastFile
@@ -2049,7 +2046,7 @@ def testSuite(argv):
                 # see if it exists
                 # note, with BoxLib, the plotfiles are actually directories
             
-                if (not os.path.isdir(benchFile)):
+                if not os.path.isdir(benchFile):
                     warning("    WARNING: no corresponding benchmark found")
                     benchFile = ""
 
@@ -2059,7 +2056,7 @@ def testSuite(argv):
                     cf.close()
                     
                 else:
-                    if (not compareFile == ""):
+                    if not compareFile == "":
 
                         print "    benchmark file: ", benchFile
                    
@@ -2080,7 +2077,7 @@ def testSuite(argv):
                         cf.write("         unable to do a comparison\n")
                         cf.close()
 
-                if (not test.diffDir == ""):
+                if not test.diffDir == "":
                     if not test.restartTest:
                         diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
                     else:
@@ -2100,7 +2097,7 @@ def testSuite(argv):
 
                     diffstatus = systemCall(command)
 
-                    if (diffstatus == 0):
+                    if diffstatus == 0:
                         cf = open("%s.compare.out" % (test.name), 'a')
                         cf.write("diff was SUCCESSFUL\n")
                         cf.close()
@@ -2111,12 +2108,12 @@ def testSuite(argv):
                 print "  storing output of %s as the new benchmark..." % (test.name)
                 print "     new benchmark file: ", compareFile
 
-                if (not compareFile == ""):
-                    if outputFile != compareFile:
-                        systemCall("rm -rf %s/%s" % (benchDir, compareFile))
-                        systemCall("cp -rf %s %s/%s" % (outputFile, benchDir, compareFile))
+                if not compareFile == "":
+                    if not outputFile == compareFile:
+                        shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                        shutil.copytre(outputFile, "{}/{}".format(benchDir, compareFile))
                     else:
-                        systemCall("cp -rf %s %s" % (compareFile, benchDir))
+                        shutil.copytree(compareFile, benchDir)
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -2126,7 +2123,7 @@ def testSuite(argv):
                     cf.write("benchmarks failed")
                     cf.close()
 
-                if (not test.diffDir == ""):
+                if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
                     shutil.rmtree(diffDirBench)
                     print "     new diffDir: {}_{}".format(test.name, test.diffDir)
@@ -2135,18 +2132,15 @@ def testSuite(argv):
 
         else:   # selfTest
 
-            if (not make_benchmarks):
+            if not make_benchmarks:
 
                 print "  looking for selfTest success string: %s ..." % test.stSuccessString
 
-                try:
-                    of = open("%s.run.out" % (test.name), 'r')
-
+                try: of = open("%s.run.out" % (test.name), 'r')
                 except IOError:
                     warning("WARNING: no output file found")
                     compareSuccessful = 0
                     outLines = ['']
-
                 else:
                     outLines = of.readlines()
 
@@ -2154,7 +2148,7 @@ def testSuite(argv):
                     compareSuccessful = 0
     
                     for line in outLines:
-                        if (string.find(line, test.stSuccessString) >= 0):
+                        if string.find(line, test.stSuccessString) >= 0:
                             compareSuccessful = 1
                             break
     
@@ -2162,7 +2156,7 @@ def testSuite(argv):
 
                 cf = open("%s.compare.out" % (test.name), 'w')
 
-                if (compareSuccessful):
+                if compareSuccessful:
                     cf.write("SELF TEST SUCCESSFUL\n")
                 else:
                     cf.write("SELF TEST FAILED\n")
@@ -2174,17 +2168,17 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only)
         #---------------------------------------------------------------------- 
-        if (test.doVis and not make_benchmarks):
+        if test.doVis and not make_benchmarks:
 
-            if (not outputFile == ""):
+            if not outputFile == "":
 
                 print "  doing the visualization..."
 
-                if (test.dim == 2):
+                if test.dim == 2:
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir, 
                                test.visVar, outputFile) )
-                elif (test.dim == 3):
+                elif test.dim == 3:
                     systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis3dExecutable, suite.compareToolDir, 
                                test.visVar, outputFile) )
@@ -2206,9 +2200,9 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any analysis
         #---------------------------------------------------------------------- 
-        if (not test.analysisRoutine == "" and not make_benchmarks):
+        if not test.analysisRoutine == "" and not make_benchmarks:
 
-            if (not outputFile == ""):
+            if not outputFile == "":
 
                 print "  doing the analysis..."
                 if test.useExtraBuildDir > 0:
@@ -2232,14 +2226,14 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
-        if (not make_benchmarks):
+        if not make_benchmarks:
             shutil.copy("%s.run.out"     % (test.name), fullWebDir)
             shutil.copy("%s.make.out"    % (test.name), fullWebDir)
             shutil.copy("%s.compare.out" % (test.name), fullWebDir)
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (fullWebDir, test.name, test.inputFile) )
 
-            if (suite.sourceTree == "C_Src"):
+            if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (fullWebDir, test.name, test.probinFile) )
 
             for file in test.auxFiles:
@@ -2247,19 +2241,19 @@ def testSuite(argv):
                 # sometimes the auxFile was in a subdirectory under the
                 # build directory.  
                 index = string.rfind(file, "/")
-                if (index > 0):
+                if index > 0:
                     file = file[index+1:]	   
 
                 shutil.copy(file, "%s/%s.%s" % (fullWebDir, test.name, file) )
 
-            if (test.doVis):
+            if test.doVis:
                pngFile = getRecentFileName(outputDir, "", ".png")
                try: shutil.copy(pngFile, fullWebDir)
                except IOError:
                    # visualization was not successful.  Reset doVis
                    test.doVis = 0
 
-            if (not test.analysisRoutine == ""):
+            if not test.analysisRoutine == "":
                 try: shutil.copy(test.analysisOutputImage, fullWebDir)
                 except IOError:
                     # analysis was not successful.  Reset the output image
@@ -2303,7 +2297,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # write the report for this test
         #----------------------------------------------------------------------
-        if (not make_benchmarks):
+        if not make_benchmarks:
             print "  creating problem test report ..."
             reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
