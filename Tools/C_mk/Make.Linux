@@ -347,11 +347,11 @@ ifeq ($(WHICHLINUX), HOPPER)
   DEFINES += -DMPICH_SKIP_MPICXX
   DEFINES += -DBL_HOPPER
   ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
+    CXX := CC
+    CC  := cc
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
   endif
   ifeq ($(USE_IPM),TRUE)
     ifeq ($(COMP),PGI)
