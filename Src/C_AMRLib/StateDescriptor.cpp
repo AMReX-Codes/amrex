@@ -8,6 +8,8 @@
 #include <Interpolater.H>
 #include <BCRec.H>
 
+int StateDescriptor::bf_ext_dir_threadsafe = 0;
+
 StateDescriptor::BndryFunc::BndryFunc ()
     :
     m_func(0),
@@ -35,6 +37,22 @@ StateDescriptor::BndryFunc::clone () const
 
 StateDescriptor::BndryFunc::~BndryFunc () {}
 
+bool
+StateDescriptor::bf_thread_safety (const int* lo,const int* hi,
+				   const int* dom_lo, const int* dom_hi,
+				   const int* bc, int ng)
+{
+    bool thread_safe = true;
+    if (!bf_ext_dir_threadsafe) {
+	bool has_ext_dir = false;
+	for (int i=0; i<2*BL_SPACEDIM*ng && !has_ext_dir; ++i) {
+	    has_ext_dir = bc[i]==EXT_DIR;
+	}
+	if (has_ext_dir) thread_safe = false;
+    }
+    return thread_safe;
+}
+
 void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
@@ -43,18 +61,34 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 {
     BL_ASSERT(m_func != 0);
 
-    m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, 1);
+    if (thread_safe) {
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    } else {
+#ifdef _OPENMP
+#pragma omp critical (bndryfunc)
+#endif
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    }
 }
 
 void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,
-                                         const Real* time, const int* bc, bool) const
+                                         const Real* time, const int* bc, int ng) const
 {
     BL_ASSERT(m_gfunc != 0);
 
-    m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, ng);
+    if (thread_safe) {
+	m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    } else {
+#ifdef _OPENMP
+#pragma omp critical (bndryfunc)
+#endif
+	m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    }
 }
 
 DescriptorList::DescriptorList ()
