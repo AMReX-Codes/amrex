@@ -313,26 +313,14 @@ void BLProfiler::start() {
   }
   ++callStackDepth;
   BL_ASSERT(vCallTrace.size() > 0);
-  if(vCallTrace.back().csFNameNumber == fnameNumber && callStackDepth != prevCallStackDepth) {
-//if(ParallelDescriptor::IOProcessor()) {
-  //std::cout << "pCSD:  fname csd pcsd = " << fname << "  " << callStackDepth << "  " << prevCallStackDepth << std::endl;
-//}
-    ++(vCallTrace.back().nCSCalls);
-  } else {
-    Real calltime(bltstart - startTime);
-    vCallTrace.push_back(CallStats(callStackDepth, fnameNumber, 1, 0.0, 0.0, calltime));
-    CallStats::minCallTime = std::min(CallStats::minCallTime, calltime);
-    CallStats::maxCallTime = std::max(CallStats::maxCallTime, calltime);
-  }
+  Real calltime(bltstart - startTime);
+  vCallTrace.push_back(CallStats(callStackDepth, fnameNumber, 1, 0.0, 0.0, calltime));
+  CallStats::minCallTime = std::min(CallStats::minCallTime, calltime);
+  CallStats::maxCallTime = std::max(CallStats::maxCallTime, calltime);
+
   callIndexStack.push_back(CallStatsStack(vCallTrace.size() - 1));
   prevCallStackDepth = callStackDepth;
 
-//std::cout << "fname fnum = " << fname << "  " << fnameNumber << std::endl;
-//std::cout << "callIndexStack.size() = " << (callIndexStack.size()) << std::endl;
-//for(int i(0); i < callIndexStack.size(); ++i) {
-  //std::cout << "callIndexStack[" << i << "].fnum = "
-            //<< vCallTrace[callIndexStack[i].index].csFNameNumber << std::endl;
-//}
 #endif
 }
 }
