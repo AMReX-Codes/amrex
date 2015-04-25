@@ -957,6 +957,7 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(cEXE_sources:%.c=%.o)				\
 			$(fEXE_sources:%.f=%.o)				\
 			$(f90EXE_sources:%.f90=%.o)			\
+			$(F90EXE_sources:%.F90=%.o)
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
