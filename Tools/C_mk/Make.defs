@@ -973,6 +973,17 @@ ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
 
+ifeq ($(BL_ALIGN_BYTE),32)
+  DEFINES += -DBL_ALIGN_32_BYTE
+else 
+ifeq ($(BL_ALIGN_BYTE),64)
+  DEFINES += -DBL_ALIGN_64_BYTE
+else 
+ifeq ($(WHICHLINUX),EDISON)
+  DEFINES += -DBL_ALIGN_32_BYTE
+endif
+endif
+endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
