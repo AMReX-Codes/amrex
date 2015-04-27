@@ -1656,8 +1656,6 @@ def testSuite(argv):
 
             for line in so:
                 f.write(line)
-            for line in se:
-                f.write(line)
             f.close()
                
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
@@ -1694,8 +1692,6 @@ def testSuite(argv):
                 sys.exit("unable to open make.out")
 
             for line in so:
-                f.write(line)
-            for line in se:
                 f.write(line)
             f.close()
 
