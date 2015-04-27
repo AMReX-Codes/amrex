@@ -462,13 +462,20 @@ def systemCall(string):
     return status
 
 
-def run(string):
+def run(string, stdin=False):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
-    p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)
+    if stdin:
+        p0 = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+    else:
+        p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        
     stdout0, stderr0 = p0.communicate()
+    if stdin: p0.stdin.close()
     rc = p0.returncode
     p0.stdout.close()
     
@@ -601,46 +608,24 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
 
    os.chdir(topDir)
 
-
    # find out current branch so that we can go back later if we need.
-   prog = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-   p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
-   stdout0, stderr0 = p0.communicate()
+   stdout0, stderr0, rc = run("git rev-parse --abbrev-ref HEAD")
    currentBranch = stdout0.rstrip('\n')
-   p0.stdout.close()
 
    if currentBranch != gitbranch:
        bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
-       prog = ["git", "checkout", gitbranch]
-       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-       p.stdin.close()
+       stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
+
 
    if githash == "":
        bold("'git pull' in %s" % (topDir), skip_before=1)
 
        # we need to be tricky here to make sure that the stdin is
        # presented to the user to get the password.  
-       prog = ["git", "pull"]
-       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-       p.stdin.close()
+       stdout, stderr, rc = run("git pull", stdin=True)
 
    else:
-
-       prog = ["git", "checkout", githash]
-       p = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-
+       stdout, stderr, rc = run("git checkout {}".format(githash))
 
    try: cf = open("git.%s.out" % (root), 'w')
    except IOError:
@@ -648,7 +633,6 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    else:
        for line in stdout:
            cf.write(line)
-
        cf.close()
 
    if stdout == "":
@@ -681,13 +665,7 @@ def doGITback(topDir, root, gitbranch):
 
    bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
 
-   prog = ["git", "checkout", gitbranch]
-   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-   stdout, stderr = p.communicate()
-   p.stdout.close()
-   p.stdin.close()
+   stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
 
    try: cf = open("git.%s.out" % (root), 'w')   
    except IOError:
