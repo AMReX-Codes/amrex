@@ -26,15 +26,21 @@ module parallel
   integer, private :: m_myproc = -1
   integer, private :: m_comm   = -1
   integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
+  integer, private :: mpi_ll_t = -1
+  integer, private :: MPI_MAX_LONG = -1
+  integer, private :: MPI_MIN_LONG = -1
+  integer, private :: MPI_SUM_LONG = -1
 
   interface parallel_reduce
      module procedure parallel_reduce_d
      module procedure parallel_reduce_r
      module procedure parallel_reduce_i
+     module procedure parallel_reduce_ll
      module procedure parallel_reduce_l
      module procedure parallel_reduce_dv
      module procedure parallel_reduce_rv
      module procedure parallel_reduce_iv
+     module procedure parallel_reduce_llv
      module procedure parallel_reduce_lv
   end interface parallel_reduce
 
@@ -42,6 +48,7 @@ module parallel
 !      module procedure parallel_isend_dv
 !      module procedure parallel_isend_rv
 !      module procedure parallel_isend_iv
+!      module procedure parallel_isend_llv
 !      module procedure parallel_isend_lv
 !   end interface parallel_isend
 
@@ -49,6 +56,7 @@ module parallel
 !      module procedure parallel_irecv_dv
 !      module procedure parallel_irecv_rv
 !      module procedure parallel_irecv_iv
+!      module procedure parallel_irecv_llv
 !      module procedure parallel_irecv_lv
 !   end interface parallel_irecv
 
@@ -67,6 +75,13 @@ module parallel
      module procedure parallel_send_i5
      module procedure parallel_send_i6
      module procedure parallel_send_i7
+     module procedure parallel_send_ll1
+     module procedure parallel_send_ll2
+     module procedure parallel_send_ll3
+     module procedure parallel_send_ll4
+     module procedure parallel_send_ll5
+     module procedure parallel_send_ll6
+     module procedure parallel_send_ll7
      module procedure parallel_send_l1
      module procedure parallel_send_l2
      module procedure parallel_send_l3
@@ -98,6 +113,13 @@ module parallel
      module procedure parallel_recv_i5
      module procedure parallel_recv_i6
      module procedure parallel_recv_i7
+     module procedure parallel_recv_ll1
+     module procedure parallel_recv_ll2
+     module procedure parallel_recv_ll3
+     module procedure parallel_recv_ll4
+     module procedure parallel_recv_ll5
+     module procedure parallel_recv_ll6
+     module procedure parallel_recv_ll7
      module procedure parallel_recv_l1
      module procedure parallel_recv_l2
      module procedure parallel_recv_l3
@@ -132,12 +154,14 @@ module parallel
      module procedure parallel_bcast_d
      module procedure parallel_bcast_r
      module procedure parallel_bcast_i
+     module procedure parallel_bcast_ll
      module procedure parallel_bcast_l
      module procedure parallel_bcast_c
      module procedure parallel_bcast_z
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
+     module procedure parallel_bcast_llv
      module procedure parallel_bcast_lv
      module procedure parallel_bcast_cv
      module procedure parallel_bcast_zv
@@ -147,6 +171,7 @@ module parallel
      module procedure parallel_scatter_dv
      module procedure parallel_scatter_rv
      module procedure parallel_scatter_iv
+     module procedure parallel_scatter_llv
      module procedure parallel_scatter_lv
      module procedure parallel_scatter_cv
      module procedure parallel_scatter_zv
@@ -159,6 +184,7 @@ module parallel
      module procedure parallel_gather_d
      module procedure parallel_gather_r
      module procedure parallel_gather_i
+     module procedure parallel_gather_ll
      module procedure parallel_gather_l
      module procedure parallel_gather_c
      module procedure parallel_gather_z
@@ -168,6 +194,7 @@ module parallel
      module procedure parallel_gather_dv
      module procedure parallel_gather_rv
      module procedure parallel_gather_iv
+     module procedure parallel_gather_llv
      module procedure parallel_gather_lv
      module procedure parallel_gather_cv
      module procedure parallel_gather_zv
@@ -177,6 +204,7 @@ module parallel
      module procedure parallel_allgather_dv
      module procedure parallel_allgather_rv
      module procedure parallel_allgather_iv
+     module procedure parallel_allgather_llv
      module procedure parallel_allgather_lv
      module procedure parallel_allgather_cv
      module procedure parallel_allgather_zv
@@ -187,6 +215,8 @@ module parallel
      module procedure parallel_alltoall_dv
      module procedure parallel_alltoall_i
      module procedure parallel_alltoall_iv
+     module procedure parallel_alltoall_ll
+     module procedure parallel_alltoall_llv
      module procedure parallel_alltoall_l
      module procedure parallel_alltoall_lv
   end interface
@@ -225,6 +255,13 @@ contains
     endif
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
+    if (ll_t .ne. selected_int_kind(15)) then
+       call parallel_abort("8-byte int not supported")
+    end if
+    call MPI_Type_create_f90_integer(15, mpi_ll_t, ierr)
+    call MPI_Op_create(max_long, .true., MPI_MAX_LONG, ierr)
+    call MPI_Op_create(min_long, .true., MPI_MIN_LONG, ierr)
+    call MPI_Op_create(sum_long, .true., MPI_SUM_LONG, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
   subroutine parallel_finalize(do_finalize_MPI)
@@ -432,6 +469,23 @@ contains
        call MPI_AllReduce(a, r, 1, MPI_INTEGER, op, l_comm, ierr)
     end if
   end subroutine parallel_reduce_i
+  subroutine parallel_reduce_ll(r, a, op_in, proc, comm)
+    integer (kind=ll_t), intent(in) :: a
+    integer, intent(in) :: op_in
+    integer, intent(in), optional :: proc
+    integer, intent(in), optional :: comm
+    integer (kind=ll_t), intent(out) :: r
+    integer ierr
+    external MPI_Reduce, MPI_AllReduce
+    integer :: l_comm, op
+    op = mpi_op_long(op_in)
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    if ( present(proc) ) then
+       CALL MPI_Reduce(a, r, 1, mpi_ll_t, op, proc, l_comm, ierr) 
+    else
+       call MPI_AllReduce(a, r, 1, mpi_ll_t, op, l_comm, ierr)
+    end if
+  end subroutine parallel_reduce_ll
   subroutine parallel_reduce_l(r, a, op, proc, comm)
     logical, intent(in) :: a
     integer, intent(in) :: op
@@ -498,6 +552,23 @@ contains
        call MPI_AllReduce(a, r, size(a), MPI_INTEGER, op, l_comm, ierr)
     end if
   end subroutine parallel_reduce_iv
+  subroutine parallel_reduce_llv(r, a, op_in, proc, comm)
+    integer(kind=ll_t), intent(in) :: a(:)
+    integer, intent(in) :: op_in
+    integer, intent(in), optional :: proc
+    integer, intent(in), optional :: comm
+    integer(kind=ll_t), intent(out) :: r(:)
+    integer ierr
+    external MPI_Reduce, MPI_AllReduce
+    integer :: l_comm, op
+    op = mpi_op_long(op_in)
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    if ( present(proc) ) then
+       CALL MPI_Reduce(a, r, size(a), mpi_ll_t, op, proc, l_comm, ierr) 
+    else
+       call MPI_AllReduce(a, r, size(a), mpi_ll_t, op, l_comm, ierr)
+    end if
+  end subroutine parallel_reduce_llv
   subroutine parallel_reduce_lv(r, a, op, proc, comm)
     logical, intent(in) :: a(:)
     integer, intent(in) :: op
@@ -579,6 +650,17 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_ISend(a, n, MPI_INTEGER, proc, tag, l_comm, r, ierr)
   end function parallel_isend_iv
+  function parallel_isend_llv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    integer(kind=ll_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_ISend
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_ISend(a, n, mpi_ll_t, proc, tag, l_comm, r, ierr)
+  end function parallel_isend_llv
   function parallel_isend_lv(a, n, proc, tag, comm) result(r)
     integer :: r
     logical, intent(in) :: a(*)
@@ -637,6 +719,17 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_IRecv(a, n, MPI_INTEGER, proc, tag, l_comm, r, ierr)
   end function parallel_irecv_iv
+  function parallel_irecv_llv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    integer(kind=ll_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_IRecv
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_IRecv(a, n, mpi_ll_t, proc, tag, l_comm, r, ierr)
+  end function parallel_irecv_llv
   function parallel_irecv_lv(a, n, proc, tag, comm) result(r)
     integer :: r
     logical, intent(out) :: a(*)
@@ -866,6 +959,58 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Send(a, n, MPI_INTEGER, proc, tag, l_comm, ierr)
   end subroutine parallel_send_iv
+  subroutine parallel_send_ll1(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll1
+  subroutine parallel_send_ll2(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll2
+  subroutine parallel_send_ll3(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll3
+  subroutine parallel_send_ll4(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll4
+  subroutine parallel_send_ll5(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll5
+  subroutine parallel_send_ll6(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll6
+  subroutine parallel_send_ll7(a, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_llv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_ll7
+  subroutine parallel_send_llv(a, n, proc, tag, comm)
+    integer(kind=ll_t), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    external MPI_Send
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Send(a, n, mpi_ll_t, proc, tag, l_comm, ierr)
+  end subroutine parallel_send_llv
   subroutine parallel_send_l1(a, proc, tag, comm)
     logical, intent(in) :: a(:)
     integer, intent(in) :: proc, tag
@@ -1109,6 +1254,67 @@ contains
     CALL MPI_Recv(a, n, MPI_INTEGER, proc, tag, l_comm, lstatus, ierr)
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_iv
+  subroutine parallel_recv_ll1(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll1
+  subroutine parallel_recv_ll2(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll2
+  subroutine parallel_recv_ll3(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll3
+  subroutine parallel_recv_ll4(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll4
+  subroutine parallel_recv_ll5(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll5
+  subroutine parallel_recv_ll6(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll6
+  subroutine parallel_recv_ll7(a, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_llv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_ll7
+  subroutine parallel_recv_llv(a, n, proc, tag, comm, status)
+    integer(kind=ll_t), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, lstatus(MPI_STATUS_SIZE)
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    external MPI_Recv
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Recv(a, n, mpi_ll_t, proc, tag, l_comm, lstatus, ierr)
+    if ( present(status) ) status = lstatus
+  end subroutine parallel_recv_llv
   subroutine parallel_recv_l1(a, proc, tag, comm, status)
     logical, intent(out) :: a(:)
     integer, intent(in) :: proc, tag
@@ -1274,6 +1480,27 @@ contains
   end subroutine parallel_alltoall_iv
 
   ! AlltoAll
+  subroutine parallel_alltoall_ll(a, b, n, comm)
+    integer(kind=ll_t), intent(in) :: b(*)
+    integer(kind=ll_t), intent(inout) :: a(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer, intent(in) :: n
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoall(b, n, mpi_ll_t, a, n, mpi_ll_t, l_comm, ierr)
+  end subroutine parallel_alltoall_ll
+  ! AlltoAll
+  subroutine parallel_alltoall_llv(a, ac, ad, b, bc, bd, comm)
+    integer(kind=ll_t), intent(in) :: b(*)
+    integer(kind=ll_t), intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    call MPI_Alltoallv(b, bc, bd, mpi_ll_t, a, ac, ad, mpi_ll_t, l_comm, ierr)
+  end subroutine parallel_alltoall_llv
+
+  ! AlltoAll
   subroutine parallel_alltoall_l(a, b, n, comm)
     logical, intent(in) :: b(*)
     logical, intent(inout) :: a(*)
@@ -1331,6 +1558,18 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, 1, MPI_INTEGER, l_root, l_comm, ierr)
   end subroutine parallel_bcast_i
+  subroutine parallel_bcast_ll(a, root, comm)
+    integer(kind=ll_t) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, 1, mpi_ll_t, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_ll
   subroutine parallel_bcast_l(a, root, comm)
     logical :: a
     integer, intent(in), optional :: root
@@ -1404,6 +1643,18 @@ contains
     if ( present(comm) ) l_comm = comm
     CALL MPI_Bcast(a, size(a), MPI_INTEGER, l_root, l_comm, ierr)
   end subroutine parallel_bcast_iv
+  subroutine parallel_bcast_llv(a, root, comm)
+    integer(kind=ll_t) :: a(:)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    CALL MPI_Bcast(a, size(a), mpi_ll_t, l_root, l_comm, ierr)
+  end subroutine parallel_bcast_llv
   subroutine parallel_bcast_lv(a, root, comm)
     logical :: a(:)
     integer, intent(in), optional :: root
@@ -1504,6 +1755,22 @@ contains
          rcv, n, MPI_INTEGER, &
          l_root, l_comm, ierr)
   end subroutine parallel_gather_i
+  subroutine parallel_gather_ll(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    integer(kind=ll_t), intent(in) :: snd(*)
+    integer(kind=ll_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_root, l_comm
+    external MPI_Gather
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gather(snd, n, mpi_ll_t, &
+         rcv, n, mpi_ll_t, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_ll
   subroutine parallel_gather_l(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
@@ -1604,6 +1871,23 @@ contains
          rcv, rcvc, rcvd, MPI_INTEGER, &
          l_root, l_comm, ierr)
   end subroutine parallel_gather_iv
+  subroutine parallel_gather_llv(snd, n, rcv, rcvc, rcvd, root, comm)
+    integer(kind=ll_t), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    integer(kind=ll_t), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Gatherv(snd, n, mpi_ll_t, &
+         rcv, rcvc, rcvd, mpi_ll_t, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_gather_llv
   subroutine parallel_gather_lv(snd, n, rcv, rcvc, rcvd, root, comm)
     logical, intent(in) :: snd(*)
     integer, intent(in) :: n
@@ -1702,6 +1986,17 @@ contains
     if ( present(comm) ) l_comm = comm
     call MPI_Allgather(snd, n, MPI_LOGICAL, rcv, n, MPI_LOGICAL, l_comm, ierr)
   end subroutine parallel_allgather_lv
+  subroutine parallel_allgather_llv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    integer(kind=ll_t), intent(in) :: snd(*)
+    integer(kind=ll_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_comm
+    external MPI_Allgather
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Allgather(snd, n, mpi_ll_t, rcv, n, mpi_ll_t, l_comm, ierr)
+  end subroutine parallel_allgather_llv
   subroutine parallel_allgather_cv(snd, rcv, n, comm)
     integer, intent(in) :: n
     complex(kind=sp_t), intent(in) :: snd(*)
@@ -1774,6 +2069,22 @@ contains
          rcv, n, MPI_INTEGER, &
          l_root, l_comm, ierr)
   end subroutine parallel_scatter_iv
+  subroutine parallel_scatter_llv(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    integer(kind=ll_t), intent(in) :: snd(*)
+    integer(kind=ll_t), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_root, l_comm
+    external MPI_Scatter
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call MPI_Scatter(snd, n, mpi_ll_t, &
+         rcv, n, mpi_ll_t, &
+         l_root, l_comm, ierr)
+  end subroutine parallel_scatter_llv
   subroutine parallel_scatter_lv(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
@@ -1822,5 +2133,42 @@ contains
          rcv, n, MPI_DOUBLE_COMPLEX, &
          l_root, l_comm, ierr)
   end subroutine parallel_scatter_zv
+
+  subroutine max_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=ll_t) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = max(inv(i), inoutv(i))
+    end do
+  end subroutine max_long
+  subroutine min_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=ll_t) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = min(inv(i), inoutv(i))
+    end do
+  end subroutine min_long
+  subroutine sum_long(inv, inoutv, len, type)
+    integer :: len, type, i
+    integer(kind=ll_t) :: inv(len), inoutv(len)
+    do i = 1, len
+       inoutv(i) = inv(i) + inoutv(i)
+    end do
+  end subroutine sum_long
+
+  function mpi_op_long(op) result(r)
+    integer, intent(in) :: op
+    integer :: r
+    select case (op)
+       case (MPI_MAX)
+          r = MPI_MAX_LONG
+       case (MPI_MIN)
+          r = MPI_MIN_LONG
+       case (MPI_SUM)
+          r = MPI_SUM_LONG
+       case default
+          call parallel_abort("unknown MPI_op for ll_t")
+       end select
+  end function mpi_op_long
 
 end module parallel

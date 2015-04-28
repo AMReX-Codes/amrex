@@ -183,15 +183,9 @@ def isFloat(string):
 def convertType(string):
     """ return an integer, float, or string from the input string """
 
-    # check in turn whether this is an interger, float, or string
-    if (isInt(string)):
-        value = int(string)
-    elif (isFloat(string)):
-        value = float(string)
-    else:
-        value = string.strip()
-
-    return value
+    if isInt(string): return int(string)
+    elif isFloat(string): return float(string)
+    else: return string.strip()
 
 
 #==============================================================================
@@ -301,7 +295,6 @@ def LoadParams(file):
         fail("ERROR: required suite-wide directory not specified\n" + \
                  "(sourceTree, boxLibDir, sourceDir, testTopDir)")
 
-
     # Make sure the web dir is valid (or use the default is none specified)
     if mysuite.webTopDir == "":
         mysuite.webTopDir = "%s/%s-web/" % (mysuite.testTopDir, mysuite.suiteName)
@@ -310,7 +303,6 @@ def LoadParams(file):
         try: os.mkdir(mysuite.webTopDir)
         except: fail("ERROR: unable to create the web directory: %s\n" % 
                      (mysuite.webTopDir))
-
 
     # all other sections are tests
     bold("finding tests and checking parameters...", skip_before=1)
@@ -367,7 +359,6 @@ def LoadParams(file):
             invalid = 1
 
 
-
         # make sure all the require parameters are present
         if mytest.compileTest:
             if mytest.buildDir == "":
@@ -386,7 +377,6 @@ def LoadParams(file):
                 warning("            dim = %s" % (mytest.dim))
 
                 invalid = 1
-
 
         # check the optional parameters
         if mytest.restartTest and mytest.restartFileNum == -1:
@@ -422,11 +412,7 @@ def LoadParams(file):
 
     
     # if any runs are parallel, make sure that the MPIcommand is defined
-    anyMPI = 0
-    for test in testList:
-        if test.useMPI:
-            anyMPI = 1
-            break
+    anyMPI = any([t.useMPI for t in testList])
 
     if anyMPI and mysuite.MPIcommand == "":
         fail("ERROR: some tests are MPI parallel, but MPIcommand not defined")
@@ -476,16 +462,32 @@ def systemCall(string):
     return status
 
 
-def run(string):
+def run(string, stdin=False, outfile=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
-    p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)
+    if stdin:
+        p0 = subprocess.Popen(prog, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+    else:
+        p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        
     stdout0, stderr0 = p0.communicate()
+    if stdin: p0.stdin.close()
     rc = p0.returncode
     p0.stdout.close()
-    
+
+    if not outfile == None:
+        try: cf = open(outfile, "w")
+        except IOError:
+            fail("  ERROR: unable to open file for writing")
+        else:
+            for line in stdout0:
+                cf.write(line)
+            cf.close()
+       
     return stdout0, stderr0, rc
 
 
@@ -565,11 +567,11 @@ def getLastPlotfile(outputDir, test):
 #==============================================================================
 # getRecentFileName
 #==============================================================================
-def getRecentFileName(dir,base,extension):
+def getRecentFileName(dir, base, extension):
     """ for F_Src builds, given the base and extension, find the
         most recent corresponding file"""
         
-    # finding all files that are of type base.*.exe and store the
+    # finding all files that are of type base...extension and store the
     # name of only the most recently created one
     ctime = -1
     executableFile = ""
@@ -591,18 +593,16 @@ def getRecentFileName(dir,base,extension):
 #==============================================================================
 # getTestCompDir
 #==============================================================================
-def checkTestDir(dirName):
+def checkTestDir(dir_name):
    """ given a string representing a directory, check if it points to
        a valid directory.  If so, return the directory name """
 
-   # make sure we end in a "/"
-   if not string.rfind(dirName, "/") == len(dirName)-1:
-       dirName = dirName + "/"
+   dir_name = os.path.normpath(dir_name) + "/"
            
-   if not os.path.isdir(dirName):
-       fail("ERROR: %s is not a valid directory" % (dirName))
+   if not os.path.isdir(dir_name):
+       fail("ERROR: {} is not a valid directory".format(dir_name))
 
-   return dirName
+   return dir_name
 
 
 #==============================================================================
@@ -617,66 +617,32 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
 
    os.chdir(topDir)
 
-
    # find out current branch so that we can go back later if we need.
-   prog = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-   p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT)
-   stdout0, stderr0 = p0.communicate()
+   stdout0, stderr0, rc = run("git rev-parse --abbrev-ref HEAD")
    currentBranch = stdout0.rstrip('\n')
-   p0.stdout.close()
 
    if currentBranch != gitbranch:
        bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
-       prog = ["git", "checkout", gitbranch]
-       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-       p.stdin.close()
+       stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
+       
 
    if githash == "":
        bold("'git pull' in %s" % (topDir), skip_before=1)
 
        # we need to be tricky here to make sure that the stdin is
        # presented to the user to get the password.  
-       prog = ["git", "pull"]
-       p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-       p.stdin.close()
+       stdout, stderr, rc = run("git pull", stdin=True,
+                                outfile="git.{}.out".format(root))
 
    else:
-
-       prog = ["git", "checkout", githash]
-       p = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
-       stdout, stderr = p.communicate()
-       p.stdout.close()
-
-
-   try:
-       cf = open("git.%s.out" % (root), 'w')
-   
-   except IOError:
-       fail("  ERROR: unable to open file for writing")
-
-   else:
-
-       for line in stdout:
-           cf.write(line)
-
-       cf.close()
-
-
-   if (stdout == ""):
-       fail("  ERROR: git update was unsuccessful")
+       stdout, stderr, rc = run("git checkout {}".format(githash),
+                                outfile="git.{}.out".format(root))                                
        
-        
-   shutil.copy("git.%s.out" % (root),  outDir)
+   # not sure if this is valid -- we are piping stderr into stdout 
+   if stdout == "":
+       fail("  ERROR: git update was unsuccessful")
+               
+   shutil.copy("git.{}.out".format(root),  outDir)
 
    return currentBranch
 
@@ -689,7 +655,6 @@ def saveGITHEAD(topDir, root, outDir):
    bold("saving git HEAD for %s/" % (root), skip_before=1)
 
    systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
-
    shutil.copy("git.%s.HEAD" % (root),  outDir)
 
 
@@ -704,24 +669,10 @@ def doGITback(topDir, root, gitbranch):
 
    bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
 
-   prog = ["git", "checkout", gitbranch]
-   p = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-   stdout, stderr = p.communicate()
-   p.stdout.close()
-   p.stdin.close()
+   stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True,
+                            outfile="git.{}.out".format(root))
 
-   try:
-       cf = open("git.%s.out" % (root), 'w')   
-   except IOError:
-       fail("  ERROR: unable to open file for writing")
-   else:
-       for line in stdout:
-           cf.write(line)
-       cf.close()
-
-   if (stdout == ""):
+   if stdout == "":
        fail("  ERROR: git checkout was unsuccessful")
 
 
@@ -736,24 +687,8 @@ def makeGITChangeLog(gitDir, root, outDir):
 
     bold("generating ChangeLog for %s/" % (root), skip_before=1)
     
-    systemCall("git log --name-only >& ChangeLog.%s" % (root) )
-    
+    systemCall("git log --name-only >& ChangeLog.%s" % (root) )    
     shutil.copy("ChangeLog.%s" % (root), outDir)
-
-
-#==============================================================================
-# allAreCompileTests
-#==============================================================================
-def allAreCompileTests(testList):
-    """ return 1 if all the tests in the list are compile tests """
-
-    allCompile = 1
-    for test in testList:
-        if (not test.compileTest):
-            allCompile = 0
-            break
-            
-    return allCompile
 
 
 #==============================================================================
@@ -1295,20 +1230,13 @@ def testSuite(argv):
     else:
         nouplist = no_update_low.split(",")
 
-        if "boxlib" in nouplist:
-            updateBoxLib = False
-        else:
-            updateBoxLib = True
-
-        if suite.srcName.lower() in nouplist:
-            updateSource = False
-        else:
-            updateSource = True
-
-        if suite.extSrcName.lower() in nouplist:
-            updateExtSrc = False
-        else:
-            updateExtSrc = True
+        updateBoxLib = True
+        updateSource = True
+        updateExtSrc = True
+        
+        if "boxlib" in nouplist: updateBoxLib = False
+        if suite.srcName.lower() in nouplist: updateSource = False
+        if suite.extSrcName.lower() in nouplist: updateExtSrc = False
 
         # each extra build directory has its own update flag
         updateExtraBuild = []
@@ -1318,27 +1246,17 @@ def testSuite(argv):
             else:
                 updateExtraBuild.append(True)
 
-    if not suite.useExtSrc:
-        updateExtSrc = False
-
-    if not suite.useExtraBuild:
-        updateExtraBuild = [False]
+    if not suite.useExtSrc: updateExtSrc = False
+    if not suite.useExtraBuild: updateExtraBuild = [False]
     
     if suite.sourceTree == "BoxLib":
         updateSource = False # to avoid updating BoxLib twice.
                              # The update of BoxLib is controlled by updateBoxLib
         sourceGitHash = ""
 
-
-    if boxLibGitHash:
-        updateBoxLib = False 
-
-    if sourceGitHash:
-        updateSource = False 
-
-    if extSrcGitHash:
-        updateExtSrc = False 
-
+    if boxLibGitHash: updateBoxLib = False 
+    if sourceGitHash: updateSource = False 
+    if extSrcGitHash: updateExtSrc = False 
 
 
     #--------------------------------------------------------------------------
@@ -1346,35 +1264,27 @@ def testSuite(argv):
     # if we specified a list of tests, check each one
     # if we did both --single_test and --tests, complain
     #--------------------------------------------------------------------------
-    if (not single_test == "" and not tests == ""):
+    if not single_test == "" and not tests == "":
         fail("ERROR: specify tests either by --single_test or --tests, not both")
 
-    if (not single_test == ""):
-        found = 0
-        for obj in testList:
-            if (obj.name == single_test):
-                found = 1
-                newTestList = [obj]
-                break
+    if not single_test == "":
+        testsFind = [single_test]
+    elif not tests == "":
+        testsFind = tests.split()
+    else:
+        testsFind = []
 
-        if (not found):
-            fail("ERROR: %s is not a valid test" % (single_test))
-        else:
-            testList = newTestList
-        
-    elif (not tests == ""):
-        testsFind = list(set(string.split(tests)))
-
+    if len(testsFind) > 0:
         newTestList = []
         for test in testsFind:
             found = 0
             for obj in testList:
-                if (obj.name == test):
+                if obj.name == test:
                     found = 1
                     newTestList.append(obj)
                     break
             
-            if (not found):
+            if not found:
                 fail("ERROR: %s is not a valid test" % (test))
         
         testList = newTestList
@@ -1383,12 +1293,12 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # get the name of the benchmarks directory
     #--------------------------------------------------------------------------
-    allCompile = allAreCompileTests(testList)
-
-    if (not allCompile):
+    allCompile = all([t.compileTest == 1 for t in testList])
+    
+    if not allCompile:
         benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
-        if (not os.path.isdir(benchDir)):
-            if (make_benchmarks):
+        if not os.path.isdir(benchDir):
+            if make_benchmarks:
                 os.mkdir(benchDir)
             else:
                 fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
@@ -1410,7 +1320,7 @@ def testSuite(argv):
 
     # test output stored in a directory suiteName-tests/2007-XX-XX/
     # make sure that the suiteName-tests directory exists
-    if (not os.path.isdir(suite.testTopDir + suite.suiteName + "-tests/")):
+    if not os.path.isdir(suite.testTopDir + suite.suiteName + "-tests/"):
         os.mkdir(suite.testTopDir + suite.suiteName + "-tests/")
         
     fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
@@ -1418,7 +1328,7 @@ def testSuite(argv):
     if do_temp_run:
         testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
-        systemCall("rm -rf %s" % (fullTestDir))
+        shutil.rmtree(fullTestDir)
     else:
         i = 0
         while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
@@ -1434,7 +1344,7 @@ def testSuite(argv):
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
 
     if do_temp_run:
-        systemCall("rm -rf %s" % (fullWebDir))
+        shutil.rmtree(fullWebDir)
         
     os.mkdir(fullWebDir)
 
@@ -1461,7 +1371,7 @@ def testSuite(argv):
     if updateExtSrc or extSrcGitHash:
 
         # extra source
-        if (suite.useExtSrc):
+        if suite.useExtSrc:
             extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir, 
                                                suite.extSrcName, fullWebDir,
                                                suite.extSrcGitBranch,
@@ -1612,7 +1522,7 @@ def testSuite(argv):
         else:
             inExtra = 0
 
-        if (inExtra > 0):
+        if inExtra > 0:
             print "  %s in %s" % (dir,suite.extraBuildNames[inExtra-1])
             os.chdir(suite.extraBuildDirs[inExtra-1] + dir)
         else:
@@ -1634,19 +1544,19 @@ def testSuite(argv):
 
         bold("working on test: %s" % (test.name), skip_before=1)
 
-        if (test.restartTest and make_benchmarks):
+        if test.restartTest and make_benchmarks:
             warning("  WARNING: test %s is a restart test -- " % (test.name))
             warning("           no benchmarks are stored.")
             warning("           skipping\n")
             continue
      
-        if (test.compileTest and make_benchmarks):
+        if test.compileTest and make_benchmarks:
             warning("  WARNING: test %s is a compile test -- " % (test.name))
             warning("           no benchmarks are stored.")
             warning("           skipping\n")
             continue            
 
-        if (test.selfTest and make_benchmarks):
+        if test.selfTest and make_benchmarks:
             warning("  WARNING: test %s is a self-test -- " % (test.name))
             warning("           no benchmarks are stored.")
             warning("           skipping\n")
@@ -1671,7 +1581,7 @@ def testSuite(argv):
 
         os.chdir(bDir)
 
-        if (test.reClean == 1):
+        if test.reClean == 1:
             # for one reason or another, multiple tests use different
             # build options, make clean again to be safe
             print "  re-making clean..."
@@ -1683,24 +1593,24 @@ def testSuite(argv):
         
         print "  building..."
 
-        if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
+        if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
             buildOptions = ""
             exeSuffix = ""
 
-            if (test.debug):
+            if test.debug:
                 buildOptions += "DEBUG=TRUE "
                 exeSuffix += ".DEBUG"
             else:
                 buildOptions += "DEBUG=FALSE "
 
-            if (test.useMPI):
+            if test.useMPI:
                 buildOptions += "USE_MPI=TRUE "
                 exeSuffix += ".MPI"
             else:
                 buildOptions += "USE_MPI=FALSE "
 
-            if (test.useOMP):
+            if test.useOMP:
                 buildOptions += "USE_OMP=TRUE "
                 exeSuffix += ".OMP"
             else:
@@ -1718,33 +1628,24 @@ def testSuite(argv):
                  executable)
 
             print "    " + compString
-            so, se, r = run(compString)
-            
-            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
-            except:
-                sys.exit("unable to open make.out")
-
-            for line in so:
-                f.write(line)
-            for line in se:
-                f.write(line)
-            f.close()
+            so, se, r = run(compString,
+                            outfile="{}/{}.make.out".format(outputDir, test.name))
                
-        elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
+        elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             buildOptions = ""
 
-            if (test.debug):
+            if test.debug:
                 buildOptions += "NDEBUG= "
             else:
                 buildOptions += "NDEBUG=t "
 
-            if (test.useMPI):
+            if test.useMPI:
                 buildOptions += "MPI=t "
             else:
                 buildOptions += "MPI= "
 
-            if (test.useOMP):
+            if test.useOMP:
                 buildOptions += "OMP=t "
             else:
                 buildOptions += "OMP= "
@@ -1758,23 +1659,14 @@ def testSuite(argv):
                  buildOptions, suite.FCOMP)
 
             print "    " + compString
-            so, se, r = run(compString)
-            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
-            except:
-                sys.exit("unable to open make.out")
-
-            for line in so:
-                f.write(line)
-            for line in se:
-                f.write(line)
-            f.close()
+            so, se, r = run(compString,
+                            outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(bDir,"main",".exe")
-
         
 
-        if (test.compileTest):
+        if test.compileTest:
             
             # compilation tests are done now -- just make the report and ...
             shutil.copy("%s/%s.make.out"    % (outputDir, test.name), fullWebDir)
@@ -1885,150 +1777,93 @@ def testSuite(argv):
 
         test.wallTime = time.time()
 
-        if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
+        if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-	    if (test.useMPI and test.useOMP):
+            base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk" % \
+                           (executable, test.inputFile, test.name, test.name)
+
+            # keep around the checkpoint files only for the restart runs
+            if test.restartTest:
+                base_command += " amr.checkpoint_files_output=1 amr.check_int=%d" % \
+                                (test.restartFileNum)
+            else:
+                base_command += " amr.checkpoint_files_output=0"
+
+            base_command += " >& %s.run.out < /dev/null" % (test.name)
+            
+	    if test.useMPI and test.useOMP:
 
 	       # create the MPI executable
 	       testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-
-               # keep around the checkpoint files only for the restart runs
-               if (test.restartTest):
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-               else:
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
+               testRunCommand = testRunCommand.replace("@command@", base_command)
                    
-               testRunCommand = testRunCommand.replace("@command@", command)
-                   
-               print "    " + testRunCommand
-               systemCall(testRunCommand)
-
-	    elif (test.useMPI):
+	    elif test.useMPI:
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-
-                # keep around the checkpoint files only for the restart runs
-	       if (test.restartTest):               
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-               else:
-                   command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                       (executable, test.inputFile, test.name, test.name, test.name)
-	       
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
-               systemCall(testRunCommand)
+	       testRunCommand = testRunCommand.replace("@command@", base_command)
 
 	    elif (test.useOMP):
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out < /dev/null" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out < /dev/null" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.name)
-	       
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+                testRunCommand = "OMP_NUM_THREADS=%s " % (test.num_threads)
+                testRunCommand += base_command
 	       
             else:
+                testRunCommand = base_command
+                
+            print "    " + testRunCommand
+            systemCall(testRunCommand)
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=1 amr.check_int=%d >&  %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, test.name)
-                else:
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 >&  %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, test.name)
+        elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+            base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk " % \
+                           (executable, test.inputFile, test.name, test.name)
 
-        elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
+            # keep around the checkpoint files only for the restart runs
+            if not test.restartTest: base_command += " --chk_int 0 "
 
-            if (test.useMPI and test.useOMP):
+            base_command += "%s >& %s.run.out" % \
+                            (suite.globalAddToExecString, test.name)
+            
+            if test.useMPI and test.useOMP:
 
                 # create the MPI executable
                 testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
                 testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                 testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                testRunCommand = testRunCommand.replace("@command@", command)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
-            elif (test.useMPI):
+            elif test.useMPI:
 
 	       # create the MPI executable
 	       testRunCommand = suite.MPIcommand
 	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
 	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+	       testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                # keep around the checkpoint files only for the restart runs
-	       if (test.restartTest):
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-               else:
-                   command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                       (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
+            elif test.useOMP:
 
-	       testRunCommand = testRunCommand.replace("@command@", command)
-
-	       print "    " + testRunCommand
-               systemCall(testRunCommand)
-
-            elif (test.useOMP):
-
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
+                testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                testRunCommand += base_command
 
             else:
 
-                # keep around the checkpoint files only for the restart runs
-                if (test.restartTest):
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-                else:
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 %s >& %s.run.out" % \
-                        (executable, test.inputFile, test.name, test.name, suite.globalAddToExecString, test.name)
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
+                testRunCommand = base_command
+                
+            print "    " + testRunCommand
+            systemCall(testRunCommand)
 
 
         # if it is a restart test, then rename the final output file and
         # restart the test
-        if (test.restartTest):
+        if test.restartTest:
             lastFile = getLastPlotfile(outputDir, test)
 
-            if (lastFile == ""):
+            if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
                 reportTestFailure(errorMsg, test, testDir, fullWebDir)
                 continue
@@ -2045,102 +1880,72 @@ def testSuite(argv):
 
             print "  restarting from %s ... " % (restartFile)
            
-            if (suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src"):
-  
-                if (test.useMPI and test.useOMP):
+            if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
+
+                base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                
+                if test.useMPI and test.useOMP:
 
                     # create the MPI executable
                     testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-                    
-                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    
-                    testRunCommand = testRunCommand.replace("@command@", command)
-                    
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                    testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                elif (test.useMPI):
+                elif test.useMPI:
 
                     # create the MPI executable
                     testRunCommand = suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-                    
-                    command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
-                    
-                    testRunCommand = testRunCommand.replace("@command@", command)
+                    testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                elif test.useOMP:
 
-                elif (test.useOMP):
-
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >>  %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, restartFile, test.name)
-	       
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                    testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                    testRunCommand += base_command
                     
                 else:
                     
-                    testRunCommand = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                    testRunCommand = base_command
                     
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
 
-            elif (suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src"):
+                
+            elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-                if (test.useMPI and test.useOMP):
+                base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
+                
+                if test.useMPI and test.useOMP:
 
                     # create the MPI executable
                     testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
-
-                    testRunCommand = testRunCommand.replace("@command@", command)
-                    
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
-
-                elif (test.useMPI):
+                elif test.useMPI:
 
                     # create the MPI executable
                     testRunCommand = suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
                     testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-                    
-                    command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
+                    testRunCommand = testRunCommand.replace("@command@", base_command)
 
-                    testRunCommand = testRunCommand.replace("@command@", command)
-                    
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                elif test.useOMP:
 
-                elif (test.useOMP):
-
-                    testRunCommand = "OMP_NUM_THREADS=%s ./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
-                        (test.numthreads, executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
-
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
-
+                    testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                    testRunCommand += base_command
 
                 else:
 
-                    testRunCommand = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
+                    testRunCommand = base_command
 
-                    print "    " + testRunCommand
-                    systemCall(testRunCommand)
+                print "    " + testRunCommand
+                systemCall(testRunCommand)
 
 
         test.wallTime = time.time() - test.wallTime
@@ -2149,10 +1954,10 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do the comparison
         #----------------------------------------------------------------------
-        if (not test.selfTest):
+        if not test.selfTest:
 
-            if (test.outputFile == ""):
-                if (test.compareFile == ""):
+            if test.outputFile == "":
+                if test.compareFile == "":
                     compareFile = getLastPlotfile(outputDir, test)
                 else:
                     compareFile = test.compareFile
@@ -2167,14 +1972,14 @@ def testSuite(argv):
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
 
-            if (not make_benchmarks):
+            if not make_benchmarks:
 
                 print "  doing the comparison..."
                 print "    comparison file: ", outputFile
 
                 test.compare_file_used = outputFile
                 
-                if (not test.restartTest):
+                if not test.restartTest:
                     benchFile = benchDir + compareFile
                 else:
                     benchFile = origLastFile
@@ -2182,7 +1987,7 @@ def testSuite(argv):
                 # see if it exists
                 # note, with BoxLib, the plotfiles are actually directories
             
-                if (not os.path.isdir(benchFile)):
+                if not os.path.isdir(benchFile):
                     warning("    WARNING: no corresponding benchmark found")
                     benchFile = ""
 
@@ -2192,7 +1997,7 @@ def testSuite(argv):
                     cf.close()
                     
                 else:
-                    if (not compareFile == ""):
+                    if not compareFile == "":
 
                         print "    benchmark file: ", benchFile
                    
@@ -2213,7 +2018,7 @@ def testSuite(argv):
                         cf.write("         unable to do a comparison\n")
                         cf.close()
 
-                if (not test.diffDir == ""):
+                if not test.diffDir == "":
                     if not test.restartTest:
                         diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
                     else:
@@ -2233,7 +2038,7 @@ def testSuite(argv):
 
                     diffstatus = systemCall(command)
 
-                    if (diffstatus == 0):
+                    if diffstatus == 0:
                         cf = open("%s.compare.out" % (test.name), 'a')
                         cf.write("diff was SUCCESSFUL\n")
                         cf.close()
@@ -2244,12 +2049,12 @@ def testSuite(argv):
                 print "  storing output of %s as the new benchmark..." % (test.name)
                 print "     new benchmark file: ", compareFile
 
-                if (not compareFile == ""):
-                    if outputFile != compareFile:
-                        systemCall("rm -rf %s/%s" % (benchDir, compareFile))
-                        systemCall("cp -rf %s %s/%s" % (outputFile, benchDir, compareFile))
+                if not compareFile == "":
+                    if not outputFile == compareFile:
+                        shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                        shutil.copytre(outputFile, "{}/{}".format(benchDir, compareFile))
                     else:
-                        systemCall("cp -rf %s %s" % (compareFile, benchDir))
+                        shutil.copytree(compareFile, benchDir)
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -2259,27 +2064,24 @@ def testSuite(argv):
                     cf.write("benchmarks failed")
                     cf.close()
 
-                if (not test.diffDir == ""):
-                    diffDirBench = benchDir + '/' + test.name + '_' + test.diffDir
-                    systemCall("rm -rf %s" % (diffDirBench))
-                    print "     new diffDir: ", test.name + '_' + test.diffDir
-                    systemCall("cp -r %s %s" % (test.diffDir, diffDirBench))
+                if not test.diffDir == "":
+                    diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
+                    shutil.rmtree(diffDirBench)
+                    print "     new diffDir: {}_{}".format(test.name, test.diffDir)
+                    shutil.copytree(test.diffDir, diffDirBench)
 
 
         else:   # selfTest
 
-            if (not make_benchmarks):
+            if not make_benchmarks:
 
                 print "  looking for selfTest success string: %s ..." % test.stSuccessString
 
-                try:
-                    of = open("%s.run.out" % (test.name), 'r')
-
+                try: of = open("%s.run.out" % (test.name), 'r')
                 except IOError:
                     warning("WARNING: no output file found")
                     compareSuccessful = 0
                     outLines = ['']
-
                 else:
                     outLines = of.readlines()
 
@@ -2287,7 +2089,7 @@ def testSuite(argv):
                     compareSuccessful = 0
     
                     for line in outLines:
-                        if (string.find(line, test.stSuccessString) >= 0):
+                        if string.find(line, test.stSuccessString) >= 0:
                             compareSuccessful = 1
                             break
     
@@ -2295,7 +2097,7 @@ def testSuite(argv):
 
                 cf = open("%s.compare.out" % (test.name), 'w')
 
-                if (compareSuccessful):
+                if compareSuccessful:
                     cf.write("SELF TEST SUCCESSFUL\n")
                 else:
                     cf.write("SELF TEST FAILED\n")
@@ -2307,17 +2109,17 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only)
         #---------------------------------------------------------------------- 
-        if (test.doVis and not make_benchmarks):
+        if test.doVis and not make_benchmarks:
 
-            if (not outputFile == ""):
+            if not outputFile == "":
 
                 print "  doing the visualization..."
 
-                if (test.dim == 2):
+                if test.dim == 2:
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir, 
                                test.visVar, outputFile) )
-                elif (test.dim == 3):
+                elif test.dim == 3:
                     systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis3dExecutable, suite.compareToolDir, 
                                test.visVar, outputFile) )
@@ -2339,9 +2141,9 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any analysis
         #---------------------------------------------------------------------- 
-        if (not test.analysisRoutine == "" and not make_benchmarks):
+        if not test.analysisRoutine == "" and not make_benchmarks:
 
-            if (not outputFile == ""):
+            if not outputFile == "":
 
                 print "  doing the analysis..."
                 if test.useExtraBuildDir > 0:
@@ -2365,14 +2167,14 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
-        if (not make_benchmarks):
+        if not make_benchmarks:
             shutil.copy("%s.run.out"     % (test.name), fullWebDir)
             shutil.copy("%s.make.out"    % (test.name), fullWebDir)
             shutil.copy("%s.compare.out" % (test.name), fullWebDir)
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (fullWebDir, test.name, test.inputFile) )
 
-            if (suite.sourceTree == "C_Src"):
+            if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (fullWebDir, test.name, test.probinFile) )
 
             for file in test.auxFiles:
@@ -2380,19 +2182,19 @@ def testSuite(argv):
                 # sometimes the auxFile was in a subdirectory under the
                 # build directory.  
                 index = string.rfind(file, "/")
-                if (index > 0):
+                if index > 0:
                     file = file[index+1:]	   
 
                 shutil.copy(file, "%s/%s.%s" % (fullWebDir, test.name, file) )
 
-            if (test.doVis):
+            if test.doVis:
                pngFile = getRecentFileName(outputDir, "", ".png")
                try: shutil.copy(pngFile, fullWebDir)
                except IOError:
                    # visualization was not successful.  Reset doVis
                    test.doVis = 0
 
-            if (not test.analysisRoutine == ""):
+            if not test.analysisRoutine == "":
                 try: shutil.copy(test.analysisOutputImage, fullWebDir)
                 except IOError:
                     # analysis was not successful.  Reset the output image
@@ -2436,7 +2238,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # write the report for this test
         #----------------------------------------------------------------------
-        if (not make_benchmarks):
+        if not make_benchmarks:
             print "  creating problem test report ..."
             reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
@@ -2455,7 +2257,7 @@ def testSuite(argv):
     for file in os.listdir(fullWebDir):    
        currentFile = fullWebDir + file
 
-       if (os.path.isfile(currentFile)):
+       if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
           
     if updateBoxLib or boxLibGitHash:
@@ -2491,7 +2293,7 @@ def testSuite(argv):
         server.sendmail(suite.emailFrom, suite.emailTo, msg.as_string())
         server.quit()
 
-    if (numFailed > 0 and suite.sendEmailWhenFail):
+    if numFailed > 0 and suite.sendEmailWhenFail:
         bold("sending email...", skip_before=1)
         emailDevelopers()
 
@@ -3064,12 +2866,12 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
             hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
                      (test.name, test.name) )
 
+            # dimensionality
+            hf.write("<td>{}</td>\n".format(test.dim))            
 
             # write out the comparison file used
             hf.write("<td>{}</td>\n".format(test.compare_file_used))
             
-            # dimensionality
-            hf.write("<td>{}</td>\n".format(test.dim))
 
             # number of levels
             if not test.nlevels == None:
