@@ -462,7 +462,7 @@ def systemCall(string):
     return status
 
 
-def run(string, stdin=False):
+def run(string, stdin=False, outfile=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
@@ -478,7 +478,16 @@ def run(string, stdin=False):
     if stdin: p0.stdin.close()
     rc = p0.returncode
     p0.stdout.close()
-    
+
+    if not outfile == None:
+        try: cf = open(outfile, "w")
+        except IOError:
+            fail("  ERROR: unable to open file for writing")
+        else:
+            for line in stdout0:
+                cf.write(line)
+            cf.close()
+       
     return stdout0, stderr0, rc
 
 
@@ -615,30 +624,25 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    if currentBranch != gitbranch:
        bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
        stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
-
+       
 
    if githash == "":
        bold("'git pull' in %s" % (topDir), skip_before=1)
 
        # we need to be tricky here to make sure that the stdin is
        # presented to the user to get the password.  
-       stdout, stderr, rc = run("git pull", stdin=True)
+       stdout, stderr, rc = run("git pull", stdin=True,
+                                outfile="git.{}.out".format(root))
 
    else:
-       stdout, stderr, rc = run("git checkout {}".format(githash))
-
-   try: cf = open("git.%s.out" % (root), 'w')
-   except IOError:
-       fail("  ERROR: unable to open file for writing")
-   else:
-       for line in stdout:
-           cf.write(line)
-       cf.close()
-
+       stdout, stderr, rc = run("git checkout {}".format(githash),
+                                outfile="git.{}.out".format(root))                                
+       
+   # not sure if this is valid -- we are piping stderr into stdout 
    if stdout == "":
        fail("  ERROR: git update was unsuccessful")
                
-   shutil.copy("git.%s.out" % (root),  outDir)
+   shutil.copy("git.{}.out".format(root),  outDir)
 
    return currentBranch
 
@@ -665,15 +669,8 @@ def doGITback(topDir, root, gitbranch):
 
    bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
 
-   stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
-
-   try: cf = open("git.%s.out" % (root), 'w')   
-   except IOError:
-       fail("  ERROR: unable to open file for writing")
-   else:
-       for line in stdout:
-           cf.write(line)
-       cf.close()
+   stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True,
+                            outfile="git.{}.out".format(root))
 
    if stdout == "":
        fail("  ERROR: git checkout was unsuccessful")
@@ -1233,20 +1230,13 @@ def testSuite(argv):
     else:
         nouplist = no_update_low.split(",")
 
-        if "boxlib" in nouplist:
-            updateBoxLib = False
-        else:
-            updateBoxLib = True
-
-        if suite.srcName.lower() in nouplist:
-            updateSource = False
-        else:
-            updateSource = True
-
-        if suite.extSrcName.lower() in nouplist:
-            updateExtSrc = False
-        else:
-            updateExtSrc = True
+        updateBoxLib = True
+        updateSource = True
+        updateExtSrc = True
+        
+        if "boxlib" in nouplist: updateBoxLib = False
+        if suite.srcName.lower() in nouplist: updateSource = False
+        if suite.extSrcName.lower() in nouplist: updateExtSrc = False
 
         # each extra build directory has its own update flag
         updateExtraBuild = []
@@ -1256,27 +1246,17 @@ def testSuite(argv):
             else:
                 updateExtraBuild.append(True)
 
-    if not suite.useExtSrc:
-        updateExtSrc = False
-
-    if not suite.useExtraBuild:
-        updateExtraBuild = [False]
+    if not suite.useExtSrc: updateExtSrc = False
+    if not suite.useExtraBuild: updateExtraBuild = [False]
     
     if suite.sourceTree == "BoxLib":
         updateSource = False # to avoid updating BoxLib twice.
                              # The update of BoxLib is controlled by updateBoxLib
         sourceGitHash = ""
 
-
-    if boxLibGitHash:
-        updateBoxLib = False 
-
-    if sourceGitHash:
-        updateSource = False 
-
-    if extSrcGitHash:
-        updateExtSrc = False 
-
+    if boxLibGitHash: updateBoxLib = False 
+    if sourceGitHash: updateSource = False 
+    if extSrcGitHash: updateExtSrc = False 
 
 
     #--------------------------------------------------------------------------
@@ -1391,7 +1371,7 @@ def testSuite(argv):
     if updateExtSrc or extSrcGitHash:
 
         # extra source
-        if (suite.useExtSrc):
+        if suite.useExtSrc:
             extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir, 
                                                suite.extSrcName, fullWebDir,
                                                suite.extSrcGitBranch,
@@ -1648,15 +1628,8 @@ def testSuite(argv):
                  executable)
 
             print "    " + compString
-            so, se, r = run(compString)
-            
-            try: f = open("{}/{}.make.out".format(outputDir, test.name), 'w')
-            except:
-                sys.exit("unable to open make.out")
-
-            for line in so:
-                f.write(line)
-            f.close()
+            so, se, r = run(compString,
+                            outfile="{}/{}.make.out".format(outputDir, test.name))
                
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -1686,14 +1659,8 @@ def testSuite(argv):
                  buildOptions, suite.FCOMP)
 
             print "    " + compString
-            so, se, r = run(compString)
-            try: f=open("{}/{}.make.out".format(outputDir, test.name), 'w')
-            except:
-                sys.exit("unable to open make.out")
-
-            for line in so:
-                f.write(line)
-            f.close()
+            so, se, r = run(compString,
+                            outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(bDir,"main",".exe")
@@ -2290,7 +2257,7 @@ def testSuite(argv):
     for file in os.listdir(fullWebDir):    
        currentFile = fullWebDir + file
 
-       if (os.path.isfile(currentFile)):
+       if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
           
     if updateBoxLib or boxLibGitHash:
@@ -2326,7 +2293,7 @@ def testSuite(argv):
         server.sendmail(suite.emailFrom, suite.emailTo, msg.as_string())
         server.quit()
 
-    if (numFailed > 0 and suite.sendEmailWhenFail):
+    if numFailed > 0 and suite.sendEmailWhenFail:
         bold("sending email...", skip_before=1)
         emailDevelopers()
 
