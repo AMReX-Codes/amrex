@@ -973,14 +973,30 @@ ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
 
-ifeq ($(BL_ALIGN_BYTE),32)
-  DEFINES += -DBL_ALIGN_32_BYTE
-else 
 ifeq ($(BL_ALIGN_BYTE),64)
-  DEFINES += -DBL_ALIGN_64_BYTE
+  DEFINES += -DBL_ALIGN_BYTE=64
+else 
+ifeq ($(BL_ALIGN_BYTE),32)
+  DEFINES += -DBL_ALIGN_BYTE=32
+else 
+ifeq ($(BL_ALIGN_BYTE),16)
+  DEFINES += -DBL_ALIGN_BYTE=16
 else 
 ifeq ($(WHICHLINUX),EDISON)
-  DEFINES += -DBL_ALIGN_32_BYTE
+  DEFINES += -DBL_ALIGN_BYTE=32
+endif
+endif
+endif
+endif
+
+ifeq ($(BL_SIMD_LEN),8)
+  DEFINES += -DBL_SIMD_LEN=8
+else 
+ifeq ($(BL_SIMD_LEN),4)
+  DEFINES += -DBL_SIMD_LEN=4
+else 
+ifeq ($(WHICHLINUX),EDISON)
+  DEFINES += -DBL_SIMD_LEN=4
 endif
 endif
 endif
