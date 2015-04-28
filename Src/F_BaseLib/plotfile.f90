@@ -21,8 +21,8 @@ module plotfile_module
      private
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: filename = ""
-     integer :: offset = 0
-     integer :: size = 0
+     integer(kind=c_long) :: offset = 0
+     integer(kind=c_long) :: size = 0
      type(box) :: bx
      integer :: nc = 0, ng = 0
      real(kind=dp_t), pointer, dimension(:) :: mx => Null(), mn => Null()
@@ -494,6 +494,7 @@ contains
   subroutine fab_bind_comp_vec(pf, i, j, c)
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j, c(:)
+
     integer :: n
     integer :: fd
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
