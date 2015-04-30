@@ -1237,6 +1237,31 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 #endif
 }
 
+void
+ParallelDescriptor::Bcast(void *buf,
+                          int count,
+                          MPI_Datatype datatype,
+                          int root,
+                          MPI_Comm comm)
+{
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
+    BL_PROFILE_S("ParallelDescriptor::Bcast(viMiM)");
+    BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
+
+    BL_MPI_REQUIRE( MPI_Bcast(buf,
+                              count,
+                              datatype,
+                              root,
+                              comm) );
+    int tsize(0);
+    BL_MPI_REQUIRE( MPI_Type_size(datatype, &tsize) );
+    BL_COMM_PROFILE(BLProfiler::BCastTsi, count * tsize, root, BLProfiler::NoTag());
+}
+
+
 #else /*!BL_USE_MPI*/
 
 void
@@ -1312,6 +1337,7 @@ void ParallelDescriptor::Barrier (MPI_Comm, const std::string &message) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
+void ParallelDescriptor::IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
@@ -1372,6 +1398,9 @@ void ParallelDescriptor::ReduceBoolOr  (bool&) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
+
+void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
+
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
 //
