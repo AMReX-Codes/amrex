@@ -489,6 +489,7 @@ namespace ParallelDescriptor
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
+    void Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm);
 
     template <class Op, class T> T Reduce(const T& t);
 
@@ -994,6 +995,13 @@ Arecv(std::vector<T>& buf, int src_pid, int tag)
 template <class T>
 Message
 Recv(T* buf, size_t n, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Recv(T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
     return Message();
 }
