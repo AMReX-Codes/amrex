@@ -313,13 +313,9 @@ BoxLib::Concatenate (const std::string& root,
                      int                mindigits)
 {
     BL_ASSERT(mindigits >= 0);
-    const int N = 64;
-    char buf[N];
-    if (snprintf(buf, N, "%0*d",  mindigits, num) >= N)
-        BoxLib::Abort("BoxLib::Concatenate: buf too small");
-    std::string result = root;
-    result += buf;
-    return result;
+    std::stringstream result;
+    result << root << std::setfill('0') << std::setw(mindigits) << num;
+    return result.str();
 }
 
 //
