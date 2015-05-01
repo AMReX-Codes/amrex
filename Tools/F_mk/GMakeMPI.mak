@@ -221,16 +221,6 @@ ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
 
-ifeq ($(HOST), orga)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-endif
-
 ifeq ($(HOST),naphta)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
@@ -298,6 +288,12 @@ ifeq ($(HOST),atragon)
   mpi_libraries += -lmpich -lpthread
 endif
 ifeq ($(HOST),ebirah)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+ifeq ($(HOST),orga)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
