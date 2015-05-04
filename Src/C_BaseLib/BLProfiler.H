@@ -168,8 +168,8 @@ class BLProfiler
     static void Initialize();
     static void Finalize();
 
-    static void WriteCallTrace(const bool bFlushing = false);
-    static void WriteCommStats(const bool bFlushing = false);
+    static void WriteCallTrace(bool bFlushing = false);
+    static void WriteCommStats(bool bFlushing = false);
     static void WriteFortProfErrors();
 
     static void AddCommStat(const CommFuncType cft, const int size,
@@ -363,6 +363,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #endif
  
 #define BL_PROFILE_VAR(fname, vname) BLProfiler bl_profiler__##vname((fname));
+#define BL_PROFILE_VAR_NS(fname, vname) BLProfiler bl_profiler__##vname(fname, false);
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
 
@@ -373,6 +374,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #define BL_PROFILE_REGION_START(rname) BLProfiler::RegionStart(rname);
 #define BL_PROFILE_REGION_STOP(rname)  BLProfiler::RegionStop(rname);
+
 // these combine regions with profile variables
 #define BL_PROFILE_REGION_VAR(fname, rvname) BLProfiler::RegionStart(fname);  \
                                              BLProfiler bl_profiler__##rvname((fname));

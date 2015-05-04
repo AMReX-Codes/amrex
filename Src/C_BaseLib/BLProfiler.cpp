@@ -297,6 +297,7 @@ void BLProfiler::start() {
 #pragma omp master
 #endif
 {
+  bltelapsed = 0.0;
   bltstart = ParallelDescriptor::second();
   ++mProfStats[fname].nCalls;
   bRunning = true;
@@ -954,7 +955,7 @@ void WriteStats(std::ostream &ios,
 }  // end namespace BLProfilerUtils
 
 
-void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
+void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace data
 
     if(bFlushing) {
       int nCT(vCallTrace.size());
@@ -1173,7 +1174,7 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
 
 
 
-void BLProfiler::WriteCommStats(const bool bFlushing) {
+void BLProfiler::WriteCommStats(bool bFlushing) {
 
   Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
