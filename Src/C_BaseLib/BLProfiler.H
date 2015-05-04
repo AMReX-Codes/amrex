@@ -197,7 +197,7 @@ class BLProfiler
                            const bool writefabs);
     static void AddStep(const int snum);
     static Real GetRunTime() { return calcRunTime; }
-    static void SetRunTime(const Real rtime) { calcRunTime = rtime; }
+    static void SetRunTime(Real rtime) { calcRunTime = rtime; }
 
     static void RegionStart(const std::string &rname);
     static void RegionStop(const std::string &rname);
@@ -211,6 +211,11 @@ class BLProfiler
     static void SetNoOutput() { bNoOutput = true; }
 
     static void PerfMonProcess();
+
+    static int GetCSFlushSize() { return csFlushSize; }
+    static void SetCSFlushSize(int fsize) { csFlushSize = fsize; }
+    static int GetTraceFlushSize() { return traceFlushSize; }
+    static void SetTraceFlushSize(int fsize) { traceFlushSize = fsize; }
 
   private:
     Real bltstart, bltelapsed;
@@ -384,6 +389,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
                                                    BLProfiler::RegionStop(fname);
 
 #define BL_TRACE_PROFILE_FLUSH() { BLProfiler::WriteCallTrace(true); }
+#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize) { BLProfiler::SetTraceFlushSize(fsize); }
 
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { BLProfiler::ChangeFortIntName(fname, intname); }
 
@@ -403,6 +409,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_FILTER(cft) { BLProfiler::CommStats::Filter(cft); }
 #define BL_COMM_PROFILE_UNFILTER(cft) { BLProfiler::CommStats::UnFilter(cft); }
 #define BL_COMM_PROFILE_FLUSH() { BLProfiler::WriteCommStats(true); }
+#define BL_COMM_PROFILE_SETFLUSHSIZE(fsize) { BLProfiler::SetCSFlushSize(fsize); }
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
                              BLProfiler::TagRange(tagmin, tagmax); }
 #define BL_COMM_PROFILE_TAGWRAP() { BLProfiler::AddTagWrap(); }
@@ -458,6 +465,7 @@ class BLProfiler
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
 #define BL_TRACE_PROFILE_FLUSH()
+#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
 
 
@@ -474,6 +482,7 @@ class BLProfiler
 #define BL_COMM_PROFILE_FILTER(cft)
 #define BL_COMM_PROFILE_UNFILTER(cft)
 #define BL_COMM_PROFILE_FLUSH()
+#define BL_COMM_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax)
 #define BL_COMM_PROFILE_TAGWRAP()
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd)
