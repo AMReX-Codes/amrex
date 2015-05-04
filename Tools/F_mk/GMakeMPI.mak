@@ -282,7 +282,7 @@ ifeq ($(HOST),gojira)
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 ifeq ($(HOST),atragon)
-  MPIHOME=/usr/local
+  MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
