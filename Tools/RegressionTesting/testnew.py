@@ -1758,26 +1758,18 @@ def testSuite(argv):
                 base_command += " amr.checkpoint_files_output=0"
 
             base_command += " >& %s.run.out < /dev/null" % (test.name)
-            
-	    if test.useMPI and test.useOMP:
 
-	       # create the MPI executable
-	       testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-               testRunCommand = testRunCommand.replace("@command@", base_command)
+	    if test.useMPI:
+                testRunCommand = ""
+                if test.useOMP: 
+	            testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
+                testRunCommand += suite.MPIcommand
+	        testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+	        testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
+                testRunCommand = testRunCommand.replace("@command@", base_command)
                    
-	    elif test.useMPI:
-
-	       # create the MPI executable
-	       testRunCommand = suite.MPIcommand
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-	       testRunCommand = testRunCommand.replace("@command@", base_command)
-
-	    elif (test.useOMP):
-
-                testRunCommand = "OMP_NUM_THREADS=%s " % (test.num_threads)
+	    elif test.useOMP:
+                testRunCommand = "OMP_NUM_THREADS={} ".format(test.num_threads)
                 testRunCommand += base_command
 	       
             else:
@@ -1797,29 +1789,21 @@ def testSuite(argv):
             base_command += "%s >& %s.run.out" % \
                             (suite.globalAddToExecString, test.name)
             
-            if test.useMPI and test.useOMP:
-
+            if test.useMPI:
+                testRunCommand = ""
+                if test.useOMP:
+                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                 # create the MPI executable
-                testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                testRunCommand += suite.MPIcommand
                 testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                 testRunCommand = testRunCommand.replace("@command@", base_command)
 
-            elif test.useMPI:
-
-	       # create the MPI executable
-	       testRunCommand = suite.MPIcommand
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-	       testRunCommand = testRunCommand.replace("@command@", base_command)
-
             elif test.useOMP:
-
-                testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                 testRunCommand += base_command
 
             else:
-
                 testRunCommand = base_command
                 
             print "    " + testRunCommand
@@ -1853,29 +1837,22 @@ def testSuite(argv):
                 base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, restartFile, test.name)
                 
-                if test.useMPI and test.useOMP:
-
+                if test.useMPI:
+                    testRunCommand = ""
+                    if test.useOMP:
+                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     # create the MPI executable
-                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand += suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useMPI:
-
-                    # create the MPI executable
-                    testRunCommand = suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
 
                 elif test.useOMP:
-
-                    testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     testRunCommand += base_command
                     
                 else:
-                    
                     testRunCommand = base_command
                     
                 print "    " + testRunCommand
@@ -1887,29 +1864,21 @@ def testSuite(argv):
                 base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
                 
-                if test.useMPI and test.useOMP:
-
+                if test.useMPI:
+                    testRunCommand = ""
+                    if test.useOMP:
+                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     # create the MPI executable
-                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand += suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-                    testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useMPI:
-
-                    # create the MPI executable
-                    testRunCommand = suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
 
                 elif test.useOMP:
-
                     testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
                     testRunCommand += base_command
 
                 else:
-
                     testRunCommand = base_command
 
                 print "    " + testRunCommand
