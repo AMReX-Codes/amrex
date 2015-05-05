@@ -542,26 +542,22 @@ def findBuildDirs(testList):
 def getLastPlotfile(outputDir, test):
     """given an output directory and the test name, find the last
        plotfile written.  Note: we give an error if the last
-       plotfile is # 0
-    """
-                
-    plot_num = -1
-    for file in os.listdir(outputDir):
-       if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
-           key = "_plt"
-           index = string.rfind(file, key)
-           plot_num = max(int(file[index+len(key):]), plot_num)
+       plotfile is 0 """
 
-    if plot_num == -1:
-       warning("WARNING: test did not produce any output")
-       compare_file = ""
-    elif plot_num == 0:
+    plts = [d for d in os.listdir(outputDir) if (os.path.isdir(d) and
+                                                 d.startswith("%{}_plt".format(test.name)))]
+    if len(plts) == 0:
+        warning("WARNING: test did not produce any output")
+        return ""
+
+    plts.sort()
+    last_plot = plts.pop()
+
+    if last_plot.endswith("00000"):
         warning("WARNING: only plotfile 0 was output -- skipping comparison")
-        compare_file = ""
-    else:
-       compare_file = "%s_plt%5.5d" % (test.name, plot_num)
-
-    return compare_file
+        return ""
+    
+    return last_plot
 
 
 #==============================================================================
@@ -1264,19 +1260,15 @@ def testSuite(argv):
         testsFind = []
 
     if len(testsFind) > 0:
-        newTestList = []
+        new_test_list = []
         for test in testsFind:
-            found = 0
-            for obj in testList:
-                if obj.name == test:
-                    found = 1
-                    newTestList.append(obj)
-                    break
-            
-            if not found:
-                fail("ERROR: %s is not a valid test" % (test))
+            _tmp = [o for o in testList if o.name == test]
+            if len(_tmp) == 1:
+                new_test_list += _tmp
+            else:
+                fail("ERROR: {} is not a valid test".format(test))
         
-        testList = newTestList
+        testList = new_test_list
     
 
     #--------------------------------------------------------------------------
