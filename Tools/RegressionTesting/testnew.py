@@ -1523,27 +1523,14 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     for test in testList:
 
-        bold("working on test: %s" % (test.name), skip_before=1)
+        bold("working on test: {}".format(test.name), skip_before=1)
 
-        if test.restartTest and make_benchmarks:
-            warning("  WARNING: test %s is a restart test -- " % (test.name))
-            warning("           no benchmarks are stored.")
+        if make_benchmarks and (test.restartTest or test.compileTest or
+                                test.selfTest):
+            warning("  WARNING: test {} doesn't need benchmarks".format(test.name))
             warning("           skipping\n")
             continue
      
-        if test.compileTest and make_benchmarks:
-            warning("  WARNING: test %s is a compile test -- " % (test.name))
-            warning("           no benchmarks are stored.")
-            warning("           skipping\n")
-            continue            
-
-        if test.selfTest and make_benchmarks:
-            warning("  WARNING: test %s is a self-test -- " % (test.name))
-            warning("           no benchmarks are stored.")
-            warning("           skipping\n")
-            continue            
-
-
 
         #----------------------------------------------------------------------
         # make the run directory
