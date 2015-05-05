@@ -545,7 +545,7 @@ def getLastPlotfile(outputDir, test):
        plotfile is 0 """
 
     plts = [d for d in os.listdir(outputDir) if (os.path.isdir(d) and
-                                                 d.startswith("%{}_plt".format(test.name)))]
+                                                 d.startswith("{}_plt".format(test.name)))]
     if len(plts) == 0:
         warning("WARNING: test did not produce any output")
         return ""
