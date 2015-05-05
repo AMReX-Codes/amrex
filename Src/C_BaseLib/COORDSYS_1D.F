@@ -23,7 +23,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = spherical)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETVOL(vol,DIMS(vol),offset,dx,coord)
+       subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
+       implicit none
+       integer    DIMDEC(reg)
        integer    DIMDEC(vol)
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
@@ -36,13 +38,13 @@ c ::
        
        if (coord .eq. 0) then
           v = dx(1)
-             do i = ARG_L1(vol), ARG_H1(vol)
+             do i = ARG_L1(reg), ARG_H1(reg)
                 vol(i) = v
              enddo
 
        else if (coord .eq. 1) then
 
-          do i = ARG_L1(vol), ARG_H1(vol)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
              v = half*(RZFACTOR)*(ro**2 - ri**2)
@@ -51,7 +53,7 @@ c ::
 
        else if (coord .eq. 2) then
 
-          do i = ARG_L1(vol), ARG_H1(vol)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
              v = (two3rd*RZFACTOR)*(ro**3 - ri**3)
@@ -169,8 +171,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 =cartesian, 1 = RZ, 2 = spherical)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETAREA(area,DIMS(area),offset,dx,dir,coord)
+       subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
 
+       integer    DIMDEC(reg)
        integer    DIMDEC(area)
        integer    coord, dir
        REAL_T     dx(SDIM), offset(SDIM)
@@ -182,19 +185,19 @@ c ::
        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
-         do i = ARG_L1(area), ARG_H1(area)
+         do i = ARG_L1(reg), ARG_H1(reg)
             area(i) = one
          enddo
 
        else if (coord .eq. 1) then
-          do i = ARG_L1(area), ARG_H1(area)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*dble(i)
              a = RZFACTOR*ri
              area(i) = abs(a)
           enddo
 
        else if( coord .eq. 2) then
-          do i = ARG_L1(area), ARG_H1(area)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*dble(i)
              a = two*RZFACTOR*ri*ri
              area(i) = abs(a)
