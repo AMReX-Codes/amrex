@@ -568,27 +568,17 @@ def getLastPlotfile(outputDir, test):
 # getRecentFileName
 #==============================================================================
 def getRecentFileName(dir, base, extension):
-    """ for F_Src builds, given the base and extension, find the
-        most recent corresponding file"""
-        
-    # finding all files that are of type base...extension and store the
-    # name of only the most recently created one
-    ctime = -1
-    executableFile = ""
-    print "searching in {}".format(dir), base, extension
+    """ given the base and extension, find the most recent corresponding        
+    file """
+
+    files = [f for f in os.listdir(dir) if (f.startswith(base) and
+                                            f.endswith(extension))]
+
+    files.sort(key=lambda x: os.path.getmtime(x))
+
+    try: return files.pop()
+    except: return None
     
-    for file in os.listdir(dir):
-       if (os.path.isfile(file) and
-           file.startswith(base) and file.endswith(extension)):
-
-          fileInfo = os.stat(file)
-          fileCreationTime = fileInfo.st_ctime
-          if fileCreationTime > ctime:
-             ctime = fileCreationTime
-             executableFile = file
-
-    return executableFile
-
 
 #==============================================================================
 # getTestCompDir
@@ -700,16 +690,14 @@ def getLastRun(suite):
         run of the test suite """
 
     outdir = suite.testTopDir + suite.suiteName + "-tests/"
-    
-    dirs = []
-    for dir in os.listdir(outdir):
-        # this will work through 2099
-        if os.path.isdir(outdir + dir) and dir.startswith("20"):
-            dirs.append(dir)
 
+    # this will work through 2099    
+    dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + dir) and
+                                              dir.startswith("20"))]
     dirs.sort()
 
     return dirs[-1]
+
 
 #==============================================================================
 # getTestFailures
