@@ -638,7 +638,8 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
        stdout, stderr, rc = run("git checkout {}".format(githash),
                                 outfile="git.{}.out".format(root))                                
        
-   # not sure if this is valid -- we are piping stderr into stdout 
+   # not sure if this is valid -- we are piping stderr into stdout
+   # -- we should check the return code instead
    if stdout == "":
        fail("  ERROR: git update was unsuccessful")
                
@@ -654,8 +655,8 @@ def saveGITHEAD(topDir, root, outDir):
 
    bold("saving git HEAD for %s/" % (root), skip_before=1)
 
-   systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
-   shutil.copy("git.%s.HEAD" % (root),  outDir)
+   run("git rev-parse HEAD", outfile="git.{}.HEAD".format(root) )
+   shutil.copy("git.{}.HEAD".format(root),  outDir)
 
 
 #==============================================================================
@@ -687,8 +688,8 @@ def makeGITChangeLog(gitDir, root, outDir):
 
     bold("generating ChangeLog for %s/" % (root), skip_before=1)
     
-    systemCall("git log --name-only >& ChangeLog.%s" % (root) )    
-    shutil.copy("ChangeLog.%s" % (root), outDir)
+    run("git log --name-only", outfile="ChangeLog.{}".format(root) )    
+    shutil.copy("ChangeLog.{}".format(root), outDir)
 
 
 #==============================================================================
