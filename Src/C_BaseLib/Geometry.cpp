@@ -687,11 +687,13 @@ Geometry::GetVolume (MultiFab&       vol,
                      const BoxArray& grds,
                      int             ngrow) const
 {
-    vol.define(grds,1,ngrow,Fab_noallocate);
-    for (MFIter mfi(vol); mfi.isValid(); ++mfi)
+    vol.define(grds,1,ngrow,Fab_allocate);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(vol,true); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
-        vol.setFab(mfi,CoordSys::GetVolume(gbx));
+	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
     }
 }
 
@@ -728,11 +730,13 @@ Geometry::GetFaceArea (MultiFab&       area,
 {
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
-    area.define(edge_boxes,1,ngrow,Fab_noallocate);
-    for (MFIter mfi(area); mfi.isValid(); ++mfi)
+    area.define(edge_boxes,1,ngrow,Fab_allocate);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(area,true); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
-        area.setFab(mfi,CoordSys::GetFaceArea(gbx,dir));
+	CoordSys::SetFaceArea(area[mfi],mfi.growntilebox(),dir);
     }
 }
 
