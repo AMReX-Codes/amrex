@@ -2413,9 +2413,9 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         compileSuccessful = 0
     
         for line in makeLines:
-            if (string.find(line, "SUCCESS") >= 0 or
-                string.find(line, "is up to date.") or
-                string.find(line, "Nothing to be done") >= 0):
+            if (line.find("SUCCESS") >= 0 or
+                line.find("is up to date.") >= 0 or
+                line.find("Nothing to be done") >= 0):
                 compileSuccessful = 1
                 break
         
