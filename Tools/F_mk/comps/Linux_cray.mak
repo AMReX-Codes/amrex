@@ -1,6 +1,6 @@
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
+    CC  := cc 
+    FC  := ftn 
+    F90 := ftn 
 
     FCOMP_VERSION := $(shell ftn -V 2>&1 | grep 'Version')
 
@@ -15,6 +15,22 @@
       FFLAGS   += -g -O0
       F90FLAGS += -g -O0
       CFLAGS   += -g -O0
+    endif
+
+    ifdef ACC
+		#These are based on Blue Waters suggestions, might need to edit to be more general
+      ifndef NDEBUG
+        FFLAGS   += -h msgs
+        F90FLAGS += -h msgs
+        CFLAGS   += -h pragma=msgs
+      endif
+      FFLAGS   += -h acc -fpic -dynamic -lcudart
+      F90FLAGS += -h acc -fpic -dynamic -lcudart
+      CFLAGS   += -h pragma=acc
+    else
+      FFLAGS   += -h noacc
+      F90FLAGS += -h noacc
+      CFLAGS   += -h nopragma=acc
     endif
 
     ifndef OMP

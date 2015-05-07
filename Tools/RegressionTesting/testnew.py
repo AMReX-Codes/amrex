@@ -542,53 +542,39 @@ def findBuildDirs(testList):
 def getLastPlotfile(outputDir, test):
     """given an output directory and the test name, find the last
        plotfile written.  Note: we give an error if the last
-       plotfile is # 0
-    """
-                
-    plot_num = -1
-    for file in os.listdir(outputDir):
-       if os.path.isdir(file) and file.startswith("%s_plt" % (test.name)):
-           key = "_plt"
-           index = string.rfind(file, key)
-           plot_num = max(int(file[index+len(key):]), plot_num)
+       plotfile is 0 """
 
-    if plot_num == -1:
-       warning("WARNING: test did not produce any output")
-       compare_file = ""
-    elif plot_num == 0:
+    plts = [d for d in os.listdir(outputDir) if (os.path.isdir(d) and
+                                                 d.startswith("{}_plt".format(test.name)))]
+    if len(plts) == 0:
+        warning("WARNING: test did not produce any output")
+        return ""
+
+    plts.sort()
+    last_plot = plts.pop()
+
+    if last_plot.endswith("00000"):
         warning("WARNING: only plotfile 0 was output -- skipping comparison")
-        compare_file = ""
-    else:
-       compare_file = "%s_plt%5.5d" % (test.name, plot_num)
-
-    return compare_file
+        return ""
+    
+    return last_plot
 
 
 #==============================================================================
 # getRecentFileName
 #==============================================================================
 def getRecentFileName(dir, base, extension):
-    """ for F_Src builds, given the base and extension, find the
-        most recent corresponding file"""
-        
-    # finding all files that are of type base...extension and store the
-    # name of only the most recently created one
-    ctime = -1
-    executableFile = ""
-    print "searching in {}".format(dir), base, extension
+    """ given the base and extension, find the most recent corresponding        
+    file """
+
+    files = [f for f in os.listdir(dir) if (f.startswith(base) and
+                                            f.endswith(extension))]
+
+    files.sort(key=lambda x: os.path.getmtime(x))
+
+    try: return files.pop()
+    except: return None
     
-    for file in os.listdir(dir):
-       if (os.path.isfile(file) and
-           file.startswith(base) and file.endswith(extension)):
-
-          fileInfo = os.stat(file)
-          fileCreationTime = fileInfo.st_ctime
-          if fileCreationTime > ctime:
-             ctime = fileCreationTime
-             executableFile = file
-
-    return executableFile
-
 
 #==============================================================================
 # getTestCompDir
@@ -638,7 +624,8 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
        stdout, stderr, rc = run("git checkout {}".format(githash),
                                 outfile="git.{}.out".format(root))                                
        
-   # not sure if this is valid -- we are piping stderr into stdout 
+   # not sure if this is valid -- we are piping stderr into stdout
+   # -- we should check the return code instead
    if stdout == "":
        fail("  ERROR: git update was unsuccessful")
                
@@ -654,8 +641,8 @@ def saveGITHEAD(topDir, root, outDir):
 
    bold("saving git HEAD for %s/" % (root), skip_before=1)
 
-   systemCall("git rev-parse HEAD >& git.%s.HEAD" % (root) )
-   shutil.copy("git.%s.HEAD" % (root),  outDir)
+   run("git rev-parse HEAD", outfile="git.{}.HEAD".format(root) )
+   shutil.copy("git.{}.HEAD".format(root),  outDir)
 
 
 #==============================================================================
@@ -687,8 +674,8 @@ def makeGITChangeLog(gitDir, root, outDir):
 
     bold("generating ChangeLog for %s/" % (root), skip_before=1)
     
-    systemCall("git log --name-only >& ChangeLog.%s" % (root) )    
-    shutil.copy("ChangeLog.%s" % (root), outDir)
+    run("git log --name-only", outfile="ChangeLog.{}".format(root) )    
+    shutil.copy("ChangeLog.{}".format(root), outDir)
 
 
 #==============================================================================
@@ -699,16 +686,14 @@ def getLastRun(suite):
         run of the test suite """
 
     outdir = suite.testTopDir + suite.suiteName + "-tests/"
-    
-    dirs = []
-    for dir in os.listdir(outdir):
-        # this will work through 2099
-        if os.path.isdir(outdir + dir) and dir.startswith("20"):
-            dirs.append(dir)
 
+    # this will work through 2099    
+    dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + dir) and
+                                              dir.startswith("20"))]
     dirs.sort()
 
     return dirs[-1]
+
 
 #==============================================================================
 # getTestFailures
@@ -1275,19 +1260,15 @@ def testSuite(argv):
         testsFind = []
 
     if len(testsFind) > 0:
-        newTestList = []
+        new_test_list = []
         for test in testsFind:
-            found = 0
-            for obj in testList:
-                if obj.name == test:
-                    found = 1
-                    newTestList.append(obj)
-                    break
-            
-            if not found:
-                fail("ERROR: %s is not a valid test" % (test))
+            _tmp = [o for o in testList if o.name == test]
+            if len(_tmp) == 1:
+                new_test_list += _tmp
+            else:
+                fail("ERROR: {} is not a valid test".format(test))
         
-        testList = newTestList
+        testList = new_test_list
     
 
     #--------------------------------------------------------------------------
@@ -1542,27 +1523,14 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     for test in testList:
 
-        bold("working on test: %s" % (test.name), skip_before=1)
+        bold("working on test: {}".format(test.name), skip_before=1)
 
-        if test.restartTest and make_benchmarks:
-            warning("  WARNING: test %s is a restart test -- " % (test.name))
-            warning("           no benchmarks are stored.")
+        if make_benchmarks and (test.restartTest or test.compileTest or
+                                test.selfTest):
+            warning("  WARNING: test {} doesn't need benchmarks".format(test.name))
             warning("           skipping\n")
             continue
      
-        if test.compileTest and make_benchmarks:
-            warning("  WARNING: test %s is a compile test -- " % (test.name))
-            warning("           no benchmarks are stored.")
-            warning("           skipping\n")
-            continue            
-
-        if test.selfTest and make_benchmarks:
-            warning("  WARNING: test %s is a self-test -- " % (test.name))
-            warning("           no benchmarks are stored.")
-            warning("           skipping\n")
-            continue            
-
-
 
         #----------------------------------------------------------------------
         # make the run directory
@@ -1790,26 +1758,18 @@ def testSuite(argv):
                 base_command += " amr.checkpoint_files_output=0"
 
             base_command += " >& %s.run.out < /dev/null" % (test.name)
-            
-	    if test.useMPI and test.useOMP:
 
-	       # create the MPI executable
-	       testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-               testRunCommand = testRunCommand.replace("@command@", base_command)
+	    if test.useMPI:
+                testRunCommand = ""
+                if test.useOMP: 
+	            testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
+                testRunCommand += suite.MPIcommand
+	        testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+	        testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
+                testRunCommand = testRunCommand.replace("@command@", base_command)
                    
-	    elif test.useMPI:
-
-	       # create the MPI executable
-	       testRunCommand = suite.MPIcommand
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-	       testRunCommand = testRunCommand.replace("@command@", base_command)
-
-	    elif (test.useOMP):
-
-                testRunCommand = "OMP_NUM_THREADS=%s " % (test.num_threads)
+	    elif test.useOMP:
+                testRunCommand = "OMP_NUM_THREADS={} ".format(test.num_threads)
                 testRunCommand += base_command
 	       
             else:
@@ -1829,29 +1789,21 @@ def testSuite(argv):
             base_command += "%s >& %s.run.out" % \
                             (suite.globalAddToExecString, test.name)
             
-            if test.useMPI and test.useOMP:
-
+            if test.useMPI:
+                testRunCommand = ""
+                if test.useOMP:
+                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                 # create the MPI executable
-                testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                testRunCommand += suite.MPIcommand
                 testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                 testRunCommand = testRunCommand.replace("@command@", base_command)
 
-            elif test.useMPI:
-
-	       # create the MPI executable
-	       testRunCommand = suite.MPIcommand
-	       testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	       testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-	       testRunCommand = testRunCommand.replace("@command@", base_command)
-
             elif test.useOMP:
-
-                testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                 testRunCommand += base_command
 
             else:
-
                 testRunCommand = base_command
                 
             print "    " + testRunCommand
@@ -1885,29 +1837,22 @@ def testSuite(argv):
                 base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, restartFile, test.name)
                 
-                if test.useMPI and test.useOMP:
-
+                if test.useMPI:
+                    testRunCommand = ""
+                    if test.useOMP:
+                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     # create the MPI executable
-                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand += suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useMPI:
-
-                    # create the MPI executable
-                    testRunCommand = suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
 
                 elif test.useOMP:
-
-                    testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
+                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     testRunCommand += base_command
                     
                 else:
-                    
                     testRunCommand = base_command
                     
                 print "    " + testRunCommand
@@ -1919,29 +1864,21 @@ def testSuite(argv):
                 base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
                 
-                if test.useMPI and test.useOMP:
-
+                if test.useMPI:
+                    testRunCommand = ""
+                    if test.useOMP:
+                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
                     # create the MPI executable
-                    testRunCommand = "OMP_NUM_THREADS=%s %s" % (test.numthreads, suite.MPIcommand)
+                    testRunCommand += suite.MPIcommand
                     testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
-                    testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useMPI:
-
-                    # create the MPI executable
-                    testRunCommand = suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "%s" % (test.numprocs))
+                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
                     testRunCommand = testRunCommand.replace("@command@", base_command)
 
                 elif test.useOMP:
-
                     testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
                     testRunCommand += base_command
 
                 else:
-
                     testRunCommand = base_command
 
                 print "    " + testRunCommand
@@ -2476,9 +2413,9 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         compileSuccessful = 0
     
         for line in makeLines:
-            if (string.find(line, "SUCCESS") >= 0 or
-                string.find(line, "is up to date.") or
-                string.find(line, "Nothing to be done") >= 0):
+            if (line.find("SUCCESS") >= 0 or
+                line.find("is up to date.") >= 0 or
+                line.find("Nothing to be done") >= 0):
                 compileSuccessful = 1
                 break
         
