@@ -136,7 +136,6 @@ void BLProfiler::Initialize() {
   MPI_Get_processor_name(cProcName, &resultLen);
 #endif
   if(resultLen < 1) {
-    //strcpy(cProcName, "NoProcName");
     procName   = "NoProcName";
     procNumber = ParallelDescriptor::MyProc();
   } else {
@@ -169,11 +168,11 @@ void BLProfiler::Initialize() {
   timerTime /= static_cast<Real> (nTimerTimes);
 
 #ifdef BL_COMM_PROFILING
-  vCommStats.reserve(csFlushSize / 4);
+  vCommStats.reserve(std::max(csFlushSize, 256000));
 #endif
 
 #ifdef BL_TRACE_PROFILING
-  vCallTrace.reserve(traceFlushSize / 4);
+  vCallTrace.reserve(std::max(traceFlushSize, 256000));
   // ---- make sure there is always at least one so we dont need to check in start()
   CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
   vCallTrace.push_back(unusedCS);
@@ -297,6 +296,7 @@ void BLProfiler::start() {
 #pragma omp master
 #endif
 {
+  bltelapsed = 0.0;
   bltstart = ParallelDescriptor::second();
   ++mProfStats[fname].nCalls;
   bRunning = true;
@@ -954,7 +954,7 @@ void WriteStats(std::ostream &ios,
 }  // end namespace BLProfilerUtils
 
 
-void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call trace data
+void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace data
 
     if(bFlushing) {
       int nCT(vCallTrace.size());
@@ -965,6 +965,11 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
                     << "  " << traceFlushSize << std::endl;
         }
         return;
+      } else {
+        if(ParallelDescriptor::IOProcessor()) {
+          std::cout << "Flushing call traces:  nCT traceFlushSize = " << nCT
+                    << "  " << traceFlushSize << std::endl;
+        }
       }
     }
 
@@ -983,27 +988,25 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
       blProfDirCreated = true;
     }
 
-    if( ! bFlushing) {
-      // -------- make sure the set of region names is the same on all processors
-      Array<std::string> localStrings, syncedStrings;
-      bool alreadySynced;
-      for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
-          it != mRegionNameNumbers.end(); ++it)
-      {
-        localStrings.push_back(it->first);
-      }
-      BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
+    // -------- make sure the set of region names is the same on all processors
+    Array<std::string> localStrings, syncedStrings;
+    bool alreadySynced;
+    for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
+        it != mRegionNameNumbers.end(); ++it)
+    {
+      localStrings.push_back(it->first);
+    }
+    BoxLib::SyncStrings(localStrings, syncedStrings, alreadySynced);
 
-      if( ! alreadySynced) {  // ---- need to remap names and numbers
-        if(ParallelDescriptor::IOProcessor()) {
-          std::cout << "**** Warning:  region names not synced:  unsupported."
-	            << std::endl;
-        }
-        // unsupported for now
+    if( ! alreadySynced) {  // ---- need to remap names and numbers
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "**** Warning:  region names not synced:  unsupported."
+                  << std::endl;
       }
+      // unsupported for now
     }
 
-    if(ParallelDescriptor::IOProcessor() && ! bFlushing) {
+    if(ParallelDescriptor::IOProcessor()) {
       std::string globalHeaderFileName(cdir + '/' + cFilePrefix + "_H");
       std::ofstream csGlobalHeaderFile;
       csGlobalHeaderFile.open(globalHeaderFileName.c_str(),
@@ -1148,10 +1151,10 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
 	                                       std::ios::binary);
         csDFile.seekg(csPatch.seekPos, std::ios::beg);
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
-	std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime << "  "
-	          << csOnDisk.totalTime << '\n'
-		  << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime << "  "
-	          << csPatch.callStats.totalTime << std::endl;
+	std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
+	          << "  " << csOnDisk.totalTime << '\n'
+		  << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
+		  << "  " << csPatch.callStats.totalTime << std::endl;
 	csOnDisk.totalTime = csPatch.callStats.totalTime;
 	csOnDisk.stackTime = csPatch.callStats.stackTime;
         csDFile.seekp(csPatch.seekPos, std::ios::beg);
@@ -1173,7 +1176,7 @@ void BLProfiler::WriteCallTrace(const bool bFlushing) {   // ---- write call tra
 
 
 
-void BLProfiler::WriteCommStats(const bool bFlushing) {
+void BLProfiler::WriteCommStats(bool bFlushing) {
 
   Real wcsStart(ParallelDescriptor::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
@@ -1195,7 +1198,8 @@ void BLProfiler::WriteCommStats(const bool bFlushing) {
       return;
     } else {
       if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "Flushing commstats:  nCSmax = " << nCS << std::endl;
+        std::cout << "Flushing commstats:  nCSmax csFlushSize = " << nCS
+	          << "  " << csFlushSize << std::endl;
       }
     }
   }

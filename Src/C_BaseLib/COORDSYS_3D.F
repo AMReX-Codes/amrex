@@ -23,8 +23,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETVOL(vol,DIMS(vol),offset,dx,coord)
+       subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
        implicit none
+       integer    DIMDEC(reg)
        integer    DIMDEC(vol)
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
@@ -38,9 +39,9 @@ c
 c         ::::: cartesian
 c
           v = dx(1)*dx(2)*dx(3)
-          do k = ARG_L3(vol), ARG_H3(vol)
-             do j = ARG_L2(vol), ARG_H2(vol)
-                do i = ARG_L1(vol), ARG_H1(vol)
+          do k = ARG_L3(reg), ARG_H3(reg)
+             do j = ARG_L2(reg), ARG_H2(reg)
+                do i = ARG_L1(reg), ARG_H1(reg)
                    vol(i,j,k) = v
                 end do
              end do
@@ -64,8 +65,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETAREA(area,DIMS(area),offset,dx,dir,coord)
+       subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
        implicit none
+       integer    DIMDEC(reg)
        integer    DIMDEC(area)
        integer    coord, dir
        REAL_T     dx(SDIM), offset(SDIM)
@@ -87,9 +89,9 @@ c ::
              write(6,*) "FORT_SETAREA: invalid dir = ",dir
              call bl_abort(" ")
           end if
-          do k = ARG_L3(area), ARG_H3(area)
-             do j = ARG_L2(area), ARG_H2(area)
-                do i = ARG_L1(area), ARG_H1(area)
+          do k = ARG_L3(reg), ARG_H3(reg)
+             do j = ARG_L2(reg), ARG_H2(reg)
+                do i = ARG_L1(reg), ARG_H1(reg)
                    area(i,j,k) = fa
                 end do
              end do
