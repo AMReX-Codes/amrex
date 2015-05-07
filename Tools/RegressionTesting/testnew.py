@@ -726,6 +726,29 @@ def getTestFailures(suite, testDir):
     return failed
 
 
+#==============================================================================
+def run_test(test, suite, base_command):            
+    if test.useMPI:
+        testRunCommand = ""
+        if test.useOMP: 
+	    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
+        testRunCommand += suite.MPIcommand
+	testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
+	testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
+        testRunCommand = testRunCommand.replace("@command@", base_command)
+                   
+    elif test.useOMP:
+        testRunCommand = "OMP_NUM_THREADS={} ".format(test.num_threads)
+        testRunCommand += base_command
+	       
+    else:
+        testRunCommand = base_command
+                
+    print "    " + testRunCommand
+    systemCall(testRunCommand)
+    return testRunCommand
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -1311,10 +1334,9 @@ def testSuite(argv):
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
         shutil.rmtree(fullTestDir)
     else:
-        i = 0
-        while (i < maxRuns-1 and os.path.isdir(fullTestDir)):
-            i = i + 1
-            testDir = today + "-" + ("%3.3d" % i) + "/"
+        for i in range(1,maxRuns):
+            if not os.path.isdir(fullTestDir): break
+            testDir = today + "-{:03d}/".format(i)
             fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
     bold("testing directory is: " + testDir, skip_before=1)
@@ -1759,24 +1781,7 @@ def testSuite(argv):
 
             base_command += " >& %s.run.out < /dev/null" % (test.name)
 
-	    if test.useMPI:
-                testRunCommand = ""
-                if test.useOMP: 
-	            testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                testRunCommand += suite.MPIcommand
-	        testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-	        testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
-                testRunCommand = testRunCommand.replace("@command@", base_command)
-                   
-	    elif test.useOMP:
-                testRunCommand = "OMP_NUM_THREADS={} ".format(test.num_threads)
-                testRunCommand += base_command
-	       
-            else:
-                testRunCommand = base_command
-                
-            print "    " + testRunCommand
-            systemCall(testRunCommand)
+            testRunCommand = run_test(test, suite, base_command)
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -1788,26 +1793,8 @@ def testSuite(argv):
 
             base_command += "%s >& %s.run.out" % \
                             (suite.globalAddToExecString, test.name)
-            
-            if test.useMPI:
-                testRunCommand = ""
-                if test.useOMP:
-                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                # create the MPI executable
-                testRunCommand += suite.MPIcommand
-                testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
-                testRunCommand = testRunCommand.replace("@command@", base_command)
 
-            elif test.useOMP:
-                testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                testRunCommand += base_command
-
-            else:
-                testRunCommand = base_command
-                
-            print "    " + testRunCommand
-            systemCall(testRunCommand)
+            testRunCommand = run_test(test, suite, base_command)
 
 
         # if it is a restart test, then rename the final output file and
@@ -1837,53 +1824,14 @@ def testSuite(argv):
                 base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, restartFile, test.name)
                 
-                if test.useMPI:
-                    testRunCommand = ""
-                    if test.useOMP:
-                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                    # create the MPI executable
-                    testRunCommand += suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
-                    testRunCommand = testRunCommand.replace("@command@", base_command)
-                    testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useOMP:
-                    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                    testRunCommand += base_command
-                    
-                else:
-                    testRunCommand = base_command
-                    
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
+                testRunCommand = run_test(test, suite, base_command)
                 
             elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
                 base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
                 
-                if test.useMPI:
-                    testRunCommand = ""
-                    if test.useOMP:
-                        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-                    # create the MPI executable
-                    testRunCommand += suite.MPIcommand
-                    testRunCommand = testRunCommand.replace("@host@", suite.MPIhost)
-                    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
-                    testRunCommand = testRunCommand.replace("@command@", base_command)
-
-                elif test.useOMP:
-                    testRunCommand = "OMP_NUM_THREADS=%s " % (test.numthreads)
-                    testRunCommand += base_command
-
-                else:
-                    testRunCommand = base_command
-
-                print "    " + testRunCommand
-                systemCall(testRunCommand)
-
+                testRunCommand = run_test(test, suite, base_command)
 
         test.wallTime = time.time() - test.wallTime
            
