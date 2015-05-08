@@ -738,7 +738,7 @@ def run_test(test, suite, base_command):
         testRunCommand = testRunCommand.replace("@command@", base_command)
                    
     elif test.useOMP:
-        testRunCommand = "OMP_NUM_THREADS={} ".format(test.num_threads)
+        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
         testRunCommand += base_command
 	       
     else:
