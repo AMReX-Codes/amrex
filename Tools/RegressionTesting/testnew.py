@@ -14,7 +14,7 @@ frameworks.
 import ConfigParser
 import datetime
 import email
-import getopt
+import argparse
 import getpass
 import os
 import shlex
@@ -599,7 +599,7 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
        stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
 
 
-   if githash == "":
+   if githash == "" or githash == None:
        bold("'git pull' in %s" % (topDir), skip_before=1)
 
        # we need to be tricky here to make sure that the stdin is
@@ -669,8 +669,8 @@ def getLastRun(suite):
     outdir = suite.testTopDir + suite.suiteName + "-tests/"
 
     # this will work through 2099
-    dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + dir) and
-                                              dir.startswith("20"))]
+    dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
+                                              d.startswith("20"))]
     dirs.sort()
 
     return dirs[-1]
@@ -734,22 +734,9 @@ def run_test(test, suite, base_command):
 def testSuite(argv):
 
     usage = """
-    ./testnew.py [--make_benchmarks comment,
-                  --no_update  none or all or a list of codes excluded from update,
-                  --single_test test
-                  --tests "test1 test2 test3 ..."
-                  --do_temp_run
-                  --boxLibGitHash boxlibhash
-                  --sourceGitHash sourcehash
-                  --extSrcGitHash extsourcehash
-                  --note note
-                  -d dimensionality
-                  --redo_failed
-                  --complete_report_from_crash testdir]
-        testfile.ini
+    testnew.py -h for options
 
-
-    arguments:
+    input file structure
 
       testfile.ini
           This is the input file that defines the tests that the
@@ -966,57 +953,6 @@ def testSuite(argv):
           defining the problem.  The name between the [..] will be how
           the test is referred to on the webpages.
 
-
-    options:
-
-       --make_benchmarks \"comment\"
-          run the test suite and make the current output the new
-          benchmarks for comparison.  When run in this mode, no
-          comparison is done.  This is useful for the first time
-          the test suite is run.
-
-          \"comment\" describes the reason for the benchmark
-          update and will be appended to the web output for
-          future reference.
-
-       --no_update ?
-          None or All or a list of codes seperated by "," to be excluded
-          from update. Default is None.
-
-       --single_test mytest
-          run only the test named mytest
-
-       --tests \"test1 test2 test3\"
-          run only the tests listsed
-
-       --do_temp_run
-          Temporary run without updating the web.
-
-       --boxLibGitHash boxlibhash
-          Git hash of a version of BoxLib.  If provided, this version
-          will be used to run tests.
-
-       --sourceGitHash sourcehash
-          Git hash of a version of the source code.  For BoxLib tests,
-          this will be ignored.
-
-       --extSrcGitHash extsourcehash
-          Git hash of a version of the source code.  For BoxLib tests,
-          this will be ignored.
-
-       --note \"note\"
-          print the note on the resulting test webpages
-
-       --complete_report_from_crash \"testdir\"
-          if a test suite run crashed (or the terminal you were running
-          from disconnected) and the file report was not generated, this
-          option will just generate the report for the test suite run and
-          the overall report for all runs.  testdir is the name of the
-          testdir (e.g. 20XX-XX-XX) that was running when the suite crashed.
-
-       --redo_failed
-          only run the tests that failed the last time the suite was run
-
     Getting started:
 
       To set up a test suite, it is probably easiest to write the
@@ -1034,104 +970,51 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    if len(argv) == 1:
-        print usage
-        sys.exit(2)
-
-    try:
-        opts, next = getopt.getopt(argv[1:], "d:",
-                                   ["make_benchmarks=",
-                                    "no_update=",
-                                    "single_test=",
-                                    "tests=",
-                                    "do_temp_run",
-                                    "boxLibGitHash=",
-                                    "sourceGitHash=",
-                                    "extSrcGitHash=",
-                                    "note=",
-                                    "complete_report_from_crash=",
-                                    "redo_failed"])
-
-    except getopt.GetoptError:
-        print "invalid calling sequence"
-        print usage
-        sys.exit(2)
-
-
     # defaults
-    dimensionality = -1
-    make_benchmarks = 0
-    no_update = "None"
-    single_test = ""
-    tests = ""
-    comment = ""
-    do_temp_run = False
-    boxLibGitHash = ""
-    sourceGitHash = ""
-    extSrcGitHash = ""
-    note = ""
-    completeReportFromCrash = ""
     redo_failed = 0
 
-    for o, a in opts:
-
-        if o == "-d":
-            dimensionality = int(a)
-
-        if o == "--make_benchmarks":
-            make_benchmarks = 1
-            comment = a
-
-        if o == "--redo_failed":
-            redo_failed = 1
-
-        if o == "--no_update":
-            no_update = a
-
-        if o == "--single_test":
-            single_test = a
-
-        if o == "--tests":
-            tests = a
-
-        if o == "--do_temp_run":
-            do_temp_run = True
-
-        if o == "--boxLibGitHash":
-            boxLibGitHash = a
-
-        if o == "--sourceGitHash":
-            sourceGitHash = a
-
-        if o == "--extSrcGitHash":
-            extSrcGitHash = a
-
-        if o == "--note":
-            note = a
-
-        if o == "--complete_report_from_crash":
-            completeReportFromCrash = a
-
-    try:
-        testFile = next[0]
-
-    except IndexError:
-        print "ERROR: a test file was not specified"
-        print usage
-        sys.exit(2)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", type=int, default=-1,
+                        help="restrict tests to a particular dimensionality")
+    parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
+                        help="make new benchmarks? (must provide a comment)")
+    parser.add_argument("--no_update", type=str, default="None", metavar="name",
+                        help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
+    parser.add_argument("--single_test", type=str, default="", metavar="test-name",
+                        help="name of a single test to run")
+    parser.add_argument("--tests", type=str, default="", metavar="'test1 test2 test3'",
+                        help="a space-separated list of tests to run")
+    parser.add_argument("--do_temp_run", action="store_true",
+                        help="is this a temporary run? (output not stored or logged)")
+    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
+    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--note", type=str, default="",
+                        help="a note on the resulting test webpages")
+    parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",
+                        help="complete the generation of the report from a crashed test suite run named testdir")
+    parser.add_argument("--redo_failed", action="store_true",
+                        help="only run the tests that failed last time")
+    parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
+                        help="the input file (INI format) containing the suite and test parameters")
+    
+    args=parser.parse_args()
 
     #--------------------------------------------------------------------------
     # read in the test information
     #--------------------------------------------------------------------------
-    bold("loading " + testFile)
+    bold("loading " + args.input_file[0])
 
-    suite, testList = LoadParams(testFile)
+    suite, testList = LoadParams(args.input_file[0])
 
     defined_tests = testList[:]
 
     # if we only want to run the tests that failed previously, remove the
     # others
-    if redo_failed == 1:
+    if args.redo_failed:
         last_run = getLastRun(suite)
         failed = getTestFailures(suite, last_run)
 
@@ -1140,22 +1023,22 @@ def testSuite(argv):
 
     # if we only want to run tests of a certain dimensionality, remove
     # the others
-    if dimensionality in [1, 2, 3]:
+    if args.d in [1, 2, 3]:
         testListold = testList[:]
-        testList = [t for t in testListold if t.dim == dimensionality]
+        testList = [t for t in testListold if t.dim == args.d]
 
     if len(testList) == 0:
         fail("No valid tests defined")
 
     activeTestList = [t.name for t in defined_tests]
 
-    # store the full path to the testFile
-    testFilePath = os.getcwd() + '/' + testFile
+    # store the full path to the input file
+    testFilePath = os.getcwd() + '/' + args.input_file[0]
 
-    if not completeReportFromCrash == "":
+    if not args.complete_report_from_crash == "":
 
         # make sure the web directory from the crash run exists
-        fullWebDir = "%s/%s/"  % (suite.webTopDir, completeReportFromCrash)
+        fullWebDir = "%s/%s/"  % (suite.webTopDir, args.complete_report_from_crash)
         if not os.path.isdir(fullWebDir):
             fail("Crash directory does not exist")
 
@@ -1181,7 +1064,7 @@ def testSuite(argv):
         numFailed = reportThisTestRun(suite, wasBenchmarkRun, "",
                                       "recreated report after crash of suite",
                                       "",  0, 0, 0,
-                                      tests, completeReportFromCrash, testFile, fullWebDir)
+                                      tests, args.complete_report_from_crash, testFile, fullWebDir)
 
 
         # create the suite report
@@ -1194,7 +1077,7 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # figure out which git repos we will update
     #--------------------------------------------------------------------------
-    no_update_low = no_update.lower()
+    no_update_low = args.no_update.lower()
 
     if no_update_low == "none":
         updateBoxLib = True
@@ -1235,23 +1118,22 @@ def testSuite(argv):
                              # The update of BoxLib is controlled by updateBoxLib
         sourceGitHash = ""
 
-    if boxLibGitHash: updateBoxLib = False
-    if sourceGitHash: updateSource = False
-    if extSrcGitHash: updateExtSrc = False
-
-
+    if args.boxLibGitHash: updateBoxLib = False
+    if args.sourceGitHash: updateSource = False
+    if args.extSrcGitHash: updateExtSrc = False
+    
     #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
     # if we specified a list of tests, check each one
     # if we did both --single_test and --tests, complain
     #--------------------------------------------------------------------------
-    if not single_test == "" and not tests == "":
+    if not args.single_test == "" and not tests == "":
         fail("ERROR: specify tests either by --single_test or --tests, not both")
 
-    if not single_test == "":
-        testsFind = [single_test]
-    elif not tests == "":
-        testsFind = tests.split()
+    if not args.single_test == "":
+        testsFind = [args.single_test]
+    elif not args.tests == "":
+        testsFind = args.tests.split()
     else:
         testsFind = []
 
@@ -1275,7 +1157,7 @@ def testSuite(argv):
     if not allCompile:
         benchDir = suite.testTopDir + suite.suiteName + "-benchmarks/"
         if not os.path.isdir(benchDir):
-            if make_benchmarks:
+            if not args.make_benchmarks == None:
                 os.mkdir(benchDir)
             else:
                 fail("ERROR: benchmark directory, %s, does not exist" % (benchDir))
@@ -1302,7 +1184,7 @@ def testSuite(argv):
 
     fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
 
-    if do_temp_run:
+    if args.do_temp_run:
         testDir = "TEMP_RUN/"
         fullTestDir = suite.testTopDir + suite.suiteName + "-tests/" + testDir
         shutil.rmtree(fullTestDir)
@@ -1319,7 +1201,7 @@ def testSuite(argv):
     # put, so it is easy to move the entire test website to a different disk
     fullWebDir = "%s/%s/"  % (suite.webTopDir, testDir)
 
-    if do_temp_run:
+    if args.do_temp_run:
         shutil.rmtree(fullWebDir)
 
     os.mkdir(fullWebDir)
@@ -1336,22 +1218,22 @@ def testSuite(argv):
 
     os.chdir(suite.testTopDir)
 
-    if updateSource or sourceGitHash:
+    if updateSource or args.sourceGitHash:
 
         # main suite
         sourceGitBranch_Orig = doGITUpdate(suite.sourceDir,
                                            suite.srcName, fullWebDir,
                                            suite.sourceGitBranch,
-                                           sourceGitHash)
+                                           args.sourceGitHash)
 
-    if updateExtSrc or extSrcGitHash:
+    if updateExtSrc or args.extSrcGitHash:
 
         # extra source
         if suite.useExtSrc:
             extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir,
                                                suite.extSrcName, fullWebDir,
                                                suite.extSrcGitBranch,
-                                               extSrcGitHash)
+                                               args.extSrcGitHash)
 
     if any(updateExtraBuild):
 
@@ -1363,13 +1245,13 @@ def testSuite(argv):
                                                    "master",
                                                    "")
 
-    if updateBoxLib or boxLibGitHash:
+    if updateBoxLib or args.boxLibGitHash:
 
         # BoxLib
         boxLibGitBranch_Orig = doGITUpdate(suite.boxLibDir,
                                            "BoxLib", fullWebDir,
                                            suite.boxLibGitBranch,
-                                           boxLibGitHash)
+                                           args.boxLibGitHash)
 
     #--------------------------------------------------------------------------
     # Save git HEADs
@@ -1514,7 +1396,7 @@ def testSuite(argv):
 
         bold("working on test: {}".format(test.name), skip_before=1)
 
-        if make_benchmarks and (test.restartTest or test.compileTest or
+        if not args.make_benchmarks == None and (test.restartTest or test.compileTest or
                                 test.selfTest):
             warning("  WARNING: test {} doesn't need benchmarks".format(test.name))
             warning("           skipping\n")
@@ -1821,7 +1703,7 @@ def testSuite(argv):
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
 
-            if not make_benchmarks:
+            if args.make_benchmarks == None:
 
                 print "  doing the comparison..."
                 print "    comparison file: ", outputFile
@@ -1900,10 +1782,13 @@ def testSuite(argv):
 
                 if not compareFile == "":
                     if not outputFile == compareFile:
-                        shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                        try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                        except: pass
                         shutil.copytre(outputFile, "{}/{}".format(benchDir, compareFile))
                     else:
-                        shutil.copytree(compareFile, benchDir)
+                        try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                        except: pass
+                        shutil.copytree(compareFile, "{}/{}".format(benchDir, compareFile))
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -1922,7 +1807,7 @@ def testSuite(argv):
 
         else:   # selfTest
 
-            if not make_benchmarks:
+            if args.make_benchmarks == None:
 
                 print "  looking for selfTest success string: %s ..." % test.stSuccessString
 
@@ -1958,7 +1843,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only)
         #----------------------------------------------------------------------
-        if test.doVis and not make_benchmarks:
+        if test.doVis and args.make_benchmarks == None:
 
             if not outputFile == "":
 
@@ -1990,7 +1875,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # do any analysis
         #----------------------------------------------------------------------
-        if not test.analysisRoutine == "" and not make_benchmarks:
+        if not test.analysisRoutine == "" and args.make_benchmarks == None:
 
             if not outputFile == "":
 
@@ -2016,7 +1901,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # move the output files into the web directory
         #----------------------------------------------------------------------
-        if not make_benchmarks:
+        if args.make_benchmarks == None:
             shutil.copy("%s.run.out"     % (test.name), fullWebDir)
             shutil.copy("%s.make.out"    % (test.name), fullWebDir)
             shutil.copy("%s.compare.out" % (test.name), fullWebDir)
@@ -2087,7 +1972,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # write the report for this test
         #----------------------------------------------------------------------
-        if not make_benchmarks:
+        if args.make_benchmarks == None:
             print "  creating problem test report ..."
             reportSingleTest(suite, test, compString, testRunCommand, testDir, fullWebDir)
 
@@ -2096,10 +1981,10 @@ def testSuite(argv):
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     bold("creating new test report...", skip_before=1)
-    numFailed = reportThisTestRun(suite, make_benchmarks, comment, note,
+    numFailed = reportThisTestRun(suite, args.make_benchmarks, args.note,
                                   updateTime,  updateBoxLib,
                                   updateSource, updateExtSrc,
-                                  testList, testDir, testFile, fullWebDir)
+                                  testList, testDir, args.input_file[0], fullWebDir)
 
 
     # make sure that all of the files in the web directory are world readable
@@ -2109,19 +1994,19 @@ def testSuite(argv):
        if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
 
-    if updateBoxLib or boxLibGitHash:
+    if updateBoxLib or args.boxLibGitHash:
         doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch_Orig)
 
-    if updateSource or sourceGitHash:
+    if updateSource or args.sourceGitHash:
         doGITback(suite.sourceDir, suite.srcName, sourceGitBranch_Orig)
 
-    if updateExtSrc or extSrcGitHash:
+    if updateExtSrc or args.extSrcGitHash:
         doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch_Orig)
 
     #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
     #--------------------------------------------------------------------------
-    if do_temp_run:
+    if args.do_temp_run:
         return numFailed
 
 
@@ -2596,7 +2481,7 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
+def reportThisTestRun(suite, make_benchmarks, note, updateTime,
                       updateBoxLib, updateSource, updateExtSrc,
                       testList, testDir, testFile, fullWebDir):
     """ generate the master page for a single run of the test suite """
@@ -2636,8 +2521,8 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     if (not note == ""):
        hf.write("<p><b>Test run note:</b><br><font color=\"gray\">%s</font>\n" % (note) )
 
-    if (make_benchmarks):
-       hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">%s</font>\n" % (comment) )
+    if not make_benchmarks == None:
+       hf.write("<p><b>Benchmarks updated</b><br>comment: <font color=\"gray\">{}</font>\n".format(make_benchmarks) )
        hf.write("<p>&nbsp;\n")
 
 
@@ -2664,7 +2549,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     hf.write("<p>&nbsp;\n")
 
-    if not make_benchmarks:
+    if make_benchmarks == None:
 
         hf.write("<div id=\"summary\">\n")
         hf.write("<P><TABLE>\n")
@@ -2689,7 +2574,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
     # loop over the tests and add a line for each
     for test in testList:
 
-        if not make_benchmarks:
+        if make_benchmarks == None:
 
             # check if it passed or failed
             statusFile = "%s.status" % (test.name)
@@ -2817,7 +2702,7 @@ def reportThisTestRun(suite, make_benchmarks, comment, note, updateTime,
 
     sf = open(statusFile, 'w')
 
-    if not make_benchmarks:
+    if make_benchmarks == None:
         if (numFailed == 0):
             sf.write("ALL PASSED\n")
         elif (numFailed > 0 and numPassed > 0):
