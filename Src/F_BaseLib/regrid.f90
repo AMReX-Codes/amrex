@@ -82,6 +82,14 @@ contains
        if (tagging_needs_ghost_cells) then
           call multifab_fill_boundary(phi(nl))
           call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
+          
+          if (nl .ge. 2) then
+             call multifab_fill_ghost_cells(phi(nl),phi(nl-1),phi(nl)%ng,mba%rr((nl-1),:), &
+                                            the_bc_tower%bc_tower_array(nl-1), &
+                                            the_bc_tower%bc_tower_array(nl), &
+                                            1,1,1)
+          end if
+
        end if
 
        ! determine whether we need finer grids based on tagging criteria
