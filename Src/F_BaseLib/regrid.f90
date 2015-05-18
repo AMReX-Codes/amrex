@@ -80,14 +80,14 @@ contains
     do while ( (nl .lt. max_levs) .and. new_grid )
 
        if (tagging_needs_ghost_cells) then
-          call multifab_fill_boundary(phi(nl))
-          call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
-          
-          if (nl .ge. 2) then
+          if (nl .eq. 1) then
+             call multifab_fill_boundary(phi(nl))
+             call multifab_physbc(phi(nl),1,1,nc,the_bc_tower%bc_tower_array(nl))
+          else 
              call multifab_fill_ghost_cells(phi(nl),phi(nl-1),phi(nl)%ng,mba%rr((nl-1),:), &
                                             the_bc_tower%bc_tower_array(nl-1), &
                                             the_bc_tower%bc_tower_array(nl), &
-                                            1,1,1)
+                                            1,1,nc)
           end if
 
        end if
