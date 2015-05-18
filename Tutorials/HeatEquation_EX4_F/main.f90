@@ -208,11 +208,7 @@ program main
         call multifab_fill_ghost_cells(phi(nl),phi(nl-1),phi(nl)%ng,mba%rr((nl-1),:), &
                                        the_bc_tower%bc_tower_array(nl-1), &
                                        the_bc_tower%bc_tower_array(nl), &
-                                       1,1,ncomp(phi(nl)), &
-                                       fill_crse_boundary_input=.false., &
-                                       fill_crse_physbc_input=.false.) 
-                                       ! no need to fill crse boundaries because they have been
-                                       ! in init_phi_on_level
+                                       1,1,ncomp(phi(nl)))
      end if
 
      ! determine whether we need finer grids based on tagging criteria
