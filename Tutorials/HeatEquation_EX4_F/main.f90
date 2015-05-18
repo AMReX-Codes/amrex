@@ -10,6 +10,8 @@ program main
   use define_bc_module
   use make_new_grids_module
   use regrid_module
+  use tag_boxes_module
+  use multifab_fill_ghost_module
 
   implicit none
 
@@ -201,6 +203,15 @@ program main
   new_grid = .true.
 
   do while ( (nl .lt. max_levs) .and. (new_grid) )
+
+     if (tagging_needs_ghost_cells .and. nl.ge.2) then
+        call multifab_fill_ghost_cells(phi(nl),phi(nl-1),phi(nl)%ng,mba%rr((nl-1),:), &
+                                       the_bc_tower%bc_tower_array(nl-1), &
+                                       the_bc_tower%bc_tower_array(nl), &
+                                       1,1,ncomp(phi(nl)), &
+                                       fill_crse_boundary_input=.false., &
+                                       fill_crse_physbc_input=.false.) 
+     end if
 
      ! determine whether we need finer grids based on tagging criteria
      ! if so, return new_grid=T and the la_array(nl+1)
