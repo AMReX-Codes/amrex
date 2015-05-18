@@ -211,6 +211,8 @@ program main
                                        1,1,ncomp(phi(nl)), &
                                        fill_crse_boundary_input=.false., &
                                        fill_crse_physbc_input=.false.) 
+                                       ! no need to fill crse boundaries because they have been
+                                       ! in init_phi_on_level
      end if
 
      ! determine whether we need finer grids based on tagging criteria
