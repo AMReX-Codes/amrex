@@ -159,6 +159,20 @@ class suiteObj:
         self.purge_output = 0
 
 
+    def make_realclean(self):
+        run("{} BOXLIB_HOME={} {} {} realclean".format(
+            self.MAKE, self.boxLibDir,
+            self.extSrcCompString, self.extraBuildDirCompString))
+
+                
+    def build_f(self, opts="", target="", outfile=None):
+        compString = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
+            self.MAKE, self.numMakeJobs, self.boxLibDir, self.FCOMP, opts, target)
+        print "  " + compString
+        run(compString, outfile=outfile)
+
+        
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -1303,47 +1317,25 @@ def testSuite(argv):
 
     os.chdir(suite.compareToolDir)
 
-    compString = "%s BOXLIB_HOME=%s COMP=%s realclean" % \
-                   (suite.MAKE, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    run(compString)
+    suite.make_realclean()
 
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fcompare NDEBUG=t MPI= COMP=%s" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    so, se, r = run(compString)
+    suite.build_f(target="programs=fcompare", opts="NDEBUG=t MPI= ")
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
-
     shutil.copy(compareExecutable, fullTestDir + "/fcompare.exe")
 
-
-    compString = "%s -j%s BOXLIB_HOME=%s programs=fboxinfo NDEBUG=t MPI= COMP=%s" % \
-                   (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-    print "  " + compString
-    run(compString)
+    suite.build_f(target="programs=fboxinfo", opts="NDEBUG=t MPI= ")
     compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
     shutil.copy(compareExecutable, fullTestDir + "/fboxinfo.exe")
 
-    any_do_vis = {'2D':0, '3D':0}
-    any_do_vis["2D"] = any([t for t in testList if t.dim == 2])
-    any_do_vis["3D"] = any([t for t in testList if t.dim == 3])
-
-    if any_do_vis['2D'] or any_do_vis['3D']:
-        bold("building the visualization tools...", skip_before=1)
-
-        if any_do_vis['2D']:
-            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot2d NDEBUG=t MPI= COMP=%s" % \
-                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-            print "  " + compString
-            run(compString)
-            vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
-
-        if any_do_vis['3D']:
-            compString = "%s -j%s BOXLIB_HOME=%s programs=fsnapshot3d NDEBUG=t MPI= COMP=%s" % \
-                         (suite.MAKE, suite.numMakeJobs, suite.boxLibDir, suite.FCOMP)
-            print "  " + compString
-            run(compString)
-            vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
+    if any([t for t in testList if t.dim == 2]):
+        bold("building the 2-d visualization tools...", skip_before=1)        
+        suite.build_f(target="programs=fsnapshot2d", opts="NDEBUG=t MPI= ")
+        vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
+        
+    if any([t for t in testList if t.dim == 3]):
+        bold("building the 3-d visualization tools...", skip_before=1)        
+        suite.build_f(opts="NDEBUG=t MPI= ", target="programs=fsnapshot3d")
+        vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
 
 
     #--------------------------------------------------------------------------
@@ -1381,11 +1373,8 @@ def testSuite(argv):
             print "  %s" % (dir)
             os.chdir(suite.sourceDir + dir)
 
-        run("%s BOXLIB_HOME=%s %s %s realclean" %
-            (suite.MAKE, suite.boxLibDir,
-             suite.extSrcCompString, suite.extraBuildDirCompString))
-
-
+        suite.make_realclean()
+            
     os.chdir(suite.testTopDir)
 
 
@@ -1424,10 +1413,7 @@ def testSuite(argv):
             # for one reason or another, multiple tests use different
             # build options, make clean again to be safe
             print "  re-making clean..."
-
-            run("%s BOXLIB_HOME=%s %s %s realclean" %
-                (suite.MAKE, suite.boxLibDir,
-                 suite.extSrcCompString, suite.extraBuildDirCompString))
+            suite.make_realclean()
 
 
         print "  building..."
@@ -1492,14 +1478,9 @@ def testSuite(argv):
             if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
-            compString = "%s -j%s BOXLIB_HOME=%s %s %s %s COMP=%s" % \
-                (suite.MAKE, suite.numMakeJobs, suite.boxLibDir,
-                 suite.extSrcCompString, test.addToCompileString,
-                 buildOptions, suite.FCOMP)
-
-            print "    " + compString
-            so, se, r = run(compString,
-                            outfile="{}/{}.make.out".format(outputDir, test.name))
+            suite.build_f(opts="{} {} {}".format(
+                suite.extSrcCompString, test.addToCompileString, buildOptions),
+                          outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(bDir,"main",".exe")
