@@ -166,11 +166,11 @@ class Suite:
 
                 
     def build_f(self, opts="", target="", outfile=None):
-        compString = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
+        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
             self.MAKE, self.numMakeJobs, self.boxLibDir, self.FCOMP, opts, target)
-        print "  " + compString
-        run(compString, outfile=outfile)
-
+        print "  " + comp_string
+        run(comp_string, outfile=outfile)
+        return comp_string
         
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -1457,7 +1457,7 @@ def testSuite(argv):
             if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
-            suite.build_f(opts="{} {} {}".format(
+            compString = suite.build_f(opts="{} {} {}".format(
                 suite.extSrcCompString, test.addToCompileString, buildOptions),
                           outfile="{}/{}.make.out".format(outputDir, test.name))
 
