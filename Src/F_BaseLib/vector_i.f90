@@ -223,8 +223,10 @@ contains
     if ( size <= vector_capacity_i(vi) ) return
 
     allocate(np(size))
-    np(1:vi%size) = vi%d(1:vi%size)
-    if ( associated(vi%d) ) deallocate(vi%d)
+    if ( associated(vi%d) ) then
+       np(1:vi%size) = vi%d(1:vi%size)
+       deallocate(vi%d)
+    end if
     vi%d => np
 
   end subroutine vector_reserve_i
