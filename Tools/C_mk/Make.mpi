@@ -409,6 +409,9 @@ ifeq ($(MACHINE), Linux)
     ifeq ($(WHICHLINUX),HOPPER)
       BL_MPI_LIBS += -lmpichf90
     endif
+    ifeq ($(WHICHLINUX),BLUE_WATERS)
+      BL_MPI_LIBS += -lmpichf90
+    endif
 
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
