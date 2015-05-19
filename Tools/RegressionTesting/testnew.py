@@ -31,7 +31,7 @@ import time
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   C L A S S E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class testObj:
+class Test:
 
     def __init__ (self, name):
 
@@ -95,7 +95,7 @@ class testObj:
         return self.name
 
 
-class suiteObj:
+class Suite:
 
     def __init__ (self):
 
@@ -219,7 +219,7 @@ def LoadParams(file):
         fail("ERROR: unable to read parameter file {}".format(file))
 
     # "main" is a special section containing the global suite parameters.
-    mysuite = suiteObj()
+    mysuite = Suite()
 
     valid_options = mysuite.__dict__.keys()
     valid_options += ["extraBuildDir", "extraBuildDir2"]
@@ -329,7 +329,7 @@ def LoadParams(file):
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
 
         # create the test object for this test
-        mytest = testObj(sec)
+        mytest = Test(sec)
 
         invalid = 0
 
