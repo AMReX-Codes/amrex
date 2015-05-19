@@ -507,42 +507,35 @@ def run(string, stdin=False, outfile=None):
 # T E S T   S U I T E   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-def findBuildDirs(testList):
+def findBuildDirs(tests):
     """ given the list of test objects, find the set of UNIQUE build
         directories.  Note if we have the useExtraBuildDir flag set """
 
-    buildDirs = []
+    build_dirs = []
     reClean = []
 
-    for obj in testList:
+    for obj in tests:
 
-        # be sneaky here.  We'll add a "+" to any of the tests that
-        # are built in the first extraBuildDir and a "@" for an tests
-        # that are build in the second extraBuild dir, instead of the
-        # sourceDir.
-        if obj.useExtraBuildDir == 1:
-            prefix = "+"
-        elif obj.useExtraBuildDir == 2:
-            prefix = "@"
-        else:
-            prefix = ""
+        # keep track of the build directory and which source tree it is
+        # in (e.g. the extra build dir)
 
         # first find the list of unique build directories
-        if buildDirs.count(prefix + obj.buildDir) == 0:
-            buildDirs.append(prefix + obj.buildDir)
+        dir_pair = (obj.buildDir, obj.useExtraBuildDir) 
+        if build_dirs.count(dir_pair) == 0:
+            build_dirs.append(dir_pair)
 
-        # re-make all problems that specify an extra argument to the
-        # compile line, just to make sure that any unique build
-        # commands are seen.
+                             
+        # re-make all problems that specify an extra compile argument,
+        # just to make sure that any unique build commands are seen.
         if not obj.addToCompileString == "":
-            reClean.append(obj.buildDir)
+            reClean.append(dir_pair)
 
-    for bdir in reClean:
-        for obj in testList:
-            if (obj.buildDir == bdir):
+    for bdir, _ in reClean:
+        for obj in tests:
+            if obj.buildDir == bdir:
                 obj.reClean = 1
 
-    return buildDirs
+    return build_dirs
 
 
 #==============================================================================
@@ -1349,28 +1342,17 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # do a make clean, only once per build directory
     #--------------------------------------------------------------------------
-    allBuildDirs = findBuildDirs(testList)
+    all_build_dirs = findBuildDirs(testList)
 
     bold("make clean in...", skip_before=1)
 
-    for dir in allBuildDirs:
+    for dir, source_tree in all_build_dirs:
 
-        # if the buildDir has a "+" at the start, that means it is
-        # in the extraBuildDir path.
-        if (dir.find("+") == 0):
-            inExtra = 1
-            dir = dir[1:]
-        elif (dir.find("@") == 0):
-            inExtra = 2
-            dir = dir[1:]
+        if source_tree > 0:
+            print "  {} in {}".format(dir, suite.extraBuildNames[source_tree-1])
+            os.chdir(suite.extraBuildDirs[source_tree-1] + dir)
         else:
-            inExtra = 0
-
-        if inExtra > 0:
-            print "  %s in %s" % (dir,suite.extraBuildNames[inExtra-1])
-            os.chdir(suite.extraBuildDirs[inExtra-1] + dir)
-        else:
-            print "  %s" % (dir)
+            print "  {}".format(dir)
             os.chdir(suite.sourceDir + dir)
 
         suite.make_realclean()
