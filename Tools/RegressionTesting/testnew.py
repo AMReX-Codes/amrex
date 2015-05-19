@@ -700,11 +700,11 @@ def getTestFailures(suite, testDir):
         if not os.path.isdir(test): continue
 
         # the status files are in the web dir
-        statusFile = suite.webTopDir + testDir + "/%s.status" % (test)
-        sf = open(statusFile, "r")
+        status_file = suite.webTopDir + testDir + "/%s.status" % (test)
+        sf = open(status_file, "r")
         lines = sf.readlines()
         for line in lines:
-            if string.find(line, "FAILED") >= 0:
+            if line.find("FAILED") >= 0:
                 failed.append(test)
 
     os.chdir(cwd)
@@ -1057,7 +1057,7 @@ def testSuite(argv):
 
                 f = open(fullWebDir + file, "r")
                 for line in f:
-                    if string.find(line, "benchmarks updated") > 0:
+                    if line.find("benchmarks updated") > 0:
                         wasBenchmarkRun = 1
 
             if os.path.isfile(file) and file.endswith(".ini"):
@@ -1742,13 +1742,13 @@ def testSuite(argv):
 
                 if not compareFile == "":
                     if not outputFile == compareFile:
-                        try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
-                        except: pass
-                        shutil.copytre(outputFile, "{}/{}".format(benchDir, compareFile))
+                        source_file = outputFile
                     else:
-                        try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
-                        except: pass
-                        shutil.copytree(compareFile, "{}/{}".format(benchDir, compareFile))
+                        source_file = compareFile
+                        
+                    try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
+                    except: pass
+                    shutil.copytree(source_file, "{}/{}".format(benchDir, compareFile))
 
                     cf = open("%s.status" % (test.name), 'w')
                     cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
@@ -1783,7 +1783,7 @@ def testSuite(argv):
                     compareSuccessful = 0
 
                     for line in outLines:
-                        if string.find(line, test.stSuccessString) >= 0:
+                        if line.find(test.stSuccessString) >= 0:
                             compareSuccessful = 1
                             break
 
@@ -1808,7 +1808,7 @@ def testSuite(argv):
             if not outputFile == "":
 
                 print "  doing the visualization..."
-
+                
                 if test.dim == 2:
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir,
@@ -2200,8 +2200,8 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
             compareSuccessful = 0
 
             for line in diffLines:
-                if (string.find(line, "PLOTFILES AGREE") >= 0 or
-                    string.find(line, "SELF TEST SUCCESSFUL") >= 0):
+                if (line.find("PLOTFILES AGREE") >= 0 or
+                    line.find("SELF TEST SUCCESSFUL") >= 0):
                     compareSuccessful = 1
                     break
 
@@ -2209,7 +2209,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
                 if (not test.diffDir == ""):
                     compareSuccessful = 0
                     for line in diffLines:
-                        if (string.find(line, "diff was SUCCESSFUL") >= 0):
+                        if line.find("diff was SUCCESSFUL") >= 0:
                             compareSuccessful = 1
                             break
 
@@ -2220,12 +2220,11 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
     # write out the status file for this problem, with either
     # PASSED or FAILED
     #--------------------------------------------------------------------------
-    statusFile = "%s.status" % (test.name)
-    sf = open(statusFile, 'w')
+    status_file = "%s.status" % (test.name)
+    sf = open(status_file, 'w')
 
     if (compileSuccessful and
-        (test.compileTest or
-         (not test.compileTest and compareSuccessful))):
+        (test.compileTest or (not test.compileTest and compareSuccessful))):
         sf.write("PASSED\n")
         success("    %s PASSED" % (test.name))
     else:
@@ -2241,7 +2240,6 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
     # write the css file
     create_css()
-
 
     htmlFile = "%s.html" % (test.name)
     hf = open(htmlFile, 'w')
@@ -2388,8 +2386,8 @@ def reportTestFailure(message, test, testDir, fullWebDir, compString=None):
     #--------------------------------------------------------------------------
     # write out the status file for this problem -- FAILED
     #--------------------------------------------------------------------------
-    statusFile = "%s.status" % (test.name)
-    sf = open(statusFile, 'w')
+    status_file = "%s.status" % (test.name)
+    sf = open(status_file, 'w')
     sf.write("FAILED\n")
 
     sf.close()
@@ -2537,15 +2535,15 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         if make_benchmarks == None:
 
             # check if it passed or failed
-            statusFile = "%s.status" % (test.name)
+            status_file = "%s.status" % (test.name)
 
-            sf = open(statusFile, 'r')
+            sf = open(status_file, 'r')
             lines = sf.readlines()
 
             testPassed = 0
 
             for line in lines:
-                if string.find(line, "PASSED") >= 0:
+                if line.find("PASSED") >= 0:
                     testPassed = 1
                     numPassed += 1
                     break
@@ -2627,7 +2625,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             benchFile = "none"
 
             for line in lines:
-                index = string.find(line, "file:")
+                index = line.find("file:")
                 if index >= 0:
                     benchFile = line[index+5:]
                     break
@@ -2654,13 +2652,13 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     # write out a status file for all the tests
     #--------------------------------------------------------------------------
 
-    index = string.find(testDir, "/")
+    index = testDir.find("/")
     if index > 0:
-        statusFile = testDir[0:index] + ".status"
+        status_file = testDir[0:index] + ".status"
     else:
-        statusFile = testDir + ".status"
+        status_file = testDir + ".status"
 
-    sf = open(statusFile, 'w')
+    sf = open(status_file, 'w')
 
     if make_benchmarks == None:
         if (numFailed == 0):
@@ -2704,9 +2702,9 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
         if file.startswith("20") and os.path.isdir(file):
 
             # look for the status file
-            statusFile = file + '/' + file + '.status'
+            status_file = file + '/' + file + '.status'
 
-            if os.path.isfile(statusFile):
+            if os.path.isfile(status_file):
                 validDirs.append(file)
 
 
@@ -2767,8 +2765,8 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
         # otherwise we don't do anything for this date
         valid = 0
         for test in allTests:
-            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
-            if os.path.isfile(statusFile):
+            status_file = "%s/%s/%s.status" % (webTopDir, dir, test)
+            if os.path.isfile(status_file):
                 valid = 1
                 break
 
@@ -2781,26 +2779,22 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
         for test in allTests:
 
             # look to see if the current test was part of this suite run
-            statusFile = "%s/%s/%s.status" % (webTopDir, dir, test)
+            status_file = "%s/%s/%s.status" % (webTopDir, dir, test)
+            status = -1
 
-            status = 0
+            if os.path.isfile(status_file):
 
-            if os.path.isfile(statusFile):
-
-                sf = open(statusFile, 'r')
-                lines = sf.readlines()
+                sf = open(status_file, 'r')
 
                 # status = -1 (failed); 1 (passed); 10 (benchmark update)
-                status = -1
-
-                for line in lines:
-                    if string.find(line, "PASSED") >= 0:
+                for line in sf:
+                    if line.find("PASSED") >= 0:
                         status = 1
                         break
-                    elif string.find(line, "FAILED") >= 0:
+                    elif line.find("FAILED") >= 0:
                         status = -1
                         break
-                    elif string.find(line, "benchmarks updated") >= 0:
+                    elif line.find("benchmarks updated") >= 0:
                         status = 10
                         break
 
