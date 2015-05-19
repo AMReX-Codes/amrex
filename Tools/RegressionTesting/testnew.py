@@ -977,9 +977,6 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    # defaults
-    redo_failed = 0
-
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", type=int, default=-1,
                         help="restrict tests to a particular dimensionality")
@@ -1123,7 +1120,7 @@ def testSuite(argv):
     if suite.sourceTree == "BoxLib":
         updateSource = False # to avoid updating BoxLib twice.
                              # The update of BoxLib is controlled by updateBoxLib
-        sourceGitHash = ""
+        args.sourceGitHash = ""
 
     if args.boxLibGitHash: updateBoxLib = False
     if args.sourceGitHash: updateSource = False
