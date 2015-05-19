@@ -1,2 +1,7 @@
-CEXE_sources += MultiFabReadWrite.cpp
+ifeq ($(EBASE), mfreadwrite)
+  CEXE_sources += MultiFabReadWrite.cpp
+endif
+ifeq ($(EBASE), gridmovetest)
+  CEXE_sources += GridMoveTest.cpp
+endif
 
