@@ -120,11 +120,7 @@ static
 Real
 norm_inf (const MultiFab& res, bool local = false)
 {
-    Real restot = 0.0;
-    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
-    {
-        restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
-    }
+    Real restot = res.norm0(0, true);
     if ( !local )
         ParallelDescriptor::ReduceRealMax(restot);
     return restot;
@@ -294,6 +290,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    int            level)
 {
     BL_PROFILE("MultiGrid::solve_()");
+
   //
   // If do_fixed_number_of_iters = 1, then do maxiter iterations without checking for convergence 
   // 
@@ -439,6 +436,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
           std::cout << "   Converged res < eps_abs\n";
       }
   }
+
   //
   // Omit ghost update since maybe not initialized in calling routine.
   // Add to boundary values stored in initialsolution.
