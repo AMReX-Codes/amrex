@@ -173,6 +173,9 @@ ifeq ($(MACHINE), Linux)
     # classified machines are a mix of Linux clusters and Cray
     # so this might need to be updated in the future
   endif
+  ifeq ($(findstring bint, $(UNAMEN)), bint)
+    WHICHLINUX := BABBAGE
+  endif
 endif
 #
 # Some Lawrencium crap ...

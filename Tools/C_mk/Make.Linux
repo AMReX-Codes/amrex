@@ -585,3 +585,21 @@ ifeq ($(HOST), c4)
   FC  = mpif90
 endif    
 
+ifeq ($(WHICHLINUX), BABBAGE)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    F90 := mpiifort
+    fC  := mpiifort
+  endif
+
+# For running natively on the MIC cards
+  CXXOPTF += -mmic
+  CXXDEBF += -mmic
+  FOPTF += -mmic
+  fOPTF += -mmic
+
+# Because the linker on Babbage isn't very smart
+  override XTRALIBS += -lifcore -Wl,-rpath,/global/babbage/nsg/opt/intel/composerxe/composer_xe_2015.1.133/compiler/lib/mic
+endif
