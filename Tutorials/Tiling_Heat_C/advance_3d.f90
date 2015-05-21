@@ -102,7 +102,7 @@ subroutine advance_phi2(lo, hi, &
            end do
         end do
      end do
-     !$omp end do
+     !$omp end do nowait
 
      ! y-fluxes
      !$omp do collapse(2)
@@ -113,7 +113,7 @@ subroutine advance_phi2(lo, hi, &
            end do
         end do
      end do
-     !$omp end do
+     !$omp end do nowait
      
      ! z-fluxes
      !$omp do collapse(2)
