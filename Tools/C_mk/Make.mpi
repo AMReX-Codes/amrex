@@ -430,7 +430,9 @@ ifeq ($(MACHINE), Linux)
                     ifneq ($(WHICHLINUX), DONEV)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
-                          BL_MPI_LIBS += -lmpich
+                          ifneq ($(WHICHLINUX), BABBAGE)
+                            BL_MPI_LIBS += -lmpich
+                          endif
                         endif  
                       endif  
                     endif  
