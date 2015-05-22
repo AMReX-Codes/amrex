@@ -25,7 +25,7 @@ ifeq ($(COMP),PathScale)
 else
 ifeq ($(COMP),Cray)
   CXX = CC
-  CC  = craycc
+  CC  = cc
 
   CXXOPTF += -h nomessage=7221 -h fp0
   CXXDEBF += -g -O0
@@ -132,9 +132,9 @@ ifeq ($(FCOMP),PathScale)
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Cray)
-  FC  = crayftn
-  fC  = crayftn
-  F90 = crayftn 
+  FC  = ftn
+  fC  = ftn
+  F90 = ftn 
   FFLAGS +=
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
   F90FLAGS +=
