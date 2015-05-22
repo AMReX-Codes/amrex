@@ -83,9 +83,11 @@ subroutine advance_phi2(lo, hi, &
   
   integer :: i,j,k,n
   double precision :: dxinv, dtdx
-  double precision :: fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3))
-  double precision :: fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3))
-  double precision :: fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1)
+  double precision, dimension(:,:,:), allocatable :: fx, fy, fz
+
+  allocate(fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ))
+  allocate(fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ))
+  allocate(fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1))
 
   dxinv = 1.d0/dx
   dtdx = dt*dxinv
@@ -144,5 +146,7 @@ subroutine advance_phi2(lo, hi, &
   end do
 
   !$omp end parallel
+
+  deallocate(fx,fy,fz)
 
 end subroutine advance_phi2
