@@ -148,7 +148,6 @@
       double precision, allocatable::   fx(:,:,:),  fy(:,:,:)
 
 !     Local scalar variables
-      double precision :: dtdx
       double precision :: hdtdx, hdt, hdtdy
       integer          :: i,j
 
@@ -163,8 +162,7 @@
       allocate ( fy(ilo1-1:ihi1+1,ilo2:ihi2+1,NVAR))
 
 !     Local constants
-      dtdx = dt/dx
-      hdtdx = 0.5d0*dtdx
+      hdtdx = 0.5d0*dt/dx
       hdtdy = 0.5d0*dt/dy
       hdt = 0.5d0*dt
 
@@ -724,201 +722,6 @@
 ! ::: ------------------------------------------------------------------
 ! ::: 
 
-      subroutine transx(qm, qmo, qp, qpo, qd_l1, qd_l2, qd_h1, qd_h2, &
-                        fx, fx_l1, fx_l2, fx_h1, fx_h2, &
-                        srcQ, src_l1, src_l2, src_h1, src_h2, &
-                        hdt, cdtdx,  &
-                        ilo, ihi, jlo, jhi)
-
-      use network, only : nspec
-      use meth_params_module, only : QVAR, NVAR, QRHO, QU, QV, QFA, QFS, &
-                                     URHO, UX, UY, UFA, UFS, nadv
-      implicit none
-
-      integer qd_l1, qd_l2, qd_h1, qd_h2
-      integer gc_l1, gc_l2, gc_h1, gc_h2
-      integer fx_l1, fx_l2, fx_h1, fx_h2
-      integer src_l1, src_l2, src_h1, src_h2
-      integer ilo, ihi, jlo, jhi
-
-      double precision qm(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qmo(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qp(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qpo(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision fx(fx_l1:fx_h1,fx_l2:fx_h2,NVAR)
-      double precision srcQ(src_l1:src_h1,src_l2:src_h2,QVAR)
-      double precision hdt, cdtdx
-
-      integer i, j
-      integer n, nq, iadv
-      integer ispec
-      double precision rr, rrnew, compo, compn
-
-      ! Update density
-      do j = jlo, jhi
-          do i = ilo, ihi
-
-              qpo(i,j  ,QRHO) = qp(i,j  ,QRHO) - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-              qmo(i,j+1,QRHO) = qm(i,j+1,QRHO) - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-
-          enddo
-      enddo
-
-      do iadv = 1, nadv
-          n  = UFA + iadv - 1
-          nq = QFA + iadv - 1
-          do j = jlo, jhi 
-              do i = ilo, ihi 
-
-                  rr = qp(i,j,  QRHO)
-                  rrnew = rr - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-
-                  compo = rr*qp(i,j  ,nq)
-                  compn = compo - hdt*(fx(i+1,j,n)-fx(i  ,j,n))
-
-                  qpo(i,j  ,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-                  rr = qm(i,j+1,QRHO)
-                  rrnew = rr - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-
-                  compo = rr*qm(i,j+1,nq)
-                  compn = compo - hdt*(fx(i+1,j,n)-fx(i  ,j,n))
-
-                  qmo(i,j+1,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-              enddo
-          enddo
-      enddo
-
-      do ispec = 1, nspec
-          n  = UFS + ispec - 1
-          nq = QFS + ispec - 1
-          do j = jlo, jhi 
-              do i = ilo, ihi 
-
-                  rr = qp(i  ,j,QRHO)
-                  rrnew = rr - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-
-                  compo = rr*qp(i,j  ,nq)
-                  compn = compo - hdt*(fx(i+1,j,n)-fx(i  ,j,n))
-
-                  qpo(i,j  ,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-                  rr = qm(i,j+1,QRHO)
-                  rrnew = rr - hdt*(fx(i+1,j,URHO)-fx(i  ,j,URHO))
-
-                  compo  = rr*qm(i,j+1,nq)
-                  compn = compo - hdt*(fx(i+1,j,n)-fx(i  ,j,n))
-
-                  qmo(i,j+1,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-              enddo
-          enddo
-      enddo
-
-      end subroutine transx
-
-! ::: 
-! ::: ------------------------------------------------------------------
-! ::: 
-
-      subroutine transy(qm, qmo, qp, qpo, qd_l1, qd_l2, qd_h1, qd_h2, &
-                        fy,fy_l1,fy_l2,fy_h1,fy_h2, &
-                        srcQ, src_l1, src_l2, src_h1, src_h2, &
-                        hdt, cdtdy, ilo, ihi, jlo, jhi)
-
-      use network, only : nspec
-      use meth_params_module, only : QVAR, NVAR, QRHO, QU, QV, QFA, QFS, &
-                                     URHO, UX, UY, UFA, UFS, nadv
-      implicit none
-
-      integer qd_l1, qd_l2, qd_h1, qd_h2
-      integer gc_l1, gc_l2, gc_h1, gc_h2
-      integer fy_l1, fy_l2, fy_h1, fy_h2
-      integer src_l1, src_l2, src_h1, src_h2
-      integer ilo, ihi, jlo, jhi
-
-      double precision qm(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qmo(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qp(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision qpo(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision fy(fy_l1:fy_h1,fy_l2:fy_h2,NVAR)
-      double precision srcQ(src_l1:src_h1,src_l2:src_h2,QVAR)
-      double precision hdt, cdtdy
-
-      integer i, j
-      integer n, nq, iadv, ispec
-
-      double precision rr,rrnew,compo,compn
-
-      ! Update density -- this assumes no sources for density
-      do j = jlo, jhi
-          do i = ilo, ihi
-
-              qpo(i  ,j,QRHO) = qp(i  ,j,QRHO) - hdt*(fy(i,j+1,URHO)-fy(i,j  ,URHO))
-              qmo(i+1,j,QRHO) = qm(i+1,j,QRHO) - hdt*(fy(i,j+1,URHO)-fy(i,j  ,URHO))
-
-          enddo
-      enddo
-
-      do iadv = 1, nadv
-          n  = UFA + iadv - 1
-          nq = QFA + iadv - 1
-          do j = jlo, jhi 
-              do i = ilo, ihi 
-
-                  rr = qp(i,j,QRHO)
-                  rrnew = rr - cdtdy*(fy(i,j+1,URHO)-fy(i,j,URHO)) 
-
-                  compo = rr*qp(i,j,nq)
-                  compn = compo - cdtdy*(fy(i,j+1,n)-fy(i,j,n)) 
-
-                  qpo(i,j,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-                  rr = qm(i+1,j,QRHO)
-                  rrnew = rr - cdtdy*(fy(i,j+1,URHO)-fy(i,j,URHO)) 
-
-                  compo = rr*qm(i+1,j,nq)
-                  compn = compo - cdtdy*(fy(i,j+1,n)-fy(i,j,n)) 
-
-                  qmo(i+1,j,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-              enddo
-          enddo
-      enddo
-
-      do ispec = 1, nspec 
-          n  = UFS + ispec - 1
-          nq = QFS + ispec - 1
-          do j = jlo, jhi 
-              do i = ilo, ihi 
-
-                  rr = qp(i,j,QRHO)
-                  rrnew = rr - cdtdy*(fy(i,j+1,URHO)-fy(i,j,URHO)) 
-
-                  compo = rr*qp(i,j,nq)
-                  compn = compo - cdtdy*(fy(i,j+1,n)-fy(i,j,n)) 
-
-                  qpo(i,j,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-                  rr = qm(i+1,j,QRHO)
-                  rrnew = rr - cdtdy*(fy(i,j+1,URHO)-fy(i,j,URHO)) 
-
-                  compo = rr*qm(i+1,j,nq)
-                  compn = compo - cdtdy*(fy(i,j+1,n)-fy(i,j,n)) 
-
-                  qmo(i+1,j,nq) = compn/rrnew + hdt*srcQ(i,j,nq)
-
-              enddo
-          enddo
-      enddo
-
-      end subroutine transy
-
-! ::: 
-! ::: ------------------------------------------------------------------
-! ::: 
-
       subroutine uslope(q,qd_l1,qd_l2,qd_h1,qd_h2, &
                         dq,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
                         ilo1,ilo2,ihi1,ihi2,nv,idir)
@@ -1020,10 +823,9 @@
 ! ::: ------------------------------------------------------------------
 ! ::: 
 
-      subroutine divu(lo,hi,q,q_l1,q_l2,q_h1,q_h2,dx, &
+      subroutine divu(lo,hi,q,q_l1,q_l2,q_h1,q_h2,delta, &
                       div,div_l1,div_l2,div_h1,div_h2)
 
-      use prob_params_module, only : coord_type
       use meth_params_module, only : QU, QV
 
       implicit none
@@ -1033,17 +835,15 @@
       integer          :: div_l1,div_l2,div_h1,div_h2
       double precision :: q(q_l1:q_h1,q_l2:q_h2,*)
       double precision :: div(div_l1:div_h1,div_l2:div_h2)
-      double precision :: dx(2)
+      double precision :: delta(2)
 
       integer          :: i, j
-      double precision :: rl, rr, rc, ul, ur
-      double precision :: vb, vt
       double precision :: ux,vy
 
       do j=lo(2),hi(2)+1
       do i=lo(1),hi(1)+1
-         ux = 0.5d0*(q(i,j,QU)-q(i-1,j,QU)+q(i,j-1,QU)-q(i-1,j-1,QU))/dx(1)
-         vy = 0.5d0*(q(i,j,QV)-q(i,j-1,QV)+q(i-1,j,QV)-q(i-1,j-1,QV))/dx(2)
+         ux = 0.5d0*(q(i,j,QU)-q(i-1,j,QU)+q(i,j-1,QU)-q(i-1,j-1,QU))/delta(1)
+         vy = 0.5d0*(q(i,j,QV)-q(i,j-1,QV)+q(i-1,j,QV)-q(i-1,j-1,QV))/delta(2)
          div(i,j) = ux + vy
       enddo
       enddo
