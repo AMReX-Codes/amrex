@@ -9,25 +9,32 @@
      double precision :: u(u_l1:u_h1,u_l2:u_h2,u_l3:u_h3,NVAR)
      double precision :: dx(3),dt
 
-     double precision :: xvel,yvel,zvel,dt1,dt2,dt3
+     double precision :: umax,vmax,wmax
      integer          :: i,j,k
 
-      do k = lo(3),hi(3)
-      do j = lo(2),hi(2)
-      do i = lo(1),hi(1)
+     umax = 0.d0
+     vmax = 0.d0
+     wmax = 0.d0
 
-         xvel = u(i,j,k,UX)
-         yvel = u(i,j,k,UY)
-         zvel = u(i,j,k,UZ)
+     do k = lo(3),hi(3)
+     do j = lo(2),hi(2)
+     do i = lo(1),hi(1)
 
-         dt1 = dx(1)/abs(xvel)
-         dt2 = dx(2)/abs(yvel)
-         dt2 = dx(3)/abs(zvel)
+         umax = max(umax,abs(u(i,j,k,UX)))
+         vmax = max(vmax,abs(u(i,j,k,UY)))
+         wmax = max(wmax,abs(u(i,j,k,UZ)))
 
-         dt = min(min(min(dt,dt1),dt2),dt3)
+     enddo
+     enddo
+     enddo
+     
+     umax = max(umax/dx(1),max(vmax/dx(2),wmax/dx(3)))
 
-      enddo
-      enddo
-      enddo
+     if (umax .gt. 0.d0) then
+         dt = 1.d0 / umax
+     else
+        print *,'ZERO VELOCITY -- TIME STEP SET TO BE DX '
+        dt = dx(1)
+     end if
 
-      end subroutine estdt
+     end subroutine estdt
