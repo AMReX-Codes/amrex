@@ -14,155 +14,146 @@ contains
 
       subroutine uslope( q, qd_l1, qd_l2, qd_l3, qd_h1, qd_h2, qd_h3, &
                         dq,qpd_l1,qpd_l2,qpd_l3,qpd_h1,qpd_h2,qpd_h3, &
-                        ilo1,ilo2,ihi1,ihi2,kc,k3d,nv,idir)
+                        ilo,jlo,klo,ihi,jhi,khi,nv,idir)
 
       use meth_params_module
       use bl_constants_module
 
       implicit none
 
-      integer ilo,ihi
       integer qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3
       integer qpd_l1,qpd_l2,qpd_l3,qpd_h1,qpd_h2,qpd_h3
-      integer ilo1,ilo2,ihi1,ihi2,kc,k3d,nv,idir
+      integer ilo,jlo,klo,ihi,jhi,khi,nv,idir
 
       double precision q(qd_l1:qd_h1,qd_l2:qd_h2,qd_l3:qd_h3,nv)
       double precision dq(qpd_l1:qpd_h1,qpd_l2:qpd_h2,qpd_l3:qpd_h3,nv)
 
-      integer i, j, k, n
+      integer i,j,k,n
+      integer lo,hi
 
       double precision dlft, drgt, slop, dq1
       double precision dm, dp, dc, ds, sl, dl, dfm, dfp
 
-      double precision, allocatable::dsgn(:,:),dlim(:,:),df(:,:),dcen(:,:)
+      double precision, allocatable::dsgn(:),dlim(:),df(:),dcen(:)
 
-      ilo = MIN(ilo1,ilo2)
-      ihi = MAX(ihi1,ihi2)
-
-      allocate (dsgn(ilo-2:ihi+2,ilo-2:ihi+2))
-      allocate (dlim(ilo-2:ihi+2,ilo-2:ihi+2))
-      allocate (  df(ilo-2:ihi+2,ilo-2:ihi+2))
-      allocate (dcen(ilo-2:ihi+2,ilo-2:ihi+2))
-
-      if(iorder.eq.1) then
+      if (iorder.eq.1) then
  
-         dq(:,:,:,:) = 0.d0
+          dq(:,:,:,:) = 0.d0
 
       else
 
-         do n = 1, nv 
+          if (idir .eq. 1) then
+              lo = ilo
+              hi = ihi
+          else if (idir .eq. 2) then
+              lo = jlo
+              hi = jhi
+          else if (idir .eq. 3) then
+              lo = klo
+              hi = khi
+          end if
 
-            ! Compute slopes in first coordinate direction
-            if (idir .eq. 1) then
-            do j = ilo2-1, ihi2+1
+          allocate(dsgn(lo-2:hi+2))
+          allocate(dlim(lo-2:hi+2))
+          allocate(  df(lo-2:hi+2))
+          allocate(dcen(lo-2:hi+2))
+
+          do n = 1, nv 
+
+          ! Compute slopes in first coordinate direction
+          if (idir .eq. 1) then
+            do k = klo-1, khi+1
+            do j = jlo-1, jhi+1
 
                ! First compute Fromm slopes
-               do i = ilo1-2, ihi1+2
-                  dlft = TWO*(q(i ,j,k3d,n) - q(i-1,j,k3d,n))
-                  drgt = TWO*(q(i+1,j,k3d,n) - q(i ,j,k3d,n))
-                  dcen(i,j) = FOURTH * (dlft+drgt)
-                  dsgn(i,j) = sign(ONE, dcen(i,j))
+               do i = ilo-2, ihi+2
+                  dlft = TWO*(q(i  ,j,k,n) - q(i-1,j,k,n))
+                  drgt = TWO*(q(i+1,j,k,n) - q(i  ,j,k,n))
+                  dcen(i) = FOURTH * (dlft+drgt)
+                  dsgn(i) = sign(ONE, dcen(i))
                   slop = min( abs(dlft), abs(drgt) )
                   if (dlft*drgt .ge. ZERO) then
-                     dlim(i,j) = slop
+                     dlim(i) = slop
                   else
-                     dlim(i,j) = ZERO
+                     dlim(i) = ZERO
                   endif
-                  df(i,j) = dsgn(i,j)*min( dlim(i,j), abs(dcen(i,j)) )
+                  df(i) = dsgn(i)*min( dlim(i), abs(dcen(i)) )
                enddo
 
                ! Now compute limited fourth order slopes
-               do i = ilo1-1, ihi1+1
-                  dq1       = FOUR3RD*dcen(i,j) - SIXTH*(df(i+1,j) + df(i-1,j))
-                  dq(i,j,kc,n) = dsgn(i,j)*min(dlim(i,j),abs(dq1))
+               do i = ilo-1, ihi+1
+                  dq1         = FOUR3RD*dcen(i) - SIXTH*(df(i+1) + df(i-1))
+                  dq(i,j,k,n) = dsgn(i)*min(dlim(i),abs(dq1))
                enddo
 
             enddo
+            enddo
 
-            else if (idir .eq. 2) then
+          else if (idir .eq. 2) then
 
             ! Compute slopes in second coordinate direction
-            do i = ilo1-1, ihi1+1
+            do k = klo-1, khi+1
+            do i = ilo-1, ihi+1
+
                ! First compute Fromm slopes for this column
-               do j = ilo2-2, ihi2+2
-                  dlft = TWO*(q(i,j ,k3d,n) - q(i,j-1,k3d,n))
-                  drgt = TWO*(q(i,j+1,k3d,n) - q(i,j ,k3d,n))
-                  dcen(i,j) = FOURTH * (dlft+drgt)
-                  dsgn(i,j) = sign( ONE, dcen(i,j) )
+               do j = jlo-2, jhi+2
+                  dlft = TWO*(q(i,j  ,k,n) - q(i,j-1,k,n))
+                  drgt = TWO*(q(i,j+1,k,n) - q(i,j  ,k,n))
+                  dcen(j) = FOURTH * (dlft+drgt)
+                  dsgn(j) = sign( ONE, dcen(j) )
                   slop = min( abs(dlft), abs(drgt) )
                   if (dlft*drgt .ge. ZERO) then
-                     dlim(i,j) = slop
+                     dlim(j) = slop
                   else
-                     dlim(i,j) = ZERO
+                     dlim(j) = ZERO
                   endif
-                  df(i,j) = dsgn(i,j)*min( dlim(i,j),abs(dcen(i,j)) )
+                  df(j) = dsgn(j)*min( dlim(j),abs(dcen(j)) )
                enddo
 
                ! Now compute limited fourth order slopes
-               do j = ilo2-1, ihi2+1
-                  dq1 = FOUR3RD*dcen(i,j) - SIXTH*( df(i,j+1) + df(i,j-1) )
-                  dq(i,j,kc,n) = dsgn(i,j)*min(dlim(i,j),abs(dq1))
+               do j = jlo-1, jhi+1
+                  dq1 = FOUR3RD*dcen(j) - SIXTH*( df(j+1) + df(j-1) )
+                  dq(i,j,k,n) = dsgn(j)*min(dlim(j),abs(dq1))
                enddo
             enddo
+            enddo
 
-            else if (idir .eq. 3) then
+          else if (idir .eq. 3) then
 
             ! Compute slopes in third coordinate direction
-            do j = ilo2-1, ihi2+1
-               do i = ilo1-1, ihi1+1
+            do j = jlo-1, jhi+1
+            do i = ilo-1, ihi+1
 
-                  ! Compute Fromm slope on slab below
-                  k = k3d-1
-                  dm = TWO*(q(i,j,k ,n) - q(i,j,k-1,n))
-                  dp = TWO*(q(i,j,k+1,n) - q(i,j,k, n))
-                  dc = FOURTH*(dm+dp)
-                  ds = sign( ONE, dc )
-                  sl = min( abs(dm), abs(dp) )
-                  if (dm*dp .ge. ZERO) then
-                     dl = sl
+               ! First compute Fromm slopes for this column
+               do k = klo-2, khi+2
+                  dlft = TWO*(q(i,j,k  ,n) - q(i,j,k-1,n))
+                  drgt = TWO*(q(i,j,k+1,n) - q(i,j,k  ,n))
+                  dcen(k) = FOURTH * (dlft+drgt)
+                  dsgn(k) = sign( ONE, dcen(k) )
+                  slop = min( abs(dlft), abs(drgt) )
+                  if (dlft*drgt .ge. ZERO) then
+                     dlim(k) = slop
                   else
-                     dl = ZERO
+                     dlim(k) = ZERO
                   endif
-                  dfm = ds*min(dl,abs(dc))
+                  df(k) = dsgn(k)*min( dlim(k),abs(dcen(k)) )
+               enddo
 
-                  ! Compute Fromm slope on slab above
-                  k = k3d+1
-                  dm = TWO*(q(i,j,k ,n) - q(i,j,k-1,n))
-                  dp = TWO*(q(i,j,k+1,n) - q(i,j,k, n))
-                  dc = FOURTH*(dm+dp)
-                  ds = sign( ONE, dc )
-                  sl = min( abs(dm), abs(dp) )
-                  if (dm*dp .ge. ZERO) then
-                     dl = sl
-                  else
-                     dl = ZERO
-                  endif
-                  dfp = ds*min(dl,abs(dc))
-
-                  ! Compute Fromm slope on current slab
-                  k = k3d
-                  dm = TWO*(q(i,j,k ,n) - q(i,j,k-1,n))
-                  dp = TWO*(q(i,j,k+1,n) - q(i,j,k, n))
-                  dc = FOURTH*(dm+dp)
-                  ds = sign( ONE, dc )
-                  sl = min( abs(dm), abs(dp) )
-                  if (dm*dp .ge. ZERO) then
-                     dl = sl
-                  else
-                     dl = ZERO
-                  endif
-
-                  ! Now compute limited fourth order slopes
-                  dq1 = FOUR3RD*dc - SIXTH*( dfp + dfm )
-                  dq(i,j,kc,n) = ds*min(dl,abs(dq1))
+               ! Now compute limited fourth order slopes
+               do k = klo-1, khi+1
+                  dq1 = FOUR3RD*dcen(k) - SIXTH*( df(k+1) + df(k-1) )
+                  dq(i,j,k,n) = dsgn(k)*min(dlim(k),abs(dq1))
                enddo
             enddo
-         endif
-         enddo
+            enddo
 
-      endif
+          endif ! idir
 
-      deallocate(dsgn,dlim,df,dcen)
+          end do  ! n = 1, nv
+
+          deallocate(dsgn,dlim,df,dcen)
+
+      endif ! iorder
 
       end subroutine uslope
 

@@ -27,7 +27,6 @@
       double precision qzp(qpd_l1:qpd_h1,qpd_l2:qpd_h2,qpd_l3,qpd_h3,QVAR)
 
       ! Local variables
-      integer i, j, k
       integer n, iadv, ispec
 
       ! Default dq=0.
@@ -132,7 +131,7 @@
                          ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dt)
 
       use network           , only : nspec
-      use meth_params_module, only : iorder, QVAR, QRHO, QU, QFA, QFS, nadv
+      use meth_params_module, only : QVAR, QU
 
       implicit none
 
@@ -195,7 +194,7 @@
                          ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dy,dt)
 
       use network, only : nspec
-      use meth_params_module, only : iorder, QVAR, QRHO, QV, QFA, QFS, nadv
+      use meth_params_module, only : QVAR, QV
 
       implicit none
 
@@ -261,7 +260,7 @@
                          ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dz,dt)
 
       use network, only : nspec
-      use meth_params_module, only : iorder, QVAR, QRHO, QW, QFA, QFS, nadv
+      use meth_params_module, only : QVAR, QW
 
       implicit none
 

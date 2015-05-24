@@ -15,7 +15,7 @@
                         flux3,flux3_l1,flux3_l2,flux3_l3,flux3_h1,flux3_h2,flux3_h3, &
                         delta,dt,verbose)
 
-      use meth_params_module, only : URHO, QVAR, NVAR, NHYP, normalize_species
+      use meth_params_module, only : QVAR, NVAR, NHYP, normalize_species
 
       implicit none
 
@@ -90,6 +90,7 @@
                   src,    src_l1,  src_l2,  src_l3,  src_h1,  src_h2, src_h3, &
                   flux1,flux1_l1,flux1_l2,flux1_l3,flux1_h1,flux1_h2, flux1_h3, &
                   flux2,flux2_l1,flux2_l2,flux2_l3,flux2_h1,flux2_h2, flux2_h3, &
+                  flux3,flux3_l1,flux3_l2,flux3_l3,flux3_h1,flux3_h2, flux3_h3, &
                   div,lo,hi,delta,dt)
 
       ! Enforce the species >= 0
@@ -174,6 +175,8 @@
       allocate ( qxp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,ilo3-1:ihi3+2,QVAR) )
       allocate ( qym(ilo1-1:ihi1+2,ilo2-1:ihi2+2,ilo3-1:ihi3+2,QVAR) )
       allocate ( qyp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,ilo3-1:ihi3+2,QVAR) )
+      allocate ( qzm(ilo1-1:ihi1+2,ilo2-1:ihi2+2,ilo3-1:ihi3+2,QVAR) )
+      allocate ( qzp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,ilo3-1:ihi3+2,QVAR) )
       allocate (  fx(ilo1  :ihi1+1,ilo2-1:ihi2+1,ilo3-1:ihi3+1,NVAR) )
       allocate (  fy(ilo1-1:ihi1+1,ilo2  :ihi2+1,ilo3-1:ihi3+1,NVAR) )
       allocate (  fz(ilo1-1:ihi1+1,ilo2-1:ihi2+1,ilo3  :ihi3+1,NVAR) )
@@ -228,16 +231,17 @@
 
 !     Upwind on z-edges
       call upwind(qzm, qzp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
-                  fy,       ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
+                  fz,       ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
                   ugdz, ugdz_l1, ugdz_l2, ugdz_l3, ugdz_h1, ugdz_h2, ugdz_h3, &
-                  2, ilo1-1, ihi1+1, ilo2-1, ihi2+1, ilo3, ihi3)
+                  3, ilo1-1, ihi1+1, ilo2-1, ihi2+1, ilo3, ihi3)
 
 !     Use edge states to create transverse derivatives in y- and z-directions
-      call transyz(qxm, qm, qxp, qp, ilo1-1, ilo2-1, ihi1+2, ihi2+2, &
-                   fy, ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   fz, ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
-                   srcQ, src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
-                   hdt, hdtdy, ilo1-1, ihi1+1, ilo2, ihi2, ilo3-1, ihi3+1)
+      print *,'HDT ',hdt, hdtdy
+      call transyz(qxm, qm, qxp, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
+                   fy,               ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   fz,               ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
+                   srcQ,             src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
+                   hdt, hdtdy, hdtdz,ilo1-1, ihi1+1, ilo2, ihi2, ilo3, ihi3)
 
 !     Upwind on x-edges to create final fluxes
       call upwind(qm, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2,&
@@ -246,24 +250,24 @@
                   1, ilo1, ihi1, ilo2, ihi2, ilo3, ihi3)
       
 !     Use edge states to create transverse derivative in x- and z-directions
-      call transxz(qym, qm,qyp,qp, ilo1-1, ilo2-1, ihi1+2, ihi2+2, ihi3+2, &
-                   fx, ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   fz, ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
-                   srcQ,  src_l1,  src_l2,  src_l3, src_h1,  src_h2, src_h3, &
-                   hdt, hdtdy, ilo1, ihi1, ilo2-1, ihi2+1, ilo3-1, ihi3+1)
+      call transxz(qym, qm, qyp,qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
+                   fx,              ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   fz,              ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &
+                   srcQ,            src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
+                   hdt,hdtdx,hdtdz, ilo1,   ihi1,   ilo2-1, ihi2+1, ilo3, ihi3)
 
 !     Upwind on y-edges to create final fluxes
       call upwind(qm, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
-                  flux2, fd2_l1, fd2_l2, fd2_l3, fd2_h1, fd2_h2, fd2_h3, &
+                  flux2,  fd2_l1, fd2_l2, fd2_l3, fd2_h1, fd2_h2, fd2_h3, &
                   ugdy, ugdy_l1, ugdy_l2, ugdy_l3, ugdy_h1, ugdy_h2, ugdy_h3, &
                   2, ilo1, ihi1, ilo2, ihi2, ilo3, ihi3)
       
 !     Use edge states to create transverse derivative in x- and y-directions
-      call transxz(qzm,qm,qzp,qp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2, ihi3+2, &
-                   fx, ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   fy, ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   srcQ,  src_l1,  src_l2,  src_l3, src_h1,  src_h2, src_h3, &
-                   hdt, hdtdz, ilo1, ihi1, ilo2-1, ihi2+1, ilo3-1, ihi3+1)
+      call transxy(qzm,qm,qzp,qp,ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
+                   fx,           ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   fy,           ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   srcQ,         src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
+                   hdt, hdtdz, ilo1, ihi1, ilo2, ihi2, ilo3-1, ihi3+1)
 
 !     Upwind on z-edges to create final fluxes
       call upwind(qm, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
@@ -384,7 +388,7 @@
                         div,lo,hi,dx,dt)
 
       use network, only : nspec
-      use meth_params_module, only : NVAR, URHO, UX, UY, UZ, UFA, UFS, normalize_species, nadv
+      use meth_params_module, only : NVAR, URHO, UX, UZ, UFA, UFS, normalize_species, nadv
 
       implicit none
 
@@ -407,10 +411,6 @@
 
       integer :: i, j, k, n
       integer :: ispec, iadv
-
-      double precision div1
-      double precision SrU, SrV, SrW
-      double precision rho, Up, Vp, Wp, SrE
 
       ! Normalize the species fluxes
       if (normalize_species .eq. 1) &
@@ -450,6 +450,7 @@
 
       do ispec = 1, nspec
          n = UFS + ispec -1
+         do k = lo(3),hi(3)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                uout(i,j,k,n) = uin(i,j,k,n) + dt * &
@@ -458,6 +459,7 @@
                     +   (flux3(i,j,k,n) - flux3(i,j,k+1,n)) / dx(3) ) &
                     +   dt * src(i,j,k,n)
             enddo
+         enddo
          enddo
       enddo
 
@@ -503,7 +505,6 @@
                         idir, ilo1, ihi1, ilo2, ihi2, ilo3, ihi3)
 
       use network, only : nspec
-      use prob_params_module, only : physbc_lo,physbc_hi,Symmetry
       use meth_params_module, only : QVAR, NVAR, QRHO, QFA, QFS, &
                                      URHO, UFA, UFS, nadv
 
@@ -512,7 +513,6 @@
       double precision, parameter:: small = 1.d-8
 
       integer qpd_l1, qpd_l2, qpd_l3, qpd_h1, qpd_h2, qpd_h3
-      integer gd_l1, gd_l2, gd_l3, gd_h1, gd_h2, qd_h3
       integer flx_l1, flx_l2, flx_l3, flx_h1, flx_h2, flx_h3
       integer ugd_l1, ugd_l2, ugd_l3, ugd_h1, ugd_h2, ugd_h3
       integer idir, ilo1, ihi1, ilo2, ihi2, ilo3, ihi3
