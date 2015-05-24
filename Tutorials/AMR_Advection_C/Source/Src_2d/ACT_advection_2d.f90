@@ -151,15 +151,15 @@
       double precision :: hdtdx, hdt, hdtdy
       integer          :: i,j
 
-      allocate ( dq(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
-      allocate ( qm(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
-      allocate ( qp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
+      allocate (  dq(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
+      allocate (  qm(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
+      allocate (  qp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
       allocate ( qxm(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
       allocate ( qxp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
       allocate ( qym(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
       allocate ( qyp(ilo1-1:ihi1+2,ilo2-1:ihi2+2,QVAR) )
-      allocate ( fx(ilo1:ihi1+1,ilo2-1:ihi2+1,NVAR))
-      allocate ( fy(ilo1-1:ihi1+1,ilo2:ihi2+1,NVAR))
+      allocate (  fx(ilo1  :ihi1+1,ilo2-1:ihi2+1,NVAR))
+      allocate (  fy(ilo1-1:ihi1+1,ilo2  :ihi2+1,NVAR))
 
 !     Local constants
       hdtdx = 0.5d0*dt/dx
