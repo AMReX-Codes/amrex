@@ -343,6 +343,12 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
+    //
+    // To maximize thread efficiency we now can decompose things like
+    // intersections among boxes into BoxArrays of smaller Boxes. This sets
+    // their maximum size.
+    //
+    static IntVect fpb_boxarray_max_size;
 
 protected:
     //
