@@ -14,10 +14,13 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
+IntVect FabArrayBase::fpb_boxarray_max_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+IntVect FabArrayBase::fpb_boxarray_max_size(1024, 4);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
+IntVect FabArrayBase::fpb_boxarray_max_size(1024, 4, 4);
 #endif
 
 namespace
@@ -51,6 +54,13 @@ FabArrayBase::Initialize ()
     {
 	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
+
+    Array<int> fpb_boxarray_max_size(BL_SPACEDIM);
+    if (pp.queryarr("fpb_boxarray_max_size", fpb_boxarray_max_size, 0, BL_SPACEDIM))
+    {
+        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::fpb_boxarray_max_size[i] = fpb_boxarray_max_size[i];
+    }
+
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
