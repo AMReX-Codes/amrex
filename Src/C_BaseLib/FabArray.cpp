@@ -301,28 +301,34 @@ FabArrayBase::TheCPC (const CPC&          cpc,
             const int  k         = isects[j].first;
             const int  src_owner = TheCPC.m_srcdm[k];
 
+            BoxArray bxa(bx);
+            bxa.maxSize(FabArrayBase::fpb_boxarray_max_size);
+
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            CopyComTag tag;
-
-            tag.box      = bx;
-            tag.fabIndex = i;
-            tag.srcIndex = k;
-
-            if (dst_owner == MyProc)
+            for (Array<Box>::const_iterator it_bxa = bxa.begin(), End = bxa.end(); it_bxa != End; ++it_bxa)
             {
-                if (src_owner == MyProc)
+                CopyComTag tag;
+
+                tag.box      = *it_bxa;
+                tag.fabIndex = i;
+                tag.srcIndex = k;
+
+                if (dst_owner == MyProc)
                 {
-                    TheCPC.m_LocTags->push_back(tag);
+                    if (src_owner == MyProc)
+                    {
+                        TheCPC.m_LocTags->push_back(tag);
+                    }
+                    else
+                    {
+                        FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,*it_bxa);
+                    }
                 }
-                else
+                else if (src_owner == MyProc)
                 {
-                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,bx);
+                    FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,*it_bxa);
                 }
-            }
-            else if (src_owner == MyProc)
-            {
-                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,bx);
             }
         }
     }
