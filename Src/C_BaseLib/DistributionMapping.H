@@ -86,9 +86,16 @@ class DistributionMapping
     //
     int size () const { return m_ref->m_pmap.size(); }
     //
+    // Number of references to this DistributionMapping
+    //
+    int linkCount () const { return m_ref.linkCount(); }
+    //
     // Equivalent to ProcessorMap()[index].
     //
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
+    //
+    // Replace the cached processor map.  It is an error if the link count is > 1
+    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
     //
     // Set/get the distribution strategy.
     //

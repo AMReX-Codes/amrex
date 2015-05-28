@@ -3,6 +3,7 @@
 BOXLIB_HOME ?= ../../../BoxLib
 
 DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 PROFILE   = TRUE
@@ -10,12 +11,12 @@ COMM_PROFILE  = TRUE
 TRACE_PROFILE = TRUE
 COMP      = g++
 FCOMP     = gfortran
-COMP      = Intel
-FCOMP     = Intel
+#COMP      = Intel
+#FCOMP     = Intel
 DIM       = 3
 PRECISION = DOUBLE
-EBASE     = gridmovetest
 EBASE     = mfreadwrite
+EBASE     = gridmovetest
 
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs

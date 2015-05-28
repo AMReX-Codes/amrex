@@ -708,6 +708,16 @@ public:
     //
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
+    //
+    // Move grids in this FabArray to different MPI ranks.
+    //
+
+    struct FABMoves {
+      int distMapIndex, fromRank, toRank, seqNum;
+    };
+
+    void MoveFabs (const Array<int> &newDistMapArray);
+
 protected:
     //
     // Helper function for define().
@@ -1774,6 +1784,160 @@ FabArray<FAB>::shift (const IntVect& v)
         get(fai).shift(v);
     }
 }
+
+template <class FAB>
+void
+FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
+{
+  BL_PROFILE("FabArray<FAB>::MoveFabs()");
+
+  int myProc(ParallelDescriptor::MyProc());
+
+  // ---- check validity of newDistMapArray
+  if(newDistMapArray.size() != distributionMap.size()) {
+    BoxLib::Abort("**** Error:  bad newDistMap:0");
+  }
+  if(newDistMapArray[newDistMapArray.size() - 1] != myProc) {
+    BoxLib::Abort("**** Error:  bad newDistMap:1");
+  }
+  for(int idm(0); idm < newDistMapArray.size(); ++idm) {
+    if(newDistMapArray[idm] < 0 ||
+       newDistMapArray[idm] > ParallelDescriptor::NProcs() - 1)
+    {
+      BoxLib::Abort("**** Error:  bad newDistMap:2");
+    }
+  }
+  if(newDistMapArray == distributionMap.ProcessorMap()) {
+    return;
+  }
+
+  if(distributionMap.linkCount() != 2) {  // ---- one for the distmap, one for the fabarray
+    BoxLib::Abort("**** Error in MoveFabs:  Cannot move fabs with multiple references.");
+  }
+
+
+  // ---- determine which fabs to move
+  std::vector<FABMoves> fabMoves;
+  for(int iM(0); iM < distributionMap.size() - 1; ++iM) {  // ---- -1 skips the sentinel
+    if(newDistMapArray[iM] != distributionMap[iM]) {
+      FABMoves moveThisFab;
+      moveThisFab.distMapIndex = iM;
+      moveThisFab.fromRank     = distributionMap[iM];
+      moveThisFab.toRank       = newDistMapArray[iM];
+      moveThisFab.seqNum       = ParallelDescriptor::SeqNum();
+      fabMoves.push_back(moveThisFab);
+
+      if(myProc == moveThisFab.fromRank) {
+        std::cout << myProc << ":: iM fromRank toRank locsize locindex indexMap[li] = " << iM << "  "
+	          << moveThisFab.fromRank << "  " << moveThisFab.toRank << "  "
+		  << local_size() << "  " << localindex(iM) << "  "
+		  << indexMap[localindex(iM)] << std::endl;
+      }
+    }
+  }
+
+  // -- save the original index values to preserve order
+  std::map<int, FAB *> tempIndexFABs;
+  typename std::map<int, FAB *>::iterator tIFiter;
+  if(fabMoves.size() > 0) {  // ---- there are fabs on this proc to send || recv | both
+    if(indexMap.size() != m_fabs_v.size()) {  // ---- errro
+      BoxLib::Abort("**** Errror:  indexMap size != m_fabs_v.size()");
+    }
+    for(int iim(0); iim < indexMap.size(); ++iim) {
+      tIFiter = tempIndexFABs.find(indexMap[iim]);
+      if(tIFiter == tempIndexFABs.end()) {
+	tempIndexFABs.insert(std::make_pair<int, FAB *>(indexMap[iim], m_fabs_v[iim]));
+      } else {
+        BoxLib::Abort("**** Error:  index not in indexMap.");
+      }
+    }
+  }
+
+  // ---- move the fabs
+  Array<MPI_Request> recvReqs, sendReqs;
+
+  for(int imoves(0); imoves < fabMoves.size(); ++imoves) {
+    FABMoves &moveThisFab = fabMoves[imoves];
+    int dmi(moveThisFab.distMapIndex);
+
+    if(myProc == moveThisFab.toRank) {   // ---- receive fab(s)
+      const Box &tmpbox = BoxLib::grow(boxarray[dmi], n_grow);
+      FAB *fabPtr = new FAB(tmpbox, n_comp);
+      tempIndexFABs[dmi] = fabPtr;  // ---- add to map
+
+      recvReqs.push_back(ParallelDescriptor::Arecv(fabPtr->dataPtr(),
+                                                   tmpbox.numPts() * n_comp,
+                                                   moveThisFab.fromRank,
+						   moveThisFab.seqNum).req());
+    }
+
+    if(myProc == moveThisFab.fromRank) {    // ---- send fab(s)
+      FAB *fabPtr;
+      tIFiter = tempIndexFABs.find(dmi);
+      if(tIFiter == tempIndexFABs.end()) {
+        BoxLib::Abort("**** Error:  index not in tempIndexFABs.");
+      } else {
+        fabPtr = tIFiter->second;
+      }
+      BL_ASSERT(fabPtr->nComp() == n_comp);
+
+      if(FabArrayBase::do_async_sends) {
+        sendReqs.push_back(ParallelDescriptor::Asend(fabPtr->dataPtr(),
+                                                     fabPtr->box().numPts() * n_comp,
+		                                     moveThisFab.toRank,
+		                                     moveThisFab.seqNum).req());
+      } else {
+        ParallelDescriptor::Send(fabPtr->dataPtr(),
+                                 fabPtr->box().numPts() * n_comp,
+		                 moveThisFab.toRank,
+		                 moveThisFab.seqNum);
+      }
+    }
+  }
+
+
+  // ---- wait for all the data to move
+  Array<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
+
+  if(recvReqs.size() > 0) {
+    BL_MPI_REQUIRE( MPI_Waitall(recvReqs.size(), recvReqs.dataPtr(), recvStats.dataPtr()) );
+  }
+  if(FabArrayBase::do_async_sends) {
+    if(sendReqs.size() > 0) {
+      BL_MPI_REQUIRE( MPI_Waitall(sendReqs.size(), sendReqs.dataPtr(), sendStats.dataPtr()) );
+    }
+  }
+
+  // ---- delete moved fabs and data from the temporary map
+  for(int imoves(0); imoves < fabMoves.size(); ++imoves) {
+    FABMoves &moveThisFab = fabMoves[imoves];
+    if(myProc == moveThisFab.fromRank) {  // ---- delete sent fab
+      tIFiter = tempIndexFABs.find(moveThisFab.distMapIndex);
+      if(tIFiter == tempIndexFABs.end()) {
+        BoxLib::Abort("**** Error:  index not in tempIndexFABs when deleting.");
+      } else {
+	delete tIFiter->second;
+	tempIndexFABs.erase(tIFiter);
+      }
+    }
+  }
+
+  // ---- reconstruct the index and fab vectors
+  indexMap.clear();
+  m_fabs_v.clear();
+  for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++ tIFiter) {
+    indexMap.push_back(tIFiter->first);
+    m_fabs_v.push_back(tIFiter->second);
+  }
+
+  // ---- flush dmap cache
+  DistributionMapping::FlushCache();
+  FabArrayBase::FlushSICache();
+  FabArrayBase::CPC::FlushCache();
+
+  distributionMap.ReplaceCachedProcessorMap(newDistMapArray);
+}
+
 
 template <class FAB>
 FabArrayCopyDescriptor<FAB>::FabArrayCopyDescriptor ()

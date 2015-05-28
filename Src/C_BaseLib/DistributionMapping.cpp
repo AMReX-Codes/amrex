@@ -294,6 +294,24 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     return false;
 }
 
+void
+DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArray)
+{
+    const int N(newProcmapArray.size());
+    BL_ASSERT(m_ref->m_pmap.size() == N);
+    BL_ASSERT(newProcmapArray.size() == N);
+
+    // check for unique
+    if(m_ref.linkCount() > 2) {
+      BoxLib::Abort("**** Error in ReplaceCachedProcessorMap:  linkCount > 2.");
+    }
+
+    for(int iA(0); iA < N; ++iA) {
+      m_ref->m_pmap[iA] = newProcmapArray[iA];
+    }
+
+}
+
 DistributionMapping::Ref::Ref () {}
 
 DistributionMapping::DistributionMapping ()
@@ -443,10 +461,9 @@ DistributionMapping::FlushCache ()
     {
         if (it->second.linkCount() == 1)
         {
-  for(int i(0); i < totalBoxPoints.size(); ++i) {
-    //totalBoxPoints[i] -= (it->second)->boxPoints[i];
-  }
-
+          //for(int i(0); i < totalBoxPoints.size(); ++i) {
+            //totalBoxPoints[i] -= (it->second)->boxPoints[i];
+          //}
 
             m_Cache.erase(it++);
         }
@@ -457,9 +474,6 @@ DistributionMapping::FlushCache ()
     }
 
     //totalCells = 0;
-    //    if(ParallelDescriptor::IOProcessor()) {
-    //      std::cout << "_here 1 totalCells = " << totalCells << std::endl;
-    //    }
 }
 
 void
@@ -1753,7 +1767,8 @@ ParallelDescriptor::Barrier();
       for(int iProc(0); iProc < nprocs; ++iProc) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0);
+	long accVol(0);
+	//long oldAccVol(0);
         vec[iProc].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
@@ -1762,7 +1777,7 @@ ParallelDescriptor::Barrier();
         {
             vol += tokens[K].m_vol;
             accVol += tokens[K].m_vol;
-	    oldAccVol = accVol;
+	    //oldAccVol = accVol;
             vec[iProc].push_back(K);
         }
 
@@ -1773,7 +1788,7 @@ ParallelDescriptor::Barrier();
             --K;
             vec[iProc].pop_back();
             totalvol -= tokens[K].m_vol;
-	    oldAccVol = accVol;
+	    //oldAccVol = accVol;
             accVol -= tokens[K].m_vol;
         }
 
