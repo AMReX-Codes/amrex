@@ -37,9 +37,12 @@ const int nTimes(4);
 
 
 // --------------------------------------------------------------------------
-void UniqueSet(Array<int> &copyArray, int nRanks, int nProcs) {   // ---- a unique set of random numbers
+void UniqueSet(Array<int> &copyArray, int setSize, int nProcs) {   // ---- a unique set of random numbers
+  if(setSize > nProcs) {
+    BoxLib::Abort("**** Error in UniqueSet:  setSize > nProcs.");
+  }
   std::set<int> copySet;
-  while(copySet.size() < nRanks) {
+  while(copySet.size() < setSize) {
     int r(BoxLib::Random_int(nProcs));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
@@ -48,6 +51,20 @@ void UniqueSet(Array<int> &copyArray, int nRanks, int nProcs) {   // ---- a uniq
   }
   for(int i(0); i < copyArray.size(); ++i) {
     std::cout << "copyArray[" << i << "]  = " << copyArray[i] << std::endl;
+  }
+}
+
+
+// --------------------------------------------------------------------------
+void SetFabsToPMap(MultiFab &mf) {
+  const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
+  for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+    const int index(mfi.index());
+    FArrayBox &fab = mf[mfi];
+    for(int i(0); i < fab.nComp(); ++i) {  // ---- setVal to distmap index
+      Real val(newDMA[index] + ((static_cast<Real> (i)) / fab.nComp()));
+      fab.setVal(val, i);
+    }
   }
 }
 
@@ -106,26 +123,6 @@ int main(int argc, char *argv[]) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
     }
 
-    {
-      Array<int> newMap(procMap.size());
-      for(int i(0); i < procMap.size(); ++i) {
-        newMap[i] = (procMap[i] + (nProcs/2)) % nProcs;
-      }
-      DistributionMapping newDMap(newMap);
-      if(ParallelDescriptor::IOProcessor()) {
-        cout << "******** newDMap.linkCount = " << newDMap.linkCount() << endl;
-      }
-      MultiFab mfNewMap;
-      mfNewMap.define(ba, nComp, nGhost, newDMap, Fab_allocate);
-      MultiFab mfNewMap2;
-      mfNewMap2.define(ba, nComp, nGhost, newDMap, Fab_allocate);
-      if(ParallelDescriptor::IOProcessor()) {
-        cout << "******A* newDMap.linkCount = " << newDMap.linkCount() << endl;
-        cout << "******A* mfNewMap.DistributionMap().linkCount = "
-	     << mfNewMap.DistributionMap().linkCount() << endl;
-      }
-    }
-
 
     // ------------------ copy entire multifab to nProcs/2) % nProcs
     if(copyAll) {
@@ -159,13 +156,13 @@ int main(int argc, char *argv[]) {
     if(copyRandom) {
       int nCopies(nProcs/10);
       nCopies = std::min(nCopies, nProcs/2);
-      int nRanks(nCopies * 2);
+      int nRanksInSet(nCopies * 2);
 
       Array<int> copyArray;
       if(ParallelDescriptor::IOProcessor()) {
-        UniqueSet(copyArray, nRanks, nProcs);
+        UniqueSet(copyArray, nRanksInSet, nProcs);
       } else {
-        copyArray.resize(nRanks);
+        copyArray.resize(nRanksInSet);
       }
 
       ParallelDescriptor::Barrier();
@@ -205,20 +202,20 @@ int main(int argc, char *argv[]) {
 
     if(moveFabs) {
       Array<int> copyArray;
-      int nRanks(2);
-      if(nRanks % 2 != 0) {
-        BoxLib::Abort("**** Bad nRanks");
+      int nRanksInSet(2);
+      if(nRanksInSet % 2 != 0) {
+        BoxLib::Abort("**** Bad nRanksInSet");
       }
 
       if(ParallelDescriptor::IOProcessor()) {
-        UniqueSet(copyArray, nRanks, nProcs);
+        UniqueSet(copyArray, nRanksInSet, nProcs);
       } else {
-        copyArray.resize(nRanks);
+        copyArray.resize(nRanksInSet);
       }
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
 
       Array<int> newDistMapArray(mf.DistributionMap().ProcessorMap());
-      for(int n(0); n < nRanks/2; n += 2) {
+      for(int n(0); n < nRanksInSet / 2; n += 2) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
 
@@ -227,37 +224,39 @@ int main(int argc, char *argv[]) {
       }
       DistributionMapping::CacheStats(std::cout);
 
-      const Array<int> &oldDMA = mf.DistributionMap().ProcessorMap();
-      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-	const int index(mfi.index());
-	FArrayBox &fab = mf[mfi];
-        for(int i(0); i < fab.nComp(); ++i) {  // ---- setVal to distmap index
-	  Real val(oldDMA[index] + ((static_cast<Real> (i)) / fab.nComp()));
-          fab.setVal(val, i);
-        }
-      }
+      SetFabsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");
 
       mf.MoveFabs(newDistMapArray);
 
-      const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
-      for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-	const int index(mfi.index());
-	FArrayBox &fab = mf[mfi];
-        for(int i(0); i < fab.nComp(); ++i) {  // ---- setVal to distmap index
-	  Real val(newDMA[index] + ((static_cast<Real> (i)) / fab.nComp()));
-          fab.setVal(val, i);
-        }
-      }
+      SetFabsToPMap(mf);
       VisMF::Write(mf, "mfMoves");
 
       BoxArray ba16(mf.boxArray());
       ba16.maxSize(16);
-      MultiFab mf16(ba16, mf.nComp(), nGhost);
+
+      Array<int> randomMap(ba16.size());
+      if(ParallelDescriptor::IOProcessor()) {
+	for(int ir(0); ir < ba16.size(); ++ ir) {
+          randomMap[ir] = BoxLib::Random_int(nProcs);
+	}
+      }
+      ParallelDescriptor::Bcast(randomMap.dataPtr(), randomMap.size());
+        
+      Array<int> newMap16(ba16.size() + 1);
+      for(int i(0); i < newMap16.size() - 1; ++i) {
+        newMap16[i] = randomMap[i];
+      }
+      newMap16[newMap16.size() - 1] = myProc;
+      DistributionMapping newDMap16(newMap16);
+      MultiFab mf16;
+      mf16.define(ba16, nComp, nGhost, newDMap16, Fab_allocate);
       mf16.setVal(-1.0);
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "mf16DMA = " << mf16.DistributionMap() << std::endl;
       }
+      SetFabsToPMap(mf16);
+      VisMF::Write(mf16, "mf16DMap");
       mf16.copy(mf);
       VisMF::Write(mf16, "mf16");
     }
