@@ -15,7 +15,6 @@
       implicit none
 
       integer qd_l1, qd_l2, qd_l3, qd_h1, qd_h2, qd_h3
-      integer gc_l1, gc_l2, gc_l3, gc_h1, gc_h2, gc_h3
       integer fx_l1, fx_l2, fx_l3, fx_h1, fx_h2, fx_h3
       integer fz_l1, fz_l2, fz_l3, fz_h1, fz_h2, fz_h3
       integer src_l1, src_l2, src_l3, src_h1, src_h2, src_h3
@@ -132,7 +131,6 @@
       implicit none
 
       integer qd_l1, qd_l2, qd_l3, qd_h1, qd_h2, qd_h3
-      integer gc_l1, gc_l2, gc_l3, gc_h1, gc_h2, gc_h3
       integer fy_l1, fy_l2, fy_l3, fy_h1, fy_h2, fy_h3
       integer fz_l1, fz_l2, fz_l3, fz_h1, fz_h2, fz_h3
       integer src_l1, src_l2, src_l3, src_h1, src_h2, src_h3
@@ -245,7 +243,6 @@
       implicit none
 
       integer qd_l1, qd_l2, qd_l3, qd_h1, qd_h2, qd_h3
-      integer gc_l1, gc_l2, gc_l3, gc_h1, gc_h2, gc_h3
       integer fx_l1, fx_l2, fx_l3, fx_h1, fx_h2, fx_h3
       integer fy_l1, fy_l2, fy_l3, fy_h1, fy_h2, fy_h3
       integer src_l1, src_l2, src_l3, src_h1, src_h2, src_h3
