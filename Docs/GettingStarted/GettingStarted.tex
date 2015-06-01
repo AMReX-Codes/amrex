@@ -505,7 +505,7 @@ This contains compiler settings and directories required by the make system to b
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  We will discuss the implementation of timers in Section \ref{Sec:Timers}.
+    to write timers into your code.  Documentation for timers is coming soon!
 
     \item {\tt COMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
@@ -590,7 +590,7 @@ This contains compiler settings and directories required by the make system to b
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  We will discuss the implementation of timers in Chapter \ref{Sec:Timers}.
+    to write timers into your code.  Documentation for timers is coming soon!
 
     \item {\tt COMP} ('{\tt g++}, {\tt Intel}, $\ldots$)'
 
@@ -659,7 +659,7 @@ We solve MG on an AMR hierarchy, which means in places we will encounter
 C-F interfaces.  The \BoxLib\ MG will modify the stencil for the Laplacian
 at C-F interfaces to ensure the correct solution to the Poisson equation
 across these interfaces.  There is no correction step needed in this
-case (this differs from \cite{ricker:2008}).
+case (this differs from Ricker, ApJs (2008).
 
 The MG solver always works with jumps of $2\times$ between levels.  In 
 some codes, we can have jumps of $4\times$ between
@@ -821,7 +821,7 @@ For the nodal solver, the choices are:
   all the points in $(i\pm1,j\pm1)$.  The 
   derivation of this stencil is based on finite-element ideas, defining
   basis functions on the nodes.  This is developed in 2-d in 
-  \cite{almgrenBellSzymczak:1996}.
+  Almgren, Bell, and Szymczack (1996).
 
 \item {\tt ND\_VATER\_STENCIL}: this is an alternate dense stencil derived
   using a similar finite-element idea as above, but a different control
