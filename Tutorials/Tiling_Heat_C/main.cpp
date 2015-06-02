@@ -31,6 +31,7 @@ BL_FORT_PROC_DECL(INIT_PHI,init_phi)
      const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
 static Real kernel_time = 0;
+static Real FPB_time = 0;
 static int do_tiling = 1;
 
 void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry geom)
@@ -40,8 +41,10 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
     // Fill the ghost cells of each grid from the other grids
     old_phi->FillBoundary();
     
+    Real t1 = ParallelDescriptor::second();
     // Fill periodic boundary ghost cells
     geom.FillPeriodicBoundary(*old_phi);
+    FPB_time += ParallelDescriptor::second() - t1;
 
     Real t0 = ParallelDescriptor::second();
     
@@ -222,10 +225,12 @@ main (int argc, char* argv[])
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
     ParallelDescriptor::ReduceRealMax(advance_time,IOProc);
     ParallelDescriptor::ReduceRealMax(kernel_time,IOProc);
+    ParallelDescriptor::ReduceRealMax(FPB_time,IOProc);
     
     // Tell the I/O Processor to write out the "run time"
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Kernel    time = " << kernel_time << std::endl;
+	std::cout << "FPB       time = " << FPB_time << std::endl;
 	std::cout << "Advance   time = " << advance_time << std::endl;
 	std::cout << "Total run time = " << stop_time << std::endl;
     }

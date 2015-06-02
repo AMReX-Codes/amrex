@@ -959,27 +959,34 @@ Geometry::GetFPB (const Geometry&      geom,
                 const IntVect& iv   = *it;
                 const Box&     shft = src + iv;
 
-                FPBComTag tag;
+                Box dbox_tmp = dst & shft;
+                BoxArray ba_dbox(dbox_tmp);
 
-                tag.dbox     = dst & shft;
-                tag.sbox     = tag.dbox - iv;
-                tag.dstIndex = i;
-                tag.srcIndex = j;
+                ba_dbox.maxSize(FabArrayBase::fpb_boxarray_max_size);
 
-                if (dst_owner == MyProc)
+                for (Array<Box>::const_iterator it = ba_dbox.begin(), End = ba_dbox.end(); it != End; ++it)
                 {
-                    if (src_owner == MyProc)
+                    FPBComTag tag;
+                    tag.dbox     = *it;
+                    tag.sbox     = tag.dbox - iv;
+                    tag.dstIndex = i;
+                    tag.srcIndex = j;
+
+                    if (dst_owner == MyProc)
                     {
-                        TheFPB.m_LocTags->push_back(tag);
+                        if (src_owner == MyProc)
+                        {
+                            TheFPB.m_LocTags->push_back(tag);
+                        }
+                        else
+                        {
+                            FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
+                        }
                     }
-                    else
+                    else if (src_owner == MyProc)
                     {
-                        FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
+                        FabArrayBase::SetSendTag(*TheFPB.m_SndTags,dst_owner,tag,*TheFPB.m_SndVols,tag.dbox);
                     }
-                }
-                else if (src_owner == MyProc)
-                {
-                    FabArrayBase::SetSendTag(*TheFPB.m_SndTags,dst_owner,tag,*TheFPB.m_SndVols,tag.dbox);
                 }
             }
         }
