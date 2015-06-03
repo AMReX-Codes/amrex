@@ -140,7 +140,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     int ntiles = 1;
     IntVect nt;
     for (int d=0; d<BL_SPACEDIM; d++) {
-	nt[d] = std::max((bx.length(d)+tilesize[d]-1)/tilesize[d], 1);
+	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
 	ntiles *= nt[d];
     }
 
