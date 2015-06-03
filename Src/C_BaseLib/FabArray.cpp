@@ -301,10 +301,10 @@ FabArrayBase::TheCPC (const CPC&          cpc,
             const int  k         = isects[j].first;
             const int  src_owner = TheCPC.m_srcdm[k];
 
+            if (dst_owner != MyProc && src_owner != MyProc) continue;
+
             BoxArray bxa(bx);
             bxa.maxSize(FabArrayBase::fpb_boxarray_max_size);
-
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
 
             for (Array<Box>::const_iterator it_bxa = bxa.begin(), End = bxa.end(); it_bxa != End; ++it_bxa)
             {
@@ -641,10 +641,10 @@ FabArrayBase::TheFB (bool                cross,
                 const Box& bx        = isects[j].second;
                 const int  src_owner = dm[k];
 
+                if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
+
                 BoxArray bxa(bx);
                 bxa.maxSize(FabArrayBase::fpb_boxarray_max_size);
-
-                if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
                 for (Array<Box>::const_iterator it_bxa = bxa.begin(), End = bxa.end(); it_bxa != End; ++it_bxa)
                 {
