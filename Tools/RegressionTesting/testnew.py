@@ -1131,7 +1131,7 @@ def testSuite(argv):
     # if we specified a list of tests, check each one
     # if we did both --single_test and --tests, complain
     #--------------------------------------------------------------------------
-    if not args.single_test == "" and not tests == "":
+    if not args.single_test == "" and not args.tests == "":
         fail("ERROR: specify tests either by --single_test or --tests, not both")
 
     if not args.single_test == "":
