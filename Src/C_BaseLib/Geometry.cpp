@@ -960,11 +960,10 @@ Geometry::GetFPB (const Geometry&      geom,
                 const Box&     shft = src + iv;
 
                 Box dbox_tmp = dst & shft;
-                BoxArray ba_dbox(dbox_tmp);
 
-                ba_dbox.maxSize(FabArrayBase::fpb_boxarray_max_size);
+		const BoxList tilelist(dbox_tmp, FabArrayBase::fpb_boxarray_max_size);
 
-                for (Array<Box>::const_iterator it = ba_dbox.begin(), End = ba_dbox.end(); it != End; ++it)
+		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
                 {
                     FPBComTag tag;
                     tag.dbox     = *it;

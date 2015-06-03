@@ -303,14 +303,13 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            BoxArray bxa(bx);
-            bxa.maxSize(FabArrayBase::fpb_boxarray_max_size);
+            const BoxList tilelist(bx, FabArrayBase::fpb_boxarray_max_size);
 
-            for (Array<Box>::const_iterator it_bxa = bxa.begin(), End = bxa.end(); it_bxa != End; ++it_bxa)
+            for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
             {
                 CopyComTag tag;
 
-                tag.box      = *it_bxa;
+                tag.box      = *it;
                 tag.fabIndex = i;
                 tag.srcIndex = k;
 
@@ -322,12 +321,12 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                     }
                     else
                     {
-                        FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,*it_bxa);
+                        FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,*it);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
-                    FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,*it_bxa);
+                    FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,*it);
                 }
             }
         }
@@ -643,14 +642,13 @@ FabArrayBase::TheFB (bool                cross,
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
-                BoxArray bxa(bx);
-                bxa.maxSize(FabArrayBase::fpb_boxarray_max_size);
+		const BoxList tilelist(bx, FabArrayBase::fpb_boxarray_max_size);
 
-                for (Array<Box>::const_iterator it_bxa = bxa.begin(), End = bxa.end(); it_bxa != End; ++it_bxa)
+		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
                 {
                     CopyComTag tag;
 
-                    tag.box      = *it_bxa;
+                    tag.box      = *it;
                     tag.fabIndex = i;
                     tag.srcIndex = k;
 
@@ -662,12 +660,12 @@ FabArrayBase::TheFB (bool                cross,
                         }
                         else
                         {
-                            FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it_bxa);
+                            FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it);
                         }
                     }
                     else if (src_owner == MyProc)
                     {
-                        FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,*it_bxa);
+                        FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,*it);
                     }
                 }
             }
