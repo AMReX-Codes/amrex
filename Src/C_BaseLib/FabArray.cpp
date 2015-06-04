@@ -14,13 +14,13 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
-IntVect FabArrayBase::fpb_boxarray_max_size(1024);
+IntVect FabArrayBase::comm_tile_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
-IntVect FabArrayBase::fpb_boxarray_max_size(1024, 8);
+IntVect FabArrayBase::comm_tile_size(1024, 8);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
-IntVect FabArrayBase::fpb_boxarray_max_size(1024, 8, 8);
+IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
 namespace
@@ -55,10 +55,10 @@ FabArrayBase::Initialize ()
 	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
 
-    Array<int> fpb_boxarray_max_size(BL_SPACEDIM);
-    if (pp.queryarr("fpb_boxarray_max_size", fpb_boxarray_max_size, 0, BL_SPACEDIM))
+    Array<int> commtilesize(BL_SPACEDIM);
+    if (pp.queryarr("comm_tile_size", commtilesize, 0, BL_SPACEDIM))
     {
-        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::fpb_boxarray_max_size[i] = fpb_boxarray_max_size[i];
+        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = commtilesize[i];
     }
 
     pp.query("verbose",             FabArrayBase::Verbose);
@@ -303,7 +303,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            const BoxList tilelist(bx, FabArrayBase::fpb_boxarray_max_size);
+            const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 
             for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
             {
@@ -642,7 +642,7 @@ FabArrayBase::TheFB (bool                cross,
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
-		const BoxList tilelist(bx, FabArrayBase::fpb_boxarray_max_size);
+		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 
 		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
                 {

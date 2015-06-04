@@ -345,10 +345,10 @@ public:
     static void Finalize ();
     //
     // To maximize thread efficiency we now can decompose things like
-    // intersections among boxes into BoxArrays of smaller Boxes. This sets
+    // intersections among boxes into smaller tiles. This sets
     // their maximum size.
     //
-    static IntVect fpb_boxarray_max_size;
+    static IntVect comm_tile_size;  // communication tile size
 
 protected:
     //
