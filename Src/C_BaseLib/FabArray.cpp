@@ -17,10 +17,10 @@ IntVect FabArrayBase::mfiter_tile_size(1024000);
 IntVect FabArrayBase::fpb_boxarray_max_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
-IntVect FabArrayBase::fpb_boxarray_max_size(1024, 4);
+IntVect FabArrayBase::fpb_boxarray_max_size(1024, 8);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
-IntVect FabArrayBase::fpb_boxarray_max_size(1024, 4, 4);
+IntVect FabArrayBase::fpb_boxarray_max_size(1024, 8, 8);
 #endif
 
 namespace
