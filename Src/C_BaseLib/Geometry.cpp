@@ -961,7 +961,7 @@ Geometry::GetFPB (const Geometry&      geom,
 
                 Box dbox_tmp = dst & shft;
 
-		const BoxList tilelist(dbox_tmp, FabArrayBase::fpb_boxarray_max_size);
+		const BoxList tilelist(dbox_tmp, FabArrayBase::comm_tile_size);
 
 		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
                 {
