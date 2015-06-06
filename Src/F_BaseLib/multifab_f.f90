@@ -5577,15 +5577,16 @@ contains
     end if
   end function multifab_max_c
 
-  subroutine mfiter_build(mfi, mf)
+  subroutine mfiter_build(mfi, mf, tilesize)
     use omp_module
-    type(mfiter), intent(inout) :: mfi
-    type(multifab),  intent(in) :: mf
+    type(mfiter),   intent(inout) :: mfi
+    type(multifab), intent(in)    :: mf
+    integer, intent(in), optional :: tilesize(:)
 
     integer :: ntot, nleft
 
     !$omp single
-    call init_layout_tilearray(mf%la)
+    call init_layout_tilearray(mf%la, tilesize)
     !$omp end single
     mfi%ta = get_tilearray()
 
