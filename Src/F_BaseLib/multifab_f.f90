@@ -60,6 +60,7 @@ module multifab_module
 
   type mfiter
      integer :: dim      = 0
+     integer :: ng       = 0
      logical :: nodal(3) = .false.
      integer :: tid      = 0
      integer :: nthreads = 1
@@ -5589,6 +5590,7 @@ contains
     mfi%ta = get_tilearray()
 
     mfi%dim = mf%dim
+    mfi%ng  = mf%ng
     mfi%nodal(1:mfi%dim) = mf%nodal
 
     ntot = size(mfi%ta%tileindex)
@@ -5636,7 +5638,53 @@ contains
   pure function get_tilebox(mfi) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
+    integer :: i, gridhi(mfi%dim)
     r = get_box(mfi%ta%ba, mfi%it+mfi%ios)
+    if (any(mfi%nodal(1:mfi%dim))) then
+       gridhi = upb(get_gridbox(mfi))
+       do i = 1, mfi%dim
+          if (gridhi(i) .eq. upb(r,i)) r%hi(i) = gridhi(i)+1
+       end do
+    end if
   end function get_tilebox
+
+  pure function get_nodaltilebox(mfi, dir) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in) :: dir
+    integer :: gridhi
+    r = get_tilebox(mfi)
+    if (.not. mfi%nodal(dir)) then
+       gridhi = upb(get_gridbox(mfi), dir)
+       if (gridhi .eq. upb(r,dir)) r%hi(dir) = r%hi(dir)+1
+    end if
+  end function get_nodaltilebox
+
+  pure function get_growntilebox(mfi, ng_in) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in), optional :: ng_in
+    integer :: gridlo(mfi%dim), gridhi(mfi%dim), ng, i
+    type(box) :: gridbox
+    r = get_tilebox(mfi)
+    ng = mfi%ng
+    if (present(ng_in)) ng = min(ng, ng_in)
+    r = get_tilebox(mfi)
+    if (ng .gt. 0) then
+       gridbox = get_gridbox(mfi)
+       gridlo = lwb(gridbox)
+       gridhi = upb(gridbox)
+       do i=1,mfi%dim
+          if (gridlo(i) .eq. lwb(r,i)) r%lo(i) = r%lo(i)-ng
+          if (gridhi(i) .eq. upb(r,i)) r%hi(i) = r%hi(i)+ng
+       end do
+    end if
+  end function get_growntilebox
+
+  pure function get_gridbox(mfi) result (r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    r = get_box(mfi%ta%lap%bxa, mfi%ta%lap%idx(mfi%it+mfi%ios))
+  end function get_gridbox
 
 end module multifab_module

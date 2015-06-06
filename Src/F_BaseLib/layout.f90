@@ -134,7 +134,7 @@ module layout_module
   type tilearray
      integer                   :: dim = 0
      integer, dimension(3)     :: tilesize = 1024000
-     type(boxarray)            :: ba
+     type(boxarray)            :: ba    ! tile array
      integer         , pointer :: tileindex(:) => Null()
      type(layout_rep), pointer :: lap          => Null()
      type(tilearray) , pointer :: next         => Null()
