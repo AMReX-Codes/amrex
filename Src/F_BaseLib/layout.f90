@@ -20,6 +20,8 @@ module layout_module
   integer, private :: sfc_threshold = 0
   integer, private :: def_mapping   = LA_KNAPSACK
 
+  integer, private :: def_tilesize(3) = (/1024000, 8, 8 /)
+
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
      integer   :: ns = 0                 ! src box number
@@ -133,7 +135,7 @@ module layout_module
 
   type tilearray
      integer                   :: dim = 0
-     integer, dimension(3)     :: tilesize = 1024000
+     integer, dimension(3)     :: tilesize = 0
      type(boxarray)            :: ba    ! tile array
      integer         , pointer :: tileindex(:) => Null()
      type(layout_rep), pointer :: lap          => Null()
@@ -363,6 +365,15 @@ contains
     integer :: r
     r = def_mapping
   end function layout_get_mapping
+
+  subroutine layout_set_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    def_tilesize(1:size(tilesize)) = tilesize
+  end subroutine layout_set_tilesize
+  pure function layout_get_tilesize() result(r)
+    integer :: r(3)
+    r = def_tilesize
+  end function layout_get_tilesize
 
   subroutine layout_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -3473,22 +3484,26 @@ contains
   end subroutine remote_conn_set_threadsafety
 
 
-  subroutine init_layout_tilearray(la) 
+  subroutine init_layout_tilearray(la, tilesize) 
     type(layout), intent(in) :: la
     type(tilearray), pointer :: p
+    integer, intent(in), optional :: tilesize(:)
+
     ! Do we have one stored?
     p => the_tilearray_head
     do while (associated(p))
-       if (tilearray_check(p, la)) then
-          call remove_tilearray_item(p)
-          call add_tilearray_head(p)
+       if (tilearray_check(p, la, tilesize)) then
+          if (.not. associated(p, the_tilearray_head)) then
+             call remove_tilearray_item(p)
+             call add_tilearray_head(p)
+          end if
           return
        end if
        p => p%next
     end do
     ! build a new one
     allocate(p)
-    call tilearray_build(p, la)
+    call tilearray_build(p, la, tilesize)
     call add_tilearray_head(p)
   end subroutine init_layout_tilearray
 
@@ -3497,30 +3512,34 @@ contains
     ta = the_tilearray_head
   end function get_tilearray
 
-  pure function tilearray_check(p, la) result (r)
+  pure function tilearray_check(p, la, tilesize) result (r)
     logical :: r
     type(tilearray), intent(in) :: p
     type(layout), intent(in) :: la
+    integer, intent(in), optional :: tilesize(:)
     r = associated(p%lap, la%lap)
+    if (r .and. present(tilesize)) then
+       r = all(tilesize .eq. p%tilesize(1:size(tilesize)))
+    end if
   end function tilearray_check
 
-  subroutine tilearray_build(ta, la)
+  subroutine tilearray_build(ta, la, tilesize)
     use vector_i_module
 
     type(tilearray), intent(inout) :: ta
     type(layout), intent(in)    :: la
+    integer, intent(in), optional :: tilesize(:)
 
     integer :: n, nc(3), nt(3), idim, i,j,k, tlo(3), thi(3)
     type(box) :: bx, bxt
     type(vector_i) :: idx
     type(list_box) :: tiles
 
-    ta%tilesize(1) = 1024000
-    ta%tilesize(2) = 8
-    ta%tilesize(3) = 8
-
     ta%dim = la%lap%dim
     ta%lap => la%lap
+
+    ta%tilesize = def_tilesize
+    if (present(tilesize)) ta%tilesize(1:size(tilesize)) = tilesize
 
     nc = 1
     nt = 1
