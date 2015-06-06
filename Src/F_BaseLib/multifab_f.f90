@@ -64,7 +64,6 @@ module multifab_module
      integer :: tid      = 0
      integer :: nthreads = 1
      integer :: it       = -1   ! current tile index local to this thread
-     integer :: ni       = -1   ! next index 
      integer :: nt       = -1   ! # of tiles local to this threads
      integer :: ios      = -1   ! it+ios provides index into ta%tilearray
      type(tilearray) :: ta
@@ -5602,7 +5601,7 @@ contains
        mfi%nthreads = 1
     end if
 
-    mfi%ni = 0
+    mfi%it = -1
     mfi%nt = ntot / mfi%nthreads
     nleft = ntot - (mfi%nt)*(mfi%nthreads)
     mfi%ios = mfi%tid * mfi%nt
@@ -5619,13 +5618,11 @@ contains
   function get_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
-    mfi%it = mfi%ni
-    mfi%ni = mfi%ni+1
+    mfi%it = mfi%it + 1
     if (mfi%it < mfi%nt) then
        r = .true.
     else
        mfi%it = -1
-       mfi%ni = 0
        r = .false.
     end if
   end function get_tile
