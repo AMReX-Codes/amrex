@@ -58,6 +58,18 @@ module multifab_module
      real(dp_t), pointer :: recv_buffer(:) => Null()
   end type mf_fb_data
 
+  type mfiter
+     integer :: dim      = 0
+     logical :: nodal(3) = .false.
+     integer :: tid      = 0
+     integer :: nthreads = 1
+     integer :: it       = -1   ! current tile index local to this thread
+     integer :: ni       = -1   ! next index 
+     integer :: nt       = -1   ! # of tiles local to this threads
+     integer :: ios      = -1   ! it+ios provides index into ta%tilearray
+     type(tilearray) :: ta
+  end type mfiter
+
   interface cell_centered_q
      module procedure multifab_cell_centered_q
      module procedure imultifab_cell_centered_q
@@ -5564,5 +5576,70 @@ contains
        call parallel_reduce(r, r1, MPI_MAX)
     end if
   end function multifab_max_c
+
+  subroutine mfiter_build(mfi, mf)
+    use omp_module
+    type(mfiter), intent(inout) :: mfi
+    type(multifab),  intent(in) :: mf
+
+    integer :: ntot, nleft
+
+    !$omp single
+    call init_layout_tilearray(mf%la)
+    !$omp end single
+    mfi%ta = get_tilearray()
+
+    mfi%dim = mf%dim
+    mfi%nodal(1:mfi%dim) = mf%nodal
+
+    ntot = size(mfi%ta%tileindex)
+
+    if (omp_in_parallel()) then
+       mfi%tid = omp_get_thread_num()
+       mfi%nthreads = omp_get_num_threads()
+    else
+       mfi%tid = 0
+       mfi%nthreads = 1
+    end if
+
+    mfi%ni = 0
+    mfi%nt = ntot / mfi%nthreads
+    nleft = ntot - (mfi%nt)*(mfi%nthreads)
+    mfi%ios = mfi%tid * mfi%nt
+    if (mfi%tid < nleft) then
+       mfi%nt = mfi%nt+1
+       mfi%ios = mfi%ios + mfi%tid
+    else
+       mfi%ios = mfi%ios + nleft
+    end if
+    mfi%ios = mfi%ios+1  ! this is fortran
+
+  end subroutine mfiter_build
+
+  function get_tile(mfi) result(r)
+    logical :: r
+    type(mfiter), intent(inout) :: mfi
+    mfi%it = mfi%ni
+    mfi%ni = mfi%ni+1
+    if (mfi%it < mfi%nt) then
+       r = .true.
+    else
+       mfi%it = -1
+       mfi%ni = 0
+       r = .false.
+    end if
+  end function get_tile
   
+  pure function get_current_index(mfi) result(r)
+    integer :: r
+    type(mfiter), intent(in) :: mfi
+    r = mfi%ta%tileindex(mfi%it+mfi%ios)
+  end function get_current_index
+
+  pure function get_tilebox(mfi) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    r = get_box(mfi%ta%ba, mfi%it+mfi%ios)
+  end function get_tilebox
+
 end module multifab_module
