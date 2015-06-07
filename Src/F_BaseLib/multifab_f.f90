@@ -5594,7 +5594,7 @@ contains
     mfi%ng  = mf%ng
     mfi%nodal(1:mfi%dim) = mf%nodal
 
-    ntot = size(mfi%ta%tileindex)
+    ntot = size(mfi%ta%idx)
 
     if (omp_in_parallel()) then
        mfi%tid = omp_get_thread_num()
@@ -5630,11 +5630,11 @@ contains
     end if
   end function get_tile
   
-  pure function get_current_index(mfi) result(r)
+  pure function get_fab_index(mfi) result(r)
     integer :: r
     type(mfiter), intent(in) :: mfi
-    r = mfi%ta%tileindex(mfi%it+mfi%ios)
-  end function get_current_index
+    r = mfi%ta%idx(mfi%it+mfi%ios)
+  end function get_fab_index
 
   pure function get_tilebox(mfi) result(r)
     type(box) :: r
