@@ -3694,6 +3694,8 @@ contains
     type(boxarray)                :: batmp
     type(list_box)                :: bl
     integer                       :: i, lnc, lng, lngsrc, scomp
+    type(mfiter)                  :: mfi
+    type(box)                     :: bx
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3713,18 +3715,20 @@ contains
     if ( mdst%la == msrc%la ) then
        if ( lng > 0 ) &
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
-       do i = 1, nlocal(mdst%la)
+       !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
+       call mfiter_build(mfi,mdst,.true.)
+       do while (get_tile(mfi))
+          i = get_fab_index(mfi)
           if ( lng > 0 ) then
-             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
-             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
+             bx = get_growntilebox(mfi,lng)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
+             bx = get_tilebox(mfi)
           end if
+          pdst => dataptr(mdst, i, bx, dstcomp, lnc)
+          psrc => dataptr(msrc, i, bx, srccomp, lnc)
           call cpy_d(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END PARALLEL
     else
        if (lng    >       0) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
        if (lngsrc > msrc%ng) call bl_error('MULTIFAB_COPY_C: ngsrc > msrc%ng')
