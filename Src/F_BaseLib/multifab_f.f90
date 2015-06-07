@@ -1581,7 +1581,7 @@ contains
     else
        !$OMP PARALLEL PRIVATE(mfi,i)
        call mfiter_build(mfi,mf,.true.)
-       do while (get_tile(mfi))
+       do while (more_tile(mfi))
           i = get_fab_index(mfi)
           if ( lall ) then
              call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
@@ -3717,7 +3717,7 @@ contains
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
        !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
-       do while (get_tile(mfi))
+       do while (more_tile(mfi))
           i = get_fab_index(mfi)
           if ( lng > 0 ) then
              bx = get_growntilebox(mfi,lng)
@@ -5639,7 +5639,12 @@ contains
 
   end subroutine mfiter_build
 
-  function get_tile(mfi) result(r)
+  subroutine mfiter_reset(mfi)
+    type(mfiter), intent(inout) :: mfi
+    mfi%it = -1
+  end subroutine mfiter_reset
+
+  function more_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
     mfi%it = mfi%it + 1
@@ -5649,7 +5654,7 @@ contains
        mfi%it = -1
        r = .false.
     end if
-  end function get_tile
+  end function more_tile
   
   pure function get_fab_index(mfi) result(r)
     integer :: r
