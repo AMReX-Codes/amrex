@@ -134,13 +134,13 @@ module layout_module
   end type fluxassoc
 
   type tilearray
-     integer                   :: dim = 0
+     integer                   :: dim      = 0
      integer, dimension(3)     :: tilesize = 0
-     type(boxarray)            :: ba    ! tile array
-     integer         , pointer :: tileindex(:) => Null()
-     type(layout_rep), pointer :: lap          => Null()
-     type(tilearray) , pointer :: next         => Null()
-     type(tilearray) , pointer :: prev         => Null()
+     type(boxarray)            :: ba                 ! tiles
+     integer         , pointer :: idx(:)   => Null() ! local index
+     type(layout_rep), pointer :: lap      => Null()
+     type(tilearray) , pointer :: next     => Null()
+     type(tilearray) , pointer :: prev     => Null()
   end type tilearray
   
   !
@@ -3574,8 +3574,8 @@ contains
 
     call boxarray_build_l(ta%ba, tiles, sort=.false.)
 
-    allocate(ta%tileindex(vector_size_i(idx)))
-    ta%tileindex = dataptr(idx)
+    allocate(ta%idx(vector_size_i(idx)))
+    ta%idx = dataptr(idx)
     
     call destroy(idx)
     call list_destroy_box(tiles)
@@ -3584,7 +3584,7 @@ contains
 
   subroutine tilearray_destroy(ta)
     type(tilearray), intent(inout) :: ta
-    deallocate(ta%tileindex)
+    deallocate(ta%idx)
     call destroy(ta%ba)
     ta%dim = 0
   end subroutine tilearray_destroy
