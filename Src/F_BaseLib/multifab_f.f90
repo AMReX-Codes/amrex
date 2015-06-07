@@ -5596,7 +5596,7 @@ contains
           ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
        end if
     else
-       ltilesize = layout_get_tilesize()
+       ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
     end if
 
     !$omp single
