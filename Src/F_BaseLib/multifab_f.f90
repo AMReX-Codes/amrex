@@ -3717,7 +3717,7 @@ contains
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
 
        !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
-       call mfiter_build(mfi,mdst)!,.true.)
+       call mfiter_build(mfi,mdst,.true.)
        do while (more_tile(mfi))
           i = get_fab_index(mfi)
           if ( lng > 0 ) then
