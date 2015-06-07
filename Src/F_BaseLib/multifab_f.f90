@@ -3715,8 +3715,9 @@ contains
     if ( mdst%la == msrc%la ) then
        if ( lng > 0 ) &
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
+
        !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
-       call mfiter_build(mfi,mdst,.true.)
+       call mfiter_build(mfi,mdst)!,.true.)
        do while (more_tile(mfi))
           i = get_fab_index(mfi)
           if ( lng > 0 ) then
@@ -5703,7 +5704,7 @@ contains
        gridhi = upb(gridbox)
        do i=1,mfi%dim
           if (gridlo(i) .eq. lwb(r,i)) r%lo(i) = r%lo(i)-ng
-          if (gridhi(i) .le. upb(r,i)) r%hi(i) = r%hi(i)+ng ! .le. because of nodal
+          if (gridhi(i) .le. upb(r,i)) r%hi(i) = r%hi(i)+ng ! .le., not .eq., because of nodal
        end do
     end if
   end function get_growntilebox
