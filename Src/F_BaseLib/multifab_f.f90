@@ -5670,7 +5670,7 @@ contains
     if (any(mfi%nodal(1:mfi%dim))) then
        gridhi = upb(get_gridbox(mfi))
        do i = 1, mfi%dim
-          if (gridhi(i) .eq. upb(r,i)) r%hi(i) = gridhi(i)+1
+          if (mfi%nodal(i) .and. gridhi(i).eq.upb(r,i)) r%hi(i) = r%hi(i)+1
        end do
     end if
   end function get_tilebox
@@ -5703,7 +5703,7 @@ contains
        gridhi = upb(gridbox)
        do i=1,mfi%dim
           if (gridlo(i) .eq. lwb(r,i)) r%lo(i) = r%lo(i)-ng
-          if (gridhi(i) .eq. upb(r,i)) r%hi(i) = r%hi(i)+ng
+          if (gridhi(i) .le. upb(r,i)) r%hi(i) = r%hi(i)+ng ! .le. because of nodal
        end do
     end if
   end function get_growntilebox
