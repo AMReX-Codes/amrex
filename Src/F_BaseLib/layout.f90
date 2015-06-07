@@ -3530,7 +3530,7 @@ contains
     type(layout), intent(in)    :: la
     integer, intent(in), optional :: tilesize(:)
 
-    integer :: n, nc(3), nt(3), nl(3), idim, i,j,k, tlo(3), thi(3)
+    integer :: n, nc(3), nt(3), nl(3), ts(3), idim, i,j,k, tlo(3), thi(3)
     type(box) :: bx, bxt
     type(vector_i) :: idx
     type(list_box) :: tiles
@@ -3550,34 +3550,35 @@ contains
        do idim = 1, ta%dim
           nc(idim) = bx%hi(idim) - bx%lo(idim) + 1
           nt(idim) = max(nc(idim)/ta%tilesize(idim), 1)
-          nl(idim) = nc(idim) - nt(idim)*tilesize(idim)
+          ts(idim) = nc(idim) / nt(idim)
+          nl(idim) = nc(idim) - nt(idim)*ts(idim)
        end do
 
        do k = 0,nt(3)-1
           if (k < nl(3)) then
-             tlo(3) = k * (ta%tilesize(3)+1)
-             thi(3) = tlo(3) + ta%tilesize(3)
+             tlo(3) = k * (ts(3)+1)
+             thi(3) = tlo(3) + ts(3)
           else
-             tlo(3) = k * ta%tilesize(3) + nl(3)
-             thi(3) = tlo(3) + ta%tilesize(3) - 1
+             tlo(3) = k * ts(3) + nl(3)
+             thi(3) = tlo(3) + ts(3) - 1
           end if
 
           do j = 0,nt(2)-1
              if (j < nl(2)) then
-                tlo(2) = j * (ta%tilesize(2)+1)
-                thi(2) = tlo(2) + ta%tilesize(2)
+                tlo(2) = j * (ts(2)+1)
+                thi(2) = tlo(2) + ts(2)
              else
-                tlo(2) = j * ta%tilesize(2) + nl(2)
-                thi(2) = tlo(2) + ta%tilesize(2) - 1
+                tlo(2) = j * ts(2) + nl(2)
+                thi(2) = tlo(2) + ts(2) - 1
              end if
 
              do i = 0,nt(1)-1
                 if (i < nl(1)) then
-                   tlo(1) = i * (ta%tilesize(1)+1)
-                   thi(1) = tlo(1) + ta%tilesize(1)
+                   tlo(1) = i * (ts(1)+1)
+                   thi(1) = tlo(1) + ts(1)
                 else
-                   tlo(1) = i * ta%tilesize(1) + nl(1)
-                   thi(1) = tlo(1) + ta%tilesize(1) - 1
+                   tlo(1) = i * ts(1) + nl(1)
+                   thi(1) = tlo(1) + ts(1) - 1
                 end if
 
                 bxt = shift(make_box(tlo(1:ta%dim), thi(1:ta%dim)), bx%lo)
