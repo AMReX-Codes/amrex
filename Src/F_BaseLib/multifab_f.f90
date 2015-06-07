@@ -1562,6 +1562,7 @@ contains
     logical, intent(in), optional :: all, allow_empty
     integer :: i
     logical lall, lallow
+    type(mfiter) :: mfi
     type(bl_prof_timer), save :: bpt
     call build(bpt, "mf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
@@ -1578,15 +1579,17 @@ contains
       end do
       !$OMP END PARALLEL DO
     else
-      !$OMP PARALLEL DO PRIVATE(i)
-      do i = 1, nlocal(mf%la)
-         if ( lall ) then
-            call setval(mf%fbs(i), val, c, nc)
-         else
-            call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
-         end if
-      end do
-      !$OMP END PARALLEL DO
+       !$OMP PARALLEL PRIVATE(mfi,i)
+       call mfiter_build(mfi,mf,.true.)
+       do while (get_tile(mfi))
+          i = get_fab_index(mfi)
+          if ( lall ) then
+             call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
+          else
+             call setval(mf%fbs(i), val, get_tilebox(mfi), c, nc)
+          end if
+       end do
+       !$OMP END PARALLEL
     endif
     call destroy(bpt)
   end subroutine multifab_setval_c
@@ -5699,7 +5702,7 @@ contains
   pure function get_gridbox(mfi) result (r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
-    r = get_box(mfi%ta%lap%bxa, mfi%ta%lap%idx(mfi%it+mfi%ios))
+    r = get_box(mfi%ta%lap%bxa, mfi%ta%lap%idx(mfi%ta%idx(mfi%it+mfi%ios)))
   end function get_gridbox
 
 end module multifab_module
