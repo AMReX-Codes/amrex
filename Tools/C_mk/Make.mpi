@@ -457,6 +457,7 @@ ifeq ($(MACHINE), Linux)
         FC  := mpif90
         fC  := mpif90
         F90 := mpif90
+	BL_MPI_LIBS += -lmpichf90
       else        
         LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       endif
