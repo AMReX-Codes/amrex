@@ -14,10 +14,13 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
+IntVect FabArrayBase::comm_tile_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+IntVect FabArrayBase::comm_tile_size(1024, 8);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
+IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
 namespace
@@ -51,6 +54,13 @@ FabArrayBase::Initialize ()
     {
 	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
+
+    Array<int> commtilesize(BL_SPACEDIM);
+    if (pp.queryarr("comm_tile_size", commtilesize, 0, BL_SPACEDIM))
+    {
+        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = commtilesize[i];
+    }
+
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
@@ -293,26 +303,31 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
             if (dst_owner != MyProc && src_owner != MyProc) continue;
 
-            CopyComTag tag;
+            const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 
-            tag.box      = bx;
-            tag.fabIndex = i;
-            tag.srcIndex = k;
+            for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
+            {
+                CopyComTag tag;
 
-            if (dst_owner == MyProc)
-            {
-                if (src_owner == MyProc)
+                tag.box      = *it;
+                tag.fabIndex = i;
+                tag.srcIndex = k;
+
+                if (dst_owner == MyProc)
                 {
-                    TheCPC.m_LocTags->push_back(tag);
+                    if (src_owner == MyProc)
+                    {
+                        TheCPC.m_LocTags->push_back(tag);
+                    }
+                    else
+                    {
+                        FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,*it);
+                    }
                 }
-                else
+                else if (src_owner == MyProc)
                 {
-                    FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags,src_owner,tag,*TheCPC.m_RcvVols,bx);
+                    FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,*it);
                 }
-            }
-            else if (src_owner == MyProc)
-            {
-                FabArrayBase::SetSendTag(*TheCPC.m_SndTags,dst_owner,tag,*TheCPC.m_SndVols,bx);
             }
         }
     }
@@ -627,26 +642,31 @@ FabArrayBase::TheFB (bool                cross,
 
                 if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
 
-                CopyComTag tag;
+		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 
-                tag.box      = bx;
-                tag.fabIndex = i;
-                tag.srcIndex = k;
+		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
+                {
+                    CopyComTag tag;
 
-                if (dst_owner == MyProc)
-                {
-                    if (src_owner == MyProc)
+                    tag.box      = *it;
+                    tag.fabIndex = i;
+                    tag.srcIndex = k;
+
+                    if (dst_owner == MyProc)
                     {
-                        TheFB.m_LocTags->push_back(tag);
+                        if (src_owner == MyProc)
+                        {
+                            TheFB.m_LocTags->push_back(tag);
+                        }
+                        else
+                        {
+                            FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it);
+                        }
                     }
-                    else
+                    else if (src_owner == MyProc)
                     {
-                        FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,bx);
+                        FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,*it);
                     }
-                }
-                else if (src_owner == MyProc)
-                {
-                    FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,bx);
                 }
             }
         }

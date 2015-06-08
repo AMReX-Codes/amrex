@@ -7,3 +7,4 @@ verbose = 0
 ncomp = 1
 do_tiling = 1
 fabarray.mfiter_tile_size = 1024 4 4
+fabarray.comm_tile_size   = 1024 8 8

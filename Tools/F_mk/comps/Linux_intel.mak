@@ -29,9 +29,24 @@
     CFLAGS   += -std=c99
 
     ifdef OMP
-      FFLAGS   += -openmp -openmp-report2
-      F90FLAGS += -openmp -openmp-report2
-      CFLAGS   += -openmp -openmp-report2
+      FFLAGS   += -openmp
+      F90FLAGS += -openmp
+      CFLAGS   += -openmp
+    endif
+
+    ifeq ($(_comp),Intel15)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g -Wcheck
+      else
+        F90FLAGS += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        FFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        CFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
     endif
 
     ifeq ($(_comp),Intel14)

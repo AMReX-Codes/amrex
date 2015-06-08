@@ -3,7 +3,7 @@
 BOXLIB_HOME ?= /path/to/BoxLib/
 
 DEBUG     = FALSE
-USE_MPI   = TRUE
+USE_MPI   = FALSE
 USE_OMP   = TRUE
 PROFILE   = FALSE
 COMP      = Intel
