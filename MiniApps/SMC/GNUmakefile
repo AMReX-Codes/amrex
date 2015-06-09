@@ -130,6 +130,10 @@ endif
 # include the BoxLib Fortran Makefile rules
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
+ifeq ($(findstring bint01.nersc.gov, $(HOSTNAMEF)), bint01.nersc.gov)
+#  F90FLAGS += -no-prec-div -fno-alias -fimf-precision=low -fimf-domain-exclusion=15 -align array64byte -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+  F90FLAGS += -fno-alias -align array64byte -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+endif
 
 #-----------------------------------------------------------------------------
 # for debugging.  To see the value of a Makefile variable,
