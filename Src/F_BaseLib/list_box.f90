@@ -45,6 +45,7 @@ module list_box_module
      module procedure list_build_v_box
      module procedure list_build_sn_box
      module procedure list_build_box
+     module procedure list_build_tilebox
   end interface build
 
   interface destroy
@@ -206,6 +207,43 @@ contains
     r%size = n
 
   end subroutine list_build_sn_box
+
+  subroutine list_build_tilebox(r, bx, tilesize)
+    type(list_box), intent(out) :: r
+    type(box), intent(in) :: bx
+    integer, intent(in) :: tilesize(3)
+    integer :: i, ntiles, nt(3), small(3), big(3), ijk(3), t
+
+    ntiles = 1
+    do i = 1, bx%dim
+       nt(i) = (bx%hi(i)-bx%lo(i)+tilesize(i)) / tilesize(i)
+       ntiles = ntiles * nt(i)
+    end do
+
+    ijk(1) = -1
+    ijk(2) = 0
+    ijk(3) = 0
+    do t = 0, ntiles-1
+       do i = 1, bx%dim
+          if (ijk(i) < nt(i)-1) then
+             ijk(i) = ijk(i) + 1
+             exit
+          else
+             ijk(i) = 0
+          end if
+       end do
+
+       do i = 1, bx%dim
+          small(i) = ijk(i) * tilesize(i) + bx%lo(i)
+          big(i) = min(small(i)+tilesize(i)-1, bx%hi(i))
+       end do
+
+       call push_back(r, make_box(small, big))
+    end do
+
+    r%size = ntiles
+
+  end subroutine list_build_tilebox
 
   subroutine list_destroy_box(r)
     type(list_box), intent(inout) :: r

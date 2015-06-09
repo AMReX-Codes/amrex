@@ -20,7 +20,8 @@ module layout_module
   integer, private :: sfc_threshold = 0
   integer, private :: def_mapping   = LA_KNAPSACK
 
-  integer, private :: def_tilesize(3) = (/1024000, 8, 8 /)
+  integer, private :: def_tile_size(3) = (/1024000, 8, 8 /)
+  integer, private :: comm_tile_size(3) = (/1024000, 8, 8 /)
 
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
@@ -368,12 +369,21 @@ contains
 
   subroutine layout_set_tilesize(tilesize)
     integer, intent(in) :: tilesize(:)
-    def_tilesize(1:size(tilesize)) = tilesize
+    def_tile_size(1:size(tilesize)) = tilesize
   end subroutine layout_set_tilesize
   pure function layout_get_tilesize() result(r)
     integer :: r(3)
-    r = def_tilesize
+    r = def_tile_size
   end function layout_get_tilesize
+
+  subroutine layout_set_comm_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    comm_tile_size(1:size(tilesize)) = tilesize
+  end subroutine layout_set_comm_tilesize
+  pure function layout_get_comm_tilesize() result(r)
+    integer :: r(3)
+    r = comm_tile_size
+  end function layout_get_comm_tilesize
 
   subroutine layout_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -1300,6 +1310,8 @@ contains
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
     integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(list_box)                  :: bl
+    type(list_box_node), pointer    :: bln
     type(boxarray)                  :: bxa, bxai
     type(box)                       :: sbx, dbx
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
@@ -1324,57 +1336,63 @@ contains
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
-             sbx = bi(jj)%bx
-             dbx = shift(sbx,-shft(ii,:))
-             if ( local(la,i) .and. local(la, j) ) then
-                if ( li_r > size(bxasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
-                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
-                   deallocate(bxasc%l_con%cpy)
-                   bxasc%l_con%cpy => n_cpy
+             call list_build_tilebox(bl, bi(jj)%bx, comm_tile_size)
+             bln => begin(bl)
+             do while (associated(bln))
+                sbx = value(bln)
+                bln => next(bln)
+                dbx = shift(sbx,-shft(ii,:))
+                if ( local(la,i) .and. local(la, j) ) then
+                   if ( li_r > size(bxasc%l_con%cpy) ) then
+                      allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
+                      n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                      deallocate(bxasc%l_con%cpy)
+                      bxasc%l_con%cpy => n_cpy
+                   end if
+                   lcnt_r                    = lcnt_r + 1
+                   bxasc%l_con%cpy(li_r)%nd  = i
+                   bxasc%l_con%cpy(li_r)%ns  = j
+                   bxasc%l_con%cpy(li_r)%sbx = sbx
+                   bxasc%l_con%cpy(li_r)%dbx = dbx
+                   li_r                      = li_r + 1
+                else if ( local(la, j) ) then
+                   if ( i_s > size(bxasc%r_con%snd) ) then
+                      allocate(n_snd(size(bxasc%r_con%snd) * 2))
+                      n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                      deallocate(bxasc%r_con%snd)
+                      bxasc%r_con%snd => n_snd
+                   end if
+                   cnt_s                    = cnt_s + 1
+                   parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
+                   pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
+                   bxasc%r_con%snd(i_s)%nd  = i
+                   bxasc%r_con%snd(i_s)%ns  = j
+                   bxasc%r_con%snd(i_s)%sbx = sbx
+                   bxasc%r_con%snd(i_s)%dbx = dbx
+                   bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                   i_s                      = i_s + 1
+                else if ( local(la, i) ) then
+                   if ( i_r > size(bxasc%r_con%rcv) ) then
+                      allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
+                      n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                      deallocate(bxasc%r_con%rcv)
+                      bxasc%r_con%rcv => n_rcv
+                   end if
+                   cnt_r                    = cnt_r + 1
+                   parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
+                   pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
+                   bxasc%r_con%rcv(i_r)%nd  = i
+                   bxasc%r_con%rcv(i_r)%ns  = j
+                   bxasc%r_con%rcv(i_r)%sbx = sbx
+                   bxasc%r_con%rcv(i_r)%dbx = dbx
+                   bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                   sh                       = 1
+                   sh(1:bxasc%dim)          = extent(sbx)
+                   bxasc%r_con%rcv(i_r)%sh  = sh
+                   i_r                      = i_r + 1
                 end if
-                lcnt_r                    = lcnt_r + 1
-                bxasc%l_con%cpy(li_r)%nd  = i
-                bxasc%l_con%cpy(li_r)%ns  = j
-                bxasc%l_con%cpy(li_r)%sbx = sbx
-                bxasc%l_con%cpy(li_r)%dbx = dbx
-                li_r                      = li_r + 1
-             else if ( local(la, j) ) then
-                if ( i_s > size(bxasc%r_con%snd) ) then
-                   allocate(n_snd(size(bxasc%r_con%snd) * 2))
-                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
-                   deallocate(bxasc%r_con%snd)
-                   bxasc%r_con%snd => n_snd
-                end if
-                cnt_s                    = cnt_s + 1
-                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
-                bxasc%r_con%snd(i_s)%nd  = i
-                bxasc%r_con%snd(i_s)%ns  = j
-                bxasc%r_con%snd(i_s)%sbx = sbx
-                bxasc%r_con%snd(i_s)%dbx = dbx
-                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                i_s                      = i_s + 1
-             else if ( local(la, i) ) then
-                if ( i_r > size(bxasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
-                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
-                   deallocate(bxasc%r_con%rcv)
-                   bxasc%r_con%rcv => n_rcv
-                end if
-                cnt_r                    = cnt_r + 1
-                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
-                bxasc%r_con%rcv(i_r)%nd  = i
-                bxasc%r_con%rcv(i_r)%ns  = j
-                bxasc%r_con%rcv(i_r)%sbx = sbx
-                bxasc%r_con%rcv(i_r)%dbx = dbx
-                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
-                sh                       = 1
-                sh(1:bxasc%dim)          = extent(sbx)
-                bxasc%r_con%rcv(i_r)%sh  = sh
-                i_r                      = i_r + 1
-             end if
+             end do
+             call list_destroy_box(bl)
           end do
           deallocate(bi)
        end do
@@ -3538,7 +3556,7 @@ contains
     ta%dim = la%lap%dim
     ta%lap => la%lap
 
-    ta%tilesize = def_tilesize
+    ta%tilesize = def_tile_size
     if (present(tilesize)) ta%tilesize(1:size(tilesize)) = tilesize
 
     nc = 1
