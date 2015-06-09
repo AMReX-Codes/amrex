@@ -22,9 +22,10 @@ check_nans                          logical            .false.
 #-----------------------------------------------------------------------------
 # category: tiling
 #-----------------------------------------------------------------------------
+do_tiling                           logical            .true.
 tilesize_x                          integer            1024000
-tilesize_y                          integer            8
-tilesize_z                          integer            8
+tilesize_y                          integer            4
+tilesize_z                          integer            4
 
 #-----------------------------------------------------------------------------
 # category: timestepping

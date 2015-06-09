@@ -168,7 +168,7 @@ contains
   !
   subroutine dUdt (U, Uprime, Q, mu, xi, lam, Ddiag, dx, courno, istep)
 
-    use probin_module, only: cfl_int, fixed_dt
+    use probin_module, only: cfl_int, fixed_dt, do_tiling
 
     type(multifab),   intent(inout) :: U, Uprime, Q, mu, xi, lam, Ddiag
     double precision, intent(in   ) :: dx(3)
@@ -176,7 +176,7 @@ contains
     double precision, intent(inout), optional :: courno
 
     integer :: lo(3), hi(3)
-    integer :: n
+    integer :: n, ng
     type(mfiter) :: mfi
     type(box) :: tbx
 
@@ -245,41 +245,66 @@ contains
     !
     ! Hyperbolic and Transport terms
     !
-    !$omp parallel private(n,lo,hi,up,ulo,uhi,upp,uplo,uphi) &
-    !$omp private(qp,qlo,qhi,mup,xip,lamp,Ddp,mfi,tbx)
-
-    call mfiter_build(mfi, Q, tiling=.true.)
-
-    do while (more_tile(mfi))
-       n = get_fab_index(mfi)
-
-       tbx = get_tilebox(mfi)
-       lo = lwb(tbx)
-       hi = upb(tbx)
-
-       up => dataptr(U,n)
-       upp=> dataptr(Uprime,n)
-       qp => dataptr(Q,n)
-       mup  => dataptr(mu   , n)
-       xip  => dataptr(xi   , n)
-       lamp => dataptr(lam  , n)
-       Ddp  => dataptr(Ddiag, n)
-
-       ulo = lbound(up)
-       uhi = ubound(up)
-       qlo = lbound(qp)
-       qhi = ubound(qp)
-       uplo = lbound(upp)
-       uphi = ubound(upp)
-
-       call narrow_diffterm_3d(lo,hi,dx,qp,qlo(1:3),qhi(1:3),upp,uplo(1:3),uphi(1:3), &
-            mup,xip,lamp,Ddp)
+    if (do_tiling) then
+       !$omp parallel private(n,lo,hi,up,ulo,uhi,upp,uplo,uphi) &
+       !$omp private(qp,qlo,qhi,mup,xip,lamp,Ddp,mfi,tbx)
        
-       call hypterm_3d(lo,hi,dx,up,ulo(1:3),uhi(1:3),qp,qlo(1:3),qhi(1:3),&
-            upp,uplo(1:3),uphi(1:3))
+       call mfiter_build(mfi, Q, tiling=.true.)
+       
+       do while (more_tile(mfi))
+          n = get_fab_index(mfi)
+          
+          tbx = get_tilebox(mfi)
+          lo = lwb(tbx)
+          hi = upb(tbx)
+          
+          up => dataptr(U,n)
+          upp=> dataptr(Uprime,n)
+          qp => dataptr(Q,n)
+          mup  => dataptr(mu   , n)
+          xip  => dataptr(xi   , n)
+          lamp => dataptr(lam  , n)
+          Ddp  => dataptr(Ddiag, n)
+          
+          ulo = lbound(up)
+          uhi = ubound(up)
+          qlo = lbound(qp)
+          qhi = ubound(qp)
+          uplo = lbound(upp)
+          uphi = ubound(upp)
+          
+          call narrow_diffterm_3d(lo,hi,dx,qp,qlo(1:3),qhi(1:3),upp,uplo(1:3),uphi(1:3), &
+               mup,xip,lamp,Ddp)
+          
+          call hypterm_3d(lo,hi,dx,up,ulo(1:3),uhi(1:3),qp,qlo(1:3),qhi(1:3),&
+               upp,uplo(1:3),uphi(1:3))
+          
+       end do
+       !$omp end parallel
+    else
 
-    end do
-    !$omp end parallel
+       ng = nghost(U)
+
+       do n=1,nfabs(Q)
+          qp  => dataptr(Q,n)
+          up  => dataptr(U,n)
+          upp => dataptr(Uprime,n)
+          
+          mup  => dataptr(mu   , n)
+          xip  => dataptr(xi   , n)
+          lamp => dataptr(lam  , n)
+          Ddp  => dataptr(Ddiag, n)
+          
+          lo = lwb(get_box(Q,n))
+          hi = upb(get_box(Q,n))
+          
+          call orig_narrow_diffterm_3d(lo,hi,ng,dx,qp,upp,mup,xip,lamp,Ddp)
+          
+          call orig_hypterm_3d(lo,hi,ng,dx,up,qp,upp)
+       end do
+       
+    end if
+
     wt2 = parallel_wtime()
     wt_hypdiff = wt_hypdiff + (wt2-wt1)
 

@@ -7,8 +7,8 @@
 
  ! tile size
  tilesize_x = 1024000  ! no tiling in x-direction
- tilesize_y = 8
- tilesize_z = 8
+ tilesize_y = 4
+ tilesize_z = 4
 
  verbose = 2
 
