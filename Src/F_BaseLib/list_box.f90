@@ -238,7 +238,7 @@ contains
           big(i) = min(small(i)+tilesize(i)-1, bx%hi(i))
        end do
 
-       call push_back(r, make_box(small, big))
+       call push_back(r, make_box(small(1:bx%dim), big(1:bx%dim)))
     end do
 
     r%size = ntiles
