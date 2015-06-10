@@ -94,7 +94,9 @@ class DistributionMapping
     //
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
     //
-    // Replace the cached processor map.  It is an error if the link count is > 1
+    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
+    //   All FabArrays using the cached map must move their fabs before
+    //   calling this function.
     void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
     //
     // Set/get the distribution strategy.
@@ -188,6 +190,8 @@ class DistributionMapping
     static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
                                  const Array<BoxArray> &allBoxes);
 
+    static int NDistMaps() { return nDistMaps; }
+    int DistMapID() const { return dmID; }
 
 private:
     //
@@ -310,6 +314,9 @@ private:
     static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
     static Array<long> totalBoxPoints;  // i == rank
     //const Array<long> &BoxPoints() { return boxPoints; }
+
+    static int nDistMaps;
+    int dmID;
 };
 
 //
