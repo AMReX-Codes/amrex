@@ -56,6 +56,9 @@ Array<int> DistributionMapping::proximityMap;
 Array<int> DistributionMapping::proximityOrder;
 Array<long> DistributionMapping::totalBoxPoints;
 
+int DistributionMapping::nDistMaps(0);
+
+
 const Array<int>&
 DistributionMapping::ProcessorMap () const
 {
@@ -187,6 +190,8 @@ DistributionMapping::Initialize ()
     }
     totalBoxPoints.resize(ParallelDescriptor::NProcs(), 0);
 
+    DistributionMapping::nDistMaps = 0;
+
     BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
 
     initialized = true;
@@ -302,9 +307,9 @@ DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArra
     BL_ASSERT(newProcmapArray.size() == N);
 
     // check for unique
-    if(m_ref.linkCount() > 2) {
-      BoxLib::Abort("**** Error in ReplaceCachedProcessorMap:  linkCount > 2.");
-    }
+    //if(m_ref.linkCount() > 2) {
+      //BoxLib::Abort("**** Error in ReplaceCachedProcessorMap:  linkCount > 2.");
+    //}
 
     for(int iA(0); iA < N; ++iA) {
       m_ref->m_pmap[iA] = newProcmapArray[iA];
@@ -317,12 +322,16 @@ DistributionMapping::Ref::Ref () {}
 DistributionMapping::DistributionMapping ()
     :
     m_ref(new DistributionMapping::Ref)
-{}
+{
+  dmID = nDistMaps++;
+}
 
 DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
     :
     m_ref(rhs.m_ref)
-{}
+{
+  dmID = nDistMaps++;
+}
 
 DistributionMapping&
 DistributionMapping::operator= (const DistributionMapping& rhs)
@@ -341,6 +350,8 @@ DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_ca
     :
     m_ref(new DistributionMapping::Ref(pmap))
 {
+    dmID = nDistMaps++;
+
     if (put_in_cache && ParallelDescriptor::NProcs() > 1)
     {
         //
@@ -364,6 +375,7 @@ DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
     m_ref(new DistributionMapping::Ref(boxes.size() + 1))
 {
+    dmID = nDistMaps++;
     define(boxes,nprocs);
 }
 
@@ -378,6 +390,8 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1))
 
 {
+    dmID = nDistMaps++;
+
     const Array<int>& pmap_1 = d1.ProcessorMap();
     const Array<int>& pmap_2 = d2.ProcessorMap();
 
@@ -418,10 +432,6 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     {
         if ( ! GetMap(boxes))
         {
-if(ParallelDescriptor::IOProcessor()) {
-  //std::cout << "|||| DistributionMapping::define:  nprocs boxes.size() = "
-            //<< nprocs << "  " << boxes.size() << std::endl;
-}
 	    BL_ASSERT(m_BuildMap != 0);
 
             (this->*m_BuildMap)(boxes,nprocs);
