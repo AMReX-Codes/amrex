@@ -213,7 +213,7 @@
       end do
 
 !     Trace to edges w/o transverse flux correction terms
-      call trace(q,qd_l1,qd_l2,qd_h1,qd_h2,qd_h3, &
+      call trace(q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                  dq,qxm,qxp,qym,qyp,qzm,qzp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                  ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dy,dz,dt)
 
@@ -236,7 +236,6 @@
                   3, ilo1-1, ihi1+1, ilo2-1, ihi2+1, ilo3, ihi3)
 
 !     Use edge states to create transverse derivatives in y- and z-directions
-      print *,'HDT ',hdt, hdtdy
       call transyz(qxm, qm, qxp, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
                    fy,               ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
                    fz,               ilo1-1, ilo2-1, ilo3  , ihi1+1, ihi2+1, ihi3+1, &

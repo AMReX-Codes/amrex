@@ -185,6 +185,17 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn
     endif
 endif
+ifeq ($(findstring bint01, $(HOSTNAMEF)), bint01)
+    #
+    # babbage.nersc.gov
+    #
+    ifdef MPI
+        CXX := mpiicpc
+        CC  := mpiicc
+        FC  := mpiifort
+        F90 := mpiifort	
+    endif
+endif
 ifeq ($(findstring titan, $(HOST)), titan)
     #
     # titan (Oak Ridge, OLCF machine)

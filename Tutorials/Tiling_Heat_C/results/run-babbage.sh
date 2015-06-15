@@ -16,23 +16,10 @@ cd $PBS_O_WORKDIR
 
 export KMP_AFFINITY=balanced,verbose
 
-# KMP_PLACE_THREADS provides more fine-grained control of thread placement. A
-# few things to keep in mind:
-#
-# 1.) KMP_PLACE_THREADS overrides OMP_NUM_THREADS. So do NOT use both of those;
-# pick one or the other. The offset core should avoid the 1 core reserved for
-# the OS.
-#
-# 2.) The MIC cards on Babbage have 60 cores, not 61. So the most you should
-# ever use is 59 cores.
-#
-# 3.) The "1O" tells the MIC card to "offset" the threads by 1 core, i.e. start
-# placing threads on core 1 instead of core 0. The default is "0O", i.e., start
-# placing threads on core 0. The NERSC documentation says that the OS core is
-# logical core 0 but physical core 59. I don't know if this offset parameter
-# describes a logical or a physical offset, though.
+# The MIC cards on Babbage have 60 cores. NERSC recommends avoid the OS core.
+# However, in the native mode, it is safe to use all cores. 
 
-export KMP_PLACE_THREADS=16Cx1T,1O # 16 cores, 1 threads/core, 1 core offset
+export KMP_PLACE_THREADS=16Cx1T # 16 cores, 1 threads/core
 
 WORKDIR=$SCRATCH/$PBS_JOBNAME.$PBS_JOBID
 mkdir -p $WORKDIR
