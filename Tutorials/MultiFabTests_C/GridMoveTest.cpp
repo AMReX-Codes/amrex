@@ -31,32 +31,32 @@ using std::endl;
 
 const int maxGrid(32);
 const int nComp(8);
-const int nGhost(0);
+const int nGhost(1);
 const int XDIR(0);
 const int nTimes(4);
 
 
 // --------------------------------------------------------------------------
-void UniqueSet(Array<int> &copyArray, int setSize, int nProcs) {   // ---- a unique set of random numbers
-  if(setSize > nProcs) {
-    BoxLib::Abort("**** Error in UniqueSet:  setSize > nProcs.");
+void UniqueSet(Array<int> &uSet, int setSize, int poolSize) {   // ---- a unique set of random numbers
+  if(setSize > poolSize) {
+    BoxLib::Abort("**** Error in UniqueSet:  setSize > poolSize.");
   }
   std::set<int> copySet;
   while(copySet.size() < setSize) {
-    int r(BoxLib::Random_int(nProcs));
+    int r(BoxLib::Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
-      copyArray.push_back(r);
+      uSet.push_back(r);
     }
   }
-  for(int i(0); i < copyArray.size(); ++i) {
-    std::cout << "copyArray[" << i << "]  = " << copyArray[i] << std::endl;
+  for(int i(0); i < uSet.size(); ++i) {
+    std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
   }
 }
 
 
 // --------------------------------------------------------------------------
-void SetFabsToPMap(MultiFab &mf) {
+void SetFabValsToPMap(MultiFab &mf) {
   const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
   for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
     const int index(mfi.index());
@@ -201,8 +201,9 @@ int main(int argc, char *argv[]) {
 
 
     if(moveFabs) {
+      VisMF::SetNOutFiles(1);
       Array<int> copyArray;
-      int nRanksInSet(2);
+      int nRanksInSet(8);
       if(nRanksInSet % 2 != 0) {
         BoxLib::Abort("**** Bad nRanksInSet");
       }
@@ -215,7 +216,7 @@ int main(int argc, char *argv[]) {
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
 
       Array<int> newDistMapArray(mf.DistributionMap().ProcessorMap());
-      for(int n(0); n < nRanksInSet / 2; n += 2) {
+      for(int n(0); n < nRanksInSet; n += 2) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
 
@@ -224,12 +225,12 @@ int main(int argc, char *argv[]) {
       }
       DistributionMapping::CacheStats(std::cout);
 
-      SetFabsToPMap(mf);
+      SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");
 
       mf.MoveFabs(newDistMapArray);
 
-      SetFabsToPMap(mf);
+      SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfMoves");
 
       BoxArray ba16(mf.boxArray());
@@ -255,7 +256,7 @@ int main(int argc, char *argv[]) {
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << "mf16DMA = " << mf16.DistributionMap() << std::endl;
       }
-      SetFabsToPMap(mf16);
+      SetFabValsToPMap(mf16);
       VisMF::Write(mf16, "mf16DMap");
       mf16.copy(mf);
       VisMF::Write(mf16, "mf16");

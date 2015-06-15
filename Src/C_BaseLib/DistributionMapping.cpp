@@ -1647,6 +1647,117 @@ PFCMultiLevelToken::Compare::operator () (const PFCMultiLevelToken& lhs,
 
 
 
+Array<Array<int> >
+DistributionMapping::MultiLevelMap (const Array<IntVect>  &refRatio,
+                                    const Array<BoxArray> &allBoxes)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMap()");
+
+    bool IOP(ParallelDescriptor::IOProcessor());
+    using std::cout;
+    using std::endl;
+
+    int nprocs(ParallelDescriptor::NProcs());
+    long totalCells(0);
+    int nLevels(allBoxes.size());
+    int finestLevel(nLevels - 1);
+    int nBoxes(0);
+    for(int level(0); level < nLevels; ++level) {
+      nBoxes += allBoxes[level].size();
+      totalCells += allBoxes[level].numPts();
+    }
+
+    std::vector< std::vector<int> > vec(nprocs);
+    std::vector<PFCMultiLevelToken> tokens;
+    tokens.reserve(nBoxes);
+    int idxAll(0);
+    IntVect cRR(IntVect::TheUnitVector());
+
+    for(int level(finestLevel); level >= 0; --level) {
+      for(int i(0), N(allBoxes[level].size()); i < N; ++i) {
+	Box box(allBoxes[level][i]);
+	Box fine(BoxLib::refine(box, cRR));
+        tokens.push_back(PFCMultiLevelToken(level, idxAll, i,
+	                 box.smallEnd(), fine.smallEnd(), box.numPts()));
+      }
+      if(level > 0) {
+        cRR *= refRatio[level - 1];
+      }
+      ++idxAll;
+    }
+
+    std::sort(tokens.begin(), tokens.end(), PFCMultiLevelToken::Compare());  // sfc order
+
+    //long totalCurrentCells(0);
+
+      int  K(0);
+      Real totalvol(0.0), volpercpu(0.0);
+      const int Navg(tokens.size() / nprocs);
+      volpercpu = static_cast<Real>(totalCells) / nprocs;
+
+      Array<long> newVolPerCPU(nprocs, volpercpu);
+
+      for(int iProc(0); iProc < nprocs; ++iProc) {
+        int  cnt(0);
+        Real vol(0.0);
+	long accVol(0);
+	//long oldAccVol(0);
+        vec[iProc].reserve(Navg + 2);
+
+        for(int TSZ(tokens.size()); K < TSZ &&
+	    (iProc == (nprocs-1) || vol < (newVolPerCPU[iProc]));
+            ++cnt, ++K)
+        {
+            vol += tokens[K].m_vol;
+            accVol += tokens[K].m_vol;
+            vec[iProc].push_back(K);
+        }
+
+        totalvol += vol;
+        if((totalvol / (iProc + 1)) > (newVolPerCPU[iProc]) &&
+	   cnt > 1 && K < tokens.size())
+	{
+            --K;
+            vec[iProc].pop_back();
+            totalvol -= tokens[K].m_vol;
+	    //oldAccVol = accVol;
+            accVol -= tokens[K].m_vol;
+        }
+
+	int extra(newVolPerCPU[iProc] - accVol);
+        if(extra != 0 && iProc < nprocs - 1) {  // add the difference to the rest
+	  extra /= nprocs - (iProc + 1);
+	  for(int ip(iProc + 1); ip < nprocs; ++ip) {
+	    newVolPerCPU[ip] += extra;
+	  }
+        }
+      }
+
+    Array<Array<int> > localPMaps(nLevels);
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    for(int iProc(0); iProc < nprocs; ++iProc) {
+      const std::vector<int> &vi = vec[iProc];
+      for(int j(0), N(vi.size()); j < N; ++j) {
+	PFCMultiLevelToken &pt = tokens[vi[j]];
+	int level(pt.m_level);
+	int idxLevel(pt.m_idxLevel);
+	localPMaps[level][idxLevel] = ProximityMap(iProc);
+      }
+    }
+
+
+    tokens.clear();
+
+    return localPMaps;
+}
+
+
+
 void
 DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
                                        const Array<BoxArray> &allBoxes)
@@ -1938,6 +2049,11 @@ DistributionMapping::GetProcNumber() {
 void
 DistributionMapping::InitProximityMap()
 {
+  static bool pMapInited(false);
+  if(pMapInited) {
+    return;
+  }
+
   int nProcs(ParallelDescriptor::NProcs());
   Array<int> procNumbers(nProcs, -1);
 
@@ -2144,6 +2260,7 @@ DistributionMapping::InitProximityMap()
                             ParallelDescriptor::IOProcessorNumber());
   ParallelDescriptor::Bcast(proximityOrder.dataPtr(), proximityOrder.size(),
                             ParallelDescriptor::IOProcessorNumber());
+  pMapInited = true;
 }
 
 

@@ -20,6 +20,9 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
 
+int FabArrayBase::nFabArrays(0);
+
+
 namespace
 {
     bool initialized = false;
@@ -66,6 +69,8 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
+    FabArrayBase::nFabArrays = 0;
+
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
     initialized = true;
@@ -74,6 +79,7 @@ FabArrayBase::Initialize ()
 FabArrayBase::FabArrayBase ()
 {
     Initialize();
+    faID = nFabArrays++;
 }
 
 FabArrayBase::~FabArrayBase () {}

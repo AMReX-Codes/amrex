@@ -1219,8 +1219,9 @@ Amr::FinalizeInit (Real              strt_time,
     //
     // Perform any special post_initialization operations.
     //
-    for (int lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_init(stop_time);
+    for(int lev(0); lev <= finest_level; ++lev) {
+      amr_level[lev].post_init(stop_time);
+    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1261,18 +1262,13 @@ Amr::restart (const std::string& filename)
     Real dRestartTime0 = ParallelDescriptor::second();
 
     DistributionMapping::Initialize();
-    if(DistributionMapping::strategy() == DistributionMapping::PFC) {
-      Array<IntVect> refRatio;
-      Array<BoxArray> allBoxes;
-      DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
-      DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
-    }
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
-      DistributionMapping::CacheStats(std::cout);
-    }
-    ParallelDescriptor::Barrier();
+    //if(DistributionMapping::strategy() == DistributionMapping::PFC) {
+      //Array<IntVect> refRatio;
+      //Array<BoxArray> allBoxes;
+      //DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
+      //DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
+    //}
+    //ParallelDescriptor::Barrier();
 
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
@@ -2143,7 +2139,17 @@ Amr::defBaseLevel (Real              strt_time,
     //
     // Now build level 0 grids.
     //
+if (ParallelDescriptor::IOProcessor()) { std::cout << std::endl << "____dbl____before levelbld" << std::endl; }
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "BBBB::Before levelbld:  DMCache size = " << DistributionMapping::CacheSize() << std::endl;
+  DistributionMapping::CacheStats(std::cout);
+}
     amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
+if(ParallelDescriptor::IOProcessor()) {
+  std::cout << "AAAA::After levelbld:  DMCache size = " << DistributionMapping::CacheSize() << std::endl;
+  DistributionMapping::CacheStats(std::cout);
+}
+if (ParallelDescriptor::IOProcessor()) { std::cout << "____dbl____after levelbld" << std::endl << std::endl; }
 
     lev0.clear();
     //
@@ -2257,14 +2263,32 @@ Amr::regrid (int  lbase,
             amr_level.clear(lev);
             amr_level.set(lev,a);
         }
-
     }
+
+
     //
     // Check at *all* levels whether we need to do anything special now that the grids
-    //       at levels lbase+1 and higher have may have changed.  
+    //       at levels lbase+1 and higher may have changed.  
     //
-    for (int lev = 0; lev <= new_finest; lev++)
-        amr_level[lev].post_regrid(lbase,new_finest);
+    for(int lev(0); lev <= new_finest; ++lev) {
+      amr_level[lev].post_regrid(lbase,new_finest);
+    }
+
+
+    bool rebalanceGrids(true);
+    if(rebalanceGrids) {
+      DistributionMapping::InitProximityMap();
+      DistributionMapping::Initialize();
+      //if(DistributionMapping::strategy() == DistributionMapping::PFC) {
+        Array<BoxArray> allBoxes(amr_level.size());
+	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
+	  allBoxes[ilev] = boxArray(ilev);
+	}
+        Array<Array<int> > mLDM = DistributionMapping::MultiLevelMap(ref_ratio, allBoxes);
+        for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+          MultiFab::MoveAllFabs(mLDM[iMap]);
+        }
+    }
 
 #ifdef USE_STATIONDATA
     station.findGrid(amr_level,geom);
@@ -3024,6 +3048,7 @@ Amr::bldFineLevels (Real strt_time)
 	  }
 	while (!grids_the_same && count < MaxCnt);
       }
+if (ParallelDescriptor::IOProcessor()) { std::cout << "___________out Amr::bldFineLevels" << std::endl; }
 }
 
 void
