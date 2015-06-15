@@ -190,6 +190,9 @@ class DistributionMapping
     static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
                                  const Array<BoxArray> &allBoxes);
 
+    static Array<Array<int> > MultiLevelMap(const Array<IntVect>  &refRatio,
+                                            const Array<BoxArray> &allBoxes);
+
     static int NDistMaps() { return nDistMaps; }
     int DistMapID() const { return dmID; }
 
