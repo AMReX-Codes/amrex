@@ -279,7 +279,9 @@ program main
   dt = 0.9d0*dx(max_levs)**2/(2.d0*dim)
 
   ! write out plotfile 0
-  call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+  if (plot_int .gt. 0) then
+     call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+  end if
 
   do istep=1,nsteps
 
@@ -301,9 +303,11 @@ program main
 
      time = time + dt
 
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        ! write out plotfile
-        call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int .gt. 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           ! write out plotfile
+           call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do

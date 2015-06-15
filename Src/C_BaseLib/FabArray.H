@@ -344,6 +344,12 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
+    //
+    // To maximize thread efficiency we now can decompose things like
+    // intersections among boxes into smaller tiles. This sets
+    // their maximum size.
+    //
+    static IntVect comm_tile_size;  // communication tile size
 
     //
     // The number of FabArrays defined

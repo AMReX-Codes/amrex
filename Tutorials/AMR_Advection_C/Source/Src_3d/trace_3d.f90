@@ -3,7 +3,8 @@
 ! ::: 
 
       subroutine trace(q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
-                       dq,qxm,qxp,qym,qyp,qzm,qzp,qpd_l1,qpd_l2,qpd_l3,qpd_h1,qpd_h2,qpd_h3, &
+                       dq,qxm,qxp,qym,qyp,qzm,qzp,&
+                       qpd_l1,qpd_l2,qpd_l3,qpd_h1,qpd_h2,qpd_h3, &
                        ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dy,dz,dt)
 
       use network           , only : nspec
@@ -46,15 +47,15 @@
                    dq,qxm,qxp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                    ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dt)
 
-      do ispec = 1, nspec
-         n = QFS + ispec - 1
+      do iadv = 1, nadv
+         n = QFA + iadv - 1
          call trace_x(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qxm,qxp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dt)
       end do
 
-      do iadv = 1, nadv
-         n = QFA + iadv - 1
+      do ispec = 1, nspec
+         n = QFS + ispec - 1
          call trace_x(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qxm,qxp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dx,dt)
@@ -76,15 +77,15 @@
                    dq,qym,qyp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                    ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dy,dt)
 
-      do ispec = 1, nspec
-         n = QFS + ispec - 1
+      do iadv = 1, nadv
+         n = QFA + iadv - 1
          call trace_y(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qym,qyp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dy,dt)
       end do
 
-      do iadv = 1, nadv
-         n = QFA + iadv - 1
+      do ispec = 1, nspec
+         n = QFS + ispec - 1
          call trace_y(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qym,qyp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dy,dt)
@@ -106,15 +107,15 @@
                    dq,qzm,qzp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                    ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dz,dt)
 
-      do ispec = 1, nspec
-         n = QFS + ispec - 1
+      do iadv = 1, nadv
+         n = QFA + iadv - 1
          call trace_z(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qzm,qzp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dz,dt)
       end do
 
-      do iadv = 1, nadv
-         n = QFA + iadv - 1
+      do ispec = 1, nspec
+         n = QFS + ispec - 1
          call trace_z(n,q,qd_l1,qd_l2,qd_l3,qd_h1,qd_h2,qd_h3, &
                       dq,qzm,qzp,ilo1-1,ilo2-1,ilo3-1,ihi1+2,ihi2+2,ihi3+2, &
                       ilo1,ilo2,ilo3,ihi1,ihi2,ihi3,dz,dt)
