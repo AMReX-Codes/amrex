@@ -399,9 +399,9 @@
       integer flux2_l1,flux2_l2,flux2_l3,flux2_h1,flux2_h2,flux2_h3
       integer flux3_l1,flux3_l2,flux3_l3,flux3_h1,flux3_h2,flux3_h3
 
-      double precision uin(uin_l1:uin_h1,uin_l2:uin_h2,uin_l1:uin_h1,NVAR)
+      double precision  uin( uin_l1: uin_h1, uin_l2: uin_h2, uin_l3: uin_h3,NVAR)
       double precision uout(uout_l1:uout_h1,uout_l2:uout_h2,uout_l3:uout_h3,NVAR)
-      double precision   src(  src_l1:  src_h1,  src_l2:  src_h2,src_l3:src_h3,NVAR)
+      double precision  src( src_l1: src_h1, src_l2: src_h2, src_l3: src_h3,NVAR)
       double precision flux1(flux1_l1:flux1_h1,flux1_l2:flux1_h2,flux1_l3:flux1_h3,NVAR)
       double precision flux2(flux2_l1:flux2_h1,flux2_l2:flux2_h2,flux2_l3:flux2_h3,NVAR)
       double precision flux3(flux3_l1:flux3_h1,flux3_l2:flux3_h2,flux3_l3:flux3_h3,NVAR)
