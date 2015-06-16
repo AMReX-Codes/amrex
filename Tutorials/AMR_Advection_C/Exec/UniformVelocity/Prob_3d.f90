@@ -82,17 +82,21 @@
       state(:,:,:,UFS+1) = 1.d0
       state(:,:,:,UFS+2:UFS+nspec-1) = 0.d0
 
+      print *,'INIT LO ',lo(:)
+      print *,'INIT HI ',hi(:)
+
       do k = lo(3), hi(3)
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
 
              x = xlo(1) + (i-lo(1)+0.5d0)*dx(1) 
              y = xlo(2) + (j-lo(2)+0.5d0)*dx(2) 
+             z = xlo(3) + (k-lo(2)+0.5d0)*dx(3) 
 
              state(i,j,k,URHO) = 1.d0
              state(i,j,k,UX)   = 1.d0
-             state(i,j,k,UY)   = 0.d0
-             state(i,j,k,UZ)   = 0.d0
+             state(i,j,k,UY)   = 1.d0
+             state(i,j,k,UZ)   = 1.d0
 
              state(i,j,k,UFS  ) = 1.d0
              state(i,j,k,UFS+1) = 0.d0
@@ -100,6 +104,8 @@
 
              ! Define two blobs 
              r1 = sqrt( (x-0.25d0)**2+(y-0.25d0)**2 )
+!            r1 = sqrt( (x-0.25d0)**2+(z-0.25d0)**2 )
+!            r1 = sqrt( (y-0.25d0)**2+(z-0.25d0)**2 )
              if (r1.lt.0.1d0) then
                 state(i,j,k,UFS+1) = 1.d0
                 state(i,j,k,UFS  ) = 0.d0
@@ -107,6 +113,8 @@
              end if
 
              r2 = sqrt( (x-0.75d0)**2+(y-0.75d0)**2 )
+!            r2 = sqrt( (x-0.75d0)**2+(z-0.75d0)**2 )
+!            r2 = sqrt( (y-0.75d0)**2+(z-0.75d0)**2 )
              if (r2.lt.0.1d0) then
                 state(i,j,k,UFS+1) = 1.d0
                 state(i,j,k,UFS  ) = 0.d0
