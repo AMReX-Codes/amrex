@@ -262,11 +262,11 @@
                   2, ilo1, ihi1, ilo2, ihi2, ilo3, ihi3)
       
 !     Use edge states to create transverse derivative in x- and y-directions
-      call transxy(qzm,qm,qzp,qp,ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
-                   fx,           ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   fy,           ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
-                   srcQ,         src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
-                   hdt, hdtdz, ilo1, ihi1, ilo2, ihi2, ilo3-1, ihi3+1)
+      call transxy(qzm, qm, qzp, qp,ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
+                   fx,              ilo1  , ilo2-1, ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   fy,              ilo1-1, ilo2  , ilo3-1, ihi1+1, ihi2+1, ihi3+1, &
+                   srcQ,            src_l1, src_l2, src_l3, src_h1, src_h2, src_h3, &
+                   hdt,hdtdx,hdtdz, ilo1  , ihi1  , ilo2  , ihi2  , ilo3-1, ihi3+1)
 
 !     Upwind on z-edges to create final fluxes
       call upwind(qm, qp, ilo1-1, ilo2-1, ilo3-1, ihi1+2, ihi2+2, ihi3+2, &
@@ -550,7 +550,7 @@
          klo = ilo3
          khi = ihi3+1
       endif
-
+   
       do k = klo, khi
       do j = jlo, jhi
          do i = ilo, ihi
