@@ -47,7 +47,7 @@
       enddo
       enddo
       enddo
-      print *,'IN TRANSXZ'
+
       do iadv = 1, nadv
           n  = UFA + iadv - 1
           nq = QFA + iadv - 1
