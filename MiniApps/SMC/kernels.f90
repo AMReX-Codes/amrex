@@ -2179,23 +2179,20 @@ contains
     double precision :: dxinv(3)
     double precision, allocatable :: tmpx(:), tmpy(:,:),tmpz(:,:,:)
 
-    integer :: jj
-    integer, parameter :: jblocksize=8
-
     do i=1,3
        dxinv(i) = 1.0d0 / dx(i)
     end do
 
     allocate(tmpz(lo(1)  :hi(1)  ,lo(2)  :hi(2)  ,lo(3)-4:hi(3)+4))
 
-    !$omp parallel private(i,j,k,n,jj,tmpx,tmpy)
+    !$omp parallel private(i,j,k,n,tmpx,tmpy)
 
     allocate(tmpx(lo(1)-4:hi(1)+4))
     allocate(tmpy(lo(1)  :hi(1)  ,lo(2)-4:hi(2)+4))
     
     ! ------- BEGIN x-direction -------
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
 
@@ -2261,8 +2258,8 @@ contains
     end do
     !$omp end do
 
+    !$omp do collapse(3) 
     do n = iry1, iry1+nspecies-1
-       !$omp do 
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
     
@@ -2280,8 +2277,8 @@ contains
 
           enddo
        enddo
-       !$omp end do
     enddo
+    !$omp end do
 
     ! ------- END x-direction -------
 
@@ -2367,8 +2364,8 @@ contains
     enddo
     !$omp end do
 
+    !$omp do collapse(2)
     do n = iry1, iry1+nspecies-1
-       !$omp do
        do k=lo(3),hi(3)
           do j=lo(2)-4,hi(2)+4
              do i=lo(1),hi(1)
@@ -2386,14 +2383,14 @@ contains
              end do
           enddo
        enddo
-       !$omp end do
     enddo
+    !$omp end do
 
     ! ------- END y-direction -------
 
     ! ------- BEGIN z-direction -------
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2409,7 +2406,7 @@ contains
     end do
     !$omp end do nowait
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2418,7 +2415,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2433,7 +2430,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2442,7 +2439,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2457,7 +2454,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2466,7 +2463,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2481,7 +2478,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2490,7 +2487,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2506,24 +2503,19 @@ contains
     !$omp end do
 
     do n = iry1, iry1+nspecies-1
-       do jj=lo(2),hi(2),jblocksize
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3)-4,hi(3)+4
-!          do j=lo(2),hi(2)
-          do j=jj,min(jj+jblocksize-1,hi(2))
+          do j=lo(2),hi(2)
              do i=lo(1),hi(1)
                 tmpz(i,j,k) = cons(i,j,k,n)*q(i,j,k,qw)
              end do
           end do
        end do
        !$omp end do
-       end do ! jj
 
-       do jj=lo(2),hi(2),jblocksize
-       !$omp do 
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
-!          do j=lo(2),hi(2)
-          do j=jj,min(jj+jblocksize-1,hi(2))
+          do j=lo(2),hi(2)
              do i=lo(1),hi(1)
 !EXPAND                rhs(i,j,k,n) = rhs(i,j,k,n) - dxinv(3) * first_deriv_8(tmpz(i,j,k-4:k+4))
                 rhs(i,j,k,n) = rhs(i,j,k,n) - dxinv(3) * &
@@ -2535,7 +2527,6 @@ contains
           enddo
        enddo
        !$omp end do
-       end do ! jj
     enddo
 
     deallocate(tmpx,tmpy)
@@ -2576,9 +2567,6 @@ contains
     double precision, allocatable, dimension(:,:,:,:) :: M8p
     double precision, allocatable, dimension(:,:,:) :: Hry
 
-    integer :: jj 
-    integer, parameter :: jblocksize=8
-
     do i = 1,3
        dxinv(i) = 1.0d0 / dx(i)
        dx2inv(i) = dxinv(i)**2
@@ -2610,7 +2598,7 @@ contains
     allocate(tmpx(dlo(1):dhi(1)))
     allocate(tmpy( lo(1): hi(1),dlo(2):dhi(2)))
 
-    !$omp do
+    !$omp do collapse(2)
     do k=dlo(3),dhi(3)
        do j=dlo(2),dhi(2)
           do i=dlo(1),dhi(1)
@@ -2621,7 +2609,7 @@ contains
     enddo
     !$omp end do nowait
 
-    !$omp do
+    !$omp do collapse(2)
     do k=dlo(3),dhi(3)
        do j=dlo(2),dhi(2)
           do i=lo(1),hi(1)
@@ -2648,7 +2636,7 @@ contains
     enddo
     !$omp end do nowait
 
-    !$omp do
+    !$omp do collapse(2)
     do k=dlo(3),dhi(3)
        do j=lo(2),hi(2)   
 
@@ -2683,7 +2671,7 @@ contains
     enddo
     !$omp end do nowait
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=dlo(2),dhi(2)    
           do i=dlo(1),dhi(1)
@@ -2713,7 +2701,7 @@ contains
     !----- mx -----
 
     !----- mx : d()/dx -----
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
 
@@ -2759,7 +2747,7 @@ contains
     !$omp end do
 
     !----- mx : d()/dz -----
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2768,7 +2756,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2785,7 +2773,7 @@ contains
 
     !----- my -----
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
 
@@ -2829,7 +2817,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2838,7 +2826,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2855,7 +2843,7 @@ contains
 
     !----- mz -----
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
 
@@ -2899,7 +2887,7 @@ contains
     end do
     !$omp end do 
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3)-4,hi(3)+4
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2908,7 +2896,7 @@ contains
        end do
     end do
     !$omp end do
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2925,7 +2913,7 @@ contains
 
     !----- energy -----
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -2963,7 +2951,7 @@ contains
     allocate(Hry(  lo(1):hi(1)+1,lo(2):hi(2)+1,lo(3):hi(3)+1))
 
     !$omp parallel &
-    !$omp private(i,j,k,n,qxn,qyn,qhn,Yhalf,hhalf,mmtmp,jj)
+    !$omp private(i,j,k,n,qxn,qyn,qhn,Yhalf,hhalf,mmtmp)
 
     !$omp workshare
     dpe = 0.d0
@@ -2973,7 +2961,7 @@ contains
        qxn = qx1+n-1
        qyn = qy1+n-1
        qhn = qh1+n-1
-       !$omp do
+       !$omp do collapse(2)
        do k=dlo(3),dhi(3)
           do j=dlo(2),dhi(2)
              do i=dlo(1),dhi(1)
@@ -2988,7 +2976,7 @@ contains
 
     ! ------- BEGIN x-direction -------
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)+1
@@ -3245,7 +3233,7 @@ contains
 
     do n = 1, nspecies
        qxn = qx1+n-1
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
    
@@ -3339,7 +3327,7 @@ contains
     !$omp end workshare
 
     do n = 1, nspecies
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)+1
@@ -3353,7 +3341,7 @@ contains
     do n = 1, nspecies
        qyn = qy1+n-1
        qhn = qh1+n-1
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)+1
@@ -3369,7 +3357,7 @@ contains
 
     ! add x-direction rhs
     do n=2,ncons
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)
@@ -3386,7 +3374,7 @@ contains
 
     ! ------- BEGIN y-direction -------
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
 
@@ -3652,7 +3640,7 @@ contains
     do n = 1, nspecies
        qxn = qx1+n-1
 
-      !$omp do
+      !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)+1
 
@@ -3746,7 +3734,7 @@ contains
     !$omp end workshare
 
     do n = 1, nspecies
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)+1
              do i=lo(1),hi(1)
@@ -3760,7 +3748,7 @@ contains
     do n = 1, nspecies
        qyn = qy1+n-1
        qhn = qh1+n-1
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)+1
              do i=lo(1),hi(1)
@@ -3776,7 +3764,7 @@ contains
 
     ! add y-direction rhs
     do n=2,ncons
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)
@@ -3793,7 +3781,7 @@ contains
 
     ! ------- BEGIN z-direction -------
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -3867,7 +3855,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -3935,7 +3923,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -4003,7 +3991,7 @@ contains
     end do
     !$omp end do
 
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
@@ -4075,11 +4063,9 @@ contains
     do n = 1, nspecies
        qxn = qx1+n-1
 
-       do jj=lo(2),hi(2),jblocksize
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)+1
-!          do j=lo(2),hi(2)
-          do j=jj,min(jj+jblocksize-1,hi(2))
+          do j=lo(2),hi(2)
              do i=lo(1),hi(1)
 !EXPAND                Hg(i,j,k,iry1+n-1) = dot_product(dpy(i,j,k-4:k+3,n), M8p(:,i,j,k))
                 Hg(i,j,k,iry1+n-1) =  &
@@ -4091,13 +4077,10 @@ contains
           end do
        end do
        !$omp end do
-       enddo
 
-       do jj=lo(2),hi(2),jblocksize
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)+1
-!          do j=lo(2),hi(2)
-          do j=jj,min(jj+jblocksize-1,hi(2))
+          do j=lo(2),hi(2)
              do i=lo(1),hi(1)
 !EXPAND                mmtmp = matmul(M8, q(i,j,k-4:k+3,qxn))
                 mmtmp(1) = M8T(1,1) * q(i,j,k-4,qxn) &
@@ -4169,7 +4152,6 @@ contains
           end do
        end do
        !$omp end do
-       enddo
     end do
 
     ! correction
@@ -4179,7 +4161,7 @@ contains
     !$omp end workshare
 
     do n = 1, nspecies
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)+1
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)
@@ -4193,7 +4175,7 @@ contains
     do n = 1, nspecies
        qyn = qy1+n-1
        qhn = qh1+n-1
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)+1
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)
@@ -4209,7 +4191,7 @@ contains
     
     ! add z-direction rhs
     do n=2,ncons
-       !$omp do
+       !$omp do collapse(2)
        do k=lo(3),hi(3)
           do j=lo(2),hi(2)
              do i=lo(1),hi(1)
@@ -4225,7 +4207,7 @@ contains
     !$omp barrier
 
     ! add kinetic energy
-    !$omp do
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
