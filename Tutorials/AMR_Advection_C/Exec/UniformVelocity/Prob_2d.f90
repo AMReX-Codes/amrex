@@ -90,7 +90,7 @@
 
              state(i,j,URHO) = 1.d0
              state(i,j,UX)   = 1.d0
-             state(i,j,UY)   = 0.d0
+             state(i,j,UY)   = 1.d0
 
              state(i,j,UFS  ) = 1.d0
              state(i,j,UFS+1) = 0.d0
