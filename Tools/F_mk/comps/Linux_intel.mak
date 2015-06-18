@@ -45,9 +45,9 @@
 
     ifeq ($(_comp),Intel15)
       ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0 -check all -warn all -u 
-        FFLAGS   += -g -traceback -O0 -check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g #-Wcheck
       else
         F90FLAGS += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
         FFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
@@ -60,9 +60,9 @@
 
     ifeq ($(_comp),Intel14)
       ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0 -check all -warn all -u 
-        FFLAGS   += -g -traceback -O0 -check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g #-Wcheck
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast
@@ -83,7 +83,7 @@
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
+        #CFLAGS   += -g #-Wcheck
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast
