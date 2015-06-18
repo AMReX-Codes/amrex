@@ -2780,13 +2780,14 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
             # look to see if the current test was part of this suite run
             status_file = "%s/%s/%s.status" % (webTopDir, dir, test)
-            status = -1
+            status = 0
 
             if os.path.isfile(status_file):
 
                 sf = open(status_file, 'r')
 
                 # status = -1 (failed); 1 (passed); 10 (benchmark update)
+                status = -1
                 for line in sf:
                     if line.find("PASSED") >= 0:
                         status = 1
