@@ -334,6 +334,12 @@ ifeq ($(HOST),posse)
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
 endif
+ifeq ($(HOST),artoo)
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
 ifeq ($(HOST),mothra)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
