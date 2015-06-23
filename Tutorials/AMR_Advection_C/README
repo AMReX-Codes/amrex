@@ -1,4 +1,4 @@
-This examples solves the advection/diffusion/reaction equations for
+This example solves the advection/diffusion/reaction equations for
 several species being advected by a velocity field.   Reaction and diffusion
 are optional; in the examples the reaction is just a stub.
 
@@ -6,6 +6,6 @@ It is a BoxLib based code designed to run in parallel using MPI
 to distribute grid patches.
 
 The directory Exec/UniformVelocity includes a makefile and a sample inputs file.  
-Plotfiles are generated that can be viewed with amrvis2d  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d. 
 (CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
 or with Visit.

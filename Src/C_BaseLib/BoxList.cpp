@@ -134,6 +134,39 @@ BoxList::BoxList (const BoxArray &ba)
         push_back(ba[i]);
 }
 
+BoxList::BoxList(const Box& bx, const IntVect& tilesize)
+    : btype(bx.ixType())
+{
+    int ntiles = 1;
+    IntVect nt;
+    for (int d=0; d<BL_SPACEDIM; d++) {
+	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
+	ntiles *= nt[d];
+    }
+
+    IntVect small, big, ijk;  // note that the initial values are all zero.
+    ijk[0] = -1;
+    for (int t=0; t<ntiles; ++t) {
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    if (ijk[d]<nt[d]-1) {
+		ijk[d]++;
+		break;
+	    } else {
+		ijk[d] = 0;
+	    }
+	}
+
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    small[d] = ijk[d]*tilesize[d];
+	    big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
+	}
+
+	Box tbx(small, big, btype);
+	tbx.shift(bx.smallEnd());
+	push_back(tbx);
+    }
+}
+
 bool
 BoxList::ok () const
 {

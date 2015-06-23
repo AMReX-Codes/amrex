@@ -89,6 +89,10 @@ public:
     //
     explicit BoxList (const BoxArray& ba);
     //
+    // Make a boxList consisting of non-overlapping tile box from a single Box
+    //
+    explicit BoxList (const Box& bx, const IntVect& tilesize);
+    //
     // Append a Box to this BoxList.
     //
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); lbox.push_back(bn); }

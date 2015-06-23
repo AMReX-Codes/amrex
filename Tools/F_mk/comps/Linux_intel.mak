@@ -28,17 +28,41 @@
     F90FLAGS += -module $(mdir) -I $(mdir)
     CFLAGS   += -std=c99
 
+    ifeq ($(findstring bint01.nersc.gov, $(HOSTNAMEF)), bint01.nersc.gov)
+      #
+      # babbage.nersc.gov
+      #
+      FFLAGS   += -mmic
+      F90FLAGS += -mmic
+      CFLAGS   += -mmic
+    endif
+
     ifdef OMP
-      FFLAGS   += -openmp -openmp-report2
-      F90FLAGS += -openmp -openmp-report2
-      CFLAGS   += -openmp -openmp-report2
+      FFLAGS   += -openmp
+      F90FLAGS += -openmp
+      CFLAGS   += -openmp
+    endif
+
+    ifeq ($(_comp),Intel15)
+      ifndef NDEBUG
+        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
+        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
+        #CFLAGS   += -g #-Wcheck
+      else
+        F90FLAGS += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        FFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        CFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+      endif
+      ifdef GPROF
+        F90FLAGS += -pg
+      endif
     endif
 
     ifeq ($(_comp),Intel14)
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
+        #CFLAGS   += -g #-Wcheck
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast
@@ -59,7 +83,7 @@
       ifndef NDEBUG
         F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
+        #CFLAGS   += -g #-Wcheck
       else
         ifdef INTEL_X86
 	  F90FLAGS += -fast

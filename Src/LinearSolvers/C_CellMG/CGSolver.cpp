@@ -153,16 +153,9 @@ static
 Real
 norm_inf (const MultiFab& res, bool local = false)
 {
-    Real restot = 0;
-
-    for (MFIter mfi(res); mfi.isValid(); ++mfi) 
-    {
-        restot = std::max(restot, res[mfi].norm(mfi.validbox(), 0));
-    }
-
+    Real restot = res.norm0(0,true);
     if ( !local )
         ParallelDescriptor::ReduceRealMax(restot);
-
     return restot;
 }
 
