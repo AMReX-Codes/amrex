@@ -25,7 +25,7 @@ ifeq ($(COMP),PathScale)
 else
 ifeq ($(COMP),Cray)
   CXX = CC
-  CC  = craycc
+  CC  = cc
 
   CXXOPTF += -h nomessage=7221 -h fp0
   CXXDEBF += -g -O0
@@ -132,9 +132,9 @@ ifeq ($(FCOMP),PathScale)
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Cray)
-  FC  = crayftn
-  fC  = crayftn
-  F90 = crayftn 
+  FC  = ftn
+  fC  = ftn
+  F90 = ftn 
   FFLAGS +=
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
   F90FLAGS +=
@@ -585,3 +585,21 @@ ifeq ($(HOST), c4)
   FC  = mpif90
 endif    
 
+ifeq ($(WHICHLINUX), BABBAGE)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    F90 := mpiifort
+    fC  := mpiifort
+  endif
+
+# For running natively on the MIC cards
+  CXXOPTF += -mmic
+  CXXDEBF += -mmic
+  FOPTF += -mmic
+  fOPTF += -mmic
+
+# Because the linker on Babbage isn't very smart
+  override XTRALIBS += -lifcore -Wl,-rpath,/global/babbage/nsg/opt/intel/composerxe/composer_xe_2015.1.133/compiler/lib/mic
+endif

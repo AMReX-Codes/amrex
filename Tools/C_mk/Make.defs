@@ -173,6 +173,9 @@ ifeq ($(MACHINE), Linux)
     # classified machines are a mix of Linux clusters and Cray
     # so this might need to be updated in the future
   endif
+  ifeq ($(findstring bint, $(UNAMEN)), bint)
+    WHICHLINUX := BABBAGE
+  endif
 endif
 #
 # Some Lawrencium crap ...
@@ -472,7 +475,7 @@ ifeq ($(COMP),Intel)
    else
      CXXOPTF += -g -O2 -ip -fp-model source
    endif
-   CXXDEBF += -g -O0
+   CXXDEBF += -g -O0 -Wcheck
 
    COPTF += $(CXXOPTF) -std=c99
    CDEBF += $(CXXDEBF) -std=c99
@@ -728,8 +731,8 @@ ifeq ($(FCOMP),Intel)
      endif
    endif
 
-   FDEBF += -g -u #-C
-   fDEBF += -g -u #-C
+   FDEBF += -g -u -check all -warn all
+   fDEBF += -g -u -check all -warn all 
    ifneq ($(IFC_MAJOR_VERSION), 10)
      FOPTF += -g
      fOPTF += -g

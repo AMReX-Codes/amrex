@@ -27,9 +27,9 @@
 #endif
 
 const int maxGrid(64);
-const int pdHi(127);
-const int nComp(5);
-const int nGhost(2);
+const int pdHi(512);
+const int nComp(32);
+const int nGhost(0);
 const int nFiles(64);
 
 // --------------------------------------------------------------------------

@@ -3,6 +3,7 @@ module layout_module
   use parallel
   use boxarray_module
   use bl_mem_stat_module
+  use omp_module
 
   implicit none
 
@@ -18,6 +19,9 @@ module layout_module
   integer, private :: verbose       = 0
   integer, private :: sfc_threshold = 0
   integer, private :: def_mapping   = LA_KNAPSACK
+
+  integer, private :: def_tile_size(3) = (/1024000, 8, 8 /)
+  integer, private :: comm_tile_size(3) = (/1024000, 8, 8 /)
 
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
@@ -129,6 +133,17 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
+
+  type tilearray
+     integer                   :: dim      = 0
+     integer, dimension(3)     :: tilesize = 0
+     type(boxarray)            :: ba                 ! tiles
+     integer         , pointer :: idx(:)   => Null() ! local index
+     type(layout_rep), pointer :: lap      => Null()
+     type(tilearray) , pointer :: next     => Null()
+     type(tilearray) , pointer :: prev     => Null()
+  end type tilearray
+  
   !
   ! Used by layout_get_box_intersector().
   !
@@ -152,6 +167,8 @@ module layout_module
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
   type(fluxassoc), pointer, save, private :: the_fluxassoc_head => Null()
+
+  type(tilearray), pointer, save, private :: the_tilearray_head => Null()
 
   type layout
      integer                   :: la_type =  LA_UNDF
@@ -205,6 +222,7 @@ module layout_module
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
      module procedure fluxassoc_built_q
+     module procedure tilearray_built_q
   end interface
 
   interface build
@@ -299,8 +317,8 @@ module layout_module
      module procedure boxarray_boxarray_contains
   end interface
 
-
   private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
+  private :: tilearray_build, remove_tilearray_item, add_tilearray_head
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
@@ -348,6 +366,24 @@ contains
     integer :: r
     r = def_mapping
   end function layout_get_mapping
+
+  subroutine layout_set_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    def_tile_size(1:size(tilesize)) = tilesize
+  end subroutine layout_set_tilesize
+  pure function layout_get_tilesize() result(r)
+    integer :: r(3)
+    r = def_tile_size
+  end function layout_get_tilesize
+
+  subroutine layout_set_comm_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    comm_tile_size(1:size(tilesize)) = tilesize
+  end subroutine layout_set_comm_tilesize
+  pure function layout_get_comm_tilesize() result(r)
+    integer :: r(3)
+    r = comm_tile_size
+  end function layout_get_comm_tilesize
 
   subroutine layout_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -631,6 +667,7 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
+    type(tilearray)   , pointer :: ta, nta
     if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
@@ -707,7 +744,22 @@ contains
        fla => nfla
     end do
 
+    !
+    ! Remove all tilearray's associated with this layout_rep.
+    !
+    ta  => the_tilearray_head
+    do while ( associated(ta) )
+       nta => ta%next
+       if (associated(lap, ta%lap)) then
+          call remove_tilearray_item(ta)
+          call tilearray_destroy(ta)
+          deallocate(ta)
+       end if
+       ta => nta
+    end do
+
     deallocate(lap)
+
   end subroutine layout_rep_destroy
 
   subroutine layout_build_ba(la, ba, pd, pmask, mapping, explicit_mapping)
@@ -1258,6 +1310,8 @@ contains
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
     integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(list_box)                  :: bl
+    type(list_box_node), pointer    :: bln
     type(boxarray)                  :: bxa, bxai
     type(box)                       :: sbx, dbx
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
@@ -1282,57 +1336,63 @@ contains
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
-             sbx = bi(jj)%bx
-             dbx = shift(sbx,-shft(ii,:))
-             if ( local(la,i) .and. local(la, j) ) then
-                if ( li_r > size(bxasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
-                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
-                   deallocate(bxasc%l_con%cpy)
-                   bxasc%l_con%cpy => n_cpy
+             call list_build_tilebox(bl, bi(jj)%bx, comm_tile_size)
+             bln => begin(bl)
+             do while (associated(bln))
+                sbx = value(bln)
+                bln => next(bln)
+                dbx = shift(sbx,-shft(ii,:))
+                if ( local(la,i) .and. local(la, j) ) then
+                   if ( li_r > size(bxasc%l_con%cpy) ) then
+                      allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
+                      n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                      deallocate(bxasc%l_con%cpy)
+                      bxasc%l_con%cpy => n_cpy
+                   end if
+                   lcnt_r                    = lcnt_r + 1
+                   bxasc%l_con%cpy(li_r)%nd  = i
+                   bxasc%l_con%cpy(li_r)%ns  = j
+                   bxasc%l_con%cpy(li_r)%sbx = sbx
+                   bxasc%l_con%cpy(li_r)%dbx = dbx
+                   li_r                      = li_r + 1
+                else if ( local(la, j) ) then
+                   if ( i_s > size(bxasc%r_con%snd) ) then
+                      allocate(n_snd(size(bxasc%r_con%snd) * 2))
+                      n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                      deallocate(bxasc%r_con%snd)
+                      bxasc%r_con%snd => n_snd
+                   end if
+                   cnt_s                    = cnt_s + 1
+                   parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
+                   pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
+                   bxasc%r_con%snd(i_s)%nd  = i
+                   bxasc%r_con%snd(i_s)%ns  = j
+                   bxasc%r_con%snd(i_s)%sbx = sbx
+                   bxasc%r_con%snd(i_s)%dbx = dbx
+                   bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                   i_s                      = i_s + 1
+                else if ( local(la, i) ) then
+                   if ( i_r > size(bxasc%r_con%rcv) ) then
+                      allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
+                      n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                      deallocate(bxasc%r_con%rcv)
+                      bxasc%r_con%rcv => n_rcv
+                   end if
+                   cnt_r                    = cnt_r + 1
+                   parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
+                   pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
+                   bxasc%r_con%rcv(i_r)%nd  = i
+                   bxasc%r_con%rcv(i_r)%ns  = j
+                   bxasc%r_con%rcv(i_r)%sbx = sbx
+                   bxasc%r_con%rcv(i_r)%dbx = dbx
+                   bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                   sh                       = 1
+                   sh(1:bxasc%dim)          = extent(sbx)
+                   bxasc%r_con%rcv(i_r)%sh  = sh
+                   i_r                      = i_r + 1
                 end if
-                lcnt_r                    = lcnt_r + 1
-                bxasc%l_con%cpy(li_r)%nd  = i
-                bxasc%l_con%cpy(li_r)%ns  = j
-                bxasc%l_con%cpy(li_r)%sbx = sbx
-                bxasc%l_con%cpy(li_r)%dbx = dbx
-                li_r                      = li_r + 1
-             else if ( local(la, j) ) then
-                if ( i_s > size(bxasc%r_con%snd) ) then
-                   allocate(n_snd(size(bxasc%r_con%snd) * 2))
-                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
-                   deallocate(bxasc%r_con%snd)
-                   bxasc%r_con%snd => n_snd
-                end if
-                cnt_s                    = cnt_s + 1
-                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
-                bxasc%r_con%snd(i_s)%nd  = i
-                bxasc%r_con%snd(i_s)%ns  = j
-                bxasc%r_con%snd(i_s)%sbx = sbx
-                bxasc%r_con%snd(i_s)%dbx = dbx
-                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                i_s                      = i_s + 1
-             else if ( local(la, i) ) then
-                if ( i_r > size(bxasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
-                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
-                   deallocate(bxasc%r_con%rcv)
-                   bxasc%r_con%rcv => n_rcv
-                end if
-                cnt_r                    = cnt_r + 1
-                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
-                bxasc%r_con%rcv(i_r)%nd  = i
-                bxasc%r_con%rcv(i_r)%ns  = j
-                bxasc%r_con%rcv(i_r)%sbx = sbx
-                bxasc%r_con%rcv(i_r)%dbx = dbx
-                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
-                sh                       = 1
-                sh(1:bxasc%dim)          = extent(sbx)
-                bxasc%r_con%rcv(i_r)%sh  = sh
-                i_r                      = i_r + 1
-             end if
+             end do
+             call list_destroy_box(bl)
           end do
           deallocate(bi)
        end do
@@ -1343,7 +1403,6 @@ contains
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary, idim)
     use bl_prof_module
     use bl_error_module
-    use omp_module
 
     integer,          intent(in)           :: ng
     logical,          intent(in)           :: nodal(:)
@@ -1942,7 +2001,6 @@ contains
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
-    use omp_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -3442,5 +3500,157 @@ contains
     !$omp end parallel
     r_con%threadsafe = tsall
   end subroutine remote_conn_set_threadsafety
+
+
+  subroutine init_layout_tilearray(la, tilesize) 
+    type(layout), intent(in) :: la
+    type(tilearray), pointer :: p
+    integer, intent(in), optional :: tilesize(:)
+
+    ! Do we have one stored?
+    p => the_tilearray_head
+    do while (associated(p))
+       if (tilearray_check(p, la, tilesize)) then
+          if (.not. associated(p, the_tilearray_head)) then
+             call remove_tilearray_item(p)
+             call add_tilearray_head(p)
+          end if
+          return
+       end if
+       p => p%next
+    end do
+    ! build a new one
+    allocate(p)
+    call tilearray_build(p, la, tilesize)
+    call add_tilearray_head(p)
+  end subroutine init_layout_tilearray
+
+  function get_tilearray() result (ta)
+    type(tilearray) :: ta
+    ta = the_tilearray_head
+  end function get_tilearray
+
+  pure function tilearray_check(p, la, tilesize) result (r)
+    logical :: r
+    type(tilearray), intent(in) :: p
+    type(layout), intent(in) :: la
+    integer, intent(in), optional :: tilesize(:)
+    r = associated(p%lap, la%lap)
+    if (r .and. present(tilesize)) then
+       r = all(tilesize .eq. p%tilesize(1:size(tilesize)))
+    end if
+  end function tilearray_check
+
+  subroutine tilearray_build(ta, la, tilesize)
+    use vector_i_module
+
+    type(tilearray), intent(inout) :: ta
+    type(layout), intent(in)    :: la
+    integer, intent(in), optional :: tilesize(:)
+
+    integer :: n, nc(3), nt(3), nl(3), ts(3), idim, i,j,k, tlo(3), thi(3)
+    type(box) :: bx, bxt
+    type(vector_i) :: idx
+    type(list_box) :: tiles
+
+    ta%dim = la%lap%dim
+    ta%lap => la%lap
+
+    ta%tilesize = def_tile_size
+    if (present(tilesize)) ta%tilesize(1:size(tilesize)) = tilesize
+
+    nc = 1
+    nt = 1
+
+    do n=1, ta%lap%nlocal
+       bx = get_box(ta%lap%bxa, ta%lap%idx(n))
+
+       do idim = 1, ta%dim
+          nc(idim) = bx%hi(idim) - bx%lo(idim) + 1
+          nt(idim) = max(nc(idim)/ta%tilesize(idim), 1)
+          ts(idim) = nc(idim) / nt(idim)
+          nl(idim) = nc(idim) - nt(idim)*ts(idim)
+       end do
+
+       do k = 0,nt(3)-1
+          if (k < nl(3)) then
+             tlo(3) = k * (ts(3)+1)
+             thi(3) = tlo(3) + ts(3)
+          else
+             tlo(3) = k * ts(3) + nl(3)
+             thi(3) = tlo(3) + ts(3) - 1
+          end if
+
+          do j = 0,nt(2)-1
+             if (j < nl(2)) then
+                tlo(2) = j * (ts(2)+1)
+                thi(2) = tlo(2) + ts(2)
+             else
+                tlo(2) = j * ts(2) + nl(2)
+                thi(2) = tlo(2) + ts(2) - 1
+             end if
+
+             do i = 0,nt(1)-1
+                if (i < nl(1)) then
+                   tlo(1) = i * (ts(1)+1)
+                   thi(1) = tlo(1) + ts(1)
+                else
+                   tlo(1) = i * ts(1) + nl(1)
+                   thi(1) = tlo(1) + ts(1) - 1
+                end if
+
+                bxt = shift(make_box(tlo(1:ta%dim), thi(1:ta%dim)), bx%lo)
+                call push_back(tiles, bxt)
+                call push_back(idx, n)
+             end do
+          end do
+       end do
+    end do
+
+    call boxarray_build_l(ta%ba, tiles, sort=.false.)
+
+    allocate(ta%idx(vector_size_i(idx)))
+    ta%idx = dataptr(idx)
+    
+    call destroy(idx)
+    call list_destroy_box(tiles)
+
+  end subroutine tilearray_build
+
+  subroutine tilearray_destroy(ta)
+    type(tilearray), intent(inout) :: ta
+    deallocate(ta%idx)
+    call destroy(ta%ba)
+    ta%dim = 0
+  end subroutine tilearray_destroy
+
+  pure function tilearray_built_q(ta) result(r)
+    logical :: r
+    type(tilearray), intent(in) :: ta
+    r = ta%dim /= 0
+  end function tilearray_built_q
+
+  subroutine remove_tilearray_item(p)
+    type(tilearray), pointer, intent(inout) :: p
+    if (associated(p%prev)) then
+       p%prev%next => p%next
+    end if
+    if (associated(p%next)) then
+       p%next%prev => p%prev
+    end if
+    if (associated(p, the_tilearray_head)) then
+       the_tilearray_head => p%next
+    end if
+  end subroutine remove_tilearray_item
+
+  subroutine add_tilearray_head(p)
+    type(tilearray), pointer, intent(inout) :: p
+    p%next => the_tilearray_head
+    p%prev => Null()
+    if (associated(p%next)) then
+       p%next%prev => p
+    end if
+    the_tilearray_head => p
+  end subroutine add_tilearray_head
 
 end module layout_module
