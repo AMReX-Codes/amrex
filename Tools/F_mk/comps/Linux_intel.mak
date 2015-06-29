@@ -32,9 +32,11 @@
       #
       # babbage.nersc.gov
       #
-      FFLAGS   += -mmic
-      F90FLAGS += -mmic
-      CFLAGS   += -mmic
+      ifdef MIC
+        FFLAGS   += -mmic
+        F90FLAGS += -mmic
+        CFLAGS   += -mmic
+      endif
     endif
 
     ifdef OMP

@@ -589,8 +589,10 @@ ifeq ($(WHICHLINUX), BABBAGE)
     F90 := mpiifort
     fC  := mpiifort
   endif
+endif
 
 # For running natively on the MIC cards
+ifeq ($(MIC), TRUE)
   CXXOPTF += -mmic
   CXXDEBF += -mmic
   FOPTF += -mmic
