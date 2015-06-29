@@ -39,6 +39,14 @@
       endif
     endif
 
+    ifdef NDEBUG
+      ifndef MIC
+        FFLAGS   += -xHost
+        F90FLAGS += -xHost
+        CFLAGS   += -xHost
+      endif
+    endif
+
     ifdef OMP
       FFLAGS   += -openmp
       F90FLAGS += -openmp

@@ -474,9 +474,17 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    else
-     CXXOPTF += -g -O2 -ip -fp-model source
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+       else
+         CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+       endif
+     else
+       CXXOPTF += -g -O2 -ip -fp-model source
+     endif
    endif
    CXXDEBF += -g -O0 -Wcheck
 
@@ -742,11 +750,21 @@ ifeq ($(FCOMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
-     fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+     FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+     fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
    else
-     FOPTF += -O2 -ip -fp-model source
-     fOPTF += -O2 -ip -fp-model source
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+         fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+       else
+         FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+         fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+       endif
+     else
+       FOPTF += -O2 -ip -fp-model source
+       fOPTF += -O2 -ip -fp-model source
+     endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
