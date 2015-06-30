@@ -568,6 +568,9 @@ def getRecentFileName(dir, base, extension):
     files = [f for f in os.listdir(dir) if (f.startswith(base) and
                                             f.endswith(extension))]
 
+    print "files:", files
+    print "dir:", dir
+    
     files.sort(key=lambda x: os.path.getmtime(x))
 
     try: return files.pop()
@@ -1483,7 +1486,7 @@ def testSuite(argv):
         print "  copying files to run directory..."
 
         try: shutil.copy(executable, outputDir)
-        except IOError:
+        except (IOError, AttributeError):
 
             # compilation failed.  First copy the make.out into the
             # web directory and then report
