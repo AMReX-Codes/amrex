@@ -632,6 +632,9 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         is.close();
 #undef STRIP
     }
+
+    rebalance_grids = 0;
+    pp.query("rebalance_grids", rebalance_grids);
 }
 
 bool
@@ -2139,17 +2142,7 @@ Amr::defBaseLevel (Real              strt_time,
     //
     // Now build level 0 grids.
     //
-if (ParallelDescriptor::IOProcessor()) { std::cout << std::endl << "____dbl____before levelbld" << std::endl; }
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "BBBB::Before levelbld:  DMCache size = " << DistributionMapping::CacheSize() << std::endl;
-  DistributionMapping::CacheStats(std::cout);
-}
     amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "AAAA::After levelbld:  DMCache size = " << DistributionMapping::CacheSize() << std::endl;
-  DistributionMapping::CacheStats(std::cout);
-}
-if (ParallelDescriptor::IOProcessor()) { std::cout << "____dbl____after levelbld" << std::endl << std::endl; }
 
     lev0.clear();
     //
@@ -2274,20 +2267,27 @@ Amr::regrid (int  lbase,
       amr_level[lev].post_regrid(lbase,new_finest);
     }
 
-
-    bool rebalanceGrids(true);
-    if(rebalanceGrids) {
+    if(rebalance_grids > 0) {
       DistributionMapping::InitProximityMap();
       DistributionMapping::Initialize();
-      //if(DistributionMapping::strategy() == DistributionMapping::PFC) {
         Array<BoxArray> allBoxes(amr_level.size());
 	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
 	  allBoxes[ilev] = boxArray(ilev);
 	}
-        Array<Array<int> > mLDM = DistributionMapping::MultiLevelMap(ref_ratio, allBoxes);
+        //Array<Array<int> > mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes);
+        Array<Array<int> > mLDM;
+	if(rebalance_grids == 1) {
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 2) {
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 3) {
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+	} else {
+	}
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
         }
+    Geometry::FlushPIRMCache();
     }
 
 #ifdef USE_STATIONDATA

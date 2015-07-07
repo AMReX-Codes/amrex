@@ -190,8 +190,15 @@ class DistributionMapping
     static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
                                  const Array<BoxArray> &allBoxes);
 
-    static Array<Array<int> > MultiLevelMap(const Array<IntVect>  &refRatio,
-                                            const Array<BoxArray> &allBoxes);
+    static Array<Array<int> > MultiLevelMapPFC(const Array<IntVect>  &refRatio,
+                                               const Array<BoxArray> &allBoxes,
+					       int maxgrid);
+    static Array<Array<int> > MultiLevelMapRandom(const Array<IntVect>  &refRatio,
+                                                  const Array<BoxArray> &allBoxes,
+						  int maxgrid);
+    static Array<Array<int> > MultiLevelMapKnapSack(const Array<IntVect>  &refRatio,
+                                                    const Array<BoxArray> &allBoxes,
+						    int maxgrid);
 
     static int NDistMaps() { return nDistMaps; }
     int DistMapID() const { return dmID; }

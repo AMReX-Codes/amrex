@@ -734,7 +734,7 @@ public:
       int distMapIndex, fromRank, toRank, seqNum;
     };
 
-    void MoveFabs (const Array<int> &newDistMapArray);
+    int MoveFabs (const Array<int> &newDistMapArray);
     static void MoveAllFabs (const Array<int> &newDistMapArray);
 
 protected:
@@ -1844,13 +1844,22 @@ void
 FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 {
     //static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
+                << " cached DistributionMap(s)." << std::endl;
+    }
     FabArray<FAB> *lastFAPtr = 0;
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(newDistMapArray.size());
     if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
     } else {
+      int nFabsMoved(0);
       std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "FabArray<FAB>::MoveAllFabs:  moving FABs for "
+                  << faPtrCachedMap.size() << " FabArray(s)." << std::endl;
+      }
 
       for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
           it != faPtrCachedMap.end(); ++it)
@@ -1858,11 +1867,15 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
         if(it->second->ok() == false) {
           BoxLib::Abort("it not ok");
         }
-        it->second->MoveFabs(newDistMapArray);
+        nFabsMoved = it->second->MoveFabs(newDistMapArray);  // just keep the last one
         if( ! it->second->ok()) {
           BoxLib::Abort("_here 00:  it not ok");
         }
         lastFAPtr = it->second;
+      }
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
+	          << " FAB(s) for each FabArray." << std::endl;
       }
 
     }
@@ -1871,6 +1884,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
   DistributionMapping::FlushCache();
   FabArrayBase::FlushSICache();
   FabArrayBase::CPC::FlushCache();
+  //Geometry::FlushPIRMCache();
 
   if(lastFAPtr != 0) {
     lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
@@ -1879,7 +1893,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
 
 template <class FAB>
-void
+int
 FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 {
 #if BL_USE_MPI
@@ -1904,7 +1918,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     }
   }
   if(newDistMapArray == distributionMap.ProcessorMap()) {
-    return;
+    return 0;
   }
 
   // ---- determine which fabs to move
@@ -1946,6 +1960,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 
   // ---- move the fabs
   Array<MPI_Request> recvReqs, sendReqs;
+  int nFabsSent(0);
 
   for(int imoves(0); imoves < fabMoves.size(); ++imoves) {
     FABMoves &moveThisFab = fabMoves[imoves];
@@ -1963,6 +1978,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     }
 
     if(myProc == moveThisFab.fromRank) {    // ---- send fab(s)
+      ++nFabsSent;
       FAB *fabPtr;
       tIFiter = tempIndexFABs.find(dmi);
       if(tIFiter == tempIndexFABs.end()) {
@@ -1985,6 +2001,11 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
       }
     }
   }
+
+  ParallelDescriptor::ReduceIntSum(nFabsSent);
+  //if(ParallelDescriptor::IOProcessor()) {
+    //std::cout << "FabArray<FAB>::MoveFabs:  moved " << nFabsSent << " fabs." << std::endl;
+  //}
 
 
   // ---- wait for all the data to move
@@ -2021,6 +2042,8 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     indexMap.push_back(tIFiter->first);
     m_fabs_v.push_back(tIFiter->second);
   }
+
+  return nFabsSent;
 #endif
 }
 

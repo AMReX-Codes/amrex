@@ -9,6 +9,7 @@
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
+#include <Utility.H>
 
 #include <iostream>
 #include <fstream>
@@ -22,6 +23,7 @@
 #include <numeric>
 #include <string>
 #include <cstring>
+#include <iomanip>
 using std::string;
 
 namespace
@@ -1648,10 +1650,11 @@ PFCMultiLevelToken::Compare::operator () (const PFCMultiLevelToken& lhs,
 
 
 Array<Array<int> >
-DistributionMapping::MultiLevelMap (const Array<IntVect>  &refRatio,
-                                    const Array<BoxArray> &allBoxes)
+DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
+                                       const Array<BoxArray> &allBoxes,
+				       int maxgrid)
 {
-    BL_PROFILE("DistributionMapping::MultiLevelMap()");
+    BL_PROFILE("DistributionMapping::MultiLevelMapPFC()");
 
     bool IOP(ParallelDescriptor::IOProcessor());
     using std::cout;
@@ -1733,6 +1736,15 @@ DistributionMapping::MultiLevelMap (const Array<IntVect>  &refRatio,
         }
       }
 
+//std::vector<long> wgts(boxes.size());
+//for(unsigned int i = 0, N = boxes.size(); i < N; ++i) {
+  //wgts[i] = boxes[i].numPts();
+//}
+//std::vector< std::vector<int> > vec;
+//Real efficiency(0.0);
+//knapsack(wgts, nprocs, vec, efficiency, do_full_knapsack, nmax);
+
+
     Array<Array<int> > localPMaps(nLevels);
     for(int n(0); n < localPMaps.size(); ++n) {
       localPMaps[n].resize(allBoxes[n].size() + 1, -1);
@@ -1750,12 +1762,140 @@ DistributionMapping::MultiLevelMap (const Array<IntVect>  &refRatio,
       }
     }
 
-
     tokens.clear();
+
+if(ParallelDescriptor::IOProcessor()) {
+  Real maxGridPts(maxgrid * maxgrid * maxgrid);
+  Array<Array<int> > boxesPerProc(nprocs);
+  Array<Real> ncells(nprocs, 0);
+  int ib(0), nb(0);
+  for(int n(0); n < allBoxes.size(); ++n) {
+    nb += allBoxes[n].size();
+  }
+  std::cout << "nb = " << nb << std::endl;
+  Array<long> ncellsPerBox(nb, 0);
+  for(int n(0); n < localPMaps.size(); ++n) {
+    for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+      int index(localPMaps[n][i]);
+      ncells[index] += allBoxes[n][i].d_numPts() / maxGridPts;
+      if(ib > ncellsPerBox.size()) {
+        std::cout << "ib ncellsPerBox.size() = " << ib << "  " << ncellsPerBox.size() << std::endl;
+      }
+      ncellsPerBox[ib] = allBoxes[n][i].numPts();
+      boxesPerProc[index].push_back(allBoxes[n][i].numPts());
+      ++ib;
+    }
+  }
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "MLMB_" << count << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < ncells.size(); ++i) {
+    bos << i << ' ' << std::setprecision(8) << ncells[i] << '\n';
+  }
+  bos.close();
+  std::stringstream dfsspb;
+  dfsspb << "MLMPERB_" << count << ".xgr";
+  std::ofstream bospb(dfsspb.str().c_str());
+  for(int i(0); i < ncellsPerBox.size(); ++i) {
+    bospb << i << ' ' << std::setprecision(8) << ncellsPerBox[i] << '\n';
+  }
+  bospb.close();
+  std::stringstream bpproc;
+  bpproc << "BPPROC_" << count << ".xgr";
+  std::ofstream sbpp(bpproc.str().c_str());
+  for(int n(0); n < boxesPerProc.size(); ++n) {
+    sbpp << n;
+    for(int i(0); i < boxesPerProc[n].size(); ++i) {
+      sbpp << ' ' << boxesPerProc[n][i];
+    }
+    sbpp << '\n';
+  }
+  sbpp.close();
+  ++count;
+}
 
     return localPMaps;
 }
 
+
+
+
+Array<Array<int> >
+DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
+                                          const Array<BoxArray> &allBoxes,
+					  int maxgrid)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMapRandom()");
+
+    Array<Array<int> > localPMaps(allBoxes.size());
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+          localPMaps[n][ir] = BoxLib::Random_int(ParallelDescriptor::NProcs());
+        }
+      }
+      ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
+
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    return localPMaps;
+}
+
+
+Array<Array<int> >
+DistributionMapping::MultiLevelMapKnapSack (const Array<IntVect>  &refRatio,
+                                            const Array<BoxArray> &allBoxes,
+					    int maxgrid)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMapKnapSack()");
+
+    int nProcs(ParallelDescriptor::NProcs());
+    std::vector<std::vector<int> > weightsPerCPU;
+    Real efficiency(0.0);
+    bool doFullKnapSack(true);
+    int nMax(std::numeric_limits<int>::max());
+
+    Array<long> weights;
+    for(int n(0); n < allBoxes.size(); ++n) {
+      const BoxArray &aba = allBoxes[n];
+      for(int b(0); b < aba.size(); ++b) {
+        weights.push_back(aba[b].numPts());
+      }
+    }
+
+    knapsack(weights, nProcs, weightsPerCPU, efficiency, doFullKnapSack, nMax);
+
+    int count(0);
+    for(int cpu(0); cpu < weightsPerCPU.size(); ++cpu) {
+      for(int b(0); b < weightsPerCPU[cpu].size(); ++b) {
+        //weights[count++] = weightsPerCPU[cpu][b];
+        weights[weightsPerCPU[cpu][b]] = cpu;
+      }
+    }
+    count = 0;
+
+    Array<Array<int> > localPMaps(allBoxes.size());
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+          localPMaps[n][ir] = weights[count++];
+        }
+      }
+      ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
+
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    return localPMaps;
+}
 
 
 void
@@ -1948,6 +2088,7 @@ if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] <<
       }
     }
 
+/*
 if(ParallelDescriptor::IOProcessor()) {
   Array<long> ncells(nprocs, 0);
   for(int n(0); n < localPMaps.size(); ++n) {
@@ -1968,6 +2109,7 @@ if(ParallelDescriptor::IOProcessor()) {
 
 ParallelDescriptor::Barrier();
 //BoxLib::Abort("test");
+*/
 
 
     tokens.clear();
@@ -2115,7 +2257,7 @@ DistributionMapping::InitProximityMap()
 #ifdef BL_SIM_HOPPER_MAKE_TCFAB
       std::ofstream ostFab("topolcoords.simhopper.3d.fab");
       tFab.writeOn(ostFab);
-      tFab.close();
+      ostFab.close();
 #endif
 
 #else
