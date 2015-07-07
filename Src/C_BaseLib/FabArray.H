@@ -727,7 +727,7 @@ public:
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
     //
-    // Move grids in this FabArray to different MPI ranks.
+    // Move FABs in this FabArray to different MPI ranks.
     //
 
     struct FABMoves {
@@ -1843,51 +1843,54 @@ template <class FAB>
 void
 FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 {
-    //static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
+  //static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
+              << " cached DistributionMap(s)." << std::endl;
+  }
+  FabArray<FAB> *lastFAPtr = 0;
+
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+               FabArray<FAB>::allocatedFAPointers.find(newDistMapArray.size());
+  if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
-                << " cached DistributionMap(s)." << std::endl;
+      std::cout << "FabArray<FAB>::MoveAllFabs:  no allocated pointers for new "
+                << "distribution map array." << std::endl;
     }
-    FabArray<FAB> *lastFAPtr = 0;
-
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(newDistMapArray.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-    } else {
-      int nFabsMoved(0);
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "FabArray<FAB>::MoveAllFabs:  moving FABs for "
-                  << faPtrCachedMap.size() << " FabArray(s)." << std::endl;
-      }
-
-      for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
-          it != faPtrCachedMap.end(); ++it)
-      {
-        if(it->second->ok() == false) {
-          BoxLib::Abort("it not ok");
-        }
-        nFabsMoved = it->second->MoveFabs(newDistMapArray);  // just keep the last one
-        if( ! it->second->ok()) {
-          BoxLib::Abort("_here 00:  it not ok");
-        }
-        lastFAPtr = it->second;
-      }
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
-	          << " FAB(s) for each FabArray." << std::endl;
-      }
-
+  } else {
+    int nFabsMoved(0);
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "FabArray<FAB>::MoveAllFabs:  moving FABs for "
+                << faPtrCachedMap.size() << " FabArray(s)." << std::endl;
     }
 
-  // ---- flush dmap cache
-  DistributionMapping::FlushCache();
-  FabArrayBase::FlushSICache();
-  FabArrayBase::CPC::FlushCache();
-  //Geometry::FlushPIRMCache();
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      if(it->second->ok() == false) {
+        BoxLib::Abort("it not ok");
+      }
+      nFabsMoved = it->second->MoveFabs(newDistMapArray);  // just keep the last one
+      if( ! it->second->ok()) {
+        BoxLib::Abort("_here 00:  it not ok");
+      }
+      lastFAPtr = it->second;
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
+	        << " FAB(s) for each FabArray." << std::endl;
+    }
 
-  if(lastFAPtr != 0) {
-    lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
+    // ---- flush caches
+    DistributionMapping::FlushCache();
+    FabArrayBase::FlushSICache();
+    FabArrayBase::CPC::FlushCache();
+    //Geometry::FlushPIRMCache();  // ---- needs to be done externally
+
+    if(lastFAPtr != 0) {
+      lastFAPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
+    }
   }
 }
 
