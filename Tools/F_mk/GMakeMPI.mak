@@ -185,7 +185,7 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn
     endif
 endif
-ifeq ($(findstring bint01, $(HOSTNAMEF)), bint01)
+ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
     #
     # babbage.nersc.gov
     #
