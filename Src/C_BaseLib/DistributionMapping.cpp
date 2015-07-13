@@ -1745,7 +1745,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
     bool bStagger(true);
     if(bStagger) {
-      int staggerOffset(12);
+      int staggerOffset(10);
       for(int iProc(0); iProc < nProcs; ++iProc) {
         const std::vector<int> &vi = vec[iProc];
         for(int j(0), N(vi.size()); j < N; ++j) {
@@ -1754,7 +1754,10 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 	  int idxLevel(pt.m_idxLevel);
 	  int staggeredProc(ProximityMap(iProc));
 	  staggeredProc = ((staggeredProc * staggerOffset) % nProcs)
-	                  + (staggeredProc / staggerOffset);
+	                  + (staggeredProc / (nProcs / staggerOffset));
+if(ParallelDescriptor::IOProcessor()) {
+std::cout << "****** " << ProximityMap(iProc)  << "  " << staggeredProc << std::endl;
+}
 	  localPMaps[level][idxLevel] = staggeredProc;
         }
       }
