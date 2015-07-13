@@ -1660,7 +1660,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
     using std::cout;
     using std::endl;
 
-    int nprocs(ParallelDescriptor::NProcs());
+    int nProcs(ParallelDescriptor::NProcs());
     long totalCells(0);
     int nLevels(allBoxes.size());
     int finestLevel(nLevels - 1);
@@ -1670,7 +1670,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
       totalCells += allBoxes[level].numPts();
     }
 
-    std::vector< std::vector<int> > vec(nprocs);
+    std::vector< std::vector<int> > vec(nProcs);
     std::vector<PFCMultiLevelToken> tokens;
     tokens.reserve(nBoxes);
     int idxAll(0);
@@ -1695,12 +1695,12 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
       int  K(0);
       Real totalvol(0.0), volpercpu(0.0);
-      const int Navg(tokens.size() / nprocs);
-      volpercpu = static_cast<Real>(totalCells) / nprocs;
+      const int Navg(tokens.size() / nProcs);
+      volpercpu = static_cast<Real>(totalCells) / nProcs;
 
-      Array<long> newVolPerCPU(nprocs, volpercpu);
+      Array<long> newVolPerCPU(nProcs, volpercpu);
 
-      for(int iProc(0); iProc < nprocs; ++iProc) {
+      for(int iProc(0); iProc < nProcs; ++iProc) {
         int  cnt(0);
         Real vol(0.0);
 	long accVol(0);
@@ -1708,7 +1708,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
         vec[iProc].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
-	    (iProc == (nprocs-1) || vol < (newVolPerCPU[iProc]));
+	    (iProc == (nProcs-1) || vol < (newVolPerCPU[iProc]));
             ++cnt, ++K)
         {
             vol += tokens[K].m_vol;
@@ -1728,22 +1728,13 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
         }
 
 	int extra(newVolPerCPU[iProc] - accVol);
-        if(extra != 0 && iProc < nprocs - 1) {  // add the difference to the rest
-	  extra /= nprocs - (iProc + 1);
-	  for(int ip(iProc + 1); ip < nprocs; ++ip) {
+        if(extra != 0 && iProc < nProcs - 1) {  // add the difference to the rest
+	  extra /= nProcs - (iProc + 1);
+	  for(int ip(iProc + 1); ip < nProcs; ++ip) {
 	    newVolPerCPU[ip] += extra;
 	  }
         }
       }
-
-//std::vector<long> wgts(boxes.size());
-//for(unsigned int i = 0, N = boxes.size(); i < N; ++i) {
-  //wgts[i] = boxes[i].numPts();
-//}
-//std::vector< std::vector<int> > vec;
-//Real efficiency(0.0);
-//knapsack(wgts, nprocs, vec, efficiency, do_full_knapsack, nmax);
-
 
     Array<Array<int> > localPMaps(nLevels);
     for(int n(0); n < localPMaps.size(); ++n) {
@@ -1752,13 +1743,30 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
       localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
     }
 
-    for(int iProc(0); iProc < nprocs; ++iProc) {
-      const std::vector<int> &vi = vec[iProc];
-      for(int j(0), N(vi.size()); j < N; ++j) {
-	PFCMultiLevelToken &pt = tokens[vi[j]];
-	int level(pt.m_level);
-	int idxLevel(pt.m_idxLevel);
-	localPMaps[level][idxLevel] = ProximityMap(iProc);
+    bool bStagger(true);
+    if(bStagger) {
+      int staggerOffset(12);
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        const std::vector<int> &vi = vec[iProc];
+        for(int j(0), N(vi.size()); j < N; ++j) {
+	  PFCMultiLevelToken &pt = tokens[vi[j]];
+	  int level(pt.m_level);
+	  int idxLevel(pt.m_idxLevel);
+	  int staggeredProc(ProximityMap(iProc));
+	  staggeredProc = ((staggeredProc * staggerOffset) % nProcs)
+	                  + (staggeredProc / staggerOffset);
+	  localPMaps[level][idxLevel] = staggeredProc;
+        }
+      }
+    } else {
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        const std::vector<int> &vi = vec[iProc];
+        for(int j(0), N(vi.size()); j < N; ++j) {
+	  PFCMultiLevelToken &pt = tokens[vi[j]];
+	  int level(pt.m_level);
+	  int idxLevel(pt.m_idxLevel);
+	  localPMaps[level][idxLevel] = ProximityMap(iProc);
+        }
       }
     }
 
@@ -1766,8 +1774,8 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
 if(ParallelDescriptor::IOProcessor()) {
   Real maxGridPts(maxgrid * maxgrid * maxgrid);
-  Array<Array<int> > boxesPerProc(nprocs);
-  Array<Real> ncells(nprocs, 0);
+  Array<Array<int> > boxesPerProc(nProcs);
+  Array<Real> ncells(nProcs, 0);
   int ib(0), nb(0);
   for(int n(0); n < allBoxes.size(); ++n) {
     nb += allBoxes[n].size();
