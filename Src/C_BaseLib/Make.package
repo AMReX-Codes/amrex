@@ -116,6 +116,12 @@ C$(BOXLIB_BASE)_sources += BLProfiler.cpp
 C$(BOXLIB_BASE)_sources += BLBackTrace.cpp
 
 ifeq ($(LAZY),TRUE)
-  CEXE_sources += Lazy.cpp
-  CEXE_headers += Lazy.H
+  C$(BOXLIB_BASE)_sources += Lazy.cpp
+  C$(BOXLIB_BASE)_headers += Lazy.H
 endif
+
+# Memory pool
+C$(BOXLIB_BASE)_headers += MemPool.H
+C$(BOXLIB_BASE)_sources += MemPool.cpp
+f90$(BOXLIB_BASE)_sources += mempool_f.f90
+

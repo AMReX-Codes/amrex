@@ -40,6 +40,8 @@
 #include <signal.h>
 #endif
 
+#include <MemPool.H>
+
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
 //
@@ -305,6 +307,8 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         }
     }
 #endif
+
+    init_memmory_pool();
 
     std::cout << std::setprecision(10);
 
