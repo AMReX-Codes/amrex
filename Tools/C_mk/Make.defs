@@ -739,8 +739,8 @@ ifeq ($(FCOMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-     fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+     fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
    else
      FOPTF += -O2 -ip -fp-model source
      fOPTF += -O2 -ip -fp-model source
