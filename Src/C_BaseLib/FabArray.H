@@ -2047,6 +2047,8 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   }
 
   return nFabsSent;
+#else
+  return 0;
 #endif
 }
 
