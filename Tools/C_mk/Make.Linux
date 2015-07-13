@@ -415,11 +415,13 @@ endif
 
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
-  CXX := CC 
-  CC  := cc 
-  FC  := ftn
-  F90 := ftn
-  fC  := ftn
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC 
+    CC  := cc 
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
+  endif
   ifeq ($(USE_IPM),TRUE)
     LIBRARIES += $(IPM_GNU)
   endif
