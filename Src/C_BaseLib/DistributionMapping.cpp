@@ -1745,16 +1745,38 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
     bool bStagger(true);
     if(bStagger) {
-      int staggerOffset(10);
+      int staggerOffset(12);
+      Array<int> staggeredProxMap(proximityMap.size());
+
+      int nSets(nProcs / staggerOffset);
+      int nRemainder(nProcs % staggerOffset);
+      int nCount(0);
+      for(int iS(0); iS < staggerOffset; ++iS) {
+        for(int nS(0); nS < nSets * staggerOffset; nS += staggerOffset) {
+	  staggeredProxMap[nCount++] = nS + iS;
+        }
+      }
+      for(int iR(0); iR < nRemainder; ++iR) {
+        int index((staggerOffset * nSets) + iR);;
+        staggeredProxMap[index] = index;;
+      }
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        if(ParallelDescriptor::IOProcessor()) {
+	  std::cout << "staggeredProxMap[" << iProc << "] = " << staggeredProxMap[iProc] << std::endl;
+        }
+        if(staggeredProxMap[iProc] >= nProcs) {
+	  std::cout << "Stagger:  ERROR!" << std::endl;
+          BoxLib::Abort("*****");
+	}
+      }
+
       for(int iProc(0); iProc < nProcs; ++iProc) {
         const std::vector<int> &vi = vec[iProc];
         for(int j(0), N(vi.size()); j < N; ++j) {
 	  PFCMultiLevelToken &pt = tokens[vi[j]];
 	  int level(pt.m_level);
 	  int idxLevel(pt.m_idxLevel);
-	  int staggeredProc(ProximityMap(iProc));
-	  staggeredProc = ((staggeredProc * staggerOffset) % nProcs)
-	                  + (staggeredProc / (nProcs / staggerOffset));
+	  int staggeredProc(staggeredProxMap[iProc]);
 	  localPMaps[level][idxLevel] = staggeredProc;
         }
       }
