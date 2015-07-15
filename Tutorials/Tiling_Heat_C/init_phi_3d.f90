@@ -2,6 +2,9 @@ subroutine init_phi(lo, hi, &
      phi, p_l1, p_l2, p_l3, p_h1, p_h2, p_h3, &
      ncomp, dx, prob_lo, prob_hi)
 
+  use my_module
+  use mempool_module
+
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), ncomp
@@ -11,6 +14,67 @@ subroutine init_phi(lo, hi, &
 
   integer          :: i,j,k,n
   double precision :: x,y,z,r2
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  double precision, allocatable :: a(:,:)
+  double precision, pointer :: b(:,:)
+  double precision, pointer :: c(:,:)
+  integer :: mylo(2), myhi(2)
+
+  mylo = 8
+  myhi = 15
+
+  allocate(a(mylo(1):myhi(1),mylo(2):myhi(2)))
+  allocate(b(mylo(1):myhi(1),mylo(2):myhi(2)))
+  call bl_allocate(c, mylo(1),myhi(1),mylo(2),myhi(2))
+
+  a = 1.d0
+  b = 1.d0
+  c = 1.d0
+
+  print *, '***** For allocatable *****'
+
+  print *, '---- in main ----'
+
+  i = (mylo(1)+myhi(1))/2
+  do j=mylo(2),myhi(2)
+     print *, loc(a(i,j))
+  end do
+
+  call f(mylo, myhi, a)
+  call g(mylo, myhi, a)
+
+  print *, '***** For pointer *****'
+
+  print *, '---- in main ----'
+
+  i = (mylo(1)+myhi(1))/2
+  do j=mylo(2),myhi(2)
+     print *, loc(b(i,j))
+  end do
+
+  call f(mylo, myhi, b)
+  call g(mylo, myhi, b)
+
+  print *, '***** For bl pointer *****'
+
+  print *, '---- in main ----'
+
+  i = (mylo(1)+myhi(1))/2
+  do j=mylo(2),myhi(2)
+     print *, loc(c(i,j))
+  end do
+
+  call f(mylo, myhi, c)
+  call g(mylo, myhi, c)
+
+  deallocate(a,b)
+  call bl_deallocate(c)
+
+  stop
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   do n = 1, ncomp
      do k = lo(3), hi(3)
@@ -28,3 +92,5 @@ subroutine init_phi(lo, hi, &
   end do
 
 end subroutine init_phi
+
+
