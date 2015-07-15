@@ -150,6 +150,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
     WHICHLINUX := HEDORAH
   endif
+  ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
+    WHICHLINUX := KUMONGA
+  endif
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
   endif
