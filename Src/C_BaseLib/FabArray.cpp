@@ -864,7 +864,7 @@ FabArrayBase::SetNGrow (int n_grow_new)
     boxarray_orig = boxarray;
 
     n_grow = n_grow_new;
-    boxarray.grow(n_grow_new);
+    boxarray.grow(n_grow_orig-n_grow_new);
 }
 
 void
