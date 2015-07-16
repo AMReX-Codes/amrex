@@ -1743,7 +1743,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
       localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
     }
 
-    bool bStagger(true);
+    bool bStagger(false);
     if(bStagger) {
       int staggerOffset(12);
       Array<int> staggeredProxMap(proximityMap.size());
@@ -2255,6 +2255,7 @@ DistributionMapping::InitProximityMap()
 
   if(ParallelDescriptor::IOProcessor())
   {
+    bool bRandomClusters(true);
     Box tBox;
     FArrayBox tFab;
 #ifdef BL_SIM_HOPPER
@@ -2300,6 +2301,17 @@ DistributionMapping::InitProximityMap()
       }
 #endif
 
+    } else if(bRandomClusters) {
+      if(proximityMap.size() != proximityOrder.size()) {
+        BoxLib::Abort("**** Error:  prox size bad.");
+      }
+      Array<int> rSS(proximityMap.size());
+      BoxLib::UniqueRandomSubset(rSS, proximityMap.size(), proximityMap.size());
+      for(int i(0); i < proximityMap.size(); ++i) {
+	std::cout << "rSS[" << i << "] = " << rSS[i] << std::endl;
+        proximityMap[i]   = rSS[i];
+        proximityOrder[i] = rSS[i];
+      }
     } else {
 
       tFab.readFrom(ifs);
