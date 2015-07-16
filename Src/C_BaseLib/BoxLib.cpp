@@ -308,7 +308,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif
 
-    init_memmory_pool();
+    mempool_init();
 
     std::cout << std::setprecision(10);
 
@@ -344,6 +344,34 @@ BoxLib::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
+    // The MemPool stuff is not using The_Finalize_Function_Stack so that
+    // it can be used in Fortran BoxLib.
+    int mp_min, mp_max, mp_tot;
+    mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
+    if (ParallelDescriptor::NProcs() == 1) {
+      if (mp_tot > 0) {
+	std::cout << "MemPool: " 
+#ifdef _OPENMP
+		  << "min used in a thread: " << mp_min << " MB, "
+		  << "max used in a thread: " << mp_max << " MB, "
+#endif
+		  << "tot used: " << mp_tot << " MB." << std::endl;
+      }
+    } else {
+      int global_max = mp_tot;
+      int global_min = mp_tot;
+      ParallelDescriptor::ReduceIntMax(global_max);
+      if (global_max > 0) {
+	ParallelDescriptor::ReduceIntMin(global_min);
+	if (ParallelDescriptor::IOProcessor()) {
+	  std::cout << "MemPool: " 
+		    << "min used in a rank: " << global_min << " MB, "
+		    << "max used in a rank: " << global_max << " MB."
+		    << std::endl;
+	}
+      }
+    }
+    
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
 }
