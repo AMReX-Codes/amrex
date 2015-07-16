@@ -354,7 +354,7 @@ protected:
     //
     // The data ...
     //
-    mutable BoxArray    boxarray;   /* So FabSets can modify'm */
+    BoxArray            boxarray;
     DistributionMapping distributionMap;
     Array<int>          indexMap;
     int                 n_grow;
