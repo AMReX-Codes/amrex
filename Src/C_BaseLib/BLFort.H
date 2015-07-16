@@ -21,7 +21,7 @@
 #define BL_FORT_PROC_NAME(A,B) __BL_FORT_NAME__(A,B)
 
 #define BL_FORT_FAB_ARG(A) Real* A##_fab, ARLIM_P(A##_lo), ARLIM_P(A##_hi)
-#define BL_FORT_FAB_ARG_3D(A) Real* A##_fab, ARLIM_P_3D(A##_lo), ARLIM_P_3D(A##_hi)
+#define BL_FORT_FAB_ARG_3D(A) Real* A##_fab, const int* A##_lo, const int* A##_hi
 
 #endif
 
