@@ -880,6 +880,27 @@ BoxLib::RestoreRandomState (const Array<unsigned long>& state)
     the_generator.restore(state);
 }
 
+void
+BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
+{
+  if(setSize > poolSize) {
+    BoxLib::Abort("**** Error in UniqueSet:  setSize > poolSize.");
+  }
+  std::set<int> copySet;
+  Array<int> uSetTemp;
+  while(copySet.size() < setSize) {
+    int r(BoxLib::Random_int(poolSize));
+    if(copySet.find(r) == copySet.end()) {
+      copySet.insert(r);
+      uSetTemp.push_back(r);
+    }
+  }
+  uSet = uSetTemp;
+  for(int i(0); i < uSet.size(); ++i) {
+    std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+  }
+}
+
 //
 // Fortran entry points for BoxLib::Random().
 //
