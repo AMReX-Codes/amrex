@@ -16,6 +16,14 @@
 #error "One of BL_FORT_USE_{UPPERCASE,LOWERCASE,UNDERSCORE} must be defined"
 #endif
 
+#if     BL_SPACEDIM==1
+#define ZFILL(x) &((Real []){x[0], 0., 0.}[0])
+#elif   BL_SPACEDIM==2
+#define ZFILL(x) &((Real []){x[0], x[1], 0.}[0])
+#elif   BL_SPACEDIM==3
+#define ZFILL(x) x
+#endif
+
 #define BL_FORT_PROC_DECL(A,B) extern "C" void __BL_FORT_NAME__(A,B)
 #define BL_FORT_PROC_CALL(A,B) __BL_FORT_NAME__(A,B)
 #define BL_FORT_PROC_NAME(A,B) __BL_FORT_NAME__(A,B)
