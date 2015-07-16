@@ -2263,7 +2263,7 @@ DistributionMapping::InitProximityMap()
 #else
     std::ifstream ifs("topolcoords.3d.fab");
 #endif
-    if( ! ifs.good())
+    if( ! ifs.good() && ! bRandomClusters)
     {
       std::cerr << "**** In DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
