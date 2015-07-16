@@ -350,6 +350,16 @@ public:
     //
     static IntVect comm_tile_size;  // communication tile size
 
+    //
+    // DO NOT CALL THESE IF YOU DO NOT KNOW WHAT YOU ARE DOING!!!
+    //
+    // Given a normal FabArray (i.e., with non-overlapping boxarray),
+    // this sets n_grow and turns it into a special FabArray with overlapping boxarray.
+    // This is useful for parallel copy, which only copies form valid to valid regions.
+    void SetNGrow (int n_grow_new);
+    // This reset it back to normal.  These two should always appear in pair.
+    void ResetNGrow ();
+
 protected:
     //
     // The data ...
@@ -359,6 +369,9 @@ protected:
     Array<int>          indexMap;
     int                 n_grow;
     int                 n_comp;
+
+    BoxArray            boxarray_orig;
+    int                 n_grow_orig;
 
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
