@@ -4,7 +4,7 @@ module mempool_module
 
   implicit none
 
-  integer, parameter, private :: szd = 8_c_size_t
+  integer (kind=c_size_t), parameter, private :: szd = 8_c_size_t
 
   interface bl_allocate
      module procedure bl_allocate_d1
@@ -25,16 +25,16 @@ module mempool_module
   end interface
 
   interface 
-     function bl_allocate_c (nbytes) result(p) bind(c)
+     function mempool_alloc (nbytes) result(p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr) :: p
        integer(kind=c_size_t), intent(in), value :: nbytes
-     end function bl_allocate_c
+     end function mempool_alloc
      
-     subroutine bl_deallocate_c (p) bind(c)
+     subroutine mempool_free (p) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value :: p
-     end subroutine bl_deallocate_c
+     end subroutine mempool_free
   end interface
 
 contains
@@ -48,7 +48,7 @@ contains
     double precision, pointer :: fp(:)
     n1 = hi1-lo1+1 
     sz = szd * int(n1,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
     call shift_bound_d1(fp, lo1, a)
 !    a(lo1:) => fp  ! some compilers may not support this
@@ -71,7 +71,7 @@ contains
     n1 = hi1-lo1+1 
     n2 = hi2-lo2+1 
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
     call shift_bound_d2(fp, lo1, lo2, a)
 !    a(lo1:,lo2:) => fp
@@ -95,7 +95,7 @@ contains
     n2 = hi2-lo2+1 
     n3 = hi3-lo3+1 
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
     call shift_bound_d3(fp, lo1, lo2, lo3, a)
 !    a(lo1:,lo2:,lo3:) => fp
@@ -121,7 +121,7 @@ contains
     n4 = hi4-lo4+1 
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4/))
     call shift_bound_d4(fp, lo1, lo2, lo3, lo4, a)
 !    a(lo1:,lo2:,lo3:,lo4:) => fp
@@ -148,7 +148,7 @@ contains
     n5 = hi5-lo5+1 
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5/))
     call shift_bound_d5(fp, lo1, lo2, lo3, lo4, lo5, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:) => fp
@@ -176,7 +176,7 @@ contains
     n6 = hi6-lo6+1 
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t) * int(n6,c_size_t)
-    cp = bl_allocate_c(sz)
+    cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5,n6/))
     call shift_bound_d6(fp, lo1, lo2, lo3, lo4, lo5, lo6, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:,lo6) => fp
@@ -195,7 +195,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d1
 
   subroutine bl_deallocate_d2(a)
@@ -204,7 +204,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d2
 
   subroutine bl_deallocate_d3(a)
@@ -213,7 +213,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d3
 
   subroutine bl_deallocate_d4(a)
@@ -222,7 +222,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d4
 
   subroutine bl_deallocate_d5(a)
@@ -231,7 +231,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d5
 
   subroutine bl_deallocate_d6(a)
@@ -240,7 +240,7 @@ contains
     type(c_ptr) :: cp
     lo = lbound(a)
     cp = c_loc(a(lo(1),lo(2),lo(3),lo(4),lo(5),lo(6)))
-    call bl_deallocate_c(cp)
+    call mempool_free(cp)
   end subroutine bl_deallocate_d6
 
 end module mempool_module
