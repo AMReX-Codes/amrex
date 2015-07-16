@@ -146,38 +146,3 @@ subroutine advance_phi2(lo, hi, &
   !$omp end parallel
 
 end subroutine advance_phi2
-
-
-module my_module
-
-  implicit none
-
-contains
-
-  subroutine f(lo, hi, x)
-    integer :: lo(2), hi(2)
-    double precision :: x(lo(1):,lo(2):)
-    integer :: i, j
-
-    print *, '---- for assumed shape array ----'
-    i = (lo(1)+hi(1))/2
-    do j = lo(2),hi(2)
-       print *, loc(x(i,j))
-    end do
-
-  end subroutine f
-
-  subroutine g(lo, hi, x)
-    integer :: lo(2), hi(2)
-    double precision :: x(lo(1):hi(1),lo(2):hi(2))
-    integer :: i, j
-
-    print *, '---- for assumed shape array ----'
-    i = (lo(1)+hi(1))/2
-    do j = lo(2),hi(2)
-       print *, loc(x(i,j))
-    end do
-
-  end subroutine g
-
-end module my_module
