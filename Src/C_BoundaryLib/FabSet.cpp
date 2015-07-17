@@ -199,7 +199,7 @@ FabSet::DoIt (const MultiFab& src,
 
     FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
 
-    this->copy(src,0,dcomp,ncomp,ngrow,op);
+    this->copy(src,0,dcomp,ncomp,ngrow,0,op);
 }
 
 FabSet&

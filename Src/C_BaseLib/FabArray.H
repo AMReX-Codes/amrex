@@ -664,7 +664,6 @@ public:
     // valid+src_nghost region of source.
     //
     void copy (const FabArray<FAB>& fa,
-	       int                  src_nghost = 0,
                CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
@@ -678,7 +677,13 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
-	       int                  src_nghost = 0,
+               CpOp                 op = FabArrayBase::COPY);
+    void copy (const FabArray<FAB>& src,
+               int                  src_comp,
+               int                  dest_comp,
+               int                  num_comp,
+	       int                  src_nghost,
+	       int                  dst_nghost,
                CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
@@ -1356,6 +1361,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  dcomp,
                      int                  ncomp,
 		     int                  snghost,
+		     int                  dnghost,
                      CpOp                 op)
 {
     BL_PROFILE("FabArray::copy()");
@@ -1366,6 +1372,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
 
     BL_ASSERT(src.nGrow() >= snghost);
+    BL_ASSERT(    nGrow() >= dnghost);
+
+    if (snghost > 0) src.SetNGrow(src.nGrow()-snghost);
+    if (dnghost > 0)     SetNGrow(    nGrow()-dnghost);
 
     if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
@@ -1392,6 +1402,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
+	if (snghost > 0) src.ResetNGrow();
+	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
@@ -1429,8 +1441,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-	if (snghost > 0) 
-	    src.ResetNGrow();
+	if (snghost > 0) src.ResetNGrow();
+	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
@@ -1445,8 +1457,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-	if (snghost > 0) 
-	    src.ResetNGrow();
+	if (snghost > 0) src.ResetNGrow();
+	if (dnghost > 0)     ResetNGrow();
         return;
     }
     //
@@ -1637,8 +1649,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
-    if (snghost > 0) 
-	src.ResetNGrow();
+    if (snghost > 0) src.ResetNGrow();
+    if (dnghost > 0)     ResetNGrow();
     return;
 
 #endif /*BL_USE_MPI*/
@@ -1646,9 +1658,20 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, int src_nghost, CpOp op)
+FabArray<FAB>::copy (const FabArray<FAB>& src,
+                     int                  scomp,
+                     int                  dcomp,
+                     int                  ncomp,
+                     CpOp                 op)
 {
-    copy(src,0,0,nComp(),src_nghost,op);
+    copy(src,0,0,nComp(),0,0,op);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
+{
+    copy(src,0,0,nComp(),0,0,op);
 }
 
 //
