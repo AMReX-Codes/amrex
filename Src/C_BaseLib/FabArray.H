@@ -356,22 +356,22 @@ public:
     // Given a normal FabArray (i.e., with non-overlapping boxarray),
     // this sets n_grow and turns it into a special FabArray with overlapping boxarray.
     // This is useful for parallel copy, which only copies form valid to valid regions.
-    void SetNGrow (int n_grow_new);
+    void SetNGrow (int n_grow_new) const;
     // This reset it back to normal.  These two should always appear in pair.
-    void ResetNGrow ();
+    void ResetNGrow () const;
 
 protected:
     //
     // The data ...
     //
-    BoxArray            boxarray;
+    mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
     Array<int>          indexMap;
-    int                 n_grow;
+    mutable int         n_grow;
     int                 n_comp;
 
-    BoxArray            boxarray_orig;
-    int                 n_grow_orig;
+    mutable BoxArray    boxarray_orig;
+    mutable int         n_grow_orig;
 
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
@@ -660,9 +660,11 @@ public:
     // This function copies data from fa to this FabArray.  Each FAB
     // in fa is intersected with all FABs in this FabArray and a copy
     // is performed on the region of intersection.  The intersection
-    // is restricted to the valid region of each FAB.
+    // is restricted to the valid region of destination and the 
+    // valid+src_nghost region of source.
     //
     void copy (const FabArray<FAB>& fa,
+	       int                  src_nghost = 0,
                CpOp                 op = FabArrayBase::COPY);
     //
     // This function copies data from src to this FabArray.  Each FAB
@@ -676,6 +678,7 @@ public:
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
+	       int                  src_nghost = 0,
                CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
@@ -1352,6 +1355,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  scomp,
                      int                  dcomp,
                      int                  ncomp,
+		     int                  snghost,
                      CpOp                 op)
 {
     BL_PROFILE("FabArray::copy()");
@@ -1360,6 +1364,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
     BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
+
+    BL_ASSERT(src.nGrow() >= snghost);
 
     if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
@@ -1388,6 +1394,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         return;
     }
+
+    if (snghost > 0) 
+	src.SetNGrow(src.nGrow()-snghost);
 
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
@@ -1420,6 +1429,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
+	if (snghost > 0) 
+	    src.ResetNGrow();
         return;
     }
 
@@ -1430,11 +1441,14 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty())
+    if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty()) {
         //
         // No work to do.
         //
+	if (snghost > 0) 
+	    src.ResetNGrow();
         return;
+    }
     //
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
@@ -1623,14 +1637,18 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
+    if (snghost > 0) 
+	src.ResetNGrow();
+    return;
+
 #endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
+FabArray<FAB>::copy (const FabArray<FAB>& src, int src_nghost, CpOp op)
 {
-    copy(src,0,0,nComp(),op);
+    copy(src,0,0,nComp(),src_nghost,op);
 }
 
 //
