@@ -380,6 +380,7 @@ public:
     //
     // Copy from src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
+    // The copy is local.  The parallel copy function is in FabArray.H
     //
     static void Copy (MultiFab&       dst,
                       const MultiFab& src,
