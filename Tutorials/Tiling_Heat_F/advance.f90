@@ -9,266 +9,202 @@ module advance_module
   public :: advance
 
 contains
-  
-  subroutine advance(phi,dx,dt)
 
-    type(multifab) , intent(inout) :: phi
+  subroutine advance(phi_old,phi_new,dx,dt)
+
+    type(multifab) , intent(inout) :: phi_old,phi_new
     real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: dt
 
     ! local variables
-    integer i,dm
+    integer i, ng_p
 
-    ! an array of multifabs; one for each direction
-    type(multifab) :: flux(phi%dim) 
-
-    dm = phi%dim
-
-    ! build the flux(:) multifabs
-    do i=1,dm
-       ! flux(i) has one component, zero ghost cells, and is nodal in direction i
-       call multifab_build_edge(flux(i),phi%la,1,0,i)
-    end do
-
-    ! compute the face-centered gradients in each direction
-    call compute_flux(phi,flux,dx)
+    real(kind=dp_t), pointer ::  pp_old(:,:,:,:), pp_new(:,:,:,:)
     
-    ! update phi using forward Euler discretization
-    call update_phi(phi,flux,dx,dt)
+    type(mfiter) :: mfi
+    type(box) :: tilebox
+    integer :: lo(3), hi(3), tlo(3), thi(3), tsize(3)
 
-    ! make sure to destroy the multifab or you'll leak memory
-    do i=1,dm
-       call multifab_destroy(flux(i))
+    logical :: do_tiling
+
+    ng_p = phi_old%ng
+
+    tsize = (/ 128, 4, 4 /)
+
+    do_tiling = .false.
+
+    if(do_tiling) then
+    !$omp parallel private(i,mfi,tilebox,tlo,thi,pp_old,pp_new,lo,hi)
+    
+    call mfiter_build(mfi, phi_old, tiling= .true., tilesize= tsize)
+
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+
+       tilebox = get_tilebox(mfi)
+       tlo = lwb(tilebox)
+       thi = upb(tilebox)
+
+       pp_old => dataptr(phi_old,i)
+       pp_new => dataptr(phi_new,i)
+       lo = lwb(get_box(phi_old,i))
+       hi = upb(get_box(phi_old,i))
+
+       call advance_phi(pp_old(:,:,:,1), pp_new(:,:,:,1), &
+            ng_p, lo, hi, dx, dt, tlo, thi)
+
     end do
+    !$omp end parallel
+
+    else 
+       do i=1,nfabs(phi_old)
+          pp_old => dataptr(phi_old,i)
+          pp_new => dataptr(phi_new,i)
+          lo = lwb(get_box(phi_old,i))
+          hi = upb(get_box(phi_old,i))
+
+          call advance_phi2(pp_old(:,:,:,1), pp_new(:,:,:,1), &
+               ng_p, lo, hi, dx, dt)
+
+       end do
+    end if
+
+    call multifab_fill_boundary(phi_new)
+
+    call multifab_copy(phi_old, phi_new, ng= ng_p)
 
   end subroutine advance
 
-  subroutine compute_flux(phi,flux,dx)
 
-    type(multifab) , intent(in   ) :: phi
-    type(multifab) , intent(inout) :: flux(:)
-    real(kind=dp_t), intent(in   ) :: dx
+  subroutine advance_phi(phi_old, phi_new, ng_p, glo, ghi, dx, dt, tlo, thi)
+ 
+    integer :: glo(3), ghi(3), ng_p, tlo(3), thi(3)
+    double precision :: phi_old(glo(1)-ng_p:,glo(2)-ng_p:,glo(3)-ng_p:)
+    double precision :: phi_new(glo(1)-ng_p:,glo(2)-ng_p:,glo(3)-ng_p:)
+    double precision :: dx, dt
 
-    ! local variables
-    integer :: lo(phi%dim), hi(phi%dim)
-    integer :: dm, ng_p, ng_f, i
+    ! local variables   
+    integer :: i,j,k
 
-    real(kind=dp_t), pointer ::  pp(:,:,:,:)
-    real(kind=dp_t), pointer :: fxp(:,:,:,:)
-    real(kind=dp_t), pointer :: fyp(:,:,:,:)
-    real(kind=dp_t), pointer :: fzp(:,:,:,:)
+    double precision :: dxinv, dtdx
 
-    ! timer for profiling - enable by building code with PROF=t
-    type(bl_prof_timer), save :: bpt
+    double precision :: fx(tlo(1):thi(1)+1,tlo(2):thi(2)  ,tlo(3):thi(3))
+    double precision :: fy(tlo(1):thi(1)  ,tlo(2):thi(2)+1,tlo(3):thi(3))
+    double precision :: fz(tlo(1):thi(1)  ,tlo(2):thi(2)  ,tlo(3):thi(3)+1)
 
-    ! open the timer
-    call build(bpt,"compute_flux")
-
-    dm   = phi%dim
-    ng_p = phi%ng
-    ng_f = flux(1)%ng
-
-    do i=1,nfabs(phi)
-       pp  => dataptr(phi,i)
-       fxp => dataptr(flux(1),i)
-       fyp => dataptr(flux(2),i)
-       lo = lwb(get_box(phi,i))
-       hi = upb(get_box(phi,i))
-       select case(dm)
-       case (2)
-          call compute_flux_2d(pp(:,:,1,1), ng_p, &
-                               fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                               lo, hi, dx)
-       case (3)
-          fzp => dataptr(flux(3),i)
-          call compute_flux_3d(pp(:,:,:,1), ng_p, &
-                               fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                               lo, hi, dx)
-       end select
-    end do
-
-    ! close the timer
-    call destroy(bpt)
-
-  end subroutine compute_flux
-
-
-  subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx)
-
-    integer          :: lo(2), hi(2), ng_p, ng_f
-    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
-    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: dx
-
-    ! local variables
-    integer i,j
+    dxinv = 1.d0/dx
+    dtdx = dt*dxinv
 
     ! x-fluxes
-    do j=lo(2),hi(2)
-       do i=lo(1),hi(1)+1
-          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx
-       end do
-    end do
+     do k=tlo(3),thi(3)
+        do j=tlo(2),thi(2)
+           do i=tlo(1),thi(1)+1
+              fx(i,j,k) = ( phi_old(i,j,k) - phi_old(i-1,j,k) ) * dxinv
+           end do
+        end do
+     end do
 
-    ! y-fluxes
-    do j=lo(2),hi(2)+1
-       do i=lo(1),hi(1)
-          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx
-       end do
-    end do
+     ! y-fluxes
+     do k=tlo(3),thi(3)
+        do j=tlo(2),thi(2)+1
+           do i=tlo(1),thi(1)
+              fy(i,j,k) = ( phi_old(i,j,k) - phi_old(i,j-1,k) ) * dxinv
+           end do
+        end do
+     end do
+     
+     ! z-fluxes
+     do k=tlo(3),thi(3)+1
+        do j=tlo(2),thi(2)
+           do i=tlo(1),thi(1)
+              fz(i,j,k) = ( phi_old(i,j,k) - phi_old(i,j,k-1) ) * dxinv
+           end do
+        end do
+     end do
+     
+     do k=tlo(3),thi(3)
+        do j=tlo(2),thi(2)
+           do i=tlo(1),thi(1)
+              phi_new(i,j,k) = phi_old(i,j,k) + dtdx * &
+                   ( fx(i+1,j,k) - fx(i,j,k) &
+                   + fy(i,j+1,k) - fy(i,j,k) &
+                   + fz(i,j,k+1) - fz(i,j,k) )
+           end do
+        end do
+     end do
 
-  end subroutine compute_flux_2d
+   end subroutine advance_phi
 
-  subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx)
+   subroutine advance_phi2(phi_old, phi_new, ng_p, lo, hi, dx, dt)
+     
+     integer :: lo(3), hi(3), ng_p
+     double precision :: phi_old(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
+     double precision :: phi_new(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
+     double precision :: dx, dt
+   
 
-    integer          :: lo(3), hi(3), ng_p, ng_f
-    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
-    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: dx
+     ! local variables
+     integer :: i,j,k
 
-    ! local variables
-    integer i,j,k
+     double precision :: dxinv, dtdx
+
+     double precision :: fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3))
+     double precision :: fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3))
+     double precision :: fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1)
+
+     dxinv = 1.d0/dx
+     dtdx = dt*dxinv
+
+    !$omp parallel private(i,j,k)
 
     ! x-fluxes
-    !$omp parallel do private(i,j,k)
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)+1
-             fluxx(i,j,k) = ( phi(i,j,k) - phi(i-1,j,k) ) / dx
+             fx(i,j,k) = ( phi_old(i,j,k) - phi_old(i-1,j,k) ) * dxinv
           end do
        end do
     end do
-    !$omp end parallel do
+    !$omp end do nowait
 
     ! y-fluxes
-    !$omp parallel do private(i,j,k)
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
           do i=lo(1),hi(1)
-             fluxy(i,j,k) = ( phi(i,j,k) - phi(i,j-1,k) ) / dx
+             fy(i,j,k) = ( phi_old(i,j,k) - phi_old(i,j-1,k) ) * dxinv
           end do
        end do
     end do
-    !$omp end parallel do
+    !$omp end do nowait
 
     ! z-fluxes
-    !$omp parallel do private(i,j,k)
+    !$omp do collapse(2)
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-             fluxz(i,j,k) = ( phi(i,j,k) - phi(i,j,k-1) ) / dx
+             fz(i,j,k) = ( phi_old(i,j,k) - phi_old(i,j,k-1) ) * dxinv
           end do
        end do
     end do
-    !$omp end parallel do
+    !$omp end do
 
-  end subroutine compute_flux_3d
-
-  subroutine update_phi(phi,flux,dx,dt)
-
-    type(multifab) , intent(inout) :: phi
-    type(multifab) , intent(in   ) :: flux(:)
-    real(kind=dp_t), intent(in   ) :: dx
-    real(kind=dp_t), intent(in   ) :: dt
-
-    ! local variables
-    integer :: lo(phi%dim), hi(phi%dim)
-    integer :: dm, ng_p, ng_f, i
-
-    real(kind=dp_t), pointer ::  pp(:,:,:,:)
-    real(kind=dp_t), pointer :: fxp(:,:,:,:)
-    real(kind=dp_t), pointer :: fyp(:,:,:,:)
-    real(kind=dp_t), pointer :: fzp(:,:,:,:)
-
-    ! timer for profiling - enable by building code with PROF=t
-    type(bl_prof_timer), save :: bpt
-
-    ! open the timer
-    call build(bpt,"update_phi")
-
-    dm   = phi%dim
-    ng_p = phi%ng
-    ng_f = flux(1)%ng
-
-    do i=1,nfabs(phi)
-       pp  => dataptr(phi,i)
-       fxp => dataptr(flux(1),i)
-       fyp => dataptr(flux(2),i)
-       lo = lwb(get_box(phi,i))
-       hi = upb(get_box(phi,i))
-       select case(dm)
-       case (2)
-          call update_phi_2d(pp(:,:,1,1), ng_p, &
-                             fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                             lo, hi, dx, dt)
-       case (3)
-          fzp => dataptr(flux(3),i)
-          call update_phi_3d(pp(:,:,:,1), ng_p, &
-                             fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                             lo, hi, dx, dt)
-       end select
-    end do
-    
-    ! fill ghost cells
-    ! this only fills periodic ghost cells and ghost cells for neighboring
-    ! grids at the same level.  Physical boundary ghost cells are filled
-    ! using multifab_physbc.  But this problem is periodic, so this
-    ! call is sufficient.
-    call multifab_fill_boundary(phi)
-
-    call destroy(bpt)
-
-  end subroutine update_phi
-
-  subroutine update_phi_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt)
-
-    integer          :: lo(2), hi(2), ng_p, ng_f
-    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
-    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
-    double precision :: dx, dt
-
-    ! local variables
-    integer i,j
-
-    do j=lo(2),hi(2)
-       do i=lo(1),hi(1)
-          phi(i,j) = phi(i,j) + dt * &
-               ( fluxx(i+1,j)-fluxx(i,j) + fluxy(i,j+1)-fluxy(i,j) ) / dx
-       end do
-    end do
-
-  end subroutine update_phi_2d
-
-  subroutine update_phi_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, lo, hi, dx, dt)
-
-    integer          :: lo(3), hi(3), ng_p, ng_f
-    double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
-    double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
-    double precision :: dx, dt
-
-    ! local variables
-    integer i,j,k
-
-    !$omp parallel do private(i,j,k)
+    !$omp do collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-             phi(i,j,k) = phi(i,j,k) + dt * &
-                  ( fluxx(i+1,j,k)-fluxx(i,j,k) &
-                   +fluxy(i,j+1,k)-fluxy(i,j,k) &
-                   +fluxz(i,j,k+1)-fluxz(i,j,k) ) / dx
+             phi_new(i,j,k) = phi_old(i,j,k) + dtdx * &
+                  ( fx(i+1,j,k) - fx(i,j,k) &
+                   +fy(i,j+1,k) - fy(i,j,k) &
+                   +fz(i,j,k+1) - fz(i,j,k) )
           end do
        end do
     end do
-    !$omp end parallel do
+    !$omp end do
 
-  end subroutine update_phi_3d
+    !$omp end parallel
+
+   end subroutine advance_phi2
 
 end module advance_module
-

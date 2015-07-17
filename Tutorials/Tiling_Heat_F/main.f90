@@ -29,7 +29,7 @@ program main
   type(box)      :: bx
   type(boxarray) :: ba
   type(layout)   :: la
-  type(multifab) :: phi
+  type(multifab) :: phi_old, phi_new
 
   namelist /probin/ dim, nsteps, plot_int, n_cell, max_grid_size
 
@@ -99,10 +99,12 @@ program main
   call destroy(ba)
 
   ! build multifab with 1 component and 1 ghost cell
-  call multifab_build(phi,la,1,1)
+  call multifab_build(phi_old,la,1,1)
+  call multifab_build(phi_new,la,1,1)
   
   ! initialize phi
-  call init_phi(phi,dx,prob_lo)
+  call init_phi(phi_old,dx,prob_lo)
+  call init_phi(phi_new,dx,prob_lo)
 
   istep = 0
   time = 0.d0
@@ -112,7 +114,7 @@ program main
 
   ! write out plotfile 0
   if (plot_int .gt. 0) then
-     call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+     call write_plotfile(la,phi_new,istep,dx,time,prob_lo,prob_hi)
   end if
 
   do istep=1,nsteps
@@ -123,21 +125,22 @@ program main
      end if
      
      ! advance phi
-     call advance(phi,dx,dt)
+     call advance(phi_old,phi_new,dx,dt)
 
      time = time + dt
 
      if (plot_int .gt. 0) then
         if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
            ! write out plotfile
-           call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+           call write_plotfile(la,phi_new,istep,dx,time,prob_lo,prob_hi)
         end if
      end if
 
   end do
 
   ! make sure to destroy the multifab or you'll leak memory
-  call destroy(phi)
+  call destroy(phi_old)
+  call destroy(phi_new)
   call destroy(la)
 
   deallocate(lo,hi,is_periodic,prob_lo,prob_hi)
