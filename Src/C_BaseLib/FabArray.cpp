@@ -852,7 +852,7 @@ FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
 }
 
 void
-FabArrayBase::SetNGrow (int n_grow_new)
+FabArrayBase::SetNGrow (int n_grow_new) const
 {
     BL_ASSERT(n_grow_new >= 0);
     BL_ASSERT(n_grow_new <= n_grow);
@@ -868,7 +868,7 @@ FabArrayBase::SetNGrow (int n_grow_new)
 }
 
 void
-FabArrayBase::ResetNGrow ()
+FabArrayBase::ResetNGrow () const
 {
     if (boxarray_orig.empty()) return;
     n_grow = n_grow_orig;
