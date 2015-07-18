@@ -20,6 +20,8 @@ contains
     integer i, ng_p
 
     real(kind=dp_t), pointer ::  pp_old(:,:,:,:), pp_new(:,:,:,:)
+
+    type(multifab) :: temp
     
     type(mfiter) :: mfi
     type(box) :: tilebox
@@ -27,11 +29,16 @@ contains
 
     logical :: do_tiling
 
+    ! Swap pointers to multifabs
+    temp = phi_old
+    phi_old = phi_new
+    phi_new = temp
+
     ng_p = phi_old%ng
 
     tsize = (/ 128, 4, 4 /)
 
-    do_tiling = .false.
+    do_tiling = .true.
 
     if(do_tiling) then
     !$omp parallel private(i,mfi,tilebox,tlo,thi,pp_old,pp_new,lo,hi)
@@ -70,8 +77,6 @@ contains
     end if
 
     call multifab_fill_boundary(phi_new)
-
-    call multifab_copy(phi_old, phi_new, ng= ng_p)
 
   end subroutine advance
 
