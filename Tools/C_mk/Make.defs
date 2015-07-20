@@ -150,6 +150,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
     WHICHLINUX := HEDORAH
   endif
+  ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
+    WHICHLINUX := KUMONGA
+  endif
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
   endif
@@ -471,11 +474,19 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    else
-     CXXOPTF += -g -O2 -ip -fp-model source
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+       else
+         CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+       endif
+     else
+       CXXOPTF += -g -O2 -ip -fp-model source
+     endif
    endif
-   CXXDEBF += -g -O0
+   CXXDEBF += -g -O0 -Wcheck
 
    COPTF += $(CXXOPTF) -std=c99
    CDEBF += $(CXXDEBF) -std=c99
@@ -731,19 +742,29 @@ ifeq ($(FCOMP),Intel)
      endif
    endif
 
-   FDEBF += -g -u #-C
-   fDEBF += -g -u #-C
+   FDEBF += -g -u -check all -warn all
+   fDEBF += -g -u -check all -warn all 
    ifneq ($(IFC_MAJOR_VERSION), 10)
      FOPTF += -g
      fOPTF += -g
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-     fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+     fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
    else
-     FOPTF += -O2 -ip -fp-model source
-     fOPTF += -O2 -ip -fp-model source
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+         fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+       else
+         FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+         fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec -qoverride-limits
+       endif
+     else
+       FOPTF += -O2 -ip -fp-model source
+       fOPTF += -O2 -ip -fp-model source
+     endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)

@@ -1,5 +1,5 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 1000
+max_step = 20
 stop_time = 10.0
 
 #act.fixed_dt = 0.1
@@ -9,8 +9,8 @@ act.diffuse_spec = 1
 # PROBLEM SIZE & GEOMETRY
 geometry.is_periodic =  1 1 1
 geometry.coord_sys   =  0       # 0 => cart
-geometry.prob_lo     =  0    0   0
-geometry.prob_hi     =  1    1   1
+geometry.prob_lo     =  0    0    0 
+geometry.prob_hi     =  1    1    1
 amr.n_cell           = 32   32   32
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
@@ -18,8 +18,8 @@ amr.n_cell           = 32   32   32
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-act.lo_bc       =  0  0  0
-act.hi_bc       =  0  0  0
+act.lo_bc       =  0   0   0
+act.hi_bc       =  0   0   0
 
 # WHICH PHYSICS 
 act.do_hydro = 1
@@ -50,9 +50,13 @@ amr.check_file      = chk     # root name of checkpoint file
 amr.check_int       = 100       # number of timesteps between checkpoints
 
 # PLOTFILES
-amr.plot_file       = plt3d_
-amr.plot_int        = 100
+amr.plot_file       = plt
+amr.plot_int        = 20
 amr.derive_plot_vars=NONE
 
 # PROBIN FILENAME
 amr.probin_file = probin.3d
+
+fabarray.verbose = 0
+geometry.verbose = 0
+

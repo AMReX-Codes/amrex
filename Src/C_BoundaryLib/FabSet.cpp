@@ -199,28 +199,7 @@ FabSet::DoIt (const MultiFab& src,
 
     FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
 
-    if (ngrow == 0)
-    {
-        this->copy(src,scomp,dcomp,ncomp,op);
-    }
-    else
-    {
-        BoxArray ba = src.boxArray();
-
-        ba.grow(ngrow);
-
-        MultiFab tmpsrc(ba, ncomp, 0);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(tmpsrc,true); mfi.isValid(); ++mfi) {
-	    const Box& bx = mfi.tilebox();
-            tmpsrc[mfi].copy(src[mfi], bx, scomp, bx, 0, ncomp);
-	}
-
-        this->copy(tmpsrc,0,dcomp,ncomp,op);
-    }
+    this->copy(src,scomp,dcomp,ncomp,ngrow,0,op);
 }
 
 FabSet&
