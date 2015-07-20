@@ -1407,9 +1407,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         return;
     }
 
-    if (snghost > 0) 
-	src.SetNGrow(src.nGrow()-snghost);
-
     const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
