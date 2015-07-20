@@ -242,14 +242,12 @@ subroutine enforce_nonnegative_species(uout,uout_l1,uout_l2,uout_l3, &
                     ! Here we only print the bigger negative values.
                     !
                     if (x .lt. -1.d-2) then
-                       print *,'Correcting nth negative species ',n-UFS+1
-                       print *,'   at cell (i,j,k)              ',i,j,k
-                       print *,'Negative (rho*X) is             ',uout(i,j,k,n)
-                       print *,'Negative      X  is             ',x
-                       print *,'Filling from dominant species   ',int_dom_spec-UFS+1
-                       print *,'  which had X =                 ',&
-                            uout(i,j,k,int_dom_spec) / uout(i,j,k,URHO)
+                       print *,'At cell (i,j,k) = ',i,j,k
+                       print *,'...   Fixing negative species ',n           ,' with X = ',x
+                       print *,'...     from dominant species ',int_dom_spec,' with X = ',&
+                                uout(i,j,k,int_dom_spec) / uout(i,j,k,URHO)
                     end if
+
                     !
                     ! Take enough from the dominant species to fill the negative one.
                     !

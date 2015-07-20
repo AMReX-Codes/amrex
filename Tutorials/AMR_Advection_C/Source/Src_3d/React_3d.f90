@@ -21,7 +21,7 @@
       double precision :: rho, rhoInv, u, v, w, T_in
       double precision :: x_in(nspec), x_out(nspec)
 
-      do j = lo(3), hi(3)
+      do k = lo(3), hi(3)
       do j = lo(2), hi(2)
       do i = lo(1), hi(1)
 

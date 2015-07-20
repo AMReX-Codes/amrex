@@ -65,7 +65,7 @@
 
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
-              rr = qm(i,j+1,i,QRHO)
+              rr = qm(i,j+1,k,QRHO)
               rrnew = rr - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                          - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO))
 
@@ -97,7 +97,7 @@
 
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
-              rr = qm(i,j+1,i,QRHO)
+              rr = qm(i,j+1,k,QRHO)
               rrnew = rr - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                          - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO))
 
@@ -163,7 +163,6 @@
       enddo
       enddo
       enddo
-
       do iadv = 1, nadv
           n  = UFA + iadv - 1
           nq = QFA + iadv - 1
@@ -172,18 +171,22 @@
           do i = ilo, ihi 
 
               rr = qp(i,j,k,QRHO)
-              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
+              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) &
+                         - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
 
               compo = rr*qp(i,j,k,nq)
-              compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n)) - hdtdz*(fz(i,j,k+1,n)-fz(i,j,k,n)) 
+              compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n)) &
+                            - hdtdz*(fz(i,j,k+1,n)-fz(i,j,k,n)) 
 
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
               rr = qm(i+1,j,k,QRHO)
-              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO))  - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
+              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) &
+                         - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
 
               compo = rr*qm(i+1,j,k,nq)
-              compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n))  - hdtdz*(fz(i,j,k+1,n)-fz(i,j,k,n)) 
+              compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n)) & 
+                            - hdtdz*(fz(i,j,k+1,n)-fz(i,j,k,n)) 
 
               qmo(i+1,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
@@ -200,8 +203,8 @@
           do i = ilo, ihi 
 
               rr = qp(i,j,k,QRHO)
-              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) - &
-                           hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
+              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) &
+                         - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
 
               compo = rr*qp(i,j,k,nq)
               compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n)) &
@@ -210,8 +213,8 @@
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
               rr = qm(i+1,j,k,QRHO)
-              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) - &
-                           hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
+              rrnew = rr - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO)) &
+                         - hdtdz*(fz(i,j,k+1,URHO)-fz(i,j,k,URHO)) 
 
               compo = rr*qm(i+1,j,k,nq)
               compn = compo - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n)) &
@@ -267,9 +270,9 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-          qpo(i,j  ,k,QRHO) = qp(i,j  ,k,QRHO) - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
+          qpo(i,j,k  ,QRHO) = qp(i,j,k  ,QRHO) - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                                                - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO))
-          qmo(i,j+1,k,QRHO) = qm(i,j+1,k,QRHO) - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
+          qmo(i,j,k+1,QRHO) = qm(i,j,k+1,QRHO) - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                                                - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO))
 
       enddo
@@ -293,15 +296,15 @@
 
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
-              rr = qm(i,j+1,i,QRHO)
+              rr = qm(i,j,k+1,QRHO)
               rrnew = rr - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                          - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO))
 
-              compo = rr*qm(i,j+1,k,nq)
+              compo = rr*qm(i,j,k+1,nq)
               compn = compo - hdtdx*(fx(i+1,j,k,n)-fx(i,j,k,n)) &
                             - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n))
 
-              qmo(i,j+1,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
+              qmo(i,j,k+1,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
           enddo
           enddo
@@ -325,15 +328,15 @@
 
               qpo(i,j,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
-              rr = qm(i,j+1,i,QRHO)
+              rr = qm(i,j,k+1,QRHO)
               rrnew = rr - hdtdx*(fx(i+1,j,k,URHO)-fx(i,j,k,URHO)) &
                          - hdtdy*(fy(i,j+1,k,URHO)-fy(i,j,k,URHO))
 
-              compo = rr*qm(i,j+1,k,nq)
+              compo = rr*qm(i,j,k+1,nq)
               compn = compo - hdtdx*(fx(i+1,j,k,n)-fx(i,j,k,n)) &
                             - hdtdy*(fy(i,j+1,k,n)-fy(i,j,k,n))
 
-              qmo(i,j+1,k,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
+              qmo(i,j,k+1,nq) = compn/rrnew + hdt*srcQ(i,j,k,nq)
 
           enddo
           enddo

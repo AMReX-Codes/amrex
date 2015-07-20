@@ -15,6 +15,7 @@ extern "C"
     //
     // Type of extern "C" function called by DeriveRec to compute derived quantity.
     //
+    // Note that ARLIM_P will be preprocessed into DIM const int&'s.
     typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
                                const int* nvar, const Real* compdat,
                                ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
@@ -25,6 +26,15 @@ extern "C"
                                const Real* time, const Real* dt, 
                                const int* bcrec,
                                const int* level, const int* grid_no) ;
+    // This is dimension agnostic.  For example, dlo always has three elements.
+    typedef void (*DeriveFunc3D)(Real* data, const int* dlo, const int* dhi, const int* nvar, 
+				 const Real* compdat, const int* clo, const int* chi, const int* ncomp,
+				 const int* lo, const int* hi,
+				 const int* domain_lo, const int* domain_hi,
+				 const Real* delta, const Real* xlo,
+				 const Real* time, const Real* dt, 
+				 const int* bcrec,
+				 const int* level, const int* grid_no) ;
 }
 
 //
@@ -68,7 +78,8 @@ public:
     //
     // The DeriveFunc used to calculate the derived type.
     //
-    DeriveFunc derFunc () const;
+    DeriveFunc   derFunc   () const;
+    DeriveFunc3D derFunc3D () const;
     //
     // Maps state data box to derived data box.
     //
@@ -112,6 +123,12 @@ protected:
                DeriveFunc     der_func,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
+    DeriveRec (const std::string& name,
+               IndexType      result_type,
+               int            nvar_derive,
+               DeriveFunc3D   der_func_3d,
+               DeriveBoxMap   box_map,
+               Interpolater*  interp = &pc_interp);
 
     //
     // Constructor without a Fortran function
@@ -128,6 +145,13 @@ protected:
                int                 nvar_derive,
 	       Array<std::string>& var_names,
                DeriveFunc          der_func,
+               DeriveBoxMap        box_map,
+               Interpolater*       interp = &pc_interp);
+    DeriveRec (const std::string&  name,
+               IndexType           result_type,
+               int                 nvar_derive,
+	       Array<std::string>& var_names,
+               DeriveFunc3D        der_func_3d,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
@@ -168,7 +192,8 @@ private:
     //
     // Function that computes derived quantity from state variables.
     //
-    DeriveFunc func;
+    DeriveFunc   func;
+    DeriveFunc3D func_3d;
     //
     // Interpolater for mapping crse grid derived data to finer levels.
     //
@@ -225,6 +250,12 @@ public:
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+              DeriveFunc3D            der_func_3d,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp);
 
     //
     // This version doesn't take a Fortran function.
@@ -242,6 +273,13 @@ public:
               int                     nvar_derive,
 	      Array<std::string>&     var_names,
               DeriveFunc              der_func,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp);
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+	      Array<std::string>&     var_names,
+              DeriveFunc3D            der_func_3d,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
     //

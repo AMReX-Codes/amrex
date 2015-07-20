@@ -5709,6 +5709,20 @@ contains
     end if
   end function get_growntilebox
 
+  pure function get_grownnodaltilebox(mfi, dir, ng_in) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in) :: dir
+    integer, intent(in), optional :: ng_in
+    integer :: gridhi, tilehi
+    r = get_growntilebox(mfi, ng_in)
+    if (.not. mfi%nodal(dir)) then
+       tilehi = upb(get_tilebox(mfi), dir)
+       gridhi = upb(get_gridbox(mfi), dir)
+       if (gridhi .eq. tilehi) r%hi(dir) = r%hi(dir)+1       
+    end if
+  end function get_grownnodaltilebox
+
   pure function get_gridbox(mfi) result (r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
