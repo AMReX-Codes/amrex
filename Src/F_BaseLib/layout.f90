@@ -3559,8 +3559,10 @@ contains
     ta%tilesize = def_tile_size
     if (present(tilesize)) ta%tilesize(1:size(tilesize)) = tilesize
 
-    nc = 1
-    nt = 1
+    nc = 1   ! number of cells in each dimension
+    nt = 1   ! number of tiles in each dimension
+    nl = 0   ! remainder of nc/nt in each dimension
+    ts = 1   ! tile size in each dimension
 
     do n=1, ta%lap%nlocal
        bx = get_box(ta%lap%bxa, ta%lap%idx(n))
