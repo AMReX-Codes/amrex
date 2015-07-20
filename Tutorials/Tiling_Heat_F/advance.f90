@@ -82,9 +82,9 @@ contains
        end do
     end if
 
-    call multifab_fill_boundary(phi_new)
-
     call destroy(bpt)
+
+    call multifab_fill_boundary(phi_new)
 
 
   end subroutine advance
