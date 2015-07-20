@@ -34,7 +34,7 @@ ifndef NDEBUG
 endif
 ifdef MIC
   mic_suffix    := .mic
-end if
+endif
 ifdef SDC
   sdc_suffix 	:= .SDC
 endif
