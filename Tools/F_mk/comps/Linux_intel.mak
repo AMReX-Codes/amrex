@@ -28,7 +28,7 @@
     F90FLAGS += -module $(mdir) -I $(mdir)
     CFLAGS   += -std=c99
 
-    ifeq ($(findstring bint01.nersc.gov, $(HOSTNAMEF)), bint01.nersc.gov)
+    ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
       #
       # babbage.nersc.gov
       #
