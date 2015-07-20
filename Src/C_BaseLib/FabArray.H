@@ -1661,7 +1661,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                      int                  ncomp,
                      CpOp                 op)
 {
-    copy(src,0,0,nComp(),0,0,op);
+    copy(src,scomp,dcomp,ncomp,0,0,op);
 }
 
 template <class FAB>
