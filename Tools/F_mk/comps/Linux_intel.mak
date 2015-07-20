@@ -28,13 +28,23 @@
     F90FLAGS += -module $(mdir) -I $(mdir)
     CFLAGS   += -std=c99
 
-    ifeq ($(findstring bint01.nersc.gov, $(HOSTNAMEF)), bint01.nersc.gov)
+    ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
       #
       # babbage.nersc.gov
       #
-      FFLAGS   += -mmic
-      F90FLAGS += -mmic
-      CFLAGS   += -mmic
+      ifdef MIC
+        FFLAGS   += -mmic
+        F90FLAGS += -mmic
+        CFLAGS   += -mmic
+      endif
+    endif
+
+    ifdef NDEBUG
+      ifndef MIC
+        FFLAGS   += -xHost
+        F90FLAGS += -xHost
+        CFLAGS   += -xHost
+      endif
     endif
 
     ifdef OMP
