@@ -3522,6 +3522,7 @@ contains
              call remove_tilearray_item(p)
              call add_tilearray_head(p)
           end if
+          r = the_tilearray_head
           return
        end if
        p => p%next
@@ -3556,7 +3557,7 @@ contains
     r = nthreads .eq. p%nthreads
     if (.not.r) return
 
-    r = all(tilesize(p%dim) .eq. p%tilesize(1:p%dim))
+    r = all(tilesize(1:p%dim) .eq. p%tilesize(1:p%dim))
     return
   end function tilearray_check
 
