@@ -176,6 +176,14 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST), kumonga)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOST), mothra)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -185,11 +193,12 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),orga)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CC := mpicc
+      CXX := mpic++
+      FC := mpif90
+      F90 := mpif90
+      fC := mpif90
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),manda)
@@ -409,6 +418,9 @@ ifeq ($(MACHINE), Linux)
     ifeq ($(WHICHLINUX),HOPPER)
       BL_MPI_LIBS += -lmpichf90
     endif
+    ifeq ($(WHICHLINUX),BLUE_WATERS)
+      BL_MPI_LIBS += -lmpichf90
+    endif
 
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
@@ -427,7 +439,9 @@ ifeq ($(MACHINE), Linux)
                     ifneq ($(WHICHLINUX), DONEV)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
-                          BL_MPI_LIBS += -lmpich
+                          ifneq ($(WHICHLINUX), BABBAGE)
+                            BL_MPI_LIBS += -lmpich
+                          endif
                         endif  
                       endif  
                     endif  
@@ -452,6 +466,7 @@ ifeq ($(MACHINE), Linux)
         FC  := mpif90
         fC  := mpif90
         F90 := mpif90
+	BL_MPI_LIBS += -lmpichf90
       else        
         LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       endif

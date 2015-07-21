@@ -10,8 +10,11 @@ COMM_PROFILE  = TRUE
 TRACE_PROFILE = TRUE
 COMP      = g++
 FCOMP     = gfortran
+COMP      = Intel
+FCOMP     = Intel
 DIM       = 3
 PRECISION = DOUBLE
+EBASE     = gridmovetest
 EBASE     = mfreadwrite
 
 include ./Make.package

@@ -22,7 +22,7 @@ contains
   subroutine boxlib_initialize(thread_support_level)
     integer, intent(in), optional :: thread_support_level
     call parallel_initialize(MPI_COMM_WORLD, thread_support_level)
-    if (parallel_IOProcessor() .and. parallel_nprocs() > 1) then
+    if (parallel_IOProcessor()) then
        print*, "MPI initialized with ", parallel_nprocs(), " MPI processes";
        if (present(thread_support_level)) then
           select case(parallel_thread_support_level())

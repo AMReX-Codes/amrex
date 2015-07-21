@@ -58,6 +58,18 @@ module multifab_module
      real(dp_t), pointer :: recv_buffer(:) => Null()
   end type mf_fb_data
 
+  type mfiter
+     integer :: dim      = 0
+     integer :: ng       = 0
+     logical :: nodal(3) = .false.
+     integer :: tid      = 0
+     integer :: nthreads = 1
+     integer :: it       = -1   ! current tile index local to this thread
+     integer :: nt       = -1   ! # of tiles local to this threads
+     integer :: ios      = -1   ! it+ios provides index into ta%tilearray
+     type(tilearray) :: ta
+  end type mfiter
+
   interface cell_centered_q
      module procedure multifab_cell_centered_q
      module procedure imultifab_cell_centered_q
@@ -1550,6 +1562,7 @@ contains
     logical, intent(in), optional :: all, allow_empty
     integer :: i
     logical lall, lallow
+    type(mfiter) :: mfi
     type(bl_prof_timer), save :: bpt
     call build(bpt, "mf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
@@ -1566,15 +1579,17 @@ contains
       end do
       !$OMP END PARALLEL DO
     else
-      !$OMP PARALLEL DO PRIVATE(i)
-      do i = 1, nlocal(mf%la)
-         if ( lall ) then
-            call setval(mf%fbs(i), val, c, nc)
-         else
-            call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
-         end if
-      end do
-      !$OMP END PARALLEL DO
+       !$OMP PARALLEL PRIVATE(mfi,i)
+       call mfiter_build(mfi,mf,.true.)
+       do while (more_tile(mfi))
+          i = get_fab_index(mfi)
+          if ( lall ) then
+             call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
+          else
+             call setval(mf%fbs(i), val, get_tilebox(mfi), c, nc)
+          end if
+       end do
+       !$OMP END PARALLEL
     endif
     call destroy(bpt)
   end subroutine multifab_setval_c
@@ -3679,6 +3694,8 @@ contains
     type(boxarray)                :: batmp
     type(list_box)                :: bl
     integer                       :: i, lnc, lng, lngsrc, scomp
+    type(mfiter)                  :: mfi
+    type(box)                     :: bx
     interface
        subroutine filter(out, in)
          use bl_types
@@ -3698,18 +3715,21 @@ contains
     if ( mdst%la == msrc%la ) then
        if ( lng > 0 ) &
             call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
-       !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
-       do i = 1, nlocal(mdst%la)
+
+       !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
+       call mfiter_build(mfi,mdst,.true.)
+       do while (more_tile(mfi))
+          i = get_fab_index(mfi)
           if ( lng > 0 ) then
-             pdst => dataptr(mdst, i, grow(get_ibox(mdst, i),lng), dstcomp, lnc)
-             psrc => dataptr(msrc, i, grow(get_ibox(msrc, i),lng), srccomp, lnc)
+             bx = get_growntilebox(mfi,lng)
           else
-             pdst => dataptr(mdst, i, get_ibox(mdst, i), dstcomp, lnc)
-             psrc => dataptr(msrc, i, get_ibox(msrc, i), srccomp, lnc)
+             bx = get_tilebox(mfi)
           end if
+          pdst => dataptr(mdst, i, bx, dstcomp, lnc)
+          psrc => dataptr(msrc, i, bx, srccomp, lnc)
           call cpy_d(pdst, psrc, filter)
        end do
-       !$OMP END PARALLEL DO
+       !$OMP END PARALLEL
     else
        if (lng    >       0) call bl_error('MULTIFAB_COPY_C: ng > 0 not supported in parallel copy')
        if (lngsrc > msrc%ng) call bl_error('MULTIFAB_COPY_C: ngsrc > msrc%ng')
@@ -5564,5 +5584,149 @@ contains
        call parallel_reduce(r, r1, MPI_MAX)
     end if
   end function multifab_max_c
+
+  subroutine mfiter_build(mfi, mf, tiling, tilesize)
+    use omp_module
+    type(mfiter),   intent(inout) :: mfi
+    type(multifab), intent(in)    :: mf
+    logical, intent(in), optional :: tiling
+    integer, intent(in), optional :: tilesize(:)
+
+    integer :: ntot, nleft
+    integer :: ltilesize(3)
+
+    if (present(tilesize)) then
+       ltilesize(1:size(tilesize)) = tilesize
+    else if (present(tiling)) then
+       if (tiling .eqv. .true.) then
+          ltilesize = layout_get_tilesize()
+       else
+          ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
+       end if
+    else
+       ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
+    end if
+
+    !$omp single
+    call init_layout_tilearray(mf%la, ltilesize)
+    !$omp end single
+    mfi%ta = get_tilearray()
+
+    mfi%dim = mf%dim
+    mfi%ng  = mf%ng
+    mfi%nodal(1:mfi%dim) = mf%nodal
+
+    ntot = size(mfi%ta%idx)
+
+    if (omp_in_parallel()) then
+       mfi%tid = omp_get_thread_num()
+       mfi%nthreads = omp_get_num_threads()
+    else
+       mfi%tid = 0
+       mfi%nthreads = 1
+    end if
+
+    mfi%it = -1
+    mfi%nt = ntot / mfi%nthreads
+    nleft = ntot - (mfi%nt)*(mfi%nthreads)
+    mfi%ios = mfi%tid * mfi%nt
+    if (mfi%tid < nleft) then
+       mfi%nt = mfi%nt+1
+       mfi%ios = mfi%ios + mfi%tid
+    else
+       mfi%ios = mfi%ios + nleft
+    end if
+    mfi%ios = mfi%ios+1  ! this is fortran
+
+  end subroutine mfiter_build
+
+  subroutine mfiter_reset(mfi)
+    type(mfiter), intent(inout) :: mfi
+    mfi%it = -1
+  end subroutine mfiter_reset
+
+  function more_tile(mfi) result(r)
+    logical :: r
+    type(mfiter), intent(inout) :: mfi
+    mfi%it = mfi%it + 1
+    if (mfi%it < mfi%nt) then
+       r = .true.
+    else
+       mfi%it = -1
+       r = .false.
+    end if
+  end function more_tile
   
+  pure function get_fab_index(mfi) result(r)
+    integer :: r
+    type(mfiter), intent(in) :: mfi
+    r = mfi%ta%idx(mfi%it+mfi%ios)
+  end function get_fab_index
+
+  pure function get_tilebox(mfi) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer :: i, gridhi(mfi%dim)
+    r = get_box(mfi%ta%ba, mfi%it+mfi%ios)
+    if (any(mfi%nodal(1:mfi%dim))) then
+       gridhi = upb(get_gridbox(mfi))
+       do i = 1, mfi%dim
+          if (mfi%nodal(i) .and. gridhi(i).eq.upb(r,i)) r%hi(i) = r%hi(i)+1
+       end do
+    end if
+  end function get_tilebox
+
+  pure function get_nodaltilebox(mfi, dir) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in) :: dir
+    integer :: gridhi
+    r = get_tilebox(mfi)
+    if (.not. mfi%nodal(dir)) then
+       gridhi = upb(get_gridbox(mfi), dir)
+       if (gridhi .eq. upb(r,dir)) r%hi(dir) = r%hi(dir)+1
+    end if
+  end function get_nodaltilebox
+
+  pure function get_growntilebox(mfi, ng_in) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in), optional :: ng_in
+    integer :: gridlo(mfi%dim), gridhi(mfi%dim), ng, i
+    type(box) :: gridbox
+    r = get_tilebox(mfi)
+    ng = mfi%ng
+    if (present(ng_in)) ng = min(ng, ng_in)
+    r = get_tilebox(mfi)
+    if (ng .gt. 0) then
+       gridbox = get_gridbox(mfi)
+       gridlo = lwb(gridbox)
+       gridhi = upb(gridbox)
+       do i=1,mfi%dim
+          if (gridlo(i) .eq. lwb(r,i)) r%lo(i) = r%lo(i)-ng
+          if (gridhi(i) .le. upb(r,i)) r%hi(i) = r%hi(i)+ng ! .le., not .eq., because of nodal
+       end do
+    end if
+  end function get_growntilebox
+
+  pure function get_grownnodaltilebox(mfi, dir, ng_in) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer, intent(in) :: dir
+    integer, intent(in), optional :: ng_in
+    integer :: gridhi, tilehi
+    r = get_growntilebox(mfi, ng_in)
+    if (.not. mfi%nodal(dir)) then
+       tilehi = upb(get_tilebox(mfi), dir)
+       gridhi = upb(get_gridbox(mfi), dir)
+       if (gridhi .eq. tilehi) r%hi(dir) = r%hi(dir)+1       
+    end if
+  end function get_grownnodaltilebox
+
+  pure function get_gridbox(mfi) result (r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    r = get_box(mfi%ta%lap%bxa, mfi%ta%lap%idx(mfi%ta%idx(mfi%it+mfi%ios)))
+  end function get_gridbox
+
 end module multifab_module

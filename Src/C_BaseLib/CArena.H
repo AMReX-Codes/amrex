@@ -48,7 +48,7 @@ public:
     //
     // The default memory hunk size to grab from the heap.
     //
-    enum { DefaultHunkSize = 1024*1024 };
+    enum { DefaultHunkSize = 1024*1024*8 };
 
 protected:
     //
@@ -160,10 +160,5 @@ private:
     CArena (const CArena& rhs);
     CArena& operator= (const CArena& rhs);
 };
-
-//
-// The Arena used by BaseFab code.
-//
-extern Arena* The_FAB_Arena;
 
 #endif /*BL_CARENA_H*/
