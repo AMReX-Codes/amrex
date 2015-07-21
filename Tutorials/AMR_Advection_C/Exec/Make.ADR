@@ -5,7 +5,7 @@ TOP := $(ADR_DIR)
 
 NETWORK_HOME ?= $(TOP)/Networks
 
-EBASE     = ADR
+EBASE     = main
 
 EXTERN_CORE :=
 

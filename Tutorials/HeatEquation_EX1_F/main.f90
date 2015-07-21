@@ -41,6 +41,9 @@ program main
   ! the program began
   start_time = parallel_wtime()
 
+  ! initializes timers (bl_prof_timers) if compiled with PROF=t
+  call bl_prof_initialize(on = .true.)
+
   ! default values - will get overwritten by the inputs file
   dim           = 2
   nsteps        = 1000
@@ -108,7 +111,9 @@ program main
   dt = 0.9d0*dx**2/(2.d0*dim)
 
   ! write out plotfile 0
-  call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+  if (plot_int .gt. 0) then
+     call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+  end if
 
   do istep=1,nsteps
 
@@ -122,9 +127,11 @@ program main
 
      time = time + dt
 
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        ! write out plotfile
-        call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int .gt. 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           ! write out plotfile
+           call write_plotfile(la,phi,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do
@@ -152,6 +159,10 @@ program main
   call print(syncassoc_mem_stats(),   "   syncassoc")
   call print(copyassoc_mem_stats(),   "   copyassoc")
   call print(fluxassoc_mem_stats(),   "   fluxassoc")
+
+  call bl_prof_glean("bl_prof_res")
+
+  call bl_prof_finalize()
 
   ! parallel_wtime() returns the number of wallclock-time seconds since
   ! the program began

@@ -8,6 +8,7 @@ doc:	$(html_sources)
 
 clean::
 	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.$(suf).exe *~
+	$(RM) ./*.optrpt $(odir)/*.optrpt
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html

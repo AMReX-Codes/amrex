@@ -20,17 +20,29 @@
 #if     BL_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  x[0]
+#define ARLIM_3D(x) &((int []){x[0], 0, 0}[0])
+#define ZFILL(x) &((Real []){x[0], 0., 0.}[0])
+#define BCREC_3D(x) &((int []){x[0], 0, 0, x[1], 0, 0}[0])
 #elif   BL_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  x[0],x[1]
+#define ARLIM_3D(x) &((int []){x[0], x[1], 0}[0])
+#define ZFILL(x) &((Real []){x[0], x[1], 0.}[0])
+#define BCREC_3D(x) &((int []){x[0], x[1], 0, x[2], x[3], 0}[0])
 #elif   BL_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  x[0],x[1],x[2]
+#define ARLIM_3D(x) x
+#define ZFILL(x) x
+#define BCREC_3D(x) x
 #endif
 #endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
 #define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
+
+#define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
 
 #else
 

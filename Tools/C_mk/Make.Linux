@@ -25,9 +25,9 @@ ifeq ($(COMP),PathScale)
 else
 ifeq ($(COMP),Cray)
   CXX = CC
-  CC  = craycc
+  CC  = cc
 
-  CXXOPTF += -h nomessage=7221 -h fp0
+  CXXOPTF += -h nomessage=7221
   CXXDEBF += -g -O0
 
   ifneq ($(USE_OMP),TRUE)
@@ -132,17 +132,17 @@ ifeq ($(FCOMP),PathScale)
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Cray)
-  FC  = crayftn
-  fC  = crayftn
-  F90 = crayftn 
+  FC  = ftn
+  fC  = ftn
+  F90 = ftn 
   FFLAGS +=
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
   F90FLAGS +=
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -h fp0 -O vector1
-  fOPTF += -h fp0 -O vector1
+  FOPTF += 
+  fOPTF += 
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -423,11 +423,7 @@ ifeq ($(WHICHLINUX), EDISON)
     fC  := ftn
   endif
   ifeq ($(USE_IPM),TRUE)
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    else
-      LIBRARIES += $(IPM_GNU)
-    endif
+    LIBRARIES += $(IPM_GNU)
   endif
   ifeq ($(USE_DUMPI),TRUE)
     LIBRARIES += $(DUMPI_LINK_OPTS)
@@ -585,3 +581,41 @@ ifeq ($(HOST), c4)
   FC  = mpif90
 endif    
 
+ifeq ($(WHICHLINUX), BABBAGE)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    F90 := mpiifort
+    fC  := mpiifort
+  endif
+endif
+
+# For running natively on the MIC cards
+ifeq ($(MIC), TRUE)
+  CXXOPTF += -mmic
+  CXXDEBF += -mmic
+  FOPTF += -mmic
+  fOPTF += -mmic
+
+# Because the linker on Babbage isn't very smart
+  override XTRALIBS += -lifcore -Wl,-rpath,/global/babbage/nsg/opt/intel/composerxe/composer_xe_2015.1.133/compiler/lib/mic
+endif
+
+# Compiler flags for profiling MPI calls using Intel Trace Analyzer and
+# Collector. The "itac" module on Babbage will automatically populate the
+# VT_LIB_DIR environment variable. The "-trace" option is fairly lightweight
+# and traces only MPI calls; you can trace user-defined functions as well using
+# "-tcollect" instead of "-trace" but this generates a HUGE amount of data, so
+# don't use it unless you know what you're doing.
+ifeq ($(COMP),Intel)
+  ifeq ($(FCOMP),Intel)
+    ifeq ($(ITAC_TRACE), TRUE)
+      CXXOPTF += -trace
+      CXXDEBF += -trace
+      FOPTF += -trace
+      fOPTF += -trace
+      override XTRALIBS += -L${VT_LIB_DIR}
+    endif
+  endif
+endif

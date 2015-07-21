@@ -17,9 +17,6 @@ FCOMP_VERSION :=
 VPATH_LOCATIONS :=
 INCLUDE_LOCATIONS :=
 
-ifdef USE_HPCTOOLKIT
-  hpc_suffix    := .hpc
-endif
 ifdef MPI
   mpi_suffix 	:= .mpi
 endif
@@ -35,6 +32,9 @@ endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
+ifdef MIC
+  mic_suffix    := .mic
+endif
 ifdef SDC
   sdc_suffix 	:= .SDC
 endif
@@ -48,7 +48,7 @@ ifdef HDF
   hdf_suffix := .hdf
 endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(hpc_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =
