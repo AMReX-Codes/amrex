@@ -752,9 +752,10 @@ contains
     !
     ! Remove all tilearray's associated with this layout_rep.
     !
-    do tid = 0, omp_get_max_threads()-1
-       call tilearray_destroy(lap%tas(tid))
-    end do
+    !$omp parallel private(tid)
+    tid = omp_get_thread_num()
+    call tilearray_destroy(lap%tas(tid))
+    !$omp end parallel
     deallocate(lap%tas)
 
     deallocate(lap)
