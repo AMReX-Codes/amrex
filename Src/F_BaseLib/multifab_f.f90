@@ -5590,6 +5590,7 @@ contains
     logical, intent(in), optional :: tiling
     integer, intent(in), optional :: tilesize(:)
 
+    type(layout) :: la
     integer :: ltilesize(3), tid, nthreads
 
     if (present(tilesize)) then
@@ -5612,7 +5613,9 @@ contains
        nthreads = 1
     end if
 
-    mfi%ta = init_layout_tilearray(mf%la, ltilesize, tid, nthreads)
+    la = mf%la
+
+    mfi%ta = init_layout_tilearray(la, ltilesize, tid, nthreads)
     
     if (mfi%ta%dim .gt. 0) then
        mfi%dim = mf%dim
@@ -5621,7 +5624,7 @@ contains
 
        mfi%it = 0
        mfi%ntiles = mfi%ta%ntiles
-       mfi%lap => mf%la%lap
+       mfi%lap => la%lap
     else
        mfi%it = 0
        mfi%ntiles = 0

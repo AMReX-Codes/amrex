@@ -20,7 +20,7 @@ module layout_module
   integer, private :: sfc_threshold = 0
   integer, private :: def_mapping   = LA_KNAPSACK
 
-  integer, private :: def_tile_size(3) = (/1024000, 128, 128 /)
+  integer, private :: def_tile_size(3) = (/1024000, 8, 8 /)
   integer, private :: comm_tile_size(3) = (/1024000, 8, 8 /)
 
   type comm_dsc
@@ -138,17 +138,12 @@ module layout_module
      integer                   :: dim      = 0
      integer                   :: nthreads = 0
      integer                   :: ntiles   = 0
-     integer, dimension(3)     :: tilesize = 0
+     integer,     dimension(3) :: tilesize = 0
      type(boxarray)            :: ba                 ! tiles
-     integer         , pointer :: gidx(:)  => Null() ! global index
-     integer         , pointer :: lidx(:)  => Null() ! local index
-     type(tilearray) , pointer :: next     => Null()
+     integer,          pointer :: gidx(:)  => Null() ! global index
+     integer,          pointer :: lidx(:)  => Null() ! local index
   end type tilearray
   
-  type tilearray_pointer
-     type(tilearray), pointer :: p => Null()
-  end type tilearray_pointer
-
   !
   ! Used by layout_get_box_intersector().
   !
@@ -195,7 +190,7 @@ module layout_module
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
-     type(tilearray_pointer),pointer :: tilearray_heads(:) => Null()
+     type(tilearray),pointer         :: tas(:)      => Null()
      ! Box Hashing
      integer                         :: bahash              = -1
      integer                         :: crsn                = -1
@@ -648,7 +643,7 @@ contains
     end do
 
     nthreads = omp_get_max_threads()
-    allocate(lap%tilearray_heads(0:nthreads-1))
+    allocate(lap%tas(0:nthreads-1))
   end subroutine layout_rep_build
 
   subroutine layout_flush_copyassoc_cache ()
@@ -676,7 +671,6 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
-    type(tilearray), pointer :: ta, nta
     integer :: tid
     if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
@@ -757,18 +751,10 @@ contains
     !
     ! Remove all tilearray's associated with this layout_rep.
     !
-    !$omp parallel private(tid,ta,nta)
-    tid = omp_get_thread_num()
-    ta  => lap%tilearray_heads(tid)%p
-    do while ( associated(ta) )
-       nta => ta%next
-       call tilearray_destroy(ta)
-       deallocate(ta)
-       ta => nta
+    do tid = 0, omp_get_max_threads()-1
+       call tilearray_destroy(lap%tas(tid))
     end do
-    !$omp end parallel
-
-    deallocate(lap%tilearray_heads)
+    deallocate(lap%tas)
 
     deallocate(lap)
 
@@ -845,7 +831,7 @@ contains
     call boxarray_coarsen(cla%la%lap%bxa, cla%crse)
 
     nthreads = omp_get_max_threads()
-    allocate(cla%la%lap%tilearray_heads(0:nthreads-1))
+    allocate(cla%la%lap%tas(0:nthreads-1))
 
     ! install the new coarsened layout into the layout
     cla%next => la%lap%crse_la
@@ -3520,142 +3506,164 @@ contains
 
 
   function init_layout_tilearray(la, tilesize, tid, nthreads) result(r)
-    type(layout), intent(in) :: la
-    type(tilearray), pointer :: p
+    type(layout), intent(inout) :: la
     integer, intent(in) :: tilesize(:), tid, nthreads
     type(tilearray) :: r
 
-    ! Do we have one stored?
-    p => la%lap%tilearray_heads(tid)%p
-    do while (associated(p))
-       if (tilearray_check(p, tilesize, nthreads)) then
-          r = p
+    ! Do we have one already?
+    if (built_q(la%lap%tas(tid))) then
+       if (tilearray_check(la%lap%tas(tid), tilesize, nthreads)) then
+          r = la%lap%tas(tid)
           return
        end if
-       p => p%next
-    end do
-
-    ! build a new one
-    allocate(p)
-    call tilearray_build(p, la, tilesize, tid, nthreads)
-
-    if (p%dim .gt. 0) then
-       p%next => la%lap%tilearray_heads(tid)%p
-       la%lap%tilearray_heads(tid)%p => p
-       r = p
-    else
-       ! No tiles assigned to this thread
-       deallocate(p)
-       r%dim = 0
     end if
 
+    ! build a new one
+    call tilearray_build(la, tilesize, tid, nthreads)
+
+    r = la%lap%tas(tid)
+    return
   end function init_layout_tilearray
 
-  pure function tilearray_check(p, tilesize, nthreads) result (r)
+  pure function tilearray_check(ta, tilesize, nthreads) result (r)
     logical :: r
-    type(tilearray), intent(in) :: p
-     integer, intent(in) :: tilesize(:), nthreads
+    type(tilearray), intent(in) :: ta
+    integer, intent(in) :: tilesize(:), nthreads
 
-    r = nthreads .eq. p%nthreads
+    r = nthreads .eq. ta%nthreads
     if (.not.r) return
 
-    r = all(tilesize(1:p%dim) .eq. p%tilesize(1:p%dim))
+    r = all(tilesize(1:ta%dim) .eq. ta%tilesize(1:ta%dim))
     return
   end function tilearray_check
 
-  subroutine tilearray_build(ta, la, tilesize, tid, nthreads)
-    use vector_i_module
-
-    type(tilearray), intent(inout) :: ta
-    type(layout), intent(in)    :: la
+  subroutine tilearray_build(la, tilesize, tid, nthreads)
+    type(layout), intent(inout) :: la
     integer, intent(in) :: tilesize(:), tid, nthreads
 
-    integer :: i, n, idim
-    integer, dimension(la%lap%dim) :: nt, tsize, nleft, ijk, small, big
-    integer :: n_tot_tiles, ntiles, tlo, thi, t
-    integer :: tiles_per_thread, nl, it, gindex, ncells
-    type(box) :: bx, bxt
-    type(vector_i) :: nt_in_fab(la%lap%dim)
-    type(list_box) :: tiles
+    integer :: i, n, idim, dim, nlbx, n_tot_tiles, t, ithread
+    integer :: tiles_per_thread, nl, it, gindex, ncells, nt_in_thread
+    integer, dimension(la%lap%dim) :: tsize, nleft, ijk, small, big
+    type(box) :: bx
+    integer, allocatable, save :: tlo(:), thi(:)
+    integer, allocatable, save :: nt_in_fab(:,:), ntiles(:)
+    type(tilearray), pointer :: ta
 
-    ta%dim      = la%lap%dim
-    ta%nthreads = nthreads
-    ta%tilesize = tilesize
+    dim = la%lap%dim
+    nlbx = la%lap%nlocal
+
+    !$omp master
+
+    if (allocated(tlo)) then
+       if (size(tlo) .lt. nthreads) then
+          deallocate(tlo,thi)
+          allocate(tlo(0:nthreads-1))
+          allocate(thi(0:nthreads-1))
+       end if
+    else
+       allocate(tlo(0:nthreads-1))
+       allocate(thi(0:nthreads-1))       
+    end if
+
+    if (allocated(ntiles)) then
+       if (size(ntiles) .lt. nlbx) then
+          deallocate(nt_in_fab, ntiles)
+          allocate(nt_in_fab(dim, nlbx*2))
+          allocate(ntiles(nlbx*2))          
+       end if
+    else
+       allocate(nt_in_fab(dim, nlbx*2))
+       allocate(ntiles(nlbx*2))
+    end if
 
     n_tot_tiles = 0
-    do n=1, la%lap%nlocal
+    do n=1, nlbx
        bx = get_box(la%lap%bxa, la%lap%idx(n))
 
-       ntiles = 1
-       do idim = 1, ta%dim
-          nt(idim) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
-          ntiles = ntiles*nt(idim)
+       ntiles(n) = 1
+       do idim = 1, dim
+          nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
+          ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
        end do
 
-       do idim = 1, ta%dim
-          call push_back(nt_in_fab(idim), nt(idim))
-       end do
-       n_tot_tiles = n_tot_tiles + ntiles
+       n_tot_tiles = n_tot_tiles + ntiles(n)
     end do
 
     if (n_tot_tiles < nthreads) then ! there are more threads than tiles
-       if (tid < n_tot_tiles) then
-          tlo = tid
-          thi = tid
-       else
-          do idim = 1, ta%dim 
-             call destroy(nt_in_fab(idim))
-          end do
-          ta%dim = 0
-          return
-       end if
+       do ithread = 0, n_tot_tiles-1
+          la%lap%tas(ithread)%dim = dim
+          tlo(ithread) = ithread
+          thi(ithread) = ithread
+       end do
+       do ithread = n_tot_tiles, nthreads-1
+          la%lap%tas(ithread)%dim = 0
+          tlo(ithread) = -1
+          thi(ithread) = -1
+       end do
     else
        tiles_per_thread = n_tot_tiles / nthreads
        nl = n_tot_tiles - tiles_per_thread*nthreads
-       if (tid < nl) then
-          tlo = tid*(tiles_per_thread+1)
-          thi = tlo + tiles_per_thread
-       else
-          tlo = tid*tiles_per_thread + nl
-          thi = tlo + tiles_per_thread -1
-       end if
+       do ithread = 0, nl-1
+          la%lap%tas(ithread)%dim = dim
+          tlo(ithread) = ithread*(tiles_per_thread+1)
+          thi(ithread) = tlo(ithread) + tiles_per_thread
+       end do
+       do ithread = nl, nthreads-1
+          la%lap%tas(ithread)%dim = dim
+          tlo(ithread) = ithread*tiles_per_thread + nl
+          thi(ithread) = tlo(ithread) + tiles_per_thread -1
+       end do
     end if
-    
-    ta%ntiles = thi - tlo +1
 
-    allocate(ta%gidx(ta%ntiles))
-    allocate(ta%lidx(ta%ntiles))
+    do ithread=0, nthreads-1
+       if (la%lap%tas(ithread)%dim .gt. 0) then
+          nt_in_thread = thi(ithread) - tlo(ithread) + 1
+          la%lap%tas(ithread)%ntiles = nt_in_thread
+          if (associated(la%lap%tas(ithread)%gidx)) deallocate(la%lap%tas(ithread)%gidx)
+          if (associated(la%lap%tas(ithread)%lidx)) deallocate(la%lap%tas(ithread)%lidx)
+          if (associated(la%lap%tas(ithread)%ba%bxs)) deallocate(la%lap%tas(ithread)%ba%bxs)
+          allocate(la%lap%tas(ithread)%gidx(nt_in_thread))
+          allocate(la%lap%tas(ithread)%lidx(nt_in_thread))
+          la%lap%tas(ithread)%ba%dim = dim
+          la%lap%tas(ithread)%ba%nboxes = nt_in_thread
+          allocate(la%lap%tas(ithread)%ba%bxs(nt_in_thread))
+       end if
+    end do
+    !$omp end master
+
+    !$omp barrier
+
+    ta => la%lap%tas(tid)
+
+    if (ta%dim .eq. 0) return
+
+    ta%nthreads = nthreads
+    ta%tilesize = tilesize
 
     it = 0
     i = 1
 
-    do n=1, la%lap%nlocal
-    
-       ntiles = 1
-       do idim = 1, ta%dim
-          nt(idim) = at(nt_in_fab(idim),n)
-          ntiles = ntiles * nt(idim)
-       end do
+    do n=1, nlbx
 
-       if (it+ntiles-1 < tlo) then
-          it = it + ntiles
+       if (it+ntiles(n)-1 < tlo(tid)) then
+          it = it + ntiles(n)
           cycle
        end if
 
        gindex = la%lap%idx(n)
        bx = get_box(la%lap%bxa, gindex)
 
-       do idim = 1, ta%dim
+       do idim = 1, dim
           ncells = bx%hi(idim) - bx%lo(idim) + 1
-          tsize(idim) = ncells / nt(idim)
-          nleft(idim) = ncells - nt(idim) * tsize(idim)
+          tsize(idim) = ncells / nt_in_fab(idim,n)
+          nleft(idim) = ncells - nt_in_fab(idim,n) * tsize(idim)
        end do
 
        ijk = 0
        ijk(1) = -1
-       do t = 0, ntiles-1
-          do idim = 1, ta%dim
-             if (ijk(idim) < nt(idim)-1) then
+       do t = 0, ntiles(n)-1
+          do idim = 1, dim
+             if (ijk(idim) < nt_in_fab(idim,n)-1) then
                 ijk(idim) = ijk(idim)+1
                 exit
              else
@@ -3663,8 +3671,8 @@ contains
              end if
           end do
 
-          if (it .ge. tlo) then
-             do idim = 1, ta%dim
+          if (it .ge. tlo(tid)) then
+             do idim = 1, dim
                 if (ijk(idim) < nleft(idim)) then
                    small(idim) = ijk(idim)*(tsize(idim)+1)
                    big(idim) = small(idim) + tsize(idim)
@@ -3676,33 +3684,27 @@ contains
 
              ta%gidx(i) = gindex
              ta%lidx(i) = n
+             ta%ba%bxs(i) = shift(make_box(small,big), bx%lo)
              i = i+1
-
-             bxt = shift(make_box(small,big), bx%lo)
-             call push_back(tiles, bxt)
           end if
 
           it = it+1
-          if (it .gt. thi) goto 100
+          if (it .gt. thi(tid)) goto 100
        end do
     end do
 
 100 continue
 
-    call boxarray_build_l(ta%ba, tiles, sort=.false.)
-
-    call list_destroy_box(tiles)
-    do idim = 1, ta%dim 
-       call destroy(nt_in_fab(idim))
-    end do
-
   end subroutine tilearray_build
 
   subroutine tilearray_destroy(ta)
     type(tilearray), intent(inout) :: ta
-    deallocate(ta%gidx)
-    deallocate(ta%lidx)
-    call destroy(ta%ba)
+    if (associated(ta%gidx)) deallocate(ta%gidx)
+    if (associated(ta%lidx)) deallocate(ta%lidx)
+    if (associated(ta%ba%bxs)) deallocate(ta%ba%bxs)
+    ta%ba%bxs => Null()
+    ta%ba%dim = 0
+    ta%ba%nboxes = 0
     ta%dim = 0
   end subroutine tilearray_destroy
 
