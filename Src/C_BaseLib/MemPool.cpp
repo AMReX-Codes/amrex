@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 #include <algorithm>
+#include <new>
 
 #include <CArena.H>
 #include <PArray.H>
