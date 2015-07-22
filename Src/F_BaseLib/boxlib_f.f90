@@ -10,6 +10,11 @@ module BoxLib
 
   implicit none
 
+  interface 
+     subroutine mempool_init () bind(c)
+     end subroutine mempool_init
+  end interface
+
   private
 
   public :: boxlib_initialize
@@ -41,6 +46,9 @@ contains
        print*, "MPI initialized with ", omp_get_max_threads(), " threads";
     endif
     if (omp_get_max_threads() > 1) call omp_set_nested(.false.)
+
+    call mempool_init ()
+
   end subroutine boxlib_initialize
 
   !! Finalizes _BoxLib_ applications. This should be the final

@@ -139,7 +139,8 @@ module layout_module
      integer                   :: nthreads = 0
      integer                   :: ntiles   = 0
      integer,     dimension(3) :: tilesize = 0
-     type(boxarray)            :: ba                 ! tiles
+     integer,          pointer :: tilelo(:,:) => Null()
+     integer,          pointer :: tilehi(:,:) => Null()
      integer,          pointer :: gidx(:)  => Null() ! global index
      integer,          pointer :: lidx(:)  => Null() ! local index
   end type tilearray
@@ -3538,43 +3539,28 @@ contains
   end function tilearray_check
 
   subroutine tilearray_build(la, tilesize, tid, nthreads)
+    use mempool_module, only : bl_allocate, bl_deallocate
     type(layout), intent(inout) :: la
     integer, intent(in) :: tilesize(:), tid, nthreads
 
-    integer :: i, n, idim, dim, nlbx, n_tot_tiles, t, ithread
+    integer :: i, n, idim, dim, nlbx, n_tot_tiles, t, tlo, thi
     integer :: tiles_per_thread, nl, it, gindex, ncells, nt_in_thread
     integer, dimension(la%lap%dim) :: tsize, nleft, ijk, small, big
     type(box) :: bx
-    integer, allocatable, save :: tlo(:), thi(:)
-    integer, allocatable, save :: nt_in_fab(:,:), ntiles(:)
+    integer, pointer :: nt_in_fab(:,:), ntiles(:)
     type(tilearray), pointer :: ta
 
     dim = la%lap%dim
     nlbx = la%lap%nlocal
 
-    !$omp master
+    ta => la%lap%tas(tid)
 
-    if (allocated(tlo)) then
-       if (size(tlo) .lt. nthreads) then
-          deallocate(tlo,thi)
-          allocate(tlo(0:nthreads-1))
-          allocate(thi(0:nthreads-1))
-       end if
-    else
-       allocate(tlo(0:nthreads-1))
-       allocate(thi(0:nthreads-1))       
-    end if
+    ta%dim = dim
+    ta%nthreads = nthreads
+    ta%tilesize = tilesize
 
-    if (allocated(ntiles)) then
-       if (size(ntiles) .lt. nlbx) then
-          deallocate(nt_in_fab, ntiles)
-          allocate(nt_in_fab(dim, nlbx*2))
-          allocate(ntiles(nlbx*2))          
-       end if
-    else
-       allocate(nt_in_fab(dim, nlbx*2))
-       allocate(ntiles(nlbx*2))
-    end if
+    call bl_allocate(nt_in_fab, 1, dim, 1, nlbx)
+    call bl_allocate(ntiles, 1, nlbx)
 
     n_tot_tiles = 0
     do n=1, nlbx
@@ -3590,62 +3576,46 @@ contains
     end do
 
     if (n_tot_tiles < nthreads) then ! there are more threads than tiles
-       do ithread = 0, n_tot_tiles-1
-          la%lap%tas(ithread)%dim = dim
-          tlo(ithread) = ithread
-          thi(ithread) = ithread
-       end do
-       do ithread = n_tot_tiles, nthreads-1
-          la%lap%tas(ithread)%dim = 0
-          tlo(ithread) = -1
-          thi(ithread) = -1
-       end do
+       if (tid < n_tot_tiles) then
+          tlo = tid
+          thi = tid
+       else
+          ta%dim = 0
+          call bl_deallocate(nt_in_fab)
+          call bl_deallocate(ntiles)
+          return
+       end if
     else
        tiles_per_thread = n_tot_tiles / nthreads
        nl = n_tot_tiles - tiles_per_thread*nthreads
-       do ithread = 0, nl-1
-          la%lap%tas(ithread)%dim = dim
-          tlo(ithread) = ithread*(tiles_per_thread+1)
-          thi(ithread) = tlo(ithread) + tiles_per_thread
-       end do
-       do ithread = nl, nthreads-1
-          la%lap%tas(ithread)%dim = dim
-          tlo(ithread) = ithread*tiles_per_thread + nl
-          thi(ithread) = tlo(ithread) + tiles_per_thread -1
-       end do
+       if (tid < nl) then
+          tlo = tid*(tiles_per_thread+1)
+          thi = tlo + tiles_per_thread
+       else
+          tlo = tid*tiles_per_thread + nl
+          thi = tlo + tiles_per_thread -1
+       end if
     end if
 
-    do ithread=0, nthreads-1
-       if (la%lap%tas(ithread)%dim .gt. 0) then
-          nt_in_thread = thi(ithread) - tlo(ithread) + 1
-          la%lap%tas(ithread)%ntiles = nt_in_thread
-          if (associated(la%lap%tas(ithread)%gidx)) deallocate(la%lap%tas(ithread)%gidx)
-          if (associated(la%lap%tas(ithread)%lidx)) deallocate(la%lap%tas(ithread)%lidx)
-          if (associated(la%lap%tas(ithread)%ba%bxs)) deallocate(la%lap%tas(ithread)%ba%bxs)
-          allocate(la%lap%tas(ithread)%gidx(nt_in_thread))
-          allocate(la%lap%tas(ithread)%lidx(nt_in_thread))
-          la%lap%tas(ithread)%ba%dim = dim
-          la%lap%tas(ithread)%ba%nboxes = nt_in_thread
-          allocate(la%lap%tas(ithread)%ba%bxs(nt_in_thread))
-       end if
-    end do
-    !$omp end master
+    nt_in_thread = thi - tlo + 1
+    ta%ntiles = nt_in_thread
 
-    !$omp barrier
+    if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
+    if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
+    if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
+    if (associated(ta%tilehi)) call bl_deallocate(ta%tilehi)
 
-    ta => la%lap%tas(tid)
-
-    if (ta%dim .eq. 0) return
-
-    ta%nthreads = nthreads
-    ta%tilesize = tilesize
+    call bl_allocate(ta%gidx, 1, nt_in_thread)
+    call bl_allocate(ta%lidx, 1, nt_in_thread)
+    call bl_allocate(ta%tilelo, 1, dim, 1, nt_in_thread)
+    call bl_allocate(ta%tilehi, 1, dim, 1, nt_in_thread)
 
     it = 0
     i = 1
 
     do n=1, nlbx
 
-       if (it+ntiles(n)-1 < tlo(tid)) then
+       if (it+ntiles(n)-1 < tlo) then
           it = it + ntiles(n)
           cycle
        end if
@@ -3671,7 +3641,7 @@ contains
              end if
           end do
 
-          if (it .ge. tlo(tid)) then
+          if (it .ge. tlo) then
              do idim = 1, dim
                 if (ijk(idim) < nleft(idim)) then
                    small(idim) = ijk(idim)*(tsize(idim)+1)
@@ -3684,27 +3654,30 @@ contains
 
              ta%gidx(i) = gindex
              ta%lidx(i) = n
-             ta%ba%bxs(i) = shift(make_box(small,big), bx%lo)
+             ta%tilelo(:,i) = small + bx%lo
+             ta%tilehi(:,i) = big   + bx%lo
              i = i+1
           end if
 
           it = it+1
-          if (it .gt. thi(tid)) goto 100
+          if (it .gt. thi) goto 100
        end do
     end do
 
 100 continue
 
+    call bl_deallocate(nt_in_fab)
+    call bl_deallocate(ntiles)
+
   end subroutine tilearray_build
 
   subroutine tilearray_destroy(ta)
+    use mempool_module, only : bl_deallocate
     type(tilearray), intent(inout) :: ta
-    if (associated(ta%gidx)) deallocate(ta%gidx)
-    if (associated(ta%lidx)) deallocate(ta%lidx)
-    if (associated(ta%ba%bxs)) deallocate(ta%ba%bxs)
-    ta%ba%bxs => Null()
-    ta%ba%dim = 0
-    ta%ba%nboxes = 0
+    if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
+    if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
+    if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
+    if (associated(ta%tilehi)) call bl_deallocate(ta%tilehi)
     ta%dim = 0
   end subroutine tilearray_destroy
 

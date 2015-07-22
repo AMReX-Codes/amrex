@@ -1,5 +1,6 @@
 vpath %.f   . $(VPATH_LOCATIONS)
 vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
 vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 
@@ -68,6 +69,15 @@ else
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 endif
 
+${odir}/%.o: %.cpp
+	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
+ifdef MKVERBOSE
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
+else
+	@echo "Building $< ..."
+	@$(COMPILE.cc) $(OUTPUT_OPTION) $<
+endif
+
 ${hdir}/%.html: %.f90
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
 	$(F90DOC) $(F90DOC_OPTION) $<
@@ -86,7 +96,7 @@ else
 endif
 
 
-$(tdir)/c.depends:  $(csources)
+$(tdir)/c.depends:  $(csources) $(cxxsources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 ifdef MKVERBOSE
 	perl $(MKDEP) $(c_includes) --odir $(odir) $^ > $(tdir)/c.depends 
@@ -101,7 +111,12 @@ include $(tdir)/f90.depends
 
 ifdef csources
 include $(tdir)/c.depends
+else
+ifdef cxxsources
+include $(tdir)/c.depends
 endif
+endif
+
 endif
 endif
 

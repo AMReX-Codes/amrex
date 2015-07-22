@@ -5648,17 +5648,17 @@ contains
     end if
   end function more_tile
   
-  pure function get_fab_index(mfi) result(r)
+  function get_fab_index(mfi) result(r)
     integer :: r
     type(mfiter), intent(in) :: mfi
     r = mfi%ta%lidx(mfi%it)
   end function get_fab_index
 
-  pure function get_tilebox(mfi) result(r)
+  function get_tilebox(mfi) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer :: i, gridhi(mfi%dim)
-    r = get_box(mfi%ta%ba, mfi%it)
+    r = make_box(mfi%ta%tilelo(:,mfi%it),mfi%ta%tilehi(:,mfi%it))
     if (any(mfi%nodal(1:mfi%dim))) then
        gridhi = upb(get_gridbox(mfi))
        do i = 1, mfi%dim
@@ -5667,7 +5667,7 @@ contains
     end if
   end function get_tilebox
 
-  pure function get_nodaltilebox(mfi, dir) result(r)
+  function get_nodaltilebox(mfi, dir) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in) :: dir
@@ -5679,7 +5679,7 @@ contains
     end if
   end function get_nodaltilebox
 
-  pure function get_growntilebox(mfi, ng_in) result(r)
+  function get_growntilebox(mfi, ng_in) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in), optional :: ng_in
@@ -5700,7 +5700,7 @@ contains
     end if
   end function get_growntilebox
 
-  pure function get_grownnodaltilebox(mfi, dir, ng_in) result(r)
+  function get_grownnodaltilebox(mfi, dir, ng_in) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in) :: dir
@@ -5714,7 +5714,7 @@ contains
     end if
   end function get_grownnodaltilebox
 
-  pure function get_gridbox(mfi) result (r)
+  function get_gridbox(mfi) result (r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     r = get_box(mfi%lap%bxa, mfi%ta%gidx(mfi%it))

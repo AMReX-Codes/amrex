@@ -17,6 +17,10 @@ VPATH_LOCATIONS += .
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
 
+include $(BOXLIB_HOME)/Src/C_BaseLib/GPackage.mak
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+
 main.$(suf).exe: $(objects) 
 	$(LINK.f90) -o main.$(suf).exe $(objects) $(libraries)
 

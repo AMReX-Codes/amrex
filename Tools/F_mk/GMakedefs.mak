@@ -11,6 +11,7 @@ F90      :=
 F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
+CXXFLAGS :=
 
 FCOMP_VERSION :=
 
@@ -55,6 +56,7 @@ fsources    =
 f90sources  =
 sf90sources  =
 csources    =
+cxxsources  =
 libraries   =
 xtr_libraries =
 hypre_libraries =
@@ -74,6 +76,8 @@ ifeq ($(ARCH),Darwin)
 else
   CPPFLAGS += -DBL_$(ARCH)
 endif
+
+CPPFLAGS += -DFORTRAN_BOXLIB
 
 F_C_LINK := UNDERSCORE
 
@@ -211,11 +215,13 @@ objects = $(addprefix $(odir)/,       \
 	$(sort $(sf90sources:.f90=.o)) \
 	$(sort $(fsources:.f=.o))     \
 	$(sort $(csources:.c=.o))     \
+	$(sort $(cxxsources:.cpp=.o))     \
 	)
 sources =                     \
 	$(sort $(f90sources)) \
 	$(sort $(fsources)  ) \
-	$(sort $(csources)  )
+	$(sort $(csources)  ) \
+	$(sort $(cxxsources)  )
 
 html_sources = $(addprefix $(hdir)/,     \
 	$(sort $(f90sources:.f90=.html)) \
