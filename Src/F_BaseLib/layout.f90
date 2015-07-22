@@ -135,17 +135,20 @@ module layout_module
   end type fluxassoc
 
   type tilearray
-     integer                   :: nthreads = 0
      integer                   :: dim      = 0
+     integer                   :: nthreads = 0
+     integer                   :: ntiles   = 0
      integer, dimension(3)     :: tilesize = 0
      type(boxarray)            :: ba                 ! tiles
      integer         , pointer :: gidx(:)  => Null() ! global index
      integer         , pointer :: lidx(:)  => Null() ! local index
-     type(layout_rep), pointer :: lap      => Null()
      type(tilearray) , pointer :: next     => Null()
-     type(tilearray) , pointer :: prev     => Null()
   end type tilearray
   
+  type tilearray_pointer
+     type(tilearray), pointer :: p => Null()
+  end type tilearray_pointer
+
   !
   ! Used by layout_get_box_intersector().
   !
@@ -170,10 +173,6 @@ module layout_module
   !
   type(fluxassoc), pointer, save, private :: the_fluxassoc_head => Null()
 
-  type(tilearray), pointer, save, private :: the_tilearray_head => Null()
-
-!$omp threadprivate(the_tilearray_head)
-
   type layout
      integer                   :: la_type =  LA_UNDF
      type(layout_rep), pointer :: lap     => Null()
@@ -196,6 +195,7 @@ module layout_module
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
+     type(tilearray_pointer),pointer :: tilearray_heads(:) => Null()
      ! Box Hashing
      integer                         :: bahash              = -1
      integer                         :: crsn                = -1
@@ -322,7 +322,7 @@ module layout_module
   end interface
 
   private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
-  private :: tilearray_build, remove_tilearray_item, add_tilearray_head
+  private :: tilearray_build
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
@@ -579,6 +579,7 @@ contains
   end subroutine layout_set_sfc_order
 
   subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
+    use omp_module
     use bl_error_module
     type(layout_rep), intent(out) :: lap
     type(boxarray), intent(in) :: ba
@@ -586,7 +587,7 @@ contains
     logical, intent(in) :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
-    integer :: lmapping, i, j
+    integer :: lmapping, i, j, nthreads
 
     lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
     if ( present(explicit_mapping) ) then
@@ -645,6 +646,9 @@ contains
           j = j + 1
        end if
     end do
+
+    nthreads = omp_get_max_threads()
+    allocate(lap%tilearray_heads(0:nthreads-1))
   end subroutine layout_rep_build
 
   subroutine layout_flush_copyassoc_cache ()
@@ -664,6 +668,7 @@ contains
   end subroutine layout_flush_copyassoc_cache
 
   recursive subroutine layout_rep_destroy(lap, la_type)
+    use omp_module
     type(layout_rep), pointer :: lap
     integer, intent(in) :: la_type
     type(coarsened_layout), pointer :: clp, oclp
@@ -672,6 +677,7 @@ contains
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
     type(tilearray), pointer :: ta, nta
+    integer :: tid
     if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
@@ -751,18 +757,18 @@ contains
     !
     ! Remove all tilearray's associated with this layout_rep.
     !
-    !$omp parallel private(ta,nta)
-    ta  => the_tilearray_head
+    !$omp parallel private(tid,ta,nta)
+    tid = omp_get_thread_num()
+    ta  => lap%tilearray_heads(tid)%p
     do while ( associated(ta) )
        nta => ta%next
-       if (associated(lap, ta%lap)) then
-          call remove_tilearray_item(ta)
-          call tilearray_destroy(ta)
-          deallocate(ta)
-       end if
+       call tilearray_destroy(ta)
+       deallocate(ta)
        ta => nta
     end do
     !$omp end parallel
+
+    deallocate(lap%tilearray_heads)
 
     deallocate(lap)
 
@@ -794,11 +800,13 @@ contains
   end subroutine layout_destroy
 
   subroutine layout_build_coarse(lac, la, cr)
+    use omp_module
     use bl_error_module
     type(layout), intent(out)   :: lac
     type(layout), intent(inout) :: la
     integer, intent(in) :: cr(:)
     type(coarsened_layout), pointer :: cla
+    integer :: nthreads
 
     if ( size(cr) /= la%lap%dim ) then
        call bl_error("layout_build_coarse(): incommensurate cr")
@@ -835,6 +843,9 @@ contains
     call boxarray_build_copy(cla%la%lap%bxa, la%lap%bxa)
 
     call boxarray_coarsen(cla%la%lap%bxa, cla%crse)
+
+    nthreads = omp_get_max_threads()
+    allocate(cla%la%lap%tilearray_heads(0:nthreads-1))
 
     ! install the new coarsened layout into the layout
     cla%next => la%lap%crse_la
@@ -3515,28 +3526,23 @@ contains
     type(tilearray) :: r
 
     ! Do we have one stored?
-    p => the_tilearray_head
+    p => la%lap%tilearray_heads(tid)%p
     do while (associated(p))
-       if (tilearray_check(p, la, tilesize, nthreads)) then
-          if (.not. associated(p, the_tilearray_head)) then
-             call remove_tilearray_item(p)
-             call add_tilearray_head(p)
-          end if
-          r = the_tilearray_head
+       if (tilearray_check(p, tilesize, nthreads)) then
+          r = p
           return
        end if
        p => p%next
     end do
-
-    Nullify(p)
 
     ! build a new one
     allocate(p)
     call tilearray_build(p, la, tilesize, tid, nthreads)
 
     if (p%dim .gt. 0) then
-       call add_tilearray_head(p)
-       r = the_tilearray_head
+       p%next => la%lap%tilearray_heads(tid)%p
+       la%lap%tilearray_heads(tid)%p => p
+       r = p
     else
        ! No tiles assigned to this thread
        deallocate(p)
@@ -3545,14 +3551,10 @@ contains
 
   end function init_layout_tilearray
 
-  pure function tilearray_check(p, la, tilesize, nthreads) result (r)
+  pure function tilearray_check(p, tilesize, nthreads) result (r)
     logical :: r
     type(tilearray), intent(in) :: p
-    type(layout), intent(in) :: la
-    integer, intent(in) :: tilesize(:), nthreads
-
-    r = associated(p%lap, la%lap)
-    if (.not.r) return
+     integer, intent(in) :: tilesize(:), nthreads
 
     r = nthreads .eq. p%nthreads
     if (.not.r) return
@@ -3570,20 +3572,19 @@ contains
 
     integer :: i, n, idim
     integer, dimension(la%lap%dim) :: nt, tsize, nleft, ijk, small, big
-    integer :: n_tot_tiles, ntiles, tlo, thi, sz, t
+    integer :: n_tot_tiles, ntiles, tlo, thi, t
     integer :: tiles_per_thread, nl, it, gindex, ncells
     type(box) :: bx, bxt
     type(vector_i) :: nt_in_fab(la%lap%dim)
     type(list_box) :: tiles
 
-    ta%nthreads = nthreads
     ta%dim      = la%lap%dim
-    ta%lap      => la%lap
+    ta%nthreads = nthreads
     ta%tilesize = tilesize
 
     n_tot_tiles = 0
-    do n=1, ta%lap%nlocal
-       bx = get_box(ta%lap%bxa, ta%lap%idx(n))
+    do n=1, la%lap%nlocal
+       bx = get_box(la%lap%bxa, la%lap%idx(n))
 
        ntiles = 1
        do idim = 1, ta%dim
@@ -3620,15 +3621,15 @@ contains
        end if
     end if
     
-    sz = thi - tlo +1
+    ta%ntiles = thi - tlo +1
 
-    allocate(ta%gidx(sz))
-    allocate(ta%lidx(sz))
+    allocate(ta%gidx(ta%ntiles))
+    allocate(ta%lidx(ta%ntiles))
 
     it = 0
     i = 1
 
-    do n=1, ta%lap%nlocal
+    do n=1, la%lap%nlocal
     
        ntiles = 1
        do idim = 1, ta%dim
@@ -3641,8 +3642,8 @@ contains
           cycle
        end if
 
-       gindex = ta%lap%idx(n)
-       bx = get_box(ta%lap%bxa, gindex)
+       gindex = la%lap%idx(n)
+       bx = get_box(la%lap%bxa, gindex)
 
        do idim = 1, ta%dim
           ncells = bx%hi(idim) - bx%lo(idim) + 1
@@ -3710,28 +3711,5 @@ contains
     type(tilearray), intent(in) :: ta
     r = ta%dim /= 0
   end function tilearray_built_q
-
-  subroutine remove_tilearray_item(p)
-    type(tilearray), pointer, intent(inout) :: p
-    if (associated(p%prev)) then
-       p%prev%next => p%next
-    end if
-    if (associated(p%next)) then
-       p%next%prev => p%prev
-    end if
-    if (associated(p, the_tilearray_head)) then
-       the_tilearray_head => p%next
-    end if
-  end subroutine remove_tilearray_item
-
-  subroutine add_tilearray_head(p)
-    type(tilearray), pointer, intent(inout) :: p
-    p%next => the_tilearray_head
-    p%prev => Null()
-    if (associated(p%next)) then
-       p%next%prev => p
-    end if
-    the_tilearray_head => p
-  end subroutine add_tilearray_head
 
 end module layout_module
