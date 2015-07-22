@@ -23,9 +23,10 @@
     F90 := $(_ifc)
     FC  := $(_ifc)
     CC  := $(_icc)
+    CXX := icpc
 
     FFLAGS   += -module $(mdir) -I $(mdir)
-    F90FLAGS += -module $(mdir) -I $(mdir)
+    F90FLAGS += -module $(mdir) -I $(mdir) -cxxlib
     CFLAGS   += -std=c99
 
     ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
@@ -36,6 +37,7 @@
         FFLAGS   += -mmic
         F90FLAGS += -mmic
         CFLAGS   += -mmic
+        CXXFLAGS += -mmic
       endif
     endif
 
@@ -44,6 +46,7 @@
         FFLAGS   += -xHost
         F90FLAGS += -xHost
         CFLAGS   += -xHost
+        CXXFLAGS += -xHost
       endif
     endif
 
@@ -51,6 +54,7 @@
       FFLAGS   += -openmp
       F90FLAGS += -openmp
       CFLAGS   += -openmp
+      CXXFLAGS += -openmp
     endif
 
     ifeq ($(_comp),Intel15)
@@ -59,9 +63,10 @@
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
         #CFLAGS   += -g #-Wcheck
       else
-        F90FLAGS += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-        FFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-        CFLAGS   += -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        F90FLAGS += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        FFLAGS   += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        CFLAGS   += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        CXXFLAGS += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
       endif
       ifdef GPROF
         F90FLAGS += -pg
@@ -78,10 +83,12 @@
 	  F90FLAGS += -fast
 	  FFLAGS += -fast
 	  CFLAGS += -fast
+	  CXXFLAGS += -fast
 	else
           F90FLAGS += -O2 -ip # -xHost # -fp-model source -vec-report6
           FFLAGS   += -O2 -ip # -xHost # -fp-model source 
           CFLAGS   += -O2 -ip # -xHost # -fp-model source 
+          CXXFLAGS += -O2 -ip # -xHost # -fp-model source 
 	endif
       endif
       ifdef GPROF
@@ -99,10 +106,12 @@
 	  F90FLAGS += -fast
 	  FFLAGS += -fast
 	  CFLAGS += -fast
+	  CXXFLAGS += -fast
 	else
           F90FLAGS += -O2 -ip -fp-model source #-xHost
           FFLAGS   += -O2 -ip -fp-model source #-xHost
           CFLAGS   += -O2 -ip -fp-model source #-xHost
+          CXXFLAGS += -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF
@@ -122,10 +131,12 @@
 	  F90FLAGS += -fast
 	  FFLAGS += -fast
 	  CFLAGS += -fast
+	  CXXFLAGS += -fast
 	else
           F90FLAGS += -O2 -ip -fp-model source #-xHost
           FFLAGS   += -O2 -ip -fp-model source #-xHost
           CFLAGS   += -O2 -ip -fp-model source #-xHost
+          CXXFLAGS += -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF
@@ -145,10 +156,12 @@
           F90FLAGS += -fast
           FFLAGS += -fast
           CFLAGS += -fast
+          CXXFLAGS += -fast
         else
           F90FLAGS += -O3 -ip -mp1# -fltconsistency
           FFLAGS += -O3 -ip -mp1# -fltconsistency
           CFLAGS += -O3 -ip -mp1
+          CXXFLAGS += -O3 -ip -mp1
         endif
       endif
       ifdef GPROF
@@ -172,17 +185,20 @@
 	  F90FLAGS += -fast
 	  FFLAGS += -fast
 	  CFLAGS += -fast
+	  CXXFLAGS += -fast
 	else
          # A. Donev added this to make moderately optimized executables:         
          ifndef BL_FAST_COMP
            F90FLAGS += -O3 -ip -mp1 -fltconsistency 
            FFLAGS += -O3 -ip -mp1 -fltconsistency
            CFLAGS += -O3 -ip -mp1 -fltconsistency
+           CXXFLAGS += -O3 -ip -mp1 -fltconsistency
          else
            # Fast compiles and fast-enough runs:
            F90FLAGS += -O2 -mp1 -fltconsistency
            FFLAGS += -O2 -mp1 -fltconsistency
            CFLAGS += -O2 -mp1
+           CXXFLAGS += -O2 -mp1
          endif        
 	endif
       endif
@@ -192,3 +208,4 @@
 #      F90FLAGS += -stand f95
 #     FFLAGS += -stand f95
     endif
+
