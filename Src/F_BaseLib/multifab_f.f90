@@ -5605,13 +5605,8 @@ contains
        ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
     end if
 
-    if (omp_in_parallel()) then
-       tid = omp_get_thread_num()
-       nthreads = omp_get_num_threads()
-    else
-       tid = 0
-       nthreads = 1
-    end if
+    tid = omp_get_thread_num()
+    nthreads = omp_get_num_threads()
 
     la = mf%la
 

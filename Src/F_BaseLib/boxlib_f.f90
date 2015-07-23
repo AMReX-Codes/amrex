@@ -25,7 +25,11 @@ contains
   !! Initializes _BoxLib_ applications.  This should be the
   !! first routine called in the main PROGRAM unit.
   subroutine boxlib_initialize(thread_support_level)
+    use mempool_module, only : bl_allocate, bl_deallocate
     integer, intent(in), optional :: thread_support_level
+
+    double precision, pointer :: foo(:)
+
     call parallel_initialize(MPI_COMM_WORLD, thread_support_level)
     if (parallel_IOProcessor()) then
        print*, "MPI initialized with ", parallel_nprocs(), " MPI processes";
@@ -48,6 +52,11 @@ contains
     if (omp_get_max_threads() > 1) call omp_set_nested(.false.)
 
     call mempool_init ()
+
+    !$omp parallel private(foo)
+    call bl_allocate(foo, 1, 1024)
+    call bl_deallocate(foo)
+    !$omp end parallel
 
   end subroutine boxlib_initialize
 
