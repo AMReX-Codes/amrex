@@ -63,8 +63,8 @@
         FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
         #CFLAGS   += -g #-Wcheck
       else
-        F90FLAGS += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-        FFLAGS   += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+        F90FLAGS += -g -debug inline-debug-info -O2 -ip -align array64byte -qopt-report=5 -qopt-report-phase=vec
+        FFLAGS   += -g -debug inline-debug-info -O2 -ip -align array64byte -qopt-report=5 -qopt-report-phase=vec
         CFLAGS   += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
         CXXFLAGS += -g -debug inline-debug-info -O2 -ip -qopt-report=5 -qopt-report-phase=vec
       endif
