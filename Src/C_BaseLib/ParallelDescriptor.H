@@ -184,10 +184,18 @@ namespace ParallelDescriptor
     extern int m_MyId_sidecar;
 
     inline int
-    MyProc ()  // use _comp here, almost always what the user wants
+    MyProc ()  // return the "local" process number
     {
-        BL_ASSERT(m_MyId_comp != myId_undefined);
-        return m_MyId_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            BL_ASSERT(m_MyId_comp != myId_undefined);
+            return m_MyId_comp;
+        }
+        else
+        {
+            BL_ASSERT(m_MyId_sidecar != myId_undefined);
+            return m_MyId_sidecar;
+        }
     }
     inline int
     MyProcAll ()
@@ -229,10 +237,18 @@ namespace ParallelDescriptor
         nSidecarProcs = npmp;
     }
     inline int
-    NProcs ()  // use _comp here, almost always what the user wants
+    NProcs ()  // return the "local" number of processes
     {
-        BL_ASSERT(m_nProcs_comp != nProcs_undefined);
-        return m_nProcs_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            BL_ASSERT(m_nProcs_comp != nProcs_undefined);
+            return m_nProcs_comp;
+        }
+        else
+        {
+            BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
+            return m_nProcs_sidecar;
+        }
     }
     inline int
     NProcsAll ()
@@ -280,9 +296,16 @@ namespace ParallelDescriptor
     extern MPI_Comm m_comm_comp;
     extern MPI_Comm m_comm_sidecar;
     extern MPI_Comm m_comm_inter;
-    inline MPI_Comm Communicator ()  // use _comp here, almost always what the user wants
+    inline MPI_Comm Communicator ()  // return the "local" communicator
     {
-        return m_comm_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            return m_comm_comp;
+        }
+        else
+        {
+            return m_comm_sidecar;
+        }
     }
     inline MPI_Comm CommunicatorAll ()
     {
