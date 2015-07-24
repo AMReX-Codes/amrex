@@ -1068,3 +1068,87 @@ Geometry::PIRMCacheSize ()
 {
     return m_FPBCache.size();
 }
+
+void
+Geometry::SendGeometryToSidecars (Box*     baseBox,
+                                  RealBox* realBox,
+                                  int*       coord,
+                                  int* is_periodic,
+                                  Geometry*   geom)
+{
+  if (ParallelDescriptor::Communicator() == ParallelDescriptor::CommunicatorComp())
+  {
+
+    // Data to construct base Box
+    const int *box_index_type = baseBox->type().getVect();
+    const int *smallEnd = baseBox->smallEnd().getVect();
+    const int *bigEnd = baseBox->bigEnd().getVect();
+
+    // Data to construct RealBox
+    const Real *realBox_lo = realBox->lo();
+    const Real *realBox_hi = realBox->hi();
+
+    if (ParallelDescriptor::IOProcessor()) {
+      // Step 1: send the base box
+      ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+
+      // Step 2: send the RealBox
+      ParallelDescriptor::Bcast((Real *) realBox_lo, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((Real *) realBox_hi, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+
+      // Step 3: send the coordinates
+      ParallelDescriptor::Bcast(coord, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+
+      // Step 4: send the periodicity flags
+      ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+
+    } else {
+      // All the corresponding fake broadcasts from the other procs in the compute group
+      ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+
+      ParallelDescriptor::Bcast((Real *)realBox_lo, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast((Real *)realBox_hi, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+
+      ParallelDescriptor::Bcast(coord, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+
+      ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+    }
+  }
+  else
+  {
+    int box_index_type[BL_SPACEDIM];
+    int smallEnd[BL_SPACEDIM];
+    int bigEnd[BL_SPACEDIM];
+
+    Real realBox_lo[BL_SPACEDIM];
+    Real realBox_hi[BL_SPACEDIM];
+
+    ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+    ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+    ParallelDescriptor::Bcast(coord, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+    ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+    // Now reconstruct all the parts
+    IntVect smallEnd_IV(smallEnd);
+    IntVect bigEnd_IV(bigEnd);
+    IntVect box_index_type_IV(box_index_type);
+    Box baseBox(smallEnd_IV, bigEnd_IV, box_index_type_IV);
+
+    for (int n = 0; n < BL_SPACEDIM; n++) {
+      realBox->setLo(n, realBox_lo[n]);
+      realBox->setHi(n, realBox_hi[n]);
+    }
+
+    geom->define(baseBox, realBox, *coord, is_periodic);
+  }
+}
