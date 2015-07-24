@@ -221,6 +221,12 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_sidecar != myId_undefined);
         return (m_MyId_sidecar >= 0);
     }
+    inline bool
+    InCompGroup ()
+    {
+        BL_ASSERT(m_MyId_comp != myId_undefined);
+        return (m_MyId_comp >= 0);
+    }
     //
     // Returns number of CPUs involved in the computation.
     //
