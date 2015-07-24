@@ -181,7 +181,7 @@ namespace ParallelDescriptor
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
-    extern int m_MyId_perfmon;
+    extern int m_MyId_sidecar;
 
     inline int
     MyProc ()  // use _comp here, almost always what the user wants
@@ -202,16 +202,16 @@ namespace ParallelDescriptor
         return m_MyId_comp;
     }
     inline int
-    MyProcPerfMon ()
+    MyProcSidecar ()
     {
-        BL_ASSERT(m_MyId_perfmon != myId_undefined);
-        return m_MyId_perfmon;
+        BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        return m_MyId_sidecar;
     }
     inline bool
-    InPerfMonGroup ()
+    InSidecarGroup ()
     {
-        BL_ASSERT(m_MyId_perfmon != myId_undefined);
-        return (m_MyId_perfmon >= 0);
+        BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        return (m_MyId_sidecar >= 0);
     }
     //
     // Returns number of CPUs involved in the computation.
@@ -219,14 +219,14 @@ namespace ParallelDescriptor
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
-    extern int m_nProcs_perfmon;
-    extern int nPerfmonProcs;
-    
+    extern int m_nProcs_sidecar;
+    extern int nSidecarProcs;
+
     inline void
-    SetNProcsPerfMon (int npmp)  // ---- set this before calling BoxLib::Initialize()
+    SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
     {
         BL_ASSERT(npmp >= 0);
-        nPerfmonProcs = npmp;
+        nSidecarProcs = npmp;
     }
     inline int
     NProcs ()  // use _comp here, almost always what the user wants
@@ -247,11 +247,11 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsPerfMon ()
+    NProcsSidecar ()
     {
-        BL_ASSERT(m_nProcs_perfmon != nProcs_undefined);
-        BL_ASSERT(m_nProcs_perfmon == nPerfmonProcs);
-        return m_nProcs_perfmon;
+        BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
+        BL_ASSERT(m_nProcs_sidecar == nSidecarProcs);
+        return m_nProcs_sidecar;
     }
     //
     // The CPU number of the I/O Processor.
@@ -274,11 +274,11 @@ namespace ParallelDescriptor
     // BoxLib's Parallel Communicators
     //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
     //    m_comm_comp    is for the nodes doing computations
-    //    m_comm_perfmon is for the in-situ performance monitor
+    //    m_comm_sidecar is for the in-situ performance monitor
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
-    extern MPI_Comm m_comm_perfmon;
+    extern MPI_Comm m_comm_sidecar;
     extern MPI_Comm m_comm_inter;
     inline MPI_Comm Communicator ()  // use _comp here, almost always what the user wants
     {
@@ -292,9 +292,9 @@ namespace ParallelDescriptor
     {
         return m_comm_comp;
     }
-    inline MPI_Comm CommunicatorPerfMon ()
+    inline MPI_Comm CommunicatorSidecar ()
     {
-        return m_comm_perfmon;
+        return m_comm_sidecar;
     }
     inline MPI_Comm CommunicatorInter ()
     {
