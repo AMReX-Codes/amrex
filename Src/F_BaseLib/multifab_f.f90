@@ -64,7 +64,8 @@ module multifab_module
      logical :: nodal(3) = .false.
      integer :: it       = 0    ! current tile index local to this thread
      integer :: ntiles   = 0
-     type(tilearray) :: ta
+     type(tilearray)  :: ta
+     type(layout_rep), pointer :: lap => Null()
   end type mfiter
 
   interface cell_centered_q
@@ -5589,6 +5590,7 @@ contains
     logical, intent(in), optional :: tiling
     integer, intent(in), optional :: tilesize(:)
 
+    type(layout) :: la
     integer :: ltilesize(3), tid, nthreads
 
     if (present(tilesize)) then
@@ -5611,7 +5613,9 @@ contains
        nthreads = 1
     end if
 
-    mfi%ta = init_layout_tilearray(mf%la, ltilesize, tid, nthreads)
+    la = mf%la
+
+    mfi%ta = init_layout_tilearray(la, ltilesize, tid, nthreads)
     
     if (mfi%ta%dim .gt. 0) then
        mfi%dim = mf%dim
@@ -5619,7 +5623,8 @@ contains
        mfi%nodal(1:mfi%dim) = mf%nodal
 
        mfi%it = 0
-       mfi%ntiles = size(mfi%ta%gidx)
+       mfi%ntiles = mfi%ta%ntiles
+       mfi%lap => la%lap
     else
        mfi%it = 0
        mfi%ntiles = 0
@@ -5726,7 +5731,7 @@ contains
   pure function get_gridbox(mfi) result (r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
-    r = get_box(mfi%ta%lap%bxa, mfi%ta%gidx(mfi%it))
+    r = get_box(mfi%lap%bxa, mfi%ta%gidx(mfi%it))
   end function get_gridbox
 
 end module multifab_module
