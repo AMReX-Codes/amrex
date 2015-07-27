@@ -478,6 +478,16 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+    //
+    // Send a MultiFab from Compute MPI group to Sidecar MPI group.
+    // The pointer to the MultiFab on the sidecars will be null on the compute
+    // processes, and vice versa. So be mindful of which MPI processes you're
+    // on when you access these pointers.
+    //
+    // TODO: allow it to send only selected components
+    //
+    static void SendMultiFabToSidecars(MultiFab *MF_comp,
+                                       MultiFab *MF_sidecar);
 
 private:
     //
