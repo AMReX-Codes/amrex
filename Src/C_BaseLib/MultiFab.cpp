@@ -1605,6 +1605,7 @@ MultiFab::SumBoundary ()
 // Note that the compute MultiFab will be a null pointer on the sidecar nodes,
 // and the sidecar MultiFab will be null on the compute nodes. So be mindful of
 // which processes will be executing which code when you access these pointers.
+#ifdef BL_USE_MPI
 void
 MultiFab::SendMultiFabToSidecars (MultiFab *MF_comp,
                                   MultiFab *MF_sidecar)
@@ -1760,3 +1761,4 @@ MultiFab::SendMultiFabToSidecars (MultiFab *MF_comp,
       }
     }
 }
+#endif

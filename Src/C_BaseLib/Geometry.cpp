@@ -1069,6 +1069,7 @@ Geometry::PIRMCacheSize ()
     return m_FPBCache.size();
 }
 
+#ifdef BL_USE_MPI
 void
 Geometry::SendGeometryToSidecars (Box*     baseBox,
                                   RealBox* realBox,
@@ -1152,3 +1153,4 @@ Geometry::SendGeometryToSidecars (Box*     baseBox,
     geom->define(baseBox, realBox, *coord, is_periodic);
   }
 }
+#endif
