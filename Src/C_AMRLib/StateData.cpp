@@ -206,6 +206,22 @@ StateData::restart (std::istream&          is,
     }
 }
 
+void 
+StateData::restart (const StateDescriptor& d,
+		    const StateData& rhs)
+{
+    desc = &d;
+    domain = rhs.domain;
+    grids = rhs.grids;
+    old_time.start = rhs.old_time.start;
+    old_time.stop  = rhs.old_time.stop;
+    new_time.start = rhs.new_time.start;
+    new_time.stop  = rhs.new_time.stop;
+    old_data = 0;
+    new_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+    new_data->setVal(0.);
+}
+
 StateData::~StateData()
 {
    desc = 0;
