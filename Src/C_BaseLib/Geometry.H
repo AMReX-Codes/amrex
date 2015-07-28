@@ -274,11 +274,13 @@ public:
     //
     // Send Geometry to sidecar procs.
     //
+#ifdef BL_USE_MPI
     static void SendGeometryToSidecars (Box*     baseBox,
                                         RealBox* realBox,
                                         int*       coord,
                                         int* is_periodic,
                                         Geometry*  geom);
+#endif
 private:
     //
     // Helper functions.
