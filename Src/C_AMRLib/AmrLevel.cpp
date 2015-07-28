@@ -193,12 +193,20 @@ AmrLevel::restart (Amr&          papa,
     int nstate;
     is >> nstate;
     int ndesc = desc_lst.size();
-    BL_ASSERT(nstate == ndesc);
+
+    Array<int> state_in_checkpoint(ndesc, 1);
+    if (ndesc > nstate) {
+	set_state_in_checkpoint(state_in_checkpoint);
+    } else {
+	BL_ASSERT(nstate == ndesc);
+    }
 
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
     {
-        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	if (state_in_checkpoint[i]) {
+	    state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	}
     }
  
     if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
@@ -211,6 +219,12 @@ AmrLevel::restart (Amr&          papa,
 #endif
 
     finishConstructor();
+}
+
+void
+AmrLevel::set_state_in_checkpoint (Array<int>& state_in_checkpoint)
+{
+    BoxLib::Error("Class derived AmrLevel has to handle this!");
 }
 
 void
