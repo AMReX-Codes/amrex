@@ -3655,8 +3655,8 @@ contains
 
              ta%gidx(i) = gindex
              ta%lidx(i) = n
-             ta%tilelo(:,i) = small + bx%lo
-             ta%tilehi(:,i) = big   + bx%lo
+             ta%tilelo(:,i) = small + bx%lo(1:dim)
+             ta%tilehi(:,i) = big   + bx%lo(1:dim)
              i = i+1
           end if
 
