@@ -23,3 +23,5 @@
       CFLAGS   += -g
       CXXFLAGS += -g
     endif
+
+    xtr_libraries += -pgcpplibs
