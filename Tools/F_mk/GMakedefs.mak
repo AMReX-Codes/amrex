@@ -2,12 +2,10 @@ ARCH := $(shell uname)
 UNAMEN := $(shell uname -n)
 HOSTNAMEF := $(shell hostname -f)
 
-ifeq ($(ARCH),UNICOS/mp)
-  ARCH := CRAYX1
-endif
-
 FC       :=
 F90      :=
+CC       :=
+CXX      :=
 F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
@@ -117,16 +115,8 @@ ifeq ($(ARCH),FreeBSD)
 endif
 
 ifeq ($(ARCH),Linux)
-  ifeq ($(COMP),catamount)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_catamount.mak
-  endif
-
   ifeq ($(COMP),Cray)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_cray.mak
-  endif
-
-  ifeq ($(COMP),xt4)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_xt4.mak
   endif
 
   ifeq ($(COMP),PGI)
@@ -145,12 +135,13 @@ ifeq ($(ARCH),Linux)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
+  # Gottingen machines
   ifeq ($(HOST),hicegate0)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
   ifeq ($(COMP),NAG)
-    include .k/comps/Linux_nag.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_nag.mak
   endif
 
   ifeq ($(COMP),Lahey)
@@ -158,16 +149,8 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
-ifeq ($(ARCH),CRAYX1)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/crayx1.mak
-endif
-
 ifeq ($(ARCH),AIX)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
-endif
-
-ifeq ($(ARCH),IRIX64)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/irix64.mak
 endif
 
 ifeq ($(ARCH),OSF1)
@@ -234,6 +217,7 @@ ifndef ROSE
    COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
    COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 else
+   COMPILE.cxx = $(ROSECOMP) $(CXXFLAGS) $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSEFLAGS) $(FPPFLAGS) -c
    COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSEFLAGS) $(FPPFLAGS) -c
