@@ -271,6 +271,14 @@ public:
     static Geometry::FPBMMapIter GetFPB (const Geometry&      geom,
                                          const Geometry::FPB& fpb,
                                          const FabArrayBase&  mf);
+    //
+    // Send Geometry to sidecar procs.
+    //
+    static void SendGeometryToSidecars (Box*     baseBox,
+                                        RealBox* realBox,
+                                        int*       coord,
+                                        int* is_periodic,
+                                        Geometry*  geom);
 private:
     //
     // Helper functions.
