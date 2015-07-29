@@ -33,9 +33,16 @@ void mempool_init()
 #pragma omp parallel
 #endif
   {
-    size_t n = 1024;
-    void *p = mempool_alloc(n);
-    mempool_free(p);
+      int N = 1024*1024;
+      void *p = mempool_alloc(N*sizeof(double));
+      // touch the memory
+      double *x = (double *) p;
+      for (int i=0; i<N; ++i) {
+	  x[i] =  (double) i - 1.0;
+      }
+      if (x[N-1] < 0.0) 
+	  std::cout << "This is here so that compiler won't optimize code away" << std::endl;
+      mempool_free(p);
   }
 }
 
