@@ -2896,6 +2896,15 @@ Amr::grid_places (int              lbase,
             new_bx.refine(bf_lev[levc]);
             new_bx.simplify();
             BL_ASSERT(new_bx.isDisjoint());
+	    
+	    if (new_bx.size()>0) {
+	      if ( !(geom[levc].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
+		// Chop new grids outside domain, note that this is likely to result in
+		//  new grids that violate blocking_factor....see warning checking below
+		new_bx = BoxLib::intersect(new_bx,geom[levc].Domain());
+	      }
+	    }
+
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
                 largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
@@ -2933,6 +2942,26 @@ Amr::grid_places (int              lbase,
             //
             new_bx.refine(ref_ratio[levc]);
             BL_ASSERT(new_bx.isDisjoint());
+
+	    if (new_bx.size()>0) {
+	      if ( !(geom[levf].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
+		new_bx = BoxLib::intersect(new_bx,geom[levf].Domain());
+	      }
+	      if (ParallelDescriptor::IOProcessor()) {
+		for (int d=0; d<BL_SPACEDIM; ++d) {
+		  bool ok = true;
+		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
+		    int len = bli->length(d);
+		  int bf = blocking_factor[levf];
+		  ok &= (len/bf) * bf == len;
+		  }
+		  if (!ok) {
+		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
+		  }
+		}
+	      }
+	    }
+
             if (levf > useFixedUpToLevel)
                 new_grids[levf].define(new_bx);
         }
