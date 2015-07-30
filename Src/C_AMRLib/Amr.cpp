@@ -2673,7 +2673,7 @@ Amr::grid_places (int              lbase,
     for (i = 0; i <= max_crse; i++)
     {
         for (int n=0; n<BL_SPACEDIM; n++)
-            bf_lev[i][n] = std::max(1,blocking_factor[i]/ref_ratio[i][n]);
+            bf_lev[i][n] = std::max(1,blocking_factor[i+1]/ref_ratio[i][n]);
     }
     for (i = lbase; i < max_crse; i++)
     {
