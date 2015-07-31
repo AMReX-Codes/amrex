@@ -3560,6 +3560,11 @@ contains
     ta%nthreads = nthreads
     ta%tilesize = tilesize
 
+    if (nlbx < 1) then
+       ta%dim = 0
+       return
+    end if
+
     call bl_allocate(nt_in_fab, 1, dim, 1, nlbx)
     call bl_allocate(ntiles, 1, nlbx)
 
