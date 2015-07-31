@@ -1760,10 +1760,12 @@ def testSuite(argv):
 
                 if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
-                    shutil.rmtree(diffDirBench)
+                    if os.path.isdir(diffDirBench):
+                        shutil.rmtree(diffDirBench)
+                        shutil.copytree(test.diffDir, diffDirBench)
+                    else:
+                        shutil.copy(test.diffDir, diffDirBench)
                     print "     new diffDir: {}_{}".format(test.name, test.diffDir)
-                    shutil.copytree(test.diffDir, diffDirBench)
-
 
         else:   # selfTest
 
