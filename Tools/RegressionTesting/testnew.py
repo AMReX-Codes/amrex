@@ -1065,7 +1065,7 @@ def testSuite(argv):
 
 
         # create the report for this test run
-        numFailed = reportThisTestRun(suite, wasBenchmarkRun, "",
+        numFailed = reportThisTestRun(suite, wasBenchmarkRun,
                                       "recreated report after crash of suite",
                                       "",  0, 0, 0,
                                       tests, args.complete_report_from_crash, testFile, fullWebDir)
