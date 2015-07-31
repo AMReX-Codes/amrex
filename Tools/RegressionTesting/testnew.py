@@ -1662,7 +1662,9 @@ def testSuite(argv):
             prog = "../fboxinfo.exe -l {}".format(outputFile)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
-
+            if not isInt(test.nlevels):
+                test.nlevels = ""
+                
             if args.make_benchmarks == None:
 
                 print "  doing the comparison..."
