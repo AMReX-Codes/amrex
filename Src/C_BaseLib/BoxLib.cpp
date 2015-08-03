@@ -250,6 +250,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
+#ifdef BL_USE_UPCXX
+    upcxx::init(&argc, &argv);
+#endif
+
     if(ParallelDescriptor::NProcsPerfMon() > 0) {
       if(ParallelDescriptor::InPerfMonGroup()) {
         std::cout << "Starting PerfMonProc:  myprocall = "
@@ -340,7 +344,14 @@ BoxLib::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
+#ifdef BL_USE_UPCXX
+    upcxx::finalize();
+#endif
+
+    /* Don't shut down MPI if GASNet is still using MPI */
+#ifndef GASNET_CONDUIT_MPI
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
+#endif
 }
 
