@@ -14,6 +14,10 @@
 #include <omp.h>
 #endif
 
+#ifdef BL_USE_UPCXX
+#include <upcxx.h>
+#endif
+
 #include <BLassert.H>
 #include <Array.H>
 
@@ -153,11 +157,11 @@ public:
                                 Array<T*>&          send_data,
                                 Array<MPI_Status>&  stats);
 
+#ifdef BL_USE_UPCXX
     template<typename T>
     static void GrokAsyncSends_PGAS (int                 N_snds,
-				     Array<MPI_Request>& send_reqs,
-				     Array<T*>&          send_data,
-				     Array<MPI_Status>&  stats);
+                                     Array<T*>&          send_data);
+#endif
 
     template<typename T1, typename T2>
     static void PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
@@ -169,15 +173,17 @@ public:
                           int                                    ncomp,
                           int                                    SeqNum);
 
+#ifdef BL_USE_UPCXX
     template<typename T1, typename T2>
     static void PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
-			       const std::map<int,int>&               m_RcvVols,
-			       T2*&                                   the_recv_data,
-			       Array<T2*>&                            recv_data,
-			       Array<int>&                            recv_from,
-			       Array<MPI_Request>&                    recv_reqs,
-			       int                                    ncomp,
-			       int                                    SeqNum);
+                               const std::map<int,int>&               m_RcvVols,
+                               T2*&                                   the_recv_data,
+                               Array<T2*>&                            recv_data,
+                               Array<int>&                            recv_from,
+                               int                                    ncomp,
+                               int                                    SeqNum);
+#endif
+
     //
     // Used by a bunch of routines when communicating via MPI.
     //
@@ -2652,6 +2658,31 @@ FabArray<FAB>::FillBoundary (int  scomp,
 #endif /*BL_USE_MPI*/
 }
 
+#ifdef BL_USE_UPCXX
+struct PgasSendInfo {
+  upcxx::global_ptr<void> src_ptr;
+  upcxx::global_ptr<void> dst_ptr;
+  size_t nbytes;
+  int SeqNum;
+
+  PgasSendInfo(upcxx::global_ptr<void> src,
+               upcxx::global_ptr<void> dst,
+               size_t nb,
+               int SN)
+  {
+    src_ptr = src;
+    dst_ptr = dst;
+    nbytes = nb;
+    SeqNum = SN;
+  }
+};
+
+void pgas_send(upcxx::global_ptr<void> src_ptr,
+               upcxx::global_ptr<void> dst_ptr,
+               size_t nbytes,
+               int SeqNum);
+#endif /* BL_USE_UPCXX */
+
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
@@ -2713,8 +2744,13 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
+#ifdef BL_USE_UPCXX
     FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,nbc_the_recv_data,
-				nbc_recv_data,nbc_recv_from,nbc_recv_reqs,ncomp,SeqNum);
+                                nbc_recv_data,nbc_recv_from,ncomp,SeqNum);
+#else
+    FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,nbc_the_recv_data,
+                           nbc_recv_data,nbc_recv_from,nbc_recv_reqs,ncomp,SeqNum);
+#endif
 
     //
     // Post send's
@@ -2744,7 +2780,18 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
-        value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+#ifdef BL_USE_UPCXX
+      value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
+      if (data == NULL) {
+        printf("Failed to allocate %lu bytes global address space memory!\n",
+               sizeof(value_type)*N);
+        printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
+        printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
+        BL_ASSERT(data != NULL); // any better way for an error exit?
+      }
+#else
+      value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+#endif
 
 	send_data.push_back(data);
 	send_N   .push_back(N);
@@ -2773,11 +2820,20 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         }
     }
 
+#ifndef BL_USE_UPCXX
     Array<MPI_Request>& send_reqs = nbc_send_reqs;
     send_reqs.reserve(N_snds);
+#endif
     for (int i=0; i<N_snds; ++i) {
-	send_reqs.push_back(ParallelDescriptor::Asend
-			    (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+#ifdef BL_USE_UPCXX
+      pgas_send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
+                upcxx::global_ptr<void>(NULL, send_rank[i]),
+                send_N[i]*sizeof(value_type),
+                SeqNum);
+#else
+      send_reqs.push_back(ParallelDescriptor::Asend
+                          (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+#endif
     }
 
     //
@@ -2820,7 +2876,12 @@ FabArray<FAB>::FillBoundary_finish ()
         //
         return;
 
+#ifdef BL_USE_UPCXX
+    upcxx::async_wait(); // all communication should be done at this point
+    upcxx::barrier();
+#else
     Array<MPI_Status> stats;
+#endif
 
     //
     //  wait and unpack
@@ -2841,8 +2902,10 @@ FabArray<FAB>::FillBoundary_finish ()
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
+#ifndef BL_USE_UPCXX
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, nbc_recv_reqs.dataPtr(), stats.dataPtr()) );
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -2865,89 +2928,105 @@ FabArray<FAB>::FillBoundary_finish ()
 	}
     }
 
+#ifdef BL_USE_UPCXX
+    upcxx::deallocate(nbc_the_recv_data);
+#else
     BoxLib::The_Arena()->free(nbc_the_recv_data);
+#endif
+
     nbc_recv_from.clear();
     nbc_recv_data.clear();
     nbc_recv_reqs.clear();
 
     if (!TheSI.m_SndTags->empty()) {
-        FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),nbc_send_reqs,nbc_send_data,stats);
+#ifdef BL_USE_UPCXX
+      // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
+      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),nbc_send_data);
+#else
+      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),nbc_send_reqs,nbc_send_data,stats);
+#endif
 	nbc_send_data.clear();
 	nbc_send_reqs.clear();
     }
 }
 
+#ifdef BL_USE_UPCXX
 template<typename T1, typename T2>
 void
 FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
-			     const std::map<int,int>&               m_RcvVols,
-			     T2*&                                   the_recv_data,
-			     Array<T2*>&                            recv_data,
-			     Array<int>&                            recv_from,
-			     Array<MPI_Request>&                    recv_reqs,
-			     int                                    ncomp,
-			     int                                    SeqNum)
+                             const std::map<int,int>&               m_RcvVols,
+                             T2*&                                   the_recv_data,
+                             Array<T2*>&                            recv_data,
+                             Array<int>&                            recv_from,
+                             int                                    ncomp,
+                             int                                    SeqNum)
 {
-    int TotalRcvsVolume = 0;
+  int TotalRcvsVolume = 0;
 
-    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-             End = m_RcvVols.end();
-         it != End;
-         ++it)
+  for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+         End = m_RcvVols.end();
+       it != End;
+       ++it)
     {
-        TotalRcvsVolume += it->second;
+      TotalRcvsVolume += it->second;
     }
 
-    TotalRcvsVolume *= ncomp;
+  TotalRcvsVolume *= ncomp;
 
-    BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
+  BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
+  /// the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
+  the_recv_data = (T2*)upcxx::allocate<T2>(TotalRcvsVolume);
+  if (the_recv_data == NULL) {
+    printf("Failed to allocate %lu bytes global address space memory!\n",
+           TotalRcvsVolume);
+    printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
+    printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
+    BL_ASSERT(the_recv_data != NULL); // any better way for an error exit?
+  }
 
-    int Offset = 0;
+  int Offset = 0;
 
-    for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
+  for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
+         m_End = m_RcvTags.end();
+       m_it != m_End;
+       ++m_it)
     {
-        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+      std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
 
-        BL_ASSERT(vol_it != m_RcvVols.end());
+      BL_ASSERT(vol_it != m_RcvVols.end());
 
-        const int N = vol_it->second*ncomp;
+      const int N = vol_it->second*ncomp;
 
-        BL_ASSERT(N < std::numeric_limits<int>::max());
+      BL_ASSERT(N < std::numeric_limits<int>::max());
 
-        recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-
-        Offset += N;
+      recv_data.push_back(&the_recv_data[Offset]);
+      recv_from.push_back(m_it->first);
+      /// recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+      /// Send an AM to the sender m_it->first with the recv pointer being &the_recv_data[Offset]
+      upcxx::global_ptr<void> dst_ptr =
+        upcxx::global_ptr<void>(&the_recv_data[Offset], upcxx::myrank());
+      // Launch a remote task on the sender to send me data
+      upcxx::async(m_it->first)(pgas_send,
+                                upcxx::global_ptr<void>(NULL, m_it->first),
+                                dst_ptr,
+                                N*sizeof(T2),
+                                SeqNum);
+      upcxx::advance(); // poll the UPC++ progress engine and the network
+      Offset += N;
     }
 }
 
 template<typename T>
 void
 FabArrayBase::GrokAsyncSends_PGAS (int                 N_snds,
-				   Array<MPI_Request>& send_reqs,
-				   Array<T*>&          send_data,
-				   Array<MPI_Status>&  stats)
+                                   Array<T*>&          send_data)
 {
-#ifdef BL_USE_MPI
-    BL_ASSERT(N_snds > 0);
-
-    stats.resize(N_snds);
-
-    BL_ASSERT(send_reqs.size() == N_snds);
-    BL_ASSERT(send_data.size() == N_snds);
-
-    Array<int> indx;
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-
-    for (int i = 0; i < N_snds; i++)
-        BoxLib::The_Arena()->free(send_data[i]);
-#endif /*BL_USE_MPI*/
+  BL_ASSERT(N_snds > 0);
+  BL_ASSERT(send_data.size() == N_snds);
+  for (int i = 0; i < N_snds; i++)
+    upcxx::deallocate(send_data[i]);
 }
+#endif /* BL_USE_UPCXX */
 
 #endif /*BL_FABARRAY_H*/
