@@ -1,4 +1,6 @@
 module vector_i_module
+
+  use mempool_module, only : bl_allocate, bl_deallocate
   
   implicit none
 
@@ -112,7 +114,7 @@ contains
     integer,        intent(in ) :: values(:)
     if ( .not. associated(vi%d) ) then
        vi%size = size(values)
-       allocate(vi%d(vi%size))
+       call bl_allocate(vi%d, 1, vi%size)
        vi%d     = values
        vi%end   = vi%size
     end if
@@ -127,7 +129,7 @@ contains
     if ( present(value) ) v      = value
     if ( present(size ) ) vi%size = size
     if ( .not. associated(vi%d)  ) then
-       allocate(vi%d(vi%size))
+       call bl_allocate(vi%d, 1, vi%size)
        vi%d = v
     end if
   end subroutine vector_build_i
@@ -204,10 +206,10 @@ contains
        vi%d(1:vi%size) = vi%d(1:vi%end)
        vi%d(vi%size+1:size) = v
     else
-       allocate(np(size))
+       call bl_allocate(np, 1, size)
        np(1:vi%size) = vi%d(1:vi%end)
        np(vi%size+1:size) = v
-       if ( associated(vi%d) ) deallocate(vi%d)
+       if ( associated(vi%d) ) call bl_deallocate(vi%d)
        vi%d => np
     end if
     vi%size  = size
@@ -222,10 +224,10 @@ contains
 
     if ( size <= vector_capacity_i(vi) ) return
 
-    allocate(np(size))
+    call bl_allocate(np, 1, size)
     if ( associated(vi%d) ) then
        np(1:vi%size) = vi%d(1:vi%size)
-       deallocate(vi%d)
+       call bl_deallocate(vi%d)
     end if
     vi%d => np
 
@@ -237,9 +239,9 @@ contains
 
     if ( size(vi%d) == vi%size ) return
 
-    allocate(np(vi%size))
+    call bl_allocate(np, 1, vi%size)
     np(1:vi%size) = vi%d(1:vi%size)
-    if ( associated(vi%d) ) deallocate(vi%d)
+    if ( associated(vi%d) ) call bl_deallocate(vi%d)
     vi%d => np
     vi%end   = vi%size
 
@@ -339,7 +341,7 @@ contains
   subroutine vector_clear_i(vi)
     type(vector_i), intent(inout) :: vi
     if ( associated(vi%d) ) then
-       deallocate(vi%d)
+       call bl_deallocate(vi%d)
        vi%d    => Null()
        vi%end  = 0
        vi%size = 0
