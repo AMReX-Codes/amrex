@@ -118,7 +118,7 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       call destroy(mm_cfine)
+       call imultifab_destroy(mm_cfine)
 
        if ( linject ) then
           call multifab_copy(crse, cfine)
@@ -128,7 +128,7 @@ contains
        end if
     end if
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
 
     call destroy(bpt)
 
@@ -202,14 +202,16 @@ contains
     !
     ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
     !
-    call copy(ba, get_boxarray(get_layout(dst)))
+    call boxarray_build_copy(ba, get_boxarray(get_layout(dst)))
     call boxarray_nodalize(ba, nodal)
-    call build(dstla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(ba)
-    call copy(ba, get_boxarray(get_layout(src)))
+    ! LA_LOCAL ==> bypass processor distribution calculation.
+    call layout_build_ba(dstla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  
+    call boxarray_destroy(ba)
+    call boxarray_build_copy(ba, get_boxarray(get_layout(src)))
     call boxarray_nodalize(ba, nodal)
-    call build(srcla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(ba)
+    ! LA_LOCAL ==> bypass processor distribution calculation.
+    call layout_build_ba(srcla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  
+    call boxarray_destroy(ba)
 
     do kdir = -1,1
 
@@ -298,10 +300,10 @@ contains
        end do
     end do
 
-    if ( synced ) call destroy(temp_dst)
+    if ( synced ) call multifab_destroy(temp_dst)
 
-    call destroy(dstla)
-    call destroy(srcla)
+    call layout_destroy(dstla)
+    call layout_destroy(srcla)
 
     call destroy(bpt)
 
@@ -388,7 +390,7 @@ contains
    end do
 
    do n=1,nlevs
-      call destroy(mm(n))
+      call imultifab_destroy(mm(n))
    end do
 
  end subroutine ml_nodal_restriction_wrapper

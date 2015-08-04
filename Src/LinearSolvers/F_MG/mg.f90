@@ -548,13 +548,13 @@ contains
     la = get_layout(mgt%cc(mgt%nlevels))
 
     do i = 1, mgt%nlevels
-       call destroy(mgt%cc(i))
-       call destroy(mgt%ff(i))
-       call destroy(mgt%dd(i))
-       call destroy(mgt%ss(i))
-       call destroy(mgt%mm(i))
+       call multifab_destroy(mgt%cc(i))
+       call multifab_destroy(mgt%ff(i))
+       call multifab_destroy(mgt%dd(i))
+       call multifab_destroy(mgt%ss(i))
+       call imultifab_destroy(mgt%mm(i))
        if ( i /= mgt%nlevels ) then
-          call destroy(mgt%uu(i))
+          call multifab_destroy(mgt%uu(i))
        end if
     end do
 
@@ -569,7 +569,7 @@ contains
        deallocate(mgt%skewed_not_set)
     end if
 
-    if ( built_q(mgt%nodal_mask) ) call destroy(mgt%nodal_mask)
+    if ( built_q(mgt%nodal_mask) ) call multifab_destroy(mgt%nodal_mask)
 
     if ( ldestroy_la ) call layout_destroy(la)
 
@@ -610,7 +610,7 @@ contains
     rr = rrr
 
     ! create a temporary copy of the boxarray
-    call copy(ba1,ba)
+    call boxarray_build_copy(ba1,ba)
 
     outer: do
        call boxarray_coarsen(ba1,rrr)
@@ -640,7 +640,7 @@ contains
        r  = r + 1
     end do outer
 
-    call destroy(ba1)
+    call boxarray_destroy(ba1)
 
   end function max_mg_levels
 
@@ -755,8 +755,8 @@ contains
 
     call multifab_copy_c(uu,1,bottom_uu,1,1,ng=0)
 
-    call destroy(bottom_uu)
-    call destroy(bottom_rh)
+    call multifab_destroy(bottom_uu)
+    call multifab_destroy(bottom_rh)
 
     call destroy(bpt)
 

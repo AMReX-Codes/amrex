@@ -285,9 +285,9 @@ contains
                                          the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp))
 
        ! deallocate memory
-       call destroy(cell_coeffs(mgt(n)%nlevels))
+       call multifab_destroy(cell_coeffs(mgt(n)%nlevels))
        do i=1,dm
-          call destroy(edge_coeffs(mgt(n)%nlevels,i))
+          call multifab_destroy(edge_coeffs(mgt(n)%nlevels,i))
        end do
        deallocate(cell_coeffs)
        deallocate(edge_coeffs)
@@ -606,7 +606,7 @@ contains
 
        call stencil_fill_nodal_all_mglevels(mgt(n), coeffs)
 
-       call destroy(coeffs(mgt(n)%nlevels))
+       call multifab_destroy(coeffs(mgt(n)%nlevels))
        deallocate(coeffs)
 
     end do

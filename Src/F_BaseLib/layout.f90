@@ -678,7 +678,7 @@ contains
        deallocate(lap%prc)
        deallocate(lap%idx)
     end if
-    call destroy(lap%bxa)
+    call boxarray_destroy(lap%bxa)
     if ( (la_type == LA_BASE) ) then
        deallocate(lap%pmask)
     end if
@@ -1185,7 +1185,7 @@ contains
           upbx(i) = upbx(i) + ng
           call push_back(bl, make_box(lwbx,upbx))
        end do
-       call build(tba, bl, sort = .false.)
+       call boxarray_build_l(tba, bl, sort = .false.)
        call destroy(bl)
     else
        call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)       
@@ -1202,7 +1202,7 @@ contains
        end do
        bv(nboxes(tba)+1:nboxes(tba)+cnt) = bxs(1:cnt)
        shfts(nboxes(tba)+1:nboxes(tba)+cnt,:) = shft(1:cnt,:)
-       call destroy(tba)
+       call boxarray_destroy(tba)
        call boxarray_build_v(tba, bv, sort = .false.)
     end if
 
@@ -1464,10 +1464,11 @@ contains
        !
        ! Build a temporary layout to be used in intersection tests below.
        !
-       call copy(batmp, bxa)
+       call boxarray_build_copy(batmp, bxa)
        call boxarray_nodalize(batmp, nodal)
-       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call destroy(batmp)
+       ! LA_LOCAL ==> bypass processor distribution calculation.
+       call layout_build_ba(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
+       call boxarray_destroy(batmp)
     end if
 
     bxasc%nodal = nodal
@@ -1486,7 +1487,7 @@ contains
     end if
 
     if ( anynodal ) then
-       call destroy(latmp)
+       call layout_destroy(latmp)
     else
        call clear_box_hash_bin(la%lap)
     end if
@@ -1698,11 +1699,12 @@ contains
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
-    call copy(batmp, bxa)
+    call boxarray_build_copy(batmp, bxa)
     call boxarray_nodalize(batmp, nodal)
     if ( lall ) call boxarray_grow(batmp,ng)
-    call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(batmp)
+    ! LA_LOCAL ==> bypass processor distribution calculation.
+    call layout_build_ba(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
+    call boxarray_destroy(batmp)
 
     allocate(filled(nboxes(bxa)))
     do i = 1, nboxes(bxa)
@@ -1754,7 +1756,7 @@ contains
           deallocate(bi)
        end do
     end do
-    call destroy(latmp)
+    call layout_destroy(latmp)
 
   end subroutine internal_sync_unique_cover
 
@@ -1987,7 +1989,7 @@ contains
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
     if (associated(fgasc%prc)) deallocate(fgasc%prc) 
     if (associated(fgasc%idx)) deallocate(fgasc%idx)
-    call destroy(fgasc%ba)
+    call boxarray_destroy(fgasc%ba)
    end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
@@ -2055,10 +2057,11 @@ contains
     !
     ! Build a temporary layout to be used in intersection tests below.
     !
-    call copy(batmp, cpasc%ba_src)
+    call boxarray_build_copy(batmp, cpasc%ba_src)
     call boxarray_nodalize(batmp, nd_src)
-    call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(batmp)
+    ! LA_LOCAL ==> bypass processor distribution calculation.
+    call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
+    call boxarray_destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
@@ -2123,7 +2126,7 @@ contains
        deallocate(bi)
     end do
 
-    call destroy(lasrctmp)
+    call layout_destroy(lasrctmp)
 
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s
@@ -2280,10 +2283,11 @@ contains
        !
        ! Build a temporary layout to be used in intersection tests below.
        !
-       call copy(batmp, bxa_src)
+       call boxarray_build_copy(batmp, bxa_src)
        call boxarray_nodalize(batmp, nd_src)
-       call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call destroy(batmp)
+       ! LA_LOCAL ==> bypass processor distribution calculation.
+       call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
+       call boxarray_destroy(batmp)
     end if
 
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
@@ -2398,7 +2402,7 @@ contains
     end do
 
     if ( anynodal ) then
-       call destroy(lasrctmp)
+       call layout_destroy(lasrctmp)
     else
        call clear_box_hash_bin(la_src%lap)
     end if
@@ -2539,8 +2543,8 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
-    call destroy(cpasc%ba_src)
-    call destroy(cpasc%ba_dst)
+    call boxarray_destroy(cpasc%ba_src)
+    call boxarray_destroy(cpasc%ba_dst)
     deallocate(cpasc%nd_dst)
     deallocate(cpasc%nd_src)
     deallocate(cpasc%l_con%cpy)
@@ -3181,21 +3185,21 @@ contains
     type(boxarray) :: ba
     
     call boxarray_build_v(ba, boxes, sort=.false.)
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
     
     do i=1,size(boxes)
        bi => layout_get_box_intersector(la, boxes(i))
        if(size(bi) .ne. 1) then
           deallocate(bi)
-          call destroy(ba)
-          call destroy(la)
+          call boxarray_destroy(ba)
+          call layout_destroy(la)
           r = .false.
           return
        end if
        deallocate(bi)
     end do
-    call destroy(ba)
-    call destroy(la)
+    call boxarray_destroy(ba)
+    call layout_destroy(la)
     r = .true.
     return
   end function boxarray_clean
@@ -3245,7 +3249,7 @@ contains
        call list_build_v_box(bl, bxs)
     else
        call list_build_v_box(bl, ba%bxs)
-       call destroy(ba)
+       call boxarray_destroy(ba)
        call list_build_v_box(bltmp, bxs)
        call splice(bl, bltmp)
     end if
@@ -3258,7 +3262,7 @@ contains
        return
     end if
 
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
 
     i = 0
 
@@ -3287,8 +3291,8 @@ contains
        deallocate(bi)
     end do
 
-    call destroy(ba)
-    call destroy(la)
+    call boxarray_destroy(ba)
+    call layout_destroy(la)
 
     ! there is still one box left in the list
     call push_back(blclean, list_front_box(bl))
@@ -3326,7 +3330,7 @@ contains
     if ( nboxes(ba) .eq. 0 ) &
        call bl_error('Empty boxarray in boxarray_box_contains')
     
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
 
     bi => layout_get_box_intersector(la, bx)    
 
@@ -3335,7 +3339,7 @@ contains
     end do
 
     deallocate(bi)
-    call destroy(la)
+    call layout_destroy(la)
 
     bl = boxlist_boxlist_diff(bx, bl1)
     r = empty(bl)
@@ -3395,14 +3399,14 @@ contains
     if ( nboxes(ba2) .eq. 0 ) &
        call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
 
-    call build(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
+    call layout_build_ba(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
 
     if ( lallow) then
        do i = 1, nboxes(ba2)
           if (empty(get_box(ba2,i))) cycle !ignore empty boxes
           r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
-             call destroy(la1)
+             call layout_destroy(la1)
              call destroy(bpt)
              return
           end if
@@ -3411,14 +3415,14 @@ contains
        do i = 1, nboxes(ba2)
           r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
-             call destroy(la1)
+             call layout_destroy(la1)
              call destroy(bpt)
              return
           end if
        end do
     endif
 
-    call destroy(la1)
+    call layout_destroy(la1)
 
     r = .true.
 

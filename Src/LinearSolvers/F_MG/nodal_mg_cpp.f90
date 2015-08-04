@@ -146,11 +146,11 @@ subroutine mgt_set_nodal_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   do i = 1, nb
      bxs(i) = make_box(lo(i,:), hi(i,:))
   end do
-  call build(mgts%mla%mba%bas(flev), bxs)
-  call build(mgts%mla%la(flev),  &
-       mgts%mla%mba%bas(flev), &
-       mgts%pd(flev), pmask = pmask, &
-       mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
+  call boxarray_build_v(mgts%mla%mba%bas(flev), bxs)
+  call layout_build_ba(mgts%mla%la(flev),  &
+                       mgts%mla%mba%bas(flev), &
+                       mgts%pd(flev), pmask = pmask, &
+                       mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
 end subroutine mgt_set_nodal_level
 
@@ -188,9 +188,9 @@ subroutine mgt_nodal_finalize(dx,bc)
   end do
 
   do i = 1, nlev
-     call build(mgts%uu(i) , mgts%mla%la(i), nc = 1, ng = 1, nodal = nodal)
-     call build(mgts%rh(i) , mgts%mla%la(i), nc = 1, ng = 1, nodal = nodal)
-     call build(mgts%vel(i), mgts%mla%la(i), nc =dm, ng = 1)
+     call multifab_build(mgts%uu(i) , mgts%mla%la(i), nc = 1, ng = 1, nodal = nodal)
+     call multifab_build(mgts%rh(i) , mgts%mla%la(i), nc = 1, ng = 1, nodal = nodal)
+     call multifab_build(mgts%vel(i), mgts%mla%la(i), nc =dm, ng = 1)
 
      call setval(mgts%uu(i),ZERO,all=.true.)
      call setval(mgts%rh(i),ZERO,all=.true.)
@@ -270,12 +270,12 @@ subroutine mgt_init_nodal_coeffs_lev(lev)
   nlev = mgts%mgt(flev)%nlevels
   allocate(mgts%cell_coeffs(nlev))
 
-  call  build(mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%cell_coeffs(nlev), ZERO, all=.true.)
+  call multifab_build( mgts%cell_coeffs(nlev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
+  call multifab_setval(mgts%cell_coeffs(nlev), ZERO, all=.true.)
 
   ! These only exist at amr levels, not the lower multigrid levels
-  call  build(mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
-  call setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
+  call multifab_build( mgts%amr_coeffs(flev), mgts%mgt(flev)%ss(nlev)%la, 1, 1)
+  call multifab_setval(mgts%amr_coeffs(flev), ZERO, all=.true.)
 
 end subroutine mgt_init_nodal_coeffs_lev
 
@@ -297,7 +297,7 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
 
   call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), mgts%cell_coeffs)
 
-  call destroy(mgts%cell_coeffs(nlev))
+  call multifab_destroy(mgts%cell_coeffs(nlev))
   deallocate(mgts%cell_coeffs)
 
 end subroutine mgt_finalize_nodal_stencil_lev
@@ -352,8 +352,8 @@ subroutine mgt_finalize_nodal_stencil()
    call mgt_verify("MGT_FINALIZE_NODAL_STENCIL")
 
    do i = 1, mgts%nlevel-1
-     call build(mgts%fine_mask(i), mgts%mla%la(i), nc = 1, ng = 0, nodal = mgts%nodal)
-     call setval(mgts%fine_mask(i), val = .TRUE., all = .TRUE.)
+     call lmultifab_build(mgts%fine_mask(i), mgts%mla%la(i), nc = 1, ng = 0, nodal = mgts%nodal)
+     call lmultifab_setval(mgts%fine_mask(i), val = .TRUE., all = .TRUE.)
      call create_nodal_mask(i,mgts%fine_mask(i), &
                             mgts%mgt(i  )%mm(mgts%mgt(i  )%nlevels), &
                             mgts%mgt(i+1)%mm(mgts%mgt(i+1)%nlevels), &
@@ -733,13 +733,13 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%nodal)
 
   do i = 1,mgts%nlevel
-     call destroy(mgts%rh(i))
-     call destroy(mgts%uu(i))
-     call destroy(mgts%vel(i))
-     call destroy(mgts%amr_coeffs(i))
+     call multifab_destroy(mgts%rh(i))
+     call multifab_destroy(mgts%uu(i))
+     call multifab_destroy(mgts%vel(i))
+     call multifab_destroy(mgts%amr_coeffs(i))
   end do
   do i = 1,mgts%nlevel-1
-     call destroy(mgts%fine_mask(i))
+     call lmultifab_destroy(mgts%fine_mask(i))
   end do
   call destroy(mgts%mla)
   mgts%dim = 0
@@ -852,8 +852,8 @@ subroutine mgt_alloc_rhcc_nodal()
   allocate(mgts%rhcc(mgts%nlevel))
 
   do i = 1, mgts%nlevel
-     call build(mgts%rhcc(i), mgts%mla%la(i), nc = 1, ng = 1)
-     call setval(mgts%rhcc(i),ZERO,all=.true.)
+     call multifab_build(mgts%rhcc(i), mgts%mla%la(i), nc = 1, ng = 1)
+     call multifab_setval(mgts%rhcc(i),ZERO,all=.true.)
   end do
 
 end subroutine mgt_alloc_rhcc_nodal
@@ -864,7 +864,7 @@ subroutine mgt_dealloc_rhcc_nodal()
   integer :: i
 
   do i = 1, mgts%nlevel
-     call destroy(mgts%rhcc(i))
+     call multifab_destroy(mgts%rhcc(i))
   end do
 
   deallocate(mgts%rhcc)
