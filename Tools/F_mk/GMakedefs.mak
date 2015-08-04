@@ -2,6 +2,10 @@ ARCH := $(shell uname)
 UNAMEN := $(shell uname -n)
 HOSTNAMEF := $(shell hostname -f)
 
+ifndef HOST
+  HOST := $(UNAMEN)
+endif
+
 FC       :=
 F90      :=
 CC       :=
