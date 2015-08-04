@@ -488,10 +488,10 @@ contains
          bxs(j) = box_denodalize(bx, nodal = nodal)
       end do
       call bl_stream_expect(strm, ')')
-      call build(ba, bxs)
-      call build(la, ba, boxarray_bbox(ba))
+      call boxarray_build_v(ba, bxs)
+      call layout_build_ba(la, ba, boxarray_bbox(ba))
       dm = get_dim(ba)
-      call build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
+      call multifab_build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
       read(unit=lun, fmt=*) idummy
       do j = 1, nboxes
          read(unit=lun, fmt=*) cdummy, &
@@ -506,7 +506,7 @@ contains
          call fabio_close(fd)
       end do
       deallocate(bxs)
-      call destroy(ba)
+      call boxarray_destroy(ba)
       close(unit=lun)
     end subroutine build_vismf_multifab
   end subroutine fabio_multifab_read_d
@@ -836,9 +836,9 @@ contains
             bxs(j) = box_denodalize(bx, nodal = nodal(1:dm))
          end do
          call bl_stream_expect(strm, ')')
-         call build(ba, bxs)
-         call build(la, ba, boxarray_bbox(ba))
-         call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
+         call boxarray_build(ba, bxs)
+         call layout_build_ba(la, ba, boxarray_bbox(ba))
+         call multifab_build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
             read(unit=lun, fmt=*) cdummy, &
@@ -856,7 +856,7 @@ contains
             call fabio_close(fd)
          end do
          deallocate(bxs)
-         call destroy(ba)
+         call boxarray_destroy(ba)
          close(unit=lun)
       end do
 
@@ -962,12 +962,12 @@ contains
                 bxs(j) = box_denodalize(bx, nodal = nodal(1:dm))
              end do
              call bl_stream_expect(strm, ')')
-             call build(ba, bxs)
+             call boxarray_build_v(ba, bxs)
              call boxarray_build_copy(balevs(i), ba)
 
              close(unit=lun)
              deallocate(bxs)
-             call destroy(ba)
+             call boxarray_destroy(ba)
           end do
 
           wakeUpPID = parallel_myproc() + nAtOnce
@@ -990,8 +990,8 @@ contains
       enddo     !  iSet
 
       do i = 1, flevel
-         call build(la, balevs(i), boxarray_bbox(balevs(i)))
-         call build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
+         call layout_build_ba(la, balevs(i), boxarray_bbox(balevs(i)))
+         call multifab_build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
       end do
 
 
@@ -1042,7 +1042,7 @@ contains
           deallocate(refrat)
           deallocate(dxlev)
           do i = 1, size(balevs)
-             call destroy(balevs(i))
+             call boxarray_destroy(balevs(i))
           end do
           deallocate(balevs)
 
@@ -1221,7 +1221,7 @@ contains
             call box_read(bxs(j), unit = lun1)
          end do
          call bl_stream_expect(strm1, ')')
-         call build(mba%bas(i), bxs)
+         call boxarray_build_v(mba%bas(i), bxs)
          deallocate(bxs)
          close(unit=lun1)
          call destroy(strm1)

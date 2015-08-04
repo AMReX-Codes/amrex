@@ -265,7 +265,7 @@ contains
                 mp => dataptr(mask, idx, bx1)
                 mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
              end do
-             call destroy(ba)
+             call boxarray_destroy(ba)
           else
              !
              ! We touch a physical boundary in that direction.
@@ -280,7 +280,7 @@ contains
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
                 end do
-                call destroy(ba)
+                call boxarray_destroy(ba)
              else
                 !
                 ! Remove any/all Fine-Fine intersections.
@@ -292,7 +292,7 @@ contains
                    if ( intersects(bx1, src) ) then
                       call boxarray_build_bx(sba, src)
                       call boxarray_diff(ba, sba)
-                      call destroy(sba)
+                      call boxarray_destroy(sba)
                    end if
                 end do
                 !
@@ -303,7 +303,7 @@ contains
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
                 end do
-                call destroy(ba)
+                call boxarray_destroy(ba)
              end if
           end if
        end do

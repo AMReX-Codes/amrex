@@ -52,11 +52,11 @@ contains
        n = shape(br%bmf)
        do f = 0, n(2)-1
           do i = 1, n(1)
-             call destroy(br%bmf(i,f))
-             call destroy(br%laf(i,f))
+             call multifab_destroy(br%bmf(i,f))
+             call layout_destroy(br%laf(i,f))
              if ( br%other ) then
-                call destroy(br%obmf(i,f))
-                call destroy(br%olaf(i,f))
+                call multifab_destroy(br%obmf(i,f))
+                call layout_destroy(br%olaf(i,f))
              end if
           end do
        end do
@@ -155,10 +155,10 @@ contains
              call build(bxs(j), lo, hi)
           end do
 
-          call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-          call build(br%bmf(i,f), br%laf(i,f), nc = nc, ng = 0)
-          call destroy(baa)
+          call boxarray_build_v(baa, bxs, sort = .false.)
+          call layout_build_ba(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+          call multifab_build(br%bmf(i,f), br%laf(i,f), nc = nc, ng = 0)
+          call boxarray_destroy(baa)
        end do
     end do
   end subroutine rr_build_nd
@@ -203,10 +203,10 @@ contains
        do i = 1, nb
           bxsc(i) = coarsen(get_box(la,i), rr)
        end do
-       call build(baa, bxsc, sort = .false.)
+       call boxarray_build_v(baa, bxsc, sort = .false.)
        deallocate(bxsc)
-       call build(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-       call destroy(baa)
+       call layout_build_ba(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+       call boxarray_destroy(baa)
     end if
 
     allocate(bxs(2*dm*nb))
@@ -309,10 +309,10 @@ contains
        end do
     end do
 
-    call build(baa, bxs(1:cnt), sort = .false.)
-    call build(br%laf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
-    call build(br%bmf(1,0), br%laf(1,0), nc = nc, ng = 0)
-    call destroy(baa)
+    call boxarray_build_v(baa, bxs(1:cnt), sort = .false.)
+    call layout_build_ba(br%laf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
+    call multifab_build(br%bmf(1,0), br%laf(1,0), nc = nc, ng = 0)
+    call boxarray_destroy(baa)
 
     if (other) then
        allocate(br%oindxmap(nlthino))
@@ -341,11 +341,11 @@ contains
           deallocate(bi)
        end do
           
-       call build(baa, bxsc, sort = .false.)
-       call build(br%olaf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prcc)
+       call boxarray_build_v(baa, bxsc, sort = .false.)
+       call layout_build_ba(br%olaf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prcc)
        deallocate(bxsc, prcc)
-       call destroy(baa)
-       call build(br%obmf(1,0), br%olaf(1,0), nc = nc, ng = 0)
+       call boxarray_destroy(baa)
+       call multifab_build(br%obmf(1,0), br%olaf(1,0), nc = nc, ng = 0)
           
        call destroy(oproc)
        call destroy(oface)
@@ -354,7 +354,7 @@ contains
     end if
     
     deallocate(bxs,prf)
-    if (bndry_reg_thin) call destroy(laftmp)
+    if (bndry_reg_thin) call layout_destroy(laftmp)
 
     br%nbegin(1) = 1
     br%nend(1) = br%nbegin(1) + nfb(1) - 1
@@ -430,10 +430,10 @@ contains
           end do
           !$OMP END PARALLEL DO
 
-          call build(baa, bxs, sort = .false.)
-          call build(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-          call build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
-          call destroy(baa)
+          call boxarray_build_v(baa, bxs, sort = .false.)
+          call layout_build_ba(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+          call multifab_build(br%bmf(i,f), br%laf(i,f), nc = lnc, ng = 0)
+          call boxarray_destroy(baa)
 
        end do
     end do
@@ -497,11 +497,11 @@ contains
        !
        if (.not.lfilled) call multifab_fill_boundary(mf)
 
-       call build(ba, bl, sort = .false.)
+       call boxarray_build_l(ba, bl, sort = .false.)
        call destroy(bl)
-       call build(la, ba, get_pd(mf_la), get_pmask(mf_la), explicit_mapping = get_proc(mf_la))
-       call destroy(ba)
-       call build(tmf, la, nc = ncomp(mf), ng = 0)
+       call layout_build_ba(la, ba, get_pd(mf_la), get_pmask(mf_la), explicit_mapping = get_proc(mf_la))
+       call boxarray_destroy(ba)
+       call multifab_build(tmf, la, nc = ncomp(mf), ng = 0)
 
        do i = 1, nfabs(mf)
           src => dataptr(mf,  i)
@@ -515,8 +515,8 @@ contains
           end do
        end do
 
-       call destroy(tmf)
-       call destroy(la)
+       call multifab_destroy(tmf)
+       call layout_destroy(la)
     else
        do f = 0, n(2)-1
           do i = 1, n(1)
@@ -865,7 +865,7 @@ contains
     type(box) :: br_box
     real(kind=dp_t), dimension(:,:,:,:), pointer :: b1p, b2p, up
 
-    call build(obmf2, br%olaf(1,0), nc=ncomp(br%obmf(1,0)), ng=0)
+    call multifab_build(obmf2, br%olaf(1,0), nc=ncomp(br%obmf(1,0)), ng=0)
     call copy (obmf2, br%bmf(1,0), bndry_reg_to_other=.true.)
 
     !$omp parallel private(blo,bhi,idim,ibr,iu,face,br_box,b1p,b2p,up)
@@ -901,7 +901,7 @@ contains
     end do
     !$omp end parallel
 
-    call destroy(obmf2)
+    call multifab_destroy(obmf2)
   end subroutine reflux
 
 end module bndry_reg_module
