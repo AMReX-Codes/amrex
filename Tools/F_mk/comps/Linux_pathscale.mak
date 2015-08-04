@@ -1,6 +1,7 @@
     FC = pathf95
     F90 = pathf95
     CC  = pathcc
+    CXX = pathCC
 
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
@@ -9,6 +10,7 @@
       F90FLAGS += -mp
       FFLAGS += -mp
       CFLAGS += -mp
+      CXXFLAGS += -mp
     endif
 
     ifdef USE_HPCTOOLKIT
@@ -22,12 +24,14 @@
       F90FLAGS += -g -fno-second-underscore
       FFLAGS += -g -fno-second-underscore
       CFLAGS += -g -fno-second-underscore
+      CXXFLAGS += -g -fno-second-underscore
 #     F90FLAGS += -C
 #     FFLAGS += -C
     else
       F90FLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
       FFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
       CFLAGS   += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
+      CXXFLAGS += -O3 -fno-second-underscore $(HPCLINK_FLAGS_PATHSCALE)
     endif
 #   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND

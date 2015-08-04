@@ -131,7 +131,8 @@ contains
 
     else
 
-       do i = lo(1), hi(1)
+       ioff = 0; if ( mod(lo(1), 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
           if (abs(ss(0,i)) .gt. zero) then
             dd = ss(0,i)*uu(i) &
                + ss(1,i)*uu(i+1) + ss(2,i)*uu(i-1) 

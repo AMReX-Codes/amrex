@@ -31,6 +31,9 @@
 */
 #define BL_ASSERT(EX) ((void)0)
 #else
+#if defined(FORTRAN_BOXLIB)
+#define BL_ASSERT(EX) ((void)0)
+#else
 #if defined(__sgi) || defined(__hpux)
 //
 // The problem here is that some brain-dead compilers cannot deal with a
@@ -40,6 +43,7 @@
 #define BL_ASSERT(EX) if ((EX)) ; else BoxLib::Assert( # EX , __FILE__, __LINE__)
 #else
 #define BL_ASSERT(EX) (EX)?((void)0):BoxLib::Assert( # EX , __FILE__, __LINE__)
+#endif
 #endif
 #endif
 

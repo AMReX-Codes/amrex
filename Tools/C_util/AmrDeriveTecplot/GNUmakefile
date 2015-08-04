@@ -56,6 +56,7 @@ vpath %.h   $(PATHDIRS)
 vpath %.H   $(PATHDIRS)
 vpath %.cpp $(PATHDIRS)
 vpath %.c   $(PATHDIRS)
+vpath %.f90 $(PATHDIRS)
 
 all: $(executable)
 

@@ -959,8 +959,8 @@ MFIter::Initialize (int sharing, int chunksize)
 		tlo = tid*(tiles_per_thread+1);
 		thi = tlo + tiles_per_thread;
 	    } else {
-	    tlo = tid*tiles_per_thread + nleft;
-	    thi = tlo + tiles_per_thread - 1;
+		tlo = tid*tiles_per_thread + nleft;
+		thi = tlo + tiles_per_thread - 1;
 	    }
 	}
 
