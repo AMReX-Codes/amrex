@@ -851,6 +851,31 @@ FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
 #endif
 }
 
+void
+FabArrayBase::SetNGrow (int n_grow_new) const
+{
+    BL_ASSERT(n_grow_new >= 0);
+    BL_ASSERT(n_grow_new <= n_grow);
+    BL_ASSERT(boxarray_orig.empty());
+
+    if (n_grow_new == n_grow) return;
+
+    n_grow_orig = n_grow;
+    boxarray_orig = boxarray;
+
+    n_grow = n_grow_new;
+    boxarray.grow(n_grow_orig-n_grow_new);
+}
+
+void
+FabArrayBase::ResetNGrow () const
+{
+    if (boxarray_orig.empty()) return;
+    n_grow = n_grow_orig;
+    boxarray = boxarray_orig;
+    boxarray_orig.clear();
+}
+
 
 MFIter::MFIter (const FabArrayBase& fabarray, int sharing)
     :
@@ -928,8 +953,8 @@ MFIter::Initialize (int sharing, int chunksize)
 		tlo = tid*(tiles_per_thread+1);
 		thi = tlo + tiles_per_thread;
 	    } else {
-	    tlo = tid*tiles_per_thread + nleft;
-	    thi = tlo + tiles_per_thread - 1;
+		tlo = tid*tiles_per_thread + nleft;
+		thi = tlo + tiles_per_thread - 1;
 	    }
 	}
 

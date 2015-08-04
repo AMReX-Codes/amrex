@@ -8,6 +8,8 @@ endif
 ifeq ($(ARCH),AIX)
   F90 = mpxlf95$(rsuf)
   FC  = mpxlf$(rsuf)
+  CC  = mpcc$(rsuf)
+  CXX = mpCC$(rsuf)
   mpi_libraries = -lmpi
 endif
 
@@ -65,83 +67,6 @@ endif
 #
 # Host changes ....
 #
-ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
-    #
-    # intrepid.alcf.anl.gov -- we only seem to be able to get the name
-    #                          intrepid from hostname -f.  $HOST or
-    #                          uname -n don't indicate intrepid
-    #
-
-    ifdef OMP
-      CC  := mpixlc_r
-      FC  := mpixlf95_r -qfixed=72
-      F90 := mpixlf95_r
-    else  
-      CC  := mpixlc
-      FC  := mpixlf95 -qfixed=72
-      F90 := mpixlf95
-    endif
-
-    FFLAGS   += -qmoddir=$(mdir) -I$(mdir)
-    F90FLAGS += -qmoddir=$(mdir) -I$(mdir)
-    CFLAGS   += -I$(mdir) -Wp,-DBL_AIX
-
-    ifdef NDEBUG
-      FFLAGS   += -O2 -qarch=450d -qtune=450
-      F90FLAGS += -O2 -qarch=450d -qtune=450
-      CFLAGS   += -O2 -qarch=450d -qtune=450
-    else
-      FFLAGS   += -g -C
-      F90FLAGS += -g -C
-      CFLAGS   += -g -qcheck=bounds
-    endif
-
-    F_C_LINK := LOWERCASE
-
-    # if using the bg* compilers instead of the mpi* wrappers above, you may
-    # need these
-    #
-    #    MPIHOME=/bgsys/drivers/ppcfloor
-    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
-    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
-    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
-    #    mpi_libraries += -lpthread -lrt -lSPI.cna
-endif
-
-ifeq ($(findstring surveyor, $(HOSTNAME)), surveyor)
-    #
-    # surveyor.alcf.anl.gov
-    #
-    CC  := mpixlc
-    FC  := mpixlf95 -qfixed=72
-    F90 := mpixlf95
-
-    FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
-    F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
-    CFLAGS   := -I$(mdir) -Wp,-DBL_AIX
-
-    ifdef NDEBUG
-      FFLAGS   += -O2 -qarch=450d -qtune=450
-      F90FLAGS += -O2 -qarch=450d -qtune=450
-      CFLAGS   += -O2 -qarch=450d -qtune=450
-    else
-      FFLAGS   += -g -C
-      F90FLAGS += -g -C
-      CFLAGS   += -g -qcheck=bounds
-    endif
-
-    F_C_LINK := LOWERCASE
-
-    # if using the bg* compilers instead of the mpi* wrappers above, you may
-    # need these
-    #
-    #    MPIHOME=/bgsys/drivers/ppcfloor
-    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
-    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
-    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
-    #    mpi_libraries += -lpthread -lrt -lSPI.cna
-endif
-
 ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
     #
     # carver.nersc.gov
@@ -185,7 +110,7 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn
     endif
 endif
-ifeq ($(findstring bint01, $(HOSTNAMEF)), bint01)
+ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
     #
     # babbage.nersc.gov
     #
@@ -224,6 +149,7 @@ ifeq ($(findstring h2o, $(UNAMEN)), h2o)
       FFLAGS += -hpgas_runtime
       F90FLAGS += -hpgas_runtime
       CFLAGS += -hpgas_runtime
+      CXXFLAGS += -hpgas_runtime
     endif
 endif
 

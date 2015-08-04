@@ -1065,7 +1065,7 @@ def testSuite(argv):
 
 
         # create the report for this test run
-        numFailed = reportThisTestRun(suite, wasBenchmarkRun, "",
+        numFailed = reportThisTestRun(suite, wasBenchmarkRun,
                                       "recreated report after crash of suite",
                                       "",  0, 0, 0,
                                       tests, args.complete_report_from_crash, testFile, fullWebDir)
@@ -1662,7 +1662,9 @@ def testSuite(argv):
             prog = "../fboxinfo.exe -l {}".format(outputFile)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
-
+            if not isInt(test.nlevels):
+                test.nlevels = ""
+                
             if args.make_benchmarks == None:
 
                 print "  doing the comparison..."
@@ -1760,10 +1762,12 @@ def testSuite(argv):
 
                 if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(benchDir, test.name, test.diffDir)
-                    shutil.rmtree(diffDirBench)
+                    if os.path.isdir(diffDirBench):
+                        shutil.rmtree(diffDirBench)
+                        shutil.copytree(test.diffDir, diffDirBench)
+                    else:
+                        shutil.copy(test.diffDir, diffDirBench)
                     print "     new diffDir: {}_{}".format(test.name, test.diffDir)
-                    shutil.copytree(test.diffDir, diffDirBench)
-
 
         else:   # selfTest
 

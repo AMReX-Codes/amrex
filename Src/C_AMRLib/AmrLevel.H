@@ -76,6 +76,11 @@ public:
                           std::istream& is,
 			  bool          bReadSpecial = false);
 
+    //
+    // Old checkpoint may have different number of states than the new source code.
+    //
+    virtual void set_state_in_checkpoint (Array<int>& state_in_checkpoint);
+
 #ifdef USE_PARTICLES
     //
     // Make the particle distribution map

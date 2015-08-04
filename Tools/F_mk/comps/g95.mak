@@ -2,6 +2,7 @@
   FC := g95
   F90 := g95
   CC := gcc
+  CXX := g++
 # F90FLAGS += -std=f95 -fintrinsic-extensions=iargc,getarg
 # FFLAGS   += -std=f95 -fintrinsic-extensions=iargc,getarg  
   F90FLAGS += -fmod=$(mdir) -I $(mdir)
@@ -15,6 +16,7 @@
     F90FLAGS += -O3 -ffloat-store
     FFLAGS += -O3 -ffloat-store
     CFLAGS += -O3
+    CXXFLAGS += -O3
   else
     F90FLAGS += -g
     F90FLAGS += -fbounds-check
@@ -23,12 +25,16 @@
     FFLAGS += -fbounds-check
     FFLAGS += -freal=nan
     CFLAGS += -g
+    CXXFLAGS += -g
   endif
   ifdef GPROF
     F90FLAGS += -pg
     FFLAGS += -pg
     CFLAGS += -pg
+    CXXFLAGS += -pg
   endif
   ifeq ($(ARCH),Darwin)
     xtr_libraries += -lSystemStubs
   endif
+
+  xtr_libraries += -lstdc++

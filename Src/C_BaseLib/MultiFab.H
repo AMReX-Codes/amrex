@@ -380,6 +380,7 @@ public:
     //
     // Copy from src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
+    // The copy is local.  The parallel copy function is in FabArray.H
     //
     static void Copy (MultiFab&       dst,
                       const MultiFab& src,
@@ -477,6 +478,18 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+    //
+    // Send a MultiFab from Compute MPI group to Sidecar MPI group.
+    // The pointer to the MultiFab on the sidecars will be null on the compute
+    // processes, and vice versa. So be mindful of which MPI processes you're
+    // on when you access these pointers.
+    //
+    // TODO: allow it to send only selected components
+    //
+#ifdef BL_USE_MPI
+    static void SendMultiFabToSidecars(MultiFab *MF_comp,
+                                       MultiFab *MF_sidecar);
+#endif
 
 private:
     //

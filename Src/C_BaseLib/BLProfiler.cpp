@@ -1582,43 +1582,6 @@ void BLProfiler::CommStats::UnFilter(CommFuncType cft) {
 }
 
 
-void BLProfiler::PerfMonProcess() {
-  std::cout << "#### Starting PerfMonProcess:  myProc = " << ParallelDescriptor::MyProcPerfMon() << std::endl << std::flush;
-#ifdef BL_USE_MPI
-  MPI_Status status;
-  bool finished(false);
-  int recstep(-1), rtag(0);
-  while( ! finished) {
-    if(ParallelDescriptor::MyProcPerfMon() == 0) {
-      std::cout << "**** _in PerfMonProcess:  waiting for rtag = " << rtag << std::endl;
-      MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorInter(), &status);
-      std::cout << "**** _in PerfMonProcess:  recv step = " << recstep << std::endl;
-      ++rtag;
-      if(recstep < 0) {
-        finished = true;
-	for(int p(1); p < ParallelDescriptor::NProcsPerfMon(); ++p) {
-	  MPI_Send(&recstep, 1, MPI_INT, p, rtag, ParallelDescriptor::CommunicatorPerfMon());
-	}
-      }
-
-    } else {
-      std::cout << "pppp _in PerfMonProcess:  waiting for proc 0" << std::endl;
-      rtag = MPI_ANY_TAG;
-      MPI_Recv(&recstep, 1, MPI_INT, 0, rtag, ParallelDescriptor::CommunicatorPerfMon(), &status);
-      std::cout << "pppp _in PerfMonProcess:  recv step = " << recstep << std::endl;
-      ++rtag;
-      if(recstep < 0) {
-        finished = true;
-        std::cout << "pppp _in PerfMonProcess:  finished" << std::endl;
-      }
-    }
-  }
-#endif
-  std::cout << "**** _in PerfMonProcess:  exiting." << std::endl;
-}
-
-
-
 namespace {
   const int EOS(-1);
 
