@@ -62,12 +62,10 @@ module multifab_module
      integer :: dim      = 0
      integer :: ng       = 0
      logical :: nodal(3) = .false.
-     integer :: tid      = 0
-     integer :: nthreads = 1
-     integer :: it       = -1   ! current tile index local to this thread
-     integer :: nt       = -1   ! # of tiles local to this threads
-     integer :: ios      = -1   ! it+ios provides index into ta%tilearray
-     type(tilearray) :: ta
+     integer :: it       = 0    ! current tile index local to this thread
+     integer :: ntiles   = 0
+     type(tilearray)  :: ta
+     type(layout_rep), pointer :: lap => Null()
   end type mfiter
 
   interface cell_centered_q
@@ -5592,8 +5590,8 @@ contains
     logical, intent(in), optional :: tiling
     integer, intent(in), optional :: tilesize(:)
 
-    integer :: ntot, nleft
-    integer :: ltilesize(3)
+    type(layout) :: la
+    integer :: ltilesize(3), tid, nthreads
 
     if (present(tilesize)) then
        ltilesize(1:size(tilesize)) = tilesize
@@ -5607,67 +5605,55 @@ contains
        ltilesize = (/ 1024000, 1024000, 1024000 /) ! large tile size turn off tiling
     end if
 
-    !$omp single
-    call init_layout_tilearray(mf%la, ltilesize)
-    !$omp end single
-    mfi%ta = get_tilearray()
+    tid = omp_get_thread_num()
+    nthreads = omp_get_num_threads()
 
-    mfi%dim = mf%dim
-    mfi%ng  = mf%ng
-    mfi%nodal(1:mfi%dim) = mf%nodal
+    la = mf%la
 
-    ntot = size(mfi%ta%idx)
+    mfi%ta = init_layout_tilearray(la, ltilesize, tid, nthreads)
+    
+    if (mfi%ta%dim .gt. 0) then
+       mfi%dim = mf%dim
+       mfi%ng  = mf%ng
+       mfi%nodal(1:mfi%dim) = mf%nodal
 
-    if (omp_in_parallel()) then
-       mfi%tid = omp_get_thread_num()
-       mfi%nthreads = omp_get_num_threads()
+       mfi%it = 0
+       mfi%ntiles = mfi%ta%ntiles
+       mfi%lap => la%lap
     else
-       mfi%tid = 0
-       mfi%nthreads = 1
+       mfi%it = 0
+       mfi%ntiles = 0
     end if
-
-    mfi%it = -1
-    mfi%nt = ntot / mfi%nthreads
-    nleft = ntot - (mfi%nt)*(mfi%nthreads)
-    mfi%ios = mfi%tid * mfi%nt
-    if (mfi%tid < nleft) then
-       mfi%nt = mfi%nt+1
-       mfi%ios = mfi%ios + mfi%tid
-    else
-       mfi%ios = mfi%ios + nleft
-    end if
-    mfi%ios = mfi%ios+1  ! this is fortran
-
   end subroutine mfiter_build
 
   subroutine mfiter_reset(mfi)
     type(mfiter), intent(inout) :: mfi
-    mfi%it = -1
+    mfi%it = 0
   end subroutine mfiter_reset
 
   function more_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
     mfi%it = mfi%it + 1
-    if (mfi%it < mfi%nt) then
+    if (mfi%it .le. mfi%ntiles) then
        r = .true.
     else
-       mfi%it = -1
+       mfi%it = 0
        r = .false.
     end if
   end function more_tile
   
-  pure function get_fab_index(mfi) result(r)
+  function get_fab_index(mfi) result(r)
     integer :: r
     type(mfiter), intent(in) :: mfi
-    r = mfi%ta%idx(mfi%it+mfi%ios)
+    r = mfi%ta%lidx(mfi%it)
   end function get_fab_index
 
-  pure function get_tilebox(mfi) result(r)
+  function get_tilebox(mfi) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer :: i, gridhi(mfi%dim)
-    r = get_box(mfi%ta%ba, mfi%it+mfi%ios)
+    r = make_box(mfi%ta%tilelo(:,mfi%it),mfi%ta%tilehi(:,mfi%it))
     if (any(mfi%nodal(1:mfi%dim))) then
        gridhi = upb(get_gridbox(mfi))
        do i = 1, mfi%dim
@@ -5676,7 +5662,7 @@ contains
     end if
   end function get_tilebox
 
-  pure function get_nodaltilebox(mfi, dir) result(r)
+  function get_nodaltilebox(mfi, dir) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in) :: dir
@@ -5688,7 +5674,20 @@ contains
     end if
   end function get_nodaltilebox
 
-  pure function get_growntilebox(mfi, ng_in) result(r)
+  function get_allnodaltilebox(mfi) result(r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    integer :: gridhi,dir
+    r = get_tilebox(mfi)
+    do dir=1,mfi%dim
+       if (.not. mfi%nodal(dir)) then
+          gridhi = upb(get_gridbox(mfi), dir)
+          if (gridhi .eq. upb(r,dir)) r%hi(dir) = r%hi(dir)+1
+       end if
+    end do
+  end function get_allnodaltilebox
+
+  function get_growntilebox(mfi, ng_in) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in), optional :: ng_in
@@ -5696,7 +5695,7 @@ contains
     type(box) :: gridbox
     r = get_tilebox(mfi)
     ng = mfi%ng
-    if (present(ng_in)) ng = min(ng, ng_in)
+    if (present(ng_in)) ng = ng_in
     r = get_tilebox(mfi)
     if (ng .gt. 0) then
        gridbox = get_gridbox(mfi)
@@ -5709,10 +5708,24 @@ contains
     end if
   end function get_growntilebox
 
-  pure function get_gridbox(mfi) result (r)
+  function get_grownnodaltilebox(mfi, dir, ng_in) result(r)
     type(box) :: r
     type(mfiter), intent(in) :: mfi
-    r = get_box(mfi%ta%lap%bxa, mfi%ta%lap%idx(mfi%ta%idx(mfi%it+mfi%ios)))
+    integer, intent(in) :: dir
+    integer, intent(in), optional :: ng_in
+    integer :: gridhi, tilehi
+    r = get_growntilebox(mfi, ng_in)
+    if (.not. mfi%nodal(dir)) then
+       tilehi = upb(get_tilebox(mfi), dir)
+       gridhi = upb(get_gridbox(mfi), dir)
+       if (gridhi .eq. tilehi) r%hi(dir) = r%hi(dir)+1       
+    end if
+  end function get_grownnodaltilebox
+
+  function get_gridbox(mfi) result (r)
+    type(box) :: r
+    type(mfiter), intent(in) :: mfi
+    r = get_box(mfi%lap%bxa, mfi%ta%gidx(mfi%it))
   end function get_gridbox
 
 end module multifab_module

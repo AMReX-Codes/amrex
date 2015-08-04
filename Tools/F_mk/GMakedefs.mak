@@ -2,24 +2,24 @@ ARCH := $(shell uname)
 UNAMEN := $(shell uname -n)
 HOSTNAMEF := $(shell hostname -f)
 
-ifeq ($(ARCH),UNICOS/mp)
-  ARCH := CRAYX1
+ifndef HOST
+  HOST := $(UNAMEN)
 endif
 
 FC       :=
 F90      :=
+CC       :=
+CXX      :=
 F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
+CXXFLAGS :=
 
 FCOMP_VERSION :=
 
 VPATH_LOCATIONS :=
 INCLUDE_LOCATIONS :=
 
-ifdef USE_HPCTOOLKIT
-  hpc_suffix    := .hpc
-endif
 ifdef MPI
   mpi_suffix 	:= .mpi
 endif
@@ -35,6 +35,9 @@ endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
+ifdef MIC
+  mic_suffix    := .mic
+endif
 ifdef SDC
   sdc_suffix 	:= .SDC
 endif
@@ -48,13 +51,14 @@ ifdef HDF
   hdf_suffix := .hdf
 endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(hpc_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =
 f90sources  =
 sf90sources  =
 csources    =
+cxxsources  =
 libraries   =
 xtr_libraries =
 hypre_libraries =
@@ -74,6 +78,8 @@ ifeq ($(ARCH),Darwin)
 else
   CPPFLAGS += -DBL_$(ARCH)
 endif
+
+CPPFLAGS += -DFORTRAN_BOXLIB
 
 F_C_LINK := UNDERSCORE
 
@@ -113,16 +119,8 @@ ifeq ($(ARCH),FreeBSD)
 endif
 
 ifeq ($(ARCH),Linux)
-  ifeq ($(COMP),catamount)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_catamount.mak
-  endif
-
   ifeq ($(COMP),Cray)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_cray.mak
-  endif
-
-  ifeq ($(COMP),xt4)
-    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_xt4.mak
   endif
 
   ifeq ($(COMP),PGI)
@@ -141,12 +139,13 @@ ifeq ($(ARCH),Linux)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
+  # Gottingen machines
   ifeq ($(HOST),hicegate0)
     include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_intel.mak
   endif
 
   ifeq ($(COMP),NAG)
-    include .k/comps/Linux_nag.mak
+    include $(BOXLIB_HOME)/Tools/F_mk/comps/Linux_nag.mak
   endif
 
   ifeq ($(COMP),Lahey)
@@ -154,16 +153,8 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
-ifeq ($(ARCH),CRAYX1)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/crayx1.mak
-endif
-
 ifeq ($(ARCH),AIX)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
-endif
-
-ifeq ($(ARCH),IRIX64)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/irix64.mak
 endif
 
 ifeq ($(ARCH),OSF1)
@@ -211,11 +202,13 @@ objects = $(addprefix $(odir)/,       \
 	$(sort $(sf90sources:.f90=.o)) \
 	$(sort $(fsources:.f=.o))     \
 	$(sort $(csources:.c=.o))     \
+	$(sort $(cxxsources:.cpp=.o))     \
 	)
 sources =                     \
 	$(sort $(f90sources)) \
 	$(sort $(fsources)  ) \
-	$(sort $(csources)  )
+	$(sort $(csources)  ) \
+	$(sort $(cxxsources)  )
 
 html_sources = $(addprefix $(hdir)/,     \
 	$(sort $(f90sources:.f90=.html)) \
@@ -228,6 +221,7 @@ ifndef ROSE
    COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
    COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 else
+   COMPILE.cxx = $(ROSECOMP) $(CXXFLAGS) $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.c   = $(ROSECOMP) $(CFLAGS)   $(ROSEFLAGS) $(CPPFLAGS) -c
    COMPILE.f   = $(ROSECOMP) $(FFLAGS)   $(ROSEFLAGS) $(FPPFLAGS) -c
    COMPILE.f90 = $(ROSECOMP) $(F90FLAGS) $(ROSEFLAGS) $(FPPFLAGS) -c

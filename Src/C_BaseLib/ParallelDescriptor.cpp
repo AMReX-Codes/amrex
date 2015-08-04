@@ -18,28 +18,28 @@ namespace ParallelDescriptor
     const int myId_notInGroup = -22;
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
-    int m_MyId_perfmon     = myId_undefined;
+    int m_MyId_sidecar     = myId_undefined;
     //
     // The number of processors.
     //
     const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
-    int m_nProcs_perfmon = nProcs_undefined;
-    int nPerfmonProcs    = 0;
+    int m_nProcs_sidecar = nProcs_undefined;
+    int nSidecarProcs    = 0;
     //
     // BoxLib's Communicators
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the computation procs
-    MPI_Comm m_comm_perfmon = MPI_COMM_NULL;    // for the in-situ performance monitor
-    MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and perfmon
+    MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the in-situ performance monitor
+    MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
     //
     // BoxLib's Groups
     //
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
-    MPI_Group m_group_perfmon = MPI_GROUP_NULL;
+    MPI_Group m_group_sidecar = MPI_GROUP_NULL;
 
     int m_MinTag = 1000, m_MaxTag = -1;
 
@@ -303,36 +303,36 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
-    if(m_MyId_all == 0 && nPerfmonProcs > 0) {
-      std::cout << "**** nPerfmonProcs = " << nPerfmonProcs << std::endl;
+    if(m_MyId_all == 0 && nSidecarProcs > 0) {
+      std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
     }
-    if(nPerfmonProcs >= m_nProcs_all) {
-      std::cerr << "**** nPerfmonProcs >= m_nProcs_all:  " << nPerfmonProcs
+    if(nSidecarProcs >= m_nProcs_all) {
+      std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
                 << " >= " << m_nProcs_all << std::endl;
-      BoxLib::Abort("Error in StartParallel:  bad nPerfmonProcs.");
+      BoxLib::Abort("Error in StartParallel:  bad nSidecarProcs.");
     }
 
     MPI_Comm_group(m_comm_all, &m_group_all);
 
-    if(nPerfmonProcs > 0) {
-      Array<int> perfmonRanksInAll(nPerfmonProcs, nProcs_undefined);
-      for(int ip(0); ip < nPerfmonProcs; ++ip) {
-        perfmonRanksInAll[ip] = m_nProcs_all - nPerfmonProcs + ip;
+    if(nSidecarProcs > 0) {
+      Array<int> sidecarRanksInAll(nSidecarProcs, nProcs_undefined);
+      for(int ip(0); ip < nSidecarProcs; ++ip) {
+        sidecarRanksInAll[ip] = m_nProcs_all - nSidecarProcs + ip;
       }
-      MPI_Group_excl(m_group_all, nPerfmonProcs, perfmonRanksInAll.dataPtr(), &m_group_comp);
+      MPI_Group_excl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_comp);
       MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
 
-      MPI_Group_incl(m_group_all, nPerfmonProcs, perfmonRanksInAll.dataPtr(), &m_group_perfmon);
-      MPI_Comm_create(m_comm_all, m_group_perfmon, &m_comm_perfmon);
+      MPI_Group_incl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_sidecar);
+      MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar);
 
-      MPI_Group_size(m_group_perfmon, &m_nProcs_perfmon);
+      MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar);
       MPI_Group_size(m_group_comp, &m_nProcs_comp);
     } else {
       m_comm_comp  = m_comm_all;
       m_group_comp = m_group_all;
 
       m_nProcs_comp = m_nProcs_all;
-      m_nProcs_perfmon = 0;
+      m_nProcs_sidecar = 0;
     }
 
     // ---- find the maximum value for a tag
@@ -347,35 +347,25 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
-    if(nPerfmonProcs > 0) {
-      usleep(m_MyId_all * 1000000 / 10.0);
-      std::cout << "world: rank " << m_MyId_all << " in [0,"
-                << m_nProcs_all-1 << "]" << std::endl;
+    if(nSidecarProcs > 0) {
       int tag(m_MaxTag + 1);
 
 
-      if(m_MyId_all >= m_nProcs_all - nPerfmonProcs) {  // ---- in perfmon group
-        MPI_Group_rank(m_group_perfmon, &m_MyId_perfmon);
-        MPI_Intercomm_create(m_comm_perfmon, 0, m_comm_all, 0, tag, &m_comm_inter);
+      if(m_MyId_all >= m_nProcs_all - nSidecarProcs) {  // ---- sidecar group
+        MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar);
+        MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter);
 	m_MyId_comp = myId_notInGroup;
 
-        usleep(m_MyId_all * 1000000 / 10.0);
-        std::cout << "m_comm_perfmon:  rank " << m_MyId_perfmon << " in [0,"
-	          << m_nProcs_perfmon-1 << "]" << std::endl;
       } else {                        // ---- in computation group
         MPI_Group_rank(m_group_comp, &m_MyId_comp);
-        MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nPerfmonProcs,
+        MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nSidecarProcs,
 	                     tag, &m_comm_inter);
-	m_MyId_perfmon = myId_notInGroup;
-
-        usleep(m_MyId_all * 1000000 / 10.0);
-        std::cout << "m_comm_comp:  rank " << m_MyId_comp << " in [0,"
-	          << m_nProcs_comp-1 << "]" << std::endl;
+	m_MyId_sidecar = myId_notInGroup;
       }
 
     } else {
       m_MyId_comp   = m_MyId_all;
-      m_MyId_perfmon   = myId_notInGroup;
+      m_MyId_sidecar   = myId_notInGroup;
     }
 
     //
@@ -385,19 +375,19 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
-       m_MyId_perfmon == myId_undefined)
+       m_MyId_sidecar == myId_undefined)
     {
-      std::cerr << "m_MyId_all m_MyId_comp m_MyId_perfmon = " << m_MyId_all << "  "
-	          << m_MyId_comp << "  " << m_MyId_perfmon << std::endl;
+      std::cerr << "m_MyId_all m_MyId_comp m_MyId_sidecar = " << m_MyId_all << "  "
+	          << m_MyId_comp << "  " << m_MyId_sidecar << std::endl;
       BoxLib::Abort("**** Error:  bad MyId in ParallelDescriptor::StartParallel()");
     }
     if(m_nProcs_all     == nProcs_undefined ||
        m_nProcs_comp    == nProcs_undefined ||
-       m_nProcs_perfmon == nProcs_undefined ||
-       (m_nProcs_comp + m_nProcs_perfmon != m_nProcs_all))
+       m_nProcs_sidecar == nProcs_undefined ||
+       (m_nProcs_comp + m_nProcs_sidecar != m_nProcs_all))
     {
-      std::cerr << "m_nProcs_all m_nProcs_comp m_nProcs_perfmon = " << m_nProcs_all << "  "
-	          << m_nProcs_comp << "  " << m_nProcs_perfmon << std::endl;
+      std::cerr << "m_nProcs_all m_nProcs_comp m_nProcs_sidecar = " << m_nProcs_all << "  "
+	          << m_nProcs_comp << "  " << m_nProcs_sidecar << std::endl;
       BoxLib::Abort("**** Error:  bad nProcs in ParallelDescriptor::StartParallel()");
     }
 }
@@ -1271,16 +1261,16 @@ ParallelDescriptor::StartParallel (int*    argc,
 {
     m_nProcs_all     = 1;
     m_nProcs_comp    = 1;
-    m_nProcs_perfmon = 0;
-    nPerfmonProcs    = 0;
+    m_nProcs_sidecar = 0;
+    nSidecarProcs    = 0;
 
     m_MyId_all     = 0;
     m_MyId_comp    = 0;
-    m_MyId_perfmon = myId_notInGroup;
+    m_MyId_sidecar = myId_notInGroup;
 
     m_comm_all     = 0;
     m_comm_comp    = 0;
-    m_comm_perfmon = 0;
+    m_comm_sidecar = 0;
     m_comm_inter   = 0;
 
     m_MaxTag    = 9000;

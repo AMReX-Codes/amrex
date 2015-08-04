@@ -41,6 +41,9 @@ program main
   ! the program began
   start_time = parallel_wtime()
 
+  ! initializes timers (bl_prof_timers) if compiled with PROF=t
+  call bl_prof_initialize(on = .true.)
+
   ! default values - will get overwritten by the inputs file
   dim           = 2
   nsteps        = 1000
@@ -156,6 +159,10 @@ program main
   call print(syncassoc_mem_stats(),   "   syncassoc")
   call print(copyassoc_mem_stats(),   "   copyassoc")
   call print(fluxassoc_mem_stats(),   "   fluxassoc")
+
+  call bl_prof_glean("bl_prof_res")
+
+  call bl_prof_finalize()
 
   ! parallel_wtime() returns the number of wallclock-time seconds since
   ! the program began

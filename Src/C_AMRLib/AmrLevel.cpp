@@ -193,12 +193,20 @@ AmrLevel::restart (Amr&          papa,
     int nstate;
     is >> nstate;
     int ndesc = desc_lst.size();
-    BL_ASSERT(nstate == ndesc);
+
+    Array<int> state_in_checkpoint(ndesc, 1);
+    if (ndesc > nstate) {
+	set_state_in_checkpoint(state_in_checkpoint);
+    } else {
+	BL_ASSERT(nstate == ndesc);
+    }
 
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
     {
-        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	if (state_in_checkpoint[i]) {
+	    state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
+	}
     }
  
     if (Amr::useFixedCoarseGrids) constructAreaNotToTag();
@@ -211,6 +219,12 @@ AmrLevel::restart (Amr&          papa,
 #endif
 
     finishConstructor();
+}
+
+void
+AmrLevel::set_state_in_checkpoint (Array<int>& state_in_checkpoint)
+{
+    BoxLib::Error("Class derived AmrLevel has to handle this!");
 }
 
 void
@@ -808,11 +822,8 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_ncomp = ncomp;
     m_range = desc.sameInterps(scomp,ncomp);
 
-    BoxArray nba = m_leveldata.boxArray();
-
-    nba.grow(boxGrow);
-
-    m_fabs.define(nba,m_ncomp,0,Fab_allocate);
+    m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
+    m_fabs.SetNGrow(0);
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
@@ -853,6 +864,8 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
+
+    m_fabs.ResetNGrow();
 }
 
 static
@@ -1322,8 +1335,6 @@ AmrLevel::derive (const std::string& name,
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
-        BL_ASSERT(rec->derFunc() != static_cast<DeriveFunc>(0));
-
         rec->getRange(0, index, scomp, ncomp);
 
         BoxArray srcBA(state[index].boxArray());
@@ -1368,10 +1379,23 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
-            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-                           &level,&grid_no);
+	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+			       &level,&grid_no);
+	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+				 ARLIM_3D(lo),ARLIM_3D(hi),
+				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+				 ZFILL(dx),ZFILL(xlo),
+				 &time,&dt,
+				 BCREC_3D(bcr),
+				 &level,&grid_no);
+	    } else {
+		BoxLib::Error("AmeLevel::derive: no function available");
+	    }
         }
 #else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
@@ -1393,10 +1417,23 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = gridloc.lo();
             Real        dt      = parent->dtLevel(level);
 
-            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                           dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-                           &level,&grid_no);
+	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+			       &level,&grid_no);
+	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+				 ARLIM_3D(dlo),ARLIM_3D(dhi),
+				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+				 ZFILL(dx),ZFILL(xlo),
+				 &time,&dt,
+				 BCREC_3D(bcr),
+				 &level,&grid_no);
+	    } else {
+		BoxLib::Error("AmeLevel::derive: no function available");
+	    }
         }
 #endif
     }
@@ -1474,10 +1511,23 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
-            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                           lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-                           &level,&idx);
+	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+			       &level,&idx);
+	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+				 ARLIM_3D(lo),ARLIM_3D(hi),
+				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+				 ZFILL(dx),ZFILL(xlo),
+				 &time,&dt,
+				 BCREC_3D(bcr),
+				 &level,&idx);
+	    } else {
+		BoxLib::Error("AmeLevel::derive: no function available");
+	    }
         }
 #else
         for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
@@ -1499,10 +1549,23 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = temp.lo();
             Real        dt      = parent->dtLevel(level);
 
-            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                           dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-                           &level,&idx);
+	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+			       &level,&idx);
+	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+				 ARLIM_3D(dlo),ARLIM_3D(dhi),
+				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+				 ZFILL(dx),ZFILL(xlo),
+				 &time,&dt,
+				 BCREC_3D(bcr),
+				 &level,&idx);
+	    } else {
+		BoxLib::Error("AmeLevel::derive: no function available");
+	    }
         }
 #endif
     }
