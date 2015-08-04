@@ -29,6 +29,12 @@ contains
 
     logical :: do_tiling
 
+    ! timer for profiling - enable by building code with PROF=t
+    type(bl_prof_timer), save :: bpt
+
+    ! open the timer
+    call build(bpt,"advance")
+
     ! Swap pointers to multifabs
     temp = phi_old
     phi_old = phi_new
@@ -76,7 +82,10 @@ contains
        end do
     end if
 
+    call destroy(bpt)
+
     call multifab_fill_boundary(phi_new)
+
 
   end subroutine advance
 

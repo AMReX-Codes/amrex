@@ -134,6 +134,11 @@ public:
                   const std::string&     restart_file,
 		  bool                   bReadSpecial = false);
     //
+    // or from another similar state
+    //
+    void restart (const StateDescriptor& d,
+		  const StateData& rhs);
+    //
     // Returns the StateDescriptor.
     //
     const StateDescriptor* descriptor () const { return desc; }

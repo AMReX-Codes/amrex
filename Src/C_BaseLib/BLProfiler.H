@@ -210,8 +210,6 @@ class BLProfiler
     static void SetBlProfDirName(const std::string &name) { blProfDirName = name; }
     static void SetNoOutput() { bNoOutput = true; }
 
-    static void PerfMonProcess();
-
     static int GetCSFlushSize() { return csFlushSize; }
     static void SetCSFlushSize(int fsize) { csFlushSize = fsize; }
     static int GetTraceFlushSize() { return traceFlushSize; }
@@ -439,7 +437,6 @@ class BLProfiler
     static void InitParams(const Real ptl, const bool writeall,
                            const bool writefabs) { }
     static void AddStep(const int snum) { }
-    static void PerfMonProcess() { }
 };
 
 #define BL_PROFILE_INITIALIZE()

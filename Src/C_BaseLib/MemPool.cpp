@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 #include <algorithm>
+#include <new>
 
 #include <CArena.H>
 #include <PArray.H>
@@ -15,7 +16,8 @@ namespace
   static PArray<CArena> the_memory_pool;
 }
 
-extern "C"
+extern "C" {
+
 void mempool_init()
 {
 #ifdef _OPENMP
@@ -27,9 +29,23 @@ void mempool_init()
   for (int i=0; i<nthreads; ++i) {
     the_memory_pool.set(i, new CArena());
   }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  {
+      int N = 1024*1024;
+      void *p = mempool_alloc(N*sizeof(double));
+      // touch the memory
+      double *x = (double *) p;
+      for (int i=0; i<N; ++i) {
+	  x[i] =  (double) i - 1.0;
+      }
+      if (x[N-1] < 0.0) 
+	  std::cout << "This is here so that compiler won't optimize code away" << std::endl;
+      mempool_free(p);
+  }
 }
 
-extern "C"
 void* mempool_alloc (size_t nbytes)
 {
 #ifdef _OPENMP
@@ -40,7 +56,6 @@ void* mempool_alloc (size_t nbytes)
   return the_memory_pool[tid].alloc(nbytes);
 }
 
-extern "C"
 void mempool_free (void* p) 
 {
 #ifdef _OPENMP
@@ -51,7 +66,6 @@ void mempool_free (void* p)
   the_memory_pool[tid].free(p);
 }
 
-extern "C"
 void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot in MB
 {
   size_t hsu_min=std::numeric_limits<size_t>::max();
@@ -68,3 +82,4 @@ void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot
   mp_tot = hsu_tot/(1024*1024);
 }
 
+}

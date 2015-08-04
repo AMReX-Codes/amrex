@@ -1598,3 +1598,167 @@ MultiFab::SumBoundary ()
     SumBoundary(0, n_comp);
 }
 
+
+// Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
+// the sidecar group.
+
+// Note that the compute MultiFab will be a null pointer on the sidecar nodes,
+// and the sidecar MultiFab will be null on the compute nodes. So be mindful of
+// which processes will be executing which code when you access these pointers.
+#ifdef BL_USE_MPI
+void
+MultiFab::SendMultiFabToSidecars (MultiFab *MF_comp,
+                                  MultiFab *MF_sidecar)
+{
+    if (ParallelDescriptor::Communicator() == ParallelDescriptor::CommunicatorComp())
+    {
+      // Broadcasts to intercommunicators have weird syntax. See below.
+      // Whichever proc is actually broadcasting the data uses MPI_ROOT; all
+      // other procs in that same communicator use MPI_PROC_NULL. On the
+      // receiving end, the source rank is the rank of the broadcasting process
+      // within its local communicator, *not* its rank in MPI_COMM_WORLD.
+      // (Usually broadcasts will come from IOProcessor(), which is typically
+      // rank 0.)
+
+      // The in-transit procs also need the distribution map of the compute
+      // group so they know who to MPI_Recv() from.
+      Array<int> comp_procmap = MF_comp->DistributionMap().ProcessorMap();
+      int procmap_size = comp_procmap.size();
+      if (ParallelDescriptor::IOProcessor())
+      {
+          ParallelDescriptor::Bcast(&procmap_size, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      }
+      else
+      {
+          ParallelDescriptor::Bcast(&procmap_size, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      }
+
+      // Even though a MultiFab is a distributed object, the layout of the
+      // Boxes themselves is stored on every process, so broadcast them to
+      // everyone on the in-transit side.
+      const BoxArray& boxArray = MF_comp->boxArray();
+      for (int i = 0; i < boxArray.size(); ++i) {
+        const Box& box = boxArray[i];
+        const int *box_index_type = box.type().getVect();
+        const int *smallEnd = box.smallEnd().getVect();
+        const int *bigEnd = box.bigEnd().getVect();
+        if (ParallelDescriptor::IOProcessor()) {
+          // getVect() requires a constant pointer, but MPI buffers require
+          // non-constant pointers. Sorry this is awful.
+          ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+        } else {
+          ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+        }
+      }
+
+      int nComp = MF_comp->nComp();
+      if (ParallelDescriptor::IOProcessor()) {
+          ParallelDescriptor::Bcast(&nComp, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      } else {
+          ParallelDescriptor::Bcast(&nComp, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      }
+
+      int nGhost = MF_comp->nGrow();
+      if (ParallelDescriptor::IOProcessor()) {
+          ParallelDescriptor::Bcast(&nGhost, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      } else {
+          ParallelDescriptor::Bcast(&nGhost, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      }
+
+      // Now that the sidecars have all the Box data, they will build the DM
+      // and send it back to the compute processes, The compute DM has the same
+      // size since they contain the same number of boxes.
+      Array<int> intransit_procmap(MF_comp->DistributionMap().ProcessorMap().size()+1);
+      ParallelDescriptor::Bcast(&intransit_procmap[0], intransit_procmap.size(), 0, ParallelDescriptor::CommunicatorInter());
+
+      // Both the compute and sidecar procs now have both DMs, so now we can
+      // send the FAB data.
+      for (MFIter mfi(*MF_comp); mfi.isValid(); ++mfi)
+      {
+          const int index = mfi.index();
+          if (comp_procmap[index] == ParallelDescriptor::MyProc())
+          {
+            const Box& box = (*MF_comp)[mfi].box();
+            const long numPts = box.numPts();
+            ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+            const Real *dataPtr = (*MF_comp)[mfi].dataPtr();
+            ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+          }
+      }
+    }
+    else
+    {
+      // The sidecars also need the compute proc's DM.
+      int procmap_size;
+      ParallelDescriptor::Bcast(&procmap_size, 1, 0, ParallelDescriptor::CommunicatorInter());
+      Array<int> comp_procmap(procmap_size);
+      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, 0, ParallelDescriptor::CommunicatorInter());
+      DistributionMapping CompDM(comp_procmap);
+
+      // Now build the list of Boxes.
+      BoxList bl;
+
+      for (unsigned int i = 0; i < procmap_size-1; ++i) {
+        int box_index_type[BL_SPACEDIM];
+        int smallEnd[BL_SPACEDIM];
+        int bigEnd[BL_SPACEDIM];
+        ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+        IntVect smallEnd_IV(smallEnd);
+        IntVect bigEnd_IV(bigEnd);
+        IntVect box_index_type_IV(box_index_type);
+        Box box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
+        bl.push_back(box);
+      }
+
+      BoxArray ba(bl);
+
+      // Get number of components in the FabArray.
+      int nComp;
+      ParallelDescriptor::Bcast(&nComp, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+      // Get number of ghost cells.
+      int nGhost;
+      ParallelDescriptor::Bcast(&nGhost, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+      // Now that the sidecars have all the Boxes, they can build their DM.
+      DistributionMapping sidecar_DM;
+      sidecar_DM.define(ba, ParallelDescriptor::NProcsSidecar());
+
+      // The compute procs need the sidecars' DM so that we can match Send()s
+      // and Recv()s for the FAB data.
+      Array<int> intransit_procmap = sidecar_DM.ProcessorMap();
+      if (ParallelDescriptor::IOProcessor()) {
+          ParallelDescriptor::Bcast(&intransit_procmap[0], procmap_size, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      } else {
+          ParallelDescriptor::Bcast(&intransit_procmap[0], procmap_size, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      }
+
+      // Now build the sidecar MultiFab with the new DM.
+      MF_sidecar->define(ba, nComp, nGhost, sidecar_DM, Fab_allocate);
+
+      // Now we populate the MultiFab with data.
+      for (MFIter mfi(*MF_sidecar); mfi.isValid(); ++mfi)
+      {
+          const int index = mfi.index();
+        if (intransit_procmap[index] == ParallelDescriptor::MyProc())
+        {
+          long numPts;
+          ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+          Real FAB_data[numPts*nComp];
+          Real *data_ptr = (*MF_sidecar)[mfi].dataPtr();
+          ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+          memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
+        }
+      }
+    }
+}
+#endif
