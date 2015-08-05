@@ -492,7 +492,7 @@ contains
     ty = 0
     tz = 0
 
-    do n = 1, nfabs(tagboxes)
+    do n = 1, nboxes(tagboxes%la)
        pbx = grow(box_nodalize(get_box(tagboxes%la,n),tagboxes%nodal),tagboxes%ng)
        bx1 = intersection(pbx, bx)
        if ( empty(bx1) ) cycle
