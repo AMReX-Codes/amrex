@@ -256,16 +256,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     upcxx::init(&argc, &argv);
 #endif
 
-    if(ParallelDescriptor::NProcsPerfMon() > 0) {
-      if(ParallelDescriptor::InPerfMonGroup()) {
-        std::cout << "Starting PerfMonProc:  myprocall = "
-                  << ParallelDescriptor::MyProcAll() << std::endl;
-        BLProfiler::PerfMonProcess();
-        BoxLib::Finalize();
-        return;
-      }
-    }
-
     BL_PROFILE_INITIALIZE();
 
     //
@@ -348,13 +338,6 @@ BoxLib::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::finalize();
-#endif
-
-    /* Don't shut down MPI if GASNet is still using MPI */
-#ifndef GASNET_CONDUIT_MPI
-
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
     int mp_min, mp_max, mp_tot;
@@ -383,6 +366,12 @@ BoxLib::Finalize (bool finalize_parallel)
       }
     }
     
+#ifdef BL_USE_UPCXX
+    upcxx::finalize();
+#endif
+
+    /* Don't shut down MPI if GASNet is still using MPI */
+#ifndef GASNET_CONDUIT_MPI
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
 #endif
