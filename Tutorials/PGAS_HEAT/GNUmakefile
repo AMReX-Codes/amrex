@@ -4,6 +4,7 @@ BOXLIB_HOME = ../..
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
+USE_UPCXX = TRUE
 USE_OMP   = FALSE
 PROFILE   = FALSE
 COMP      = g++
