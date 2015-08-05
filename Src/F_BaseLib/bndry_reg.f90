@@ -133,6 +133,7 @@ contains
 
     do i = 1, dm
        do f = 0, 1
+          !$omp parallel do private(j,rbox,lo,hi,id)
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j),nodal), rr)
              lo   = lwb(rbox)
@@ -154,6 +155,7 @@ contains
 
              call build(bxs(j), lo, hi)
           end do
+          !$omp end parallel do
 
           call boxarray_build_v(baa, bxs, sort = .false.)
           call layout_build_ba(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
