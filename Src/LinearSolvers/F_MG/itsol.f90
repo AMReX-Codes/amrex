@@ -609,15 +609,15 @@ contains
 
 100 continue
 
-    call destroy(rh_local)
-    call destroy(aa_local)
-    call destroy(rr)
-    call destroy(rt)
-    call destroy(pp)
-    call destroy(ph)
-    call destroy(vv)
-    call destroy(tt)
-    call destroy(ss)
+    call multifab_destroy(rh_local)
+    call multifab_destroy(aa_local)
+    call multifab_destroy(rr)
+    call multifab_destroy(rt)
+    call multifab_destroy(pp)
+    call multifab_destroy(ph)
+    call multifab_destroy(vv)
+    call multifab_destroy(tt)
+    call multifab_destroy(ss)
 
     call destroy(bpt)
 
@@ -806,7 +806,7 @@ contains
           print *,'   ...singular adjustment to rhs: ', rho
        endif
        call sub_sub(rh_local,rho)
-       call destroy(ss)
+       call multifab_destroy(ss)
     end if
 
     call diag_initialize(aa_local,rh_local,mm,stencil_type)
@@ -1099,14 +1099,14 @@ contains
 
 100 continue
 
-    call destroy(rh_local)
-    call destroy(aa_local)
-    call destroy(rr)
-    call destroy(rt)
-    call destroy(pp)
-    call destroy(tt)
-    call destroy(ph)
-    call destroy(pr)
+    call multifab_destroy(rh_local)
+    call multifab_destroy(aa_local)
+    call multifab_destroy(rr)
+    call multifab_destroy(rt)
+    call multifab_destroy(pp)
+    call multifab_destroy(tt)
+    call multifab_destroy(ph)
+    call multifab_destroy(pr)
 
     call destroy(bpt)
 
@@ -1376,15 +1376,15 @@ contains
 
 100 continue
 
-    call destroy(rr)
-    call destroy(zz)
-    call destroy(pp)
-    call destroy(qq)
+    call multifab_destroy(rr)
+    call multifab_destroy(zz)
+    call multifab_destroy(pp)
+    call multifab_destroy(qq)
 
     call destroy(bpt)
 
-    call destroy(aa_local)
-    call destroy(rh_local)
+    call multifab_destroy(aa_local)
+    call multifab_destroy(rh_local)
 
   end subroutine itsol_CG_Solve
 

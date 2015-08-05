@@ -13,6 +13,7 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 F90FLAGS += -fPIC
 FFLAGS += -fPIC
 CFLAGS += -fPIC
+CXXFLAGS += -fPIC
 
 # core BoxLib directories
 BOXLIB_CORE := Src/F_BaseLib

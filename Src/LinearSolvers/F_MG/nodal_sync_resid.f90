@@ -415,11 +415,11 @@ subroutine mgt_alloc_nodal_sync()
 
   nodal = .true.
 
-  call build(mgts%sync_res(1) , mgts%mla%la(1), nc = 1, ng = 1, nodal = nodal)
-  call build(mgts%sync_msk(1) , mgts%mla%la(1), nc = 1, ng = 1)
-  call build(mgts%vold(1)     , mgts%mla%la(1), nc = mgts%dim, ng = 1)
+  call multifab_build(mgts%sync_res(1) , mgts%mla%la(1), nc = 1, ng = 1, nodal = nodal)
+  call multifab_build(mgts%sync_msk(1) , mgts%mla%la(1), nc = 1, ng = 1)
+  call multifab_build(mgts%vold(1)     , mgts%mla%la(1), nc = mgts%dim, ng = 1)
 
-  call setval(mgts%sync_res(1),ZERO,all=.true.)
+  call multifab_setval(mgts%sync_res(1),ZERO,all=.true.)
 ! wqz. unnecessary to call setval(mgts%vold(1),ZERO,all=.true.)
   
 end subroutine mgt_alloc_nodal_sync
@@ -428,9 +428,9 @@ subroutine mgt_dealloc_nodal_sync()
   use nodal_cpp_mg_module
   implicit none
   
-  call destroy(mgts%sync_res(1))
-  call destroy(mgts%sync_msk(1))
-  call destroy(mgts%vold(1))
+  call multifab_destroy(mgts%sync_res(1))
+  call multifab_destroy(mgts%sync_msk(1))
+  call multifab_destroy(mgts%vold(1))
 
   deallocate(mgts%sync_res)
   deallocate(mgts%sync_msk)
@@ -586,7 +586,7 @@ subroutine mgt_compute_sync_resid_crse()
   dm = get_dim(mgts%sync_res(1))
   mglev = mgts%mgt(1)%nlevels
 
-  call build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
+  call multifab_build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
                      mgts%mgt(1)%face_type)
@@ -608,7 +608,7 @@ subroutine mgt_compute_sync_resid_crse()
   sign_res = -ONE
   call comp_sync_res(mgts%sync_res(1), divuo, mgts%sync_msk(1), sign_res)
 
-  call destroy(divuo)
+  call multifab_destroy(divuo)
 
 end subroutine mgt_compute_sync_resid_crse
 
@@ -628,10 +628,10 @@ subroutine mgt_compute_sync_resid_fine()
   dm = get_dim(mgts%sync_res(1))
   mglev = mgts%mgt(1)%nlevels
 
-  call build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
+  call multifab_build(divuo, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
 
-  call build(rh0, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
-  call setval(rh0,ZERO,all=.true.)
+  call multifab_build(rh0, mgts%mla%la(1), nc=1, ng=1, nodal=nodal)
+  call multifab_setval(rh0,ZERO,all=.true.)
 
   call compute_divuo(divuo, mgts%sync_msk(1), mgts%vold(1), mgts%mgt(1)%dh(:,mglev), &
        mgts%mgt(1)%face_type)
@@ -649,8 +649,8 @@ subroutine mgt_compute_sync_resid_fine()
 
   call sync_res_fine_bndry(mgts%sync_res(1), mgts%mgt(1)%face_type)
 
-  call destroy(divuo)
-  call destroy(rh0)
+  call multifab_destroy(divuo)
+  call multifab_destroy(rh0)
 
 end subroutine mgt_compute_sync_resid_fine
 

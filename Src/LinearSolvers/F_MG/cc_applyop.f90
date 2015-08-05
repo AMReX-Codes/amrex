@@ -94,10 +94,10 @@ contains
                             mgt(n)%mm(mgt(n)%nlevels), xa, xb, pxa, pxb, stencil_order, &
                             the_bc_tower%bc_tower_array(n)%ell_bc_level_array(0,:,:,bc_comp))
 
-       call destroy(cell_coeffs)
+       call multifab_destroy(cell_coeffs)
 
        do d = 1,dm
-          call destroy(edge_coeffs(d))
+          call multifab_destroy(edge_coeffs(d))
        end do
 
     end do
@@ -149,7 +149,7 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(rh(n), la, 1, 0)
+       call multifab_build(rh(n), la, 1, 0)
        call setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
@@ -205,7 +205,7 @@ contains
     end do
 
     do n = nlevs, 1, -1
-       call destroy(rh(n))
+       call multifab_destroy(rh(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
@@ -257,11 +257,11 @@ contains
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(rh(n), la, 1, 0)
-       call setval(rh(n), ZERO,all=.true.)
+       call multifab_build(rh(n), la, 1, 0)
+       call multifab_setval(rh(n), ZERO,all=.true.)
 
        ! zero residual just to be safe
-       call setval(     res(n), ZERO,all=.true.)
+       call setval(res(n), ZERO,all=.true.)
 
        if ( n == 1 ) exit
 
@@ -312,7 +312,7 @@ contains
     end do
 
     do n = nlevs, 1, -1
-       call destroy(rh(n))
+       call multifab_destroy(rh(n))
        if ( n == 1 ) exit
        call bndry_reg_destroy(brs_bcs(n))
        call bndry_reg_destroy(brs_flx(n))
