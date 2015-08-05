@@ -172,7 +172,7 @@ contains
     end do
 
     do n = 1, mla%nlevel
-      call copy(mla%mba%bas(n),mba%bas(n))
+      call boxarray_build_copy(mla%mba%bas(n),mba%bas(n))
     end do
 
     ! Build the pmask
@@ -189,10 +189,10 @@ contains
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
-       call copy(bac, mba%bas(n+1))
+       call boxarray_build_copy(bac, mba%bas(n+1))
        call boxarray_coarsen(bac, mba%rr(n,:))
        call setval(mla%mask(n), .false., bac)
-       call destroy(bac)
+       call boxarray_destroy(bac)
     end do
 
   end subroutine ml_layout_build_la_array
@@ -214,7 +214,7 @@ contains
     allocate(mla%la(mla%nlevel))
     allocate(mla%mask(mla%nlevel-1))
     do n = 1, mla%nlevel
-       call build(mla%la(n), mla%mba%bas(n), mla%mba%pd(n), pmask=mla%pmask, &
+       call layout_build_ba(mla%la(n), mla%mba%bas(n), mla%mba%pd(n), pmask=mla%pmask, &
             explicit_mapping=get_proc(mla_in%la(n)))
     end do
     do n = 1, mla%nlevel-1
@@ -263,20 +263,20 @@ contains
       mla%mba%rr(n,:) = mba%rr(n,:)
     end do
     do n = 1, mla%nlevel
-      call copy(mla%mba%bas(n),mba%bas(n))
+      call boxarray_build_copy(mla%mba%bas(n),mba%bas(n))
     end do
 
     allocate(mla%la(mla%nlevel), la_array(mla%nlevel))
 
     do n = 1, mla%nlevel
-       call build(la_array(n), mba%bas(n), mba%pd(n), pmask=lpmask)
+       call layout_build_ba(la_array(n), mba%bas(n), mba%pd(n), pmask=lpmask)
     end do
 
     call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr)
 
     do n = 1, mla%nlevel
        if (mla%la(n) .ne. la_array(n)) then
-          call destroy(la_array(n))
+          call layout_destroy(la_array(n))
        end if
     end do
 
@@ -285,10 +285,10 @@ contains
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
-       call copy(bac, mba%bas(n+1))
+       call boxarray_build_copy(bac, mba%bas(n+1))
        call boxarray_coarsen(bac, mba%rr(n,:))
        call setval(mla%mask(n), .false., bac)
-       call destroy(bac)
+       call boxarray_destroy(bac)
     end do
 
   end subroutine ml_layout_restricted_build
@@ -302,7 +302,7 @@ contains
     lkeepcoarse = .false.;  if (present(keep_coarse_layout)) lkeepcoarse = keep_coarse_layout
 
     do n = 1, mla%nlevel-1
-       if (built_q(mla%mask(n))) call destroy(mla%mask(n))
+       if (built_q(mla%mask(n))) call lmultifab_destroy(mla%mask(n))
     end do
     call destroy(mla%mba)
 
@@ -312,7 +312,7 @@ contains
        n0 = 1
     end if
     do n = n0, mla%nlevel
-       call destroy(mla%la(n))
+       call layout_destroy(mla%la(n))
     end do
 
     deallocate(mla%la, mla%mask)
@@ -574,8 +574,8 @@ contains
 
          end do
 
-         call destroy(mff)
-         call destroy(mfc)
+         call imultifab_destroy(mff)
+         call imultifab_destroy(mfc)
 
          call parallel_reduce(prc  ,   prc2, MPI_SUM)
          call parallel_reduce(novlp, novlp2, MPI_SUM)
@@ -639,7 +639,7 @@ contains
                end if
             end do
 
-            call build(tba, bl, sort=.false.)
+            call boxarray_build_l(tba, bl, sort=.false.)
             call destroy(bl)
 
             ntbxs = nboxes(tba)
@@ -658,7 +658,7 @@ contains
 
             call make_sfc(sfc_order, pbxs)
 
-            call destroy(tba)
+            call boxarray_destroy(tba)
 
             call set_luc_vol(vprc(myproc+1))
             luc => least_used_cpus()  ! 0 based
@@ -836,8 +836,8 @@ contains
 
          end do
          
-         call destroy(mff)
-         call destroy(mfc)
+         call imultifab_destroy(mff)
+         call imultifab_destroy(mfc)
          
          call parallel_reduce(prc  ,   prc2, MPI_SUM)
          call parallel_reduce(novlp, novlp2, MPI_SUM)

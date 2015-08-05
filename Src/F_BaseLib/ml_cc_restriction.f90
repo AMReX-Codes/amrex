@@ -36,7 +36,7 @@ contains
 
     call layout_build_coarse(lacfine, laf, ir)
 
-    call build(cfine, lacfine, nc = lnc, ng = 0)
+    call multifab_build(cfine, lacfine, nc = lnc, ng = 0)
 
     dm = get_dim(cfine)
 
@@ -62,7 +62,7 @@ contains
 
     call copy(crse, cc, cfine, 1, lnc)
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
 
   end subroutine ml_cc_restriction_c
 
@@ -132,7 +132,7 @@ contains
 
     call copy(crse, cc, cfine, 1, lnc)
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
     !
     ! Now do periodic fix-up if necessary.
     !
@@ -159,10 +159,10 @@ contains
 
        if (.not. empty(bxs_lo)) then
 
-          call build(ba_lo,bxs_lo,sort=.false.)
+          call boxarray_build_l(ba_lo,bxs_lo,sort=.false.)
           call destroy(bxs_lo)
-          call build(la_lo,ba_lo,fine_domain,pmask)
-          call destroy(ba_lo)
+          call layout_build_ba(la_lo,ba_lo,fine_domain,pmask)
+          call boxarray_destroy(ba_lo)
           call multifab_build(fine_lo, la_lo, nc = ncomp(fine), ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_lo, 1, fine, cf, lnc, len, face)
@@ -194,9 +194,9 @@ contains
    
           call copy(crse, cc, cfine, 1, lnc)
 
-          call destroy(cfine)
-          call destroy(fine_lo)
-          call destroy(la_lo)
+          call multifab_destroy(cfine)
+          call multifab_destroy(fine_lo)
+          call layout_destroy(la_lo)
        
        end if
        !
@@ -213,10 +213,10 @@ contains
 
        if (.not. empty(bxs_hi)) then
 
-          call build(ba_hi,bxs_hi,sort=.false.)
+          call boxarray_build_l(ba_hi,bxs_hi,sort=.false.)
           call destroy(bxs_hi)
-          call build(la_hi,ba_hi,fine_domain,pmask)
-          call destroy(ba_hi)
+          call layout_build_ba(la_hi,ba_hi,fine_domain,pmask)
+          call boxarray_destroy(ba_hi)
           call multifab_build(fine_hi, la_hi, nc = ncomp(fine), ng = 0, nodal = nodal)
    
           call multifab_copy_on_shift(fine_hi, 1, fine, cf, lnc, -len, face)
@@ -248,9 +248,9 @@ contains
 
           call copy(crse, cc, cfine, 1, lnc)
 
-          call destroy(cfine)
-          call destroy(fine_hi)
-          call destroy(la_hi)
+          call multifab_destroy(cfine)
+          call multifab_destroy(fine_hi)
+          call layout_destroy(la_hi)
 
        end if ! .not. empty
 

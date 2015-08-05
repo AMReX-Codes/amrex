@@ -93,7 +93,7 @@ contains
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
           call layout_build_ba(old_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%ss(1))))
-          call destroy(ba_cc)
+          call boxarray_destroy(ba_cc)
           call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,ncomp(edge_coeffs(1,d)),0,d)
 
           do i = 1, nfabs(old_edge_coeffs_grown)
@@ -106,12 +106,12 @@ contains
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
           call layout_build_ba(new_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
-          call destroy(ba_cc)
+          call boxarray_destroy(ba_cc)
           call multifab_build_edge(new_edge_coeffs_grown,new_la_grown,ncomp(edge_coeffs(1,d)),0,d)
           call multifab_copy_c(new_edge_coeffs_grown,1,old_edge_coeffs_grown,1,nc=ncomp(edge_coeffs(1,d)))
 
-          call destroy(old_edge_coeffs_grown)
-          call destroy(old_la_grown)
+          call multifab_destroy(old_edge_coeffs_grown)
+          call layout_destroy(old_la_grown)
 
           do i = 1, nfabs(new_edge_coeffs_grown)
              sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
@@ -119,8 +119,8 @@ contains
              sc_orig = sc_grown
           end do
 
-          call destroy(new_edge_coeffs_grown)
-          call destroy(new_la_grown)
+          call multifab_destroy(new_edge_coeffs_grown)
+          call layout_destroy(new_la_grown)
 
        end do
 
@@ -132,20 +132,20 @@ contains
        call stencil_fill_cc_all_mglevels(mgt%bottom_mgt, coarse_cell_coeffs, coarse_edge_coeffs, &
                                          coarse_xa, coarse_xb, coarse_pxa, coarse_pxb, stencil_order, bc_face, nc_opt)
 
-       call destroy(coarse_cell_coeffs(maxlev_bottom))
+       call multifab_destroy(coarse_cell_coeffs(maxlev_bottom))
        deallocate(coarse_cell_coeffs)
 
        do d = 1,dm
-          call destroy(coarse_edge_coeffs(maxlev_bottom,d))
+          call multifab_destroy(coarse_edge_coeffs(maxlev_bottom,d))
        end do
        deallocate(coarse_edge_coeffs)
 
     end if
 
     do i = maxlev-1, 1, -1
-       call destroy(cell_coeffs(i))
+       call multifab_destroy(cell_coeffs(i))
        do d = 1,dm
-          call destroy(edge_coeffs(i,d))
+          call multifab_destroy(edge_coeffs(i,d))
        end do
     end do
 
