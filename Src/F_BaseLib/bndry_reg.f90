@@ -448,13 +448,9 @@ contains
     logical, intent(in), optional  :: filled
 
     integer                   :: i, j, f, n(2)
-    type(list_box)            :: bl
-    type(multifab)            :: tmf
-    type(boxarray)            :: ba
-    type(layout)              :: la,mf_la
+    type(layout)              :: mf_la
     type(box)                 :: domain
     logical                   :: have_periodic_boxes
-    real(kind=dp_t), pointer  :: src(:,:,:,:), dst(:,:,:,:)
     type(bl_prof_timer), save :: bpt
     logical                   :: lfilled
 
@@ -487,38 +483,16 @@ contains
 
     if ( have_periodic_boxes ) then
        !
-       ! We're periodic & have boxes that extend outside the domain in periodic
-       ! direction.  In order to fill those boxes we do the usual trick of copy()ing
-       ! from a multifab whose valid region has been extended to cover the ghost region.
-       !
-       do i = 1, nboxes(mf%la)
-          call push_back(bl, grow(box_nodalize(get_box(mf%la,i),mf%nodal),nghost(mf)))
-       end do
-       !
        ! Need to fill the ghost cells of the crse array before copying from them.
        !
        if (.not.lfilled) call multifab_fill_boundary(mf)
 
-       call boxarray_build_l(ba, bl, sort = .false.)
-       call destroy(bl)
-       call layout_build_ba(la, ba, get_pd(mf_la), get_pmask(mf_la), explicit_mapping = get_proc(mf_la))
-       call boxarray_destroy(ba)
-       call multifab_build(tmf, la, nc = ncomp(mf), ng = 0)
-
-       do i = 1, nfabs(mf)
-          src => dataptr(mf,  i)
-          dst => dataptr(tmf, i)
-          call cpy_d(dst,src)
-       end do
-
        do f = 0, n(2)-1
           do i = 1, n(1)
-             call copy(br%bmf(i,f), tmf)
+             call copy(br%bmf(i,f), mf, ngsrc=nghost(mf))
           end do
        end do
 
-       call multifab_destroy(tmf)
-       call layout_destroy(la)
     else
        do f = 0, n(2)-1
           do i = 1, n(1)
