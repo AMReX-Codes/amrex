@@ -836,7 +836,7 @@ contains
             bxs(j) = box_denodalize(bx, nodal = nodal(1:dm))
          end do
          call bl_stream_expect(strm, ')')
-         call boxarray_build(ba, bxs)
+         call boxarray_build_v(ba, bxs)
          call layout_build_ba(la, ba, boxarray_bbox(ba))
          call multifab_build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
