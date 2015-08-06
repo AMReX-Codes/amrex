@@ -810,7 +810,7 @@ namespace BoxLib
         if (!TheFPB.m_SndTags->empty()) {
 #ifdef BL_USE_UPCXX_TEMP
 	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-	    FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),mf.fpb_send_data);
+	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data);
 #else
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),mf.fpb_send_reqs,mf.fpb_send_data,stats);
 #endif
