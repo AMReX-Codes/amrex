@@ -15,7 +15,7 @@
 #endif
 
 #ifdef BL_USE_UPCXX
-#include <upcxx.h>
+#include <BLPgas.H>
 #endif
 
 #include <BLassert.H>
@@ -2709,31 +2709,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
 #endif /*BL_USE_MPI*/
 }
 
-#ifdef BL_USE_UPCXX
-struct PgasSendInfo {
-  upcxx::global_ptr<void> src_ptr;
-  upcxx::global_ptr<void> dst_ptr;
-  size_t nbytes;
-  int SeqNum;
-
-  PgasSendInfo(upcxx::global_ptr<void> src,
-               upcxx::global_ptr<void> dst,
-               size_t nb,
-               int SN)
-  {
-    src_ptr = src;
-    dst_ptr = dst;
-    nbytes = nb;
-    SeqNum = SN;
-  }
-};
-
-void pgas_send(upcxx::global_ptr<void> src_ptr,
-               upcxx::global_ptr<void> dst_ptr,
-               size_t nbytes,
-               int SeqNum);
-#endif /* BL_USE_UPCXX */
-
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
@@ -2834,11 +2809,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #ifdef BL_USE_UPCXX
       value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
       if (data == NULL) {
-        printf("Failed to allocate %lu bytes global address space memory!\n",
+        printf("Failed to allocate %zu bytes global address space memory!\n",
                sizeof(value_type)*N);
         printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
         printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-        BL_ASSERT(data != NULL); // any better way for an error exit?
+	BoxLib::Abort("FillBoundary_nowait: Failed to allocate in global address space memory");
       }
 #else
       value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
@@ -2877,10 +2852,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #endif
     for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
-      pgas_send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                upcxx::global_ptr<void>(NULL, send_rank[i]),
-                send_N[i]*sizeof(value_type),
-                SeqNum);
+      BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
+		   upcxx::global_ptr<void>(NULL, send_rank[i]),
+		   send_N[i]*sizeof(value_type),
+		   SeqNum);
 #else
       send_reqs.push_back(ParallelDescriptor::Asend
                           (send_data[i],send_N[i],send_rank[i],SeqNum).req());
@@ -3029,11 +3004,11 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
   /// the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
   the_recv_data = (T2*)upcxx::allocate<T2>(TotalRcvsVolume);
   if (the_recv_data == NULL) {
-    printf("Failed to allocate %lu bytes global address space memory!\n",
+    printf("Failed to allocate %d bytes global address space memory!\n",
            TotalRcvsVolume);
     printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
     printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-    BL_ASSERT(the_recv_data != NULL); // any better way for an error exit?
+    BoxLib::Abort("PostRcvs_PGAS: Failed to allocate in global address space memory");
   }
 
   int Offset = 0;
@@ -3058,7 +3033,7 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
       upcxx::global_ptr<void> dst_ptr =
         upcxx::global_ptr<void>(&the_recv_data[Offset], upcxx::myrank());
       // Launch a remote task on the sender to send me data
-      upcxx::async(m_it->first)(pgas_send,
+      upcxx::async(m_it->first)(BLPgas::Send,
                                 upcxx::global_ptr<void>(NULL, m_it->first),
                                 dst_ptr,
                                 N*sizeof(T2),
