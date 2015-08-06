@@ -31,27 +31,26 @@ BL_FORT_PROC_DECL(INIT_PHI,init_phi)
      const int& ncomp, const Real* dx, const Real* prob_lo, const Real* prob_hi);
 
 static Real kernel_time = 0;
-static Real FB_time = 0;
-static Real FPB_time = 0;
-static int do_tiling = 1;
+static Real FB_time     = 0;
+static int  do_tiling   = 1;
 
 void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry geom)
 {
     int Ncomp = old_phi->nComp();
 
-    Real t2 = ParallelDescriptor::second();
+    Real t0 = ParallelDescriptor::second();
+
     // Fill the ghost cells of each grid from the other grids
     old_phi->FillBoundary_nowait();
+    geom.FillPeriodicBoundary_nowait(*old_phi);
+
     old_phi->FillBoundary_finish();
-    FB_time += ParallelDescriptor::second() - t2;
+    geom.FillPeriodicBoundary_finish(*old_phi);
     
     Real t1 = ParallelDescriptor::second();
-    // Fill periodic boundary ghost cells
-    geom.FillPeriodicBoundary(*old_phi);
-    FPB_time += ParallelDescriptor::second() - t1;
 
-    Real t0 = ParallelDescriptor::second();
-    
+    FB_time += t1 - t0;
+
     if (do_tiling) {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -79,7 +78,7 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 	}
     }
     
-    kernel_time += ParallelDescriptor::second() - t0;
+    kernel_time += ParallelDescriptor::second() - t1;
 }
 
 
@@ -234,14 +233,12 @@ main (int argc, char* argv[])
     ParallelDescriptor::ReduceRealMax(advance_time,IOProc);
     ParallelDescriptor::ReduceRealMax(kernel_time,IOProc);
     ParallelDescriptor::ReduceRealMax(FB_time,IOProc);
-    ParallelDescriptor::ReduceRealMax(FPB_time,IOProc);
     
     // Tell the I/O Processor to write out the "run time"
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "----------------------------------------------\n";
 //	std::cout << "Kernel       time = " << kernel_time << std::endl;
 	std::cout << "FillBoundary time = " << FB_time << std::endl;
-//	std::cout << "FPB          time = " << FPB_time << std::endl;
 //	std::cout << "Advance      time = " << advance_time << std::endl;
 //	std::cout << "Total run    time = " << stop_time << std::endl;
     }

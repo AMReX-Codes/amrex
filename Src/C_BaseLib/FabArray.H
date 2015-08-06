@@ -787,18 +787,30 @@ private:
     //
     void AllocFabs ();
 
-    // Data used in non-blocking communication
-    bool nbc_cross;
-    int nbc_scomp, nbc_ncomp;
+public:
+    // Data used in non-blocking FillBoundary
+    bool fb_cross;
+    int fb_scomp, fb_ncomp;
     //
-    value_type*        nbc_the_recv_data;
-    Array<int>         nbc_recv_from;
-    Array<value_type*> nbc_recv_data;
-    Array<MPI_Request> nbc_recv_reqs;
+    value_type*        fb_the_recv_data;
+    Array<int>         fb_recv_from;
+    Array<value_type*> fb_recv_data;
+    Array<MPI_Request> fb_recv_reqs;
     //
-    Array<value_type*> nbc_send_data;
-    Array<MPI_Request> nbc_send_reqs;
+    Array<value_type*> fb_send_data;
+    Array<MPI_Request> fb_send_reqs;
 
+    // Data used in non-blocking FillPeriodicBoundary
+    bool fpb_corners;
+    int fpb_scomp, fpb_ncomp;
+    //
+    value_type*        fpb_the_recv_data;
+    Array<int>         fpb_recv_from;
+    Array<value_type*> fpb_recv_data;
+    Array<MPI_Request> fpb_recv_reqs;
+    //
+    Array<value_type*> fpb_send_data;
+    Array<MPI_Request> fpb_send_reqs;
 };
 
 class FabArrayId
@@ -2750,9 +2762,9 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         return;
     }
 
-    nbc_cross = cross;
-    nbc_scomp = scomp;
-    nbc_ncomp = ncomp;
+    fb_cross = cross;
+    fb_scomp = scomp;
+    fb_ncomp = ncomp;
 
 #ifdef BL_USE_MPI
     //
@@ -2771,11 +2783,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
 #ifdef BL_USE_UPCXX
-    FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,nbc_the_recv_data,
-                                nbc_recv_data,nbc_recv_from,ncomp,SeqNum);
+    FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+                                fb_recv_data,fb_recv_from,             ncomp,SeqNum);
 #else
-    FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,nbc_the_recv_data,
-                           nbc_recv_data,nbc_recv_from,nbc_recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+				fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 #endif
 
     //
@@ -2783,7 +2795,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     const int N_snds = TheSI.m_SndTags->size();
 
-    Array<value_type*> &               send_data = nbc_send_data;
+    Array<value_type*> &               send_data = fb_send_data;
     Array<int>                         send_N;
     Array<int>                         send_rank;
     Array<const CopyComTagsContainer*> send_cctc;
@@ -2847,7 +2859,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     }
 
 #ifndef BL_USE_UPCXX
-    Array<MPI_Request>& send_reqs = nbc_send_reqs;
+    Array<MPI_Request>& send_reqs = fb_send_reqs;
     send_reqs.reserve(N_snds);
 #endif
     for (int i=0; i<N_snds; ++i) {
@@ -2890,13 +2902,15 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(nbc_cross,*this);
+#ifdef BL_USE_MPI
+
+    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
+    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
         //
         // No work to do.
         //
@@ -2923,14 +2937,14 @@ FabArray<FAB>::FillBoundary_finish ()
 	for (int k = 0; k < N_rcvs; k++) 
 	{
 	    MapOfCopyComTagContainers::const_iterator m_it 
-		= TheSI.m_RcvTags->find(nbc_recv_from[k]);
+		= TheSI.m_RcvTags->find(fb_recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
 #ifndef BL_USE_UPCXX
 	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, nbc_recv_reqs.dataPtr(), stats.dataPtr()) );
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
 #endif
 
 #ifdef _OPENMP
@@ -2938,7 +2952,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    value_type* dptr = nbc_recv_data[k];
+	    value_type* dptr = fb_recv_data[k];
 	    BL_ASSERT(dptr != 0);
 
 	    const CopyComTagsContainer& cctc = *recv_cctc[k];
@@ -2947,33 +2961,35 @@ FabArray<FAB>::FillBoundary_finish ()
 		 it != cctc.end(); ++it)
 	    {
 		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*nbc_ncomp;
-		get(it->fabIndex).copyFromMem(bx,nbc_scomp,nbc_ncomp,dptr);
+		const int  Cnt = bx.numPts()*fb_ncomp;
+		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
 		dptr += Cnt;
 	    }	    
 	}
     }
 
 #ifdef BL_USE_UPCXX
-    upcxx::deallocate(nbc_the_recv_data);
+    upcxx::deallocate(fb_the_recv_data);
 #else
-    BoxLib::The_Arena()->free(nbc_the_recv_data);
+    BoxLib::The_Arena()->free(fb_the_recv_data);
 #endif
 
-    nbc_recv_from.clear();
-    nbc_recv_data.clear();
-    nbc_recv_reqs.clear();
+    fb_recv_from.clear();
+    fb_recv_data.clear();
+    fb_recv_reqs.clear();
 
     if (!TheSI.m_SndTags->empty()) {
 #ifdef BL_USE_UPCXX
       // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),nbc_send_data);
+      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data);
 #else
-      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),nbc_send_reqs,nbc_send_data,stats);
+      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),fb_send_reqs,fb_send_data,stats);
 #endif
-	nbc_send_data.clear();
-	nbc_send_reqs.clear();
+	fb_send_data.clear();
+	fb_send_reqs.clear();
     }
+
+#endif /*BL_USE_MPI*/
 }
 
 #ifdef BL_USE_UPCXX

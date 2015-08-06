@@ -168,6 +168,14 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 }
 
 void
+Geometry::FillPeriodicBoundary_nowait (MultiFab& mf,
+				       bool      do_corners,
+				       bool      local) const
+{
+    FillPeriodicBoundary_nowait(mf,0,mf.nComp(),do_corners,local);
+}
+
+void
 Geometry::SumPeriodicBoundary (MultiFab& mf) const
 {
     SumPeriodicBoundary(mf,0,mf.nComp());
@@ -189,20 +197,34 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners,
                                 bool      local) const
 {
+    BL_PROFILE("Geometry::FillPeriodicBoundary()");
+
+    if ( local )
+    {
+	FillPeriodicBoundary_local(mf, scomp, ncomp, corners);
+    }
+    else
+    {
+	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+        BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
+    }
+}
+
+void
+Geometry::FillPeriodicBoundary_local (MultiFab& mf,
+				      int       scomp,
+				      int       ncomp,
+				      bool      corners) const
+{
     if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
-    BL_PROFILE("Geometry::FillPeriodicBoundary()");
+    BL_PROFILE("Geometry::FillPeriodicBoundary_local()");
 
     Box TheDomain = Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
         if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
-
-    if ( local )
-    {
-        //
-        // Do what you can with the FABs you own.  No parallelism allowed.
-        //
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -256,11 +278,35 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
             }
         }
     }
+}
+
+void
+Geometry::FillPeriodicBoundary_nowait (MultiFab& mf,
+				       int       scomp,
+				       int       ncomp,
+				       bool      corners,
+				       bool      local) const
+{
+    BL_PROFILE("Geometry::FillPeriodicBoundary_nowait()");
+
+    if ( local )
+    {
+	FillPeriodicBoundary_local(mf, scomp, ncomp, corners);
     }
     else
     {
-        BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
+	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+        BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
     }
+}
+
+void
+Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
+{
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+    
+    BoxLib::FillPeriodicBoundary_finish(*this, mf);
 }
 
 //
