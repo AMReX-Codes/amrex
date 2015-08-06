@@ -125,3 +125,8 @@ C$(BOXLIB_BASE)_headers += MemPool.H
 C$(BOXLIB_BASE)_sources += MemPool.cpp
 f90$(BOXLIB_BASE)_sources += mempool_f.f90
 
+# UPCXX
+ifeq ($(USE_UPCXX),TRUE)
+  C$(BOXLIB_BASE)_sources += BLPgas.cpp
+  C$(BOXLIB_BASE)_headers += BLPgas.H
+endif
