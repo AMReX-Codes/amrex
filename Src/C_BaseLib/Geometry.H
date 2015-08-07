@@ -606,10 +606,10 @@ namespace BoxLib
 	//
 	// Post rcvs. Allocate one chunk of space to hold'm all.
 	//
-#ifdef BL_USE_UPCXX_TEMP
-	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-				    mf.fpb_recv_data,mf.fpb_recv_from,
-				    mf.fpb_ncomp,SeqNum);
+#ifdef BL_USE_UPCXX
+        FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+                                    mf.fpb_recv_data,mf.fpb_recv_from,
+                                    mf.fpb_ncomp,SeqNum);
 #else
         FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -644,15 +644,15 @@ namespace BoxLib
 
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
-#ifdef BL_USE_UPCXX_TEMP
-	    value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-	    if (data == NULL) {
-		printf("Failed to allocate %zu bytes global address space memory!\n",
-		       sizeof(value_type)*N);
-		printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
-		printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-		BoxLib::Abort("FillPeriodicBoundary_nowait: Failed to allocate in global address space memory");
-	    }
+#ifdef BL_USE_UPCXX
+            value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
+            if (data == NULL) {
+              printf("Failed to allocate %zu bytes global address space memory!\n",
+                     sizeof(value_type)*N);
+              printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
+              printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
+              BoxLib::Abort("FillPeriodicBoundary_nowait: Failed to allocate in global address space memory");
+            }
 #else
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
@@ -683,19 +683,19 @@ namespace BoxLib
             }
 	}
 
-#ifndef BL_USE_UPCXX_TEMP
+#ifndef BL_USE_UPCXX
 	Array<MPI_Request>& send_reqs = mf.fpb_send_reqs;
 	mf.fpb_send_reqs.reserve(N_snds);
 #endif	
 	for (int i=0; i<N_snds; ++i) {
-#ifdef BL_USE_UPCXX_TEMP
+#ifdef BL_USE_UPCXX
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-			 upcxx::global_ptr<void>(NULL, send_rank[i]),
-			 send_N[i]*sizeof(value_type),
-			 SeqNum);
+                   upcxx::global_ptr<void>(NULL, send_rank[i]),
+                   send_N[i]*sizeof(value_type),
+                   SeqNum);
 #else
 	    send_reqs.push_back(ParallelDescriptor::Asend
-				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
+                          (send_data[i],send_N[i],send_rank[i],SeqNum).req());
 #endif
 	}
 
@@ -746,7 +746,7 @@ namespace BoxLib
 
         typedef typename FAB::value_type value_type;
 
-#ifdef BL_USE_UPCXX_TEMP
+#ifdef BL_USE_UPCXX
 	upcxx::async_wait(); // all communication should be done at this point
 	upcxx::barrier();
 #else
@@ -771,7 +771,7 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-#ifndef BL_USE_UPCXX_TEMP
+#ifndef BL_USE_UPCXX
 	    stats.resize(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
 #endif
@@ -797,7 +797,7 @@ namespace BoxLib
             }
         }
 
-#ifdef BL_USE_UPCXX_TEMP
+#ifdef BL_USE_UPCXX
 	upcxx::deallocate(mf.fpb_the_recv_data);
 #else
         BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
@@ -808,7 +808,7 @@ namespace BoxLib
 	mf.fpb_recv_reqs.clear();
 
         if (!TheFPB.m_SndTags->empty()) {
-#ifdef BL_USE_UPCXX_TEMP
+#ifdef BL_USE_UPCXX
 	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
 	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data);
 #else
