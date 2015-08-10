@@ -51,19 +51,15 @@ int main(int argc, char *argv[]) {
     MultiFab *mf = new MultiFab;
     MultiFab *MF_sidecar = new MultiFab;
 
-    Box *baseBox;
-    RealBox* real_box;
-    int* coord;
     Geometry* geom;
-    int is_per[BL_SPACEDIM];
 
     double t_start, t_stop;
 
     if (ParallelDescriptor::InCompGroup())
     {
       // Make a Box, then a BoxArray with maxSize.
-      baseBox = new Box(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
-      BoxArray ba(*baseBox);
+      Box baseBox(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
+      BoxArray ba(baseBox);
       ba.maxSize(maxSize);
 
       if(ParallelDescriptor::IOProcessor()) {
@@ -84,33 +80,31 @@ int main(int argc, char *argv[]) {
       }
 
       // This defines the physical size of the box.
-      real_box = new RealBox;
+      RealBox real_box;
       for (int n = 0; n < BL_SPACEDIM; n++) {
-        real_box->setLo(n, 0.0);
-        real_box->setHi(n, 42.0);
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 42.0);
       }
 
       // This says we are using Cartesian coordinates
-      coord = new int(0);
+      int coord(0);
 
       // This sets the boundary conditions to be non-periodic.
+      int is_per[BL_SPACEDIM];
       for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
 
       // This defines a Geometry object which is useful for writing the plotfiles
-      geom = new Geometry(*baseBox, real_box, *coord, is_per);
+      geom = new Geometry(baseBox, &real_box, coord, is_per);
     }
     else // on the sidecars, just allocate the memory but don't do anything else
     {
-      baseBox = new Box;
-      real_box = new RealBox;
-      coord = new int;
       geom = new Geometry;
     }
 
     // whoooosh
     t_start = MPI_Wtime();
     MultiFab::SendMultiFabToSidecars (mf, MF_sidecar);
-    Geometry::SendGeometryToSidecars (baseBox, real_box, coord, is_per, geom);
+    Geometry::SendGeometryToSidecars (geom);
     t_stop = MPI_Wtime();
 
     if (ParallelDescriptor::InSidecarGroup())
@@ -140,9 +134,6 @@ int main(int argc, char *argv[]) {
 
     delete mf;
     delete MF_sidecar;
-    delete baseBox;
-    delete real_box;
-    delete coord;
     delete geom;
 
     BoxLib::Finalize();
