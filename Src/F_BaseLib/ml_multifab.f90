@@ -391,7 +391,7 @@ contains
     type(ml_multifab), intent(inout) :: mmf
     integer :: n
     do n = 1, mmf%nlevel
-       call destroy(mmf%mf(n))
+       call multifab_destroy(mmf%mf(n))
     end do
     deallocate(mmf%mf)
     mmf%dim = 0

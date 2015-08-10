@@ -137,7 +137,7 @@ contains
 
     la_buf = get_layout(tagboxes)
 
-    call build(buf, la_buf, nc = 1, ng = buf_wid)
+    call lmultifab_build(buf, la_buf, nc = 1, ng = buf_wid)
     call setval(buf, .false., all = .true.)
     !
     ! Buffer the cells.
@@ -178,7 +178,7 @@ contains
     !
     call pd_mask(cbuf,coarsen(buf_pd,ratio))
 
-    call destroy(buf)
+    call lmultifab_destroy(buf)
 
     cla = get_layout(cbuf)
 
@@ -191,14 +191,14 @@ contains
 
     iprocs = parallel_IOProcessorNode()
 
-    call build(la, get_boxarray(cla), bx, get_pmask(cla), explicit_mapping = iprocs)
+    call layout_build_ba(la, get_boxarray(cla), bx, get_pmask(cla), explicit_mapping = iprocs)
 
-    call build(lbuf, la, nc = 1)
+    call lmultifab_build(lbuf, la, nc = 1)
 
     call copy(lbuf, cbuf)  ! This is a parallel copy.
 
-    call destroy(cbuf)
-    call destroy(cla)
+    call lmultifab_destroy(cbuf)
+    call layout_destroy(cla)
 
     if ( parallel_IOProcessor() ) then
        call owner_mask(lbuf)
@@ -214,8 +214,8 @@ contains
        end if
     end if
 
-    call destroy(lbuf)
-    call destroy(la)
+    call lmultifab_destroy(lbuf)
+    call layout_destroy(la)
     !
     ! We now must broadcast the info in "lboxes" back to all CPUs.
     !
@@ -253,7 +253,7 @@ contains
        end do
     end if
 
-    call build(boxes, lboxes)
+    call boxarray_build_l(boxes, lboxes)
 
     call destroy(lboxes)
 
@@ -282,7 +282,7 @@ contains
             lp => dataptr(mask, i, get_box(ba,j))
             lp = .false.
          end do
-         call destroy(ba)
+         call boxarray_destroy(ba)
       end do
     end subroutine pd_mask
 
@@ -492,7 +492,7 @@ contains
     ty = 0
     tz = 0
 
-    do n = 1, nfabs(tagboxes)
+    do n = 1, nboxes(tagboxes%la)
        pbx = grow(box_nodalize(get_box(tagboxes%la,n),tagboxes%nodal),tagboxes%ng)
        bx1 = intersection(pbx, bx)
        if ( empty(bx1) ) cycle
@@ -800,11 +800,11 @@ contains
     ! I'm playing a little fast & loose here.
     ! I'm assuming all we really need to get right is the mapping.
     !
-    call build(cla, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
+    call layout_build_ba(cla, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
 
-    call destroy(cba)
+    call boxarray_destroy(cba)
 
-    call build(ctagboxes, cla, 1, 0)
+    call lmultifab_build(ctagboxes, cla, 1, 0)
 
     call setval(ctagboxes, .false., all = .true.)
 
@@ -843,11 +843,11 @@ contains
 
     call boxarray_coarsen(cba, ratio)
 
-    call build(cla_grow, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
+    call layout_build_ba(cla_grow, cba, boxarray_bbox(cba), explicit_mapping = get_proc(get_layout(tagboxes)))
 
-    call destroy(cba)
+    call boxarray_destroy(cba)
 
-    call build(ctagboxes_grow, cla_grow, 1, nghost(tagboxes)/ratio + 1)
+    call lmultifab_build(ctagboxes_grow, cla_grow, 1, nghost(tagboxes)/ratio + 1)
 
     call setval(ctagboxes_grow, .false., all = .true.)
 
@@ -879,8 +879,8 @@ contains
        cp = fp
     end do
 
-    call destroy(ctagboxes_grow)
-    call destroy(cla_grow)
+    call lmultifab_destroy(ctagboxes_grow)
+    call layout_destroy(cla_grow)
 
   end subroutine tagboxes_coarsen
 
