@@ -1265,14 +1265,6 @@ Amr::restart (const std::string& filename)
     Real dRestartTime0 = ParallelDescriptor::second();
 
     DistributionMapping::Initialize();
-    //if(DistributionMapping::strategy() == DistributionMapping::PFC) {
-      //Array<IntVect> refRatio;
-      //Array<BoxArray> allBoxes;
-      //DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
-      //DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
-    //}
-    //ParallelDescriptor::Barrier();
-
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -2283,56 +2275,6 @@ Amr::regrid (int  lbase,
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
 	} else {
 	}
-	// ---- check for swap pairs
-	std::string exFile("SwapPairs.txt");
-	Array<char> fileCharPtr;
-	bool bExitOnError(false);  // in case the file does not exist
-	ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
-	Array<int> swapPairs;
-	if(fileCharPtr.size() > 0) {
-	  std::string fileCharPtrString(fileCharPtr.dataPtr());
-	  std::istringstream sps(fileCharPtrString, std::istringstream::in);
-	  while( ! sps.eof()) {
-	    int spSize;
-	    sps >> spSize;
-	    if(sps.eof()) {
-	      break;
-	    }
-	    for(int i(0); i < spSize; ++i) {
-	      int sp;
-	      sps >> sp;
-	      if( ! sps.eof()) {
-	        swapPairs.push_back(sp);
-	      }
-	    }
-	  }
-	}
-	if(ParallelDescriptor::IOProcessor()) {
-	  std::cout << "SwapPairs:  spSize = " << swapPairs.size() << std::endl;
-	  for(int isp(0); isp < swapPairs.size(); isp += 2) {
-	    std::cout << "SwapPairs:  sph spl = " << swapPairs[isp]
-	              << "  " << swapPairs[isp+1] << std::endl;
-	  }
-	}
-	//std::map<int, int> swapMap;  // ---- [swapPair index, mlmd index]
-	// ---- need to optimize, just use this for testing
-        for(int iP(0); iP < swapPairs.size(); iP += 2) {
-	  int highSwap(swapPairs[iP]);
-	  int lowSwap(swapPairs[iP+1]);
-	  bool highFound(false), lowFound(false);
-          for(int iMap(0); iMap < mLDM.size() && ! (highFound && lowFound); ++iMap) {
-            for(int iM(0); iM < mLDM[iMap].size() - 1 && ! (highFound && lowFound); ++iM) {
-	      if( ! highFound && mLDM[iMap][iM] == highSwap) {
-	        mLDM[iMap][iM] = lowSwap;
-		highFound = true;
-	      }
-	      if( ! lowFound && mLDM[iMap][iM] == lowSwap) {
-	        mLDM[iMap][iM] = highSwap;
-		lowFound = true;
-	      }
-	    }
-	  }
-	}
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
           MultiFab::MoveAllFabs(mLDM[iMap]);
@@ -3127,7 +3069,6 @@ Amr::bldFineLevels (Real strt_time)
 	  }
 	while (!grids_the_same && count < MaxCnt);
       }
-if (ParallelDescriptor::IOProcessor()) { std::cout << "___________out Amr::bldFineLevels" << std::endl; }
 }
 
 void

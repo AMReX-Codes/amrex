@@ -1893,7 +1893,6 @@ template <class FAB>
 void
 FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 {
-  //static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
   if(ParallelDescriptor::IOProcessor()) {
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
@@ -1984,13 +1983,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
       moveThisFab.toRank       = newDistMapArray[iM];
       moveThisFab.seqNum       = ParallelDescriptor::SeqNum();
       fabMoves.push_back(moveThisFab);
-
-      if(myProc == moveThisFab.fromRank) {
-        //std::cout << myProc << ":: iM fromRank toRank locsize locindex indexMap[li] = " << iM << "  "
-	          //<< moveThisFab.fromRank << "  " << moveThisFab.toRank << "  "
-		  //<< local_size() << "  " << localindex(iM) << "  "
-		  //<< indexMap[localindex(iM)] << std::endl;
-      }
     }
   }
 
@@ -2056,9 +2048,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   }
 
   ParallelDescriptor::ReduceIntSum(nFabsSent);
-  //if(ParallelDescriptor::IOProcessor()) {
-    //std::cout << "FabArray<FAB>::MoveFabs:  moved " << nFabsSent << " fabs." << std::endl;
-  //}
 
 
   // ---- wait for all the data to move

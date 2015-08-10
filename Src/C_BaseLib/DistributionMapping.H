@@ -305,7 +305,6 @@ private:
         // This latter acts as a sentinel in some FabArray loops.
         //
         Array<int> m_pmap;
-        //Array<long> boxPoints;  // i == rank.  so we can subtract from total
     };
     //
     // The data -- a reference-counted pointer to a Ref.
@@ -323,7 +322,6 @@ private:
     static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
     static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
     static Array<long> totalBoxPoints;  // i == rank
-    //const Array<long> &BoxPoints() { return boxPoints; }
 
     static int nDistMaps;
     int dmID;
