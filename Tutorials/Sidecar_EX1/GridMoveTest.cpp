@@ -48,9 +48,7 @@ int main(int argc, char *argv[]) {
     pp.get("nGhost", nGhost);
     pp.get("maxSize", maxSize);
 
-    MultiFab *mf = new MultiFab;
-    MultiFab *MF_sidecar = new MultiFab;
-
+    MultiFab *mf;
     Geometry* geom;
 
     double t_start, t_stop;
@@ -74,6 +72,7 @@ int main(int argc, char *argv[]) {
       comp_DM.define(ba, ParallelDescriptor::NProcsComp());
 
       // Make a MultiFab and populate it with a bunch of random numbers.
+      mf = new MultiFab;
       mf->define(ba, nComp, nGhost, comp_DM, Fab_allocate);
       for(int i(0); i < mf->nComp(); ++i) {
         mf->setVal(rand()%100, i, 1);
@@ -99,19 +98,20 @@ int main(int argc, char *argv[]) {
     else // on the sidecars, just allocate the memory but don't do anything else
     {
       geom = new Geometry;
+      mf = new MultiFab;
     }
 
     // whoooosh
     t_start = MPI_Wtime();
-    MultiFab::SendMultiFabToSidecars (mf, MF_sidecar);
+    MultiFab::SendMultiFabToSidecars (mf);
     Geometry::SendGeometryToSidecars (geom);
     t_stop = MPI_Wtime();
 
     if (ParallelDescriptor::InSidecarGroup())
     {
-      const double norm0 = MF_sidecar->norm0();
-      const double norm1 = MF_sidecar->norm1();
-      const double norm2 = MF_sidecar->norm2();
+      const double norm0 = mf->norm0();
+      const double norm1 = mf->norm1();
+      const double norm2 = mf->norm2();
       const Real probsize = geom->ProbSize();
       if (ParallelDescriptor::IOProcessor()) {
         std::cout << "From sidecar nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
@@ -133,7 +133,6 @@ int main(int argc, char *argv[]) {
     }
 
     delete mf;
-    delete MF_sidecar;
     delete geom;
 
     BoxLib::Finalize();
