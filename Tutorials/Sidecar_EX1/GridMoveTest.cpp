@@ -48,22 +48,16 @@ int main(int argc, char *argv[]) {
     pp.get("nGhost", nGhost);
     pp.get("maxSize", maxSize);
 
-    MultiFab *mf = new MultiFab;
-    MultiFab *MF_sidecar = new MultiFab;
-
-    Box *baseBox;
-    RealBox* real_box;
-    int* coord;
+    MultiFab *mf;
     Geometry* geom;
-    int is_per[BL_SPACEDIM];
 
     double t_start, t_stop;
 
     if (ParallelDescriptor::InCompGroup())
     {
       // Make a Box, then a BoxArray with maxSize.
-      baseBox = new Box(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
-      BoxArray ba(*baseBox);
+      Box baseBox(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
+      BoxArray ba(baseBox);
       ba.maxSize(maxSize);
 
       if(ParallelDescriptor::IOProcessor()) {
@@ -78,46 +72,46 @@ int main(int argc, char *argv[]) {
       comp_DM.define(ba, ParallelDescriptor::NProcsComp());
 
       // Make a MultiFab and populate it with a bunch of random numbers.
+      mf = new MultiFab;
       mf->define(ba, nComp, nGhost, comp_DM, Fab_allocate);
       for(int i(0); i < mf->nComp(); ++i) {
         mf->setVal(rand()%100, i, 1);
       }
 
       // This defines the physical size of the box.
-      real_box = new RealBox;
+      RealBox real_box;
       for (int n = 0; n < BL_SPACEDIM; n++) {
-        real_box->setLo(n, 0.0);
-        real_box->setHi(n, 42.0);
+        real_box.setLo(n, 0.0);
+        real_box.setHi(n, 42.0);
       }
 
       // This says we are using Cartesian coordinates
-      coord = new int(0);
+      int coord(0);
 
       // This sets the boundary conditions to be non-periodic.
+      int is_per[BL_SPACEDIM];
       for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
 
       // This defines a Geometry object which is useful for writing the plotfiles
-      geom = new Geometry(*baseBox, real_box, *coord, is_per);
+      geom = new Geometry(baseBox, &real_box, coord, is_per);
     }
     else // on the sidecars, just allocate the memory but don't do anything else
     {
-      baseBox = new Box;
-      real_box = new RealBox;
-      coord = new int;
       geom = new Geometry;
+      mf = new MultiFab;
     }
 
     // whoooosh
     t_start = MPI_Wtime();
-    MultiFab::SendMultiFabToSidecars (mf, MF_sidecar);
-    Geometry::SendGeometryToSidecars (baseBox, real_box, coord, is_per, geom);
+    MultiFab::SendMultiFabToSidecars (mf);
+    Geometry::SendGeometryToSidecars (geom);
     t_stop = MPI_Wtime();
 
     if (ParallelDescriptor::InSidecarGroup())
     {
-      const double norm0 = MF_sidecar->norm0();
-      const double norm1 = MF_sidecar->norm1();
-      const double norm2 = MF_sidecar->norm2();
+      const double norm0 = mf->norm0();
+      const double norm1 = mf->norm1();
+      const double norm2 = mf->norm2();
       const Real probsize = geom->ProbSize();
       if (ParallelDescriptor::IOProcessor()) {
         std::cout << "From sidecar nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
@@ -139,10 +133,6 @@ int main(int argc, char *argv[]) {
     }
 
     delete mf;
-    delete MF_sidecar;
-    delete baseBox;
-    delete real_box;
-    delete coord;
     delete geom;
 
     BoxLib::Finalize();
