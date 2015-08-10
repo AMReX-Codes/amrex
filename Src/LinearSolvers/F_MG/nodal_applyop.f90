@@ -69,7 +69,7 @@ contains
        call multifab_copy_c(coeffs(mgt(n)%nlevels),1,beta(n),1,1,1)
        call stencil_fill_nodal_all_mglevels(mgt(n), coeffs)
 
-       call destroy(coeffs(mgt(n)%nlevels))
+       call multifab_destroy(coeffs(mgt(n)%nlevels))
        deallocate(coeffs)
 
     end do

@@ -49,22 +49,22 @@ contains
        ! we prolongate by using one grow cell, which "should" always be
        ! available due to proper nesting of grids.
        !
-       call copy(ba, get_boxarray(lacfine))
+       call boxarray_build_copy(ba, get_boxarray(lacfine))
 
        call boxarray_grow(ba,1)
 
        call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
 
-       call destroy(ba)
+       call boxarray_destroy(ba)
        !
        ! "crse" should always cover "cfine" (including ghost cells) on
        ! the valid region due to proper nesting.
        !
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 1)
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 1)
        !
        ! Use this to fill cfine including ghost cells.
        !
-       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
+       call multifab_build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
 
        call copy(cfgrow, 1, crse, 1, ncomp(crse))
        !
@@ -76,10 +76,10 @@ contains
           call cpy_d(cp,fp)
        end do
 
-       call destroy(cfgrow)
-       call destroy(latmp)
+       call multifab_destroy(cfgrow)
+       call layout_destroy(latmp)
     else
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0)
        call copy(cfine, 1, crse, 1, ncomp(crse))
     end if
 
@@ -106,7 +106,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
     call destroy(bpt)
 
   end subroutine ml_cc_prolongation
@@ -156,22 +156,22 @@ contains
        ! we prolongate by using one grow cell, which "should" always be
        ! available due to proper nesting of grids.
        !
-       call copy(ba, get_boxarray(lacfine))
+       call boxarray_build_copy(ba, get_boxarray(lacfine))
 
        call boxarray_grow(ba,1)
 
        call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
 
-       call destroy(ba)
+       call boxarray_destroy(ba)
        !
        ! "crse" should always cover "cfine" (including ghost cells) on
        ! the valid region due to proper nesting.
        !
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
        !
        ! Use this to fill cfine including ghost cells.
        !
-       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call multifab_build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
 
        call copy(cfgrow, 1, crse, 1, ncomp(crse))
        !
@@ -183,10 +183,10 @@ contains
           call cpy_d(cp,fp)
        end do
 
-       call destroy(cfgrow)
-       call destroy(latmp)
+       call multifab_destroy(cfgrow)
+       call layout_destroy(latmp)
     else
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
        call copy(cfine, 1, crse, 1, ncomp(crse))
     end if
 
@@ -226,7 +226,7 @@ contains
        call fabio_write(fine, 'debug', trim(filename))
     end if
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
     call destroy(bpt)
 
   end subroutine ml_nodal_prolongation

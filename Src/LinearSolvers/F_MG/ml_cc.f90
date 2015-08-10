@@ -77,19 +77,19 @@ contains
 
     do n = 2,nlevs-1
        la = mla%la(n)
-       call build(uu_hold(n),la,1,1)
-       call setval( uu_hold(n), ZERO,all=.true.)
+       call multifab_build( uu_hold(n),la,1,1)
+       call multifab_setval(uu_hold(n), ZERO,all=.true.)
     end do
 
     do n = nlevs, 1, -1
 
        la = mla%la(n)
-       call build(      uu(n), la, 1, nghost(full_soln(1)))
-       call build(     res(n), la, 1, 0)
-       call build(temp_res(n), la, 1, 0)
-       call setval(      uu(n), ZERO,all=.true.)
-       call setval(     res(n), ZERO,all=.true.)
-       call setval(temp_res(n), ZERO,all=.true.)
+       call multifab_build(      uu(n), la, 1, nghost(full_soln(1)))
+       call multifab_build(     res(n), la, 1, 0)
+       call multifab_build(temp_res(n), la, 1, 0)
+       call multifab_setval(      uu(n), ZERO,all=.true.)
+       call multifab_setval(     res(n), ZERO,all=.true.)
+       call multifab_setval(temp_res(n), ZERO,all=.true.)
 
        if ( n == 1 ) exit
 

@@ -681,7 +681,7 @@ contains
     allocate(mf%fbs(nlocal(mf%la)))
 
     do i = 1, nlocal(mf%la)
-      call build( &
+      call fab_build( &
            mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
            mf%nc, mf%ng, mf%nodal,  &
            alloc = .true., stencil = stencil)
@@ -706,7 +706,7 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(nlocal(mf%la)))
     do i = 1, nlocal(mf%la)
-       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+       call ifab_build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(imultifab_ms, volume(mf, all = .TRUE.))
@@ -729,7 +729,7 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(nlocal(mf%la)))
     do i = 1, nlocal(mf%la)
-       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+       call lfab_build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(lmultifab_ms, volume(mf, all = .TRUE.))
@@ -766,7 +766,7 @@ contains
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
     allocate(mf%fbs(nlocal(mf%la)))
     do i = 1, nlocal(mf%la)
-       call build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+       call zfab_build(mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
             mf%nc, mf%ng, mf%nodal, alloc = .true.)
     end do
     call mem_stats_alloc(zmultifab_ms, volume(mf, all = .TRUE.))
@@ -779,7 +779,7 @@ contains
     real(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call destroy(m1)
+    if ( built_q(m1) ) call multifab_destroy(m1)
     m1%dim = m2%dim
     m1%la  = m2%la
     m1%nc  = m2%nc
@@ -788,7 +788,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
-       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
+       call fab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_d(m1p,m2p)
@@ -802,7 +802,7 @@ contains
     integer, pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("IMULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call destroy(m1)
+    if ( built_q(m1) ) call imultifab_destroy(m1)
     m1%dim = m2%dim
     m1%la  = m2%la
     m1%nc  = m2%nc
@@ -811,7 +811,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
-       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
+       call ifab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_i(m1p,m2p)
@@ -825,7 +825,7 @@ contains
     logical, pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("LMULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call destroy(m1)
+    if ( built_q(m1) ) call lmultifab_destroy(m1)
     m1%dim = m2%dim
     m1%la  = m2%la
     m1%nc  = m2%nc
@@ -834,7 +834,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
-       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
+       call lfab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_l(m1p,m2p)
@@ -848,7 +848,7 @@ contains
     complex(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("ZMULTIFAB_BUILD_COPY: already built")
-    if ( built_q(m1) ) call destroy(m1)
+    if ( built_q(m1) ) call zmultifab_destroy(m1)
     m1%dim = m2%dim
     m1%la  = m2%la
     m1%nc  = m2%nc
@@ -857,7 +857,7 @@ contains
     m1%nodal = m2%nodal
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
-       call build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
+       call zfab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
        m1p => dataptr(m1,i)
        m2p => dataptr(m2,i)
        call cpy_z(m1p,m2p)
@@ -870,7 +870,7 @@ contains
     integer :: i
     call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
     do i = 1, nlocal(mf%la)
-       call destroy(mf%fbs(i))
+       call fab_destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
@@ -883,7 +883,7 @@ contains
     integer :: i
     call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
     do i = 1, nlocal(mf%la)
-       call destroy(mf%fbs(i))
+       call ifab_destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
@@ -896,7 +896,7 @@ contains
     integer :: i
     call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
     do i = 1, nlocal(mf%la)
-       call destroy(mf%fbs(i))
+       call lfab_destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
@@ -909,7 +909,7 @@ contains
     integer :: i
     call mem_stats_dealloc(zmultifab_ms, volume(mf, all = .TRUE.))
     do i = 1, nlocal(mf%la)
-       call destroy(mf%fbs(i))
+       call zfab_destroy(mf%fbs(i))
     end do
     deallocate(mf%fbs)
     deallocate(mf%nodal)
@@ -3736,11 +3736,11 @@ contains
           do i = 1, nboxes(msrc%la)
              call push_back(bl, grow(box_nodalize(get_box(msrc%la,i),msrc%nodal),lngsrc))
           end do
-          call build(batmp, bl, sort = .false.)
+          call boxarray_build_l(batmp, bl, sort = .false.)
           call destroy(bl)
-          call build(lasrctmp, batmp, boxarray_bbox(batmp), explicit_mapping = get_proc(msrc%la))
-          call destroy(batmp)
-          call build(msrctmp, lasrctmp, nc = lnc, ng = 0)
+          call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), explicit_mapping = get_proc(msrc%la))
+          call boxarray_destroy(batmp)
+          call multifab_build(msrctmp, lasrctmp, nc = lnc, ng = 0)
 
           !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
           do i = 1, nfabs(msrc)
@@ -3760,8 +3760,8 @@ contains
        call mf_copy_fancy_double(mdst, dstcomp, pmfsrc, scomp, lnc, filter, bndry_reg_to_other)
 
        if (lngsrc > 0) then
-          call destroy(msrctmp)
-          call destroy(lasrctmp)
+          call multifab_destroy(msrctmp)
+          call layout_destroy(lasrctmp)
        end if
     end if
     call destroy(bpt)
@@ -3968,7 +3968,7 @@ contains
        call bl_error("In mf_build_nodal_dot_mask with mf not nodal!")
     end if
 
-    call build(mask, mf%la, 1, 0, mf%nodal)
+    call multifab_build(mask, mf%la, 1, 0, mf%nodal)
 
     !$OMP PARALLEL DO PRIVATE(i,d,full_box,shrunk_box,inner_box)
     do i = 1, nlocal(mf%la)
@@ -4106,7 +4106,7 @@ contains
           r1 = r1 + r2
        end do
 
-       if ( .not. present(nodal_mask) ) call destroy(tmask)
+       if ( .not. present(nodal_mask) ) call multifab_destroy(tmask)
     else
        call bl_error("MULTIFAB_DOT_CC, fails when not nodal or cell-centered, can be fixed")
     end if

@@ -163,11 +163,11 @@ subroutine mgt_set_level(lev, nb, dm, lo, hi, pd_lo, pd_hi, pm, pmap)
   do i = 1, nb 
     bxs(i) = make_box(lo(i,:), hi(i,:))
   end do
-  call build(mgts%mla%mba%bas(flev), bxs)
-  call build(mgts%mla%la(flev),  &
-       mgts%mla%mba%bas(flev), &
-       mgts%pd(flev), pmask = pmask, &
-       mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
+  call boxarray_build_v(mgts%mla%mba%bas(flev), bxs)
+  call layout_build_ba(mgts%mla%la(flev),  &
+                       mgts%mla%mba%bas(flev), &
+                       mgts%pd(flev), pmask = pmask, &
+                       mapping = LA_EXPLICIT, explicit_mapping = pmap(1:nb))
 
 end subroutine mgt_set_level
 
@@ -201,18 +201,18 @@ subroutine mgt_finalize(dx,bc)
   end do
 
   do i = 1, nlev
-     call build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
-     call build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
-     call build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
+     call multifab_build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
+     call multifab_build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
+     call multifab_build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
   end do
 
   do i = nlev-1, 1, -1
-     call build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
-     call setval(mgts%mla%mask(i), val = .TRUE.)
-     call copy(bac, mgts%mla%mba%bas(i+1))
+     call lmultifab_build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
+     call lmultifab_setval(mgts%mla%mask(i), val = .TRUE.)
+     call boxarray_build_copy(bac, mgts%mla%mba%bas(i+1))
      call boxarray_coarsen(bac, mgts%rr(i,:))
      call setval(mgts%mla%mask(i), .false., bac)
-     call destroy(bac)
+     call boxarray_destroy(bac)
   end do
 
   allocate(nodal(1:dm))
@@ -289,18 +289,18 @@ subroutine mgt_finalize_n(dx,bc,nc_in)
   end do
 
   do i = 1, nlev
-     call build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
-     call build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
-     call build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
+     call multifab_build(mgts%uu(i) , mgts%mla%la(i), nc, ng = 1)
+     call multifab_build(mgts%rh(i) , mgts%mla%la(i), nc, ng = 0)
+     call multifab_build(mgts%res(i), mgts%mla%la(i), nc, ng = 0)
   end do
 
   do i = nlev-1, 1, -1
-     call build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
-     call setval(mgts%mla%mask(i), val = .TRUE.)
-     call copy(bac, mgts%mla%mba%bas(i+1))
+     call lmultifab_build(mgts%mla%mask(i), mgts%mla%la(i), nc = 1, ng = 0)
+     call lmultifab_setval(mgts%mla%mask(i), val = .TRUE.)
+     call boxarray_build_copy(bac, mgts%mla%mba%bas(i+1))
      call boxarray_coarsen(bac, mgts%rr(i,:))
      call setval(mgts%mla%mask(i), .false., bac)
-     call destroy(bac)
+     call boxarray_destroy(bac)
   end do
 
   allocate(nodal(1:dm))
@@ -431,9 +431,9 @@ subroutine mgt_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm)
                                     mgts%stencil_order, mgts%bc)
 
   nlev = mgts%mgt(flev)%nlevels
-  call destroy(mgts%cell_coeffs(nlev))
+  call multifab_destroy(mgts%cell_coeffs(nlev))
   do i = 1,dm
-     call destroy(mgts%edge_coeffs(nlev,i))
+     call multifab_destroy(mgts%edge_coeffs(nlev,i))
   end do
 
   deallocate(mgts%cell_coeffs)
@@ -477,9 +477,9 @@ subroutine mgt_mc_finalize_stencil_lev(lev, xa, xb, pxa, pxb, dm, nc_opt)
                                     mgts%stencil_order, mgts%bc, nc_opt)
 
   nlev = mgts%mgt(flev)%nlevels
-  call destroy(mgts%cell_coeffs(nlev))
+  call multifab_destroy(mgts%cell_coeffs(nlev))
   do i = 1,dm
-     call destroy(mgts%edge_coeffs(nlev,i))
+     call multifab_destroy(mgts%edge_coeffs(nlev,i))
   end do
 
   deallocate(mgts%cell_coeffs)
@@ -1345,9 +1345,9 @@ subroutine mgt_dealloc()
   end do
 
   do i = mgts%nlevel, 1, -1
-     call destroy(mgts%rh(i))
-     call destroy(mgts%res(i))
-     call destroy(mgts%uu(i))
+     call multifab_destroy(mgts%rh(i))
+     call multifab_destroy(mgts%res(i))
+     call multifab_destroy(mgts%uu(i))
   end do
 
   deallocate(mgts%rr)
@@ -1458,7 +1458,7 @@ subroutine mgt_compute_flux(lev)
   end if
 
   do dir = 1, mgts%dim
-     call build(mgts%gp(flev,dir), mgts%mla%la(flev), nc = 1, ng = 1)
+     call multifab_build(mgts%gp(flev,dir), mgts%mla%la(flev), nc = 1, ng = 1)
   end do
 
   mglev = mgts%mgt(flev)%nlevels
@@ -1479,7 +1479,7 @@ subroutine mgt_delete_flux(lev)
   flev = lev+1
 
   do dir = 1, mgts%dim
-     call destroy(mgts%gp(flev,dir))
+     call multifab_destroy(mgts%gp(flev,dir))
   end do
 
 end subroutine mgt_delete_flux
