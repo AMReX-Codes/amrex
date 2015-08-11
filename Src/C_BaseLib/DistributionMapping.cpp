@@ -438,6 +438,18 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     }
 }
 
+void
+DistributionMapping::define (const Array<int>& pmap)
+{
+    Initialize();
+
+    if (m_ref->m_pmap.size() != pmap.size())
+        m_ref->m_pmap.resize(pmap.size());
+
+    for (unsigned int i=0; i<pmap.size(); ++i)
+        m_ref->m_pmap[i] = pmap[i];
+}
+
 DistributionMapping::~DistributionMapping () { }
 
 void
