@@ -208,6 +208,10 @@ class DistributionMapping
     static int NDistMaps() { return nDistMaps; }
     int DistMapID() const { return dmID; }
 
+#ifdef BL_USE_MPI
+    static void SendDistributionMappingToSidecars(DistributionMapping *dm);
+#endif
+
 private:
     //
     // Ways to create the processor map.
