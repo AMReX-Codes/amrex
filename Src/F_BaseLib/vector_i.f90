@@ -131,6 +131,7 @@ contains
     if ( .not. associated(vi%d)  ) then
        call bl_allocate(vi%d, 1, vi%size)
        vi%d = v
+       vi%end = vi%size
     end if
   end subroutine vector_build_i
 
@@ -203,12 +204,12 @@ contains
     v = 0
     if ( present(value) ) v = value
     if ( size <= vector_capacity_i(vi) ) then
-       vi%d(1:vi%size) = vi%d(1:vi%end)
-       vi%d(vi%size+1:size) = v
+       vi%d(1:vi%end) = vi%d(1:vi%end)
+       vi%d(vi%end+1:size) = v
     else
        call bl_allocate(np, 1, size)
-       np(1:vi%size) = vi%d(1:vi%end)
-       np(vi%size+1:size) = v
+       np(1:vi%end) = vi%d(1:vi%end)
+       np(vi%end+1:size) = v
        if ( associated(vi%d) ) call bl_deallocate(vi%d)
        vi%d => np
     end if
