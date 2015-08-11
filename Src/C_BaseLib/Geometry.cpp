@@ -1111,13 +1111,13 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
 
     if (ParallelDescriptor::IOProcessor()) {
       // Step 1: send the base Box
-      ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
 
       // Step 2: send the RealBox
-      ParallelDescriptor::Bcast((Real *) realBox_lo, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((Real *) realBox_hi, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_lo), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_hi), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
 
       // Step 3: send the coordinates
       ParallelDescriptor::Bcast(&coord, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
@@ -1127,12 +1127,12 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
 
     } else {
       // All the corresponding fake broadcasts from the other procs in the compute group
-      ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
 
-      ParallelDescriptor::Bcast((Real *)realBox_lo, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast((Real *)realBox_hi, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_lo), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_hi), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
 
       ParallelDescriptor::Bcast(&coord, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
 
