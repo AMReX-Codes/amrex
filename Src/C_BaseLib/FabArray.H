@@ -1996,7 +1996,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     for(int iim(0); iim < indexMap.size(); ++iim) {
       tIFiter = tempIndexFABs.find(indexMap[iim]);
       if(tIFiter == tempIndexFABs.end()) {
-	tempIndexFABs.insert(std::make_pair<int, FAB *>(indexMap[iim], m_fabs_v[iim]));
+	tempIndexFABs.insert(std::pair<int, FAB *>(indexMap[iim], m_fabs_v[iim]));
       } else {
         BoxLib::Abort("**** Error:  index not in indexMap.");
       }
