@@ -663,12 +663,13 @@ contains
     call multifab_build(mf, la, nc, ng, nodal, stencil)
   end subroutine multifab_build_nodal
 
-  subroutine multifab_build(mf, la, nc, ng, nodal, stencil)
+  subroutine multifab_build(mf, la, nc, ng, nodal, stencil, fab_alloc)
     type(multifab), intent(out)   :: mf
     type(layout),   intent(in )   :: la
     integer, intent(in), optional :: nc, ng
-    logical, intent(in), optional :: nodal(:), stencil
+    logical, intent(in), optional :: nodal(:), stencil, fab_alloc
     integer :: i, lnc, lng
+    logical :: lfab_alloc
     if ( built_q(mf) ) call bl_error("MULTIFAB_BUILD: already built")
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
@@ -678,15 +679,20 @@ contains
     mf%ng  = lng
     allocate(mf%nodal(mf%dim))
     mf%nodal = .False.; if ( present(nodal) ) mf%nodal = nodal(1:mf%dim)
-    allocate(mf%fbs(nlocal(mf%la)))
 
-    do i = 1, nlocal(mf%la)
-      call fab_build( &
-           mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
-           mf%nc, mf%ng, mf%nodal,  &
-           alloc = .true., stencil = stencil)
-    end do
-    call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
+    lfab_alloc = .true.;  if ( present(fab_alloc) ) lfab_alloc = fab_alloc
+
+    if (lfab_alloc) then
+       allocate(mf%fbs(nlocal(mf%la)))
+
+       do i = 1, nlocal(mf%la)
+          call fab_build( &
+               mf%fbs(i), get_box(mf%la, global_index(mf%la,i)), &
+               mf%nc, mf%ng, mf%nodal,  &
+               alloc = .true., stencil = stencil)
+       end do
+       call mem_stats_alloc(multifab_ms, volume(mf, all = .TRUE.))
+    end if
   end subroutine multifab_build
 
   subroutine imultifab_build(mf, la, nc, ng, nodal)
@@ -868,11 +874,13 @@ contains
   subroutine multifab_destroy(mf)
     type(multifab), intent(inout) :: mf
     integer :: i
-    call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, nlocal(mf%la)
-       call fab_destroy(mf%fbs(i))
-    end do
-    deallocate(mf%fbs)
+    if (associated(mf%fbs)) then
+       call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
+       do i = 1, nlocal(mf%la)
+          call fab_destroy(mf%fbs(i))
+       end do
+       deallocate(mf%fbs)
+    end if
     deallocate(mf%nodal)
     mf%dim = 0
     mf%nc  = 0
@@ -3691,7 +3699,7 @@ contains
     type(layout)                  :: lasrctmp
     type(boxarray)                :: batmp
     type(list_box)                :: bl
-    integer                       :: i, lnc, lng, lngsrc, scomp
+    integer                       :: i, lnc, lng, lngsrc
     type(mfiter)                  :: mfi
     type(box)                     :: bx
     interface
@@ -3740,26 +3748,18 @@ contains
           call destroy(bl)
           call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), explicit_mapping = get_proc(msrc%la))
           call boxarray_destroy(batmp)
-          call multifab_build(msrctmp, lasrctmp, nc = lnc, ng = 0)
-
-          !$OMP PARALLEL DO PRIVATE(i,pdst,psrc)
-          do i = 1, nfabs(msrc)
-             psrc => dataptr(msrc   , i, grow(get_ibox(msrc,i), lngsrc),  srccomp, lnc)
-             pdst => dataptr(msrctmp, i,                                  1      , lnc)
-             call cpy_d(pdst,psrc)
-          end do
-          !$OMP END PARALLEL DO
+          call multifab_build(msrctmp, lasrctmp, nc = msrc%nc, ng = msrc%ng-lngsrc, fab_alloc=.false.)
+          msrctmp%fbs => msrc%fbs
 
           pmfsrc => msrctmp
-          scomp = 1
        else
           pmfsrc => msrc
-          scomp = srccomp
        end if
 
-       call mf_copy_fancy_double(mdst, dstcomp, pmfsrc, scomp, lnc, filter, bndry_reg_to_other)
+       call mf_copy_fancy_double(mdst, dstcomp, pmfsrc, srccomp, lnc, filter, bndry_reg_to_other)
 
        if (lngsrc > 0) then
+          nullify(msrctmp%fbs)
           call multifab_destroy(msrctmp)
           call layout_destroy(lasrctmp)
        end if
