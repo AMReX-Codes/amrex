@@ -951,6 +951,70 @@ BoxArray::removeOverlap ()
     BL_ASSERT(isDisjoint());
 }
 
+#ifdef BL_USE_MPI
+void
+BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
+{
+    if (ParallelDescriptor::InCompGroup())
+    {
+        int ba_size = ba->size();
+        if (ParallelDescriptor::IOProcessor())
+        {
+            ParallelDescriptor::Bcast(&ba_size, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+        }
+        else
+        {
+             ParallelDescriptor::Bcast(&ba_size, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+        }
+
+        for (Array<Box>::const_iterator bl_it = ba->begin(), bl_it_end = ba->end(); bl_it != bl_it_end; ++bl_it)
+        {
+            const int *smallEnd = bl_it->smallEnd().getVect();
+            const int *bigEnd = bl_it->bigEnd().getVect();
+            const int *index_type = bl_it->type().getVect();
+
+            if (ParallelDescriptor::IOProcessor()) {
+                // getVect() requires a constant pointer, but MPI buffers require
+                // non-constant pointers. Sorry this is awful.
+                ParallelDescriptor::Bcast((int *)index_type, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+                ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+                ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+            } else {
+                ParallelDescriptor::Bcast((int *)index_type, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+                ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+                ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+            }
+        }
+    }
+    else
+    {
+        BoxList bl;
+        int ba_size;
+        ParallelDescriptor::Bcast(&ba_size, 1, 0, ParallelDescriptor::CommunicatorInter());
+        if (ParallelDescriptor::IOProcessor()) std::cout << "receiving " << ba_size << " boxes ... ";
+
+        int box_index_type[BL_SPACEDIM];
+        int smallEnd[BL_SPACEDIM];
+        int bigEnd[BL_SPACEDIM];
+        for (unsigned int i=0; i<ba_size; ++i)
+        {
+            ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+            const IntVect box_index_type_IV(box_index_type);
+            const IntVect smallEnd_IV(smallEnd);
+            const IntVect bigEnd_IV(bigEnd);
+
+            Box tmp_box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
+            bl.push_back(tmp_box);
+        }
+        ba->define(bl);
+        if (ParallelDescriptor::IOProcessor()) std::cout << "done!" << std::endl;
+    }
+}
+#endif
+
 
 void
 BoxLib::readBoxArray (BoxArray&     ba,
