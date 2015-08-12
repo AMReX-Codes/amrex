@@ -1730,7 +1730,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
           Real FAB_data[numPts*nComp];
           Real *data_ptr = (*mf)[mfi].dataPtr();
           ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-          memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
+          std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
         }
       }
     }
