@@ -2524,20 +2524,14 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 void
 DistributionMapping::SendDistributionMappingToSidecars(DistributionMapping *dm)
 {
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
     if (ParallelDescriptor::InCompGroup())
     {
         int ProcessorMapSize(dm->size());
         Array<int> ProcessorMap(dm->ProcessorMap());
-        if (ParallelDescriptor::IOProcessor())
-        {
-            ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-            ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-        }
-        else
-        {
-            ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-            ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-        }
+        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
     }
     else
     {
