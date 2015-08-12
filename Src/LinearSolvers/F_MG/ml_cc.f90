@@ -218,12 +218,12 @@ contains
     !  Define norm to be used for convergence testing that is the maximum
     !    of bnorm (norm of rhs) and tres0 (norm of resid0)
     ! ************************************************************************
-
-    max_norm = max(bnorm,tres0)
     if (tres0 .gt. bnorm) then
-      using_bnorm = .false.
+       max_norm = tres0
+       using_bnorm = .false.
     else
-      using_bnorm = .true.
+       max_norm = bnorm
+       using_bnorm = .true.
     end if
 
     fine_converged = .false.
@@ -699,9 +699,9 @@ contains
       r = ( ni_res <= rel_eps*(max_norm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if ( ni_res <= rel_eps*max_norm ) then
-            print *,'Converged res < rel_eps*max_norm '
+            print *,'Converged res < rel_eps*max_norm ', ni_res, rel_eps
          else if ( ni_res <= abs_eps ) then
-            print *,'Converged res < abs_eps '
+            print *,'Converged res < abs_eps ', ni_res, abs_eps
          end if
       end if
     end function ml_converged
