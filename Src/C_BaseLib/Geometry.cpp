@@ -1073,6 +1073,7 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::SendGeometryToSidecars (Geometry *geom)
 {
+  const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 
   int coord;
   int is_periodic[BL_SPACEDIM];
@@ -1109,35 +1110,20 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
             break;
     }
 
-    if (ParallelDescriptor::IOProcessor()) {
       // Step 1: send the base Box
-      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
       // Step 2: send the RealBox
-      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_lo), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_hi), BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_lo), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_hi), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
       // Step 3: send the coordinates
-      ParallelDescriptor::Bcast(&coord, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(&coord, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
       // Step 4: send the periodicity flags
-      ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-
-    } else {
-      // All the corresponding fake broadcasts from the other procs in the compute group
-      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-
-      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_lo), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(const_cast<Real*>(realBox_hi), BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-
-      ParallelDescriptor::Bcast(&coord, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-
-      ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-    }
+      ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
   }
   else
   {
