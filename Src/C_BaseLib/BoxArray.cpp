@@ -955,17 +955,12 @@ BoxArray::removeOverlap ()
 void
 BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
 {
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
     if (ParallelDescriptor::InCompGroup())
     {
         int ba_size = ba->size();
-        if (ParallelDescriptor::IOProcessor())
-        {
-            ParallelDescriptor::Bcast(&ba_size, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-        }
-        else
-        {
-             ParallelDescriptor::Bcast(&ba_size, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-        }
+        ParallelDescriptor::Bcast(&ba_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
         for (Array<Box>::const_iterator bl_it = ba->begin(), bl_it_end = ba->end(); bl_it != bl_it_end; ++bl_it)
         {
@@ -973,17 +968,11 @@ BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
             const int *bigEnd = bl_it->bigEnd().getVect();
             const int *index_type = bl_it->type().getVect();
 
-            if (ParallelDescriptor::IOProcessor()) {
-                // getVect() requires a constant pointer, but MPI buffers require
-                // non-constant pointers. Sorry this is awful.
-                ParallelDescriptor::Bcast(const_cast<int*>(index_type)      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-                ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-                ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)          , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
-            } else {
-                ParallelDescriptor::Bcast(const_cast<int*>(index_type)    , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-                ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-                ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
-            }
+            // getVect() requires a constant pointer, but MPI buffers require
+            // non-constant pointers. Sorry this is awful.
+            ParallelDescriptor::Bcast(const_cast<int*>(index_type)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)          , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
         }
     }
     else
