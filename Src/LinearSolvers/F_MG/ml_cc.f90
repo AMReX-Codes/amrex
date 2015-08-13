@@ -98,10 +98,8 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, &
-            width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, &
-            width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, width = 2)
+       call  flux_reg_build   (brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc)
 
     end do
 
@@ -132,7 +130,8 @@ contains
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-            mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+            mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+            brs_bcs(n)%uncovered)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
@@ -419,7 +418,8 @@ contains
              call bndry_reg_copy(brs_bcs(n), uu(n-1))
              ng_fill = nghost(uu(n))
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(1,0), pd, &
-                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+                  brs_bcs(n)%uncovered)
              call multifab_fill_boundary(uu(n))
 
              ! Compute Res = Res - Lap(uu)
@@ -481,7 +481,8 @@ contains
              call multifab_fill_boundary(full_soln(n-1))
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+                  brs_bcs(n)%uncovered)
           end do
 
           call multifab_fill_boundary(full_soln(nlevs))
@@ -641,7 +642,8 @@ contains
           call multifab_fill_boundary(full_soln(n-1))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-               mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+               mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+               brs_bcs(n)%uncovered)
        end do
 
        call multifab_fill_boundary(full_soln(nlevs))
