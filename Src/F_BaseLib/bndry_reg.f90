@@ -100,7 +100,7 @@ contains
 
     do i = 1, dm
        do f = 0, 1
-          !$omp parallel do private(j,rbox,lo,hi,id)
+          !$omp parallel do private(j,rbox,lo,hi)
           do j = 1, nb
              rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
              lo   = lwb(rbox)
