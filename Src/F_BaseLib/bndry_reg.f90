@@ -14,9 +14,10 @@ module bndry_reg_module
      integer :: onbegin(3), onend(3)
      integer :: ref_ratio(3)
      type(box) :: crse_domain
-     logical :: pmask(3)
-     logical :: other = .false.
-     logical :: mask  = .false.
+     logical :: pmask(3) = .false.
+     logical :: other    = .false.
+     logical :: mask     = .false.
+     logical :: nodal(3) = .false.
      type(multifab), pointer ::  bmf(:,:) => Null()
      type(multifab), pointer :: obmf(:,:) => Null()
      type(lmultifab) :: uncovered
@@ -86,12 +87,13 @@ contains
     dm       = get_dim(la)
     nb       = nboxes(la)
 
-    br%dim   = dm
-    br%nc    = lnc
-    br%other = .false.
-    br%mask  = .false.
+    br%dim         = dm
+    br%nc          = lnc
+    br%other       = .false.
+    br%mask        = .false.
+    br%nodal(1:dm) = lnodal
 
-    lpdc     = box_nodalize(pdc, lnodal)
+    lpdc = box_nodalize(pdc, lnodal)
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
@@ -140,15 +142,18 @@ contains
     integer :: lnc, lwidth
     logical :: lother, mask
 
-    integer :: i, j, kk, id, dm, nb, f, ilocal, nl, myproc, iproc, iface, nlbtot, onlbtot, pshift
+    integer :: i, j, kk, id, dm, nb, f, nl, myproc, iproc, iface, nlbtot, onlbtot, pshift
     integer :: lo(size(rr)), hi(size(rr)), nlb(3), onlb(3)
-    type(box) :: rbox, bx, obx
+    type(box) :: rbox, bx, obx, bxtmp
     type(box), allocatable :: bxsc(:)
     type(box_intersector), pointer :: bi(:)
     type(boxarray) :: baa
     type(layout) :: laftmp
     type(vector_i) :: indx, face, oindx, oface, procf, procc
     type(list_box) :: bxl, obxl
+    integer :: nbxs, revshft(size(rr))
+    integer, allocatable :: shft(:,:)
+    type(box), allocatable :: bxs(:)
 
     type(bl_prof_timer), save :: bpt
 
@@ -174,6 +179,7 @@ contains
     br%pmask(1:dm)     = get_pmask(lac)
     br%other = lother
     br%mask  = mask
+    br%nodal = .false.
 
     nlb = 0
     call reserve(indx, 2*dm*nb)
@@ -203,22 +209,21 @@ contains
                       hi(id) = lo(id)
                    end if
                 else
-                   lo(id) = max(lo(id)-lwidth, pdc%lo(id))
-                   hi(id) = min(hi(id)+lwidth, pdc%hi(id))
+                   lo(id) = lo(id)-lwidth
+                   hi(id) = hi(id)+lwidth
                 end if
              end do
 
              call build(bx, lo, hi)
 
              iproc = get_proc(la,j)
-             ilocal = local_index(la,j)
              iface = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
 
              call push_back(procf, iproc)
 
              if (myproc .eq. iproc) then
                 nlb(i) = nlb(i) + 1
-                call push_back(indx,ilocal)
+                call push_back(indx, local_index(la,j))
                 call push_back(face,iface)
              end if
              
@@ -324,6 +329,7 @@ contains
 
     if (mask) then
        call lmultifab_build(br%uncovered, br%laf(1,0), nc=1, ng=0)
+       call lmultifab_setval(br%uncovered, .true.)
 
        ! Build a coarsen version of the fine boxarray
        allocate(bxsc(nb))
@@ -335,14 +341,47 @@ contains
        call layout_build_ba(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
        call boxarray_destroy(baa)
 
-       call lmultifab_setval(br%uncovered, .true.)
+       if (any(br%pmask(1:dm))) then
+          nbxs = 3**dm
+          allocate(shft(nbxs,dm))
+          allocate(bxs(nbxs))
+       end if
 
        do i = 1, nfabs(br%uncovered)
-          bi => layout_get_box_intersector(laftmp, get_box(br%uncovered,i))
+
+          bx = get_box(br%uncovered,i)
+          bi => layout_get_box_intersector(laftmp, bx)
           do kk=1, size(bi)
-             call lfab_setval_bx(br%uncovered%fbs(i), .false., bi(kk)%bx)  ! covered by fine
+             ! Cells under fine are marked with false.
+             call lfab_setval_bx(br%uncovered%fbs(i), .false., bi(kk)%bx)
           end do
           deallocate(bi)
+
+          ! Cells outside physical domain are marked with false.
+          bxl = boxlist_box_diff(bx,pdc)
+          do while (.not. empty(bxl))
+             bxtmp = front(bxl)
+             call pop_front(bxl)
+             call lfab_setval_bx(br%uncovered%fbs(i), .false., bxtmp)
+          end do
+          call destroy(bxl)
+
+          if (any(br%pmask(1:dm))) then
+             call box_periodic_shift(pdc, bx, br%nodal(1:dm), br%pmask(1:dm), 0, shft, nbxs, bxs)
+             do j = 1, nbxs
+                revshft = -shft(j,:)
+                bxtmp = shift(bxs(j), revshft) ! this is the original unshifted sub-box
+                ! these cells are marked true because they are in the 'periodic' domain
+                call lfab_setval_bx(br%uncovered%fbs(i), .true., bxtmp)
+                !unless they are under fine
+                bi => layout_get_box_intersector(laftmp, bxs(j))
+                do kk = 1, size(bi)
+                   call lfab_setval_bx(br%uncovered%fbs(i), .false., shift(bi(kk)%bx,revshft))
+                end do
+                deallocate(bi)
+             end do
+          end if
+
        end do
 
        call layout_destroy(laftmp)
@@ -374,12 +413,13 @@ contains
     lnc    = 1;       if ( present(nc)    ) lnc    = nc
     lnodal = .false.; if ( present(nodal) ) lnodal = nodal
 
-    dm       = get_dim(la)
-    nb       = nboxes(la)
-    br%dim   = dm
-    br%nc    = lnc
-    br%other = .false.
-    br%mask  = .false.
+    dm             = get_dim(la)
+    nb             = nboxes(la)
+    br%dim         = dm
+    br%nc          = lnc
+    br%other       = .false.
+    br%mask        = .false.
+    br%nodal(1:dm) = lnodal
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
