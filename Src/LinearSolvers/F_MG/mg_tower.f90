@@ -15,6 +15,7 @@ module mg_tower_module
   integer, parameter :: MG_FCycle = 1
   integer, parameter :: MG_WCycle = 2
   integer, parameter :: MG_VCycle = 3
+  integer, parameter :: MG_FVCycle = 4
 
   type mg_tower
 
