@@ -69,8 +69,7 @@ contains
          la_crse = get_layout(unew(n-1))
          pdc = get_pd(la_crse)
 
-         call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
-                                 pdc, nodal = nodal, other = .false.)
+         call bndry_reg_rr_build_nd(brs_flx,la_fine, ref_ratio(n-1,:), pdc, nodal)
          call crse_fine_divu(n,nlevs,rh(n-1),unew,brs_flx,ref_ratio(n-1,:),mgt, &
               lo_inflow, hi_inflow)
          call bndry_reg_destroy(brs_flx)
@@ -1630,8 +1629,7 @@ contains
        la_crse = get_layout(rhcc(n-1))
        pdc = get_pd(la_crse)
        
-       call bndry_reg_rr_build(brs_flx,la_fine,la_crse, ref_ratio(n-1,:), &
-            pdc, nodal = nodal, other = .false.)
+       call bndry_reg_rr_build_nd(brs_flx,la_fine,ref_ratio(n-1,:), pdc, nodal=nodal)
        call crse_fine_divucc(n,rh(n-1),rhcc,brs_flx,ref_ratio(n-1,:),mgt)
        call bndry_reg_destroy(brs_flx)
     end do

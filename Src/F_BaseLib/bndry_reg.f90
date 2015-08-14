@@ -7,8 +7,6 @@ module bndry_reg_module
 
   implicit none
 
-  logical, private :: bndry_reg_thin = .false.
-
   type :: bndry_reg
      integer :: dim   = 0
      integer :: nc    = 1
@@ -16,10 +14,13 @@ module bndry_reg_module
      integer :: onbegin(3), onend(3)
      integer :: ref_ratio(3)
      type(box) :: crse_domain
-     logical :: pmask(3)
-     logical :: other = .false.
+     logical :: pmask(3) = .false.
+     logical :: other    = .false.
+     logical :: mask     = .false.
+     logical :: nodal(3) = .false.
      type(multifab), pointer ::  bmf(:,:) => Null()
      type(multifab), pointer :: obmf(:,:) => Null()
+     type(lmultifab) :: uncovered
      type(layout),   pointer ::  laf(:,:) => Null()
      type(layout),   pointer :: olaf(:,:) => Null()
      integer, pointer ::  indxmap(:) => Null()
@@ -32,23 +33,13 @@ module bndry_reg_module
      module procedure bndry_reg_destroy
   end interface
 
-  private :: rr_build_nd, rr_build_cc
-
 contains
-
-  subroutine bndry_reg_set_thin(v)
-    logical, intent(in) :: v
-    bndry_reg_thin = v
-  end subroutine bndry_reg_set_thin
-  pure function bndry_reg_get_thin() result(r)
-    logical :: r
-    r = bndry_reg_thin
-  end function bndry_reg_get_thin
 
   subroutine bndry_reg_destroy(br)
     type(bndry_reg), intent(inout) :: br
     integer :: i, f, n(2)
     if ( br%dim /= 0 ) then
+       if (built_q(br%uncovered)) call destroy(br%uncovered)
        n = shape(br%bmf)
        do f = 0, n(2)-1
           do i = 1, n(1)
@@ -70,61 +61,39 @@ contains
     br%dim = 0
   end subroutine bndry_reg_destroy
 
-  subroutine bndry_reg_rr_build(br, la, lac, rr, pdc, nc, width, nodal, other)
-    type(layout),    intent(inout)           :: la, lac
-    type(bndry_reg), intent(out  )           :: br
-    integer,         intent(in   )           :: rr(:)
-    type(box),       intent(in   )           :: pdc
-    integer,         intent(in   ), optional :: nc
-    integer,         intent(in   ), optional :: width
-    logical,         intent(in   ), optional :: nodal(:)
-    logical,         intent(in   ), optional :: other
 
-    integer :: lnc, lw
-    logical :: lnodal(la%lap%dim), lother
-    
-    type(bl_prof_timer), save :: bpt
-
-    call build(bpt, "bndry_reg_rr_build")
-
-    lnc    = 1 ;       if ( present(nc)    ) lnc    = nc
-    lw     = 0 ;       if ( present(width) ) lw     = width
-    lnodal = .false. ; if ( present(nodal) ) lnodal = nodal
-    lother = .true.  ; if ( present(other) ) lother = other
-
-    if (any(lnodal)) then
-       call bl_assert(.not.lother, "bndry_reg_rr_build(): nodal and other cannot be both true.")
-       call rr_build_nd(br, la, rr, pdc, lnc, lw, lnodal)
-    else
-       call rr_build_cc(br, la, lac, rr, pdc, lnc, lw, lother)
-    end if
-
-    call destroy(bpt)
-  end subroutine bndry_reg_rr_build
-
-  subroutine rr_build_nd(br, la, rr, pdc, nc, width, nodal)
+  subroutine bndry_reg_rr_build_nd(br, la, rr, pdc, nodal, nc)
     type(layout),    intent(inout) :: la
     type(bndry_reg), intent(out  ) :: br
     integer,         intent(in   ) :: rr(:)
     type(box),       intent(in   ) :: pdc
-    integer,         intent(in   ) :: nc
-    integer,         intent(in   ) :: width
-    logical,         intent(in   ) :: nodal(:)
+    integer, intent(in), optional  :: nc
+    logical, intent(in), optional  :: nodal(:)
 
-    integer                        :: i, j, id, f, dm, nb
+    integer                        :: i, j, f, dm, nb, lnc
     integer                        :: lo(la%lap%dim), hi(la%lap%dim)
+    logical                        :: lnodal(la%lap%dim)
     type(box), allocatable         :: bxs(:)
     type(box)                      :: rbox, lpdc
     type(boxarray)                 :: baa
 
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "bndry_reg_rr_build_nd")
+
+    lnc    = 1     ;  if ( present(   nc) ) lnc    =    nc
+    lnodal = .true.;  if ( present(nodal) ) lnodal = nodal
+    
     dm       = get_dim(la)
     nb       = nboxes(la)
 
-    br%dim   = dm
-    br%nc    = nc
-    br%other = .false.
+    br%dim         = dm
+    br%nc          = lnc
+    br%other       = .false.
+    br%mask        = .false.
+    br%nodal(1:dm) = lnodal
 
-    lpdc     = box_nodalize(pdc, nodal)
+    lpdc = box_nodalize(pdc, lnodal)
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
@@ -133,59 +102,70 @@ contains
 
     do i = 1, dm
        do f = 0, 1
-          !$omp parallel do private(j,rbox,lo,hi,id)
+          !$omp parallel do private(j,rbox,lo,hi)
           do j = 1, nb
-             rbox = coarsen(box_nodalize(get_box(la,j),nodal), rr)
+             rbox = coarsen(box_nodalize(get_box(la,j),lnodal), rr)
              lo   = lwb(rbox)
              hi   = upb(rbox)
              if ( f == 0 ) then
-                if ( .not. nodal(i) ) lo(i) = lo(i) - 1
+                if ( .not. lnodal(i) ) lo(i) = lo(i) - 1
                 hi(i) = lo(i)
              else
-                if ( .not. nodal(i) ) hi(i) = hi(i) + 1
+                if ( .not. lnodal(i) ) hi(i) = hi(i) + 1
                 lo(i) = hi(i)
              end if
-
-             do id = 1, dm
-                if ( id /= i ) then
-                   lo(id) = max(lo(id)-width, lpdc%lo(id))
-                   hi(id) = min(hi(id)+width, lpdc%hi(id))
-                end if
-             end do
-
              call build(bxs(j), lo, hi)
           end do
           !$omp end parallel do
 
           call boxarray_build_v(baa, bxs, sort = .false.)
           call layout_build_ba(br%laf(i,f), baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-          call multifab_build(br%bmf(i,f), br%laf(i,f), nc = nc, ng = 0)
+          call multifab_build(br%bmf(i,f), br%laf(i,f), nc = br%nc, ng = 0)
           call boxarray_destroy(baa)
        end do
     end do
-  end subroutine rr_build_nd
+
+    call destroy(bpt)
+  end subroutine bndry_reg_rr_build_nd
 
 
-  subroutine rr_build_cc(br, la, lac, rr, pdc, nc, width, other)
+  subroutine bndry_reg_rr_build(br, la, lac, rr, pdc, nc, width, other)
     use vector_i_module
-    type(layout),    intent(inout) :: la, lac
-    type(bndry_reg), intent(out  ) :: br
-    integer,         intent(in   ) :: rr(:)
-    type(box),       intent(in   ) :: pdc
-    integer,         intent(in   ) :: nc
-    integer,         intent(in   ) :: width
-    logical,         intent(in   ) :: other
+    type(layout),    intent(inout)           :: la, lac
+    type(bndry_reg), intent(out  )           :: br
+    integer,         intent(in   )           :: rr(:)
+    type(box),       intent(in   )           :: pdc
+    integer,         intent(in   ), optional :: nc
+    integer,         intent(in   ), optional :: width
+    logical,         intent(in   ), optional :: other
 
-    integer                        :: i, j, kk, id, dm, nb, cnto, cnt, f, ilocal
-    integer                        :: nl, ncell, myproc, nlthin, nlthino
-    integer                        :: lo(size(rr)), hi(size(rr)), nfb(3), onfb(3)
-    integer, allocatable           :: prcc(:), prf(:), pshift(:,:)
-    type(box)                      :: rbox, bx
-    type(box), allocatable         :: bxs(:), bxso(:), bxsc(:)
+    integer :: lnc, lwidth
+    logical :: lother, mask
+
+    integer :: i, j, kk, id, dm, nb, f, nl, myproc, iproc, iface, nlbtot, onlbtot, pshift
+    integer :: lo(size(rr)), hi(size(rr)), nlb(3), onlb(3)
+    type(box) :: rbox, bx, obx, bxtmp
+    type(box), allocatable :: bxsc(:)
     type(box_intersector), pointer :: bi(:)
-    type(boxarray)                 :: baa
-    type(layout)                   :: laftmp
-    type(vector_i) :: oproc, oface
+    type(boxarray) :: baa
+    type(layout) :: laftmp
+    type(vector_i) :: indx, face, oindx, oface, procf, procc
+    type(list_box) :: bxl, obxl
+    integer :: nbxs, revshft(size(rr))
+    integer, allocatable :: shft(:,:)
+    type(box), allocatable :: bxs(:)
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "bndry_reg_rr_build")
+
+    lnc     = 1 ;       if ( present(nc)    ) lnc    = nc
+    lwidth  = 0 ;       if ( present(width) ) lwidth = width
+    lother  = .false.;  if ( present(other) ) lother = other
+
+    mask = .not. lother
+
+    if (lother .and. lwidth>0) call bl_error("bndry_reg_rr_build: lother .and. lwidth>0")
 
     myproc = parallel_myproc()
     dm     = get_dim(la)
@@ -193,49 +173,24 @@ contains
     nl     = nlocal(la)
 
     br%dim = dm
-    br%nc  = nc
+    br%nc  = lnc
     br%ref_ratio(1:dm) = rr 
     br%crse_domain     = pdc
     br%pmask(1:dm)     = get_pmask(lac)
-    br%other = other
+    br%other = lother
+    br%mask  = mask
+    br%nodal = .false.
 
-    if (bndry_reg_thin) then
-       ! Build a coarsen version of the fine boxarray
-       allocate(bxsc(nb))
-       do i = 1, nb
-          bxsc(i) = coarsen(get_box(la,i), rr)
-       end do
-       call boxarray_build_v(baa, bxsc, sort = .false.)
-       deallocate(bxsc)
-       call layout_build_ba(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
-       call boxarray_destroy(baa)
+    nlb = 0
+    call reserve(indx, 2*dm*nb)
+    call reserve(face, 2*dm*nb)
+
+    if (br%other) then
+       onlb = 0
+       call reserve(oindx, 2*dm*nb)
+       call reserve(oface, 2*dm*nb)
     end if
-
-    allocate(bxs(2*dm*nb))
-    allocate(prf(2*dm*nb))
-    allocate(br%bmf(1,0:0), br%laf(1,0:0))
-    allocate(br%indxmap(2*nl*dm), br%facemap(2*nl*dm))
-
-    if (other) then
-       allocate(bxso(2*dm*nb))
-       allocate(pshift(dm,2*dm*nb))
-       allocate(br%obmf(1,0:0), br%olaf(1,0:0))
-    end if
-
-    nlthin = 0
-    nfb = 0
-    cnt = 0
-
-    if (other) then
-       nlthino = 0
-       onfb = 0
-       cnto = 0
-       pshift = 0
        
-       call build(oproc)
-       call build(oface)
-    end if
-
     do i = 1, dm
        do f = 0, 1
           do j = 1, nb
@@ -250,131 +205,190 @@ contains
                       lo(i) = lo(i) - 1
                       hi(i) = lo(i)
                    else
-                      lo(i) = hi(i) + 1
-                      hi(i) = lo(i)
+                      lo(id) = hi(id) + 1
+                      hi(id) = lo(id)
                    end if
                 else
-                   lo(id) = max(lo(id)-width, pdc%lo(id))
-                   hi(id) = min(hi(id)+width, pdc%hi(id))
+                   lo(id) = lo(id)-lwidth
+                   hi(id) = hi(id)+lwidth
                 end if
              end do
 
              call build(bx, lo, hi)
 
-             if (bndry_reg_thin) then
-                bi => layout_get_box_intersector(laftmp, bx)
-                ncell = 0
-                do kk=1, size(bi)
-                   ncell = ncell + volume(bi(kk)%bx)
-                end do
-                deallocate(bi)
-                if (ncell .eq. volume(bx)) then
-                   cycle  ! bx is entirely covered by fine grids
-                end if
+             iproc = get_proc(la,j)
+             iface = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
+
+             call push_back(procf, iproc)
+
+             if (myproc .eq. iproc) then
+                nlb(i) = nlb(i) + 1
+                call push_back(indx, local_index(la,j))
+                call push_back(face,iface)
              end if
+             
+             call push_back(bxl, bx)
 
-             cnt = cnt+1
-             prf(cnt) = get_proc(la,j)
-             if (myproc .eq. prf(cnt)) then
-                nlthin = nlthin + 1
-                nfb(i) = nfb(i) + 1
-                br%indxmap(nlthin) = local_index(la,j)
-                br%facemap(nlthin) = (2*f-1)*i  ! possible values: -1,+1,-2,+2,-3:+3
-             end if
+             if (br%other) then
 
-             bxs(cnt) = bx
-
-             if (other) then
+                pshift = 0
                 if (br%pmask(i)) then
-                   if (lo(i) .lt. pdc%lo(i)) then
-                      pshift(i,cnt) = extent(pdc,i)
-                   else if (hi(i) .gt. pdc%hi(i)) then
-                      pshift(i,cnt) = -extent(pdc,i)
+                   if (bx%lo(i) .lt. pdc%lo(i)) then
+                      pshift = extent(pdc,i)
+                   else if (bx%hi(i) .gt. pdc%hi(i)) then
+                      pshift = -extent(pdc,i)
                    end if
                 end if
                 
-                bxso(cnt) = shift(bx, pshift(:,cnt))
+                obx = shift(bx, pshift, i)
                 
-                bi => layout_get_box_intersector(lac, bxso(cnt))
-                cnto = cnto + size(bi)
+                bi => layout_get_box_intersector(lac, obx)
+                
                 do kk=1, size(bi)
-                   if (myproc .eq. get_proc(lac,bi(kk)%i)) then
-                      call push_back(oproc, local_index(lac,bi(kk)%i))
-                      call push_back(oface, (2*f-1)*i)  ! possible values: -1,+1,-2,+2,-3:+3 
-                      nlthino = nlthino+1
-                      onfb(i) = onfb(i) + 1
+                   iproc = get_proc(lac,bi(kk)%i)
+                   call push_back(procc, iproc)
+                   if (myproc .eq. iproc) then
+                      onlb(i) = onlb(i) + 1
+                      call push_back(oindx, local_index(lac,bi(kk)%i))
+                      call push_back(oface, iface)
                    end if
+                   call push_back(obxl, shift(bi(kk)%bx, -pshift, i))
                 end do
+
                 deallocate(bi)
+
              end if
+
           end do
        end do
     end do
 
-    call boxarray_build_v(baa, bxs(1:cnt), sort = .false.)
-    call layout_build_ba(br%laf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prf(1:cnt))
-    call multifab_build(br%bmf(1,0), br%laf(1,0), nc = nc, ng = 0)
+    allocate(br%laf(1,0:0))
+    allocate(br%bmf(1,0:0))
+
+    call boxarray_build_l(baa, bxl, sort = .false.)
+    call destroy(bxl)
+    call layout_build_ba(br%laf(1,0), baa, boxarray_bbox(baa), explicit_mapping = dataptr(procf))
     call boxarray_destroy(baa)
+    call multifab_build(br%bmf(1,0), br%laf(1,0), nc = br%nc, ng = 0)
 
-    if (other) then
-       allocate(br%oindxmap(nlthino))
-       allocate(br%ofacemap(nlthino))
+    nlbtot = sum(nlb(1:dm))
+    if (nlbtot .ne. size(indx)) call bl_error("bndry_reg_rr_build: how did this happen")
 
-       allocate(bxsc(cnto), prcc(cnto))
-          
-       ilocal = 0
-       cnto = 0
-       do j = 1, cnt
-             
-          bi => layout_get_box_intersector(lac, bxso(j))
-             
-          do kk = 1, size(bi)
-             cnto = cnto + 1
-             bxsc(cnto) = shift(bi(kk)%bx, -pshift(:,j))
-             prcc(cnto) = get_proc(lac,bi(kk)%i)
-                
-             if (myproc .eq. get_proc(lac,bi(kk)%i)) then
-                ilocal = ilocal + 1
-                br%oindxmap(ilocal) = at(oproc, ilocal)
-                br%ofacemap(ilocal) = at(oface, ilocal)
-             end if
-          end do
-             
-          deallocate(bi)
-       end do
-          
-       call boxarray_build_v(baa, bxsc, sort = .false.)
-       call layout_build_ba(br%olaf(1,0), baa, boxarray_bbox(baa), explicit_mapping = prcc)
-       deallocate(bxsc, prcc)
+    allocate(br%indxmap(nlbtot))
+    allocate(br%facemap(nlbtot))
+
+    br%indxmap(1:nlbtot) = dataptr(indx)
+    br%facemap(1:nlbtot) = dataptr(face)
+
+    call destroy(procf)
+    call destroy(indx)
+    call destroy(face)
+
+    if (br%other) then
+
+       allocate(br%olaf(1,0:0))
+       allocate(br%obmf(1,0:0))
+
+       call boxarray_build_l(baa, obxl, sort = .false.)
+       call destroy(obxl)
+       call layout_build_ba(br%olaf(1,0), baa, boxarray_bbox(baa), explicit_mapping = dataptr(procc))
        call boxarray_destroy(baa)
-       call multifab_build(br%obmf(1,0), br%olaf(1,0), nc = nc, ng = 0)
-          
-       call destroy(oproc)
+       call multifab_build(br%obmf(1,0), br%olaf(1,0), nc = br%nc, ng = 0)
+       
+       onlbtot = sum(onlb(1:dm))
+       if (onlbtot .ne. size(oindx)) call bl_error("bndry_reg_rr_build other: how did this happen")
+
+       allocate(br%oindxmap(onlbtot))
+       allocate(br%ofacemap(onlbtot))
+
+       br%oindxmap(1:onlbtot) = dataptr(oindx)
+       br%ofacemap(1:onlbtot) = dataptr(oface)
+
+       call destroy(procc)
+       call destroy(oindx)
        call destroy(oface)
 
-       deallocate(bxso,pshift)       
     end if
     
-    deallocate(bxs,prf)
-    if (bndry_reg_thin) call layout_destroy(laftmp)
-
     br%nbegin(1) = 1
-    br%nend(1) = br%nbegin(1) + nfb(1) - 1
+    br%nend(1) = br%nbegin(1) + nlb(1) - 1
     do i=2,dm
        br%nbegin(i) = br%nend(i-1) + 1
-       br%nend(i) = br%nbegin(i) + nfb(i) - 1
+       br%nend(i) = br%nbegin(i) + nlb(i) - 1
     end do
 
-    if (other) then
+    if (br%other) then
        br%onbegin(1) = 1
-       br%onend(1) = br%onbegin(1) + onfb(1) - 1
+       br%onend(1) = br%onbegin(1) + onlb(1) - 1
        do i=2,dm
           br%onbegin(i) = br%onend(i-1) + 1
-          br%onend(i) = br%onbegin(i) + onfb(i) - 1
+          br%onend(i) = br%onbegin(i) + onlb(i) - 1
        end do
     end if
 
-  end subroutine rr_build_cc
+    if (mask) then
+       call lmultifab_build(br%uncovered, br%laf(1,0), nc=1, ng=0)
+       call lmultifab_setval(br%uncovered, .true.)
+
+       ! Build a coarsen version of the fine boxarray
+       allocate(bxsc(nb))
+       do i = 1, nb
+          bxsc(i) = coarsen(get_box(la,i), rr)
+       end do
+       call boxarray_build_v(baa, bxsc, sort = .false.)
+       deallocate(bxsc)
+       call layout_build_ba(laftmp, baa, boxarray_bbox(baa), explicit_mapping = get_proc(la))
+       call boxarray_destroy(baa)
+
+       if (any(br%pmask(1:dm))) then
+          nbxs = 3**dm
+          allocate(shft(nbxs,dm))
+          allocate(bxs(nbxs))
+       end if
+
+       do i = 1, nfabs(br%uncovered)
+
+          bx = get_box(br%uncovered,i)
+          bi => layout_get_box_intersector(laftmp, bx)
+          do kk=1, size(bi)
+             ! Cells under fine are marked with false.
+             call lfab_setval_bx(br%uncovered%fbs(i), .false., bi(kk)%bx)
+          end do
+          deallocate(bi)
+
+          ! Cells outside physical domain are marked with false.
+          bxl = boxlist_box_diff(bx,pdc)
+          do while (.not. empty(bxl))
+             bxtmp = front(bxl)
+             call pop_front(bxl)
+             call lfab_setval_bx(br%uncovered%fbs(i), .false., bxtmp)
+          end do
+          call destroy(bxl)
+
+          if (any(br%pmask(1:dm))) then
+             call box_periodic_shift(pdc, bx, br%nodal(1:dm), br%pmask(1:dm), 0, shft, nbxs, bxs)
+             do j = 1, nbxs
+                revshft = -shft(j,:)
+                bxtmp = shift(bxs(j), revshft) ! this is the original unshifted sub-box
+                ! these cells are marked true because they are in the 'periodic' domain
+                call lfab_setval_bx(br%uncovered%fbs(i), .true., bxtmp)
+                !unless they are under fine
+                bi => layout_get_box_intersector(laftmp, bxs(j))
+                do kk = 1, size(bi)
+                   call lfab_setval_bx(br%uncovered%fbs(i), .false., shift(bi(kk)%bx,revshft))
+                end do
+                deallocate(bi)
+             end do
+          end if
+
+       end do
+
+       call layout_destroy(laftmp)
+    end if
+
+    call destroy(bpt)
+  end subroutine bndry_reg_rr_build
 
 
   subroutine bndry_reg_build(br, la, pd, nc, nodal)
@@ -399,11 +413,13 @@ contains
     lnc    = 1;       if ( present(nc)    ) lnc    = nc
     lnodal = .false.; if ( present(nodal) ) lnodal = nodal
 
-    dm       = get_dim(la)
-    nb       = nboxes(la)
-    br%dim   = dm
-    br%nc    = lnc
-    br%other = .false.
+    dm             = get_dim(la)
+    nb             = nboxes(la)
+    br%dim         = dm
+    br%nc          = lnc
+    br%other       = .false.
+    br%mask        = .false.
+    br%nodal(1:dm) = lnodal
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
@@ -611,9 +627,7 @@ contains
     integer,         intent(in   )           :: rr(:)
     type(box),       intent(in   )           :: pdc
     integer,         intent(in   ), optional :: nc
-    integer :: lnc
-    lnc = 1;  if (present(nc)) lnc = nc
-    call rr_build_cc(br, la, lac, rr, pdc, lnc, 0, .true.)
+    call bndry_reg_rr_build(br, la, lac, rr, pdc, nc, other=.true.)
   end subroutine flux_reg_build
 
   subroutine flux_reg_crse_init(br, flux, s)
