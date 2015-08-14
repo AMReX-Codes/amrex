@@ -326,10 +326,33 @@ contains
                      mgt(n)%ss(mglev), uu(n), res(n), &
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
              else
-                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
-                     mgt(n)%ss(mglev), uu(n), res(n), &
-                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     bottom_solve_time = bottom_solve_time)
+                if (mgt(n)%cycle_type == MG_FVCycle) then
+                    if (iter == 1) then
+                        mgt(1)%use_lininterp = .true.
+                        call mg_tower_cycle(mgt(n), MG_FCycle, mglev, &
+                             mgt(n)%ss(mglev), uu(n), res(n), &
+                             mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                             bottom_solve_time = bottom_solve_time)
+                    else
+                        mgt(1)%use_lininterp = .false.
+                        call mg_tower_cycle(mgt(n), MG_VCycle, mglev, &
+                             mgt(n)%ss(mglev), uu(n), res(n), &
+                             mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                             bottom_solve_time = bottom_solve_time)
+                    end if
+                else if (mgt(n)%cycle_type == MG_VCycle) then
+                    mgt(1)%use_lininterp = .false.
+                    call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                         mgt(n)%ss(mglev), uu(n), res(n), &
+                         mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                else if (mgt(n)%cycle_type == MG_FCycle) then
+                    mgt(1)%use_lininterp = .true.
+                    call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                         mgt(n)%ss(mglev), uu(n), res(n), &
+                         mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                end if
              end if
              call bl_proffortfuncstop("ml_cc:Relax")
 
