@@ -188,9 +188,21 @@ contains
              call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
           else 
-             call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  bottom_solve_time = bottom_solve_time)
+             if (mgt(n)%cycle_type == MG_FVCycle) then
+                if (iter == 1) then
+                    call mg_tower_cycle(mgt(n), MG_FCycle, mglev, mgt(n)%ss(mglev), &
+                         uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                else
+                    call mg_tower_cycle(mgt(n), MG_VCycle, mglev, mgt(n)%ss(mglev), &
+                         uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                end if
+             else 
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
+                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     bottom_solve_time = bottom_solve_time)
+             end if
           end if
 
           ! Add: soln += uu
