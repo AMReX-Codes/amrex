@@ -2422,7 +2422,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
                 else:
                     abs_err = float(fields[1])
                     rel_err = float(fields[2])
-                    if abs(rel_err) > 1.e-4:
+                    if abs(rel_err) > 1.e-6:
                         ht.print_row([fields[0], abs_err, rel_err], highlight=True)
                     else:
                         ht.print_row([fields[0], abs_err, rel_err])
