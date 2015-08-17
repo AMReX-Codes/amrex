@@ -164,14 +164,14 @@ class Suite:
             self.MAKE, self.boxLibDir,
             self.extSrcCompString, self.extraBuildDirCompString))
 
-                
+
     def build_f(self, opts="", target="", outfile=None):
         comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
             self.MAKE, self.numMakeJobs, self.boxLibDir, self.FCOMP, opts, target)
         print "  " + comp_string
         run(comp_string, outfile=outfile)
         return comp_string
-        
+
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
@@ -520,11 +520,11 @@ def findBuildDirs(tests):
         # in (e.g. the extra build dir)
 
         # first find the list of unique build directories
-        dir_pair = (obj.buildDir, obj.useExtraBuildDir) 
+        dir_pair = (obj.buildDir, obj.useExtraBuildDir)
         if build_dirs.count(dir_pair) == 0:
             build_dirs.append(dir_pair)
 
-                             
+
         # re-make all problems that specify an extra compile argument,
         # just to make sure that any unique build commands are seen.
         if not obj.addToCompileString == "":
@@ -1004,7 +1004,7 @@ def testSuite(argv):
                         help="only run the tests that failed last time")
     parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
                         help="the input file (INI format) containing the suite and test parameters")
-    
+
     args=parser.parse_args()
 
     #--------------------------------------------------------------------------
@@ -1125,7 +1125,7 @@ def testSuite(argv):
     if args.boxLibGitHash: updateBoxLib = False
     if args.sourceGitHash: updateSource = False
     if args.extSrcGitHash: updateExtSrc = False
-    
+
     #--------------------------------------------------------------------------
     # if we are doing a single test, remove all other tests
     # if we specified a list of tests, check each one
@@ -1318,12 +1318,12 @@ def testSuite(argv):
     shutil.copy(compareExecutable, fullTestDir + "/fboxinfo.exe")
 
     if any([t for t in testList if t.dim == 2]):
-        bold("building the 2-d visualization tools...", skip_before=1)        
+        bold("building the 2-d visualization tools...", skip_before=1)
         suite.build_f(target="programs=fsnapshot2d", opts="NDEBUG=t MPI= ")
         vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
-        
+
     if any([t for t in testList if t.dim == 3]):
-        bold("building the 3-d visualization tools...", skip_before=1)        
+        bold("building the 3-d visualization tools...", skip_before=1)
         suite.build_f(opts="NDEBUG=t MPI= ", target="programs=fsnapshot3d")
         vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
 
@@ -1353,7 +1353,7 @@ def testSuite(argv):
             os.chdir(suite.sourceDir + dir)
 
         suite.make_realclean()
-            
+
     os.chdir(suite.testTopDir)
 
 
@@ -1664,7 +1664,7 @@ def testSuite(argv):
             test.nlevels = stdout0.rstrip('\n')
             if not isInt(test.nlevels):
                 test.nlevels = ""
-                
+
             if args.make_benchmarks == None:
 
                 print "  doing the comparison..."
@@ -1747,7 +1747,7 @@ def testSuite(argv):
                         source_file = outputFile
                     else:
                         source_file = compareFile
-                        
+
                     try: shutil.rmtree("{}/{}".format(benchDir, compareFile))
                     except: pass
                     shutil.copytree(source_file, "{}/{}".format(benchDir, compareFile))
@@ -1812,7 +1812,7 @@ def testSuite(argv):
             if not outputFile == "":
 
                 print "  doing the visualization..."
-                
+
                 if test.dim == 2:
                     systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
                               (suite.compareToolDir, vis2dExecutable, suite.compareToolDir,
@@ -2091,6 +2091,8 @@ div.verticaltext {text-align: center;
 #summary tr:nth-child(even) {background: #dddddd;}
 #summary tr:nth-child(odd) {background: #eeeeee;}
 
+#summary tr.special {background: #ccccff;}
+#summary td.highlight {color: red;}
 
 th {background-color: grey;
     color: yellow;
@@ -2140,6 +2142,37 @@ def create_css(tableHeight=16):
     cf = open(cssFile, 'w')
     cf.write(cssC)
     cf.close()
+
+
+class HTMLTable(object):
+    def __init__(self, out_file, columns=1):
+        self.hf = out_file
+        self.columns = columns
+
+    def start_table(self):
+        self.hf.write("<div id='summary'>\n")
+        self.hf.write("<p><table>\n")
+
+    def header(self, header_list):
+        n = len(header_list)
+        line = "<tr>"+n*"<th>{}</th>"+"</tr>\n"
+        self.hf.write(line.format(*header_list))
+
+    def print_single_row(self, row):
+        self.hf.write("<tr class='special'><td colspan={}>".format(self.columns)+row+"</td></tr>\n")
+
+    def print_row(self, row_list, highlight=False):
+        n = len(row_list)
+        if highlight:
+            line = "<tr>"+n*"<td class='highlight'>{}</td>"+"</tr>\n"
+        else:
+            line = "<tr>"+n*"<td>{}</td>"+"</tr>\n"
+        self.hf.write(line.format(*row_list))
+
+    def end_table(self):
+        self.hf.write("</table>\n")
+        self.hf.write("</div>\n")
+
 
 
 #==============================================================================
@@ -2341,12 +2374,67 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
         hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
 
         hf.write("<P>&nbsp;\n")
-        hf.write("<PRE>\n")
+
+        # parse the compare output and make an HTML table
+        ht = HTMLTable(hf, columns=3)
+        in_diff_region = False
 
         for line in diffLines:
-            hf.write(line.replace('<','&lt;').replace('>','&gt;'))
 
-        hf.write("</PRE>\n")
+            if not in_diff_region:
+                if line.find("fcompare") > 1:
+                    hf.write("<pre>"+line+"</pre>\n")
+
+                    ht.start_table()
+                    continue
+
+                if line.strip().startswith("diff"):
+                    ht.end_table()
+                    hf.write("<pre>\n")
+
+                    hf.write(line.strip())
+                    in_diff_region = True
+
+                if line.strip().startswith("level"):
+                    ht.print_single_row(line.strip())
+                    continue
+
+                if line.strip().startswith("-----"):
+                    continue
+
+                if line.strip().startswith("<<<"):
+                    ht.print_single_row(line.strip().replace('<','&lt;').replace('>','&gt;'))
+                    continue
+
+                fields = [q.strip() for q in line.split("  ") if not q == ""]
+    
+                if fields[0].startswith("variable"):
+                    ht.header(fields)
+                    continue
+
+                if len(fields) == 2:
+                    ht.header([" "] + fields)
+                    continue
+
+                if len(fields) == 1:
+                    continue
+
+                else:
+                    abs_err = float(fields[1])
+                    rel_err = float(fields[2])
+                    if abs(rel_err) > 1.e-4:
+                        ht.print_row([fields[0], abs_err, rel_err], highlight=True)
+                    else:
+                        ht.print_row([fields[0], abs_err, rel_err])
+
+            else:
+                # diff region
+                hf.write(line.strip())
+
+        if in_diff_region:
+            hf.write("</pre>\n")
+        else:
+            ht.end_table()
 
         # show any visualizations
         if test.doVis:
