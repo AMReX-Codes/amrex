@@ -1,9 +1,12 @@
+
     CC  := pgcc
     CXX := pgCC
     FC  := pgf95
     F90 := pgf95
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
+
+FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
 
     ifdef OMP
       F90FLAGS += -mp=nonuma -Minfo=mp
