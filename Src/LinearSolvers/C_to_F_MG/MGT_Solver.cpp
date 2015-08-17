@@ -314,7 +314,7 @@ MGT_Solver::initialize(bool nodal)
     pp.query("rtol_b", def_bottom_solver_eps);
     pp.query("numLevelsMAX", def_max_nlevel);
     pp.query("smoother", def_smoother);
-    pp.query("cycle_type", def_cycle); // 1 -> F, 2 -> W, 3 -> V
+    pp.query("cycle_type", def_cycle); // 1 -> F, 2 -> W, 3 -> V, 4 -> F+V
     //
     // The C++ code usually sets CG solver type using cg.cg_solver.
     // We'll allow people to also use mg.cg_solver but pick up the former as well.
