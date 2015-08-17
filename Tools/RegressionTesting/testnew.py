@@ -2517,7 +2517,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         hf.write("<P><TABLE>\n")
         # header
         hf.write("<tr><th>test name</th><th>dim</th>\n")
-        hf.write("    <th>compare plotfile\n")
+        hf.write("    <th>compare plotfile\n</th>")
         hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
         hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
         hf.write("    <th>compile?</th><th>restart?</th>\n")
