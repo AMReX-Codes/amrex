@@ -160,7 +160,9 @@ public:
 #ifdef BL_USE_UPCXX
     template<typename T>
     static void GrokAsyncSends_PGAS (int                 N_snds,
-                                     Array<T*>&          send_data);
+                                     Array<T*>&          send_data,
+                                     upcxx::event*       send_event,
+                                     volatile int*       send_counter);
 #endif
 
     template<typename T1, typename T2>
@@ -181,7 +183,8 @@ public:
                                Array<T2*>&                            recv_data,
                                Array<int>&                            recv_from,
                                int                                    ncomp,
-                               int                                    SeqNum);
+                               int                                    SeqNum,
+                               upcxx::event*                          recv_event);
 #endif
 
     //
@@ -2784,7 +2787,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
 #ifdef BL_USE_UPCXX
     FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
-                                fb_recv_data,fb_recv_from,             ncomp,SeqNum);
+                                fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
 #else
     FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
@@ -2858,16 +2861,21 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         }
     }
 
-#ifndef BL_USE_UPCXX
+#ifdef BL_USE_UPCXX
+    BLPgas::fb_send_counter = 0;
+#else
     Array<MPI_Request>& send_reqs = fb_send_reqs;
     send_reqs.reserve(N_snds);
 #endif
     for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
       BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-		   upcxx::global_ptr<void>(NULL, send_rank[i]),
-		   send_N[i]*sizeof(value_type),
-		   SeqNum);
+                   upcxx::global_ptr<void>(NULL, send_rank[i]),
+                   send_N[i]*sizeof(value_type),
+                   SeqNum,
+                   NULL,
+                   &BLPgas::fb_send_event,
+                   &BLPgas::fb_send_counter);
 #else
       send_reqs.push_back(ParallelDescriptor::Asend
                           (send_data[i],send_N[i],send_rank[i],SeqNum).req());
@@ -2917,8 +2925,7 @@ FabArray<FAB>::FillBoundary_finish ()
         return;
 
 #ifdef BL_USE_UPCXX
-    upcxx::async_wait(); // all communication should be done at this point
-    upcxx::barrier();
+    BLPgas::fb_recv_event.wait(); // wait for the recvs
 #else
     Array<MPI_Status> stats;
 #endif
@@ -2981,7 +2988,9 @@ FabArray<FAB>::FillBoundary_finish ()
     if (!TheSI.m_SndTags->empty()) {
 #ifdef BL_USE_UPCXX
       // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data);
+      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data,
+                                        &BLPgas::fb_send_event,
+                                        &BLPgas::fb_send_counter);
 #else
       FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),fb_send_reqs,fb_send_data,stats);
 #endif
@@ -3001,7 +3010,8 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
                              Array<T2*>&                            recv_data,
                              Array<int>&                            recv_from,
                              int                                    ncomp,
-                             int                                    SeqNum)
+                             int                                    SeqNum,
+                             upcxx::event*                          recv_event)
 {
   int TotalRcvsVolume = 0;
 
@@ -3048,12 +3058,17 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
       /// Send an AM to the sender m_it->first with the recv pointer being &the_recv_data[Offset]
       upcxx::global_ptr<void> dst_ptr =
         upcxx::global_ptr<void>(&the_recv_data[Offset], upcxx::myrank());
+      // Increment the event reference before launching the remote task
+      recv_event->incref();
       // Launch a remote task on the sender to send me data
       upcxx::async(m_it->first)(BLPgas::Send,
                                 upcxx::global_ptr<void>(NULL, m_it->first),
                                 dst_ptr,
                                 N*sizeof(T2),
-                                SeqNum);
+                                SeqNum,
+                                recv_event,
+                                (upcxx::event*)NULL,
+                                (int *)NULL);
       upcxx::advance(); // poll the UPC++ progress engine and the network
       Offset += N;
     }
@@ -3062,10 +3077,16 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 template<typename T>
 void
 FabArrayBase::GrokAsyncSends_PGAS (int                 N_snds,
-                                   Array<T*>&          send_data)
+                                   Array<T*>&          send_data,
+                                   upcxx::event*       send_event,
+                                   volatile int*       send_counter)
 {
   BL_ASSERT(N_snds > 0);
   BL_ASSERT(send_data.size() == N_snds);
+  // Need to make sure all sends have been started
+  while ((*send_counter) < N_snds)
+    upcxx::advance();
+  send_event->wait(); // wait for the sends
   for (int i = 0; i < N_snds; i++)
     upcxx::deallocate(send_data[i]);
 }
