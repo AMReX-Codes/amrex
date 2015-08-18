@@ -609,7 +609,7 @@ namespace BoxLib
 #ifdef BL_USE_UPCXX
         FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
                                     mf.fpb_recv_data,mf.fpb_recv_from,
-                                    mf.fpb_ncomp,SeqNum);
+                                    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
 #else
         FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -683,7 +683,9 @@ namespace BoxLib
             }
 	}
 
-#ifndef BL_USE_UPCXX
+#ifdef BL_USE_UPCXX
+  BLPgas::fpb_send_counter = 0;
+#else
 	Array<MPI_Request>& send_reqs = mf.fpb_send_reqs;
 	mf.fpb_send_reqs.reserve(N_snds);
 #endif	
@@ -692,7 +694,10 @@ namespace BoxLib
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
                    upcxx::global_ptr<void>(NULL, send_rank[i]),
                    send_N[i]*sizeof(value_type),
-                   SeqNum);
+                   SeqNum,
+                   NULL,
+                   &BLPgas::fpb_send_event,
+                   &BLPgas::fpb_send_counter);
 #else
 	    send_reqs.push_back(ParallelDescriptor::Asend
                           (send_data[i],send_N[i],send_rank[i],SeqNum).req());
@@ -747,8 +752,7 @@ namespace BoxLib
         typedef typename FAB::value_type value_type;
 
 #ifdef BL_USE_UPCXX
-	upcxx::async_wait(); // all communication should be done at this point
-	upcxx::barrier();
+        BLPgas::fpb_recv_event.wait(); // wait for the recvs
 #else
 	Array<MPI_Status> stats;
 #endif
@@ -810,7 +814,9 @@ namespace BoxLib
         if (!TheFPB.m_SndTags->empty()) {
 #ifdef BL_USE_UPCXX
 	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data);
+          FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data,
+                                            &BLPgas::fpb_send_event,
+                                            &BLPgas::fpb_send_counter);
 #else
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),mf.fpb_send_reqs,mf.fpb_send_data,stats);
 #endif
