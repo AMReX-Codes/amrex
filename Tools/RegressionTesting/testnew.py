@@ -100,6 +100,7 @@ class Suite:
     def __init__ (self):
 
         self.suiteName = "testDefault"
+        self.sub_title = ""
 
         self.sourceTree = ""
         self.boxLibDir = ""
@@ -2127,6 +2128,7 @@ r"""
 <BODY>
 <!--GOUPLINK-->
 <CENTER><H1>@TITLE@</H1></CENTER>
+<CENTER><H2>@SUBTITLE@</H2></CENTER>
 """
 
 
@@ -2833,7 +2835,8 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
 
     hf = open(htmlFile, 'w')
 
-    header = MainHeader.replace("@TITLE@", title)
+    header = MainHeader.replace("@TITLE@", title).replace("@SUBTITLE@", suite.sub_title)
+    
     if suite.goUpLink:
         header2 = header.replace("<!--GOUPLINK-->", '<a href="../">GO UP</a>')
         hf.write(header2)
