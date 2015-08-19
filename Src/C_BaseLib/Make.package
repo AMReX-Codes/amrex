@@ -125,3 +125,6 @@ C$(BOXLIB_BASE)_headers += MemPool.H
 C$(BOXLIB_BASE)_sources += MemPool.cpp
 f90$(BOXLIB_BASE)_sources += mempool_f.f90
 
+# On-the-fly data analysis tools (which must be defined in userland)
+
+C$(BOXLIB_BASE)_headers += Analysis.H
