@@ -596,7 +596,9 @@ ifeq ($(MIC), TRUE)
   CXXOPTF += -mmic
   CXXDEBF += -mmic
   FOPTF += -mmic
+  FDEBF += -mmic
   fOPTF += -mmic
+  fDEBF += -mmic
 
 # Because the linker on Babbage isn't very smart
   override XTRALIBS += -lifcore -Wl,-rpath,/global/babbage/nsg/opt/intel/composerxe/composer_xe_2015.1.133/compiler/lib/mic
