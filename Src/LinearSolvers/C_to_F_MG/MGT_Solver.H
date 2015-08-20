@@ -94,39 +94,11 @@ public:
 
   void set_maxorder(const int max_order);
 
-  // *******************************************************************************
-  // These two take a status flag and pass the status flag to mgt_solve
-  // *******************************************************************************
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-             const BndryData& bd, int need_grad_phi, Real& final_resnorm,int& status);
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-	     int need_grad_phi, Real& final_resnorm,int& status);
-
-  // *******************************************************************************
-  // These four do *not* take a status flag but do pass an internal status flag to mgt_solve
-  // *******************************************************************************
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-             const BndryData& bd, Real& final_resnorm);
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-             const BndryData& bd, int need_grad_phi, Real& final_resnorm);
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-	     const BndryData bd[], int need_grad_phi, Real& final_resnorm);
-
-  void solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-	     int need_grad_phi, Real& final_resnorm);
-
-  // *******************************************************************************
-  // End of solve options
-  // *******************************************************************************
+  void solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
+	     Real tol, Real abs_tol, int always_use_bnorm, 
+	     Real& final_resnorm, int need_grad_phi=0);
 
   void applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd);
-
-  void applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[]);
 
   void applybc(MultiFab* uu[], const BndryData& bd);
 

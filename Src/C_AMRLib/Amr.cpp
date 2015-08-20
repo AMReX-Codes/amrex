@@ -632,6 +632,9 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         is.close();
 #undef STRIP
     }
+
+    rebalance_grids = 0;
+    pp.query("rebalance_grids", rebalance_grids);
 }
 
 bool
@@ -1219,8 +1222,9 @@ Amr::FinalizeInit (Real              strt_time,
     //
     // Perform any special post_initialization operations.
     //
-    for (int lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_init(stop_time);
+    for(int lev(0); lev <= finest_level; ++lev) {
+      amr_level[lev].post_init(stop_time);
+    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1261,19 +1265,6 @@ Amr::restart (const std::string& filename)
     Real dRestartTime0 = ParallelDescriptor::second();
 
     DistributionMapping::Initialize();
-    if(DistributionMapping::strategy() == DistributionMapping::PFC) {
-      Array<IntVect> refRatio;
-      Array<BoxArray> allBoxes;
-      DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
-      DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
-    }
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
-      DistributionMapping::CacheStats(std::cout);
-    }
-    ParallelDescriptor::Barrier();
-
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -2257,14 +2248,39 @@ Amr::regrid (int  lbase,
             amr_level.clear(lev);
             amr_level.set(lev,a);
         }
-
     }
+
+
     //
     // Check at *all* levels whether we need to do anything special now that the grids
-    //       at levels lbase+1 and higher have may have changed.  
+    //       at levels lbase+1 and higher may have changed.  
     //
-    for (int lev = 0; lev <= new_finest; lev++)
-        amr_level[lev].post_regrid(lbase,new_finest);
+    for(int lev(0); lev <= new_finest; ++lev) {
+      amr_level[lev].post_regrid(lbase,new_finest);
+    }
+
+    if(rebalance_grids > 0) {
+      DistributionMapping::InitProximityMap();
+      DistributionMapping::Initialize();
+        Array<BoxArray> allBoxes(amr_level.size());
+	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
+	  allBoxes[ilev] = boxArray(ilev);
+	}
+        Array<Array<int> > mLDM;
+	if(rebalance_grids == 1) {
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 2) {
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 3) {
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+	} else {
+	}
+
+        for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+          MultiFab::MoveAllFabs(mLDM[iMap]);
+        }
+      Geometry::FlushPIRMCache();
+    }
 
 #ifdef USE_STATIONDATA
     station.findGrid(amr_level,geom);

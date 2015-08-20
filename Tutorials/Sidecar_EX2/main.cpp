@@ -1,12 +1,6 @@
-// An example showing how to clone a MultiFab from the compute MPI group to the
-// "sidecar" group. The tricky part about doing this is pointer management. The
-// functions SendMultiFabToSidecars() and SendGeometryToSidecars() do no
-// pointer allocation; they assume that the memory space has already been
-// allocated beforehard. However, some (most) of these pointers will point to
-// actual data only one MPI group, while on the other they will point to
-// nothing. But they still need to exist on both MPI groups because everybody
-// must call the Send...() functions. So be mindful of your pointers; if you do
-// then this can be a very useful tool.
+// An example demonstrating the usage of the abstract base class "Analysis" for
+// doing data analysis during a simulation. It also makes use of the sidecar
+// (in-transit) technology.
 
 #include <new>
 #include <iostream>
@@ -22,6 +16,8 @@
 #include <RealBox.H>
 #include <Utility.H>
 
+#include <InSituAnalysis.H>
+
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
@@ -32,7 +28,7 @@ int main(int argc, char *argv[]) {
     // TODO: change Initialize() so that we can read # of sidecars from an
     // inputs file.
 
-    const int nSidecarProcs(6);
+    const int nSidecarProcs(2);
     ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
 
     BoxLib::Initialize(argc,argv);
@@ -50,8 +46,6 @@ int main(int argc, char *argv[]) {
 
     MultiFab *mf;
     Geometry* geom;
-
-    double t_start, t_stop;
 
     if (ParallelDescriptor::InCompGroup())
     {
@@ -102,33 +96,16 @@ int main(int argc, char *argv[]) {
     }
 
     // whoooosh
-    t_start = MPI_Wtime();
     MultiFab::SendMultiFabToSidecars (mf);
     Geometry::SendGeometryToSidecars (geom);
-    t_stop = MPI_Wtime();
 
     if (ParallelDescriptor::InSidecarGroup())
     {
-      const double norm0 = mf->norm0();
-      const double norm1 = mf->norm1();
-      const double norm2 = mf->norm2();
-      const Real probsize = geom->ProbSize();
+      InSituAnalysis analysis(*mf, *geom);
+      analysis.DoAnalysis();
       if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "From sidecar nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
-        std::cout << "From sidecar nodes, probsize = " << probsize << std::endl;
-      }
-    }
-    else
-    {
-      const double norm0 = mf->norm0();
-      const double norm1 = mf->norm1();
-      const double norm2 = mf->norm2();
-      const Real probsize = geom->ProbSize();
-      if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "From compute nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
-        std::cout << "From compute nodes, probsize = " << probsize << std::endl;
-
-        std::cout << std::endl << std::endl << "total time for MultiFab and Geometry transfer: " << t_stop - t_start << " sec" << std::endl;
+        std::cout << "From sidecar nodes, here is the analysis:" << std::endl;
+        analysis.PrintResults();
       }
     }
 

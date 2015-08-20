@@ -53,7 +53,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:)
-    n1 = hi1-lo1+1 
+    n1 = max(hi1-lo1+1, 1)
     sz = szd * int(n1,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
@@ -75,8 +75,8 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
@@ -98,9 +98,9 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
-    n3 = hi3-lo3+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
@@ -122,10 +122,10 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
-    n3 = hi3-lo3+1 
-    n4 = hi4-lo4+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
+    n4 = max(hi4-lo4+1, 1)
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t)
     cp = mempool_alloc(sz)
@@ -148,11 +148,11 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:,:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
-    n3 = hi3-lo3+1 
-    n4 = hi4-lo4+1 
-    n5 = hi5-lo5+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
+    n4 = max(hi4-lo4+1, 1)
+    n5 = max(hi5-lo5+1, 1)
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t)
     cp = mempool_alloc(sz)
@@ -175,12 +175,12 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:,:,:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
-    n3 = hi3-lo3+1 
-    n4 = hi4-lo4+1 
-    n5 = hi5-lo5+1 
-    n6 = hi6-lo6+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
+    n4 = max(hi4-lo4+1, 1)
+    n5 = max(hi5-lo5+1, 1)
+    n6 = max(hi6-lo6+1, 1)
     sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t) * int(n6,c_size_t)
     cp = mempool_alloc(sz)
@@ -257,7 +257,7 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:)
-    n1 = hi1-lo1+1 
+    n1 = max(hi1-lo1+1, 1)
     sz = szi * int(n1,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
@@ -279,8 +279,8 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
     sz = szi * int(n1,c_size_t) * int(n2,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
@@ -302,9 +302,9 @@ contains
     integer (kind=c_size_t) :: sz
     type(c_ptr) :: cp
     integer, pointer :: fp(:,:,:)
-    n1 = hi1-lo1+1 
-    n2 = hi2-lo2+1 
-    n3 = hi3-lo3+1 
+    n1 = max(hi1-lo1+1, 1)
+    n2 = max(hi2-lo2+1, 1)
+    n3 = max(hi3-lo3+1, 1)
     sz = szi * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
     cp = mempool_alloc(sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))

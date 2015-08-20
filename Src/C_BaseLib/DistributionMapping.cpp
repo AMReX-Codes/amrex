@@ -9,6 +9,7 @@
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <VisMF.H>
+#include <Utility.H>
 
 #include <iostream>
 #include <fstream>
@@ -22,6 +23,7 @@
 #include <numeric>
 #include <string>
 #include <cstring>
+#include <iomanip>
 using std::string;
 
 namespace
@@ -55,6 +57,9 @@ Real DistributionMapping::bytesPerCell(0.0);
 Array<int> DistributionMapping::proximityMap;
 Array<int> DistributionMapping::proximityOrder;
 Array<long> DistributionMapping::totalBoxPoints;
+
+int DistributionMapping::nDistMaps(0);
+
 
 const Array<int>&
 DistributionMapping::ProcessorMap () const
@@ -187,6 +192,8 @@ DistributionMapping::Initialize ()
     }
     totalBoxPoints.resize(ParallelDescriptor::NProcs(), 0);
 
+    DistributionMapping::nDistMaps = 0;
+
     BoxLib::ExecOnFinalize(DistributionMapping::Finalize);
 
     initialized = true;
@@ -294,17 +301,34 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     return false;
 }
 
+void
+DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArray)
+{
+    const int N(newProcmapArray.size());
+    BL_ASSERT(m_ref->m_pmap.size() == N);
+    BL_ASSERT(newProcmapArray.size() == N);
+
+    for(int iA(0); iA < N; ++iA) {
+      m_ref->m_pmap[iA] = newProcmapArray[iA];
+    }
+
+}
+
 DistributionMapping::Ref::Ref () {}
 
 DistributionMapping::DistributionMapping ()
     :
     m_ref(new DistributionMapping::Ref)
-{}
+{
+  dmID = nDistMaps++;
+}
 
 DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
     :
     m_ref(rhs.m_ref)
-{}
+{
+  dmID = nDistMaps++;
+}
 
 DistributionMapping&
 DistributionMapping::operator= (const DistributionMapping& rhs)
@@ -323,6 +347,8 @@ DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_ca
     :
     m_ref(new DistributionMapping::Ref(pmap))
 {
+    dmID = nDistMaps++;
+
     if (put_in_cache && ParallelDescriptor::NProcs() > 1)
     {
         //
@@ -346,6 +372,7 @@ DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
     m_ref(new DistributionMapping::Ref(boxes.size() + 1))
 {
+    dmID = nDistMaps++;
     define(boxes,nprocs);
 }
 
@@ -360,6 +387,8 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1))
 
 {
+    dmID = nDistMaps++;
+
     const Array<int>& pmap_1 = d1.ProcessorMap();
     const Array<int>& pmap_2 = d2.ProcessorMap();
 
@@ -385,8 +414,6 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     if (m_ref->m_pmap.size() != boxes.size() + 1)
     {
         m_ref->m_pmap.resize(boxes.size() + 1);
-
-        //m_ref->boxPoints.resize(ParallelDescriptor::NProcs(), 0);
     }
 
     if (nprocs == 1)
@@ -400,10 +427,6 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     {
         if ( ! GetMap(boxes))
         {
-if(ParallelDescriptor::IOProcessor()) {
-  //std::cout << "|||| DistributionMapping::define:  nprocs boxes.size() = "
-            //<< nprocs << "  " << boxes.size() << std::endl;
-}
 	    BL_ASSERT(m_BuildMap != 0);
 
             (this->*m_BuildMap)(boxes,nprocs);
@@ -411,19 +434,6 @@ if(ParallelDescriptor::IOProcessor()) {
             // Add the new processor map to the cache.
             //
             m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-
-	    // save the number of points
-	    if(nprocs == ParallelDescriptor::NProcs()) {
-	      //for(int i(0); i < boxes.size(); ++i) {
-		//int p(m_ref->m_pmap[i]);
-	        //m_ref->boxPoints[p] += boxes[i].numPts();
-	      //}
-	      //for(int i(0); i < nprocs; ++i) {
-	        //totalBoxPoints[i] += m_ref->boxPoints[i];
-	      //}
-	    } else {
-	      // must be making a special distmap
-	    }
         }
     }
 }
@@ -443,11 +453,6 @@ DistributionMapping::FlushCache ()
     {
         if (it->second.linkCount() == 1)
         {
-  for(int i(0); i < totalBoxPoints.size(); ++i) {
-    //totalBoxPoints[i] -= (it->second)->boxPoints[i];
-  }
-
-
             m_Cache.erase(it++);
         }
         else
@@ -455,11 +460,6 @@ DistributionMapping::FlushCache ()
             ++it;
         }
     }
-
-    //totalCells = 0;
-    //    if(ParallelDescriptor::IOProcessor()) {
-    //      std::cout << "_here 1 totalCells = " << totalCells << std::endl;
-    //    }
 }
 
 void
@@ -878,25 +878,6 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         bool do_full_knapsack = true;
         KnapSackDoIt(wgts, nprocs, effi, do_full_knapsack);
     }
-
-/*
-if(ParallelDescriptor::IOProcessor()) {
-  Array<long> ncells(nprocs, 0);
-  for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
-    int index(m_ref->m_pmap[i]);
-    ncells[index] += boxes[i].numPts();
-  }
-  static int count(0);
-  std::stringstream dfss;
-  dfss << "KSncells.count_" << count++ << ".xgr";
-  std::ofstream bos(dfss.str().c_str());
-  for(int i(0); i < ncells.size(); ++i) {
-    bos << i << ' ' << ncells[i] << '\n';
-  }
-  bos.close();
-}
-*/
-
 }
 
 namespace
@@ -1328,24 +1309,6 @@ DistributionMapping::CurrentCellsUsed (int nprocs, Array<long>& result)
     for(int i(0); i < nprocs; ++i) {
       result[i] = cells[i];
     }
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "**********************************" << std::endl;
-  for(int i(0); i < result.size(); ++i) {
-    std::cout << "currentCells[" << i << "] = " << result[i] << std::endl;
-  }
-  /*
-  std::cout << "**********************************" << std::endl;
-  static int count(0);
-  std::stringstream dfss;
-  dfss << "CurrentCells.count_" << count++ << ".xgr";
-  std::ofstream bos(dfss.str().c_str());
-  for(int i(0); i < result.size(); ++i) {
-    bos << i << ' ' << result[i] << '\n';
-  }
-  bos.close();
-  */
-}
-
 }
 
 
@@ -1418,27 +1381,10 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
         }
       }
 
-long accDiff(0), accNVPC(0), accAV(0);
-for(int i(0); i < nprocs; ++i) {
-  accNVPC += newVolPerCPU[i];
-}
-
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "_here 1 totalCurrentCells = " << totalCurrentCells << std::endl;
-        std::cout << "_here 1 totalNewCells     = " << totalNewCells << std::endl;
-        std::cout << "_here 1 ccScale           = " << ccScale << std::endl;
-        std::cout << "_here 1 volpercpu         = " << volpercpu << std::endl;
-        std::cout << "_here 1 boxes.size()      = " << boxes.size() << std::endl;
-        for(int i(0); i < newVolPerCPU.size(); ++i) {
-          std::cout << "_here 1.1:  newVolPerCPU[" << i << "] diff = "
-	        << newVolPerCPU[i] << "  " << volpercpu - newVolPerCPU[i] << std::endl;
-        }
-      }
-
       for(int i(0); i < nprocs; ++i) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0);
+	long accVol(0);
         vec[i].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
@@ -1448,7 +1394,6 @@ for(int i(0); i < nprocs; ++i) {
         {
             vol += tokens[K].m_vol;
             accVol += tokens[K].m_vol;
-	    oldAccVol = accVol;
             vec[i].push_back(tokens[K].m_box);
         }
 
@@ -1460,20 +1405,9 @@ for(int i(0); i < nprocs; ++i) {
             --K;
             vec[i].pop_back();
             totalvol -= tokens[K].m_vol;
-	    oldAccVol = accVol;
             accVol -= tokens[K].m_vol;
         }
       aCurrentCells[i] += accVol;
-
-      accAV   += accVol;
-
-if(ParallelDescriptor::IOProcessor()) {
-  accDiff += newVolPerCPU[i] - accVol;
-  std::cout << "_here 2:  proc nVPC accVol diff odiff accDiff :::: " << i << ":  "
-	    << newVolPerCPU[i] << "  -   " << accVol << " =  "
-	    << newVolPerCPU[i] - accVol << "  "
-	    << newVolPerCPU[i] - oldAccVol << "  " << accDiff << std::endl;
-}
 
 	int extra(newVolPerCPU[i] - accVol);
         if(extra != 0 && i < nprocs - 1) {  // add the difference to the rest
@@ -1481,9 +1415,6 @@ if(ParallelDescriptor::IOProcessor()) {
 	  for(int ii(i+1); ii < nprocs; ++ii) {
 	    newVolPerCPU[ii] += extra;
 	  }
-	  //if(i+1 < nprocs) {
-	    //newVolPerCPU[i+1] += extra;
-	  //}
         }
       }
 
@@ -1493,13 +1424,6 @@ if(ParallelDescriptor::IOProcessor()) {
   for(int i(0); i < boxes.size(); ++i) {
     npoints += boxes[i].numPts();
   }
-  std::cout << "_here 2.1:  accNVPC accAV npoints = " << accNVPC << "  "
-            << accAV << "  " << npoints << std::endl;
-  std::cout << "_here 3:  vvvvvvvvvvvvvvvvvvvvvvvv after dist" << std::endl;
-  for(int i(0); i < aCurrentCells.size(); ++i) {
-    std::cout << "aCurrentCells[" << i << "] = " << aCurrentCells[i] << std::endl;
-  }
-  std::cout << "_here 3:  ^^^^^^^^^^^^^^^^^^^^^^^^ after dist" << std::endl;
 
   static int count(0);
   std::stringstream dfss;
@@ -1549,9 +1473,6 @@ void
 DistributionMapping::PFCProcessorMap (const BoxArray& boxes,
                                       int             nprocs)
 {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "PFCProcessorMap(ba, n) ###########" << std::endl;
-}
     BL_ASSERT(boxes.size() > 0);
 
     if (m_ref->m_pmap.size() != boxes.size() + 1) {
@@ -1574,9 +1495,6 @@ DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
                                       const std::vector<long>& wgts,
                                       int                      nprocs)
 {
-if(ParallelDescriptor::IOProcessor()) {
-  std::cout << "PFCProcessorMap(ba, w, n) ###########" << std::endl;
-}
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == wgts.size());
 
@@ -1623,6 +1541,280 @@ PFCMultiLevelToken::Compare::operator () (const PFCMultiLevelToken& lhs,
 
 
 
+Array<Array<int> >
+DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
+                                       const Array<BoxArray> &allBoxes,
+				       int maxgrid)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMapPFC()");
+
+    using std::cout;
+    using std::endl;
+
+    int nProcs(ParallelDescriptor::NProcs());
+    long totalCells(0);
+    int nLevels(allBoxes.size());
+    int finestLevel(nLevels - 1);
+    int nBoxes(0);
+    for(int level(0); level < nLevels; ++level) {
+      nBoxes += allBoxes[level].size();
+      totalCells += allBoxes[level].numPts();
+    }
+
+    std::vector< std::vector<int> > vec(nProcs);
+    std::vector<PFCMultiLevelToken> tokens;
+    tokens.reserve(nBoxes);
+    int idxAll(0);
+    IntVect cRR(IntVect::TheUnitVector());
+
+    for(int level(finestLevel); level >= 0; --level) {
+      for(int i(0), N(allBoxes[level].size()); i < N; ++i) {
+	Box box(allBoxes[level][i]);
+	Box fine(BoxLib::refine(box, cRR));
+        tokens.push_back(PFCMultiLevelToken(level, idxAll, i,
+	                 box.smallEnd(), fine.smallEnd(), box.numPts()));
+      }
+      if(level > 0) {
+        cRR *= refRatio[level - 1];
+      }
+      ++idxAll;
+    }
+
+    std::sort(tokens.begin(), tokens.end(), PFCMultiLevelToken::Compare());  // sfc order
+
+      int  K(0);
+      Real totalvol(0.0), volpercpu(0.0);
+      const int Navg(tokens.size() / nProcs);
+      volpercpu = static_cast<Real>(totalCells) / nProcs;
+
+      Array<long> newVolPerCPU(nProcs, volpercpu);
+
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        int  cnt(0);
+        Real vol(0.0);
+	long accVol(0);
+        vec[iProc].reserve(Navg + 2);
+
+        for(int TSZ(tokens.size()); K < TSZ &&
+	    (iProc == (nProcs-1) || vol < (newVolPerCPU[iProc]));
+            ++cnt, ++K)
+        {
+            vol += tokens[K].m_vol;
+            accVol += tokens[K].m_vol;
+            vec[iProc].push_back(K);
+        }
+
+        totalvol += vol;
+        if((totalvol / (iProc + 1)) > (newVolPerCPU[iProc]) &&
+	   cnt > 1 && K < tokens.size())
+	{
+            --K;
+            vec[iProc].pop_back();
+            totalvol -= tokens[K].m_vol;
+            accVol -= tokens[K].m_vol;
+        }
+
+	int extra(newVolPerCPU[iProc] - accVol);
+        if(extra != 0 && iProc < nProcs - 1) {  // add the difference to the rest
+	  extra /= nProcs - (iProc + 1);
+	  for(int ip(iProc + 1); ip < nProcs; ++ip) {
+	    newVolPerCPU[ip] += extra;
+	  }
+        }
+      }
+
+    Array<Array<int> > localPMaps(nLevels);
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    bool bStagger(false);
+    if(bStagger) {
+      int staggerOffset(12);
+      Array<int> staggeredProxMap(proximityMap.size());
+
+      int nSets(nProcs / staggerOffset);
+      int nRemainder(nProcs % staggerOffset);
+      int nCount(0);
+      for(int iS(0); iS < staggerOffset; ++iS) {
+        for(int nS(0); nS < nSets * staggerOffset; nS += staggerOffset) {
+	  staggeredProxMap[nCount++] = nS + iS;
+        }
+      }
+      for(int iR(0); iR < nRemainder; ++iR) {
+        int index((staggerOffset * nSets) + iR);;
+        staggeredProxMap[index] = index;;
+      }
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        if(ParallelDescriptor::IOProcessor()) {
+	  std::cout << "staggeredProxMap[" << iProc << "] = " << staggeredProxMap[iProc] << std::endl;
+        }
+        if(staggeredProxMap[iProc] >= nProcs) {
+	  std::cout << "Stagger:  ERROR!" << std::endl;
+          BoxLib::Abort("*****");
+	}
+      }
+
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        const std::vector<int> &vi = vec[iProc];
+        for(int j(0), N(vi.size()); j < N; ++j) {
+	  PFCMultiLevelToken &pt = tokens[vi[j]];
+	  int level(pt.m_level);
+	  int idxLevel(pt.m_idxLevel);
+	  int staggeredProc(staggeredProxMap[iProc]);
+	  localPMaps[level][idxLevel] = staggeredProc;
+        }
+      }
+    } else {
+      for(int iProc(0); iProc < nProcs; ++iProc) {
+        const std::vector<int> &vi = vec[iProc];
+        for(int j(0), N(vi.size()); j < N; ++j) {
+	  PFCMultiLevelToken &pt = tokens[vi[j]];
+	  int level(pt.m_level);
+	  int idxLevel(pt.m_idxLevel);
+	  localPMaps[level][idxLevel] = ProximityMap(iProc);
+        }
+      }
+    }
+
+    tokens.clear();
+
+if(ParallelDescriptor::IOProcessor()) {
+  Real maxGridPts(maxgrid * maxgrid * maxgrid);
+  Array<Array<int> > boxesPerProc(nProcs);
+  Array<Real> ncells(nProcs, 0);
+  int ib(0), nb(0);
+  for(int n(0); n < allBoxes.size(); ++n) {
+    nb += allBoxes[n].size();
+  }
+  std::cout << "nb = " << nb << std::endl;
+  Array<long> ncellsPerBox(nb, 0);
+  for(int n(0); n < localPMaps.size(); ++n) {
+    for(int i(0); i < localPMaps[n].size() - 1; ++i) {
+      int index(localPMaps[n][i]);
+      ncells[index] += allBoxes[n][i].d_numPts() / maxGridPts;
+      if(ib > ncellsPerBox.size()) {
+        std::cout << "ib ncellsPerBox.size() = " << ib << "  " << ncellsPerBox.size() << std::endl;
+      }
+      ncellsPerBox[ib] = allBoxes[n][i].numPts();
+      boxesPerProc[index].push_back(allBoxes[n][i].numPts());
+      ++ib;
+    }
+  }
+  static int count(0);
+  std::stringstream dfss;
+  dfss << "MLMB_" << count << ".xgr";
+  std::ofstream bos(dfss.str().c_str());
+  for(int i(0); i < ncells.size(); ++i) {
+    bos << i << ' ' << std::setprecision(8) << ncells[i] << '\n';
+  }
+  bos.close();
+  std::stringstream dfsspb;
+  dfsspb << "MLMPERB_" << count << ".xgr";
+  std::ofstream bospb(dfsspb.str().c_str());
+  for(int i(0); i < ncellsPerBox.size(); ++i) {
+    bospb << i << ' ' << std::setprecision(8) << ncellsPerBox[i] << '\n';
+  }
+  bospb.close();
+  std::stringstream bpproc;
+  bpproc << "BPPROC_" << count << ".xgr";
+  std::ofstream sbpp(bpproc.str().c_str());
+  for(int n(0); n < boxesPerProc.size(); ++n) {
+    sbpp << n;
+    for(int i(0); i < boxesPerProc[n].size(); ++i) {
+      sbpp << ' ' << boxesPerProc[n][i];
+    }
+    sbpp << '\n';
+  }
+  sbpp.close();
+  ++count;
+}
+
+    return localPMaps;
+}
+
+
+
+
+Array<Array<int> >
+DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
+                                          const Array<BoxArray> &allBoxes,
+					  int maxgrid)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMapRandom()");
+
+    Array<Array<int> > localPMaps(allBoxes.size());
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+          localPMaps[n][ir] = BoxLib::Random_int(ParallelDescriptor::NProcs());
+        }
+      }
+      ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
+
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    return localPMaps;
+}
+
+
+Array<Array<int> >
+DistributionMapping::MultiLevelMapKnapSack (const Array<IntVect>  &refRatio,
+                                            const Array<BoxArray> &allBoxes,
+					    int maxgrid)
+{
+    BL_PROFILE("DistributionMapping::MultiLevelMapKnapSack()");
+
+    int nProcs(ParallelDescriptor::NProcs());
+    std::vector<std::vector<int> > weightsPerCPU;
+    Real efficiency(0.0);
+    bool doFullKnapSack(true);
+    int nMax(std::numeric_limits<int>::max());
+
+    Array<long> weights;
+    for(int n(0); n < allBoxes.size(); ++n) {
+      const BoxArray &aba = allBoxes[n];
+      for(int b(0); b < aba.size(); ++b) {
+        weights.push_back(aba[b].numPts());
+      }
+    }
+
+    knapsack(weights, nProcs, weightsPerCPU, efficiency, doFullKnapSack, nMax);
+
+    int count(0);
+    for(int cpu(0); cpu < weightsPerCPU.size(); ++cpu) {
+      for(int b(0); b < weightsPerCPU[cpu].size(); ++b) {
+        //weights[count++] = weightsPerCPU[cpu][b];
+        weights[weightsPerCPU[cpu][b]] = cpu;
+      }
+    }
+    count = 0;
+
+    Array<Array<int> > localPMaps(allBoxes.size());
+    for(int n(0); n < localPMaps.size(); ++n) {
+      localPMaps[n].resize(allBoxes[n].size() + 1, -1);
+
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
+          localPMaps[n][ir] = weights[count++];
+        }
+      }
+      ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
+
+      // Set sentinel equal to our processor number.
+      localPMaps[n][allBoxes[n].size()] = ParallelDescriptor::MyProc();
+    }
+
+    return localPMaps;
+}
+
+
 void
 DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
                                        const Array<BoxArray> &allBoxes)
@@ -1661,85 +1853,10 @@ DistributionMapping::PFCMultiLevelMap (const Array<IntVect>  &refRatio,
       }
       ++idxAll;
     }
-/*
-    Array<IntVect> cRR(nLevels, IntVect::TheUnitVector());
-    for(int level(finestLevel - 1); level >= 0; --level) {
-if(IOP) {
-  cout << "level rR[level] cRR[level + 1] = " << level << "  "
-       << refRatio[level] << "  " <<  cRR[level + 1] << endl;
-}
-      cRR[level] = refRatio[level] * cRR[level + 1];
-if(IOP) {
-  cout << "cRR[" << level << "] = " << cRR[level] << endl;
-}
-    }
 
-    for(int level(0); level < nLevels; ++level) {
-      for(int i(0), N(allBoxes[level].size()); i < N; ++i) {
-	Box box(allBoxes[level][i]);
-	Box fine(BoxLib::refine(box, cRR[level]));
-        tokens.push_back(PFCMultiLevelToken(level, idxAll, i,
-	                 box.smallEnd(), fine.smallEnd(), box.numPts()));
-      }
-      ++idxAll;
-    }
-*/
-
-if(IOP) {
-  for(int it(0); it < tokens.size(); ++it) {
-    PFCMultiLevelToken &t = tokens[it];
-    cout << "tokens[" << it << "] = " << t.m_level << "  " << t.m_idxAll << "  " 
-         << t.m_idxLevel << "  " << t.m_boxiv << "  " << t.m_fineiv << "  " 
-	 << t.m_vol << endl;
-  }
-}
 if(IOP) cout << "==============" << endl;
 ParallelDescriptor::Barrier();
     std::sort(tokens.begin(), tokens.end(), PFCMultiLevelToken::Compare());  // sfc order
-
-/*
-// ((((((((((((((((((((((
-PArray<MultiFab> dataMF(nLevels);
-Array<Real> probLo(BL_SPACEDIM, 0.0), probHi(BL_SPACEDIM, 1.0);
-Array<int> rr(refRatio.size());
-Array<Box> probDomain(nLevels);
-Array<Array<Real> > dxLevel(nLevels);
-Array<std::string> varNames(1);
-int iCount(0);
-Box pd(allBoxes[0].minimalBox());
-
-for(int iLevel(0); iLevel <= finestLevel; ++iLevel) {
-  dataMF.set(iLevel, new MultiFab(allBoxes[iLevel], 1, 0, Fab_allocate));
-  dataMF[iLevel].setVal(-42.0);
-  dxLevel[iLevel].resize(BL_SPACEDIM);
-  for(int i(0); i < dxLevel[iLevel].size(); ++i) {
-    dxLevel[iLevel][i] = iLevel + 1.0;
-  }
-  probDomain[iLevel] = pd;
-  if(iLevel < finestLevel) {
-    pd.refine(refRatio[iLevel]);
-  }
-}
-for(int i(0); i < rr.size(); ++i) {
-  rr[i] = refRatio[i][0];
-}
-varNames[0] = "tokenorder";
-
-  for(int it(0); it < tokens.size(); ++it) {
-    PFCMultiLevelToken &t = tokens[it];
-    Box b(allBoxes[t.m_level][t.m_idxLevel]);
-    dataMF[t.m_level].setVal(it, b, 0, 1);
-  }
-
-WritePlotfile("HyperCLaw-V1.1", dataMF, 0.0, probLo, probHi, rr, probDomain,
-              dxLevel, 0, "pltMLM", varNames, false);
-ParallelDescriptor::Barrier();
-DistributionMapping::FlushCache();
-ParallelDescriptor::Barrier();
-//BoxLib::Abort("after write tokenorder plotfile");
-// ))))))))))))))))))))))
-*/
-
 
     //long totalCurrentCells(0);
 
@@ -1753,7 +1870,7 @@ ParallelDescriptor::Barrier();
       for(int iProc(0); iProc < nprocs; ++iProc) {
         int  cnt(0);
         Real vol(0.0);
-	long accVol(0), oldAccVol(0);
+	long accVol(0);
         vec[iProc].reserve(Navg + 2);
 
         for(int TSZ(tokens.size()); K < TSZ &&
@@ -1762,7 +1879,6 @@ ParallelDescriptor::Barrier();
         {
             vol += tokens[K].m_vol;
             accVol += tokens[K].m_vol;
-	    oldAccVol = accVol;
             vec[iProc].push_back(K);
         }
 
@@ -1773,7 +1889,6 @@ ParallelDescriptor::Barrier();
             --K;
             vec[iProc].pop_back();
             totalvol -= tokens[K].m_vol;
-	    oldAccVol = accVol;
             accVol -= tokens[K].m_vol;
         }
 
@@ -1811,28 +1926,6 @@ ParallelDescriptor::Barrier();
 if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] << endl;
       }
     }
-
-if(ParallelDescriptor::IOProcessor()) {
-  Array<long> ncells(nprocs, 0);
-  for(int n(0); n < localPMaps.size(); ++n) {
-    for(int i(0); i < localPMaps[n].size() - 1; ++i) {
-      int index(localPMaps[n][i]);
-      ncells[index] += allBoxes[n][i].numPts();
-    }
-  }
-  static int count(0);
-  std::stringstream dfss;
-  dfss << "MLM_" << count++ << ".xgr";
-  std::ofstream bos(dfss.str().c_str());
-  for(int i(0); i < ncells.size(); ++i) {
-    bos << i << ' ' << ncells[i] << '\n';
-  }
-  bos.close();
-}
-
-ParallelDescriptor::Barrier();
-//BoxLib::Abort("test");
-
 
     tokens.clear();
     /*
@@ -1913,6 +2006,11 @@ DistributionMapping::GetProcNumber() {
 void
 DistributionMapping::InitProximityMap()
 {
+  static bool pMapInited(false);
+  if(pMapInited) {
+    return;
+  }
+
   int nProcs(ParallelDescriptor::NProcs());
   Array<int> procNumbers(nProcs, -1);
 
@@ -1942,6 +2040,7 @@ DistributionMapping::InitProximityMap()
 
   if(ParallelDescriptor::IOProcessor())
   {
+    bool bRandomClusters(false);
     Box tBox;
     FArrayBox tFab;
 #ifdef BL_SIM_HOPPER
@@ -1949,7 +2048,7 @@ DistributionMapping::InitProximityMap()
 #else
     std::ifstream ifs("topolcoords.3d.fab");
 #endif
-    if( ! ifs.good())
+    if( ! ifs.good() && ! bRandomClusters)
     {
       std::cerr << "**** In DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
@@ -1974,7 +2073,7 @@ DistributionMapping::InitProximityMap()
 #ifdef BL_SIM_HOPPER_MAKE_TCFAB
       std::ofstream ostFab("topolcoords.simhopper.3d.fab");
       tFab.writeOn(ostFab);
-      tFab.close();
+      ostFab.close();
 #endif
 
 #else
@@ -1987,6 +2086,17 @@ DistributionMapping::InitProximityMap()
       }
 #endif
 
+    } else if(bRandomClusters) {
+      if(proximityMap.size() != proximityOrder.size()) {
+        BoxLib::Abort("**** Error:  prox size bad.");
+      }
+      Array<int> rSS(proximityMap.size());
+      BoxLib::UniqueRandomSubset(rSS, proximityMap.size(), proximityMap.size());
+      for(int i(0); i < proximityMap.size(); ++i) {
+	std::cout << "rSS[" << i << "] = " << rSS[i] << std::endl;
+        proximityMap[i]   = rSS[i];
+        proximityOrder[i] = rSS[i];
+      }
     } else {
 
       tFab.readFrom(ifs);
@@ -2119,6 +2229,7 @@ DistributionMapping::InitProximityMap()
                             ParallelDescriptor::IOProcessorNumber());
   ParallelDescriptor::Bcast(proximityOrder.dataPtr(), proximityOrder.size(),
                             ParallelDescriptor::IOProcessorNumber());
+  pMapInited = true;
 }
 
 
@@ -2265,12 +2376,6 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
         bos << i << ' ' << bytes[i] << '\n';
       }
       bos.close();
-      //std::string TBP("TBP_" + filename);
-      //std::ofstream tos(TBP.c_str());
-      //for(int i(0); i < totalBoxPoints.size(); ++i) {
-        //tos << i << ' ' << totalBoxPoints[i] << '\n';
-      //}
-      //tos.close();
     }
     ParallelDescriptor::Barrier();
 }

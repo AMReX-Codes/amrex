@@ -39,7 +39,7 @@ contains
     type(bndry_reg), allocatable :: brs_flx(:)
 
     type(box   ) :: pd,pdc
-    type(layout) :: la, lac
+    type(layout) :: la
     integer :: n, dm
     integer :: mglev, mglev_crse, iter
     logical :: fine_converged
@@ -98,8 +98,7 @@ contains
        !  the residual at a non-finest AMR level.
 
        pdc = layout_get_pd(mla%la(n-1))
-       lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, nodal = nodal, other = .false.)
+       call bndry_reg_rr_build_nd(brs_flx(n), la, mla%mba%rr(n-1,:), pdc, nodal)
 
     end do
     !
@@ -189,9 +188,21 @@ contains
              call mini_cycle(mgt(n), mglev, mgt(n)%ss(mglev), &
                   uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
           else 
-             call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
-                  uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                  bottom_solve_time = bottom_solve_time)
+             if (mgt(n)%cycle_type == MG_FVCycle) then
+                if (iter == 1) then
+                    call mg_tower_cycle(mgt(n), MG_FCycle, mglev, mgt(n)%ss(mglev), &
+                         uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                else
+                    call mg_tower_cycle(mgt(n), MG_VCycle, mglev, mgt(n)%ss(mglev), &
+                         uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                end if
+             else 
+                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, mgt(n)%ss(mglev), &
+                     uu(n), res(n), mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                     bottom_solve_time = bottom_solve_time)
+             end if
           end if
 
           ! Add: soln += uu
