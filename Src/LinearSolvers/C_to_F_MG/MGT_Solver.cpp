@@ -942,369 +942,83 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
   mgt_finalize_nodal_stencil();
 }
 
-// *******************************************************************************
-// These four do *not* take a status flag
-// *******************************************************************************
-
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, Real& final_resnorm)
+void
+MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
+		  Real tol, Real abs_tol, int always_use_bnorm, 
+		  Real& final_resnorm, int need_grad_phi)
 {
-    solve(uu,rh,tol,abs_tol,bd,0,final_resnorm);
-}
+    BL_PROFILE("MGT_Solver::solve()");
 
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, int need_grad_phi, Real& final_resnorm)
-{
-  BL_PROFILE("MGT_Solver::solve(1)");
-  // Copy the boundary register values into the solution array to be copied into F90
-  int lev = 0;
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-      {
-        FArrayBox& dest = (*(uu[lev]))[umfi];
-        dest.copy(fs[umfi],fs[umfi].box());
-      }
-  }
-  uu[lev]->FillBoundary();
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+    // Copy the boundary register values into the solution array to be copied into F90
+    int lev = 0;
+    for (OrientationIter oitr; oitr; ++oitr)
     {
+	const FabSet& fs = bd.bndryValues(oitr());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
 	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
-	  const Real* rd = rhs.dataPtr();
-	  const int* rlo = rhs.box().loVect();
-	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	    FArrayBox& dest = (*(uu[lev]))[umfi];
+	    dest.copy(fs[umfi],fs[umfi].box());
 	}
     }
+    uu[lev]->FillBoundary();
 
-  // Pass in the status flag from here so we can know whehter the 
-  //      solver converged
-  int status = 0;
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-
-  if (status != 0) 
-     BoxLib::Error("Multigrid did not converge!");
-
-  int ng = 0;
-  if (need_grad_phi == 1) ng = 1;
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+    for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
 	{
-	  FArrayBox& sol = (*(uu[lev]))[umfi];
-	  Real* sd = sol.dataPtr();
-	  int n = umfi.index();
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
+	    int n = umfi.index();
+
+	    const int* lo = umfi.validbox().loVect();
+	    const int* hi = umfi.validbox().hiVect();
+	    
+	    const FArrayBox& rhs = (*(rh[lev]))[umfi];
+	    const Real* rd = rhs.dataPtr();
+	    const int* rlo = rhs.box().loVect();
+	    const int* rhi = rhs.box().hiVect();
+	    mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
+	    
+	    const FArrayBox& sol = (*(uu[lev]))[umfi];
+	    const Real* sd = sol.dataPtr();
+	    const int* slo = sol.box().loVect();
+	    const int* shi = sol.box().hiVect();
+	    mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
+	}
+    }
+    
+    // Pass in the status flag from here so we can know whether the 
+    //      solver converged
+    int status = 0;
+    mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status,&always_use_bnorm);
+
+    if (status != 0) 
+	BoxLib::Error("Multigrid did not converge!");
+
+    int ng = (need_grad_phi == 1) ? 1 : 0;
+
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
+	{
+	    FArrayBox& sol = (*(uu[lev]))[umfi];
+	    Real* sd = sol.dataPtr();
+	    int n = umfi.index();
+	    const int* lo = umfi.validbox().loVect();
+	    const int* hi = umfi.validbox().hiVect();
+	    const int* plo = sol.box().loVect();
+	    const int* phi = sol.box().hiVect();
+	    mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
 	}
     }
 }
-
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  int need_grad_phi, Real& final_resnorm)
-{
-  BL_PROFILE("MGT_Solver::solve(2)");
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
-	  const Real* rd = rhs.dataPtr();
-	  const int* rlo = rhs.box().loVect();
-	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
-	}
-    }
-
-  // Pass in the status flag from here so we can know whehter the 
-  //      solver converged
-  int status = 0;
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-
-  if (status != 0) 
-     BoxLib::Error("Multigrid did not converge!");
-
-  int ng = 0;
-  if (need_grad_phi == 1) ng = 1;
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  FArrayBox& sol = (*(uu[lev]))[umfi];
-	  Real* sd = sol.dataPtr();
-	  int n = umfi.index();
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
-	}
-    }
-}
-
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData bd[], int need_grad_phi, Real& final_resnorm)
-{
-  BL_PROFILE("MGT_Solver::solve(3)");
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      // Copy the boundary register values into the solution array to
-      // be copied into F90
-      
-      for (OrientationIter oitr; oitr; ++oitr)
-	{
-	  const FabSet& fs = bd[lev].bndryValues(oitr());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	  for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	    {
-	      FArrayBox& dest = (*(uu[lev]))[umfi];
-	      dest.copy(fs[umfi],fs[umfi].box());
-	    }
-	}
-    }
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
-	  const Real* rd = rhs.dataPtr();
-	  const int* rlo = rhs.box().loVect();
-	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
-	}
-    }
-
-  // Pass in the status flag from here so we can know whehter the 
-  //      solver converged
-  int status = 0;
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-
-  if (status != 0) 
-     BoxLib::Error("Multigrid did not converge!");
-
-  int ng = 0;
-  if (need_grad_phi == 1) ng = 1;
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  FArrayBox& sol = (*(uu[lev]))[umfi];
-	  Real* sd = sol.dataPtr();
-	  int n = umfi.index();
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
-	}
-    }
-}
- 
-// *******************************************************************************
-// These two take a status flag
-// *******************************************************************************
-
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  const BndryData& bd, int need_grad_phi, Real& final_resnorm, int& status)
-{
-  BL_PROFILE("MGT_Solver::solve(4)");
-  // Copy the boundary register values into the solution array to be copied into F90
-  int lev = 0;
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-      {
-        FArrayBox& dest = (*(uu[lev]))[umfi];
-        dest.copy(fs[umfi],fs[umfi].box());
-      }
-  }
-  uu[lev]->FillBoundary();
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
-	  const Real* rd = rhs.dataPtr();
-	  const int* rlo = rhs.box().loVect();
-	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
-	}
-    }
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-  if (status == 1) return;
-
-  int ng = 0;
-  if (need_grad_phi == 1) ng = 1;
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  FArrayBox& sol = (*(uu[lev]))[umfi];
-	  Real* sd = sol.dataPtr();
-	  int n = umfi.index();
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
-	}
-    }
-}
-
-void 
-MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const Real& tol, const Real& abs_tol,
-                  int need_grad_phi, Real& final_resnorm,int& status)
-{
-  BL_PROFILE("MGT_Solver::solve(5)");
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& rhs = (*(rh[lev]))[umfi];
-	  const Real* rd = rhs.dataPtr();
-	  const int* rlo = rhs.box().loVect();
-	  const int* rhi = rhs.box().hiVect();
-	  mgt_set_rh(&lev, &n, rd, rlo, rhi, lo, hi);
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
-	}
-    }
-
-  mgt_solve(tol,abs_tol,&need_grad_phi,&final_resnorm,&status);
-  if (status == 1) return;
-
-  int ng = 0;
-  if (need_grad_phi == 1) ng = 1;
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  FArrayBox& sol = (*(uu[lev]))[umfi];
-	  Real* sd = sol.dataPtr();
-	  int n = umfi.index();
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  mgt_get_uu(&lev, &n, sd, plo, phi, lo, hi, &ng);
-	}
-    }
-}
- 
-// *******************************************************************************
-// End of solve options
-// *******************************************************************************
 
 void 
 MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
@@ -1324,70 +1038,6 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
       }
   }
   uu[lev]->FillBoundary();
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	{
-	  int n = umfi.index();
-
-	  const int* lo = umfi.validbox().loVect();
-	  const int* hi = umfi.validbox().hiVect();
-
-	  const FArrayBox& sol = (*(uu[lev]))[umfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
-	  mgt_set_uu(&lev, &n, sd, slo, shi, lo, hi);
-	}
-    }
-
-  mgt_applyop();
-
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(*(res[lev])); mfi.isValid(); ++mfi)
-	{
-	  FArrayBox& resfab = (*(res[lev]))[mfi];
-	  Real* rd = resfab.dataPtr();
-	  int n = mfi.index();
-	  const int* lo = mfi.validbox().loVect();
-	  const int* hi = mfi.validbox().hiVect();
-	  const int* rlo = resfab.box().loVect();
-	  const int* rhi = resfab.box().hiVect();
-	  mgt_get_res(&lev, &n, rd, rlo, rhi, lo, hi);
-	}
-    }
-}
-
-void 
-MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData bd[])
-{
-  // Copy the boundary register values into the solution array to be
-  // copied into F90
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      // Copy the boundary register values into the solution array to be copied into F90
-      for (OrientationIter oitr; oitr; ++oitr)
-	{
-	  const FabSet& fs = bd[lev].bndryValues(oitr());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	  for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-	    {
-	      FArrayBox& dest = (*(uu[lev]))[umfi];
-	      dest.copy(fs[umfi],fs[umfi].box());
-	    }
-	}
-      uu[lev]->FillBoundary();
-    }
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
