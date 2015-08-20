@@ -487,8 +487,7 @@ public:
     // TODO: allow it to send only selected components
     //
 #ifdef BL_USE_MPI
-    static void SendMultiFabToSidecars(MultiFab *MF_comp,
-                                       MultiFab *MF_sidecar);
+    static void SendMultiFabToSidecars(MultiFab *mf);
 #endif
 
 private:

@@ -160,8 +160,9 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
     bndry.setBndryValues(soln[0], 0, 0, 1, phys_bc); 
     // does this work for Neumann?
 
+    int always_use_bnorm = 0;
     Real final_resnorm;
-    mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
+    mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
  
   }
   else {
@@ -220,7 +221,8 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       }
 
       Real final_resnorm;
-      mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
+      int always_use_bnorm = 0;
+      mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
     }
   }
 

@@ -15,6 +15,7 @@ module mg_tower_module
   integer, parameter :: MG_FCycle = 1
   integer, parameter :: MG_WCycle = 2
   integer, parameter :: MG_VCycle = 3
+  integer, parameter :: MG_FVCycle = 4
 
   type mg_tower
 
@@ -60,6 +61,7 @@ module mg_tower_module
      ! good for many problems
      integer :: max_iter = 50
      logical :: abort_on_max_iter = .true.
+     logical :: always_use_bnorm  = .false.
      real(kind=dp_t) ::     eps = 1.0e-10_dp_t
      real(kind=dp_t) :: abs_eps = -ONE
 

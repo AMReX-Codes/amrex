@@ -588,8 +588,9 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   MacBndry bndry(bs,1,geom);
   bndry.setBndryValues(soln,0,0,1,phys_bc);
   
+  int always_use_bnorm = 0;
   Real final_resnorm;
-  mgt_solver.solve(soln_p, rhs_p, tolerance_rel, tolerance_abs, bndry, final_resnorm);
+  mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
 }
 #endif
 

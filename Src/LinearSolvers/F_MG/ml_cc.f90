@@ -98,10 +98,8 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc, &
-            width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, &
-            width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, mla%mba%rr(n-1,:), pdc, width = 2)
+       call  flux_reg_build   (brs_flx(n), la, lac, mla%mba%rr(n-1,:), pdc)
 
     end do
 
@@ -132,7 +130,8 @@ contains
        call multifab_fill_boundary(full_soln(n-1))
        call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
        call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-            mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+            mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+            brs_bcs(n)%uncovered)
     end do
 
     call multifab_fill_boundary(full_soln(nlevs))
@@ -218,12 +217,12 @@ contains
     !  Define norm to be used for convergence testing that is the maximum
     !    of bnorm (norm of rhs) and tres0 (norm of resid0)
     ! ************************************************************************
-
-    max_norm = max(bnorm,tres0)
-    if (tres0 .gt. bnorm) then
-      using_bnorm = .false.
+    if (mgt(1)%always_use_bnorm .or. bnorm .ge. tres0) then
+       max_norm = bnorm
+       using_bnorm = .true.
     else
-      using_bnorm = .true.
+       max_norm = tres0
+       using_bnorm = .false.
     end if
 
     fine_converged = .false.
@@ -327,10 +326,33 @@ contains
                      mgt(n)%ss(mglev), uu(n), res(n), &
                      mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2)
              else
-                call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
-                     mgt(n)%ss(mglev), uu(n), res(n), &
-                     mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
-                     bottom_solve_time = bottom_solve_time)
+                if (mgt(n)%cycle_type == MG_FVCycle) then
+                    if (iter == 1) then
+                        mgt(1)%use_lininterp = .true.
+                        call mg_tower_cycle(mgt(n), MG_FCycle, mglev, &
+                             mgt(n)%ss(mglev), uu(n), res(n), &
+                             mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                             bottom_solve_time = bottom_solve_time)
+                    else
+                        mgt(1)%use_lininterp = .false.
+                        call mg_tower_cycle(mgt(n), MG_VCycle, mglev, &
+                             mgt(n)%ss(mglev), uu(n), res(n), &
+                             mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                             bottom_solve_time = bottom_solve_time)
+                    end if
+                else if (mgt(n)%cycle_type == MG_VCycle) then
+                    mgt(1)%use_lininterp = .false.
+                    call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                         mgt(n)%ss(mglev), uu(n), res(n), &
+                         mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                else if (mgt(n)%cycle_type == MG_FCycle) then
+                    mgt(1)%use_lininterp = .true.
+                    call mg_tower_cycle(mgt(n), mgt(n)%cycle_type, mglev, &
+                         mgt(n)%ss(mglev), uu(n), res(n), &
+                         mgt(n)%mm(mglev), mgt(n)%nu1, mgt(n)%nu2, &
+                         bottom_solve_time = bottom_solve_time)
+                end if
              end if
              call bl_proffortfuncstop("ml_cc:Relax")
 
@@ -419,7 +441,8 @@ contains
              call bndry_reg_copy(brs_bcs(n), uu(n-1))
              ng_fill = nghost(uu(n))
              call ml_interp_bcs(uu(n), brs_bcs(n)%bmf(1,0), pd, &
-                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+                  brs_bcs(n)%uncovered)
              call multifab_fill_boundary(uu(n))
 
              ! Compute Res = Res - Lap(uu)
@@ -481,7 +504,8 @@ contains
              call multifab_fill_boundary(full_soln(n-1))
              call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+                  mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+                  brs_bcs(n)%uncovered)
           end do
 
           call multifab_fill_boundary(full_soln(nlevs))
@@ -641,7 +665,8 @@ contains
           call multifab_fill_boundary(full_soln(n-1))
           call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-               mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+               mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+               brs_bcs(n)%uncovered)
        end do
 
        call multifab_fill_boundary(full_soln(nlevs))
@@ -699,9 +724,9 @@ contains
       r = ( ni_res <= rel_eps*(max_norm) .or. ni_res <= abs_eps )
       if ( r .and. parallel_IOProcessor() .and. verbose > 1) then
          if ( ni_res <= rel_eps*max_norm ) then
-            print *,'Converged res < rel_eps*max_norm '
+            print *,'Converged res < rel_eps*max_norm ', ni_res, rel_eps
          else if ( ni_res <= abs_eps ) then
-            print *,'Converged res < abs_eps '
+            print *,'Converged res < abs_eps ', ni_res, abs_eps
          end if
       end if
     end function ml_converged

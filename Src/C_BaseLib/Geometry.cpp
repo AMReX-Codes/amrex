@@ -1117,26 +1117,46 @@ Geometry::PIRMCacheSize ()
 
 #ifdef BL_USE_MPI
 void
-Geometry::SendGeometryToSidecars (Box*     baseBox,
-                                  RealBox* realBox,
-                                  int*       coord,
-                                  int* is_periodic,
-                                  Geometry*   geom)
+Geometry::SendGeometryToSidecars (Geometry *geom)
 {
+
+  int coord;
+  int is_periodic[BL_SPACEDIM];
+
   if (ParallelDescriptor::Communicator() == ParallelDescriptor::CommunicatorComp())
   {
-
     // Data to construct base Box
-    const int *box_index_type = baseBox->type().getVect();
-    const int *smallEnd = baseBox->smallEnd().getVect();
-    const int *bigEnd = baseBox->bigEnd().getVect();
+    const Box& baseBox = geom->Domain();
+    const int *box_index_type = baseBox.type().getVect();
+    const int *smallEnd = baseBox.smallEnd().getVect();
+    const int *bigEnd = baseBox.bigEnd().getVect();
 
     // Data to construct RealBox
-    const Real *realBox_lo = realBox->lo();
-    const Real *realBox_hi = realBox->hi();
+    const RealBox& realBox = geom->ProbDomain();
+    const Real *realBox_lo = realBox.lo();
+    const Real *realBox_hi = realBox.hi();
+
+    CoordType coordtype = geom->Coord();
+    // UGHHH STOP USING ENUMS IN MPI CODE. IT DESTROYS LIVES.
+    int coord;
+    switch (coordtype)
+    {
+        case undef:
+            coord = -1;
+            break;
+        case cartesian:
+            coord = 0;
+            break;
+        case RZ:
+            coord = 1;
+            break;
+        case SPHERICAL:
+            coord = 2;
+            break;
+    }
 
     if (ParallelDescriptor::IOProcessor()) {
-      // Step 1: send the base box
+      // Step 1: send the base Box
       ParallelDescriptor::Bcast((int *)box_index_type, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast((int *)smallEnd      , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast((int *)bigEnd        , BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
@@ -1146,7 +1166,7 @@ Geometry::SendGeometryToSidecars (Box*     baseBox,
       ParallelDescriptor::Bcast((Real *) realBox_hi, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
 
       // Step 3: send the coordinates
-      ParallelDescriptor::Bcast(coord, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(&coord, 1, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
 
       // Step 4: send the periodicity flags
       ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_ROOT, ParallelDescriptor::CommunicatorInter());
@@ -1160,7 +1180,7 @@ Geometry::SendGeometryToSidecars (Box*     baseBox,
       ParallelDescriptor::Bcast((Real *)realBox_lo, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast((Real *)realBox_hi, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
 
-      ParallelDescriptor::Bcast(coord, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(&coord, 1, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
 
       ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_PROC_NULL, ParallelDescriptor::CommunicatorInter());
     }
@@ -1181,7 +1201,7 @@ Geometry::SendGeometryToSidecars (Box*     baseBox,
     ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
     ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
 
-    ParallelDescriptor::Bcast(coord, 1, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(&coord, 1, 0, ParallelDescriptor::CommunicatorInter());
 
     ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
 
@@ -1191,12 +1211,13 @@ Geometry::SendGeometryToSidecars (Box*     baseBox,
     IntVect box_index_type_IV(box_index_type);
     Box baseBox(smallEnd_IV, bigEnd_IV, box_index_type_IV);
 
+    RealBox realBox;
     for (int n = 0; n < BL_SPACEDIM; n++) {
-      realBox->setLo(n, realBox_lo[n]);
-      realBox->setHi(n, realBox_hi[n]);
+      realBox.setLo(n, realBox_lo[n]);
+      realBox.setHi(n, realBox_hi[n]);
     }
 
-    geom->define(baseBox, realBox, *coord, is_periodic);
+    geom->define(baseBox, &realBox, coord, is_periodic);
   }
 }
 #endif
