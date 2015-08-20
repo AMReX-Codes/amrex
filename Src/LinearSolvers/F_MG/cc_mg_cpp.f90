@@ -1366,7 +1366,7 @@ subroutine mgt_dealloc()
   call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 end subroutine mgt_dealloc
 
-subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
+subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status,always_use_bnorm)
   use cpp_mg_module
   use ml_cc_module
   use fabio_module
@@ -1375,6 +1375,7 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
   integer        , intent(in   ) :: needgradphi
   real(kind=dp_t), intent(  out) :: final_resnorm
   integer        , intent(  out) :: status
+  integer        , intent(in   ) :: always_use_bnorm
 
   integer :: do_diag
   logical :: lneedgradphi
@@ -1393,6 +1394,8 @@ subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status)
 
   mgts%mgt%eps     = tol
   mgts%mgt%abs_eps = abs_tol
+
+  mgts%mgt%always_use_bnorm = always_use_bnorm .ne. 0
 
   call ml_cc(mgts%mla, mgts%mgt, &
        mgts%rh, mgts%uu, &

@@ -217,12 +217,12 @@ contains
     !  Define norm to be used for convergence testing that is the maximum
     !    of bnorm (norm of rhs) and tres0 (norm of resid0)
     ! ************************************************************************
-    if (tres0 .gt. bnorm) then
-       max_norm = tres0
-       using_bnorm = .false.
-    else
+    if (mgt(1)%always_use_bnorm .or. bnorm .ge. tres0) then
        max_norm = bnorm
        using_bnorm = .true.
+    else
+       max_norm = tres0
+       using_bnorm = .false.
     end if
 
     fine_converged = .false.
