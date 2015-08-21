@@ -75,6 +75,11 @@ class DistributionMapping
     //
     void define (const BoxArray& boxes, int nprocs);
     //
+    // Build mapping out of an Array of ints. You need to call this if you
+    // built your DistributionMapping with the default constructor.
+    //
+    void define (const Array<int>& pmap);
+    //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
     // ProcessorMap()[i] is an integer in the interval [0, NCPU) where
@@ -202,6 +207,10 @@ class DistributionMapping
 
     static int NDistMaps() { return nDistMaps; }
     int DistMapID() const { return dmID; }
+
+#ifdef BL_USE_MPI
+    static void SendDistributionMappingToSidecars(DistributionMapping *dm);
+#endif
 
 private:
     //
