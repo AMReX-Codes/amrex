@@ -4,14 +4,15 @@
 
 #ifdef BL_USE_CXX11
 #include <unordered_map>
-#else
-#include <map>
 #endif
+
+#include <map>
 
 namespace
 {
 #ifdef BL_USE_CXX11
   typedef std::unordered_multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
+  // typedef std::multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
 #else
   typedef std::multimap< upcxx::rank_t, BLPgas::SendInfo > pgas_send_info_map_t;
 #endif
@@ -109,7 +110,8 @@ BLPgas::Send(upcxx::global_ptr<void> src,
                             send_info.dst_ptr,
                             send_info.nbytes,
                             send_info.signal_event,
-                            send_info.done_event);
+                            send_info.done_event,
+                            NULL);
 
       (*send_info.send_counter)++;
       // Delete the send_info from the map
