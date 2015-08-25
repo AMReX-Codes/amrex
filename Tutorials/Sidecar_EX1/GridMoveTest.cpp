@@ -26,20 +26,26 @@ int main(int argc, char *argv[]) {
     // TODO: change Initialize() so that we can read # of sidecars from an
     // inputs file.
 
+#ifdef IN_TRANSIT
     const int nSidecarProcs(2);
     ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+#endif
 
     BoxLib::Initialize(argc,argv);
 
     // The sidecar group has already called BoxLib::Finalize() by the time we
     // are out of BoxLib::Initialize(), so make them quit immediately.
     // Everything below this point is done on the compute group only.
+#ifdef IN_TRANSIT
     if (ParallelDescriptor::InSidecarGroup())
         return 0;
+#endif
 
     // A flag you need for broadcasting across MPI groups. We always broadcast
     // the data to the sidecar group from the IOProcessor on the compute group.
+#ifdef IN_TRANSIT
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+#endif
 
     int maxGrid;
     int nComp;
@@ -84,6 +90,7 @@ int main(int argc, char *argv[]) {
     // This defines a Geometry object which is useful for writing the plotfiles
     Geometry geom(baseBox, &real_box, coord, is_per);
 
+#ifdef IN_TRANSIT
     // The signal for telling the sidecars what to do.
     int signal;
 
@@ -106,6 +113,7 @@ int main(int argc, char *argv[]) {
     // waiting for signals for more work to do.
     signal = ParallelDescriptor::QuitSignal;
     ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+#endif
 
     BoxLib::Finalize();
     return 0;
