@@ -51,7 +51,8 @@ namespace BLPgas
             upcxx::event *done_event,
             int *send_counter);
 
-  void Request(upcxx::global_ptr<void> dst_ptr,
+  void Request(upcxx::rank_t src_rank,
+	       upcxx::global_ptr<void> dst_ptr,
                size_t nbytes,
                int SeqNum,
                upcxx::event *signal_event);
