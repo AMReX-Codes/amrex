@@ -10,7 +10,6 @@
 #include <Box.H>
 #endif
 #include <ccse-mpi.H>
-#include <Analysis.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -541,12 +540,6 @@ namespace ParallelDescriptor
     // Starts sidecar processes for doing on-the-fly simulation analysis.
     //
     void SidecarProcess ();
-
-    // Various signals to send to the sidecar group.
-    static const int NyxHaloFinderSignal = 42;
-    static const int QuitSignal = -1;
-
-    extern AnalysisContainer *analysis;
 }
 
 #define BL_MPI_REQUIRE(x)						\

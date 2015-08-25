@@ -73,8 +73,6 @@ namespace ParallelDescriptor
 	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
-
-    AnalysisContainer *analysis;
 }
 
 #ifndef BL_AMRPROF
@@ -1656,68 +1654,60 @@ ParallelDescriptor::SidecarProcess ()
 #ifdef BL_USE_MPI
     bool finished(false);
     int signal(-1);
-    ParallelDescriptor::analysis = new AnalysisContainer;
+    Analysis::analysis = new AnalysisContainer;
     while (!finished)
     {
         // Receive the signal from the compute group.
         ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
-        switch (signal)
+        if (signal == Analysis::QuitSignal)
         {
-            case (ParallelDescriptor::QuitSignal):
-            {
-                if (ParallelDescriptor::IOProcessor())
-                    std::cout << "Sidecars received the quit signal." << std::endl;
-                finished = true;
-                break;
-            }
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars received the quit signal." << std::endl;
+            finished = true;
+        }
+        else if (signal == Analysis::NyxHaloFinderSignal)
+        {
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
 
-            case (ParallelDescriptor::NyxHaloFinderSignal):
-            {
-                if (ParallelDescriptor::IOProcessor())
-                    std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
+            MultiFab *mf = new MultiFab;
+            Geometry *geom = new Geometry;
 
-                MultiFab *mf = new MultiFab;
-                Geometry *geom = new Geometry;
+            int time_step;
 
-                int time_step;
+            // Receive the necessary data for doing analysis.
+            MultiFab::SendMultiFabToSidecars(mf);
+            Geometry::SendGeometryToSidecars(geom);
+            ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
 
-                // Receive the necessary data for doing analysis.
-                MultiFab::SendMultiFabToSidecars(mf);
-                Geometry::SendGeometryToSidecars(geom);
-                ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+            InTransitAnalysis ita(*mf, *geom, time_step);
+            Analysis::analysis->connectCallback(&ita);
 
-                InTransitAnalysis ita(*mf, *geom, time_step);
-                ParallelDescriptor::analysis->connectCallback(&ita);
+            // We will call 3 pure virtual functions from the Analysis base
+            // class: Initialize(), DoAnalysis(), and Finalize().
+            // Initialization could also be done in the derived class
+            // constructor, in which case the user can just make Initialize()
+            // do nothing. Similarly, Finalize() doesn't need to do anything
+            // either if all the work is completed in DoAnalysis().
 
-                // We will call 3 pure virtual functions from the Analysis base
-                // class: Initialize(), DoAnalysis(), and Finalize().
-                // Initialization could also be done in the derived class
-                // constructor, in which case the user can just make Initialize()
-                // do nothing. Similarly, Finalize() doesn't need to do anything
-                // either if all the work is completed in DoAnalysis().
+            Analysis::analysis->Initialize();
+            Analysis::analysis->DoAnalysis();
+            Analysis::analysis->Finalize();
 
-                ParallelDescriptor::analysis->Initialize();
-                ParallelDescriptor::analysis->DoAnalysis();
-                ParallelDescriptor::analysis->Finalize();
+            delete mf;
+            delete geom;
 
-                delete mf;
-                delete geom;
-
-                if (ParallelDescriptor::IOProcessor())
-                    std::cout << "Sidecars completed analysis." << std::endl;
-                break;
-            }
-
-            default:
-            {
-                std::stringstream ss_error_msg;
-                ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
-                BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
-                break;
-            }
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars completed analysis." << std::endl;
+        }
+        else
+        {
+            std::stringstream ss_error_msg;
+            ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
+            BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
         }
     }
-    delete ParallelDescriptor::analysis;
+    delete Analysis::analysis;
 #endif
 #endif
     if (ParallelDescriptor::IOProcessor())
