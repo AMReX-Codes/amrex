@@ -1,9 +1,0 @@
-CEXE_sources += main.cpp
-
-CEXE_sources += SMC.cpp
-CEXE_sources += SMCBld.cpp
-CEXE_sources += SMC_advance.cpp
-CEXE_sources += SMC_setup.cpp
-CEXE_sources += SMC_io.cpp
-
-CEXE_headers += SMC.H
