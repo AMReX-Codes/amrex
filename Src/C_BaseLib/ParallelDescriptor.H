@@ -546,7 +546,7 @@ namespace ParallelDescriptor
     static const int NyxHaloFinderSignal = 42;
     static const int QuitSignal = -1;
 
-    extern Analysis *analysis;
+    extern AnalysisContainer *analysis;
 }
 
 #define BL_MPI_REQUIRE(x)						\

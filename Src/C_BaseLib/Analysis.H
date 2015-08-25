@@ -16,7 +16,7 @@ class AnalysisCallbackInterface
         virtual void Finalize () = 0;
 };
 
-class Analysis
+class AnalysisContainer
 {
     public:
         void connectCallback(AnalysisCallbackInterface *aci) { m_aci = aci; }
