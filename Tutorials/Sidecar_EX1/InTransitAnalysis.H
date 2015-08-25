@@ -2,14 +2,11 @@
 #define INTRANSITANALYSIS_H
 
 #include <Analysis.H>
-#include <Geometry.H>
-#include <MultiFab.H>
 
 class InTransitAnalysis: public AnalysisCallbackInterface
 {
     public:
-        InTransitAnalysis (MultiFab&, Geometry&, int);
-        void Initialize ();
+        void Initialize (MultiFab&, Geometry&, int);
         void DoAnalysis ();
         void Finalize ();
         void PrintResults () const;
