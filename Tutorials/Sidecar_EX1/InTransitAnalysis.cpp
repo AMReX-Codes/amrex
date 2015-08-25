@@ -1,21 +1,17 @@
 #include <iostream>
 
-#include <MultiFab.H>
 #include <ParallelDescriptor.H>
 
 #include <InTransitAnalysis.H>
 
-InTransitAnalysis::InTransitAnalysis (MultiFab &mf_in, Geometry &geom_in, int time_step_in)
-    : mf(&mf_in),
-      geom(&geom_in),
-      time_step(time_step_in)
-{
-};
-
-void InTransitAnalysis::Initialize ()
+void InTransitAnalysis::Initialize (MultiFab &mf_in, Geometry &geom_in, int time_step_in)
 {
     if (ParallelDescriptor::IOProcessor())
         std::cout << "InTransitAnalysis class is initializing ..." << std::endl;
+
+    mf = &mf_in;
+    geom = &geom_in;
+    time_step = time_step_in;
 };
 
 void InTransitAnalysis::DoAnalysis ()

@@ -1680,17 +1680,10 @@ ParallelDescriptor::SidecarProcess ()
             Geometry::SendGeometryToSidecars(geom);
             ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
 
-            InTransitAnalysis ita(*mf, *geom, time_step);
+            InTransitAnalysis ita;
+            ita.Initialize(*mf, *geom, time_step);
             Analysis::analysis->connectCallback(&ita);
 
-            // We will call 3 pure virtual functions from the Analysis base
-            // class: Initialize(), DoAnalysis(), and Finalize().
-            // Initialization could also be done in the derived class
-            // constructor, in which case the user can just make Initialize()
-            // do nothing. Similarly, Finalize() doesn't need to do anything
-            // either if all the work is completed in DoAnalysis().
-
-            Analysis::analysis->Initialize();
             Analysis::analysis->DoAnalysis();
             Analysis::analysis->Finalize();
 
