@@ -74,7 +74,7 @@ namespace ParallelDescriptor
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
 
-    Analysis *analysis;
+    AnalysisContainer *analysis;
 }
 
 #ifndef BL_AMRPROF
@@ -1656,7 +1656,7 @@ ParallelDescriptor::SidecarProcess ()
 #ifdef BL_USE_MPI
     bool finished(false);
     int signal(-1);
-    ParallelDescriptor::analysis = new Analysis;
+    ParallelDescriptor::analysis = new AnalysisContainer;
     while (!finished)
     {
         // Receive the signal from the compute group.
