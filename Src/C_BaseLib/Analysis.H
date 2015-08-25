@@ -29,4 +29,13 @@ class AnalysisContainer
         AnalysisCallbackInterface *m_aci;
 };
 
+namespace Analysis
+{
+    // Various signals to send to the sidecar group.
+    const extern int NyxHaloFinderSignal;
+    const extern int QuitSignal;
+
+    extern AnalysisContainer *analysis;
+}
+
 #endif /* BL_ANALYSIS_H */

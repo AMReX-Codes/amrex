@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cmath>
 
+#include <Analysis.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
     int signal;
 
     // Pretend we're doing a halo-finding analysis for Nyx.
-    signal = ParallelDescriptor::NyxHaloFinderSignal;
+    signal = Analysis::NyxHaloFinderSignal;
 
     // Pretend we're looping over time steps.
     for (unsigned int i = 0; i < 20; ++i)
@@ -111,7 +112,7 @@ int main(int argc, char *argv[]) {
 
     // Don't forget to tell the sidecars to quit! Otherwise they'll keep
     // waiting for signals for more work to do.
-    signal = ParallelDescriptor::QuitSignal;
+    signal = Analysis::QuitSignal;
     ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 #endif
 
