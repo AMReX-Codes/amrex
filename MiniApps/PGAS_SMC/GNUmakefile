@@ -1,5 +1,25 @@
-# TOP defines the directory in which we will find Source, Exec, etc
-TOP = ../..
+
+BOXLIB_HOME ?= ../..
+
+# compilation options
+COMP    = g++
+FCOMP   = gfortran
+
+USE_MPI   = TRUE
+USE_UPCXX = TRUE
+
+USE_OMP   = FALSE
+
+PROFILE   = FALSE
+
+PRECISION = DOUBLE
+
+DEBUG     = FALSE
+
+DIM      = 3
+
+Bpack := ./Make.package
+Blocs := .
 
 EBASE = SMC
 
@@ -8,15 +28,11 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 all: $(executable)
 	@echo SUCCESS
 
-Bdirs 	:= Source
-Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
-Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
-
 include $(Bpack)
 INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
-Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib
+Pdirs 	:= C_BaseLib
 Ppack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
 Plocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
 
