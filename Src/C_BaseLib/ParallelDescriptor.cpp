@@ -1676,11 +1676,8 @@ ParallelDescriptor::SidecarProcess ()
                 if (ParallelDescriptor::IOProcessor())
                     std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
 
-                MultiFab *mf;
-                Geometry *geom;
-
-                mf = new MultiFab;
-                geom = new Geometry;
+                MultiFab *mf = new MultiFab;
+                Geometry *geom = new Geometry;
 
                 int time_step;
 
