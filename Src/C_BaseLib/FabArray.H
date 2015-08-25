@@ -3130,10 +3130,9 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
       BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                   upcxx::global_ptr<void>(NULL, send_rank[i]),
+                   send_rank[i],
                    send_N[i]*sizeof(value_type),
                    SeqNum,
-                   NULL,
                    &BLPgas::fb_send_event,
                    &BLPgas::fb_send_counter);
 #else
@@ -3321,14 +3320,11 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
       // Increment the event reference before launching the remote task
       recv_event->incref();
       // Launch a remote task on the sender to send me data
-      upcxx::async(m_it->first)(BLPgas::Send,
-                                upcxx::global_ptr<void>(NULL, m_it->first),
-                                dst_ptr,
-                                N*sizeof(T2),
-                                SeqNum,
-                                recv_event,
-                                (upcxx::event*)NULL,
-                                (int *)NULL);
+      BLPgas::Request(m_it->first,
+                      dst_ptr,
+                      N*sizeof(T2),
+                      SeqNum,
+                      recv_event);
       upcxx::advance(); // poll the UPC++ progress engine and the network
       Offset += N;
     }

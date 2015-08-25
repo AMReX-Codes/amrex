@@ -33,29 +33,73 @@ namespace BLPgas {
  * \brief send a message using PGAS one-sided communication
  *
  * BLPgas::Send is a drop-in replacement of MPI_Isend for non-blocking
- * communication.  It uses an Active Receive (Sender Side Tag Matching)
- * protocol to perform point-to-point message passing as follows.  The
- * receiver first sends its recv request (recv buffer address, message
- * size and tag) to the sender.  The sender does a simple tag matching with
- * the recv request and then initiate an one-sided put operation to transfer
- * the message from the send buffer to the recv buffer.
+ * communication. It uses an Active Receive (Sender Side Tag Matching)
+ * protocol to perform point-to-point message passing as follows. The
+ * receiver sends its recv request (recv buffer address, message size
+ * and tag) to the sender using BLPgas::Request. The sender does a
+ * simple tag matching with the recv request and then initiate an
+ * one-sided put operation to transfer the message from the send
+ * buffer to the recv buffer.
  *
  * @param src the source (send) buffer address
- * @param dst the destination (recv) buffer address
+ * @param dst_rank the destination rank
  * @param nbytes number of bytes for the message
  * @param SeqNum the BoxLib internal sequence number of message
- * @param signal_event for notifying the receiver when the data transfer is done
  * @param done_event for notifying the sender when the data transfer is done
  * @param send_counter increment the counter only if the message is sent out
  */
 void
 BLPgas::Send(upcxx::global_ptr<void> src,
-             upcxx::global_ptr<void> dst,
+             upcxx::rank_t dst_rank,
              size_t nbytes,
              int SeqNum,
-             upcxx::event *signal_event,
              upcxx::event *done_event,
              int *send_counter)
+{
+  BLPgas::Sendrecv(src, upcxx::global_ptr<void>(NULL, dst_rank),
+                   nbytes, SeqNum, (upcxx::event*)NULL, done_event,
+                   send_counter);
+}
+
+/**
+ * \brief receive a message using PGAS one-sided communication
+ *
+ * BLPgas::Request is a drop-in replacement of MPI_Irecv for
+ * non-blocking communication. It uses an Active Receive (Sender Side
+ * Tag Matching) protocol to perform point-to-point message passing as
+ * follows. The receiver sends its recv request (recv buffer address,
+ * message size and tag) to the sender. The sender calls BLPgas::Send
+ * to do a simple tag matching with the recv request and then initiate
+ * an one-sided put operation to transfer the message from the send
+ * buffer to the recv buffer.
+ *
+ * @param src_rank the source rank
+ * @param dst the destination (recv) buffer address
+ * @param nbytes number of bytes for the message
+ * @param SeqNum the BoxLib internal sequence number of message
+ * @param signal_event for notifying the receiver when the data transfer is done
+ */
+void
+BLPgas::Request(upcxx::rank_t src_rank,
+                upcxx::global_ptr<void> dst,
+                size_t nbytes,
+                int SeqNum,
+                upcxx::event *signal_event)
+{
+  upcxx::async(src)(BLPgas::Sendrecv,
+                    upcxx::global_ptr<void>(NULL, src_rank), dst,
+                    nbytes, SeqNum, signal_event, (upcxx::event*)NULL,
+                    (int *)NULL);
+}
+
+void
+BLPgas::SendRecv(upcxx::global_ptr<void> src,
+                 upcxx::global_ptr<void> dst,
+                 size_t nbytes,
+                 int SeqNum,
+                 upcxx::event *signal_event,
+                 upcxx::event *done_event,
+                 int *send_counter)
 {
 #ifdef DEBUG
   std::cout << "myrank " << myrank() << " pgas_send: src " << src

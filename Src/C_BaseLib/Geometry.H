@@ -688,12 +688,11 @@ namespace BoxLib
 	for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                   upcxx::global_ptr<void>(NULL, send_rank[i]),
-                   send_N[i]*sizeof(value_type),
-                   SeqNum,
-                   NULL,
-                   &BLPgas::fpb_send_event,
-                   &BLPgas::fpb_send_counter);
+                         send_rank[i],
+                         send_N[i]*sizeof(value_type),
+                         SeqNum,
+                         &BLPgas::fpb_send_event,
+                         &BLPgas::fpb_send_counter);
 #else
 	    send_reqs.push_back(ParallelDescriptor::Asend
                           (send_data[i],send_N[i],send_rank[i],SeqNum).req());

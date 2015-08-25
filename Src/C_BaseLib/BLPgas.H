@@ -45,12 +45,24 @@ namespace BLPgas
   };
 
   void Send(upcxx::global_ptr<void> src_ptr,
-            upcxx::global_ptr<void> dst_ptr,
+            upcxx::rank_t dst_rank,
             size_t nbytes,
             int SeqNum,
-            upcxx::event *signal_event,
             upcxx::event *done_event,
             int *send_counter);
+
+  void Request(upcxx::global_ptr<void> dst_ptr,
+               size_t nbytes,
+               int SeqNum,
+               upcxx::event *signal_event);
+
+  void Sendrecv(upcxx::global_ptr<void> src_ptr,
+                upcxx::global_ptr<void> dst_ptr,
+                size_t nbytes,
+                int SeqNum,
+                upcxx::event *signal_event,
+                upcxx::event *done_event,
+                int *send_counter);
 
   extern upcxx::event fb_send_event;
   extern upcxx::event fb_recv_event;
