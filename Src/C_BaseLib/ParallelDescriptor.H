@@ -10,6 +10,7 @@
 #include <Box.H>
 #endif
 #include <ccse-mpi.H>
+#include <Analysis.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -536,6 +537,16 @@ namespace ParallelDescriptor
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
+    //
+    // Starts sidecar processes for doing on-the-fly simulation analysis.
+    //
+    void SidecarProcess ();
+
+    // Various signals to send to the sidecar group.
+    static const int NyxHaloFinderSignal = 42;
+    static const int QuitSignal = -1;
+
+    extern Analysis *analysis;
 }
 
 #define BL_MPI_REQUIRE(x)						\

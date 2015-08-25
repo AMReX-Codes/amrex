@@ -8,12 +8,25 @@
  * holding the results, in whatever form it may take (a MultiFab, an array of
  * ints, etc.). */
 
-#include <MultiFab.H>
+class AnalysisCallbackInterface
+{
+    public:
+        virtual void Initialize () = 0;
+        virtual void DoAnalysis () = 0;
+        virtual void Finalize () = 0;
+};
 
 class Analysis
 {
     public:
-        virtual void DoAnalysis () = 0;
+        void connectCallback(AnalysisCallbackInterface *aci) { m_aci = aci; }
+
+        void Initialize () { m_aci->Initialize (); }
+        void DoAnalysis () { m_aci->DoAnalysis (); }
+        void Finalize   () { m_aci->Finalize   (); }
+
+    private:
+        AnalysisCallbackInterface *m_aci;
 };
 
 #endif /* BL_ANALYSIS_H */
