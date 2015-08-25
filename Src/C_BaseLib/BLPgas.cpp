@@ -86,14 +86,14 @@ BLPgas::Request(upcxx::rank_t src_rank,
                 int SeqNum,
                 upcxx::event *signal_event)
 {
-  upcxx::async(src)(BLPgas::Sendrecv,
-                    upcxx::global_ptr<void>(NULL, src_rank), dst,
-                    nbytes, SeqNum, signal_event, (upcxx::event*)NULL,
-                    (int *)NULL);
+  upcxx::async(src_rank)(BLPgas::Sendrecv,
+			 upcxx::global_ptr<void>(NULL, src_rank), dst,
+			 nbytes, SeqNum, signal_event, (upcxx::event*)NULL,
+			 (int *)NULL);
 }
 
 void
-BLPgas::SendRecv(upcxx::global_ptr<void> src,
+BLPgas::Sendrecv(upcxx::global_ptr<void> src,
                  upcxx::global_ptr<void> dst,
                  size_t nbytes,
                  int SeqNum,
@@ -102,7 +102,7 @@ BLPgas::SendRecv(upcxx::global_ptr<void> src,
                  int *send_counter)
 {
 #ifdef DEBUG
-  std::cout << "myrank " << myrank() << " pgas_send: src " << src
+  std::cout << "myrank " << upcxx::myrank() << " pgas_send: src " << src
             << " dst " << dst << " nbytes " << nbytes
             << " SeqNum " << SeqNum << " signal_event " << signal_event
             << " done_event " << done_event << " send_counter " << send_counter
@@ -134,7 +134,7 @@ BLPgas::SendRecv(upcxx::global_ptr<void> src,
         send_info.done_event = done_event;
         send_info.send_counter = send_counter;
 #ifdef DEBUG
-        std::cout << "myrank " << myrank() << " send found SeqNum match "
+        std::cout << "myrank " << upcxx::myrank() << " send found SeqNum match "
                   << SeqNum << "\n";
 #endif
       } else {
@@ -143,7 +143,7 @@ BLPgas::SendRecv(upcxx::global_ptr<void> src,
         send_info.dst_ptr = dst;
         send_info.signal_event = signal_event;
 #ifdef DEBUG
-        std::cout << "myrank " << myrank() << " recv found SeqNum match "
+        std::cout << "myrank " << upcxx::myrank() << " recv found SeqNum match "
                   << SeqNum << "\n";
 #endif
       }
