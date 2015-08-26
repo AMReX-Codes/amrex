@@ -61,7 +61,13 @@ private:
     //
     static int  plot_int;
     //
-    static int overlap_comm_comp;
+    static int overlap;
+
+    // timers
+    Real wt_fb1;
+    Real wt_fb2;
+    Real wt_chem;
+    Real wt_hypdiff;
 
     static void init_runtime ();
     static void init_stencil ();

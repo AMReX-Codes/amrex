@@ -22,7 +22,7 @@ Real        SMC::cfl               = 0.1;
 Real        SMC::init_shrink       = 0.5;
 Real        SMC::fixed_dt          = -1.0e10;
 int         SMC::plot_int          = -1;
-int         SMC::overlap_comm_comp = 1;
+int         SMC::overlap           = 1;
 
 SMC::SMC ()
 {
@@ -42,6 +42,8 @@ SMC::SMC ()
     build_multifabs();
 
     init_from_scratch();
+
+    wt_fb1 = wt_fb2 = wt_chem = wt_hypdiff = 0.0;
 }
 
 SMC::~SMC ()
@@ -95,7 +97,7 @@ SMC::init_runtime ()
 
     pp.query("plot_int", plot_int);
 
-    pp.query("overlap_comm_comp", overlap_comm_comp);
+    pp.query("overlap", overlap);
 }
 
 void
@@ -138,12 +140,15 @@ SMC::evolve ()
 	std::cout << "\n" << "BEGIN MAIN EVOLUTION LOOP" << "\n" << std::endl;
     }
 
+    ParallelDescriptor::Barrier();
+    Real wt0 = ParallelDescriptor::second();
+
     if ( (max_step >= init_step) && (t < stop_time || stop_time < 0.0) ) 
     {
 	for (istep = init_step; istep <= max_step; ++istep) 
 	{
 	    if (ParallelDescriptor::IOProcessor()) {
-		std::cout << "Advancing time step " << istep << " time = " << t << "\n" << std::endl;
+		std::cout << "Advancing time step " << istep << " time = " << t << "\n";
 	    }
 
 	    advance(istep);
@@ -151,7 +156,7 @@ SMC::evolve ()
 	    t = t + dt;
 
 	    if (ParallelDescriptor::IOProcessor()) {
-		std::cout << "End of step " << istep << " time = " << t << std::endl;
+		std::cout << "End of step " << istep << " time = " << t << "\n" << std::endl;
 	    }
 
 	    if (plot_int > 0 && istep%plot_int == 0) {
@@ -171,6 +176,21 @@ SMC::evolve ()
 	}
     }
 
-    // print timing results
+    ParallelDescriptor::Barrier();
+    Real wt1 = ParallelDescriptor::second();
 
+    ParallelDescriptor::ReduceRealMax(wt_fb1    , ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax(wt_fb2    , ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax(wt_chem   , ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax(wt_hypdiff, ParallelDescriptor::IOProcessorNumber());
+    if (ParallelDescriptor::IOProcessor()) {
+	std::cout << "======================================" << std::endl;
+	std::cout << " Total Time            : " << wt1-wt0 << "\n";
+	std::cout << "     Communication time: " << wt_fb1 << "\n";
+	if (overlap) 
+	    std::cout << "                      + " << wt_fb2 << "\n";
+	std::cout << "     Chemistry     time: " << wt_chem << "\n";
+	std::cout << "     Hyp-Diff      time: " << wt_hypdiff << "\n";
+	std::cout << "======================================" << std::endl;
+    }
 }
