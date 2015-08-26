@@ -66,7 +66,8 @@ private:
     // timers
     Real wt_fb1;
     Real wt_fb2;
-    Real wt_chem;
+    Real wt_chem1;
+    Real wt_chem2;
     Real wt_hypdiff;
 
     static void init_runtime ();
