@@ -27,17 +27,22 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 	if (istep%cfl_int == 1 || cfl_int <= 1) update_courno = true;
     }
 
+    Real wt0 = ParallelDescriptor::second();
+
     UU.FillBoundary_nowait();
     geom.FillPeriodicBoundary_nowait(UU);
 
-    if (!overlap_comm_comp) {
+    if (!overlap) {
 	UU.FillBoundary_finish();
 	geom.FillPeriodicBoundary_finish(UU);	
     }
 
+    Real wt1 = ParallelDescriptor::second();
+    wt_fb1 += wt1-wt0;
+
     Uprime.setVal(0.0);
 
-    int ng_ctoprim = (overlap_comm_comp) ? 0 : ngrow;
+    int ng_ctoprim = (overlap) ? 0 : ngrow;
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:courno)
@@ -64,9 +69,15 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 			  lam[mfi].dataPtr(), Ddiag[mfi].dataPtr(), ngrow);
     }
 
-    if (overlap_comm_comp) {
+    Real wt2 = ParallelDescriptor::second();
+    wt_chem += wt2-wt1;
+
+    if (overlap) {
 	UU.FillBoundary_finish();
 	geom.FillPeriodicBoundary_finish(UU);
+
+	Real wt3 = ParallelDescriptor::second();
+	wt_fb2 += wt3-wt2;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -82,7 +93,12 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 			      Q[mfi].dataPtr(), mu[mfi].dataPtr(), xi[mfi].dataPtr(), 
 			      lam[mfi].dataPtr(), Ddiag[mfi].dataPtr(), ngrow);
 	}
+
+	Real wt4 = ParallelDescriptor::second();
+	wt_chem += wt4-wt3;
     }
+
+    Real wt5 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -103,6 +119,8 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 			   lam[mfi].dataPtr(), Ddiag[mfi].dataPtr());
     }
 
+    Real wt6 = ParallelDescriptor::second();
+    wt_hypdiff += wt6-wt5;
 
     if (update_courno) {
 	ParallelDescriptor::ReduceRealMax(courno);
@@ -117,7 +135,7 @@ SMC::set_dt(int istep)
     if (fixed_dt > 0.0) {
 	dt = fixed_dt;
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\n" << "Setting fixed dt = " << dt << "\n" << std::endl;
+	    std::cout << "Setting fixed dt = " << dt << "\n";
 	}
     } else {
 	Real dtold = dt;
@@ -149,8 +167,6 @@ SMC::set_dt(int istep)
 		}
 	    }
 	}
-
-	if (ParallelDescriptor::IOProcessor()) std::cout << std::endl;
     }
 }
 
