@@ -11,7 +11,7 @@ int         SMC::nspec             = 0;
 int         SMC::nplot             = 0;
 int         SMC::ngrow             = 0;
 Array<int>  SMC::ncell             (3,128);
-int         SMC::max_grid_size     = 64;
+int         SMC::max_grid_size     = 32;
 int         SMC::max_step          = 5;
 Real        SMC::stop_time         = 3.e-3;
 Array<Real> SMC::prob_lo           (3, -0.05);
