@@ -1662,7 +1662,7 @@ subroutine stencil_apply_n_2d(ss, dd, ng_d, uu, ng_u, mm, lo, hi, skwd)
                         + ss(4,i,j,k)*(uu(i,j-1,k)-uu(i,j,k)) &
                         - ss(3,i,j-1,k)*(uu(i,j-1,k)-uu(i,j,k))
                    if (bc_skewed(mm(i,j,k),2,-1)) &
-                        flux(i,ny,k) =  flux(i,1,ny) + ss(YBC,i,j,k)*(uu(i,j-2,k)-uu(i,j,k))
+                        flux(i,ny,k) =  flux(i,ny,k) + ss(YBC,i,j,k)*(uu(i,j-2,k)-uu(i,j,k))
                 else if (bc_neumann(mm(i,j,k),2,+1)) then
                    flux(i,ny,k) = ss(3,i,j,k)*uu(i,j+1,k)
                 else

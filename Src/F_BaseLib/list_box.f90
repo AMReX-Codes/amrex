@@ -584,7 +584,7 @@ contains
           call push_back(r, b1)
        else
           b2lo = lwb(b2); b2hi = upb(b2)
-          do i = 1, dm
+          do i = dm, 1, -1
              b1lo = lwb(b1); b1hi = upb(b1)
              if ( b1lo(i) < b2lo(i) .AND. b2lo(i) <= b1hi(i) ) then
                 bn = b1

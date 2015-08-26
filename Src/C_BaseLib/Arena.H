@@ -36,16 +36,13 @@ public:
     virtual void free (void* pt) = 0;
     //
     // Given a minimum required arena size of sz bytes, this returns
-    // the next largest arena size that will hold an integral number
-    // of objects of the largest of the types void*, long,
-    // double and function pointer.
+    // the next largest arena size that will align to align_size bytes.
     //
     static std::size_t align (std::size_t sz);
 
 protected:
-    //
-    // Types used by align().
-    //
+
+#if 0
     union Word
     {
         void*  p;
@@ -53,6 +50,10 @@ protected:
         long   l;
         void (*f) ();
     };
+    static const unsigned int align_size = sizeof(Word);
+#endif
+
+    static const unsigned int align_size = 16;
 };
 
 #endif /*BL_ARENA_H*/

@@ -438,6 +438,18 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
     }
 }
 
+void
+DistributionMapping::define (const Array<int>& pmap)
+{
+    Initialize();
+
+    if (m_ref->m_pmap.size() != pmap.size())
+        m_ref->m_pmap.resize(pmap.size());
+
+    for (unsigned int i=0; i<pmap.size(); ++i)
+        m_ref->m_pmap[i] = pmap[i];
+}
+
 DistributionMapping::~DistributionMapping () { }
 
 void
@@ -2507,6 +2519,31 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 
 
 }
+
+#ifdef BL_USE_MPI
+void
+DistributionMapping::SendDistributionMappingToSidecars(DistributionMapping *dm)
+{
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
+    if (ParallelDescriptor::InCompGroup())
+    {
+        int ProcessorMapSize(dm->size());
+        Array<int> ProcessorMap(dm->ProcessorMap());
+        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    }
+    else
+    {
+        int ProcessorMapSize;
+        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, 0, ParallelDescriptor::CommunicatorInter());
+        Array<int> ProcessorMap(ProcessorMapSize);
+        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, 0, ParallelDescriptor::CommunicatorInter());
+
+        dm->define(ProcessorMap);
+    }
+}
+#endif
 
 
 std::ostream&
