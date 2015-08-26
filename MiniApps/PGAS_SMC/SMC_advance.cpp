@@ -70,7 +70,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
     }
 
     Real wt2 = ParallelDescriptor::second();
-    wt_chem += wt2-wt1;
+    wt_chem1 += wt2-wt1;
 
     if (overlap) {
 	UU.FillBoundary_finish();
@@ -95,7 +95,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 	}
 
 	Real wt4 = ParallelDescriptor::second();
-	wt_chem += wt4-wt3;
+	wt_chem2 += wt4-wt3;
     }
 
     Real wt5 = ParallelDescriptor::second();
