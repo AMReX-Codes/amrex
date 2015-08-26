@@ -188,7 +188,7 @@ SMC::evolve ()
 	std::cout << " Total Time            : " << wt1-wt0 << "\n";
 	std::cout << "     Communication time: " << wt_fb1 << "\n";
 	if (overlap) 
-	    std::cout << "                      + " << wt_fb2 << "\n";
+	    std::cout << "                       + " << wt_fb2 << "\n";
 	std::cout << "     Chemistry     time: " << wt_chem << "\n";
 	std::cout << "     Hyp-Diff      time: " << wt_hypdiff << "\n";
 	std::cout << "======================================" << std::endl;
