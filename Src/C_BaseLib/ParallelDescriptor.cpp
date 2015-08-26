@@ -4,10 +4,17 @@
 #include <fstream>
 #include <cstdlib>
 #include <unistd.h>
+#include <sstream>
 
+#include <Analysis.H>
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
+#include <MultiFab.H>
+#include <Geometry.H>
+#ifdef IN_TRANSIT
+#include <InTransitAnalysis.H>
+#endif
 
 namespace ParallelDescriptor
 {
@@ -1639,3 +1646,63 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     charBuf[fileLength] = '\0';
 }
 
+
+void
+ParallelDescriptor::SidecarProcess ()
+{
+#ifdef IN_TRANSIT
+#ifdef BL_USE_MPI
+    bool finished(false);
+    int signal(-1);
+    Analysis::analysis = new AnalysisContainer;
+    while (!finished)
+    {
+        // Receive the signal from the compute group.
+        ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
+        if (signal == Analysis::QuitSignal)
+        {
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars received the quit signal." << std::endl;
+            finished = true;
+        }
+        else if (signal == Analysis::NyxHaloFinderSignal)
+        {
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
+
+            MultiFab *mf = new MultiFab;
+            Geometry *geom = new Geometry;
+
+            int time_step;
+
+            // Receive the necessary data for doing analysis.
+            MultiFab::SendMultiFabToSidecars(mf);
+            Geometry::SendGeometryToSidecars(geom);
+            ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+            InTransitAnalysis ita;
+            ita.Initialize(*mf, *geom, time_step);
+            Analysis::analysis->connectCallback(&ita);
+
+            Analysis::analysis->DoAnalysis();
+            Analysis::analysis->Finalize();
+
+            delete mf;
+            delete geom;
+
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "Sidecars completed analysis." << std::endl;
+        }
+        else
+        {
+            std::stringstream ss_error_msg;
+            ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
+            BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
+        }
+    }
+    delete Analysis::analysis;
+#endif
+#endif
+    if (ParallelDescriptor::IOProcessor())
+      std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
+}

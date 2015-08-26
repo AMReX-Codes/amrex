@@ -133,3 +133,4 @@ endif
 
 # On-the-fly data analysis tools (which must be defined in userland)
 C$(BOXLIB_BASE)_headers += Analysis.H
+C$(BOXLIB_BASE)_sources += Analysis.cpp

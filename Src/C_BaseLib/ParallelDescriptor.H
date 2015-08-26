@@ -536,6 +536,10 @@ namespace ParallelDescriptor
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
+    //
+    // Starts sidecar processes for doing on-the-fly simulation analysis.
+    //
+    void SidecarProcess ();
 }
 
 #define BL_MPI_REQUIRE(x)						\
