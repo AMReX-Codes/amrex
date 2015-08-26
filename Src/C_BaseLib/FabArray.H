@@ -349,6 +349,10 @@ public:
     //
     static IntVect mfiter_tile_size;
     //
+    // Default tilesize in MFGhostIter
+    //
+    static IntVect mfghostiter_tile_size;
+    //
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
@@ -427,6 +431,10 @@ public:
     // tiling with explicit size
     explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize=0);
     //
+    // Skip tileArray initialization
+    //
+    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, bool skip_init);
+    //
     // Returns the tile Box at the current index.
     //
     const Box& tilebox () const { return tileArray[currentIndex]; }
@@ -467,7 +475,7 @@ public:
     //
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
 
-private:
+protected:
 
     const FabArrayBase& fabArray;
     int                 currentIndex;
@@ -478,6 +486,28 @@ private:
 
     void Initialize (int sharing, int chunksize);
 };
+
+/*
+ * Iterate over ghost cells
+ */
+class MFGhostIter
+    :
+    public MFIter
+{
+public:
+
+    explicit MFGhostIter (const FabArrayBase& fabarray, 
+			  const IntVect& tilesize=FabArrayBase::mfghostiter_tile_size);
+
+private:
+
+    void Initialize ();
+
+    // disabled
+    Box nodaltilebox (int dir) const;
+    Box growntilebox (int ng=-1) const;
+};
+
 
 //
 // A forward declaration.

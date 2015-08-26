@@ -14,12 +14,15 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
+IntVect FabArrayBase::mfghostiter_tile_size(1024000);
 IntVect FabArrayBase::comm_tile_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+IntVect FabArrayBase::mfghostiter_tile_size(1024,8);
 IntVect FabArrayBase::comm_tile_size(1024, 8);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
+IntVect FabArrayBase::mfghostiter_tile_size(1024,8,8);
 IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
@@ -53,15 +56,20 @@ FabArrayBase::Initialize ()
     ParmParse pp("fabarray");
 
     Array<int> tilesize(BL_SPACEDIM);
+
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, BL_SPACEDIM))
     {
 	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
 
-    Array<int> commtilesize(BL_SPACEDIM);
-    if (pp.queryarr("comm_tile_size", commtilesize, 0, BL_SPACEDIM))
+    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, BL_SPACEDIM))
     {
-        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = commtilesize[i];
+	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
+    }
+
+    if (pp.queryarr("comm_tile_size", tilesize, 0, BL_SPACEDIM))
+    {
+        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
     pp.query("verbose",             FabArrayBase::Verbose);
@@ -912,6 +920,15 @@ MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunk
     Initialize(1,chunksize);
 }
 
+MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, bool skip_init)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(tilesize)
+{
+    if (!skip_init) Initialize(1,0);
+}
+
 void 
 MFIter::Initialize (int sharing, int chunksize) 
 {
@@ -1076,3 +1093,66 @@ MFIter::growntilebox (int ng) const
     }
 }
 
+MFGhostIter::MFGhostIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+    :
+    MFIter(fabarray,tilesize,true)
+{
+    Initialize();
+}
+
+void
+MFGhostIter::Initialize ()
+{
+    int tid = 0;
+    int nthreads = 1;
+
+#ifdef _OPENMP
+    if (omp_in_parallel()) {
+	tid = omp_get_thread_num();
+	nthreads = omp_get_num_threads();
+    }
+#endif
+
+    BoxList alltiles;
+    Array<int> allindex;
+    Array<int> alllocalindex;
+
+    for (int i=0; i < fabArray.IndexMap().size(); ++i) {
+	int K = fabArray.IndexMap()[i];
+	const Box& vbx = fabArray.box(K);
+	const Box& fbx = fabArray.fabbox(K);
+
+	const BoxList& diff = BoxLib::boxDiff(fbx, vbx);
+	
+	for (BoxList::const_iterator bli = diff.begin(); bli != diff.end(); ++bli) {
+	    BoxList tiles(*bli, FabArrayBase::mfghostiter_tile_size);
+	    int nt = tiles.size();
+	    for (int it=0; it<nt; ++it) {
+		allindex.push_back(K);
+		alllocalindex.push_back(i);
+	    }
+	    alltiles.catenate(tiles);
+	}
+    }
+
+    int n_tot_tiles = alltiles.size();
+    int navg = n_tot_tiles / nthreads;
+    int nleft = n_tot_tiles - navg*nthreads;
+    int ntiles = navg;
+    if (tid < nleft) ntiles++;
+
+    // how many tiles should we skip?
+    int nskip = tid*navg + std::min(tid,nleft);
+    BoxList::const_iterator bli = alltiles.begin();
+    for (int i=0; i<nskip; ++i) ++bli;
+
+    indexMap.reserve(ntiles);
+    localIndexMap.reserve(ntiles);
+    tileArray.reserve(ntiles);
+
+    for (int i=0; i<ntiles; ++i) {
+	indexMap.push_back(allindex[i+nskip]);
+	localIndexMap.push_back(alllocalindex[i+nskip]);
+	tileArray.push_back(*bli++);
+    }
+}
