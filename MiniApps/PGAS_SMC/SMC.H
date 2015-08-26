@@ -40,6 +40,7 @@ private:
     static int ncons;
     static int nprim;
     static int nspec;
+    static int nplot;
     // number of ghost cells
     static int ngrow;
 
@@ -56,8 +57,11 @@ private:
     static int  cfl_int;
     static Real cfl;
     static Real init_shrink;
+    static Real fixed_dt;
     //
     static int  plot_int;
+    //
+    static int overlap_comm_comp;
 
     static void init_runtime ();
     static void init_stencil ();
@@ -71,6 +75,7 @@ private:
 
     void advance (int istep);
     void compute_dUdt(MultiFab& UU, int istep=-1);
+    void set_dt(int istep);
     void update_rk3(Real a, MultiFab& Ua, Real b, const MultiFab& Ub, Real c, const MultiFab& Uc);
     void reset_density(MultiFab& UU);
 };

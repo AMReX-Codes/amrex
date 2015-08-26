@@ -4,14 +4,23 @@
 #include <VisMF.H>
 
 #include <SMC.H>
+#include <SMC_F.H>
 
 void
 SMC::writePlotFile (int istep)
 {
     const std::string& dir = BoxLib::Concatenate("plt",istep,5);
 
-    MultiFab mf(U.boxArray(), ncons, 0);
-    MultiFab::Copy(mf, U, 0, 0, ncons, 0);
+    MultiFab mf(U.boxArray(), nplot, 0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+	const Box& bx = mfi.tilebox();
+	make_plot_3d(bx.loVect(), bx.hiVect(),
+		     BL_TO_FORTRAN_3D(mf[mfi]),
+		     BL_TO_FORTRAN_3D( U[mfi]));
+    }
 
     //
     // Only let 64 CPUs be writing at any one time.
@@ -50,19 +59,19 @@ SMC::writePlotFile (int istep)
 
 	// For now, set this manually
 	HeaderFile << "rho" << "\n";
-	HeaderFile << "rho*u" << "\n";
-	HeaderFile << "rho*v" << "\n";
-	HeaderFile << "rho*w" << "\n";
-	HeaderFile << "rho*E" << "\n";
-	HeaderFile << "rho*Y(H2)" << "\n";
-	HeaderFile << "rho*Y(O2)" << "\n";
-	HeaderFile << "rho*Y(H2O)" << "\n";
-	HeaderFile << "rho*Y(H)" << "\n";
-	HeaderFile << "rho*Y(O)" << "\n";
-	HeaderFile << "rho*Y(OH)" << "\n";
-	HeaderFile << "rho*Y(HO2)" << "\n";
-	HeaderFile << "rho*Y(H2O2)" << "\n";
-	HeaderFile << "rho*Y(N2)" << "\n";
+	HeaderFile << "vx" << "\n";
+	HeaderFile << "vy" << "\n";
+	HeaderFile << "vz" << "\n";
+	HeaderFile << "T" << "\n";
+	HeaderFile << "Y(H2)" << "\n";
+	HeaderFile << "Y(O2)" << "\n";
+	HeaderFile << "Y(H2O)" << "\n";
+	HeaderFile << "Y(H)" << "\n";
+	HeaderFile << "Y(O)" << "\n";
+	HeaderFile << "Y(OH)" << "\n";
+	HeaderFile << "Y(HO2)" << "\n";
+	HeaderFile << "Y(H2O2)" << "\n";
+	HeaderFile << "Y(N2)" << "\n";
 
         HeaderFile << BL_SPACEDIM << '\n';
         HeaderFile << t << '\n';

@@ -4,22 +4,25 @@
 #include <SMC.H>
 #include <SMC_F.H>
 
-bool        SMC::initialized   = false;
-int         SMC::ncons         = 0;
-int         SMC::nprim         = 0;
-int         SMC::nspec         = 0;
-int         SMC::ngrow         = 0;
-Array<int>  SMC::ncell         (3,128);
-int         SMC::max_grid_size = 64;
-int         SMC::max_step      = 5;
-Real        SMC::stop_time     = 3.e-3;
-Array<Real> SMC::prob_lo       (3, -0.05);
-Array<Real> SMC::prob_hi       (3,  0.05);
-int         SMC::verbose       = 2;
-int         SMC::cfl_int       = 10;
-Real        SMC::cfl           = 0.1;
-Real        SMC::init_shrink   = 0.5;
-int         SMC::plot_int      = -1;
+bool        SMC::initialized       = false;
+int         SMC::ncons             = 0;
+int         SMC::nprim             = 0;
+int         SMC::nspec             = 0;
+int         SMC::nplot             = 0;
+int         SMC::ngrow             = 0;
+Array<int>  SMC::ncell             (3,128);
+int         SMC::max_grid_size     = 64;
+int         SMC::max_step          = 5;
+Real        SMC::stop_time         = 3.e-3;
+Array<Real> SMC::prob_lo           (3, -0.05);
+Array<Real> SMC::prob_hi           (3,  0.05);
+int         SMC::verbose           = 2;
+int         SMC::cfl_int           = 10;
+Real        SMC::cfl               = 0.1;
+Real        SMC::init_shrink       = 0.5;
+Real        SMC::fixed_dt          = -1.0e10;
+int         SMC::plot_int          = -1;
+int         SMC::overlap_comm_comp = 1;
 
 SMC::SMC ()
 {
@@ -88,8 +91,11 @@ SMC::init_runtime ()
     pp.query("cfl_int", cfl_int);
     pp.query("cfl", cfl);
     pp.query("init_shrink", init_shrink);
+    pp.query("fixed_dt", fixed_dt);
 
     pp.query("plot_int", plot_int);
+
+    pp.query("overlap_comm_comp", overlap_comm_comp);
 }
 
 void
@@ -112,6 +118,7 @@ SMC::init_variables ()
     variables_init();
     ncons = get_num_cons();
     nprim = get_num_prim();
+    nplot = 5 + nspec;
 }
 
 void
