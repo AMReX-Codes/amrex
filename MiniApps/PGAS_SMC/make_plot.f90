@@ -27,8 +27,6 @@ contains
     integer :: i, j, k, n, iwrk, ierr
     double precision :: rho, rhoinv, rwrk, Y(nspecies), ei, Tt
 
-    Tt = 1.d3
-
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -46,6 +44,7 @@ contains
              end do
 
              ei = rhoinv*u(i,j,k,iene) - 0.5d0*(pv(i,j,k,pv_vx)**2+pv(i,j,k,pv_vy)**2+pv(i,j,k,pv_vz)**2)
+             Tt = 1.d3
              call get_T_given_ey(ei, Y, iwrk, rwrk, Tt, ierr)
              pv(i,j,k,pv_T) = Tt
 
