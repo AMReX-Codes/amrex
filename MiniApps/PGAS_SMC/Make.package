@@ -12,6 +12,9 @@ f90EXE_sources += derivative_stencil.f90
 f90EXE_sources += chemistry_module.f90
 f90EXE_sources += variables.f90
 f90EXE_sources += init_data.f90
+f90EXE_sources += kernels.f90
+f90EXE_sources += make_plot.f90
+f90EXE_sources += transport_properties.f90
 
 cEXE_sources += LiDryer.c
 

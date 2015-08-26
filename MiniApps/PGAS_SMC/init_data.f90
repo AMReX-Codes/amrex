@@ -2,16 +2,16 @@ module init_data_module
 
 contains
 
-  subroutine init_data_3d(lo,hi,clo,chi,ng,dx,cons,phlo,phhi) bind(c)
+  subroutine init_data_3d(tlo,thi,lo,hi,cons,ng,dx,phlo,phhi) bind(c)
     
     use variables_module, only : irho, imx,imy,imz,iene,iry1,ncons, iH2, iO2, iN2
     use chemistry_module, only : nspecies, patm
     
     implicit none
     
-    integer,          intent(in   ) :: lo(3),hi(3),clo(3),chi(3),ng
+    integer,          intent(in   ) :: tlo(3),thi(3),lo(3),hi(3),ng
     double precision, intent(in   ) :: dx(3),phlo(3),phhi(3)
-    double precision, intent(inout) :: cons(-ng+clo(1):chi(1)+ng,-ng+clo(2):chi(2)+ng,-ng+clo(3):chi(3)+ng,ncons)
+    double precision, intent(inout) :: cons(-ng+lo(1):hi(1)+ng,-ng+lo(2):hi(2)+ng,-ng+lo(3):hi(3)+ng,ncons)
     
     double precision, parameter :: Pi = 3.141592653589793238462643383279502884197d0
     double precision, parameter :: rfire = 0.01d0
@@ -28,11 +28,11 @@ contains
     ky = 2.d0*Pi/(phhi(2) - phlo(2))
     kz = 2.d0*Pi/(phhi(3) - phlo(3))
     
-    do k=lo(3),hi(3)
+    do k=tlo(3),thi(3)
        z = phlo(3) + dx(3)*(k + 0.5d0)
-       do j=lo(2),hi(2)
+       do j=tlo(2),thi(2)
           y = phlo(2) + dx(2)*(j + 0.5d0)
-          do i=lo(1),hi(1)
+          do i=tlo(1),thi(1)
              x = phlo(1) + dx(1)*(i + 0.5d0)
              
              r = sqrt(x**2+y**2+z**2)

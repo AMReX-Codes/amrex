@@ -48,10 +48,10 @@ SMC::init_from_scratch ()
 #endif    
     for (MFIter mfi(U,true); mfi.isValid(); ++mfi)
     {
-	const Box& bx  = mfi.tilebox();
-	const Box& vbx = mfi.validbox();
+	const Box& tbx  = mfi.tilebox();
+	const Box&  bx = mfi.validbox();
 
-	init_data_3d(bx.loVect(), bx.hiVect(), vbx.loVect(), vbx.hiVect(), &ngrow, 
-		     dx, U[mfi].dataPtr(), prob_lo.dataPtr(), prob_hi.dataPtr());
+	init_data_3d(tbx.loVect(), tbx.hiVect(), bx.loVect(), bx.hiVect(), 
+		     U[mfi].dataPtr(), ngrow, dx, prob_lo.dataPtr(), prob_hi.dataPtr());
     }
 }

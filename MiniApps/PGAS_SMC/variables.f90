@@ -74,26 +74,17 @@ contains
     r = nprim
   end function get_num_prim
 
-  subroutine ctoprim_3d(lo, hi, u, q, ngu, ngq, ngto) bind(c)
-    integer, intent(in) :: lo(3), hi(3), ngu, ngq, ngto
+  subroutine ctoprim_3d(tlo, thi, lo, hi, u, q, ngu, ngq) bind(c)
+    integer, intent(in) :: tlo(3), thi(3), lo(3), hi(3), ngu, ngq
     double precision, intent(in ) :: u(lo(1)-ngu:hi(1)+ngu,lo(2)-ngu:hi(2)+ngu,lo(3)-ngu:hi(3)+ngu,ncons)
     double precision, intent(out) :: q(lo(1)-ngq:hi(1)+ngq,lo(2)-ngq:hi(2)+ngq,lo(3)-ngq:hi(3)+ngq,nprim)
     
     integer :: i, j, k, n, iwrk, ierr
     double precision :: rho, rhoinv, rwrk, X(nspecies), Y(nspecies), h(nspecies), ei, Tt, Pt
-    integer :: llo(3), lhi(3)
 
-    do i=1,3
-       llo(i) = lo(i)-ngto
-       lhi(i) = hi(i)+ngto
-    end do
-
-    !$omp parallel private(i, j, k, n, iwrk, rho, rhoinv, rwrk) &
-    !$omp private(X, Y, h, ei, Tt, Pt, ierr)
-    !$omp do collapse(3)
-    do k = llo(3),lhi(3)
-       do j = llo(2),lhi(2)
-          do i = llo(1),lhi(1)
+    do k = tlo(3),thi(3)
+       do j = tlo(2),thi(2)
+          do i = tlo(1),thi(1)
              
              rho = u(i,j,k,irho)
              rhoinv = 1.d0/rho
@@ -131,14 +122,12 @@ contains
           enddo
        enddo
     enddo
-    !$omp end do
-    !$omp end parallel
 
   end subroutine ctoprim_3d
 
 
-  subroutine reset_rho_3d(lo, hi, ng, u) bind(c)
-    integer, intent(in) :: lo(3), hi(3), ng
+  subroutine reset_rho_3d(tlo, thi, lo, hi, u, ng) bind(c)
+    integer, intent(in) :: tlo(3), thi(3), lo(3), hi(3), ng
     double precision, intent(inout) :: u(lo(1)-ng:hi(1)+ng,lo(2)-ng:hi(2)+ng,lo(3)-ng:hi(3)+ng,ncons)
 
     integer :: i, j, k, n, iryn
@@ -147,12 +136,9 @@ contains
     integer          :: idom
     double precision :: rhoy_dom, rhoy_under
 
-    !$omp parallel private(i,j,k,n,iryn,rho) &
-    !$omp private(idom, rhoy_dom, rhoy_under)
-    !$omp do collapse (3)
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+    do k = tlo(3),thi(3)
+       do j = tlo(2),thi(2)
+          do i = tlo(1),thi(1)
 
              rho = 0.d0
              do n=1, nspecies
@@ -200,8 +186,6 @@ contains
           end do
        end do
     end do
-    !$omp end do
-    !$omp end parallel
 
   end subroutine reset_rho_3d
 
