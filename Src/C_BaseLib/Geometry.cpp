@@ -1161,6 +1161,11 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
             break;
     }
 
+    for (unsigned int i = 0; i < BL_SPACEDIM; ++i)
+    {
+      is_periodic[i] = geom->isPeriodic(i);
+    }
+
       // Step 1: send the base Box
       ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
