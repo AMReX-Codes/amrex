@@ -1,12 +1,5 @@
 // An example showing how to clone a MultiFab from the compute MPI group to the
-// "sidecar" group. The tricky part about doing this is pointer management. The
-// functions SendMultiFabToSidecars() and SendGeometryToSidecars() do no
-// pointer allocation; they assume that the memory space has already been
-// allocated beforehard. However, some (most) of these pointers will point to
-// actual data only one MPI group, while on the other they will point to
-// nothing. But they still need to exist on both MPI groups because everybody
-// must call the Send...() functions. So be mindful of your pointers; if you do
-// then this can be a very useful tool.
+// "sidecar" group and do analysis on the MultiFab on the fly.
 
 #include <new>
 #include <iostream>
@@ -16,11 +9,13 @@
 #include <cstring>
 #include <cmath>
 
+#include <Analysis.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <RealBox.H>
 #include <Utility.H>
+#include <ParmParse.H>
 
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
@@ -32,10 +27,26 @@ int main(int argc, char *argv[]) {
     // TODO: change Initialize() so that we can read # of sidecars from an
     // inputs file.
 
-    const int nSidecarProcs(6);
+#ifdef IN_TRANSIT
+    const int nSidecarProcs(2);
     ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+#endif
 
     BoxLib::Initialize(argc,argv);
+
+    // The sidecar group has already called BoxLib::Finalize() by the time we
+    // are out of BoxLib::Initialize(), so make them quit immediately.
+    // Everything below this point is done on the compute group only.
+#ifdef IN_TRANSIT
+    if (ParallelDescriptor::InSidecarGroup())
+        return 0;
+#endif
+
+    // A flag you need for broadcasting across MPI groups. We always broadcast
+    // the data to the sidecar group from the IOProcessor on the compute group.
+#ifdef IN_TRANSIT
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+#endif
 
     int maxGrid;
     int nComp;
@@ -48,94 +59,63 @@ int main(int argc, char *argv[]) {
     pp.get("nGhost", nGhost);
     pp.get("maxSize", maxSize);
 
-    MultiFab *mf;
-    Geometry* geom;
+    // Build a Box to span the problem domain, and split it into a BoxArray
+    Box baseBox(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
+    BoxArray ba(baseBox);
+    ba.maxSize(maxSize);
 
-    double t_start, t_stop;
+    // This is the DM for the compute processes.
+    DistributionMapping comp_DM;
+    comp_DM.define(ba, ParallelDescriptor::NProcsComp());
 
-    if (ParallelDescriptor::InCompGroup())
-    {
-      // Make a Box, then a BoxArray with maxSize.
-      Box baseBox(IntVect(0,0,0), IntVect(maxGrid-1, maxGrid-1, maxGrid-1));
-      BoxArray ba(baseBox);
-      ba.maxSize(maxSize);
-
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << "ba.size() = " << ba.size() << std::endl;
-        std::cout << "ba[0] = " << ba[0] << std::endl;
-        std::cout << "ba[1] = " << ba[1] << std::endl;
-        std::cout << "ba[last] = " << ba[ba.size() - 1] << std::endl;
-      }
-
-      // This is the DM for the compute processes.
-      DistributionMapping comp_DM;
-      comp_DM.define(ba, ParallelDescriptor::NProcsComp());
-
-      // Make a MultiFab and populate it with a bunch of random numbers.
-      mf = new MultiFab;
-      mf->define(ba, nComp, nGhost, comp_DM, Fab_allocate);
-      for(int i(0); i < mf->nComp(); ++i) {
-        mf->setVal(rand()%100, i, 1);
-      }
-
-      // This defines the physical size of the box.
-      RealBox real_box;
-      for (int n = 0; n < BL_SPACEDIM; n++) {
-        real_box.setLo(n, 0.0);
-        real_box.setHi(n, 42.0);
-      }
-
-      // This says we are using Cartesian coordinates
-      int coord(0);
-
-      // This sets the boundary conditions to be non-periodic.
-      int is_per[BL_SPACEDIM];
-      for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
-
-      // This defines a Geometry object which is useful for writing the plotfiles
-      geom = new Geometry(baseBox, &real_box, coord, is_per);
-    }
-    else // on the sidecars, just allocate the memory but don't do anything else
-    {
-      geom = new Geometry;
-      mf = new MultiFab;
+    // Make a MultiFab and populate it with a bunch of random numbers.
+    MultiFab mf(ba, nComp, nGhost, comp_DM, Fab_allocate);
+    for(int i(0); i < mf.nComp(); ++i) {
+      mf.setVal(rand()%100, i, 1);
     }
 
-    // whoooosh
-    t_start = MPI_Wtime();
-    MultiFab::SendMultiFabToSidecars (mf);
-    Geometry::SendGeometryToSidecars (geom);
-    t_stop = MPI_Wtime();
-
-    if (ParallelDescriptor::InSidecarGroup())
-    {
-      const double norm0 = mf->norm0();
-      const double norm1 = mf->norm1();
-      const double norm2 = mf->norm2();
-      const Real probsize = geom->ProbSize();
-      if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "From sidecar nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
-        std::cout << "From sidecar nodes, probsize = " << probsize << std::endl;
-      }
-    }
-    else
-    {
-      const double norm0 = mf->norm0();
-      const double norm1 = mf->norm1();
-      const double norm2 = mf->norm2();
-      const Real probsize = geom->ProbSize();
-      if (ParallelDescriptor::IOProcessor()) {
-        std::cout << "From compute nodes, norms (L0, L1, L2) of MF are (" << norm0 << ", " << norm1 << ", " << norm2 << ")" << std::endl;
-        std::cout << "From compute nodes, probsize = " << probsize << std::endl;
-
-        std::cout << std::endl << std::endl << "total time for MultiFab and Geometry transfer: " << t_stop - t_start << " sec" << std::endl;
-      }
+    // This defines the physical size of the box.
+    RealBox real_box;
+    for (int n = 0; n < BL_SPACEDIM; n++) {
+      real_box.setLo(n, 0.0);
+      real_box.setHi(n, 42.0);
     }
 
-    delete mf;
-    delete geom;
+    // This says we are using Cartesian coordinates
+    int coord(0);
+
+    // This sets the boundary conditions to be non-periodic.
+    int is_per[BL_SPACEDIM];
+    for (int n = 0; n < BL_SPACEDIM; n++) is_per[n] = 0;
+
+    // This defines a Geometry object which is useful for writing the plotfiles
+    Geometry geom(baseBox, &real_box, coord, is_per);
+
+#ifdef IN_TRANSIT
+    // The signal for telling the sidecars what to do.
+    int signal;
+
+    // Pretend we're doing a halo-finding analysis for Nyx.
+    signal = Analysis::NyxHaloFinderSignal;
+
+    // Pretend we're looping over time steps.
+    for (unsigned int i = 0; i < 20; ++i)
+    {
+        ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        // For this particular analysis we need to send a MultiFab, a Geometry,
+        // and a time step index to the sidecars. For other analyses you will
+        // need to send different data.
+        MultiFab::SendMultiFabToSidecars(&mf);
+        Geometry::SendGeometryToSidecars(&geom);
+        ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    }
+
+    // Don't forget to tell the sidecars to quit! Otherwise they'll keep
+    // waiting for signals for more work to do.
+    signal = Analysis::QuitSignal;
+    ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+#endif
 
     BoxLib::Finalize();
-
     return 0;
 }

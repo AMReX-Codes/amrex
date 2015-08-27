@@ -1461,7 +1461,8 @@ subroutine mgt_compute_flux(lev)
   end if
 
   do dir = 1, mgts%dim
-     call multifab_build(mgts%gp(flev,dir), mgts%mla%la(flev), nc = 1, ng = 1)
+     call multifab_build_edge(mgts%gp(flev,dir), mgts%mla%la(flev), &
+          nc = 1, ng = 0, dir = dir)
   end do
 
   mglev = mgts%mgt(flev)%nlevels
