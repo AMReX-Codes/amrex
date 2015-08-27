@@ -55,7 +55,7 @@ program fcompare
   integer :: itest
 
   real(kind=dp_t) :: global_error
-  real(kind=dp_t) :: pa, pb, pd
+  real(kind=dp_t) :: pa, pb, pd, aerr, rerr
 
   integer :: dm
   type(box) :: bx_a, bx_b
@@ -456,7 +456,9 @@ program fcompare
         else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
            write (*,1002) pf_a%names(n_a), "< NaN present > "
         else
-           write (*,1001) pf_a%names(n_a), aerror(n_a), rerror(n_a)
+           aerr = max(aerror(n_a), 1.d-99)
+           rerr = max(rerror(n_a), 1.d-99)
+           write (*,1001) pf_a%names(n_a), aerr, rerr
         endif
      enddo
 
