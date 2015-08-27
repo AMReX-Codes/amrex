@@ -207,7 +207,12 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     {
 	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
+#ifdef BL_USE_UPCXX
+        BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
+	BoxLib::FillPeriodicBoundary_finish(*this, mf);
+#else
         BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
+#endif
     }
 }
 
