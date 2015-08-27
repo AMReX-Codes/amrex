@@ -252,6 +252,17 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
+    if(ParallelDescriptor::NProcsSidecar() > 0) {
+      if(ParallelDescriptor::InSidecarGroup()) {
+        if (ParallelDescriptor::IOProcessor())
+          std::cout << "===== SIDECARS INITIALIZED =====" << std::endl;
+        ParallelDescriptor::SidecarProcess();
+        BoxLib::Finalize();
+        return;
+      }
+    }
+
+
     BL_PROFILE_INITIALIZE();
 
     //

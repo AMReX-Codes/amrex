@@ -12,6 +12,9 @@ DIM       = 3
 PRECISION = DOUBLE
 EBASE     = gridmovetest
 
+DO_IN_TRANSIT_ANALYSIS = TRUE
+ANALYSIS_DIR = $(BOXLIB_HOME)/Tutorials/Sidecar_EX1
+
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
@@ -20,6 +23,12 @@ include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+
+ifeq ($(DO_IN_TRANSIT_ANALYSIS), TRUE)
+  DEFINES += -DIN_TRANSIT
+  INCLUDE_LOCATIONS += $(ANALYSIS_DIR)
+  vpathdir += $(ANALYSIS_DIR)
+endif
 
 vpathdir += $(BOXLIB_HOME)/Src/C_BoundaryLib
 vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
