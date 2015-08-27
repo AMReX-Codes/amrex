@@ -184,20 +184,17 @@ SMC::evolve ()
 
     Real wt1 = ParallelDescriptor::second();
 
-    ParallelDescriptor::ReduceRealMax(wt_fb1    , ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::ReduceRealMax(wt_fb2    , ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::ReduceRealMax(wt_chem1  , ParallelDescriptor::IOProcessorNumber());
-    ParallelDescriptor::ReduceRealMax(wt_chem2  , ParallelDescriptor::IOProcessorNumber());
+    Real wt_fb = wt_fb1 + wt_fb2;
+    Real wt_chem = wt_chem1 + wt_chem2;
+
+    ParallelDescriptor::ReduceRealMax(wt_fb     , ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax(wt_chem   , ParallelDescriptor::IOProcessorNumber());
     ParallelDescriptor::ReduceRealMax(wt_hypdiff, ParallelDescriptor::IOProcessorNumber());
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "======================================" << std::endl;
 	std::cout << " Total Time            : " << wt1-wt0 << "\n";
-	std::cout << "     Communication time: " << wt_fb1 << "\n";
-	if (overlap) 
-	    std::cout << "                       + " << wt_fb2 << "\n";
-	std::cout << "     Chemistry     time: " << wt_chem1 << "\n";
-	if (overlap)
-	    std::cout << "                       + " << wt_chem2 << "\n";
+	std::cout << "     Communication time: " << wt_fb << "\n";
+	std::cout << "     Chemistry     time: " << wt_chem << "\n";
 	std::cout << "     Hyp-Diff      time: " << wt_hypdiff << "\n";
 	std::cout << "======================================" << std::endl;
     }

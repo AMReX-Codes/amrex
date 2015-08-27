@@ -801,6 +801,9 @@ public:
     //
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
+    // MPI version
+    void FillBoundaryMPI (int scomp, int ncomp, bool cross);
+
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_finish ();
@@ -2808,7 +2811,12 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
-    FillBoundary(0, nComp(), cross);
+#ifdef BL_USE_UPCXX
+    FillBoundary_nowait(0, nComp(), cross);
+    FillBoundary_finish();
+#else
+    FillBoundaryMPI(0, nComp(), cross);
+#endif
 }
 
 template <class FAB>
@@ -2816,6 +2824,20 @@ void
 FabArray<FAB>::FillBoundary (int  scomp,
                              int  ncomp,
                              bool cross)
+{
+#ifdef BL_USE_UPCXX
+    FillBoundary_nowait(scomp, ncomp, cross);
+    FillBoundary_finish();
+#else
+    FillBoundaryMPI(scomp, ncomp, cross);
+#endif
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundaryMPI (int  scomp,
+			        int  ncomp,
+	                        bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
 

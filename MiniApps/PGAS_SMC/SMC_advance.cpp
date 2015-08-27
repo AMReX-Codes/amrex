@@ -29,12 +29,12 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 
     Real wt0 = ParallelDescriptor::second();
 
-    UU.FillBoundary_nowait();
-    geom.FillPeriodicBoundary_nowait(UU);
-
-    if (!overlap) {
-	UU.FillBoundary_finish();
-	geom.FillPeriodicBoundary_finish(UU);	
+    if (overlap) {
+	UU.FillBoundary_nowait();
+	geom.FillPeriodicBoundary_nowait(UU);
+    } else {
+	UU.FillBoundary();
+	geom.FillPeriodicBoundary(UU);	
     }
 
     Real wt1 = ParallelDescriptor::second();
