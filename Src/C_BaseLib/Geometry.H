@@ -699,6 +699,11 @@ namespace BoxLib
 #endif
 	}
 
+#ifdef BL_USE_UPCXX
+  while (BLPgas::fpb_send_counter < N_snds)
+    upcxx::advance();
+#endif
+
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //

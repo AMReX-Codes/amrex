@@ -3171,6 +3171,12 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #endif
     }
 
+#ifdef BL_USE_UPCXX
+    // Need to make sure at least half of the sends have been started
+    while (BLPgas::fb_send_counter < N_snds)
+      upcxx::advance();
+#endif
+
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
