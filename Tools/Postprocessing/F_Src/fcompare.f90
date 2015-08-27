@@ -456,8 +456,18 @@ program fcompare
         else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
            write (*,1002) pf_a%names(n_a), "< NaN present > "
         else
-           aerr = max(aerror(n_a), 1.d-99)
-           rerr = max(rerror(n_a), 1.d-99)
+           if (aerror(n_a) > 0.0d0) then
+              aerr = max(aerror(n_a), 1.d-99)
+           else
+              aerr = 0.0d0
+           endif
+
+           if (rerror(n_a) > 0.0d0) then
+              rerr = max(rerror(n_a), 1.d-99)
+           else
+              rerr = 0.0d0
+           endif
+
            write (*,1001) pf_a%names(n_a), aerr, rerr
         endif
      enddo
