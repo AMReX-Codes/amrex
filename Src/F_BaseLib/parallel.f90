@@ -269,7 +269,6 @@ contains
     integer ierr
     external MPI_Comm_Free, MPI_Finalize
     !call MPI_Comm_Free(m_comm, ierr)  !Note: This is *supposed* to be the right way to do this, but it crashes on Linux.  comment out leads to small mem leak
-    m_comm = MPI_COMM_WORLD
     if (present(do_finalize_MPI) ) then
        if (do_finalize_MPI) call MPI_Finalize(ierr)
     else
