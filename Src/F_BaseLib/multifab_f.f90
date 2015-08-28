@@ -407,6 +407,13 @@ module multifab_module
      module procedure mf_build_nodal_dot_mask
   end interface
 
+  interface mfiter_build
+     module procedure  multifab_iter_build
+     module procedure zmultifab_iter_build
+     module procedure lmultifab_iter_build
+     module procedure imultifab_iter_build
+  end interface mfiter_build
+
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
@@ -429,6 +436,9 @@ module multifab_module
   private :: mf_fb_fancy_double, mf_fb_fancy_integer, mf_fb_fancy_logical, mf_fb_fancy_z
   private :: mf_copy_fancy_double, mf_copy_fancy_integer, mf_copy_fancy_logical, mf_copy_fancy_z
   private :: mf_fb_fancy_double_nowait
+
+  private :: multifab_iter_build, zmultifab_iter_build, lmultifab_iter_build, imultifab_iter_build
+  private :: iter_build_doit
 
 contains
 
@@ -795,17 +805,13 @@ contains
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
        call fab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
-       m1p => dataptr(m1,i)
-       m2p => dataptr(m2,i)
-       call cpy_d(m1p,m2p)
     end do
+    call multifab_copy(m1, m2, ng=m1%ng)
     call mem_stats_alloc(multifab_ms, volume(m1, all = .TRUE.))
   end subroutine multifab_build_copy
   subroutine imultifab_build_copy(m1, m2)
     type(imultifab), intent(inout) :: m1
     type(imultifab), intent(in) :: m2
-    integer, pointer :: m1p(:,:,:,:)
-    integer, pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("IMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call imultifab_destroy(m1)
@@ -818,17 +824,13 @@ contains
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
        call ifab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
-       m1p => dataptr(m1,i)
-       m2p => dataptr(m2,i)
-       call cpy_i(m1p,m2p)
     end do
+    call imultifab_copy(m1, m2, ng=m1%ng)
     call mem_stats_alloc(imultifab_ms, volume(m1, all = .TRUE.))
   end subroutine imultifab_build_copy
   subroutine lmultifab_build_copy(m1, m2)
     type(lmultifab), intent(inout) :: m1
     type(lmultifab), intent(in) :: m2
-    logical, pointer :: m1p(:,:,:,:)
-    logical, pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("LMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call lmultifab_destroy(m1)
@@ -841,17 +843,13 @@ contains
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
        call lfab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
-       m1p => dataptr(m1,i)
-       m2p => dataptr(m2,i)
-       call cpy_l(m1p,m2p)
     end do
+    call lmultifab_copy(m1, m2, ng=m1%ng)
     call mem_stats_alloc(lmultifab_ms, volume(m1, all = .TRUE.))
   end subroutine lmultifab_build_copy
   subroutine zmultifab_build_copy(m1, m2)
     type(zmultifab), intent(inout) :: m1
     type(zmultifab), intent(in) :: m2
-    complex(dp_t), pointer :: m1p(:,:,:,:)
-    complex(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("ZMULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call zmultifab_destroy(m1)
@@ -864,10 +862,8 @@ contains
     allocate(m1%fbs(nlocal(m1%la)))
     do i = 1, nlocal(m1%la)
        call zfab_build(m1%fbs(i), get_box(m2%fbs(i)), m1%nc, m1%ng, m1%nodal)
-       m1p => dataptr(m1,i)
-       m2p => dataptr(m2,i)
-       call cpy_z(m1p,m2p)
     end do
+    call zmultifab_copy(m1, m2, m1%ng)
     call mem_stats_alloc(zmultifab_ms, volume(m1, all = .TRUE.))
   end subroutine zmultifab_build_copy
 
@@ -935,9 +931,11 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
+       !$omp parallel do reduction(+:r)
        do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
+       !$omp end parallel do
     else
        r = volume(get_boxarray(mf))
     end if
@@ -952,9 +950,11 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
+       !$omp parallel do reduction(+:r)
        do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
+       !$omp end parallel do
     else
        r = volume(get_boxarray(mf))
     end if
@@ -969,9 +969,11 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
+       !$omp parallel do reduction(+:r)
        do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
+       !$omp end parallel do
     else
        r = volume(get_boxarray(mf))
     end if
@@ -986,9 +988,11 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     if ( lall ) then
        r = 0_ll_t
+       !$omp parallel do reduction(+:r)
        do i = 1, nboxes(mf%la)
           r = r + volume(grow(box_nodalize(get_box(mf%la,i),mf%nodal),mf%ng))
        end do
+       !$omp end parallel do
     else
        r = volume(get_boxarray(mf))
     end if
@@ -1460,6 +1464,7 @@ contains
     type(box) :: bx, bx1
     logical lall
     lall = .FALSE.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,n,bx,bx1)
     do n = 1, nboxes(ba)
        bx = get_box(ba,n)
        do i = 1, nlocal(mf%la)
@@ -1471,6 +1476,7 @@ contains
           if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1)
        end do
     end do
+    !$OMP END PARALLEL DO
   end subroutine zmultifab_setval_ba
 
   subroutine multifab_setval_bx_c(mf, val, bx, c, nc, all)
@@ -1483,17 +1489,22 @@ contains
     integer :: i
     type(box) :: bx1
     logical lall
+    type(mfiter) :: mfi
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1)
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(i,bx1,mfi)
+    call mfiter_build(mfi, mf, .true.)
+    do while (more_tile(mfi))
        if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
+          bx1 = intersection(bx, get_growntilebox(mfi))
        else
-          bx1 = intersection(bx, get_ibox(mf, i))
+          bx1 = intersection(bx, get_tilebox(mfi))
        end if
-       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       if ( .not. empty(bx1) ) then
+          i = get_fab_index(mfi)
+          call setval(mf%fbs(i), val, bx1, c, nc)
+       end if
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
   end subroutine multifab_setval_bx_c
   subroutine imultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(imultifab), intent(inout) :: mf
@@ -1505,17 +1516,22 @@ contains
     integer :: i
     type(box) :: bx1
     logical lall
+    type(mfiter) :: mfi
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1)
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(i,bx1,mfi)
+    call mfiter_build(mfi, mf, .true.)
+    do while (more_tile(mfi))
        if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
+          bx1 = intersection(bx, get_growntilebox(mfi))
        else
-          bx1 = intersection(bx, get_ibox(mf, i))
+          bx1 = intersection(bx, get_tilebox(mfi))
        end if
-       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       if ( .not. empty(bx1) ) then
+          i = get_fab_index(mfi)
+          call setval(mf%fbs(i), val, bx1, c, nc)
+       end if
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
   end subroutine imultifab_setval_bx_c
   subroutine lmultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(lmultifab), intent(inout) :: mf
@@ -1527,17 +1543,22 @@ contains
     integer :: i
     type(box) :: bx1
     logical lall
+    type(mfiter) :: mfi
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,bx1)
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(i,bx1,mfi)
+    call mfiter_build(mfi, mf, .true.)
+    do while (more_tile(mfi))
        if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
+          bx1 = intersection(bx, get_growntilebox(mfi))
        else
-          bx1 = intersection(bx, get_ibox(mf, i))
+          bx1 = intersection(bx, get_tilebox(mfi))
        end if
-       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       if ( .not. empty(bx1) ) then
+          i = get_fab_index(mfi)
+          call setval(mf%fbs(i), val, bx1, c, nc)
+       end if
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
   end subroutine lmultifab_setval_bx_c
   subroutine zmultifab_setval_bx_c(mf, val, bx, c, nc, all)
     type(zmultifab), intent(inout) :: mf
@@ -1549,15 +1570,22 @@ contains
     integer :: i
     type(box) :: bx1
     logical lall
+    type(mfiter) :: mfi
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(i,bx1,mfi)
+    call mfiter_build(mfi, mf, .true.)
+    do while (more_tile(mfi))
        if ( lall ) then
-          bx1 = intersection(bx, get_pbox(mf, i))
+          bx1 = intersection(bx, get_growntilebox(mfi))
        else
-          bx1 = intersection(bx, get_ibox(mf, i))
+          bx1 = intersection(bx, get_tilebox(mfi))
        end if
-       if ( .not. empty(bx1) ) call setval(mf%fbs(i), val, bx1, c, nc)
+       if ( .not. empty(bx1) ) then
+          i = get_fab_index(mfi)
+          call setval(mf%fbs(i), val, bx1, c, nc)
+       end if
     end do
+    !$OMP END PARALLEL
   end subroutine zmultifab_setval_bx_c
 
   subroutine multifab_setval_c(mf, val, c, nc, all, allow_empty)
@@ -5583,14 +5611,55 @@ contains
     end if
   end function multifab_max_c
 
-  subroutine mfiter_build(mfi, mf, tiling, tilesize)
-    use omp_module
+  subroutine multifab_iter_build(mfi, mf, tiling, tilesize)
     type(mfiter),   intent(inout) :: mfi
     type(multifab), intent(in)    :: mf
     logical, intent(in), optional :: tiling
+    integer, intent(in), optional :: tilesize(:) 
+    type(layout) :: la
+    la = mf%la
+    call iter_build_doit(mfi, la, mf%dim, mf%ng, mf%nodal, tiling, tilesize)
+  end subroutine multifab_iter_build
+
+  subroutine zmultifab_iter_build(mfi, mf, tiling, tilesize)
+    type(mfiter),   intent(inout) :: mfi
+    type(zmultifab), intent(in)   :: mf
+    logical, intent(in), optional :: tiling
+    integer, intent(in), optional :: tilesize(:)    
+    type(layout) :: la
+    la = mf%la
+    call iter_build_doit(mfi, la, mf%dim, mf%ng, mf%nodal, tiling, tilesize)
+  end subroutine zmultifab_iter_build
+
+  subroutine imultifab_iter_build(mfi, mf, tiling, tilesize)
+    type(mfiter),   intent(inout) :: mfi
+    type(imultifab), intent(in)   :: mf
+    logical, intent(in), optional :: tiling
+    integer, intent(in), optional :: tilesize(:)    
+    type(layout) :: la
+    la = mf%la
+    call iter_build_doit(mfi, la, mf%dim, mf%ng, mf%nodal, tiling, tilesize)
+  end subroutine imultifab_iter_build
+
+  subroutine lmultifab_iter_build(mfi, mf, tiling, tilesize)
+    type(mfiter),   intent(inout) :: mfi
+    type(lmultifab), intent(in)   :: mf
+    logical, intent(in), optional :: tiling
+    integer, intent(in), optional :: tilesize(:)    
+    type(layout) :: la
+    la = mf%la
+    call iter_build_doit(mfi, la, mf%dim, mf%ng, mf%nodal, tiling, tilesize)
+  end subroutine lmultifab_iter_build
+
+  subroutine iter_build_doit(mfi, la, dim, ng, nodal, tiling, tilesize)
+    use omp_module
+    type(mfiter), intent(inout) :: mfi
+    type(layout), intent(inout) :: la
+    integer, intent(in) :: dim, ng
+    logical, intent(in) :: nodal(:)
+    logical, intent(in), optional :: tiling
     integer, intent(in), optional :: tilesize(:)
 
-    type(layout) :: la
     integer :: ltilesize(3), tid, nthreads
 
     if (present(tilesize)) then
@@ -5608,14 +5677,12 @@ contains
     tid = omp_get_thread_num()
     nthreads = omp_get_num_threads()
 
-    la = mf%la
-
     mfi%ta = init_layout_tilearray(la, ltilesize, tid, nthreads)
     
     if (mfi%ta%dim .gt. 0) then
-       mfi%dim = mf%dim
-       mfi%ng  = mf%ng
-       mfi%nodal(1:mfi%dim) = mf%nodal
+       mfi%dim = dim
+       mfi%ng  = ng
+       mfi%nodal(1:mfi%dim) = nodal(1:mfi%dim)
 
        mfi%it = 0
        mfi%ntiles = mfi%ta%ntiles
@@ -5624,7 +5691,7 @@ contains
        mfi%it = 0
        mfi%ntiles = 0
     end if
-  end subroutine mfiter_build
+  end subroutine iter_build_doit
 
   subroutine mfiter_reset(mfi)
     type(mfiter), intent(inout) :: mfi
