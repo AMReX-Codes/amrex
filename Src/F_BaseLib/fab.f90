@@ -1948,9 +1948,7 @@ contains
 
     r1 = Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MIN : r1) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
-       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -1958,9 +1956,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
@@ -1980,9 +1976,7 @@ contains
 
     r1 = -Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
-       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -1990,9 +1984,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
