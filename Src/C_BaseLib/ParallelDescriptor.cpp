@@ -1689,9 +1689,6 @@ ParallelDescriptor::SidecarProcess ()
 
             delete mf;
             delete geom;
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars completed analysis." << std::endl;
         }
         else
         {
@@ -1699,6 +1696,9 @@ ParallelDescriptor::SidecarProcess ()
             ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
             BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
         }
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Sidecars completed analysis." << std::endl;
     }
     delete Analysis::analysis;
 #endif
