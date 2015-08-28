@@ -363,7 +363,7 @@ contains
     !
     ! This sets comm to MPI_COMM_NULL on those ranks not in this_group.
     !
-    call MPI_Comm_create(MPI_COMM_WORLD, this_group, comm, ierr)
+    call MPI_Comm_create(m_comm, this_group, comm, ierr)
 
     call MPI_Group_free(this_group,  ierr)
     call MPI_Group_free(world_group, ierr)
