@@ -1664,6 +1664,7 @@ ParallelDescriptor::SidecarProcess ()
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Sidecars received the quit signal." << std::endl;
             finished = true;
+            break;
         }
         else if (signal == Analysis::NyxHaloFinderSignal)
         {
