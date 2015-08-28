@@ -351,9 +351,9 @@ contains
        if ( ranks(i) .ne. back(v) ) call push_back(v,ranks(i))
     end do
     !
-    ! Build a duplicate of the MPI_COMM_WORLD group.
+    ! Build a duplicate of the parent group.
     !
-    call MPI_Comm_group(MPI_COMM_WORLD, world_group, ierr)
+    call MPI_Comm_group(m_comm, world_group, ierr)
 
     call MPI_group_incl(world_group, size(v), dataptr(v), this_group, ierr)
 
