@@ -3576,11 +3576,16 @@ contains
     do n=1, nlbx
        bx = get_box(la%lap%bxa, la%lap%idx(n))
 
-       ntiles(n) = 1
-       do idim = 1, dim
-          nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
-          ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
-       end do
+       if (empty(bx)) then
+          ntiles(n) = 0
+          nt_in_fab(:,n) = 0
+       else
+          ntiles(n) = 1
+          do idim = 1, dim
+             nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
+             ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
+          end do
+       end if
 
        n_tot_tiles = n_tot_tiles + ntiles(n)
     end do
@@ -3624,6 +3629,8 @@ contains
     i = 1
 
     do n=1, nlbx
+
+       if (ntiles(n) .eq. 0) cycle
 
        if (it+ntiles(n)-1 < tlo) then
           it = it + ntiles(n)
