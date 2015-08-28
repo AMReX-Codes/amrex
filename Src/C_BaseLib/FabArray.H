@@ -802,11 +802,17 @@ public:
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
     // MPI version
-    void FillBoundaryMPI (int scomp, int ncomp, bool cross);
+    void FillBoundary_MPI (int scomp, int ncomp, bool cross);
 
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_finish ();
+#ifdef BL_USE_UPCXX
+    void FillBoundary_finish_UPCXX ();
+#endif
+#ifdef BL_USE_MPI
+    void FillBoundary_finish_MPI ();
+#endif
 
     //
     // Move FABs in this FabArray to different MPI ranks.
@@ -2815,7 +2821,7 @@ FabArray<FAB>::FillBoundary (bool cross)
     FillBoundary_nowait(0, nComp(), cross);
     FillBoundary_finish();
 #else
-    FillBoundaryMPI(0, nComp(), cross);
+    FillBoundary_MPI(0, nComp(), cross);
 #endif
 }
 
@@ -2829,15 +2835,15 @@ FabArray<FAB>::FillBoundary (int  scomp,
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
 #else
-    FillBoundaryMPI(scomp, ncomp, cross);
+    FillBoundary_MPI(scomp, ncomp, cross);
 #endif
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundaryMPI (int  scomp,
-			        int  ncomp,
-	                        bool cross)
+FabArray<FAB>::FillBoundary_MPI (int  scomp,
+			         int  ncomp,
+	                         bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
 
@@ -3227,8 +3233,23 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
-#ifdef BL_USE_MPI
+#ifdef BL_USE_UPCXX
 
+    FillBoundary_finish_UPCXX();
+
+#elif defined BL_USE_MPI
+
+    FillBoundary_finish_MPI();
+
+#endif
+}
+
+
+#ifdef BL_USE_MPI
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_finish_MPI ()
+{
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
@@ -3241,11 +3262,7 @@ FabArray<FAB>::FillBoundary_finish ()
         //
         return;
 
-#ifdef BL_USE_UPCXX
-    BLPgas::fb_recv_event.wait(); // wait for the recvs
-#else
     Array<MPI_Status> stats;
-#endif
 
     //
     //  wait and unpack
@@ -3266,10 +3283,8 @@ FabArray<FAB>::FillBoundary_finish ()
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
-#ifndef BL_USE_UPCXX
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3292,33 +3307,97 @@ FabArray<FAB>::FillBoundary_finish ()
 	}
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::deallocate(fb_the_recv_data);
-#else
     BoxLib::The_Arena()->free(fb_the_recv_data);
-#endif
 
     fb_recv_from.clear();
     fb_recv_data.clear();
     fb_recv_reqs.clear();
 
     if (!TheSI.m_SndTags->empty()) {
+      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),fb_send_reqs,fb_send_data,stats);
+      fb_send_data.clear();
+      fb_send_reqs.clear();
+    }
+}
+#endif /*BL_USE_MPI*/
+
+
 #ifdef BL_USE_UPCXX
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_finish_UPCXX ()
+{
+    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
+
+    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
+
+    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
+        //
+        // No work to do.
+        //
+        return;
+
+    BLPgas::fb_recv_event.wait(); // wait for the recvs
+
+    //
+    //  wait and unpack
+    //
+
+    const int N_rcvs = TheSI.m_RcvTags->size();
+
+    if (N_rcvs > 0)
+    {
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    MapOfCopyComTagContainers::const_iterator m_it 
+		= TheSI.m_RcvTags->find(fb_recv_from[k]);
+	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+	    recv_cctc.push_back(&(m_it->second));
+	}	
+
+#ifdef _OPENMP
+#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
+#endif
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    value_type* dptr = fb_recv_data[k];
+	    BL_ASSERT(dptr != 0);
+
+	    const CopyComTagsContainer& cctc = *recv_cctc[k];
+
+	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		 it != cctc.end(); ++it)
+	    {
+		const Box& bx  = it->box;
+		const int  Cnt = bx.numPts()*fb_ncomp;
+		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+		dptr += Cnt;
+	    }	    
+	}
+    }
+
+    upcxx::deallocate(fb_the_recv_data);
+
+    fb_recv_from.clear();
+    fb_recv_data.clear();
+    fb_recv_reqs.clear();
+
+    if (!TheSI.m_SndTags->empty()) {
       // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
       FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data,
                                         &BLPgas::fb_send_event,
                                         &BLPgas::fb_send_counter);
-#else
-      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),fb_send_reqs,fb_send_data,stats);
-#endif
-	fb_send_data.clear();
-	fb_send_reqs.clear();
-    }
 
-#endif /*BL_USE_MPI*/
+      fb_send_data.clear();
+      fb_send_reqs.clear();
+    }
 }
 
-#ifdef BL_USE_UPCXX
 template<typename T1, typename T2>
 void
 FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
