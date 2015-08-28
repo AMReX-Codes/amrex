@@ -1670,25 +1670,22 @@ ParallelDescriptor::SidecarProcess ()
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
 
-            MultiFab *mf = new MultiFab;
-            Geometry *geom = new Geometry;
+            MultiFab mf;
+            Geometry geom;
 
             int time_step;
 
             // Receive the necessary data for doing analysis.
-            MultiFab::SendMultiFabToSidecars(mf);
-            Geometry::SendGeometryToSidecars(geom);
+            MultiFab::SendMultiFabToSidecars(&mf);
+            Geometry::SendGeometryToSidecars(&geom);
             ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
 
             InTransitAnalysis ita;
-            ita.Initialize(*mf, *geom, time_step);
+            ita.Initialize(mf, geom, time_step);
             Analysis::analysis->connectCallback(&ita);
 
             Analysis::analysis->DoAnalysis();
             Analysis::analysis->Finalize();
-
-            delete mf;
-            delete geom;
         }
         else
         {
