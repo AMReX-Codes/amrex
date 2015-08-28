@@ -209,7 +209,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
 #ifdef BL_USE_UPCXX
         BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
-	BoxLib::FillPeriodicBoundary_finish(*this, mf);
+	BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
 #else
         BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
 #endif
@@ -310,8 +310,12 @@ void
 Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
 {
     if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-    
-    BoxLib::FillPeriodicBoundary_finish(*this, mf);
+
+#ifdef BL_USE_UPCXX    
+    BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
+#elif defined BL_USE_MPI
+    BoxLib::FillPeriodicBoundary_finish_MPI(*this, mf);
+#endif
 }
 
 //
