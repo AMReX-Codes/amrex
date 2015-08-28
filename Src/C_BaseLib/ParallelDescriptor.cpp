@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <sstream>
 
-#include <Analysis.H>
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
@@ -14,6 +13,7 @@
 #include <Geometry.H>
 #ifdef IN_TRANSIT
 #include <InTransitAnalysis.H>
+#include <Analysis.H>
 #endif
 
 namespace ParallelDescriptor
