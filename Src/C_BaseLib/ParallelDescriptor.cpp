@@ -1655,6 +1655,7 @@ ParallelDescriptor::SidecarProcess ()
     bool finished(false);
     int signal(-1);
     Analysis::analysis = new AnalysisContainer;
+    InTransitAnalysis ita;
     while (!finished)
     {
         // Receive the signal from the compute group.
@@ -1681,7 +1682,6 @@ ParallelDescriptor::SidecarProcess ()
             Geometry::SendGeometryToSidecars(&geom);
             ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
 
-            InTransitAnalysis ita;
             ita.Initialize(mf, geom, time_step);
             Analysis::analysis->connectCallback(&ita);
 
