@@ -1621,20 +1621,21 @@ contains
     logical, intent(in), optional :: all
     integer :: i
     logical lall
+    type(mfiter) :: mfi
     type(bl_prof_timer), save :: bpt
-
     call build(bpt, "imf_setval_c")
-
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i)
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(mfi,i)
+    call mfiter_build(mfi,mf,.true.)
+    do while (more_tile(mfi))
+       i = get_fab_index(mfi)
        if ( lall ) then
-          call setval(mf%fbs(i), val, c, nc)
+          call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
-          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
+          call setval(mf%fbs(i), val, get_tilebox(mfi), c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
     call destroy(bpt)
   end subroutine imultifab_setval_c
   subroutine lmultifab_setval_c(mf, val, c, nc, all)
@@ -1645,19 +1646,21 @@ contains
     logical, intent(in), optional :: all
     integer :: i
     logical lall
+    type(mfiter) :: mfi
     type(bl_prof_timer), save :: bpt
-
     call build(bpt, "lmf_setval_c")
     lall = .FALSE.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i)
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(mfi,i)
+    call mfiter_build(mfi,mf,.true.)
+    do while (more_tile(mfi))
+       i = get_fab_index(mfi)
        if ( lall ) then
-          call setval(mf%fbs(i), val, c, nc)
+          call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
-          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
+          call setval(mf%fbs(i), val, get_tilebox(mfi), c, nc)
        end if
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
     call destroy(bpt)
   end subroutine lmultifab_setval_c
   subroutine zmultifab_setval_c(mf, val, c, nc, all)
@@ -1668,14 +1671,19 @@ contains
     logical, intent(in), optional :: all
     integer :: i
     logical lall
+    type(mfiter) :: mfi
     lall = .FALSE.; if ( present(all) ) lall = all
-    do i = 1, nlocal(mf%la)
+    !$OMP PARALLEL PRIVATE(mfi,i)
+    call mfiter_build(mfi,mf,.true.)
+    do while (more_tile(mfi))
+       i = get_fab_index(mfi)
        if ( lall ) then
-          call setval(mf%fbs(i), val, c, nc)
+          call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
-          call setval(mf%fbs(i), val, get_ibox(mf, i), c, nc)
+          call setval(mf%fbs(i), val, get_tilebox(mfi), c, nc)
        end if
     end do
+    !$OMP END PARALLEL
   end subroutine zmultifab_setval_c
 
   subroutine logical_or(out, in)
