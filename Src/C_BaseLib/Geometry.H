@@ -724,16 +724,15 @@ namespace BoxLib
 #endif /*BL_USE_MPI*/
     }
 	
+#ifdef BL_USE_MPI
     template <class FAB>
     void
-    FillPeriodicBoundary_finish (const Geometry& geom,
-		                 FabArray<FAB>& mf)
+    FillPeriodicBoundary_finish_MPI (const Geometry& geom,
+				     FabArray<FAB>& mf)
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
 	if (ParallelDescriptor::NProcs() == 1) return;
-
-#ifdef BL_USE_MPI
 
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
 
@@ -751,11 +750,7 @@ namespace BoxLib
 
         typedef typename FAB::value_type value_type;
 
-#ifdef BL_USE_UPCXX
-        BLPgas::fpb_recv_event.wait(); // wait for the recvs
-#else
 	Array<MPI_Status> stats;
-#endif
 
 	//
 	// wait and unpack
@@ -775,10 +770,8 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-#ifndef BL_USE_UPCXX
 	    stats.resize(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
-#endif
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
@@ -801,31 +794,105 @@ namespace BoxLib
             }
         }
 
-#ifdef BL_USE_UPCXX
-	upcxx::deallocate(mf.fpb_the_recv_data);
-#else
         BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
-#endif
 
 	mf.fpb_recv_from.clear();
 	mf.fpb_recv_data.clear();
 	mf.fpb_recv_reqs.clear();
 
         if (!TheFPB.m_SndTags->empty()) {
-#ifdef BL_USE_UPCXX
-	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-          FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data,
-                                            &BLPgas::fpb_send_event,
-                                            &BLPgas::fpb_send_counter);
-#else
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),mf.fpb_send_reqs,mf.fpb_send_data,stats);
-#endif
 	    mf.fpb_send_data.clear();
 	    mf.fpb_send_reqs.clear();
 	}
 
-#endif /*BL_USE_MPI*/
     }
+#endif /*BL_USE_MPI*/
+
+#ifdef BL_USE_UPCXX
+    template <class FAB>
+    void
+    FillPeriodicBoundary_finish_UPCXX (const Geometry& geom,
+				       FabArray<FAB>& mf)
+    {
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+	if (ParallelDescriptor::NProcs() == 1) return;
+
+        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
+
+        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+
+        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
+
+        const Geometry::FPB& TheFPB = cache_it->second;
+
+        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
+            //
+            // No work to do.
+            //
+            return;
+
+        typedef typename FAB::value_type value_type;
+
+        BLPgas::fpb_recv_event.wait(); // wait for the recvs
+
+	//
+	// wait and unpack
+
+        const int N_rcvs = TheFPB.m_RcvTags->size();
+
+	if (N_rcvs > 0)
+	{
+	    Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
+	    recv_fctc.reserve(N_rcvs);
+
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it 
+		    = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
+                BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
+		recv_fctc.push_back(&(m_it->second));
+	    }
+
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
+#endif
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		value_type*  dptr = mf.fpb_recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
+
+                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+                     it != fctc.end(); ++it)
+                {
+                    const Box& bx  = it->dbox;
+                    const int  Cnt = bx.numPts()*mf.fpb_ncomp;
+                    mf[it->dstIndex].copyFromMem(bx,mf.fpb_scomp,mf.fpb_ncomp,dptr);
+                    dptr += Cnt;
+                }
+            }
+        }
+
+	upcxx::deallocate(mf.fpb_the_recv_data);
+
+	mf.fpb_recv_from.clear();
+	mf.fpb_recv_data.clear();
+	mf.fpb_recv_reqs.clear();
+
+        if (!TheFPB.m_SndTags->empty()) {
+	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
+	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data,
+					      &BLPgas::fpb_send_event,
+					      &BLPgas::fpb_send_counter);
+	    mf.fpb_send_data.clear();
+	    mf.fpb_send_reqs.clear();
+	}
+
+    }
+#endif /*BL_USE_UPCXX*/
 
 }
 
