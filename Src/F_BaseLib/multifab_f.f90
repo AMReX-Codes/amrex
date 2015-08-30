@@ -5413,10 +5413,10 @@ contains
     type(mfiter) :: mfi
     lng = 0; if ( present(ng) ) lng = ng
     !$omp parallel private(i,mfi,ap)
-    call mfiter_build(mfi,mf,.true.)
+    call mfiter_build(mfi,a,.true.)
     do while(more_tile(mfi))
        i = get_fab_index(mfi)
-       ap => dataptr(mf%fbs(i), get_growntilebox(mfi,lng), dst, nc)
+       ap => dataptr(a%fbs(i), get_growntilebox(mfi,lng), dst, nc)
        call multifab_plus_plus_s_doit(ap, b)
     end do
     !$omp end parallel
