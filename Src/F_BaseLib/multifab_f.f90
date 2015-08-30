@@ -791,8 +791,6 @@ contains
   subroutine multifab_build_copy(m1, m2)
     type(multifab), intent(inout) :: m1
     type(multifab), intent(in) :: m2
-    real(dp_t), pointer :: m1p(:,:,:,:)
-    real(dp_t), pointer :: m2p(:,:,:,:)
     integer :: i
     if ( built_q(m1) ) call bl_error("MULTIFAB_BUILD_COPY: already built")
     if ( built_q(m1) ) call multifab_destroy(m1)
@@ -3742,7 +3740,7 @@ contains
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('MULTIFAB_COPY_C: nc too large for src multifab', lnc)
     if ( mdst%la == msrc%la ) then
        if ( lng > 0 ) &
-            call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in multifab_copy_c")
+            call bl_assert(mdst%ng >= lng, msrc%ng >= lng,"not enough ghost cells in multifab_copy_c")
 
        !$OMP PARALLEL PRIVATE(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
@@ -3829,7 +3827,7 @@ contains
     if ( lnc < 1 )                   call bl_error('IMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('IMULTIFAB_COPY_C: nc too large for src multifab', lnc)
-    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in imultifab_copy_c")
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= lng, msrc%ng >= lng,"not enough ghost cells in imultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
@@ -3887,7 +3885,7 @@ contains
     if ( lnc < 1 )                   call bl_error('LMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('LMULTIFAB_COPY_C: nc too large for src multifab', lnc)
-    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in lmultifab_copy_c")
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= lng, msrc%ng >= lng,"not enough ghost cells in lmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
@@ -3943,7 +3941,7 @@ contains
     if ( lnc < 1 )                   call bl_error('ZMULTIFAB_COPY_C: nc must be >= 1')
     if ( mdst%nc < (dstcomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for dst multifab', lnc)
     if ( msrc%nc < (srccomp+lnc-1) ) call bl_error('ZMULTIFAB_COPY_C: nc too large for src multifab', lnc)
-    if ( lng > 0 )                   call bl_assert(mdst%ng >= ng, msrc%ng >= ng,"not enough ghost cells in zmultifab_copy_c")
+    if ( lng > 0 )                   call bl_assert(mdst%ng >= lng, msrc%ng >= lng,"not enough ghost cells in zmultifab_copy_c")
     if ( mdst%la == msrc%la ) then
        do i = 1, nlocal(mdst%la)
           if ( lng > 0 ) then
@@ -4881,7 +4879,7 @@ contains
     integer :: i,lng
 
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_div_div")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng,"not enough ghost cells in multifab_div_div")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -4907,7 +4905,7 @@ contains
     integer :: i,lng
 
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_s")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_div_s")
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S: divide by zero")
     end if
@@ -4934,7 +4932,7 @@ contains
     integer :: i,lng
 
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_div_c")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -4962,7 +4960,7 @@ contains
     integer :: i,lng
 
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_div_s_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_div_s_c")
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
@@ -4989,7 +4987,7 @@ contains
     integer :: i,lng
 
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_div_s_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_s_c")
     if ( val == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
@@ -5065,7 +5063,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5086,7 +5084,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_s")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5109,7 +5107,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_c")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5133,7 +5131,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_mult_s_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_s_c")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5156,7 +5154,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng,"not enough ghost cells in multifab_mult_s_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_s_c")
 
     !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, nlocal(a%la)
@@ -5237,7 +5235,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng, "not enough ghost cells in multifab_sub_sub")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5259,7 +5257,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, "not enough ghost cells in multifab_sub_sub_s")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5282,7 +5280,7 @@ contains
     real(dp_t), pointer :: bp(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng, "not enough ghost cells in multifab_sub_sub_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng, "not enough ghost cells in multifab_sub_sub_c")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5306,7 +5304,7 @@ contains
     real(dp_t), pointer :: ap(:,:,:,:)
     integer :: i,lng
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, "not enough ghost cells in multifab_sub_sub_s_c")
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, "not enough ghost cells in multifab_sub_sub_s_c")
 
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
@@ -5355,8 +5353,8 @@ contains
     type(mfiter) :: mfi
     type(box) :: bx
     lng = 0; if ( present(ng) ) lng = ng
-    if ( lng > 0 ) call bl_assert(a%ng >= ng, b%ng >= ng,"not enough ghost cells in multifab_plus_plus_c")
-    !$omp parallel private(i,mfi,ap,bp)
+    if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng,"not enough ghost cells in multifab_plus_plus_c")
+    !$omp parallel private(i,mfi,ap,bp,bx)
     call mfiter_build(mfi,a,.true.)
     do while (more_tile(mfi))
        i = get_fab_index(mfi)
@@ -5496,7 +5494,6 @@ contains
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
     logical, intent(in), optional :: all, local
-    logical :: lallow
     integer :: i
     real(kind=dp_t) :: r1
     logical :: llocal, lall
