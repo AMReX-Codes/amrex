@@ -241,7 +241,7 @@ contains
 
     call multifab_copy_c(cfine, 1, pcrse, icomp_crse, nc, ngsrc=nghost(pcrse))
 
-    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, local=.true.) .gt. Huge(ONE)-ONE) then
        call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
             ' (likely because grids are not properly nested)')
     end if

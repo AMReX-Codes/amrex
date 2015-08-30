@@ -5556,28 +5556,29 @@ contains
        call parallel_reduce(r, r1, MPI_MIN)
     end if
   end function multifab_min_c
-  
-  function multifab_max(mf, all, allow_empty, local) result(r)
+
+  function multifab_max(mf, all, local) result(r)
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: mf
-    logical, intent(in), optional :: all, allow_empty, local
+    logical, intent(in), optional :: all, local
     logical :: lallow
     integer :: i
     real(kind=dp_t) :: r1
-    logical :: llocal
+    logical :: llocal, lall
+    type(mfiter) :: mfi
+    lall   = .false.; if (present(all)  ) lall  =  all
+    llocal = .false.; if (present(local)) llocal=local
     r1 = -Huge(r1)
-    llocal = .false.; if (present(local))       llocal=local
-    lallow = .false.; if (present(allow_empty)) lallow=allow_empty
-    if (lallow) then
-       do i = 1, nlocal(mf%la)
-          if (empty(get_box(mf%fbs(i)))) cycle
-          r1 = max(r1, max_val(mf%fbs(i), all))
-       end do
-    else
-       do i = 1, nlocal(mf%la)
-          r1 = max(r1, max_val(mf%fbs(i), all))
-       end do
-    endif
+    !$omp parallel private(i,mfi) reduction(max:r1)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if (lall) then
+          r1 = max(r1, max_val(mf%fbs(i), get_growntilebox(mfi)))
+       else
+          r1 = max(r1, max_val(mf%fbs(i), get_tilebox(mfi)))
+       end if
+    end do
+    !$omp end parallel
     if (llocal) then
        r = r1
     else
@@ -5592,12 +5593,21 @@ contains
     logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
-    logical :: llocal
+    logical :: llocal, lall
+    type(mfiter) :: mfi
+    lall   = .false.; if (present(all)  ) lall  =  all
     llocal = .false.; if (present(local)) llocal=local
-     r1 = -Huge(r1)
-    do i = 1, nlocal(mf%la)
-       r1 = max(r1, max_val(mf%fbs(i), c, nc, all))
+    r1 = -Huge(r1)
+    !$omp parallel private(i,mfi) reduction(max:r1)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if (lall) then
+          r1 = max(r1, max_val(mf%fbs(i), get_growntilebox(mfi), c, nc))
+       else
+          r1 = max(r1, max_val(mf%fbs(i), get_tilebox(mfi), c, nc))
+       end if
     end do
+    !$omp end parallel
     if (llocal) then
        r = r1
     else
