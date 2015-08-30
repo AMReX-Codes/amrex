@@ -5524,12 +5524,21 @@ contains
     logical, intent(in), optional :: all, local
     integer :: i
     real(kind=dp_t) :: r1
-    logical :: llocal
-    llocal = .false. ; if (present(local)) llocal = local
+    logical :: llocal, lall
+    type(mfiter) :: mfi
+    lall   = .false.; if (present(all)  ) lall  =  all
+    llocal = .false.; if (present(local)) llocal=local
     r1 = +Huge(r1)
-    do i = 1, nlocal(mf%la)
-       r1 = min(r1,min_val(mf%fbs(i), all))
+    !$omp parallel private(i,mfi) reduction(min:r1)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if (lall) then
+          r1 = min(r1, min_val(mf%fbs(i), get_growntilebox(mfi)))
+       else
+          r1 = min(r1, min_val(mf%fbs(i), get_tilebox(mfi)))
+       end if
     end do
+    !$omp end parallel
     if (llocal) then
        r = r1
     else
@@ -5544,12 +5553,21 @@ contains
     logical, intent(in), optional :: all, local
     real(kind=dp_t) :: r1
     integer :: i
-    logical :: llocal
-    llocal = .false. ; if (present(local)) llocal = local
+    logical :: llocal, lall
+    type(mfiter) :: mfi
+    lall   = .false.; if (present(all)  ) lall  =  all
+    llocal = .false.; if (present(local)) llocal=local
     r1 = +Huge(r1)
-    do i = 1, nlocal(mf%la)
-       r1 = min(r1, min_val(mf%fbs(i), c, nc, all))
+    !$omp parallel private(i,mfi) reduction(min:r1)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if (lall) then
+          r1 = min(r1, min_val(mf%fbs(i), get_growntilebox(mfi), c, nc))
+       else
+          r1 = min(r1, min_val(mf%fbs(i), get_tilebox(mfi), c, nc))
+       end if
     end do
+    !$omp end parallel
     if (llocal) then
        r = r1
     else
