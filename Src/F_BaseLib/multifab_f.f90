@@ -4994,10 +4994,10 @@ contains
     do i = 1, nlocal(a%la)
        if ( lng > 0 ) then
           ap => dataptr(a, i, grow(get_ibox(a, i), lng), ia, nc)
-          bp => dataptr(a, i, grow(get_ibox(b, i), lng), ib, nc)
+          bp => dataptr(b, i, grow(get_ibox(b, i), lng), ib, nc)
        else
           ap => dataptr(a, i, get_ibox(a, i), ia, nc)
-          bp => dataptr(a, i, get_ibox(b, i), ib, nc)
+          bp => dataptr(b, i, get_ibox(b, i), ib, nc)
        end if
        ap = bp/val
     end do
