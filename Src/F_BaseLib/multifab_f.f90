@@ -66,6 +66,7 @@ module multifab_module
      integer :: ntiles   = 0
      type(tilearray)  :: ta
      type(layout_rep), pointer :: lap => Null()
+     logical :: built    = .false.
   end type mfiter
 
   interface cell_centered_q
@@ -4062,34 +4063,37 @@ contains
     type(multifab)      :: tmask
     real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
     logical,    pointer :: lmp(:,:,:,:)
-    real(dp_t)          :: r1,r2
+    real(dp_t)          :: r1
     integer             :: i,j,k,n,lo(4),hi(4)
     logical             :: llocal
+    type(mfiter)        :: mfi
+    type(box)           :: bx
 
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
     end if
-
     llocal = .false.; if ( present(local) ) llocal = local
 
     r1 = 0.0_dp_t
 
     if ( cell_centered_q(mf) ) then
+       !$omp parallel private(mp,mp1,lmp,i,j,k,n,lo,hi,mfi,bx) reduction(+:r1)
+       call mfiter_build(mfi,mf,.true.)
+       do while(more_tile(mfi))
+          n = get_fab_index(mfi)
+          bx = get_tilebox(mfi)
 
-       do n = 1, nlocal(mf%la)
-          mp  => dataptr(mf,  n, get_ibox(mf, n), comp)
-          mp1 => dataptr(mf1, n, get_ibox(mf1,n), comp1)
+          mp  => dataptr(mf %fbs(n), bx, comp )
+          mp1 => dataptr(mf1%fbs(n), bx, comp1)
 
           lo = lbound(mp); hi = ubound(mp)
 
-          r2 = 0.0_dp_t
-
           if ( present(mask) )then
-             lmp => dataptr(mask, n, get_ibox(mask, n), 1)
+             lmp => dataptr(mask%fbs(n), bx)
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      if ( lmp(i,j,k,1) ) r2 = r2 + mp(i,j,k,1)*mp1(i,j,k,1)
+                      if ( lmp(i,j,k,1) ) r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
                    end do
                 end do
              end do
@@ -4097,42 +4101,43 @@ contains
              do k = lo(3), hi(3)
                 do j = lo(2), hi(2)
                    do i = lo(1), hi(1)
-                      r2 = r2 + mp(i,j,k,1)*mp1(i,j,k,1)
+                      r1 = r1 + mp(i,j,k,1)*mp1(i,j,k,1)
                    end do
                 end do
              end do
           endif
 
-          r1 = r1 + r2
        end do
-
+       !$omp end parallel
     else if ( nodal_q(mf) ) then
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
-       do n = 1, nlocal(mf%la) 
-          mp  => dataptr(mf,  n, get_ibox(mf,  n), comp)
-          mp1 => dataptr(mf1, n, get_ibox(mf1, n), comp1)
+       !$omp parallel private(mp,mp1,ma,lmp,i,j,k,n,lo,hi,mfi,bx) reduction(+:r1)
+       call mfiter_build(mfi,mf,.true.)
+       do while(more_tile(mfi))
+          n = get_fab_index(mfi)
+          bx = get_tilebox(mfi)
+
+          mp  => dataptr(mf %fbs(n), bx, comp )
+          mp1 => dataptr(mf1%fbs(n), bx, comp1)
           if ( present(nodal_mask) ) then
-             ma => dataptr(nodal_mask, n, get_ibox(nodal_mask, n))
+             ma => dataptr(nodal_mask%fbs(n), bx)
           else
-             ma => dataptr(tmask,      n, get_ibox(tmask,      n))
+             ma => dataptr(     tmask%fbs(n), bx)
           endif
 
           lo = lbound(mp); hi = ubound(mp)
 
-          r2 = 0.0_dp_t
-
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                   r2 = r2 + ma(i,j,k,1)*mp(i,j,k,1)*mp1(i,j,k,1)
+                   r1 = r1 + ma(i,j,k,1)*mp(i,j,k,1)*mp1(i,j,k,1)
                 end do
              end do
           end do
-
-          r1 = r1 + r2
        end do
+       !$omp end parallel
 
        if ( .not. present(nodal_mask) ) call multifab_destroy(tmask)
     else
@@ -4461,42 +4466,40 @@ contains
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
     type(multifab), intent(in) :: mf
-    logical, pointer :: lp(:,:,:,:)
     type(lmultifab), intent(in), optional :: mask
+    logical, pointer :: lp(:,:,:,:)
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    integer :: lnc
+    type(mfiter) :: mfi
+    type(box) :: bx
+    lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
-    if ( present(mask) ) then
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
-          do n = comp, comp+nc-1
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), n)
-             end if
+    !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
+    call mfiter_build(mfi,mf,.true.)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if ( lall ) then
+          bx = get_growntilebox(mfi)
+       else
+          bx = get_tilebox(mfi)
+       end if
+       if ( present(mask) ) then
+          lp => dataptr(mask%fbs(i), bx)
+          do n = comp, comp + lnc - 1
+             mp => dataptr(mf%fbs(i), bx, n)
              r1 = r1 + sum(abs(mp), mask = lp)
           end do
-       end do
-    else
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-          end if
+       else
+          mp => dataptr(mf%fbs(i), bx, comp, lnc)
           r1 = r1 + sum(abs(mp))
-       end do
-    end if
+       end if
+    end do
+    !$omp end parallel
     call parallel_reduce(r, r1, MPI_SUM)
-
   end function multifab_norm_l1_c
   function multifab_norm_l1(mf, all) result(r)
     real(dp_t)                    :: r
@@ -4517,34 +4520,33 @@ contains
     integer :: i, n
     real(dp_t) :: r1
     logical :: lall
+    integer :: lnc
+    type(mfiter) :: mfi
+    type(box) :: bx
+    lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
-    if ( present(mask) ) then
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
-          do n = comp, comp+nc-1
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), n)
-             end if
+    !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
+    call mfiter_build(mfi,mf,.true.)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if ( lall ) then
+          bx = get_growntilebox(mfi)
+       else
+          bx = get_tilebox(mfi)
+       end if
+       if ( present(mask) ) then
+          lp => dataptr(mask%fbs(i), bx)
+          do n = comp, comp + lnc -1
+             mp => dataptr(mf%fbs(i), bx, n)
              r1 = r1 + sum(mp, mask=lp)
           end do
-       end do
-    else
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-          end if
+       else
+          mp => dataptr(mf%fbs(i), bx, comp, lnc)
           r1 = r1 + sum(mp)
-       end do
-    end if
+       end if
+    end do
+    !$omp end parallel
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_sum_c
   function multifab_sum(mf, mask, all) result(r)
@@ -4606,36 +4608,32 @@ contains
     real(dp_t) :: r1
     logical :: lall
     integer :: lnc
+    type(mfiter) :: mfi
+    type(box) :: bx
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0.0_dp_t
-
-    if ( present(mask) ) then
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             lp => dataptr(mask, i, get_pbox(mask, i))
-          else
-             lp => dataptr(mask, i, get_ibox(mask, i))
-          end if
+    !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
+    call mfiter_build(mfi,mf,.true.)
+    do while(more_tile(mfi))
+       i = get_fab_index(mfi)
+       if ( lall ) then
+          bx = get_growntilebox(mfi)
+       else
+          bx = get_tilebox(mfi)
+       end if
+       if ( present(mask) ) then
+          lp => dataptr(mask%fbs(i), bx)
           do n = comp, comp + lnc - 1
-             if ( lall ) then
-                mp => dataptr(mf, i, get_pbox(mf, i), n)
-             else
-                mp => dataptr(mf, i, get_ibox(mf, i), n)
-             end if
+             mp => dataptr(mf%fbs(i), bx, n)
              r1 = r1 + multifab_norm_l2_doit(mp,lp)
           end do
-       end do
-    else
-       do i = 1, nlocal(mf%la)
-          if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-          else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-          end if
+       else
+          mp => dataptr(mf%fbs(i), bx, comp, lnc)
           r1 = r1 + multifab_norm_l2_doit(mp)
-       end do
-    end if
+       end if
+    end do
+    !$omp end parallel
     call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
   end function multifab_norm_l2_c
@@ -4894,7 +4892,7 @@ contains
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                ap(i,j,k,n) = ap(i,j,k,n) / b
+                ap(i,j,k,n) = ap(i,j,k,n) * (1.0_dp_t / b)
              end do
           end do
        end do
@@ -5013,13 +5011,11 @@ contains
     integer :: i,lng
     type(mfiter) :: mfi
     type(box) :: bx
-    real(dp_t) :: valinv
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_s_c")
     if ( val == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV_S_C: divide by zero")
     end if
-    valinv = 1.0_dp_t/val
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
     do while(more_tile(mfi))
@@ -5027,7 +5023,7 @@ contains
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
-       ap = bp*valinv
+       ap = bp*(1.0_dp_t/val)
     end do
     !$omp end parallel
   end subroutine multifab_div_s_c
@@ -5686,6 +5682,8 @@ contains
        mfi%it = 0
        mfi%ntiles = 0
     end if
+
+    mfi%built = .true.  ! even when mfi%ntiles is 0.
   end subroutine iter_build_doit
 
   subroutine mfiter_reset(mfi)
@@ -5696,6 +5694,7 @@ contains
   function more_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
+    call bl_assert(mfi%built, "mfiter is not built")
     mfi%it = mfi%it + 1
     if (mfi%it .le. mfi%ntiles) then
        r = .true.
