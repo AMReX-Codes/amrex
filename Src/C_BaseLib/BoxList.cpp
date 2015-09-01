@@ -500,7 +500,7 @@ BoxLib::boxDiff (const Box& b1in,
            const int* b2lo = b2.loVect();
            const int* b2hi = b2.hiVect();
 
-           for (int i = 0; i < BL_SPACEDIM; i++)
+           for (int i = BL_SPACEDIM-1; i >= 0; i--)
            {
                const int* b1lo = b1.loVect();
                const int* b1hi = b1.hiVect();
