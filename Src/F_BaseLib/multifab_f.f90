@@ -5558,8 +5558,7 @@ contains
     end if
   end function multifab_max_c
 
-
-  subroutine multifab_equal(a, b)
+  function multifab_equal(a, b) result (global_is_equal)
     type(multifab), intent(in) :: a
     type(multifab), intent(in) :: b
     real(dp_t), pointer           :: ap(:,:,:,:)
@@ -5572,6 +5571,11 @@ contains
     logical :: is_equal, global_is_equal
 
     is_equal = .true.
+
+    if (.not. layout_equal(a%la, b%la)) then
+       global_is_equal = .false.
+       return
+    endif
 
     !$omp parallel private(ap,bp,ii,i,j,k,n,lo,hi,mfi,bx) reduction (.and.: is_equal)
     call mfiter_build(mfi,a,.true.)
@@ -5599,11 +5603,7 @@ contains
 
     call parallel_reduce(global_is_equal, is_equal, MPI_LAND)
 
-    if (parallel_IOProcessor() .and. .not. global_is_equal) then
-       call bl_warn("multifabs are not equal")
-    endif
-
-  end subroutine multifab_equal
+  end function multifab_equal
 
 
   subroutine multifab_iter_build(mfi, mf, tiling, tilesize)
