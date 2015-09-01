@@ -5102,6 +5102,7 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_s")
     !$omp parallel private(ap,i,mfi)
+    call mfiter_build(mfi,a,.true.)
     do while(more_tile(mfi))
        i = get_fab_index(mfi)
        ap => dataptr(a%fbs(i), get_growntilebox(mfi, lng))
