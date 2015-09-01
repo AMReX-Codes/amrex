@@ -66,6 +66,7 @@ module multifab_module
      integer :: ntiles   = 0
      type(tilearray)  :: ta
      type(layout_rep), pointer :: lap => Null()
+     logical :: built    = .false.
   end type mfiter
 
   interface cell_centered_q
@@ -5686,6 +5687,8 @@ contains
        mfi%it = 0
        mfi%ntiles = 0
     end if
+
+    mfi%built = .true.  ! even when mfi%ntiles is 0.
   end subroutine iter_build_doit
 
   subroutine mfiter_reset(mfi)
@@ -5696,6 +5699,7 @@ contains
   function more_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
+    call bl_assert(mfi%built, "mfiter is not built")
     mfi%it = mfi%it + 1
     if (mfi%it .le. mfi%ntiles) then
        r = .true.
