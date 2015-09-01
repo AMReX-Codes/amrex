@@ -1262,7 +1262,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     n_grow = ngrow;
     n_comp = nvar;
-    //faID   = nFabArrays++;
 
     boxarray.define(bxs);
 
@@ -1990,8 +1989,8 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   std::map<int, FAB *> tempIndexFABs;
   typename std::map<int, FAB *>::iterator tIFiter;
   if(fabMoves.size() > 0) {  // ---- there are fabs on this proc to send || recv | both
-    if(indexMap.size() != m_fabs_v.size()) {  // ---- errro
-      BoxLib::Abort("**** Errror:  indexMap size != m_fabs_v.size()");
+    if(indexMap.size() != m_fabs_v.size()) {
+      BoxLib::Abort("**** Error:  indexMap size != m_fabs_v.size()");
     }
     for(int iim(0); iim < indexMap.size(); ++iim) {
       tIFiter = tempIndexFABs.find(indexMap[iim]);
@@ -2047,10 +2046,12 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     }
   }
 
+  // ---- we could defer this, not do it, or just do it the first time through
   ParallelDescriptor::ReduceIntSum(nFabsSent);
 
 
   // ---- wait for all the data to move
+  // ---- we could defer Waitall for multiple calls to MoveFabs with a multi-step process
   Array<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
 
   if(recvReqs.size() > 0) {
