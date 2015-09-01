@@ -1887,11 +1887,12 @@ def testSuite(argv):
                 shutil.copy(file, "%s/%s.%s" % (fullWebDir, test.name, file) )
 
             if test.doVis:
-               pngFile = getRecentFileName(outputDir, "", ".png")
-               try: shutil.copy(pngFile, fullWebDir)
-               except IOError:
-                   # visualization was not successful.  Reset doVis
-                   test.doVis = 0
+               png_file = getRecentFileName(outputDir, "", ".png")
+               if not png_file is None:
+                   try: shutil.copy(png_file, fullWebDir)
+                   except IOError:
+                       # visualization was not successful.  Reset doVis
+                       test.doVis = 0
 
             if not test.analysisRoutine == "":
                 try: shutil.copy(test.analysisOutputImage, fullWebDir)
@@ -2440,9 +2441,10 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, fullWebDi
 
         # show any visualizations
         if test.doVis:
-            pngFile = getRecentFileName(fullWebDir, test.name, ".png")
-            hf.write("<P>&nbsp;\n")
-            hf.write("<P><IMG SRC='%s' BORDER=0>" % (pngFile) )
+            png_file = getRecentFileName(fullWebDir, test.name, ".png")
+            if not png_file is None:
+                hf.write("<P>&nbsp;\n")
+                hf.write("<P><IMG SRC='%s' BORDER=0>" % (png_file) )
 
         # show any analysis
         if not test.analysisOutputImage == "":
