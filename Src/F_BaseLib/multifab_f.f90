@@ -414,6 +414,10 @@ module multifab_module
      module procedure imultifab_iter_build
   end interface mfiter_build
 
+  interface is_equal
+     module procedure multifab_equal
+  end interface is_equal
+
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
@@ -439,6 +443,8 @@ module multifab_module
 
   private :: multifab_iter_build, zmultifab_iter_build, lmultifab_iter_build, imultifab_iter_build
   private :: iter_build_doit
+
+  private :: multifab_equal
 
 contains
 
@@ -5550,6 +5556,54 @@ contains
        call parallel_reduce(r, r1, MPI_MAX)
     end if
   end function multifab_max_c
+
+
+  subroutine multifab_equal(a, b)
+    type(multifab), intent(in) :: a
+    type(multifab), intent(in) :: b
+    real(dp_t), pointer           :: ap(:,:,:,:)
+    real(dp_t), pointer           :: bp(:,:,:,:)
+    
+    integer :: ii, i, j, k, n, lo(4), hi(4)
+    type(mfiter) :: mfi
+    type(box) :: bx
+
+    logical :: is_equal, global_is_equal
+
+    is_equal = .true.
+
+    !$omp parallel private(ap,bp,ii,i,j,k,n,lo,hi,mfi,bx) reduction (.and.: is_equal)
+    call mfiter_build(mfi,a,.true.)
+    do while(more_tile(mfi))
+       ii = get_fab_index(mfi)
+       bx = get_tilebox(mfi)
+
+       ap => dataptr(a%fbs(ii), bx)
+       bp => dataptr(b%fbs(ii), bx)
+
+       lo = lbound(ap)
+       hi = ubound(ap)
+       
+       do n = lo(4), hi(4)
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                   if (.not. ap(i,j,k,n) == bp(i,j,k,n)) is_equal = .false.
+                end do
+             end do
+          end do
+       end do
+    end do
+    !$omp end parallel
+
+    call parallel_reduce(global_is_equal, is_equal, MPI_LAND)
+
+    if (parallel_IOProcessor() .and. .not. global_is_equal) then
+       call bl_warn("multifabs are not equal")
+    endif
+
+  end subroutine multifab_equal
+
 
   subroutine multifab_iter_build(mfi, mf, tiling, tilesize)
     type(mfiter),   intent(inout) :: mfi
