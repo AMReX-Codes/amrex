@@ -1071,11 +1071,24 @@ Amr::readProbinFile (int& init)
             // Call the pesky probin reader.
             //
             piStart = ParallelDescriptor::second();
+
+#ifdef DIMENSION_AGNOSTIC
+
+            FORT_PROBINIT(&init,
+                          probin_file_name.dataPtr(),
+                          &probin_file_length,
+                          ZFILL(Geometry::ProbLo()),
+                          ZFILL(Geometry::ProbHi()));
+
+#else
+
             FORT_PROBINIT(&init,
                           probin_file_name.dataPtr(),
                           &probin_file_length,
                           Geometry::ProbLo(),
                           Geometry::ProbHi());
+#endif
+
             piEnd = ParallelDescriptor::second();
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);

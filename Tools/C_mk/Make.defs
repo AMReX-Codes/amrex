@@ -246,6 +246,9 @@ ifndef USE_CXX11
   USE_CXX11 = FALSE
 endif
 
+ifndef DIMENSION_AGNOSTIC
+  DIMENSION_AGNOSTIC = FALSE
+endif
 
 #
 # Defaults for BoxLib style programs.
@@ -997,6 +1000,10 @@ DEFINES		+= 	-DBL_SPACEDIM=$(DIM)				\
 
 ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
+endif
+
+ifeq ($(DIMENSION_AGNOSTIC),TRUE)
+DEFINES += -DDIMENSION_AGNOSTIC
 endif
 
 ifeq ($(BL_ALIGN_BYTE),64)

@@ -1948,9 +1948,7 @@ contains
 
     r1 = Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MIN : r1) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
-       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -1958,9 +1956,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
@@ -1980,9 +1976,7 @@ contains
 
     r1 = -Huge(r)
 
-    !$OMP PARALLEL PRIVATE(i,j,k,n) REDUCTION(MAX : r1) IF((hi(3)-lo(3)).ge.7)
     do n = lo(4), hi(4)
-       !$OMP DO
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -1990,9 +1984,7 @@ contains
              end do
           end do
        end do
-       !$OMP END DO NOWAIT
     end do
-    !$OMP END PARALLEL
 
     r = r1
 
@@ -2033,9 +2025,7 @@ contains
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     real(dp_t), pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx)
+    mp => dataptr(fb, bx)
     r = fab_maxval_doit(mp)
   end function fab_max_val_bx
   function fab_max_val_bx_c(fb, bx, c, nc) result(r)
@@ -2045,9 +2035,7 @@ contains
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
     real(dp_t), pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c, nc)
+    mp => dataptr(fb, bx, c, nc)
     r = fab_maxval_doit(mp)
   end function fab_max_val_bx_c
   function ifab_max_val(fb, all) result(r)
@@ -2085,9 +2073,7 @@ contains
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx)
+    mp => dataptr(fb, bx)
     r = maxval(mp)
   end function ifab_max_val_bx
   function ifab_max_val_bx_c(fb, bx, c, nc) result(r)
@@ -2097,9 +2083,7 @@ contains
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
     integer, pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c, nc)
+    mp => dataptr(fb, bx, c, nc)
     r = maxval(mp)
   end function ifab_max_val_bx_c
 
@@ -2138,9 +2122,7 @@ contains
     type(fab), intent(in) :: fb
     type(box), intent(in) :: bx
     real(dp_t), pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx)
+    mp => dataptr(fb, bx)
     r = fab_minval_doit(mp)
   end function fab_min_val_bx
   function fab_min_val_bx_c(fb, bx, c, nc) result(r)
@@ -2150,9 +2132,7 @@ contains
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
     real(dp_t), pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c, nc)
+    mp => dataptr(fb, bx, c, nc)
     r = fab_minval_doit(mp)
   end function fab_min_val_bx_c
   function ifab_min_val(fb, all) result(r)
@@ -2190,9 +2170,7 @@ contains
     type(ifab), intent(in) :: fb
     type(box), intent(in) :: bx
     integer, pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx)
+    mp => dataptr(fb, bx)
     r = minval(mp)
   end function ifab_min_val_bx
   function ifab_min_val_bx_c(fb, bx, c, nc) result(r)
@@ -2202,9 +2180,7 @@ contains
     integer, intent(in) :: c
     integer, intent(in), optional :: nc
     integer, pointer :: mp(:,:,:,:)
-    type(box) :: sbx
-    sbx = intersection(bx, get_ibox(fb))
-    mp => dataptr(fb, sbx, c, nc)
+    mp => dataptr(fb, bx, c, nc)
     r = minval(mp)
   end function ifab_min_val_bx_c
 

@@ -237,11 +237,11 @@ contains
 
     ! Set all of cfine to huge so that we can make sure it gets completely filled below.
     ! Empty boxes aren't setval()'d
-    call setval(cfine, Huge(ONE), allow_empty=.true.)
+    call multifab_setval(cfine, Huge(ONE))
 
     call multifab_copy_c(cfine, 1, pcrse, icomp_crse, nc, ngsrc=nghost(pcrse))
 
-    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, local=.true.) .gt. Huge(ONE)-ONE) then
        call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
             ' (likely because grids are not properly nested)')
     end if
