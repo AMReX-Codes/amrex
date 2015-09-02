@@ -27,7 +27,7 @@ public:
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;
 // threadprivate here doesn't work with Cray and Intel 
-#if defined(_OPENMP) && !defined(_CRAYC) && !defined(_INTEL_COMPILER)
+#if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER)
 #pragma omp threadprivate(bt_stack)
 #endif
 
