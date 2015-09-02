@@ -250,6 +250,10 @@ ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
 
+ifndef USE_ASSERTION
+  USE_ASSERTION = FALSE
+endif
+
 #
 # Defaults for BoxLib style programs.
 #
@@ -1004,6 +1008,14 @@ endif
 
 ifeq ($(DIMENSION_AGNOSTIC),TRUE)
 DEFINES += -DDIMENSION_AGNOSTIC
+endif
+
+ifeq ($(DEBUG),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+else
+ifeq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+endif
 endif
 
 ifeq ($(BL_ALIGN_BYTE),64)

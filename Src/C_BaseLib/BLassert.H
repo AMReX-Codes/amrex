@@ -8,7 +8,7 @@
 #undef BL_ASSERT
 #endif
 
-#if defined(NDEBUG)
+#if defined(NDEBUG) && !defined(BL_USE_ASSERTION)
 
 /*
   The macro BL_ASSERT(EX) is a debugging macro, used to test the
