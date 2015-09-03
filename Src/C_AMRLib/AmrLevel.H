@@ -5,6 +5,7 @@
 #include <REAL.H>
 #include <Geometry.H>
 #include <MultiFab.H>
+#include <MultiFabUtil.H>
 #include <Derive.H>
 #include <BCRec.H>
 #include <Interpolater.H>
