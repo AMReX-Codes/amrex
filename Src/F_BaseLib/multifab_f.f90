@@ -2157,8 +2157,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (bxasc%l_con%threadsafe)
     do i = 1, bxasc%l_con%ncpy
-       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii  =  bxasc%l_con%cpy(i)%lnd
+       jj  =  bxasc%l_con%cpy(i)%lns
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
@@ -2174,7 +2174,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -2194,7 +2194,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
     !$OMP END PARALLEL DO
@@ -2225,8 +2225,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2) if (bxasc%l_con%threadsafe)
     do i = 1, bxasc%l_con%ncpy
-       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii  =  bxasc%l_con%cpy(i)%lnd
+       jj  =  bxasc%l_con%cpy(i)%lns
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(p1,p2)
@@ -2246,7 +2246,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(fb_data%send_buffer, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -2312,7 +2312,7 @@ contains
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
-          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
        !$omp end parallel do
@@ -2346,7 +2346,7 @@ contains
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
-          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
        !$omp end parallel do
@@ -2391,7 +2391,7 @@ contains
        do i = 1, bxasc%r_con%nrcv
           sh = bxasc%r_con%rcv(i)%sh
           sh(4) = nc
-          p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+          p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
           call reshape_d_1_4(p, fb_data%recv_buffer, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
        end do
        !$omp end parallel do
@@ -2418,8 +2418,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2)
     do i = 1, bxasc%l_con%ncpy
-       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii  =  bxasc%l_con%cpy(i)%lnd
+       jj  =  bxasc%l_con%cpy(i)%lns
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_i(p1,p2)
@@ -2435,7 +2435,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_i_4_1(g_snd_i, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -2455,7 +2455,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_i_1_4(p, g_rcv_i, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
     !$OMP END PARALLEL DO
@@ -2478,8 +2478,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,ii,jj,p1,p2)
     do i = 1, bxasc%l_con%ncpy
-       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii  =  bxasc%l_con%cpy(i)%lnd
+       jj  =  bxasc%l_con%cpy(i)%lns
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(p1,p2)
@@ -2495,7 +2495,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -2515,7 +2515,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
     !$OMP END PARALLEL DO
@@ -2537,8 +2537,8 @@ contains
     bxasc = layout_boxassoc(mf%la, ng, mf%nodal, lcross)
 
     do i = 1, bxasc%l_con%ncpy
-       ii  =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj  =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii  =  bxasc%l_con%cpy(i)%lnd
+       jj  =  bxasc%l_con%cpy(i)%lns
        p1  => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        p2  => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_z(p1,p2)
@@ -2548,7 +2548,7 @@ contains
     allocate(g_rcv_z(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
@@ -2566,7 +2566,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_z_1_4(p, g_rcv_z, 1 + nc*bxasc%r_con%rcv(i)%pv, sh)
     end do
 
@@ -2839,8 +2839,8 @@ contains
 
     ! unsafe to do OMP
     do i = 1, bxasc%l_con%ncpy
-       ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii   =  bxasc%l_con%cpy(i)%lnd
+       jj   =  bxasc%l_con%cpy(i)%lns
        pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call sum_d(pdst,psrc)
@@ -2855,7 +2855,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -2875,7 +2875,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, sum_d)
     end do
 
@@ -2910,8 +2910,8 @@ contains
     call boxassoc_build(bxasc, mf%la%lap, lng, mf%nodal, .false., .true.)
 
     do i = 1, bxasc%l_con%ncpy
-       ii   =  local_index(mf,bxasc%l_con%cpy(i)%nd)
-       jj   =  local_index(mf,bxasc%l_con%cpy(i)%ns)
+       ii   =  bxasc%l_con%cpy(i)%lnd
+       jj   =  bxasc%l_con%cpy(i)%lns
        pdst => dataptr(mf%fbs(ii), bxasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), bxasc%l_con%cpy(i)%sbx, c, nc)
        call logical_or(pdst,psrc)
@@ -2928,7 +2928,7 @@ contains
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
     do i = 1, bxasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,bxasc%r_con%snd(i)%ns), bxasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%snd(i)%lns, bxasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
@@ -2946,7 +2946,7 @@ contains
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,bxasc%r_con%rcv(i)%nd), bxasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, logical_or)
     end do
 
@@ -2986,8 +2986,8 @@ contains
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
     do i = 1, snasc%l_con%ncpy
-       ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
-       jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
+       ii   =  snasc%l_con%cpy(i)%lnd
+       jj   =  snasc%l_con%cpy(i)%lns
        pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_d(pdst, psrc, filter)
@@ -3001,7 +3001,7 @@ contains
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
     do i = 1, snasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, snasc%r_con%snd(i)%lns, snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3019,7 +3019,7 @@ contains
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, snasc%r_con%rcv(i)%lnd, snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3095,8 +3095,8 @@ contains
     snasc = layout_syncassoc(mf%la, mf%ng, mf%nodal, lall)
 
     do i = 1, snasc%l_con%ncpy
-       ii   =  local_index(mf,snasc%l_con%cpy(i)%nd)
-       jj   =  local_index(mf,snasc%l_con%cpy(i)%ns)
+       ii   =  snasc%l_con%cpy(i)%lnd
+       jj   =  snasc%l_con%cpy(i)%lns
        pdst => dataptr(mf%fbs(ii), snasc%l_con%cpy(i)%dbx, c, nc)
        psrc => dataptr(mf%fbs(jj), snasc%l_con%cpy(i)%sbx, c, nc)
        call cpy_l(pdst, psrc, filter)
@@ -3110,7 +3110,7 @@ contains
     allocate(g_rcv_l(nc*snasc%r_con%rvol))
 
     do i = 1, snasc%r_con%nsnd
-       p => dataptr(mf, local_index(mf,snasc%r_con%snd(i)%ns), snasc%r_con%snd(i)%sbx, c, nc)
+       p => dataptr(mf, snasc%r_con%snd(i)%lns, snasc%r_con%snd(i)%sbx, c, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3128,7 +3128,7 @@ contains
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mf, local_index(mf,snasc%r_con%rcv(i)%nd), snasc%r_con%rcv(i)%dbx, c, nc)
+       p => dataptr(mf, snasc%r_con%rcv(i)%lnd, snasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*snasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3474,8 +3474,8 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,ii,jj,pdst,psrc) if (cpasc%l_con%threadsafe)
     do i = 1, cpasc%l_con%ncpy
-       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
-       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
+       ii   =  cpasc%l_con%cpy(i)%lnd
+       jj   =  cpasc%l_con%cpy(i)%lns
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_d(pdst, psrc, filter)
@@ -3494,7 +3494,7 @@ contains
 
     !$OMP PARALLEL DO PRIVATE(i,p)
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, cpasc%r_con%snd(i)%lns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_d_4_1(g_snd_d, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
     !$OMP END PARALLEL DO
@@ -3514,7 +3514,7 @@ contains
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%lnd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
     !$OMP END PARALLEL DO    
@@ -3548,8 +3548,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
-       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
+       ii   =  cpasc%l_con%cpy(i)%lnd
+       jj   =  cpasc%l_con%cpy(i)%lns
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_i(pdst, psrc, filter)
@@ -3563,7 +3563,7 @@ contains
     allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, cpasc%r_con%snd(i)%lns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3581,7 +3581,7 @@ contains
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%lnd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_i_1_4(p, g_rcv_i, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3612,8 +3612,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
-       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
+       ii   =  cpasc%l_con%cpy(i)%lnd
+       jj   =  cpasc%l_con%cpy(i)%lns
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_l(pdst, psrc, filter)
@@ -3627,7 +3627,7 @@ contains
     allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, cpasc%r_con%snd(i)%lns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3645,7 +3645,7 @@ contains
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%lnd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_l_1_4(p, g_rcv_l, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
@@ -3676,8 +3676,8 @@ contains
     cpasc = layout_copyassoc(mdst%la, msrc%la, mdst%nodal, msrc%nodal)
 
     do i = 1, cpasc%l_con%ncpy
-       ii   =  local_index(mdst,cpasc%l_con%cpy(i)%nd)
-       jj   =  local_index(msrc,cpasc%l_con%cpy(i)%ns)
+       ii   =  cpasc%l_con%cpy(i)%lnd
+       jj   =  cpasc%l_con%cpy(i)%lns
        pdst => dataptr(mdst%fbs(ii), cpasc%l_con%cpy(i)%dbx, dstcomp, nc)
        psrc => dataptr(msrc%fbs(jj), cpasc%l_con%cpy(i)%sbx, srccomp, nc)
        call cpy_z(pdst, psrc, filter)
@@ -3689,7 +3689,7 @@ contains
     allocate(g_rcv_z(nc*cpasc%r_con%rvol))
 
     do i = 1, cpasc%r_con%nsnd
-       p => dataptr(msrc, local_index(msrc,cpasc%r_con%snd(i)%ns), cpasc%r_con%snd(i)%sbx, srccomp, nc)
+       p => dataptr(msrc, cpasc%r_con%snd(i)%lns, cpasc%r_con%snd(i)%sbx, srccomp, nc)
        call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
@@ -3707,7 +3707,7 @@ contains
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
        sh(4) = nc
-       p => dataptr(mdst, local_index(mdst,cpasc%r_con%rcv(i)%nd), cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
+       p => dataptr(mdst, cpasc%r_con%rcv(i)%lnd, cpasc%r_con%rcv(i)%dbx, dstcomp, nc)
        call reshape_z_1_4(p, g_rcv_z, 1 + nc*cpasc%r_con%rcv(i)%pv, sh, filter)
     end do
 
