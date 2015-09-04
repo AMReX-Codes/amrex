@@ -2593,26 +2593,16 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     hf.write("<p>&nbsp;\n")
 
     if make_benchmarks == None:
-
-        hf.write("<div id=\"summary\">\n")
-        hf.write("<P><TABLE>\n")
-        # header
-        hf.write("<tr><th>test name</th><th>dim</th>\n")
-        hf.write("    <th>compare plotfile\n</th>")
-        hf.write("    <th># levels</th><th>MPI (# procs)</th>\n")
-        hf.write("    <th>OMP (# threads)</th><th>debug?</th>\n")
-        hf.write("    <th>compile?</th><th>restart?</th>\n")
-        hf.write("    <th>wall time</th>\n")
-        hf.write("    <th>result</th></tr>\n")
+        ht = HTMLTable(hf, columns=11)
+        ht.start_table()
+        ht.header(["test name", "dim", "compare plotfile",
+                   "# levels", "MPI (# procs)", "OMP (# threads)", "debug?", 
+                   "compile?", "restart?", "wall time", "result"])
 
     else:
-
-        hf.write("<div id=\"summary\">\n")
-        hf.write("<P><TABLE>\n")
-        # header
-        hf.write("<tr><th>test name</th>\n")
-        hf.write("    <th>result</th><th>comment</th></tr>\n")
-
+        ht = HTMLTable(hf, columns=3)
+        ht.start_table()
+        ht.header(["test name", "result", "comment"])
 
     # loop over the tests and add a line for each
     for test in testList:
@@ -2638,61 +2628,54 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
 
             sf.close()
 
-            # write out this test's status
-            hf.write("<TR><TD><A HREF=\"%s.html\">%s</A></TD>\n" %
-                     (test.name, test.name) )
+            row_info = []
+            row_info.append("<a href=\"%s.html\">{}</a>".format(test.name, test.name))
+            row_info.append(test.dim)
+            row_info.append(test.compare_file_used)
 
-            # dimensionality
-            hf.write("<td>{}</td>\n".format(test.dim))
-
-            # write out the comparison file used
-            hf.write("<td>{}</td>\n".format(test.compare_file_used))
-
-
-            # number of levels
             if not test.nlevels == None:
-                hf.write("<td>{}</td>\n".format(test.nlevels))
+                row_info.append(test.nlevels)
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
-            # MPI ?
             if test.useMPI:
-                hf.write("<td>&check; ({})</td>\n".format(test.numprocs))
+                row_info.append("&check; ({})".format(test.numprocs))
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
             # OMP ?
             if test.useOMP:
-                hf.write("<td>&check; ({})</td>\n".format(test.numthreads))
+                row_info.append("&check; ({})".format(test.numthreads))
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
             # debug ?
             if test.debug:
-                hf.write("<td>&check;</td>\n")
+                row_info.append("&check;")
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
             # compile ?
             if test.compileTest:
-                hf.write("<td>&check;</td>\n")
+                row_info.append("&check;")
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
             # restart ?
             if test.restartTest:
-                hf.write("<td>&check;</td>\n")
+                row_info.append("&check;")
             else:
-                hf.write("<td> </td>\n")
+                row_info.append("")
 
             # wallclock time
-            hf.write("<td>{:.3f} s</td>\n".format(test.wallTime))
+            row_info.append("{:.3f} s".format(test.wallTime))
 
             if testPassed:
-                hf.write("<TD><H3 class=\"passed\">PASSED</H3></TD></TR>\n")
+                row_info.append("<h3 class=\"passed\">PASSED</h3>")
             else:
-                hf.write("<TD><H3 class=\"failed\">FAILED</H3></TD></TR>\n")
+                row_info.append("<h3 class=\"failed\">FAILED</h3>")
 
+            ht.print_row(row_info)
 
         else:
             if test.restartTest: continue
@@ -2712,17 +2695,18 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
                     benchFile = line[index+5:]
                     break
 
-
+            row_info = []
+            row_info.append("{}".format(test.name))
             if not benchFile == "none":
-
-                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"benchmade\">BENCHMARK UPDATED</H3></TD><TD>(new benchmark file is %s)</TD></TR>\n" %
-                          (test.name, benchFile) )
+                row_info.append("<h3 class=\"benchmade\">BENCHMARK UPDATED</h3>")
+                row_info.append("(new benchmark file is {})".format(benchFile))
             else:
-                 hf.write("<TR><TD>%s</TD><TD><H3 class=\"failed\">BENCHMARK NOT UPDATED</H3></TD><TD>(compilation or execution failed)</TD></TR>\n" %
-                          (test.name) )
+                row_info.append("<h3 class=\"failed\">BENCHMARK NOT UPDATED</h3>")
+                row_info.append("(compilation or execution failed)")
 
+            ht.print_row(row_info)
 
-    hf.write("</TABLE></div>\n")
+    ht.end_table()
 
     # close
     hf.write("</BODY>\n")
