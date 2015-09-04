@@ -18,7 +18,7 @@ namespace BoxLib
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& bx = mfi.tilebox();
 
