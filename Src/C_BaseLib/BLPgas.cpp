@@ -86,7 +86,7 @@ BLPgas::Request(upcxx::rank_t src_rank,
                 int SeqNum,
                 upcxx::event *signal_event)
 {
-  upcxx::async(src_rank)(BLPgas::Sendrecv,
+  upcxx::async(src_rank, NULL)(BLPgas::Sendrecv,
 			 upcxx::global_ptr<void>(NULL, src_rank), dst,
 			 nbytes, SeqNum, signal_event, (upcxx::event*)NULL,
 			 (int *)NULL);
