@@ -2005,23 +2005,22 @@ h1 {font-family: "Tahoma","Arial", sans-serif;
 
 h3 {display: inline;}
 
-h3.passed {text-decoration: none; display: inline;
-           color: black; background-color: lime; padding: 2px}
+h3.passed {text-decoration: none; display: inline;                              
+           color: black; background-color: lime; padding: 2px;}
 
 a.passed:link {color: black; text-decoration: none;}
 a.passed:visited {color: black; text-decoration: none;}
 a.passed:hover {color: #ee00ee; text-decoration: underline;}
 
 h3.failed {text-decoration: none; display: inline;
-           color: black; background-color: red; padding: 2px}
+           color: black; background-color: red; padding: 2px;}
 
 a.failed:link {color: yellow; text-decoration: none;}
 a.failed:visited {color: yellow; text-decoration: none;}
 a.failed:hover {color: #00ffff; text-decoration: underline;}
 
-
 h3.benchmade {text-decoration: none; display: inline;
-              color: black; background-color: orange; padding: 2px}
+              color: black; background-color: orange; padding: 2px;}
 
 a.benchmade:link {color: black; text-decoration: none;}
 a.benchmade:visited {color: black; text-decoration: none;}
@@ -2086,6 +2085,10 @@ div.verticaltext {text-align: center;
 
 #summary tr.special {background: #ccccff;}
 #summary td.highlight {color: red;}
+
+#summary td.passed {background-color: lime;}                                    
+#summary td.failed {background-color: red;}                                     
+#summary td.benchmade {background-color: orange;}     
 
 th {background-color: grey;
     color: yellow;
@@ -2160,7 +2163,13 @@ class HTMLTable(object):
         if highlight:
             line = "<tr>"+n*"<td class='highlight'>{}</td>"+"</tr>\n"
         else:
-            line = "<tr>"+n*"<td>{}</td>"+"</tr>\n"
+            line = "<tr>"
+            for d in row_list:
+                if isinstance(d, tuple):
+                    line += "<td class=\"{}\">{}</td>".format(d[1], d[0])
+                else:
+                    line += "<td>{}</td>".format(d)
+            line += "</tr>\n"
         self.hf.write(line.format(*row_list))
 
     def end_table(self):
@@ -2637,7 +2646,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             sf.close()
 
             row_info = []
-            row_info.append("<a href=\"%s.html\">{}</a>".format(test.name, test.name))
+            row_info.append("<a href=\"{}.html\">{}</a>".format(test.name, test.name))
             row_info.append(test.dim)
             row_info.append(test.compare_file_used)
 
@@ -2679,9 +2688,9 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             row_info.append("{:.3f} s".format(test.wallTime))
 
             if testPassed:
-                row_info.append("<h3 class=\"passed\">PASSED</h3>")
+                row_info.append(("PASSED", "passed"))
             else:
-                row_info.append("<h3 class=\"failed\">FAILED</h3>")
+                row_info.append(("FAILED", "failed"))
 
             ht.print_row(row_info)
 
@@ -2706,11 +2715,11 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             row_info = []
             row_info.append("{}".format(test.name))
             if not benchFile == "none":
-                row_info.append("<h3 class=\"benchmade\">BENCHMARK UPDATED</h3>")
-                row_info.append("(new benchmark file is {})".format(benchFile))
+                row_info.append(("BENCHMARK UPDATED", "benchmade"))
+                row_info.append("new benchmark file is {}".format(benchFile))
             else:
-                row_info.append("<h3 class=\"failed\">BENCHMARK NOT UPDATED</h3>")
-                row_info.append("(compilation or execution failed)")
+                row_info.append(("BENCHMARK NOT UPDATED", "failed"))
+                row_info.append("compilation or execution failed")
 
             ht.print_row(row_info)
 
