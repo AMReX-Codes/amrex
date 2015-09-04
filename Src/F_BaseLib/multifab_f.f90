@@ -1498,14 +1498,13 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(i,bx1,mfi)
     call mfiter_build(mfi, mf, .true.)
-    do while (more_tile(mfi))
+    do while (next_tile(mfi,i))
        if ( lall ) then
           bx1 = intersection(bx, get_growntilebox(mfi))
        else
           bx1 = intersection(bx, get_tilebox(mfi))
        end if
        if ( .not. empty(bx1) ) then
-          i = get_fab_index(mfi)
           call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
@@ -1525,14 +1524,13 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(i,bx1,mfi)
     call mfiter_build(mfi, mf, .true.)
-    do while (more_tile(mfi))
+    do while (next_tile(mfi,i))
        if ( lall ) then
           bx1 = intersection(bx, get_growntilebox(mfi))
        else
           bx1 = intersection(bx, get_tilebox(mfi))
        end if
        if ( .not. empty(bx1) ) then
-          i = get_fab_index(mfi)
           call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
@@ -1552,14 +1550,13 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(i,bx1,mfi)
     call mfiter_build(mfi, mf, .true.)
-    do while (more_tile(mfi))
+    do while (next_tile(mfi,i))
        if ( lall ) then
           bx1 = intersection(bx, get_growntilebox(mfi))
        else
           bx1 = intersection(bx, get_tilebox(mfi))
        end if
        if ( .not. empty(bx1) ) then
-          i = get_fab_index(mfi)
           call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
@@ -1579,14 +1576,13 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(i,bx1,mfi)
     call mfiter_build(mfi, mf, .true.)
-    do while (more_tile(mfi))
+    do while (next_tile(mfi,i))
        if ( lall ) then
           bx1 = intersection(bx, get_growntilebox(mfi))
        else
           bx1 = intersection(bx, get_tilebox(mfi))
        end if
        if ( .not. empty(bx1) ) then
-          i = get_fab_index(mfi)
           call setval(mf%fbs(i), val, bx1, c, nc)
        end if
     end do
@@ -1607,8 +1603,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(mfi,i)
     call mfiter_build(mfi,mf,.true.)
-    do while (more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while (next_tile(mfi,i))
        if ( lall ) then
           call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
@@ -1632,8 +1627,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(mfi,i)
     call mfiter_build(mfi,mf,.true.)
-    do while (more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while (next_tile(mfi,i))
        if ( lall ) then
           call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
@@ -1657,8 +1651,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(mfi,i)
     call mfiter_build(mfi,mf,.true.)
-    do while (more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while (next_tile(mfi,i))
        if ( lall ) then
           call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
@@ -1680,8 +1673,7 @@ contains
     lall = .FALSE.; if ( present(all) ) lall = all
     !$omp parallel private(mfi,i)
     call mfiter_build(mfi,mf,.true.)
-    do while (more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while (next_tile(mfi,i))
        if ( lall ) then
           call setval(mf%fbs(i), val, get_growntilebox(mfi), c, nc)
        else
@@ -3751,8 +3743,7 @@ contains
 
        !$omp parallel private(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
-       do while (more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while (next_tile(mfi,i))
           bx = get_growntilebox(mfi,lng)
           pdst => dataptr(mdst, i, bx, dstcomp, lnc)
           psrc => dataptr(msrc, i, bx, srccomp, lnc)
@@ -3836,8 +3827,7 @@ contains
     if ( mdst%la == msrc%la ) then
        !$omp parallel private(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
-       do while(more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while(next_tile(mfi,i))
           bx = get_growntilebox(mfi, lng)
           pdst => dataptr(mdst, i, bx, dstcomp, lnc)
           psrc => dataptr(msrc, i, bx, srccomp, lnc)
@@ -3896,8 +3886,7 @@ contains
     if ( mdst%la == msrc%la ) then
        !$omp parallel private(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
-       do while (more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while (next_tile(mfi,i))
           bx = get_growntilebox(mfi,lng)
           pdst => dataptr(mdst, i, bx, dstcomp, lnc)
           psrc => dataptr(msrc, i, bx, srccomp, lnc)
@@ -3954,8 +3943,7 @@ contains
     if ( mdst%la == msrc%la ) then
        !$omp parallel private(mfi,i,bx,pdst,psrc)
        call mfiter_build(mfi,mdst,.true.)
-       do while (more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while (next_tile(mfi,i))
           bx = get_growntilebox(mfi,lng)
           pdst => dataptr(mdst, i, bx, dstcomp, lnc)
           psrc => dataptr(msrc, i, bx, srccomp, lnc)
@@ -4087,8 +4075,7 @@ contains
        !$omp parallel private(mp,mp1,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2)
        tid = omp_get_thread_num()
        call mfiter_build(mfi,mf,.true.)
-       do while(more_tile(mfi))
-          n = get_fab_index(mfi)
+       do while(next_tile(mfi,n))
           bx = get_tilebox(mfi)
 
           mp  => dataptr(mf %fbs(n), bx, comp )
@@ -4128,8 +4115,7 @@ contains
        !$omp parallel private(mp,mp1,ma,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2) reduction(+:r1)
        tid = omp_get_thread_num()
        call mfiter_build(mfi,mf,.true.)
-       do while(more_tile(mfi))
-          n = get_fab_index(mfi)
+       do while(next_tile(mfi,n))
           bx = get_tilebox(mfi)
 
           mp  => dataptr(mf %fbs(n), bx, comp )
@@ -4229,8 +4215,7 @@ contains
     lxmax = 1.0_dp_t ; if ( present(xmax) ) lxmax = xmax
     !$omp parallel private(i,mp,mfi)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        mp => dataptr(mf%fbs(i), get_tilebox(mfi), c)
        if (lclip) then
           where ( mp < lmin )
@@ -4257,8 +4242,7 @@ contains
     type(mfiter) :: mfi
     !$omp parallel private(mp,i,mfi)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        mp => dataptr(mf%fbs(i), get_tilebox(mfi), c)
        if ( present(off) ) then
           mp = mp*val + off
@@ -4277,8 +4261,7 @@ contains
     type(mfiter) :: mfi
     !$omp parallel private(mp,i,mfi)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        mp => dataptr(mf%fbs(i), get_tilebox(mfi))
        if ( present(off) ) then
           mp = mp*val + off
@@ -4304,8 +4287,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$omp parallel private(ap,bp,cp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4337,8 +4319,7 @@ contains
 
     !$omp parallel private(ap,bp,cp,ii,i,j,k,n,lo,hi,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       ii = get_fab_index(mfi)
+    do while(next_tile(mfi,ii))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4406,8 +4387,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4435,8 +4415,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4465,8 +4444,7 @@ contains
     lall = .false.; if ( present(all) ) lall = all
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4499,8 +4477,7 @@ contains
     r1 = 0.0_dp_t
     !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4547,8 +4524,7 @@ contains
     r1 = 0.0_dp_t
     !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4634,8 +4610,7 @@ contains
     r1 = 0.0_dp_t
     !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           bx = get_growntilebox(mfi)
        else
@@ -4727,8 +4702,7 @@ contains
     if ( present(mask) ) then
        !$omp parallel private(lp,mp,i,n,mfi,bx) reduction(max:r1)
        call mfiter_build(mfi,mf,.true.)
-       do while(more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while(next_tile(mfi,i))
           if ( lall ) then
              bx = get_growntilebox(mfi)
           else
@@ -4744,8 +4718,7 @@ contains
     else
        !$omp parallel private(mp,i,mfi) reduction(max:r1)
        call mfiter_build(mfi,mf,.true.)
-       do while(more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while(next_tile(mfi,i))
           if ( lall ) then
              mp => dataptr(mf%fbs(i), get_growntilebox(mfi), comp, nc)
           else
@@ -4792,8 +4765,7 @@ contains
     r1 = 0
     !$omp parallel private(mp,i,mfi) reduction(max:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           mp => dataptr(mf%fbs(i), get_growntilebox(mfi), comp, nc)
        else
@@ -4826,8 +4798,7 @@ contains
     r1 = 0
     !$omp parallel private(mp,i,mfi) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           mp => dataptr(mf%fbs(i), get_growntilebox(mfi), comp, nc)
        else
@@ -4858,8 +4829,7 @@ contains
     r1 = 0
     !$omp parallel private(mp,i,mfi) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if ( lall ) then
           mp => dataptr(mf%fbs(i), get_growntilebox(mfi))
        else
@@ -4932,8 +4902,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng,"not enough ghost cells in multifab_div_div")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi,lng)
        ap => dataptr(a%fbs(i), bx)
        bp => dataptr(b%fbs(i), bx)
@@ -4959,8 +4928,7 @@ contains
     end if
     !$omp parallel private(ap,i,mfi)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi,lng))
        call multifab_div_div_s_doit(ap, b)
     end do
@@ -4982,8 +4950,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_div_div_c")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5011,8 +4978,7 @@ contains
     end if
     !$omp parallel private(ap,i,mfi)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi,lng), ia, nc)
        call multifab_div_div_s_doit(ap, b)
     end do
@@ -5037,8 +5003,7 @@ contains
     end if
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5104,8 +5069,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx)
        bp => dataptr(b%fbs(i), bx)
@@ -5124,8 +5088,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_s")
     !$omp parallel private(ap,i,mfi)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi, lng))
        call multifab_mult_mult_s_doit(ap, b)
     end do
@@ -5147,8 +5110,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_c")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5170,8 +5132,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_mult_s_c")
     !$omp parallel private(ap,i,mfi)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi, lng), ia, nc)
        call multifab_mult_mult_s_doit(ap, b)
     end do
@@ -5193,8 +5154,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng,"not enough ghost cells in multifab_mult_s_c")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5264,8 +5224,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng, "not enough ghost cells in multifab_sub_sub")
     !$omp parallel private(ap,bp,i,mfi,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx)
        bp => dataptr(b%fbs(i), bx)
@@ -5285,8 +5244,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, "not enough ghost cells in multifab_sub_sub_s")
     !$omp parallel private(ap,i,mfi)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi,lng))
        call multifab_sub_sub_s_doit(ap, b)
     end do
@@ -5308,8 +5266,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng, "not enough ghost cells in multifab_sub_sub_c")
     !$omp parallel private(i,mfi,ap,bp,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi, lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5332,8 +5289,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, "not enough ghost cells in multifab_sub_sub_s_c")
     !$omp parallel private(i,mfi,ap,bx)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        bx = get_growntilebox(mfi,lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        call multifab_sub_sub_s_doit(ap, b)
@@ -5380,8 +5336,7 @@ contains
     if ( lng > 0 ) call bl_assert(a%ng >= lng, b%ng >= lng,"not enough ghost cells in multifab_plus_plus_c")
     !$omp parallel private(i,mfi,ap,bp,bx)
     call mfiter_build(mfi,a,.true.)
-    do while (more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while (next_tile(mfi,i))
        bx = get_growntilebox(mfi,lng)
        ap => dataptr(a%fbs(i), bx, ia, nc)
        bp => dataptr(b%fbs(i), bx, ib, nc)
@@ -5436,8 +5391,7 @@ contains
     lng = 0; if ( present(ng) ) lng = ng
     !$omp parallel private(i,mfi,ap)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        ap => dataptr(a%fbs(i), get_growntilebox(mfi,lng), ia, nc)
        call multifab_plus_plus_s_doit(ap, b)
     end do
@@ -5468,8 +5422,7 @@ contains
     r1 = +Huge(r1)
     !$omp parallel private(i,mfi) reduction(min:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if (lall) then
           r1 = min(r1, min_val(mf%fbs(i), get_growntilebox(mfi)))
        else
@@ -5498,8 +5451,7 @@ contains
     r1 = +Huge(r1)
     !$omp parallel private(i,mfi) reduction(min:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if (lall) then
           r1 = min(r1, min_val(mf%fbs(i), get_growntilebox(mfi), c, nc))
        else
@@ -5527,8 +5479,7 @@ contains
     r1 = -Huge(r1)
     !$omp parallel private(i,mfi) reduction(max:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if (lall) then
           r1 = max(r1, max_val(mf%fbs(i), get_growntilebox(mfi)))
        else
@@ -5557,8 +5508,7 @@ contains
     r1 = -Huge(r1)
     !$omp parallel private(i,mfi) reduction(max:r1)
     call mfiter_build(mfi,mf,.true.)
-    do while(more_tile(mfi))
-       i = get_fab_index(mfi)
+    do while(next_tile(mfi,i))
        if (lall) then
           r1 = max(r1, max_val(mf%fbs(i), get_growntilebox(mfi), c, nc))
        else
@@ -5594,8 +5544,7 @@ contains
 
     !$omp parallel private(ap,bp,ii,i,j,k,n,lo,hi,mfi,bx) reduction (.and.: is_equal)
     call mfiter_build(mfi,a,.true.)
-    do while(more_tile(mfi))
-       ii = get_fab_index(mfi)
+    do while(next_tile(mfi,ii))
        bx = get_tilebox(mfi)
 
        ap => dataptr(a%fbs(ii), bx)
@@ -5710,6 +5659,23 @@ contains
     mfi%it = 0
   end subroutine mfiter_reset
 
+  function next_tile(mfi,fi) result(r)
+    logical :: r
+    type(mfiter), intent(inout) :: mfi
+    integer, intent(out) :: fi
+    call bl_assert(mfi%built, "mfiter is not built")
+    mfi%it = mfi%it + 1
+    if (mfi%it .le. mfi%ntiles) then
+       r = .true.
+       fi = mfi%ta%lidx(mfi%it) ! current fab index
+    else
+       mfi%it = 0
+       r = .false.
+       fi = 0
+    end if
+  end function next_tile
+
+  ! deprecated
   function more_tile(mfi) result(r)
     logical :: r
     type(mfiter), intent(inout) :: mfi
@@ -5722,7 +5688,7 @@ contains
        r = .false.
     end if
   end function more_tile
-  
+
   function get_fab_index(mfi) result(r)
     integer :: r
     type(mfiter), intent(in) :: mfi

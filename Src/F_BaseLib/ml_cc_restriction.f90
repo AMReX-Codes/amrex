@@ -46,8 +46,7 @@ contains
     !$omp parallel private(mfi,n,i,bx,loc,lof,lo,hi,fp,cp)
     call mfiter_build(mfi,cfine,.true.)
     do n = 1, lnc
-       do while(more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while(next_tile(mfi,i))
           bx = get_tilebox(mfi)
 
           lo  = lwb(bx)
@@ -122,8 +121,7 @@ contains
     !$omp parallel private(mfi,n,i,bx,lo,hi,loc,lof,fp,cp)
     call mfiter_build(mfi,cfine,.true.)
     do n = 1, lnc
-       do while(more_tile(mfi))
-          i = get_fab_index(mfi)
+       do while(next_tile(mfi,i))
           bx = get_tilebox(mfi)
 
           lo  = lwb(bx)
