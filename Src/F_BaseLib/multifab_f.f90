@@ -4050,6 +4050,7 @@ contains
   end subroutine mf_build_nodal_dot_mask
 
   function multifab_dot_cc(mf, comp, mf1, comp1, mask, nodal_mask, local, comm) result(r)
+    use omp_module
     real(dp_t)                 :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
@@ -4063,21 +4064,28 @@ contains
     type(multifab)      :: tmask
     real(dp_t), pointer :: mp(:,:,:,:), mp1(:,:,:,:), ma(:,:,:,:)
     logical,    pointer :: lmp(:,:,:,:)
-    real(dp_t)          :: r1, r2
     integer             :: i,j,k,n,lo(4),hi(4)
     logical             :: llocal
     type(mfiter)        :: mfi
     type(box)           :: bx
+    integer             :: tid, nthreads
+    real(dp_t)          :: r1, r2
+    real(dp_t), allocatable :: rt(:,:)
 
     if ( present(mask) ) then
        if ( ncomp(mask) /= 1 ) call bl_error('Mask array is multicomponent')
     end if
     llocal = .false.; if ( present(local) ) llocal = local
 
-    r1 = 0.0_dp_t
+    ! a bit of hack to get consistent answer with OMP
+    nthreads = omp_get_max_threads()
+    allocate(rt(16,0:nthreads-1)) ! extra padding to avoid false sharing
+
+    rt = 0.0_dp_t
 
     if ( cell_centered_q(mf) ) then
-       !$omp parallel private(mp,mp1,lmp,r2,i,j,k,n,lo,hi,mfi,bx) reduction(+:r1)
+       !$omp parallel private(mp,mp1,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2)
+       tid = omp_get_thread_num()
        call mfiter_build(mfi,mf,.true.)
        do while(more_tile(mfi))
           n = get_fab_index(mfi)
@@ -4109,14 +4117,16 @@ contains
              end do
           endif
 
-          r1 = r1 + r2
+          rt(1,tid) = rt(1,tid) + r2
+
        end do
        !$omp end parallel
     else if ( nodal_q(mf) ) then
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
-       !$omp parallel private(mp,mp1,ma,lmp,r2,i,j,k,n,lo,hi,mfi,bx) reduction(+:r1)
+       !$omp parallel private(mp,mp1,ma,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2) reduction(+:r1)
+       tid = omp_get_thread_num()
        call mfiter_build(mfi,mf,.true.)
        do while(more_tile(mfi))
           n = get_fab_index(mfi)
@@ -4142,7 +4152,8 @@ contains
              end do
           end do
 
-          r1 = r1 + r2
+          rt(1,tid) = rt(1,tid) + r2
+
        end do
        !$omp end parallel
 
@@ -4151,6 +4162,7 @@ contains
        call bl_error("MULTIFAB_DOT_CC, fails when not nodal or cell-centered, can be fixed")
     end if
 
+    r1 = sum(rt(1,:))
     r = r1
 
     if ( .not. llocal ) then
