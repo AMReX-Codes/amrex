@@ -271,8 +271,8 @@ class Suite:
     def run_test(self, test, base_command):
         if test.useMPI:
             testRunCommand = ""
-        if test.useOMP:
-	    testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
+            if test.useOMP:
+	        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
             testRunCommand += self.MPIcommand
 	    testRunCommand = testRunCommand.replace("@host@", self.MPIhost)
 	    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
