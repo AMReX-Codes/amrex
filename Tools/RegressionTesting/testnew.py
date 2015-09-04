@@ -2371,8 +2371,13 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
         ht = HTMLTable(hf, columns=3)
         in_diff_region = False
 
+        box_error = False
         for line in diffLines:
 
+            if "number of boxes do not match" in line:
+                box_error = True
+                break
+            
             if not in_diff_region:
                 if line.find("fcompare") > 1:
                     hf.write("<pre>"+line+"</pre>\n")
@@ -2428,6 +2433,9 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
         else:
             ht.end_table()
 
+        if box_error:
+            hf.write("<p>number of boxes do not match</p>\n")
+        
         # show any visualizations
         if test.doVis:
             png_file = getRecentFileName(full_web_dir, test.name, ".png")
