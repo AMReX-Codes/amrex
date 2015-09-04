@@ -411,7 +411,7 @@ def load_params(args):
     if mysuite.sourceTree == "BoxLib": mysuite.sourceDir = mysuite.boxLibDir
 
     # checks
-    if mysuite.sendEmailWhenFail:
+    if mysuite.sendEmailWhenFail and not args.send_no_email:
         if mysuite.emailTo == [] or mysuite.emailBody == "":
             fail("ERROR: when sendEmailWhenFail = 1, you must specify emailTo and emailBody\n")
 
@@ -1042,6 +1042,8 @@ def testSuite(argv):
                         help="a space-separated list of tests to run")
     parser.add_argument("--do_temp_run", action="store_true",
                         help="is this a temporary run? (output not stored or logged)")
+    parser.add_argument("--send_no_email", action="store_true",
+                        help="do not send emails when tests fail")
     parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
                         help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
     parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
@@ -1984,7 +1986,7 @@ def testSuite(argv):
         server.sendmail(suite.emailFrom, suite.emailTo, msg.as_string())
         server.quit()
 
-    if numFailed > 0 and suite.sendEmailWhenFail:
+    if numFailed > 0 and suite.sendEmailWhenFail and not args.send_no_email:
         bold("sending email...", skip_before=1)
         emailDevelopers()
 
