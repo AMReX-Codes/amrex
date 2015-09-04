@@ -44,8 +44,10 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 
     int ng_ctoprim = (overlap) ? 0 : ngrow;
 
+    Real lcourno = -1.e10;
+
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:courno)
+#pragma omp parallel reduction(max:lcourno)
 #endif
     for (MFIter mfi(UU); mfi.isValid(); ++mfi) {
 	const Box& tbx0 = mfi.tilebox();
@@ -57,7 +59,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 
 	if (update_courno) {
 	    comp_courno_3d(tbx0.loVect(), tbx0.hiVect(), dx,
-			   BL_TO_FORTRAN_3D(Q[mfi]), courno);
+			   BL_TO_FORTRAN_3D(Q[mfi]), lcourno);
 	}
 
 	chemterm_3d(tbx0.loVect(), tbx0.hiVect(),
@@ -123,6 +125,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
     wt_hypdiff += wt6-wt5;
 
     if (update_courno) {
+	courno = lcourno;
 	ParallelDescriptor::ReduceRealMax(courno);
     }
 }
