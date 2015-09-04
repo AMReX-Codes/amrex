@@ -9,7 +9,7 @@ namespace BoxLib
     {
 	BL_ASSERT(cc.nComp() == BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
-	BL_ASSERT(fc[0].nComp() == BL_SPACEDIM);
+	BL_ASSERT(fc[0].nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
 	const Real* problo = geom.ProbLo();
@@ -18,7 +18,7 @@ namespace BoxLib
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& bx = mfi.tilebox();
 
