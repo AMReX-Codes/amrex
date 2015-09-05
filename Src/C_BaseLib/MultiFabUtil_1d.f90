@@ -44,3 +44,28 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
 
 end subroutine bl_avg_fc_to_cc
 
+subroutine bl_avgdown_faces (lo, hi, &
+     f, f_l1, f_h1, &
+     c, c_l1, c_h1, &
+     ratio,n)
+
+  implicit none
+  integer          :: lo(1),hi(1)
+  integer          :: f_l1, f_h1
+  integer          :: c_l1, c_h1
+  integer          :: ratio(1), n
+  double precision :: f(f_l1:f_h1)
+  double precision :: c(c_l1:c_h1)
+
+  ! Local variables
+  integer i,facx
+
+  facx = ratio(1)
+
+   ! lo(1)..hi(1) are edge base indices
+   do i = lo(1), hi(1)
+      c(i) = f(facx*i)
+   end do
+
+end subroutine bl_avgdown_faces
+
