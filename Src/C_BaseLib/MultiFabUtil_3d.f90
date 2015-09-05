@@ -37,8 +37,6 @@ subroutine bl_avgdown_faces (lo, hi, &
      c, c_l1, c_l2, c_l3, c_h1, c_h2, c_h3, &
      ratio,idir)
 
-  use bl_constants_module
-
   implicit none
   integer          :: lo(3),hi(3)
   integer          :: f_l1, f_l2, f_l3, f_h1, f_h2, f_h3
@@ -58,7 +56,7 @@ subroutine bl_avgdown_faces (lo, hi, &
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  c(i,j,k) = ZERO
+                  c(i,j,k) = 0.d0
                   do n = 0,facy-1
                      do m = 0,facz-1
                         c(i,j,k) = c(i,j,k) + f(facx*i,facy*j+n,facz*k+m)
@@ -72,7 +70,7 @@ subroutine bl_avgdown_faces (lo, hi, &
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  c(i,j,k) = ZERO
+                  c(i,j,k) = 0.d0
                   do n = 0,facx-1
                      do m = 0,facz-1
                         c(i,j,k) = c(i,j,k) + f(facx*i+n,facy*j,facz*k+m)
@@ -86,7 +84,7 @@ subroutine bl_avgdown_faces (lo, hi, &
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  c(i,j,k) = ZERO
+                  c(i,j,k) = 0.d0
                   do n = 0,facx-1
                      do m = 0,facy-1
                         c(i,j,k) = c(i,j,k) + f(facx*i+n,facy*j+m,facz*k)
