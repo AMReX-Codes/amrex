@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 #include <utility>
+#include <sstream>
 
 #ifdef _OPENMP
 #include <omp.h>
