@@ -2595,17 +2595,26 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         hf.write("<p>&nbsp;\n")
         hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
 
+        hf.write("<ul>\n")
+        code_str = "<li>{}<ul><li>branch: {}</li><li>hash: {}</li><li>changelog: <a href=\"{}\">{}</a></li></ul></li>"
+
         if updateSource:
-            hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     (suite.srcName, "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName) )
+            hf.write(code_str.format(suite.srcName, 
+                                     suite.args.sourceGitHash, suite.sourceGitBranch, 
+                                     "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName))
 
         if updateBoxLib:
-            hf.write("<p>&nbsp;&nbsp;<b>BoxLib ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     ("ChangeLog.BoxLib", "ChangeLog.BoxLib") )
+            hf.write(code_str.format("BoxLib", 
+                                     suite.boxLibGitBranch, suite.args.boxLibGitHash, 
+                                     "ChangeLog.BoxLib", "ChangeLog.BoxLib"))
 
         if updateExtSrc:
-            hf.write("<p>&nbsp;&nbsp;<b>%s ChangeLog:</b> <A HREF=\"%s\">%s</A>\n" %
-                     (suite.extSrcName, "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName) )
+            hf.write(code_str.format(suite.extSrcName, 
+                                     suite.extSrcGitBranch, suite.args.extSrcGitHash, 
+                                     "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName))
+
+        hf.write("</ul>")
+
     else:
         hf.write("<p>No git update done\n")
 
