@@ -32,7 +32,7 @@ import time
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   C L A S S E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-class Test:
+class Test(object):
 
     def __init__ (self, name):
 
@@ -89,6 +89,8 @@ class Test:
 
         self.nlevels = None  # set but running fboxinfo on the output
 
+        self.comp_string = None  # set automatically
+
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -96,7 +98,7 @@ class Test:
         return self.name
 
 
-class Suite:
+class Suite(object):
 
     def __init__ (self, args):
 
@@ -1423,14 +1425,14 @@ def testSuite(argv):
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
-            compString = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
+            comp_string = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
                 (suite.MAKE, suite.numMakeJobs, suite.boxLibDir,
                  suite.extSrcCompString, test.addToCompileString,
                  test.dim, buildOptions, suite.COMP, suite.FCOMP,
                  executable)
 
-            print "    " + compString
-            so, se, r = run(compString,
+            print "    " + comp_string
+            so, se, r = run(comp_string,
                             outfile="{}/{}.make.out".format(outputDir, test.name))
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
@@ -1455,13 +1457,14 @@ def testSuite(argv):
             if test.useExtraBuildDir > 0:
                 buildOptions += suite.extraBuildDirCompString + " "
 
-            compString = suite.build_f(opts="{} {} {}".format(
+            comp_string = suite.build_f(opts="{} {} {}".format(
                 suite.extSrcCompString, test.addToCompileString, buildOptions),
                           outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
             executable = getRecentFileName(bDir,"main",".exe")
 
+        test.comp_string = comp_string
 
         if test.compileTest:
 
@@ -1469,7 +1472,7 @@ def testSuite(argv):
             shutil.copy("%s/%s.make.out"    % (outputDir, test.name), full_web_dir)
 
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, compString, "", testDir, full_web_dir)
+            reportSingleTest(suite, test, "", testDir, full_web_dir)
 
             # ... skip to the next test in the loop
             continue
@@ -1488,7 +1491,7 @@ def testSuite(argv):
             shutil.copy("%s/%s.make.out" % (outputDir, test.name), full_web_dir)
 
             errorMsg = "    ERROR: compilation failed"
-            reportTestFailure(errorMsg, test, testDir, full_web_dir, compString=compString)
+            reportTestFailure(errorMsg, test, testDir, full_web_dir)
             continue
 
         try: shutil.copy(test.inputFile, outputDir)
@@ -1933,7 +1936,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, compString, testRunCommand, testDir, full_web_dir)
+            reportSingleTest(suite, test, testRunCommand, testDir, full_web_dir)
 
 
     #--------------------------------------------------------------------------
@@ -2007,7 +2010,7 @@ h1 {font-family: "Tahoma","Arial", sans-serif;
 
 h3 {display: inline;}
 
-h3.passed {text-decoration: none; display: inline;                              
+h3.passed {text-decoration: none; display: inline;
            color: black; background-color: lime; padding: 2px;}
 
 a.passed:link {color: black; text-decoration: none;}
@@ -2088,9 +2091,9 @@ div.verticaltext {text-align: center;
 #summary tr.special {background: #ccccff;}
 #summary td.highlight {color: red;}
 
-#summary td.passed {background-color: lime;}                                    
-#summary td.failed {background-color: red;}                                     
-#summary td.benchmade {background-color: orange;}     
+#summary td.passed {background-color: lime;}
+#summary td.failed {background-color: red;}
+#summary td.benchmade {background-color: orange;}
 
 th {background-color: grey;
     color: yellow;
@@ -2100,6 +2103,13 @@ th {background-color: grey;
     padding-bottom: 3px;
     padding-left: 5px;
     padding-right: 5px;}
+
+li {padding-top: 0.5em;}
+
+ul li {color: blue;
+       font-weight: bold;}
+ul li ul li {color: black;
+             font-weight: normal;}
 
 """
 
@@ -2142,6 +2152,46 @@ def create_css(tableHeight=16):
     cf.write(cssC)
     cf.close()
 
+class HTMLList(object):
+    def __init__(self, of=None):
+        self.list_items = []
+        self.current_indent = 0
+        self.of = of
+
+    def item(self, content):
+        self.list_items.append((self.current_indent, content))
+
+    def indent(self):
+        self.current_indent += 1
+
+    def outdent(self):
+        self.current_indent -= 1
+
+    def write_list(self):
+        self.of.write("<ul>\n")
+        current_indent = -1
+        for i, c in self.list_items:
+            if current_indent == -1:
+                current_indent = i
+            else:
+                if i < current_indent:
+                    self.of.write("</li></ul></li>\n")
+                elif i > current_indent:
+                    self.of.write("<ul>\n")
+                else:
+                    self.of.write("</li>\n")
+
+            current_indent = i
+            self.of.write("<li>{}\n".format(c))
+
+        # finish current item
+        self.of.write("</li>")
+
+        # finish nesting
+        for n in range(0,current_indent):
+            self.of.write("</ul></li>\n")
+
+        self.of.write("</ul>\n")
 
 class HTMLTable(object):
     def __init__(self, out_file, columns=1):
@@ -2183,7 +2233,7 @@ class HTMLTable(object):
 #==============================================================================
 # reportSingleTest
 #==============================================================================
-def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_dir):
+def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
     """ generate a single problem's test result page """
 
     # get the current directory
@@ -2291,92 +2341,105 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
 
     hf.write(newHead)
 
-    hf.write("<P><b>build directory:</b> %s" % (test.buildDir) )
+    ll = HTMLList(of=hf)
+
+    # build summary
+    ll.item("Build information:")
+    ll.indent()
+
+    ll.item("Build directory: {}".format(test.buildDir))
+
     if test.useExtraBuildDir > 0:
-        hf.write(" in %s\n" % (suite.extraBuildDirs[test.useExtraBuildDir-1]))
-    else:
-        hf.write("\n")
-
-
-    hf.write("<P>&nbsp;\n")
+        ll.indent()
+        ll.item("in {}".format(suite.extraBuildDirs[test.useExtraBuildDir-1]))
+        ll.outdent()
 
     if not test.compileTest:
 
         if test.debug:
-            hf.write("<p><b>Debug test</b>\n")
-            hf.write("<p>&nbsp;\n")
+            ll.item("Debug test")
 
-        if test.useMPI:
-            hf.write("<P><b>Parallel (MPI) Run</b><br>numprocs = %d\n" % (test.numprocs) )
-            hf.write("<P>&nbsp;\n")
+        if test.useMPI or test.useOMP:
+            ll.item("Parallel run")
+            ll.indent()
+            if test.useMPI:
+                ll.item("MPI numprocs = {}".format(test.numprocs))
+            if test.useOMP:
+                ll.item("OpenMP numthreads = {}".format(test.numthreads))
+            ll.outdent()
 
+        ll.item("Execution time: {} seconds".format(test.wallTime))
 
-        if test.useOMP:
-            hf.write("<P><b>OpenMP Run</b><br>numthreads = %d\n" % (test.numthreads) )
-            hf.write("<P>&nbsp;\n")
-
-        hf.write("<p><b>Execution Time</b> (seconds) = %f\n" % (test.wallTime))
-
-
-        # is this a restart test?
         if test.restartTest:
 
-            hf.write("<P><b>Restart Test</b><br>Job was run as normal and then restarted from checkpoint # %d, and the two final outputs were compared\n" % (test.restartFileNum) )
-
-        hf.write("<P>&nbsp;\n")
-
-        # write out the information about the test
-        hf.write("<P><b>input file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                 (test.name, test.inputFile, test.inputFile) )
+            ll.item("Restart test")
+            ll.indent()
+            ll.item("Job was run as normal and then restarted from checkpoint # {}, and the two final outputs were compared".format(test.restartFileNum))
+            ll.outdent()
 
 
-        if (suite.sourceTree == "C_Src"):
-            hf.write("<P><b>probin file:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                     (test.name, test.probinFile, test.probinFile) )
+        ll.item("Files:")
+        ll.indent()
 
+        ll.item("input file: <a href=\"{}.{}\">{}</a>".format(test.name, test.inputFile, test.inputFile))
 
-        for i, file in enumerate(test.auxFiles):
+        if suite.sourceTree == "C_Src":
+            ll.item("probin file: <a href=\"{}.{}\">{}</a>".format(test.name, test.probinFile, test.probinFile))
+
+        for i, afile in enumerate(test.auxFiles):
             # sometimes the auxFile was in a subdirectory under the
             # build directory.
-            index = string.rfind(file, "/")
-            if (index > 0):
-                root_file = file[index+1:]
+            index = string.rfind(afile, "/")
+            if index > 0:
+                root_file = afile[index+1:]
             else:
-                root_file = file
+                root_file = afile
 
-            hf.write("<P><b>aux%dFile:</b> <A HREF=\"%s.%s\">%s</A>\n" %
-                     (i+1, test.name, root_file, file) )
+            ll.item("auxillary file {}: <a href=\"{}.{}\">{}</a>".format(i+1, test.name, root_file, afile))
 
+        ll.outdent()
 
-        hf.write("<P><b>dimensionality:</b> %s\n" % (test.dim) )
+        ll.item("Dimensionality: {}".format(test.dim))
 
-        hf.write("<P>&nbsp;\n")
+    ll.outdent()   # end of build information
 
+    # compilation summary
+    ll.item("Compilation:")
+    ll.indent()
 
-    # write out the compilation report
     if compileSuccessful:
-        hf.write("<P><H3 CLASS=\"passed\">Compilation Successful</H3></P>\n")
+        ll.item("<h3 class=\"passed\">Successful</h3>")
     else:
-        hf.write("<P><H3 CLASS=\"failed\">Compilation Failed</H3></P>\n")
+        ll.item("<h3 class=\"failed\">Failed</h3>")
 
-    hf.write("<P>Compliation command:<br>\n&nbsp; %s\n" % (compileCommand) )
-    hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
+    ll.item("Compilation command:<br>{}".format(test.comp_string))
+    ll.item("<a href=\"{}.make.out\">make output</a>".format(test.name))
 
-    hf.write("<P>&nbsp;\n")
+    ll.outdent()
 
 
     if not test.compileTest:
 
-        # write out the comparison report
+        # execution summary
+        ll.item("Execution:")
+        ll.indent()
+        ll.item("Execution command:<br>{}".format(runCommand))
+        ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
+        ll.outdent()
+
+        # comparison summary
+        ll.item("Comparison: ")
+        ll.indent()
+
         if compareSuccessful:
-            hf.write("<P><H3 CLASS=\"passed\">Comparison Successful</H3></P>\n")
+            ll.item("<h3 class=\"passed\">Successful</h3>")
         else:
-            hf.write("<P><H3 CLASS=\"failed\">Comparison Failed</H3></P>\n")
+            ll.item("<h3 class=\"failed\">Failed</h3>")
 
-        hf.write("<P>Execution command:<br>\n&nbsp; %s\n" % (runCommand) )
-        hf.write("<P><A HREF=\"%s.run.out\">execution output</A>\n" % (test.name) )
+    ll.write_list()
 
-        hf.write("<P>&nbsp;\n")
+
+    if not test.compileTest:
 
         # parse the compare output and make an HTML table
         ht = HTMLTable(hf, columns=3)
@@ -2388,7 +2451,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
             if "number of boxes do not match" in line:
                 box_error = True
                 break
-            
+
             if not in_diff_region:
                 if line.find("fcompare") > 1:
                     hf.write("<pre>"+line+"</pre>\n")
@@ -2415,7 +2478,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
                     continue
 
                 fields = [q.strip() for q in line.split("  ") if not q == ""]
-    
+
                 if fields[0].startswith("variable"):
                     ht.header(fields)
                     continue
@@ -2446,7 +2509,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
 
         if box_error:
             hf.write("<p>number of boxes do not match</p>\n")
-        
+
         # show any visualizations
         if test.doVis:
             png_file = getRecentFileName(full_web_dir, test.name, ".png")
@@ -2474,7 +2537,7 @@ def reportSingleTest(suite, test, compileCommand, runCommand, testDir, full_web_
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, test, testDir, full_web_dir, compString=None):
+def reportTestFailure(message, test, testDir, full_web_dir):
     """ generate a simple report for an error encountered while performing
         the test """
 
@@ -2524,8 +2587,8 @@ def reportTestFailure(message, test, testDir, full_web_dir, compString=None):
     hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
     hf.write("<P>%s</P>\n" % (message) )
 
-    if (not compString == None):
-        hf.write("<P>compliation command:\n %s\n" % (compString) )
+    if (not test.comp_string == None):
+        hf.write("<P>compliation command:\n %s\n" % (test.comp_string) )
         hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
 
 
@@ -2599,18 +2662,18 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         code_str = "<li><b>{}</b><ul><li>branch: {}; hash: {}</li><li>changelog: <a href=\"{}\">{}</a></li></ul></li>"
 
         if updateSource:
-            hf.write(code_str.format(suite.srcName, 
-                                     suite.sourceGitBranch, suite.args.sourceGitHash, 
+            hf.write(code_str.format(suite.srcName,
+                                     suite.sourceGitBranch, suite.args.sourceGitHash,
                                      "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName))
 
         if updateBoxLib:
-            hf.write(code_str.format("BoxLib", 
-                                     suite.boxLibGitBranch, suite.args.boxLibGitHash, 
+            hf.write(code_str.format("BoxLib",
+                                     suite.boxLibGitBranch, suite.args.boxLibGitHash,
                                      "ChangeLog.BoxLib", "ChangeLog.BoxLib"))
 
         if updateExtSrc:
-            hf.write(code_str.format(suite.extSrcName, 
-                                     suite.extSrcGitBranch, suite.args.extSrcGitHash, 
+            hf.write(code_str.format(suite.extSrcName,
+                                     suite.extSrcGitBranch, suite.args.extSrcGitHash,
                                      "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName))
 
         hf.write("</ul>")
@@ -2624,7 +2687,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         ht = HTMLTable(hf, columns=11)
         ht.start_table()
         ht.header(["test name", "dim", "compare plotfile",
-                   "# levels", "MPI (# procs)", "OMP (# threads)", "debug?", 
+                   "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
                    "compile?", "restart?", "wall time", "result"])
 
     else:
@@ -2836,7 +2899,7 @@ def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
     hf = open(htmlFile, 'w')
 
     header = MainHeader.replace("@TITLE@", title).replace("@SUBTITLE@", suite.sub_title)
-    
+
     if suite.goUpLink:
         header2 = header.replace("<!--GOUPLINK-->", '<a href="../">GO UP</a>')
         hf.write(header2)
