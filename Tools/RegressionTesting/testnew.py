@@ -2018,7 +2018,7 @@ a.passed:visited {color: black; text-decoration: none;}
 a.passed:hover {color: #ee00ee; text-decoration: underline;}
 
 h3.failed {text-decoration: none; display: inline;
-           color: black; background-color: red; padding: 2px;}
+           color: yellow; background-color: red; padding: 2px;}
 
 a.failed:link {color: yellow; text-decoration: none;}
 a.failed:visited {color: yellow; text-decoration: none;}
@@ -2110,6 +2110,8 @@ ul li {color: blue;
        font-weight: bold;}
 ul li ul li {color: black;
              font-weight: normal;}
+
+ul li h3 {border: 1px solid black;}
 
 """
 
@@ -2368,7 +2370,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
                 ll.item("OpenMP numthreads = {}".format(test.numthreads))
             ll.outdent()
 
-        ll.item("Execution time: {} seconds".format(test.wallTime))
+        ll.item("Execution time: {:.3f} s".format(test.wallTime))
 
         if test.restartTest:
 
