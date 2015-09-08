@@ -2596,11 +2596,11 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
         hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
 
         hf.write("<ul>\n")
-        code_str = "<li>{}<ul><li>branch: {}</li><li>hash: {}</li><li>changelog: <a href=\"{}\">{}</a></li></ul></li>"
+        code_str = "<li><b>{}</b><ul><li>branch: {}; hash: {}</li><li>changelog: <a href=\"{}\">{}</a></li></ul></li>"
 
         if updateSource:
             hf.write(code_str.format(suite.srcName, 
-                                     suite.args.sourceGitHash, suite.sourceGitBranch, 
+                                     suite.sourceGitBranch, suite.args.sourceGitHash, 
                                      "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName))
 
         if updateBoxLib:
