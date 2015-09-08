@@ -25,10 +25,13 @@ contains
     integer, intent(in)           :: cc, cf, ir(:)
     integer, intent(in), optional :: nc
 
-    integer             :: i, n, lnc, dm, lo(get_dim(fine)), hi(get_dim(fine)), lof(get_dim(fine))
+    integer             :: i, n, lnc, dm
+    integer :: lo(get_dim(fine)), hi(get_dim(fine)), loc(get_dim(fine)), lof(get_dim(fine))
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
     type(layout)        :: lacfine,laf
     type(multifab)      :: cfine
+    type(mfiter)        :: mfi
+    type(box)           :: bx
 
     lnc = 1; if ( present(nc) ) lnc = nc
 
@@ -40,25 +43,30 @@ contains
 
     dm = get_dim(cfine)
 
-    !$OMP PARALLEL DO PRIVATE(i,n,lof,lo,hi,fp,cp)
-    do i = 1, nfabs(fine)
-       lof = lwb(get_pbox(fine, i))
-       lo  = lwb(get_ibox(cfine,i))
-       hi  = upb(get_ibox(cfine,i))
-       do n = 1, lnc
+    !$omp parallel private(mfi,n,i,bx,loc,lof,lo,hi,fp,cp)
+    call mfiter_build(mfi,cfine,.true.)
+    do n = 1, lnc
+       do while(next_tile(mfi,i))
+          bx = get_tilebox(mfi)
+
+          lo  = lwb(bx)
+          hi  = upb(bx)
+          loc = lwb(get_pbox(cfine, i))
+          lof = lwb(get_pbox( fine, i))
+
           fp => dataptr(fine,  i, n+cf-1, 1)
           cp => dataptr(cfine, i, n,      1)
           select case (dm)
           case (1)
-             call cc_restriction_1d(cp(:,1,1,1), lo, fp(:,1,1,1), lof, lo, hi, ir)
+             call cc_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
           case (2)
-             call cc_restriction_2d(cp(:,:,1,1), lo, fp(:,:,1,1), lof, lo, hi, ir)
+             call cc_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir)
           case (3)
-             call cc_restriction_3d(cp(:,:,:,1), lo, fp(:,:,:,1), lof, lo, hi, ir)
+             call cc_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir)
           end select
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$omp end parallel
 
     call copy(crse, cc, cfine, 1, lnc)
 
@@ -98,6 +106,7 @@ contains
     type(list_box)      :: bxs_lo,bxs_hi
     type(boxarray)      :: ba_lo,ba_hi
     logical             :: nodal(get_dim(fine)), pmask(get_dim(fine))
+    type(mfiter)        :: mfi
 
     dm = get_dim(crse)
 
@@ -109,13 +118,17 @@ contains
 
     call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
 
-    !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lof,fp,cp)
-    do i = 1, nfabs(fine)
-       lo  = lwb(get_ibox(cfine,i))
-       hi  = upb(get_ibox(cfine,i))
-       loc = lwb(get_pbox(cfine,i))
-       lof = lwb(get_pbox(fine, i))
-       do n = 1, lnc
+    !$omp parallel private(mfi,n,i,bx,lo,hi,loc,lof,fp,cp)
+    call mfiter_build(mfi,cfine,.true.)
+    do n = 1, lnc
+       do while(next_tile(mfi,i))
+          bx = get_tilebox(mfi)
+
+          lo  = lwb(bx)
+          hi  = upb(bx)
+          loc = lwb(get_pbox(cfine,i))
+          lof = lwb(get_pbox(fine, i))
+
           fp  => dataptr(fine,  i, n+cf-1, 1)
           cp  => dataptr(cfine, i, n,      1)
           select case (dm)
@@ -128,7 +141,7 @@ contains
           end select
        enddo
     end do
-    !$OMP END PARALLEL DO
+    !$omp end parallel
 
     call copy(crse, cc, cfine, 1, lnc)
 
