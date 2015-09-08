@@ -26,6 +26,9 @@ IntVect FabArrayBase::mfghostiter_tile_size(1024,8,8);
 IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
+int FabArrayBase::comm_num_pieces      = 1;
+int FabArrayBase::comm_piece_threshold = 8064;  // (8K - 128) bytes
+
 int FabArrayBase::nFabArrays(0);
 
 
@@ -71,6 +74,13 @@ FabArrayBase::Initialize ()
     {
         for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
+
+#ifdef _OPENMP
+    comm_num_pieces = std::max(1, omp_get_max_threads()/2);
+#endif
+    pp.query("comm_num_pieces"     , comm_num_pieces);
+    pp.query("comm_piece_threshold", comm_piece_threshold); 
+    BL_ASSERT(comm_num_pieces >= 1 && comm_piece_threshold >= 0);
 
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
