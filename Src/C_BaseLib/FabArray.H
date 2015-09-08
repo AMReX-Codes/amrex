@@ -176,6 +176,16 @@ public:
                           int                                    ncomp,
                           int                                    SeqNum);
 
+    template<typename T1, typename T2>
+    static void PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
+                          const std::map<int,int>&               m_RcvVols,
+                          T2*&                                   the_recv_data,
+                          Array<T2*>&                            recv_data,
+                          Array<int>&                            recv_from,
+                          Array<MPI_Request>&                    recv_reqs,
+                          int                                    ncomp,
+                          const Array<int>&                      SeqNum);
+
 #ifdef BL_USE_UPCXX
     template<typename T1, typename T2>
     static void PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
@@ -380,6 +390,11 @@ public:
     //
     static IntVect comm_tile_size;  // communication tile size
 
+    //
+    // Break message into smaller pieces
+    //
+    static int comm_num_pieces;
+    static int comm_piece_threshold;
     //
     // The number of FabArrays defined
     //
@@ -1158,6 +1173,67 @@ FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
     }
 }
 
+template<typename T1, typename T2>
+void
+FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
+                        const std::map<int,int>&               m_RcvVols,
+                        T2*&                                   the_recv_data,
+                        Array<T2*>&                            recv_data,
+                        Array<int>&                            recv_from,
+                        Array<MPI_Request>&                    recv_reqs,
+                        int                                    ncomp,
+                        const Array<int>&                      SeqNum)
+{
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        TotalRcvsVolume += it->second;
+    }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
+
+    the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
+
+    const int threshold = comm_piece_threshold / sizeof(T2);
+
+    int Offset = 0;
+
+    for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
+             m_End = m_RcvTags.end();
+         m_it != m_End;
+         ++m_it)
+    {
+        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+
+        BL_ASSERT(vol_it != m_RcvVols.end());
+
+        const int N = vol_it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+	recv_data.push_back(&the_recv_data[Offset]);
+	recv_from.push_back(m_it->first);
+
+	int npieces = std::min((N+threshold-1)/threshold, comm_num_pieces);
+	int psize = N / npieces;
+	for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+	    int start = ipiece*psize;
+	    int nelem  = (ipiece < npieces-1) ? psize : N-start;
+	    recv_reqs.push_back(ParallelDescriptor::Arecv(&the_recv_data[Offset+start],
+							  nelem,m_it->first,
+							  SeqNum[ipiece]).req());
+	}
+
+        Offset += N;
+    }
+}
+
 template<typename T>
 void
 FabArrayBase::GrokAsyncSends (int                 N_snds,
@@ -1168,17 +1244,18 @@ FabArrayBase::GrokAsyncSends (int                 N_snds,
 #ifdef BL_USE_MPI
     BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
 
-    stats.resize(N_snds);
+    int N_send_reqs = send_reqs.size();
+    stats.resize(N_send_reqs);
 
-    BL_ASSERT(send_reqs.size() == N_snds);
+    BL_ASSERT(send_reqs.size() >= N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
     Array<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_send_reqs, indx, stats, false);
 
-    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
+    BL_MPI_REQUIRE( MPI_Waitall(N_send_reqs, send_reqs.dataPtr(), stats.dataPtr()) );
 
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_send_reqs, indx, stats, false);
 
     for (int i = 0; i < N_snds; i++)
         BoxLib::The_Arena()->free(send_data[i]);
@@ -2882,7 +2959,10 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    Array<int> SeqNum(comm_num_pieces);
+    for (int i=0; i<SeqNum.size(); ++i) {
+	SeqNum[i] = ParallelDescriptor::SeqNum();
+    }
 
     if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
         //
@@ -2960,16 +3040,32 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
 
     Array<MPI_Request> send_reqs;
 
-    if (FabArrayBase::do_async_sends)
-    {
-	send_reqs.reserve(N_snds);
-	for (int i=0; i<N_snds; ++i) {
-	    send_reqs.push_back(ParallelDescriptor::Asend
-				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
+    const int threshold = comm_piece_threshold / sizeof(value_type);
+
+    if (FabArrayBase::do_async_sends) {
+	send_reqs.reserve(N_snds*comm_num_pieces);
+    }
+    for (int i=0; i<N_snds; ++i) {
+	const int N = send_N[i];
+	int npieces = std::min((N+threshold-1)/threshold, comm_num_pieces);
+	int psize = N / npieces;
+	for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+	    int start = ipiece*psize;
+	    int nelem  = (ipiece < npieces-1) ? psize : N-start;
+	    if (FabArrayBase::do_async_sends) {
+		send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i]+start,
+				     nelem,
+				     send_rank[i],
+				     SeqNum[ipiece]).req());
+	    } else {
+		ParallelDescriptor::Send(send_data[i]+start,
+					 nelem,
+					 send_rank[i],
+					 SeqNum[ipiece]);		
+	    }
 	}
-    } else {
-	for (int i=0; i<N_snds; ++i) {
-	    ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+	if (! FabArrayBase::do_async_sends) {
 	    BoxLib::The_Arena()->free(send_data[i]);
 	}
     }
@@ -3010,8 +3106,9 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
-	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	const int N_recv_reqs = recv_reqs.size();
+	stats.resize(N_recv_reqs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, recv_reqs.dataPtr(), stats.dataPtr()) );
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3092,7 +3189,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    Array<int> SeqNum(comm_num_pieces);
+    for (int i=0; i<SeqNum.size(); ++i) {
+	SeqNum[i] = ParallelDescriptor::SeqNum();
+    }
 
     if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
         //
@@ -3105,7 +3205,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
 #ifdef BL_USE_UPCXX
     FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
-                                fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
+                                fb_recv_data,fb_recv_from,ncomp,SeqNum[0],&BLPgas::fb_recv_event);
 #else
     FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
@@ -3179,23 +3279,35 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         }
     }
 
+    const int threshold = comm_piece_threshold / sizeof(value_type);
+
 #ifdef BL_USE_UPCXX
     BLPgas::fb_send_counter = 0;
 #else
     Array<MPI_Request>& send_reqs = fb_send_reqs;
-    send_reqs.reserve(N_snds);
+    send_reqs.reserve(N_snds*comm_num_pieces);
 #endif
     for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
       BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
                    send_rank[i],
                    send_N[i]*sizeof(value_type),
-                   SeqNum,
+                   SeqNum[0],
                    &BLPgas::fb_send_event,
                    &BLPgas::fb_send_counter);
 #else
-      send_reqs.push_back(ParallelDescriptor::Asend
-                          (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+      const int N = send_N[i];
+      int npieces = std::min((N+threshold-1)/threshold, comm_num_pieces);
+      int psize = N / npieces;
+      for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+	  int start = ipiece*psize;
+	  int nelem  = (ipiece < npieces-1) ? psize : N-start;
+	  send_reqs.push_back(ParallelDescriptor::Asend
+			      (send_data[i]+start,
+			       nelem,
+			       send_rank[i],
+			       SeqNum[ipiece]).req());
+      }
 #endif
     }
 
@@ -3283,8 +3395,9 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
-	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	const int N_recv_reqs = fb_recv_reqs.size();
+	stats.resize(N_recv_reqs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
