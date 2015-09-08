@@ -55,6 +55,7 @@ contains
     type(box) :: gcdom
     type(multifab), target  :: gcrse
     type(multifab), pointer :: pcrse
+    type(mfiter) :: mfi
 
     type(bl_prof_timer), save :: bpt
 
@@ -237,11 +238,11 @@ contains
 
     ! Set all of cfine to huge so that we can make sure it gets completely filled below.
     ! Empty boxes aren't setval()'d
-    call setval(cfine, Huge(ONE), allow_empty=.true.)
+    call multifab_setval(cfine, Huge(ONE))
 
     call multifab_copy_c(cfine, 1, pcrse, icomp_crse, nc, ngsrc=nghost(pcrse))
 
-    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, local=.true.) .gt. Huge(ONE)-ONE) then
        call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
             ' (likely because grids are not properly nested)')
     end if
@@ -374,14 +375,15 @@ contains
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
-          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
-          do i = 1, nfabs(fine)
-             bx  =  grow(get_ibox(fine,i), ng)
+          !$omp parallel private(mfi,i,bx,dst,src)
+          call mfiter_build(mfi,fine,.true.)
+          do while(next_tile(mfi,i))
+             bx = get_growntilebox(mfi,ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
              call cpy_d(dst,src)
           end do
-          !$OMP END PARALLEL DO
+          !$omp end parallel
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().
