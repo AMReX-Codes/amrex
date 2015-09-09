@@ -659,14 +659,46 @@ def findBuildDirs(tests):
     return build_dirs
 
 
+def copy_benchmarks(old_full_test_dir, new_out_dir, full_web_dir, test_list, bench_dir):
+    """ copy the last plotfile output from each test in testList 
+        into the benchmark directory """
+    td = os.getcwd()
+    
+    for t in test_list:
+        wd = "{}/{}".format(old_full_test_dir, t.name)
+        os.chdir(wd)
+
+        p = getLastPlotfile(wd, t)
+        if p.endswith(".tgz"):
+            try:
+                tg = tarfile.open(name=p, mode="r:gz")
+                tg.extractall()
+            except:
+                fail("ERROR extracting tarfile")
+            idx = p.rfind(".tgz")
+            p = p[:idx]
+
+        try: shutil.rmtree("{}/{}".format(bench_dir, p))
+        except: pass
+        shutil.copytree(p, "{}/{}".format(bench_dir, p))
+
+        cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
+        cf.write("benchmarks updated.  New file:  {}\n".format(p) )
+        cf.close()
+
+        os.chdir(td)
+        
+
 #==============================================================================
 def getLastPlotfile(outputDir, test):
     """given an output directory and the test name, find the last
        plotfile written.  Note: we give an error if the last
        plotfile is 0 """
 
-    plts = [d for d in os.listdir(outputDir) if (os.path.isdir(d) and
-                                                 d.startswith("{}_plt".format(test.name)))]
+    plts = [d for d in os.listdir(outputDir) if \
+            (os.path.isdir(d) and d.startswith("{}_plt".format(test.name))) or \
+            (os.path.isfile(d) and d.startswith("{}_plt".format(test.name)) and d.endswith(".tgz"))]
+    
     if len(plts) == 0:
         warning("WARNING: test did not produce any output")
         return ""
@@ -1036,6 +1068,8 @@ def testSuite(argv):
                         help="restrict tests to a particular dimensionality")
     parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
                         help="make new benchmarks? (must provide a comment)")
+    parser.add_argument("--copy_benchmarks", type=str, default=None, metavar="comment",
+                        help="copy the last plotfiles from the failed tests of the most recent run as the new benchmarks.  No git pull is done and no new runs are performed (must provide a comment)")
     parser.add_argument("--no_update", type=str, default="None", metavar="name",
                         help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
     parser.add_argument("--single_test", type=str, default="", metavar="test-name",
@@ -1072,13 +1106,13 @@ def testSuite(argv):
 
     # if we only want to run the tests that failed previously, remove the
     # others
-    if args.redo_failed:
+    if args.redo_failed or not args.copy_benchmarks is None:
         last_run = suite.get_last_run()
         failed = suite.get_test_failures(last_run)
 
         testListold = testList[:]
-        testList = [t for t in testListold if t.name in failed]
-
+        testList = [t for t in testListold if t.name in failed]        
+        
     # if we only want to run tests of a certain dimensionality, remove
     # the others
     if args.d in [1, 2, 3]:
@@ -1124,8 +1158,7 @@ def testSuite(argv):
 
         # create the suite report
         bold("creating suite report...")
-        tableHeight = min(max(suite.lenTestName, 4), 16)
-        reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
+        reportAllRuns(suite, activeTestList, suite.webTopDir)
         sys.exit("done")
 
 
@@ -1134,6 +1167,9 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     no_update_low = args.no_update.lower()
 
+    if not args.copy_benchmarks is None:
+        no_update_low = "all"
+        
     if no_update_low == "none":
         updateBoxLib = True
         updateSource = True
@@ -1214,6 +1250,17 @@ def testSuite(argv):
 
     testDir, full_test_dir, full_web_dir = suite.make_test_dirs()
 
+    if not args.copy_benchmarks is None:
+        old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
+        copy_benchmarks(old_full_test_dir, full_test_dir, full_web_dir, testList, bench_dir)
+
+        numFailed = reportThisTestRun(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
+                                      "copy_benchmarks used -- no new tests run",
+                                      "",  updateBoxLib, updateSource, updateExtSrc,
+                                      testList, testDir, args.input_file[0], full_web_dir)
+        reportAllRuns(suite, activeTestList, suite.webTopDir)        
+        sys.exit("done")
+    
     #--------------------------------------------------------------------------
     # do the source updates
     #--------------------------------------------------------------------------
@@ -1976,8 +2023,7 @@ def testSuite(argv):
     # generate the master report for all test instances
     #--------------------------------------------------------------------------
     bold("creating suite report...", skip_before=1)
-    tableHeight = min(max(suite.lenTestName, 4), 16)
-    reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
+    reportAllRuns(suite, activeTestList, suite.webTopDir)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -2842,8 +2888,10 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
 #==============================================================================
 # reportAllRuns
 #==============================================================================
-def reportAllRuns(suite, activeTestList, webTopDir, tableHeight=16):
+def reportAllRuns(suite, activeTestList, webTopDir):
 
+    tableHeight = min(max(suite.lenTestName, 4), 16)
+    
     os.chdir(webTopDir)
 
     create_css(tableHeight=tableHeight)
