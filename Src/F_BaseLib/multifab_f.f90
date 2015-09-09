@@ -2075,7 +2075,7 @@ contains
        do k = 1, nz
           do j = 1, ny
              do i = 1, nx
-                dst(c) = src(i,j,k,n);
+                dst(c) = src(i,j,k,n)
                 c = c + 1
              end do
           end do
@@ -4161,18 +4161,15 @@ contains
 
   end function multifab_dot_cc
 
-  function multifab_dot_c(mf, mf1, comp, nodal_mask, comm) result(r)
+  function multifab_dot_c(mf, mf1, comp, nodal_mask, local, comm) result(r)
     real(dp_t)                 :: r
     type(multifab), intent(in) :: mf
     type(multifab), intent(in) :: mf1
     integer       , intent(in) :: comp
     type(multifab), intent(in), optional :: nodal_mask
+    logical       , intent(in), optional :: local
     integer       , intent(in), optional :: comm
-    if ( present(comm) ) then
-       r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false., comm = comm);
-    else
-       r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = .false.);
-    end if
+    r = multifab_dot_cc(mf, comp, mf1, comp, nodal_mask = nodal_mask, local = local, comm = comm)
   end function multifab_dot_c
 
   function multifab_dot(mf, mf1, nodal_mask, local, comm) result(r)
@@ -4504,10 +4501,11 @@ contains
     r = multifab_norm_l1_c(mf, 1, mf%nc, all = all)
   end function multifab_norm_l1
 
-  function multifab_sum_c(mf, comp, nc, mask, all) result(r)
+  function multifab_sum_c(mf, comp, nc, mask, all, local) result(r)
     real(dp_t) :: r
     integer, intent(in) :: comp
     logical, intent(in), optional :: all
+    logical, intent(in), optional :: local
     integer, intent(in), optional :: nc
     type(multifab), intent(in) :: mf
     type(lmultifab), intent(in), optional :: mask
@@ -4515,12 +4513,13 @@ contains
     logical, pointer :: lp(:,:,:,:)
     integer :: i, n
     real(dp_t) :: r1
-    logical :: lall
+    logical :: lall, llocal
     integer :: lnc
     type(mfiter) :: mfi
     type(box) :: bx
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
+    llocal = .false.; if ( present(local) ) llocal = local
     r1 = 0.0_dp_t
     !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
@@ -4542,14 +4541,19 @@ contains
        end if
     end do
     !$omp end parallel
-    call parallel_reduce(r, r1, MPI_SUM)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_SUM)
+    end if
   end function multifab_sum_c
-  function multifab_sum(mf, mask, all) result(r)
+  function multifab_sum(mf, mask, all, local) result(r)
     real(dp_t)                            :: r
     type(multifab), intent(in)            :: mf
     type(lmultifab), intent(in), optional :: mask
     logical, intent(in), optional         :: all
-    r = multifab_sum_c(mf, 1, mf%nc, mask, all)
+    logical, intent(in), optional         :: local
+    r = multifab_sum_c(mf, 1, mf%nc, mask, all, local)
   end function multifab_sum
 
   function multifab_norm_l2_doit(ap, lp) result(r)
@@ -4590,10 +4594,11 @@ contains
 
   end function multifab_norm_l2_doit
 
-  function multifab_norm_l2_c(mf, comp, nc, mask, all) result(r)
+  function multifab_norm_l2_c(mf, comp, nc, mask, all, local) result(r)
     real(dp_t) :: r
     integer, intent(in) :: comp
     logical, intent(in), optional :: all
+    logical, intent(in), optional :: local
     integer, intent(in), optional :: nc
     type(multifab), intent(in) :: mf
     type(lmultifab), intent(in), optional :: mask
@@ -4601,12 +4606,13 @@ contains
     logical, pointer :: lp(:,:,:,:)
     integer :: i, n
     real(dp_t) :: r1
-    logical :: lall
+    logical :: lall, llocal
     integer :: lnc
     type(mfiter) :: mfi
     type(box) :: bx
     lnc  = 1; if ( present(nc) ) lnc = nc
     lall = .false.; if ( present(all) ) lall = all
+    llocal = .false.; if ( present(local) ) llocal = local
     r1 = 0.0_dp_t
     !$omp parallel private(mp,lp,i,n,mfi,bx) reduction(+:r1)
     call mfiter_build(mfi,mf,.true.)
@@ -4628,15 +4634,20 @@ contains
        end if
     end do
     !$omp end parallel
-    call parallel_reduce(r, r1, MPI_SUM)
+    if (llocal) then
+       r = r1
+    else
+       call parallel_reduce(r, r1, MPI_SUM)
+    end if
     r = sqrt(r)
   end function multifab_norm_l2_c
-  function multifab_norm_l2(mf, mask, all) result(r)
+  function multifab_norm_l2(mf, mask, all, local) result(r)
     real(dp_t)                            :: r
     logical, intent(in), optional         :: all
+    logical, intent(in), optional         :: local
     type(multifab), intent(in)            :: mf
     type(lmultifab), intent(in), optional :: mask
-    r = multifab_norm_l2_c(mf, 1, mf%nc, mask, all)
+    r = multifab_norm_l2_c(mf, 1, mf%nc, mask, all, local)
   end function multifab_norm_l2
 
   function multifab_norm_inf_doit(ap, lp) result(r)
