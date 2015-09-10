@@ -1795,9 +1795,9 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     {
         std::cout << std::endl << "attempting to create a " << box_dim*boxes_in_i << "^3 level from " << TotalBoxes << " x " << box_dim << "^3 boxes distributed among " << num_ranks << " tasks..." << std::endl;
     if (domain_boundary_condition==BC_DIRICHLET)
-        std::cout << "  boundary condition = BC_DIRICHLET" << std::endl;
+        std::cout << "boundary condition = BC_DIRICHLET" << std::endl;
     if (domain_boundary_condition==BC_PERIODIC)
-        std::cout << "  boundary condition = BC_PERIODIC" << std::endl;
+        std::cout << "boundary condition = BC_PERIODIC" << std::endl;
     }
 
     int omp_threads = 1;
@@ -1919,10 +1919,10 @@ MultiFab::CreateHPGMGLevel (level_type* level,
 
     // allocate flattened vector FP data and create pointers...
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Allocating vectors... " << std::endl;
+        std::cout << "Allocating vectors... ";
     create_vectors (level, numVectors);
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "done" << std::endl;
+        std::cout << "done." << std::endl;
 
     // Build and auxilarlly data structure that flattens boxes into blocks...
     for(box=0;box<level->num_my_boxes;box++){
@@ -1992,7 +1992,7 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     // duplicate MPI_COMM_WORLD to be the communicator for each level
     #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Duplicating MPI_COMM_WORLD..." << std::endl;
+        std::cout << "Duplicating MPI_COMM_WORLD... ";
     double time_start = MPI_Wtime();
     MPI_Comm_dup(MPI_COMM_WORLD,&level->MPI_COMM_ALLREDUCE);
     double time_end = MPI_Wtime();
