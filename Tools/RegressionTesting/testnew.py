@@ -90,7 +90,8 @@ class Test(object):
         self.nlevels = None  # set but running fboxinfo on the output
 
         self.comp_string = None  # set automatically
-
+        self.run_command = None  # set automatically
+        
     def __cmp__(self, other):
         return cmp(self.value(), other.value())
 
@@ -266,7 +267,9 @@ class Suite(object):
         # copy the test file into the web output directory
         shutil.copy(self.test_file_path, full_web_dir)
 
-        return test_dir, full_test_dir, full_web_dir
+        self.test_dir = test_dir
+        self.full_test_dir = full_test_dir
+        self.full_web_dir = full_web_dir
 
     def get_last_run(self):
         """ return the name of the directory corresponding to the previous
@@ -282,7 +285,7 @@ class Suite(object):
         return dirs[-1]
 
     def get_test_failures(self, test_dir):
-        """ look at the test run in testDir and return the list of tests that
+        """ look at the test run in test_dir and return the list of tests that
             failed """
 
         cwd = os.getcwd()
@@ -320,24 +323,24 @@ class Suite(object):
 
     def run_test(self, test, base_command):
         if test.useMPI:
-            testRunCommand = ""
+            test_run_command = ""
             if test.useOMP:
-	        testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-            testRunCommand += self.MPIcommand
-	    testRunCommand = testRunCommand.replace("@host@", self.MPIhost)
-	    testRunCommand = testRunCommand.replace("@nprocs@", "{}".format(test.numprocs))
-            testRunCommand = testRunCommand.replace("@command@", base_command)
+	        test_run_command = "OMP_NUM_THREADS={} ".format(test.numthreads)
+            test_run_command += self.MPIcommand
+	    test_run_command = test_run_command.replace("@host@", self.MPIhost)
+	    test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
+            test_run_command = test_run_command.replace("@command@", base_command)
 
         elif test.useOMP:
-            testRunCommand = "OMP_NUM_THREADS={} ".format(test.numthreads)
-            testRunCommand += base_command
+            test_run_command = "OMP_NUM_THREADS={} ".format(test.numthreads)
+            test_run_command += base_command
 
         else:
-            testRunCommand = base_command
+            test_run_command = base_command
 
-        print "    " + testRunCommand
-        systemCall(testRunCommand)
-        return testRunCommand
+        print "    " + test_run_command
+        systemCall(test_run_command)
+        test.run_command = test_run_command
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -705,7 +708,7 @@ def findBuildDirs(tests):
     return build_dirs
 
 
-def copy_benchmarks(old_full_test_dir, new_out_dir, full_web_dir, test_list, bench_dir):
+def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
     """ copy the last plotfile output from each test in testList 
         into the benchmark directory """
     td = os.getcwd()
@@ -1167,20 +1170,20 @@ def testSuite(argv):
     if not args.complete_report_from_crash == "":
 
         # make sure the web directory from the crash run exists
-        full_web_dir = "%s/%s/"  % (suite.webTopDir, args.complete_report_from_crash)
-        if not os.path.isdir(full_web_dir):
+        suite.full_web_dir = "%s/%s/"  % (suite.webTopDir, args.complete_report_from_crash)
+        if not os.path.isdir(suite.full_web_dir):
             fail("Crash directory does not exist")
 
         # find all the tests that completed in that web directory
         tests = []
         testFile = ""
         wasBenchmarkRun = 0
-        for file in os.listdir(full_web_dir):
+        for file in os.listdir(suite.full_web_dir):
             if os.path.isfile(file) and file.endswith(".status"):
                 index = string.rfind(file, ".status")
                 tests.append(file[:index])
 
-                f = open(full_web_dir + file, "r")
+                f = open(suite.full_web_dir + file, "r")
                 for line in f:
                     if line.find("benchmarks updated") > 0:
                         wasBenchmarkRun = 1
@@ -1193,12 +1196,12 @@ def testSuite(argv):
         numFailed = reportThisTestRun(suite, wasBenchmarkRun,
                                       "recreated report after crash of suite",
                                       "",  0, 0, 0,
-                                      tests, args.complete_report_from_crash, testFile, full_web_dir)
+                                      tests, args.complete_report_from_crash, testFile)
 
 
         # create the suite report
         bold("creating suite report...")
-        reportAllRuns(suite, activeTestList, suite.webTopDir)
+        reportAllRuns(suite, activeTestList)
         sys.exit("done")
 
 
@@ -1262,17 +1265,17 @@ def testSuite(argv):
     if not all_compile:
         bench_dir = suite.get_bench_dir()
 
-    testDir, full_test_dir, full_web_dir = suite.make_test_dirs()
+    suite.make_test_dirs()
 
     if not args.copy_benchmarks is None:
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
-        copy_benchmarks(old_full_test_dir, full_test_dir, full_web_dir, testList, bench_dir)
+        copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
 
         numFailed = reportThisTestRun(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
                                       "copy_benchmarks used -- no new tests run",
                                       "",  updateBoxLib, updateSource, updateExtSrc,
-                                      testList, testDir, args.input_file[0], full_web_dir)
-        reportAllRuns(suite, activeTestList, suite.webTopDir)        
+                                      testList, args.input_file[0])
+        reportAllRuns(suite, activeTestList)        
         sys.exit("done")
     
     #--------------------------------------------------------------------------
@@ -1287,7 +1290,7 @@ def testSuite(argv):
 
         # main suite
         sourceGitBranch_Orig = doGITUpdate(suite.sourceDir,
-                                           suite.srcName, full_web_dir,
+                                           suite.srcName, suite.full_web_dir,
                                            suite.sourceGitBranch,
                                            args.sourceGitHash)
 
@@ -1296,7 +1299,7 @@ def testSuite(argv):
         # extra source
         if suite.useExtSrc:
             extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir,
-                                               suite.extSrcName, full_web_dir,
+                                               suite.extSrcName, suite.full_web_dir,
                                                suite.extSrcGitBranch,
                                                args.extSrcGitHash)
 
@@ -1306,7 +1309,7 @@ def testSuite(argv):
         for n in range(suite.useExtraBuild):
             if updateExtraBuild[n]:
                 extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDirs[n],
-                                                   suite.extraBuildNames[n], full_web_dir,
+                                                   suite.extraBuildNames[n], suite.full_web_dir,
                                                    "master",
                                                    "")
 
@@ -1314,23 +1317,23 @@ def testSuite(argv):
 
         # BoxLib
         boxLibGitBranch_Orig = doGITUpdate(suite.boxLibDir,
-                                           "BoxLib", full_web_dir,
+                                           "BoxLib", suite.full_web_dir,
                                            suite.boxLibGitBranch,
                                            args.boxLibGitHash)
 
     #--------------------------------------------------------------------------
     # Save git HEADs
     #--------------------------------------------------------------------------
-    saveGITHEAD(suite.boxLibDir, "BoxLib", full_web_dir)
+    saveGITHEAD(suite.boxLibDir, "BoxLib", suite.full_web_dir)
 
     if suite.sourceTree != "BoxLib":
-        saveGITHEAD(suite.sourceDir, suite.srcName, full_web_dir)
+        saveGITHEAD(suite.sourceDir, suite.srcName, suite.full_web_dir)
 
     if suite.useExtSrc:
-        saveGITHEAD(suite.extSrcDir, suite.extSrcName, full_web_dir)
+        saveGITHEAD(suite.extSrcDir, suite.extSrcName, suite.full_web_dir)
 
     for n in range(suite.useExtraBuild):
-        saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], full_web_dir)
+        saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], suite.full_web_dir)
 
 
     #--------------------------------------------------------------------------
@@ -1339,24 +1342,24 @@ def testSuite(argv):
     if updateSource:
 
         # main suite
-        makeGITChangeLog(suite.sourceDir, suite.srcName, full_web_dir)
+        makeGITChangeLog(suite.sourceDir, suite.srcName, suite.full_web_dir)
 
     if updateExtSrc:
 
         # extra source
         if (suite.useExtSrc):
-            makeGITChangeLog(suite.extSrcDir, suite.extSrcName, full_web_dir)
+            makeGITChangeLog(suite.extSrcDir, suite.extSrcName, suite.full_web_dir)
 
 
     # extra build directories
     for n in range(suite.useExtraBuild):
         if updateExtraBuild[n]:
-            makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], full_web_dir)
+            makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], suite.full_web_dir)
 
     if updateBoxLib:
 
         # BoxLib
-        makeGITChangeLog(suite.boxLibDir, "BoxLib", full_web_dir)
+        makeGITChangeLog(suite.boxLibDir, "BoxLib", suite.full_web_dir)
 
 
     #--------------------------------------------------------------------------
@@ -1372,11 +1375,11 @@ def testSuite(argv):
 
     suite.build_f(target="programs=fcompare", opts="NDEBUG=t MPI= ")
     compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
-    shutil.copy(compareExecutable, full_test_dir + "/fcompare.exe")
+    shutil.copy(compareExecutable, suite.full_test_dir + "/fcompare.exe")
 
     suite.build_f(target="programs=fboxinfo", opts="NDEBUG=t MPI= ")
     compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
-    shutil.copy(compareExecutable, full_test_dir + "/fboxinfo.exe")
+    shutil.copy(compareExecutable, suite.full_test_dir + "/fboxinfo.exe")
 
     if any([t for t in testList if t.dim == 2]):
         bold("building the 2-d visualization tools...", skip_before=1)
@@ -1427,7 +1430,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         # make the run directory
         #----------------------------------------------------------------------
-        outputDir = full_test_dir + test.name + '/'
+        outputDir = suite.full_test_dir + test.name + '/'
         os.mkdir(outputDir)
 
 
@@ -1522,10 +1525,10 @@ def testSuite(argv):
         if test.compileTest:
 
             # compilation tests are done now -- just make the report and ...
-            shutil.copy("%s/%s.make.out"    % (outputDir, test.name), full_web_dir)
+            shutil.copy("%s/%s.make.out"    % (outputDir, test.name), suite.full_web_dir)
 
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, "", testDir, full_web_dir)
+            reportSingleTest(suite, test, "")
 
             # ... skip to the next test in the loop
             continue
@@ -1541,16 +1544,16 @@ def testSuite(argv):
 
             # compilation failed.  First copy the make.out into the
             # web directory and then report
-            shutil.copy("%s/%s.make.out" % (outputDir, test.name), full_web_dir)
+            shutil.copy("%s/%s.make.out" % (outputDir, test.name), suite.full_web_dir)
 
             errorMsg = "    ERROR: compilation failed"
-            reportTestFailure(errorMsg, test, testDir, full_web_dir)
+            reportTestFailure(errorMsg, test, suite.full_web_dir)
             continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
             errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            reportTestFailure(errorMsg, test, testDir, full_web_dir)
+            reportTestFailure(errorMsg, test, suite.full_web_dir)
             continue
 
 	# sometimes the input file was in a subdirectory under the
@@ -1566,7 +1569,7 @@ def testSuite(argv):
             try: shutil.copy(test.probinFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                reportTestFailure(errorMsg, test, testDir, full_web_dir)
+                reportTestFailure(errorMsg, test, suite.full_web_dir)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1584,7 +1587,7 @@ def testSuite(argv):
             try: shutil.copy(file, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                reportTestFailure(errorMsg, test, testDir, full_web_dir)
+                reportTestFailure(errorMsg, test, suite.full_web_dir)
                 skip_to_next_test = 1
                 break
 
@@ -1597,7 +1600,7 @@ def testSuite(argv):
         for file in test.linkFiles:
             if not os.path.exists(file):
                 errorMsg = "    ERROR: link file %s does not exist" % file
-                reportTestFailure(errorMsg, test, testDir, full_web_dir)
+                reportTestFailure(errorMsg, test, suite.full_web_dir)
                 skip_to_next_test = 1
                 break
 
@@ -1611,7 +1614,7 @@ def testSuite(argv):
                 try: os.symlink(link_source, link_name)
                 except IOError:
                     errorMsg = "    ERROR: unable to symlink link file: %s" % file
-                    reportTestFailure(errorMsg, test, testDir, full_web_dir)
+                    reportTestFailure(errorMsg, test, suite.full_web_dir)
                     skip_to_next_test = 1
                     break
 
@@ -1652,7 +1655,7 @@ def testSuite(argv):
             base_command += "%s >& %s.run.out" % \
                             (suite.globalAddToExecString, test.name)
 
-        testRunCommand = suite.run_test(test, base_command)
+        suite.run_test(test, base_command)
 
 
         # if it is a restart test, then rename the final output file and
@@ -1662,7 +1665,7 @@ def testSuite(argv):
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
-                reportTestFailure(errorMsg, test, testDir, full_web_dir)
+                reportTestFailure(errorMsg, test, suite.full_web_dir)
                 continue
 
             origLastFile = "orig_%s" % (lastFile)
@@ -1687,7 +1690,7 @@ def testSuite(argv):
                 base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
                         (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
 
-            testRunCommand = suite.run_test(test, base_command)
+            suite.run_test(test, base_command)
 
         test.wallTime = time.time() - test.wallTime
 
@@ -1916,14 +1919,14 @@ def testSuite(argv):
         # move the output files into the web directory
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
-            shutil.copy("%s.run.out"     % (test.name), full_web_dir)
-            shutil.copy("%s.make.out"    % (test.name), full_web_dir)
-            shutil.copy("%s.compare.out" % (test.name), full_web_dir)
+            shutil.copy("%s.run.out"     % (test.name), suite.full_web_dir)
+            shutil.copy("%s.make.out"    % (test.name), suite.full_web_dir)
+            shutil.copy("%s.compare.out" % (test.name), suite.full_web_dir)
 
-            shutil.copy(test.inputFile, "%s/%s.%s" % (full_web_dir, test.name, test.inputFile) )
+            shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
 
             if suite.sourceTree == "C_Src":
-                shutil.copy(test.probinFile, "%s/%s.%s" % (full_web_dir, test.name, test.probinFile) )
+                shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
 
             for file in test.auxFiles:
 
@@ -1933,25 +1936,25 @@ def testSuite(argv):
                 if index > 0:
                     file = file[index+1:]
 
-                shutil.copy(file, "%s/%s.%s" % (full_web_dir, test.name, file) )
+                shutil.copy(file, "%s/%s.%s" % (suite.full_web_dir, test.name, file) )
 
             if test.doVis:
                png_file = getRecentFileName(outputDir, "", ".png")
                if not png_file is None:
-                   try: shutil.copy(png_file, full_web_dir)
+                   try: shutil.copy(png_file, suite.full_web_dir)
                    except IOError:
                        # visualization was not successful.  Reset doVis
                        test.doVis = 0
 
             if not test.analysisRoutine == "":
-                try: shutil.copy(test.analysisOutputImage, full_web_dir)
+                try: shutil.copy(test.analysisOutputImage, suite.full_web_dir)
                 except IOError:
                     # analysis was not successful.  Reset the output image
                     test.analysisOutputImage = ""
 
 
         else:
-            shutil.copy("%s.status" % (test.name), full_web_dir)
+            shutil.copy("%s.status" % (test.name), suite.full_web_dir)
 
 
         #----------------------------------------------------------------------
@@ -1989,7 +1992,7 @@ def testSuite(argv):
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, testRunCommand, testDir, full_web_dir)
+            reportSingleTest(suite, test)
 
 
     #--------------------------------------------------------------------------
@@ -1999,12 +2002,12 @@ def testSuite(argv):
     numFailed = reportThisTestRun(suite, args.make_benchmarks, args.note,
                                   updateTime,  updateBoxLib,
                                   updateSource, updateExtSrc,
-                                  testList, testDir, args.input_file[0], full_web_dir)
+                                  testList, args.input_file[0])
 
 
     # make sure that all of the files in the web directory are world readable
-    for file in os.listdir(full_web_dir):
-       currentFile = full_web_dir + file
+    for file in os.listdir(suite.full_web_dir):
+       currentFile = suite.full_web_dir + file
 
        if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
@@ -2029,7 +2032,7 @@ def testSuite(argv):
     # generate the master report for all test instances
     #--------------------------------------------------------------------------
     bold("creating suite report...", skip_before=1)
-    reportAllRuns(suite, activeTestList, suite.webTopDir)
+    reportAllRuns(suite, activeTestList)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -2303,14 +2306,14 @@ class HTMLTable(object):
 #==============================================================================
 # reportSingleTest
 #==============================================================================
-def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
+def reportSingleTest(suite, test):
     """ generate a single problem's test result page """
 
     # get the current directory
     currentDir = os.getcwd()
 
     # switch to the web directory and open the report file
-    os.chdir(full_web_dir)
+    os.chdir(suite.full_web_dir)
 
     #--------------------------------------------------------------------------
     # parse the compilation report and determine if we compiled
@@ -2406,7 +2409,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
 
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", os.path.normpath(testDir))
+    newHead = newHead.replace("@TESTDIR@", os.path.normpath(suite.test_dir))
     newHead = newHead.replace("@TESTNAME@", test.name)
 
     hf.write(newHead)
@@ -2493,7 +2496,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
         # execution summary
         ll.item("Execution:")
         ll.indent()
-        ll.item("Execution command:<br>{}".format(runCommand))
+        ll.item("Execution command:<br>{}".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         ll.outdent()
 
@@ -2586,7 +2589,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
 
         # show any visualizations
         if test.doVis:
-            png_file = getRecentFileName(full_web_dir, test.name, ".png")
+            png_file = getRecentFileName(suite.full_web_dir, test.name, ".png")
             if not png_file is None:
                 hf.write("<P>&nbsp;\n")
                 hf.write("<P><IMG SRC='%s' BORDER=0>" % (png_file) )
@@ -2611,7 +2614,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, test, testDir, full_web_dir):
+def reportTestFailure(message, test, full_web_dir):
     """ generate a simple report for an error encountered while performing
         the test """
 
@@ -2650,7 +2653,7 @@ def reportTestFailure(message, test, testDir, full_web_dir):
 
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", testDir)
+    newHead = newHead.replace("@TESTDIR@", suite.test_dir)
     newHead = newHead.replace("@TESTNAME@", test.name)
 
     hf.write(newHead)
@@ -2682,14 +2685,14 @@ def reportTestFailure(message, test, testDir, full_web_dir):
 #==============================================================================
 def reportThisTestRun(suite, make_benchmarks, note, updateTime,
                       updateBoxLib, updateSource, updateExtSrc,
-                      testList, testDir, testFile, full_web_dir):
+                      testList, testFile):
     """ generate the master page for a single run of the test suite """
 
     # get the current directory
     currentDir = os.getcwd()
 
     # switch to the web directory and open the report file
-    os.chdir(full_web_dir)
+    os.chdir(suite.full_web_dir)
 
 
     # keep track of the number of tests that passed and the number that failed
@@ -2713,7 +2716,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     newHead = HTMLHeader + r"""<CENTER><H1><A HREF="../">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
     newHead = newHead.replace("@TESTDIR@", suite.suiteName)
-    newHead = newHead.replace("@TESTNAME@", testDir)
+    newHead = newHead.replace("@TESTNAME@", suite.test_dir)
 
     hf.write(newHead)
 
@@ -2883,12 +2886,7 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     # write out a status file for all the tests
     #--------------------------------------------------------------------------
 
-    index = testDir.find("/")
-    if index > 0:
-        status_file = testDir[0:index] + ".status"
-    else:
-        status_file = testDir + ".status"
-
+    status_file = os.path.normpath(suite.test_dir) + ".status"
     sf = open(status_file, 'w')
 
     if make_benchmarks == None:
@@ -2914,11 +2912,11 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
 #==============================================================================
 # reportAllRuns
 #==============================================================================
-def reportAllRuns(suite, activeTestList, webTopDir):
+def reportAllRuns(suite, activeTestList):
 
     tableHeight = min(max(suite.lenTestName, 4), 16)
     
-    os.chdir(webTopDir)
+    os.chdir(suite.webTopDir)
 
     create_css(tableHeight=tableHeight)
 
@@ -2929,7 +2927,7 @@ def reportAllRuns(suite, activeTestList, webTopDir):
     #--------------------------------------------------------------------------
     # start by finding the list of valid test directories
     #--------------------------------------------------------------------------
-    for file in os.listdir(webTopDir):
+    for file in os.listdir(suite.webTopDir):
 
         # look for a directory of the form 20* (this will work up until 2099
         if file.startswith("20") and os.path.isdir(file):
@@ -2950,7 +2948,7 @@ def reportAllRuns(suite, activeTestList, webTopDir):
     #--------------------------------------------------------------------------
     for dir in validDirs:
 
-        for file in os.listdir(webTopDir + dir):
+        for file in os.listdir(suite.webTopDir + dir):
 
             if file.endswith(".status") and not file.startswith("20"):
 
@@ -2999,7 +2997,7 @@ def reportAllRuns(suite, activeTestList, webTopDir):
         # otherwise we don't do anything for this date
         valid = 0
         for test in allTests:
-            status_file = "%s/%s/%s.status" % (webTopDir, dir, test)
+            status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)
             if os.path.isfile(status_file):
                 valid = 1
                 break
@@ -3013,7 +3011,7 @@ def reportAllRuns(suite, activeTestList, webTopDir):
         for test in allTests:
 
             # look to see if the current test was part of this suite run
-            status_file = "%s/%s/%s.status" % (webTopDir, dir, test)
+            status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)
             status = 0
 
             if os.path.isfile(status_file):
