@@ -2189,7 +2189,6 @@ MultiFab::ConvertToHPGMGLevel (const MultiFab& mf,
         const int ijk_BoxLib = (i+BoxLib_ghosts) + (j+BoxLib_ghosts)*BL_jStride + (k+BoxLib_ghosts)*BL_kStride;
 
         level->my_boxes[box].vectors[component_id][ijk_HPGMG] = fab_data[ijk_BoxLib];
-//        std::cout << level->my_boxes[box].vectors[component_id][ijk_HPGMG] << std::endl;
 
       }}}
 
