@@ -2540,7 +2540,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
 
                 if len(fields) == 2:
                     if "NaN present" in line:
-                        ht.print_row([fields[0], (fields[1], "colspan='2'"))
+                        ht.print_row([fields[0], (fields[1], "colspan='2'")])
                         continue
                     else:
                         ht.header([" "] + fields)
