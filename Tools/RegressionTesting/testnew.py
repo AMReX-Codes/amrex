@@ -2273,7 +2273,7 @@ class HTMLTable(object):
             line = "<tr>"
             for d in row_list:
                 if isinstance(d, tuple):
-                    line += "<td class=\"{}\">{}</td>".format(d[1], d[0])
+                    line += "<td {}>{}</td>".format(d[1], d[0])
                 else:
                     line += "<td>{}</td>".format(d)
             line += "</tr>\n"
@@ -2539,8 +2539,12 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
                     continue
 
                 if len(fields) == 2:
-                    ht.header([" "] + fields)
-                    continue
+                    if "NaN present" in line:
+                        ht.print_row([fields[0], (fields[1], "colspan='2'"))
+                        continue
+                    else:
+                        ht.header([" "] + fields)
+                        continue
 
                 if len(fields) == 1:
                     continue
@@ -2817,9 +2821,9 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             row_info.append("{:.3f} s".format(test.wallTime))
 
             if testPassed:
-                row_info.append(("PASSED", "passed"))
+                row_info.append(("PASSED", "class='passed'"))
             else:
-                row_info.append(("FAILED", "failed"))
+                row_info.append(("FAILED", "class='failed'"))
 
             ht.print_row(row_info)
 
@@ -2844,10 +2848,10 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
             row_info = []
             row_info.append("{}".format(test.name))
             if not benchFile == "none":
-                row_info.append(("BENCHMARK UPDATED", "benchmade"))
+                row_info.append(("BENCHMARK UPDATED", "class='benchmade'"))
                 row_info.append("new benchmark file is {}".format(benchFile))
             else:
-                row_info.append(("BENCHMARK NOT UPDATED", "failed"))
+                row_info.append(("BENCHMARK NOT UPDATED", "class='failed'"))
                 row_info.append("compilation or execution failed")
 
             ht.print_row(row_info)
