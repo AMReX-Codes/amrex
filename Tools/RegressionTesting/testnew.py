@@ -2166,6 +2166,9 @@ ul li ul li {color: black;
 
 ul li h3 {border: 1px solid black;}
 
+#compare td {font-family: "Lucida Console", Monaco, monospace;
+             font-size: 80%;}
+
 """
 
 HTMLHeader = \
@@ -2249,12 +2252,18 @@ class HTMLList(object):
         self.of.write("</ul>\n")
 
 class HTMLTable(object):
-    def __init__(self, out_file, columns=1):
+    def __init__(self, out_file, columns=1, divs=None):
         self.hf = out_file
         self.columns = columns
+        if not divs is None:
+            self.divs = list(divs)
+        else:
+            self.divs = None
 
     def start_table(self):
-        self.hf.write("<div id='summary'>\n")
+        if not self.divs is None:
+            for d in self.divs:
+                self.hf.write("<div id='{}'>\n".format(d))
         self.hf.write("<p><table>\n")
 
     def header(self, header_list):
@@ -2266,6 +2275,11 @@ class HTMLTable(object):
         self.hf.write("<tr class='special'><td colspan={}>".format(self.columns)+row+"</td></tr>\n")
 
     def print_row(self, row_list, highlight=False):
+        """ row_list are the individual table elements.  Note that if
+        a list item is a tuple, then the first element is assumed to
+        be the cell data and the second element is an html tag that
+        goes in the <td >, e.g. to set the class or colspan"""
+
         n = len(row_list)
         if highlight:
             line = "<tr>"+n*"<td class='highlight'>{}</td>"+"</tr>\n"
@@ -2281,7 +2295,9 @@ class HTMLTable(object):
 
     def end_table(self):
         self.hf.write("</table>\n")
-        self.hf.write("</div>\n")
+        if not self.divs is None:
+            for n in range(len(self.divs)):
+                self.hf.write("</div>\n")
 
 
 
@@ -2497,7 +2513,7 @@ def reportSingleTest(suite, test, runCommand, testDir, full_web_dir):
     if not test.compileTest:
 
         # parse the compare output and make an HTML table
-        ht = HTMLTable(hf, columns=3)
+        ht = HTMLTable(hf, columns=3, divs=["summary", "compare"])
         in_diff_region = False
 
         box_error = False
@@ -2743,14 +2759,14 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     hf.write("<p>&nbsp;\n")
 
     if make_benchmarks == None:
-        ht = HTMLTable(hf, columns=11)
+        ht = HTMLTable(hf, columns=11, divs=["summary"])
         ht.start_table()
         ht.header(["test name", "dim", "compare plotfile",
                    "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
                    "compile?", "restart?", "wall time", "result"])
 
     else:
-        ht = HTMLTable(hf, columns=3)
+        ht = HTMLTable(hf, columns=3, divs=["summary"])
         ht.start_table()
         ht.header(["test name", "result", "comment"])
 
