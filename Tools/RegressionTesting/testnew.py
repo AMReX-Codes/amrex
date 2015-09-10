@@ -669,22 +669,29 @@ def copy_benchmarks(old_full_test_dir, new_out_dir, full_web_dir, test_list, ben
         os.chdir(wd)
 
         p = getLastPlotfile(wd, t)
-        if p.endswith(".tgz"):
-            try:
-                tg = tarfile.open(name=p, mode="r:gz")
-                tg.extractall()
-            except:
-                fail("ERROR extracting tarfile")
-            idx = p.rfind(".tgz")
-            p = p[:idx]
+        if not p == "": 
+            if p.endswith(".tgz"):
+                try:
+                    tg = tarfile.open(name=p, mode="r:gz")
+                    tg.extractall()
+                except:
+                    fail("ERROR extracting tarfile")
+                idx = p.rfind(".tgz")
+                p = p[:idx]
 
-        try: shutil.rmtree("{}/{}".format(bench_dir, p))
-        except: pass
-        shutil.copytree(p, "{}/{}".format(bench_dir, p))
+            try: shutil.rmtree("{}/{}".format(bench_dir, p))
+            except: pass
+            shutil.copytree(p, "{}/{}".format(bench_dir, p))
 
-        cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
-        cf.write("benchmarks updated.  New file:  {}\n".format(p) )
-        cf.close()
+            cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
+            cf.write("benchmarks updated.  New file:  {}\n".format(p) )
+            cf.close()
+
+        else:   # no benchmark exists
+            cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
+            cf.write("benchmarks update failed")
+            cf.close()
+            
 
         os.chdir(td)
         
