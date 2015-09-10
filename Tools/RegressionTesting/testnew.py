@@ -218,7 +218,7 @@ class Suite(object):
     def get_bench_dir(self):
         bench_dir = self.testTopDir + self.suiteName + "-benchmarks/"
         if not os.path.isdir(bench_dir):
-            if not args.make_benchmarks == None:
+            if not self.args.make_benchmarks == None:
                 os.mkdir(bench_dir)
             else:
                 fail("ERROR: benchmark directory, %s, does not exist" % (bench_dir))
@@ -1268,6 +1268,7 @@ def testSuite(argv):
     suite.make_test_dirs()
 
     if not args.copy_benchmarks is None:
+        last_run = suite.get_last_run()
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
         copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
 
@@ -1547,13 +1548,13 @@ def testSuite(argv):
             shutil.copy("%s/%s.make.out" % (outputDir, test.name), suite.full_web_dir)
 
             errorMsg = "    ERROR: compilation failed"
-            reportTestFailure(errorMsg, test, suite.full_web_dir)
+            reportTestFailure(suite, errorMsg, test)
             continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
             errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            reportTestFailure(errorMsg, test, suite.full_web_dir)
+            reportTestFailure(suite, errorMsg, test)
             continue
 
 	# sometimes the input file was in a subdirectory under the
@@ -1569,7 +1570,7 @@ def testSuite(argv):
             try: shutil.copy(test.probinFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                reportTestFailure(errorMsg, test, suite.full_web_dir)
+                reportTestFailure(suite, errorMsg, test)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1587,7 +1588,7 @@ def testSuite(argv):
             try: shutil.copy(file, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                reportTestFailure(errorMsg, test, suite.full_web_dir)
+                reportTestFailure(suite, errorMsg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1600,7 +1601,7 @@ def testSuite(argv):
         for file in test.linkFiles:
             if not os.path.exists(file):
                 errorMsg = "    ERROR: link file %s does not exist" % file
-                reportTestFailure(errorMsg, test, suite.full_web_dir)
+                reportTestFailure(suite, errorMsg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1614,7 +1615,7 @@ def testSuite(argv):
                 try: os.symlink(link_source, link_name)
                 except IOError:
                     errorMsg = "    ERROR: unable to symlink link file: %s" % file
-                    reportTestFailure(errorMsg, test, suite.full_web_dir)
+                    reportTestFailure(suite, errorMsg, test)
                     skip_to_next_test = 1
                     break
 
@@ -1665,7 +1666,7 @@ def testSuite(argv):
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
-                reportTestFailure(errorMsg, test, suite.full_web_dir)
+                reportTestFailure(suite, errorMsg, test)
                 continue
 
             origLastFile = "orig_%s" % (lastFile)
@@ -2614,7 +2615,7 @@ def reportSingleTest(suite, test):
 #==============================================================================
 # reportTestAbort
 #==============================================================================
-def reportTestFailure(message, test, full_web_dir):
+def reportTestFailure(suite, message, test):
     """ generate a simple report for an error encountered while performing
         the test """
 
@@ -2625,7 +2626,7 @@ def reportTestFailure(message, test, full_web_dir):
     currentDir = os.getcwd()
 
     # switch to the web directory and open the report file
-    os.chdir(full_web_dir)
+    os.chdir(suite.full_web_dir)
 
     #--------------------------------------------------------------------------
     # write out the status file for this problem -- FAILED
