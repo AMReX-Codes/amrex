@@ -166,6 +166,54 @@ class Suite(object):
         # completion
         self.purge_output = 0
 
+    def get_tests_to_run(self, test_list_old):
+        """ perform various tests based on the runtime options to determine
+            which of the tests in the input file we run """
+
+        # if we only want to run the tests that failed previously,
+        # remove the others
+        if self.args.redo_failed or not self.args.copy_benchmarks is None:
+            last_run = self.get_last_run()
+            failed = self.get_test_failures(last_run)
+
+            test_list = [t for t in test_list_old if t.name in failed]        
+        else:
+            test_list = test_list_old[:]
+
+        # if we only want to run tests of a certain dimensionality, remove
+        # the others
+        if self.args.d in [1, 2, 3]:
+            test_list = [t for t in test_list_old if t.dim == self.args.d]
+
+        # if we are doing a single test, remove all other tests; if we
+        # specified a list of tests, check each one; if we did both
+        # --single_test and --tests, complain
+        if not self.args.single_test == "" and not self.args.tests == "":
+            fail("ERROR: specify tests either by --single_test or --tests, not both")
+
+        if not self.args.single_test == "":
+            tests_find = [self.args.single_test]
+        elif not self.args.tests == "":
+            tests_find = self.args.tests.split()
+        else:
+            tests_find = []
+
+        if len(tests_find) > 0:
+            new_test_list = []
+            for test in tests_find:
+                _tmp = [o for o in test_list if o.name == test]
+                if len(_tmp) == 1:
+                    new_test_list += _tmp
+                else:
+                    fail("ERROR: {} is not a valid test".format(test))
+
+            test_list = new_test_list
+
+        if len(test_list) == 0:
+            fail("No valid tests defined")
+
+        return test_list
+
     def get_bench_dir(self):
         bench_dir = self.testTopDir + self.suiteName + "-benchmarks/"
         if not os.path.isdir(bench_dir):
@@ -443,8 +491,6 @@ def load_params(args):
     for sec in cp.sections():
 
         if sec == "main": continue
-
-        print "  %s" % (sec)
 
         # maximum test name length -- used for HTML formatting
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
@@ -1109,27 +1155,14 @@ def testSuite(argv):
     #--------------------------------------------------------------------------
     suite, testList = load_params(args)
 
-    defined_tests = testList[:]
+    activeTestList = [t.name for t in testList]
 
-    # if we only want to run the tests that failed previously, remove the
-    # others
-    if args.redo_failed or not args.copy_benchmarks is None:
-        last_run = suite.get_last_run()
-        failed = suite.get_test_failures(last_run)
+    testList = suite.get_tests_to_run(testList)
 
-        testListold = testList[:]
-        testList = [t for t in testListold if t.name in failed]        
-        
-    # if we only want to run tests of a certain dimensionality, remove
-    # the others
-    if args.d in [1, 2, 3]:
-        testListold = testList[:]
-        testList = [t for t in testListold if t.dim == args.d]
+    bold("running tests: ", skip_before=1)
+    for obj in testList:
+        print "  %s " % obj.name
 
-    if len(testList) == 0:
-        fail("No valid tests defined")
-
-    activeTestList = [t.name for t in defined_tests]
 
     if not args.complete_report_from_crash == "":
 
@@ -1219,32 +1252,6 @@ def testSuite(argv):
     if args.boxLibGitHash: updateBoxLib = False
     if args.sourceGitHash: updateSource = False
     if args.extSrcGitHash: updateExtSrc = False
-
-    #--------------------------------------------------------------------------
-    # if we are doing a single test, remove all other tests
-    # if we specified a list of tests, check each one
-    # if we did both --single_test and --tests, complain
-    #--------------------------------------------------------------------------
-    if not args.single_test == "" and not args.tests == "":
-        fail("ERROR: specify tests either by --single_test or --tests, not both")
-
-    if not args.single_test == "":
-        testsFind = [args.single_test]
-    elif not args.tests == "":
-        testsFind = args.tests.split()
-    else:
-        testsFind = []
-
-    if len(testsFind) > 0:
-        new_test_list = []
-        for test in testsFind:
-            _tmp = [o for o in testList if o.name == test]
-            if len(_tmp) == 1:
-                new_test_list += _tmp
-            else:
-                fail("ERROR: {} is not a valid test".format(test))
-
-        testList = new_test_list
 
 
     #--------------------------------------------------------------------------
@@ -1380,14 +1387,6 @@ def testSuite(argv):
         bold("building the 3-d visualization tools...", skip_before=1)
         suite.build_f(opts="NDEBUG=t MPI= ", target="programs=fsnapshot3d")
         vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
-
-
-    #--------------------------------------------------------------------------
-    # output test list
-    #--------------------------------------------------------------------------
-    bold("running tests: ", skip_before=1)
-    for obj in testList:
-        print "  %s " % obj.name
 
 
     #--------------------------------------------------------------------------
