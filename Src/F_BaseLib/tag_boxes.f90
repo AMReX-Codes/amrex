@@ -25,6 +25,8 @@ contains
     real(kind = dp_t), pointer :: mfp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
     integer           :: i, lo(get_dim(mf)), hi(get_dim(mf)), ng
+    type(mfiter)      :: mfi
+    type(box)         :: bx
 
     if (present(aux_tag_mf)) then
        call bl_error("tag_boxes.f90: aux_tag_mf passed to tag_boxes without implementation")
@@ -32,11 +34,16 @@ contains
 
     ng = nghost(mf)
 
-    do i = 1, nfabs(mf)
+    !$omp parallel private(mfp,tp,i,lo,hi,mfi,bx)
+    call mfiter_build(mfi,tagboxes,.true.)
+    do while(next_tile(mfi,i))
+       bx = get_tilebox(mfi)
+       lo =  lwb(bx)
+       hi =  upb(bx)
+
        mfp => dataptr(mf, i)
        tp  => dataptr(tagboxes, i)
-       lo =  lwb(get_box(tagboxes, i))
-       hi =  upb(get_box(tagboxes, i))
+
        select case (get_dim(mf))
        case (2)
           call tag_boxes_2d(tp(:,:,1,1),mfp(:,:,1,1),lo,hi,ng,dx,lev)
@@ -44,6 +51,7 @@ contains
           call tag_boxes_3d(tp(:,:,:,1),mfp(:,:,:,1),lo,hi,ng,dx,lev)
        end select
     end do
+    !$omp end parallel
 
   end subroutine tag_boxes
 
