@@ -195,7 +195,7 @@ extern "C" {
     double mean (level_type * level, int id_a);
     void shift_vector (level_type * level, int id_c, int id_a, double shift_a);
     void rebuild_operator (level_type * level, level_type * fromLevel, double a, double b);
-    void MGBuild (mg_type * all_grids, level_type * fine_grid, double a, double b, int minCoarseGridDim);
+    void MGBuild (mg_type * all_grids, level_type * fine_grid, double a, double b, int minCoarseGridDim, const MPI_Comm comm);
     void MGResetTimers (mg_type * all_grids);
     void zero_vector (level_type * level, int component_id);
     void MGSolve (mg_type *all_grids, int onLevel, int u_id, int F_id, double a, double b, double dtol, double rtol);
