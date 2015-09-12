@@ -89,7 +89,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
       if (m_func != 0)
 	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
       else
-	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,BCREC_3D(bc));
+	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
     } else {
 #ifdef _OPENMP
 #pragma omp critical (bndryfunc)
@@ -97,7 +97,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
       if (m_func != 0)
 	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
       else
-	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,BCREC_3D(bc));
+	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
     }
 }
 
@@ -114,7 +114,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
         if (m_gfunc != 0)
 	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
 	else
-	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,BCREC_3D(bc));
+	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
     } else {
 #ifdef _OPENMP
 #pragma omp critical (bndryfunc)
@@ -122,7 +122,7 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
         if (m_gfunc != 0)
 	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
 	else
-	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,BCREC_3D(bc));
+	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
     }
 }
 
