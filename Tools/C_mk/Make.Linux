@@ -30,6 +30,12 @@ ifeq ($(COMP),Cray)
   CXXOPTF += -g -h nomessage=7221
   CXXDEBF += -g -O0
 
+  # This makes Cray (more specifically cce/8.3.11 on edison) able to compile
+  # the following c99 feature used in ZFILL macro in C_BaseLib/ArrayLim.H:
+  #   my_function( &((Real []){x[0], x[1], 0.}[0]) );
+  CXXOPTF += -h gnu
+  CXXDEBF += -h gnu
+
   COPTF += -g
   CDEBF += -g
 
