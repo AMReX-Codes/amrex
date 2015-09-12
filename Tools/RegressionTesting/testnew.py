@@ -1529,7 +1529,7 @@ def testSuite(argv):
             shutil.copy("%s/%s.make.out"    % (outputDir, test.name), suite.full_web_dir)
 
             print "  creating problem test report ..."
-            reportSingleTest(suite, test, "")
+            reportSingleTest(suite, test)
 
             # ... skip to the next test in the loop
             continue

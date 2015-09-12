@@ -1795,9 +1795,9 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     {
         std::cout << std::endl << "attempting to create a " << box_dim*boxes_in_i << "^3 level from " << TotalBoxes << " x " << box_dim << "^3 boxes distributed among " << num_ranks << " tasks..." << std::endl;
     if (domain_boundary_condition==BC_DIRICHLET)
-        std::cout << "  boundary condition = BC_DIRICHLET" << std::endl;
+        std::cout << "boundary condition = BC_DIRICHLET" << std::endl;
     if (domain_boundary_condition==BC_PERIODIC)
-        std::cout << "  boundary condition = BC_PERIODIC" << std::endl;
+        std::cout << "boundary condition = BC_PERIODIC" << std::endl;
     }
 
     int omp_threads = 1;
@@ -1902,7 +1902,7 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     const int tot_num_boxes = level->boxes_in.i * level->boxes_in.j * level->boxes_in.k;
     int all_box_ranks[tot_num_boxes];
     std::fill_n(all_box_ranks, tot_num_boxes, 1);
-    MPI_Allreduce(level->rank_of_box, all_box_ranks, tot_num_boxes, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+    MPI_Allreduce(level->rank_of_box, all_box_ranks, tot_num_boxes, MPI_INT, MPI_PROD, ParallelDescriptor::Communicator());
     for (unsigned int i = 0; i < tot_num_boxes; ++i)
     {
         level->rank_of_box[i] = std::abs(all_box_ranks[i]);
@@ -1919,10 +1919,10 @@ MultiFab::CreateHPGMGLevel (level_type* level,
 
     // allocate flattened vector FP data and create pointers...
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Allocating vectors... " << std::endl;
+        std::cout << "Allocating vectors... ";
     create_vectors (level, numVectors);
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "done" << std::endl;
+        std::cout << "done." << std::endl;
 
     // Build and auxilarlly data structure that flattens boxes into blocks...
     for(box=0;box<level->num_my_boxes;box++){
@@ -1989,16 +1989,16 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     for(shape=0;shape<STENCIL_MAX_SHAPES;shape++)build_boundary_conditions(level,shape);
 
 
-    // duplicate MPI_COMM_WORLD to be the communicator for each level
+    // duplicate the parent communicator to be the communicator for each level
     #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
-        std::cout << "Duplicating MPI_COMM_WORLD..." << std::endl;
+        std::cout << "Duplicating MPI communicator... ";
     double time_start = MPI_Wtime();
-    MPI_Comm_dup(MPI_COMM_WORLD,&level->MPI_COMM_ALLREDUCE);
+    MPI_Comm_dup(ParallelDescriptor::Communicator(),&level->MPI_COMM_ALLREDUCE);
     double time_end = MPI_Wtime();
     double time_in_comm_dup = 0;
     double time_in_comm_dup_send = time_end-time_start;
-    MPI_Allreduce(&time_in_comm_dup_send,&time_in_comm_dup,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&time_in_comm_dup_send,&time_in_comm_dup,1,MPI_DOUBLE,MPI_MAX,ParallelDescriptor::Communicator());
     if (ParallelDescriptor::IOProcessor())
       std::cout << "done (" << time_in_comm_dup << " seconds)" << std::endl;
     #endif /* BL_USE_MPI */
@@ -2007,7 +2007,7 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     int BoxesPerProcess = level->num_my_boxes;
     #ifdef BL_USE_MPI
     int BoxesPerProcessSend = level->num_my_boxes;
-    MPI_Allreduce(&BoxesPerProcessSend,&BoxesPerProcess,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
+    MPI_Allreduce(&BoxesPerProcessSend,&BoxesPerProcess,1,MPI_INT,MPI_MAX,ParallelDescriptor::Communicator());
     #endif /* BL_USE_MPI */
     if (ParallelDescriptor::IOProcessor())
       std::cout << "Calculating boxes per process... target=" << (double)TotalBoxes/(double)num_ranks << ", max=" << BoxesPerProcess << std::endl;
@@ -2189,7 +2189,6 @@ MultiFab::ConvertToHPGMGLevel (const MultiFab& mf,
         const int ijk_BoxLib = (i+BoxLib_ghosts) + (j+BoxLib_ghosts)*BL_jStride + (k+BoxLib_ghosts)*BL_kStride;
 
         level->my_boxes[box].vectors[component_id][ijk_HPGMG] = fab_data[ijk_BoxLib];
-//        std::cout << level->my_boxes[box].vectors[component_id][ijk_HPGMG] << std::endl;
 
       }}}
 
