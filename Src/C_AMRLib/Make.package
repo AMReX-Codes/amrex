@@ -21,11 +21,7 @@ F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H
 F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
                            ARRAYLIM_$(DIM)D.F
 
-ifeq ($(DIMENSION_AGNOSTIC), TRUE)
-  F$(AMRLIB_BASE)_sources += FILCC_ND.F
-else
-  F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F
-endif
+F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F
 
 ifeq ($(DIM),3)
   F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
