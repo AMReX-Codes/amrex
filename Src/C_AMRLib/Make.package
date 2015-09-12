@@ -22,7 +22,7 @@ F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
                            ARRAYLIM_$(DIM)D.F
 
 ifeq ($(DIMENSION_AGNOSTIC), TRUE)
-  F$(AMRLIB_BASE)_sources += FILCC_3D.F
+  F$(AMRLIB_BASE)_sources += FILCC_ND.F
 else
   F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F
 endif
