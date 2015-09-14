@@ -24,7 +24,9 @@ contains
     ! local variables
     real(kind = dp_t), pointer :: mfp(:,:,:,:)
     logical          , pointer :: tp(:,:,:,:)
-    integer           :: i, lo(get_dim(mf)), hi(get_dim(mf)), ng
+    integer           :: i
+    integer           :: lo(get_dim(mf)), hi(get_dim(mf))
+    integer           :: tlo(4), mflo(4)
     type(mfiter)      :: mfi
     type(box)         :: bx
 
@@ -32,9 +34,7 @@ contains
        call bl_error("tag_boxes.f90: aux_tag_mf passed to tag_boxes without implementation")
     end if
 
-    ng = nghost(mf)
-
-    !$omp parallel private(mfp,tp,i,lo,hi,mfi,bx)
+    !$omp parallel private(mfp,tp,i,lo,hi,mfi,bx,tlo,mflo)
     call mfiter_build(mfi,tagboxes,.true.)
     do while(next_tile(mfi,i))
        bx = get_tilebox(mfi)
@@ -44,22 +44,25 @@ contains
        mfp => dataptr(mf, i)
        tp  => dataptr(tagboxes, i)
 
+       mflo = lbound(mfp)
+       tlo = lbound(tp)
+
        select case (get_dim(mf))
        case (2)
-          call tag_boxes_2d(tp(:,:,1,1),mfp(:,:,1,1),lo,hi,ng,dx,lev)
+          call tag_boxes_2d(tp(:,:,1,1),tlo(1:2),mfp(:,:,1,1),mflo(1:2),lo,hi,dx,lev)
        case  (3)
-          call tag_boxes_3d(tp(:,:,:,1),mfp(:,:,:,1),lo,hi,ng,dx,lev)
+          call tag_boxes_3d(tp(:,:,:,1),tlo(1:3),mfp(:,:,:,1),mflo(1:3),lo,hi,dx,lev)
        end select
     end do
     !$omp end parallel
 
   end subroutine tag_boxes
 
-  subroutine tag_boxes_2d(tagbox,mf,lo,hi,ng,dx,lev)
+  subroutine tag_boxes_2d(tagbox,tlo,mf,mflo,lo,hi,dx,lev)
 
-    integer          , intent(in   ) :: lo(:),hi(:),ng
-    logical          , intent(  out) :: tagbox(lo(1)   :,lo(2)   :)
-    real(kind = dp_t), intent(in   ) ::     mf(lo(1)-ng:,lo(2)-ng:)
+    integer          , intent(in   ) :: lo(2),hi(2),tlo(2), mflo(2)
+    logical          , intent(  out) :: tagbox( tlo(1):, tlo(2):)
+    real(kind = dp_t), intent(in   ) ::     mf(mflo(1):,mflo(2):)
     real(dp_t)       , intent(in   ) :: dx
     integer          , intent(in   ) :: lev
 
@@ -101,11 +104,11 @@ contains
 
   end subroutine tag_boxes_2d
 
-  subroutine tag_boxes_3d(tagbox,mf,lo,hi,ng,dx,lev)
+  subroutine tag_boxes_3d(tagbox,tlo,mf,mflo,lo,hi,dx,lev)
 
-    integer          , intent(in   ) :: lo(:),hi(:),ng
-    logical          , intent(  out) :: tagbox(lo(1)   :,lo(2)   :,lo(3)   :)
-    real(kind = dp_t), intent(in   ) ::     mf(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
+    integer          , intent(in   ) :: lo(3),hi(3),tlo(3),mflo(3)
+    logical          , intent(  out) :: tagbox( tlo(1):, tlo(2):, tlo(3):)
+    real(kind = dp_t), intent(in   ) ::     mf(mflo(1):,mflo(2):,mflo(3):)
     real(dp_t)       , intent(in   ) :: dx
     integer          , intent(in   ) :: lev
 
