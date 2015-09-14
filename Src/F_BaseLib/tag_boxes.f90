@@ -61,7 +61,7 @@ contains
   subroutine tag_boxes_2d(tagbox,tlo,mf,mflo,lo,hi,dx,lev)
 
     integer          , intent(in   ) :: lo(2),hi(2),tlo(2), mflo(2)
-    logical          , intent(  out) :: tagbox( tlo(1):, tlo(2):)
+    logical          , intent(inout) :: tagbox( tlo(1):, tlo(2):)
     real(kind = dp_t), intent(in   ) ::     mf(mflo(1):,mflo(2):)
     real(dp_t)       , intent(in   ) :: dx
     integer          , intent(in   ) :: lev
@@ -70,7 +70,7 @@ contains
     integer :: i,j
 
     ! initially say that we do not want to tag any cells for refinement
-    tagbox = .false.
+    tagbox(lo(1):hi(1),lo(2):hi(2)) = .false.
 
     select case(lev)
     case (1)
@@ -107,7 +107,7 @@ contains
   subroutine tag_boxes_3d(tagbox,tlo,mf,mflo,lo,hi,dx,lev)
 
     integer          , intent(in   ) :: lo(3),hi(3),tlo(3),mflo(3)
-    logical          , intent(  out) :: tagbox( tlo(1):, tlo(2):, tlo(3):)
+    logical          , intent(inout) :: tagbox( tlo(1):, tlo(2):, tlo(3):)
     real(kind = dp_t), intent(in   ) ::     mf(mflo(1):,mflo(2):,mflo(3):)
     real(dp_t)       , intent(in   ) :: dx
     integer          , intent(in   ) :: lev
@@ -116,7 +116,7 @@ contains
     integer :: i,j,k
 
     ! initially say that we do not want to tag any cells for refinement
-    tagbox = .false.
+    tagbox(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)) = .false.
 
     select case(lev)
     case (1)
