@@ -70,6 +70,15 @@ public:
     //
     void swapTimeLevels (Real dt);
     //
+    // Points old data to a new MultiFab.
+    //
+    void replaceOldData ( MultiFab* mf );
+    //
+    // Points new data to a new MultiFab.
+    //
+    void replaceNewData ( MultiFab* mf );
+
+    //
     // Sets time of old and new data.
     //
     void setTimeLevel (Real t_new,
@@ -166,6 +175,10 @@ public:
     // Returns the new data.
     //
     const MultiFab& newData () const { BL_ASSERT(new_data != 0); return *new_data; }
+    //
+    // Returns the old data.
+    //
+    MultiFab* oldDataPtr () { BL_ASSERT(old_data != 0); return old_data; }
     //
     // Returns the old data.
     //
