@@ -1265,10 +1265,10 @@ def testSuite(argv):
     if not all_compile:
         bench_dir = suite.get_bench_dir()
 
+    last_run = suite.get_last_run()        
     suite.make_test_dirs()
 
     if not args.copy_benchmarks is None:
-        last_run = suite.get_last_run()
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
         copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
 
