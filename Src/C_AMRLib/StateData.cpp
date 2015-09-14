@@ -309,6 +309,20 @@ StateData::swapTimeLevels (Real dt)
 }
 
 void
+StateData::replaceOldData (MultiFab* mf)
+{
+    std::swap(old_data, mf);
+    delete mf;
+}
+
+void
+StateData::replaceNewData (MultiFab* mf)
+{
+    std::swap(new_data, mf);
+    delete mf;
+}
+
+void
 StateData::FillBoundary (FArrayBox&     dest,
                          Real           time,
                          const Real*    dx,
