@@ -243,9 +243,10 @@ MultiFab::MultiFab ()
 MultiFab::MultiFab (const BoxArray& bxs,
                     int             ncomp,
                     int             ngrow,
-                    FabAlloc        alloc)
+                    FabAlloc        alloc,
+                    const IntVect&  nodal)
     :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
     Initialize();
 
@@ -256,9 +257,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     int                        ncomp,
                     int                        ngrow,
                     const DistributionMapping& dm,
-                    FabAlloc                   alloc)
+                    FabAlloc                   alloc,
+                    const IntVect&             nodal)
     :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc)
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
     Initialize();
 
@@ -275,9 +277,10 @@ void
 MultiFab::define (const BoxArray& bxs,
                   int             nvar,
                   int             ngrow,
-                  FabAlloc        alloc)
+                  FabAlloc        alloc,
+		  const IntVect&  nodal)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
 
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
@@ -287,9 +290,10 @@ MultiFab::define (const BoxArray&            bxs,
                   int                        nvar,
                   int                        ngrow,
                   const DistributionMapping& dm,
-                  FabAlloc                   alloc)
+                  FabAlloc                   alloc,
+		  const IntVect&             nodal)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
 
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }

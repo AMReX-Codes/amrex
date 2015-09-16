@@ -550,13 +550,15 @@ public:
     FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
+              FabAlloc        mem_mode = Fab_allocate,
+	      const IntVect&  nodal = IntVect::TheZeroVector());
 
     FabArray (const BoxArray&            bxs,
               int                        nvar,
               int                        ngrow,
               const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+              FabAlloc                   mem_mode = Fab_allocate,
+	      const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -570,13 +572,15 @@ public:
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
-                 FabAlloc        mem_mode);
+                 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
                  int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+                 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
@@ -765,7 +769,8 @@ protected:
                      int                        nvar,
                      int                        ngrow,
                      FabAlloc                   mem_mode,
-                     const DistributionMapping* dm);
+                     const DistributionMapping* dm,
+		     const IntVect&             nodal);
     //
     // The data.
     //
@@ -1202,9 +1207,10 @@ template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
                          int             nvar,
                          int             ngrow,
-                         FabAlloc        alloc)
+                         FabAlloc        alloc,
+			 const IntVect&  nodal)
 {
-    define(bxs,nvar,ngrow,alloc);
+    define(bxs,nvar,ngrow,alloc,nodal);
 }
 
 template <class FAB>
@@ -1212,9 +1218,10 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const DistributionMapping& dm,
-                         FabAlloc                   alloc)
+                         FabAlloc                   alloc,
+			 const IntVect&             nodal)
 {
-    define(bxs,nvar,ngrow,dm,alloc);
+    define(bxs,nvar,ngrow,dm,alloc,nodal);
 }
 
 template <class FAB>
@@ -1255,7 +1262,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
                            int                        nvar,
                            int                        ngrow,
                            FabAlloc                   alloc,
-                           const DistributionMapping* dm)
+                           const DistributionMapping* dm,
+			   const IntVect&             nodal)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1265,6 +1273,18 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     //faID   = nFabArrays++;
 
     boxarray.define(bxs);
+
+    if (nodal != IntVect::TheZeroVector()) {
+	if (nodal == IntVect::TheUnitVector()) {
+	    boxarray.surroundingNodes();
+	} else {
+	    for (int i=0; i<BL_SPACEDIM; ++i) {
+		if (nodal[i]) {
+		    boxarray.surroundingNodes(i);
+		} 
+	    }
+	}
+    }
 
     if (dm == 0)
     {
@@ -1308,9 +1328,10 @@ void
 FabArray<FAB>::define (const BoxArray& bxs,
                        int             nvar,
                        int             ngrow,
-                       FabAlloc        alloc)
+                       FabAlloc        alloc,
+		       const IntVect&  nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,0);
+    defineDoit(bxs,nvar,ngrow,alloc,0,nodal);
 }
 
 template <class FAB>
@@ -1319,9 +1340,10 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        int                        nvar,
                        int                        ngrow,
                        const DistributionMapping& dm,
-                       FabAlloc                   alloc)
+                       FabAlloc                   alloc,
+		       const IntVect&             nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,&dm);
+    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal);
 }
 
 template <class FAB>
