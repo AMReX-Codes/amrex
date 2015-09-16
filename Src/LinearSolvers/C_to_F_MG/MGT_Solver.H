@@ -36,6 +36,18 @@ public:
   static void Finalize();
   static void FlushFortranOutput();
 
+  static void set_cfa (const MultiFab& aa, int lev);
+  static void set_cfa2 (const MultiFab& aa, int lev);
+  static void set_cfb (const MultiFab& bb, Real beta, int lev, int dir);
+  static void set_cfbn (const MultiFab& bb, Real beta, int lev, int dir);
+
+  static void set_rh (const MultiFab& mf, int lev);
+  static void set_uu (const MultiFab& mf, int lev);
+
+  static void get_uu (MultiFab& mf, int lev, int ng);
+  static void get_res (MultiFab& mf, int lev);
+  static void get_gp (MultiFab& mf, int lev, int dir, Real dx);
+
   void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
                             Array< Array<Real> >& xa,
                             Array< Array<Real> >& xb);
@@ -64,12 +76,6 @@ public:
                              Array< Array<Real> >& xa,
                              Array< Array<Real> >& xb);
 
-  void set_visc_coefficients(MultiFab* aa[], 
-                             MultiFab* bb[][BL_SPACEDIM],
-                             const Real& b, 
-                             Array< Array<Real> >& xa,
-                             Array< Array<Real> >& xb);
-
   void set_porous_coefficients(PArray<MultiFab>& a1, 
 			       PArray<MultiFab>& a2, 
 			       Array<PArray<MultiFab> >& bb, 
@@ -83,13 +89,6 @@ public:
                                const Real& b, 
                                Array< Array<Real> >& xa,
                                Array< Array<Real> >& xb,
-			       int nc_opt = 0);
-
-  void set_porous_coefficients(MultiFab* a1[], const MultiFab* a2[], 
-			       MultiFab* bb[][BL_SPACEDIM], 
-			       const Real& beta, 
-			       Array< Array<Real> >& xa,
-			       Array< Array<Real> >& xb,
 			       int nc_opt = 0);
 
   void set_maxorder(const int max_order);
