@@ -613,17 +613,16 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   acoeffs[0].copy(alpha);
   acoeffs[0].mult(a); 
 
-  Array< PArray<MultiFab> > bcoeffs(BL_SPACEDIM);
+  Array< PArray<MultiFab> > bcoeffs(1, PArray<MultiFab>(BL_SPACEDIM, PArrayNoManage));
   for (int n = 0; n < BL_SPACEDIM ; n++) {
-    bcoeffs[n].resize(1,PArrayNoManage);
-    bcoeffs[n].set(0, &beta[n]);
+    bcoeffs[0].set(n, &beta[n]);
   }
 
   // The coefficients are set such that we will solve
   //  (a alpha - b del dot beta grad) soln = rhs
   //  written in the form 
   //  (acoeffs - b del dot bcoeffs grad) soln = rhs
-  mgt_solver.set_visc_coefficients(acoeffs,bcoeffs,b,xa,xb);
+  mgt_solver.set_abeclap_coeffs(acoeffs,b,bcoeffs,xa,xb);
 
   BCRec phys_bc;
   for (int n = 0; n < BL_SPACEDIM; n++) {

@@ -3,23 +3,30 @@
 #include <ParallelDescriptor.H>
 
 bool  MGT_Solver::initialized = false;
+
+int   MGT_Solver::def_maxiter;
+int   MGT_Solver::def_maxiter_b;
+int   MGT_Solver::def_bottom_solver;
+
 int   MGT_Solver::def_nu_1;
 int   MGT_Solver::def_nu_2;
 int   MGT_Solver::def_nu_b;
 int   MGT_Solver::def_nu_f;
-Real  MGT_Solver::def_max_L0_growth;
-int   MGT_Solver::def_maxiter;
-int   MGT_Solver::def_maxiter_b;
+
 int   MGT_Solver::def_verbose;
 int   MGT_Solver::def_cg_verbose;
-int   MGT_Solver::def_max_nlevel;
+
 int   MGT_Solver::def_min_width;
-int   MGT_Solver::def_smoother;
+int   MGT_Solver::def_max_nlevel;
+
 int   MGT_Solver::def_cycle;
+int   MGT_Solver::def_smoother;
+
 int   MGT_Solver::def_usecg;
 int   MGT_Solver::def_cg_solver;
-int   MGT_Solver::def_bottom_solver;
+
 Real  MGT_Solver::def_bottom_solver_eps;
+Real  MGT_Solver::def_max_L0_growth;
 
 typedef void (*mgt_get)(const int* lev, const int* n, double* uu, 
 			const int* plo, const int* phi, 
@@ -365,244 +372,142 @@ MGT_Solver::initialize(bool nodal)
 }
 
 
+//
+// (aa - beta * (del dot bb grad)) phi = RHS
+// Here, aa is const alpha.
+//
 void
-MGT_Solver::set_mac_coefficients(const MultiFab* aa[], 
-                                 const MultiFab* bb[][BL_SPACEDIM], 
-                                 Array< Array<Real> >& xa,
-                                 Array< Array<Real> >& xb)
+MGT_Solver::set_abeclap_coeffs (Real alpha,
+				Real beta,
+				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<Real> >& xa,
+				const Array< Array<Real> >& xb)
 {
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
+
+    for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_coeffs_lev(&lev);
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+	mgt_init_coeffs_lev(&lev);
 
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-	{
-	  pxa[i] = pxb[i] = 0;
-	}
-
-      Real beta = 1.0;
-
-      for (int d=0; d<BL_SPACEDIM; ++d) {
-	  set_cfb(*(bb[lev][d]), beta, lev, d);
-      }
-      
-      int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
-    }
-    mgt_finalize_stencil();
-}
-
-void
-MGT_Solver::set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
-                                     Array< Array<Real> >& xa,
-                                     Array< Array<Real> >& xb,
-                                     int is_constant)
-{
-
-   if (is_constant == 1) 
-   {
-      set_const_gravity_coeffs(xa,xb);
-   }
-   else
-   {
-
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-         pxa[i] = pxb[i] = 0.;
-
-      for ( int lev = 0; lev < m_nlevel; ++lev )
-      {
-      mgt_init_coeffs_lev(&lev);
-
-//    NOTE: the sign convention is because the elliptic solver solves
-//           (alpha MINUS del dot beta grad) phi = RHS
-//           Here alpha is zero and we want to solve del dot grad phi = RHS,
-//             which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-      Real value_zero =  0.0;
-      Real value_one  = -1.0;
-
-      MultiFab cc(m_grids[lev], 1, 0, Fab_noallocate); // cell-centered MF      
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(cc, true); mfi.isValid(); ++mfi)
-      {
-	  int n = mfi.LocalIndex();
-	  const Box& bx = mfi.tilebox();
-	  mgt_set_cfa_const (&lev, &n, bx.loVect(), bx.hiVect(), &value_zero);
-      }
-
-      for (int d=0; d<BL_SPACEDIM; ++d) {
-	  set_cfb(coeffs[lev][d], value_one, lev, d);
-      }
-
-      int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
-    }
-    mgt_finalize_stencil();
-   }
-}
-
-void
-MGT_Solver::set_const_gravity_coeffs(Array< Array<Real> >& xa,
-                                     Array< Array<Real> >& xb)
-{
-   double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-   for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-      pxa[i] = pxb[i] = 0.;
-
-   // NOTE: the sign convention is because the elliptic solver solves
-   //        (alpha MINUS del dot beta grad) phi = RHS
-   //        Here alpha is zero and we want to solve del dot grad phi = RHS,
-   //        which is equivalent to MINUS del dot (MINUS ONE) grad phi = RHS.
-   Real value_zero =  0.0;
-   Real value_one  = -1.0;
-
-   int dm = BL_SPACEDIM;
-   for ( int lev = 0; lev < m_nlevel; ++lev )
-   {
-      mgt_finalize_const_stencil_lev(&lev, &value_zero, &value_one, 
-                                     xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
-   }
-   mgt_finalize_stencil();
-}
-
-void
-MGT_Solver::set_visc_coefficients(PArray<MultiFab>& aa, 
-				  Array<PArray<MultiFab> >& bb, 
-                                  const Real& beta, 
-                                  Array< Array<Real> >& xa,
-                                  Array< Array<Real> >& xb,
-				  int index_order)
-{
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-  {
-    mgt_init_coeffs_lev(&lev);
-
-    double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-
-    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-      pxa[i] = pxb[i] = 0.;
-
-
-    set_cfa(aa[lev], lev);
-
-    if (index_order == 0) {
-	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    set_cfb(bb[d][lev], beta, lev, d);
-	}
-    } else {
+	set_cfa_const (alpha, lev);
+	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfb(bb[lev][d], beta, lev, d);
 	}
+	
+	int dm = BL_SPACEDIM;
+	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				 pxa.dataPtr(), pxb.dataPtr(), &dm);
     }
+
+    mgt_finalize_stencil();
+}
+
+//
+// (aa - beta * (del dot bb grad)) phi = RHS
+//
+void
+MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
+				Real beta,
+				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<Real> >& xa,
+				const Array< Array<Real> >& xb)
+{
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
+
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	mgt_init_coeffs_lev(&lev);
+
+	set_cfa(aa[lev], lev);
+	
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    set_cfb(bb[lev][d], beta, lev, d);
+	}
+	
+	int dm = BL_SPACEDIM;
+	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				 pxa.dataPtr(), pxb.dataPtr(), &dm);
+    }
+
+    mgt_finalize_stencil();
+}
+
+void
+MGT_Solver::set_mac_coefficients(const Array<PArray<MultiFab> >& bb,
+                                 const Array< Array<Real> >& xa,
+                                 const Array< Array<Real> >& xb)
+{
+    Real alpha = 0.0;
+    Real beta  = 1.0;
+    set_abeclap_coeffs(alpha, beta, bb, xa, xb);
+}
+
+void
+MGT_Solver::set_gravity_coefficients(const Array< PArray<MultiFab> >& bb,
+                                     const Array< Array<Real> >& xa,
+                                     const Array< Array<Real> >& xb)
+{
+    Real alpha =  0.0;
+    Real beta  = -1.0;  // solving (del dot bb grad) phi = RHS
+    set_abeclap_coeffs(alpha, beta, bb, xa, xb);
+}
+
+void
+MGT_Solver::set_const_gravity_coeffs(const Array< Array<Real> >& xa,
+                                     const Array< Array<Real> >& xb)
+{
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
+
+    Real alpha =  0.0;
+    Real beta  = -1.0;  // solving (del dot grad) phi = RHS
 
     int dm = BL_SPACEDIM;
-    mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
-  }
-  mgt_finalize_stencil();
-}
-
-void
-MGT_Solver::set_visc_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM], 
-                                  const Real& beta, 
-                                  Array< Array<Real> >& xa,
-                                  Array< Array<Real> >& xb)
-{
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+    for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_coeffs_lev(&lev);
-
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-	{
-	  pxa[i] = pxb[i] = 0.;
-	}
-
-      set_cfa(*(aa[lev]), lev);
-
-      for (int d=0; d<BL_SPACEDIM; ++d) {
-	  set_cfb(*(bb[lev][d]), beta, lev, d);
-      }
-      
-      int dm = BL_SPACEDIM;
-      mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), pxa, pxb, &dm);
+	mgt_finalize_const_stencil_lev(&lev, &alpha, &beta,
+				       xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				       pxa.dataPtr(), pxb.dataPtr(), &dm);
     }
-  mgt_finalize_stencil();
-}
 
-
-void MGT_Solver::set_maxorder(const int max_order)
-{
-  mgt_set_maxorder(&max_order);
+    mgt_finalize_stencil();
 }
 
 void
-MGT_Solver::set_porous_coefficients(PArray<MultiFab>& a1, 
-				    PArray<MultiFab>& a2, 
-                                    Array<PArray<MultiFab> >& bb, 
+MGT_Solver::set_porous_coefficients(const PArray<MultiFab>& a1, 
+				    const PArray<MultiFab>& a2, 
+                                    const Array<PArray<MultiFab> >& bb, 
                                     const Real& beta, 
-                                    Array< Array<Real> >& xa, 
-				    Array< Array<Real> >& xb,
+                                    const Array< Array<Real> >& xa, 
+				    const Array< Array<Real> >& xb,
                                     int nc_opt)
 {
-  int nc = bb[0][0].nComp();
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-  {
-    mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
-    double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
-    for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-      pxa[i] = pxb[i] = 0;
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
 
-    set_cfa(a1[lev], lev);
-    if (nc_opt == 0) set_cfa(a2[lev], lev);
-
-    for (int d=0; d<BL_SPACEDIM; ++d) {
-	set_cfbn(bb[d][lev], beta, lev, d);
-    }
+    int nc = bb[0][0].nComp();
     
-    int dm = BL_SPACEDIM;
-    mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
-				pxa, pxb, &dm, &nc_opt);
-  }
-  mgt_finalize_stencil();
-}
-
-void
-MGT_Solver::set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
-                                    const MultiFab* bb[][BL_SPACEDIM], 
-                                    const Real& beta, 
-                                    Array< Array<Real> >& xa, 
-				    Array< Array<Real> >& xb,
-                                    int nc_opt)
-{
-  int nc = (*bb[0][0]).nComp();
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+    for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
-      double pxa[BL_SPACEDIM], pxb[BL_SPACEDIM];
+	mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
 
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) 
-	{
-	  pxa[i] = pxb[i] = 0;
+	set_cfa(a1[lev], lev);
+	if (nc_opt == 0) set_cfa(a2[lev], lev);
+	
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    set_cfbn(bb[d][lev], beta, lev, d);
 	}
-
-      set_cfa(*(a1[lev]), lev);
-      if (nc_opt == 0) set_cfa2(*(a2[lev]), lev);
-
-      for (int d=0; d<BL_SPACEDIM; ++d) {
-	  set_cfbn(*(bb[lev][d]), beta, lev, d);
-      }
-      
-      int dm = BL_SPACEDIM;      
-      mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
-				  pxa, pxb, &dm, &nc_opt);
+	
+	int dm = BL_SPACEDIM;
+	mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				    pxa.dataPtr(), pxb.dataPtr(), &dm, &nc_opt);
     }
-  mgt_finalize_stencil();
-}
 
+    mgt_finalize_stencil();
+}
 
 void
 MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
@@ -628,6 +533,11 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
       mgt_finalize_nodal_stencil_lev(&lev);
     }
   mgt_finalize_nodal_stencil();
+}
+
+void MGT_Solver::set_maxorder(const int max_order)
+{
+  mgt_set_maxorder(&max_order);
 }
 
 void
@@ -772,21 +682,6 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
   for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
   {
       get_gp(flux[dir], lev, dir, dx[dir]);
-  }
-
-  mgt_delete_flux(lev);
-}
-
-void 
-MGT_Solver::get_fluxes(int lev, 
-		       MultiFab* const* flux, 
-		       const Real* dx)
-{
-  mgt_compute_flux(lev);
-
-  for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
-  {
-      get_gp(*flux[dir], lev, dir, dx[dir]);
   }
 
   mgt_delete_flux(lev);
@@ -1027,6 +922,26 @@ MGT_Solver::~MGT_Solver()
   } else {
     mgt_dealloc();
   }
+}
+
+void
+MGT_Solver::set_cfa_const (Real alpha, int lev)
+{
+    if (alpha == 0.0) {
+        // Nothing to do if alpha == 0, because cell coefficients are zero by default.
+	return;
+    } else {
+	MultiFab cc(m_grids[lev], 1, 0, Fab_noallocate); // cell-centered MF      
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc, true); mfi.isValid(); ++mfi)
+	{
+	    int n = mfi.LocalIndex();
+	    const Box& bx = mfi.tilebox();
+	    mgt_set_cfa_const (&lev, &n, bx.loVect(), bx.hiVect(), &alpha);
+	}
+    }
 }
 
 void
