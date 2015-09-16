@@ -160,7 +160,7 @@ Diffusion::applyop (int level, MultiFab& Species,
        applyMetricTerms(level,(*Res_p[0]),coeffs[0]);
 #endif
 
-    mgt_solver.set_gravity_coefficients(coeffs,xa,xb,0);
+    mgt_solver.set_gravity_coefficients(coeffs,xa,xb);
  
     mgt_solver.applyop(phi_p, Res_p, bndry);
 
@@ -267,7 +267,7 @@ Diffusion::applyop (int level, MultiFab& Species,
        applyMetricTerms(level,(*Res_p[0]),coeffs[0]);
 #endif
 
-    mgt_solver.set_gravity_coefficients(coeffs,xa,xb,0);
+    mgt_solver.set_gravity_coefficients(coeffs,xa,xb);
  
     mgt_solver.applyop(phi_p, Res_p, bndry);
 
