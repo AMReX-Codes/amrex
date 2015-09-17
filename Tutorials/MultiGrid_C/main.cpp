@@ -613,7 +613,8 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   acoeffs[0].copy(alpha);
   acoeffs[0].mult(a); 
 
-  Array< PArray<MultiFab> > bcoeffs(1, PArray<MultiFab>(BL_SPACEDIM, PArrayNoManage));
+  Array< PArray<MultiFab> > bcoeffs(1);
+  bcoeffs[0].resize(BL_SPACEDIM, PArrayNoManage);
   for (int n = 0; n < BL_SPACEDIM ; n++) {
     bcoeffs[0].set(n, &beta[n]);
   }
