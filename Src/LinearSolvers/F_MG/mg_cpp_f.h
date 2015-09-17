@@ -483,7 +483,7 @@ extern "C"
   
   void mgt_get_uu_1d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_get_res_1d(const int* lev, const int* n, Real* uu, 
 		      const int* plo, const int* phi, 
@@ -559,7 +559,7 @@ extern "C"
   
   void mgt_get_uu_2d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
 		      const int* plo, const int* phi, 
@@ -646,7 +646,7 @@ extern "C"
   
   void mgt_get_uu_3d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_set_uu_3d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 

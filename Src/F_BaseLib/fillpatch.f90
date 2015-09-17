@@ -55,6 +55,7 @@ contains
     type(box) :: gcdom
     type(multifab), target  :: gcrse
     type(multifab), pointer :: pcrse
+    type(mfiter) :: mfi
 
     type(bl_prof_timer), save :: bpt
 
@@ -374,14 +375,15 @@ contains
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
-          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
-          do i = 1, nfabs(fine)
-             bx  =  grow(get_ibox(fine,i), ng)
+          !$omp parallel private(mfi,i,bx,dst,src)
+          call mfiter_build(mfi,fine,.true.)
+          do while(next_tile(mfi,i))
+             bx = get_growntilebox(mfi,ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
              call cpy_d(dst,src)
           end do
-          !$OMP END PARALLEL DO
+          !$omp end parallel
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().

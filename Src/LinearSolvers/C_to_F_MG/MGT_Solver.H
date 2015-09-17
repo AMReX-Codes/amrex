@@ -36,60 +36,50 @@ public:
   static void Finalize();
   static void FlushFortranOutput();
 
-  void set_mac_coefficients(const MultiFab* aa[], const MultiFab* bb[][BL_SPACEDIM],
-                            Array< Array<Real> >& xa,
-                            Array< Array<Real> >& xb);
+  void set_cfa_const (Real alpha, int lev);
+  static void set_cfa (const MultiFab& aa, int lev);
+  static void set_cfa2 (const MultiFab& aa, int lev);
+  static void set_cfb (const MultiFab& bb, Real beta, int lev, int dir);
+  static void set_cfbn (const MultiFab& bb, Real beta, int lev, int dir);
 
-  void set_gravity_coefficients(Array< PArray<MultiFab> >& coeffs,
-                                Array< Array<Real> >& xa,
-                                Array< Array<Real> >& xb,
-                                int is_constant);
+  static void set_rh (const MultiFab& mf, int lev);
+  static void set_uu (const MultiFab& mf, int lev);
 
-  void set_const_gravity_coeffs(Array< Array<Real> >& xa,
-                                Array< Array<Real> >& xb);
+  static void get_uu (MultiFab& mf, int lev, int ng);
+  static void get_res (MultiFab& mf, int lev);
+  static void get_gp (MultiFab& mf, int lev, int dir, Real dx);
 
-  // If index_order == 0, bb[dim][level]
-  // else,                bb[level][dim] 
-  // The second way is consistent with set_gravity_coefficients.
-  void set_visc_coefficients(PArray<MultiFab>& aa, 
-			     Array<PArray<MultiFab> >& bb, 
-			     const Real& beta, 
-			     Array< Array<Real> >& xa,
-			     Array< Array<Real> >& xb, 
-			     int index_order=0);
+  //
+  // (aa - beta * (del dot bb grad)) phi = RHS
+  //
+  void set_abeclap_coeffs (Real alpha, // aa is constant
+			   Real beta,
+			   const Array<PArray<MultiFab> >& bb,
+			   const Array< Array<Real> >& xa,
+			   const Array< Array<Real> >& xb);
+  void set_abeclap_coeffs (const PArray<MultiFab>& aa,
+			   Real beta,
+			   const Array<PArray<MultiFab> >& bb,
+			   const Array< Array<Real> >& xa,
+			   const Array< Array<Real> >& xb);
 
-  void set_visc_coefficients(const MultiFab* aa[], 
-                             const MultiFab* bb[][BL_SPACEDIM],
-                             const Real& b, 
-                             Array< Array<Real> >& xa,
-                             Array< Array<Real> >& xb);
+  void set_mac_coefficients(const Array<PArray<MultiFab> >& bb,
+                            const Array< Array<Real> >& xa,
+                            const Array< Array<Real> >& xb);
 
-  void set_visc_coefficients(MultiFab* aa[], 
-                             MultiFab* bb[][BL_SPACEDIM],
-                             const Real& b, 
-                             Array< Array<Real> >& xa,
-                             Array< Array<Real> >& xb);
+  void set_gravity_coefficients(const Array< PArray<MultiFab> >& bb,
+                                const Array< Array<Real> >& xa,
+                                const Array< Array<Real> >& xb);
 
-  void set_porous_coefficients(PArray<MultiFab>& a1, 
-			       PArray<MultiFab>& a2, 
-			       Array<PArray<MultiFab> >& bb, 
+  void set_const_gravity_coeffs(const Array< Array<Real> >& xa,
+                                const Array< Array<Real> >& xb);
+
+  void set_porous_coefficients(const PArray<MultiFab>& a1, 
+			       const PArray<MultiFab>& a2, 
+			       const Array<PArray<MultiFab> >& bb, 
 			       const Real& beta, 
-			       Array< Array<Real> >& xa, 
-			       Array< Array<Real> >& xb,
-			       int nc_opt = 0);
-
-  void set_porous_coefficients(const MultiFab* a1[], const MultiFab* a2[], 
-                               const MultiFab* bb[][BL_SPACEDIM],
-                               const Real& b, 
-                               Array< Array<Real> >& xa,
-                               Array< Array<Real> >& xb,
-			       int nc_opt = 0);
-
-  void set_porous_coefficients(MultiFab* a1[], const MultiFab* a2[], 
-			       MultiFab* bb[][BL_SPACEDIM], 
-			       const Real& beta, 
-			       Array< Array<Real> >& xa,
-			       Array< Array<Real> >& xb,
+			       const Array< Array<Real> >& xa, 
+			       const Array< Array<Real> >& xb,
 			       int nc_opt = 0);
 
   void set_maxorder(const int max_order);
@@ -106,10 +96,6 @@ public:
 
   void get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx);
 
-  void get_fluxes(int lev, 
-		  MultiFab* const* flux, 
-		  const Real* dx);
-
   void set_nodal_coefficients(const MultiFab* aa[]);
   void nodal_project(MultiFab* uu[], MultiFab* vel[], MultiFab* rhcc[], const PArray<MultiFab>& rhnd, 
 		     const Real& tol, const Real& abs_tol, 
@@ -121,21 +107,16 @@ public:
   ~MGT_Solver();
 
   static int def_maxiter, def_maxiter_b, def_bottom_solver;
-  static int def_nu_1, def_nu_2, def_nu_b, def_nu_f, def_gamma;
-  static Real def_omega, def_bottom_solver_eps;
-  static Real def_max_L0_growth;
-  static int def_verbose, def_cg_verbose, def_min_width, def_max_nlevel;
+  static int def_nu_1, def_nu_2, def_nu_b, def_nu_f;
+  static int def_verbose, def_cg_verbose;
+  static int def_min_width, def_max_nlevel;
   static int def_cycle, def_smoother;
   static int def_usecg, def_cg_solver;
+  static Real def_bottom_solver_eps, def_max_L0_growth;
   
 private:
 
-  MultiFab* m_acoefs;
-  MultiFab* m_bcoefs[BL_SPACEDIM];
-  Real m_alpha;
-  Real m_beta;
   int m_nlevel;
-
   std::vector<BoxArray> m_grids;
   bool m_nodal;
   bool have_rhcc;

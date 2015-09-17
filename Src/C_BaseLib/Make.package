@@ -90,8 +90,8 @@ T_headers += ccse-mpi.H
 # Geometry / Coordinate system routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp
-  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H
+  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp MultiFabUtil.cpp
+  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H MultiFabUtil.H
 endif
 
 #
@@ -110,6 +110,8 @@ ifneq ($(BL_NO_FORT),TRUE)
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
 
   f90$(BOXLIB_BASE)_sources += threadbox.f90
+
+  f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
 endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp

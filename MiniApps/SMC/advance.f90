@@ -135,8 +135,7 @@ contains
 
     call mfiter_build(mfi, U1, tiling=.true.)
 
-    do while (more_tile(mfi))
-       n = get_fab_index(mfi)
+    do while (next_tile(mfi,n))
 
        tbx = get_tilebox(mfi)
        lo = lwb(tbx)
@@ -251,8 +250,7 @@ contains
        
        call mfiter_build(mfi, Q, tiling=.true.)
        
-       do while (more_tile(mfi))
-          n = get_fab_index(mfi)
+       do while (next_tile(mfi,n))
           
           tbx = get_tilebox(mfi)
           lo = lwb(tbx)
@@ -329,8 +327,7 @@ contains
 
     call mfiter_build(mfi, Q, tiling=.true.)
 
-    do while (more_tile(mfi))
-       n = get_fab_index(mfi)
+    do while (next_tile(mfi,n))
 
        tbx = get_tilebox(mfi)
        lo = lwb(tbx)
