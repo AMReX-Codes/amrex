@@ -56,8 +56,8 @@ contains
     ! Do all the local work.
     !
     do ii = 1, fa%flux%l_con%ncpy
-       i     =  local_index(flux, fa%flux%l_con%cpy(ii)%ns)
-       j     =  local_index(crse, fa%flux%l_con%cpy(ii)%nd)
+       i     =  fa%flux%l_con%cpy(ii)%lns
+       j     =  fa%flux%l_con%cpy(ii)%lnd
        isect =  fa%flux%l_con%cpy(ii)%sbx
        lo    =  lwb(isect)
        hi    =  upb(isect)
@@ -102,7 +102,7 @@ contains
     allocate(g_rcv_d(fa%flux%r_con%rvol))
 
     do i = 1, fa%flux%r_con%nsnd
-       fp => dataptr(flux, local_index(flux,fa%flux%r_con%snd(i)%ns), fa%flux%r_con%snd(i)%sbx)
+       fp => dataptr(flux, fa%flux%r_con%snd(i)%lns, fa%flux%r_con%snd(i)%sbx)
        call reshape_d_4_1(g_snd_d, 1 + fa%flux%r_con%snd(i)%pv, fp)
     end do
 
@@ -128,7 +128,7 @@ contains
     allocate(g_rcv_i(fa%mask%r_con%rvol))
 
     do i = 1, fa%mask%r_con%nsnd
-       mp => dataptr(mm_fine, local_index(flux,fa%mask%r_con%snd(i)%ns), fa%mask%r_con%snd(i)%sbx)
+       mp => dataptr(mm_fine, fa%mask%r_con%snd(i)%lns, fa%mask%r_con%snd(i)%sbx)
        call reshape_i_4_1(g_snd_i, 1 + fa%mask%r_con%snd(i)%pv, mp)
     end do
 
@@ -149,7 +149,7 @@ contains
     ! Got all the remote data.  Use it.
     !
     do i = 1, fa%flux%r_con%nrcv
-       j      =  local_index(crse,fa%flux%r_con%rcv(i)%nd)
+       j      =  fa%flux%r_con%rcv(i)%lnd
        fsh    =  fa%flux%r_con%rcv(i)%sh
        msh    =  fa%mask%r_con%rcv(i)%sh
        isect  =  fa%flux%r_con%rcv(i)%sbx

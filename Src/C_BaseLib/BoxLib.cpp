@@ -38,6 +38,7 @@
 #ifdef BL_BACKTRACING
 #include <BLBackTrace.H>
 #include <signal.h>
+#include <fenv.h>
 #endif
 
 #include <MemPool.H>
@@ -214,11 +215,12 @@ BoxLib::Assert (const char* EX,
     write_to_stderr_without_buffering(buf);
 
 #ifdef BL_BACKTRACING
-    BLBackTrace::handler(-1);
+    BLBackTrace::handler(SIGABRT);
 #else
 #ifdef __linux__
-    void *buffer[10];
-    int nptrs = backtrace(buffer, 10);
+    const int nbuf = 16;
+    void *buffer[nbuf];
+    int nptrs = backtrace(buffer, nbuf);
     backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
 #endif
     ParallelDescriptor::Abort();
@@ -248,6 +250,8 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
 #ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+    feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
+    signal(SIGFPE, BLBackTrace::handler);
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);

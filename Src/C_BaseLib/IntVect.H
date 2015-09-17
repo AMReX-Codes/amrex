@@ -342,6 +342,12 @@ public:
     static const IntVect& TheUnitVector ();
     //
     // This static member function returns a reference to a constant IntVect
+    // object, all of whose BL_SPACEDIM arguments are set to zero except that
+    // the d-direction is set to one. 
+    //
+    static const IntVect& TheDimensionVector (int d);
+    //
+    // This static member function returns a reference to a constant IntVect
     // object, all of whose BL_SPACEDIM arguments are set to IndexType::NODE.
     // It is provided as a convenience to our users when defining Boxes.
     //

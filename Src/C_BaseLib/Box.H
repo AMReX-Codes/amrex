@@ -547,6 +547,8 @@ public:
     //
     static const Box& TheUnitBox ();
 
+    bool isSquare() const;
+
 private:
     //
     // A helper function for numPtsOK() and numPts().

@@ -17,6 +17,7 @@ contains
 
   subroutine ml_nodal_restriction(crse, fine, mm_fine, mm_crse, ir, inject, zero_only)
     use nodal_restriction_module
+    use impose_neumann_bcs_module
     type(multifab),  intent(inout)        :: crse
     type(multifab),  intent(inout)        :: fine
     type(imultifab), intent(in   )        :: mm_fine
@@ -25,8 +26,10 @@ contains
     logical,         intent(in), optional :: inject
     logical,         intent(in), optional :: zero_only
 
-    integer             :: i, n, rmode, dm
-    integer             :: lo (get_dim(fine)), hi (get_dim(fine)), loc(get_dim(fine)), lof(get_dim(fine))
+    integer             :: i, n, rmode, dm, ng
+    integer             :: lo (get_dim(fine)), hi (get_dim(fine))
+    integer             :: vlo(get_dim(fine)), vhi(get_dim(fine)) 
+    integer             :: loc(get_dim(fine)), lof(get_dim(fine))
     integer             :: lom_fine(get_dim(fine)), lom_crse(get_dim(fine))
     logical             :: linject, lzero_only
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
@@ -34,6 +37,8 @@ contains
     type(layout)        :: lacfine, laf
     type(multifab)      :: cfine
     type(imultifab)     :: mm_cfine
+    type(mfiter)        :: mfi
+    type(box)           :: bx, vbx
 
     type(bl_prof_timer), save :: bpt
 
@@ -56,13 +61,17 @@ contains
 
     if ( .not. linject ) then
 
-       !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,loc,lom_fine,cp,mp_fine)
-       do i = 1, nfabs(fine)
-          lo       = lwb(get_ibox(cfine,   i))
-          hi       = upb(get_ibox(cfine,   i))
-          loc      = lwb(get_pbox(cfine,   i))
-          lom_fine = lwb(get_pbox(mm_fine, i))
-          do n = 1, ncomp(fine)
+       !$omp parallel private(mfi,n,i,bx,lo,hi,loc,lom_fine,cp,mp_fine)
+       call mfiter_build(mfi,cfine,.true.)
+       do n = 1, ncomp(cfine)
+          do while(next_tile(mfi,i))
+             bx = get_tilebox(mfi)
+
+             lo       = lwb(bx)
+             hi       = upb(bx)
+             loc      = lwb(get_pbox(cfine,   i))
+             lom_fine = lwb(get_pbox(mm_fine, i))
+
              cp      => dataptr(cfine,   i, n, 1)
              mp_fine => dataptr(mm_fine, i, 1, 1) ! mask has only 1 component
              select case (dm)
@@ -75,7 +84,7 @@ contains
              end select
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$omp end parallel
 
        call copy(crse, cfine)
        call setval(cfine, ZERO)
@@ -83,19 +92,49 @@ contains
 
     if ( .not. lzero_only ) then
 
+       if (.not. linject) then
+          !$omp parallel do private(i,fp,mp_fine,lof,lom_fine,ng,n)
+          do i = 1, nfabs(fine)
+             fp      => dataptr(fine,    i)
+             mp_fine => dataptr(mm_fine, i)
+             lof      = lwb(get_pbox(fine,    i))
+             lom_fine = lwb(get_pbox(mm_fine, i))
+             ng       = lom_fine(1) - lof(1)
+             do n = 1, ncomp(fine)
+                select case (dm)
+                case (1)
+                   call impose_neumann_bcs_1d(fp(:,1,1,n),mp_fine(:,1,1,1),lom_fine,ng)
+                case (2)
+                   call impose_neumann_bcs_2d(fp(:,:,1,n),mp_fine(:,:,1,1),lom_fine,ng)
+                case (3)
+                   call impose_neumann_bcs_3d(fp(:,:,:,n),mp_fine(:,:,:,1),lom_fine,ng)
+                end select
+             end do
+          end do
+          !$omp end parallel do
+       end if
+
        rmode = 0
        call imultifab_build(mm_cfine, lacfine, nc = ncomp(mm_crse), ng = 0, nodal = nodal_flags(mm_crse))
        call copy(mm_cfine, mm_crse)
 
-       !$OMP PARALLEL DO PRIVATE(i,n,lo,hi,lof,loc,lom_crse,lom_fine,cp,fp,mp_crse,mp_fine)
-       do i = 1, nfabs(fine)
-          lo       = lwb(get_ibox(cfine,   i))
-          hi       = upb(get_ibox(cfine,   i))
-          lof      = lwb(get_pbox(fine,    i))
-          loc      = lwb(get_pbox(cfine,   i))
-          lom_crse = lwb(get_pbox(mm_cfine,i))
-          lom_fine = lwb(get_pbox(mm_fine, i))
-          do n = 1, ncomp(fine)
+       !$omp parallel private(mfi,n,i,bx,vbx,lo,hi,vlo,vhi,lof,loc,lom_crse,lom_fine) &
+       !$omp& private(cp,fp,mp_crse,mp_fine)
+       call mfiter_build(mfi,cfine,.true.)
+       do n = 1, ncomp(cfine)
+          do while(next_tile(mfi,i))
+             bx  = get_tilebox(mfi)
+             vbx = get_ibox(cfine, i)
+
+             lo       = lwb(bx)
+             hi       = upb(bx)
+             vlo      = lwb(vbx)
+             vhi      = upb(vbx)
+             lof      = lwb(get_pbox(fine,    i))
+             loc      = lwb(get_pbox(cfine,   i))
+             lom_crse = lwb(get_pbox(mm_cfine,i))
+             lom_fine = lwb(get_pbox(mm_fine, i))
+
              cp      => dataptr(cfine,   i, n, 1)
              fp      => dataptr(fine,    i, n, 1)
              mp_crse => dataptr(mm_cfine,i, 1, 1) ! mask has only 1 component
@@ -104,19 +143,19 @@ contains
              case (1)
                 call nodal_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
                      mp_fine(:,1,1,1), lom_fine, &
-                     mp_crse(:,1,1,1), lom_crse, lo, hi, ir, linject, rmode)
+                     mp_crse(:,1,1,1), lom_crse, lo, hi, vlo, vhi, ir, linject, rmode)
              case (2)
                 call nodal_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
                      mp_fine(:,:,1,1), lom_fine, &
-                     mp_crse(:,:,1,1), lom_crse, lo, hi, ir, linject, rmode)
+                     mp_crse(:,:,1,1), lom_crse, lo, hi, vlo, vhi, ir, linject, rmode)
              case (3)
                 call nodal_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
                      mp_fine(:,:,:,1), lom_fine, &
-                     mp_crse(:,:,:,1), lom_crse, lo, hi, ir, linject, rmode)
+                     mp_crse(:,:,:,1), lom_crse, lo, hi, vlo, vhi, ir, linject, rmode)
              end select
           end do
        end do
-       !$OMP END PARALLEL DO
+       !$omp end parallel
 
        call imultifab_destroy(mm_cfine)
 
@@ -373,12 +412,14 @@ contains
        ! start by initializing to zero
        call setval(mm(n),BC_INT)  
 
+       !$omp parallel do private(i,bx,nbx,la)
        do i = 1, nfabs(mf(n))
           bx  = get_box(mf(n),i)
           nbx = box_nodalize(bx,nodal_flag)
           la = mla%la(n)
           call stencil_set_bc_nodal(mla%dim, bx, nbx, i, mm(n), face_type, pd, la)
        end do
+       !$omp end parallel do
 
        deallocate(face_type)
 

@@ -83,7 +83,7 @@ module make_new_grids_module
 
       if (lmultifab_count(tagboxes) == 0) then
 
-          call bl_warn('No points tagged at level ',lev)
+          call bl_warn('No points tagged at level ',llev)
 
       else 
 
