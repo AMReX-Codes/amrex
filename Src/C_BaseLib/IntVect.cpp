@@ -30,7 +30,7 @@ IntVect::TheDimensionVector (int d)
     case (0) :
 	static const IntVect xdim(D_DECL(1,0,0));
 	return xdim;
-    case (2) :
+    case (1) :
 	static const IntVect ydim(D_DECL(0,1,0));
 	return ydim;
     default:
