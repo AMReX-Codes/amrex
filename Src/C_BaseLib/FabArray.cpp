@@ -1046,12 +1046,7 @@ Box
 MFIter::nodaltilebox (int dir) const 
 { 
     Box bx(tileArray[currentIndex]);
-    if (bx.type(dir) == IndexType::CELL) {
-	bx.surroundingNodes(dir);
-	if (bx.bigEnd(dir) != validbox().bigEnd(dir)+1) {
-	    bx.growHi(dir,-1);
-	}
-    }
+    this->nodalize(bx, dir);
     return bx;
 }
 
@@ -1073,5 +1068,33 @@ MFIter::growntilebox (int ng) const
 	    }
 	}
 	return bx;
+    }
+}
+
+Box
+MFIter::grownnodaltilebox (int dir, int ng) const
+{
+    Box bx = growntilebox(ng);
+    this->nodalize(bx, dir);
+    return bx;
+}
+
+void
+MFIter::nodalize (Box& bx, int dir) const
+{
+    int d0, d1;
+    if (dir >= 0 && dir <= BL_SPACEDIM-1) {
+	d0 = d1 = dir;
+    } else {
+	d0 = 0;
+	d1 = BL_SPACEDIM-1;
+    }
+    for (int d=d0; d<=d1; ++d) {
+	if (bx.type(d) == IndexType::CELL) {
+	    bx.surroundingNodes(d);
+	    if (bx.bigEnd(d) < validbox().bigEnd(d)+1) {
+		bx.growHi(d,-1);
+	    }
+	}
     }
 }
