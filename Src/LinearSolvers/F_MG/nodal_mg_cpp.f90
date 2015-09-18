@@ -372,12 +372,8 @@ subroutine mgt_set_vel_1d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  call mgt_verify_n("MGT_SET_VEL_1D", flev, fn, lo, hi)
-
-  vp => dataptr(mgts%vel(flev), local_index(mgts%vel(flev),fn))
-  vp(lo(1)-1:hi(1)+1,1,1,1) = vel_in(lo(1)-1:hi(1)+1,iv+1)
-
+  vp => dataptr(mgts%vel(flev), fn)
+  vp(lo(1):hi(1),1,1,1) = vel_in(lo(1):hi(1),iv+1)
 end subroutine mgt_set_vel_1d
 
 subroutine mgt_get_vel_1d(lev, n, vel_out, plo, phi, lo, hi, nv, iv)
@@ -404,12 +400,9 @@ subroutine mgt_set_vel_2d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-  
-  call mgt_verify_n("MGT_SET_VEL_2D", flev, fn, lo, hi)
-
-  vp => dataptr(mgts%vel(flev), local_index(mgts%vel(flev),fn))
-  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, 1, 1:2) =  &
-       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, iv+1:iv+2)
+  vp => dataptr(mgts%vel(flev), fn)
+  vp         (lo(1):hi(1), lo(2):hi(2), 1, 1:2) =  &
+       vel_in(lo(1):hi(1), lo(2):hi(2), iv+1:iv+2)
 
 end subroutine mgt_set_vel_2d
 
@@ -436,13 +429,10 @@ subroutine mgt_set_vel_3d(lev, n, vel_in, plo, phi, lo, hi, nv, iv)
   real(kind=dp_t), pointer :: vp(:,:,:,:)
   integer :: flev, fn
   fn = n + 1
-  flev = lev+1
-  
-  call mgt_verify_n("MGT_SET_VEL_3D", flev, fn, lo, hi)
-
-  vp => dataptr(mgts%vel(flev), local_index(mgts%vel(flev),fn))
-  vp(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1:3) =  &
-       vel_in(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, iv+1:iv+3)
+  flev = lev+1  
+  vp => dataptr(mgts%vel(flev), fn)
+  vp         (lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1:3) =  &
+       vel_in(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), iv+1:iv+3)
 
 end subroutine mgt_set_vel_3d
 
@@ -473,12 +463,11 @@ subroutine mgt_set_cfs_1d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%cell_coeffs)
-  call mgt_verify_n("MGT_SET_CFS_1D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1))
 
-  acp => dataptr(mgts%amr_coeffs(flev), local_index(mgts%amr_coeffs(flev),fn))
+  acp => dataptr(mgts%amr_coeffs(flev), fn)
   acp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1))
 
 end subroutine mgt_set_cfs_1d
@@ -494,12 +483,11 @@ subroutine mgt_set_cfs_2d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%cell_coeffs)
-  call mgt_verify_n("MGT_SET_CFS_2D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2))
 
-  acp => dataptr(mgts%amr_coeffs(flev), local_index(mgts%amr_coeffs(flev),fn))
+  acp => dataptr(mgts%amr_coeffs(flev), fn)
   acp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2))
 
 end subroutine mgt_set_cfs_2d
@@ -515,12 +503,11 @@ subroutine mgt_set_cfs_3d(lev, n, cf, plo, phi, lo, hi)
   fn = n + 1
   flev = lev+1
   nlev = size(mgts%cell_coeffs)
-  call mgt_verify_n("MGT_SET_CFS_3D", flev, fn, lo, hi)
 
-  cp => dataptr(mgts%cell_coeffs(nlev), local_index(mgts%cell_coeffs(nlev),fn))
+  cp => dataptr(mgts%cell_coeffs(nlev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
-  acp => dataptr(mgts%amr_coeffs(flev), local_index(mgts%amr_coeffs(flev),fn))
+  acp => dataptr(mgts%amr_coeffs(flev), fn)
   acp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 
 end subroutine mgt_set_cfs_3d
@@ -534,10 +521,8 @@ subroutine mgt_set_pr_1d(lev, n, uu, plo, phi, lo, hi, np, ip)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
-  up(lo(1)-1:hi(1)+1,1,1,1) = uu(lo(1)-1:hi(1)+1, ip+1)
-
+  up => dataptr(mgts%uu(flev), fn)
+  up(lo(1):hi(1),1,1,1) = uu(lo(1):hi(1), ip+1)
 end subroutine mgt_set_pr_1d
 
 subroutine mgt_set_pr_2d(lev, n, uu, plo, phi, lo, hi, np, ip)
@@ -549,10 +534,9 @@ subroutine mgt_set_pr_2d(lev, n, uu, plo, phi, lo, hi, np, ip)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
-  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1,1,1) = uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, ip+1)
-
+  up => dataptr(mgts%uu(flev), fn)
+  up     (lo(1):hi(1), lo(2):hi(2), 1,1) = &
+       uu(lo(1):hi(1), lo(2):hi(2), ip+1)
 end subroutine mgt_set_pr_2d
 
 subroutine mgt_set_pr_3d(lev, n, uu, plo, phi, lo, hi, np, ip)
@@ -564,11 +548,9 @@ subroutine mgt_set_pr_3d(lev, n, uu, plo, phi, lo, hi, np, ip)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  up => dataptr(mgts%uu(flev), local_index(mgts%uu(flev),fn))
-  up(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, 1) = &
-     uu(lo(1)-1:hi(1)+1, lo(2)-1:hi(2)+1, lo(3)-1:hi(3)+1, ip+1)
-
+  up => dataptr(mgts%uu(flev), fn)
+  up     (lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = &
+       uu(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), ip+1)
 end subroutine mgt_set_pr_3d
 
 subroutine mgt_get_pr_1d(lev, n, uu, plo, phi, lo, hi, np, ip)
@@ -629,11 +611,8 @@ subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
-                local_index(mgts%rh(flev),fn))
-
-  rhmax = -Huge(rhmax)
+  rp => dataptr(mgts%rh(flev), fn)
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), fn)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do i = lo(1),hi(1)
@@ -642,12 +621,9 @@ subroutine mgt_add_rh_nodal_1d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
       rhmax = max(rhmax, abs(rp(i,1,1,1)))
   end do
 
-  ! rp(lo(1):hi(1),1,1,1) = rp(lo(1):hi(1),1,1,1) + rh_in(lo(1):hi(1))
-
 end subroutine mgt_add_rh_nodal_1d
 
 subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
-! subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
@@ -659,11 +635,8 @@ subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
-                local_index(mgts%rh(flev),fn))
-
-  rhmax = -Huge(rhmax)
+  rp => dataptr(mgts%rh(flev), fn)
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), fn)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do j = lo(2),hi(2)
@@ -674,14 +647,9 @@ subroutine mgt_add_rh_nodal_2d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   end do
   end do
 
-  ! rp(lo(1):hi(1),lo(2):hi(2),1,1) = &
-  !      rp(lo(1):hi(1),lo(2):hi(2),1,1) +  &
-  !      rh_in(lo(1):hi(1),lo(2):hi(2))
-
 end subroutine mgt_add_rh_nodal_2d
 
 subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
-!subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi)
   use nodal_cpp_mg_module
   implicit none
   integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
@@ -693,11 +661,8 @@ subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   fn = n + 1
   flev = lev+1
 
-  rp => dataptr(mgts%rh(flev), local_index(mgts%rh(flev),fn))
-  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), &
-                local_index(mgts%rh(flev),fn))
-
-  rhmax = -Huge(rhmax)
+  rp => dataptr(mgts%rh(flev), fn)
+  mp => dataptr(mgts%mgt(flev)%mm(mgts%mgt(flev)%nlevels), fn)
 
   ! Only add in the nodal RHS if it is on a non-Dirichlet node
   do k = lo(3),hi(3)
@@ -709,10 +674,6 @@ subroutine mgt_add_rh_nodal_3d(lev, n, rh_in, plo, phi, lo, hi, rhmax)
   end do
   end do
   end do
-
-  ! rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
-  !      rp(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) + &
-  !      rh_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 
 end subroutine mgt_add_rh_nodal_3d
 

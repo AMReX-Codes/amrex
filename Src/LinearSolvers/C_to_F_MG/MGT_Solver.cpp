@@ -519,17 +519,15 @@ MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter smfi(*(sig[lev])); smfi.isValid(); ++smfi)
-	{
-	  const FArrayBox* s = &((*(sig[lev]))[smfi]);
- 	  int n = smfi.index();
- 	  const int* lo = smfi.validbox().loVect();
-	  const int* hi = smfi.validbox().hiVect();
-
-	  const int* slo = s->box().loVect();
-	  const int* shi = s->box().hiVect();
-	  mgt_set_cfs (&lev, &n, s->dataPtr(), slo, shi, lo, hi);
-	}
+      for (MFIter mfi(*(sig[lev]),true); mfi.isValid(); ++mfi)
+      {
+	  const int n = mfi.LocalIndex();
+	  const Box& bx = mfi.tilebox();
+	  const FArrayBox& s = (*(sig[lev]))[mfi];
+	  const Box& sbx = s.box();
+	  mgt_set_cfs (&lev, &n, s.dataPtr(), sbx.loVect(), sbx.hiVect(), 
+		       bx.loVect(), bx.hiVect());
+      }
       mgt_finalize_nodal_stencil_lev(&lev);
     }
   mgt_finalize_nodal_stencil();
@@ -704,38 +702,30 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter vmfi(*(vel[lev])); vmfi.isValid(); ++vmfi)
-	{
-	  int n = vmfi.index();
-
-	  const int* lo = vmfi.validbox().loVect();
-	  const int* hi = vmfi.validbox().hiVect();
-
-	  const FArrayBox& velfab = (*(vel[lev]))[vmfi];
-	  const Real* vd = velfab.dataPtr();
-	  const int* vlo = velfab.box().loVect();
-	  const int* vhi = velfab.box().hiVect();
+      for (MFIter mfi(*(vel[lev]), true); mfi.isValid(); ++mfi)
+      {
+	  const int n = mfi.LocalIndex();
+	  const Box& bx = mfi.growntilebox(1);
+	  const FArrayBox& v = (*(vel[lev]))[mfi];
+	  const Box& vbox = v.box();
 	  const int ivel = 0;
-	  mgt_set_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
-	}
+	  mgt_set_vel(&lev, &n, v.dataPtr(), vbox.loVect(), vbox.hiVect(), 
+		      bx.loVect(), bx.hiVect(), ncomp_vel, ivel);
+      }
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter pmfi(*(p[lev])); pmfi.isValid(); ++pmfi)
-	{
-	  int n = pmfi.index();
-
-	  const int* lo = pmfi.validbox().loVect();
-	  const int* hi = pmfi.validbox().hiVect();
-
-	  const FArrayBox& sol = (*(p[lev]))[pmfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
+      for (MFIter mfi(*(p[lev]), true); mfi.isValid(); ++mfi)
+      {
+	  const int n = mfi.LocalIndex();
+	  const Box& bx = mfi.growntilebox(1);
+	  const FArrayBox& pp = (*(p[lev]))[mfi];
+	  const Box& pbox = pp.box();
 	  const int ip = 0;
-	  mgt_set_pr(&lev, &n, sd, slo, shi, lo, hi, ncomp_p, ip);
-	}
+	  mgt_set_pr(&lev, &n, pp.dataPtr(), pbox.loVect(), pbox.hiVect(),
+		     bx.loVect(), bx.hiVect(), ncomp_p, ip);
+      }
     }
 
   mgt_divu(lo_inflow, hi_inflow);
@@ -750,21 +740,15 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 #pragma omp parallel
 #endif
 	  {
-	      Real r;
 	      Real rmax_this = 0.0;
 
-	      for (MFIter rmfi(rhnd[lev]); rmfi.isValid(); ++rmfi) {
-		  int n = rmfi.index();
-		  
-		  const int* lo = rmfi.validbox().loVect();
-		  const int* hi = rmfi.validbox().hiVect();
-		  
-		  const FArrayBox& rhsfab = (rhnd[lev])[rmfi];
-		  const Real* rhsd = rhsfab.dataPtr();
-		  const int* rhslo = rhsfab.box().loVect();
-		  const int* rhshi = rhsfab.box().hiVect();
-		  mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi, &r);
-		  rmax_this = std::max(rmax_this,r);
+	      for (MFIter mfi(rhnd[lev], true); mfi.isValid(); ++mfi) {
+		  const int n = mfi.LocalIndex();
+		  const Box& bx = mfi.tilebox();
+		  const FArrayBox& rfab = (rhnd[lev])[mfi];
+		  const Box& rbox = rfab.box();
+		  mgt_add_rh_nodal(&lev, &n, rfab.dataPtr(), rbox.loVect(), rbox.hiVect(),
+				   bx.loVect(), bx.hiVect(), &rmax_this);
 	      }
 #ifdef _OPENMP
 #pragma omp critical (mgt_rhmax)
