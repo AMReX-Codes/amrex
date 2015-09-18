@@ -595,8 +595,6 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
 	}
     }
 
-    uu[lev]->FillBoundary();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
@@ -643,8 +641,6 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
       }
   }
 
-  uu[lev]->FillBoundary();
-  
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
@@ -661,35 +657,6 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
       get_res(*(res[lev]), lev);
-  }
-}
-
-void 
-MGT_Solver::applybc(MultiFab* uu[], const BndryData& bd)
-{
-  // Copy the boundary register values into the solution array to be copied into F90
-  int lev = 0;
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-      {
-        FArrayBox& dest = (*(uu[lev]))[umfi];
-        dest.copy(fs[umfi],fs[umfi].box());
-      }
-  }
-
-  uu[lev]->FillBoundary();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif    
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-  {
-      set_uu(*(uu[lev]), lev);
   }
 }
 
