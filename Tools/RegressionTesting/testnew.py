@@ -322,24 +322,25 @@ class Suite(object):
         return comp_string
 
     def run_test(self, test, base_command):
+        test_env = None
         if test.useMPI:
             test_run_command = ""
             if test.useOMP:
-	        test_run_command = "OMP_NUM_THREADS={} ".format(test.numthreads)
+	        test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
             test_run_command += self.MPIcommand
 	    test_run_command = test_run_command.replace("@host@", self.MPIhost)
 	    test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
             test_run_command = test_run_command.replace("@command@", base_command)
 
         elif test.useOMP:
-            test_run_command = "OMP_NUM_THREADS={} ".format(test.numthreads)
+	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
             test_run_command += base_command
 
         else:
             test_run_command = base_command
 
         print "    " + test_run_command
-        systemCall(test_run_command)
+        sout, serr, ierr = run(test_run_command, stdin=True, outfile="{}.run.out".format(test.name), env=test_env)
         test.run_command = test_run_command
 
 
@@ -644,17 +645,17 @@ def systemCall(string):
     return status
 
 
-def run(string, stdin=False, outfile=None):
+def run(string, stdin=False, outfile=None, store_command=False, env=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
     if stdin:
         p0 = subprocess.Popen(prog, stdin=subprocess.PIPE,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=subprocess.STDOUT, env=env)
     else:
         p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
+                              stderr=subprocess.STDOUT, env=env)
 
     stdout0, stderr0 = p0.communicate()
     if stdin: p0.stdin.close()
@@ -662,10 +663,12 @@ def run(string, stdin=False, outfile=None):
     p0.stdout.close()
 
     if not outfile == None:
-        try: cf = open(outfile, "w")
+        try: cf = open(outfile, "a")
         except IOError:
             fail("  ERROR: unable to open file for writing")
         else:
+            if store_command:
+                cf.write(string)
             for line in stdout0:
                 cf.write(line)
             cf.close()
@@ -1643,8 +1646,6 @@ def testSuite(argv):
             else:
                 base_command += " amr.checkpoint_files_output=0"
 
-            base_command += " >& %s.run.out < /dev/null" % (test.name)
-
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk " % \
@@ -1653,8 +1654,7 @@ def testSuite(argv):
             # keep around the checkpoint files only for the restart runs
             if not test.restartTest: base_command += " --chk_int 0 "
 
-            base_command += "%s >& %s.run.out" % \
-                            (suite.globalAddToExecString, test.name)
+            base_command += "{}".format(suite.globalAddToExecString)
 
         suite.run_test(test, base_command)
 
@@ -1683,13 +1683,13 @@ def testSuite(argv):
 
             if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-                base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, restartFile, test.name)
+                base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk amr.checkpoint_files_output=0 amr.restart=%s" % \
+                        (executable, test.inputFile, test.name, test.name, restartFile)
 
             elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-                base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s >> %s.run.out 2>&1" % \
-                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString, test.name)
+                base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk --chk_int 0 --restart %d %s" % \
+                        (executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString)
 
             suite.run_test(test, base_command)
 
@@ -1748,14 +1748,8 @@ def testSuite(argv):
 
                         print "    benchmark file: ", benchFile
 
-                        command = "../fcompare.exe -n 0 --infile1 %s --infile2 %s >> %s.compare.out 2>&1" % (benchFile, outputFile, test.name)
-
-                        cf = open("%s.compare.out" % (test.name), 'w')
-                        cf.write(command)
-                        cf.write("\n")
-                        cf.close()
-
-                        systemCall(command)
+                        command = "../fcompare.exe -n 0 --infile1 {} --infile2 {}".format(benchFile, outputFile)
+                        sout, serr, ierr = run(command, outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
                         warning("WARNING: unable to do a comparison")
@@ -2418,7 +2412,7 @@ def reportSingleTest(suite, test):
     ll = HTMLList(of=hf)
 
     # build summary
-    ll.item("Build information:")
+    ll.item("Build/Test information:")
     ll.indent()
 
     ll.item("Build directory: {}".format(test.buildDir))
@@ -2441,8 +2435,6 @@ def reportSingleTest(suite, test):
             if test.useOMP:
                 ll.item("OpenMP numthreads = {}".format(test.numthreads))
             ll.outdent()
-
-        ll.item("Execution time: {:.3f} s".format(test.wallTime))
 
         if test.restartTest:
 
@@ -2497,6 +2489,7 @@ def reportSingleTest(suite, test):
         # execution summary
         ll.item("Execution:")
         ll.indent()
+        ll.item("Execution time: {:.3f} s".format(test.wallTime))
         ll.item("Execution command:<br>{}".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         ll.outdent()
