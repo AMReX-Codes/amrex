@@ -1767,7 +1767,7 @@ def testSuite(argv):
                         % (test.diffOpts, diffDirBench, test.diffDir)
 
                     outfile = "{}.compare.out".format(test.name)
-                    sout, serr, diff_status = run(command, outfile=outfile)
+                    sout, serr, diff_status = run(command, outfile=outfile, store_command=True)
 
                     if diff_status == 0:
                         cf = open("{}.compare.out".format(test.name), 'a')
