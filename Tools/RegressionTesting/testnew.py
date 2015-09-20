@@ -1425,15 +1425,10 @@ def testSuite(argv):
         bold("working on test: {}".format(test.name), skip_before=1)
 
         if not args.make_benchmarks == None and (test.restartTest or test.compileTest or
-                                test.selfTest):
-            warning("  WARNING: test {} doesn't need benchmarks".format(test.name))
-            warning("           skipping\n")
+                                                 test.selfTest):
+            warning("  WARNING: test {} doesn't need benchmarks... skipping".format(test.name))
             continue
 
-
-        #----------------------------------------------------------------------
-        # make the run directory
-        #----------------------------------------------------------------------
         outputDir = suite.full_test_dir + test.name + '/'
         os.mkdir(outputDir)
 
@@ -1768,19 +1763,14 @@ def testSuite(argv):
                     print "  doing the diff..."
                     print "    diff dir: ", test.diffDir
 
-                    command = "diff %s -r %s %s >> %s.compare.out 2>&1" \
-                        % (test.diffOpts, diffDirBench, test.diffDir, test.name)
+                    command = "diff %s -r %s %s" \
+                        % (test.diffOpts, diffDirBench, test.diffDir)
 
-                    cf = open("%s.compare.out" % (test.name), 'a')
-                    cf.write("\n\n")
-                    cf.write(command)
-                    cf.write("\n")
-                    cf.close()
+                    outfile = "{}.compare.out".format(test.name)
+                    sout, serr, diff_status = run(command, outfile=outfile)
 
-                    diffstatus = systemCall(command)
-
-                    if diffstatus == 0:
-                        cf = open("%s.compare.out" % (test.name), 'a')
+                    if diff_status == 0:
+                        cf = open("{}.compare.out".format(test.name), 'a')
                         cf.write("diff was SUCCESSFUL\n")
                         cf.close()
 
