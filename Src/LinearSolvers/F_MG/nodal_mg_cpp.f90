@@ -290,13 +290,12 @@ subroutine mgt_finalize_nodal_stencil_lev(lev)
   nlev = mgts%mgt(flev)%nlevels
 
   allocate(cell_coeffs(nlev))
-  call multifab_build_copy(cell_coeffs(nlev), mgts%amr_coeffs(flev))
+  cell_coeffs(nlev) = mgts%amr_coeffs(flev)
 
   call multifab_fill_boundary(cell_coeffs(nlev))
 
   call stencil_fill_nodal_all_mglevels(mgts%mgt(flev), cell_coeffs)
 
-  call multifab_destroy(cell_coeffs(nlev))
   deallocate(cell_coeffs)
 
 end subroutine mgt_finalize_nodal_stencil_lev
