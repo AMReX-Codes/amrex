@@ -323,19 +323,14 @@ class Suite(object):
 
     def run_test(self, test, base_command):
         test_env = None
+        if test.useOMP:
+	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
+
         if test.useMPI:
-            test_run_command = ""
-            if test.useOMP:
-	        test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
-            test_run_command += self.MPIcommand
+            test_run_command = self.MPIcommand
 	    test_run_command = test_run_command.replace("@host@", self.MPIhost)
 	    test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
             test_run_command = test_run_command.replace("@command@", base_command)
-
-        elif test.useOMP:
-	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
-            test_run_command += base_command
-
         else:
             test_run_command = base_command
 
