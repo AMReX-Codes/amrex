@@ -323,19 +323,14 @@ class Suite(object):
 
     def run_test(self, test, base_command):
         test_env = None
+        if test.useOMP:
+	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
+
         if test.useMPI:
-            test_run_command = ""
-            if test.useOMP:
-	        test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
-            test_run_command += self.MPIcommand
+            test_run_command = self.MPIcommand
 	    test_run_command = test_run_command.replace("@host@", self.MPIhost)
 	    test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
             test_run_command = test_run_command.replace("@command@", base_command)
-
-        elif test.useOMP:
-	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
-            test_run_command += base_command
-
         else:
             test_run_command = base_command
 
@@ -348,32 +343,18 @@ class Suite(object):
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-#==============================================================================
-# some utility functions to automagically determine what the data types are
-#==============================================================================
-def isInt(string):
-    """ is the given string an interger? """
-    try: int(string)
-    except ValueError: return 0
-    else: return 1
-
-
-def isFloat(string):
-    """ is the given string a float? """
-    try: float(string)
-    except ValueError: return 0
-    else: return 1
-
-
-def convertType(string):
+def convert_type(string):
     """ return an integer, float, or string from the input string """
+    try: int(string)
+    except: pass
+    else: return int(string)
 
-    if isInt(string): return int(string)
-    elif isFloat(string): return float(string)
-    else: return string.strip()
+    try: float(string)
+    except: pass
+    else: return float(string)
 
+    return string.strip()    
 
-#==============================================================================
 def load_params(args):
     """
     reads the parameter file and creates as list of test objects as well as
@@ -400,7 +381,7 @@ def load_params(args):
     for opt in cp.options("main"):
 
         # get the value of the current option
-        value = convertType(cp.get("main", opt))
+        value = convert_type(cp.get("main", opt))
 
         if opt in valid_options:
 
@@ -460,7 +441,6 @@ def load_params(args):
         if mysuite.extraBuildDirCompString != "":
             mysuite.extraBuildDirCompString += "="+mysuite.sourceDir
 
-
     # BoxLib-only tests don't have a sourceDir
     if mysuite.sourceTree == "BoxLib": mysuite.sourceDir = mysuite.boxLibDir
 
@@ -513,7 +493,7 @@ def load_params(args):
         for opt in cp.options(sec):
 
             # get the value of the current option
-            value = convertType(cp.get(sec, opt))
+            value = convert_type(cp.get(sec, opt))
 
             if opt in valid_options:
 
@@ -748,7 +728,6 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
         os.chdir(td)
         
 
-#==============================================================================
 def getLastPlotfile(outputDir, test):
     """given an output directory and the test name, find the last
        plotfile written.  Note: we give an error if the last
@@ -772,7 +751,6 @@ def getLastPlotfile(outputDir, test):
     return last_plot
 
 
-#==============================================================================
 def getRecentFileName(dir, base, extension):
     """ given the base and extension, find the most recent corresponding
     file """
@@ -786,7 +764,6 @@ def getRecentFileName(dir, base, extension):
     except: return None
 
 
-#==============================================================================
 def checkTestDir(dir_name):
    """ given a string representing a directory, check if it points to
        a valid directory.  If so, return the directory name """
@@ -799,7 +776,6 @@ def checkTestDir(dir_name):
    return dir_name
 
 
-#==============================================================================
 def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    """ do a git update of the repository in topDir.  root is the name
        of the directory (used for labeling).  outDir is the full path
@@ -840,7 +816,6 @@ def doGITUpdate(topDir, root, outDir, gitbranch, githash):
    return currentBranch
 
 
-#==============================================================================
 def saveGITHEAD(topDir, root, outDir):
 
    os.chdir(topDir)
@@ -851,7 +826,6 @@ def saveGITHEAD(topDir, root, outDir):
    shutil.copy("git.{}.HEAD".format(root),  outDir)
 
 
-#==============================================================================
 def doGITback(topDir, root, gitbranch):
    """ do a git checkout of gitbranch in topDir.  root is the name
        of the directory (used for labeling). """
@@ -867,7 +841,6 @@ def doGITback(topDir, root, gitbranch):
        fail("  ERROR: git checkout was unsuccessful")
 
 
-#==============================================================================
 def makeGITChangeLog(gitDir, root, outDir):
     """ generate a ChangeLog git repository named root.  outDir is the
         full path to the directory where we will store the git output"""
@@ -883,7 +856,7 @@ def makeGITChangeLog(gitDir, root, outDir):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def testSuite(argv):
+def test_suite(argv):
 
     usage = """
     testnew.py -h for options
@@ -1168,7 +1141,6 @@ def testSuite(argv):
     bold("running tests: ", skip_before=1)
     for obj in testList:
         print "  %s " % obj.name
-
 
     if not args.complete_report_from_crash == "":
 
@@ -1711,7 +1683,7 @@ def testSuite(argv):
             prog = "../fboxinfo.exe -l {}".format(outputFile)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
-            if not isInt(test.nlevels):
+            if not type(convert_type(test.nlevels)) is int:
                 test.nlevels = ""
 
             if args.make_benchmarks == None:
@@ -3045,4 +3017,4 @@ def reportAllRuns(suite, activeTestList):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 if __name__== "__main__":
 
-    testSuite(sys.argv)
+    test_suite(sys.argv)
