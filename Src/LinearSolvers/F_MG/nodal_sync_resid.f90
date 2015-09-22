@@ -420,7 +420,6 @@ subroutine mgt_alloc_nodal_sync()
   call multifab_build(mgts%vold(1)     , mgts%mla%la(1), nc = mgts%dim, ng = 1)
 
   call multifab_setval(mgts%sync_res(1),ZERO,all=.true.)
-! wqz. unnecessary to call setval(mgts%vold(1),ZERO,all=.true.)
   
 end subroutine mgt_alloc_nodal_sync
 
@@ -447,9 +446,8 @@ subroutine mgt_set_sync_msk_1d(lev, n, msk_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
-  mskp(plo(1):phi(1),1,1,1) = msk_in(plo(1):phi(1))
+  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp(lo(1):hi(1),1,1,1) = msk_in(lo(1):hi(1))
 end subroutine mgt_set_sync_msk_1d
 
 subroutine mgt_set_sync_msk_2d(lev, n, msk_in, plo, phi, lo, hi)
@@ -461,9 +459,8 @@ subroutine mgt_set_sync_msk_2d(lev, n, msk_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
-  mskp(plo(1):phi(1),plo(2):phi(2),1,1) = msk_in(plo(1):phi(1),plo(2):phi(2))
+  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp(lo(1):hi(1),lo(2):hi(2),1,1) = msk_in(lo(1):hi(1),lo(2):hi(2))
 end subroutine mgt_set_sync_msk_2d
 
 subroutine mgt_set_sync_msk_3d(lev, n, msk_in, plo, phi, lo, hi)
@@ -475,10 +472,9 @@ subroutine mgt_set_sync_msk_3d(lev, n, msk_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  mskp => dataptr(mgts%sync_msk(flev), local_index(mgts%sync_msk(flev),fn))
-  mskp(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3),1) = &
-       msk_in(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+  mskp => dataptr(mgts%sync_msk(flev), fn)
+  mskp       (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1) = &
+       msk_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 end subroutine mgt_set_sync_msk_3d
 
 subroutine mgt_set_vold_1d(lev, n, v_in, plo, phi, lo, hi)
@@ -490,9 +486,8 @@ subroutine mgt_set_vold_1d(lev, n, v_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
-  vp(lo(1)-1:hi(1)+1,1,1,1) = v_in(lo(1)-1:hi(1)+1)
+  vp => dataptr(mgts%vold(flev), fn)
+  vp(lo(1):hi(1),1,1,1) = v_in(lo(1):hi(1))
 end subroutine mgt_set_vold_1d
 
 subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
@@ -504,10 +499,9 @@ subroutine mgt_set_vold_2d(lev, n, v_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
-  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1,1:2) =   &
-       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,1:2)
+  vp => dataptr(mgts%vold(flev), fn)
+  vp       (lo(1):hi(1),lo(2):hi(2),1,1:2) =   &
+       v_in(lo(1):hi(1),lo(2):hi(2),1:2)
 end subroutine mgt_set_vold_2d
 
 subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
@@ -519,10 +513,9 @@ subroutine mgt_set_vold_3d(lev, n, v_in, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  vp => dataptr(mgts%vold(flev), local_index(mgts%vold(flev),fn))
-  vp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3) = &
-       v_in(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1,1:3)
+  vp => dataptr(mgts%vold(flev), fn)
+  vp       (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3) = &
+       v_in(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:3)
 end subroutine mgt_set_vold_3d
 
 subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
@@ -534,10 +527,8 @@ subroutine mgt_get_sync_res_1d(lev, n, res, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
+  rp => dataptr(mgts%sync_res(flev), fn)
   res(lo(1):hi(1)) = rp(lo(1):hi(1), 1, 1, 1)
-
 end subroutine mgt_get_sync_res_1d
 
 subroutine mgt_get_sync_res_2d(lev, n, res, plo, phi, lo, hi)
@@ -549,10 +540,8 @@ subroutine mgt_get_sync_res_2d(lev, n, res, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
+  rp => dataptr(mgts%sync_res(flev), fn)
   res(lo(1):hi(1), lo(2):hi(2)) = rp(lo(1):hi(1), lo(2):hi(2), 1, 1)
-
 end subroutine mgt_get_sync_res_2d
 
 subroutine mgt_get_sync_res_3d(lev, n, res, plo, phi, lo, hi)
@@ -564,11 +553,9 @@ subroutine mgt_get_sync_res_3d(lev, n, res, plo, phi, lo, hi)
   integer :: flev, fn
   fn = n + 1
   flev = lev+1
-
-  rp => dataptr(mgts%sync_res(flev), local_index(mgts%sync_res(flev),fn))
+  rp => dataptr(mgts%sync_res(flev), fn)
   res(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) =  &
        rp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1)
-
 end subroutine mgt_get_sync_res_3d
 
 subroutine mgt_compute_sync_resid_crse()

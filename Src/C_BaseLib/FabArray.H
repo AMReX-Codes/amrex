@@ -406,13 +406,21 @@ public:
     //
     const Box& tilebox () const { return tileArray[currentIndex]; }
     //
-    // Returns the dir-nodal Box at the current index.
+    // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
-    Box nodaltilebox (int dir) const;
+    Box nodaltilebox (int dir=-1) const;
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
     Box growntilebox (int ng=-1) const;
+    //
+    //  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
+    //
+    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
+    //
+    // Nodalize a tile box
+    //
+    void nodalize (Box& bx, int dir) const;
     //
     // Returns the valid Box that current tile resides.
     //
