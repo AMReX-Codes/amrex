@@ -120,9 +120,9 @@ class Suite(object):
         self.extSrcDir = ""
         self.extSrcCompString = ""
 
-        self.boxLibGitBranch = "master"
-        self.sourceGitBranch = "master"
-        self.extSrcGitBranch = "master"
+        self.boxLibGitBranch = "development"
+        self.sourceGitBranch = "development"
+        self.extSrcGitBranch = "development"
 
         # this will hold the # of extra build directories we need to worry
         # about.  It is set automatically, not by users
