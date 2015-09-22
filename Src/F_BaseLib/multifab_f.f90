@@ -5723,12 +5723,21 @@ contains
     type(box) :: r
     type(mfiter), intent(in) :: mfi
     integer, intent(in) :: dir
-    integer :: gridhi
+    integer :: gridhi, d, d0, d1
     r = get_tilebox(mfi)
-    if (.not. mfi%nodal(dir)) then
-       gridhi = upb(get_gridbox(mfi), dir)
-       if (gridhi .eq. upb(r,dir)) r%hi(dir) = r%hi(dir)+1
+    if (dir >=1 .and. dir <= mfi%dim) then
+       d0 = dir
+       d1 = dir
+    else
+       d0 = 1
+       d1 = mfi%dim
     end if
+    do d = d0, d1
+       if (.not. mfi%nodal(d)) then
+          gridhi = upb(get_gridbox(mfi), d)
+          if (gridhi .eq. upb(r,d)) r%hi(d) = r%hi(d)+1
+       end if
+    end do
   end function get_nodaltilebox
 
   function get_allnodaltilebox(mfi) result(r)
@@ -5770,13 +5779,22 @@ contains
     type(mfiter), intent(in) :: mfi
     integer, intent(in) :: dir
     integer, intent(in), optional :: ng_in
-    integer :: gridhi, tilehi
+    integer :: gridhi, tilehi, d, d0, d1
     r = get_growntilebox(mfi, ng_in)
-    if (.not. mfi%nodal(dir)) then
-       tilehi = upb(get_tilebox(mfi), dir)
-       gridhi = upb(get_gridbox(mfi), dir)
-       if (gridhi .eq. tilehi) r%hi(dir) = r%hi(dir)+1       
+    if (dir >=1 .and. dir <= mfi%dim) then
+       d0 = dir
+       d1 = dir
+    else
+       d0 = 1
+       d1 = mfi%dim
     end if
+    do d = d0, d1
+       if (.not. mfi%nodal(d)) then
+          tilehi = upb(get_tilebox(mfi), d)
+          gridhi = upb(get_gridbox(mfi), d)
+          if (gridhi .eq. tilehi) r%hi(d) = r%hi(d)+1       
+       end if
+    end do
   end function get_grownnodaltilebox
 
   function get_gridbox(mfi) result (r)

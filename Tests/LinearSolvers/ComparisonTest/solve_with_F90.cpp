@@ -179,7 +179,8 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       PArray<MultiFab> acoeffs_l(1, PArrayNoManage);
       acoeffs_l.set(0, &acoeffs[ilev]);
 
-      Array<PArray<MultiFab> > bcoeffs_l(1, PArray<MultiFab>(BL_SPACEDIM, PArrayNoManage));
+      Array<PArray<MultiFab> > bcoeffs_l(1);
+      bcoeffs_l[0].resize(BL_SPACEDIM, PArrayNoManage);
       for (int n = 0; n < BL_SPACEDIM ; n++) {
 	  bcoeffs_l[0].set(n, &bcoeffs[ilev][n]);
       }

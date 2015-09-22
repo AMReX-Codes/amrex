@@ -389,14 +389,26 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	mgt_init_coeffs_lev(&lev);
+    }
 
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	set_cfa_const (alpha, lev);
-	
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfb(bb[lev][d], beta, lev, d);
 	}
+    }
 	
-	int dm = BL_SPACEDIM;
+    int dm = BL_SPACEDIM;
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
 				 pxa.dataPtr(), pxb.dataPtr(), &dm);
     }
@@ -420,14 +432,23 @@ MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	mgt_init_coeffs_lev(&lev);
+    }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	set_cfa(aa[lev], lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfb(bb[lev][d], beta, lev, d);
 	}
+    }
 	
-	int dm = BL_SPACEDIM;
+    int dm = BL_SPACEDIM;
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
 				 pxa.dataPtr(), pxb.dataPtr(), &dm);
     }
@@ -493,15 +514,24 @@ MGT_Solver::set_porous_coefficients(const PArray<MultiFab>& a1,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	mgt_init_mc_coeffs_lev(&lev,&nc,&nc_opt);
+    }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	set_cfa(a1[lev], lev);
-	if (nc_opt == 0) set_cfa(a2[lev], lev);
+	if (nc_opt == 0) set_cfa2(a2[lev], lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfbn(bb[d][lev], beta, lev, d);
 	}
+    }
 	
-	int dm = BL_SPACEDIM;
+    int dm = BL_SPACEDIM;
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
 	mgt_mc_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
 				    pxa.dataPtr(), pxb.dataPtr(), &dm, &nc_opt);
     }
@@ -512,27 +542,30 @@ MGT_Solver::set_porous_coefficients(const PArray<MultiFab>& a1,
 void
 MGT_Solver::set_nodal_coefficients(const MultiFab* sig[])
 {
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
-      mgt_init_nodal_coeffs_lev(&lev);
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	mgt_init_nodal_coeffs_lev(&lev);
+    }
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter smfi(*(sig[lev])); smfi.isValid(); ++smfi)
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	for (MFIter mfi(*(sig[lev]),true); mfi.isValid(); ++mfi)
 	{
-	  const FArrayBox* s = &((*(sig[lev]))[smfi]);
- 	  int n = smfi.index();
- 	  const int* lo = smfi.validbox().loVect();
-	  const int* hi = smfi.validbox().hiVect();
-
-	  const int* slo = s->box().loVect();
-	  const int* shi = s->box().hiVect();
-	  mgt_set_cfs (&lev, &n, s->dataPtr(), slo, shi, lo, hi);
+	    const int n = mfi.LocalIndex();
+	    const Box& bx = mfi.tilebox();
+	    const FArrayBox& s = (*(sig[lev]))[mfi];
+	    const Box& sbx = s.box();
+	    mgt_set_cfs (&lev, &n, s.dataPtr(), sbx.loVect(), sbx.hiVect(), 
+			 bx.loVect(), bx.hiVect());
 	}
-      mgt_finalize_nodal_stencil_lev(&lev);
     }
-  mgt_finalize_nodal_stencil();
+
+    for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	mgt_finalize_nodal_stencil_lev(&lev);
+    }
+
+    mgt_finalize_nodal_stencil();
 }
 
 void MGT_Solver::set_maxorder(const int max_order)
@@ -549,20 +582,22 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
 
     // Copy the boundary register values into the solution array to be copied into F90
     int lev = 0;
-    for (OrientationIter oitr; oitr; ++oitr)
-    {
-	const FabSet& fs = bd.bndryValues(oitr());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (OrientationIter oitr; oitr; ++oitr)
+    {
+	const FabSet& fs = bd.bndryValues(oitr());
 	for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
 	{
 	    FArrayBox& dest = (*(uu[lev]))[umfi];
 	    dest.copy(fs[umfi],fs[umfi].box());
 	}
     }
-    uu[lev]->FillBoundary();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	set_rh(*(rh[lev]), lev);
@@ -579,6 +614,9 @@ MGT_Solver::solve(MultiFab* uu[], MultiFab* rh[], const BndryData& bd,
 
     int ng = (need_grad_phi == 1) ? 1 : 0;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	get_uu(*(uu[lev]), lev, ng);
@@ -590,20 +628,22 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+  for (OrientationIter oitr; oitr; ++oitr)
+  {
+      const FabSet& fs = bd.bndryValues(oitr());
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
       {
         FArrayBox& dest = (*(uu[lev]))[umfi];
         dest.copy(fs[umfi],fs[umfi].box());
       }
   }
-  uu[lev]->FillBoundary();
-  
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
       set_uu(*(uu[lev]), lev);
@@ -611,34 +651,12 @@ MGT_Solver::applyop(MultiFab* uu[], MultiFab* res[], const BndryData& bd)
 
   mgt_applyop();
 
-  for ( int lev = 0; lev < m_nlevel; ++lev )
-  {
-      get_res(*(res[lev]), lev);
-  }
-}
-
-void 
-MGT_Solver::applybc(MultiFab* uu[], const BndryData& bd)
-{
-  // Copy the boundary register values into the solution array to be copied into F90
-  int lev = 0;
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
-      {
-        FArrayBox& dest = (*(uu[lev]))[umfi];
-        dest.copy(fs[umfi],fs[umfi].box());
-      }
-  }
-  uu[lev]->FillBoundary();
-
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
-      set_uu(*(uu[lev]), lev);
+      get_res(*(res[lev]), lev);
   }
 }
 
@@ -647,12 +665,12 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
-  for (OrientationIter oitr; oitr; ++oitr)
-  {
-      const FabSet& fs = bd.bndryValues(oitr());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+  for (OrientationIter oitr; oitr; ++oitr)
+  {
+      const FabSet& fs = bd.bndryValues(oitr());
       for (MFIter umfi(*(uu[lev])); umfi.isValid(); ++umfi)
       {
         FArrayBox& dest = (*(uu[lev]))[umfi];
@@ -660,6 +678,9 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
       }
   }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif    
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
       set_rh(*(rh[lev]), lev);
@@ -668,6 +689,9 @@ MGT_Solver::compute_residual(MultiFab* uu[], MultiFab* rh[], MultiFab* res[], co
 
   mgt_compute_residual();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for ( int lev = 0; lev < m_nlevel; ++lev )
   {
       get_res(*(res[lev]), lev);
@@ -679,6 +703,9 @@ MGT_Solver::get_fluxes(int lev, PArray<MultiFab>& flux, const Real* dx)
 {
   mgt_compute_flux(lev);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for ( int dir = 0; dir < BL_SPACEDIM; ++dir )
   {
       get_gp(flux[dir], lev, dir, dx[dir]);
@@ -692,8 +719,11 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 			  const Real& tol, const Real& abs_tol,
 			  int* lo_inflow, int* hi_inflow)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
+  {
 
       BL_ASSERT( (*p[lev]).nGrow() == 1 );
       //      BL_ASSERT( (*vel[lev]).nGrow() == 1 );
@@ -701,110 +731,82 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
       const int ncomp_p = (*p[lev]).nComp();
       const int ncomp_vel = (*vel[lev]).nComp();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter vmfi(*(vel[lev])); vmfi.isValid(); ++vmfi)
-	{
-	  int n = vmfi.index();
-
-	  const int* lo = vmfi.validbox().loVect();
-	  const int* hi = vmfi.validbox().hiVect();
-
-	  const FArrayBox& velfab = (*(vel[lev]))[vmfi];
-	  const Real* vd = velfab.dataPtr();
-	  const int* vlo = velfab.box().loVect();
-	  const int* vhi = velfab.box().hiVect();
+      for (MFIter mfi(*(vel[lev]), true); mfi.isValid(); ++mfi)
+      {
+	  const int n = mfi.LocalIndex();
+	  const Box& ccbx = mfi.growntilebox(1);
+	  const FArrayBox& v = (*(vel[lev]))[mfi];
+	  const Box& vbox = v.box();
 	  const int ivel = 0;
-	  mgt_set_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
-	}
+	  mgt_set_vel(&lev, &n, v.dataPtr(), vbox.loVect(), vbox.hiVect(), 
+		      ccbx.loVect(), ccbx.hiVect(), ncomp_vel, ivel);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter pmfi(*(p[lev])); pmfi.isValid(); ++pmfi)
-	{
-	  int n = pmfi.index();
-
-	  const int* lo = pmfi.validbox().loVect();
-	  const int* hi = pmfi.validbox().hiVect();
-
-	  const FArrayBox& sol = (*(p[lev]))[pmfi];
-	  const Real* sd = sol.dataPtr();
-	  const int* slo = sol.box().loVect();
-	  const int* shi = sol.box().hiVect();
+	  const Box& bx = mfi.grownnodaltilebox(-1,1);
+	  const FArrayBox& pp = (*(p[lev]))[mfi];
+	  const Box& pbox = pp.box();
 	  const int ip = 0;
-	  mgt_set_pr(&lev, &n, sd, slo, shi, lo, hi, ncomp_p, ip);
-	}
-    }
-
-  mgt_divu(lo_inflow, hi_inflow);
-
-  Real rhmax = 0.0;
-
-  bool added_nodal_rhs = false;
-
-  for ( int lev = 0; lev < rhnd.size(); ++lev ) {
-      if (rhnd.defined(lev)) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	  {
-	      Real r;
-	      Real rmax_this = 0.0;
-
-	      for (MFIter rmfi(rhnd[lev]); rmfi.isValid(); ++rmfi) {
-		  int n = rmfi.index();
-		  
-		  const int* lo = rmfi.validbox().loVect();
-		  const int* hi = rmfi.validbox().hiVect();
-		  
-		  const FArrayBox& rhsfab = (rhnd[lev])[rmfi];
-		  const Real* rhsd = rhsfab.dataPtr();
-		  const int* rhslo = rhsfab.box().loVect();
-		  const int* rhshi = rhsfab.box().hiVect();
-		  mgt_add_rh_nodal(&lev, &n, rhsd, rhslo, rhshi, lo, hi, &r);
-		  rmax_this = std::max(rmax_this,r);
-	      }
-#ifdef _OPENMP
-#pragma omp critical (mgt_rhmax)
-#endif
-	      {
-		  rhmax = std::max(rmax_this,rhmax);
-	      }
-	  }
-	  added_nodal_rhs = true;
+	  mgt_set_pr(&lev, &n, pp.dataPtr(), pbox.loVect(), pbox.hiVect(),
+		     bx.loVect(), bx.hiVect(), ncomp_p, ip);
       }
   }
 
-  if (added_nodal_rhs) 
+  mgt_divu(lo_inflow, hi_inflow);
+
+  if (have_rhcc) BL_ASSERT(rhcc[0] != 0);
+
+  Real rhmax = -1.0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  {
+      Real rmax_this = -1.0;
+      for ( int lev = 0; lev < rhnd.size(); ++lev )
+      {
+	  if (rhnd.defined(lev)) {
+	      for (MFIter mfi(rhnd[lev], true); mfi.isValid(); ++mfi) 
+	      {
+		  const int n = mfi.LocalIndex();
+		  const Box& bx = mfi.tilebox();
+		  const FArrayBox& rfab = (rhnd[lev])[mfi];
+		  const Box& rbox = rfab.box();
+		  mgt_add_rh_nodal(&lev, &n, rfab.dataPtr(), rbox.loVect(), rbox.hiVect(),
+				   bx.loVect(), bx.hiVect(), &rmax_this);
+	      }
+	  }
+      }
+
+      if (have_rhcc) {
+	  for ( int lev = 0; lev < m_nlevel; ++lev ) {
+	      for (MFIter mfi(*(rhcc[lev]), true); mfi.isValid(); ++mfi) 
+	      {
+		  const int n = mfi.LocalIndex();
+		  const Box& bx = mfi.tilebox();
+		  const FArrayBox& rhccfab = (*(rhcc[lev]))[mfi];
+		  const Box& rbox = rhccfab.box();
+		  mgt_set_rhcc_nodal(&lev, &n, rhccfab.dataPtr(), rbox.loVect(), rbox.hiVect(),
+				     bx.loVect(), bx.hiVect());
+	      }
+	  }
+      }
+
+#ifdef _OPENMP
+#pragma omp critical (mgt_rhmax)
+#endif
+      {
+	  rhmax = std::max(rmax_this,rhmax);
+      }
+  }
+
+  if (rhmax > 0.0) 
   {
       ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
       if (ParallelDescriptor::IOProcessor())
           std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
   }
   
+
   if (have_rhcc) {
-    BL_ASSERT(rhcc[0] != 0);
-    for ( int lev = 0; lev < m_nlevel; ++lev ) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(*(rhcc[lev])); mfi.isValid(); ++mfi) {
-	int n = mfi.index();
-
-	  const int* lo = mfi.validbox().loVect();
-	  const int* hi = mfi.validbox().hiVect();
-
-	  const FArrayBox& rhccfab = (*(rhcc[lev]))[mfi];
-	  const Real* p = rhccfab.dataPtr();
-	  const int* plo = rhccfab.box().loVect();
-	  const int* phi = rhccfab.box().hiVect();
-
-	  mgt_set_rhcc_nodal(&lev, &n, p, plo, phi, lo, hi);
-      }
-    }
-
     mgt_add_divucc();
   }
 
@@ -812,44 +814,33 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 
   mgt_newu();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for ( int lev = 0; lev < m_nlevel; ++lev )
-    {
+  {
 
       const int ncomp_p = (*p[lev]).nComp();
       const int ncomp_vel = (*vel[lev]).nComp();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter pmfi(*(p[lev])); pmfi.isValid(); ++pmfi)
-	{
-	  FArrayBox& sol = (*(p[lev]))[pmfi];
-	  Real* sd = sol.dataPtr();
-	  int n = pmfi.index();
-	  const int* lo = pmfi.validbox().loVect();
-	  const int* hi = pmfi.validbox().hiVect();
-	  const int* plo = sol.box().loVect();
-	  const int* phi = sol.box().hiVect();
-	  const int ip = 0;
-	  mgt_get_pr(&lev, &n, sd, plo, phi, lo, hi, ncomp_p, ip);
-	}
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter vmfi(*(vel[lev])); vmfi.isValid(); ++vmfi)
-	{
-	  FArrayBox& velfab = (*(vel[lev]))[vmfi];
-	  Real* vd = velfab.dataPtr();
-	  int n = vmfi.index();
-	  const int* lo = vmfi.validbox().loVect();
-	  const int* hi = vmfi.validbox().hiVect();
-	  const int* vlo = velfab.box().loVect();
-	  const int* vhi = velfab.box().hiVect();
+      for (MFIter mfi(*(vel[lev]), true); mfi.isValid(); ++mfi)
+      {
+	  const int n = mfi.LocalIndex();
+	  const Box& ccbx = mfi.growntilebox(1);
+	  FArrayBox& v = (*(vel[lev]))[mfi];
+	  const Box& vbox = v.box();
 	  const int ivel = 0;
-	  mgt_get_vel(&lev, &n, vd, vlo, vhi, lo, hi, ncomp_vel, ivel);
-	}
-    }
+	  mgt_get_vel(&lev, &n, v.dataPtr(), vbox.loVect(), vbox.hiVect(), 
+		      ccbx.loVect(), ccbx.hiVect(), ncomp_vel, ivel);
+
+	  const Box& bx = mfi.grownnodaltilebox(-1,1);
+	  FArrayBox& pp = (*(p[lev]))[mfi];
+	  const Box& pbox = pp.box();
+	  const int ip = 0;
+	  mgt_get_pr(&lev, &n, pp.dataPtr(), pbox.loVect(), pbox.hiVect(),
+		     bx.loVect(), bx.hiVect(), ncomp_p, ip);
+      }
+  }
 }
 
 void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
@@ -857,36 +848,26 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 {
   mgt_alloc_nodal_sync();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    const FArrayBox& mskfab = msk[mfi];
-    const Real* md = mskfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = mskfab.box().loVect();
-    const int* phi = mskfab.box().hiVect();
-    const int lev = 0;
-    mgt_set_sync_msk(&lev, &n, md, plo, phi, lo, hi);
-  }
+  const int lev = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for (MFIter mfi(vold); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    const FArrayBox& vfab = vold[mfi];
-    const Real* vd = vfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = vfab.box().loVect();
-    const int* phi = vfab.box().hiVect();
-    const int lev = 0;
-    mgt_set_vold(&lev, &n, vd, plo, phi, lo, hi);
-  }
+  for (MFIter mfi(msk, true); mfi.isValid(); ++mfi) {
+      const int n = mfi.LocalIndex();
+      const Box& bx = mfi.growntilebox(1);
 
+      const FArrayBox& mskfab = msk[mfi];
+      const Box& mbox = mskfab.box();
+      mgt_set_sync_msk(&lev, &n, mskfab.dataPtr(), mbox.loVect(), mbox.hiVect(),
+		       bx.loVect(), bx.hiVect());
+
+      const FArrayBox& vfab = vold[mfi];
+      const Box& vbox = vfab.box();
+      mgt_set_vold(&lev, &n, vfab.dataPtr(), vbox.loVect(), vbox.hiVect(),
+		   bx.loVect(), bx.hiVect());
+  }
+  
   if (isCoarse) {
     mgt_compute_sync_resid_crse();
   }
@@ -897,16 +878,13 @@ void MGT_Solver::fill_sync_resid(MultiFab* sync_resid, const MultiFab& msk,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for (MFIter mfi(*sync_resid); mfi.isValid(); ++mfi) {
-    int n = mfi.index();
-    FArrayBox& sfab = (*sync_resid)[mfi];
-    Real* sd = sfab.dataPtr();
-    const int* lo = mfi.validbox().loVect();
-    const int* hi = mfi.validbox().hiVect();
-    const int* plo = sfab.box().loVect();
-    const int* phi = sfab.box().hiVect();
-    const int lev = 0;
-    mgt_get_sync_res(&lev, &n, sd, plo, phi, lo, hi);
+  for (MFIter mfi(*sync_resid, true); mfi.isValid(); ++mfi) {
+      const int n = mfi.LocalIndex();
+      const Box& bx = mfi.tilebox();
+      FArrayBox& sfab = (*sync_resid)[mfi];
+      const Box& sbx = sfab.box();
+      mgt_get_sync_res(&lev, &n, sfab.dataPtr(), sbx.loVect(), sbx.hiVect(),
+		       bx.loVect(), bx.hiVect());
   }
 
   mgt_dealloc_nodal_sync();
@@ -947,9 +925,7 @@ MGT_Solver::set_cfa_const (Real alpha, int lev)
 void
 MGT_Solver::set_cfa (const MultiFab& aa, int lev)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(aa, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -966,9 +942,7 @@ void
 MGT_Solver::set_cfa2 (const MultiFab& aa, int lev)
 {
     int ncomp = aa.nComp();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(aa, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -985,9 +959,7 @@ MGT_Solver::set_cfa2 (const MultiFab& aa, int lev)
 void 
 MGT_Solver::set_cfb (const MultiFab& bb, Real beta, int lev, int dir)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(bb,true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1020,9 +992,7 @@ void
 MGT_Solver::set_cfbn (const MultiFab& bb, Real beta, int lev, int dir)
 {
     int ncomp = bb.nComp();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(bb,true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1057,9 +1027,7 @@ MGT_Solver::set_cfbn (const MultiFab& bb, Real beta, int lev, int dir)
 void
 MGT_Solver::set_rh (const MultiFab& mf, int lev)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1075,9 +1043,7 @@ MGT_Solver::set_rh (const MultiFab& mf, int lev)
 void
 MGT_Solver::set_uu (const MultiFab& mf, int lev)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1093,9 +1059,7 @@ MGT_Solver::set_uu (const MultiFab& mf, int lev)
 void
 MGT_Solver::get_uu (MultiFab& mf, int lev, int ng)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1111,9 +1075,7 @@ MGT_Solver::get_uu (MultiFab& mf, int lev, int ng)
 void
 MGT_Solver::get_res (MultiFab& mf, int lev)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
@@ -1129,9 +1091,7 @@ MGT_Solver::get_res (MultiFab& mf, int lev)
 void
 MGT_Solver::get_gp (MultiFab& mf, int lev, int dir, Real dx)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    // the caller has started OMP
     for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
     {
 	const int n = mfi.LocalIndex();
