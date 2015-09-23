@@ -105,6 +105,8 @@ class Suite(object):
 
         self.args = args
 
+        self.repos = {}
+
         self.test_file_path = os.getcwd() + '/' + self.args.input_file[0]
 
         self.suiteName = "testDefault"
@@ -339,6 +341,93 @@ class Suite(object):
         test.run_command = test_run_command
 
 
+class Repo(object):
+    """ a simple class to manage our git operations """
+    def __init__(self, suite, directory, name, 
+                 branch_wanted=None, hash_wanted=None, update=True):
+        self.suite = suite
+        self.dir = directory
+        self.name = name
+        self.branch_wanted = branch_wanted
+        self.branch_orig = None
+        self.hash_wanted = hash_wanted
+        self.hash_current = None
+
+        self.update = update
+        if hash_wanted:
+            self.update = False
+
+    def git_update(self):
+        """ Do a git update of the repository.  If githash is not empty, then
+            we will check out that version instead of git-pulling. """
+
+        os.chdir(self.dir)
+
+        # find out current branch so that we can go back later if we need.
+        stdout0, stderr0, rc = run("git rev-parse --abbrev-ref HEAD")
+        self.branch_orig = stdout0.rstrip('\n')
+
+        if self.branch_orig != self.branch_wanted:
+            bold("git checkout {} in {}".format(self.branch_wanted, self.dir), 
+                 skip_before=1)
+            stdout, stderr, rc = run("git checkout {}".format(self.branch_wanted), 
+                                     stdin=True)
+
+        if self.hash_wanted == "" or self.hash_wanted == None:
+            bold("'git pull' in {}".format(self.dir), skip_before=1)
+
+            # we need to be tricky here to make sure that the stdin is
+            # presented to the user to get the password.
+            stdout, stderr, rc = run("git pull", stdin=True,
+                                     outfile="git.{}.out".format(self.name))
+
+        else:
+            stdout, stderr, rc = run("git checkout {}".format(self.hash_wanted),
+                                     outfile="git.{}.out".format(self.name))
+
+        if not rc == 0:
+            fail("  ERROR: git update was unsuccessful")
+
+        shutil.copy("git.{}.out".format(self.name), self.suite.full_web_dir)
+
+    def save_head(self):
+
+        os.chdir(self.dir)
+
+        bold("saving git HEAD for {}/".format(self.name))
+
+        stdout, stderr, rc = run("git rev-parse HEAD", 
+                                 outfile="git.{}.HEAD".format(self.name) )
+
+        self.hash_current = stdout
+        shutil.copy("git.{}.HEAD".format(self.name), self.suite.full_web_dir)
+
+    def make_changelog(self):
+        """ generate a ChangeLog git repository, and copy it to the
+            web directory"""
+
+        os.chdir(self.dir)
+
+        bold("generating ChangeLog for {}/".format(self.name))
+
+        run("git log --name-only", outfile="ChangeLog.{}".format(self.name) )
+        shutil.copy("ChangeLog.{}".format(self.name), self.suite.full_web_dir)
+
+    def git_back(self):
+        """ switch the repo back to its original branch """
+
+        os.chdir(self.dir)
+        bold("git checkout {} in {}".format(self.branch_orig, self.dir), 
+             skip_before=1)
+
+        stdout, stderr, rc = run("git checkout {}".format(self.branch_orig), 
+                                 stdin=True,
+                                 outfile="git.{}.out".format(self.name))
+
+        if not rc == 0:
+            fail("  ERROR: git checkout was unsuccessful")
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # R U N T I M E   P A R A M E T E R   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -422,19 +511,40 @@ def load_params(args):
 
 
     mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
-    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
 
-    # update the additional compilation str for additional source dir
+    # create the repo objects
+    mysuite.repos["BoxLib"] = Repo(mysuite, mysuite.boxLibDir, "BoxLib",
+                                   branch_wanted=mysuite.boxLibGitBranch, 
+                                   hash_wanted=mysuite.args.boxLibGitHash)
+
+    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
+    if not mysuite.sourceTree == "BoxLib":
+        mysuite.repos["source"] = Repo(mysuite, mysuite.sourceDir, mysuite.srcName,
+                                       branch_wanted=mysuite.sourceGitBranch, 
+                                       hash_wanted=mysuite.args.sourceGitHash)
+
     if mysuite.useExtSrc:
         mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
 
+        # update the additional compilation str for additional source dir
         if mysuite.extSrcCompString != "":
             mysuite.extSrcCompString += "="+mysuite.extSrcDir
+
+        mysuite.repos["extra_source"] = Repo(mysuite, mysuite.extSrcDir, 
+                                             mysuite.extSrcName,
+                                             branch_wanted=mysuite.extSrcGitBranch,
+                                             hash_wanted=mysuite.args.extSrcGitHash)
 
     # update additional compiled string for any extra build directory
     if mysuite.useExtraBuild > 0:
         for n in range(len(mysuite.extraBuildDirs)):
-            mysuite.extraBuildNames.append(os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n])))
+            extra_build_name = os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n]))
+            mysuite.extraBuildNames.append(extra_build_name)
+
+            mysuite.repos["extra_build-{}".format(n)] = \
+                Repo(mysuite, mysuite.extraBuildDirs[n],
+                     extra_build_name, 
+                     branch_wanted="master")
 
         # since we are building in the extraBuildDir, we need to
         # tell make where the sourceDir is
@@ -585,7 +695,6 @@ def load_params(args):
     return mysuite, testList
 
 
-
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # O U T P U T   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -724,7 +833,6 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
             cf.write("benchmarks update failed")
             cf.close()
             
-
         os.chdir(td)
         
 
@@ -774,83 +882,6 @@ def checkTestDir(dir_name):
        fail("ERROR: {} is not a valid directory".format(dir_name))
 
    return dir_name
-
-
-def doGITUpdate(topDir, root, outDir, gitbranch, githash):
-   """ do a git update of the repository in topDir.  root is the name
-       of the directory (used for labeling).  outDir is the full path
-       to the directory where we will store the git output.  If githash
-       is not empty, then we will check out that version instead of
-       git-pulling."""
-
-   os.chdir(topDir)
-
-   # find out current branch so that we can go back later if we need.
-   stdout0, stderr0, rc = run("git rev-parse --abbrev-ref HEAD")
-   currentBranch = stdout0.rstrip('\n')
-
-   if currentBranch != gitbranch:
-       bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
-       stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True)
-
-
-   if githash == "" or githash == None:
-       bold("'git pull' in %s" % (topDir), skip_before=1)
-
-       # we need to be tricky here to make sure that the stdin is
-       # presented to the user to get the password.
-       stdout, stderr, rc = run("git pull", stdin=True,
-                                outfile="git.{}.out".format(root))
-
-   else:
-       stdout, stderr, rc = run("git checkout {}".format(githash),
-                                outfile="git.{}.out".format(root))
-
-   # not sure if this is valid -- we are piping stderr into stdout
-   # -- we should check the return code instead
-   if stdout == "":
-       fail("  ERROR: git update was unsuccessful")
-
-   shutil.copy("git.{}.out".format(root),  outDir)
-
-   return currentBranch
-
-
-def saveGITHEAD(topDir, root, outDir):
-
-   os.chdir(topDir)
-
-   bold("saving git HEAD for %s/" % (root), skip_before=1)
-
-   run("git rev-parse HEAD", outfile="git.{}.HEAD".format(root) )
-   shutil.copy("git.{}.HEAD".format(root),  outDir)
-
-
-def doGITback(topDir, root, gitbranch):
-   """ do a git checkout of gitbranch in topDir.  root is the name
-       of the directory (used for labeling). """
-
-   os.chdir(topDir)
-
-   bold("git checkout %s in %s" % (gitbranch, topDir), skip_before=1)
-
-   stdout, stderr, rc = run("git checkout {}".format(gitbranch), stdin=True,
-                            outfile="git.{}.out".format(root))
-
-   if stdout == "":
-       fail("  ERROR: git checkout was unsuccessful")
-
-
-def makeGITChangeLog(gitDir, root, outDir):
-    """ generate a ChangeLog git repository named root.  outDir is the
-        full path to the directory where we will store the git output"""
-
-    os.chdir(gitDir)
-
-    bold("generating ChangeLog for %s/" % (root), skip_before=1)
-
-    run("git log --name-only", outfile="ChangeLog.{}".format(root) )
-    shutil.copy("ChangeLog.{}".format(root), outDir)
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -1170,7 +1201,7 @@ def test_suite(argv):
         # create the report for this test run
         numFailed = reportThisTestRun(suite, wasBenchmarkRun,
                                       "recreated report after crash of suite",
-                                      "",  0, 0, 0,
+                                      "",  
                                       tests, args.complete_report_from_crash, testFile)
 
 
@@ -1183,54 +1214,31 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     # figure out which git repos we will update
     #--------------------------------------------------------------------------
-    no_update_low = args.no_update.lower()
+    no_update = args.no_update.lower()
 
     if not args.copy_benchmarks is None:
-        no_update_low = "all"
-        
-    if no_update_low == "none":
-        updateBoxLib = True
-        updateSource = True
-        updateExtSrc = True
-        updateExtraBuild = [True]*suite.useExtraBuild
+        no_update = "all"
 
-    elif no_update_low == "all":
-        updateBoxLib = False
-        updateSource = False
-        updateExtSrc = False
-        updateExtraBuild = [False]*suite.useExtraBuild
+    # the default is to update everything, unless we specified a hash
+    # when constructing the Repo object
+    if no_update == "none":
+        pass
+
+    elif no_update == "all":
+        for k in suite.repos:
+            suite.repos[k].update = False
 
     else:
-        nouplist = no_update_low.split(",")
+        nouplist = no_update.split(",")
 
-        updateBoxLib = True
-        updateSource = True
-        updateExtSrc = True
-
-        if "boxlib" in nouplist: updateBoxLib = False
-        if suite.srcName.lower() in nouplist: updateSource = False
-        if suite.extSrcName.lower() in nouplist: updateExtSrc = False
+        if "boxlib" in nouplist: suite.repos["BoxLib"].update = False
+        if suite.srcName.lower() in nouplist: suite.repos["source"].update = False
+        if suite.extSrcName.lower() in nouplist: suite.repos["extra_source"].update = False
 
         # each extra build directory has its own update flag
-        updateExtraBuild = []
-        for e in suite.extraBuildNames:
+        for n, e in enumerate(suite.extraBuildNames):
             if e.lower() in nouplist:
-                updateExtraBuild.append(False)
-            else:
-                updateExtraBuild.append(True)
-
-    if not suite.useExtSrc: updateExtSrc = False
-    if not suite.useExtraBuild: updateExtraBuild = [False]
-
-    if suite.sourceTree == "BoxLib":
-        updateSource = False # to avoid updating BoxLib twice.
-                             # The update of BoxLib is controlled by updateBoxLib
-        args.sourceGitHash = ""
-
-    if args.boxLibGitHash: updateBoxLib = False
-    if args.sourceGitHash: updateSource = False
-    if args.extSrcGitHash: updateExtSrc = False
-
+                suite.repos["extra_build-{}".format(n)].update = False
 
     #--------------------------------------------------------------------------
     # check bench dir and create output directories
@@ -1249,93 +1257,27 @@ def test_suite(argv):
 
         numFailed = reportThisTestRun(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
                                       "copy_benchmarks used -- no new tests run",
-                                      "",  updateBoxLib, updateSource, updateExtSrc,
+                                      "",  
                                       testList, args.input_file[0])
         reportAllRuns(suite, activeTestList)        
         sys.exit("done")
     
     #--------------------------------------------------------------------------
-    # do the source updates
-    #--------------------------------------------------------------------------
+    # do the git updates, save the current hash / HEAD, and make a ChangeLog
+    #-------------------------------------------------------------------------- 
     now = time.localtime(time.time())
     updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
 
     os.chdir(suite.testTopDir)
 
-    if updateSource or args.sourceGitHash:
+    for k in suite.repos:
+        if suite.repos[k].update or suite.repos[k].hash_wanted:
+            suite.repos[k].git_update()
 
-        # main suite
-        sourceGitBranch_Orig = doGITUpdate(suite.sourceDir,
-                                           suite.srcName, suite.full_web_dir,
-                                           suite.sourceGitBranch,
-                                           args.sourceGitHash)
+        suite.repos[k].save_head()
 
-    if updateExtSrc or args.extSrcGitHash:
-
-        # extra source
-        if suite.useExtSrc:
-            extSrcGitBranch_Orig = doGITUpdate(suite.extSrcDir,
-                                               suite.extSrcName, suite.full_web_dir,
-                                               suite.extSrcGitBranch,
-                                               args.extSrcGitHash)
-
-    if any(updateExtraBuild):
-
-        # extra build directory
-        for n in range(suite.useExtraBuild):
-            if updateExtraBuild[n]:
-                extSrcGitBranch_Orig = doGITUpdate(suite.extraBuildDirs[n],
-                                                   suite.extraBuildNames[n], suite.full_web_dir,
-                                                   "master",
-                                                   "")
-
-    if updateBoxLib or args.boxLibGitHash:
-
-        # BoxLib
-        boxLibGitBranch_Orig = doGITUpdate(suite.boxLibDir,
-                                           "BoxLib", suite.full_web_dir,
-                                           suite.boxLibGitBranch,
-                                           args.boxLibGitHash)
-
-    #--------------------------------------------------------------------------
-    # Save git HEADs
-    #--------------------------------------------------------------------------
-    saveGITHEAD(suite.boxLibDir, "BoxLib", suite.full_web_dir)
-
-    if suite.sourceTree != "BoxLib":
-        saveGITHEAD(suite.sourceDir, suite.srcName, suite.full_web_dir)
-
-    if suite.useExtSrc:
-        saveGITHEAD(suite.extSrcDir, suite.extSrcName, suite.full_web_dir)
-
-    for n in range(suite.useExtraBuild):
-        saveGITHEAD(suite.extraBuildDirs[n], suite.extraBuildNames[n], suite.full_web_dir)
-
-
-    #--------------------------------------------------------------------------
-    # generate the ChangeLogs
-    #--------------------------------------------------------------------------
-    if updateSource:
-
-        # main suite
-        makeGITChangeLog(suite.sourceDir, suite.srcName, suite.full_web_dir)
-
-    if updateExtSrc:
-
-        # extra source
-        if (suite.useExtSrc):
-            makeGITChangeLog(suite.extSrcDir, suite.extSrcName, suite.full_web_dir)
-
-
-    # extra build directories
-    for n in range(suite.useExtraBuild):
-        if updateExtraBuild[n]:
-            makeGITChangeLog(suite.extraBuildDirs[n], suite.extraBuildNames[n], suite.full_web_dir)
-
-    if updateBoxLib:
-
-        # BoxLib
-        makeGITChangeLog(suite.boxLibDir, "BoxLib", suite.full_web_dir)
+        if suite.repos[k].update:
+            suite.repos[k].make_changelog()
 
 
     #--------------------------------------------------------------------------
@@ -1957,8 +1899,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     bold("creating new test report...", skip_before=1)
     numFailed = reportThisTestRun(suite, args.make_benchmarks, args.note,
-                                  updateTime,  updateBoxLib,
-                                  updateSource, updateExtSrc,
+                                  updateTime,  
                                   testList, args.input_file[0])
 
 
@@ -1969,14 +1910,10 @@ def test_suite(argv):
        if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
 
-    if updateBoxLib or args.boxLibGitHash:
-        doGITback(suite.boxLibDir, "BoxLib", boxLibGitBranch_Orig)
+    for k in suite.repos:
+        if suite.repos[k].update or suite.repos[k].hash_wanted:
+            suite.repos[k].git_back()
 
-    if updateSource or args.sourceGitHash:
-        doGITback(suite.sourceDir, suite.srcName, sourceGitBranch_Orig)
-
-    if updateExtSrc or args.extSrcGitHash:
-        doGITback(suite.extSrcDir, suite.extSrcName, extSrcGitBranch_Orig)
 
     #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
@@ -2639,8 +2576,7 @@ def reportTestFailure(suite, message, test):
 #==============================================================================
 # reportThisTestRun
 #==============================================================================
-def reportThisTestRun(suite, make_benchmarks, note, updateTime,
-                      updateBoxLib, updateSource, updateExtSrc,
+def reportThisTestRun(suite, make_benchmarks, note, update_time,
                       testList, testFile):
     """ generate the master page for a single run of the test suite """
 
@@ -2662,7 +2598,6 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
 
     # always create the css (in case it changes)
     create_css()
-
 
     # create the master filename
     htmlFile = "index.html"
@@ -2687,27 +2622,20 @@ def reportThisTestRun(suite, make_benchmarks, note, updateTime,
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (testFile, testFile) )
 
-    if updateBoxLib or updateSource or updateExtSrc:
+    any_update = any([suite.repos[t].update for t in suite.repos])
+
+    if any_update and not update_time == "":
         hf.write("<p>&nbsp;\n")
-        hf.write("<p><b>Git update was done at: </b>%s\n" % (updateTime) )
+        hf.write("<p><b>Git update was done at: </b>%s\n" % (update_time) )
 
         hf.write("<ul>\n")
         code_str = "<li><b>{}</b><ul><li><b>branch:</b> {}; <b>hash:</b> {}</li><li><b>changelog:</b> <a href=\"{}\">{}</a></li></ul></li>"
 
-        if updateSource:
-            hf.write(code_str.format(suite.srcName,
-                                     suite.sourceGitBranch, suite.args.sourceGitHash,
-                                     "ChangeLog."+suite.srcName, "ChangeLog."+suite.srcName))
-
-        if updateBoxLib:
-            hf.write(code_str.format("BoxLib",
-                                     suite.boxLibGitBranch, suite.args.boxLibGitHash,
-                                     "ChangeLog.BoxLib", "ChangeLog.BoxLib"))
-
-        if updateExtSrc:
-            hf.write(code_str.format(suite.extSrcName,
-                                     suite.extSrcGitBranch, suite.args.extSrcGitHash,
-                                     "ChangeLog."+suite.extSrcName, "ChangeLog."+suite.extSrcName))
+        for k, r in suite.repos.items():
+            if r.update:
+                hf.write(code_str.format(r.name, r.branch_wanted, r.hash_current,
+                                         "ChangeLog.{}".format(r.name),
+                                         "ChangeLog.{}".format(r.name)))
 
         hf.write("</ul>")
 
