@@ -5,31 +5,20 @@ module cc_stencil_module
   use bc_module
   use bc_functions_module
   use multifab_module
+  use stencil_util_module, only : is_ibc_stencil
 
   implicit none
 
-  type stencil
-     integer :: dim = 0
-     integer :: ns  = 0
-     integer :: type = 0
-     type(multifab)  :: ss
-     type(imultifab) :: mm
-     logical, pointer :: skewed(:) => Null()
-     logical, pointer :: diag_0(:) => NUll()
-     logical :: extrap_bc = .false.
-     real(kind=dp_t), pointer :: xa(:) => Null()
-     real(kind=dp_t), pointer :: xb(:) => Null()
-     real(kind=dp_t), pointer :: pxa(:) => Null()
-     real(kind=dp_t), pointer :: pxb(:) => Null()
-     real(kind=dp_t), pointer :: dh(:) => Null()
-     integer :: extrap_max_order = 0
-  end type stencil
-
-  private :: stencil_bc_type, stencil_bndry_aaa
+  private
+  public :: stencil_norm, max_of_stencil_sum, stencil_set_bc, &
+       simple_2d_const, simple_3d_const, s_simple_1d_cc, s_simple_2d_cc, s_simple_3d_cc, &
+       s_minion_cross_fill_2d, s_minion_cross_fill_3d, s_minion_full_fill_2d, s_minion_full_fill_3d, &
+       s_simplen_2d_cc, s_simplem_2d_cc, s_simpleg_2d_cc, s_simpleg_3d_cc
 
 contains
 
   function stencil_norm(ss, mask, local) result(r)
+    use mg_tower_module
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
@@ -53,40 +42,52 @@ contains
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-             do j = lo(3), hi(3)
-                do i = lo(2), hi(2)
-                   if ( lp(i,j,k,1) ) then
-                      sum_comps = ZERO
-                      do n = lo(1), hi(1)
-                         sum_comps = sum_comps + abs(sp(n,i,j,k))
-                      end do
-                      r1 = max(r1,sum_comps)
-                   end if
+
+          if (is_ibc_stencil(ss,b)) then
+             if (any(lp .eqv. .true.)) then
+                r1 = max(r1, abs(sp(1,1,1,1)+2.d0*sum(abs(sp(2:,1,1,1)))))
+             end if
+          else
+             lo =  lbound(sp)
+             hi =  ubound(sp)
+             do k = lo(4), hi(4)
+                do j = lo(3), hi(3)
+                   do i = lo(2), hi(2)
+                      if ( lp(i,j,k,1) ) then
+                         sum_comps = ZERO
+                         do n = lo(1), hi(1)
+                            sum_comps = sum_comps + abs(sp(n,i,j,k))
+                         end do
+                         r1 = max(r1,sum_comps)
+                      end if
+                   end do
                 end do
              end do
-          end do
+          end if
        end do
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-             do j = lo(3), hi(3)
-                do i = lo(2), hi(2)
-                   sum_comps = ZERO
-                   do n = lo(1), hi(1)
-                      sum_comps = sum_comps + abs(sp(n,i,j,k))
+          
+          if (is_ibc_stencil(ss,b)) then
+             r1 = max(r1, abs(sp(1,1,1,1)+2.d0*sum(abs(sp(2:,1,1,1)))))
+          else
+             lo =  lbound(sp)
+             hi =  ubound(sp)
+             do k = lo(4), hi(4)
+                do j = lo(3), hi(3)
+                   do i = lo(2), hi(2)
+                      sum_comps = ZERO
+                      do n = lo(1), hi(1)
+                         sum_comps = sum_comps + abs(sp(n,i,j,k))
+                      end do
+                      r1 = max(r1,sum_comps)
                    end do
-                   r1 = max(r1,sum_comps)
                 end do
              end do
-          end do
+          end if
        end do
        !$OMP END PARALLEL DO
     end if
@@ -99,6 +100,7 @@ contains
   end function stencil_norm
 
   function max_of_stencil_sum(ss, mask, local) result(r)
+    use mg_tower_module
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
@@ -125,40 +127,52 @@ contains
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
           lp => dataptr(mask, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-             do j = lo(3), hi(3)
-                do i = lo(2), hi(2)
-                   if ( lp(i,j,k,1) ) then
-                      sum_comps = ZERO
-                      do n = lo(1), hi(1)
-                         sum_comps = sum_comps + sp(n,i,j,k)
-                      end do
-                      r1 = max(r1,sum_comps)
-                   end if
+
+          if (is_ibc_stencil(ss,b)) then
+             if (any(lp .eqv. .true.)) then
+                r1 = max(r1, sp(1,1,1,1)+2.d0*sum(sp(2:,1,1,1)))
+             end if
+          else
+             lo =  lbound(sp)
+             hi =  ubound(sp)
+             do k = lo(4), hi(4)
+                do j = lo(3), hi(3)
+                   do i = lo(2), hi(2)
+                      if ( lp(i,j,k,1) ) then
+                         sum_comps = ZERO
+                         do n = lo(1), hi(1)
+                            sum_comps = sum_comps + sp(n,i,j,k)
+                         end do
+                         r1 = max(r1,sum_comps)
+                      end if
+                   end do
                 end do
              end do
-          end do
+          end if
        end do
        !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(i,j,k,n,sum_comps,sp,lo,hi) REDUCTION(max:r1)
        do b = 1, nfabs(ss)
           sp => dataptr(ss, b)
-          lo =  lbound(sp)
-          hi =  ubound(sp)
-          do k = lo(4), hi(4)
-             do j = lo(3), hi(3)
-                do i = lo(2), hi(2)
-                   sum_comps = ZERO
-                   do n = lo(1), hi(1)
-                      sum_comps = sum_comps + sp(n,i,j,k)
+
+          if (is_ibc_stencil(ss,b)) then
+             r1 = max(r1, sp(1,1,1,1)+2.d0*sum(sp(2:,1,1,1)))
+          else
+             lo =  lbound(sp)
+             hi =  ubound(sp)
+             do k = lo(4), hi(4)
+                do j = lo(3), hi(3)
+                   do i = lo(2), hi(2)
+                      sum_comps = ZERO
+                      do n = lo(1), hi(1)
+                         sum_comps = sum_comps + sp(n,i,j,k)
+                      end do
+                      r1 = max(r1,sum_comps)
                    end do
-                   r1 = max(r1,sum_comps)
                 end do
              end do
-          end do
+          end if
        end do
        !$OMP END PARALLEL DO
     end if
@@ -170,62 +184,13 @@ contains
     call destroy(bpt)
   end function max_of_stencil_sum
 
-  subroutine stencil_set_extrap_bc(st, max_order)
-    type(stencil), intent(inout) :: st
-    integer, intent(in) :: max_order
-    st%extrap_bc = .true.
-    st%extrap_max_order = max_order
-  end subroutine stencil_set_extrap_bc
-
-  subroutine stencil_print(st, str, unit, skip)
-    use bl_IO_module
-    type(stencil), intent(in) :: st
-    character (len=*), intent(in), optional :: str
-    integer, intent(in), optional :: unit
-    integer, intent(in), optional :: skip
-    integer :: un
-    un = unit_stdout(unit)
-    if ( parallel_IOProcessor() ) then
-       call unit_skip(un, skip)
-       write(unit=un, fmt='("STENCIL ", i1)', advance = 'NO') 
-       if ( present(str) ) then
-          write(unit=un, fmt='(": ",A)') str
-       else
-          write(unit=un, fmt='()')
-       end if
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" DIM     = ",i2)') st%dim
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" NS      = ",i2)') st%ns
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" TYPE    = ",i2)') st%type
-       if ( st%extrap_bc) then
-          call unit_skip(un, skip)
-          write(unit=un, fmt='(" EXTRAP_BC")')
-          call unit_skip(un, skip)
-          write(unit=un, fmt='("   ORDER = ",i2)') st%extrap_max_order
-       end if
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" SKWD    = ",i10,"/",i10  )') count(st%skewed), size(st%skewed)
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" XA      = ",3(ES20.10,1x))') st%xa
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" XB      = ",3(ES20.10,1x))') st%xb
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" PXA     = ",3(ES20.10,1x))') st%pxa
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" PXB     = ",3(ES20.10,1x))') st%pxb
-       call unit_skip(un, skip)
-       write(unit=un, fmt='(" DH      = ",3(ES20.10,1x))') st%dh
-    end if
-  end subroutine stencil_print
-
-  subroutine stencil_set_bc(st, idx, mask, bc_face, cf_face)
+  subroutine stencil_set_bc(st, idx, mask, bc_face, cf_face, intbox)
     type(multifab),  intent(in)           :: st
     integer,         intent(in)           :: idx
     type(imultifab), intent(inout)        :: mask
     integer,         intent(in)           :: bc_face(:,:)
     integer,         intent(in), optional :: cf_face(:,:)
+    logical,         intent(out), optional:: intbox
 
     type(box)        :: bx1, src, pd
     type(boxarray)   :: ba, sba
@@ -233,7 +198,7 @@ contains
     integer          :: i, j, ii, jj, k, ldom
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
-    logical          :: pmask(get_dim(st))
+    logical          :: pmask(get_dim(st)), intflag
     !
     ! The Coarse-Fine boundary is Dirichlet unless specified.
     !
@@ -247,6 +212,8 @@ contains
     la    = get_layout(st)
     pd    = get_pd(get_layout(st))
     pmask = get_pmask(get_layout(st))
+
+    intflag = .true.
 
     do i = 1, get_dim(st)
        if ( bc_face(i,1) == BC_PER .and. ( bc_face(i,1) /= bc_face(i,2) )) then
@@ -264,6 +231,7 @@ contains
                 bx1 = shift(get_box(ba,ii), -j, i)
                 mp => dataptr(mask, idx, bx1)
                 mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
+                intflag = .false.
              end do
              call boxarray_destroy(ba)
           else
@@ -279,6 +247,7 @@ contains
                    bx1 = shift(get_box(ba,ii), -j, i)
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
+                   intflag = .false.
                 end do
                 call boxarray_destroy(ba)
              else
@@ -302,12 +271,15 @@ contains
                    bx1 = shift(get_box(ba,ii), -j, i)
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
+                   intflag = .false.
                 end do
                 call boxarray_destroy(ba)
              end if
           end if
        end do
     end do
+
+    if (present(intbox)) intbox = intflag
 
   end subroutine stencil_set_bc
 
@@ -1698,234 +1670,234 @@ contains
 
   end subroutine s_minion_cross_fill_2d
 
-  subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, lo, hi)
+  ! subroutine s_minion_full_old_2d(ss, beta, ng_b, dh, mask, lo, hi)
 
-    integer           , intent(in   ) :: ng_b
-    integer           , intent(in   ) :: lo(:), hi(:)
-    integer           , intent(inout) :: mask(:,:)
-    real (kind = dp_t), intent(  out) :: ss(0:,:,:)
-    real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
-    real (kind = dp_t), intent(in   ) :: dh(:)
+  !   integer           , intent(in   ) :: ng_b
+  !   integer           , intent(in   ) :: lo(:), hi(:)
+  !   integer           , intent(inout) :: mask(:,:)
+  !   real (kind = dp_t), intent(  out) :: ss(0:,:,:)
+  !   real (kind = dp_t), intent(inout) :: beta(1-ng_b:,1-ng_b:,0:)
+  !   real (kind = dp_t), intent(in   ) :: dh(:)
 
-    integer            :: i, j, nx, ny
-    real (kind = dp_t) :: fac
+  !   integer            :: i, j, nx, ny
+  !   real (kind = dp_t) :: fac
 
-    nx = hi(1)-lo(1)+1
-    ny = hi(2)-lo(2)+1
+  !   nx = hi(1)-lo(1)+1
+  !   ny = hi(2)-lo(2)+1
 
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
-    mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
+  !   mask = ibclr(mask, BC_BIT(BC_GEOM,1,-1))
+  !   mask = ibclr(mask, BC_BIT(BC_GEOM,1,+1))
+  !   mask = ibclr(mask, BC_BIT(BC_GEOM,2,-1))
+  !   mask = ibclr(mask, BC_BIT(BC_GEOM,2,+1))
 
-    ! First use the betax coefficients
-    do j = 1, ny
-       do i = 1, nx
+  !   ! First use the betax coefficients
+  !   do j = 1, ny
+  !      do i = 1, nx
 
-          ss(12,i,j) = 27648._dp_t*beta(i+1,j,1) + 414720._dp_t * beta(i  ,j,1)
-          ss(13,i,j) = 27648._dp_t*beta(i  ,j,1) + 414720._dp_t * beta(i+1,j,1)
+  !         ss(12,i,j) = 27648._dp_t*beta(i+1,j,1) + 414720._dp_t * beta(i  ,j,1)
+  !         ss(13,i,j) = 27648._dp_t*beta(i  ,j,1) + 414720._dp_t * beta(i+1,j,1)
 
-          ss(11,i,j) = -27648._dp_t * beta(i  ,j,1)
-          ss(14,i,j) = -27648._dp_t * beta(i+1,j,1)
+  !         ss(11,i,j) = -27648._dp_t * beta(i  ,j,1)
+  !         ss(14,i,j) = -27648._dp_t * beta(i+1,j,1)
 
-          ss( 8,i,j) = -2550._dp_t * beta(i,j+2,1)  - 2550._dp_t * beta(i+1,j+2,1) &
-                      +17340._dp_t * beta(i,j+1,1) + 17340._dp_t * beta(i+1,j+1,1) &
-                      -17340._dp_t * beta(i,j-1,1) - 17340._dp_t * beta(i+1,j-1,1) &
-                      + 2550._dp_t * beta(i,j-2,1)  + 2550._dp_t * beta(i+1,j-2,1)
+  !         ss( 8,i,j) = -2550._dp_t * beta(i,j+2,1)  - 2550._dp_t * beta(i+1,j+2,1) &
+  !                     +17340._dp_t * beta(i,j+1,1) + 17340._dp_t * beta(i+1,j+1,1) &
+  !                     -17340._dp_t * beta(i,j-1,1) - 17340._dp_t * beta(i+1,j-1,1) &
+  !                     + 2550._dp_t * beta(i,j-2,1)  + 2550._dp_t * beta(i+1,j-2,1)
 
-          ss(17,i,j) = -2550._dp_t * beta(i,j-2,1)  - 2550._dp_t * beta(i+1,j-2,1) &
-                      +17340._dp_t * beta(i,j-1,1) + 17340._dp_t * beta(i+1,j-1,1) &
-                      -17340._dp_t * beta(i,j+1,1) - 17340._dp_t * beta(i+1,j+1,1) &
-                      + 2550._dp_t * beta(i,j+2,1)  + 2550._dp_t * beta(i+1,j+2,1)
+  !         ss(17,i,j) = -2550._dp_t * beta(i,j-2,1)  - 2550._dp_t * beta(i+1,j-2,1) &
+  !                     +17340._dp_t * beta(i,j-1,1) + 17340._dp_t * beta(i+1,j-1,1) &
+  !                     -17340._dp_t * beta(i,j+1,1) - 17340._dp_t * beta(i+1,j+1,1) &
+  !                     + 2550._dp_t * beta(i,j+2,1)  + 2550._dp_t * beta(i+1,j+2,1)
 
-          ss( 7,i,j) =  170._dp_t * beta(i+1,j+2,1) +  2550._dp_t * beta(i,j+2,1) &
-                      -1156._dp_t * beta(i+1,j+1,1) - 17340._dp_t * beta(i,j+1,1) &
-                      +1156._dp_t * beta(i+1,j-1,1) + 17340._dp_t * beta(i,j-1,1) &
-                      - 170._dp_t * beta(i+1,j-2,1) -  2550._dp_t * beta(i,j-2,1) 
+  !         ss( 7,i,j) =  170._dp_t * beta(i+1,j+2,1) +  2550._dp_t * beta(i,j+2,1) &
+  !                     -1156._dp_t * beta(i+1,j+1,1) - 17340._dp_t * beta(i,j+1,1) &
+  !                     +1156._dp_t * beta(i+1,j-1,1) + 17340._dp_t * beta(i,j-1,1) &
+  !                     - 170._dp_t * beta(i+1,j-2,1) -  2550._dp_t * beta(i,j-2,1) 
 
-          ss(16,i,j) =  170._dp_t * beta(i+1,j-2,1) +  2550._dp_t * beta(i,j-2,1) &
-                      -1156._dp_t * beta(i+1,j-1,1) - 17340._dp_t * beta(i,j-1,1) &
-                      +1156._dp_t * beta(i+1,j+1,1) + 17340._dp_t * beta(i,j+1,1) &
-                      - 170._dp_t * beta(i+1,j+2,1) -  2550._dp_t * beta(i,j+2,1) 
+  !         ss(16,i,j) =  170._dp_t * beta(i+1,j-2,1) +  2550._dp_t * beta(i,j-2,1) &
+  !                     -1156._dp_t * beta(i+1,j-1,1) - 17340._dp_t * beta(i,j-1,1) &
+  !                     +1156._dp_t * beta(i+1,j+1,1) + 17340._dp_t * beta(i,j+1,1) &
+  !                     - 170._dp_t * beta(i+1,j+2,1) -  2550._dp_t * beta(i,j+2,1) 
 
-          ss( 9,i,j) =  170._dp_t * beta(i,j+2,1) +  2550._dp_t * beta(i+1,j+2,1) &
-                      -1156._dp_t * beta(i,j+1,1) - 17340._dp_t * beta(i+1,j+1,1) &
-                      +1156._dp_t * beta(i,j-1,1) + 17340._dp_t * beta(i+1,j-1,1) &
-                      - 170._dp_t * beta(i,j-2,1) -  2550._dp_t * beta(i+1,j-2,1) 
+  !         ss( 9,i,j) =  170._dp_t * beta(i,j+2,1) +  2550._dp_t * beta(i+1,j+2,1) &
+  !                     -1156._dp_t * beta(i,j+1,1) - 17340._dp_t * beta(i+1,j+1,1) &
+  !                     +1156._dp_t * beta(i,j-1,1) + 17340._dp_t * beta(i+1,j-1,1) &
+  !                     - 170._dp_t * beta(i,j-2,1) -  2550._dp_t * beta(i+1,j-2,1) 
 
-          ss(18,i,j) =  170._dp_t * beta(i,j-2,1) +  2550._dp_t * beta(i+1,j-2,1) &
-                      -1156._dp_t * beta(i,j-1,1) - 17340._dp_t * beta(i+1,j-1,1) &
-                      +1156._dp_t * beta(i,j+1,1) + 17340._dp_t * beta(i+1,j+1,1) &
-                      - 170._dp_t * beta(i,j+2,1) -  2550._dp_t * beta(i+1,j+2,1) 
+  !         ss(18,i,j) =  170._dp_t * beta(i,j-2,1) +  2550._dp_t * beta(i+1,j-2,1) &
+  !                     -1156._dp_t * beta(i,j-1,1) - 17340._dp_t * beta(i+1,j-1,1) &
+  !                     +1156._dp_t * beta(i,j+1,1) + 17340._dp_t * beta(i+1,j+1,1) &
+  !                     - 170._dp_t * beta(i,j+2,1) -  2550._dp_t * beta(i+1,j+2,1) 
 
-          ss( 6,i,j) = -170._dp_t * beta(i,j+2,1) +  1156._dp_t * beta(i,j+1,1) &
-                       +170._dp_t * beta(i,j-2,1) -  1156._dp_t * beta(i,j-1,1)
-          ss(15,i,j) = -170._dp_t * beta(i,j-2,1) +  1156._dp_t * beta(i,j-1,1) &
-                       +170._dp_t * beta(i,j+2,1) -  1156._dp_t * beta(i,j+1,1)
-          ss(10,i,j) = -170._dp_t * beta(i+1,j+2,1) +  1156._dp_t * beta(i+1,j+1,1) &
-                       +170._dp_t * beta(i+1,j-2,1) -  1156._dp_t * beta(i+1,j-1,1)
-          ss(19,i,j) = -170._dp_t * beta(i+1,j-2,1) +  1156._dp_t * beta(i+1,j-1,1) &
-                       +170._dp_t * beta(i+1,j+2,1) -  1156._dp_t * beta(i+1,j+1,1)
+  !         ss( 6,i,j) = -170._dp_t * beta(i,j+2,1) +  1156._dp_t * beta(i,j+1,1) &
+  !                      +170._dp_t * beta(i,j-2,1) -  1156._dp_t * beta(i,j-1,1)
+  !         ss(15,i,j) = -170._dp_t * beta(i,j-2,1) +  1156._dp_t * beta(i,j-1,1) &
+  !                      +170._dp_t * beta(i,j+2,1) -  1156._dp_t * beta(i,j+1,1)
+  !         ss(10,i,j) = -170._dp_t * beta(i+1,j+2,1) +  1156._dp_t * beta(i+1,j+1,1) &
+  !                      +170._dp_t * beta(i+1,j-2,1) -  1156._dp_t * beta(i+1,j-1,1)
+  !         ss(19,i,j) = -170._dp_t * beta(i+1,j-2,1) +  1156._dp_t * beta(i+1,j-1,1) &
+  !                      +170._dp_t * beta(i+1,j+2,1) -  1156._dp_t * beta(i+1,j+1,1)
 
-          ss( 3,i,j) =   375._dp_t * beta(i,j+2,1) +  375._dp_t * beta(i+1,j+2,1) &
-                      - 2550._dp_t * beta(i,j+1,1) - 2550._dp_t * beta(i+1,j+1,1) &
-                      + 2550._dp_t * beta(i,j-1,1) + 2550._dp_t * beta(i+1,j-1,1) &
-                      -  375._dp_t * beta(i,j-2,1) -  375._dp_t * beta(i+1,j-2,1)
-          ss(22,i,j) =  375._dp_t * beta(i,j-2,1) +  375._dp_t * beta(i+1,j-2,1) &
-                      -2550._dp_t * beta(i,j-1,1) - 2550._dp_t * beta(i+1,j-1,1) &
-                      +2550._dp_t * beta(i,j+1,1) + 2550._dp_t * beta(i+1,j+1,1) &
-                      - 375._dp_t * beta(i,j+2,1) -  375._dp_t * beta(i+1,j+2,1)
+  !         ss( 3,i,j) =   375._dp_t * beta(i,j+2,1) +  375._dp_t * beta(i+1,j+2,1) &
+  !                     - 2550._dp_t * beta(i,j+1,1) - 2550._dp_t * beta(i+1,j+1,1) &
+  !                     + 2550._dp_t * beta(i,j-1,1) + 2550._dp_t * beta(i+1,j-1,1) &
+  !                     -  375._dp_t * beta(i,j-2,1) -  375._dp_t * beta(i+1,j-2,1)
+  !         ss(22,i,j) =  375._dp_t * beta(i,j-2,1) +  375._dp_t * beta(i+1,j-2,1) &
+  !                     -2550._dp_t * beta(i,j-1,1) - 2550._dp_t * beta(i+1,j-1,1) &
+  !                     +2550._dp_t * beta(i,j+1,1) + 2550._dp_t * beta(i+1,j+1,1) &
+  !                     - 375._dp_t * beta(i,j+2,1) -  375._dp_t * beta(i+1,j+2,1)
 
-          ss( 2,i,j) = - 25._dp_t * beta(i+1,j+2,1) -  375._dp_t * beta(i,j+2,1) &
-                       +170._dp_t * beta(i+1,j+1,1) + 2550._dp_t * beta(i,j+1,1) &
-                       -170._dp_t * beta(i+1,j-1,1) - 2550._dp_t * beta(i,j-1,1) &
-                       + 25._dp_t * beta(i+1,j-2,1) +  375._dp_t * beta(i,j-2,1)
-          ss(21,i,j) = - 25._dp_t * beta(i+1,j-2,1) -  375._dp_t * beta(i,j-2,1) &
-                       +170._dp_t * beta(i+1,j-1,1) + 2550._dp_t * beta(i,j-1,1) &
-                       -170._dp_t * beta(i+1,j+1,1) - 2550._dp_t * beta(i,j+1,1) &
-                       + 25._dp_t * beta(i+1,j+2,1) +  375._dp_t * beta(i,j+2,1)
-          ss( 4,i,j) = - 25._dp_t * beta(i,j+2,1) -  375._dp_t * beta(i+1,j+2,1) &
-                       +170._dp_t * beta(i,j+1,1) + 2550._dp_t * beta(i+1,j+1,1) &
-                       -170._dp_t * beta(i,j-1,1) - 2550._dp_t * beta(i+1,j-1,1) &
-                       + 25._dp_t * beta(i,j-2,1) +  375._dp_t * beta(i+1,j-2,1)
-          ss(23,i,j) = - 25._dp_t * beta(i,j-2,1) -  375._dp_t * beta(i+1,j-2,1) &
-                       +170._dp_t * beta(i,j-1,1) + 2550._dp_t * beta(i+1,j-1,1) &
-                       -170._dp_t * beta(i,j+1,1) - 2550._dp_t * beta(i+1,j+1,1) &
-                       + 25._dp_t * beta(i,j+2,1) +  375._dp_t * beta(i+1,j+2,1)
+  !         ss( 2,i,j) = - 25._dp_t * beta(i+1,j+2,1) -  375._dp_t * beta(i,j+2,1) &
+  !                      +170._dp_t * beta(i+1,j+1,1) + 2550._dp_t * beta(i,j+1,1) &
+  !                      -170._dp_t * beta(i+1,j-1,1) - 2550._dp_t * beta(i,j-1,1) &
+  !                      + 25._dp_t * beta(i+1,j-2,1) +  375._dp_t * beta(i,j-2,1)
+  !         ss(21,i,j) = - 25._dp_t * beta(i+1,j-2,1) -  375._dp_t * beta(i,j-2,1) &
+  !                      +170._dp_t * beta(i+1,j-1,1) + 2550._dp_t * beta(i,j-1,1) &
+  !                      -170._dp_t * beta(i+1,j+1,1) - 2550._dp_t * beta(i,j+1,1) &
+  !                      + 25._dp_t * beta(i+1,j+2,1) +  375._dp_t * beta(i,j+2,1)
+  !         ss( 4,i,j) = - 25._dp_t * beta(i,j+2,1) -  375._dp_t * beta(i+1,j+2,1) &
+  !                      +170._dp_t * beta(i,j+1,1) + 2550._dp_t * beta(i+1,j+1,1) &
+  !                      -170._dp_t * beta(i,j-1,1) - 2550._dp_t * beta(i+1,j-1,1) &
+  !                      + 25._dp_t * beta(i,j-2,1) +  375._dp_t * beta(i+1,j-2,1)
+  !         ss(23,i,j) = - 25._dp_t * beta(i,j-2,1) -  375._dp_t * beta(i+1,j-2,1) &
+  !                      +170._dp_t * beta(i,j-1,1) + 2550._dp_t * beta(i+1,j-1,1) &
+  !                      -170._dp_t * beta(i,j+1,1) - 2550._dp_t * beta(i+1,j+1,1) &
+  !                      + 25._dp_t * beta(i,j+2,1) +  375._dp_t * beta(i+1,j+2,1)
 
-          ss( 1,i,j) =   25._dp_t * beta(i,j+2,1) -  170._dp_t * beta(i,j+1,1) &
-                        -25._dp_t * beta(i,j-2,1) +  170._dp_t * beta(i,j-1,1)
-          ss( 5,i,j) =   25._dp_t * beta(i+1,j+2,1) -  170._dp_t * beta(i+1,j+1,1) &
-                        -25._dp_t * beta(i+1,j-2,1) +  170._dp_t * beta(i+1,j-1,1)
-          ss(20,i,j) =   25._dp_t * beta(i,j-2,1) -  170._dp_t * beta(i,j-1,1) &
-                        -25._dp_t * beta(i,j+2,1) +  170._dp_t * beta(i,j+1,1)
-          ss(24,i,j) =   25._dp_t * beta(i+1,j-2,1) -  170._dp_t * beta(i+1,j-1,1) &
-                        -25._dp_t * beta(i+1,j+2,1) +  170._dp_t * beta(i+1,j+1,1)
+  !         ss( 1,i,j) =   25._dp_t * beta(i,j+2,1) -  170._dp_t * beta(i,j+1,1) &
+  !                       -25._dp_t * beta(i,j-2,1) +  170._dp_t * beta(i,j-1,1)
+  !         ss( 5,i,j) =   25._dp_t * beta(i+1,j+2,1) -  170._dp_t * beta(i+1,j+1,1) &
+  !                       -25._dp_t * beta(i+1,j-2,1) +  170._dp_t * beta(i+1,j-1,1)
+  !         ss(20,i,j) =   25._dp_t * beta(i,j-2,1) -  170._dp_t * beta(i,j-1,1) &
+  !                       -25._dp_t * beta(i,j+2,1) +  170._dp_t * beta(i,j+1,1)
+  !         ss(24,i,j) =   25._dp_t * beta(i+1,j-2,1) -  170._dp_t * beta(i+1,j-1,1) &
+  !                       -25._dp_t * beta(i+1,j+2,1) +  170._dp_t * beta(i+1,j+1,1)
 
-          ss( 0,i,j) = -414720._dp_t * (beta(i,j,1) + beta(i+1,j,1))
+  !         ss( 0,i,j) = -414720._dp_t * (beta(i,j,1) + beta(i+1,j,1))
 
-       end do
-    end do
+  !      end do
+  !   end do
 
-    fac = -ONE / (TWELVE**2 * 48._dp_t**2 * dh(1)**2)
+  !   fac = -ONE / (TWELVE**2 * 48._dp_t**2 * dh(1)**2)
 
-    ! Then use the betay coefficients
-    do j = 1, ny
-       do i = 1, nx
+  !   ! Then use the betay coefficients
+  !   do j = 1, ny
+  !      do i = 1, nx
 
-          ss( 8,i,j) = ( ss( 8,i,j) + 27648._dp_t*beta(i,j+1,2) + 414720._dp_t * beta(i,j  ,2) ) * fac
-          ss(17,i,j) = ( ss(17,i,j) + 27648._dp_t*beta(i,j  ,2) + 414720._dp_t * beta(i,j+1,2) ) * fac
+  !         ss( 8,i,j) = ( ss( 8,i,j) + 27648._dp_t*beta(i,j+1,2) + 414720._dp_t * beta(i,j  ,2) ) * fac
+  !         ss(17,i,j) = ( ss(17,i,j) + 27648._dp_t*beta(i,j  ,2) + 414720._dp_t * beta(i,j+1,2) ) * fac
 
-          ss( 3,i,j) = ( ss( 3,i,j) - 27648._dp_t * beta(i,j  ,2) ) * fac
-          ss(22,i,j) = ( ss(22,i,j) - 27648._dp_t * beta(i,j+1,2) ) * fac
+  !         ss( 3,i,j) = ( ss( 3,i,j) - 27648._dp_t * beta(i,j  ,2) ) * fac
+  !         ss(22,i,j) = ( ss(22,i,j) - 27648._dp_t * beta(i,j+1,2) ) * fac
 
-          ss(12,i,j) = ( ss(12,i,j) & 
-                       -2550._dp_t * beta(i+2,j,2)  - 2550._dp_t * beta(i+2,j+1,2) &
-                      +17340._dp_t * beta(i+1,j,2) + 17340._dp_t * beta(i+1,j+1,2) &
-                      -17340._dp_t * beta(i-1,j,2) - 17340._dp_t * beta(i-1,j+1,2) &
-                      + 2550._dp_t * beta(i-2,j,2)  + 2550._dp_t * beta(i-2,j+1,2) ) * fac
+  !         ss(12,i,j) = ( ss(12,i,j) & 
+  !                      -2550._dp_t * beta(i+2,j,2)  - 2550._dp_t * beta(i+2,j+1,2) &
+  !                     +17340._dp_t * beta(i+1,j,2) + 17340._dp_t * beta(i+1,j+1,2) &
+  !                     -17340._dp_t * beta(i-1,j,2) - 17340._dp_t * beta(i-1,j+1,2) &
+  !                     + 2550._dp_t * beta(i-2,j,2)  + 2550._dp_t * beta(i-2,j+1,2) ) * fac
 
-          ss(13,i,j) = ( ss(13,i,j) & 
-                       -2550._dp_t * beta(i-2,j,2)  - 2550._dp_t * beta(i-2,j+1,2) &
-                      +17340._dp_t * beta(i-1,j,2) + 17340._dp_t * beta(i-1,j+1,2) &
-                      -17340._dp_t * beta(i+1,j,2) - 17340._dp_t * beta(i+1,j+1,2) &
-                      + 2550._dp_t * beta(i+2,j,2)  + 2550._dp_t * beta(i+2,j+1,2) ) * fac
+  !         ss(13,i,j) = ( ss(13,i,j) & 
+  !                      -2550._dp_t * beta(i-2,j,2)  - 2550._dp_t * beta(i-2,j+1,2) &
+  !                     +17340._dp_t * beta(i-1,j,2) + 17340._dp_t * beta(i-1,j+1,2) &
+  !                     -17340._dp_t * beta(i+1,j,2) - 17340._dp_t * beta(i+1,j+1,2) &
+  !                     + 2550._dp_t * beta(i+2,j,2)  + 2550._dp_t * beta(i+2,j+1,2) ) * fac
 
-          ss( 7,i,j) = ( ss( 7,i,j) &
-                      + 170._dp_t * beta(i+2,j+1,2) +  2550._dp_t * beta(i+2,j  ,2) &
-                      -1156._dp_t * beta(i+1,j+1,2) - 17340._dp_t * beta(i+1,j  ,2) &
-                      +1156._dp_t * beta(i-1,j+1,2) + 17340._dp_t * beta(i-1,j  ,2) &
-                      - 170._dp_t * beta(i-2,j+1,2) -  2550._dp_t * beta(i-2,j  ,2) ) * fac
+  !         ss( 7,i,j) = ( ss( 7,i,j) &
+  !                     + 170._dp_t * beta(i+2,j+1,2) +  2550._dp_t * beta(i+2,j  ,2) &
+  !                     -1156._dp_t * beta(i+1,j+1,2) - 17340._dp_t * beta(i+1,j  ,2) &
+  !                     +1156._dp_t * beta(i-1,j+1,2) + 17340._dp_t * beta(i-1,j  ,2) &
+  !                     - 170._dp_t * beta(i-2,j+1,2) -  2550._dp_t * beta(i-2,j  ,2) ) * fac
 
-          ss(16,i,j) = ( ss(16,i,j) &  
-                      + 170._dp_t * beta(i+2,j  ,2) +  2550._dp_t * beta(i+2,j+1,2) &
-                      -1156._dp_t * beta(i+1,j  ,2) - 17340._dp_t * beta(i+1,j+1,2) &
-                      +1156._dp_t * beta(i-1,j  ,2) + 17340._dp_t * beta(i-1,j+1,2) &
-                      - 170._dp_t * beta(i-2,j  ,2) -  2550._dp_t * beta(i-2,j+1,2) ) * fac
+  !         ss(16,i,j) = ( ss(16,i,j) &  
+  !                     + 170._dp_t * beta(i+2,j  ,2) +  2550._dp_t * beta(i+2,j+1,2) &
+  !                     -1156._dp_t * beta(i+1,j  ,2) - 17340._dp_t * beta(i+1,j+1,2) &
+  !                     +1156._dp_t * beta(i-1,j  ,2) + 17340._dp_t * beta(i-1,j+1,2) &
+  !                     - 170._dp_t * beta(i-2,j  ,2) -  2550._dp_t * beta(i-2,j+1,2) ) * fac
 
-          ss( 9,i,j) = ( ss( 9,i,j) &  
-                     +  170._dp_t * beta(i-2,j+1,2) +  2550._dp_t * beta(i-2,j  ,2) &
-                      -1156._dp_t * beta(i-1,j+1,2) - 17340._dp_t * beta(i-1,j  ,2) &
-                      +1156._dp_t * beta(i+1,j+1,2) + 17340._dp_t * beta(i+1,j  ,2) &
-                      - 170._dp_t * beta(i+2,j+1,2) -  2550._dp_t * beta(i+2,j  ,2) ) * fac
+  !         ss( 9,i,j) = ( ss( 9,i,j) &  
+  !                    +  170._dp_t * beta(i-2,j+1,2) +  2550._dp_t * beta(i-2,j  ,2) &
+  !                     -1156._dp_t * beta(i-1,j+1,2) - 17340._dp_t * beta(i-1,j  ,2) &
+  !                     +1156._dp_t * beta(i+1,j+1,2) + 17340._dp_t * beta(i+1,j  ,2) &
+  !                     - 170._dp_t * beta(i+2,j+1,2) -  2550._dp_t * beta(i+2,j  ,2) ) * fac
 
-          ss(18,i,j) = ( ss(18,i,j) &  
-                     +  170._dp_t * beta(i-2,j  ,2) +  2550._dp_t * beta(i-2,j+1,2) &
-                      -1156._dp_t * beta(i-1,j  ,2) - 17340._dp_t * beta(i-1,j+1,2) &
-                      +1156._dp_t * beta(i+1,j  ,2) + 17340._dp_t * beta(i+1,j+1,2) &
-                      - 170._dp_t * beta(i+2,j  ,2) -  2550._dp_t * beta(i+2,j+1,2) ) * fac
+  !         ss(18,i,j) = ( ss(18,i,j) &  
+  !                    +  170._dp_t * beta(i-2,j  ,2) +  2550._dp_t * beta(i-2,j+1,2) &
+  !                     -1156._dp_t * beta(i-1,j  ,2) - 17340._dp_t * beta(i-1,j+1,2) &
+  !                     +1156._dp_t * beta(i+1,j  ,2) + 17340._dp_t * beta(i+1,j+1,2) &
+  !                     - 170._dp_t * beta(i+2,j  ,2) -  2550._dp_t * beta(i+2,j+1,2) ) * fac
 
-          ss( 2,i,j) = ( ss( 2,i,j) &
-                       -170._dp_t * beta(i+2,j,2) +  1156._dp_t * beta(i+1,j,2) &
-                       +170._dp_t * beta(i-2,j,2) -  1156._dp_t * beta(i-1,j,2) ) * fac
+  !         ss( 2,i,j) = ( ss( 2,i,j) &
+  !                      -170._dp_t * beta(i+2,j,2) +  1156._dp_t * beta(i+1,j,2) &
+  !                      +170._dp_t * beta(i-2,j,2) -  1156._dp_t * beta(i-1,j,2) ) * fac
 
-          ss(21,i,j) = ( ss(21,i,j) &
-                       -170._dp_t * beta(i+2,j+1,2) +  1156._dp_t * beta(i+1,j+1,2) &
-                       +170._dp_t * beta(i-2,j+1,2) -  1156._dp_t * beta(i-1,j+1,2) ) * fac
+  !         ss(21,i,j) = ( ss(21,i,j) &
+  !                      -170._dp_t * beta(i+2,j+1,2) +  1156._dp_t * beta(i+1,j+1,2) &
+  !                      +170._dp_t * beta(i-2,j+1,2) -  1156._dp_t * beta(i-1,j+1,2) ) * fac
 
-          ss( 4,i,j) = ( ss( 4,i,j) &
-                       -170._dp_t * beta(i-2,j,2) +  1156._dp_t * beta(i-1,j,2) &
-                       +170._dp_t * beta(i+2,j,2) -  1156._dp_t * beta(i+1,j,2) ) * fac
+  !         ss( 4,i,j) = ( ss( 4,i,j) &
+  !                      -170._dp_t * beta(i-2,j,2) +  1156._dp_t * beta(i-1,j,2) &
+  !                      +170._dp_t * beta(i+2,j,2) -  1156._dp_t * beta(i+1,j,2) ) * fac
 
-          ss(23,i,j) = ( ss(23,i,j) &
-                       -170._dp_t * beta(i-2,j+1,2) +  1156._dp_t * beta(i-1,j+1,2) &
-                       +170._dp_t * beta(i+2,j+1,2) -  1156._dp_t * beta(i+1,j+1,2) ) * fac
+  !         ss(23,i,j) = ( ss(23,i,j) &
+  !                      -170._dp_t * beta(i-2,j+1,2) +  1156._dp_t * beta(i-1,j+1,2) &
+  !                      +170._dp_t * beta(i+2,j+1,2) -  1156._dp_t * beta(i+1,j+1,2) ) * fac
 
-          ss(11,i,j) = ( ss(11,i,j) &
-                      +  375._dp_t * beta(i+2,j,2) +  375._dp_t * beta(i+2,j+1,2) &
-                      - 2550._dp_t * beta(i+1,j,2) - 2550._dp_t * beta(i+1,j+1,2) &
-                      + 2550._dp_t * beta(i-1,j,2) + 2550._dp_t * beta(i-1,j+1,2) &
-                      -  375._dp_t * beta(i-2,j,2) -  375._dp_t * beta(i-2,j+1,2) ) * fac
+  !         ss(11,i,j) = ( ss(11,i,j) &
+  !                     +  375._dp_t * beta(i+2,j,2) +  375._dp_t * beta(i+2,j+1,2) &
+  !                     - 2550._dp_t * beta(i+1,j,2) - 2550._dp_t * beta(i+1,j+1,2) &
+  !                     + 2550._dp_t * beta(i-1,j,2) + 2550._dp_t * beta(i-1,j+1,2) &
+  !                     -  375._dp_t * beta(i-2,j,2) -  375._dp_t * beta(i-2,j+1,2) ) * fac
 
-          ss(14,i,j) = ( ss(14,i,j) &
-                     +  375._dp_t * beta(i-2,j,2) +  375._dp_t * beta(i-2,j+1,2) &
-                      -2550._dp_t * beta(i-1,j,2) - 2550._dp_t * beta(i-1,j+1,2) &
-                      +2550._dp_t * beta(i+1,j,2) + 2550._dp_t * beta(i+1,j+1,2) &
-                      - 375._dp_t * beta(i+2,j,2) -  375._dp_t * beta(i+2,j+1,2) ) * fac
+  !         ss(14,i,j) = ( ss(14,i,j) &
+  !                    +  375._dp_t * beta(i-2,j,2) +  375._dp_t * beta(i-2,j+1,2) &
+  !                     -2550._dp_t * beta(i-1,j,2) - 2550._dp_t * beta(i-1,j+1,2) &
+  !                     +2550._dp_t * beta(i+1,j,2) + 2550._dp_t * beta(i+1,j+1,2) &
+  !                     - 375._dp_t * beta(i+2,j,2) -  375._dp_t * beta(i+2,j+1,2) ) * fac
 
-          ss( 6,i,j) = ( ss( 6,i,j) &
-                       - 25._dp_t * beta(i+2,j+1,2) -  375._dp_t * beta(i+2,j,2) &
-                       +170._dp_t * beta(i+1,j+1,2) + 2550._dp_t * beta(i+1,j,2) &
-                       -170._dp_t * beta(i-1,j+1,2) - 2550._dp_t * beta(i-1,j,2) &
-                       + 25._dp_t * beta(i-2,j+1,2) +  375._dp_t * beta(i-2,j,2) ) * fac
+  !         ss( 6,i,j) = ( ss( 6,i,j) &
+  !                      - 25._dp_t * beta(i+2,j+1,2) -  375._dp_t * beta(i+2,j,2) &
+  !                      +170._dp_t * beta(i+1,j+1,2) + 2550._dp_t * beta(i+1,j,2) &
+  !                      -170._dp_t * beta(i-1,j+1,2) - 2550._dp_t * beta(i-1,j,2) &
+  !                      + 25._dp_t * beta(i-2,j+1,2) +  375._dp_t * beta(i-2,j,2) ) * fac
 
-          ss(15,i,j) = ( ss(15,i,j) &
-                       - 25._dp_t * beta(i+2,j,2) -  375._dp_t * beta(i+2,j+1,2) &
-                       +170._dp_t * beta(i+1,j,2) + 2550._dp_t * beta(i+1,j+1,2) &
-                       -170._dp_t * beta(i-1,j,2) - 2550._dp_t * beta(i-1,j+1,2) &
-                       + 25._dp_t * beta(i-2,j,2) +  375._dp_t * beta(i-2,j+1,2) ) * fac
+  !         ss(15,i,j) = ( ss(15,i,j) &
+  !                      - 25._dp_t * beta(i+2,j,2) -  375._dp_t * beta(i+2,j+1,2) &
+  !                      +170._dp_t * beta(i+1,j,2) + 2550._dp_t * beta(i+1,j+1,2) &
+  !                      -170._dp_t * beta(i-1,j,2) - 2550._dp_t * beta(i-1,j+1,2) &
+  !                      + 25._dp_t * beta(i-2,j,2) +  375._dp_t * beta(i-2,j+1,2) ) * fac
 
-          ss(10,i,j) = ( ss(10,i,j) &
-                       - 25._dp_t * beta(i-2,j+1,2) -  375._dp_t * beta(i-2,j,2) &
-                       +170._dp_t * beta(i-1,j+1,2) + 2550._dp_t * beta(i-1,j,2) &
-                       -170._dp_t * beta(i+1,j+1,2) - 2550._dp_t * beta(i+1,j,2) &
-                       + 25._dp_t * beta(i+2,j+1,2) +  375._dp_t * beta(i+2,j,2) ) * fac
+  !         ss(10,i,j) = ( ss(10,i,j) &
+  !                      - 25._dp_t * beta(i-2,j+1,2) -  375._dp_t * beta(i-2,j,2) &
+  !                      +170._dp_t * beta(i-1,j+1,2) + 2550._dp_t * beta(i-1,j,2) &
+  !                      -170._dp_t * beta(i+1,j+1,2) - 2550._dp_t * beta(i+1,j,2) &
+  !                      + 25._dp_t * beta(i+2,j+1,2) +  375._dp_t * beta(i+2,j,2) ) * fac
 
-          ss(19,i,j) = ( ss(19,i,j) &
-                       - 25._dp_t * beta(i-2,j,2) -  375._dp_t * beta(i-2,j+1,2) &
-                       +170._dp_t * beta(i-1,j,2) + 2550._dp_t * beta(i-1,j+1,2) &
-                       -170._dp_t * beta(i+1,j,2) - 2550._dp_t * beta(i+1,j+1,2) &
-                       + 25._dp_t * beta(i+2,j,2) +  375._dp_t * beta(i+2,j+1,2) ) * fac
+  !         ss(19,i,j) = ( ss(19,i,j) &
+  !                      - 25._dp_t * beta(i-2,j,2) -  375._dp_t * beta(i-2,j+1,2) &
+  !                      +170._dp_t * beta(i-1,j,2) + 2550._dp_t * beta(i-1,j+1,2) &
+  !                      -170._dp_t * beta(i+1,j,2) - 2550._dp_t * beta(i+1,j+1,2) &
+  !                      + 25._dp_t * beta(i+2,j,2) +  375._dp_t * beta(i+2,j+1,2) ) * fac
 
-          ss( 1,i,j) = ( ss( 1,i,j) &
-                       + 25._dp_t * beta(i+2,j,2) -  170._dp_t * beta(i+1,j,2) &
-                        -25._dp_t * beta(i-2,j,2) +  170._dp_t * beta(i-1,j,2) ) * fac
-          ss( 5,i,j) = ( ss( 5,i,j) &
-                       + 25._dp_t * beta(i-2,j,2) -  170._dp_t * beta(i-1,j,2) &
-                        -25._dp_t * beta(i+2,j,2) +  170._dp_t * beta(i+1,j,2) ) * fac
-          ss(20,i,j) = ( ss(20,i,j) &
-                       + 25._dp_t * beta(i+2,j+1,2) -  170._dp_t * beta(i+1,j+1,2) &
-                        -25._dp_t * beta(i-2,j+1,2) +  170._dp_t * beta(i-1,j+1,2) ) * fac
-          ss(24,i,j) = ( ss(24,i,j) &
-                       + 25._dp_t * beta(i-2,j+1,2) -  170._dp_t * beta(i-1,j+1,2) &
-                        -25._dp_t * beta(i+2,j+1,2) +  170._dp_t * beta(i+1,j+1,2) ) * fac
+  !         ss( 1,i,j) = ( ss( 1,i,j) &
+  !                      + 25._dp_t * beta(i+2,j,2) -  170._dp_t * beta(i+1,j,2) &
+  !                       -25._dp_t * beta(i-2,j,2) +  170._dp_t * beta(i-1,j,2) ) * fac
+  !         ss( 5,i,j) = ( ss( 5,i,j) &
+  !                      + 25._dp_t * beta(i-2,j,2) -  170._dp_t * beta(i-1,j,2) &
+  !                       -25._dp_t * beta(i+2,j,2) +  170._dp_t * beta(i+1,j,2) ) * fac
+  !         ss(20,i,j) = ( ss(20,i,j) &
+  !                      + 25._dp_t * beta(i+2,j+1,2) -  170._dp_t * beta(i+1,j+1,2) &
+  !                       -25._dp_t * beta(i-2,j+1,2) +  170._dp_t * beta(i-1,j+1,2) ) * fac
+  !         ss(24,i,j) = ( ss(24,i,j) &
+  !                      + 25._dp_t * beta(i-2,j+1,2) -  170._dp_t * beta(i-1,j+1,2) &
+  !                       -25._dp_t * beta(i+2,j+1,2) +  170._dp_t * beta(i+1,j+1,2) ) * fac
 
-          ss( 0,i,j) = ( ss(0,i,j) -414720._dp_t * ( beta(i,j,2) + beta(i,j+1,2) ) ) * fac + beta(i,j,0)
+  !         ss( 0,i,j) = ( ss(0,i,j) -414720._dp_t * ( beta(i,j,2) + beta(i,j+1,2) ) ) * fac + beta(i,j,0)
 
-       end do
-    end do
+  !      end do
+  !   end do
 
-  end subroutine s_minion_full_old_2d
+  ! end subroutine s_minion_full_old_2d
 
   subroutine s_minion_full_fill_2d(ss, alpha, ng_a, betax, betay, ng_b, dh, mask, lo, hi)
 
