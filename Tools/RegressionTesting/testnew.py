@@ -247,7 +247,8 @@ class Suite(object):
         if self.args.do_temp_run:
             test_dir = "TEMP_RUN/"
             full_test_dir = self.testTopDir + self.suiteName + "-tests/" + test_dir
-            shutil.rmtree(full_test_dir)
+            if os.path.isdir(full_test_dir):
+                shutil.rmtree(full_test_dir)
         else:
             for i in range(1, maxRuns):
                 if not os.path.isdir(full_test_dir): break
@@ -262,7 +263,8 @@ class Suite(object):
         full_web_dir = "%s/%s/"  % (self.webTopDir, test_dir)
 
         if self.args.do_temp_run:
-            shutil.rmtree(full_web_dir)
+            if os.path.isdir(full_web_dir):
+                shutil.rmtree(full_web_dir)
 
         os.mkdir(full_web_dir)
 
@@ -312,9 +314,11 @@ class Suite(object):
         return failed
 
     def make_realclean(self):
-        run("{} BOXLIB_HOME={} {} {} realclean".format(
+        cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
             self.MAKE, self.boxLibDir,
-            self.extSrcCompString, self.extraBuildDirCompString))
+            self.extSrcCompString, self.extraBuildDirCompString)
+        print cmd
+        run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
         comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
