@@ -1199,15 +1199,14 @@ def test_suite(argv):
 
 
         # create the report for this test run
-        numFailed = reportThisTestRun(suite, wasBenchmarkRun,
-                                      "recreated report after crash of suite",
-                                      "",  
-                                      tests, args.complete_report_from_crash, testFile)
-
+        num_failed = report_this_test_run(suite, wasBenchmarkRun,
+                                          "recreated report after crash of suite",
+                                          "",  
+                                          tests, args.complete_report_from_crash, testFile)
 
         # create the suite report
         bold("creating suite report...")
-        reportAllRuns(suite, activeTestList)
+        report_all_runs(suite, activeTestList)
         sys.exit("done")
 
 
@@ -1255,11 +1254,11 @@ def test_suite(argv):
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
         copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
 
-        numFailed = reportThisTestRun(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
-                                      "copy_benchmarks used -- no new tests run",
-                                      "",  
-                                      testList, args.input_file[0])
-        reportAllRuns(suite, activeTestList)        
+        num_failed = report_this_test_run(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
+                                          "copy_benchmarks used -- no new tests run",
+                                          "",  
+                                          testList, args.input_file[0])
+        report_all_runs(suite, activeTestList)        
         sys.exit("done")
     
     #--------------------------------------------------------------------------
@@ -1441,7 +1440,7 @@ def test_suite(argv):
             shutil.copy("%s/%s.make.out"    % (outputDir, test.name), suite.full_web_dir)
 
             print "  creating problem test report ..."
-            reportSingleTest(suite, test)
+            report_single_test(suite, test)
 
             # ... skip to the next test in the loop
             continue
@@ -1460,13 +1459,13 @@ def test_suite(argv):
             shutil.copy("%s/%s.make.out" % (outputDir, test.name), suite.full_web_dir)
 
             errorMsg = "    ERROR: compilation failed"
-            reportTestFailure(suite, errorMsg, test)
+            report_test_failure(suite, errorMsg, test)
             continue
 
         try: shutil.copy(test.inputFile, outputDir)
         except IOError:
             errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            reportTestFailure(suite, errorMsg, test)
+            report_test_failure(suite, errorMsg, test)
             continue
 
 	# sometimes the input file was in a subdirectory under the
@@ -1482,7 +1481,7 @@ def test_suite(argv):
             try: shutil.copy(test.probinFile, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                reportTestFailure(suite, errorMsg, test)
+                report_test_failure(suite, errorMsg, test)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1500,7 +1499,7 @@ def test_suite(argv):
             try: shutil.copy(file, outputDir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                reportTestFailure(suite, errorMsg, test)
+                report_test_failure(suite, errorMsg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1513,7 +1512,7 @@ def test_suite(argv):
         for file in test.linkFiles:
             if not os.path.exists(file):
                 errorMsg = "    ERROR: link file %s does not exist" % file
-                reportTestFailure(suite, errorMsg, test)
+                report_test_failure(suite, errorMsg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1527,7 +1526,7 @@ def test_suite(argv):
                 try: os.symlink(link_source, link_name)
                 except IOError:
                     errorMsg = "    ERROR: unable to symlink link file: %s" % file
-                    reportTestFailure(suite, errorMsg, test)
+                    report_test_failure(suite, errorMsg, test)
                     skip_to_next_test = 1
                     break
 
@@ -1575,7 +1574,7 @@ def test_suite(argv):
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
-                reportTestFailure(suite, errorMsg, test)
+                report_test_failure(suite, errorMsg, test)
                 continue
 
             origLastFile = "orig_%s" % (lastFile)
@@ -1755,7 +1754,6 @@ def test_suite(argv):
                 cf.close()
 
 
-
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only)
         #----------------------------------------------------------------------
@@ -1785,7 +1783,6 @@ def test_suite(argv):
 
             else:
                 warning("    WARNING: no output file.  Skipping visualization")
-
 
 
         #----------------------------------------------------------------------
@@ -1891,16 +1888,16 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
             print "  creating problem test report ..."
-            reportSingleTest(suite, test)
+            report_single_test(suite, test)
 
 
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
     bold("creating new test report...", skip_before=1)
-    numFailed = reportThisTestRun(suite, args.make_benchmarks, args.note,
-                                  updateTime,  
-                                  testList, args.input_file[0])
+    num_failed = report_this_test_run(suite, args.make_benchmarks, args.note,
+                                      updateTime,  
+                                      testList, args.input_file[0])
 
 
     # make sure that all of the files in the web directory are world readable
@@ -1914,19 +1911,26 @@ def test_suite(argv):
         if suite.repos[k].update or suite.repos[k].hash_wanted:
             suite.repos[k].git_back()
 
-
-    #--------------------------------------------------------------------------
     # For temporary run, return now without creating suote report.
-    #--------------------------------------------------------------------------
     if args.do_temp_run:
-        return numFailed
+        return num_failed
+
+
+    # store an output file in the web directory that can be parsed easily by
+    # external program
+    name = "source"
+    if suite.sourceTree == "BoxLib": name = "BoxLib"
+
+    with open("{}/suite.status".format(suite.full_web_dir), "w") as f:
+        f.write("{}; num failed: {}; source hash: {}".format(
+            suite.repos[name].name, num_failed, suite.repos[name].hash_current))
 
 
     #--------------------------------------------------------------------------
     # generate the master report for all test instances
     #--------------------------------------------------------------------------
     bold("creating suite report...", skip_before=1)
-    reportAllRuns(suite, activeTestList)
+    report_all_runs(suite, activeTestList)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -1938,12 +1942,12 @@ def test_suite(argv):
         server.sendmail(suite.emailFrom, suite.emailTo, msg.as_string())
         server.quit()
 
-    if numFailed > 0 and suite.sendEmailWhenFail and not args.send_no_email:
+    if num_failed > 0 and suite.sendEmailWhenFail and not args.send_no_email:
         bold("sending email...", skip_before=1)
         emailDevelopers()
 
 
-    return numFailed
+    return num_failed
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -2196,11 +2200,10 @@ class HTMLTable(object):
                 self.hf.write("</div>\n")
 
 
-
 #==============================================================================
-# reportSingleTest
+# REPORT ROUTINES
 #==============================================================================
-def reportSingleTest(suite, test):
+def report_single_test(suite, test):
     """ generate a single problem's test result page """
 
     # get the current directory
@@ -2504,10 +2507,7 @@ def reportSingleTest(suite, test):
     os.chdir(currentDir)
 
 
-#==============================================================================
-# reportTestAbort
-#==============================================================================
-def reportTestFailure(suite, message, test):
+def report_test_failure(suite, message, test):
     """ generate a simple report for an error encountered while performing
         the test """
 
@@ -2573,10 +2573,7 @@ def reportTestFailure(suite, message, test):
     os.chdir(currentDir)
 
 
-#==============================================================================
-# reportThisTestRun
-#==============================================================================
-def reportThisTestRun(suite, make_benchmarks, note, update_time,
+def report_this_test_run(suite, make_benchmarks, note, update_time,
                       testList, testFile):
     """ generate the master page for a single run of the test suite """
 
@@ -2588,7 +2585,7 @@ def reportThisTestRun(suite, make_benchmarks, note, update_time,
 
 
     # keep track of the number of tests that passed and the number that failed
-    numFailed = 0
+    num_failed = 0
     numPassed = 0
 
 
@@ -2675,7 +2672,7 @@ def reportThisTestRun(suite, make_benchmarks, note, update_time,
                     break
 
             if not testPassed:
-                numFailed += 1
+                num_failed += 1
 
 
             sf.close()
@@ -2774,9 +2771,9 @@ def reportThisTestRun(suite, make_benchmarks, note, update_time,
     sf = open(status_file, 'w')
 
     if make_benchmarks == None:
-        if numFailed == 0:
+        if num_failed == 0:
             sf.write("ALL PASSED\n")
-        elif numFailed > 0 and numPassed > 0:
+        elif num_failed > 0 and numPassed > 0:
             sf.write("SOME FAILED\n")
         else:
             sf.write("ALL FAILED\n")
@@ -2790,13 +2787,10 @@ def reportThisTestRun(suite, make_benchmarks, note, update_time,
     # switch back to the original directory
     os.chdir(currentDir)
 
-    return numFailed
+    return num_failed
 
 
-#==============================================================================
-# reportAllRuns
-#==============================================================================
-def reportAllRuns(suite, activeTestList):
+def report_all_runs(suite, activeTestList):
 
     tableHeight = min(max(suite.lenTestName, 4), 16)
     
