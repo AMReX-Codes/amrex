@@ -2,20 +2,20 @@ module itsol_module
 
   use bl_constants_module
   use bl_types
+  use bc_functions_module
   use multifab_module
   use cc_stencil_module
   use stencil_types_module
   use stencil_defect_module
+  use stencil_util_module, only : copy_from_ibc
 
   implicit none
 
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter   = 1000
 
-  private :: dgemv
-  private :: itsol_precon
-  private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
-  private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
+  private
+  public :: itsol_bicgstab_solve, itsol_converged, itsol_cg_solve, itsol_cabicgstab_solve
 
 contains
 
@@ -381,8 +381,6 @@ contains
     integer         :: i, cnt, ng_for_res, comm
     logical         :: nodal_solve, singular, nodal(get_dim(rh)), ioproc
 
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-
     type(bl_prof_timer), save :: bpt
 
     if ( present(stat) ) stat = 0
@@ -428,13 +426,9 @@ contains
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call copy_from_ibc(aa_local, aa)
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -711,8 +705,6 @@ contains
     logical         :: BiCGStabFailed, BiCGStabConverged, ioproc
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
 
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-
     type(bl_prof_timer), save :: bpt
 
     integer, parameter :: SSS = 4
@@ -785,13 +777,9 @@ contains
     call copy(ph, 1, uu, 1, 1, ng = nghost(ph))
     call copy(ph, 2, uu, 1, 1, ng = nghost(ph))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call copy_from_ibc(aa_local, aa)
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -1224,7 +1212,6 @@ contains
     logical :: nodal_solve, nodal(get_dim(rh))
     logical :: singular 
     integer :: cnt
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     real(dp_t) :: nrms(2), rnrms(2)
 
     type(bl_prof_timer), save :: bpt
@@ -1259,13 +1246,9 @@ contains
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call copy_from_ibc(aa_local, aa)
 
     call diag_initialize(aa_local,rh_local,mm,stencil_type)
 
