@@ -1921,7 +1921,7 @@ def test_suite(argv):
     name = "source"
     if suite.sourceTree == "BoxLib": name = "BoxLib"
 
-    with open("{}/suite.status".format(suite.full_web_dir), "w") as f:
+    with open("{}/suite.status".format(suite.webTopDir), "w") as f:
         f.write("{}; num failed: {}; source hash: {}".format(
             suite.repos[name].name, num_failed, suite.repos[name].hash_current))
 
