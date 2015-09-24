@@ -344,6 +344,27 @@ class Suite(object):
         sout, serr, ierr = run(test_run_command, stdin=True, outfile="{}.run.out".format(test.name), env=test_env)
         test.run_command = test_run_command
 
+    def build_tools(self, test_list):
+
+        self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
+            os.path.normpath(self.boxLibDir))
+
+        os.chdir(self.compare_tool_dir)
+
+        self.make_realclean()
+
+        tools = ["fcompare", "fboxinfo"]
+        if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")
+        if any([t for t in test_list if t.dim == 3]): tools.append("fsnapshot3d")
+
+        self.tools = {}
+
+        for t in tools:
+            bold("building {}...".format(t))
+            self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
+            exe = getRecentFileName(self.compare_tool_dir, t, ".exe")
+            self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
+
 
 class Repo(object):
     """ a simple class to manage our git operations """
@@ -1288,31 +1309,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     # build the comparison and visualization tools
     #--------------------------------------------------------------------------
-    bold("building the comparison tools...", skip_before=1)
-
-    suite.compareToolDir = os.path.normpath(suite.boxLibDir) + "/Tools/Postprocessing/F_Src/"
-
-    os.chdir(suite.compareToolDir)
-
-    suite.make_realclean()
-
-    suite.build_f(target="programs=fcompare", opts="NDEBUG=t MPI= ")
-    compareExecutable = getRecentFileName(suite.compareToolDir,"fcompare",".exe")
-    shutil.copy(compareExecutable, suite.full_test_dir + "/fcompare.exe")
-
-    suite.build_f(target="programs=fboxinfo", opts="NDEBUG=t MPI= ")
-    compareExecutable = getRecentFileName(suite.compareToolDir,"fboxinfo",".exe")
-    shutil.copy(compareExecutable, suite.full_test_dir + "/fboxinfo.exe")
-
-    if any([t for t in testList if t.dim == 2]):
-        bold("building the 2-d visualization tools...", skip_before=1)
-        suite.build_f(target="programs=fsnapshot2d", opts="NDEBUG=t MPI= ")
-        vis2dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot2d",".exe")
-
-    if any([t for t in testList if t.dim == 3]):
-        bold("building the 3-d visualization tools...", skip_before=1)
-        suite.build_f(opts="NDEBUG=t MPI= ", target="programs=fsnapshot3d")
-        vis3dExecutable = getRecentFileName(suite.compareToolDir,"fsnapshot3d",".exe")
+    suite.build_tools(testList)
 
 
     #--------------------------------------------------------------------------
@@ -1627,7 +1624,7 @@ def test_suite(argv):
 
 
             # get the number of levels for reporting
-            prog = "../fboxinfo.exe -l {}".format(outputFile)
+            prog = "{} -l {}".format(suite.tools["fboxinfo"], outputFile)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
             if not type(convert_type(test.nlevels)) is int:
@@ -1662,7 +1659,8 @@ def test_suite(argv):
 
                         print "    benchmark file: ", benchFile
 
-                        command = "../fcompare.exe -n 0 --infile1 {} --infile2 {}".format(benchFile, outputFile)
+                        command = "{} -n 0 --infile1 {} --infile2 {}".format(
+                            suite.tools["fcompare"], benchFile, outputFile)
                         sout, serr, ierr = run(command, outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
@@ -1770,13 +1768,13 @@ def test_suite(argv):
                 print "  doing the visualization..."
 
                 if test.dim == 2:
-                    systemCall('%s/%s --palette %s/Palette -cname "%s" -p "%s" >& /dev/null' %
-                              (suite.compareToolDir, vis2dExecutable, suite.compareToolDir,
-                               test.visVar, outputFile) )
+                    systemCall('{} --palette {}/Palette -cname "{}" -p "{}" >& /dev/null'.format(
+                        suite.tools["fsnapshot2d"], suite.compare_tool_dir,
+                        test.visVar, outputFile))
                 elif test.dim == 3:
-                    systemCall('%s/%s --palette %s/Palette -n 1 -cname "%s" -p "%s" >& /dev/null' %
-                              (suite.compareToolDir, vis3dExecutable, suite.compareToolDir,
-                               test.visVar, outputFile) )
+                    systemCall('{} --palette {}/Palette -n 1 -cname "{}" -p "{}" >& /dev/null'.format(
+                        suite.tools["fsnapshot3d"], suite.compare_tool_dir,
+                        test.visVar, outputFile))
                 else:
                     print "    Visualization not supported for dim = %d" % (test.dim)
 
