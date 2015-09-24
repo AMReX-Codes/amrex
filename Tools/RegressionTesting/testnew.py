@@ -302,11 +302,11 @@ class Suite(object):
             if not os.path.isdir(test): continue
 
             # the status files are in the web dir
-            status_file = self.webTopDir + test_dir + "/%s.status" % (test)
-            sf = open(status_file, "r")
-            for line in sf:
-                if line.find("FAILED") >= 0:
-                    failed.append(test)
+            status_file = "{}/{}/{}.status".format(self.webTopDir, test_dir, test)
+            with open(status_file, "r") as sf:
+                for line in sf:
+                    if line.find("FAILED") >= 0:
+                        failed.append(test)
 
         os.chdir(cwd)
         return failed
@@ -372,7 +372,9 @@ class Repo(object):
                  skip_before=1)
             stdout, stderr, rc = run("git checkout {}".format(self.branch_wanted), 
                                      stdin=True)
-
+        else:
+            self.branch_wanted = self.branch_orig
+            
         if self.hash_wanted == "" or self.hash_wanted == None:
             bold("'git pull' in {}".format(self.dir), skip_before=1)
 
@@ -1907,6 +1909,7 @@ def test_suite(argv):
        if os.path.isfile(currentFile):
           os.chmod(currentFile, 0644)
 
+    # reset the branch to what it was originally
     for k in suite.repos:
         if suite.repos[k].update or suite.repos[k].hash_wanted:
             suite.repos[k].git_back()
@@ -1921,7 +1924,8 @@ def test_suite(argv):
     name = "source"
     if suite.sourceTree == "BoxLib": name = "BoxLib"
 
-    with open("{}/suite.status".format(suite.webTopDir), "w") as f:
+    with open("{}/suite.{}.status".format(
+            suite.webTopDir, suite.repos[name].branch_wanted), "w") as f:
         f.write("{}; num failed: {}; source hash: {}".format(
             suite.repos[name].name, num_failed, suite.repos[name].hash_current))
 
