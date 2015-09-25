@@ -146,8 +146,7 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
     int stencil = CC_CROSS_STENCIL;
     MGT_Solver mgt_solver(geom, mg_bc, grids, dmap, nodal, stencil);
 
-    int index_order = 1; // because of bcoeffs[nlevel][BL_SPACEDIM]
-    mgt_solver.set_visc_coefficients(acoeffs, bcoeffs, b, xa, xb, index_order);
+    mgt_solver.set_abeclap_coeffs(acoeffs, b, bcoeffs, xa, xb);
     
     MultiFab* soln_p[nlevel];
     MultiFab* rhs_p[nlevel];
@@ -177,18 +176,19 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       int stencil = CC_CROSS_STENCIL;
       MGT_Solver mgt_solver(geom_l, mg_bc, grids_l, dmap_l, nodal, stencil);
 
-      MultiFab* acoeffs_l[1];
-      acoeffs_l[0] = &acoeffs[ilev];
+      PArray<MultiFab> acoeffs_l(1, PArrayNoManage);
+      acoeffs_l.set(0, &acoeffs[ilev]);
 
-      MultiFab* bcoeffs_l[1][BL_SPACEDIM];
+      Array<PArray<MultiFab> > bcoeffs_l(1);
+      bcoeffs_l[0].resize(BL_SPACEDIM, PArrayNoManage);
       for (int n = 0; n < BL_SPACEDIM ; n++) {
-	bcoeffs_l[0][n] = &bcoeffs[ilev][n];
+	  bcoeffs_l[0].set(n, &bcoeffs[ilev][n]);
       }
       
       Array< Array<Real> > xa_l(1, xa[ilev]);
       Array< Array<Real> > xb_l(1, xb[ilev]);
 
-      mgt_solver.set_visc_coefficients(acoeffs_l, bcoeffs_l, b, xa_l, xb_l);
+      mgt_solver.set_abeclap_coeffs(acoeffs_l, b, bcoeffs_l, xa_l, xb_l);
 
       MultiFab* soln_p[1];
       MultiFab* rhs_p[1];

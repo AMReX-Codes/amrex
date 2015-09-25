@@ -195,7 +195,7 @@ extern "C" {
     double mean (level_type * level, int id_a);
     void shift_vector (level_type * level, int id_c, int id_a, double shift_a);
     void rebuild_operator (level_type * level, level_type * fromLevel, double a, double b);
-    void MGBuild (mg_type * all_grids, level_type * fine_grid, double a, double b, int minCoarseGridDim);
+    void MGBuild (mg_type * all_grids, level_type * fine_grid, double a, double b, int minCoarseGridDim, const MPI_Comm comm);
     void MGResetTimers (mg_type * all_grids);
     void zero_vector (level_type * level, int component_id);
     void MGSolve (mg_type *all_grids, int onLevel, int u_id, int F_id, double a, double b, double dtol, double rtol);
@@ -289,13 +289,15 @@ public:
     MultiFab (const BoxArray& bs,
               int             ncomp,
               int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
+              FabAlloc        mem_mode = Fab_allocate,
+	      const IntVect&  nodal = IntVect::TheZeroVector());
 
     MultiFab (const BoxArray&            bs,
               int                        ncomp,
               int                        ngrow,
               const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+              FabAlloc                   mem_mode = Fab_allocate,
+	      const IntVect&             nodal = IntVect::TheZeroVector());
 
     void operator= (const Real& r);
     //
@@ -628,13 +630,15 @@ public:
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
-                 FabAlloc        mem_mode);
+                 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
                  int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+                 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Are there any NaNs in the MF?
     // This may return false, even if the MF contains NaNs, if the machine

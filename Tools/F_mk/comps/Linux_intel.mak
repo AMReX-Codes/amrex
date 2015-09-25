@@ -20,6 +20,8 @@
     CC  := icc
     CXX := icpc
 
+    FCOMP_VERSION := $(shell ifort -V 2>&1 | grep 'Version')
+
     FFLAGS   += -module $(mdir) -I $(mdir)
     F90FLAGS += -module $(mdir) -I $(mdir) -cxxlib
     CFLAGS   += -std=c99

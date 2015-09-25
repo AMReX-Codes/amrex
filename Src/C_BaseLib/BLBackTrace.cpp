@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 #include <execinfo.h>
+#include <signal.h>
 
 #include <BoxLib.H>
 #include <BLBackTrace.H>
@@ -33,7 +34,16 @@ BLBackTrace::handler(int s)
 	std::cout << std::endl;
     }
 
-    ParallelDescriptor::Abort();
+    switch (s) {
+    case SIGSEGV:
+	BoxLib::Abort("Segfault");
+	break;
+    case SIGFPE:
+	BoxLib::Abort("Erroneous arithmetic operation");
+	break;
+    default:
+	ParallelDescriptor::Abort();
+    }
 }
 
 BLBTer::BLBTer(const std::string& s, const char* file, int line)
