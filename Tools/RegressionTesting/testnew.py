@@ -317,7 +317,6 @@ class Suite(object):
         cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
             self.MAKE, self.boxLibDir,
             self.extSrcCompString, self.extraBuildDirCompString)
-        print cmd
         run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
@@ -851,14 +850,12 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
             except: pass
             shutil.copytree(p, "{}/{}".format(bench_dir, p))
 
-            cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
-            cf.write("benchmarks updated.  New file:  {}\n".format(p) )
-            cf.close()
+            with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
+                cf.write("benchmarks updated.  New file:  {}\n".format(p) )
 
         else:   # no benchmark exists
-            cf = open("{}/{}.status".format(full_web_dir, t.name), 'w')
-            cf.write("benchmarks update failed")
-            cf.close()
+            with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
+                cf.write("benchmarks update failed")
             
         os.chdir(td)
         
@@ -1210,23 +1207,23 @@ def test_suite(argv):
         # find all the tests that completed in that web directory
         tests = []
         testFile = ""
-        wasBenchmarkRun = 0
+        was_benchmark_run = 0
         for file in os.listdir(suite.full_web_dir):
             if os.path.isfile(file) and file.endswith(".status"):
                 index = string.rfind(file, ".status")
                 tests.append(file[:index])
 
-                f = open(suite.full_web_dir + file, "r")
-                for line in f:
-                    if line.find("benchmarks updated") > 0:
-                        wasBenchmarkRun = 1
+                with open(suite.full_web_dir + file, "r") as f:
+                    for line in f:
+                        if line.find("benchmarks updated") > 0:
+                            was_benchmark_run = 1
 
             if os.path.isfile(file) and file.endswith(".ini"):
                 testFile = file
 
 
         # create the report for this test run
-        num_failed = report_this_test_run(suite, wasBenchmarkRun,
+        num_failed = report_this_test_run(suite, was_benchmark_run,
                                           "recreated report after crash of suite",
                                           "",  
                                           tests, args.complete_report_from_crash, testFile)
@@ -1687,10 +1684,8 @@ def test_suite(argv):
                     sout, serr, diff_status = run(command, outfile=outfile, store_command=True)
 
                     if diff_status == 0:
-                        cf = open("{}.compare.out".format(test.name), 'a')
-                        cf.write("diff was SUCCESSFUL\n")
-                        cf.close()
-
+                        with open("{}.compare.out".format(test.name), 'a') as cf:
+                            cf.write("diff was SUCCESSFUL\n")
 
             else:   # make_benchmarks
 
@@ -1707,13 +1702,12 @@ def test_suite(argv):
                     except: pass
                     shutil.copytree(source_file, "{}/{}".format(bench_dir, compareFile))
 
-                    cf = open("%s.status" % (test.name), 'w')
-                    cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
-                    cf.close()
+                    with open("%s.status" % (test.name), 'w') as cf:
+                        cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+
                 else:
-                    cf = open("%s.status" % (test.name), 'w')
-                    cf.write("benchmarks failed")
-                    cf.close()
+                    with open("%s.status" % (test.name), 'w') as cf:
+                        cf.write("benchmarks failed")
 
                 if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
@@ -1748,14 +1742,11 @@ def test_suite(argv):
 
                     of.close()
 
-                cf = open("%s.compare.out" % (test.name), 'w')
-
-                if compareSuccessful:
-                    cf.write("SELF TEST SUCCESSFUL\n")
-                else:
-                    cf.write("SELF TEST FAILED\n")
-
-                cf.close()
+                with open("%s.compare.out" % (test.name), 'w') as cf:
+                    if compareSuccessful:
+                        cf.write("SELF TEST SUCCESSFUL\n")
+                    else:
+                        cf.write("SELF TEST FAILED\n")
 
 
         #----------------------------------------------------------------------
@@ -2111,10 +2102,8 @@ def create_css(tableHeight=16):
 
     cssC = cssContents.replace("@TABLEHEIGHT@", "%sem" % (tableHeight))
 
-    cssFile = "tests.css"
-    cf = open(cssFile, 'w')
-    cf.write(cssC)
-    cf.close()
+    with open("tests.css", 'w') as cf:
+        cf.write(cssC)
 
 class HTMLList(object):
     def __init__(self, of=None):
@@ -2223,13 +2212,10 @@ def report_single_test(suite, test):
     #--------------------------------------------------------------------------
     compileFile = "%s.make.out" % (test.name)
 
-    try:
-        cf = open(compileFile, 'r')
-
+    try: cf = open(compileFile, 'r')
     except IOError:
         warning("WARNING: no compilation file found")
         compileSuccessful = 0
-
     else:
         # successful compilation be indicated by SUCCESS or
         # Nothing to be done for `all'.  Look for both
@@ -2251,14 +2237,11 @@ def report_single_test(suite, test):
     if (not test.compileTest):
         compareFile = "%s.compare.out" % (test.name)
 
-        try:
-            cf = open(compareFile, 'r')
-
+        try: cf = open(compareFile, 'r')
         except IOError:
             warning("WARNING: no comparison file found")
             compareSuccessful = 0
             diffLines = ['']
-
         else:
             diffLines = cf.readlines()
 
@@ -2287,17 +2270,14 @@ def report_single_test(suite, test):
     # PASSED or FAILED
     #--------------------------------------------------------------------------
     status_file = "%s.status" % (test.name)
-    sf = open(status_file, 'w')
-
-    if (compileSuccessful and
-        (test.compileTest or (not test.compileTest and compareSuccessful))):
-        sf.write("PASSED\n")
-        success("    %s PASSED" % (test.name))
-    else:
-        sf.write("FAILED\n")
-        testfail("    %s FAILED" % (test.name))
-
-    sf.close()
+    with open(status_file, 'w') as sf:
+        if (compileSuccessful and
+            (test.compileTest or (not test.compileTest and compareSuccessful))):
+            sf.write("PASSED\n")
+            success("    %s PASSED" % (test.name))
+        else:
+            sf.write("FAILED\n")
+            testfail("    %s FAILED" % (test.name))
 
 
     #--------------------------------------------------------------------------
@@ -2530,10 +2510,8 @@ def report_test_failure(suite, message, test):
     # write out the status file for this problem -- FAILED
     #--------------------------------------------------------------------------
     status_file = "%s.status" % (test.name)
-    sf = open(status_file, 'w')
-    sf.write("FAILED\n")
-
-    sf.close()
+    with open(status_file, 'w') as sf:
+        sf.write("FAILED\n")
 
     testfail("    %s FAILED" % (test.name))
 
@@ -2667,21 +2645,17 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # check if it passed or failed
             status_file = "%s.status" % (test.name)
 
-            sf = open(status_file, 'r')
-
             testPassed = 0
 
-            for line in sf:
-                if line.find("PASSED") >= 0:
-                    testPassed = 1
-                    numPassed += 1
-                    break
+            with open(status_file, 'r') as sf:
+                for line in sf:
+                    if line.find("PASSED") >= 0:
+                        testPassed = 1
+                        numPassed += 1
+                        break
 
-            if not testPassed:
-                num_failed += 1
-
-
-            sf.close()
+                if not testPassed:
+                    num_failed += 1
 
             row_info = []
             row_info.append("<a href=\"{}.html\">{}</a>".format(test.name, test.name))
@@ -2740,15 +2714,14 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
 
-            bf = open(benchStatusFile, 'r')
-
             benchFile = "none"
 
-            for line in bf:
-                index = line.find("file:")
-                if index >= 0:
-                    benchFile = line[index+5:]
-                    break
+            with open(benchStatusFile, 'r') as bf:
+                for line in bf:
+                    index = line.find("file:")
+                    if index >= 0:
+                        benchFile = line[index+5:]
+                        break
 
             row_info = []
             row_info.append("{}".format(test.name))
@@ -2774,21 +2747,18 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     #--------------------------------------------------------------------------
 
     status_file = os.path.normpath(suite.test_dir) + ".status"
-    sf = open(status_file, 'w')
+    with open(status_file, 'w') as sf:
 
-    if make_benchmarks == None:
-        if num_failed == 0:
-            sf.write("ALL PASSED\n")
-        elif num_failed > 0 and numPassed > 0:
-            sf.write("SOME FAILED\n")
+        if make_benchmarks == None:
+            if num_failed == 0:
+                sf.write("ALL PASSED\n")
+            elif num_failed > 0 and numPassed > 0:
+                sf.write("SOME FAILED\n")
+            else:
+                sf.write("ALL FAILED\n")
+
         else:
-            sf.write("ALL FAILED\n")
-
-    else:
-        sf.write("BENCHMARKS UPDATED\n")
-
-    sf.close()
-
+            sf.write("BENCHMARKS UPDATED\n")
 
     # switch back to the original directory
     os.chdir(currentDir)
@@ -2900,23 +2870,20 @@ def report_all_runs(suite, activeTestList):
 
             if os.path.isfile(status_file):
 
-                sf = open(status_file, 'r')
+                with open(status_file, 'r') as sf:
 
-                # status = -1 (failed); 1 (passed); 10 (benchmark update)
-                status = -1
-                for line in sf:
-                    if line.find("PASSED") >= 0:
-                        status = 1
-                        break
-                    elif line.find("FAILED") >= 0:
-                        status = -1
-                        break
-                    elif line.find("benchmarks updated") >= 0:
-                        status = 10
-                        break
-
-                sf.close()
-
+                    # status = -1 (failed); 1 (passed); 10 (benchmark update)
+                    status = -1
+                    for line in sf:
+                        if line.find("PASSED") >= 0:
+                            status = 1
+                            break
+                        elif line.find("FAILED") >= 0:
+                            status = -1
+                            break
+                        elif line.find("benchmarks updated") >= 0:
+                            status = 10
+                            break
 
             # write out this test's status
             if status == 1:
