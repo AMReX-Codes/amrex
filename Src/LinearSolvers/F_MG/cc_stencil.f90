@@ -18,7 +18,6 @@ module cc_stencil_module
 contains
 
   function stencil_norm(ss, mask, local) result(r)
-    use mg_tower_module
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
@@ -100,7 +99,6 @@ contains
   end function stencil_norm
 
   function max_of_stencil_sum(ss, mask, local) result(r)
-    use mg_tower_module
     use bl_prof_module
     real(kind=dp_t) :: r
     type(multifab), intent(in) :: ss
