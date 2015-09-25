@@ -755,11 +755,6 @@ def bold(str, skip_before=0):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def systemCall(string):
-    status = os.system('bash -c "' + string + '"')
-    return status
-
-
 def run(string, stdin=False, outfile=None, store_command=False, env=None):
 
     # shlex.split will preserve inner quotes
@@ -1756,25 +1751,18 @@ def test_suite(argv):
 
             if not outputFile == "":
 
-                print "  doing the visualization..."
-
-                if test.dim == 2:
-                    systemCall('{} --palette {}/Palette -cname "{}" -p "{}" >& /dev/null'.format(
-                        suite.tools["fsnapshot2d"], suite.compare_tool_dir,
-                        test.visVar, outputFile))
-                elif test.dim == 3:
-                    systemCall('{} --palette {}/Palette -n 1 -cname "{}" -p "{}" >& /dev/null'.format(
-                        suite.tools["fsnapshot3d"], suite.compare_tool_dir,
-                        test.visVar, outputFile))
-                else:
+                if test.dim == 1:
                     print "    Visualization not supported for dim = %d" % (test.dim)
+                else:
+                    print "  doing the visualization..."
+                    tool = suite.tools["fsnapshot{}d".format(test.dim)]
+                    run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
+                        tool, suite.compare_tool_dir, test.visVar, outputFile))
 
-
-                # convert the .ppm files into .png files
-                ppmFile = getRecentFileName(outputDir, "", ".ppm")
-
-                systemCall("convert %s `basename %s .ppm`.png" %
-                          (ppmFile, ppmFile) )
+                    # convert the .ppm files into .png files
+                    ppm_file = getRecentFileName(outputDir, "", ".ppm")
+                    png_file = ppm_file.replace(".ppm", ".png")
+                    run("convert {} {}".format(ppm_file, png_file))
 
             else:
                 warning("    WARNING: no output file.  Skipping visualization")
@@ -1789,18 +1777,15 @@ def test_suite(argv):
 
                 print "  doing the analysis..."
                 if test.useExtraBuildDir > 0:
-                    shutil.copy("{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],
-                                               test.analysisRoutine),
-                                os.getcwd())
+                    tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
                 else:
-                    shutil.copy("{}/{}".format(suite.sourceDir, test.analysisRoutine),
-                                os.getcwd())
+                    tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
 
+                shutil.copy(tool, os.getcwd())
 
                 option = eval("suite.{}".format(test.analysisMainArgs))
-
-                systemCall("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                             option, outputFile))
+                run("{} {} {}".format(os.path.basename(test.analysisRoutine),
+                                      option, outputFile))
 
             else:
                 warning("    WARNING: no output file.  Skipping visualization")
