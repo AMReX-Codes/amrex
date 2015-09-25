@@ -1151,10 +1151,13 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 	                                       std::ios::binary);
         csDFile.seekg(csPatch.seekPos, std::ios::beg);
         csDFile.read((char *) &csOnDisk, sizeof(CallStats));
-	std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
-	          << "  " << csOnDisk.totalTime << '\n'
-		  << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
-		  << "  " << csPatch.callStats.totalTime << std::endl;
+	bool bReportPatches(false);
+	if(bReportPatches) {
+	  std::cout << myProc << "::PATCH:  csOnDisk.st tt = " << csOnDisk.stackTime
+	            << "  " << csOnDisk.totalTime << '\n'
+		    << myProc << "::PATCH:  csPatch.st tt = " << csPatch.callStats.stackTime
+		    << "  " << csPatch.callStats.totalTime << std::endl;
+	}
 	csOnDisk.totalTime = csPatch.callStats.totalTime;
 	csOnDisk.stackTime = csPatch.callStats.stackTime;
         csDFile.seekp(csPatch.seekPos, std::ios::beg);

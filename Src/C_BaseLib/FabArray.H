@@ -454,13 +454,21 @@ public:
     //
     const Box& tilebox () const { return tileArray[currentIndex]; }
     //
-    // Returns the dir-nodal Box at the current index.
+    // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
-    Box nodaltilebox (int dir) const;
+    Box nodaltilebox (int dir=-1) const;
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
     Box growntilebox (int ng=-1) const;
+    //
+    //  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
+    //
+    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
+    //
+    // Nodalize a tile box
+    //
+    void nodalize (Box& bx, int dir) const;
     //
     // Returns the valid Box that current tile resides.
     //
@@ -620,13 +628,15 @@ public:
     FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
+              FabAlloc        mem_mode = Fab_allocate,
+	      const IntVect&  nodal = IntVect::TheZeroVector());
 
     FabArray (const BoxArray&            bxs,
               int                        nvar,
               int                        ngrow,
               const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+              FabAlloc                   mem_mode = Fab_allocate,
+	      const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -640,13 +650,15 @@ public:
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
-                 FabAlloc        mem_mode);
+                 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
                  int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+                 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Returns true if the FabArray is well-defined.  That is,
     // if FABs are allocated for each Box in the BoxArray and the
@@ -848,7 +860,8 @@ protected:
                      int                        nvar,
                      int                        ngrow,
                      FabAlloc                   mem_mode,
-                     const DistributionMapping* dm);
+                     const DistributionMapping* dm,
+		     const IntVect&             nodal);
     //
     // The data.
     //
@@ -1372,9 +1385,10 @@ template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
                          int             nvar,
                          int             ngrow,
-                         FabAlloc        alloc)
+                         FabAlloc        alloc,
+			 const IntVect&  nodal)
 {
-    define(bxs,nvar,ngrow,alloc);
+    define(bxs,nvar,ngrow,alloc,nodal);
 }
 
 template <class FAB>
@@ -1382,9 +1396,10 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const DistributionMapping& dm,
-                         FabAlloc                   alloc)
+                         FabAlloc                   alloc,
+			 const IntVect&             nodal)
 {
-    define(bxs,nvar,ngrow,dm,alloc);
+    define(bxs,nvar,ngrow,dm,alloc,nodal);
 }
 
 template <class FAB>
@@ -1425,16 +1440,28 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
                            int                        nvar,
                            int                        ngrow,
                            FabAlloc                   alloc,
-                           const DistributionMapping* dm)
+                           const DistributionMapping* dm,
+			   const IntVect&             nodal)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
 
     n_grow = ngrow;
     n_comp = nvar;
-    //faID   = nFabArrays++;
 
     boxarray.define(bxs);
+
+    if (nodal != IntVect::TheZeroVector()) {
+	if (nodal == IntVect::TheUnitVector()) {
+	    boxarray.surroundingNodes();
+	} else {
+	    for (int i=0; i<BL_SPACEDIM; ++i) {
+		if (nodal[i]) {
+		    boxarray.surroundingNodes(i);
+		} 
+	    }
+	}
+    }
 
     if (dm == 0)
     {
@@ -1478,9 +1505,10 @@ void
 FabArray<FAB>::define (const BoxArray& bxs,
                        int             nvar,
                        int             ngrow,
-                       FabAlloc        alloc)
+                       FabAlloc        alloc,
+		       const IntVect&  nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,0);
+    defineDoit(bxs,nvar,ngrow,alloc,0,nodal);
 }
 
 template <class FAB>
@@ -1489,9 +1517,10 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        int                        nvar,
                        int                        ngrow,
                        const DistributionMapping& dm,
-                       FabAlloc                   alloc)
+                       FabAlloc                   alloc,
+		       const IntVect&             nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,&dm);
+    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal);
 }
 
 template <class FAB>
@@ -2160,8 +2189,8 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   std::map<int, FAB *> tempIndexFABs;
   typename std::map<int, FAB *>::iterator tIFiter;
   if(fabMoves.size() > 0) {  // ---- there are fabs on this proc to send || recv | both
-    if(indexMap.size() != m_fabs_v.size()) {  // ---- errro
-      BoxLib::Abort("**** Errror:  indexMap size != m_fabs_v.size()");
+    if(indexMap.size() != m_fabs_v.size()) {
+      BoxLib::Abort("**** Error:  indexMap size != m_fabs_v.size()");
     }
     for(int iim(0); iim < indexMap.size(); ++iim) {
       tIFiter = tempIndexFABs.find(indexMap[iim]);
@@ -2217,10 +2246,12 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     }
   }
 
+  // ---- we could defer this, not do it, or just do it the first time through
   ParallelDescriptor::ReduceIntSum(nFabsSent);
 
 
   // ---- wait for all the data to move
+  // ---- we could defer Waitall for multiple calls to MoveFabs with a multi-step process
   Array<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
 
   if(recvReqs.size() > 0) {

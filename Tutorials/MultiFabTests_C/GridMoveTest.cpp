@@ -37,25 +37,6 @@ const int nTimes(4);
 
 
 // --------------------------------------------------------------------------
-void UniqueSet(Array<int> &uSet, int setSize, int poolSize) {   // ---- a unique set of random numbers
-  if(setSize > poolSize) {
-    BoxLib::Abort("**** Error in UniqueSet:  setSize > poolSize.");
-  }
-  std::set<int> copySet;
-  while(copySet.size() < setSize) {
-    int r(BoxLib::Random_int(poolSize));
-    if(copySet.find(r) == copySet.end()) {
-      copySet.insert(r);
-      uSet.push_back(r);
-    }
-  }
-  for(int i(0); i < uSet.size(); ++i) {
-    std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
-  }
-}
-
-
-// --------------------------------------------------------------------------
 void SetFabValsToPMap(MultiFab &mf) {
   const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
   for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -160,7 +141,7 @@ int main(int argc, char *argv[]) {
 
       Array<int> copyArray;
       if(ParallelDescriptor::IOProcessor()) {
-        UniqueSet(copyArray, nRanksInSet, nProcs);
+        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -207,9 +188,8 @@ int main(int argc, char *argv[]) {
       if(nRanksInSet % 2 != 0) {
         BoxLib::Abort("**** Bad nRanksInSet");
       }
-
       if(ParallelDescriptor::IOProcessor()) {
-        UniqueSet(copyArray, nRanksInSet, nProcs);
+        BoxLib::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
         copyArray.resize(nRanksInSet);
       }
@@ -227,8 +207,6 @@ int main(int argc, char *argv[]) {
 
       SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfOriginal");
-
-      mf.MoveFabs(newDistMapArray);
 
       SetFabValsToPMap(mf);
       VisMF::Write(mf, "mfMoves");

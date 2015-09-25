@@ -1140,6 +1140,19 @@ ifeq ($(USE_HPGMG), TRUE)
 # which smoothing method?
   ifeq ($(HPGMG_SMOOTHER), GSRB)
     DEFINES += -DUSE_GSRB=1
+    # HPGMG has several different ways to apply the GSRB smooths
+    ifeq ($(HPGMG_GSRB_TYPE), STRIDE2)
+      DEFINES += -DGSRB_STRIDE2=1
+    else ifeq ($(HPGMG_GSRB_TYPE), FP)
+      DEFINES += -DGSRB_FP=1
+    else ifeq ($(HPGMG_GSRB_TYPE), BRANCH)
+      DEFINES += -DGSRB_BRANCH=1
+    else
+      DEFINES += -DGSRB_STRIDE2=1
+    endif
+    ifeq ($(HPGMG_GSRB_OOP), TRUE)
+      DEFINES += -DGSRB_OOP=1
+    endif
   else ifeq ($(HPGMG_SMOOTHER), CHEBY)
     DEFINES += -DUSE_CHEBY=1
   else ifeq ($(HPGMG_SMOOTHER), JACOBI)

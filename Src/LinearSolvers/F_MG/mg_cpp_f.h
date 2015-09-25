@@ -85,8 +85,6 @@
 #define mgt_set_cfbny_3d          MGT_SET_CFBNY_3D
 #define mgt_set_cfbnz_3d          MGT_SET_CFBNZ_3D
 
-#define mgt_set_all_const         MGT_SET_ALL_CONST
-
 #define mgt_set_cfa_1d_const      MGT_SET_CFA_1D_CONST
 #define mgt_set_cfbx_1d_const     MGT_SET_CFBX_1D_CONST
 #define mgt_set_cfa_2d_const      MGT_SET_CFA_2D_CONST
@@ -226,8 +224,6 @@
 #define mgt_set_cfbny_3d          mgt_set_cfbny_3d_
 #define mgt_set_cfbnz_3d          mgt_set_cfbnz_3d_
 
-#define mgt_set_all_const         mgt_set_all_const_
-
 #define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const_
 #define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const_
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const_
@@ -355,8 +351,6 @@
 #define mgt_set_cfby_3d           mgt_set_cfby_3d__
 #define mgt_set_cfbz_3d           mgt_set_cfbz_3d__
 
-#define mgt_set_all_const         mgt_set_all_const__
-
 #define mgt_set_cfa_1d_const      mgt_set_cfa_1d_const__
 #define mgt_set_cfbx_1d_const     mgt_set_cfbx_1d_const__
 #define mgt_set_cfa_2d_const      mgt_set_cfa_2d_const__
@@ -483,7 +477,7 @@ extern "C"
   
   void mgt_get_uu_1d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_get_res_1d(const int* lev, const int* n, Real* uu, 
 		      const int* plo, const int* phi, 
@@ -526,8 +520,6 @@ extern "C"
 		        const int* plo, const int* phi, 
 		        const int* lo, const int* hi, const int& ncomps);
   
-  void mgt_set_all_const(const int* lev, const Real* alpha_const, const Real* beta_const);
-  
   void mgt_set_cfa_1d_const(const int* lev, const int* n, 
 		            const int* lo, const int* hi, const Real* value);
   
@@ -559,7 +551,7 @@ extern "C"
   
   void mgt_get_uu_2d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_get_res_2d(const int* lev, const int* n, Real* uu, 
 		      const int* plo, const int* phi, 
@@ -646,7 +638,7 @@ extern "C"
   
   void mgt_get_uu_3d(const int* lev, const int* n, Real* uu, 
 		     const int* plo, const int* phi, 
-		     const int* lo, const int* hi, const int* ng);
+		     const int* lo, const int* hi);
   
   void mgt_set_uu_3d(const int* lev, const int* n, const Real* uu, 
 		     const int* plo, const int* phi, 

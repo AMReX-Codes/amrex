@@ -454,23 +454,23 @@ mac_level_driver (Amr*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-        const MultiFab* aa_p[1]; 
-        aa_p[0] = &(mac_op.aCoefficients());
-        const MultiFab* bb_p[1][BL_SPACEDIM];
+	Array<PArray<MultiFab> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0][i] = &(mac_op.bCoefficients(i));
+            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
         }
 
-        mgt_solver.set_mac_coefficients(aa_p, bb_p, xa, xb);
+        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
         MultiFab* mac_phi_p[1];
         MultiFab* Rhs_p[1];
         mac_phi_p[0] = mac_phi;
         Rhs_p[0] = &Rhs;
 
+	int always_use_bnorm = 0;
         Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_tol, mac_abs_tol, mac_bndry, final_resnorm);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
     }
     else
     {
@@ -590,22 +590,23 @@ mac_sync_driver (Amr*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-        const MultiFab* aa_p[1];
-        aa_p[0] = &(mac_op.aCoefficients());
-        const MultiFab* bb_p[1][BL_SPACEDIM];
+	Array<PArray<MultiFab> > bb_p(1);
+	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            bb_p[0][i] = &(mac_op.bCoefficients(i));
+            bb_p[0].set(i, &(mac_op.bCoefficients(i)));
         }
-        mgt_solver.set_mac_coefficients(aa_p, bb_p, xa, xb);
+
+        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
         MultiFab* mac_phi_p[1];
         MultiFab* Rhs_p[1];
         mac_phi_p[0] = mac_sync_phi;
         Rhs_p[0] = &Rhs;
 
+	int always_use_bnorm = 0;
         Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_sync_tol, mac_abs_tol, mac_bndry, final_resnorm);
+        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_sync_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
     }
     else
     {

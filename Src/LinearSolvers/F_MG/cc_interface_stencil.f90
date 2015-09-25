@@ -42,7 +42,7 @@ contains
     real(kind=dp_t),intent(in   ) :: efactor
 
     type(box)      :: fbox
-    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm, face, dim
+    integer        :: lor(get_dim(res)), los(get_dim(res)), i, j, dm, face, dim, idim
     integer        :: lo (get_dim(res)), hi (get_dim(res)), loc(get_dim(res))
     logical        :: pmask(get_dim(res))
     real(kind=dp_t), pointer :: rp(:,:,:,:), fp(:,:,:,:), cp(:,:,:,:), sp(:,:,:,:)
@@ -56,45 +56,53 @@ contains
     pmask = get_pmask(get_layout(res))
     dm    = get_dim(res)
 
-    ! unsafe to OMP because of overlap in crse boxes
-    ! If we really need to OMP, we could pass in bndry_reg instead of crse mf
-    do i = 1, nfabs(flux)
-       j = indxmap(i)
-       dim = abs(facemap(i))
-       face = sign(1, facemap(i))
+    !$omp parallel private(fbox,lor,los,i,j,face,dim,idim,lo,hi,loc,rp,fp,cp,sp)
+    do idim = 1, dm
+       !$omp do schedule(dynamic)
+       do i = 1, nfabs(flux)
 
-       fbox = get_ibox(flux,i)
-       if (pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
-          if ( face .eq. -1 ) then
-             fbox = shift(fbox,  extent(crse_domain,dim), dim)
-          else
-             fbox = shift(fbox, -extent(crse_domain,dim), dim)
+          dim = abs(facemap(i))
+
+          if (dim .eq. idim) then
+             j = indxmap(i)
+             face = sign(1, facemap(i))
+             
+             fbox = get_ibox(flux,i)
+             if (pmask(dim) .and. (.not. contains(crse_domain,fbox)) ) then
+                if ( face .eq. -1 ) then
+                   fbox = shift(fbox,  extent(crse_domain,dim), dim)
+                else
+                   fbox = shift(fbox, -extent(crse_domain,dim), dim)
+                end if
+             end if
+             
+             lo = lwb(fbox)
+             hi = upb(fbox)
+             fp => dataptr(flux,i,cf)
+             
+             loc  =  lwb(get_pbox(crse,j))
+             lor  =  lwb(get_pbox(res,j))
+             los  =  lwb(get_pbox(ss,j))
+             sp   => dataptr(ss, j)
+             rp   => dataptr(res, j, cr)
+             cp   => dataptr(crse, j, cr)
+             
+             select case (dm)
+             case (1)
+                call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
+                     sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
+             case (2)
+                call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+                     sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
+             case (3)
+                call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+                     sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
+             end select
           end if
-       end if
-
-       lo = lwb(fbox)
-       hi = upb(fbox)
-       fp => dataptr(flux,i,cf)
-
-       loc  =  lwb(get_pbox(crse,j))
-       lor  =  lwb(get_pbox(res,j))
-       los  =  lwb(get_pbox(ss,j))
-       sp   => dataptr(ss, j)
-       rp   => dataptr(res, j, cr)
-       cp   => dataptr(crse, j, cr)
-
-       select case (dm)
-       case (1)
-          call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
-               sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
-       case (2)
-          call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
-               sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
-       case (3)
-          call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
-               sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
-       end select
+       end do
+       !$omp end do
     end do
+    !$omp end parallel
 
     call destroy(bpt)
 
