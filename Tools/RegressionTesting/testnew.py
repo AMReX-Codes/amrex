@@ -1745,11 +1745,11 @@ def test_suite(argv):
 
 
         #----------------------------------------------------------------------
-        # do any requested visualization (2- and 3-d only)
+        # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if test.doVis and args.make_benchmarks == None:
+        if outputFile != "" and args.make_benchmarks == None:
 
-            if not outputFile == "":
+            if test.doVis: 
 
                 if test.dim == 1:
                     print "    Visualization not supported for dim = %d" % (test.dim)
@@ -1764,16 +1764,7 @@ def test_suite(argv):
                     png_file = ppm_file.replace(".ppm", ".png")
                     run("convert {} {}".format(ppm_file, png_file))
 
-            else:
-                warning("    WARNING: no output file.  Skipping visualization")
-
-
-        #----------------------------------------------------------------------
-        # do any analysis
-        #----------------------------------------------------------------------
-        if not test.analysisRoutine == "" and args.make_benchmarks == None:
-
-            if not outputFile == "":
+            if not test.analysisRoutine == "":
 
                 print "  doing the analysis..."
                 if test.useExtraBuildDir > 0:
@@ -1787,7 +1778,8 @@ def test_suite(argv):
                 run("{} {} {}".format(os.path.basename(test.analysisRoutine),
                                       option, outputFile))
 
-            else:
+        else:
+            if test.doVis or test.analysisRoutine != "":
                 warning("    WARNING: no output file.  Skipping visualization")
 
 
