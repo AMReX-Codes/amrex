@@ -361,7 +361,7 @@ class Suite(object):
         for t in tools:
             bold("building {}...".format(t))
             self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
-            exe = getRecentFileName(self.compare_tool_dir, t, ".exe")
+            exe = get_recent_filename(self.compare_tool_dir, t, ".exe")
             self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
 
 
@@ -506,12 +506,12 @@ def load_params(args):
                 else:
                     mysuite.sourceTree = value
 
-            elif opt == "sourceDir": mysuite.sourceDir = checkTestDir(value)
-            elif opt == "boxLibDir": mysuite.boxLibDir = checkTestDir(value)
-            elif opt == "testTopDir": mysuite.testTopDir = checkTestDir(value)
+            elif opt == "sourceDir": mysuite.sourceDir = check_test_dir(value)
+            elif opt == "boxLibDir": mysuite.boxLibDir = check_test_dir(value)
+            elif opt == "testTopDir": mysuite.testTopDir = check_test_dir(value)
             elif opt == "webTopDir": mysuite.webTopDir = os.path.normpath(value) + "/"
             elif opt == "extSrcDir":
-                mysuite.extSrcDir = checkTestDir(value)
+                mysuite.extSrcDir = check_test_dir(value)
                 mysuite.useExtSrc = 1
 
             elif opt == "extraBuildDir":
@@ -519,12 +519,12 @@ def load_params(args):
                 # want them in the correct order in the list so we can simply
                 # index later
                 if len(mysuite.extraBuildDirs) == 0:
-                    mysuite.extraBuildDirs.append(checkTestDir(value))
+                    mysuite.extraBuildDirs.append(check_test_dir(value))
                 else:
-                    mysuite.extraBuildDirs.insert(0,checkTestDir(value))
+                    mysuite.extraBuildDirs.insert(0,check_test_dir(value))
 
             elif opt == "extraBuildDir2":
-                mysuite.extraBuildDirs.append(checkTestDir(value))
+                mysuite.extraBuildDirs.append(check_test_dir(value))
 
             elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
@@ -790,7 +790,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None):
 # T E S T   S U I T E   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-def findBuildDirs(tests):
+def find_build_dirs(tests):
     """ given the list of test objects, find the set of UNIQUE build
         directories.  Note if we have the useExtraBuildDir flag set """
 
@@ -820,7 +820,6 @@ def findBuildDirs(tests):
 
     return build_dirs
 
-
 def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
     """ copy the last plotfile output from each test in testList 
         into the benchmark directory """
@@ -830,7 +829,7 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
         wd = "{}/{}".format(old_full_test_dir, t.name)
         os.chdir(wd)
 
-        p = getLastPlotfile(wd, t)
+        p = get_last_plotfile(wd, t)
         if not p == "": 
             if p.endswith(".tgz"):
                 try:
@@ -854,8 +853,7 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir):
             
         os.chdir(td)
         
-
-def getLastPlotfile(outputDir, test):
+def get_last_plotfile(outputDir, test):
     """given an output directory and the test name, find the last
        plotfile written.  Note: we give an error if the last
        plotfile is 0 """
@@ -877,10 +875,8 @@ def getLastPlotfile(outputDir, test):
 
     return last_plot
 
-
-def getRecentFileName(dir, base, extension):
-    """ given the base and extension, find the most recent corresponding
-    file """
+def get_recent_filename(dir, base, extension):
+    """ find the most recent file matching the base and extension """
 
     files = [f for f in os.listdir(dir) if (f.startswith(base) and
                                             f.endswith(extension))]
@@ -890,8 +886,7 @@ def getRecentFileName(dir, base, extension):
     try: return files.pop()
     except: return None
 
-
-def checkTestDir(dir_name):
+def check_test_dir(dir_name):
    """ given a string representing a directory, check if it points to
        a valid directory.  If so, return the directory name """
 
@@ -902,6 +897,12 @@ def checkTestDir(dir_name):
 
    return dir_name
 
+def convert_to_f_make_flag(opt):
+    if opt:
+        return "t"
+    else:
+        return " "
+
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
@@ -909,8 +910,6 @@ def checkTestDir(dir_name):
 def test_suite(argv):
 
     usage = """
-    testnew.py -h for options
-
     input file structure
 
       testfile.ini
@@ -1230,10 +1229,36 @@ def test_suite(argv):
 
 
     #--------------------------------------------------------------------------
-    # figure out which git repos we will update
+    # check bench dir and create output directories
     #--------------------------------------------------------------------------
-    no_update = args.no_update.lower()
+    all_compile = all([t.compileTest == 1 for t in testList])
 
+    if not all_compile:
+        bench_dir = suite.get_bench_dir()
+
+    last_run = suite.get_last_run()        
+    suite.make_test_dirs()
+
+    if not args.copy_benchmarks is None:
+        old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
+        copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
+
+        num_failed = report_this_test_run(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
+                                          "copy_benchmarks used -- no new tests run",
+                                          "",  
+                                          testList, args.input_file[0])
+        report_all_runs(suite, activeTestList)        
+        sys.exit("done")
+
+    
+    #--------------------------------------------------------------------------
+    # figure out what needs updating and do the git updates, save the
+    # current hash / HEAD, and make a ChangeLog
+    # --------------------------------------------------------------------------
+    now = time.localtime(time.time())
+    updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
+
+    no_update = args.no_update.lower()
     if not args.copy_benchmarks is None:
         no_update = "all"
 
@@ -1258,34 +1283,6 @@ def test_suite(argv):
             if e.lower() in nouplist:
                 suite.repos["extra_build-{}".format(n)].update = False
 
-    #--------------------------------------------------------------------------
-    # check bench dir and create output directories
-    #--------------------------------------------------------------------------
-    all_compile = all([t.compileTest == 1 for t in testList])
-
-    if not all_compile:
-        bench_dir = suite.get_bench_dir()
-
-    last_run = suite.get_last_run()        
-    suite.make_test_dirs()
-
-    if not args.copy_benchmarks is None:
-        old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
-        copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir)
-
-        num_failed = report_this_test_run(suite, args.copy_benchmarks,   # plays the role of make_benchmarks here
-                                          "copy_benchmarks used -- no new tests run",
-                                          "",  
-                                          testList, args.input_file[0])
-        report_all_runs(suite, activeTestList)        
-        sys.exit("done")
-    
-    #--------------------------------------------------------------------------
-    # do the git updates, save the current hash / HEAD, and make a ChangeLog
-    #-------------------------------------------------------------------------- 
-    now = time.localtime(time.time())
-    updateTime = time.strftime("%Y-%m-%d %H:%M:%S %Z", now)
-
     os.chdir(suite.testTopDir)
 
     for k in suite.repos:
@@ -1299,15 +1296,11 @@ def test_suite(argv):
 
 
     #--------------------------------------------------------------------------
-    # build the comparison and visualization tools
+    # build the tools and do a make clean, only once per build directory
     #--------------------------------------------------------------------------
     suite.build_tools(testList)
 
-
-    #--------------------------------------------------------------------------
-    # do a make clean, only once per build directory
-    #--------------------------------------------------------------------------
-    all_build_dirs = findBuildDirs(testList)
+    all_build_dirs = find_build_dirs(testList)
 
     bold("make clean in...", skip_before=1)
 
@@ -1357,7 +1350,6 @@ def test_suite(argv):
             print "  re-making clean..."
             suite.make_realclean()
 
-
         print "  building..."
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
@@ -1400,32 +1392,20 @@ def test_suite(argv):
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-            buildOptions = ""
-
-            if test.debug:
-                buildOptions += "NDEBUG= "
-            else:
-                buildOptions += "NDEBUG=t "
-
-            if test.useMPI:
-                buildOptions += "MPI=t "
-            else:
-                buildOptions += "MPI= "
-
-            if test.useOMP:
-                buildOptions += "OMP=t "
-            else:
-                buildOptions += "OMP= "
+            build_options = ""
+            build_options += "NDEBUG={} ".format(convert_to_f_make_flag(test.debug))
+            build_options += "MPI={} ".format(convert_to_f_make_flag(test.useMPI))
+            build_options += "OMP={} ".format(convert_to_f_make_flag(test.useOMP))
 
             if test.useExtraBuildDir > 0:
-                buildOptions += suite.extraBuildDirCompString + " "
+                build_options += suite.extraBuildDirCompString + " "
 
             comp_string = suite.build_f(opts="{} {} {}".format(
-                suite.extSrcCompString, test.addToCompileString, buildOptions),
+                suite.extSrcCompString, test.addToCompileString, build_options),
                           outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
-            executable = getRecentFileName(bDir,"main",".exe")
+            executable = get_recent_filename(bDir,"main",".exe")
 
         test.comp_string = comp_string
 
@@ -1565,7 +1545,7 @@ def test_suite(argv):
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
-            lastFile = getLastPlotfile(outputDir, test)
+            lastFile = get_last_plotfile(outputDir, test)
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
@@ -1606,7 +1586,7 @@ def test_suite(argv):
 
             if test.outputFile == "":
                 if test.compareFile == "":
-                    compareFile = getLastPlotfile(outputDir, test)
+                    compareFile = get_last_plotfile(outputDir, test)
                 else:
                     compareFile = test.compareFile
                 outputFile = compareFile
@@ -1760,7 +1740,7 @@ def test_suite(argv):
                         tool, suite.compare_tool_dir, test.visVar, outputFile))
 
                     # convert the .ppm files into .png files
-                    ppm_file = getRecentFileName(outputDir, "", ".ppm")
+                    ppm_file = get_recent_filename(outputDir, "", ".ppm")
                     png_file = ppm_file.replace(".ppm", ".png")
                     run("convert {} {}".format(ppm_file, png_file))
 
@@ -1807,7 +1787,7 @@ def test_suite(argv):
                 shutil.copy(file, "%s/%s.%s" % (suite.full_web_dir, test.name, file) )
 
             if test.doVis:
-               png_file = getRecentFileName(outputDir, "", ".png")
+               png_file = get_recent_filename(outputDir, "", ".png")
                if not png_file is None:
                    try: shutil.copy(png_file, suite.full_web_dir)
                    except IOError:
@@ -2448,7 +2428,7 @@ def report_single_test(suite, test):
 
         # show any visualizations
         if test.doVis:
-            png_file = getRecentFileName(suite.full_web_dir, test.name, ".png")
+            png_file = get_recent_filename(suite.full_web_dir, test.name, ".png")
             if not png_file is None:
                 hf.write("<P>&nbsp;\n")
                 hf.write("<P><IMG SRC='%s' BORDER=0>" % (png_file) )
