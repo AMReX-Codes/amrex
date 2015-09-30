@@ -897,11 +897,13 @@ def check_test_dir(dir_name):
 
    return dir_name
 
-def convert_to_f_make_flag(opt):
-    if opt:
-        return "t"
+def convert_to_f_make_flag(opt, test_not=False):
+    if test_not:
+        if opt: return " "
+        else: return "t"
     else:
-        return " "
+        if opt: return "t"
+        else: return " "
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -1393,7 +1395,7 @@ def test_suite(argv):
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             build_options = ""
-            build_options += "NDEBUG={} ".format(convert_to_f_make_flag(test.debug))
+            build_options += "NDEBUG={} ".format(convert_to_f_make_flag(test.debug, test_not=True))
             build_options += "MPI={} ".format(convert_to_f_make_flag(test.useMPI))
             build_options += "OMP={} ".format(convert_to_f_make_flag(test.useOMP))
 
