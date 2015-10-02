@@ -44,7 +44,7 @@ contains
 
           if (is_ibc_stencil(ss,b)) then
              if (any(lp .eqv. .true.)) then
-                r1 = max(r1, abs(sp(1,1,1,1)+2.d0*sum(abs(sp(2:,1,1,1)))))
+                r1 = max(r1, abs(sp(1,1,1,1))+2.d0*sum(abs(sp(2:,1,1,1))))
              end if
           else
              lo =  lbound(sp)
@@ -71,7 +71,7 @@ contains
           sp => dataptr(ss, b)
           
           if (is_ibc_stencil(ss,b)) then
-             r1 = max(r1, abs(sp(1,1,1,1)+2.d0*sum(abs(sp(2:,1,1,1)))))
+             r1 = max(r1, abs(sp(1,1,1,1))+2.d0*sum(abs(sp(2:,1,1,1))))
           else
              lo =  lbound(sp)
              hi =  ubound(sp)
@@ -193,7 +193,7 @@ contains
     type(box)        :: bx1, src, pd
     type(boxarray)   :: ba, sba
     type(layout)     :: la
-    integer          :: i, j, ii, jj, k, ldom
+    integer          :: i, j, ii, jj, k, ldom, blo, bhi
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
     logical          :: pmask(get_dim(st)), intflag
@@ -214,12 +214,19 @@ contains
     intflag = .true.
 
     do i = 1, get_dim(st)
-       if ( bc_face(i,1) == BC_PER .and. ( bc_face(i,1) /= bc_face(i,2) )) then
-          call bl_error("STENCIL_SET_BC: confusion in bc_face")
-       end if
        do j = -1, 1, 2
-          bx1 = shift(get_box(st, idx), j, i)
-          jj = (3 + j)/2
+          bx1 = get_box(st,idx)
+          if (j .eq. -1) then
+             jj = 1
+             blo = box_lwb_d(bx1, i)
+             call box_set_lwb_d(bx1, i, blo-1)
+             call box_set_upb_d(bx1, i, blo-1)
+          else
+             jj = 2
+             bhi = box_upb_d(bx1, i)
+             call box_set_lwb_d(bx1, i, bhi+1)
+             call box_set_upb_d(bx1, i, bhi+1)
+          end if
           if ( contains(pd, bx1) ) then
              !
              ! We're not touching a physical boundary -- set any/all C-F bndrys.
@@ -240,14 +247,10 @@ contains
                 !
                 ! We're not periodic in that direction -- use physical BCs.
                 !
-                call boxarray_box_diff(ba, bx1, pd)
-                do ii = 1, nboxes(ba)
-                   bx1 = shift(get_box(ba,ii), -j, i)
-                   mp => dataptr(mask, idx, bx1)
-                   mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
-                   intflag = .false.
-                end do
-                call boxarray_destroy(ba)
+                bx1 = shift(bx1, -j, i)
+                mp => dataptr(mask, idx, bx1)
+                mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
+                intflag = .false.
              else
                 !
                 ! Remove any/all Fine-Fine intersections.
