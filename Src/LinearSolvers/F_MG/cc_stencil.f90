@@ -259,7 +259,7 @@ contains
                 bx1 = shift(bx1, -j*ldom, i)
                 call layout_boxarray_diff(ba, bx1, la)
                 do ii = 1, nboxes(ba)
-                   bx1 = shift(bx1, j*ldom-j, i)
+                   bx1 = shift(get_box(ba,ii), j*ldom-j, i)
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
                    intflag = .false.
