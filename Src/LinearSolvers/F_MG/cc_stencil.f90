@@ -256,20 +256,10 @@ contains
                 ! Remove any/all Fine-Fine intersections.
                 !
                 ldom = extent(pd, i)
-                call boxarray_build_bx(ba, bx1)
-                do k = 1, nboxes(st%la)
-                   src = shift(get_box(st%la, k), j*ldom, i)
-                   if ( intersects(bx1, src) ) then
-                      call boxarray_build_bx(sba, src)
-                      call boxarray_diff(ba, sba)
-                      call boxarray_destroy(sba)
-                   end if
-                end do
-                !
-                ! Set any remaining boxes to C-F.
-                !
+                bx1 = shift(bx1, -j*ldom, i)
+                call layout_boxarray_diff(ba, bx1, la)
                 do ii = 1, nboxes(ba)
-                   bx1 = shift(get_box(ba,ii), -j, i)
+                   bx1 = shift(bx1, j*ldom-j, i)
                    mp => dataptr(mask, idx, bx1)
                    mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
                    intflag = .false.
