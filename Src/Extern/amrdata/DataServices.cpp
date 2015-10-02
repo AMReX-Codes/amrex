@@ -679,6 +679,24 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     } 
 #endif
 
+    case InvalidRequestType:
+    {
+      // not used here
+    }
+    break;
+
+    case ExitRequest:
+    {
+      // not used here
+    }
+    break;
+
+    case NewRequest:
+    {
+      // not used here
+    }
+    break;
+
   }  // end switch
 
   if(ParallelDescriptor::IOProcessor()) {
