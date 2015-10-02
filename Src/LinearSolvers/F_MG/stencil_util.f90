@@ -8,7 +8,7 @@ module stencil_util_module
   implicit none
 
   private
-  public :: is_ibc_stencil, make_ibc_stencil_fab, simple_ib_const, copy_from_ibc
+  public :: is_ibc_stencil, make_ibc_stencil_fab, simple_ib_const,  stencil_multifab_copy
 
 contains
 
@@ -40,73 +40,93 @@ contains
     ss(1:dm) = -beta_const*f1
   end subroutine simple_ib_const
 
-  subroutine copy_from_ibc(dst, src)
+  subroutine stencil_multifab_copy(dst, src)
     type(multifab), intent(in) :: src
     type(multifab), intent(inout) :: dst
     integer :: i, dm
     double precision, pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     dm = get_dim(dst)
+    do i = 1, nfabs(dst)
+       if (is_ibc_stencil(src,i)) then
+          call make_ibc_stencil_fab(dst, i, dm)
+       end if
+    end do
     !$omp parallel do private(i,pdst,psrc)
     do i = 1, nfabs(dst)
        pdst => dataptr(dst, i)
        psrc => dataptr(src, i)
-       if (is_ibc_stencil(src,i)) then
-          select case (dm)
-          case (1)
-             call bl_error("stencil_util::copy_from_ibc: 1d is not supported")
-          case (2)
-             call copy_from_ibc_to_simple_2d_const(pdst(:,:,:,1), psrc(:,1,1,1))
-          case (3)
-             call copy_from_ibc_to_simple_3d_const(pdst(:,:,:,:), psrc(:,1,1,1))
-          end select
-       else
-          call cpy_d(pdst, psrc)
-       end if
+       call cpy_d(pdst, psrc)
     end do
     !$omp end parallel do
-  end subroutine copy_from_ibc
+  end subroutine stencil_multifab_copy
 
-  subroutine copy_from_ibc_to_simple_2d_const(sdst, ssrc)
-    real (kind = dp_t), intent(in ) :: ssrc(0:)
-    real (kind = dp_t), intent(out) :: sdst(0:,1:,1:)
-    integer :: i, j, nx, ny
-    nx = size(sdst,dim=2)
-    ny = size(sdst,dim=3)
-    ! see cc_stencil.f90 for simple_2d_const
-    do j = 1, ny
-       do i = 1, nx
-          sdst(0,i,j) = ssrc(0)
-          sdst(1,i,j) = ssrc(1)
-          sdst(2,i,j) = ssrc(1)
-          sdst(3,i,j) = ssrc(2)
-          sdst(4,i,j) = ssrc(2)
-          sdst(5:,i,j) = zero
-       end do
-    end do
-  end subroutine copy_from_ibc_to_simple_2d_const
+  ! subroutine copy_from_ibc(dst, src)
+  !   type(multifab), intent(in) :: src
+  !   type(multifab), intent(inout) :: dst
+  !   integer :: i, dm
+  !   double precision, pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
+  !   dm = get_dim(dst)
+  !   !$omp parallel do private(i,pdst,psrc)
+  !   do i = 1, nfabs(dst)
+  !      pdst => dataptr(dst, i)
+  !      psrc => dataptr(src, i)
+  !      if (is_ibc_stencil(src,i)) then
+  !         select case (dm)
+  !         case (1)
+  !            call bl_error("stencil_util::copy_from_ibc: 1d is not supported")
+  !         case (2)
+  !            call copy_from_ibc_to_simple_2d_const(pdst(:,:,:,1), psrc(:,1,1,1))
+  !         case (3)
+  !            call copy_from_ibc_to_simple_3d_const(pdst(:,:,:,:), psrc(:,1,1,1))
+  !         end select
+  !      else
+  !         call cpy_d(pdst, psrc)
+  !      end if
+  !   end do
+  !   !$omp end parallel do
+  ! end subroutine copy_from_ibc
 
-  subroutine copy_from_ibc_to_simple_3d_const(sdst, ssrc)
-    real (kind = dp_t), intent(in ) :: ssrc(0:)
-    real (kind = dp_t), intent(out) :: sdst(0:,1:,1:,1:)
-    integer :: i, j, k, nx, ny, nz
-    nx = size(sdst,dim=2)
-    ny = size(sdst,dim=3)
-    nz = size(sdst,dim=4)
-    ! see cc_stencil.f90 for simple_3d_const
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             sdst(0,i,j,k) = ssrc(0)
-             sdst(1,i,j,k) = ssrc(1)
-             sdst(2,i,j,k) = ssrc(1)
-             sdst(3,i,j,k) = ssrc(2)
-             sdst(4,i,j,k) = ssrc(2)
-             sdst(5,i,j,k) = ssrc(3)
-             sdst(6,i,j,k) = ssrc(3)
-             sdst(7:,i,j,k) = zero
-          end do
-       end do
-    end do
-  end subroutine copy_from_ibc_to_simple_3d_const
+  ! subroutine copy_from_ibc_to_simple_2d_const(sdst, ssrc)
+  !   real (kind = dp_t), intent(in ) :: ssrc(0:)
+  !   real (kind = dp_t), intent(out) :: sdst(0:,1:,1:)
+  !   integer :: i, j, nx, ny
+  !   nx = size(sdst,dim=2)
+  !   ny = size(sdst,dim=3)
+  !   ! see cc_stencil.f90 for simple_2d_const
+  !   do j = 1, ny
+  !      do i = 1, nx
+  !         sdst(0,i,j) = ssrc(0)
+  !         sdst(1,i,j) = ssrc(1)
+  !         sdst(2,i,j) = ssrc(1)
+  !         sdst(3,i,j) = ssrc(2)
+  !         sdst(4,i,j) = ssrc(2)
+  !         sdst(5:,i,j) = zero
+  !      end do
+  !   end do
+  ! end subroutine copy_from_ibc_to_simple_2d_const
+
+  ! subroutine copy_from_ibc_to_simple_3d_const(sdst, ssrc)
+  !   real (kind = dp_t), intent(in ) :: ssrc(0:)
+  !   real (kind = dp_t), intent(out) :: sdst(0:,1:,1:,1:)
+  !   integer :: i, j, k, nx, ny, nz
+  !   nx = size(sdst,dim=2)
+  !   ny = size(sdst,dim=3)
+  !   nz = size(sdst,dim=4)
+  !   ! see cc_stencil.f90 for simple_3d_const
+  !   do k = 1, nz
+  !      do j = 1, ny
+  !         do i = 1, nx
+  !            sdst(0,i,j,k) = ssrc(0)
+  !            sdst(1,i,j,k) = ssrc(1)
+  !            sdst(2,i,j,k) = ssrc(1)
+  !            sdst(3,i,j,k) = ssrc(2)
+  !            sdst(4,i,j,k) = ssrc(2)
+  !            sdst(5,i,j,k) = ssrc(3)
+  !            sdst(6,i,j,k) = ssrc(3)
+  !            sdst(7:,i,j,k) = zero
+  !         end do
+  !      end do
+  !   end do
+  ! end subroutine copy_from_ibc_to_simple_3d_const
 
 end module stencil_util_module
