@@ -635,10 +635,12 @@ operator<< (std::ostream&   os,
 BoxList
 BoxArray::boxList () const
 {
-    if ( size() == 0 ) return BoxList();
-    BoxList newb(get(0).ixType());
-    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
-        newb.push_back(*it);
+    BoxList newb;
+    if ( size() > 0 ) {
+	newb.set(get(0).ixType());
+	for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+	    newb.push_back(*it);
+    }
     return newb;
 }
 
