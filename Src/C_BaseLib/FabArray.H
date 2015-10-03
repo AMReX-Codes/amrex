@@ -93,7 +93,7 @@ public:
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
     //
-    const Box fabbox (int K) const;
+    Box fabbox (int K) const;
     //
     // Returns the number of FABs in the FabArray..
     //
@@ -428,7 +428,7 @@ public:
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    const Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
