@@ -8,6 +8,9 @@ module stencil_defect_module
 
   implicit none
 
+  private
+  public :: compute_defect, stencil_apply
+
 contains
 
   ! Computes dd = ff - ss * uu
@@ -43,10 +46,12 @@ contains
 
     use bl_prof_module
 
-    use cc_stencil_apply_module
+    use cc_stencil_apply_module, only : stencil_apply_1d, stencil_apply_2d, stencil_apply_3d, &
+         stencil_apply_ibc_2d, stencil_apply_ibc_3d
     use nodal_stencil_apply_module, only: stencil_apply_1d_nodal, &
                                           stencil_apply_2d_nodal, &
                                           stencil_apply_3d_nodal
+    use stencil_util_module, only : is_ibc_stencil
 
     type(multifab), intent(in)    :: aa
     type(multifab), intent(inout) :: rr
@@ -85,37 +90,51 @@ contains
        rp => dataptr(rr, i)
        up => dataptr(uu, i)
        ap => dataptr(aa, i)
-       mp => dataptr(mm, i)
        lo = lwb(get_box(uu,i))
        hi = upb(get_box(uu,i))
-       do n = 1, ncomp(rr)
-          select case(dm)
-          case (1)
-             if ( .not. nodal_flag) then
-                call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
-                                      mp(:,1,1,1), lo, hi)
-             else
-                call stencil_apply_1d_nodal(ap(1,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
-                     mp(:,1,1,1), nghost(uu), nghost(rr), ldiagonalize)
-             end if
-          case (2)
-             if ( .not. nodal_flag) then
-                call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
-                     mp(:,:,1,1), lo, hi)
-             else
-                call stencil_apply_2d_nodal(ap(1,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
-                     mp(:,:,1,1), nghost(uu), nghost(rr), stencil_type, ldiagonalize)
-             end if
-          case (3)
-             if ( .not. nodal_flag) then
-                call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
-                                      mp(:,:,:,1), bottom_solver=lbottom_solver)
-             else
-                call stencil_apply_3d_nodal(ap(1,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
-                     mp(:,:,:,1), nghost(uu), nghost(rr), stencil_type, luniform_dh, lbottom_solver, ldiagonalize)
-             end if
-          end select
-       end do
+
+       if (is_ibc_stencil(aa,i)) then
+          do n = 1, ncomp(rr)
+             select case(dm)
+             case (2)
+                call stencil_apply_ibc_2d(ap(:,1,1,1), rp(:,:,1,n), nghost(rr), &
+                     up(:,:,1,n), nghost(uu), lo, hi)
+             case (3)
+                call stencil_apply_ibc_3d(ap(:,1,1,1), rp(:,:,:,n), nghost(rr), &
+                     up(:,:,:,n), nghost(uu), lo, hi)
+             end select
+          end do
+       else
+          mp => dataptr(mm, i)
+          do n = 1, ncomp(rr)
+             select case(dm)
+             case (1)
+                if ( .not. nodal_flag) then
+                   call stencil_apply_1d(ap(:,:,1,1), rp(:,1,1,n), nghost(rr), up(:,1,1,n), nghost(uu),  &
+                        mp(:,1,1,1), lo, hi)
+                else
+                   call stencil_apply_1d_nodal(ap(1,:,1,1), rp(:,1,1,n), up(:,1,1,n),  &
+                        mp(:,1,1,1), nghost(uu), nghost(rr), ldiagonalize)
+                end if
+             case (2)
+                if ( .not. nodal_flag) then
+                   call stencil_apply_2d(ap(:,:,:,1), rp(:,:,1,n), nghost(rr), up(:,:,1,n), nghost(uu),  &
+                        mp(:,:,1,1), lo, hi)
+                else
+                   call stencil_apply_2d_nodal(ap(1,:,:,1), rp(:,:,1,n), up(:,:,1,n),  &
+                        mp(:,:,1,1), nghost(uu), nghost(rr), stencil_type, ldiagonalize)
+                end if
+             case (3)
+                if ( .not. nodal_flag) then
+                   call stencil_apply_3d(ap(:,:,:,:), rp(:,:,:,n), nghost(rr), up(:,:,:,n), nghost(uu),  &
+                        mp(:,:,:,1), bottom_solver=lbottom_solver)
+                else
+                   call stencil_apply_3d_nodal(ap(1,:,:,:), rp(:,:,:,n), up(:,:,:,n),  &
+                        mp(:,:,:,1), nghost(uu), nghost(rr), stencil_type, luniform_dh, lbottom_solver, ldiagonalize)
+                end if
+             end select
+          end do
+       end if
     end do
 
     call destroy(bpt)
