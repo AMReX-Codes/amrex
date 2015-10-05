@@ -436,7 +436,7 @@ class Repo(object):
 
         bold("generating ChangeLog for {}/".format(self.name))
 
-        run("git log --name-only", outfile="ChangeLog.{}".format(self.name) )
+        run("git log --name-only", outfile="ChangeLog.{}".format(self.name), outfile_mode="w")
         shutil.copy("ChangeLog.{}".format(self.name), self.suite.full_web_dir)
 
     def git_back(self):
@@ -755,7 +755,7 @@ def bold(str, skip_before=0):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def run(string, stdin=False, outfile=None, store_command=False, env=None):
+def run(string, stdin=False, outfile=None, store_command=False, env=None, outfile_mode="a"):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
@@ -773,7 +773,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None):
     p0.stdout.close()
 
     if not outfile == None:
-        try: cf = open(outfile, "a")
+        try: cf = open(outfile, outfile_mode)
         except IOError:
             fail("  ERROR: unable to open file for writing")
         else:
