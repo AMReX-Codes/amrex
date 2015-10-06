@@ -77,7 +77,7 @@ public:
     //
     // Return opposite orientation.
     //
-    const Orientation flip () const
+    Orientation flip () const
     {
         return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
     }

@@ -198,7 +198,7 @@ public:
     //
     // Returns boundary conditions of specified component on the specified grid.
     //
-    const BCRec getBC (int comp, int i) const;
+    BCRec getBC (int comp, int i) const;
     //
     // Prints out the time interval.
     //

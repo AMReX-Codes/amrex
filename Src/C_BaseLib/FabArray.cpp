@@ -112,7 +112,7 @@ FabArrayBase::FabArrayBase ()
 
 FabArrayBase::~FabArrayBase () {}
 
-const Box
+Box
 FabArrayBase::fabbox (int K) const
 {
     return BoxLib::grow(boxarray[K], n_grow);

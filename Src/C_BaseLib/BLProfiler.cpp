@@ -468,6 +468,7 @@ void BLProfiler::Finalize() {
   // filter out profiler communications.
   CommStats::cftExclude.insert(AllCFTypes);
 
+
   // -------- make sure the set of profiled functions is the same on all processors
   Array<std::string> localStrings, syncedStrings;
   bool alreadySynced;
@@ -487,6 +488,25 @@ void BLProfiler::Finalize() {
         ProfStats ps;
         mProfStats.insert(std::pair<std::string, ProfStats>(syncedStrings[i], ps));
       }
+    }
+  }
+
+  // ---- add the following names if they have not been called already
+  // ---- they will be called below to write the database and the names
+  // ---- need to be in the database before it is written
+  Array<std::string> addNames;
+  addNames.push_back("ParallelDescriptor::Send(Tsii)i");
+  addNames.push_back("ParallelDescriptor::Recv(Tsii)i");
+  addNames.push_back("ParallelDescriptor::Gather(TsT1si)d");
+  addNames.push_back("ParallelDescriptor::Gather(TsT1si)l");
+  for(int iname(0); iname < addNames.size(); ++iname) {
+    std::map<std::string, ProfStats>::iterator it = mProfStats.find(addNames[iname]);
+    if(it == mProfStats.end()) {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "BLProfiler::Finalize:  adding name:  " << addNames[iname] << std::endl;
+      }
+      ProfStats ps;
+      mProfStats.insert(std::pair<std::string, ProfStats>(addNames[iname], ps));
     }
   }
 
