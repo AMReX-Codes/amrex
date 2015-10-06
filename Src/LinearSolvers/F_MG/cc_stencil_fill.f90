@@ -7,6 +7,10 @@ module cc_stencil_fill_module
 
   implicit none
 
+  private
+
+  public :: stencil_fill_cc_all_mglevels, stencil_fill_const_all_mglevels, stencil_fill_cc
+
 contains
 
   recursive subroutine stencil_fill_cc_all_mglevels(mgt, cell_coeffs, edge_coeffs, &
@@ -367,6 +371,7 @@ contains
                                 dh, mask, xa, xb, pxa, pxb, order, bc_face)
 
     use bl_prof_module
+    use stencil_util_module, only : make_ibc_stencil_fab, simple_ib_const
 
     type(multifab) , intent(inout) :: ss
     real(kind=dp_t), intent(in   ) :: dh(:)
@@ -382,7 +387,7 @@ contains
     real(kind=dp_t), pointer  ::  sp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
     integer                   :: i,id,dm
-    logical                   :: pmask(get_dim(ss))
+    logical                   :: pmask(get_dim(ss)), intbox
 
     type(bl_prof_timer), save :: bpt
 
@@ -396,35 +401,52 @@ contains
 
     do i = 1, nfabs(ss)
        bx = get_box(ss,i)
-       call stencil_set_bc(ss, i, mask, bc_face)
-       lxa = xa
-       lxb = xb
-       do id = 1,pd%dim
-          if ( .not. pmask(id) ) then
-             if ( bx%lo(id) == pd%lo(id) ) then
-                lxa(id) = pxa(id)
-             end if
-             if ( bx%hi(id) == pd%hi(id) ) then
-                lxb(id) = pxb(id)
-             end if
-          end if
-       end do
+       call stencil_set_bc(ss, i, mask, bc_face, intbox=intbox)
 
-       sp  => dataptr(ss, i)
-       mp  => dataptr(mask, i)
+       if (intbox) then
 
-       select case (dm)
-       case (1)
-           call bl_error("simple_1d_const not yet implemented")
-       case (2)
-           call simple_2d_const(sp(:,:,:,1),alpha_const,beta_const,&
-                                dh,mp(:,:,1,1), &
-                                bx%lo, bx%hi, lxa, lxb, order)
-       case (3)
-           call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
-                                dh,mp(:,:,:,1), &
-                                bx%lo, bx%hi, lxa, lxb, order)
-       end select
+          call make_ibc_stencil_fab(ss, i, dm)
+          sp  => dataptr(ss, i)
+
+          select case (dm)
+          case (1)
+             call bl_error("simple_1d_ib_const not yet implemented")
+          case default 
+             call simple_ib_const(sp(:,1,1,1), alpha_const, beta_const, dh, dm)
+          end select
+
+       else
+
+          lxa = xa
+          lxb = xb
+          do id = 1,pd%dim
+             if ( .not. pmask(id) ) then
+                if ( bx%lo(id) == pd%lo(id) ) then
+                   lxa(id) = pxa(id)
+                end if
+                if ( bx%hi(id) == pd%hi(id) ) then
+                   lxb(id) = pxb(id)
+                end if
+             end if
+          end do
+          
+          sp  => dataptr(ss, i)
+          mp  => dataptr(mask, i)
+          
+          select case (dm)
+          case (1)
+             call bl_error("simple_1d_const not yet implemented")
+          case (2)
+             call simple_2d_const(sp(:,:,:,1),alpha_const,beta_const,&
+                                  dh,mp(:,:,1,1), &
+                                  bx%lo, bx%hi, lxa, lxb, order)
+          case (3)
+             call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
+                                  dh,mp(:,:,:,1), &
+                                  bx%lo, bx%hi, lxa, lxb, order)
+          end select
+
+       end if
 
     end do
     

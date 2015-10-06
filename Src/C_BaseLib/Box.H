@@ -20,11 +20,11 @@ namespace BoxLib
     // Grow Box in all directions by given amount.
     // NOTE: n_cell negative shrinks the Box by that number of cells.
     //
-    const Box grow (const Box& b, int i);
+    Box grow (const Box& b, int i);
     //
     // Grow Box in each direction by specified amount.
     //
-    const Box grow (const Box& b, const IntVect& v);
+    Box grow (const Box& b, const IntVect& v);
     //
     // Coarsen Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo/ratio and
@@ -34,7 +34,7 @@ namespace BoxLib
     // That is, refinement of coarsened Box must contain
     // the original Box.
     //
-    const Box coarsen (const Box& b, int refinement_ratio);
+    Box coarsen (const Box& b, int refinement_ratio);
     //
     // Coarsen Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo/ratio and
@@ -44,7 +44,7 @@ namespace BoxLib
     // That is, refinement of coarsened Box must contain
     // the original Box.
     //
-    const Box coarsen (const Box& b, const IntVect& refinement_ratio);
+    Box coarsen (const Box& b, const IntVect& refinement_ratio);
     //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -52,7 +52,7 @@ namespace BoxLib
     // NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     // hi <- hi*ratio.
     //
-    const Box refine (const Box& b, int refinement_ratio);
+    Box refine (const Box& b, int refinement_ratio);
     //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -60,45 +60,45 @@ namespace BoxLib
     // NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     // hi <- hi*ratio.
     //
-    const Box refine (const Box& b, const IntVect& refinement_ratio);
+    Box refine (const Box& b, const IntVect& refinement_ratio);
     //
     // Return a Box with NODE based coordinates in direction dir
     // that encloses Box b.  NOTE: equivalent to b.convert(dir,NODE)
     // NOTE: error if b.type(dir) == NODE.
     //
-    const Box surroundingNodes (const Box& b, int dir);
+    Box surroundingNodes (const Box& b, int dir);
     //
     // Return a Box with NODE based coordinates in all
     // directions that encloses Box b.
     //
-    const Box surroundingNodes (const Box& b);
+    Box surroundingNodes (const Box& b);
     //
     // Return a Box with CELL based coordinates in 
     // direction dir that is enclosed by b.
     // NOTE: equivalent to b.convert(dir,CELL)
     // NOTE: error if b.type(dir) == CELL.
     //
-    const Box enclosedCells (const Box& b, int dir);
+    Box enclosedCells (const Box& b, int dir);
     //
     // Return a Box with CELL based coordinates in all
     // directions that is enclosed by b.
     //
-    const Box enclosedCells (const Box& b);
+    Box enclosedCells (const Box& b);
     //
     // Returns the edge-centered Box (in direction dir) defining
     // the low side of Box b.
     //
-    const Box bdryLo (const Box& b, int dir, int len=1);
+    Box bdryLo (const Box& b, int dir, int len=1);
     //
     // Returns the edge-centered Box (in direction dir) defining
     // the high side of Box b.
     //
-    const Box bdryHi (const Box& b, int dir, int len=1);
+    Box bdryHi (const Box& b, int dir, int len=1);
     //
     // Similar to bdryLo and bdryHi except that it operates on the
     // given face of  box b.
     //
-    const Box bdryNode (const Box& b, Orientation face, int len=1);
+    Box bdryNode (const Box& b, Orientation face, int len=1);
     //
     // Return the cell centered Box of length len adjacent
     // to b on the low end along the coordinate direction dir.
@@ -111,21 +111,21 @@ namespace BoxLib
     // retval.convert(dir,Box::CELL);
     // retval.setrange(dir,retval.smallEnd(dir)-len,len);
     //
-    const Box adjCellLo (const Box& b, int dir, int len=1);
+    Box adjCellLo (const Box& b, int dir, int len=1);
     //
     // Similar to adjCellLo but builds an adjacent Box on the high end.
     //
-    const Box adjCellHi (const Box& b, int dir, int len=1);
+    Box adjCellHi (const Box& b, int dir, int len=1);
     //
     // Similar to adjCellLo and adjCellHi; operates on given face.
     //
-    const Box adjCell (const Box& b, Orientation face, int len=1);
+    Box adjCell (const Box& b, Orientation face, int len=1);
     //
     // Modify Box to that of the minimum Box containing both
     // the original Box and the argument.
     // Both Boxes must have identical type.
     //
-    const Box minBox (const Box& b1, const Box& b2);
+    Box minBox (const Box& b1, const Box& b2);
 }
 
 //
@@ -213,7 +213,7 @@ public:
     //
     // Return the length of the Box.
     //
-    const IntVect size () const
+    IntVect size () const
     {
         return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
                               bigend[1]-smallend[1] + 1,
@@ -415,7 +415,7 @@ public:
     // Return Box that is intersection of this Box
     // and argument.  The Boxes MUST be of same type.
     //
-    const Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
+    Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
     //
     // Intersect this Box with its argument.
     // The Boxes MUST be of the same type.
@@ -440,7 +440,7 @@ public:
     //
     // Shift Box (relative) by given IntVect.
     //
-    const Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
+    Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
     //
     // Shift Box (relative) by given IntVect.
     //
@@ -448,7 +448,7 @@ public:
     //
     // Shift Box (relative) by given IntVect.
     //
-    const Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
+    Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
     //
     // Chop the Box at the chop_pnt in the dir direction
     // returns one Box, modifies the object Box.
@@ -461,7 +461,7 @@ public:
     // but is the only point in common.  It is also an error if the
     // chop_pnt is an end node of the Box.
     //
-    const Box chop (int dir,
+    Box chop (int dir,
                     int chop_pnt);
     //
     // Grow Box in all directions by given amount.

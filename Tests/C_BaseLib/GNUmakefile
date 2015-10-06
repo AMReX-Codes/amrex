@@ -1,8 +1,8 @@
 #
 # Set these to the appropriate value.
 #
-DIM          = 3
 DIM          = 2
+DIM          = 3
 
 COMP         = g++
 FCOMP        = gfortran
@@ -10,18 +10,18 @@ FCOMP        = gfortran
 DEBUG        = TRUE
 DEBUG        = FALSE
 
-USE_MPI      = TRUE
 USE_MPI      = FALSE
+USE_MPI      = TRUE
 
 PROFILE       = TRUE
-COMM_PROFILE  = FALSE
+COMM_PROFILE  = TRUE
 TRACE_PROFILE = FALSE
+#DEFINES += -DBL_PROFILING_SPECIAL
 
+USE_CXX11     = TRUE
 
 BOXLIB_HOME = ../..
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
-
-CXXFLAGS += -std=c++0x
 
 #
 # Base name of each of the executables we want to build.
@@ -39,6 +39,9 @@ CXXFLAGS += -std=c++0x
 #_progs  := tMF
 #_progs  := tFB
 #_progs  := tMFcopy
+#_progs  := AMRProfTestBL
+#_progs  := tFB
+#_progs  := tRABcast.cpp
 _progs  := tProfiler
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
