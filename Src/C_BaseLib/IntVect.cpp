@@ -100,23 +100,25 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT2
 }
 
-const IntVect
+IntVect
 BoxLib::min (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
-    return p.min(p2);
+    p.min(p2);
+    return p;
 }
 
-const IntVect
+IntVect
 BoxLib::max (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
-    return p.max(p2);
+    p.max(p2);
+    return p;
 }
 
-const IntVect
+IntVect
 BoxLib::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
@@ -125,13 +127,13 @@ BoxLib::BASISV (int dir)
     return tmp;
 }
 
-const IntVect
+IntVect
 BoxLib::scale (const IntVect& p, int s)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
-const IntVect
+IntVect
 BoxLib::reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
@@ -142,27 +144,29 @@ BoxLib::reflect (const IntVect& a,
     return b;
 }
 
-const IntVect
+IntVect
 BoxLib::diagShift (const IntVect& p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
-const IntVect
+IntVect
 BoxLib::coarsen (const IntVect& p,
 		 int            s)
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
-    return v.coarsen(IntVect(D_DECL(s,s,s)));
+    v.coarsen(IntVect(D_DECL(s,s,s)));
+    return v;
 }
 
-const IntVect
+IntVect
 BoxLib::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
     IntVect v = p1;
-    return v.coarsen(p2);
+    v.coarsen(p2);
+    return v;
 }
 
 IntVect&
