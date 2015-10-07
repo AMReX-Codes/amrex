@@ -19,35 +19,35 @@ namespace BoxLib
     //
     // Returns a BoxList defining the complement of BoxList bl in Box b.
     //
-    const BoxList complementIn (const Box& b, const BoxList& bl);
+    BoxList complementIn (const Box& b, const BoxList& bl);
     //
     // Returns BoxList defining the compliment of b2 in b1in.
     //
-    const BoxList boxDiff (const Box& b1in, const Box& b2);
+    BoxList boxDiff (const Box& b1in, const Box& b2);
     //
     // Returns a new BoxList in which each Box is refined by the given ratio.
     //
-    const BoxList refine (const BoxList&  bl, int ratio);
+    BoxList refine (const BoxList&  bl, int ratio);
     //
     // Returns a new BoxList in which each Box is coarsened by the given ratio.
     //
-    const BoxList coarsen (const BoxList& bl, int ratio);
+    BoxList coarsen (const BoxList& bl, int ratio);
     //
     // Returns a BoxList defining the intersection of bl with b.
     //
-    const BoxList intersect (const BoxList& bl, const Box& b);
+    BoxList intersect (const BoxList& bl, const Box& b);
     //
     // Returns a BoxList defining the intersection of bl with br.
     //
-    const BoxList intersect (const BoxList& bl, const BoxList& br);
+    BoxList intersect (const BoxList& bl, const BoxList& br);
     //
     // Returns a new BoxList in which each Box is grown by the given size.
     //
-    const BoxList accrete (const BoxList& bl, int sz);
+    BoxList accrete (const BoxList& bl, int sz);
     //
     // Return BoxList which covers the same area but has no overlapping boxes.
     //
-    const BoxList removeOverlap (const BoxList& bl);
+    BoxList removeOverlap (const BoxList& bl);
 }
 
 //
@@ -254,7 +254,7 @@ public:
     //
     // Returns smallest Box that contains all Boxes in this BoxList.
     //
-    const Box minimalBox () const;
+    Box minimalBox () const;
     //
     // Returns the IndexType of Boxes in this BoxList.
     //

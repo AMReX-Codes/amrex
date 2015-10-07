@@ -49,49 +49,54 @@ BoxList::remove (iterator bli)
     return *this;
 }
 
-const BoxList
+BoxList
 BoxLib::intersect (const BoxList& bl,
 		   const Box&     b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
-    return newbl.intersect(b);
+    newbl.intersect(b);
+    return newbl;
 }
 
-const BoxList
+BoxList
 BoxLib::intersect (const BoxList& bl,
                    const BoxList& br)
 {
     BL_ASSERT(bl.ixType() == br.ixType());
     BoxList newbl(bl);
-    return newbl.intersect(br);
+    newbl.intersect(br);
+    return newbl;
 }
 
-const BoxList
+BoxList
 BoxLib::refine (const BoxList& bl,
 		int            ratio)
 {
     BoxList nbl(bl);
-    return nbl.refine(ratio);
+    nbl.refine(ratio);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::coarsen (const BoxList& bl,
                  int            ratio)
 {
     BoxList nbl(bl);
-    return nbl.coarsen(ratio);
+    nbl.coarsen(ratio);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::accrete (const BoxList& bl,
                  int            sz)
 {
     BoxList nbl(bl);
-    return nbl.accrete(sz);
+    nbl.accrete(sz);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
@@ -288,7 +293,7 @@ BoxList::intersect (const BoxList& b)
     return *this;
 }
 
-const BoxList
+BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
@@ -480,7 +485,7 @@ BoxList::shiftHalf (const IntVect& iv)
 // Returns a list of boxes defining the compliment of b2 in b1in.
 //
 
-const BoxList
+BoxList
 BoxLib::boxDiff (const Box& b1in,
 		 const Box& b2)
 {
@@ -644,7 +649,7 @@ BoxList::minimize ()
     return cnt;
 }
 
-const Box
+Box
 BoxList::minimalBox () const
 {
     Box minbox(IntVect::TheUnitVector(), IntVect::TheZeroVector(), ixType());

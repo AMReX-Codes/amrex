@@ -80,12 +80,13 @@ Box::convert (IndexType t)
    return *this;
 }
 
-const Box
+Box
 BoxLib::surroundingNodes (const Box& b,
                           int        dir)
 {
     Box bx(b);
-    return bx.surroundingNodes(dir);
+    bx.surroundingNodes(dir);
+    return bx;
 }
 
 Box&
@@ -102,7 +103,7 @@ Box::surroundingNodes (int dir)
     return *this;
 }
 
-const Box
+Box
 BoxLib::surroundingNodes (const Box& b)
 {
     Box bx(b);
@@ -120,7 +121,7 @@ Box::surroundingNodes ()
     return *this;
 }
 
-const Box
+Box
 BoxLib::enclosedCells (const Box& b,
                        int        dir)
 {
@@ -143,7 +144,7 @@ Box::enclosedCells (int dir)
     return *this;
 }
 
-const Box
+Box
 BoxLib::enclosedCells (const Box& b)
 {
     Box bx(b);
@@ -161,7 +162,7 @@ Box::enclosedCells ()
     return *this;
 }
 
-const Box
+Box
 BoxLib::grow (const Box& b,
               int        i)
 {
@@ -170,7 +171,7 @@ BoxLib::grow (const Box& b,
     return result;
 }
 
-const Box
+Box
 BoxLib::grow (const Box&     b,
               const IntVect& v)
 {
@@ -398,12 +399,13 @@ Box::next (IntVect&   p,
 #endif
 }
 
-const Box
+Box
 BoxLib::refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
-    return result.refine(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.refine(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return result;
 }
 
 Box&
@@ -412,12 +414,13 @@ Box::refine (int ref_ratio)
     return this->refine(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
-const Box
+Box
 BoxLib::refine (const Box&     b,
                 const IntVect& ref_ratio)
 {
     Box result = b;
-    return result.refine(ref_ratio);
+    result.refine(ref_ratio);
+    return result;
 }
 
 Box&
@@ -489,7 +492,7 @@ Box::shortside (int& dir) const
 // If NODE: chop_pnt included in both Boxes.
 //
 
-const Box
+Box
 Box::chop (int dir,
            int chop_pnt)
 {
@@ -524,12 +527,13 @@ Box::chop (int dir,
     return Box(sm,bg,btype);
 }
 
-const Box
+Box
 BoxLib::coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
-    return result.coarsen(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    result.coarsen(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
+    return result;
 }
 
 Box&
@@ -538,12 +542,13 @@ Box::coarsen (int ref_ratio)
     return this->coarsen(IntVect(D_DECL(ref_ratio,ref_ratio,ref_ratio)));
 }
 
-const Box
+Box
 BoxLib::coarsen (const Box&     b,
                  const IntVect& ref_ratio)
 {
     Box result = b;
-    return result.coarsen(ref_ratio);
+    result.coarsen(ref_ratio);
+    return result;
 }
 
 Box&
@@ -644,12 +649,13 @@ operator>> (std::istream& is,
     return is;
 }
 
-const Box
+Box
 BoxLib::minBox (const Box& b,
                 const Box& o)
 {
     Box result = b;
-    return result.minBox(o);
+    result.minBox(o);
+    return result;
 }
 
 Box&
@@ -662,7 +668,7 @@ Box::minBox (const Box &b)
     return *this;
 }
 
-const Box
+Box
 BoxLib::bdryLo (const Box& b,
                 int        dir,
                 int        len)
@@ -679,7 +685,7 @@ BoxLib::bdryLo (const Box& b,
     return Box(low,hi,typ);
 }
 
-const Box
+Box
 BoxLib::bdryHi (const Box& b,
                 int        dir,
                 int        len)
@@ -698,7 +704,7 @@ BoxLib::bdryHi (const Box& b,
     return Box(low,hi,typ);
 }
 
-const Box
+Box
 BoxLib::bdryNode (const Box&  b,
                   Orientation face,
                   int         len)
@@ -726,7 +732,7 @@ BoxLib::bdryNode (const Box&  b,
     return Box(low,hi,typ);
 }
 
-const Box
+Box
 BoxLib::adjCellLo (const Box& b,
                    int        dir,
                    int        len)
@@ -745,7 +751,7 @@ BoxLib::adjCellLo (const Box& b,
     return Box(low,hi,typ);
 }
 
-const Box
+Box
 BoxLib::adjCellHi (const Box& b,
                    int        dir,
                    int        len)
@@ -765,7 +771,7 @@ BoxLib::adjCellHi (const Box& b,
     return Box(low,hi,typ);
 }
 
-const Box
+Box
 BoxLib::adjCell (const Box&  b,
                  Orientation face,
                  int         len)

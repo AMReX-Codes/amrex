@@ -219,109 +219,109 @@ contains
 ! ******************************************************************************************
 !
 
- subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
+ ! subroutine ml_cc_n_applyop(mla, mgt, res, full_soln, ref_ratio)
 
-    use bl_prof_module
-    use ml_cc_restriction_module , only : ml_cc_restriction
-    use ml_prolongation_module   , only : ml_interp_bcs
-    use cc_ml_resid_module       , only : crse_fine_residual_n_cc
+ !    use bl_prof_module
+ !    use ml_cc_restriction_module , only : ml_cc_restriction
+ !    use ml_prolongation_module   , only : ml_interp_bcs
+ !    use cc_ml_resid_module       , only : crse_fine_residual_n_cc
 
-    type(ml_layout), intent(in)    :: mla
-    type(mg_tower) , intent(inout) :: mgt(:)
-    type( multifab), intent(inout) :: res(:)
-    type( multifab), intent(inout) :: full_soln(:)
-    integer        , intent(in   ) :: ref_ratio(:,:)
+ !    type(ml_layout), intent(in)    :: mla
+ !    type(mg_tower) , intent(inout) :: mgt(:)
+ !    type( multifab), intent(inout) :: res(:)
+ !    type( multifab), intent(inout) :: full_soln(:)
+ !    integer        , intent(in   ) :: ref_ratio(:,:)
 
-    integer :: nlevs
-    type(multifab) , allocatable :: rh(:) ! this will be set to zero
-    type(bndry_reg), allocatable :: brs_flx(:)
-    type(bndry_reg), allocatable :: brs_bcs(:)
+ !    integer :: nlevs
+ !    type(multifab) , allocatable :: rh(:) ! this will be set to zero
+ !    type(bndry_reg), allocatable :: brs_flx(:)
+ !    type(bndry_reg), allocatable :: brs_bcs(:)
 
-    type(box) :: pd, pdc
-    type(layout) :: la, lac
-    integer :: n, ng_fill, nComp
-    integer :: mglev, mglev_crse
+ !    type(box) :: pd, pdc
+ !    type(layout) :: la, lac
+ !    integer :: n, ng_fill, nComp
+ !    integer :: mglev, mglev_crse
 
-    type(bl_prof_timer), save :: bpt
+ !    type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "ml_cc_n_applyop")
+ !    call build(bpt, "ml_cc_n_applyop")
 
-    nlevs = mla%nlevel
+ !    nlevs = mla%nlevel
 
-    allocate(rh(nlevs))
+ !    allocate(rh(nlevs))
 
-    allocate(brs_flx(2:nlevs))
-    allocate(brs_bcs(2:nlevs))
+ !    allocate(brs_flx(2:nlevs))
+ !    allocate(brs_bcs(2:nlevs))
 
-    nComp = 2
+ !    nComp = 2
 
-    do n = nlevs, 1, -1
+ !    do n = nlevs, 1, -1
 
-       la = mla%la(n)
-       call multifab_build(rh(n), la, 1, 0)
-       call multifab_setval(rh(n), ZERO,all=.true.)
+ !       la = mla%la(n)
+ !       call multifab_build(rh(n), la, 1, 0)
+ !       call multifab_setval(rh(n), ZERO,all=.true.)
 
-       ! zero residual just to be safe
-       call setval(res(n), ZERO,all=.true.)
+ !       ! zero residual just to be safe
+ !       call setval(res(n), ZERO,all=.true.)
 
-       if ( n == 1 ) exit
+ !       if ( n == 1 ) exit
 
-       ! Build the (coarse resolution) flux registers to be used in computing
-       !  the residual at a non-finest AMR level.
+ !       ! Build the (coarse resolution) flux registers to be used in computing
+ !       !  the residual at a non-finest AMR level.
 
-       pdc = layout_get_pd(mla%la(n-1))
-       lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
-       call  flux_reg_build   (brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nc = nComp)
+ !       pdc = layout_get_pd(mla%la(n-1))
+ !       lac = mla%la(n-1)
+ !       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
+ !       call  flux_reg_build   (brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, nc = nComp)
 
-    end do
+ !    end do
 
-    !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
-    !  its ghost cells before we evaluate the initial residual  
-    do n = 2,nlevs
-       ng_fill = nghost(full_soln(n))
-       pd = layout_get_pd(mla%la(n))
-       call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
-       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
-            ref_ratio(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
-            brs_bcs(n)%uncovered)
-    end do
+ !    !  Make sure full_soln at fine grid has the correct coarse grid bc's in 
+ !    !  its ghost cells before we evaluate the initial residual  
+ !    do n = 2,nlevs
+ !       ng_fill = nghost(full_soln(n))
+ !       pd = layout_get_pd(mla%la(n))
+ !       call multifab_fill_boundary(full_soln(n-1))
+ !       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+ !       call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
+ !            ref_ratio(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+ !            brs_bcs(n)%uncovered)
+ !    end do
 
-    call multifab_fill_boundary(full_soln(nlevs))
+ !    call multifab_fill_boundary(full_soln(nlevs))
 
-    do n = 1,nlevs,1
-       mglev = mgt(n)%nlevels
-       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.) 
-    end do
+ !    do n = 1,nlevs,1
+ !       mglev = mgt(n)%nlevels
+ !       call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
+ !                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.) 
+ !    end do
 
-    ! Make sure to correct the coarse cells immediately next to fine grids
-    !   using the averaged fine grid fluxes
-    do n = nlevs,2,-1
-       mglev      = mgt(n  )%nlevels
-       mglev_crse = mgt(n-1)%nlevels
+ !    ! Make sure to correct the coarse cells immediately next to fine grids
+ !    !   using the averaged fine grid fluxes
+ !    do n = nlevs,2,-1
+ !       mglev      = mgt(n  )%nlevels
+ !       mglev_crse = mgt(n-1)%nlevels
 
-       pdc = layout_get_pd(mla%la(n-1))
-       call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
-                                    ref_ratio(n-1,:), filled=.true.)
-       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
-    enddo
+ !       pdc = layout_get_pd(mla%la(n-1))
+ !       call crse_fine_residual_n_cc(n,mgt,full_soln,res(n-1),brs_flx(n),pdc, &
+ !                                    ref_ratio(n-1,:), filled=.true.)
+ !       call ml_cc_restriction(res(n-1), res(n), ref_ratio(n-1,:))
+ !    enddo
 
-    ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
-    do n=1,nlevs
-       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
-    end do
+ !    ! still need to multiply residual by -1 to get (alpha - del dot beta grad)
+ !    do n=1,nlevs
+ !       call multifab_mult_mult_s_c(res(n),1,-one,1,0)
+ !    end do
 
-    do n = nlevs, 1, -1
-       call multifab_destroy(rh(n))
-       if ( n == 1 ) exit
-       call bndry_reg_destroy(brs_bcs(n))
-       call bndry_reg_destroy(brs_flx(n))
-    end do
+ !    do n = nlevs, 1, -1
+ !       call multifab_destroy(rh(n))
+ !       if ( n == 1 ) exit
+ !       call bndry_reg_destroy(brs_bcs(n))
+ !       call bndry_reg_destroy(brs_flx(n))
+ !    end do
 
-    call destroy(bpt)
+ !    call destroy(bpt)
 
-  end subroutine ml_cc_n_applyop
+ !  end subroutine ml_cc_n_applyop
 
 end module cc_applyop_module
