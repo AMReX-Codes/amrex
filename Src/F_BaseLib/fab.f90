@@ -987,7 +987,9 @@ contains
     type(fab), intent(inout) :: fb
     if ( associated(fb%p) ) then
        deallocate(fb%p)
-       call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
+       if (fb%dim .gt. 0) then
+          call mem_stats_dealloc(fab_ms, volume(fb, all=.TRUE.))
+       end if
     end if
     fb%bx  = nobox(fb%dim)
     fb%dim = 0
@@ -2218,5 +2220,22 @@ contains
     integer(kind=ll_t) :: r
     r = mcluc_vol
   end function get_luc_vol
+
+  subroutine fab_build_0d (fb,nc)
+    type(fab), intent(out) :: fb
+    integer, intent(in) :: nc
+    fb%dim = 0
+    fb%bx  = nobox(3)
+    fb%pbx = fb%bx
+    fb%ibx = fb%bx
+    fb%nc  = nc
+    allocate(fb%p(nc,1,1,1))
+  end subroutine fab_build_0d
+
+  pure function fab_is_0d(fb) result(r)
+    logical :: r
+    type(fab), intent(in) :: fb
+    r = (fb%dim .eq. 0 .and. associated(fb%p))
+  end function fab_is_0d
 
 end module fab_module

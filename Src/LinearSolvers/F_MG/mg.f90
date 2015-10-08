@@ -4,6 +4,8 @@ module mg_module
   use cc_stencil_module
   use mg_tower_module
   use stencil_defect_module
+  use stencil_types_module
+  use bc_functions_module
 
   implicit none
 
@@ -158,7 +160,7 @@ contains
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
           ! Note that the cross stencils have 
-          !      ns = 2*dm (lo/hi each direction) + 1 (center) + 1 (extra used only at bc)
+          !      ns = 2*dm (lo/hi each direction) + 1 (center) + dm (extra used only at bc)
           if (mgt%dim .eq. 1) then
              mgt%ns = 4
           else if (mgt%dim .eq. 2) then
@@ -213,10 +215,12 @@ contains
        !
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
        !
+       !$omp parallel do private(j,p)
        do j = 1, nfabs(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
+       !$omp end parallel do
 
        call imultifab_build(mgt%mm(i), la1, 1, 0, nodal)
        if ( i /= n ) &
