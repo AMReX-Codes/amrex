@@ -17,21 +17,23 @@ EBASE     = main
 
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-include $(BOXLIB_HOME)/Src/C_AMRLib/Make.package
 
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
+# These are the directories in BoxLib
+Pdirs   := C_BaseLib C_AMRLib C_BoundaryLib 
+Ppack   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Plocs   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
 
-vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
+include $(Ppack)
+INCLUDE_LOCATIONS += $(Plocs)
+VPATH_LOCATIONS   += $(Plocs)
 
-vpath %.c   : . $(vpathdir)
-vpath %.h   : . $(vpathdir)
-vpath %.cpp : . $(vpathdir)
-vpath %.H   : . $(vpathdir)
-vpath %.F   : . $(vpathdir)
-vpath %.f   : . $(vpathdir)
-vpath %.f90 : . $(vpathdir)
+vpath %.c   : . $(VPATH_LOCATIONS)
+vpath %.h   : . $(VPATH_LOCATIONS)
+vpath %.cpp : . $(VPATH_LOCATIONS)
+vpath %.H   : . $(VPATH_LOCATIONS)
+vpath %.F   : . $(VPATH_LOCATIONS)
+vpath %.f   : . $(VPATH_LOCATIONS)
+vpath %.f90 : . $(VPATH_LOCATIONS)
 
 all: $(executable)
 
