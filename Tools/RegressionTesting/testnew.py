@@ -99,8 +99,8 @@ class Test(object):
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
         
-    def __cmp__(self, other):
-        return cmp(self.value(), other.value())
+    def __lt__(self, other):
+        return self.value() < other.value()
 
     def value(self):
         return self.name
@@ -545,7 +545,7 @@ def load_params(args):
 
     mysuite.log = log
 
-    valid_options = mysuite.__dict__.keys()
+    valid_options = list(mysuite.__dict__.keys())
     valid_options += ["extraBuildDir", "extraBuildDir2"]
 
     for opt in cp.options("main"):
