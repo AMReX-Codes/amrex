@@ -798,12 +798,9 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
       }
   }
 
-  if (rhmax > 0.0) 
-  {
-      ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
-      if (ParallelDescriptor::IOProcessor())
-          std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
-  }
+  ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
+  if (ParallelDescriptor::IOProcessor())
+      std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
   
 
   if (have_rhcc) {
