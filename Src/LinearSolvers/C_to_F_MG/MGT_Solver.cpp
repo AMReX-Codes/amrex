@@ -790,10 +790,10 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 	  }
       }
 
+      if (verbose > 0) {
 #ifdef _OPENMP
 #pragma omp critical (mgt_rhmax)
 #endif
-      {
 	  rhmax = std::max(rmax_this,rhmax);
       }
   }
