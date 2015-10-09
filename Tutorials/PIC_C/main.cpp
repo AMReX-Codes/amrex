@@ -1,12 +1,8 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <BLFort.H>
-
-#include "Particles.H"
-#include "Amr.H"
 #include "AmrLevel.H"
+#include "Amr.H"
+#include "Particles.H"
 
 // declare a fortran subroutine
 BL_FORT_PROC_DECL(WORK, work) (const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
