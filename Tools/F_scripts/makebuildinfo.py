@@ -68,13 +68,11 @@ import sys
 import os
 import getopt
 import datetime
-import string
 import subprocess
-
 
 def runcommand(command):
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    out = p.stdout.read()
+    out = p.stdout.read().decode("utf-8")
     return out.strip()
 
 
@@ -187,14 +185,12 @@ sDirParts = sourceDir.split("/")
 bDirParts = buildDir.split("/")
 
 isSubDir = 1
-n = 0
-while (n < len(sDirParts)):
-    if (not sDirParts[n] == bDirParts[n]):
+for n in range(len(sDirParts)):
+    if not sDirParts[n] == bDirParts[n]:
         isSubDir = 0
         break
-    n += 1
 
-if (not isSubDir):
+if not isSubDir:
     have_build_hash = 1
     os.chdir(buildDir)
     build_hash = runcommand("git rev-parse HEAD")
@@ -203,7 +199,7 @@ else:
     have_build_hash = 0
 
 # modules
-moduleList = string.split(modules)
+moduleList = modules.split()
 
 
 # output
@@ -213,40 +209,40 @@ for line in sourceString.splitlines():
 
     index = line.find("@@")
 
-    if (index >= 0):
+    if index >= 0:
         index2 = line.rfind("@@")
 
         keyword = line[index+len("@@"):index2]
 
-        if (keyword == "BUILD_DATE"):
-            newline = string.replace(line, "@@BUILD_DATE@@", build_date[:MAX_STRING_LENGTH])
+        if keyword == "BUILD_DATE":
+            newline = line.replace("@@BUILD_DATE@@", build_date[:MAX_STRING_LENGTH])
             fout.write(newline)
 
-        elif (keyword == "BUILD_DIR"):
-            newline = string.replace(line, "@@BUILD_DIR@@", build_dir[:MAX_STRING_LENGTH])
+        elif keyword == "BUILD_DIR":
+            newline = line.replace("@@BUILD_DIR@@", build_dir[:MAX_STRING_LENGTH])
             fout.write(newline)
 
-        elif (keyword == "BUILD_MACHINE"):
-            newline = string.replace(line, "@@BUILD_MACHINE@@", 
-                                     build_machine[:MAX_STRING_LENGTH])
+        elif keyword == "BUILD_MACHINE":
+            newline = line.replace("@@BUILD_MACHINE@@", 
+                                   build_machine[:MAX_STRING_LENGTH])
             fout.write(newline)
 
-        elif (keyword == "BOXLIB_DIR"):
-            newline = string.replace(line, "@@BOXLIB_DIR@@", 
-                                     boxlib_home[:MAX_STRING_LENGTH])
+        elif keyword == "BOXLIB_DIR":
+            newline = line.replace("@@BOXLIB_DIR@@", 
+                                   boxlib_home[:MAX_STRING_LENGTH])
             fout.write(newline)
 
-        elif (keyword == "FCOMP"):
-            newline = string.replace(line, "@@FCOMP@@", 
-                                     FCOMP)
+        elif keyword == "FCOMP":
+            newline = line.replace("@@FCOMP@@", 
+                                   FCOMP)
             fout.write(newline)            
 
-        elif (keyword == "FCOMP_VERSION"):
-            newline = string.replace(line, "@@FCOMP_VERSION@@", 
-                                     FCOMP_version[:MAX_STRING_LENGTH])
+        elif keyword == "FCOMP_VERSION":
+            newline = line.replace("@@FCOMP_VERSION@@", 
+                                   FCOMP_version[:MAX_STRING_LENGTH])
             fout.write(newline)            
 
-        elif (keyword == "F90_COMP_LINE"):
+        elif keyword == "F90_COMP_LINE":
             # this can span 2 lines
             if (len(f90_compile_line) > DBL_STRING_LINE_LENGTH):
                 str = f90_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
@@ -254,11 +250,11 @@ for line in sourceString.splitlines():
             else:
                 str = f90_compile_line
 
-            newline = string.replace(line, "@@F90_COMP_LINE@@", 
-                                     "\"%s\"" % (str))
+            newline = line.replace("@@F90_COMP_LINE@@", 
+                                   "\"%s\"" % (str))
             fout.write(newline)
 
-        elif (keyword == "F_COMP_LINE"):
+        elif keyword == "F_COMP_LINE":
             # this can span 2 lines
             if (len(f_compile_line) > DBL_STRING_LINE_LENGTH):
                 str = f_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
@@ -266,96 +262,89 @@ for line in sourceString.splitlines():
             else:
                 str = f_compile_line
 
-            newline = string.replace(line, "@@F_COMP_LINE@@", 
-                                     "\"%s\"" % (str))
+            newline = line.replace("@@F_COMP_LINE@@", 
+                                   "\"%s\"" % (str))
             fout.write(newline)
 
-        elif (keyword == "C_COMP_LINE"):
+        elif keyword == "C_COMP_LINE":
             # this can span 2 lines
-            if (len(C_compile_line) > DBL_STRING_LINE_LENGTH):
+            if len(C_compile_line) > DBL_STRING_LINE_LENGTH:
                 str = C_compile_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       C_compile_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = C_compile_line
 
-            newline = string.replace(line, "@@C_COMP_LINE@@", 
-                                     "\"%s\"" % (str))
+            newline = line.replace("@@C_COMP_LINE@@", 
+                                   "\"%s\"" % (str))
             fout.write(newline)
 
-
-        elif (keyword == "LINK_LINE"):
+        elif keyword == "LINK_LINE":
             # this can span 2 lines
-            if (len(link_line) > DBL_STRING_LINE_LENGTH):
+            if len(link_line) > DBL_STRING_LINE_LENGTH:
                 str = link_line[:DBL_STRING_LINE_LENGTH] + "\"// &\n\"" + \
                       link_line[DBL_STRING_LINE_LENGTH:2*DBL_STRING_LINE_LENGTH]
             else:
                 str = link_line
 
-            newline = string.replace(line, "@@LINK_LINE@@", 
-                                     "\"%s\"" % (str))
+            newline = line.replace("@@LINK_LINE@@", 
+                                   "\"%s\"" % (str))
             fout.write(newline)
 
-
-        elif (keyword == "BOXLIB_HASH"):
-            newline = string.replace(line, "@@BOXLIB_HASH@@", boxlib_hash)
+        elif keyword == "BOXLIB_HASH":
+            newline = line.replace("@@BOXLIB_HASH@@", boxlib_hash)
             fout.write(newline)
 
-        elif (keyword == "SOURCE_HASH"):
-            newline = string.replace(line, "@@SOURCE_HASH@@", source_hash)
+        elif keyword == "SOURCE_HASH":
+            newline = line.replace("@@SOURCE_HASH@@", source_hash)
             fout.write(newline)
 
-        elif (keyword == "EXTRA_HASH"):
-            if (not extra_home == ""):
-                newline = string.replace(line, "@@EXTRA_HASH@@", extra_hash)
+        elif keyword == "EXTRA_HASH":
+            if not extra_home == "":
+                newline = line.replace("@@EXTRA_HASH@@", extra_hash)
             else:
-                newline = string.replace(line, "@@EXTRA_HASH@@", "")
+                newline = line.replace("@@EXTRA_HASH@@", "")
 
             fout.write(newline)
 
-        elif (keyword == "EXTRA_HASH2"):
-            if (not extra_home2 == ""):
-                newline = string.replace(line, "@@EXTRA_HASH2@@", extra_hash2)
+        elif keyword == "EXTRA_HASH2":
+            if not extra_home2 == "":
+                newline = line.replace("@@EXTRA_HASH2@@", extra_hash2)
             else:
-                newline = string.replace(line, "@@EXTRA_HASH2@@", "")
+                newline = line.replace("@@EXTRA_HASH2@@", "")
 
             fout.write(newline)
             
-        elif (keyword == "BUILD_TREE_LOGICAL"):
-            if (have_build_hash == 1):
-                newline = string.replace(line, "@@BUILD_TREE_LOGICAL@@", 
-                                         ".true.")
+        elif keyword == "BUILD_TREE_LOGICAL":
+            if have_build_hash == 1:
+                newline = line.replace("@@BUILD_TREE_LOGICAL@@", 
+                                       ".true.")
             else:
-                newline = string.replace(line, "@@BUILD_TREE_LOGICAL@@", 
-                                         ".false.")
+                newline = line.replace("@@BUILD_TREE_LOGICAL@@", 
+                                       ".false.")
 
             fout.write(newline)
 
-        elif (keyword == "BUILD_HASH"):
-            if (have_build_hash == 1):
-                newline = string.replace(line, "@@BUILD_HASH@@", build_hash)
+        elif keyword == "BUILD_HASH":
+            if have_build_hash == 1:
+                newline = line.replace("@@BUILD_HASH@@", build_hash)
             else:
-                newline = string.replace(line, "@@BUILD_HASH@@", "")
+                newline = line.replace("@@BUILD_HASH@@", "")
 
             fout.write(newline)
 
-
-        elif (keyword == "NUM_MODULES"):
-            newline = string.replace(line, "@@NUM_MODULES@@", `len(moduleList)`)
+        elif keyword == "NUM_MODULES":
+            newline = line.replace("@@NUM_MODULES@@", repr(len(moduleList)))
             fout.write(newline)
 
-
-        elif (keyword == "MODULE_INFO"):
+        elif keyword == "MODULE_INFO":
             str = ""
-            n = 0
-            while (n < len(moduleList)):
-                if (n < len(moduleList)-1):
+            for n in range(len(moduleList)):
+                if n < len(moduleList)-1:
                     str += "\"%-120s\", &\n" % (moduleList[n])
                 else:
                     str += "\"%-120s\" &" % (moduleList[n])
 
-                n += 1
-
-            newline = string.replace(line, "@@MODULE_INFO@@", str)
+            newline = line.replace("@@MODULE_INFO@@", str)
             fout.write(newline)
 
     else:
