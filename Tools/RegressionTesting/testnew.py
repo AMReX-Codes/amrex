@@ -14,7 +14,10 @@ C_Src BoxLib frameworks.
 
 from __future__ import print_function
 
-import ConfigParser
+try: import ConfigParser as configparser
+except ImportError:
+    import configparser   # python 3
+
 import datetime
 import email
 import argparse
@@ -39,6 +42,8 @@ class Test(object):
     def __init__ (self, name):
 
         self.name = name
+
+        self.log = None
 
         self.buildDir = ""
         self.useExtraBuildDir = 0
@@ -94,8 +99,8 @@ class Test(object):
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
         
-    def __cmp__(self, other):
-        return cmp(self.value(), other.value())
+    def __lt__(self, other):
+        return self.value() < other.value()
 
     def value(self):
         return self.name
@@ -114,14 +119,14 @@ class Test(object):
                 (os.path.isfile(d) and d.startswith("{}_plt".format(self.name)) and d.endswith(".tgz"))]
     
         if len(plts) == 0:
-            self.suite.log.warn("WARNING: test did not produce any output")
+            self.log.warn("WARNING: test did not produce any output")
             return ""
 
         plts.sort()
         last_plot = plts.pop()
 
         if last_plot.endswith("00000"):
-            self.suite.log.warn("WARNING: only plotfile 0 was output -- skipping comparison")
+            self.log.warn("WARNING: only plotfile 0 was output -- skipping comparison")
             return ""
 
         return last_plot
@@ -296,6 +301,7 @@ class Suite(object):
                 test_dir = today + "-{:03d}/".format(i)
                 full_test_dir = self.testTopDir + self.suiteName + "-tests/" + test_dir
 
+        self.log.skip()
         self.log.bold("testing directory is: " + test_dir)
         os.mkdir(full_test_dir)
 
@@ -370,12 +376,12 @@ class Suite(object):
     def run_test(self, test, base_command):
         test_env = None
         if test.useOMP:
-	    test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
+            test_env = dict(os.environ, OMP_NUM_THREADS="{}".format(test.numthreads))
 
         if test.useMPI:
             test_run_command = self.MPIcommand
-	    test_run_command = test_run_command.replace("@host@", self.MPIhost)
-	    test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
+            test_run_command = test_run_command.replace("@host@", self.MPIhost)
+            test_run_command = test_run_command.replace("@nprocs@", "{}".format(test.numprocs))
             test_run_command = test_run_command.replace("@command@", base_command)
         else:
             test_run_command = base_command
@@ -399,11 +405,17 @@ class Suite(object):
 
         self.tools = {}
 
+        self.log.skip()
+        self.log.bold("building tools...")
+        self.log.indent()
+
         for t in tools:
-            self.log.bold("building {}...".format(t))
+            self.log.log("building {}...".format(t))
             self.build_f(target="programs={}".format(t), opts="NDEBUG=t MPI= ")
             exe = get_recent_filename(self.compare_tool_dir, t, ".exe")
             self.tools[t] = "{}/{}".format(self.compare_tool_dir, exe)
+
+        self.log.outdent()
 
 
 class Repo(object):
@@ -433,14 +445,14 @@ class Repo(object):
         self.branch_orig = stdout0.rstrip('\n')
 
         if self.branch_orig != self.branch_wanted:
-            self.suite.log.bold("git checkout {} in {}".format(self.branch_wanted, self.dir))
+            self.suite.log.log("git checkout {} in {}".format(self.branch_wanted, self.dir))
             stdout, stderr, rc = run("git checkout {}".format(self.branch_wanted), 
                                      stdin=True)
         else:
             self.branch_wanted = self.branch_orig
             
         if self.hash_wanted == "" or self.hash_wanted == None:
-            self.suite.log.bold("'git pull' in {}".format(self.dir))
+            self.suite.log.log("'git pull' in {}".format(self.dir))
 
             # we need to be tricky here to make sure that the stdin is
             # presented to the user to get the password.
@@ -460,7 +472,7 @@ class Repo(object):
 
         os.chdir(self.dir)
 
-        self.suite.log.bold("saving git HEAD for {}/".format(self.name))
+        self.suite.log.log("saving git HEAD for {}/".format(self.name))
 
         stdout, stderr, rc = run("git rev-parse HEAD", 
                                  outfile="git.{}.HEAD".format(self.name) )
@@ -474,17 +486,16 @@ class Repo(object):
 
         os.chdir(self.dir)
 
-        self.suite.log.bold("generating ChangeLog for {}/".format(self.name))
+        self.suite.log.log("generating ChangeLog for {}/".format(self.name))
 
-        run("git log --name-only", outfile="ChangeLog.{}".format(self.name) )
+        run("git log --name-only", outfile="ChangeLog.{}".format(self.name), outfile_mode="w")
         shutil.copy("ChangeLog.{}".format(self.name), self.suite.full_web_dir)
 
     def git_back(self):
         """ switch the repo back to its original branch """
 
         os.chdir(self.dir)
-        self.suite.log.bold("git checkout {} in {}".format(self.branch_orig, self.dir), 
-             skip_before=1)
+        self.suite.log.log("git checkout {} in {}".format(self.branch_orig, self.dir))
 
         stdout, stderr, rc = run("git checkout {}".format(self.branch_orig), 
                                  stdin=True,
@@ -518,7 +529,7 @@ def load_params(args):
 
     testList = []
 
-    cp = ConfigParser.ConfigParser()
+    cp = configparser.ConfigParser()    # note, need strict=False for Python3
     cp.optionxform = str
 
     log = Log()
@@ -534,7 +545,7 @@ def load_params(args):
 
     mysuite.log = log
 
-    valid_options = mysuite.__dict__.keys()
+    valid_options = list(mysuite.__dict__.keys())
     valid_options += ["extraBuildDir", "extraBuildDir2"]
 
     for opt in cp.options("main"):
@@ -663,12 +674,12 @@ def load_params(args):
 
         # create the test object for this test
         mytest = Test(sec)
-
+        mytest.log = log
         invalid = 0
 
         # set the test object data by looking at all the options in
         # the current section of the parameter file
-        valid_options = mytest.__dict__.keys()
+        valid_options = list(mytest.__dict__.keys())
         valid_options += ["aux1File", "aux2File", "aux3File"]
         valid_options += ["link1File", "link2File", "link3File"]
 
@@ -790,11 +801,11 @@ class Log(object):
             self.of = None
             
     def indent(self):
-        self.current_indent += self.indent_amount
+        self.current_indent += 1
         self.indent_str = self.current_indent*"   "
 
     def outdent(self):
-        self.current_indent -= self.indent_amount
+        self.current_indent -= 1
         self.current_indent = max(0, self.current_indent)
         self.indent_str = self.current_indent*"   "
 
@@ -833,7 +844,7 @@ class Log(object):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def run(string, stdin=False, outfile=None, store_command=False, env=None, log=None):
+def run(string, stdin=False, outfile=None, store_command=False, env=None, outfile_mode="a", log=None):
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
@@ -851,7 +862,7 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None, log=No
     p0.stdout.close()
 
     if not outfile == None:
-        try: cf = open(outfile, "a")
+        try: cf = open(outfile, outfile_mode)
         except IOError:
             log.fail("  ERROR: unable to open file for writing")
         else:
@@ -907,7 +918,14 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         wd = "{}/{}".format(old_full_test_dir, t.name)
         os.chdir(wd)
 
-        p = t.get_last_plotfile(output_dir=wd)
+        if t.compareFile == "":
+            p = t.get_last_plotfile(output_dir=wd)
+        else:
+            if not os.path.isdir(t.compareFile):
+                p = get_recent_filename(wd, t.compareFile, ".tgz")
+            else:
+                p = t.compareFile
+            
         if not p == "": 
             if p.endswith(".tgz"):
                 try:
@@ -1337,6 +1355,10 @@ def test_suite(argv):
     os.chdir(suite.testTopDir)
 
     for k in suite.repos:
+        suite.log.skip()
+        suite.log.bold("repo: {}".format(suite.repos[k].name))
+        suite.log.indent()
+
         if suite.repos[k].update or suite.repos[k].hash_wanted:
             suite.repos[k].git_update()
 
@@ -1345,6 +1367,7 @@ def test_suite(argv):
         if suite.repos[k].update:
             suite.repos[k].make_changelog()
 
+        suite.log.outdent()
 
     #--------------------------------------------------------------------------
     # build the tools and do a make clean, only once per build directory
@@ -1498,12 +1521,11 @@ def test_suite(argv):
             report_test_failure(suite, errorMsg, test)
             continue
 
-	# sometimes the input file was in a subdirectory under the
-	# build directory.  Keep only the input file for latter
-	index = string.rfind(test.inputFile, "/")
-	if index > 0:
-	   test.inputFile = test.inputFile[index+1:]
-
+        # sometimes the input file was in a subdirectory under the
+        # build directory.  Keep only the input file for latter
+        index = string.rfind(test.inputFile, "/")
+        if index > 0:
+            test.inputFile = test.inputFile[index+1:]
 
         # if we are a "C_Src" build, we need the probin file
         if (suite.sourceTree == "C_Src" or \
@@ -1662,7 +1684,6 @@ def test_suite(argv):
                 suite.log.log("doing the comparison...")
                 suite.log.indent()
                 suite.log.log("comparison file: {}".format(outputFile))
-                suite.log.outdent()
 
                 test.compare_file_used = outputFile
 
@@ -1699,6 +1720,8 @@ def test_suite(argv):
                         cf.write("WARNING: run did not produce any output\n")
                         cf.write("         unable to do a comparison\n")
                         cf.close()
+
+                suite.log.outdent()
 
                 if not test.diffDir == "":
                     if not test.restartTest:
@@ -1867,7 +1890,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # archive (or delete) the output
         #----------------------------------------------------------------------
-        suite.log.log("  archiving the output...")
+        suite.log.log("archiving the output...")
         for file in os.listdir(outputDir):
             if (os.path.isdir(file) and
                 (file.startswith("%s_plt" % (test.name)) or
@@ -1905,7 +1928,8 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     # write the report for this instance of the test suite
     #--------------------------------------------------------------------------
-    suite.skip()
+    suite.log.outdent()
+    suite.log.skip()
     suite.log.bold("creating new test report...")
     num_failed = report_this_test_run(suite, args.make_benchmarks, args.note,
                                       updateTime,  
@@ -1917,12 +1941,18 @@ def test_suite(argv):
        currentFile = suite.full_web_dir + file
 
        if os.path.isfile(currentFile):
-          os.chmod(currentFile, 0644)
+          os.chmod(currentFile, 0o644)
 
     # reset the branch to what it was originally
+    suite.log.skip()
+    suite.log.bold("reverting git branches/hashes")
+    suite.log.indent()
+
     for k in suite.repos:
         if suite.repos[k].update or suite.repos[k].hash_wanted:
             suite.repos[k].git_back()
+
+    suite.log.outdent()
 
     # For temporary run, return now without creating suote report.
     if args.do_temp_run:
