@@ -41,6 +41,9 @@ BLBackTrace::handler(int s)
     case SIGFPE:
 	BoxLib::Abort("Erroneous arithmetic operation");
 	break;
+    case SIGTERM:
+	BoxLib::Abort("External interrupt");
+	break;
     default:
 	ParallelDescriptor::Abort();
     }
