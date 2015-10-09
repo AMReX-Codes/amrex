@@ -9,6 +9,9 @@ module nodal_divu_module
 
   implicit none
 
+  private
+  public :: divu, divucc
+
 contains
 
     subroutine divu(nlevs,mgt,unew,rh,ref_ratio,nodal, lo_inflow, hi_inflow)
