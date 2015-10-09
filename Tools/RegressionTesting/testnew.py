@@ -622,7 +622,7 @@ def load_params(args):
 
         # set the test object data by looking at all the options in
         # the current section of the parameter file
-        valid_options = mytest.__dict__.keys()
+        valid_options = list(mytest.__dict__.keys())
         valid_options += ["aux1File", "aux2File", "aux3File"]
         valid_options += ["link1File", "link2File", "link3File"]
 
