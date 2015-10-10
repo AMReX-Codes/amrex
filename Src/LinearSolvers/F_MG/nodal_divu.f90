@@ -10,7 +10,7 @@ module nodal_divu_module
   implicit none
 
   private
-  public :: divu, divucc
+  public :: divu, divucc, subtract_divu_from_rh
 
 contains
 
