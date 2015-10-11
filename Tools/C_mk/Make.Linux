@@ -422,6 +422,17 @@ ifeq ($(WHICHLINUX), CAB)
   endif
 endif
 
+ifeq ($(WHICHLINUX), CORI)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC
+    CC  := cc
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
+  endif
+endif
+
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)

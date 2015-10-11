@@ -532,15 +532,9 @@ ParticleBase::NextID (int nextid)
 
 IntVect
 ParticleBase::Index (const ParticleBase& p,
-                     int                 lev,
-                     const Amr*          amr)
+                     const Geometry& geom)
 {
-    BL_ASSERT(amr != 0);
-    BL_ASSERT(lev >= 0 && lev <= amr->finestLevel());
-
     IntVect iv;
-
-    const Geometry& geom = amr->Geom(lev);
 
     D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))/geom.CellSize(0));,
            iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))/geom.CellSize(1));,
@@ -568,7 +562,7 @@ ParticleBase::Where (ParticleBase& p,
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect& iv = ParticleBase::Index(p,lev,amr);
+        const IntVect& iv = ParticleBase::Index(p,amr->Geom(lev));
 
 	if (lev == p.m_lev) { 
             // We may take a shortcut because the fact that we are here means 
@@ -611,13 +605,13 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
     //
     ParticleBase p_prime = p;
 
-    if (ParticleBase::PeriodicShift(p_prime, amr))
+    if (ParticleBase::PeriodicShift(p_prime, amr->Geom(0)))
     {
         std::vector< std::pair<int,Box> > isects;
 
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
-            const IntVect& iv = ParticleBase::Index(p_prime,lev,amr);
+            const IntVect& iv = ParticleBase::Index(p_prime,amr->Geom(lev));
 
             amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
@@ -646,7 +640,7 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect& iv = ParticleBase::Index(p,p.m_lev,amr);
+    const IntVect& iv = ParticleBase::Index(p,amr->Geom(p.m_lev));
 
     if (BoxLib::grow(amr->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
@@ -665,7 +659,7 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 {
     BL_ASSERT(amr != 0);
 
-    const IntVect& iv = ParticleBase::Index(p,level,amr);
+    const IntVect& iv = ParticleBase::Index(p,amr->Geom(level));
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -685,18 +679,15 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
 bool
 ParticleBase::PeriodicShift (ParticleBase& p,
-                             const Amr*    amr)
+                             const Geometry& geom) 
 {
     //
     // This routine should only be called when Where() returns false.
     //
-    BL_ASSERT(amr != 0);
-    //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
-    const Geometry& geom    = amr->Geom(0);
     const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = ParticleBase::Index(p,0,amr);
+    const IntVect&  iv      = ParticleBase::Index(p,geom);
     bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -769,7 +760,7 @@ ParticleBase::Reset (ParticleBase& p,
     {
         // Attempt to shift the particle back into the domain if it
         // crossed a periodic boundary.
-	ParticleBase::PeriodicShift(p,amr);
+	ParticleBase::PeriodicShift(p,amr->Geom(0));
 	ok = ParticleBase::Where(p,amr);
     }
     
@@ -829,18 +820,16 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
 
 void
 ParticleBase::Interp (const ParticleBase& prt,
-                      const Amr*          amr,
+                      const Geometry&     gm,
                       const FArrayBox&    fab,
                       const int*          idx,
                       Real*               val,
                       int                 cnt)
 {
-    BL_ASSERT(amr != 0);
     BL_ASSERT(idx != 0);
     BL_ASSERT(val != 0);
 
     const int       M   = D_TERM(2,+2,+4);
-    const Geometry& gm  = amr->Geom(prt.m_lev);
     const Real*     plo = gm.ProbLo();
     const Real*     dx  = gm.CellSize();
 
@@ -861,16 +850,15 @@ ParticleBase::Interp (const ParticleBase& prt,
 
 void
 ParticleBase::GetGravity (const FArrayBox&    gfab,
-                          const Amr*          amr,
+                          const Geometry&     geom,
                           const ParticleBase& p,
                           Real*               grav)
 {
-    BL_ASSERT(amr  != 0);
     BL_ASSERT(grav != 0);
 
     int idx[BL_SPACEDIM] = { D_DECL(0,1,2) };
 
-    ParticleBase::Interp(p,amr,gfab,idx,grav,BL_SPACEDIM);
+    ParticleBase::Interp(p,geom,gfab,idx,grav,BL_SPACEDIM);
 }
 
 std::ostream&

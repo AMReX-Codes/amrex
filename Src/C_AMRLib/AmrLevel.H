@@ -223,7 +223,7 @@ public:
     //
     const BoxArray& ParticleBoxArray () const { return particle_grids; }
     //
-    // List of particle_grids at this level.
+    // Are the particles on the same grids?
     //
     bool ParticlesOnSameGrids () const { return particles_on_same_grids; }
     //
