@@ -73,7 +73,9 @@ using std::ifstream;
 
 
 #if defined( BL_FORT_USE_UPPERCASE )
-#  if (BL_SPACEDIM == 2)
+#  if (BL_SPACEDIM == 1)
+#    define   FORT_PCINTERP    PCINTERP1D
+#  elif (BL_SPACEDIM == 2)
 #    define   FORT_CINTERP     CINTERP2D
 #    define   FORT_PCINTERP    PCINTERP2D
 #    define   FORT_CARTGRIDMINMAX CARTGRIDMINMAX2D
@@ -83,7 +85,9 @@ using std::ifstream;
 #    define   FORT_CARTGRIDMINMAX CARTGRIDMINMAX3D
 #  endif
 #elif defined( BL_FORT_USE_LOWERCASE )
-#  if (BL_SPACEDIM == 2)
+#  if (BL_SPACEDIM == 1)
+#    define   FORT_PCINTERP    pcinterp1d
+#  elif (BL_SPACEDIM == 2)
 #    define   FORT_CINTERP     cinterp2d
 #    define   FORT_PCINTERP    pcinterp2d
 #    define   FORT_CARTGRIDMINMAX cartgridminmax2d
@@ -93,7 +97,9 @@ using std::ifstream;
 #    define   FORT_CARTGRIDMINMAX cartgridminmax3d
 #  endif
 #else
-#  if (BL_SPACEDIM == 2)
+#  if (BL_SPACEDIM == 1)
+#    define   FORT_PCINTERP    pcinterp1d_
+#  elif (BL_SPACEDIM == 2)
 #    define   FORT_CINTERP     cinterp2d_
 #    define   FORT_PCINTERP    pcinterp2d_
 #    define   FORT_CARTGRIDMINMAX cartgridminmax2d_
@@ -105,8 +111,8 @@ using std::ifstream;
 #endif
 
 
-#if (BL_SPACEDIM != 1)
 extern "C" {
+#if (BL_SPACEDIM != 1)
   void FORT_CINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                   const int *fblo, const int *fbhi,
                   const int &nvar, const int &lratio,
@@ -116,6 +122,7 @@ extern "C" {
 		  Real *cslope, const int &c_len,
 		  Real *fslope, Real *fdat, const int &f_len,
 		  Real *foff);
+#endif
 
   void FORT_PCINTERP(Real *fine, ARLIM_P(flo), ARLIM_P(fhi),
                    const int *fblo, const int *fbhi,
@@ -124,11 +131,12 @@ extern "C" {
 		   const int *cblo, const int *cbhi,
 		   Real *temp, const int &tlo, const int &thi);
 
+#if (BL_SPACEDIM != 1)
   void FORT_CARTGRIDMINMAX (Real *data, ARLIM_P(dlo), ARLIM_P(dhi),
 		            const Real *vfrac, const Real &vfeps,
 		            Real &dmin, Real &dmax);
-}
 #endif
+}
 
 
 bool AmrData::verbose = false;
@@ -2015,9 +2023,6 @@ void AmrData::Interp(FArrayBox &fine, FArrayBox &crse,
 void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
                        const Box &subbox, int lrat)
 {
-#if (BL_SPACEDIM == 1)
-    BoxLib::Abort("AmrData::MinMax:  should not be here for 1d.");
-#else
    BL_ASSERT(fine.box().contains(subbox));
    BL_ASSERT(fine.nComp() == crse.nComp());
    Box cfine(crse.box());
@@ -2047,7 +2052,6 @@ void AmrData::PcInterp(FArrayBox &fine, const FArrayBox &crse,
 
       delete [] tempSpace;
    }
-#endif
 }
 
 
