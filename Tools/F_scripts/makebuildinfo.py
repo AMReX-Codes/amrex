@@ -76,6 +76,14 @@ def runcommand(command):
     return out.strip()
 
 
+def get_git_hash(d):
+    cwd = os.getcwd()
+    os.chdir(d)
+    try: hash = runcommand("git rev-parse HEAD")
+    except: hash = ""
+    os.chdir(cwd)
+    return hash
+
 try: opts, next = getopt.getopt(sys.argv[1:], "",
                                ["modules=",
                                 "FCOMP=",
@@ -152,29 +160,24 @@ build_machine = runcommand("uname -a")
 # git hashes
 runningDir = os.getcwd()
 
-os.chdir(boxlib_home)
-boxlib_hash = runcommand("git rev-parse HEAD")
-os.chdir(runningDir)
-
-os.chdir(source_home)
-source_hash = runcommand("git rev-parse HEAD")
-os.chdir(runningDir)
+boxlib_hash = get_git_hash(boxlib_home)
+source_hash = get_git_hash(source_home)
 
 if (not extra_home == ""):
     try: os.chdir(extra_home)
     except:
         extra_hash = "ERROR: directory not found"
     else:
-        extra_hash = runcommand("git rev-parse HEAD")
-    os.chdir(runningDir)
+        extra_hash = get_git_hash(extra_home)
+        os.chdir(runningDir)
 
 if (not extra_home2 == ""):
     try: os.chdir(extra_home2)
     except:
         extra_hash2 = "ERROR: directory not found"
     else:
-        extra_hash2 = runcommand("git rev-parse HEAD")
-    os.chdir(runningDir)
+        extra_hash2 = get_git_hash(extra_home2)
+        os.chdir(runningDir)
     
 # we may not be building in a sub-directory of the source directory, in that
 # case, store an extra hash
@@ -192,9 +195,7 @@ for n in range(len(sDirParts)):
 
 if not isSubDir:
     have_build_hash = 1
-    os.chdir(buildDir)
-    build_hash = runcommand("git rev-parse HEAD")
-    os.chdir(runningDir)
+    build_hash = get_git_hash(buildDir)
 else:
     have_build_hash = 0
 
