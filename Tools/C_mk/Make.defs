@@ -141,6 +141,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring edison, $(NERSC_HOST)), edison)
     WHICHLINUX := EDISON
   endif
+  ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+    WHICHLINUX := CORI
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
@@ -480,6 +483,10 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+   endif
+
    ifeq ($(WHICHLINUX), EDISON)
      CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    else
@@ -750,6 +757,10 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+   endif
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
