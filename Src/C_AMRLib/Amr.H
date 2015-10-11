@@ -14,9 +14,17 @@
 #include <StationData.H>
 #endif
 
+#ifdef USE_PARTICLES
+#include <ParGDB.H>
+#endif
+
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
+
+#ifdef USE_PARTICLES
+class AmrParGDB;
+#endif
 
 //
 //
@@ -462,6 +470,8 @@ public:
     void GetParticleCPU       (Array<int>&  part_cpu);
     void GetParticleLocations (Array<Real>& part_locs);
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
+
+    AmrParGDB* GetParGDB () const { return m_gdb; }
 #endif
 
 protected:
@@ -627,6 +637,10 @@ protected:
     static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
     static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
     static bool                   first_plotfile;
+
+#ifdef USE_PARTICLES
+    AmrParGDB* m_gdb;
+#endif
 
 private:
     //
