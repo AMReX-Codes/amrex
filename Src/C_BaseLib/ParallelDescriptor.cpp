@@ -1658,6 +1658,7 @@ ParallelDescriptor::SidecarProcess ()
     InTransitAnalysis ita;
     while (!finished)
     {
+        Real time1 = MPI_Wtime();
         // Receive the signal from the compute group.
         ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
         if (signal == Analysis::QuitSignal)
@@ -1681,6 +1682,9 @@ ParallelDescriptor::SidecarProcess ()
             MultiFab::SendMultiFabToSidecars(&mf);
             Geometry::SendGeometryToSidecars(&geom);
             ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+            Real time2 = MPI_Wtime();
+            if (ParallelDescriptor::IOProcessor())
+              std::cout << "SIDECAR PROCESSES: time spent receiving data from compute: " << time2 - time1 << std::endl;
 
             ita.Initialize(mf, geom, time_step);
             Analysis::analysis->connectCallback(&ita);
