@@ -18,10 +18,8 @@ EBASE     = main
 include ./Make.package
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
-include $(BOXLIB_HOME)/Src/C_AMRLib/Make.package
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
 
 vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 
