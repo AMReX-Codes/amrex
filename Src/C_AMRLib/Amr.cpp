@@ -744,7 +744,9 @@ Amr::~Amr ()
 {
     levelbld->variableCleanUp();
 
+#ifdef USE_PARTICLES
     delete m_gdb;
+#endif
 
     Amr::Finalize();
 }
