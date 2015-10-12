@@ -61,6 +61,8 @@ int main(int argc, char* argv[])
 
     MyPC->InitRandom(count,iseed,mass);
 
+    MyPC->AssignDensitySingleLevel(data,0);
+
     // loop over boxes and do some work
     for (MFIter mfi(data); mfi.isValid(); ++mfi)
     {
