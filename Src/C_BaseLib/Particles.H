@@ -2014,7 +2014,7 @@ ParticleContainer<N>::InitRandom (long          icount,
 
             BL_ASSERT(p.m_lev >= 0 && p.m_lev <= m_gdb->finestLevel());
 
-            const int who = ParticleDistributionMap(p.m_lev)[p.m_grid];
+            const int who = m_gdb->ParticleDistributionMap(p.m_lev)[p.m_grid];
 
             if (who == MyProc)
             {
