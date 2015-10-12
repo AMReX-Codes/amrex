@@ -15,9 +15,7 @@ public:
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const = 0;
     virtual const BoxArray& ParticleBoxArray (int level) const = 0;
-
-    virtual const BoxArray& boxArray (int level) const = 0;
-    virtual const MultiFab& multiFab (int level) const = 0;
+    virtual const BoxArray&         boxArray (int level) const = 0;
 
     virtual bool LevelDefined (int level) const = 0;
     virtual int finestLevel () const = 0;
@@ -41,9 +39,7 @@ public:
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const;
     virtual const BoxArray& ParticleBoxArray (int level) const;
-
-    virtual const BoxArray& boxArray (int level) const;
-    virtual const MultiFab& multiFab (int level) const;
+    virtual const BoxArray&         boxArray (int level) const;
 
     virtual bool LevelDefined (int level) const;
     virtual int finestLevel () const;

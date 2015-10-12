@@ -6235,7 +6235,7 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
             ParallelDescriptor::Barrier();
         }
 
-        const MultiFab& state = m_gdb->multiFab(lev);
+	MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
         //
         // We eventually want to write out the file name and the offset
         // into that file into which each grid of particles is written.
@@ -6410,7 +6410,8 @@ ParticleContainer<N>::WriteParticles (int            lev,
                                       bool           is_checkpoint) const
 {
     const PMap&     pmap  = m_particles[lev];
-    const MultiFab& state = m_gdb->multiFab(lev);
+
+    MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
@@ -6744,7 +6745,7 @@ ParticleContainer<N>::Restart_Doit (const std::string& fullname,
 
         m_particles.resize(m_gdb->finestLevel()+1);
 
-        const MultiFab& state = m_gdb->multiFab(lev);
+	MultiFab state(m_gdb->boxArray(lev),1,0,Fab_noallocate);
 
         for (MFIter mfi(state); mfi.isValid(); ++mfi)
         {

@@ -18,9 +18,7 @@ public:
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const;
     virtual const BoxArray& ParticleBoxArray (int level) const;
-
-    virtual const BoxArray& boxArray (int level) const;
-    virtual const MultiFab& multiFab (int level) const;
+    virtual const BoxArray&         boxArray (int level) const;
 
     virtual bool LevelDefined (int level) const;
     virtual int finestLevel () const;
@@ -62,13 +60,6 @@ const BoxArray&
 AmrParGDB::boxArray (int level) const
 {
     return m_amr->boxArray(level);
-}
-
-inline 
-const MultiFab&
-AmrParGDB::multiFab (int level) const
-{
-    return m_amr->getLevel(level).get_new_data(0);
 }
 
 inline 
