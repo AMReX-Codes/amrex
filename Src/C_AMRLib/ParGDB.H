@@ -37,33 +37,13 @@ class ParGDB
 {
 public:
 
-    ParGDB (const Geometry            & geom, 
-	    const DistributionMapping & dmap,
-	    const BoxArray            & ba)
-    {
-	m_geom.resize(1);
-	m_dmap.resize(1);
-	m_ba.resize(1);
-	m_geom.set(0, &geom);  
-	m_dmap.set(0, &dmap);  
-	m_ba.set(0, &ba);  	
-    }
+    ParGDB () { ; }
 
-    ParGDB (const PArray<Geometry>            & geom,
-	    const PArray<DistributionMapping> & dmap,
-	    const PArray<BoxArray>            & ba)
-    {
-	BL_ASSERT(geom.size() == dmap.size() && geom.size() == ba.size());
-	int N = geom.size();
-	m_geom.resize(N);
-	m_dmap.resize(N);
-	m_ba.resize(N);
-	for (int i = 0; i < N; ++i) {
-	    m_geom.set(i, &geom[i]);  
-	    m_dmap.set(i, &dmap[i]);  
-	    m_ba.set(i, &ba[i]);  
-	}
-    }
+    ParGDB (Geometry            & geom, 
+	    DistributionMapping & dmap,
+	    BoxArray            & ba)
+	: m_geom(&geom), m_dmap(&dmap), m_ba(&ba)
+	{ ; }
 
     virtual ~ParGDB () {;}
 
@@ -78,8 +58,6 @@ public:
     virtual int initialBaLevels () const;
 
     virtual int subCycle () const;
-    // What do we do with ref ratio?
-    // Should we pass it in the multi-level constructor?
     virtual IntVect refRatio (int level) const;
     virtual int MaxRefRatio (int level) const;
 
@@ -87,9 +65,9 @@ public:
 
 protected:
 
-    PArray<Geometry>            m_geom;
-    PArray<DistributionMapping> m_dmap;
-    PArray<BoxArray>            m_ba;
+    Geometry            *m_geom;
+    DistributionMapping *m_dmap;
+    BoxArray            *m_ba;
 
 };
 
@@ -97,46 +75,46 @@ inline
 const Geometry& 
 ParGDB::Geom (int level) const
 {
-    BL_ASSERT(level < m_geom.size());
-    return m_geom[0];
+    BL_ASSERT(level == 0);
+    return *m_geom;
 }
 
 inline 
 const DistributionMapping& 
 ParGDB::ParticleDistributionMap (int level) const
 {
-    BL_ASSERT(level < m_dmap.size());
-    return m_dmap[0];
+    BL_ASSERT(level == 0);
+    return *m_dmap;
 }
 
 inline 
 const BoxArray&
 ParGDB::ParticleBoxArray (int level) const
 {
-    BL_ASSERT(level < m_ba.size());
-    return m_ba[0];
+    BL_ASSERT(level == 0);
+    return *m_ba;
 }
 
 inline
 const BoxArray&
 ParGDB::boxArray (int level) const
 {
-    BL_ASSERT(level < m_ba.size());
-    return m_ba[0];
+    BL_ASSERT(level == 0);
+    return *m_ba;
 }
 
 inline 
 bool 
 ParGDB::LevelDefined (int level) const
 {
-    return level < m_geom.size();
+    return level == 0;
 }
 
 inline 
 int 
 ParGDB::finestLevel () const
 {
-    return m_geom.size()-1;
+    return 0;
 }
  
 inline 
@@ -175,3 +153,5 @@ ParGDB::ParticlesOnSameGrids (int level) const
 }
 
 #endif
+
+

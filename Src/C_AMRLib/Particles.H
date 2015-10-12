@@ -278,6 +278,19 @@ public:
         :
         m_verbose(1), m_relativistic(0), m_csq(-1.), m_gdb(gdb), allow_particles_near_boundary(false) { }
 
+    ParticleContainer (Geometry            & geom, 
+		       DistributionMapping & dmap,
+		       BoxArray            & ba)
+	:
+        m_verbose(1), m_relativistic(0), m_csq(-1.),
+	allow_particles_near_boundary(false),
+	m_gdb_object(geom,dmap,ba)
+    {
+	m_gdb = & m_gdb_object;
+    }
+
+    const ParGDBBase* GetParGDB () const { return m_gdb; }
+
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
 
     void InitFromBinaryFile (const std::string& file, int extradata);
@@ -438,6 +451,7 @@ public:
     void SetCSquared (Real csq) { m_csq = csq; }
 
     const PMap& GetParticles(int lev) const { return m_particles[lev]; }
+    PMap& GetParticles(int lev) { return m_particles[lev]; }
 
 protected:
     //
@@ -475,7 +489,8 @@ protected:
     int         m_verbose;
     int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
     Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
-    ParGDBBase*        m_gdb;
+    ParGDBBase* m_gdb;
+    ParGDB      m_gdb_object;
     Array<PMap> m_particles;
 
     bool allow_particles_near_boundary;
