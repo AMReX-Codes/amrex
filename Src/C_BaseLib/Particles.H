@@ -1588,7 +1588,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
 		      
 			if (!ParticleBase::Where(newp[i],m_gdb))
 			{
-				  ParticleBase::PeriodicShift(newp[i],m_gdb);
+			    ParticleBase::PeriodicShift(newp[i],m_gdb);
     
 			    if (!ParticleBase::Where(newp[i],m_gdb))
 				BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
