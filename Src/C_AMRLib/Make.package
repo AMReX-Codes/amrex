@@ -47,11 +47,7 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
-  CEXE_sources += Particles.cpp
-  CEXE_headers += Particles.H ParGDB.H AmrParGDB.H AmrParticles.H
-  FEXE_headers += Particles_F.H
-  FEXE_sources += Particles_$(DIM)D.F
+  CEXE_headers += AmrParGDB.H AmrParticles.H
 endif
 
 ifeq ($(USE_SDCLIB), TRUE)

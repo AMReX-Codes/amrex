@@ -131,3 +131,11 @@ f90$(BOXLIB_BASE)_sources += mempool_f.f90
 
 C$(BOXLIB_BASE)_headers += Analysis.H
 C$(BOXLIB_BASE)_sources += Analysis.cpp
+
+ifeq ($(USE_PARTICLES), TRUE)
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
+  C$(BOXLIB_BASE)_sources += Particles.cpp
+  C$(BOXLIB_BASE)_headers += Particles.H ParGDB.H
+  F$(BOXLIB_BASE)_headers += Particles_F.H
+  F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
+endif
