@@ -5,8 +5,6 @@
 #include <BLFort.H>
 
 #include "Particles.H"
-#include "Amr.H"
-#include "AmrLevel.H"
 
 // declare a fortran subroutine
 BL_FORT_PROC_DECL(WORK, work) (const int* lo, const int* hi, BL_FORT_FAB_ARG(dfab));
@@ -30,19 +28,38 @@ int main(int argc, char* argv[])
     // build a multifab on the box array with 1 component, 0 ghost cells
     MultiFab data(ba, 1, 0);  
 
-    Real strt_time = 0.;
-    Real stop_time = 0.;
+    // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
+    RealBox real_box;
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+       real_box.setLo(n,-1.0);
+       real_box.setHi(n, 1.0);
+    }
 
-    // Build an "Amr" to keep track of the levels -- the ParticleContainer needs this
-    Amr* amrptr = new Amr;
-    amrptr->init(strt_time,stop_time);
+    // This says we are using Cartesian coordinates
+    int coord = 0;
+
+    // This sets the boundary conditions to be doubly or triply periodic
+    int is_per[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
+
+    // This defines a Geometry object which is useful for writing the plotfiles  
+    Geometry geom(domain,&real_box,coord,is_per);
+
+    DistributionMapping dmap = data.DistributionMap();
 
     // Define a new particle container to hold my particles.
     // This holds a charge as well as three velocity components and three position components.
     typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
     
     // Build a new particle container to hold my particles.
-    MyParticleContainer* MyPC = new MyParticleContainer(amrptr);
+    MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba);
+
+    int count = 10;
+    int iseed = 10;
+    Real mass  = 10.0;
+
+    MyPC->InitRandom(count,iseed,mass);
 
     // loop over boxes and do some work
     for (MFIter mfi(data); mfi.isValid(); ++mfi)
