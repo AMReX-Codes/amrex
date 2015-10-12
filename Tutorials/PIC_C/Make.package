@@ -1,4 +1,6 @@
 CEXE_sources += main.cpp
+CEXE_sources += PICLevel.cpp
+CEXE_headers += PICLevel.H
 
 f90EXE_sources += work.f90
 
