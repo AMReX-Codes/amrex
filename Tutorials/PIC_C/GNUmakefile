@@ -1,5 +1,8 @@
 BOXLIB_HOME ?= ../../
 
+# location of finite-volume HPGMG on edison
+HPGMG_DIR ?= /global/u2/f/friesen/hpgmg/finite-volume
+
 DEBUG	= FALSE
 DEBUG	= TRUE
 
@@ -15,7 +18,7 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 EBASE     = main
 
-USE_HPGMG = FALSE
+USE_HPGMG = TRUE
 HPGMG_FCYCLES = TRUE
 HPGMG_POST_F_CYCLE_TYPE = F
 HPGMG_HELMHOLTZ = FALSE
