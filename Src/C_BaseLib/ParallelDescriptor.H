@@ -282,7 +282,8 @@ namespace ParallelDescriptor
         return m_nProcs_sidecar;
     }
     //
-    // The CPU number of the I/O Processor.
+    // The MPI rank number of the I/O Processor (probably rank 0).
+    // This rank is usually used to write to stdout.
     //
     extern const int ioProcessor;
     inline int
@@ -292,6 +293,7 @@ namespace ParallelDescriptor
     }
     //
     // Is this CPU the I/O Processor?
+    // To get the rank number, call IOProcessorNumber()
     //
     inline bool
     IOProcessor ()
@@ -300,9 +302,9 @@ namespace ParallelDescriptor
     }
     //
     // BoxLib's Parallel Communicators
-    //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
-    //    m_comm_comp    is for the nodes doing computations
-    //    m_comm_sidecar is for the in-situ performance monitor
+    //    m_comm_all     is for all ranks, probably MPI_COMM_WORLD
+    //    m_comm_comp    is for the ranks doing computations
+    //    m_comm_sidecar is for the ranks in the sidecar
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
