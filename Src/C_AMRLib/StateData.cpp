@@ -238,7 +238,7 @@ StateData::allocOldData ()
     }
 }
 
-const BCRec
+BCRec
 StateData::getBC (int comp, int i) const
 {
     BCRec bcr;

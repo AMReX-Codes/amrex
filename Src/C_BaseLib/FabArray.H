@@ -93,7 +93,7 @@ public:
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
     //
-    const Box fabbox (int K) const;
+    Box fabbox (int K) const;
     //
     // Returns the number of FABs in the FabArray..
     //
@@ -428,7 +428,7 @@ public:
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    const Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -1173,10 +1173,12 @@ FabArray<FAB>::clear ()
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
     if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+#ifdef DEBUG_AFAP
       if(ParallelDescriptor::IOProcessor() && distributionMap.size() > 0) {
         std::cout << "**** In FabArray::clear():: map not found:  size = "
                   << distributionMap.size() << std::endl;
       }
+#endif
     } else {
       std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
       faPtrCachedMap.erase(faID);
