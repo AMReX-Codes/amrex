@@ -52,7 +52,7 @@ namespace ParallelDescriptor
     namespace util
     {
 	//
-	// Reduce helper functons.
+	// Reduce helper functions.
 	//
 	void DoAllReduceReal     (Real&      r, MPI_Op op);
 	void DoAllReduceLong     (long&      r, MPI_Op op);
@@ -81,7 +81,9 @@ ParallelDescriptor::AddSignalHandler (PTR_TO_SIGNAL_HANDLER fp)
   The_Signal_Handler_List.push_back(fp);
 }
 
-
+//
+// BL_AMRPROF is for the standalone BoxLib profiler
+//
 #ifndef BL_AMRPROF
 //
 // Definition of non-inline members of CommData.
