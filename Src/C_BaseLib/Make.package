@@ -95,6 +95,13 @@ ifneq ($(BL_NO_FORT),TRUE)
 endif
 
 #
+# Boundary-related 
+#
+C$(BOXLIB_BASE)_sources += BCRec.cpp
+C$(BOXLIB_BASE)_headers += BCRec.H
+C$(BOXLIB_BASE)_headers += BC_TYPES.H
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
