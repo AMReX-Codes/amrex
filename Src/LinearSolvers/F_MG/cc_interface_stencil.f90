@@ -31,6 +31,7 @@ contains
 
   subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, facemap, indxmap, efactor)
     use bl_prof_module
+    use stencil_util_module, only : is_ibc_stencil
 
     type(multifab), intent(inout) :: res
     type(multifab), intent(in   ) :: flux
@@ -75,29 +76,40 @@ contains
                    fbox = shift(fbox, -extent(crse_domain,dim), dim)
                 end if
              end if
+
+             fp   => dataptr(flux, i, cf)
+             rp   => dataptr(res , j, cr)
+             cp   => dataptr(crse, j, cr)
+             sp   => dataptr(ss  , j)
              
              lo = lwb(fbox)
-             hi = upb(fbox)
-             fp => dataptr(flux,i,cf)
-             
-             loc  =  lwb(get_pbox(crse,j))
-             lor  =  lwb(get_pbox(res,j))
-             los  =  lwb(get_pbox(ss,j))
-             sp   => dataptr(ss, j)
-             rp   => dataptr(res, j, cr)
-             cp   => dataptr(crse, j, cr)
-             
-             select case (dm)
-             case (1)
-                call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
-                     sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
-             case (2)
-                call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
-                     sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
-             case (3)
-                call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
-                     sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
-             end select
+             hi = upb(fbox)             
+             loc = lwb(get_pbox(crse,j))
+             lor = lwb(get_pbox(res,j))
+
+             if (is_ibc_stencil(ss,j)) then
+                select case (dm)
+                case (2)
+                   call ml_interface_ibc_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+                        fp(:,:,1,1), lo, lo, hi, face, dim, efactor, sp(dim+1,1,1,1))
+                case (3)
+                   call ml_interface_ibc_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+                        fp(:,:,:,1), lo, lo, hi, face, dim, efactor, sp(dim+1,1,1,1))
+                end select
+             else
+                los  =  lwb(get_pbox(ss,j))
+                select case (dm)
+                case (1)
+                   call ml_interface_1d(rp(:,1,1,1), lor, cp(:,1,1,1), loc, &
+                        sp(:,:,1,1), los, fp(:,1,1,1), lo, lo, face, efactor)
+                case (2)
+                   call ml_interface_2d(rp(:,:,1,1), lor, cp(:,:,1,1), loc, &
+                        sp(:,:,:,1), los, fp(:,:,1,1), lo, lo, hi, face, dim, efactor)
+                case (3)
+                   call ml_interface_3d(rp(:,:,:,1), lor, cp(:,:,:,1), loc, &
+                        sp(:,:,:,:), los, fp(:,:,:,1), lo, lo, hi, face, dim, efactor)
+                end select
+             end if
           end if
        end do
        !$omp end do
@@ -302,5 +314,85 @@ contains
     end if
 
   end subroutine ml_interface_3d
+
+  subroutine ml_interface_ibc_2d(res, lor, cc, loc, fine_flux, lof, lo, hi, face, dim, efactor, ss)
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: loc(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: res(lor(1):,lor(2):)
+    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
+    integer, intent(in) :: face, dim
+    real(kind=dp_t), intent(in) :: efactor
+    real (kind = dp_t), intent(in) :: ss
+
+    integer :: i, j
+
+    if (dim .eq. 1) then
+
+       i = lo(1)
+       do j = lo(2),hi(2)
+          res(i,j) = res(i,j) + efactor*( fine_flux(i,j) &
+               - ss*(cc(i,j)-cc(i-face,j)) )
+       end do
+
+    else 
+
+       j = lo(2)
+       do i = lo(1),hi(1)
+          res(i,j) = res(i,j) + efactor*( fine_flux(i,j) &
+               - ss*(cc(i,j)-cc(i,j-face)) )
+       end do
+
+    end if
+  end subroutine ml_interface_ibc_2d
+
+  subroutine ml_interface_ibc_3d(res, lor, cc, loc, fine_flux, lof, lo, hi, face, dim, efactor, ss)
+    integer, intent(in) :: lor(:)
+    integer, intent(in) :: loc(:)
+    integer, intent(in) :: lof(:)
+    integer, intent(in) :: lo(:), hi(:)
+    real (kind = dp_t), intent(inout) :: res(lor(1):,lor(2):,lor(3):)
+    real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
+    real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
+    integer, intent(in) :: face, dim
+    real(kind=dp_t), intent(in) :: efactor
+    real (kind = dp_t), intent(in) :: ss
+
+    integer :: i, j, k
+
+    if (dim .eq. 1) then
+
+       i = lo(1)
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                  - ss*(cc(i,j,k)-cc(i-face,j,k)) )
+          end do
+       end do
+
+    else if (dim .eq. 2) then
+
+       j = lo(2)
+       do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+             res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                  - ss*(cc(i,j,k)-cc(i,j-face,k)) )
+          end do
+       end do
+
+    else 
+
+       k = lo(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             res(i,j,k) = res(i,j,k) + efactor*( fine_flux(i,j,k) &
+                  - ss*(cc(i,j,k)-cc(i,j,k-face)) )
+          end do
+       end do
+
+    end if
+  end subroutine ml_interface_ibc_3d
 
 end module cc_interface_stencil_module

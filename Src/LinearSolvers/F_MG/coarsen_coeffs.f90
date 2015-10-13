@@ -6,9 +6,8 @@ module coarsen_coeffs_module
 
   implicit none
 
-  private :: crse_cell_coeffs_1d, crse_xedge_coeffs_1d
-  private :: crse_cell_coeffs_2d, crse_xedge_coeffs_2d, crse_yedge_coeffs_2d
-  private :: crse_cell_coeffs_3d, crse_xedge_coeffs_3d, crse_yedge_coeffs_3d, crse_zedge_coeffs_3d
+  private
+  public :: coarsen_cell_coeffs, coarsen_edge_coeffs
 
 contains
 

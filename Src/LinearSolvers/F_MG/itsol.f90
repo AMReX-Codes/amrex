@@ -2,20 +2,20 @@ module itsol_module
 
   use bl_constants_module
   use bl_types
+  use bc_functions_module
   use multifab_module
   use cc_stencil_module
   use stencil_types_module
   use stencil_defect_module
+  use stencil_util_module, only : stencil_multifab_copy, is_ibc_stencil
 
   implicit none
 
   integer, private, parameter :: def_bicg_max_iter = 1000
   integer, private, parameter :: def_cg_max_iter   = 1000
 
-  private :: dgemv
-  private :: itsol_precon
-  private :: jacobi_precon_1d, jacobi_precon_2d, jacobi_precon_3d
-  private :: nodal_precon_1d, nodal_precon_2d, nodal_precon_3d
+  private
+  public :: itsol_bicgstab_solve, itsol_converged, itsol_cg_solve, itsol_cabicgstab_solve
 
 contains
 
@@ -46,6 +46,21 @@ contains
       end do
     end subroutine jacobi_precon_2d
 
+    subroutine jacobi_precon_ibc_2d(a0, u, r, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)    :: a0
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)    :: r(:,:)
+      integer :: i, j, nx, ny
+      nx = size(r,dim=1)
+      ny = size(r,dim=2)
+      do j = 1, ny
+         do i = 1, nx
+            u(i,j) = r(i,j)*(one/a0)
+         end do
+      end do
+    end subroutine jacobi_precon_ibc_2d
+
     subroutine jacobi_precon_3d(a, u, r, ng)
       integer, intent(in) :: ng
       real(kind=dp_t), intent(in)    :: a(0:,:,:,:)
@@ -63,6 +78,24 @@ contains
          end do
       end do
     end subroutine jacobi_precon_3d
+
+    subroutine jacobi_precon_ibc_3d(a0, u, r, ng)
+      integer, intent(in) :: ng
+      real(kind=dp_t), intent(in)    :: a0
+      real(kind=dp_t), intent(inout) :: u(1-ng:,1-ng:,1-ng:)
+      real(kind=dp_t), intent(in)    :: r(:,:,:)
+      integer i, j, k, nx, ny, nz
+      nx = size(r,dim=1)
+      ny = size(r,dim=2)
+      nz = size(r,dim=3)
+      do k = 1, nz
+         do j = 1, ny
+            do i = 1, nx
+               u(i,j,k) = r(i,j,k)*(one/a0)
+            end do
+         end do
+      end do
+    end subroutine jacobi_precon_ibc_3d
 
     subroutine nodal_precon_1d(a, u, r, mm, ng)
       integer, intent(in) :: ng
@@ -167,6 +200,26 @@ contains
 
     end subroutine diag_init_cc_2d
 
+    subroutine diag_init_ibc_2d(a, r, ng_r, lo, hi)
+      integer        , intent(in   )  :: ng_r
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:   )
+
+      integer         :: i, j
+      real(kind=dp_t) :: denom
+
+      denom = one / a(0)
+      a(0) = one
+      a(1:) = a(1:) * denom
+
+      do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
+            r(i,j) = r(i,j) * denom
+         end do
+      end do
+    end subroutine diag_init_ibc_2d
+
     subroutine diag_init_cc_3d(a, ng_a, r, ng_r, lo, hi)
       integer        , intent(in   )  :: ng_a, ng_r
       integer        , intent(in   )  :: lo(:),hi(:)
@@ -194,6 +247,28 @@ contains
       end do
 
     end subroutine diag_init_cc_3d
+
+    subroutine diag_init_ibc_3d(a, r, ng_r, lo, hi)
+      integer        , intent(in   )  :: ng_r
+      integer        , intent(in   )  :: lo(:),hi(:)
+      real(kind=dp_t), intent(inout)  ::  a(0:)
+      real(kind=dp_t), intent(inout)  ::  r(lo(1)-ng_r:,lo(2)-ng_r:,lo(3)-ng_r:   )
+
+      integer         :: i, j, k
+      real(kind=dp_t) :: denom
+
+      denom = one / a(0)
+      a(0) = one
+      a(1:) = a(1:) * denom
+
+      do k = lo(3),hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               r(i,j,k) = r(i,j,k) * denom
+            end do
+         end do
+      end do
+    end subroutine diag_init_ibc_3d
 
     subroutine diag_init_nd_1d(sg, ng_sg, r, ng_r, mm, ng_m, lo, hi)
       integer        , intent(in   )  :: ng_sg, ng_r, ng_m
@@ -381,8 +456,6 @@ contains
     integer         :: i, cnt, ng_for_res, comm
     logical         :: nodal_solve, singular, nodal(get_dim(rh)), ioproc
 
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-
     type(bl_prof_timer), save :: bpt
 
     if ( present(stat) ) stat = 0
@@ -428,13 +501,9 @@ contains
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call stencil_multifab_copy(aa_local, aa)
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -711,8 +780,6 @@ contains
     logical         :: BiCGStabFailed, BiCGStabConverged, ioproc
     real(dp_t)      :: g_dot_Tpaj, omega_numerator, omega_denominator, L2_norm_of_s
 
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
-
     type(bl_prof_timer), save :: bpt
 
     integer, parameter :: SSS = 4
@@ -785,13 +852,9 @@ contains
     call copy(ph, 1, uu, 1, 1, ng = nghost(ph))
     call copy(ph, 2, uu, 1, 1, ng = nghost(ph))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call stencil_multifab_copy(aa_local, aa)
     !
     ! Make sure to do singular adjustment *before* diagonalization.
     !
@@ -1224,7 +1287,6 @@ contains
     logical :: nodal_solve, nodal(get_dim(rh))
     logical :: singular 
     integer :: cnt
-    real(dp_t), pointer :: pdst(:,:,:,:), psrc(:,:,:,:)
     real(dp_t) :: nrms(2), rnrms(2)
 
     type(bl_prof_timer), save :: bpt
@@ -1259,13 +1321,9 @@ contains
 
     call copy(rh_local, 1, rh, 1, nc = ncomp(rh), ng = nghost(rh))
     !
-    ! Copy aa -> aa_local; gotta do it by hand since it's a stencil multifab.
+    ! Copy aa -> aa_local; gotta to call the special copy
     !
-    do i = 1, nfabs(aa)
-       pdst => dataptr(aa_local, i)
-       psrc => dataptr(aa      , i)
-       call cpy_d(pdst, psrc)
-    end do
+    call stencil_multifab_copy(aa_local, aa)
 
     call diag_initialize(aa_local,rh_local,mm,stencil_type)
 
@@ -1396,7 +1454,7 @@ contains
     type(imultifab), intent(in) :: mm
     real(kind=dp_t), pointer, dimension(:,:,:,:) :: ap, up, rp
     integer, pointer, dimension(:,:,:,:) :: mp
-    integer :: i, n, dm
+    integer :: i, n, dm, ngu
     integer, intent(in), optional :: method
     integer :: lm
     type(bl_prof_timer), save :: bpt
@@ -1406,6 +1464,7 @@ contains
     lm = 1; if ( present(method) ) lm = method
 
     dm = get_dim(uu)
+    ngu = nghost(uu)
 
     select case (lm)
     case (0)
@@ -1417,28 +1476,33 @@ contains
           up => dataptr(uu, i)
           ap => dataptr(aa, i)
           mp => dataptr(mm, i)
+
           do n = 1, ncomp(uu)
              select case(dm)
              case (1)
                 if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_1d(ap(:,:,1,1), up(:,1,1,n), rp(:,1,1,n), nghost(uu))
+                   call jacobi_precon_1d(ap(:,:,1,1), up(:,1,1,n), rp(:,1,1,n), ngu)
                 else
                    call nodal_precon_1d(ap(:,:,1,1), up(:,1,1,n), rp(:,1,1,n), &
-                                        mp(:,1,1,1),nghost(uu))
+                                        mp(:,1,1,1),ngu)
                 end if
              case (2)
-                if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_2d(ap(:,:,:,1), up(:,:,1,n), rp(:,:,1,n), nghost(uu))
+                if (is_ibc_stencil(aa,i)) then
+                   call jacobi_precon_ibc_2d(ap(1,1,1,1), up(:,:,1,n), rp(:,:,1,n), ngu)
+                else if ( cell_centered_q(rh) ) then
+                   call jacobi_precon_2d(ap(:,:,:,1), up(:,:,1,n), rp(:,:,1,n), ngu)
                 else
                    call nodal_precon_2d(ap(:,:,:,1), up(:,:,1,n), rp(:,:,1,n), &
-                                        mp(:,:,1,1),nghost(uu))
+                                        mp(:,:,1,1),ngu)
                 end if
              case (3)
-                if ( cell_centered_q(rh) ) then
-                   call jacobi_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), nghost(uu))
+                if (is_ibc_stencil(aa,i)) then
+                   call jacobi_precon_ibc_3d(ap(1,1,1,1), up(:,:,:,n), rp(:,:,:,n), ngu)
+                else if ( cell_centered_q(rh) ) then
+                   call jacobi_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), ngu)
                 else
                    call nodal_precon_3d(ap(:,:,:,:), up(:,:,:,n), rp(:,:,:,n), &
-                                        mp(:,:,:,1),nghost(uu))
+                                        mp(:,:,:,1),ngu)
                 end if
              end select
           end do
@@ -1487,14 +1551,18 @@ contains
                                      lo, hi)
              end if
           case (2)
-             if ( cell_centered_q(rh) ) then
+             if (is_ibc_stencil(aa,i)) then
+                call diag_init_ibc_2d(ap(:,1,1,1), rp(:,:,1,1), ng_r, lo, hi)
+             else if ( cell_centered_q(rh) ) then
                 call diag_init_cc_2d(ap(:,:,:,1), ng_a, rp(:,:,1,1), ng_r, lo, hi)
              else
                 call diag_init_nd_2d(ap(1,:,:,1), ng_a, rp(:,:,1,1), ng_r, mp(:,:,1,1), ng_m, &
                                      lo, hi, stencil_type)
              end if
           case (3)
-             if ( cell_centered_q(rh) ) then
+             if (is_ibc_stencil(aa,i)) then
+                call diag_init_ibc_3d(ap(:,1,1,1), rp(:,:,:,1), ng_r, lo, hi)
+             else if ( cell_centered_q(rh) ) then
                 call diag_init_cc_3d(ap(:,:,:,:), ng_a, rp(:,:,:,1), ng_r, lo, hi)
              else
                 call diag_init_nd_3d(ap(1,:,:,:), ng_a, rp(:,:,:,1), ng_r, mp(:,:,:,1), ng_m, &

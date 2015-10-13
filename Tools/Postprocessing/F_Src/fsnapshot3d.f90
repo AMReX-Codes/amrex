@@ -62,7 +62,7 @@ program fsnapshot3d
 
   ! set the defaults
   pltfile  = ''
-  ndir_pass = -1
+  ndir_pass = 1
   compname = "density"
   ldef_mx = .false.
   ldef_mn = .false.

@@ -1,8 +1,7 @@
 module mg_tower_module
 
   use multifab_module
-  use cc_stencil_module
-  use nodal_stencil_module
+  use bl_constants_module
 
   implicit none
 

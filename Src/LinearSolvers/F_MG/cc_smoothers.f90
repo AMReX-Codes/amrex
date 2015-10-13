@@ -3,8 +3,18 @@ module cc_smoothers_module
   use bl_constants_module
   use cc_stencil_module
   use stencil_types_module
+  use bc_functions_module
 
   implicit none
+
+  private
+
+  public :: gs_line_solve_1d, &
+       fourth_order_smoother_2d, fourth_order_smoother_3d, &
+       gs_rb_smoother_1d, gs_rb_smoother_2d, gs_rb_smoother_3d, &
+       jac_smoother_1d, jac_smoother_2d, jac_smoother_3d, &
+       gs_rb_smoother_ibc_2d, gs_rb_smoother_ibc_3d, &
+       jac_smoother_ibc_2d, jac_smoother_ibc_3d
 
 contains
 
@@ -630,23 +640,23 @@ contains
 
   end subroutine jac_smoother_1d
 
-  subroutine jac_dense_smoother_1d(ss, uu, ff, ng)
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) ::  ss(:,:)
-    real (kind = dp_t), intent(in) ::  ff(:)
-    real (kind = dp_t), intent(inout) ::  uu(1-ng:)
-    real (kind = dp_t):: wrk(size(ff,1))
-    integer :: nx, i
+  ! subroutine jac_dense_smoother_1d(ss, uu, ff, ng)
+  !   integer, intent(in) :: ng
+  !   real (kind = dp_t), intent(in) ::  ss(:,:)
+  !   real (kind = dp_t), intent(in) ::  ff(:)
+  !   real (kind = dp_t), intent(inout) ::  uu(1-ng:)
+  !   real (kind = dp_t):: wrk(size(ff,1))
+  !   integer :: nx, i
 
-    nx = size(ff,dim=1)
-    do i = 1, nx
-       wrk(i) = ( ff(i) - ss(1,i)*uu(i+1) - ss(3,i)*uu(i-1) )
-    end do
-    do i = 1, nx
-       uu(i) = uu(i) + (wrk(i)/ss(2,i)-uu(i))
-    end do
+  !   nx = size(ff,dim=1)
+  !   do i = 1, nx
+  !      wrk(i) = ( ff(i) - ss(1,i)*uu(i+1) - ss(3,i)*uu(i-1) )
+  !   end do
+  !   do i = 1, nx
+  !      uu(i) = uu(i) + (wrk(i)/ss(2,i)-uu(i))
+  !   end do
 
-  end subroutine jac_dense_smoother_1d
+  ! end subroutine jac_dense_smoother_1d
 
   subroutine jac_smoother_2d(ss, uu, ff, mm, ng)
     use bl_prof_module
@@ -703,51 +713,51 @@ contains
 
   end subroutine jac_smoother_2d
 
-  subroutine jac_dense_smoother_2d(ss, uu, ff, ng)
-    use bl_prof_module
-    integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: ss(0:,:,:)
-    real (kind = dp_t), intent(in) :: ff(:,:)
-    real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
-    real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
-    integer :: i, j
-    integer :: nx, ny
+  ! subroutine jac_dense_smoother_2d(ss, uu, ff, ng)
+  !   use bl_prof_module
+  !   integer, intent(in) :: ng
+  !   real (kind = dp_t), intent(in) :: ss(0:,:,:)
+  !   real (kind = dp_t), intent(in) :: ff(:,:)
+  !   real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
+  !   real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
+  !   integer :: i, j
+  !   integer :: nx, ny
 
-    real (kind = dp_t), parameter :: omega = 4.0_dp_t/5.0_dp_t
+  !   real (kind = dp_t), parameter :: omega = 4.0_dp_t/5.0_dp_t
 
-    type(bl_prof_timer), save :: bpt
+  !   type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "jac_dense_smoother_2d")
+  !   call build(bpt, "jac_dense_smoother_2d")
 
-    nx=size(ss,dim=2)
-    ny=size(ss,dim=3)
+  !   nx=size(ss,dim=2)
+  !   ny=size(ss,dim=3)
 
-    do j = 1, ny
-       do i = 1, nx
-          wrk(i,j) = ff(i,j) - (&
-               + ss(1,i,j)*uu(i-1,j-1) &
-               + ss(2,i,j)*uu(i  ,j-1) &
-               + ss(3,i,j)*uu(i+1,j-1) &
+  !   do j = 1, ny
+  !      do i = 1, nx
+  !         wrk(i,j) = ff(i,j) - (&
+  !              + ss(1,i,j)*uu(i-1,j-1) &
+  !              + ss(2,i,j)*uu(i  ,j-1) &
+  !              + ss(3,i,j)*uu(i+1,j-1) &
                
-               + ss(4,i,j)*uu(i-1,j  ) &
-               + ss(5,i,j)*uu(i+1,j  ) &
+  !              + ss(4,i,j)*uu(i-1,j  ) &
+  !              + ss(5,i,j)*uu(i+1,j  ) &
                
-               + ss(6,i,j)*uu(i-1,j+1) &
-               + ss(7,i,j)*uu(i  ,j+1) &
-               + ss(8,i,j)*uu(i+1,j+1) &
-               )
-       end do
-    end do
+  !              + ss(6,i,j)*uu(i-1,j+1) &
+  !              + ss(7,i,j)*uu(i  ,j+1) &
+  !              + ss(8,i,j)*uu(i+1,j+1) &
+  !              )
+  !      end do
+  !   end do
 
-    do j = 1, ny
-       do i = 1, nx
-          uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(0,i,j)-uu(i,j))
-       end do
-    end do
+  !   do j = 1, ny
+  !      do i = 1, nx
+  !         uu(i,j) = uu(i,j) + omega*(wrk(i,j)/ss(0,i,j)-uu(i,j))
+  !      end do
+  !   end do
 
-    call destroy(bpt)
+  !   call destroy(bpt)
 
-  end subroutine jac_dense_smoother_2d
+  ! end subroutine jac_dense_smoother_2d
 
   subroutine jac_smoother_3d(ss, uu, ff, mm, ng)
     use bl_prof_module
@@ -825,13 +835,193 @@ contains
 
   end subroutine jac_smoother_3d
 
-  subroutine jac_dense_smoother_3d(ss, uu, ff, ng)
+  ! subroutine jac_dense_smoother_3d(ss, uu, ff, ng)
+  !   use bl_prof_module
+  !   integer, intent(in) :: ng
+  !   real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
+  !   real (kind = dp_t), intent(in) :: ff(:,:,:)
+  !   real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
+  !   real (kind = dp_t), allocatable :: wrk(:,:,:)
+  !   integer :: nx, ny, nz
+  !   integer :: i, j, k
+
+  !   real (kind = dp_t), parameter :: omega = 6.0_dp_t/7.0_dp_t
+
+  !   type(bl_prof_timer), save :: bpt
+
+  !   call build(bpt, "jac_dense_smoother_3d")
+
+  !   nx = size(ff,dim=1)
+  !   ny = size(ff,dim=2)
+  !   nz = size(ff,dim=3)
+
+  !   allocate(wrk(nx,ny,nz))
+
+  !   !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+  !   do k = 1, nz
+  !      do j = 1, ny
+  !         do i = 1, nx
+  !            wrk(i,j,k) = ff(i,j,k) - ( &
+  !                 + ss( 0,i,j,k)*uu(i  ,j  ,k)  &
+  !                 + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
+  !                 + ss( 2,i,j,k)*uu(i  ,j-1,k-1) &
+  !                 + ss( 3,i,j,k)*uu(i+1,j-1,k-1) &
+  !                 + ss( 4,i,j,k)*uu(i-1,j  ,k-1) &
+  !                 + ss( 5,i,j,k)*uu(i  ,j  ,k-1) &
+  !                 + ss( 6,i,j,k)*uu(i+1,j  ,k-1) &
+  !                 + ss( 7,i,j,k)*uu(i-1,j+1,k-1) &
+  !                 + ss( 8,i,j,k)*uu(i  ,j+1,k-1) &
+  !                 + ss( 9,i,j,k)*uu(i+1,j+1,k-1) &
+                  
+  !                 + ss(10,i,j,k)*uu(i-1,j-1,k  ) &
+  !                 + ss(11,i,j,k)*uu(i  ,j-1,k  ) &
+  !                 + ss(12,i,j,k)*uu(i+1,j-1,k  ) &
+  !                 + ss(13,i,j,k)*uu(i-1,j  ,k  ) &
+  !                 + ss(14,i,j,k)*uu(i+1,j  ,k  ) &
+  !                 + ss(15,i,j,k)*uu(i-1,j+1,k  ) &
+  !                 + ss(16,i,j,k)*uu(i  ,j+1,k  ) &
+  !                 + ss(17,i,j,k)*uu(i+1,j+1,k  ) &
+                  
+  !                 + ss(18,i,j,k)*uu(i-1,j-1,k+1) &
+  !                 + ss(19,i,j,k)*uu(i  ,j-1,k+1) &
+  !                 + ss(20,i,j,k)*uu(i+1,j-1,k+1) &
+  !                 + ss(21,i,j,k)*uu(i-1,j  ,k+1) &
+  !                 + ss(22,i,j,k)*uu(i  ,j  ,k+1) &
+  !                 + ss(23,i,j,k)*uu(i+1,j  ,k+1) &
+  !                 + ss(24,i,j,k)*uu(i-1,j+1,k+1) &
+  !                 + ss(25,i,j,k)*uu(i  ,j+1,k+1) &
+  !                 + ss(26,i,j,k)*uu(i+1,j+1,k+1) &
+  !                 )
+  !         end do
+  !      end do
+  !   end do
+  !   !$OMP END PARALLEL DO
+
+  !   !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+  !   do k = 1, nz
+  !      do j = 1, ny
+  !         do i = 1, nx
+  !            uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(14,i,j,k)-uu(i,j,k))
+  !         end do
+  !      end do
+  !   end do
+  !   !$OMP END PARALLEL DO
+
+  !   call destroy(bpt)
+
+  ! end subroutine jac_dense_smoother_3d
+
+  subroutine gs_rb_smoother_ibc_2d(ss, uu, ff, lo, ng, n)
     use bl_prof_module
     integer, intent(in) :: ng
-    real (kind = dp_t), intent(in) :: ss(0:,:,:,:)
+    integer, intent(in) :: lo(:)
+    integer, intent(in) :: n
+    real (kind = dp_t), intent(in   ) :: ff(lo(1)   :, lo(2)   :)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
+    real (kind = dp_t), intent(in   ) :: ss(0:)
+    integer :: j, i, hi(size(lo)), ioff
+    real (kind = dp_t) :: dd, ss0inv
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_ibc_2d")
+
+    hi = ubound(ff)
+
+    ss0inv = one/ss(0)
+
+    do j = lo(2),hi(2)
+       ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
+       do i = lo(1) + ioff, hi(1), 2
+          dd =   ss(1) * (uu(i-1,j) + uu(i+1,j)) &
+               + ss(2) * (uu(i,j-1) + uu(i,j+1))
+          uu(i,j) = ss0inv*(ff(i,j) - dd)
+       end do
+    end do
+
+    call destroy(bpt)
+
+  end subroutine gs_rb_smoother_ibc_2d
+
+  subroutine gs_rb_smoother_ibc_3d(ss, uu, ff, lo, ng, n)
+    use bl_prof_module
+    integer, intent(in) :: ng
+    integer, intent(in) :: lo(:)
+    integer, intent(in) :: n
+    real (kind = dp_t), intent(in   ) :: ff(lo(1)   :, lo(2)   :, lo(3)   :)
+    real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:, lo(3)-ng:)
+    real (kind = dp_t), intent(in   ) :: ss(0:)
+    integer :: i, j, k, hi(size(lo)), ioff
+    real (kind = dp_t) :: dd, ss0inv
+
+    real(dp_t), parameter :: omega = 1.15_dp_t
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "gs_rb_smoother_ibc_3d")
+
+    hi = ubound(ff)
+
+    ss0inv = omega/ss(0)
+
+    !$omp parallel do private(i,j,k,ioff,dd) collapse(2)
+    do k = lo(3), hi(3)
+       do j = lo(2),hi(2)
+          ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
+          do i = lo(1) + ioff, hi(1), 2
+             dd =   ss(1) * (uu(i-1,j,k) + uu(i+1,j,k)) &
+                  + ss(2) * (uu(i,j-1,k) + uu(i,j+1,k)) &
+                  + ss(3) * (uu(i,j,k-1) + uu(i,j,k+1))
+             uu(i,j,k) = uu(i,j,k)*(one-omega) + ss0inv*(ff(i,j,k) - dd)
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    call destroy(bpt)
+
+  end subroutine gs_rb_smoother_ibc_3d
+
+  subroutine jac_smoother_ibc_2d(ss, uu, ff, ng)
+    use bl_prof_module
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in) ::  ss(0:)
+    real (kind = dp_t), intent(in) ::  ff(:,:)
+    real (kind = dp_t), intent(inout) ::  uu(1-ng:,1-ng:)
+    integer :: nx, ny
+    integer :: i, j
+    real (kind = dp_t) :: dd, ss0inv
+
+    real (kind = dp_t), parameter :: omega = 4.0_dp_t/5.0_dp_t
+
+    type(bl_prof_timer), save :: bpt
+
+    call build(bpt, "jac_smoother_ibc_2d")
+
+    nx = size(ff,dim=1)
+    ny = size(ff,dim=2)
+
+    ss0inv = omega/ss(0)
+
+    do j = 1, ny
+       do i = 1, nx
+          dd =   ss(1)*(uu(i-1,j) + uu(i+1,j)) &
+               + ss(2)*(uu(i,j-1) + uu(i,j+1))
+          uu(i,j) = uu(i,j)*(one-omega) + (ff(i,j)-dd)*ss0inv
+       end do
+    end do
+
+    call destroy(bpt)
+
+  end subroutine jac_smoother_ibc_2d
+
+  subroutine jac_smoother_ibc_3d(ss, uu, ff, ng)
+    use bl_prof_module
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in) :: ss(0:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
-    real (kind = dp_t), allocatable :: wrk(:,:,:)
+    real (kind = dp_t) :: dd, ss0inv
     integer :: nx, ny, nz
     integer :: i, j, k
 
@@ -839,59 +1029,22 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "jac_dense_smoother_3d")
+    call build(bpt, "jac_smoother_ibc_3d")
 
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
     nz = size(ff,dim=3)
 
-    allocate(wrk(nx,ny,nz))
+    ss0inv = omega/ss(0)
 
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
+    !$OMP PARALLEL DO PRIVATE(i,j,k,dd) collapse(2)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
-             wrk(i,j,k) = ff(i,j,k) - ( &
-                  + ss( 0,i,j,k)*uu(i  ,j  ,k)  &
-                  + ss( 1,i,j,k)*uu(i-1,j-1,k-1) &
-                  + ss( 2,i,j,k)*uu(i  ,j-1,k-1) &
-                  + ss( 3,i,j,k)*uu(i+1,j-1,k-1) &
-                  + ss( 4,i,j,k)*uu(i-1,j  ,k-1) &
-                  + ss( 5,i,j,k)*uu(i  ,j  ,k-1) &
-                  + ss( 6,i,j,k)*uu(i+1,j  ,k-1) &
-                  + ss( 7,i,j,k)*uu(i-1,j+1,k-1) &
-                  + ss( 8,i,j,k)*uu(i  ,j+1,k-1) &
-                  + ss( 9,i,j,k)*uu(i+1,j+1,k-1) &
-                  
-                  + ss(10,i,j,k)*uu(i-1,j-1,k  ) &
-                  + ss(11,i,j,k)*uu(i  ,j-1,k  ) &
-                  + ss(12,i,j,k)*uu(i+1,j-1,k  ) &
-                  + ss(13,i,j,k)*uu(i-1,j  ,k  ) &
-                  + ss(14,i,j,k)*uu(i+1,j  ,k  ) &
-                  + ss(15,i,j,k)*uu(i-1,j+1,k  ) &
-                  + ss(16,i,j,k)*uu(i  ,j+1,k  ) &
-                  + ss(17,i,j,k)*uu(i+1,j+1,k  ) &
-                  
-                  + ss(18,i,j,k)*uu(i-1,j-1,k+1) &
-                  + ss(19,i,j,k)*uu(i  ,j-1,k+1) &
-                  + ss(20,i,j,k)*uu(i+1,j-1,k+1) &
-                  + ss(21,i,j,k)*uu(i-1,j  ,k+1) &
-                  + ss(22,i,j,k)*uu(i  ,j  ,k+1) &
-                  + ss(23,i,j,k)*uu(i+1,j  ,k+1) &
-                  + ss(24,i,j,k)*uu(i-1,j+1,k+1) &
-                  + ss(25,i,j,k)*uu(i  ,j+1,k+1) &
-                  + ss(26,i,j,k)*uu(i+1,j+1,k+1) &
-                  )
-          end do
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    !$OMP PARALLEL DO PRIVATE(j,i,k) IF(nz.ge.4)
-    do k = 1, nz
-       do j = 1, ny
-          do i = 1, nx
-             uu(i,j,k) = uu(i,j,k) + omega*(wrk(i,j,k)/ss(14,i,j,k)-uu(i,j,k))
+             dd =   ss(1)*(uu(i-1,j,k)+uu(i+1,j,k))  &
+                  + ss(2)*(uu(i,j-1,k)+uu(i,j+1,k))  &
+                  + ss(3)*(uu(i,j,k-1)+uu(i,j,k+1))
+             uu(i,j,k) = uu(i,j,k)*(one-omega) + (ff(i,j,k) - dd)*ss0inv
           end do
        end do
     end do
@@ -899,6 +1052,6 @@ contains
 
     call destroy(bpt)
 
-  end subroutine jac_dense_smoother_3d
+  end subroutine jac_smoother_ibc_3d
 
 end module cc_smoothers_module
