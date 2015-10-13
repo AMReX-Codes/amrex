@@ -4,28 +4,27 @@
 #include <BoxLib.H>
 #include <MultiFab.H>
 #include <MultiFabUtil.H>
-#include <BLFort.H>
+#include <MultiGrid.H>
+#include <Laplacian.H>
 #include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
+#include <LO_BCTYPES.H>
+#include <BLFort.H>
 
-#include "Particles.H"
+void set_boundary(BndryData& bd, MultiFab& rhs, const Real* dx);
 
 void
-Gravity::solve_with_HPGMG(MultiFab& rhs,
-                          MultiFab& grad_phi,
-                          const Geometry& geom,
-                          Real tol,
-                          Real abs_tol)
+solve_with_hpgmg(MultiFab& rhs,
+                 PArray<MultiFab>& grad_phi,
+                 const Geometry& geom,
+                 Real tol,
+                 Real abs_tol)
 {
-  const Geometry& geom = parent->Geom(level);
-  const Real* dx = parent->Geom(level).CellSize();
+  const Real* dx = geom.CellSize();
   const Box& domain = geom.Domain();
 
   MultiFab soln(rhs.boxArray(),1,1);
 
-  BndryData bd(grids[level], 1, geom);
+  BndryData bd(rhs.boxArray(), 1, geom);
   set_boundary(bd, rhs, dx);
   const int n_cell = domain.length(0);
 
@@ -92,7 +91,7 @@ Gravity::solve_with_HPGMG(MultiFab& rhs,
   }
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   rebuild_operator(&level_h,NULL,a,b);    // i.e. calculate Dinv and lambda_max
-  MGBuild(&MG_h,&level_h,a,b,minCoarseDim); // build the Multigrid Hierarchy
+  MGBuild(&MG_h,&level_h,a,b,minCoarseDim,ParallelDescriptor::Communicator()); // build the Multigrid Hierarchy
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (ParallelDescriptor::IOProcessor())
     std::cout << std::endl << std::endl << "===== STARTING SOLVE =====" << std::endl << std::flush;
@@ -105,8 +104,10 @@ Gravity::solve_with_HPGMG(MultiFab& rhs,
   MGSolve (&MG_h, 0, VECTOR_U, VECTOR_F, a, b, tolerance_abs, tolerance_rel);
   #endif /* USE_FCYCLES */
 
+#if 0
   if (show_timings)
     MGPrintTiming (&MG_h, 0);
+#endif
 
   // Now convert solution from HPGMG back to rhs MultiFab.
   MultiFab::ConvertFromHPGMGLevel(soln, &level_h, VECTOR_U);
@@ -118,5 +119,27 @@ Gravity::solve_with_HPGMG(MultiFab& rhs,
   geom.FillPeriodicBoundary(soln);
 
   lap_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+}
+
+void
+set_boundary(BndryData& bd, MultiFab& rhs, const Real* dx)
+{
+  for (int n=0; n<BL_SPACEDIM; ++n) {
+    for (MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
+      int i = mfi.index();
+
+      // Our default will be that the face of this grid is either touching another grid
+      //  across an interior boundary or a periodic boundary.
+      {
+        // Define the type of boundary conditions to be Dirichlet (even for periodic)
+        bd.setBoundCond(Orientation(n, Orientation::low) ,i,0,LO_DIRICHLET);
+        bd.setBoundCond(Orientation(n, Orientation::high),i,0,LO_DIRICHLET);
+
+        // Set the boundary conditions to the cell centers outside the domain
+        bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.5*dx[n]);
+        bd.setBoundLoc(Orientation(n, Orientation::high),i,0.5*dx[n]);
+      }
+    }
+  }
 }
 #endif
