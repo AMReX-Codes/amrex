@@ -12,14 +12,16 @@
 #include "Particles.H"
 
 void solve_with_f90  (MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol);
+#ifdef USEHPGMG
 void solve_with_hpgmg(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol);
+#endif
 
 void 
 solve_for_accel(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom)
 {
  
     Real tol     = 1.e-10;
-    Real abs_tol = 1.e-12;
+    Real abs_tol = 1.e-14;
 
     int MAX_LEV = 10;
     Array< PArray<MultiFab> > grad_phi_edge;
