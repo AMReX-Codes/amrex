@@ -34,9 +34,9 @@ namespace ParallelDescriptor
     //
     // BoxLib's Communicators
     //
-    MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
-    MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the computation procs
-    MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the in-situ performance monitor
+    MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all ranks, probably MPI_COMM_WORLD
+    MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
+    MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the ranks in the sidecar
     MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
     //
     // BoxLib's Groups
