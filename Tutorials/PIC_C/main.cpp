@@ -12,7 +12,7 @@
 #include "Particles.H"
 
 // declare routines below
-void solve_for_phi(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom);
+void solve_for_accel(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom);
 
 int main(int argc, char* argv[])
 {
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     MyPC->WriteAsciiFile("Particles_before");
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_phi(rhs,grad_phi,geom);
+    solve_for_accel(rhs,grad_phi,geom);
 
     // Fill the particle data with the acceleration at the particle location
     int start_comp = BL_SPACEDIM+1;

@@ -12,19 +12,10 @@
 #include "Particles.H"
 
 void 
-solve_with_f90(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom)
+solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol)
 {
-    Real     strt    = ParallelDescriptor::second();
-
     BCRec* phys_bc;
     int mg_bc[2*BL_SPACEDIM];
-
-    int MAX_LEV = 10;
-    Array< PArray<MultiFab> > grad_phi_edge;
-    grad_phi_edge.resize(MAX_LEV);
-    grad_phi_edge[0].resize(BL_SPACEDIM, PArrayManage);
-    for (int n = 0; n < BL_SPACEDIM; ++n)
-        grad_phi_edge[0].set(n, new MultiFab(BoxArray(rhs.boxArray()).surroundingNodes(n), 1, 1));
 
     // build (and initialize) a multifab for the solution on the box array with 1 component, 1 ghost cell
     MultiFab phi(BoxArray(rhs.boxArray()), 1, 1);
@@ -102,9 +93,6 @@ solve_with_f90(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom)
     MultiFab* phi_p[1] = {&phi};
     MultiFab* rhs_p[1] = {&rhs};
 
-    const Real  tol     = 1.e-10;
-    const Real  abs_tol = 0.;
-
     {
         int stencil_type = CC_CROSS_STENCIL;
         int always_use_bnorm = 1;
@@ -115,27 +103,6 @@ solve_with_f90(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom)
         mgt_solver.solve(phi_p, rhs_p, bndry, tol, abs_tol, always_use_bnorm, final_resnorm,need_grad_phi); 
 
         const Real* dx = geom.CellSize();
-        mgt_solver.get_fluxes(0,grad_phi_edge[0],dx);
-    }
-
-    // Average edge-centered gradients to cell centers.
-    BoxLib::average_face_to_cellcenter(grad_phi, grad_phi_edge[0], geom);
-    geom.FillPeriodicBoundary(grad_phi,true);
-
-    // VisMF::Write(grad_phi,"GradPhi");
-
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      end    = ParallelDescriptor::second() - strt; 
-
-#ifdef BL_LAZY 
-        Lazy::QueueReduction( [=] () mutable {
-#endif
-        ParallelDescriptor::ReduceRealMax(end,IOProc);
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "solve_for_phi() time = " << end << std::endl;
-#ifdef BL_LAZY 
-        });
-#endif
+        mgt_solver.get_fluxes(0,grad_phi_edge,dx);
     }
 }
