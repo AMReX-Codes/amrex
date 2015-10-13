@@ -14,14 +14,16 @@
 
 void
 Gravity::solve_with_HPGMG(MultiFab& rhs,
-                          MultiFab& soln,
-                          PArray<MultiFab>& grad_phi,
+                          MultiFab& grad_phi,
+                          const Geometry& geom,
                           Real tol,
                           Real abs_tol)
 {
   const Geometry& geom = parent->Geom(level);
   const Real* dx = parent->Geom(level).CellSize();
   const Box& domain = geom.Domain();
+
+  MultiFab soln(rhs.boxArray(),1,1);
 
   BndryData bd(grids[level], 1, geom);
   set_boundary(bd, rhs, dx);
