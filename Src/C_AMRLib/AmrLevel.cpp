@@ -843,10 +843,12 @@ FillPatchIterator::Initialize (int  boxGrow,
                                           NComp,
                                           desc.interp(SComp));
 
-// Some of the LMC tests' boundary fill functions have not been made thread safe.
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
+
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+#endif
         for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
         {
             fph->fill(m_fabs[mfi],DComp,mfi.index());
