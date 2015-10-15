@@ -251,8 +251,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
-    signal(SIGFPE, BLBackTrace::handler);
-    signal(SIGINT, BLBackTrace::handler);
+    signal(SIGFPE,  BLBackTrace::handler);
+    signal(SIGINT,  BLBackTrace::handler);
+    signal(SIGTERM, BLBackTrace::handler);
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
