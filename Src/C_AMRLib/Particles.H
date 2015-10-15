@@ -65,7 +65,7 @@ struct ParticleBase
         m_grid(-1)
         {}
 
-    static IntVect Index (const ParticleBase& p, int lev, const Amr* amr);
+    static IntVect Index (const ParticleBase& p, const Geometry& geom);
     //
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
@@ -93,19 +93,19 @@ struct ParticleBase
     //
     // Returns true if the particle was shifted.
     //
-    static bool PeriodicShift (ParticleBase& prt, const Amr* amr);
+    static bool PeriodicShift (ParticleBase& prt, const Geometry& geom);
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
     static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
-    static void Interp (const ParticleBase& prt, const Amr* amr, const FArrayBox& fab, const int* idx, Real* val, int cnt);
+    static void Interp (const ParticleBase& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
 
-    static void GetGravity (const FArrayBox& gfab, const Amr* amr, const ParticleBase& p, Real* grav);
+    static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const ParticleBase& p, Real* grav);
 
     static int MaxReaders ();
 
@@ -630,7 +630,7 @@ ParticleContainer<N>::addOneParticle (int                  id_in,
 
     if (!ParticleBase::Where(p,m_amr))
     {
-        ParticleBase::PeriodicShift(p,m_amr);
+        ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
         if (!ParticleBase::Where(p,m_amr))
         {
@@ -791,7 +791,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
             if (!ParticleBase::Where(p,m_amr))
             {
-                ParticleBase::PeriodicShift(p,m_amr);
+                ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
@@ -844,7 +844,7 @@ ParticleContainer<N>::InitFromAsciiFile (const std::string& file, int extradata,
 
                             if (!ParticleBase::Where(p_rep,m_amr))
                             {
-                                ParticleBase::PeriodicShift(p_rep,m_amr);
+                                ParticleBase::PeriodicShift(p_rep,m_amr->Geom(0));
                                 if (!ParticleBase::Where(p_rep,m_amr))
                                 {
                                     std::cout << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleBase::NextID() << std::endl;
@@ -1329,7 +1329,7 @@ ParticleContainer<N>::InitFromBinaryFile (const std::string& file,
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
-                    ParticleBase::PeriodicShift(p,m_amr);
+                    ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                     if (!ParticleBase::Where(p,m_amr))
                     {
@@ -1548,7 +1548,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
 	
 	            if (!ParticleBase::Where(p,m_amr))
                     {
-      		        ParticleBase::PeriodicShift(p,m_amr);
+      		        ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                         if (!ParticleBase::Where(p,m_amr))
                             BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
@@ -1574,7 +1574,7 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
 		      
 			if (!ParticleBase::Where(newp[i],m_amr))
 			{
-				  ParticleBase::PeriodicShift(newp[i],m_amr);
+				  ParticleBase::PeriodicShift(newp[i],m_amr->Geom(0));
     
 			    if (!ParticleBase::Where(newp[i],m_amr))
 				BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
@@ -1664,7 +1664,7 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
 	
 	            if (!ParticleBase::Where(p,m_amr))
                     {
-      		        ParticleBase::PeriodicShift(p,m_amr);
+      		        ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                         if (!ParticleBase::Where(p,m_amr))
                             BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
@@ -1795,7 +1795,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
 	                if (!ParticleBase::Where(p,m_amr))
                         {
-      		            ParticleBase::PeriodicShift(p,m_amr);
+      		            ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                             if (!ParticleBase::Where(p,m_amr))
                                 BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
@@ -1858,7 +1858,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 	    // Do CIC interpolation onto the particle positions.
 	    // For CIC we need one ghost cell!
             //
-            ParticleBase::GetGravity(dfab, m_amr, p, disp);
+            ParticleBase::GetGravity(dfab, m_amr->Geom(p.m_lev), p, disp);
 
             D_TERM(p.m_pos[0] += len[0]*disp[0];,
                    p.m_pos[1] += len[1]*disp[1];,
@@ -1872,7 +1872,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 
             if (!ParticleBase::Where(p,m_amr))
             {
-	        ParticleBase::PeriodicShift(p,m_amr);
+	        ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                 if (!ParticleBase::Where(p,m_amr))
                     BoxLib::Abort("ParticleContainer<N>::InitCosmo(): invalid particle");
@@ -4533,7 +4533,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
             //
             Real grav[BL_SPACEDIM];
 
-            ParticleBase::GetGravity(gfab, m_amr, p, grav);
+            ParticleBase::GetGravity(gfab, m_amr->Geom(p.m_lev), p, grav);
             //
             // First update (a u)^half = (a u)^old + dt/2 grav^old
             //
@@ -4672,7 +4672,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                 //
                 Real grav[BL_SPACEDIM];
 
-                ParticleBase::GetGravity(gfab, m_amr, p, grav);
+                ParticleBase::GetGravity(gfab, m_amr->Geom(p.m_lev), p, grav);
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
@@ -5248,7 +5248,7 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                         {
                             pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
                         }
-                        BL_ASSERT(ParticleBase::Index(pold,level,m_amr) == it->m_cell);
+                        BL_ASSERT(ParticleBase::Index(pold,m_amr->Geom(level)) == it->m_cell);
                         //
                         // Set the metadata (presumably velocity) to the mass-weighted average.
                         //
@@ -5320,7 +5320,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect& iv = ParticleBase::Index(*it,level+1,m_amr);
+            const IntVect& iv = ParticleBase::Index(*it,m_amr->Geom(level+1));
             //
             // Is it in the grown finer level?
             //
@@ -6869,7 +6869,7 @@ ParticleContainer<N>::ReadParticles_DoublePrecision (int            cnt,
         {
            if (!ParticleBase::Where(p,m_amr))
             {
-                ParticleBase::PeriodicShift(p,m_amr);
+                ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
@@ -6989,7 +6989,7 @@ ParticleContainer<N>::ReadParticles_SinglePrecision (int            cnt,
         {
            if (!ParticleBase::Where(p,m_amr))
             {
-                ParticleBase::PeriodicShift(p,m_amr);
+                ParticleBase::PeriodicShift(p,m_amr->Geom(0));
 
                 if (!ParticleBase::Where(p,m_amr))
                 {
@@ -7143,7 +7143,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (p.m_id <= 0) continue;
 
-                        const IntVect& iv = ParticleBase::Index(p, lev, m_amr);
+                        const IntVect& iv = ParticleBase::Index(p, m_amr->Geom(lev));
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
@@ -7166,7 +7166,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_amr,fab,&indices[0],&vals[0],M);
+                            ParticleBase::Interp(p,m_amr->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
 
                             for (int i = 0; i < M; i++)
                             {
