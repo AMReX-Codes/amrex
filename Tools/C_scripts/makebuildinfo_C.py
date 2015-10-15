@@ -93,6 +93,14 @@ def runcommand(command):
     out = p.stdout.read()
     return out.strip()
 
+def get_git_hash(d):
+    cwd = os.getcwd()
+    os.chdir(d)
+    try: hash = runcommand("git rev-parse HEAD")
+    except: hash = ""
+    os.chdir(cwd)
+    return hash
+
 
 try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 ["boxlib_home=",
@@ -147,9 +155,7 @@ ngit = len(GIT)
 git_hashes = []
 for d in GIT:
     if d and os.path.isdir(d):
-        os.chdir(d)
-        git_hashes.append(runcommand("git rev-parse HEAD"))
-        os.chdir(running_dir)
+        git_hashes.append(get_git_hash(d))
     else:
         git_hashes.append("")
 
@@ -158,7 +164,7 @@ if not build_git_dir == None:
     except:
         build_git_hash = "directory not valid"
     else:
-        build_git_hash = runcommand("git rev-parse HEAD")
+        build_git_hash = runcommand(get_git_hash(build_git_dir))
         os.chdir(running_dir)
 else:
     build_git_hash = ""

@@ -25,13 +25,6 @@ public:
                int ncomp = 1,
                int verbose = 0);
 
-    void Build(const std::vector<Geometry>& geom, 
-               int* bc, int  stencil_type,
-               const std::vector<DistributionMapping>& dmap,
-               int nc,
-               int ncomp,
-               int verbose);
-
   static void initialize(bool nodal);
   static void Finalize();
   static void FlushFortranOutput();
@@ -114,6 +107,13 @@ public:
   
 private:
 
+   void Build(const std::vector<Geometry>& geom, 
+	      int* bc, int  stencil_type,
+	      const std::vector<DistributionMapping>& dmap,
+	      int nc,
+	      int ncomp);
+
+  int verbose;
   int m_nlevel;
   std::vector<BoxArray> m_grids;
   bool m_nodal;

@@ -141,6 +141,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring edison, $(NERSC_HOST)), edison)
     WHICHLINUX := EDISON
   endif
+  ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+    WHICHLINUX := CORI
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
@@ -293,6 +296,9 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        CXXOPTF += -fsanitize=thread
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     ifeq ($(BACKTRACE),TRUE)
@@ -424,16 +430,24 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    ifeq ($(HOST),baragon)
+       override XTRALIBS += -lgfortran
+    else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
        override XTRALIBS += $(_f95_lib)       
     endif
+    endif
 
     FOPTF += -ffixed-line-length-0 -g -O3
     fOPTF += -ffixed-line-length-0 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        FOPTF += -fsanitize=thread
+        fOPTF += -fsanitize=thread
+    endif
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -482,6 +496,10 @@ ifeq ($(COMP),Intel)
    else
      _icpc := icc
      _icc  := icc
+   endif
+
+   ifeq ($(WHICHLINUX), CORI)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
@@ -754,6 +772,10 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+   endif
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
