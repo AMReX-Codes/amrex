@@ -232,7 +232,7 @@ namespace BoxLib
 
     void RestoreRandomState (const Array<unsigned long>& state);
     //
-    // Create a unique subset or random numbers from a pool
+    // Create a unique subset of random numbers from a pool
     //   setSize must be <= poolSize
     //
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
