@@ -180,17 +180,18 @@ namespace ParallelDescriptor
     // last routine in this class called from within a program.
     //
     void EndParallel ();
-    //
-    // Returns processor number of calling program.
-    //
+
     extern const int myId_undefined;
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
     extern int m_MyId_sidecar;
 
+    //
+    // return the rank number local to the comp or sidecar groups
+    //
     inline int
-    MyProc ()  // return the "local" process number
+    MyProc ()
     {
         if (m_MyId_comp != myId_notInGroup)
         {
@@ -203,6 +204,9 @@ namespace ParallelDescriptor
             return m_MyId_sidecar;
         }
     }
+    //
+    // return the rank number for the global group
+    //
     inline int
     MyProcAll ()
     {
@@ -233,23 +237,29 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_comp != myId_undefined);
         return (m_MyId_comp >= 0);
     }
-    //
-    // Returns number of CPUs involved in the computation.
-    //
+
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
     extern int m_nProcs_sidecar;
     extern int nSidecarProcs;
 
-    inline void
-    SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
-    {
-        BL_ASSERT(npmp >= 0);
-        nSidecarProcs = npmp;
-    }
+    //
+    // This sets the number of MPI ranks in the sidecar and
+    // initializes nProcs, MyId, groups, and communicators
+    // for the comp and sidecar sets of ranks.
+    // The user will need to handle any consequences of changing
+    // the numbers of processors in each group (such as changing
+    // distribution maps and moving FAB data in MultiFabs).
+    //
+    void
+    SetNProcsSidecar (int nscp);
+
+    //
+    // return the number of MPI ranks number local to the comp or sidecar groups
+    //
     inline int
-    NProcs ()  // return the "local" number of processes
+    NProcs ()
     {
         if (m_MyId_comp != myId_notInGroup)
         {

@@ -316,41 +316,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
     }
     
-    BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
-    BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
-
-    if(m_MyId_all == 0 && nSidecarProcs > 0) {
-      std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
-    }
-    if(nSidecarProcs >= m_nProcs_all) {
-      std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
-                << " >= " << m_nProcs_all << std::endl;
-      BoxLib::Abort("Error in StartParallel:  bad nSidecarProcs.");
-    }
-
-    MPI_Comm_group(m_comm_all, &m_group_all);
-
-    if(nSidecarProcs > 0) {
-      Array<int> sidecarRanksInAll(nSidecarProcs, nProcs_undefined);
-      for(int ip(0); ip < nSidecarProcs; ++ip) {
-        sidecarRanksInAll[ip] = m_nProcs_all - nSidecarProcs + ip;
-      }
-      MPI_Group_excl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_comp);
-      MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp);
-
-      MPI_Group_incl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_sidecar);
-      MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar);
-
-      MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar);
-      MPI_Group_size(m_group_comp, &m_nProcs_comp);
-    } else {
-      m_comm_comp  = m_comm_all;
-      m_group_comp = m_group_all;
-
-      m_nProcs_comp = m_nProcs_all;
-      m_nProcs_sidecar = 0;
-    }
-
     // ---- find the maximum value for a tag
     int flag(0), *attrVal;
     BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
@@ -363,19 +328,106 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
+
+    BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
+    BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
+    BL_MPI_REQUIRE( MPI_Comm_group(CommunicatorAll(), &m_group_all) );
+
+    SetNProcsSidecar(0);
+
+    //
+    // Wait until all other processes are properly started.
+    //
+    BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
+}
+
+void
+ParallelDescriptor::EndParallel ()
+{
+    BL_ASSERT(m_MyId_all != -1);
+    BL_ASSERT(m_nProcs_all != -1);
+
+    BL_MPI_REQUIRE( MPI_Finalize() );
+}
+
+void
+ParallelDescriptor::SetNProcsSidecar (int nscp)
+{
+    BL_ASSERT(nscp >= 0);
+    nSidecarProcs = nscp;
+
+    if(m_MyId_all == 0 && nSidecarProcs > 0) {
+      std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
+    }
+    if(nSidecarProcs >= m_nProcs_all) {
+      if(m_MyId_all == 0 && nSidecarProcs > 0) {
+        std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
+                  << " >= " << m_nProcs_all << std::endl;
+      }
+      BoxLib::Abort("Error in SetNProcsSidecar:  bad nSidecarProcs.");
+    }
+
+    // ---- free existing groups and communicators
+    // ---- and reinitialize values
+    if(m_comm_sidecar != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar) );
+      m_comm_sidecar = MPI_COMM_NULL;
+    }
+    if(m_comm_comp != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
+      m_comm_comp = MPI_COMM_NULL;
+    }
+    if(m_comm_inter != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_inter) );
+      m_comm_inter = MPI_COMM_NULL;
+    }
+    if(m_group_comp != MPI_GROUP_NULL) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
+      m_group_comp = MPI_GROUP_NULL;
+    }
+    if(m_group_sidecar != MPI_GROUP_NULL) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar) );
+      m_group_sidecar = MPI_GROUP_NULL;
+    }
+    m_nProcs_comp    = nProcs_undefined;
+    m_nProcs_sidecar = nProcs_undefined;
+    m_MyId_comp      = myId_undefined;
+    m_MyId_sidecar   = myId_undefined;
+
+
+    if(nSidecarProcs > 0) {
+      Array<int> sidecarRanksInAll(nSidecarProcs, nProcs_undefined);
+      for(int ip(0); ip < nSidecarProcs; ++ip) {
+        sidecarRanksInAll[ip] = m_nProcs_all - nSidecarProcs + ip;
+      }
+      BL_MPI_REQUIRE( MPI_Group_excl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_comp) );
+      BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
+
+      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, nSidecarProcs, sidecarRanksInAll.dataPtr(), &m_group_sidecar) );
+      BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar) );
+
+      BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar) );
+      BL_MPI_REQUIRE( MPI_Group_size(m_group_comp, &m_nProcs_comp) );
+    } else {
+      m_comm_comp  = m_comm_all;
+      m_group_comp = m_group_all;
+
+      m_nProcs_comp = m_nProcs_all;
+      m_nProcs_sidecar = 0;
+    }
+
     if(nSidecarProcs > 0) {
       int tag(m_MaxTag + 1);
 
-
       if(m_MyId_all >= m_nProcs_all - nSidecarProcs) {  // ---- sidecar group
-        MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar);
-        MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter);
+        BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar) );
+        BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter) );
 	m_MyId_comp = myId_notInGroup;
 
       } else {                        // ---- in computation group
-        MPI_Group_rank(m_group_comp, &m_MyId_comp);
-        MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nSidecarProcs,
-	                     tag, &m_comm_inter);
+        BL_MPI_REQUIRE( MPI_Group_rank(m_group_comp, &m_MyId_comp) );
+        BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_comp, 0, m_comm_all, m_nProcs_all - nSidecarProcs,
+	                     tag, &m_comm_inter) );
 	m_MyId_sidecar = myId_notInGroup;
       }
 
@@ -383,11 +435,6 @@ ParallelDescriptor::StartParallel (int*    argc,
       m_MyId_comp   = m_MyId_all;
       m_MyId_sidecar   = myId_notInGroup;
     }
-
-    //
-    // Wait until all other processes are properly started.
-    //
-    BL_MPI_REQUIRE( MPI_Barrier(CommunicatorAll()) );
 
     if(m_MyId_all     == myId_undefined ||
        m_MyId_comp    == myId_undefined ||
@@ -406,15 +453,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 	          << m_nProcs_comp << "  " << m_nProcs_sidecar << std::endl;
       BoxLib::Abort("**** Error:  bad nProcs in ParallelDescriptor::StartParallel()");
     }
-}
-
-void
-ParallelDescriptor::EndParallel ()
-{
-    BL_ASSERT(m_MyId_all != -1);
-    BL_ASSERT(m_nProcs_all != -1);
-
-    BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
 double
