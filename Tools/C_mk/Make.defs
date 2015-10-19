@@ -171,6 +171,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring titan, $(UNAMEN)), titan)
     WHICHLINUX := TITAN
   endif
+  ifeq ($(findstring chester, $(UNAMEN)), chester)
+    WHICHLINUX := CHESTER
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
