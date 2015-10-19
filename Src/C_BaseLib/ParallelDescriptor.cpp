@@ -344,8 +344,8 @@ ParallelDescriptor::StartParallel (int*    argc,
 void
 ParallelDescriptor::EndParallel ()
 {
-    BL_ASSERT(m_MyId_all != -1);
-    BL_ASSERT(m_nProcs_all != -1);
+    BL_ASSERT(m_MyId_all   != myId_undefined);
+    BL_ASSERT(m_nProcs_all != nProcs_undefined);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
@@ -432,8 +432,8 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
       }
 
     } else {
-      m_MyId_comp   = m_MyId_all;
-      m_MyId_sidecar   = myId_notInGroup;
+      m_MyId_comp    = m_MyId_all;
+      m_MyId_sidecar = myId_notInGroup;
     }
 
     if(m_MyId_all     == myId_undefined ||
