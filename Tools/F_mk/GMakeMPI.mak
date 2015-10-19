@@ -135,6 +135,20 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn
     endif
 endif
+ifeq ($(findstring chester, $(HOST)), chester)
+    #
+    # titan (Oak Ridge, OLCF machine)
+		#
+		# Cray machines require you use their compiler wrappers
+		# even if you aren't using Cray compiler
+    #
+    ifdef MPI
+        CXX := CC 
+        CC  := cc 
+        FC  := ftn
+        F90 := ftn
+    endif
+endif
 ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     #
     # Blue Waters
