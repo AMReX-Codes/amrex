@@ -9,8 +9,6 @@
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
 
-#include "Particles.H"
-
 void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
                       const PArray<Geometry>& geom, int base_level, Real tol, Real abs_tol);
 #ifdef USEHPGMG
@@ -18,7 +16,8 @@ void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi
 #endif
 
 void 
-solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, const PArray<Geometry>& geom, int base_level)
+solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
+		const PArray<Geometry>& geom, int base_level)
 {
  
     Real tol     = 1.e-10;
@@ -53,10 +52,10 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
 
         for (int lev = base_level; lev < rhs.size(); lev++)
             rhs[lev].plus(-sum, 0, 1, 0);
-    }
 
-    for (int lev = base_level; lev < rhs.size(); lev++)
-        std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+	for (int lev = base_level; lev < rhs.size(); lev++)
+	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+    }
 
     // ***************************************************
     // Solve for phi and return both phi and grad_phi_edge
@@ -72,7 +71,7 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     for (int lev = 0; lev < rhs.size(); lev++)
     {
         BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
-        geom[lev].FillPeriodicBoundary(grad_phi[lev],true);
+        geom[lev].FillPeriodicBoundary(grad_phi[lev],true);  // wz: why only fill periodic boundary?
     }
 
     // VisMF::Write(grad_phi,"GradPhi");
