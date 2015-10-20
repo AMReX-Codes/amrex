@@ -6,7 +6,7 @@
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
 
-FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
+    FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
 
     ifdef OMP
       F90FLAGS += -mp=nonuma -Minfo=mp
@@ -27,4 +27,5 @@ FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
       CXXFLAGS += -g
     endif
 
-    xtr_libraries += -pgcpplibs
+    #xtr_libraries += -pgcpplibs
+    xtr_libraries += -lstdc++
