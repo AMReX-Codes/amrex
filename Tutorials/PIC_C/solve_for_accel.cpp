@@ -38,23 +38,33 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     // ***************************************************
     // Make sure the RHS sums to 0 if fully periodic
     // ***************************************************
-    for (int lev = base_level; lev < rhs.size(); lev++)
-        std::cout << "Max of rhs in solve_for_phi before correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+    for (int lev = base_level; lev < rhs.size(); lev++) {
+	Real n0 = rhs[lev].norm0();
+	if (ParallelDescriptor::IOProcessor())
+	    std::cout << "Max of rhs in solve_for_phi before correction at level  " << lev << " " << n0 << std::endl;
+    }
 
     // This is a correction for fully periodic domains only
     if ( Geometry::isAllPeriodic() && (rhs[base_level].boxArray().numPts() == geom[base_level].Domain().numPts()) )
     {
-        Real sum = rhs[base_level].sum(0) / rhs[base_level].boxArray().d_numPts();
+	Real sum0 = rhs[base_level].sum(0);
+	Real npts = rhs[base_level].boxArray().d_numPts();
+        Real sum = sum0/npts;
 
-        std::cout << "Sum                                  is " << rhs[base_level].sum(0) << std::endl;
-        std::cout << "Npts                                 is " << rhs[base_level].boxArray().d_numPts() << std::endl;
-        std::cout << "Sum of particle weights over level 0 is " << sum << std::endl;
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "Sum                                  is " << sum0 << std::endl;
+	    std::cout << "Npts                                 is " << npts << std::endl;
+	    std::cout << "Sum of particle weights over level 0 is " << sum  << std::endl;
+	}
 
         for (int lev = base_level; lev < rhs.size(); lev++)
             rhs[lev].plus(-sum, 0, 1, 0);
 
-	for (int lev = base_level; lev < rhs.size(); lev++)
-	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+	for (int lev = base_level; lev < rhs.size(); lev++) {
+	    Real n0 = rhs[lev].norm0();
+	    if (ParallelDescriptor::IOProcessor())
+		std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << n0 << std::endl;
+	}
     }
 
     // ***************************************************
