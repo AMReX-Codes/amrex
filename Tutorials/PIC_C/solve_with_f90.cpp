@@ -12,26 +12,13 @@
 #include "Particles.H"
 
 void 
-solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol)
+solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
+               const PArray<Geometry>& geom, int base_level, Real tol, Real abs_tol)
 {
+    int nlevs = rhs.size() - base_level;
+
     BCRec* phys_bc;
     int mg_bc[2*BL_SPACEDIM];
-
-    // build (and initialize) a multifab for the solution on the box array with 1 component, 1 ghost cell
-    MultiFab phi(BoxArray(rhs.boxArray()), 1, 1);
-    phi.setVal(0.);
-
-    std::cout << "Max of rhs in solve_for_phi before correction " << rhs.norm0() << std::endl;
-
-    // This is a correction for fully periodic domains only
-    if (Geometry::isAllPeriodic())
-    {
-        Real numpts = rhs.boxArray().d_numPts();
-        Real sum = rhs.sum(0) / numpts;
-        rhs.plus(-sum, 0, 1, 0);
-    }
-
-    std::cout << "Max of rhs in solve_for_phi  after correction " << rhs.norm0() << std::endl;
 
     // This tells the solver that we are using periodic bc's
     if (Geometry::isAllPeriodic())
@@ -43,7 +30,7 @@ solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& g
         }
     }
 
-    MacBndry bndry(rhs.boxArray(), 1, geom);
+    MacBndry bndry(rhs[base_level].boxArray(), 1, geom[base_level]);
     //
     // Set Dirichlet boundary condition for phi in phi grow cells, use to
     // initialize bndry.
@@ -52,17 +39,47 @@ solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& g
     const int dest_comp = 0;
     const int num_comp  = 1;
 
-    // Need to set the boundary values here so they can get copied into "bndry"  
+    MultiFab* phi_p[nlevs];
+    MultiFab* rhs_p[nlevs];
+    for (int lev = base_level; lev < rhs.size(); lev++)
     {
-        bndry.setBndryValues(phi, src_comp, dest_comp, num_comp, *phys_bc);
+        phi_p[lev-base_level] = &phi[lev];
+        rhs_p[lev-base_level] = &rhs[lev];
     }
 
-    std::vector<BoxArray> bav(1);
-    bav[0] = phi.boxArray();
-    std::vector<DistributionMapping> dmv(1);
-    dmv[0] = rhs.DistributionMap();
-    std::vector<Geometry> fgeom(1);
-    fgeom[0] = geom;
+    // Need to set the boundary values here so they can get copied into "bndry"  
+    if (base_level == 0)
+    {
+        bndry.setBndryValues(phi[base_level], src_comp, dest_comp, num_comp, *phys_bc);
+    }
+#if 0
+    else
+    {
+        MultiFab CPhi;
+        Real cur_time = LevelData[level].get_state_data(State_Type).curTime();
+        GetCrsePhi(level,CPhi,cur_time);
+        BoxArray crse_boxes = BoxArray(grids[level]).coarsen(crse_ratio);
+        const int in_rad     = 0;
+        const int out_rad    = 1;
+        const int extent_rad = 2;
+        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
+        crse_br.copyFrom(CPhi,CPhi.nGrow(),src_comp,dest_comp,num_comp);
+
+        bndry.setBndryValues(crse_br,src_comp,*(phi_p[base_level]),src_comp,
+                             dest_comp,num_comp,crse_ratio,*phys_bc);
+    }
+#endif
+
+    std::vector<BoxArray>            bav  (nlevs);
+    std::vector<DistributionMapping> dmv  (nlevs);
+    std::vector<Geometry>            fgeom(nlevs);
+
+    for (int lev = base_level; lev < rhs.size(); lev++)
+    {
+        bav[lev-base_level] = phi[lev].boxArray();
+        dmv[lev-base_level] = rhs[lev].DistributionMap();
+        fgeom[lev-base_level] = geom[lev];
+    }
 
     Array< Array<Real> > xa(1);
     Array< Array<Real> > xb(1);
@@ -70,7 +87,7 @@ solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& g
     xa[0].resize(BL_SPACEDIM);
     xb[0].resize(BL_SPACEDIM);
 
-//  if (level == 0)
+    if (base_level == 0)
     {
         for (int i = 0; i < BL_SPACEDIM; ++i)
         {
@@ -78,20 +95,15 @@ solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& g
             xb[0][i] = 0;
         }
     }
-#if 0
     else
     {
-        const Real* dx_crse = parent->Geom(level-1).CellSize();
+        const Real* dx_crse = geom[base_level-1].CellSize();
         for (int i = 0; i < BL_SPACEDIM; ++i)
         {
             xa[0][i] = 0.5 * dx_crse[i];
             xb[0][i] = 0.5 * dx_crse[i];
         }
     }
-#endif
-
-    MultiFab* phi_p[1] = {&phi};
-    MultiFab* rhs_p[1] = {&rhs};
 
     {
         int stencil_type = CC_CROSS_STENCIL;
@@ -102,7 +114,10 @@ solve_with_f90(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& g
         mgt_solver.set_const_gravity_coeffs(xa, xb);
         mgt_solver.solve(phi_p, rhs_p, bndry, tol, abs_tol, always_use_bnorm, final_resnorm,need_grad_phi); 
 
-        const Real* dx = geom.CellSize();
-        mgt_solver.get_fluxes(0,grad_phi_edge,dx);
+        for (int lev = base_level; lev < rhs.size(); lev++)
+        {
+            const Real* dx = geom[lev].CellSize();
+            mgt_solver.get_fluxes(lev,grad_phi_edge[lev],dx);
+        }
     }
 }
