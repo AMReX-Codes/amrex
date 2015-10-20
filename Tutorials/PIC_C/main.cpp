@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 //  IntVect domain_hi( 7, 7, 7); 
  
     // Build a box for the level 0 domain
-    Box domain(domain_lo, domain_hi);
+    const Box domain(domain_lo, domain_hi);
 
     // This says we are using Cartesian coordinates
     int coord = 0;
@@ -50,16 +50,17 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
 
     // Define the refinement ratio
-    int rr[nlevs-1];
+    Array<int> rr(nlevs-1);
     rr[0] = 2;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     PArray<Geometry> geom;
     geom.resize(nlevs,PArrayManage);
-    for (int n = 0; n < nlevs; n++)
+    geom.set(0, new Geometry(domain, &real_box, coord, is_per));
+    for (int lev = 1; lev < nlevs; lev++)
     {
-       geom.set(n, new Geometry(domain,&real_box,coord,is_per));
-       if (n < nlevs-1) domain.refine(rr[n]);
+	geom.set(lev, new Geometry(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+				   &real_box, coord, is_per));
     }
 
     // We will start each solve at level 0.
@@ -70,7 +71,7 @@ int main(int argc, char* argv[])
     // ********************************************************************************************
 
     // For now we make the refined level be the center eighth of the domain
-    IntVect refined_lo(15,15,15); 
+    IntVect refined_lo(16,16,16); 
     IntVect refined_hi(47,47,47); 
 
     // Build a box for the level 1 domain
@@ -79,37 +80,39 @@ int main(int argc, char* argv[])
     // Build an array of BoxArrays,
     // then initialize the level 0 BoxArray with the domain.
     PArray<BoxArray> ba;
-    ba.resize(nlevs);
+    ba.resize(nlevs, PArrayManage);
     ba.set(0,new BoxArray(domain));
     ba.set(1,new BoxArray(refined_patch));
 
     // break the BoxArrays at both levels into 32^3 boxes
-    for (int n = 0; n < nlevs; n++)
-        ba[n].maxSize(64);
+    for (int lev = 0; lev < nlevs; lev++) {
+        ba[lev].maxSize(64);
+    }
 
     // build a multifab for the rhs on the box array with 1 component, 0 ghost cells
     PArray<MultiFab> rhs; 
     PArray<MultiFab> phi; 
     PArray<MultiFab> grad_phi;
-    Array<DistributionMapping> dmap;
+    PArray<DistributionMapping> dmap;
 
     rhs.resize(nlevs,PArrayManage);
     phi.resize(nlevs,PArrayManage);
     grad_phi.resize(nlevs,PArrayManage);
-    dmap.resize(nlevs);
+    dmap.resize(nlevs,PArrayNoManage);
 
     for (int lev = 0; lev < nlevs; lev++)
     {
        rhs.set(lev,new MultiFab(ba[lev],1,0));
        phi.set(lev,new MultiFab(ba[lev],1,1));
-       dmap[lev] = rhs[lev].DistributionMap();
+       phi[lev].setVal(0.0);
+       dmap.set(lev, &(rhs[lev].DistributionMap()));
     }
 
     // build a multifab for grad_phi on the box array with BL_SPACEDIM components, 1 ghost cell
-    for (int n = 0; n < nlevs; n++)
+    for (int lev = 0; lev < nlevs; lev++)
     {
-       grad_phi.set(n, new MultiFab(ba[n], BL_SPACEDIM, 1));
-       grad_phi[n].setVal(0.0);
+       grad_phi.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1));
+       grad_phi[lev].setVal(0.0);
     }
 
     // Define a new particle container to hold my particles.
@@ -145,6 +148,8 @@ int main(int argc, char* argv[])
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after");
+
+    delete MyPC;
 
     BoxLib::Finalize();
 }
