@@ -11,36 +11,69 @@
 
 #include "Particles.H"
 
-void solve_with_f90  (MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol);
+void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
+                      const PArray<Geometry>& geom, int base_level, Real tol, Real abs_tol);
 #ifdef USEHPGMG
-void solve_with_hpgmg(MultiFab& rhs, PArray<MultiFab>& grad_phi_edge, const Geometry& geom, Real tol, Real abs_tol);
+void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi_edge, const PArray<Geometry>& geom, Real tol, Real abs_tol);
 #endif
 
 void 
-solve_for_accel(MultiFab& rhs, MultiFab& grad_phi, const Geometry& geom)
+solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, const PArray<Geometry>& geom, int base_level)
 {
  
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
-    int MAX_LEV = 10;
     Array< PArray<MultiFab> > grad_phi_edge;
-    grad_phi_edge.resize(MAX_LEV);
-    grad_phi_edge[0].resize(BL_SPACEDIM, PArrayManage);
-    for (int n = 0; n < BL_SPACEDIM; ++n)
-        grad_phi_edge[0].set(n, new MultiFab(BoxArray(rhs.boxArray()).surroundingNodes(n), 1, 1));
+    grad_phi_edge.resize(rhs.size());
+
+    for (int lev = 0; lev < rhs.size(); lev++)
+    {
+        grad_phi_edge[lev].resize(BL_SPACEDIM, PArrayManage);
+        for (int n = 0; n < BL_SPACEDIM; ++n)
+            grad_phi_edge[lev].set(n, new MultiFab(BoxArray(rhs[lev].boxArray()).surroundingNodes(n), 1, 1));
+    }
 
     Real     strt    = ParallelDescriptor::second();
 
+    // ***************************************************
+    // Make sure the RHS sums to 0 if fully periodic
+    // ***************************************************
+    for (int lev = base_level; lev < rhs.size(); lev++)
+        std::cout << "Max of rhs in solve_for_phi before correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+
+    // This is a correction for fully periodic domains only
+    if ( Geometry::isAllPeriodic() && (rhs[base_level].boxArray().numPts() == geom[base_level].Domain().numPts()) )
+    {
+        Real sum = rhs[base_level].sum(0) / rhs[base_level].boxArray().d_numPts();
+
+        std::cout << "Sum                                  is " << rhs[base_level].sum(0) << std::endl;
+        std::cout << "Npts                                 is " << rhs[base_level].boxArray().d_numPts() << std::endl;
+        std::cout << "Sum of particle weights over level 0 is " << sum << std::endl;
+
+        for (int lev = base_level; lev < rhs.size(); lev++)
+            rhs[lev].plus(-sum, 0, 1, 0);
+    }
+
+    for (int lev = base_level; lev < rhs.size(); lev++)
+        std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << rhs[lev].norm0() << std::endl;
+
+    // ***************************************************
+    // Solve for phi and return both phi and grad_phi_edge
+    // ***************************************************
+
 #ifdef USEHPGMG
-   solve_with_hpgmg(rhs,grad_phi_edge[0],geom,tol,abs_tol);
+   solve_with_hpgmg(rhs,phi,grad_phi_edge,geom,base_level,tol,abs_tol);
 #else
-   solve_with_f90  (rhs,grad_phi_edge[0],geom,tol,abs_tol);
+   solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,tol,abs_tol);
 #endif
 
     // Average edge-centered gradients to cell centers.
-    BoxLib::average_face_to_cellcenter(grad_phi, grad_phi_edge[0], geom);
-    geom.FillPeriodicBoundary(grad_phi,true);
+    for (int lev = 0; lev < rhs.size(); lev++)
+    {
+        BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
+        geom[lev].FillPeriodicBoundary(grad_phi[lev],true);
+    }
 
     // VisMF::Write(grad_phi,"GradPhi");
 

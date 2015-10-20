@@ -39,11 +39,13 @@ public:
 
     ParGDB () { ; }
 
-    ParGDB (Geometry            & geom, 
-	    DistributionMapping & dmap,
-	    BoxArray            & ba)
+    ParGDB (PArray<Geometry>            & geom, 
+	     Array<DistributionMapping> & dmap,
+	    PArray<BoxArray>            & ba,
+	    int                           rr[])
 	: m_geom(&geom), m_dmap(&dmap), m_ba(&ba)
-	{ ; }
+	{ m_rr[0] = rr[0];
+	  m_finestLevel = m_geom->size()-1;}
 
     virtual ~ParGDB () {;}
 
@@ -65,9 +67,11 @@ public:
 
 protected:
 
-    Geometry            *m_geom;
-    DistributionMapping *m_dmap;
-    BoxArray            *m_ba;
+    PArray<Geometry>            *m_geom;
+     Array<DistributionMapping> *m_dmap;
+    PArray<BoxArray>            *m_ba;
+    int                          m_rr[];
+    int                          m_finestLevel;
 
 };
 
@@ -75,46 +79,42 @@ inline
 const Geometry& 
 ParGDB::Geom (int level) const
 {
-    BL_ASSERT(level == 0);
-    return *m_geom;
+    return (*m_geom)[level];
 }
 
 inline 
 const DistributionMapping& 
 ParGDB::ParticleDistributionMap (int level) const
 {
-    BL_ASSERT(level == 0);
-    return *m_dmap;
+    return (*m_dmap)[level];
 }
 
 inline 
 const BoxArray&
 ParGDB::ParticleBoxArray (int level) const
 {
-    BL_ASSERT(level == 0);
-    return *m_ba;
+    return (*m_ba)[level];
 }
 
 inline
 const BoxArray&
 ParGDB::boxArray (int level) const
 {
-    BL_ASSERT(level == 0);
-    return *m_ba;
+    return (*m_ba)[level];
 }
 
 inline 
 bool 
 ParGDB::LevelDefined (int level) const
 {
-    return level == 0;
+    return (level <= m_finestLevel);
 }
 
 inline 
 int 
 ParGDB::finestLevel () const
 {
-    return 0;
+    return m_finestLevel;
 }
  
 inline 
@@ -135,14 +135,17 @@ inline
 IntVect 
 ParGDB::refRatio (int level) const
 {
-    return IntVect::TheZeroVector();
+    return m_rr[level]*IntVect::TheUnitVector();
 }
 
 inline 
 int 
 ParGDB::MaxRefRatio (int level) const
 {
-    return 0;
+    int max_ref_ratio = 0;
+    for (int i = 0; i < m_finestLevel; i++)
+       max_ref_ratio = std::max(max_ref_ratio, m_rr[level]);
+    return max_ref_ratio;
 }
 
 inline

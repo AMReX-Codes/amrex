@@ -64,7 +64,7 @@ struct ParticleBase
         m_grid(-1)
         {}
 
-    static IntVect Index (const ParticleBase& p, int lev, const ParGDBBase* gdb);
+    static IntVect Index (const ParticleBase& p, const Geometry& geom);
     //
     // Checks/sets a particles location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
@@ -98,13 +98,13 @@ struct ParticleBase
 
     static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
 
-    static void Interp (const ParticleBase& prt, const ParGDBBase* gdb, const FArrayBox& fab, const int* idx, Real* val, int cnt);
+    static void Interp (const ParticleBase& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
 
     static const std::string& Version ();
 
     static const std::string& DataPrefix ();
 
-    static void GetGravity (const FArrayBox& gfab, const ParGDBBase* gdb, const ParticleBase& p, Real* grav);
+    static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const ParticleBase& p, Real* grav);
 
     static int MaxReaders ();
 
@@ -278,13 +278,14 @@ public:
         :
         m_verbose(1), m_relativistic(0), m_csq(-1.), m_gdb(gdb), allow_particles_near_boundary(false) { }
 
-    ParticleContainer (Geometry            & geom, 
-		       DistributionMapping & dmap,
-		       BoxArray            & ba)
+    ParticleContainer (PArray<Geometry>            & geom, 
+		        Array<DistributionMapping> & dmap,
+		       PArray<BoxArray>            & ba,
+		       int                           rr[])
 	:
         m_verbose(1), m_relativistic(0), m_csq(-1.),
 	allow_particles_near_boundary(false),
-	m_gdb_object(geom,dmap,ba)
+	m_gdb_object(geom,dmap,ba,rr)
     {
 	m_gdb = & m_gdb_object;
     }
@@ -1872,7 +1873,7 @@ ParticleContainer<N>::InitCosmo  (MultiFab& mf, const Real vel_fac[], const Arra
 	    // Do CIC interpolation onto the particle positions.
 	    // For CIC we need one ghost cell!
             //
-            ParticleBase::GetGravity(dfab, m_gdb, p, disp);
+            ParticleBase::GetGravity(dfab,m_gdb->Geom(p.m_lev),p,disp);
 
             D_TERM(p.m_pos[0] += len[0]*disp[0];,
                    p.m_pos[1] += len[1]*disp[1];,
@@ -2061,6 +2062,8 @@ ParticleContainer<N>::InitRandom (long          icount,
                 while (r == 0 || r == 1);
 
                 p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
+                if (p.m_pos[i] > 0.75) p.m_pos[i] -= 0.5;
+                if (p.m_pos[i] < 0.25) p.m_pos[i] += 0.5;
 
                 BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
             }
@@ -2089,6 +2092,7 @@ ParticleContainer<N>::InitRandom (long          icount,
             // Add it to the appropriate PBox at the appropriate level.
             //
             m_particles[p.m_lev][p.m_grid].push_back(p);
+            std::cout << "PARTICLE LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -4547,7 +4551,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
             //
             Real grav[BL_SPACEDIM];
 
-            ParticleBase::GetGravity(gfab, m_gdb, p, grav);
+            ParticleBase::GetGravity(gfab, m_gdb->Geom(p.m_lev), p, grav);
             //
             // First update (a u)^half = (a u)^old + dt/2 grav^old
             //
@@ -4686,7 +4690,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
                 //
                 Real grav[BL_SPACEDIM];
 
-                ParticleBase::GetGravity(gfab, m_gdb, p, grav);
+                ParticleBase::GetGravity(gfab, m_gdb->Geom(p.m_lev), p, grav);
                 //
                 // Define (a u)^new = (a u)^half + dt/2 grav^new
                 //
@@ -5262,7 +5266,7 @@ ParticleContainer<N>::CreateVirtualParticles (int   level,
                         {
                             pold.m_pos[i] = (old_mass*pold.m_pos[i] + new_mass*pnew.m_pos[i])/total_mass;
                         }
-                        BL_ASSERT(ParticleBase::Index(pold,level,m_gdb) == it->m_cell);
+                        BL_ASSERT(ParticleBase::Index(pold,m_gdb->Geom(level)) == it->m_cell);
                         //
                         // Set the metadata (presumably velocity) to the mass-weighted average.
                         //
@@ -5334,7 +5338,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Find particle location on the finer level.
             //
-            const IntVect& iv = ParticleBase::Index(*it,level+1,m_gdb);
+            const IntVect& iv = ParticleBase::Index(*it,m_gdb->Geom(level+1));
             //
             // Is it in the grown finer level?
             //
@@ -5535,8 +5539,14 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     int theEffectiveFinestLevel = m_gdb->finestLevel();
 
+    std::cout << "1:IN REDIST: FINEST LEVEL "  << theEffectiveFinestLevel << std::endl;
+
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
         theEffectiveFinestLevel--;
+
+    std::cout << "2:IN REDIST: FINEST LEVEL "  << theEffectiveFinestLevel << std::endl;
+
+    std::cout << "PARTICLE SIZE " << m_particles.size() << std::endl;
 
     if (m_particles.size() < theEffectiveFinestLevel+1)
     {
@@ -5562,13 +5572,18 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         {
             const int grid = pmap_it->first;
             PBox&     pbox = pmap_it->second;
+            std::cout << "START: GRID / LEVEL " << grid << " " << lev << std::endl;
 
             for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
             {
                 ParticleType& p = *it;
 
+                std::cout << "PARTICLE LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
+
                 if (p.m_id > 0)
                 {
+                    std::cout << "WHERE: " << ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel) << std::endl;
+                    std::cout << "WHERE-ALREADY_CALLED: " << where_already_called << std::endl;
                     if (!where_already_called)
                     {
                         if (!ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
@@ -5610,6 +5625,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
                         if (who == MyProc)
                         {
+                            std::cout << "IN REDIST: LEV GRID " << lev << " " << grid << " " << std::endl;
+                            std::cout << "BUT PARTICLE LEV GRID SI " << p.m_lev << " " << p.m_grid << std::endl;
                             if (p.m_lev != lev || p.m_grid != grid)
                             {
                                 //
@@ -7158,7 +7175,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (p.m_id <= 0) continue;
 
-                        const IntVect& iv = ParticleBase::Index(p, lev, m_gdb);
+                        const IntVect& iv = ParticleBase::Index(p, m_gdb->Geom(lev));
 
                         if (!bx.contains(iv) && !ba.contains(iv)) continue;
 
@@ -7181,7 +7198,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
 
                         if (M > 0)
                         {
-                            ParticleBase::Interp(p,m_gdb,fab,&indices[0],&vals[0],M);
+                            ParticleBase::Interp(p,m_gdb->Geom(p.m_lev),fab,&indices[0],&vals[0],M);
 
                             for (int i = 0; i < M; i++)
                             {
