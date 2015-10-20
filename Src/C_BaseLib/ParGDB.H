@@ -39,13 +39,14 @@ public:
 
     ParGDB () { ; }
 
+    ParGDB (Geometry            & geom, 
+	    DistributionMapping & dmap,
+	    BoxArray            & ba);
+
     ParGDB (PArray<Geometry>            & geom, 
-	     Array<DistributionMapping> & dmap,
+	    PArray<DistributionMapping> & dmap,
 	    PArray<BoxArray>            & ba,
-	    int                           rr[])
-	: m_geom(&geom), m_dmap(&dmap), m_ba(&ba)
-	{ m_rr[0] = rr[0];
-	  m_finestLevel = m_geom->size()-1;}
+	    Array<int>                  & rr);
 
     virtual ~ParGDB () {;}
 
@@ -67,54 +68,90 @@ public:
 
 protected:
 
-    PArray<Geometry>            *m_geom;
-     Array<DistributionMapping> *m_dmap;
-    PArray<BoxArray>            *m_ba;
-    int                          m_rr[];
-    int                          m_finestLevel;
+    PArray<Geometry>            m_geom;
+    PArray<DistributionMapping> m_dmap;
+    PArray<BoxArray>            m_ba;
+    Array<int>                  m_rr;
+    int                         m_nlevels;
 
 };
+
+inline
+ParGDB::ParGDB (Geometry            & geom, 
+		DistributionMapping & dmap,
+		BoxArray            & ba)
+    :
+    m_nlevels(1)
+{
+    m_geom.resize(1);
+    m_geom.set(0, &geom);
+
+    m_dmap.resize(1);
+    m_dmap.set(0, &dmap);
+
+    m_ba.resize(1);
+    m_ba.set(0, &ba);
+}
+
+inline
+ParGDB::ParGDB (PArray<Geometry>            & geom, 
+		PArray<DistributionMapping> & dmap,
+		PArray<BoxArray>            & ba,
+		Array<int>                  & rr)
+    :
+    m_rr(rr),
+    m_nlevels(ba.size())
+{
+    m_geom.resize(m_nlevels);
+    m_dmap.resize(m_nlevels);
+    m_ba.resize(m_nlevels);
+    for (int lev=0; lev<m_nlevels; ++lev) {
+	m_geom.set(lev, &geom[lev]);
+	m_dmap.set(lev, &dmap[lev]);
+	m_ba.set  (lev, &ba[lev]);
+    }
+}
 
 inline 
 const Geometry& 
 ParGDB::Geom (int level) const
 {
-    return (*m_geom)[level];
+    return m_geom[level];
 }
 
 inline 
 const DistributionMapping& 
 ParGDB::ParticleDistributionMap (int level) const
 {
-    return (*m_dmap)[level];
+    return m_dmap[level];
 }
 
 inline 
 const BoxArray&
 ParGDB::ParticleBoxArray (int level) const
 {
-    return (*m_ba)[level];
+    return m_ba[level];
 }
 
 inline
 const BoxArray&
 ParGDB::boxArray (int level) const
 {
-    return (*m_ba)[level];
+    return m_ba[level];
 }
 
 inline 
 bool 
 ParGDB::LevelDefined (int level) const
 {
-    return (level <= m_finestLevel);
+    return (level < m_nlevels);
 }
 
 inline 
 int 
 ParGDB::finestLevel () const
 {
-    return m_finestLevel;
+    return m_nlevels-1;
 }
  
 inline 
@@ -143,8 +180,8 @@ int
 ParGDB::MaxRefRatio (int level) const
 {
     int max_ref_ratio = 0;
-    for (int i = 0; i < m_finestLevel; i++)
-       max_ref_ratio = std::max(max_ref_ratio, m_rr[level]);
+    for (int lev = 0; lev < m_nlevels-1; lev++)
+       max_ref_ratio = std::max(max_ref_ratio, m_rr[lev]);
     return max_ref_ratio;
 }
 

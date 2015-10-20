@@ -75,7 +75,7 @@ public:
     // i'th element in this PArray<T>.  Performs bounds checking
     // when the library is compiled in debug mode.
     //
-    T& operator[] (int i) { BL_ASSERT(vp[i] != 0 && !isConstPointer); return *((T*)(vp[i])); }
+    T& operator[] (int i) { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Returns a constant reference to the object pointed to by the
     // i'th element in the PArray.  It is an error if the i'th element

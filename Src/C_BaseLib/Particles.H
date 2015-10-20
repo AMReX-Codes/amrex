@@ -278,10 +278,21 @@ public:
         :
         m_verbose(1), m_relativistic(0), m_csq(-1.), m_gdb(gdb), allow_particles_near_boundary(false) { }
 
+    ParticleContainer (Geometry            & geom, 
+		       DistributionMapping & dmap,
+		       BoxArray            & ba)
+	:
+        m_verbose(1), m_relativistic(0), m_csq(-1.),
+	allow_particles_near_boundary(false),
+	m_gdb_object(geom,dmap,ba)
+    {
+	m_gdb = & m_gdb_object;
+    }
+
     ParticleContainer (PArray<Geometry>            & geom, 
-		        Array<DistributionMapping> & dmap,
+		       PArray<DistributionMapping> & dmap,
 		       PArray<BoxArray>            & ba,
-		       int                           rr[])
+		       Array<int>                  rr)
 	:
         m_verbose(1), m_relativistic(0), m_csq(-1.),
 	allow_particles_near_boundary(false),
