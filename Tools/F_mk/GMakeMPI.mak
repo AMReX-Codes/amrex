@@ -16,13 +16,14 @@ endif
 ifeq ($(ARCH),Darwin)
 
   # specifics for maudib
-  ifeq ($(findstring maudib, $(UNAMEN)), maudib)
+  ifeq ($(findstring rawk, $(UNAMEN)), rawk)
     FC = mpif90
     F90 = mpif90
     CC = mpicc
     CXX = mpicxx
 
     MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+    MPIHOME=$(MPI_HOME)
     LIBRARIES += lmpi_mpifh    
 
   # attempt at general support for Mac; only works if MPIHOME env var is set
