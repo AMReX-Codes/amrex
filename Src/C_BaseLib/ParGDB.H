@@ -39,14 +39,14 @@ public:
 
     ParGDB () { ; }
 
-    ParGDB (Geometry            & geom, 
-	    DistributionMapping & dmap,
-	    BoxArray            & ba);
+    ParGDB (const Geometry            & geom, 
+	    const DistributionMapping & dmap,
+	    const BoxArray            & ba);
 
-    ParGDB (PArray<Geometry>            & geom, 
-	    PArray<DistributionMapping> & dmap,
-	    PArray<BoxArray>            & ba,
-	    Array<int>                  & rr);
+    ParGDB (const Array<Geometry>            & geom, 
+	    const Array<DistributionMapping> & dmap,
+	    const Array<BoxArray>            & ba,
+	    const Array<int>                 & rr);
 
     virtual ~ParGDB () {;}
 
@@ -77,9 +77,9 @@ protected:
 };
 
 inline
-ParGDB::ParGDB (Geometry            & geom, 
-		DistributionMapping & dmap,
-		BoxArray            & ba)
+ParGDB::ParGDB (const Geometry            & geom, 
+		const DistributionMapping & dmap,
+		const BoxArray            & ba)
     :
     m_nlevels(1)
 {
@@ -94,10 +94,10 @@ ParGDB::ParGDB (Geometry            & geom,
 }
 
 inline
-ParGDB::ParGDB (PArray<Geometry>            & geom, 
-		PArray<DistributionMapping> & dmap,
-		PArray<BoxArray>            & ba,
-		Array<int>                  & rr)
+ParGDB::ParGDB (const Array<Geometry>            & geom, 
+		const Array<DistributionMapping> & dmap,
+		const Array<BoxArray>            & ba,
+		const Array<int>                 & rr)
     :
     m_rr(rr),
     m_nlevels(ba.size())
