@@ -1,2 +1,7 @@
-CEXE_sources += GridMoveTest.cpp
-CEXE_sources += InTransitAnalysis.cpp
+ifeq ($(EBASE),gridmovetest)
+  CEXE_sources += GridMoveTest.cpp
+  CEXE_sources += InTransitAnalysis.cpp
+endif
+ifeq ($(EBASE),sidecarresizetest)
+  CEXE_sources += SidecarResizeTest.cpp
+endif

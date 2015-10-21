@@ -3,6 +3,7 @@
 BOXLIB_HOME ?= ../../../BoxLib
 
 DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 PROFILE   = FALSE
@@ -11,6 +12,7 @@ FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
 EBASE     = gridmovetest
+EBASE     = sidecarresizetest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE
 ANALYSIS_DIR = $(BOXLIB_HOME)/Tutorials/Sidecar_EX1
