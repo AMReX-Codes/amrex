@@ -8,8 +8,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <sstream>
 
-#include <Analysis.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
@@ -17,8 +17,81 @@
 #include <Utility.H>
 #include <ParmParse.H>
 
+#include <BoxLib.H>
+#include <InTransitAnalysis.H>
+
+// In this anonymous namespace we define the workflow which occurs when the
+// sidecars receive a particular (user-defined) signal. You have a lot of
+// flexibility here. You could define all of your workflow directly in this
+// namespace, which may be useful if you have only simple operations to
+// perform. Or you could define it all within functions (or member functions of
+// a class), so that this namespace would consist of function calls and little
+// else. This tutorial presents a mixture of both.
+
+namespace
+{
+#ifdef IN_TRANSIT
+  const int MySignal = 42;
+
+  static int STATIC_SIGNAL_HANDLER (int in_signal) {
+    BL_ASSERT(MySignal != ParallelDescriptor::SidecarQuitSignal);
+    int out_signal = in_signal;
+    if (in_signal == MySignal)
+    {
+      if (ParallelDescriptor::IOProcessor())
+        std::cout << "Sidecars got the analysis signal!" << std::endl;
+
+      MultiFab mf;
+      Geometry geom;
+      int time_step;
+      // Receive the necessary data for doing analysis.
+      MultiFab::SendMultiFabToSidecars(&mf);
+      Geometry::SendGeometryToSidecars(&geom);
+      ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+      InTransitAnalysis ita;
+
+      ita.Initialize(mf, geom, time_step);
+      ita.DoAnalysis();
+      ita.Finalize();
+
+      if (ParallelDescriptor::IOProcessor())
+        std::cout << "Sidecars completed analysis." << std::endl;
+    }
+    else if (in_signal != ParallelDescriptor::SidecarQuitSignal)
+    {
+      std::ostringstream ss_error_msg;
+      ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
+      BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
+    }
+
+    return out_signal;
+  }
+
+  static void STATIC_INIT () {
+    if (ParallelDescriptor::InSidecarGroup() && ParallelDescriptor::IOProcessor())
+        std::cout << "This is where the signal handler would initialize a bunch of stuff ..." << std::endl;
+    ParallelDescriptor::AddSignalHandler(STATIC_SIGNAL_HANDLER);
+  }
+
+  static void STATIC_CLEAN () {
+    if (ParallelDescriptor::InSidecarGroup() && ParallelDescriptor::IOProcessor())
+        std::cout << "This is where the signal handler would clean stuff up ..." << std::endl;
+  }
+
+  static void RunAtStatic () {
+    BoxLib::ExecOnInitialize(STATIC_INIT);
+    BoxLib::ExecOnFinalize(STATIC_CLEAN);
+  };
+#endif
+}
+
+
+
 // --------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
+
+  RunAtStatic();
 
     // Unfortunately the # of sidecars is currently a compile-time constant
     // because ParmParse must come AFTER Initialize(), but setting the # of
@@ -96,7 +169,7 @@ int main(int argc, char *argv[]) {
     int signal;
 
     // Pretend we're doing a halo-finding analysis for Nyx.
-    signal = Analysis::NyxHaloFinderSignal;
+    signal = MySignal;
 
     // Pretend we're looping over time steps.
     for (unsigned int i = 0; i < 20; ++i)
@@ -112,7 +185,7 @@ int main(int argc, char *argv[]) {
 
     // Don't forget to tell the sidecars to quit! Otherwise they'll keep
     // waiting for signals for more work to do.
-    signal = Analysis::QuitSignal;
+    signal = ParallelDescriptor::SidecarQuitSignal;
     ParallelDescriptor::Bcast(&signal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 #endif
 
