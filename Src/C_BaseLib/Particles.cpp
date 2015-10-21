@@ -536,8 +536,6 @@ ParticleBase::Index (const ParticleBase& p,
 {
     IntVect iv;
 
-    std::cout << "TESTING IN INDEX WITH DX " << geom.CellSize(2) << std::endl;
-
     D_TERM(iv[0]=floor((p.m_pos[0]-geom.ProbLo(0))/geom.CellSize(0));,
            iv[1]=floor((p.m_pos[1]-geom.ProbLo(1))/geom.CellSize(1));,
            iv[2]=floor((p.m_pos[2]-geom.ProbLo(2))/geom.CellSize(2)););
@@ -555,12 +553,8 @@ ParticleBase::Where (ParticleBase& p,
 {
     BL_ASSERT(gdb != 0);
 
-    std::cout << "FINEST LEVEL IN " << finest_level << std::endl;
-
     if (finest_level == -1)
         finest_level = gdb->finestLevel();
-
-    std::cout << "FINEST LEVEL FROM GDB " << finest_level << std::endl;
 
     BL_ASSERT(finest_level <= gdb->finestLevel());
 
@@ -570,24 +564,17 @@ ParticleBase::Where (ParticleBase& p,
     {
         const IntVect& iv = ParticleBase::Index(p,gdb->Geom(lev));
 
-        std::cout << "COMING INTO WHERE " << lev << " " << p.m_lev << std::endl;
-
 	if (lev == p.m_lev) { 
             // We may take a shortcut because the fact that we are here means 
             // this particle does not belong to any finer grids.
 	    const BoxArray& ba = gdb->ParticleBoxArray(p.m_lev);
 	    if (p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
-                std::cout << "CONTAINS " << lev << " " << iv << std::endl;
 		p.m_cell = iv;
 		return true;
 	    }
 	}
 
         gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
-
-        std::cout << "IV AT LEVEL " << lev << " IS " << iv << std::endl;
-        std::cout << "BA AT LEVEL " << lev << " IS " << gdb->ParticleBoxArray(lev) << std::endl;
-        std::cout << "AFTER INTERSECTIONS EMPTY " << lev << " " << isects.empty() << std::endl;
 
         if (!isects.empty())
         {
