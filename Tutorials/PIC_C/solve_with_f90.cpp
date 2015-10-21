@@ -11,7 +11,7 @@
 
 void 
 solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
-               const PArray<Geometry>& geom, int base_level, Real tol, Real abs_tol)
+               const Array<Geometry>& geom, int base_level, Real tol, Real abs_tol)
 {
     int nlevs = rhs.size() - base_level;
 

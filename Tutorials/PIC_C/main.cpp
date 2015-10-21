@@ -13,7 +13,7 @@
 
 // declare routines below
 void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-                     const PArray<Geometry>& geom, int base_level);
+                     const Array<Geometry>& geom, int base_level);
 
 int main(int argc, char* argv[])
 {
@@ -54,13 +54,12 @@ int main(int argc, char* argv[])
     rr[0] = 2;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    PArray<Geometry> geom;
-    geom.resize(nlevs,PArrayManage);
-    geom.set(0, new Geometry(domain, &real_box, coord, is_per));
+    Array<Geometry> geom(nlevs);
+    geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++)
     {
-	geom.set(lev, new Geometry(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
-				   &real_box, coord, is_per));
+	geom[lev].define(BoxLib::refine(geom[lev-1].Domain(), rr[lev-1]),
+			 &real_box, coord, is_per);
     }
 
     // We will start each solve at level 0.
@@ -79,40 +78,36 @@ int main(int argc, char* argv[])
 
     // Build an array of BoxArrays,
     // then initialize the level 0 BoxArray with the domain.
-    PArray<BoxArray> ba;
-    ba.resize(nlevs, PArrayManage);
-    ba.set(0,new BoxArray(domain));
-    ba.set(1,new BoxArray(refined_patch));
+    Array<BoxArray> ba(nlevs);
+    ba[0].define(domain);
+    ba[1].define(refined_patch);
 
     // break the BoxArrays at both levels into 32^3 boxes
     for (int lev = 0; lev < nlevs; lev++) {
         ba[lev].maxSize(64);
     }
 
-    // build a multifab for the rhs on the box array with 1 component, 0 ghost cells
+    // build a multifab for the rhs on the box array with 
     PArray<MultiFab> rhs; 
-    PArray<MultiFab> phi; 
+    PArray<MultiFab> phi;
     PArray<MultiFab> grad_phi;
-    PArray<DistributionMapping> dmap;
+    Array<DistributionMapping> dmap(nlevs);
 
     rhs.resize(nlevs,PArrayManage);
     phi.resize(nlevs,PArrayManage);
     grad_phi.resize(nlevs,PArrayManage);
-    dmap.resize(nlevs,PArrayNoManage);
 
     for (int lev = 0; lev < nlevs; lev++)
     {
-       rhs.set(lev,new MultiFab(ba[lev],1,0));
-       phi.set(lev,new MultiFab(ba[lev],1,1));
-       phi[lev].setVal(0.0);
-       dmap.set(lev, &(rhs[lev].DistributionMap()));
-    }
+	//                                    # componet  # ghost cells
+	rhs.set     (lev,new MultiFab(ba[lev],1          ,0));
+	phi.set     (lev,new MultiFab(ba[lev],1          ,1));
+	grad_phi.set(lev,new MultiFab(ba[lev],BL_SPACEDIM,1));
 
-    // build a multifab for grad_phi on the box array with BL_SPACEDIM components, 1 ghost cell
-    for (int lev = 0; lev < nlevs; lev++)
-    {
-       grad_phi.set(lev, new MultiFab(ba[lev], BL_SPACEDIM, 1));
-       grad_phi[lev].setVal(0.0);
+	phi[lev].setVal(0.0);
+	grad_phi[lev].setVal(0.0);
+
+	dmap[lev] = rhs[lev].DistributionMap();
     }
 
     // Define a new particle container to hold my particles.

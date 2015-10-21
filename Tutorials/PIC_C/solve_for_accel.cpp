@@ -10,14 +10,14 @@
 #include <stencil_types.H>
 
 void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
-                      const PArray<Geometry>& geom, int base_level, Real tol, Real abs_tol);
+                      const Array<Geometry>& geom, int base_level, Real tol, Real abs_tol);
 #ifdef USEHPGMG
-void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi_edge, const PArray<Geometry>& geom, Real tol, Real abs_tol);
+void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi_edge, const Array<Geometry>& geom, Real tol, Real abs_tol);
 #endif
 
 void 
 solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-		const PArray<Geometry>& geom, int base_level)
+		const Array<Geometry>& geom, int base_level)
 {
  
     Real tol     = 1.e-10;

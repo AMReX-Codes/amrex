@@ -278,9 +278,9 @@ public:
         :
         m_verbose(1), m_relativistic(0), m_csq(-1.), m_gdb(gdb), allow_particles_near_boundary(false) { }
 
-    ParticleContainer (Geometry            & geom, 
-		       DistributionMapping & dmap,
-		       BoxArray            & ba)
+    ParticleContainer (const Geometry            & geom, 
+		       const DistributionMapping & dmap,
+		       const BoxArray            & ba)
 	:
         m_verbose(1), m_relativistic(0), m_csq(-1.),
 	allow_particles_near_boundary(false),
@@ -289,10 +289,10 @@ public:
 	m_gdb = & m_gdb_object;
     }
 
-    ParticleContainer (PArray<Geometry>            & geom, 
-		       PArray<DistributionMapping> & dmap,
-		       PArray<BoxArray>            & ba,
-		       Array<int>                  rr)
+    ParticleContainer (const Array<Geometry>            & geom, 
+		       const Array<DistributionMapping> & dmap,
+		       const Array<BoxArray>            & ba,
+		       const Array<int>                 & rr)
 	:
         m_verbose(1), m_relativistic(0), m_csq(-1.),
 	allow_particles_near_boundary(false),
@@ -501,11 +501,13 @@ protected:
     int         m_verbose;
     int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
     Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
+
+    bool allow_particles_near_boundary;
+
     ParGDBBase* m_gdb;
     ParGDB      m_gdb_object;
     Array<PMap> m_particles;
 
-    bool allow_particles_near_boundary;
 };
 
 template <int N>
