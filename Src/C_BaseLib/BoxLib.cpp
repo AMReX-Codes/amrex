@@ -230,12 +230,19 @@ BoxLib::Assert (const char* EX,
 namespace
 {
     std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
+    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Initialize_Function_Stack;
 }
 
 void
 BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
 {
     The_Finalize_Function_Stack.push(fp);
+}
+
+void
+BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
+{
+    The_Initialize_Function_Stack.push(fp);
 }
 
 void
@@ -251,11 +258,24 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
-    signal(SIGFPE, BLBackTrace::handler);
-    signal(SIGINT, BLBackTrace::handler);
+    signal(SIGFPE,  BLBackTrace::handler);
+    signal(SIGINT,  BLBackTrace::handler);
+    signal(SIGTERM, BLBackTrace::handler);
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
+    while (!The_Initialize_Function_Stack.empty())
+    {
+        //
+        // Call the registered function.
+        //
+        (*The_Initialize_Function_Stack.top())();
+        //
+        // And then remove it from the stack.
+        //
+        The_Initialize_Function_Stack.pop();
+    }
 
     if(ParallelDescriptor::NProcsSidecar() > 0) {
       if(ParallelDescriptor::InSidecarGroup()) {

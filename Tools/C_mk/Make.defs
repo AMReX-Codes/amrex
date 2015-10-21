@@ -171,6 +171,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring titan, $(UNAMEN)), titan)
     WHICHLINUX := TITAN
   endif
+  ifeq ($(findstring chester, $(UNAMEN)), chester)
+    WHICHLINUX := CHESTER
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
@@ -292,6 +295,9 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        CXXOPTF += -fsanitize=thread
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     ifeq ($(BACKTRACE),TRUE)
@@ -423,14 +429,22 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    ifeq ($(HOST),baragon)
+       override XTRALIBS += -lgfortran
+    else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
        override XTRALIBS += $(_f95_lib)       
     endif
+    endif
 
     FOPTF += -ffixed-line-length-0 -g -O3
     fOPTF += -ffixed-line-length-0 -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        FOPTF += -fsanitize=thread
+        fOPTF += -fsanitize=thread
+    endif
     FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
     fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
