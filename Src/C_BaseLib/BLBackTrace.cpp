@@ -49,7 +49,8 @@ BLBackTrace::handler(int s)
 	}
     }
 
-    sleep(30);
+    if (ParallelDescriptor::NProcs() > 1)
+	sleep(30);
 
     switch (s) {
     case SIGSEGV:
