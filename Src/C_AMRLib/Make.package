@@ -4,13 +4,13 @@ ifeq ($(LBASE),amr)
   AMRLIB_BASE=LIB
 endif
 
-C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
+C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp Cluster.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
                 Interpolater.cpp StateData.cpp \
                 StateDescriptor.cpp TagBox.cpp \
                 AuxBoundaryData.cpp
 
-C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
+C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H \
                 Cluster.H Derive.H ErrorList.H FluxRegister.H \
                 LevelBld.H Interpolater.H StateData.H \
                 StateDescriptor.H TagBox.H PROB_AMR_F.H \
@@ -47,11 +47,7 @@ ifeq ($(USE_ARRAYVIEW),TRUE)
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)
-  DEFINES += -DUSE_PARTICLES -DPARTICLES
-  CEXE_sources += Particles.cpp
-  CEXE_headers += Particles.H
-  FEXE_headers += Particles_F.H
-  FEXE_sources += Particles_$(DIM)D.F
+  CEXE_headers += AmrParGDB.H AmrParticles.H
 endif
 
 ifeq ($(USE_SDCLIB), TRUE)

@@ -179,7 +179,7 @@ ParticleBase::CrseToFine (const BoxArray&       cfba,
 bool
 ParticleBase::FineToCrse (const ParticleBase&                p,
                           int                                flev,
-                          const Amr*                         amr,
+                          const ParGDBBase*                  gdb,
                           const Array<IntVect>&              fcells,
                           const BoxArray&                    fvalid,
                           const BoxArray&                    compfvalid_grown,
@@ -190,7 +190,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
                           Array<IntVect>&                    pshifts,
                           std::vector< std::pair<int,Box> >& isects)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
     BL_ASSERT(flev > 0);
     //
     // We're in AssignDensity(). We want to know whether or not updating
@@ -211,7 +211,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
         which[i] =  0;
     }
 
-    const Box& ibx = BoxLib::grow(amr->ParticleBoxArray(flev)[p.m_grid],-1);
+    const Box& ibx = BoxLib::grow(gdb->ParticleBoxArray(flev)[p.m_grid],-1);
 
     BL_ASSERT(ibx.ok());
 
@@ -232,9 +232,9 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
     //
     // Otherwise ...
     //
-    const Geometry& cgm = amr->Geom(flev-1);
-    const IntVect&  rr  = amr->refRatio(flev-1);
-    const BoxArray& cba = amr->ParticleBoxArray(flev-1);
+    const Geometry& cgm = gdb->Geom(flev-1);
+    const IntVect&  rr  = gdb->refRatio(flev-1);
+    const BoxArray& cba = gdb->ParticleBoxArray(flev-1);
 
     ParticleBase::CIC_Cells_Fracs(p, cgm.ProbLo(), cgm.CellSize(), cfracs, ccells);
 
@@ -293,7 +293,7 @@ ParticleBase::FineToCrse (const ParticleBase&                p,
 void
 ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
                                          int                                lev,
-                                         const Amr*                         amr,
+                                         const ParGDBBase*                  gdb,
                                          const IntVect&                     ccell,
                                          const IntVect&                     cshift,
                                          Array<int>&                        fgrid,
@@ -302,13 +302,13 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
                                          std::vector< std::pair<int,Box> >& isects)
 {
     BL_ASSERT(lev >= 0);
-    BL_ASSERT(lev < amr->finestLevel());
+    BL_ASSERT(lev < gdb->finestLevel());
 
-    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),amr->refRatio(lev));
-    const BoxArray& fba = amr->ParticleBoxArray(lev+1);
-    const Real*     plo = amr->Geom(lev).ProbLo();
-    const Real*     dx  = amr->Geom(lev).CellSize();
-    const Real*     fdx = amr->Geom(lev+1).CellSize();
+    const Box&      fbx = BoxLib::refine(Box(ccell,ccell),gdb->refRatio(lev));
+    const BoxArray& fba = gdb->ParticleBoxArray(lev+1);
+    const Real*     plo = gdb->Geom(lev).ProbLo();
+    const Real*     dx  = gdb->Geom(lev).CellSize();
+    const Real*     fdx = gdb->Geom(lev+1).CellSize();
 
     if (cshift == IntVect::TheZeroVector())
     {
@@ -387,7 +387,7 @@ ParticleBase::FineCellsToUpdateFromCrse (const ParticleBase&                p,
             // Update to the correct fine cell needing updating.
             // Note that "cshift" is from the coarse perspective.
             //
-            const IntVect& fshift = cshift * amr->refRatio(lev);
+            const IntVect& fshift = cshift * gdb->refRatio(lev);
             //
             // Update fcells[j] to indicate a shifted fine cell needing updating.
             //
@@ -532,7 +532,7 @@ ParticleBase::NextID (int nextid)
 
 IntVect
 ParticleBase::Index (const ParticleBase& p,
-                     const Geometry& geom)
+                     const Geometry&     geom)
 {
     IntVect iv;
 
@@ -547,34 +547,34 @@ ParticleBase::Index (const ParticleBase& p,
 
 bool
 ParticleBase::Where (ParticleBase& p,
-                     const Amr*    amr,
+                     const ParGDBBase* gdb,
                      int           lev_min,
                      int           finest_level)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
 
     if (finest_level == -1)
-        finest_level = amr->finestLevel();
+        finest_level = gdb->finestLevel();
 
-    BL_ASSERT(finest_level <= amr->finestLevel());
+    BL_ASSERT(finest_level <= gdb->finestLevel());
 
     std::vector< std::pair<int,Box> > isects;
 
     for (int lev = finest_level; lev >= lev_min; lev--)
     {
-        const IntVect& iv = ParticleBase::Index(p,amr->Geom(lev));
+        const IntVect& iv = ParticleBase::Index(p,gdb->Geom(lev));
 
 	if (lev == p.m_lev) { 
             // We may take a shortcut because the fact that we are here means 
             // this particle does not belong to any finer grids.
-	    const BoxArray& ba = amr->ParticleBoxArray(p.m_lev);
+	    const BoxArray& ba = gdb->ParticleBoxArray(p.m_lev);
 	    if (p.m_grid < ba.size() && ba[p.m_grid].contains(iv)) {
 		p.m_cell = iv;
 		return true;
 	    }
 	}
 
-        amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
+        gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
         if (!isects.empty())
         {
@@ -590,30 +590,30 @@ ParticleBase::Where (ParticleBase& p,
 
 bool
 ParticleBase::PeriodicWhere (ParticleBase& p,
-                             const Amr*    amr,
+                             const ParGDBBase*    gdb,
                              int           lev_min,
                              int           finest_level)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
 
     if (finest_level == -1)
-        finest_level = amr->finestLevel();
+        finest_level = gdb->finestLevel();
 
-    BL_ASSERT(finest_level <= amr->finestLevel());
+    BL_ASSERT(finest_level <= gdb->finestLevel());
     //
     // Create a copy "dummy" particle to check for periodic outs.
     //
     ParticleBase p_prime = p;
 
-    if (ParticleBase::PeriodicShift(p_prime, amr->Geom(0)))
+    if (ParticleBase::PeriodicShift(p_prime, gdb))
     {
         std::vector< std::pair<int,Box> > isects;
 
         for (int lev = finest_level; lev >= lev_min; lev--)
         {
-            const IntVect& iv = ParticleBase::Index(p_prime,amr->Geom(lev));
+            const IntVect& iv = ParticleBase::Index(p_prime,gdb->Geom(lev));
 
-            amr->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
+            gdb->ParticleBoxArray(lev).intersections(Box(iv,iv),isects,true);
 
             if (!isects.empty())
             {
@@ -635,14 +635,14 @@ ParticleBase::PeriodicWhere (ParticleBase& p,
 
 bool
 ParticleBase::RestrictedWhere (ParticleBase& p,
-                               const Amr*    amr,
+                               const ParGDBBase*    gdb,
                                int           ngrow)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
 
-    const IntVect& iv = ParticleBase::Index(p,amr->Geom(p.m_lev));
+    const IntVect& iv = ParticleBase::Index(p,gdb->Geom(p.m_lev));
 
-    if (BoxLib::grow(amr->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
+    if (BoxLib::grow(gdb->ParticleBoxArray(p.m_lev)[p.m_grid], ngrow).contains(iv))
     {
         p.m_cell = iv;
 
@@ -654,16 +654,16 @@ ParticleBase::RestrictedWhere (ParticleBase& p,
 
 bool 
 ParticleBase::SingleLevelWhere (ParticleBase& p, 
-                                const Amr*    amr,
+                                const ParGDBBase*    gdb,
                                 int           level)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
 
-    const IntVect& iv = ParticleBase::Index(p,amr->Geom(level));
+    const IntVect& iv = ParticleBase::Index(p,gdb->Geom(level));
 
     std::vector< std::pair<int,Box> > isects;
 
-    amr->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true);
+    gdb->ParticleBoxArray(level).intersections(Box(iv,iv),isects,true);
 
     if (!isects.empty())
     {
@@ -679,15 +679,18 @@ ParticleBase::SingleLevelWhere (ParticleBase& p,
 
 bool
 ParticleBase::PeriodicShift (ParticleBase& p,
-                             const Geometry& geom) 
+                             const ParGDBBase*    gdb)
 {
     //
     // This routine should only be called when Where() returns false.
     //
+    BL_ASSERT(gdb != 0);
+    //
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
     //
+    const Geometry& geom    = gdb->Geom(0);
     const Box&      dmn     = geom.Domain();
-    const IntVect&  iv      = ParticleBase::Index(p,geom);
+    const IntVect&  iv      = ParticleBase::Index(p,gdb->Geom(0));
     bool            shifted = false;  
 
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -748,20 +751,20 @@ ParticleBase::PeriodicShift (ParticleBase& p,
 
 void
 ParticleBase::Reset (ParticleBase& p,
-                     const Amr*    amr,
+                     const ParGDBBase*    gdb,
                      bool          update,
 		     bool          verbose)
 {
-    BL_ASSERT(amr != 0);
+    BL_ASSERT(gdb != 0);
 
-    bool ok = ParticleBase::Where(p,amr);
+    bool ok = ParticleBase::Where(p,gdb);
 
-    if (!ok && amr->Geom(0).isAnyPeriodic())
+    if (!ok && gdb->Geom(0).isAnyPeriodic())
     {
         // Attempt to shift the particle back into the domain if it
         // crossed a periodic boundary.
-	ParticleBase::PeriodicShift(p,amr->Geom(0));
-	ok = ParticleBase::Where(p,amr);
+	ParticleBase::PeriodicShift(p,gdb);
+	ok = ParticleBase::Where(p,gdb);
     }
     
     if (!ok) {
@@ -820,7 +823,7 @@ ParticleBase::InterpDoit (const FArrayBox& fab,
 
 void
 ParticleBase::Interp (const ParticleBase& prt,
-                      const Geometry&     gm,
+                      const Geometry&     geom,
                       const FArrayBox&    fab,
                       const int*          idx,
                       Real*               val,
@@ -830,8 +833,8 @@ ParticleBase::Interp (const ParticleBase& prt,
     BL_ASSERT(val != 0);
 
     const int       M   = D_TERM(2,+2,+4);
-    const Real*     plo = gm.ProbLo();
-    const Real*     dx  = gm.CellSize();
+    const Real*     plo = geom.ProbLo();
+    const Real*     dx  = geom.CellSize();
 
     Real    fracs[M];
     IntVect cells[M];
