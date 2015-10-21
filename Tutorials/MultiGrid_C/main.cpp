@@ -717,7 +717,7 @@ void solve_with_HPGMG(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab&
   }
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   rebuild_operator(&level_h,NULL,a,b);    // i.e. calculate Dinv and lambda_max
-  MGBuild(&MG_h,&level_h,a,b,minCoarseDim); // build the Multigrid Hierarchy
+  MGBuild(&MG_h,&level_h,a,b,minCoarseDim,ParallelDescriptor::Communicator()); // build the Multigrid Hierarchy
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (ParallelDescriptor::IOProcessor())
       std::cout << std::endl << std::endl << "===== STARTING SOLVE =====" << std::endl << std::flush;
