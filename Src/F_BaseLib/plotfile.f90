@@ -303,7 +303,7 @@ contains
     subroutine build_ns_plotfile()
       use bl_error_module
       integer :: i, n
-      integer :: j, nc
+      integer :: j, nc, ng
       integer :: n1
       character(len=MAX_PATH_NAME) :: str, str1, cdummy
       integer :: idummy
@@ -359,9 +359,11 @@ contains
               status = 'old', file = trim(trim(pf%root) // "/" //  &
               trim(pf%grids(i)%fileprefix) // "/" // &
               trim(pf%grids(i)%header)) )
-         read(unit=lun, fmt=*) idummy, idummy, nc, idummy
+         read(unit=lun, fmt=*) idummy, idummy, nc, ng
          if ( nc /= pf%nvars ) &
               call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+         if ( ng /= 0) &
+              call bl_error("BUILD_PLOTFILE: ng /= 0 not supported", ng)
          call bl_stream_expect(strm, '(')
          n = bl_stream_scan_int(strm)
          if ( n /= pf%grids(i)%nboxes ) &
