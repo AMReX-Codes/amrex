@@ -18,6 +18,7 @@ module plotfile_module
   end interface build
 
   type plotfile_fab
+     ! a single array of data (a boxlib FAB).  
      private
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: filename = ""
@@ -31,6 +32,10 @@ module plotfile_module
   end type plotfile_fab
 
   type plotfile_grid
+     ! this is like a multifab -- it is the collection of the data at
+     ! the same level of refinemnet.  Note that the fabs themselves
+     ! are pointers here -- we only allocate and read them on demand,
+     ! to conserve space
      private
      integer :: dim = 0
      integer :: nboxes = 0
@@ -44,6 +49,8 @@ module plotfile_module
   end type plotfile_grid
 
   type plotfile
+     ! the plotfile container that holds pointers to the
+     ! grids
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: root = ""
      character(len=MAX_VAR_NAME), pointer :: names(:) => Null()
@@ -71,6 +78,10 @@ module plotfile_module
 
   interface nvars
      module procedure plotfile_nvars
+  end interface
+
+  interface nghost
+     module procedure plotfile_nghost
   end interface
 
   interface var_name
@@ -132,6 +143,9 @@ contains
   end function plotfile_time
 
   function plotfile_dataptr(pf, n, i) result(r)
+    ! this returns the pointer to a single FAB of data.  Note: this
+    ! does not actually allocate it or read it in.  To allocate the
+    ! data first, you should use one of the bind routines.
     real(kind=dp_t), pointer :: r(:,:,:,:)
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n, i
@@ -139,6 +153,8 @@ contains
   end function plotfile_dataptr
 
   function plotfile_get_pd_box(pf, n) result(r)
+    ! this is the box (integer indices of the corners) of the 
+    ! entire domain at a given level of refinement.
     type(box) :: r
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n
@@ -153,6 +169,8 @@ contains
   end function plotfile_get_dx
 
   function plotfile_get_box(pf, n, i) result(r)
+    ! this returns the box for the valid data (i.e. excluding any
+    ! ghost cells)
     type(box) :: r
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n, i
@@ -208,6 +226,13 @@ contains
     type(plotfile), intent(in) :: pf
     r = pf%nvars
   end function plotfile_nvars
+
+  function plotfile_nghost(pf, n, i) result(r)
+    integer :: r
+    type(plotfile), intent(in) :: pf
+    integer, intent(in) :: n, i
+    r = pf%grids(n)%fabs(i)%ng
+  end function plotfile_nghost
 
   subroutine plotfile_build(pf, root, unit, verbose)
     use bl_stream_module
