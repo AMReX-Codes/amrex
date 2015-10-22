@@ -16,15 +16,15 @@
     endif
     
     ifdef ACC
-      F90FLAGS += -mp=nonuma -Minfo=mp
-      FFLAGS += -mp=nonuma -Minfo=mp
-      CFLAGS += -mp=nonuma -Minfo=mp
-      CXXFLAGS += -mp=nonuma -Minfo=mp
+      F90FLAGS += -acc -Minfo=acc
+      FFLAGS += -acc -Minfo=acc
+      CFLAGS += -acc -Minfo=acc
+      CXXFLAGS += -acc -Minfo=acc
     else
-      F90FLAGS += -mp=nonuma -Minfo=mp
-      FFLAGS += -mp=nonuma -Minfo=mp
-      CFLAGS += -mp=nonuma -Minfo=mp
-      CXXFLAGS += -mp=nonuma -Minfo=mp
+      F90FLAGS += -noacc
+      FFLAGS += -noacc
+      CFLAGS += -noacc
+      CXXFLAGS += -noacc
     endif
 
     ifdef NDEBUG
