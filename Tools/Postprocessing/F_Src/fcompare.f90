@@ -370,19 +370,10 @@ program fcompare
 
 
            ! check for NaNs -- comparisons don't work when they are present
-           call fab_contains_nan(p_a, &
-                                 (hi_a(3)-lo_a(3)+1)* &
-                                 (hi_a(2)-lo_a(2)+1)* &
-                                 (hi_a(1)-lo_a(1)+1),  ir_a)
-
+           call fab_contains_nan(p_a, volume(get_pbox(pf_a, i, j)), ir_a)
            if (ir_a == 1) has_nan_a(n_a) = .true.
 
-
-           call fab_contains_nan(p_b, &
-                                 (hi_b(3)-lo_b(3)+1)* &
-                                 (hi_b(2)-lo_b(2)+1)* &
-                                 (hi_b(1)-lo_b(1)+1),  ir_b)
-
+           call fab_contains_nan(p_b, volume(get_pbox(pf_b, i, j)), ir_b)
            if (ir_b == 1) has_nan_b(n_a) = .true.
 
            if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
