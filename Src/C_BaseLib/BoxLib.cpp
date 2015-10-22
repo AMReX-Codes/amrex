@@ -277,6 +277,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         The_Initialize_Function_Stack.pop();
     }
 
+/*
     if(ParallelDescriptor::NProcsSidecar() > 0) {
       if(ParallelDescriptor::InSidecarGroup()) {
         if (ParallelDescriptor::IOProcessor())
@@ -286,6 +287,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         return;
       }
     }
+*/
 
 
     BL_PROFILE_INITIALIZE();
