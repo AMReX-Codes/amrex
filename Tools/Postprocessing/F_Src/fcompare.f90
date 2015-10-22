@@ -329,20 +329,15 @@ program fcompare
 
         ! make sure that the grids match
         bx_a = get_box(pf_a, i, j)
+
         lo_a = 1
         hi_a = 1
         lo_a(1:dm) = lwb(bx_a)
         hi_a(1:dm) = upb(bx_a)
 
         bx_b = get_box(pf_b, i, j)
-        lo_b = 1
-        hi_b = 1
-        lo_b(1:dm) = lwb(bx_b)
-        hi_b(1:dm) = upb(bx_b)
 
-        if ( (lo_a(1) /= lo_b(1) .OR. hi_a(1) /= hi_b(1)) .OR. &
-             (pf_a%dim >= 2 .AND. (lo_a(2) /= lo_b(2) .OR. hi_a(2) /= hi_b(2))) .OR. &
-             (pf_a%dim == 3 .AND. (lo_a(3) /= lo_b(3) .OR. hi_a(3) /= hi_b(3))) ) then
+        if (.not. box_equal(bx_a, bx_b)) then
            call bl_error("ERROR: grids do not match")
         endif
 
