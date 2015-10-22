@@ -47,36 +47,38 @@
 #include <MGT_Solver.H>
 #include <stencil_types.H>
 #include <MacBndry.H>
+#include <mg_cpp_f.h>
 
 class FMultiGrid
 {
 public:
-    
+
+    // single level
     FMultiGrid (const Geometry            & geom,
 		const DistributionMapping & dmap,
 		const BoxArray            & ba,
 		int                         baselevel = 0,
-		int                         crse_ratio = 0);
+		IntVect                     crse_ratio = IntVect::TheZeroVector());
 
+    // multi level
     FMultiGrid (const std::vector<Geometry>           & geom,
 		const std::vector<DistributionMapping>& dmap,
 		const std::vector<BoxArray>           & ba,
 		int                                     baselevel = 0,
-		int                                     crse_ratio = 0);
+		IntVect                                 crse_ratio = IntVect::TheZeroVector());
 
+    // multi level
     FMultiGrid (const PArray<Geometry>           & geom,
 		const PArray<DistributionMapping>& dmap,
 		const PArray<BoxArray>           & ba,
 		int                                baselevel = 0,
-		int                                crse_ratio = 0);
+		IntVect                            crse_ratio = IntVect::TheZeroVector());
 
     ~FMultiGrid ();
 
-    void set_baselevel (int baselevel, int crse_ratio) {
+    void set_baselevel (int baselevel, IntVect& crse_ratio) {
 	m_baselevel = baselevel;
 	m_crse_ratio = crse_ratio;
-	if (m_baselevel > 0 && m_crse_ratio < 2) 
-	    BoxLib::Abort("FMultiGrid::set_baselevel must set crse_ratio if baselevel > 0");
     }
     void set_ncomp   (int ncomp)   {m_ncomp   = ncomp;}
     void set_stencil (int stencil) {m_stencil = stencil;}
@@ -94,16 +96,29 @@ public:
 		 const MultiFab& crse_phi,
 		 const MultiFab& phi);
 
+    //
+    // single level
+    //
+    void set_abeclap_coeffs (Real alpha, // A special case of a is const
+			     Real beta,
+			     const PArray<MultiFab>& b);
+    void set_abeclap_coeffs (const MultiFab& a,
+			     Real beta,
+			     const PArray<MultiFab>& b);
+    void set_gravity_coeffs (const PArray<MultiFab>& b);
+
+    //
+    // multi level
+    //
     void set_abeclap_coeffs (Real alpha, // A special case of a is const
 			     Real beta,
 			     const Array<PArray<MultiFab> >& b);
-
     void set_abeclap_coeffs (const PArray<MultiFab>& a,
 			     Real beta,
 			     const Array<PArray<MultiFab> >& b);
-
     void set_gravity_coeffs (const Array< PArray<MultiFab> >& b);
 
+    // For Poisson solver
     void set_const_gravity_coeffs ();
 
     Real solve (MultiFab& phi,
@@ -120,7 +135,10 @@ public:
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_grad_phi (int lev, PArray<MultiFab>& grad_phi);
+    void get_grad_phi (PArray<MultiFab>& grad_phi) {
+	get_grad_phi(m_baselevel, grad_phi);
+    }
+    void get_grad_phi (int amr_lev, PArray<MultiFab>& grad_phi);
 
     void compute_residual (MultiFab & phi,
 			   MultiFab & rhs,
@@ -138,7 +156,7 @@ private:
 
     int m_nlevels;
     int m_baselevel;
-    int m_crse_ratio;
+    IntVect m_crse_ratio;
     int m_ncomp;
     int m_stencil;
     int m_verbose;
