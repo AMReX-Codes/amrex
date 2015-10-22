@@ -333,7 +333,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
     BL_MPI_REQUIRE( MPI_Comm_group(CommunicatorAll(), &m_group_all) );
 
-    SetNProcsSidecar(0);
+    SetNProcsSidecar(0);  // ---- users resize these later
 
     //
     // Wait until all other processes are properly started.
@@ -360,6 +360,8 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
       std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
     }
     if(nSidecarProcs >= m_nProcs_all) {
+        std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
+                  << " >= " << m_nProcs_all << std::endl;
       if(m_MyId_all == 0 && nSidecarProcs > 0) {
         std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
                   << " >= " << m_nProcs_all << std::endl;
@@ -373,7 +375,7 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar) );
       m_comm_sidecar = MPI_COMM_NULL;
     }
-    if(m_comm_comp != MPI_COMM_NULL) {
+    if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
       m_comm_comp = MPI_COMM_NULL;
     }
@@ -1697,6 +1699,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 void
 ParallelDescriptor::SidecarProcess ()
 {
+BoxLib::Abort("dont use ParallelDescriptor::SidecarProcess()");
 #ifdef IN_TRANSIT
 #ifdef BL_USE_MPI
     bool finished(false);
