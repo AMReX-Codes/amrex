@@ -24,6 +24,7 @@ module plotfile_module
      integer(kind=c_long) :: offset = 0
      integer(kind=c_long) :: size = 0
      type(box) :: bx
+     type(box) :: pbx  ! the physical box will include ghost cells
      integer :: nc = 0, ng = 0
      real(kind=dp_t), pointer, dimension(:) :: mx => Null(), mn => Null()
      real(kind=dp_t), pointer, dimension(:,:,:,:) :: p => Null()
@@ -371,8 +372,10 @@ contains
          idummy = bl_stream_scan_int(strm)
          do j = 1, pf%grids(i)%nboxes
             call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
-            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)
+            pf%grids(i)%fabs(j)%pbx = grow(pf%grids(i)%fabs(j)%bx, ng)
+            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)   ! todo: this should be pbx
             pf%grids(i)%fabs(j)%nc = nc
+            pf%grids(i)%fabs(j)%ng = ng
          end do
          call bl_stream_expect(strm, ')')
          read(unit=lun, fmt=*) idummy
