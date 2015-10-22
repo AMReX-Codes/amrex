@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     USleep(1.4);
     ParallelDescriptor::Barrier();
 
-    nSidecarProcs = 1;
+    nSidecarProcs = 4;
     ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
 
 
@@ -135,7 +135,13 @@ int main(int argc, char *argv[]) {
     }
 
 
-    USleep(1.4);
+    USleep(0.7);
+    ParallelDescriptor::Barrier();
+
+    nSidecarProcs = 0;
+    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+
+    USleep(0.3);
     ParallelDescriptor::Barrier();
 
     std::cout << "_calling Finalize()" << std::endl;
