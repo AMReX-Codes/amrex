@@ -77,66 +77,58 @@ int main(int argc, char *argv[]) {
     // the data to the sidecar group from the IOProcessor on the compute group.
     int MPI_IntraGroup_Broadcast_Rank;
     int myProcAll(ParallelDescriptor::MyProcAll());
-    int nSidecarProcs(0), sidecarSignal(MySignal);
+    int nSidecarProcs(0), nSidecarProcsFromParmParse(-3), sidecarSignal(MySignal);
+    int ts(0), nSteps(10);
     ParmParse pp;
 
-    pp.get("nSidecars", nSidecarProcs);
+    pp.get("nSidecars", nSidecarProcsFromParmParse);
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "nSidecarProcs = " << nSidecarProcs << std::endl;
+      std::cout << "nSidecarProcs from parmparse = " << nSidecarProcsFromParmParse << std::endl;
     }
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
 
-    MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+    Array<int> howManySidecars(3);
+    howManySidecars[0] = nSidecarProcsFromParmParse;
+    howManySidecars[1] = 1;
+    howManySidecars[2] = 4;
 
-    if(ParallelDescriptor::InSidecarGroup()) {
-      std::cout << myProcAll << ":: Calling SidecarEventLoop()." << std::endl;
-      SidecarEventLoop();
-    } else {
-      for(int i(0); i < 10; ++i) {  // ----- do time steps.
-        sidecarSignal = MySignal;
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    for(int hMS(0); hMS < howManySidecars.size(); ++hMS) {
+      nSidecarProcs = howManySidecars[hMS];
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << myProcAll << ":: Resizing sidecars = " << nSidecarProcs << std::endl;
+      }
+      ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+      MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
+      if(ParallelDescriptor::InSidecarGroup()) {
+        std::cout << myProcAll << ":: Calling SidecarEventLoop()." << std::endl;
+        SidecarEventLoop();
+      } else {
+        for(int i(ts); i < ts + nSteps; ++i) {  // ----- do time steps.
+          if(ParallelDescriptor::IOProcessor()) {
+            std::cout << myProcAll << ":: Doing timestep = " << i << std::endl;
+          }
+	  if(nSidecarProcs > 0) {
+            sidecarSignal = MySignal;
+            ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+	  }
+        }
+	ts += nSteps;
+
+	if(nSidecarProcs > 0) {
+          // ---- stop the sidecars
+          sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
+          ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+	}
       }
 
-      // ---- stop the sidecars
-      sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
-      ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      std::cout << myProcAll << ":: Finished timesteps for hMS = " << hMS << std::endl;
+      USleep(1.4);
+      ParallelDescriptor::Barrier();
+
     }
 
-    std::cout << myProcAll << ":: Finished first timesteps." << std::endl;
-    USleep(1.4);
-    ParallelDescriptor::Barrier();
-
-    nSidecarProcs = 4;
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
-
-
-    MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
-    std::cout << myProcAll << ":: After resizing sidecars:  nProcs = " << ParallelDescriptor::NProcs() << std::endl;
-
-    if(ParallelDescriptor::InSidecarGroup()) {
-      std::cout << myProcAll << ":: Second time calling SidecarEventLoop()." << std::endl;
-      SidecarEventLoop();
-    } else {
-      std::cout << myProcAll << ":: Second time doing timesteps." << std::endl;
-      for(int i(10); i < 20; ++i) {  // ----- do time steps.
-        sidecarSignal = MySignal;
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-      }
-      USleep(0.4);
-      std::cout << myProcAll << ":: Second time after timesteps." << std::endl;
-
-      // ---- stop the sidecars
-      sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
-      ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-    }
-
-
-    USleep(0.7);
-    ParallelDescriptor::Barrier();
 
     nSidecarProcs = 0;
     ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
