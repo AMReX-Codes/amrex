@@ -24,7 +24,6 @@ program fcompare
   real(kind=dp_t), pointer :: mp(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
-  integer :: lo_b(MAX_SPACEDIM), hi_b(MAX_SPACEDIM)
 
   integer :: flo_a(MAX_SPACEDIM), fhi_a(MAX_SPACEDIM)
   integer :: flo_b(MAX_SPACEDIM), fhi_b(MAX_SPACEDIM)
