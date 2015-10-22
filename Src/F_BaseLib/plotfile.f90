@@ -479,6 +479,8 @@ contains
     nc = pf%nvars
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
+
+    ! todo: need to modify this to include ghost cells
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), nc))
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
@@ -512,6 +514,7 @@ contains
     hi = 1
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
+    ! todo: need to modify this to include ghost cells
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), size(c)))
     do n = 1, size(c)
        call fabio_read_skip_d(fd,              &
