@@ -2105,7 +2105,6 @@ ParticleContainer<N>::InitRandom (long          icount,
             // Add it to the appropriate PBox at the appropriate level.
             //
             m_particles[p.m_lev][p.m_grid].push_back(p);
-            std::cout << "PARTICLE LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
         }
         //
         // Let Redistribute() sort out where the particles belong.
@@ -5552,14 +5551,8 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
     //
     int theEffectiveFinestLevel = m_gdb->finestLevel();
 
-    std::cout << "1:IN REDIST: FINEST LEVEL "  << theEffectiveFinestLevel << std::endl;
-
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
         theEffectiveFinestLevel--;
-
-    std::cout << "2:IN REDIST: FINEST LEVEL "  << theEffectiveFinestLevel << std::endl;
-
-    std::cout << "PARTICLE SIZE " << m_particles.size() << std::endl;
 
     if (m_particles.size() < theEffectiveFinestLevel+1)
     {
@@ -5585,18 +5578,13 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
         {
             const int grid = pmap_it->first;
             PBox&     pbox = pmap_it->second;
-            std::cout << "START: GRID / LEVEL " << grid << " " << lev << std::endl;
 
             for (typename PBox::iterator it = pbox.begin(), End = pbox.end(); it != End; )
             {
                 ParticleType& p = *it;
 
-                std::cout << "PARTICLE LOC " << p.m_pos[0] << " " << p.m_pos[1] << " " << p.m_pos[2] << std::endl;
-
                 if (p.m_id > 0)
                 {
-                    std::cout << "WHERE: " << ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel) << std::endl;
-                    std::cout << "WHERE-ALREADY_CALLED: " << where_already_called << std::endl;
                     if (!where_already_called)
                     {
                         if (!ParticleBase::Where(p,m_gdb, lev_min, theEffectiveFinestLevel))
@@ -5638,8 +5626,6 @@ ParticleContainer<N>::Redistribute (bool where_already_called,
 
                         if (who == MyProc)
                         {
-                            std::cout << "IN REDIST: LEV GRID " << lev << " " << grid << " " << std::endl;
-                            std::cout << "BUT PARTICLE LEV GRID SI " << p.m_lev << " " << p.m_grid << std::endl;
                             if (p.m_lev != lev || p.m_grid != grid)
                             {
                                 //
