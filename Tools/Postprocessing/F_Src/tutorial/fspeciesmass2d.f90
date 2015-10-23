@@ -51,6 +51,8 @@ program fspeciesmass2d
   integer :: narg, farg
   character(len=256) :: fname, spec_name
 
+  integer :: dm
+
   unit = unit_new()
 
 
@@ -154,6 +156,7 @@ program fspeciesmass2d
      ! get dx for the coarse level.  
      dx = plotfile_get_dx(pf, 1)
 
+     dm = pf%dim
 
      ! get the index bounds for the finest level.  
      ! Note, lo and hi are ZERO-based indicies
@@ -200,8 +203,10 @@ program fspeciesmass2d
 
            ! get the integer bounds of the current box, in terms of this
            ! level's index space
-           lo = lwb(get_box(pf, i, j))
-           hi = upb(get_box(pf, i, j))
+           lo(:) = 1
+           hi(:) = 1
+           lo(1:dm) = lwb(get_box(pf, i, j))
+           hi(1:dm) = upb(get_box(pf, i, j))
 
            ! get a pointer to the current patch
            p => dataptr(pf, i, j)
