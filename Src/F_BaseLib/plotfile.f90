@@ -72,6 +72,10 @@ module plotfile_module
      module procedure plotfile_get_box
   end interface
 
+  interface get_pbox
+     module procedure plotfile_get_pbox
+  end interface
+
   interface dataptr
      module procedure plotfile_dataptr
   end interface
@@ -176,6 +180,15 @@ contains
     integer, intent(in) :: n, i
     r = pf%grids(n)%fabs(i)%bx
   end function plotfile_get_box
+
+  function plotfile_get_pbox(pf, n, i) result(r)
+    ! this returns the box for the entire fab, including
+    ! ghost cells
+    type(box) :: r
+    type(plotfile), intent(in) :: pf
+    integer, intent(in) :: n, i
+    r = pf%grids(n)%fabs(i)%pbx
+  end function plotfile_get_pbox
 
   function plotfile_nboxes_n(pf, n) result(r)
     integer :: r
