@@ -24,6 +24,7 @@ module plotfile_module
      integer(kind=c_long) :: offset = 0
      integer(kind=c_long) :: size = 0
      type(box) :: bx
+     type(box) :: pbx  ! the physical box will include ghost cells
      integer :: nc = 0, ng = 0
      real(kind=dp_t), pointer, dimension(:) :: mx => Null(), mn => Null()
      real(kind=dp_t), pointer, dimension(:,:,:,:) :: p => Null()
@@ -303,7 +304,7 @@ contains
     subroutine build_ns_plotfile()
       use bl_error_module
       integer :: i, n
-      integer :: j, nc
+      integer :: j, nc, ng
       integer :: n1
       character(len=MAX_PATH_NAME) :: str, str1, cdummy
       integer :: idummy
@@ -359,9 +360,11 @@ contains
               status = 'old', file = trim(trim(pf%root) // "/" //  &
               trim(pf%grids(i)%fileprefix) // "/" // &
               trim(pf%grids(i)%header)) )
-         read(unit=lun, fmt=*) idummy, idummy, nc, idummy
+         read(unit=lun, fmt=*) idummy, idummy, nc, ng
          if ( nc /= pf%nvars ) &
               call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+         if ( ng /= 0) &
+              call bl_error("BUILD_PLOTFILE: ng /= 0 not supported", ng)
          call bl_stream_expect(strm, '(')
          n = bl_stream_scan_int(strm)
          if ( n /= pf%grids(i)%nboxes ) &
@@ -369,8 +372,10 @@ contains
          idummy = bl_stream_scan_int(strm)
          do j = 1, pf%grids(i)%nboxes
             call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
-            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)
+            pf%grids(i)%fabs(j)%pbx = grow(pf%grids(i)%fabs(j)%bx, ng)
+            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)   ! todo: this should be pbx
             pf%grids(i)%fabs(j)%nc = nc
+            pf%grids(i)%fabs(j)%ng = ng
          end do
          call bl_stream_expect(strm, ')')
          read(unit=lun, fmt=*) idummy
@@ -474,6 +479,8 @@ contains
     nc = pf%nvars
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
+
+    ! todo: need to modify this to include ghost cells
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), nc))
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
@@ -507,6 +514,7 @@ contains
     hi = 1
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
+    ! todo: need to modify this to include ghost cells
     allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), size(c)))
     do n = 1, size(c)
        call fabio_read_skip_d(fd,              &
