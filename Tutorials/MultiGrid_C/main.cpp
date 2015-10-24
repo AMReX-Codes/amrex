@@ -555,11 +555,15 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   mg.setVerbose(verbose);
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 
-  PArray<MultiFab> grad_phi(3);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n)
       grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
 
+#if (BL_SPACEDIM == 2)
+  abec_operator.compFlux(grad_phi[0],grad_phi[1],soln);
+#elif (BL_SPACEDIM == 3)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+#endif
 
   for (int n = 0; n < BL_SPACEDIM; ++n)
   {
@@ -656,7 +660,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   Real final_resnorm;
   mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
 
-  PArray<MultiFab> grad_phi(3);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n)
       grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
 
@@ -812,11 +816,15 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
   destroy_level(&level_h);
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  PArray<MultiFab> grad_phi(3);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM);
   for (int n = 0; n < BL_SPACEDIM; ++n)
       grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
 
+#if (BL_SPACEDIM == 2)
+  abec_operator.compFlux(grad_phi[0],grad_phi[1],soln);
+#elif (BL_SPACEDIM == 3)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+#endif
 
   for (int n = 0; n < BL_SPACEDIM; ++n)
   {
