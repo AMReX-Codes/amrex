@@ -3,24 +3,18 @@
 // cell-centered arrays (i.e., MultiFab), beta is a scalar, and b is face-centered
 // array represented by BL_SPACEDIM face-centered MultiFabs.
 //
-// There are three special cases:
-//   (1) (alpha - beta * (del dot b grad)) phi = rhs, where alpha is a scalar;
-//   (2) - beta * (del dot b grad) phi = rhs;
-//   (3) - del dot grad phi = rhs.
-//
 // Steps to use this solver:
 //
 // Step 1: 
-//   Build FMultiGrid with Geometry, DistributionMapping, and BoxArray.  The
-//   baselevel and crse_ratio arguments are optional.  They are needed when
-//   the problem to solve has a base level greater than AMR level 0.  That is
-//   the lowest local level in the solver is at level baselevel in the AMR 
-//   hierachy.  Also note that geom[0] , dmap[0], and ba[0] are on the local
-//   level 0.  In the case of baselevel != 0, crse_ratio must be set to the
-//   refinement ratio between AMR levels baselevel-1 and baselevel.
+//   Build FMultiGrid with Geometry.  The baselevel and crse_ratio arguments are 
+//   optional.  They are needed when the problem to solve has a base level greater
+//   than AMR level 0.  That is the lowest local level in the solver is at level
+//   baselevel in the AMR hierachy.  Also note that geom[0] is on the local level 0.
+//   In the case of baselevel != 0, crse_ratio must be set to the refinement ratio
+//   between AMR levels baselevel-1 and baselevel.
 //
 // Step 2: OPTIONAL
-//   Set the number of component, stencil type and verbosity.
+//   Set stencil type and verbosity.
 //
 // Step 3:
 //   Use one of the set_bc functions to pass in multigrid boundary conditions
@@ -28,15 +22,17 @@
 //   be 0 and, for others, match the ones in F_MG/mg_cpp_f.h. 
 //
 // Step 4:
-//   Use one of the set_*_coeffs functions to set various coeffs.
+//   * For a constant gravity problem, call set_const_gravity_coeffs.
+//   * For a curvilinear gravity problem, call set_gravity_coeffs.
+//   * For a general problem, call set_acoef, set_beta, and set_bcoef.
 //
 // Step 5:
-//   Call solve.
+//   Call solve.  This will store the solution in phi.
 //
 // Step 6: OPTIONAL
 //   Call get_grad_phi to get grad_phi.  The need_grad_phi flag in last step
 //   must be 1.  Note that grad_phi is PArray with BL_SPACEDIM face-cented
-//   MultiFabs.
+//   MultiFabs or Array<PArray> in case of multiple levels.
 //
 // If one only wants to test a solution by compute residual without actually
 // solving the problem.  Replace Step 5 with a call to compute_residual.
@@ -54,33 +50,26 @@ class FMultiGrid
 public:
 
     // single level
-    FMultiGrid (const Geometry            & geom,
-		const DistributionMapping & dmap,
-		const BoxArray            & ba,
-		int                         baselevel = 0,
-		IntVect                     crse_ratio = IntVect::TheZeroVector());
+    FMultiGrid (const             Geometry  & geom,
+		int                           baselevel = 0,
+		IntVect                       crse_ratio = IntVect::TheZeroVector());
 
     // multi level
-    FMultiGrid (const std::vector<Geometry>           & geom,
-		const std::vector<DistributionMapping>& dmap,
-		const std::vector<BoxArray>           & ba,
-		int                                     baselevel = 0,
-		IntVect                                 crse_ratio = IntVect::TheZeroVector());
+    FMultiGrid (const std::vector<Geometry> & geom,
+		int                           baselevel = 0,
+		IntVect                       crse_ratio = IntVect::TheZeroVector());
 
     // multi level
-    FMultiGrid (const PArray<Geometry>           & geom,
-		const PArray<DistributionMapping>& dmap,
-		const PArray<BoxArray>           & ba,
-		int                                baselevel = 0,
-		IntVect                            crse_ratio = IntVect::TheZeroVector());
+    FMultiGrid (const      PArray<Geometry> & geom,
+		int                           baselevel = 0,
+		IntVect                       crse_ratio = IntVect::TheZeroVector());
 
-    ~FMultiGrid ();
+    ~FMultiGrid () { delete m_bndry;   delete m_mgt_solver; }
 
     void set_baselevel (int baselevel, IntVect& crse_ratio) {
 	m_baselevel = baselevel;
 	m_crse_ratio = crse_ratio;
     }
-    void set_ncomp   (int ncomp)   {m_ncomp   = ncomp;}
     void set_stencil (int stencil) {m_stencil = stencil;}
     void set_verbose (int verbose) {m_verbose = verbose;}
 
@@ -88,38 +77,30 @@ public:
     void set_bc (int * mg_bc);
 
     // Set boundry values using phi
-    void set_bc (int           * mg_bc,
-		 const MultiFab& phi);
+    void set_bc (int     * mg_bc,
+		 MultiFab& phi);
 
     // Set boundary values with crse level data, crse_phi
-    void set_bc (int           * mg_bc,
-		 const MultiFab& crse_phi,
-		 const MultiFab& phi);
+    void set_bc (int     * mg_bc,
+		 MultiFab& crse_phi,
+		 MultiFab& phi);
 
-    //
-    // single level
-    //
-    void set_abeclap_coeffs (Real alpha, // A special case of a is const
-			     Real beta,
-			     const PArray<MultiFab>& b);
-    void set_abeclap_coeffs (const MultiFab& a,
-			     Real beta,
-			     const PArray<MultiFab>& b);
-    void set_gravity_coeffs (const PArray<MultiFab>& b);
-
-    //
-    // multi level
-    //
-    void set_abeclap_coeffs (Real alpha, // A special case of a is const
-			     Real beta,
-			     const Array<PArray<MultiFab> >& b);
-    void set_abeclap_coeffs (const PArray<MultiFab>& a,
-			     Real beta,
-			     const Array<PArray<MultiFab> >& b);
-    void set_gravity_coeffs (const Array< PArray<MultiFab> >& b);
-
-    // For Poisson solver
+    // For const_gravity_eq
     void set_const_gravity_coeffs ();
+
+    // For gravity_eq
+    void set_gravity_coeffs (PArray<MultiFab>& b);          // single level
+    void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
+    
+    // For general_eq
+    void set_acoef (Real              a);
+    void set_acoef (       MultiFab & a);
+    void set_acoef (PArray<MultiFab>& a);
+    //
+    void set_beta (Real beta);    
+    //
+    void set_bcoef (      PArray<MultiFab>   & b);
+    void set_bcoef (Array<PArray<MultiFab> > & b);
 
     Real solve (MultiFab& phi,
 		MultiFab& rhs,
@@ -127,7 +108,6 @@ public:
 		int always_use_bnorm = 0,
 		int need_grad_phi = 0,
 		int verbose = 0);
-
     Real solve (PArray<MultiFab>& phi,
 		PArray<MultiFab>& rhs,
 		Real rel_tol, Real abs_tol,
@@ -135,43 +115,77 @@ public:
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_grad_phi (PArray<MultiFab>& grad_phi) {
-	get_grad_phi(m_baselevel, grad_phi);
-    }
-    void get_grad_phi (int amr_lev, PArray<MultiFab>& grad_phi);
+    void get_grad_phi (       PArray<MultiFab>  & grad_phi);
+    void get_grad_phi ( Array<PArray<MultiFab> >& grad_phi);
+    void get_grad_phi (PArray<PArray<MultiFab> >& grad_phi);
 
     void compute_residual (MultiFab & phi,
 			   MultiFab & rhs,
 			   MultiFab & res);
-
     void compute_residual (PArray<MultiFab> & phi,
 			   PArray<MultiFab> & rhs,
 			   PArray<MultiFab> & res);
 
 private:
 
-    void build_mgt_solver ();
-    void make_xa_xb (Array < Array<Real> > & xa,
-		     Array < Array<Real> > & xb);
-
-    int m_nlevels;
-    int m_baselevel;
+    int     m_nlevels;
+    int     m_baselevel;
     IntVect m_crse_ratio;
-    int m_ncomp;
-    int m_stencil;
-    int m_verbose;
+    int     m_stencil;
+    int     m_verbose;
 
-    PArray<Geometry>            m_geom;
-    PArray<DistributionMapping> m_dmap;
-    PArray<BoxArray>            m_ba;
+    std::vector<Geometry> m_geom;
 
-    int m_coeffs_set;
-    int m_bc_set;
+    MacBndry   * m_bndry;
+    MGT_Solver * m_mgt_solver;
 
-    MacBndry* m_bndry;
-    int m_mg_bc[2*BL_SPACEDIM];
+    struct Boundary
+    {
+	bool initilized;
+	Array<int> mg_bc;
+	MultiFab* crse_phi;
+	MultiFab* phi;
+	Boundary () : initilized(false) {}
+	Boundary (const int * bc, MultiFab* cmf = 0, MultiFab * mf = 0) 
+	    : initilized(true),
+	      mg_bc(bc, 2*BL_SPACEDIM),
+	      crse_phi(cmf),
+	      phi(mf)
+	    { }
+	int * get_mg_bc () { return mg_bc.dataPtr(); }
+	void set_bndry_values (MacBndry& bndry, IntVect crse_ratio);
+    };
+    Boundary m_bc;
 
-    MGT_Solver* m_mgt_solver;
+    enum Eq_t { invalid_eq,
+		const_gravity_eq, // - del dot grad phi = rhs  
+		                  //        Note the unconventional minus sign.
+		gravity_eq,       // - (del dot b grad) phi = rhs  
+		                  //        Gravity in curvilinear coordinates.
+		general_eq};
+
+    struct ABecCoeff
+    {
+	Eq_t eq_type;	
+	bool a_set;
+	bool beta_set;
+	bool b_set;
+	Real a_scalar;
+	PArray<MultiFab> a;
+	Real beta;
+	Array<PArray<MultiFab> > b;
+	ABecCoeff () : eq_type(invalid_eq), a_set(false), beta_set(false), b_set(false),
+		       a_scalar(0), beta(0) {}
+	void set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg);
+    };
+    ABecCoeff m_coeff;
+
+    static void Copy (PArray<MultiFab>& dst, MultiFab& src);
+    static void Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src);
+    static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
+    static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
+
+    void init_mgt_solver (MultiFab* phi []);
 };
 
 #endif

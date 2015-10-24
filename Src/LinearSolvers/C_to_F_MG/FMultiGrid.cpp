@@ -1,339 +1,201 @@
 #include <FMultiGrid.H>
 
-FMultiGrid::FMultiGrid (const Geometry            & geom, 
-			const DistributionMapping & dmap,
-			const BoxArray            & ba,
-			int                         baselevel,
-			IntVect                     crse_ratio)
+FMultiGrid::FMultiGrid (const Geometry & geom, 
+			int              baselevel,
+			IntVect          crse_ratio)
     :
     m_nlevels(1),
     m_baselevel(baselevel),
     m_crse_ratio(crse_ratio),
-    m_ncomp(1),
     m_stencil(CC_CROSS_STENCIL),
     m_verbose(0),
-    m_geom(PArray<Geometry           >(m_nlevels)),
-    m_dmap(PArray<DistributionMapping>(m_nlevels)),
-    m_ba  (PArray<BoxArray           >(m_nlevels)),
-    m_coeffs_set(0),
-    m_bc_set(0),
+    m_geom(m_nlevels),
     m_bndry(0),
     m_mgt_solver(0)
 {
-    m_geom.set(0, &geom);
-    m_dmap.set(0, &dmap);
-    m_ba  .set(0, &ba  );
+    m_geom[0] = geom;
 
     if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
 	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
 }
 
-FMultiGrid::FMultiGrid (const std::vector<Geometry>            & geom, 
-			const std::vector<DistributionMapping> & dmap,
-			const std::vector<BoxArray>            & ba,
-			int                                      baselevel,
-			IntVect                                  crse_ratio)
+FMultiGrid::FMultiGrid (const std::vector<Geometry> & geom, 
+			int                           baselevel,
+			IntVect                       crse_ratio)
     :
-    m_nlevels(ba.size()),
+    m_nlevels(geom.size()),
     m_baselevel(baselevel),
     m_crse_ratio(crse_ratio),
-    m_ncomp(1),
     m_stencil(CC_CROSS_STENCIL),
     m_verbose(0),
-    m_geom(PArray<Geometry           >(m_nlevels)),
-    m_dmap(PArray<DistributionMapping>(m_nlevels)),
-    m_ba  (PArray<BoxArray           >(m_nlevels)),
-    m_coeffs_set(0),
-    m_bc_set(0),
+    m_geom(m_nlevels),
     m_bndry(0),
     m_mgt_solver(0)
 {
-    for (int lev=0; lev < m_nlevels; ++lev) {
-	m_geom.set(lev, &geom[lev]);
-	m_dmap.set(lev, &dmap[lev]);
-	m_ba  .set(lev, &ba  [lev]);
+    m_geom = geom;
+
+    if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
+	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
+}
+
+FMultiGrid::FMultiGrid (const PArray<Geometry> & geom, 
+			int                      baselevel,
+			IntVect                  crse_ratio)
+    :
+    m_nlevels(geom.size()),
+    m_baselevel(baselevel),
+    m_crse_ratio(crse_ratio),
+    m_stencil(CC_CROSS_STENCIL),
+    m_verbose(0),
+    m_geom(m_nlevels),
+    m_bndry(0),
+    m_mgt_solver(0)
+{
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) {
+	m_geom[ilev] = geom[ilev];
     }
 
     if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
 	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
-}
-
-FMultiGrid::FMultiGrid (const PArray<Geometry>            & geom, 
-					  const PArray<DistributionMapping> & dmap,
-					  const PArray<BoxArray>            & ba,
-					  int                                 baselevel,
-			                  IntVect                             crse_ratio)
-    :
-    m_nlevels(ba.size()),
-    m_baselevel(baselevel),
-    m_crse_ratio(crse_ratio),
-    m_ncomp(1),
-    m_stencil(CC_CROSS_STENCIL),
-    m_verbose(0),
-    m_geom(PArray<Geometry           >(m_nlevels)),
-    m_dmap(PArray<DistributionMapping>(m_nlevels)),
-    m_ba  (PArray<BoxArray           >(m_nlevels)),
-    m_coeffs_set(0),
-    m_bc_set(0),
-    m_bndry(0),
-    m_mgt_solver(0)
-{
-    for (int lev=0; lev < m_nlevels; ++lev) {
-	m_geom.set(lev, &geom[lev]);
-	m_dmap.set(lev, &dmap[lev]);
-	m_ba  .set(lev, &ba  [lev]);
-    }
-
-    if (m_baselevel > 0 && m_crse_ratio == IntVect::TheZeroVector()) 
-	BoxLib::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
-}
-
-FMultiGrid::~FMultiGrid ()
-{
-    delete m_bndry;
-    delete m_mgt_solver;
 }
 
 void
 FMultiGrid::set_bc (int * mg_bc)
 {
-    BL_ASSERT(m_bc_set == 0);
-
-    // The values of phys_bc & ref_ratio do not matter
-    // because we are going to use mg_bc.
-
-    IntVect ref_ratio = IntVect::TheZeroVector();
-    Array<int> lo_bc(BL_SPACEDIM, 0);
-    Array<int> hi_bc(BL_SPACEDIM, 0);
-    BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
-
-    m_bndry = new MacBndry(m_ba[0], m_ncomp, m_geom[0]);
-    m_bndry->setHomogValues(phys_bc, ref_ratio);
-
-    for (int i=0; i < 2*BL_SPACEDIM; ++i) {
-	m_mg_bc[i] = mg_bc[i];
-    }
-
-    m_bc_set = 1;
+    BL_ASSERT(!m_bc.initilized);
+    m_bc = Boundary(mg_bc);
 }
 
 void
-FMultiGrid::set_bc (int           * mg_bc,
-		    const MultiFab& phi)
+FMultiGrid::set_bc (int     * mg_bc,
+		    MultiFab& phi)
 {
-    BL_ASSERT(m_bc_set == 0);
-    BL_ASSERT(phi.nComp() == m_ncomp);
+    BL_ASSERT(!m_bc.initilized);
 
-    // The values of phys_bc & ref_ratio do not matter
-    // because we are going to use mg_bc.
-
-    Array<int> lo_bc(BL_SPACEDIM, 0);
-    Array<int> hi_bc(BL_SPACEDIM, 0);
-    BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
-
-    m_bndry = new MacBndry(m_ba[0], m_ncomp, m_geom[0]);
-    m_bndry->setBndryValues(phi, 0, 0, m_ncomp, phys_bc); 
-
-    for (int i=0; i < 2*BL_SPACEDIM; ++i) {
-	m_mg_bc[i] = mg_bc[i];
-    }
-
-    m_bc_set = 1;
+    m_bc = Boundary(mg_bc, 0, &phi);
 }
 
 void
-FMultiGrid::set_bc (int           * mg_bc,
-		    const MultiFab& crse_phi,
-		    const MultiFab& phi)
+FMultiGrid::set_bc (int     * mg_bc,
+		    MultiFab& crse_phi,
+		    MultiFab& phi)
 {
-    if (m_crse_ratio == IntVect::TheZeroVector())
-	BoxLib::Abort("FMultiGrid: calling wrong set_bc function");
+    BL_ASSERT(m_crse_ratio != IntVect::TheZeroVector());
+    BL_ASSERT(!m_bc.initilized);
 
-    BL_ASSERT(m_bc_set == 0);
-    BL_ASSERT(phi.nComp() == m_ncomp);
-    BL_ASSERT(crse_phi.nComp() == m_ncomp);
-
-    // The values of phys_bc & ref_ratio do not matter
-    // because we are going to use mg_bc.
-
-    Array<int> lo_bc(BL_SPACEDIM, 0);
-    Array<int> hi_bc(BL_SPACEDIM, 0);
-    BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
-
-    const int in_rad     = 0;
-    const int out_rad    = 1;
-    const int extent_rad = 2;
-
-    BoxArray crse_boxes(phi.boxArray());
-    crse_boxes.coarsen(m_crse_ratio);
-
-    BndryRegister crse_br(crse_boxes, in_rad, out_rad, extent_rad, m_ncomp);
-    crse_br.copyFrom(crse_phi, crse_phi.nGrow(), 0, 0, m_ncomp);
-
-    m_bndry = new MacBndry(m_ba[0], m_ncomp, m_geom[0]);
-    m_bndry->setBndryValues(crse_br, 0, phi, 0, 0, m_ncomp, m_crse_ratio, 
-			    phys_bc);
-
-    for (int i=0; i < 2*BL_SPACEDIM; ++i) {
-	m_mg_bc[i] = mg_bc[i];
-    }
-
-    m_bc_set = 1;
-}
-
-void 
-FMultiGrid::set_abeclap_coeffs (Real alpha,
-				Real beta,
-				const PArray<MultiFab>& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called before set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    Array<PArray<MultiFab> > bb(1);
-    bb[0].resize(BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	bb[0].set(i, &b[i]);
-    }
-
-    m_mgt_solver->set_abeclap_coeffs(alpha, beta, bb, xa, xb);
-
-    m_coeffs_set = 1;
-}
-
-void 
-FMultiGrid::set_abeclap_coeffs (const MultiFab& a,
-				Real beta,
-				const PArray<MultiFab>& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called before set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    PArray<MultiFab> aa(1);
-    aa.set(0, &a);
-
-    Array<PArray<MultiFab> > bb(1);
-    bb[0].resize(BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	bb[0].set(i, &b[i]);
-    }
-
-    m_mgt_solver->set_abeclap_coeffs(aa, beta, bb, xa, xb);
-
-    m_coeffs_set = 1;
-}
-
-void 
-FMultiGrid::set_gravity_coeffs (const PArray<MultiFab>& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called calling set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    Array<PArray<MultiFab> > bb(1);
-    bb[0].resize(BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	bb[0].set(i, &b[i]);
-    }
-
-    m_mgt_solver->set_gravity_coefficients(bb, xa, xb);
-
-    m_coeffs_set = 1;
-}
-
-void 
-FMultiGrid::set_abeclap_coeffs (Real alpha,
-				Real beta,
-				const Array<PArray<MultiFab> >& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called before set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    m_mgt_solver->set_abeclap_coeffs(alpha, beta, b, xa, xb);
-
-    m_coeffs_set = 1;
-}
-
-void 
-FMultiGrid::set_abeclap_coeffs (const PArray<MultiFab>& a,
-				Real beta,
-				const Array<PArray<MultiFab> >& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called before set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    m_mgt_solver->set_abeclap_coeffs(a, beta, b, xa, xb);
-
-    m_coeffs_set = 1;
-}
-
-void 
-FMultiGrid::set_gravity_coeffs (const Array< PArray<MultiFab> >& b)
-{
-    if (m_bc_set == 0) 
-	BoxLib::Abort("MultiFab: set_bc must be called calling set_*_coeffs is called");
-
-    BL_ASSERT(m_coeffs_set == 0);
-
-    build_mgt_solver();
-
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
-
-    m_mgt_solver->set_gravity_coefficients(b, xa, xb);
-
-    m_coeffs_set = 1;
+    m_bc = Boundary(mg_bc, &crse_phi, &phi);
 }
 
 void 
 FMultiGrid::set_const_gravity_coeffs ()
 {
-    if (m_bc_set == 0) 
-	BoxLib::Abort("FMultiGrid: set_bc must be called before set_*_coeffs is called");
+    BL_ASSERT(m_coeff.eq_type == invalid_eq);
 
-    BL_ASSERT(m_coeffs_set == 0);
+    m_coeff.eq_type = const_gravity_eq;
+}
 
-    build_mgt_solver();
+void 
+FMultiGrid::set_gravity_coeffs (PArray<MultiFab>& b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq);
+    BL_ASSERT(m_nlevels == 1);
+    BL_ASSERT(b.size() == BL_SPACEDIM);
 
-    Array< Array<Real> > xa, xb;
-    make_xa_xb(xa, xb);
+    m_coeff.eq_type = gravity_eq;
+    m_coeff.b_set   = true;
 
-    m_mgt_solver->set_const_gravity_coeffs(xa, xb);
+    Copy(m_coeff.b, b);
+}
 
-    m_coeffs_set = 1;
+void 
+FMultiGrid::set_gravity_coeffs (Array< PArray<MultiFab> >& b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq);
+    BL_ASSERT(b.size() == m_nlevels);
+    BL_ASSERT(b[0].size() == BL_SPACEDIM);
+
+    m_coeff.eq_type = gravity_eq;
+    m_coeff.b_set   = true;
+
+    Copy(m_coeff.b, b);
+}
+
+void
+FMultiGrid::set_acoef(Real a)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.a_set);
+    
+    m_coeff.eq_type = general_eq;
+    m_coeff.a_set   = true;
+
+    m_coeff.a_scalar = a;
+}
+
+void
+FMultiGrid::set_acoef(MultiFab& a)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.a_set);
+    BL_ASSERT(m_nlevels == 1);
+    
+    m_coeff.eq_type = general_eq;
+    m_coeff.a_set   = true;
+
+    Copy(m_coeff.a, a);
+}
+
+void
+FMultiGrid::set_acoef(PArray<MultiFab>& a)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.a_set);
+    BL_ASSERT(m_nlevels == a.size());
+    
+    m_coeff.eq_type = general_eq;
+    m_coeff.a_set   = true;
+
+    Copy(m_coeff.a, a);
+}
+
+void
+FMultiGrid::set_beta (Real beta)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.beta_set);
+
+    m_coeff.eq_type  = general_eq;
+    m_coeff.beta_set = true;
+
+    m_coeff.beta = beta;
+}
+
+void 
+FMultiGrid::set_bcoef (PArray<MultiFab> & b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.b_set);
+    BL_ASSERT(m_nlevels == 1);
+    BL_ASSERT(b.size() == BL_SPACEDIM);
+
+    m_coeff.eq_type = general_eq;
+    m_coeff.b_set   = true;
+    
+    Copy(m_coeff.b, b);
+}
+
+void
+FMultiGrid::set_bcoef (Array<PArray<MultiFab> > & b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.b_set);
+    BL_ASSERT(m_nlevels == b.size());
+    BL_ASSERT(b[0].size() == BL_SPACEDIM);
+
+    m_coeff.eq_type = general_eq;
+    m_coeff.b_set   = true;
+    
+    Copy(m_coeff.b, b);
 }
 
 Real
@@ -344,46 +206,36 @@ FMultiGrid::solve (MultiFab& phi,
 		   int need_grad_phi,
 		   int verbose)
 {
-    if (m_bc_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: set_bc not called");
-
-    if (m_coeffs_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: coeffs not set");
-
-    if (m_nlevels > 1)
-	BoxLib::Abort("FMultiGrid::solve: inconsistent # of levels");
-
-    MultiFab* phi_p[1];
-    MultiFab* rhs_p[1];
-    phi_p[0] = &phi;
-    rhs_p[0] = &rhs;
-
-    Real final_resnorm;
-    m_mgt_solver->solve(phi_p, rhs_p, *m_bndry, rel_tol, abs_tol, 
-			always_use_bnorm, final_resnorm, need_grad_phi);
-    return final_resnorm;
+    PArray<MultiFab> phi_p;
+    PArray<MultiFab> rhs_p;
+    Copy(phi_p, phi);
+    Copy(rhs_p, rhs);
+    return solve(phi_p, rhs_p, rel_tol, abs_tol,
+		 always_use_bnorm, need_grad_phi, verbose);
 }
 
 Real
 FMultiGrid::solve (PArray<MultiFab>& phi,
 		   PArray<MultiFab>& rhs,
 		   Real rel_tol, Real abs_tol,
-		   int always_use_bnorm,
+		   int always_use_bnorm ,
 		   int need_grad_phi,
 		   int verbose)
 {
-    if (m_bc_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: set_bc not called");
-
-    if (m_coeffs_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: coeffs not set");
+    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(m_coeff.eq_type != invalid_eq);
+    BL_ASSERT(m_mgt_solver == 0);
+    BL_ASSERT(m_bndry == 0);
 
     MultiFab* phi_p[m_nlevels];
     MultiFab* rhs_p[m_nlevels];
-    for (int lev=0; lev < m_nlevels; ++lev) {
-      phi_p[lev] = &phi[lev];
-      rhs_p[lev] = &rhs[lev];
+    for (int ilev=0; ilev < m_nlevels; ++ilev) 
+    {
+	phi_p[ilev] = &phi[ilev];
+	rhs_p[ilev] = &rhs[ilev];
     }    
+
+    init_mgt_solver(phi_p);
 
     Real final_resnorm;
     m_mgt_solver->solve(phi_p, rhs_p, *m_bndry, rel_tol, abs_tol, 
@@ -392,11 +244,32 @@ FMultiGrid::solve (PArray<MultiFab>& phi,
 }
 
 void
-FMultiGrid::get_grad_phi (int amr_lev, PArray<MultiFab>& grad_phi)
+FMultiGrid::get_grad_phi (PArray<MultiFab>& grad_phi)
 {
-    int lev = amr_lev - m_baselevel;
-    const Real* dx = m_geom[lev].CellSize();
-    m_mgt_solver->get_fluxes(lev, grad_phi, dx);
+    BL_ASSERT(m_nlevels == 1);
+
+    const Real* dx = m_geom[0].CellSize();
+    m_mgt_solver->get_fluxes(0, grad_phi, dx);
+}
+
+void
+FMultiGrid::get_grad_phi (Array<PArray<MultiFab> >& grad_phi)
+{
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) 
+    {	
+	const Real* dx = m_geom[ilev].CellSize();
+	m_mgt_solver->get_fluxes(ilev, grad_phi[ilev], dx);
+    }
+}
+
+void
+FMultiGrid::get_grad_phi (PArray<PArray<MultiFab> >& grad_phi)
+{
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) 
+    {
+	const Real* dx = m_geom[ilev].CellSize();
+	m_mgt_solver->get_fluxes(ilev, grad_phi[ilev], dx);
+    }
 }
 
 void 
@@ -404,102 +277,203 @@ FMultiGrid::compute_residual (MultiFab & phi,
 			      MultiFab & rhs,
 			      MultiFab & res)
 {
-    if (m_bc_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: set_bc not called");
-
-    if (m_coeffs_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: coeffs not set");
-
-    if (m_nlevels > 1)
-	BoxLib::Abort("FMultiGrid::solve: inconsistent # of levels");
-
-    MultiFab* phi_p[1];
-    MultiFab* rhs_p[1];
-    MultiFab* res_p[1];
-    phi_p[0] = &phi;
-    rhs_p[0] = &rhs;
-    res_p[0] = &res;
-
-    m_mgt_solver->compute_residual(phi_p, rhs_p, res_p, *m_bndry);
+    PArray<MultiFab> phi_p;
+    PArray<MultiFab> rhs_p;
+    PArray<MultiFab> res_p;
+    Copy(phi_p, phi);
+    Copy(rhs_p, rhs);
+    Copy(res_p, res);
+    compute_residual(phi_p, rhs_p, res_p);
 }
 
-void 
+void
 FMultiGrid::compute_residual (PArray<MultiFab> & phi,
 			      PArray<MultiFab> & rhs,
 			      PArray<MultiFab> & res)
 {
-    if (m_bc_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: set_bc not called");
-
-    if (m_coeffs_set == 0)
-	BoxLib::Abort("FMultiGrid::solve: coeffs not set");
+    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(m_coeff.eq_type != invalid_eq);
+    BL_ASSERT(m_mgt_solver == 0);
+    BL_ASSERT(m_bndry == 0);
 
     MultiFab* phi_p[m_nlevels];
     MultiFab* rhs_p[m_nlevels];
     MultiFab* res_p[m_nlevels];
-    for (int lev=0; lev < m_nlevels; ++lev) {
-      phi_p[lev] = &phi[lev];
-      rhs_p[lev] = &rhs[lev];
-      res_p[lev] = &res[lev];
+    for (int ilev=0; ilev < m_nlevels; ++ilev) 
+    {
+	phi_p[ilev] = &phi[ilev];
+	rhs_p[ilev] = &rhs[ilev];
+	res_p[ilev] = &res[ilev];
     }    
+
+    init_mgt_solver(phi_p);
 
     m_mgt_solver->compute_residual(phi_p, rhs_p, res_p, *m_bndry);
 }
 
 void
-FMultiGrid::build_mgt_solver ()
+FMultiGrid::Copy (PArray<MultiFab>& dst, MultiFab& src)
 {
-    BL_ASSERT(m_mgt_solver == 0);
-    BL_ASSERT(m_bc_set != 0);
-
-    std::vector<Geometry>            geom(m_nlevels);
-    std::vector<DistributionMapping> dmap(m_nlevels);
-    std::vector<BoxArray>              ba(m_nlevels);
-    for (int lev=0; lev < m_nlevels; ++lev) {
-	geom[lev] = m_geom[lev];
-	dmap[lev] = m_dmap[lev];
-	ba  [lev] = m_ba  [lev];
-    }
-
-    bool nodal = false;
-    int  nc = 0;
-    m_mgt_solver = new MGT_Solver(geom, m_mg_bc, ba, dmap, nodal, m_stencil,
-				  nodal, nc, m_ncomp, m_verbose);
+    dst.resize(1);
+    dst.set(0, &src);
 }
 
 void
-FMultiGrid::make_xa_xb (Array < Array<Real> > & xa,
-				 Array < Array<Real> > & xb)
+FMultiGrid::Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src)
 {
-    BL_ASSERT( m_baselevel >= 0 );
-    BL_ASSERT( m_baselevel == 0 || m_crse_ratio != IntVect::TheZeroVector() );
+    int nlevels = src.size();
+    dst.resize(nlevels);
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+	dst.set(ilev, &src[ilev]);
+    }
+}
 
-    xa.resize(m_nlevels);
-    xb.resize(m_nlevels);
+void 
+FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src)
+{
+    int ndim = src.size();
+    dst.resize(1);
+    for(int idim = 0; idim < ndim; ++idim) {
+	dst[0].set(idim, &src[idim]);
+    }
+}
 
-    for (int lev=0; lev < m_nlevels; ++lev) {
+void 
+FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src)
+{
+    int nlevels = src.size();
+    int ndim = src[0].size();
+    dst.resize(nlevels);
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+	dst[ilev].resize(ndim);
+	for(int idim = 0; idim < ndim; ++idim) {
+	    dst[ilev].set(idim, &src[ilev][idim]);
+	}
+    }
+}
+
+void
+FMultiGrid::Boundary::set_bndry_values (MacBndry& bndry, IntVect crse_ratio)
+{
+    // The values of phys_bc & ref_ratio do not matter
+    // because we are not going to use those parts of MacBndry.
+    IntVect ref_ratio = IntVect::TheZeroVector();
+    Array<int> lo_bc(BL_SPACEDIM, 0);
+    Array<int> hi_bc(BL_SPACEDIM, 0);
+    BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
+
+    if (crse_phi == 0 && phi == 0) 
+    {
+	bndry.setHomogValues(phys_bc, ref_ratio);
+    }
+    else if (crse_phi == 0 && phi != 0)
+    {
+	bndry.setBndryValues(*phi, 0, 0, phi->nComp(), phys_bc); 
+    }
+    else if (crse_phi != 0 && phi != 0) 
+    {
+	BL_ASSERT(crse_ratio != IntVect::TheZeroVector());
+
+	const int ncomp      = phi->nComp();
+	const int in_rad     = 0;
+	const int out_rad    = 1;
+	const int extent_rad = 2;
+
+	BoxArray crse_boxes(phi->boxArray());
+	crse_boxes.coarsen(crse_ratio);
+
+	BndryRegister crse_br(crse_boxes, in_rad, out_rad, extent_rad, ncomp);
+	crse_br.copyFrom(*crse_phi, crse_phi->nGrow(), 0, 0, ncomp);
+
+	bndry.setBndryValues(crse_br, 0, *phi, 0, 0, ncomp, crse_ratio, phys_bc);
+    }
+    else
+    {
+	BoxLib::Abort("FMultiGrid::Boundary::build_bndry: How did we get here?");
+    }
+}
+
+void
+FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
+{
+    BL_ASSERT( fmg.m_baselevel >= 0 );
+    BL_ASSERT( fmg.m_baselevel == 0 || fmg.m_crse_ratio != IntVect::TheZeroVector() );
+
+    Array< Array<Real> > xa(fmg.m_nlevels);
+    Array< Array<Real> > xb(fmg.m_nlevels);
+
+    for (int lev=0; lev < fmg.m_nlevels; ++lev) {
 	xa[lev].resize(BL_SPACEDIM);
 	xb[lev].resize(BL_SPACEDIM);
-	if (lev + m_baselevel == 0) {
+	if (lev + fmg.m_baselevel == 0) {
 	    // For level 0, the boundary lives exactly on the faces
 	    for (int n=0; n<BL_SPACEDIM; n++) {
 		xa[lev][n] = 0.0;
 		xb[lev][n] = 0.0;
 	    }
 	} else if (lev == 0) {
-	    const Real* dx = m_geom[0].CellSize();
+	    const Real* dx = fmg.m_geom[0].CellSize();
 	    for (int n=0; n<BL_SPACEDIM; n++) {
-		xa[lev][n] = 0.5 * m_crse_ratio[n] * dx[n];
-		xb[lev][n] = 0.5 * m_crse_ratio[n] * dx[n];
+		xa[lev][n] = 0.5 * fmg.m_crse_ratio[n] * dx[n];
+		xb[lev][n] = 0.5 * fmg.m_crse_ratio[n] * dx[n];
 	    }	    
 	} else {
-	    const Real* dx_crse = m_geom[lev-1].CellSize();
+	    const Real* dx_crse = fmg.m_geom[lev-1].CellSize();
 	    for (int n=0; n<BL_SPACEDIM; n++) {
 		xa[lev][n] = 0.5 * dx_crse[n];
 		xb[lev][n] = 0.5 * dx_crse[n];
 	    }
 	}
     }
+
+    if (eq_type == const_gravity_eq)
+    {
+	mgt_solver.set_const_gravity_coeffs(xa, xb);
+    }
+    else if (eq_type == gravity_eq)
+    {
+	BL_ASSERT(b_set);
+	mgt_solver.set_gravity_coefficients(b, xa, xb);
+    }
+    else if (eq_type == general_eq)
+    {
+	BL_ASSERT(a_set && beta_set && b_set);
+	if (a.size() > 0) {
+	    mgt_solver.set_abeclap_coeffs(a, beta, b, xa, xb);
+	} else {
+	    mgt_solver.set_abeclap_coeffs(a_scalar, beta, b, xa, xb);
+	}
+    }
+    else {
+	BoxLib::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
+    }
 }
 
+void
+FMultiGrid::init_mgt_solver (MultiFab* phi [])
+{
+    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(m_coeff.eq_type != invalid_eq);
+    BL_ASSERT(m_mgt_solver == 0);
 
+    int ncomp = phi[0]->nComp();
+
+    std::vector<DistributionMapping> dmap(m_nlevels);
+    std::vector<BoxArray> ba(m_nlevels);
+
+    for (int ilev = 0; ilev < m_nlevels; ++ilev) 
+    {
+	dmap[ilev] = phi[ilev]->DistributionMap();
+	ba  [ilev] = phi[ilev]->boxArray();
+    }
+
+    bool nodal = false;
+    int  nc = 0;
+    m_mgt_solver = new MGT_Solver (m_geom, m_bc.get_mg_bc() , ba, dmap, nodal,
+				   m_stencil, nodal, nc, ncomp, m_verbose);
+
+    m_bndry = new MacBndry (ba[0], ncomp, m_geom[0]);
+    m_bc.set_bndry_values(*m_bndry, m_crse_ratio);
+
+    m_coeff.set_coeffs(*m_mgt_solver, *this);
+}
