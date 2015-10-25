@@ -162,10 +162,8 @@ private:
     Boundary m_bc;
 
     enum Eq_t { invalid_eq,
-		const_gravity_eq, // - del dot grad phi = rhs  
-		                  //        Note the unconventional minus sign.
-		gravity_eq,       // - (del dot b grad) phi = rhs  
-		                  //        Gravity in curvilinear coordinates.
+		const_gravity_eq, // del dot grad phi = rhs  
+		gravity_eq,       // (del dot b grad) phi = rhs  
 		general_eq};
 
     struct ABecCoeff
