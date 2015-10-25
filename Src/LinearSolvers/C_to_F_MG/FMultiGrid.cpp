@@ -235,7 +235,7 @@ FMultiGrid::solve (PArray<MultiFab>& phi,
 	rhs_p[ilev] = &rhs[ilev];
     }    
 
-    init_mgt_solver(phi_p);
+    init_mgt_solver(phi);
 
     Real final_resnorm;
     m_mgt_solver->solve(phi_p, rhs_p, *m_bndry, rel_tol, abs_tol, 
@@ -306,7 +306,7 @@ FMultiGrid::compute_residual (PArray<MultiFab> & phi,
 	res_p[ilev] = &res[ilev];
     }    
 
-    init_mgt_solver(phi_p);
+    init_mgt_solver(phi);
 
     m_mgt_solver->compute_residual(phi_p, rhs_p, res_p, *m_bndry);
 }
@@ -450,21 +450,21 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
 }
 
 void
-FMultiGrid::init_mgt_solver (MultiFab* phi [])
+FMultiGrid::init_mgt_solver (PArray<MultiFab>& phi)
 {
     BL_ASSERT(m_bc.initilized);
     BL_ASSERT(m_coeff.eq_type != invalid_eq);
     BL_ASSERT(m_mgt_solver == 0);
 
-    int ncomp = phi[0]->nComp();
+    int ncomp = phi[0].nComp();
 
     std::vector<DistributionMapping> dmap(m_nlevels);
     std::vector<BoxArray> ba(m_nlevels);
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) 
     {
-	dmap[ilev] = phi[ilev]->DistributionMap();
-	ba  [ilev] = phi[ilev]->boxArray();
+	dmap[ilev] = phi[ilev].DistributionMap();
+	ba  [ilev] = phi[ilev].boxArray();
     }
 
     bool nodal = false;

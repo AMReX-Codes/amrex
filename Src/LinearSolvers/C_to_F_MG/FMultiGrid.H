@@ -36,6 +36,10 @@
 //
 // If one only wants to test a solution by compute residual without actually
 // solving the problem.  Replace Step 5 with a call to compute_residual.
+//
+// Various MultiFabs are passed in, and the pointers to these MultiFabs,
+// not copies, are stored.  Therefore, these MultiFabs must still be alive
+// when solve is called.
 
 #ifndef _FMultiGrid_H_
 #define _FMultiGrid_H_
@@ -185,7 +189,7 @@ private:
     static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
 
-    void init_mgt_solver (MultiFab* phi []);
+    void init_mgt_solver (PArray<MultiFab>& phi);
 };
 
 #endif
