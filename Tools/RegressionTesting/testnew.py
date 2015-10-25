@@ -329,11 +329,14 @@ class Suite(object):
         outdir = self.testTopDir + self.suiteName + "-tests/"
 
         # this will work through 2099
-        dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
-                                                  d.startswith("20"))]
-        dirs.sort()
+        if os.path.isdir(outdir):
+            dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
+                                                      d.startswith("20"))]
+            dirs.sort()
 
-        return dirs[-1]
+            return dirs[-1]
+        else:
+            return None
 
     def get_test_failures(self, test_dir):
         """ look at the test run in test_dir and return the list of tests that

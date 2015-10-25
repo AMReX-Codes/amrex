@@ -247,23 +247,6 @@ MultiGrid::prepareForLevel (int level)
 }
 
 void
-MultiGrid::residualCorrectionForm (MultiFab&       resL,
-                                   const MultiFab& rhsL,
-                                   MultiFab&       solnL,
-                                   const MultiFab& inisol,
-                                   LinOp::BC_Mode  bc_mode,
-                                   int             level)
-{
-    //
-    // Using the linearity of the operator, Lp, we can solve this system
-    // instead by solving for the correction required to the initial guess.
-    //
-    initialsolution->copy(inisol);
-    solnL.copy(inisol);
-    Lp.residual(resL, rhsL, solnL, level, bc_mode);
-}
-
-void
 MultiGrid::solve (MultiFab&       _sol,
                   const MultiFab& _rhs,
                   Real            _eps_rel,
@@ -277,8 +260,43 @@ MultiGrid::solve (MultiFab&       _sol,
     //
     const int level = 0;
     prepareForLevel(level);
-    residualCorrectionForm(*rhs[level],_rhs,*cor[level],_sol,bc_mode,level);
-    if ( !solve_(_sol, _eps_rel, _eps_abs, LinOp::Homogeneous_BC, level) )
+
+    //
+    // Copy the initial guess, which may contain inhomogeneous boundray conditions,
+    // into both "initialsolution" (to be added back later) and into "cor[0]" which
+    // we will only use here to compute the residual, then will set back to 0 below
+    //
+    initialsolution->copy(_sol);
+    cor[level]->copy(_sol);
+
+    //
+    // Put the problem in residual-correction form: we will now use "rhs[level
+    // the initial residual (rhs[0]) rather than the initial RHS (_rhs)
+    // to begin the solve.
+    //
+    Lp.residual(*rhs[level],_rhs,*cor[level],level,bc_mode);
+
+    //
+    // Now initialize correction to zero at this level (auto-filled at levels below)
+    //
+    (*cor[level]).setVal(0.0); //
+
+    //
+    // Elide a reduction by doing these together.
+    //
+    Real tmp[2] = { norm_inf(_rhs,true), norm_inf(*rhs[level],true) };
+    ParallelDescriptor::ReduceRealMax(tmp,2);
+    if ( ParallelDescriptor::IOProcessor() && verbose > 0)
+    {
+        Spacer(std::cout, level);
+        std::cout << "MultiGrid: Initial rhs                = " << tmp[0] << '\n';
+        std::cout << "MultiGrid: Initial residual           = " << tmp[1] << '\n';
+    }
+
+    //
+    // We can now use homogeneous bc's because we have put the problem into residual-correction form.
+    //
+    if ( !solve_(_sol, _eps_rel, _eps_abs, LinOp::Homogeneous_BC, tmp[0], tmp[1]) )
         BoxLib::Error("MultiGrid:: failed to converge!");
 }
 
@@ -287,7 +305,8 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    Real           eps_rel,
                    Real           eps_abs,
                    LinOp::BC_Mode bc_mode,
-                   int            level)
+                   Real           bnorm,
+                   Real           resnorm0)
 {
     BL_PROFILE("MultiGrid::solve_()");
 
@@ -298,49 +317,65 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //    and stop if relative error <= _eps_rel or if absolute err <= _abs_eps
   //
   const Real strt_time = ParallelDescriptor::second();
+
+  const int level = 0;
+
   //
-  // Elide a reduction by doing these together.
+  // We take the max of the norms of the initial RHS and the initial residual in order to capture both cases
   //
-  Real tmp[2] = { norm_inf(*rhs[level],true), errorEstimate(level,bc_mode,true) };
-
-  ParallelDescriptor::ReduceRealMax(tmp,2);
-
-  const Real norm_rhs  = tmp[0];
-  const Real error0    = tmp[1];
-  int        returnVal = 0;
-  Real       error     = error0;
-
-  if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+  Real norm_to_test_against;
+  bool using_bnorm;
+  if (bnorm >= resnorm0) 
   {
-      Spacer(std::cout, level);
-      std::cout << "MultiGrid: Initial rhs                = " << norm_rhs << '\n';
-      std::cout << "MultiGrid: Initial error (error0)     = " << error0 << '\n';
-  }
+      norm_to_test_against = bnorm;
+      using_bnorm          = true;
+  } else {
+      norm_to_test_against = resnorm0;
+      using_bnorm          = false;
+  } 
 
+  int        returnVal = 0;
+  Real       error     = resnorm0;
+
+  //
+  // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
+  //
   if ( ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0 )
   {
       std::cout << "MultiGrid: Tolerance "
                 << eps_rel
                 << " < 1e-16 is probably set too low" << '\n';
   }
+
   //
-  // Initialize correction to zero at this level (auto-filled at levels below)
+  // We initially define norm_cor based on the initial solution only so we can use it in the very first iteration
+  //    to decide whether the problem is already solved (this is relevant if the previous solve used was only solved
+  //    according to the Anorm test and not the bnorm test).
   //
-  (*cor[level]).setVal(0.0);
-  //
-  // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
-  //
-  Real       norm_cor    = 0.0;
+  Real       norm_cor    = norm_inf(*initialsolution,true);
+  ParallelDescriptor::ReduceRealMax(norm_cor);
+
   int        nit         = 1;
-  const Real new_error_0 = norm_rhs;
   const Real norm_Lp     = Lp.norm(0, level);
   Real       cg_time     = 0;
 
   if ( use_Anorm_for_convergence == 1 ) 
   {
+     //
+     // Don't need to go any further -- no iterations are required
+     //
+     if (error <= eps_abs || error < eps_rel*(norm_Lp*norm_cor+norm_to_test_against)) 
+     {
+         if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+         {
+             std::cout << "   Problem is already converged -- no iterations required\n";
+         }
+         return 1;
+     }
+
      for ( ;
            ( (error > eps_abs &&
-              error > eps_rel*(norm_Lp*norm_cor+norm_rhs)) ||
+              error > eps_rel*(norm_Lp*norm_cor+norm_to_test_against)) ||
              (do_fixed_number_of_iters == 1) )
              && nit <= maxiter;
            ++nit)
@@ -356,20 +391,40 @@ MultiGrid::solve_ (MultiFab&      _sol,
 	
          if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
-             const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+             const Real rel_error = error / norm_to_test_against;
              Spacer(std::cout, level);
-             std::cout << "MultiGrid: Iteration   "
-                       << nit
-                       << " error/error0 = "
-                       << rel_error << '\n';
+             if (using_bnorm)
+             {
+                 std::cout << "MultiGrid: Iteration   "
+                           << nit
+                           << " resid/bnorm = "
+                           << rel_error << '\n';
+             } else {
+                 std::cout << "MultiGrid: Iteration   "
+                           << nit
+                           << " resid/resid0 = "
+                           << rel_error << '\n';
+             }
          }
      }
   }
   else
   {
+     //
+     // Don't need to go any further -- no iterations are required
+     //
+     if (error <= eps_abs || error < eps_rel*norm_to_test_against) 
+     {
+         if ( ParallelDescriptor::IOProcessor() && (verbose > 0) )
+         {
+             std::cout << "   Problem is already converged -- no iterations required\n";
+         }
+         return 1;
+     }
+
      for ( ;
            ( (error > eps_abs &&
-              error > eps_rel*norm_rhs) ||
+              error > eps_rel*norm_to_test_against) ||
              (do_fixed_number_of_iters == 1) )
              && nit <= maxiter;
            ++nit)
@@ -377,15 +432,23 @@ MultiGrid::solve_ (MultiFab&      _sol,
          relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode, cg_time);
 
          error = errorEstimate(level, bc_mode);
-
+	
          if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
-             const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+             const Real rel_error = error / norm_to_test_against;
              Spacer(std::cout, level);
-             std::cout << "MultiGrid: Iteration   "
-                       << nit
-                       << " error/error0 = "
-                       << rel_error << '\n';
+             if (using_bnorm)
+             {
+                 std::cout << "MultiGrid: Iteration   "
+                           << nit
+                           << " resid/bnorm = "
+                           << rel_error << '\n';
+             } else {
+                 std::cout << "MultiGrid: Iteration   "
+                           << nit
+                           << " resid/resid0 = "
+                           << rel_error << '\n';
+             }
          }
      }
   }
@@ -396,12 +459,20 @@ MultiGrid::solve_ (MultiFab&      _sol,
   {
       if ( ParallelDescriptor::IOProcessor() )
       {
-          const Real rel_error = (error0 != 0) ? error/error0 : 0;
+          const Real rel_error = error / norm_to_test_against;
           Spacer(std::cout, level);
-          std::cout << "MultiGrid: Final Iter. "
-                    << nit-1
-                    << " error/error0 = "
-                    << rel_error;
+          if (using_bnorm)
+          {
+              std::cout << "MultiGrid: Iteration   "
+                        << nit-1
+                        << " resid/bnorm = "
+                        << rel_error << '\n';
+          } else {
+              std::cout << "MultiGrid: Iteration   "
+                        << nit-1
+                        << " resid/resid0 = "
+                        << rel_error << '\n';
+             }
       }
 
       if ( verbose > 1 )
@@ -423,9 +494,9 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
           std::cout << "   Did fixed number of iterations: " << maxiter << std::endl;
       } 
-      else if ( error < eps_rel*norm_rhs )
+      else if ( error < eps_rel*norm_to_test_against )
       {
-          std::cout << "   Converged res < eps_rel*bnorm\n";
+          std::cout << "   Converged res < eps_rel*max(bnorm,res_norm)\n";
       } 
       else if ( (use_Anorm_for_convergence == 1) && (error < eps_rel*norm_Lp*norm_cor) )
       {
@@ -447,14 +518,14 @@ MultiGrid::solve_ (MultiFab&      _sol,
   if ( use_Anorm_for_convergence == 1 ) 
   {
      if ( do_fixed_number_of_iters == 1                ||
-          error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
+          error <= eps_rel*(norm_Lp*norm_cor+norm_to_test_against) ||
           error <= eps_abs )
        returnVal = 1;
   } 
   else 
   {
      if ( do_fixed_number_of_iters == 1 ||
-          error <= eps_rel*(norm_rhs)   ||
+          error <= eps_rel*(norm_to_test_against)   ||
           error <= eps_abs )
        returnVal = 1;
   } 

@@ -216,16 +216,8 @@ protected:
                 Real           _eps_rel,
                 Real           _eps_abs,
                 LinOp::BC_Mode bc_mode,
-                int            level);
-    //
-    // Put the system in r-c form
-    //
-    void residualCorrectionForm (MultiFab&       newrhs,
-                                 const MultiFab& oldrhs,
-                                 MultiFab&       initialsolution,
-                                 const MultiFab& inisol,
-                                 LinOp::BC_Mode  bc_mode,
-                                 int             level);
+                Real           bnorm,
+                Real           resnorm0);
     //
     // Make space, set switches for new solution level
     //

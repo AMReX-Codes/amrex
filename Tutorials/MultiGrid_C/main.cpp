@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include <Utility.H>
+#include <MultiFabUtil.H>
 #include <ParmParse.H>
 #include <LO_BCTYPES.H>
 #include <BndryData.H>
@@ -57,15 +58,15 @@ void compute_analyticSolution(MultiFab& anaSoln);
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, MultiFab beta[], const Geometry& geom, MultiFab& beta_cc);
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void set_boundary(BndryData& bd, const MultiFab& rhs, int comp);
-void solve(MultiFab& soln, const MultiFab& anaSoln, 
+void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 	   Real a, Real b, MultiFab& alpha, MultiFab beta[], MultiFab& beta_cc,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver);
-void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 
 #ifdef USE_F90_SOLVERS
-void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 #endif
 
@@ -75,7 +76,7 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab 
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell);
 #endif
 
@@ -255,6 +256,7 @@ int main(int argc, char* argv[])
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
   MultiFab soln(bs, Ncomp, 1, Fab_allocate);
+  MultiFab gphi(bs, BL_SPACEDIM, 1, Fab_allocate);
 
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
@@ -263,7 +265,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with Hypre " << std::endl;
     }
 
-    solve(soln, anaSoln, a, b, alpha, beta, beta_cc, rhs, bs, geom, Hypre);
+    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, Hypre);
   }
 #endif
 
@@ -273,7 +275,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
 
-    solve(soln, anaSoln, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_C);
+    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_C);
   }
 
 #ifdef USE_F90_SOLVERS
@@ -283,7 +285,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with BoxLib F90 solver " << std::endl;
     }
 
-    solve(soln, anaSoln, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_F);
+    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_F);
   }
 #endif
 
@@ -294,7 +296,7 @@ int main(int argc, char* argv[])
       std::cout << "Solving with HPGMG solver " << std::endl;
     }
 
-    solve(soln, anaSoln, a, b, alpha, beta, beta_cc, rhs, bs, geom, HPGMG);
+    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, HPGMG);
   }
 #endif
 
@@ -464,7 +466,7 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp=0)
   }
 }
 
-void solve(MultiFab& soln, const MultiFab& anaSoln, 
+void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 	   Real a, Real b, MultiFab& alpha, MultiFab beta[], MultiFab& beta_cc,
 	   MultiFab& rhs, const BoxArray& bs, const Geometry& geom,
 	   solver_t solver)
@@ -478,12 +480,12 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 
   if (solver == BoxLib_C) {
     ss = "CPP";
-    solve_with_Cpp(soln, a, b, alpha, beta, rhs, bs, geom);
+    solve_with_Cpp(soln, gphi, a, b, alpha, beta, rhs, bs, geom);
   }
 #ifdef USE_F90_SOLVERS
   else if (solver == BoxLib_F) {
     ss = "F90";
-    solve_with_F90(soln, a, b, alpha, beta, rhs, bs, geom);
+    solve_with_F90(soln, gphi, a, b, alpha, beta, rhs, bs, geom);
   }
 #endif
 #ifdef USEHYPRE
@@ -511,6 +513,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
 
   if (plot_soln) {
     writePlotFile("SOLN-"+ss, soln, geom);
+    writePlotFile("GPHI-"+ss, gphi, geom);
   }
 
   if (plot_err || comp_norm) {
@@ -537,7 +540,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln,
   }
 }
 
-void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_Cpp()");
@@ -551,10 +554,25 @@ void solve_with_Cpp(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   MultiGrid mg(abec_operator);
   mg.setVerbose(verbose);
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
-} 
+
+  PArray<MultiFab> grad_phi(3);
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+
+  abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+  {
+      grad_phi[n].FillBoundary();
+      geom.FillPeriodicBoundary(grad_phi[n]);
+  }
+
+  // Average edge-centered gradients to cell centers.
+  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
+}
 
 #ifdef USE_F90_SOLVERS
-void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
+void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab beta[], 
 		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_F90()");
@@ -637,6 +655,22 @@ void solve_with_F90(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab be
   int always_use_bnorm = 0;
   Real final_resnorm;
   mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
+
+  PArray<MultiFab> grad_phi(3);
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+
+  const Real* dx = geom.CellSize();
+  mgt_solver.get_fluxes(0, grad_phi, dx);
+
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+  {
+      grad_phi[n].FillBoundary();
+      geom.FillPeriodicBoundary(grad_phi[n]);
+  }
+
+  // Average edge-centered gradients to cell centers.
+  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
 }
 #endif
 
@@ -658,7 +692,7 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab 
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
 		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell)
 {
   int minCoarseDim;
@@ -717,7 +751,7 @@ void solve_with_HPGMG(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab&
   }
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   rebuild_operator(&level_h,NULL,a,b);    // i.e. calculate Dinv and lambda_max
-  MGBuild(&MG_h,&level_h,a,b,minCoarseDim); // build the Multigrid Hierarchy
+  MGBuild(&MG_h,&level_h,a,b,minCoarseDim,ParallelDescriptor::Communicator()); // build the Multigrid Hierarchy
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   if (ParallelDescriptor::IOProcessor())
       std::cout << std::endl << std::endl << "===== STARTING SOLVE =====" << std::endl << std::flush;
@@ -777,5 +811,20 @@ void solve_with_HPGMG(MultiFab& soln, Real a, Real b, MultiFab& alpha, MultiFab&
   MGDestroy(&MG_h);
   destroy_level(&level_h);
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  PArray<MultiFab> grad_phi(3);
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+
+  abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
+
+  for (int n = 0; n < BL_SPACEDIM; ++n)
+  {
+      grad_phi[n].FillBoundary();
+      geom.FillPeriodicBoundary(grad_phi[n]);
+  }
+
+  // Average edge-centered gradients to cell centers.
+  BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
 }
 #endif
