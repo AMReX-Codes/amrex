@@ -333,6 +333,7 @@ FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src)
 {
     int ndim = src.size();
     dst.resize(1);
+    dst[0].resize(ndim);
     for(int idim = 0; idim < ndim; ++idim) {
 	dst[0].set(idim, &src[idim]);
     }
