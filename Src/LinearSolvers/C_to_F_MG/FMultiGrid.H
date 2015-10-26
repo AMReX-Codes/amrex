@@ -25,7 +25,7 @@
 // Step 4:
 //   * For a constant gravity problem, call set_const_gravity_coeffs.
 //   * For a curvilinear gravity problem, call set_gravity_coeffs.
-//   * For a general problem, call set_alpha, set_acoef, set_beta, and set_bcoef.
+//   * For a general problem, call set_scalars and set_coefficients.
 //
 // Step 5:
 //   Call solve.  This will store the solution in phi.
@@ -98,15 +98,10 @@ public:
     void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
     
     // For general_eq
-    void set_alpha (Real alpha);
+    void set_scalars (Real alpha, Real beta);
     //
-    void set_acoef (       MultiFab & a);
-    void set_acoef (PArray<MultiFab>& a);
-    //
-    void set_beta (Real beta);    
-    //
-    void set_bcoef (      PArray<MultiFab>   & b);
-    void set_bcoef (Array<PArray<MultiFab> > & b);
+    void set_coefficients (       MultiFab  &a,       PArray<MultiFab>   & b);
+    void set_coefficients (PArray<MultiFab> &a, Array<PArray<MultiFab> > & b);
 
     Real solve (MultiFab& phi,
 		MultiFab& rhs,
@@ -171,16 +166,14 @@ private:
     struct ABecCoeff
     {
 	Eq_t eq_type;
-	bool alpha_set;
-	bool a_set;
-	bool beta_set;
-	bool b_set;
+	bool scalars_set;
+	bool coeffs_set;
 	Real alpha;
 	PArray<MultiFab> a;
 	Real beta;
 	Array<PArray<MultiFab> > b;
-	ABecCoeff () : eq_type(invalid_eq), alpha_set(false), a_set(false), 
-		       beta_set(false), b_set(false), alpha(0), beta(0) {}
+	ABecCoeff () : eq_type(invalid_eq), scalars_set(false), coeffs_set(false),
+		       alpha(0), beta(0) {}
 	void set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg);
     };
     ABecCoeff m_coeff;
