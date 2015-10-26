@@ -1629,7 +1629,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       Array<int> comp_procmap = mf->DistributionMap().ProcessorMap();
       int procmap_size = comp_procmap.size();
       ParallelDescriptor::Bcast(&procmap_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(comp_procmap.dataPtr(), procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
       // Even though a MultiFab is a distributed object, the layout of the
       // Boxes themselves is stored on every process, so broadcast them to
@@ -1637,7 +1637,9 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       const BoxArray& boxArray = mf->boxArray();
       for (int i = 0; i < boxArray.size(); ++i) {
         const Box& box = boxArray[i];
-        const int *box_index_type = box.type().getVect();
+	// have to make a temporary IntVect, box.type().getVect() can fail (ptr to temp from type)
+	IntVect ivType(box.type());
+	const int *box_index_type = ivType.getVect();
         const int *smallEnd = box.smallEnd().getVect();
         const int *bigEnd = box.bigEnd().getVect();
         // getVect() requires a constant pointer, but MPI buffers require
@@ -1680,7 +1682,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       int procmap_size;
       ParallelDescriptor::Bcast(&procmap_size, 1, 0, ParallelDescriptor::CommunicatorInter());
       Array<int> comp_procmap(procmap_size);
-      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, 0, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(comp_procmap.dataPtr(), procmap_size, 0, ParallelDescriptor::CommunicatorInter());
       DistributionMapping CompDM(comp_procmap);
 
       // Now build the list of Boxes.
@@ -1718,7 +1720,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       // The compute procs need the sidecars' DM so that we can match Send()s
       // and Recv()s for the FAB data.
       Array<int> intransit_procmap = sidecar_DM.ProcessorMap();
-      ParallelDescriptor::Bcast(&intransit_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(intransit_procmap.dataPtr(), procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
       // Now build the sidecar MultiFab with the new DM.
       mf->define(ba, nComp, nGhost, sidecar_DM, Fab_allocate);
