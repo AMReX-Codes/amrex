@@ -156,6 +156,16 @@ void HypreABecLap::setBCoeffs(const MultiFab beta[])
   }
 }
 
+void HypreABecLap::setBCoeffs(const PArray<MultiFab>& beta)
+{
+  for (int idim=0; idim<BL_SPACEDIM; idim++) {
+    BL_ASSERT( beta[idim].ok() );
+    BL_ASSERT( beta[idim].boxArray() == bcoefs[idim]->boxArray() );
+
+    bcoefs[idim]->copy(beta[idim]);
+  }
+}
+
 void HypreABecLap::setVerbose(int _verbose)
 {
   verbose = _verbose;

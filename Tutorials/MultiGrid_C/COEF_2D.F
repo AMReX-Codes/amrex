@@ -101,34 +101,3 @@ c-----------------------------------------------------------------------
       
       end
 
-c-----------------------------------------------------------------------
-      subroutine FORT_COEF_TO_EDGES (dir, edge, e_l1, e_l2, e_h1, e_h2,
-     $                                    coef, c_l1, c_l2, c_h1, c_h2,
-     $                                    lo, hi)
-
-      implicit none
-
-      integer dir, lo(2), hi(2)
-      integer e_l1, e_l2, e_h1, e_h2
-      integer c_l1, c_l2, c_h1, c_h2
-      double precision edge(e_l1:e_h1, e_l2:e_h2)
-      double precision coef(c_l1:c_h1, c_l2:c_h2)
- 
-      integer i,j
- 
-      if (dir .eq. 0) then 
-        do j = lo(2), hi(2)
-        do i = lo(1), hi(1)+1
-          edge(i,j) = 0.5d0 * (coef(i,j) + coef(i-1,j))
-        end do
-        end do
-      else if (dir .eq. 1) then
-        do j = lo(2), hi(2)+1
-        do i = lo(1), hi(1)
-          edge(i,j) = 0.5d0 * (coef(i,j) + coef(i,j-1))
-        end do
-        end do
-      end if
- 
-      end
-
