@@ -1082,7 +1082,9 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
   {
     // Data to construct base Box
     const Box& baseBox = geom->Domain();
-    const int *box_index_type = baseBox.type().getVect();
+    // have to make a temporary IntVect, baseBox.type().getVect() can fail (ptr to temp from type)
+    IntVect ivType(baseBox.type());
+    const int *box_index_type = ivType.getVect();
     const int *smallEnd = baseBox.smallEnd().getVect();
     const int *bigEnd = baseBox.bigEnd().getVect();
 
