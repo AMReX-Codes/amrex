@@ -18,8 +18,9 @@
 //
 // Step 3:
 //   Use one of the set_bc functions to pass in multigrid boundary conditions
-//   and set boundary values.  Here the valuse in mg_bc should, for periodic,
-//   be 0 and, for others, match the ones in F_MG/mg_cpp_f.h. 
+//   and set boundary values.  Here the valuse in mg_bc should match the ones in
+//   F_MG/mg_cpp_f.h.  For periodic boundaries, it can set to either BC_PER 
+//   (i.e., -1) or BC_INT (i.e., 0).
 //
 // Step 4:
 //   * For a constant gravity problem, call set_const_gravity_coeffs.
@@ -104,7 +105,6 @@ public:
     //
     void set_beta (Real beta);    
     //
-    void set_bcoef (             MultiFab    * b);
     void set_bcoef (      PArray<MultiFab>   & b);
     void set_bcoef (Array<PArray<MultiFab> > & b);
 
@@ -189,7 +189,6 @@ private:
     static void Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
-    static void Copy (Array<PArray<MultiFab> >& dst, MultiFab * src, int ndim);
 
     void init_mgt_solver (PArray<MultiFab>& phi);
 };

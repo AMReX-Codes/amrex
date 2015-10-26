@@ -171,19 +171,6 @@ FMultiGrid::set_beta (Real beta)
 }
 
 void 
-FMultiGrid::set_bcoef (MultiFab * b)
-{
-    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.b_set);
-    BL_ASSERT(m_nlevels == 1);
-
-    m_coeff.eq_type = general_eq;
-    m_coeff.b_set   = true;
-    
-    Copy(m_coeff.b, b, BL_SPACEDIM);
-}
-
-void 
 FMultiGrid::set_bcoef (PArray<MultiFab> & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
@@ -363,16 +350,6 @@ FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src)
 	for(int idim = 0; idim < ndim; ++idim) {
 	    dst[ilev].set(idim, &src[ilev][idim]);
 	}
-    }
-}
-
-void 
-FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, MultiFab * src, int ndim)
-{
-    dst.resize(1);
-    dst[0].resize(ndim);
-    for(int idim = 0; idim < ndim; ++idim) {
-	dst[0].set(idim, &src[idim]);
     }
 }
 
