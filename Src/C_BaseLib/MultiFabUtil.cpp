@@ -47,7 +47,6 @@ namespace BoxLib
 #endif
 	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
 	{
-	    const Box& bx = mfi.tilebox();
 	    const Box& xbx = mfi.nodaltilebox(0);
 #if (BL_SPACEDIM > 1)
 	    const Box& ybx = mfi.nodaltilebox(1);
