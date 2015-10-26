@@ -284,6 +284,15 @@ ABecLaplacian::setCoefficients (const MultiFab& _a,
 }
 
 void
+ABecLaplacian::setCoefficients (const MultiFab& _a,
+                                const PArray<MultiFab>& _b)
+{
+    aCoefficients(_a);
+    for (int n = 0; n < BL_SPACEDIM; ++n)
+        bCoefficients(_b[n], n);
+}
+
+void
 ABecLaplacian::invalidate_a_to_level (int lev)
 {
     lev = (lev >= 0 ? lev : 0);
