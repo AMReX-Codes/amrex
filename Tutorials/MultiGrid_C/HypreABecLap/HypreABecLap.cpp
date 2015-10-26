@@ -216,15 +216,19 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 		   reg.loVect(), reg.hiVect(), scalar_b, dx, idim);
     }
 
+    const Array< Array<BoundCond> > & bcs_i = bndry.bndryConds(i);
+    const BndryData::RealTuple      & bcl_i = bndry.bndryLocs(i);
+    const BndryData::MaskTuple      & msk_i = bndry.bndryMasks(i);
+
     // add b.c.'s for A matrix and b vector
     const Box& domain = bndry.getDomain();
     for (OrientationIter oitr; oitr; oitr++) {
       int cdir(oitr());
       int idim = oitr().coordDir();
-      const BoundCond &bct = bndry.bndryConds(oitr())[i][0];
-      const Real      &bcl = bndry.bndryLocs(oitr())[i];
+      const BoundCond &bct = bcs_i[cdir][0];
+      const Real      &bcl = bcl_i[cdir];
+      const Mask      &msk = *msk_i[cdir];
       const FArrayBox &bcv = bndry.bndryValues(oitr())[mfi];
-      const Mask      &msk = bndry.bndryMasks(oitr())[i];
       const int* blo = (*bcoefs[idim])[mfi].loVect();
       const int* bhi = (*bcoefs[idim])[mfi].hiVect();
       const int* mlo = msk.loVect();
