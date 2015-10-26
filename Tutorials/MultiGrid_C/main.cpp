@@ -221,15 +221,15 @@ int main(int argc, char* argv[])
   }
 
   // Allocate and define the right hand side.
-  MultiFab rhs(bs, Ncomp, 0, Fab_allocate); 
+  MultiFab rhs(bs, Ncomp, 0); 
   setup_rhs(rhs, geom);
 
   // Set up the Helmholtz operator coefficients.
-  MultiFab alpha(bs, Ncomp, 0, Fab_allocate);
+  MultiFab alpha(bs, Ncomp, 0);
   MultiFab beta[BL_SPACEDIM];
   for ( int n=0; n<BL_SPACEDIM; ++n ) {
     BoxArray bx(bs);
-    beta[n].define(bx.surroundingNodes(n), Ncomp, 1, Fab_allocate);
+    beta[n].define(bx.surroundingNodes(n), Ncomp, 0, Fab_allocate);
   }
 
   // The way HPGMG stores face-centered data is completely different than the
@@ -255,8 +255,8 @@ int main(int argc, char* argv[])
 
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
-  MultiFab soln(bs, Ncomp, 1, Fab_allocate);
-  MultiFab gphi(bs, BL_SPACEDIM, 1, Fab_allocate);
+  MultiFab soln(bs, Ncomp, 1);
+  MultiFab gphi(bs, BL_SPACEDIM, 0);
 
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
@@ -555,21 +555,15 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   mg.setVerbose(verbose);
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 
-  PArray<MultiFab> grad_phi(BL_SPACEDIM);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM, PArrayManage);
   for (int n = 0; n < BL_SPACEDIM; ++n)
-      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
 
 #if (BL_SPACEDIM == 2)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],soln);
 #elif (BL_SPACEDIM == 3)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
 #endif
-
-  for (int n = 0; n < BL_SPACEDIM; ++n)
-  {
-      grad_phi[n].FillBoundary();
-      geom.FillPeriodicBoundary(grad_phi[n]);
-  }
 
   // Average edge-centered gradients to cell centers.
   BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
@@ -660,18 +654,12 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   Real final_resnorm;
   mgt_solver.solve(soln_p, rhs_p, bndry, tolerance_rel, tolerance_abs, always_use_bnorm, final_resnorm);
 
-  PArray<MultiFab> grad_phi(BL_SPACEDIM);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM, PArrayManage);
   for (int n = 0; n < BL_SPACEDIM; ++n)
-      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
 
   const Real* dx = geom.CellSize();
   mgt_solver.get_fluxes(0, grad_phi, dx);
-
-  for (int n = 0; n < BL_SPACEDIM; ++n)
-  {
-      grad_phi[n].FillBoundary();
-      geom.FillPeriodicBoundary(grad_phi[n]);
-  }
 
   // Average edge-centered gradients to cell centers.
   BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
@@ -816,21 +804,15 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
   destroy_level(&level_h);
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-  PArray<MultiFab> grad_phi(BL_SPACEDIM);
+  PArray<MultiFab> grad_phi(BL_SPACEDIM, PArrayManage);
   for (int n = 0; n < BL_SPACEDIM; ++n)
-      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 1));
+      grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
 
 #if (BL_SPACEDIM == 2)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],soln);
 #elif (BL_SPACEDIM == 3)
   abec_operator.compFlux(grad_phi[0],grad_phi[1],grad_phi[2],soln);
 #endif
-
-  for (int n = 0; n < BL_SPACEDIM; ++n)
-  {
-      grad_phi[n].FillBoundary();
-      geom.FillPeriodicBoundary(grad_phi[n]);
-  }
 
   // Average edge-centered gradients to cell centers.
   BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
