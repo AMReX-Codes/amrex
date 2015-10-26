@@ -1,7 +1,7 @@
-// This solves (a - beta * (del dot b grad)) phi = rhs using MGT_Sover, which
-// in turn uses Fortran multigrid solver F_MG.  Here a, phi and rhs are 
-// cell-centered arrays (i.e., MultiFab), beta is a scalar, and b is face-centered
-// array represented by BL_SPACEDIM face-centered MultiFabs.
+// This solves (alpha * a - beta * (del dot b grad)) phi = rhs using MGT_Sover,
+// which in turn uses Fortran multigrid solver F_MG.  Here a, phi and rhs are 
+// cell-centered arrays (i.e., MultiFab), alpha and beta is a scalar, and b is
+// face-centered array represented by BL_SPACEDIM face-centered MultiFabs.
 //
 // Steps to use this solver:
 //
@@ -24,7 +24,7 @@
 // Step 4:
 //   * For a constant gravity problem, call set_const_gravity_coeffs.
 //   * For a curvilinear gravity problem, call set_gravity_coeffs.
-//   * For a general problem, call set_acoef, set_beta, and set_bcoef.
+//   * For a general problem, call set_alpha, set_acoef, set_beta, and set_bcoef.
 //
 // Step 5:
 //   Call solve.  This will store the solution in phi.
@@ -93,16 +93,18 @@ public:
     void set_const_gravity_coeffs ();
 
     // For gravity_eq
-    void set_gravity_coeffs (PArray<MultiFab>& b);          // single level
+    void set_gravity_coeffs (       PArray<MultiFab>  & b); // single level
     void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
     
     // For general_eq
-    void set_acoef (Real              a);
+    void set_alpha (Real alpha);
+    //
     void set_acoef (       MultiFab & a);
     void set_acoef (PArray<MultiFab>& a);
     //
     void set_beta (Real beta);    
     //
+    void set_bcoef (             MultiFab    * b);
     void set_bcoef (      PArray<MultiFab>   & b);
     void set_bcoef (Array<PArray<MultiFab> > & b);
 
@@ -168,16 +170,17 @@ private:
 
     struct ABecCoeff
     {
-	Eq_t eq_type;	
+	Eq_t eq_type;
+	bool alpha_set;
 	bool a_set;
 	bool beta_set;
 	bool b_set;
-	Real a_scalar;
+	Real alpha;
 	PArray<MultiFab> a;
 	Real beta;
 	Array<PArray<MultiFab> > b;
-	ABecCoeff () : eq_type(invalid_eq), a_set(false), beta_set(false), b_set(false),
-		       a_scalar(0), beta(0) {}
+	ABecCoeff () : eq_type(invalid_eq), alpha_set(false), a_set(false), 
+		       beta_set(false), b_set(false), alpha(0), beta(0) {}
 	void set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg);
     };
     ABecCoeff m_coeff;
@@ -186,6 +189,7 @@ private:
     static void Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
+    static void Copy (Array<PArray<MultiFab> >& dst, MultiFab * src, int ndim);
 
     void init_mgt_solver (PArray<MultiFab>& phi);
 };

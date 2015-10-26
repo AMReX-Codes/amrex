@@ -121,19 +121,19 @@ FMultiGrid::set_gravity_coeffs (Array< PArray<MultiFab> >& b)
 }
 
 void
-FMultiGrid::set_acoef(Real a)
+FMultiGrid::set_alpha (Real alpha)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.a_set);
+    BL_ASSERT(!m_coeff.alpha_set);
     
     m_coeff.eq_type = general_eq;
-    m_coeff.a_set   = true;
+    m_coeff.alpha_set = true;
 
-    m_coeff.a_scalar = a;
+    m_coeff.alpha = alpha;
 }
 
 void
-FMultiGrid::set_acoef(MultiFab& a)
+FMultiGrid::set_acoef (MultiFab& a)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
     BL_ASSERT(!m_coeff.a_set);
@@ -146,7 +146,7 @@ FMultiGrid::set_acoef(MultiFab& a)
 }
 
 void
-FMultiGrid::set_acoef(PArray<MultiFab>& a)
+FMultiGrid::set_acoef (PArray<MultiFab>& a)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
     BL_ASSERT(!m_coeff.a_set);
@@ -168,6 +168,19 @@ FMultiGrid::set_beta (Real beta)
     m_coeff.beta_set = true;
 
     m_coeff.beta = beta;
+}
+
+void 
+FMultiGrid::set_bcoef (MultiFab * b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
+    BL_ASSERT(!m_coeff.b_set);
+    BL_ASSERT(m_nlevels == 1);
+
+    m_coeff.eq_type = general_eq;
+    m_coeff.b_set   = true;
+    
+    Copy(m_coeff.b, b, BL_SPACEDIM);
 }
 
 void 
@@ -353,6 +366,16 @@ FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src)
     }
 }
 
+void 
+FMultiGrid::Copy (Array<PArray<MultiFab> >& dst, MultiFab * src, int ndim)
+{
+    dst.resize(1);
+    dst[0].resize(ndim);
+    for(int idim = 0; idim < ndim; ++idim) {
+	dst[0].set(idim, &src[idim]);
+    }
+}
+
 void
 FMultiGrid::Boundary::set_bndry_values (MacBndry& bndry, IntVect crse_ratio)
 {
@@ -438,12 +461,8 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
     }
     else if (eq_type == general_eq)
     {
-	BL_ASSERT(a_set && beta_set && b_set);
-	if (a.size() > 0) {
-	    mgt_solver.set_abeclap_coeffs(a, beta, b, xa, xb);
-	} else {
-	    mgt_solver.set_abeclap_coeffs(a_scalar, beta, b, xa, xb);
-	}
+	BL_ASSERT(alpha_set && a_set && beta_set && b_set);
+	mgt_solver.set_abeclap_coeffs(alpha, a, beta, b, xa, xb);
     }
     else {
 	BoxLib::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
