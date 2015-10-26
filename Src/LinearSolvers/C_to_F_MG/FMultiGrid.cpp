@@ -102,7 +102,7 @@ FMultiGrid::set_gravity_coeffs (PArray<MultiFab>& b)
     BL_ASSERT(b.size() == BL_SPACEDIM);
 
     m_coeff.eq_type = gravity_eq;
-    m_coeff.b_set   = true;
+    m_coeff.coeffs_set = true;
 
     Copy(m_coeff.b, b);
 }
@@ -115,86 +115,50 @@ FMultiGrid::set_gravity_coeffs (Array< PArray<MultiFab> >& b)
     BL_ASSERT(b[0].size() == BL_SPACEDIM);
 
     m_coeff.eq_type = gravity_eq;
-    m_coeff.b_set   = true;
+    m_coeff.coeffs_set = true;
 
     Copy(m_coeff.b, b);
 }
 
 void
-FMultiGrid::set_alpha (Real alpha)
+FMultiGrid::set_scalars (Real alpha, Real beta)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.alpha_set);
+    BL_ASSERT(!m_coeff.scalars_set);
     
     m_coeff.eq_type = general_eq;
-    m_coeff.alpha_set = true;
+    m_coeff.scalars_set = true;
 
     m_coeff.alpha = alpha;
-}
-
-void
-FMultiGrid::set_acoef (MultiFab& a)
-{
-    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.a_set);
-    BL_ASSERT(m_nlevels == 1);
-    
-    m_coeff.eq_type = general_eq;
-    m_coeff.a_set   = true;
-
-    Copy(m_coeff.a, a);
-}
-
-void
-FMultiGrid::set_acoef (PArray<MultiFab>& a)
-{
-    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.a_set);
-    BL_ASSERT(m_nlevels == a.size());
-    
-    m_coeff.eq_type = general_eq;
-    m_coeff.a_set   = true;
-
-    Copy(m_coeff.a, a);
-}
-
-void
-FMultiGrid::set_beta (Real beta)
-{
-    BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.beta_set);
-
-    m_coeff.eq_type  = general_eq;
-    m_coeff.beta_set = true;
-
     m_coeff.beta = beta;
 }
 
-void 
-FMultiGrid::set_bcoef (PArray<MultiFab> & b)
+void
+FMultiGrid::set_coefficients (MultiFab& a, PArray<MultiFab> & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.b_set);
+    BL_ASSERT(!m_coeff.coeffs_set);
     BL_ASSERT(m_nlevels == 1);
-    BL_ASSERT(b.size() == BL_SPACEDIM);
-
-    m_coeff.eq_type = general_eq;
-    m_coeff.b_set   = true;
     
+    m_coeff.eq_type = general_eq;
+    m_coeff.coeffs_set   = true;
+
+    Copy(m_coeff.a, a);
     Copy(m_coeff.b, b);
 }
 
 void
-FMultiGrid::set_bcoef (Array<PArray<MultiFab> > & b)
+FMultiGrid::set_coefficients (PArray<MultiFab>& a, Array<PArray<MultiFab> > & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
-    BL_ASSERT(!m_coeff.b_set);
-    BL_ASSERT(m_nlevels == b.size());
-    BL_ASSERT(b[0].size() == BL_SPACEDIM);
-
-    m_coeff.eq_type = general_eq;
-    m_coeff.b_set   = true;
+    BL_ASSERT(!m_coeff.coeffs_set);
+    BL_ASSERT(m_nlevels == a.size() && m_nlevels == b.size());
+    BL_ASSERT(BL_SPACEDIM == b[0].size());
     
+    m_coeff.eq_type = general_eq;
+    m_coeff.coeffs_set   = true;
+
+    Copy(m_coeff.a, a);
     Copy(m_coeff.b, b);
 }
 
@@ -433,12 +397,12 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
     }
     else if (eq_type == gravity_eq)
     {
-	BL_ASSERT(b_set);
+	BL_ASSERT(coeffs_set);
 	mgt_solver.set_gravity_coefficients(b, xa, xb);
     }
     else if (eq_type == general_eq)
     {
-	BL_ASSERT(alpha_set && a_set && beta_set && b_set);
+	BL_ASSERT(scalars_set && coeffs_set);
 	mgt_solver.set_abeclap_coeffs(alpha, a, beta, b, xa, xb);
     }
     else {
