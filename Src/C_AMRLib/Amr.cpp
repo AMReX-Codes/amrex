@@ -1780,10 +1780,9 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level]+1 << "] ";
-        std::cout << "ADVANCE grids at level "
-                  << level
-                  << " with dt = "
+	std::cout << "[Level " << level 
+		  << " step " << level_steps[level]+1 << "] ";
+        std::cout << "ADVANCE with dt = "
                   << dt_level[level]
                   << std::endl;
     }
@@ -1798,11 +1797,11 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level] << "] ";
+	std::cout << "[Level " << level
+		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
-                  << " cells at level "
-                  << level
+                  << " cells"
                   << std::endl;
     }
 

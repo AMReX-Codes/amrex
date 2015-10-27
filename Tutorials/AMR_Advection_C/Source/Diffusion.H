@@ -18,7 +18,7 @@ public:
                       MultiFab*             area);
 
   // Level 0 version 
-  void applyop(int level,MultiFab& species,
+  void applyop(MultiFab& species,
                MultiFab& DiffTerm, PArray<MultiFab>& diff_coef);
 
   // Level > 0 version 

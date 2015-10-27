@@ -26,6 +26,39 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
 
 end subroutine bl_avg_fc_to_cc
 
+subroutine bl_avg_cc_to_fc (xlo, xhi, ylo, yhi, &
+     fx, fxl1, fxl2, fxh1, fxh2, &
+     fy, fyl1, fyl2, fyh1, fyh2, &
+     cc, ccl1, ccl2, cch1, cch2, &
+     dx, problo, coord_type)
+
+  implicit none
+  integer          :: xlo(2),xhi(2), ylo(2),yhi(2), coord_type
+  integer          :: fxl1, fxl2, fxh1, fxh2
+  integer          :: fyl1, fyl2, fyh1, fyh2
+  integer          :: ccl1, ccl2, cch1, cch2
+  double precision :: cc(ccl1:cch1, ccl2:cch2)
+  double precision :: fx(fxl1:fxh1, fxl2:fxh2)
+  double precision :: fy(fyl1:fyh1, fyl2:fyh2)
+  double precision :: dx(2), problo(2)
+
+  ! Local variables
+  integer          :: i,j
+  
+  do j=xlo(2),xhi(2)
+     do i=xlo(1),xhi(1)
+        fx(i,j) = 0.5d0 * (cc(i-1,j) + cc(i,j))
+     enddo
+  enddo
+
+  do j=ylo(2),yhi(2)
+     do i=ylo(1),yhi(1)
+        fy(i,j) = 0.5d0 * (cc(i,j-1) + cc(i,j))
+     enddo
+  enddo
+
+end subroutine bl_avg_cc_to_fc
+
 subroutine bl_avgdown_faces (lo, hi, &
      f, f_l1, f_l2, f_h1, f_h2, &
      c, c_l1, c_l2, c_h1, c_h2, &

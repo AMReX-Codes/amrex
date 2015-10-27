@@ -31,6 +31,46 @@ namespace BoxLib
 	}
     }
 
+    void average_cellcenter_to_face (PArray<MultiFab>& fc, const MultiFab& cc, const Geometry& geom)
+    {
+	BL_ASSERT(cc.nComp() == 1);
+	BL_ASSERT(cc.nGrow() >= 1);
+	BL_ASSERT(fc.size() == BL_SPACEDIM);
+	BL_ASSERT(fc[0].nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+
+	const Real* dx     = geom.CellSize();
+	const Real* problo = geom.ProbLo();
+	int coord_type = Geometry::Coord();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	{
+	    const Box& xbx = mfi.nodaltilebox(0);
+#if (BL_SPACEDIM > 1)
+	    const Box& ybx = mfi.nodaltilebox(1);
+#endif
+#if (BL_SPACEDIM == 3)
+	    const Box& zbx = mfi.nodaltilebox(2);
+#endif
+	    
+	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
+		(xbx.loVect(), xbx.hiVect(),
+#if (BL_SPACEDIM > 1)
+		 ybx.loVect(), ybx.hiVect(),
+#endif
+#if (BL_SPACEDIM == 3)
+		 zbx.loVect(), zbx.hiVect(),
+#endif
+		 D_DECL(BL_TO_FORTRAN(fc[0][mfi]),
+			BL_TO_FORTRAN(fc[1][mfi]),
+			BL_TO_FORTRAN(fc[2][mfi])),
+		 BL_TO_FORTRAN(cc[mfi]),
+		 dx, problo, coord_type);
+	}
+    }
+
 // *************************************************************************************************************
 
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
