@@ -98,6 +98,12 @@ public:
     void set_gravity_coeffs (       PArray<MultiFab>  & b); // single level
     void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
     
+    // For Diffusion operator
+    void set_diffusion_coeffs (       PArray<MultiFab>  & b) // single level
+	{ set_gravity_coeffs(b); }
+    void set_diffusion_coeffs (Array< PArray<MultiFab> >& b) // multi level
+	{ set_gravity_coeffs(b); }
+
     // For general_eq
     void set_scalars (Real alpha, Real beta);
     //
