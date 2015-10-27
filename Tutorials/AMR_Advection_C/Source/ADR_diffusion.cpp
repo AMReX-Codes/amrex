@@ -62,8 +62,7 @@ ADR::getDiffusionTerm (Real time, MultiFab& DiffTerm, int comp)
 
    for (MFIter mfi(S_old); mfi.isValid(); ++mfi)
    {
-       Box bx(mfi.validbox());
-       int i = mfi.index();
+       const Box& bx = mfi.validbox();
        BL_FORT_PROC_CALL(FILL_DIFF_COEFF,fill_diff_coeff)
                 (bx.loVect(), bx.hiVect(),
                  D_DECL(BL_TO_FORTRAN(coeffs[0][mfi]),
@@ -77,7 +76,7 @@ ADR::getDiffusionTerm (Real time, MultiFab& DiffTerm, int comp)
        geom.FillPeriodicBoundary(coeffs[d]);
 
    if (level == 0) {
-      diffusion->applyop(level,species,DiffTerm,coeffs);
+      diffusion->applyop(species,DiffTerm,coeffs);
    } else if (level > 0) {
       // Fill at next coarser level, if it exists.
       const BoxArray& crse_grids = getLevel(level-1).boxArray();
