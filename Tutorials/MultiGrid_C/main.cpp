@@ -76,8 +76,8 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha,
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
-		    MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell);
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, PArray<MultiFab>& beta,
+                      MultiFab& beta_cc, MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell);
 #endif
 
 int main(int argc, char* argv[])
@@ -484,7 +484,7 @@ void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
 #ifdef USEHPGMG
   else if (solver == HPGMG) {
     ss = "HPGMG";
-    solve_with_HPGMG(soln, a, b, alpha, beta_cc, rhs, bs, geom, n_cell);
+    solve_with_HPGMG(soln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, n_cell);
   }
 #endif
   else {
@@ -625,9 +625,16 @@ void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha,
 #endif
 
 #ifdef USEHPGMG
-void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, MultiFab& beta_cc,
-		      MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell)
+void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, PArray<MultiFab>& beta,
+                      MultiFab& beta_cc, MultiFab& rhs, const BoxArray& bs, const Geometry& geom, int n_cell)
 {
+  BndryData bd(bs, 1, geom);
+  set_boundary(bd, rhs);
+
+  ABecLaplacian abec_operator(bd, dx);
+  abec_operator.setScalars(a, b);
+  abec_operator.setCoefficients(alpha, beta);
+
   int minCoarseDim;
   if (domain_boundary_condition == BC_PERIODIC)
   {
