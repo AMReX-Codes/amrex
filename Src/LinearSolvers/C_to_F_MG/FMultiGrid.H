@@ -35,8 +35,9 @@
 //   must be 1.  Note that grad_phi is PArray with BL_SPACEDIM face-cented
 //   MultiFabs or Array<PArray> in case of multiple levels.
 //
-// If one only wants to test a solution by compute residual without actually
-// solving the problem.  Replace Step 5 with a call to compute_residual.
+// If one only wants to test a solution by computing residual without actually
+// solving the problem, or apply the operator.  Replace Step 5 with a call to 
+// compute_residual or applyop.
 //
 // Various MultiFabs are passed in, and the pointers to these MultiFabs,
 // not copies, are stored.  Therefore, these MultiFabs must still be alive
@@ -126,6 +127,11 @@ public:
     void compute_residual (PArray<MultiFab> & phi,
 			   PArray<MultiFab> & rhs,
 			   PArray<MultiFab> & res);
+
+    void applyop (MultiFab & phi,
+		  MultiFab & res);
+    void applyop (PArray<MultiFab> & phi,
+		  PArray<MultiFab> & res);
 
 private:
 

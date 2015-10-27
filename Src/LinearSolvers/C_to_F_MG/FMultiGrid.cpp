@@ -275,6 +275,39 @@ FMultiGrid::compute_residual (PArray<MultiFab> & phi,
     m_mgt_solver->compute_residual(phi_p, rhs_p, res_p, *m_bndry);
 }
 
+void 
+FMultiGrid::applyop (MultiFab & phi,
+		     MultiFab & res)
+{
+    PArray<MultiFab> phi_p;
+    PArray<MultiFab> res_p;
+    Copy(phi_p, phi);
+    Copy(res_p, res);
+    applyop(phi_p, res_p);
+}
+
+void
+FMultiGrid::applyop (PArray<MultiFab> & phi,
+		     PArray<MultiFab> & res)
+{
+    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(m_coeff.eq_type != invalid_eq);
+    BL_ASSERT(m_mgt_solver == 0);
+    BL_ASSERT(m_bndry == 0);
+
+    MultiFab* phi_p[m_nlevels];
+    MultiFab* res_p[m_nlevels];
+    for (int ilev=0; ilev < m_nlevels; ++ilev) 
+    {
+	phi_p[ilev] = &phi[ilev];
+	res_p[ilev] = &res[ilev];
+    }    
+
+    init_mgt_solver(phi);
+
+    m_mgt_solver->applyop(phi_p, res_p, *m_bndry);
+}
+
 void
 FMultiGrid::Copy (PArray<MultiFab>& dst, MultiFab& src)
 {
