@@ -1703,24 +1703,24 @@ BoxLib::Abort("dont use ParallelDescriptor::SidecarProcess()");
 #ifdef IN_TRANSIT
 #ifdef BL_USE_MPI
     bool finished(false);
-    int signal(-1);
+    int sidecarSignal(-1);
     while (!finished)
     {
-        // Receive the signal from the compute group.
-        ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
+        // Receive the sidecarSignal from the compute group.
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter());
 
-        // Process the  signal with the set of user-provided signal handlers
+        // Process the sidecarSignal with the set of user-provided sidecarSignal handlers
         for (ParallelDescriptor::SH_LIST::iterator it=The_Signal_Handler_List.begin();
-             it != The_Signal_Handler_List.end() && signal != ParallelDescriptor::SidecarQuitSignal;
+             it != The_Signal_Handler_List.end() && sidecarSignal != ParallelDescriptor::SidecarQuitSignal;
              ++it)
         {
-          signal = (* *it)(signal);
+          sidecarSignal = (* *it)(sidecarSignal);
         }
 
-        if (signal == ParallelDescriptor::SidecarQuitSignal)
+        if (sidecarSignal == ParallelDescriptor::SidecarQuitSignal)
         {
             if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars received the quit signal." << std::endl;
+                std::cout << "Sidecars received the quit sidecarSignal." << std::endl;
             finished = true;
             break;
         }
