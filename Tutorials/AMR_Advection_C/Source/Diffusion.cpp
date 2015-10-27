@@ -73,48 +73,6 @@ Diffusion::zeroPhiFluxReg (int level)
 }
 
 void
-Diffusion::applyop (MultiFab& Species, 
-                    MultiFab& DiffTerm, PArray<MultiFab>& diff_coef)
-{
-    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "   " << '\n';
-        std::cout << "... compute diffusive term at level 0 \n";
-    }
-
-    PArray<MultiFab> coeffs_curv;
-#if (BL_SPACEDIM < 3)
-    // NOTE: we just pass DiffTerm here to use in the MFIter loop...
-    if (Geometry::IsRZ() || Geometry::IsSPHERICAL())
-    {
-	coeffs_curv.resize(BL_SPACEDIM, PArrayManage);
-
-	for (int i = 0; i< BL_SPACEDIM; ++i) {
-	    coeffs_curv.set(i, new MultiFab(diff_coef[i].boxArray(), 1, 0, Fab_allocate));
-	    MultiFab::Copy(coeffs_curv[i], diff_coef[i], 0, 0, 1, 0);
-	}
-
-	applyMetricTerms(0, DiffTerm, coeffs_curv);
-    }
-#endif
-
-    PArray<MultiFab> & coeffs = (coeffs_curv.size() > 0) ? coeffs_curv : diff_coef;
-
-    FMultiGrid fmg(parent->Geom(0));
-
-    fmg.set_bc(mg_bc, Species);
-
-    fmg.set_gravity_coeffs(coeffs);
-
-    fmg.applyop(Species, DiffTerm);
-
-#if (BL_SPACEDIM < 3)
-    // Do this to unweight Res
-    if (Geometry::IsSPHERICAL() || Geometry::IsRZ() )
-	unweight_cc(0, DiffTerm);
-#endif
-}
-
-void
 Diffusion::applyop (int level, MultiFab& Species, 
                     MultiFab& Crse, MultiFab& DiffTerm, 
                     PArray<MultiFab>& diff_coef)
@@ -142,12 +100,18 @@ Diffusion::applyop (int level, MultiFab& Species,
 
     PArray<MultiFab> & coeffs = (coeffs_curv.size() > 0) ? coeffs_curv : diff_coef;
 
-    BL_ASSERT(level > 0);
-    FMultiGrid fmg(parent->Geom(level), level, parent->refRatio(level-1));
+    IntVect crse_ratio = level > 0 ? parent->refRatio(level-1)
+                                   : IntVect::TheZeroVector();
 
-    fmg.set_bc(mg_bc, Crse, Species);
+    FMultiGrid fmg(parent->Geom(level), level, crse_ratio);
 
-    fmg.set_gravity_coeffs(coeffs);
+    if (level == 0) {
+	fmg.set_bc(mg_bc, Species);
+    } else {
+	fmg.set_bc(mg_bc, Crse, Species);
+    }
+
+    fmg.set_diffusion_coeffs(coeffs);
 
     fmg.applyop(Species, DiffTerm);
 
