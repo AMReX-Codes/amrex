@@ -91,10 +91,8 @@ contains
 
 end module cpp_mg_module
 
-subroutine mgt_init (comm)
-  use parallel
-  integer comm
-  call parallel_initialize(comm)
+subroutine mgt_init ()
+  return
 end subroutine mgt_init
 
 subroutine mgt_flush_copyassoc_cache()
@@ -1123,7 +1121,6 @@ subroutine mgt_dealloc()
   mgts%dim = 0
   mgts%final = .false.
 
-  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 end subroutine mgt_dealloc
 
 subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status,always_use_bnorm)
