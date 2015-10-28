@@ -401,8 +401,8 @@ contains
          read(unit=lun, fmt=*) idummy, idummy, nc, ng
          if ( nc /= pf%nvars ) &
               call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
-         if ( ng /= 0) &
-              call bl_error("BUILD_PLOTFILE: ng /= 0 not supported", ng)
+         !if ( ng /= 0) &
+         !     call bl_error("BUILD_PLOTFILE: ng /= 0 not supported", ng)
          call bl_stream_expect(strm, '(')
          n = bl_stream_scan_int(strm)
          if ( n /= pf%grids(i)%nboxes ) &
@@ -411,7 +411,7 @@ contains
          do j = 1, pf%grids(i)%nboxes
             call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
             pf%grids(i)%fabs(j)%pbx = grow(pf%grids(i)%fabs(j)%bx, ng)
-            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)   ! todo: this should be pbx
+            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%pbx) 
             pf%grids(i)%fabs(j)%nc = nc
             pf%grids(i)%fabs(j)%ng = ng
          end do
@@ -502,7 +502,7 @@ contains
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j
     integer :: fd
-    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM), nc
+    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM), nc, ng
 
     if ( i < 0 .or. i > pf%flevel ) &
          call bl_error('fab_bind: level out of bounds')
@@ -518,8 +518,8 @@ contains
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
 
-    ! todo: need to modify this to include ghost cells
-    allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), nc))
+    ng = pf%grids(i)%fabs(j)%ng
+    allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
          pf%grids(i)%fabs(j)%p(:,:,:,:), &
@@ -540,7 +540,7 @@ contains
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j, c(:)
 
-    integer :: n
+    integer :: n, ng
     integer :: fd
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
 
@@ -552,8 +552,8 @@ contains
     hi = 1
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
-    ! todo: need to modify this to include ghost cells
-    allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), size(c)))
+    ng = pf%grids(i)%fabs(j)%ng
+    allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, size(c)))
     do n = 1, size(c)
        call fabio_read_skip_d(fd,              &
             pf%grids(i)%fabs(j)%offset,        &
