@@ -56,6 +56,7 @@ endif
 
 ifeq ($(USE_MPI),TRUE)
   f90EXE_sources += parallel.f90
+  DEFINES += -DBL_USE_FORTRAN_MPI
 else
   f90EXE_sources += parallel_stubs.f90
 endif
