@@ -66,7 +66,7 @@ program fcompare
 
   character(len=20), allocatable :: plot_names(:)
 
-  logical :: do_ghost
+  logical :: do_ghost, gc_warn
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -290,6 +290,8 @@ program fcompare
   write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
   write (*,999)
 
+  gc_warn = .false.
+
   do i = 1, pf_a%flevel
 
      aerror(:) = ZERO
@@ -336,13 +338,17 @@ program fcompare
         endif
 
         if (.not. nghost(pf_a, i, j) == nghost(pf_b, i, j)) then
-           call bl_error("ERROR: grids have different numbers of ghost cells")
-        endif
-
-        if (do_ghost) then
-           ng = nghost(pf_a, i, j)
-        else
+           if (.not. gc_warn) then
+              call bl_warn("WARNING: grids have different numbers of ghost cells")
+              gc_warn = .true.
+           endif
            ng = 0
+        else
+           if (do_ghost) then
+              ng = nghost(pf_a, i, j)
+           else
+              ng = 0
+           endif
         endif
 
         ! loop over the variables.  Take plotfile_a to be the one defining
