@@ -9,6 +9,9 @@ namespace BoxLib
     // Average face-based MultiFab onto cell-centered MultiFab.
     void average_face_to_cellcenter (MultiFab& cc, const PArray<MultiFab>& fc, const Geometry& geom);
 
+    // Average cell-centered MultiFab onto face-based MultiFab.
+    void average_cellcenter_to_face (PArray<MultiFab>& fc, const MultiFab& cc, const Geometry& geom);
+
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (PArray<MultiFab>& fine, PArray<MultiFab>& crse, IntVect& ratio);
