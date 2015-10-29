@@ -123,7 +123,7 @@ public:
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_grad_phi (       PArray<MultiFab>  & grad_phi);
+    void get_grad_phi (       PArray<MultiFab>  & grad_phi, int ilev = 0);
     void get_grad_phi ( Array<PArray<MultiFab> >& grad_phi);
     void get_grad_phi (PArray<PArray<MultiFab> >& grad_phi);
 
