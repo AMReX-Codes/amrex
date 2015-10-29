@@ -208,12 +208,12 @@ FMultiGrid::solve (PArray<MultiFab>& phi,
 }
 
 void
-FMultiGrid::get_grad_phi (PArray<MultiFab>& grad_phi)
+FMultiGrid::get_grad_phi (PArray<MultiFab>& grad_phi, int ilev)
 {
-    BL_ASSERT(m_nlevels == 1);
+    BL_ASSERT(ilev < m_nlevels);
 
-    const Real* dx = m_geom[0].CellSize();
-    m_mgt_solver->get_fluxes(0, grad_phi, dx);
+    const Real* dx = m_geom[ilev].CellSize();
+    m_mgt_solver->get_fluxes(ilev, grad_phi, dx);
 }
 
 void
