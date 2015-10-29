@@ -224,6 +224,9 @@ program fextract1d
   write(6,*) 'Checkpoint 3; i = ', i
 ! esm ]
      do j = 1, nboxes(pf, i)
+
+        lo(:) = 1
+        hi(:) = 1        
         lo = lwb(get_box(pf, i, j))
         hi = upb(get_box(pf, i, j))
 
@@ -235,7 +238,7 @@ program fextract1d
         ! corresponding RANGE on the finest level, and test if we've
         ! stored data in any of those locations.  If we haven't then
         ! we store this level's data and mark that range as filled.
-        do ii = lbound(p,dim=1), ubound(p,dim=1)
+        do ii = lo(1), hi(1)
 
               if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
 
