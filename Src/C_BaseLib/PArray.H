@@ -87,7 +87,7 @@ public:
     // element in the PArray.  It is an error if the i'th element
     // is the null pointer.
     //
-    T& get (int i)  { BL_ASSERT(vp[i] != 0 && !isConstPointer); return *((T*)(vp[i])); }
+    T& get (int i)  { BL_ASSERT(vp[i] != 0); return *((T*)(vp[i])); }
     //
     // Defines the i'th element of this PArray<T> to the pointer
     // value elem.  It is an error if the i'th element previously
@@ -95,12 +95,7 @@ public:
     //
     void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = elem; }
     // !!!!! Be careful!  This function removes 'const'.
-    void set (int i, const T*  elem) { 
-	BL_ASSERT(vp[i] == 0); 
-	if (managed) BoxLib::Abort("PArray w/ managed policy cannot take const pointer!");
-	isConstPointer = true;
-	vp[i] = (T*) elem; 
-    }
+    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = (T*) elem; }
     //
     // Returns the number of elements.
     //
@@ -156,8 +151,6 @@ private:
     // The memory management policy.
     //
     PArrayPolicy managed;
-    //
-    bool isConstPointer;
 
 public:
     //
@@ -171,22 +164,20 @@ template <class T>
 PArray<T>::PArray (const PArray<T>& c)
 {
     BL_ASSERT(c.size()==0);
-    isConstPointer = c.isConstPointer;
     managed = c.managed;
 }
 
 template <class T>
 PArray<T>::PArray (PArrayPolicy _managed)
     :
-    managed(_managed),
-    isConstPointer(false)
+    managed(_managed)
 {}
 
 template <class T>
 T*
 PArray<T>::remove (int i)
 {
-    BL_ASSERT(vp[i] != 0 && !isConstPointer);
+    BL_ASSERT(vp[i] != 0);
     void* tmp = vp[i];
     vp[i]     = 0;
     return (T*) tmp;
@@ -206,8 +197,7 @@ PArray<T>::PArray (int          len,
                    PArrayPolicy _managed)
     :
     vp(len),
-    managed(_managed),
-    isConstPointer(false)
+    managed(_managed)
 {
     for (int i = 0, N = size(); i < N; i++)
     {

@@ -145,6 +145,8 @@ public:
     //
     void setCoefficients (const MultiFab& _a,
                           const MultiFab* _b);
+    void setCoefficients (const MultiFab& _a,
+                          const PArray<MultiFab>& _b);
     //
     // allocate/fill internal data for new level
     //
