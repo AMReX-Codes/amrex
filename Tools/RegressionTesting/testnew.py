@@ -2470,7 +2470,7 @@ def report_single_test(suite, test):
                     ht.end_table()
                     hf.write("<pre>\n")
 
-                    hf.write(line.strip())
+                    hf.write(line)
                     in_diff_region = True
 
                 if line.strip().startswith("level"):
@@ -2511,7 +2511,7 @@ def report_single_test(suite, test):
 
             else:
                 # diff region
-                hf.write(line.strip())
+                hf.write(line)
 
         if in_diff_region:
             hf.write("</pre>\n")
