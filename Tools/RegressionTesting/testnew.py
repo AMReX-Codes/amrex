@@ -1743,7 +1743,7 @@ def test_suite(argv):
 
                     if diff_status == 0:
                         with open("{}.compare.out".format(test.name), 'a') as cf:
-                            cf.write("diff was SUCCESSFUL\n")
+                            cf.write("\ndiff was SUCCESSFUL\n")
 
             else:   # make_benchmarks
 
@@ -2472,6 +2472,7 @@ def report_single_test(suite, test):
 
                     hf.write(line)
                     in_diff_region = True
+                    continue
 
                 if line.strip().startswith("level"):
                     ht.print_single_row(line.strip())
