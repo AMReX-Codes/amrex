@@ -167,6 +167,24 @@ ifeq ($(findstring h2o, $(UNAMEN)), h2o)
       CXXFLAGS += -hpgas_runtime
     endif
 endif
+ifeq ($(findstring mira, $(UNAMEN)), mira)
+    #
+    # The BlueGene/Q at ALCF
+    #
+    ifeq ($(COMP),IBM)
+      ifdef MPI
+        ifdef OMP
+          CXX := mpixlcxx_r
+          FC  := mpixlf95_r
+          F90 := mpixlf95_r
+        else
+          CXX := mpixlcxx
+          FC  := mpixlf95
+          F90 := mpixlf95
+        endif
+      endif
+    endif
+endif
 
 
 ifeq ($(HOST),cfe3)

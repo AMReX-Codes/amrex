@@ -161,6 +161,10 @@ ifeq ($(ARCH),OSF1)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
 endif
 
+ifeq ($(findstring mira, $(HOSTNAMEF)), mira)
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/bgq.mak
+endif
+
 ifeq ($(strip $(F90)),)
    $(error "COMP=$(COMP) is not supported")   
 endif
