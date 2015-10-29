@@ -273,13 +273,7 @@ MGT_Solver::initialize(bool nodal)
 
     initialized = true;
 
-    int comm = 0;
-
-#ifdef BL_USE_MPI
-    comm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-#endif
-
-    mgt_init(&comm);
+    mgt_init();
 
     if (nodal) {
       mgt_get_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,

@@ -185,6 +185,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring bint, $(UNAMEN)), bint)
     WHICHLINUX := BABBAGE
   endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
+  endif
 endif
 #
 # Some Lawrencium crap ...
@@ -1202,4 +1205,11 @@ ifeq ($(USE_HPGMG), TRUE)
 
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif

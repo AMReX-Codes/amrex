@@ -268,7 +268,7 @@ contains
     logical, intent(in), optional :: do_finalize_MPI
     integer ierr
     external MPI_Comm_Free, MPI_Finalize
-    !call MPI_Comm_Free(m_comm, ierr)  !Note: This is *supposed* to be the right way to do this, but it crashes on Linux.  comment out leads to small mem leak
+    call MPI_Comm_Free(m_comm, ierr)
     if (present(do_finalize_MPI) ) then
        if (do_finalize_MPI) call MPI_Finalize(ierr)
     else
@@ -2169,5 +2169,15 @@ contains
           call parallel_abort("unknown MPI_op for ll_t")
        end select
   end function mpi_op_long
+
+  subroutine parallel_comm_init_from_c (comm) bind(c, name='bl_fortran_mpi_comm_init')
+    use iso_c_binding
+    integer(c_int), intent(in), value :: comm
+    call parallel_initialize(comm)
+  end subroutine parallel_comm_init_from_c
+
+  subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
+    call parallel_finalize(.false.) ! do not finalize MPI but free communicator
+  end subroutine parallel_comm_free_from_c
 
 end module parallel

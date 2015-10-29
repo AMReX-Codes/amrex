@@ -75,12 +75,11 @@ ADR::getDiffusionTerm (Real time, MultiFab& DiffTerm, int comp)
      for (int d = 0; d < BL_SPACEDIM; d++)
        geom.FillPeriodicBoundary(coeffs[d]);
 
-   if (level == 0) {
-      diffusion->applyop(species,DiffTerm,coeffs);
-   } else if (level > 0) {
+   MultiFab Crse;
+   if (level > 0) {
       // Fill at next coarser level, if it exists.
       const BoxArray& crse_grids = getLevel(level-1).boxArray();
-      MultiFab Crse(crse_grids,1,1,Fab_allocate);
+      Crse.define(crse_grids,1,1,Fab_allocate);
       for (FillPatchIterator fpi    (getLevel(level-1),Crse,1,time,State_Type,   comp,1),
                              fpi_rho(getLevel(level-1),Crse,1,time,State_Type,Density,1);
           fpi.isValid()&&fpi_rho.isValid(); ++fpi,++fpi_rho)
@@ -88,8 +87,8 @@ ADR::getDiffusionTerm (Real time, MultiFab& DiffTerm, int comp)
         Crse[fpi].copy(fpi());
         Crse[fpi].divide(fpi_rho(),0,0,1);
       }
-      diffusion->applyop(level,species,Crse,DiffTerm,coeffs);
    }
+   diffusion->applyop(level,species,Crse,DiffTerm,coeffs);
 
    // Multiply Lap(c) by Rho to make Rho Lap(c)
    for (FillPatchIterator fpi_rho(*this,S_old,1,time,State_Type,Density,1);
