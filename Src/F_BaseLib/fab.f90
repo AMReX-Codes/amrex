@@ -26,7 +26,7 @@ module fab_module
   !! NY = 1, NZ = 1, when DIM =1, NZ = 1, when DIM = 2.
 
   type fab
-     private
+!     private
      integer   :: dim = 0
      type(box) :: bx
      type(box) :: pbx
