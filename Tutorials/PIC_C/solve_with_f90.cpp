@@ -4,10 +4,7 @@
 #include <MultiFab.H>
 #include <MultiFabUtil.H>
 #include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
+#include <FMultiGrid.H>
 
 void 
 solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
@@ -15,7 +12,6 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<Multi
 {
     int nlevs = rhs.size() - base_level;
 
-    BCRec phys_bc;
     int mg_bc[2*BL_SPACEDIM];
 
     // This tells the solver that we are using periodic bc's
@@ -30,103 +26,39 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<Multi
 	BoxLib::Abort("non periodic boundraies not supported here");
     }
 
-    for (int n=0; n<BL_SPACEDIM; n++) {
-	phys_bc.setLo(n, Interior);  // for periodic boundary
-	phys_bc.setHi(n, Interior);
+    // Have to do some packing because these arrays does not always start with base_level
+    PArray<Geometry> geom_p(nlevs);
+    PArray<MultiFab> rhs_p(nlevs);
+    PArray<MultiFab> phi_p(nlevs);
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+	geom_p.set(ilev, &geom[ilev+base_level]);
+	rhs_p.set (ilev,  &rhs[ilev+base_level]);
+	phi_p.set (ilev,  &phi[ilev+base_level]);
+    }
+    
+    // Refinement ratio is hardwired to 2 here.
+    IntVect crse_ratio = (base_level == 0) ? 
+	IntVect::TheZeroVector() : IntVect::TheUnitVector() * 2;
+
+    FMultiGrid fmg(geom_p, base_level, crse_ratio);
+
+    if (base_level == 0) {
+	fmg.set_bc(mg_bc, phi[base_level]);
+    } else {
+	MultiFab CPhi; 
+	BoxLib::Abort("need to get CPhi");
+	fmg.set_bc(mg_bc, CPhi, phi[base_level]);
     }
 
-    MacBndry bndry(rhs[base_level].boxArray(), 1, geom[base_level]);
-    //
-    // Set Dirichlet boundary condition for phi in phi grow cells, use to
-    // initialize bndry.
-    //
-    const int src_comp  = 0;
-    const int dest_comp = 0;
-    const int num_comp  = 1;
+    fmg.set_const_gravity_coeffs();
 
-    MultiFab* phi_p[nlevs];
-    MultiFab* rhs_p[nlevs];
-    for (int lev = base_level; lev < rhs.size(); lev++)
+    int always_use_bnorm = 0;
+    int need_grad_phi = 1;
+    fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
+   
+    for (int ilev = 0; ilev < nlevs; ++ilev)
     {
-        phi_p[lev-base_level] = &phi[lev];
-        rhs_p[lev-base_level] = &rhs[lev];
-    }
-
-    // Need to set the boundary values here so they can get copied into "bndry"  
-    if (base_level == 0)
-    {
-        bndry.setBndryValues(phi[base_level], src_comp, dest_comp, num_comp, phys_bc);
-    }
-#if 0
-    else
-    {
-        MultiFab CPhi;
-        Real cur_time = LevelData[level].get_state_data(State_Type).curTime();
-        GetCrsePhi(level,CPhi,cur_time);
-        BoxArray crse_boxes = BoxArray(grids[level]).coarsen(crse_ratio);
-        const int in_rad     = 0;
-        const int out_rad    = 1;
-        const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
-        crse_br.copyFrom(CPhi,CPhi.nGrow(),src_comp,dest_comp,num_comp);
-
-        bndry.setBndryValues(crse_br,src_comp,*(phi_p[base_level]),src_comp,
-                             dest_comp,num_comp,crse_ratio,phys_bc);
-    }
-#endif
-
-    std::vector<BoxArray>            bav  (nlevs);
-    std::vector<DistributionMapping> dmv  (nlevs);
-    std::vector<Geometry>            fgeom(nlevs);
-
-    for (int lev = base_level; lev < rhs.size(); lev++)
-    {
-        bav[lev-base_level] = phi[lev].boxArray();
-        dmv[lev-base_level] = phi[lev].DistributionMap();
-        fgeom[lev-base_level] = geom[lev];
-    }
-
-    Array< Array<Real> > xa(nlevs);
-    Array< Array<Real> > xb(nlevs);
-
-    for (int lev = 0; lev < nlevs; ++lev)
-    {
-	xa[lev].resize(BL_SPACEDIM);
-	xb[lev].resize(BL_SPACEDIM);
-
-	if (lev + base_level == 0)
-	{
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		xa[lev][i] = 0;
-		xb[lev][i] = 0;
-	    }
-	}
-	else
-	{
-	    const Real* dx_crse = geom[lev+base_level-1].CellSize();
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		xa[lev][i] = 0.5 * dx_crse[i];
-		xb[lev][i] = 0.5 * dx_crse[i];
-	    }
-	}
-    }
-
-    {
-        int stencil_type = CC_CROSS_STENCIL;
-        int always_use_bnorm = 0;
-        int need_grad_phi = 1;
-        Real final_resnorm;
-        MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, stencil_type, false, 0, 1, 2);
-        mgt_solver.set_const_gravity_coeffs(xa, xb);
-        mgt_solver.solve(phi_p, rhs_p, bndry, tol, abs_tol, always_use_bnorm, 
-			 final_resnorm,need_grad_phi); 
-
-        for (int lev = base_level; lev < rhs.size(); lev++)
-        {
-            const Real* dx = geom[lev].CellSize();
-            mgt_solver.get_fluxes(lev-base_level,grad_phi_edge[lev],dx);
-        }
+	int amr_level = ilev + base_level;
+	fmg.get_grad_phi(grad_phi_edge[amr_level], ilev);
     }
 }
