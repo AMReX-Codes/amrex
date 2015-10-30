@@ -17,7 +17,7 @@ void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi
 
 void 
 solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-		const Array<Geometry>& geom, int base_level)
+		const Array<Geometry>& geom, int base_level, int finest_level)
 {
  
     Real tol     = 1.e-10;
@@ -26,7 +26,7 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     Array< PArray<MultiFab> > grad_phi_edge;
     grad_phi_edge.resize(rhs.size());
 
-    for (int lev = 0; lev < rhs.size(); lev++)
+    for (int lev = base_level; lev <= finest_level ; lev++)
     {
         grad_phi_edge[lev].resize(BL_SPACEDIM, PArrayManage);
         for (int n = 0; n < BL_SPACEDIM; ++n)
@@ -38,7 +38,8 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     // ***************************************************
     // Make sure the RHS sums to 0 if fully periodic
     // ***************************************************
-    for (int lev = base_level; lev < rhs.size(); lev++) {
+    // std::cout << "RHS " << rhs[base_level][0] << std::endl;
+    for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev].norm0();
 	if (ParallelDescriptor::IOProcessor())
 	    std::cout << "Max of rhs in solve_for_phi before correction at level  " << lev << " " << n0 << std::endl;
@@ -57,10 +58,10 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
 	    std::cout << "Sum of particle weights over level 0 is " << sum  << std::endl;
 	}
 
-        for (int lev = base_level; lev < rhs.size(); lev++)
+        for (int lev = base_level; lev <= finest_level; lev++)
             rhs[lev].plus(-sum, 0, 1, 0);
 
-	for (int lev = base_level; lev < rhs.size(); lev++) {
+        for (int lev = base_level; lev <= finest_level; lev++) {
 	    Real n0 = rhs[lev].norm0();
 	    if (ParallelDescriptor::IOProcessor())
 		std::cout << "Max of rhs in solve_for_phi  after correction at level  " << lev << " " << n0 << std::endl;

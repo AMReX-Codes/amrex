@@ -13,7 +13,7 @@
 
 // declare routines below
 void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-                     const Array<Geometry>& geom, int base_level);
+                     const Array<Geometry>& geom, int base_level, int finest_level);
 
 int main(int argc, char* argv[])
 {
@@ -34,13 +34,31 @@ int main(int argc, char* argv[])
        real_box.setHi(n,1.0);
     }
 
+    // This defines the physical size of the fine box which we will use to constrain where we put the particles.
+    RealBox fine_box;
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+       fine_box.setLo(n,0.4);
+       fine_box.setHi(n,0.6);
+    }
+
     // Define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(31,31,31); 
-//  IntVect domain_hi( 7, 7, 7); 
+    int n_cell = 8;
+    IntVect domain_hi(n_cell-1,n_cell-1,n_cell-1); 
  
     // Build a box for the level 0 domain
     const Box domain(domain_lo, domain_hi);
+
+    // Define the refinement ratio
+    Array<int> rr(nlevs-1);
+    for (int lev = 1; lev < nlevs; lev++)
+        rr[lev-1] = 2;
+
+    // Now we make the refined level be the center eighth of the domain
+    int n_fine = n_cell*rr[0];
+    IntVect refined_lo(n_fine/4,n_fine/4,n_fine/4); 
+    IntVect refined_hi(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1);
 
     // This says we are using Cartesian coordinates
     int coord = 0;
@@ -48,10 +66,6 @@ int main(int argc, char* argv[])
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
-
-    // Define the refinement ratio
-    Array<int> rr(nlevs-1);
-    rr[0] = 2;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Array<Geometry> geom(nlevs);
@@ -62,16 +76,9 @@ int main(int argc, char* argv[])
 			 &real_box, coord, is_per);
     }
 
-    // We will start each solve at level 0.
-    int base_level = 0;
-
     // ********************************************************************************************
     // This now defines the refinement information 
     // ********************************************************************************************
-
-    // For now we make the refined level be the center eighth of the domain
-    IntVect refined_lo(16,16,16); 
-    IntVect refined_hi(47,47,47); 
 
     // Build a box for the level 1 domain
     Box refined_patch(refined_lo, refined_hi);
@@ -117,16 +124,92 @@ int main(int argc, char* argv[])
     // Build a new particle container to hold my particles.
     MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
 
-    int count = 1;
+    int num_particles = 1;
     int iseed = 10;
     Real mass  = 10.0;
 
-    // Initialize "count" number of particles, each with mass/charge "mass"
-    MyPC->InitRandom(count,iseed,mass);
+    // Here we do a set of two experiments.  
+    // 1) Do a single-level solve on level 0 as if there is no level 1, then 
+    //    do a single-level solve on level 1 using the boundary conditions from level 0 from the previous step.
+    // 2) Do a multi-level solve on levels 0 and 1.
+    // We assume for all these tests that the particles within the area covered by the refined patch.
+
+    // **************************************************************************
+    // 1) Do a single-level solve on level 0, then do a solve on level 1 using the solution
+    //    from level 0 for boundary condtions
+    // **************************************************************************
+
+    // Initialize "num_particles" number of particles, each with mass/charge "mass"
+    bool serialize = false;
+    MyPC->InitRandom(num_particles,iseed,mass,serialize,fine_box);
+    MyPC->Redistribute();
+
+    // Write out the positions, masses and accelerations of each particle.
+    MyPC->WriteAsciiFile("Particles_before");
+
+    // Use the PIC approach to deposit the "mass" onto the grid
+    for (int lev = 0; lev < nlevs; lev++)
+       MyPC->AssignDensitySingleLevel(rhs[lev],lev);
+
+    // **************************************************************************
+
+    // Define the density on level 0 from all particles at all levels
+    int base_level   = 0;
+    int finest_level = 0;
+
+    // **************************************************************************
+    PArray<MultiFab> PartMF;
+    MyPC->AssignDensity(PartMF, base_level, 1, finest_level);
+
+    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
+        average_down(PartMF[lev], PartMF[lev+1], rr[lev]);
+
+    for (int lev = 0; lev < num_levels; lev++)
+        MultiFab::Add(Rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    // **************************************************************************
+
+    // std::cout << "RHS " << rhs[0][0] << std::endl;
+
+    // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
+
+    // Define this to be solve at level 1 only
+    base_level   = 1;
+    finest_level = 1;
+
+    // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
+
+    // Fill the particle data with the acceleration at the particle location
+    // Note that we set dummy_dt = 0 so we don't actually move the particles.
+    int start_comp = BL_SPACEDIM+1;
+    Real dummy_dt = 0.0;
+    for (int lev = 0; lev < nlevs; lev++)
+        MyPC->moveKick(grad_phi[lev],0,dummy_dt,1.0,1.0,start_comp);
+
+    // Write out the positions, masses and accelerations of each particle.
+    MyPC->WriteAsciiFile("Particles_after_level_solves");
+
+    // **************************************************************************
+    // 2) Do a multi-level solve on levels 0 and 1.
+    // **************************************************************************
+
+    // Reset everything to 0
+    for (int lev = 0; lev < nlevs; lev++)
+    {
+	phi[lev].setVal(0.0);
+	grad_phi[lev].setVal(0.0);
+    }
+
+    // Define this to be solve at multi-level solve
+    base_level   = 0;
+    finest_level = 1;
+
+    // Redistribute the particles since we include both levels now.
     MyPC->Redistribute();
 
     // Use the PIC approach to deposit the "mass" onto the grid
-    MyPC->AssignDensitySingleLevel(rhs[0],0);
+    MyPC->AssignDensity(rhs,base_level,1,finest_level);
 
     // std::cout << "RHS " << rhs[0][0] << std::endl;
 
@@ -134,15 +217,16 @@ int main(int argc, char* argv[])
     MyPC->WriteAsciiFile("Particles_before");
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level);
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
 
     // Fill the particle data with the acceleration at the particle location
-    int start_comp = BL_SPACEDIM+1;
-    Real dummy_dt = 0.0;
+    // Note that we set dummy_dt = 0 so we don't actually move the particles.
+    start_comp = BL_SPACEDIM+1;
+    dummy_dt = 0.0;
     MyPC->moveKick(grad_phi[0],0,dummy_dt,1.0,1.0,start_comp);
 
     // Write out the positions, masses and accelerations of each particle.
-    MyPC->WriteAsciiFile("Particles_after");
+    MyPC->WriteAsciiFile("Particles_after_multilevel_solve");
 
     delete MyPC;
 
