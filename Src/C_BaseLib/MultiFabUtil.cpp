@@ -73,6 +73,56 @@ namespace BoxLib
 
 // *************************************************************************************************************
 
+    // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
+    // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
+    void average_down (MultiFab& S_fine, MultiFab& S_crse, Geometry& fgeom, Geometry& cgeom, 
+                       int scomp, int ncomp, const IntVect& ratio)
+    {
+        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+
+        //
+        // Coarsen() the fine stuff on processors owning the fine data.
+        //
+        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+
+        MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
+
+        FArrayBox fvolume, cvolume;
+
+        for (MFIter mfi(S_fine); mfi.isValid(); ++mfi)
+        {
+            const int i = mfi.index();
+            const Box& bx = mfi.validbox();
+
+            //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+            //        because the crse fab is a temporary which was made starting at comp 0, it is
+            //        not the actual state data.
+
+#if (BL_SPACEDIM == 3)
+            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+                (bx.loVect(), bx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
+                 ratio.getVect(),&ncomp);
+#else
+            fgeom.GetVolume(fvolume,S_fine.boxArray(),i,1);
+            cgeom.GetVolume(cvolume,crse_S_fine_BA,   i,1);
+
+            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+                (bx.loVect(), bx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
+                 BL_TO_FORTRAN(fvolume),
+                 BL_TO_FORTRAN(cvolume),
+                 ratio.getVect(),&ncomp);
+#endif
+        }
+
+        S_crse.copy(crse_S_fine,0,scomp,ncomp);
+   }
+
+// *************************************************************************************************************
+
     // Average fine face-based MultiFab onto crse fine-centered MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (PArray<MultiFab>& fine, PArray<MultiFab>& crse, IntVect& ratio)
