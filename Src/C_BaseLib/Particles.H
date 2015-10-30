@@ -309,7 +309,7 @@ public:
 
     void InitFromBinaryMetaFile (const std::string& file, int extradata);
 
-    void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false);
+    void InitRandom (long icount, unsigned long iseed, Real particleMass, bool serialize = false, RealBox bx = RealBox());
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, const Real particleMass);
     void InitCosmo  (MultiFab& mf, const Real vel_fac[], const Array<int> n_part, 
                      const Real particleMass, const Real shift[]);
@@ -1937,7 +1937,8 @@ void
 ParticleContainer<N>::InitRandom (long          icount,
                                   unsigned long iseed,
                                   Real          mass,
-                                  bool          serialize)
+                                  bool          serialize,
+                                  RealBox       containing_bx)
 {
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
@@ -1953,6 +1954,16 @@ ParticleContainer<N>::InitRandom (long          icount,
     Real r, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
                                         geom.ProbLength(1),
                                         geom.ProbLength(2)) };
+
+    // We will enforce that the particles are within the containing_bx.  
+    // If containing_bx is not passed in, it defaults to the full domain.
+    if (!containing_bx.ok()) containing_bx = geom.ProbDomain();
+
+    // containing_bx is assumed to lie within the domain.
+    BL_ASSERT(geom.ProbDomain().contains(containing_bx);
+
+    const Real* xlo = containing_bx.lo();
+    const Real* xhi = containing_bx.hi();
 
     BoxLib::InitRandom(iseed+MyProc);
 
@@ -1985,10 +1996,11 @@ ParticleContainer<N>::InitRandom (long          icount,
                     do
                     {
                         r = BoxLib::Random();
+                        x = geom.ProbLo(i) + (r * len[i]);
                     }
-                    while (r == 0 || r == 1);
+                    while (x < xlo[i] || x > xhi[i]);
 
-                    pos[j*BL_SPACEDIM + i] = r;
+                    pos[j*BL_SPACEDIM + i] = x;
                 }
             }
         }
@@ -2003,11 +2015,7 @@ ParticleContainer<N>::InitRandom (long          icount,
 
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
-                r = pos[j*BL_SPACEDIM + i];
-
-                p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
-
-                BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
+                p.m_pos[i] = pos[j*BL_SPACEDIM + i];
             }
 
             if (N > 0)
@@ -2071,12 +2079,11 @@ ParticleContainer<N>::InitRandom (long          icount,
                 do
                 {
                     r = BoxLib::Random();
+                    x = geom.ProbLo(i) + (r * len[i]);
                 }
-                while (r == 0 || r == 1);
+                while (x < xlo[i] || x > xhi[i]);
 
-                p.m_pos[i] = geom.ProbLo(i) + (r * len[i]);
-                if (p.m_pos[i] > 0.75) p.m_pos[i] -= 0.5;
-                if (p.m_pos[i] < 0.25) p.m_pos[i] += 0.5;
+                p.m_pos[i] = x;
 
                 BL_ASSERT(p.m_pos[i] < geom.ProbHi(i));
             }
