@@ -75,7 +75,7 @@ namespace BoxLib
 
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
-    void average_down (MultiFab& S_fine, MultiFab& S_crse, Geometry& fgeom, Geometry& cgeom, 
+    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
