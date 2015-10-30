@@ -1951,16 +1951,16 @@ ParticleContainer<N>::InitRandom (long          icount,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(0);
 
-    Real r, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
-                                        geom.ProbLength(1),
-                                        geom.ProbLength(2)) };
+    Real r, x, len[BL_SPACEDIM] = { D_DECL(geom.ProbLength(0),
+                                           geom.ProbLength(1),
+                                           geom.ProbLength(2)) };
 
     // We will enforce that the particles are within the containing_bx.  
     // If containing_bx is not passed in, it defaults to the full domain.
     if (!containing_bx.ok()) containing_bx = geom.ProbDomain();
 
     // containing_bx is assumed to lie within the domain.
-    BL_ASSERT(geom.ProbDomain().contains(containing_bx);
+    BL_ASSERT(geom.ProbDomain().contains(containing_bx));
 
     const Real* xlo = containing_bx.lo();
     const Real* xhi = containing_bx.hi();
