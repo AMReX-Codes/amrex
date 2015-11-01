@@ -115,10 +115,69 @@ subroutine bl_avgdown_faces (lo, hi, &
 end subroutine bl_avgdown_faces
 
 ! ***************************************************************************************
-! subroutine bl_avgdown
+! subroutine bl_avgdown - THIS VERISON DOES NOT DO VOLUME WEIGHTING
 ! ***************************************************************************************
 
       subroutine bl_avgdown (lo,hi,&
+                             fine,f_l1,f_l2,f_h1,f_h2, &
+                             crse,c_l1,c_l2,c_h1,c_h2, &
+                             lrat,ncomp)
+
+      use bl_constants_module
+
+      implicit none
+
+      integer f_l1,f_l2,f_h1,f_h2
+      integer c_l1,c_l2,c_h1,c_h2
+      integer lo(2), hi(2)
+      integer lrat(2), ncomp
+      double precision fine(f_l1:f_h1,f_l2:f_h2,ncomp)
+      double precision crse(c_l1:c_h1,c_l2:c_h2,ncomp)
+
+      integer clo(2), chi(2)
+      integer i, j, ic, jc, ioff, joff
+      double precision volfrac
+
+      clo(1:2) = lo(1:2) / lrat(1:2)
+      chi(1:2) = hi(1:2) / lrat(1:2)
+
+      !
+      ! ::::: set coarse grid to zero on overlap
+      !
+      do jc = clo(2), chi(2)
+         do ic = clo(1), chi(1)
+            crse(ic,jc,:) = ZERO
+         enddo
+      enddo
+      !
+      ! ::::: sum fine data
+      !
+      do joff = 0, lrat(2)-1
+        do jc = clo(2), chi(2)
+          j = jc*lrat(2) + joff
+          do ioff = 0, lrat(1)-1
+            do ic = clo(1), chi(1)
+              i = ic*lrat(1) + ioff
+              crse(ic,jc,1:ncomp) = crse(ic,jc,1:ncomp) + fine(i,j,1:ncomp)
+            enddo
+          enddo
+        enddo
+      enddo
+
+      volfrac = ONE/dble(lrat(1)*lrat(2))
+      do jc = clo(2), chi(2)
+         do ic = clo(1), chi(1)
+            crse(ic,jc,1:ncomp) = volfrac*crse(ic,jc,1:ncomp)
+         enddo
+      enddo
+
+      end subroutine bl_avgdown
+
+! ***************************************************************************************
+! subroutine bl_avgdown_with_vol
+! ***************************************************************************************
+
+      subroutine bl_avgdown_with_vol (lo,hi,&
                              fine,f_l1,f_l2,f_h1,f_h2, &
                              crse,c_l1,c_l2,c_h1,c_h2, &
                              fv,fv_l1,fv_l2,fv_h1,fv_h2, &
@@ -175,5 +234,5 @@ end subroutine bl_avgdown_faces
          enddo
       enddo
 
-      end subroutine bl_avgdown
+      end subroutine bl_avgdown_with_vol
 
