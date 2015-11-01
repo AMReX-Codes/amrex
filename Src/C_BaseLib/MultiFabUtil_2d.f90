@@ -140,13 +140,17 @@ end subroutine bl_avgdown_faces
       double precision fv(fv_l1:fv_h1,fv_l2:fv_h2)
       double precision cv(cv_l1:cv_h1,cv_l2:cv_h2)
 
+      integer clo(2), chi(2)
       integer i, j, ic, jc, ioff, joff
+
+      clo(1:2) = lo(1:2) / lrat(1:2)
+      chi(1:2) = hi(1:2) / lrat(1:2)
 
       !
       ! ::::: set coarse grid to zero on overlap
       !
-      do jc = lo(2), hi(2)
-         do ic = lo(1), hi(1)
+      do jc = clo(2), chi(2)
+         do ic = clo(1), chi(1)
             crse(ic,jc,:) = ZERO
          enddo
       enddo
@@ -154,10 +158,10 @@ end subroutine bl_avgdown_faces
       ! ::::: sum fine data
       !
       do joff = 0, lrat(2)-1
-        do jc = lo(2), hi(2)
+        do jc = clo(2), chi(2)
           j = jc*lrat(2) + joff
           do ioff = 0, lrat(1)-1
-            do ic = lo(1), hi(1)
+            do ic = clo(1), chi(1)
               i = ic*lrat(1) + ioff
               crse(ic,jc,1:ncomp) = crse(ic,jc,1:ncomp) + fv(i,j)*fine(i,j,1:ncomp)
             enddo
@@ -165,8 +169,8 @@ end subroutine bl_avgdown_faces
         enddo
       enddo
 
-      do jc = lo(2), hi(2)
-         do ic = lo(1), hi(1)
+      do jc = clo(2), chi(2)
+         do ic = clo(1), chi(1)
             crse(ic,jc,1:ncomp) = crse(ic,jc,1:ncomp) / cv(ic,jc)
          enddo
       enddo

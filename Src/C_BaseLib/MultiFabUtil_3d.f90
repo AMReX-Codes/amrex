@@ -179,14 +179,18 @@ end subroutine bl_avgdown_faces
       double precision fine(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,ncomp)
 
       integer i, j, k, ic, jc, kc, ioff, joff, koff
+      integer clo(3),chi(3)
       double precision volfrac
+
+      clo(1:3) = lo(1:3) / lrat(1:3) 
+      chi(1:3) = hi(1:3) / lrat(1:3) 
 
       !
       ! ::::: set coarse grid to zero on overlap
       !
-      do kc = lo(3), hi(3)
-         do jc = lo(2), hi(2)
-            do ic = lo(1), hi(1)
+      do kc = clo(3), chi(3)
+         do jc = clo(2), chi(2)
+            do ic = clo(1), chi(1)
                crse(ic,jc,kc,:) = ZERO
             enddo
          enddo
@@ -195,13 +199,13 @@ end subroutine bl_avgdown_faces
       ! ::::: sum fine data
       !
       do koff = 0, lrat(3)-1
-        do kc = lo(3), hi(3)
+        do kc = clo(3), chi(3)
           k = kc*lrat(3) + koff
           do joff = 0, lrat(2)-1
-            do jc = lo(2), hi(2)
+            do jc = clo(2), chi(2)
               j = jc*lrat(2) + joff
               do ioff = 0, lrat(1)-1
-                do ic = lo(1), hi(1)
+                do ic = clo(1), chi(1)
                   i = ic*lrat(1) + ioff
                   crse(ic,jc,kc,1:ncomp) = crse(ic,jc,kc,1:ncomp) + fine(i,j,k,1:ncomp)
                 enddo
@@ -212,9 +216,9 @@ end subroutine bl_avgdown_faces
       enddo
 
       volfrac = ONE/dble(lrat(1)*lrat(2)*lrat(3))
-      do kc = lo(3), hi(3)
-         do jc = lo(2), hi(2)
-            do ic = lo(1), hi(1)
+      do kc = clo(3), chi(3)
+         do jc = clo(2), chi(2)
+            do ic = clo(1), chi(1)
                crse(ic,jc,kc,1:ncomp) = volfrac*crse(ic,jc,kc,1:ncomp)
             enddo
          enddo
