@@ -75,6 +75,7 @@ namespace BoxLib
 
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
+    // This version DOES use volume-weighting
     void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
@@ -104,6 +105,7 @@ namespace BoxLib
             //        not part of the actual crse multifab which came in.
 
 #if (BL_SPACEDIM == 3)
+            //  We don't support any non-Cartesian coordinates in 3D
             BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
                 (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
@@ -113,7 +115,7 @@ namespace BoxLib
             fgeom.GetVolume(fvolume,S_fine.boxArray(),i,1);
             cgeom.GetVolume(cvolume,crse_S_fine_BA,   i,1);
 
-            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
                 (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
@@ -121,6 +123,49 @@ namespace BoxLib
                  BL_TO_FORTRAN(cvolume),
                  ratio.getVect(),&ncomp);
 #endif
+        }
+
+        S_crse.copy(crse_S_fine,0,scomp,ncomp);
+   }
+
+// *************************************************************************************************************
+
+    // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
+    // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
+    // This version does NOT use volume-weighting
+    void average_down (MultiFab& S_fine, MultiFab& S_crse, 
+                       int scomp, int ncomp, const IntVect& ratio)
+    {
+        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+
+        //
+        // Coarsen() the fine stuff on processors owning the fine data.
+        //
+        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+
+        MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
+
+        FArrayBox fvolume, cvolume;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
+        {
+            const int i = mfi.index();
+ 
+            //  NOTE: The tilebox is defined at the fine level.
+            const Box& tbx = mfi.tilebox();
+
+            //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+            //        because the crse fab is a temporary which was made starting at comp 0, it is
+            //        not part of the actual crse multifab which came in.
+
+            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+                (tbx.loVect(), tbx.hiVect(),
+                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
+                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
+                 ratio.getVect(),&ncomp);
         }
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);

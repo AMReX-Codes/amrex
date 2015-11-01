@@ -128,10 +128,56 @@ subroutine bl_avgdown_faces (lo, hi, &
 end subroutine bl_avgdown_faces
 
 ! ***************************************************************************************
-! subroutine bl_avgdown
+! subroutine bl_avgdown - THIS VERSION DOES NOT USE VOLUME WEIGHTING
 ! ***************************************************************************************
 
       subroutine bl_avgdown (lo,hi,&
+                             fine,f_l1,f_h1, &
+                             crse,c_l1,c_h1, &
+                             lrat,ncomp)
+
+      use bl_constants_module
+
+      implicit none
+
+      integer f_l1,f_h1
+      integer c_l1,c_h1
+      integer lo(1), hi(1)
+      integer lrat(1), ncomp
+      double precision fine(f_l1:f_h1,ncomp)
+      double precision crse(c_l1:c_h1,ncomp)
+
+      integer clo(1),chi(1)
+      integer i, ic, ioff
+      double precision volfrac
+
+      clo(1) = lo(1) / lrat(1)
+      chi(1) = hi(1) / lrat(1)
+
+      !
+      ! ::::: set coarse grid to zero on overlap
+      !
+      crse(clo(1):chi(1),1:ncomp) = ZERO
+      !
+      ! ::::: sum fine data
+      !
+      do ioff = 0, lrat(1)-1
+         do ic = clo(1), chi(1)
+           i = ic*lrat(1) + ioff
+           crse(ic,1:ncomp) = crse(ic,1:ncomp) + fine(i,1:ncomp)
+         enddo
+      enddo
+
+      volfrac = 1.d0 / dble(lrat(1))
+      crse(clo(1):chi(1),1:ncomp) = volfrac*crse(clo(1):chi(1),1:ncomp)
+
+      end subroutine bl_avgdown
+
+! ***************************************************************************************
+! subroutine bl_avgdown_with_vol
+! ***************************************************************************************
+
+      subroutine bl_avgdown_with_vol (lo,hi,&
                              fine,f_l1,f_h1, &
                              crse,c_l1,c_h1, &
                              fv,fv_l1,fv_h1, &
@@ -179,5 +225,4 @@ end subroutine bl_avgdown_faces
          crse(ic,1:ncomp) = crse(ic,1:ncomp) / cv(ic)
       enddo
 
-      end subroutine bl_avgdown
-
+      end subroutine bl_avgdown_with_vol
