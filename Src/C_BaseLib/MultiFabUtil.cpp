@@ -89,18 +89,23 @@ namespace BoxLib
 
         FArrayBox fvolume, cvolume;
 
-        for (MFIter mfi(S_fine); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
-            const Box& bx = mfi.validbox();
+ 
+            //  NOTE: The tilebox is defined at the fine level.
+            const Box& tbx = mfi.tilebox();
 
             //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
             //        because the crse fab is a temporary which was made starting at comp 0, it is
-            //        not the actual state data.
+            //        not part of the actual crse multifab which came in.
 
 #if (BL_SPACEDIM == 3)
             BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                (bx.loVect(), bx.hiVect(),
+                (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
                  ratio.getVect(),&ncomp);
@@ -109,7 +114,7 @@ namespace BoxLib
             cgeom.GetVolume(cvolume,crse_S_fine_BA,   i,1);
 
             BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                (bx.loVect(), bx.hiVect(),
+                (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
                  BL_TO_FORTRAN(fvolume),
