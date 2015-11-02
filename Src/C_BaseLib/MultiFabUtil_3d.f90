@@ -95,65 +95,93 @@ end subroutine bl_avg_cc_to_fc
 subroutine bl_avgdown_faces (lo, hi, &
      f, f_l1, f_l2, f_l3, f_h1, f_h2, f_h3, &
      c, c_l1, c_l2, c_l3, c_h1, c_h2, c_h3, &
-     ratio,idir)
+     ratio,idir,nc)
 
   implicit none
   integer          :: lo(3),hi(3)
   integer          :: f_l1, f_l2, f_l3, f_h1, f_h2, f_h3
   integer          :: c_l1, c_l2, c_l3, c_h1, c_h2, c_h3
-  integer          :: ratio(3), idir
-  double precision :: f(f_l1:f_h1, f_l2:f_h2, f_l3:f_h3)
-  double precision :: c(c_l1:c_h1, c_l2:c_h2, c_l3:c_h3)
+  integer          :: ratio(3), idir, nc
+  double precision :: f(f_l1:f_h1, f_l2:f_h2, f_l3:f_h3, nc)
+  double precision :: c(c_l1:c_h1, c_l2:c_h2, c_l3:c_h3, nc)
 
   ! Local variables
-  integer i,j,k,m,n,facx,facy,facz
+  integer :: i, j, k, n, facx, facy, facz, iref, jref, kref, ii, jj, kk
+  double precision :: facInv
 
   facx = ratio(1)
   facy = ratio(2)
   facz = ratio(3)
 
   if (idir .eq. 0) then
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  c(i,j,k) = 0.d0
-                  do n = 0,facy-1
-                     do m = 0,facz-1
-                        c(i,j,k) = c(i,j,k) + f(facx*i,facy*j+n,facz*k+m)
-                     end do
-                  end do
-                  c(i,j,k) = c(i,j,k) / (facy*facz)
-               end do
-            end do
-         end do
+
+     facInv = 1.d0 / (facy*facz)
+
+     do n = 1, nc
+        do k        = lo(3), hi(3)
+           kk       = k * facz
+           do j     = lo(2), hi(2)
+              jj    = j * facy
+              do i  = lo(1), hi(1)
+                 ii = i * facx
+                 c(i,j,k,n) = 0.d0
+                 do    kref = 0, facz-1
+                    do jref = 0, facy-1
+                       c(i,j,k,n) = c(i,j,k,n) + f(ii,jj+jref,kk+kref,n)
+                    end do
+                 end do
+                 c(i,j,k,n) = c(i,j,k,n) * facInv
+              end do
+           end do
+        end do
+     end do
+
   else if (idir .eq. 1) then
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  c(i,j,k) = 0.d0
-                  do n = 0,facx-1
-                     do m = 0,facz-1
-                        c(i,j,k) = c(i,j,k) + f(facx*i+n,facy*j,facz*k+m)
-                     end do
-                  end do
-                  c(i,j,k) = c(i,j,k) / (facx*facz)
-               end do
-            end do
-         end do
+
+     facInv = 1.d0 / (facx*facz)
+
+     do n = 1, nc
+        do k        = lo(3), hi(3)
+           kk       = k * facz
+           do j     = lo(2), hi(2)
+              jj    = j * facy
+              do i  = lo(1), hi(1)
+                 ii = i * facx
+                 c(i,j,k,n) = 0.d0
+                 do    kref = 0, facz-1
+                    do iref = 0, facx-1
+                       c(i,j,k,n) = c(i,j,k,n) + f(ii+iref,jj,kk+kref,n)
+                    end do
+                 end do
+                 c(i,j,k,n) = c(i,j,k,n) * facInv
+              end do
+           end do
+        end do
+     end do
+
   else
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  c(i,j,k) = 0.d0
-                  do n = 0,facx-1
-                     do m = 0,facy-1
-                        c(i,j,k) = c(i,j,k) + f(facx*i+n,facy*j+m,facz*k)
-                     end do
-                  end do
-                  c(i,j,k) = c(i,j,k) / (facx*facy)
-               end do
-            end do
-         end do
+
+     facInv = 1.d0 / (facx*facy)
+
+     do n = 1, nc
+        do k        = lo(3), hi(3)
+           kk       = k * facz
+           do j     = lo(2), hi(2)
+              jj    = j * facy
+              do i  = lo(1), hi(1)
+                 ii = i * facx
+                 c(i,j,k,n) = 0.d0
+                 do    jref = 0, facy-1
+                    do iref = 0, facx-1
+                       c(i,j,k,n) = c(i,j,k,n) + f(ii+iref,jj+jref,kk,n)
+                    end do
+                 end do
+                 c(i,j,k,n) = c(i,j,k,n) * facInv
+              end do
+           end do
+        end do
+     end do
+
   end if
 
 end subroutine bl_avgdown_faces
@@ -162,65 +190,45 @@ end subroutine bl_avgdown_faces
 ! subroutine bl_avgdown
 ! ***************************************************************************************
 
-      subroutine bl_avgdown (lo,hi,&
-                             fine,f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
-                             crse,c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
-                             lrat,ncomp)
+subroutine bl_avgdown (lo,hi,&
+     fine,f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
+     crse,c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+     lrat,ncomp)
 
-      implicit none
+  implicit none
+  
+  integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+  integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
+  integer lo(3), hi(3)
+  integer lrat(3), ncomp
+  double precision crse(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,ncomp)
+  double precision fine(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,ncomp)
+  
+  integer :: i, j, k, ii, jj, kk, n, iref, jref, kref
+  double precision :: volfrac
 
-      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
-      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
-      integer lo(3), hi(3)
-      integer lrat(3), ncomp
-      double precision crse(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,ncomp)
-      double precision fine(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,ncomp)
+  volfrac = 1.d0 / dble(lrat(1)*lrat(2)*lrat(3))
+  
+  do n = 1, ncomp
+     do k        = lo(3), hi(3)
+        kk       = k * lrat(3)
+        do j     = lo(2), hi(2)
+           jj    = j * lrat(2)
+           do i  = lo(1), hi(1)
+              ii = i * lrat(1)
+              crse(i,j,k,n) = 0.d0
+              do       kref = 0, lrat(3)-1
+                 do    jref = 0, lrat(2)-1
+                    do iref = 0, lrat(1)-1
+                       crse(i,j,k,n) = crse(i,j,k,n) + fine(ii+iref,jj+jref,kk+kref,n)
+                    end do
+                 end do
+              end do
+              crse(i,j,k,n) = volfrac * crse(i,j,k,n)
+           end do
+        end do
+     end do
+  end do
+end subroutine bl_avgdown
 
-      integer i, j, k, ic, jc, kc, ioff, joff, koff
-      integer clo(3),chi(3)
-      double precision volfrac
 
-      clo(1:3) = lo(1:3) / lrat(1:3) 
-      chi(1:3) = hi(1:3) / lrat(1:3) 
-
-      !
-      ! ::::: set coarse grid to zero on overlap
-      !
-      do kc = clo(3), chi(3)
-         do jc = clo(2), chi(2)
-            do ic = clo(1), chi(1)
-               crse(ic,jc,kc,:) = 0.d0
-            enddo
-         enddo
-      enddo
-      !
-      ! ::::: sum fine data
-      !
-      do koff = 0, lrat(3)-1
-        do kc = clo(3), chi(3)
-          k = kc*lrat(3) + koff
-          do joff = 0, lrat(2)-1
-            do jc = clo(2), chi(2)
-              j = jc*lrat(2) + joff
-              do ioff = 0, lrat(1)-1
-                do ic = clo(1), chi(1)
-                  i = ic*lrat(1) + ioff
-                  crse(ic,jc,kc,1:ncomp) = crse(ic,jc,kc,1:ncomp) + fine(i,j,k,1:ncomp)
-                enddo
-              enddo
-            enddo
-          enddo
-        enddo
-      enddo
-
-      volfrac = 1.d0/dble(lrat(1)*lrat(2)*lrat(3))
-      do kc = clo(3), chi(3)
-         do jc = clo(2), chi(2)
-            do ic = clo(1), chi(1)
-               crse(ic,jc,kc,1:ncomp) = volfrac*crse(ic,jc,kc,1:ncomp)
-            enddo
-         enddo
-      enddo
-
-      end subroutine bl_avgdown
-! ***************************************************************************************
