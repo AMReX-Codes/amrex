@@ -70,14 +70,15 @@ public:
 		int                           baselevel = 0,
 		IntVect                       crse_ratio = IntVect::TheZeroVector());
 
-    ~FMultiGrid () { delete m_bndry;   delete m_mgt_solver; }
+    ~FMultiGrid () { }
 
     void set_baselevel (int baselevel, IntVect& crse_ratio) {
 	m_baselevel = baselevel;
 	m_crse_ratio = crse_ratio;
     }
-    void set_stencil (int stencil) {m_stencil = stencil;}
-    void set_verbose (int verbose) {m_verbose = verbose;}
+    void set_stencil  (int stencil)  {m_stencil  = stencil;}
+    void set_maxorder (int maxorder) {m_maxorder = maxorder;}
+    void set_verbose  (int verbose)  {m_verbose  = verbose;}
 
     // Set homogeneous Dirichlet boundary
     void set_bc (int * mg_bc);
@@ -91,13 +92,19 @@ public:
 		 MultiFab& crse_phi,
 		 MultiFab& phi);
 
+    // Use data in mac_bndry
+    void set_bc (const MacBndry& mac_bndry);
+
     // For const_gravity_eq
     void set_const_gravity_coeffs ();
 
     // For gravity_eq
     void set_gravity_coeffs (       PArray<MultiFab>  & b); // single level
     void set_gravity_coeffs (Array< PArray<MultiFab> >& b); // multi level
-    
+
+    // For MAC projection
+    void set_mac_coeffs (PArray<MultiFab> &b);
+ 
     // For Diffusion operator
     void set_diffusion_coeffs (       PArray<MultiFab>  & b) // single level
 	{ set_gravity_coeffs(b); }
@@ -123,7 +130,7 @@ public:
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_grad_phi (       PArray<MultiFab>  & grad_phi);
+    void get_grad_phi (       PArray<MultiFab>  & grad_phi, int ilev = 0);
     void get_grad_phi ( Array<PArray<MultiFab> >& grad_phi);
     void get_grad_phi (PArray<PArray<MultiFab> >& grad_phi);
 
@@ -145,12 +152,16 @@ private:
     int     m_baselevel;
     IntVect m_crse_ratio;
     int     m_stencil;
+    int     m_maxorder;
     int     m_verbose;
 
     std::vector<Geometry> m_geom;
 
     MacBndry   * m_bndry;
     MGT_Solver * m_mgt_solver;
+
+    PArray<MacBndry> RAII_bndry;
+    PArray<MGT_Solver> RAII_mgt_solver;
 
     struct Boundary
     {
@@ -173,6 +184,7 @@ private:
     enum Eq_t { invalid_eq,
 		const_gravity_eq, // del dot grad phi = rhs  
 		gravity_eq,       // (del dot b grad) phi = rhs  
+		macproj_eq,       // - (del dot b grad) phi = rhs  
 		general_eq};
 
     struct ABecCoeff
