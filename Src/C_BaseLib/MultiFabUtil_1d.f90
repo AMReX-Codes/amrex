@@ -136,8 +136,6 @@ end subroutine bl_avgdown_faces
                              crse,c_l1,c_h1, &
                              lrat,ncomp)
 
-      use bl_constants_module
-
       implicit none
 
       integer f_l1,f_h1
@@ -157,7 +155,7 @@ end subroutine bl_avgdown_faces
       !
       ! ::::: set coarse grid to zero on overlap
       !
-      crse(clo(1):chi(1),1:ncomp) = ZERO
+      crse(clo(1):chi(1),1:ncomp) = 0.d0
       !
       ! ::::: sum fine data
       !
@@ -184,8 +182,6 @@ end subroutine bl_avgdown_faces
                              cv,cv_l1,cv_h1, &
                              lrat,ncomp)
 
-      use bl_constants_module
-
       implicit none
 
       integer f_l1,f_h1
@@ -209,7 +205,7 @@ end subroutine bl_avgdown_faces
       ! ::::: set coarse grid to zero on overlap
       !
       do ic = clo(1), chi(1)
-         crse(ic,:) = ZERO
+         crse(ic,:) = 0.d0
       enddo
       !
       ! ::::: sum fine data
