@@ -88,11 +88,12 @@ namespace BoxLib
 
         MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
 
-        FArrayBox fvolume, cvolume;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+	{
+        FArrayBox fvolume, cvolume;
+	    
         for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
@@ -124,6 +125,7 @@ namespace BoxLib
                  ratio.getVect(),&ncomp);
 #endif
         }
+	}
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
    }
@@ -145,11 +147,12 @@ namespace BoxLib
 
         MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
 
-        FArrayBox fvolume, cvolume;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+	{
+	FArrayBox fvolume, cvolume;
+
         for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
         {
             const int i = mfi.index();
@@ -166,6 +169,7 @@ namespace BoxLib
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
                  ratio.getVect(),&ncomp);
+        }
         }
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
