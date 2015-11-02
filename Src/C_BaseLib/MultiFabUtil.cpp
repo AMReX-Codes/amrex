@@ -75,59 +75,50 @@ namespace BoxLib
 
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
-    // This version DOES use volume-weighting
+    // This version DOES use volume-weighting.
     void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
+#if (BL_SPACEDIM == 3)
+	BoxLib::average_down(S_fine, S_crse, scomp, ncomp, ratio);
+	return;
+#else
+
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
 
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
-        BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
+	const BoxArray& fine_BA = S_fine.boxArray();
+        BoxArray crse_S_fine_BA = fine_BA; 
+	crse_S_fine_BA.coarsen(ratio);
 
         MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
+
+	MultiFab fvolume;
+	fgeom.GetVolume(fvolume, fine_BA, 0);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	{
-        FArrayBox fvolume, cvolume;
-	    
-        for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
         {
-            const int i = mfi.index();
- 
-            //  NOTE: The tilebox is defined at the fine level.
+            //  NOTE: The tilebox is defined at the coarse level.
             const Box& tbx = mfi.tilebox();
 
             //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
             //        because the crse fab is a temporary which was made starting at comp 0, it is
             //        not part of the actual crse multifab which came in.
-
-#if (BL_SPACEDIM == 3)
-            //  We don't support any non-Cartesian coordinates in 3D
-            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                 ratio.getVect(),&ncomp);
-#else
-            fgeom.GetVolume(fvolume,S_fine.boxArray(),i,1);
-            cgeom.GetVolume(cvolume,crse_S_fine_BA,   i,1);
-
             BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
                 (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                 BL_TO_FORTRAN(fvolume),
-                 BL_TO_FORTRAN(cvolume),
+                 BL_TO_FORTRAN(fvolume[mfi]),
                  ratio.getVect(),&ncomp);
-#endif
-        }
 	}
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
+#endif
    }
 
 // *************************************************************************************************************
@@ -150,14 +141,9 @@ namespace BoxLib
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	{
-	FArrayBox fvolume, cvolume;
-
-        for (MFIter mfi(S_fine,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
         {
-            const int i = mfi.index();
- 
-            //  NOTE: The tilebox is defined at the fine level.
+            //  NOTE: The tilebox is defined at the coarse level.
             const Box& tbx = mfi.tilebox();
 
             //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
@@ -169,7 +155,6 @@ namespace BoxLib
                  BL_TO_FORTRAN_N(S_fine[mfi],scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
                  ratio.getVect(),&ncomp);
-        }
         }
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
@@ -183,8 +168,9 @@ namespace BoxLib
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
 	BL_ASSERT(fine.size()  == BL_SPACEDIM);
-	BL_ASSERT(crse[0].nComp() == 1);
-	BL_ASSERT(fine[0].nComp() == 1);
+	BL_ASSERT(crse[0].nComp() == fine[0].nComp());
+
+	int ncomp = crse[0].nComp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -198,7 +184,7 @@ namespace BoxLib
                     (tbx.loVect(),tbx.hiVect(),
                      BL_TO_FORTRAN(fine[n][mfi]),
                      BL_TO_FORTRAN(crse[n][mfi]),
-                     ratio.getVect(),n);
+                     ratio.getVect(),n,ncomp);
             }
         }
     }
