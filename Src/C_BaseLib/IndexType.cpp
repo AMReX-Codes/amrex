@@ -4,17 +4,6 @@
 
 #include <IndexType.H>
 
-namespace
-{
-    static const IndexType Cell(D_DECL(IndexType::CELL,
-                                       IndexType::CELL,
-                                       IndexType::CELL));
-
-    static const IndexType Node(D_DECL(IndexType::NODE,
-                                       IndexType::NODE,
-                                       IndexType::NODE));
-}
-
 void
 IndexType::setType (int       dir,
                     CellIndex t)
@@ -25,12 +14,18 @@ IndexType::setType (int       dir,
 IndexType
 IndexType::TheCellType ()
 {
+    static const IndexType Cell(D_DECL(IndexType::CELL,
+                                       IndexType::CELL,
+                                       IndexType::CELL));
     return Cell;
 }
 
 IndexType
 IndexType::TheNodeType ()
 {
+    static const IndexType Node(D_DECL(IndexType::NODE,
+                                       IndexType::NODE,
+                                       IndexType::NODE));
     return Node;
 }
 
