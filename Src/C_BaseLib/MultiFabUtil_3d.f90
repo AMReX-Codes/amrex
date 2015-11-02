@@ -1,3 +1,7 @@
+! ***************************************************************************************
+! subroutine bl_avg_fc_to_cc 
+! ***************************************************************************************
+
 subroutine bl_avg_fc_to_cc (lo, hi, &
      cc, ccl1, ccl2, ccl3, cch1, cch2, cch3, &
      fx, fxl1, fxl2, fxl3, fxh1, fxh2, fxh3, &
@@ -31,6 +35,10 @@ subroutine bl_avg_fc_to_cc (lo, hi, &
   enddo
 
 end subroutine bl_avg_fc_to_cc
+
+! ***************************************************************************************
+! subroutine bl_avg_cc_to_fc 
+! ***************************************************************************************
 
 subroutine bl_avg_cc_to_fc (xlo, xhi, ylo, yhi, zlo, zhi, &
      fx, fxl1, fxl2, fxl3, fxh1, fxh2, fxh3, &
@@ -79,6 +87,10 @@ subroutine bl_avg_cc_to_fc (xlo, xhi, ylo, yhi, zlo, zhi, &
   end do
 
 end subroutine bl_avg_cc_to_fc
+
+! ***************************************************************************************
+! subroutine bl_avgdown_faces
+! ***************************************************************************************
 
 subroutine bl_avgdown_faces (lo, hi, &
      f, f_l1, f_l2, f_l3, f_h1, f_h2, f_h3, &
@@ -146,3 +158,71 @@ subroutine bl_avgdown_faces (lo, hi, &
 
 end subroutine bl_avgdown_faces
 
+! ***************************************************************************************
+! subroutine bl_avgdown
+! ***************************************************************************************
+
+      subroutine bl_avgdown (lo,hi,&
+                             fine,f_l1,f_l2,f_l3,f_h1,f_h2,f_h3, &
+                             crse,c_l1,c_l2,c_l3,c_h1,c_h2,c_h3, &
+                             lrat,ncomp)
+
+      use bl_constants_module
+
+      implicit none
+
+      integer f_l1,f_l2,f_l3,f_h1,f_h2,f_h3
+      integer c_l1,c_l2,c_l3,c_h1,c_h2,c_h3
+      integer lo(3), hi(3)
+      integer lrat(3), ncomp
+      double precision crse(c_l1:c_h1,c_l2:c_h2,c_l3:c_h3,ncomp)
+      double precision fine(f_l1:f_h1,f_l2:f_h2,f_l3:f_h3,ncomp)
+
+      integer i, j, k, ic, jc, kc, ioff, joff, koff
+      integer clo(3),chi(3)
+      double precision volfrac
+
+      clo(1:3) = lo(1:3) / lrat(1:3) 
+      chi(1:3) = hi(1:3) / lrat(1:3) 
+
+      !
+      ! ::::: set coarse grid to zero on overlap
+      !
+      do kc = clo(3), chi(3)
+         do jc = clo(2), chi(2)
+            do ic = clo(1), chi(1)
+               crse(ic,jc,kc,:) = ZERO
+            enddo
+         enddo
+      enddo
+      !
+      ! ::::: sum fine data
+      !
+      do koff = 0, lrat(3)-1
+        do kc = clo(3), chi(3)
+          k = kc*lrat(3) + koff
+          do joff = 0, lrat(2)-1
+            do jc = clo(2), chi(2)
+              j = jc*lrat(2) + joff
+              do ioff = 0, lrat(1)-1
+                do ic = clo(1), chi(1)
+                  i = ic*lrat(1) + ioff
+                  crse(ic,jc,kc,1:ncomp) = crse(ic,jc,kc,1:ncomp) + fine(i,j,k,1:ncomp)
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+
+      volfrac = ONE/dble(lrat(1)*lrat(2)*lrat(3))
+      do kc = clo(3), chi(3)
+         do jc = clo(2), chi(2)
+            do ic = clo(1), chi(1)
+               crse(ic,jc,kc,1:ncomp) = volfrac*crse(ic,jc,kc,1:ncomp)
+            enddo
+         enddo
+      enddo
+
+      end subroutine bl_avgdown
+! ***************************************************************************************

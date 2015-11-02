@@ -421,7 +421,7 @@ extern "C"
   const int MGT_BC_DIR =  1;	/* Dirichlet */
   const int MGT_BC_NEU =  2;	/* Neumann   */
 
-  void mgt_init(const int* comm);
+  void mgt_init();
 
   void mgt_flush_copyassoc_cache();
 

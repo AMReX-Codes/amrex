@@ -293,6 +293,9 @@ MultiGrid::solve (MultiFab&       _sol,
         std::cout << "MultiGrid: Initial residual           = " << tmp[1] << '\n';
     }
 
+    if (tmp[1] == 0.0)
+	return;
+
     //
     // We can now use homogeneous bc's because we have put the problem into residual-correction form.
     //
