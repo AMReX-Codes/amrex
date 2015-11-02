@@ -9,6 +9,13 @@
 #include <IntVect.H>
 #include <IndexType.H>
 
+namespace
+{
+    static const IntVect xdim(D_DECL(1,0,0));
+    static const IntVect ydim(D_DECL(0,1,0));
+    static const IntVect zdim(D_DECL(0,0,1));
+}
+
 const IntVect&
 IntVect::TheUnitVector ()
 {
@@ -28,20 +35,11 @@ IntVect::TheDimensionVector (int d)
 {
     switch (d) {
     case (0) :
-    {
-	static const IntVect xdim(D_DECL(1,0,0));
-	return xdim;
-    }
+        return xdim;
     case (1) :
-    {
-	static const IntVect ydim(D_DECL(0,1,0));
-	return ydim;
-    }
+        return ydim;
     default:
-    {
-	static const IntVect zdim(D_DECL(0,0,1));
-	return zdim;
-    }
+        return zdim;
     };
 }
 
