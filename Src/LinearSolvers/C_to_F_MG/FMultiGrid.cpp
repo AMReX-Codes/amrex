@@ -8,6 +8,7 @@ FMultiGrid::FMultiGrid (const Geometry & geom,
     m_baselevel(baselevel),
     m_crse_ratio(crse_ratio),
     m_stencil(CC_CROSS_STENCIL),
+    m_maxorder(0),
     m_verbose(0),
     m_geom(m_nlevels),
     m_bndry(0),
@@ -27,6 +28,7 @@ FMultiGrid::FMultiGrid (const std::vector<Geometry> & geom,
     m_baselevel(baselevel),
     m_crse_ratio(crse_ratio),
     m_stencil(CC_CROSS_STENCIL),
+    m_maxorder(0),
     m_verbose(0),
     m_geom(m_nlevels),
     m_bndry(0),
@@ -46,6 +48,7 @@ FMultiGrid::FMultiGrid (const PArray<Geometry> & geom,
     m_baselevel(baselevel),
     m_crse_ratio(crse_ratio),
     m_stencil(CC_CROSS_STENCIL),
+    m_maxorder(0),
     m_verbose(0),
     m_geom(m_nlevels),
     m_bndry(0),
@@ -86,6 +89,13 @@ FMultiGrid::set_bc (int     * mg_bc,
     m_bc = Boundary(mg_bc, &crse_phi, &phi);
 }
 
+void
+FMultiGrid::set_bc (const MacBndry& mac_bndry)
+{
+    BL_ASSERT(m_bndry == 0);
+    m_bndry = const_cast<MacBndry*>(&mac_bndry);
+}
+
 void 
 FMultiGrid::set_const_gravity_coeffs ()
 {
@@ -115,6 +125,19 @@ FMultiGrid::set_gravity_coeffs (Array< PArray<MultiFab> >& b)
     BL_ASSERT(b[0].size() == BL_SPACEDIM);
 
     m_coeff.eq_type = gravity_eq;
+    m_coeff.coeffs_set = true;
+
+    Copy(m_coeff.b, b);
+}
+
+void 
+FMultiGrid::set_mac_coeffs (PArray<MultiFab>& b)
+{
+    BL_ASSERT(m_coeff.eq_type == invalid_eq);
+    BL_ASSERT(m_nlevels == 1);
+    BL_ASSERT(b.size() == BL_SPACEDIM);
+
+    m_coeff.eq_type = macproj_eq;
     m_coeff.coeffs_set = true;
 
     Copy(m_coeff.b, b);
@@ -186,10 +209,10 @@ FMultiGrid::solve (PArray<MultiFab>& phi,
 		   int need_grad_phi,
 		   int verbose)
 {
-    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(  m_bc.initilized || m_bndry != 0);
+    BL_ASSERT(!(m_bc.initilized && m_bndry != 0));
     BL_ASSERT(m_coeff.eq_type != invalid_eq);
     BL_ASSERT(m_mgt_solver == 0);
-    BL_ASSERT(m_bndry == 0);
 
     MultiFab* phi_p[m_nlevels];
     MultiFab* rhs_p[m_nlevels];
@@ -255,10 +278,10 @@ FMultiGrid::compute_residual (PArray<MultiFab> & phi,
 			      PArray<MultiFab> & rhs,
 			      PArray<MultiFab> & res)
 {
-    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(  m_bc.initilized || m_bndry != 0);
+    BL_ASSERT(!(m_bc.initilized && m_bndry != 0));
     BL_ASSERT(m_coeff.eq_type != invalid_eq);
     BL_ASSERT(m_mgt_solver == 0);
-    BL_ASSERT(m_bndry == 0);
 
     MultiFab* phi_p[m_nlevels];
     MultiFab* rhs_p[m_nlevels];
@@ -290,7 +313,8 @@ void
 FMultiGrid::applyop (PArray<MultiFab> & phi,
 		     PArray<MultiFab> & res)
 {
-    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(  m_bc.initilized || m_bndry != 0);
+    BL_ASSERT(!(m_bc.initilized && m_bndry != 0));
     BL_ASSERT(m_coeff.eq_type != invalid_eq);
     BL_ASSERT(m_mgt_solver == 0);
     BL_ASSERT(m_bndry == 0);
@@ -424,29 +448,42 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
 	}
     }
 
-    if (eq_type == const_gravity_eq)
-    {
-	mgt_solver.set_const_gravity_coeffs(xa, xb);
-    }
-    else if (eq_type == gravity_eq)
-    {
-	BL_ASSERT(coeffs_set);
-	mgt_solver.set_gravity_coefficients(b, xa, xb);
-    }
-    else if (eq_type == general_eq)
-    {
-	BL_ASSERT(scalars_set && coeffs_set);
-	mgt_solver.set_abeclap_coeffs(alpha, a, beta, b, xa, xb);
-    }
-    else {
-	BoxLib::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
+    switch (eq_type) {
+        case const_gravity_eq:
+	{
+	    mgt_solver.set_const_gravity_coeffs(xa, xb);
+	    break;
+	}
+        case (gravity_eq):
+	{
+	    BL_ASSERT(coeffs_set);
+	    mgt_solver.set_gravity_coefficients(b, xa, xb);
+	    break;
+	}
+        case (macproj_eq):
+	{
+	    BL_ASSERT(coeffs_set);
+	    mgt_solver.set_mac_coefficients(b, xa, xb);
+	    break;
+	}
+        case (general_eq):
+	{
+	    BL_ASSERT(scalars_set && coeffs_set);
+	    mgt_solver.set_abeclap_coeffs(alpha, a, beta, b, xa, xb);
+	    break;
+	}
+        default:
+	{
+	    BoxLib::Abort("FMultiGrid::ABecCoeff::set_coeffs: How did we get here?");
+	}
     }
 }
 
 void
 FMultiGrid::init_mgt_solver (PArray<MultiFab>& phi)
 {
-    BL_ASSERT(m_bc.initilized);
+    BL_ASSERT(  m_bc.initilized || m_bndry != 0);
+    BL_ASSERT(!(m_bc.initilized && m_bndry != 0));
     BL_ASSERT(m_coeff.eq_type != invalid_eq);
     BL_ASSERT(m_mgt_solver == 0);
 
@@ -463,11 +500,44 @@ FMultiGrid::init_mgt_solver (PArray<MultiFab>& phi)
 
     bool nodal = false;
     int  nc = 0;
-    m_mgt_solver = new MGT_Solver (m_geom, m_bc.get_mg_bc() , ba, dmap, nodal,
-				   m_stencil, nodal, nc, ncomp, m_verbose);
+    Array<int> mg_bc;
+    if (m_bc.initilized) 
+    {
+	mg_bc = Array<int>(m_bc.get_mg_bc(), 2*BL_SPACEDIM);
+    } 
+    else 
+    {
+	mg_bc.resize(2*BL_SPACEDIM);
+	
+	for ( int i = 0; i < BL_SPACEDIM; ++i )
+        { 
+            if ( m_geom[0].isPeriodic(i) )
+            {
+                mg_bc[i*2 + 0] = 0;
+                mg_bc[i*2 + 1] = 0;
+            }
+            else
+            {
+                mg_bc[i*2 + 0] = m_bndry->phys_bc_lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+                mg_bc[i*2 + 1] = m_bndry->phys_bc_hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
+            }
+        }
+    }
 
-    m_bndry = new MacBndry (ba[0], ncomp, m_geom[0]);
-    m_bc.set_bndry_values(*m_bndry, m_crse_ratio);
+    RAII_mgt_solver.resize(1, PArrayManage);
+    RAII_mgt_solver.set(0, new MGT_Solver (m_geom, mg_bc.dataPtr() , ba, dmap, nodal,
+					   m_stencil, nodal, nc, ncomp, m_verbose));
+    m_mgt_solver = &(RAII_mgt_solver[0]);
+
+    if (m_maxorder > 0) m_mgt_solver->set_maxorder(m_maxorder);
+
+    if (m_bndry == 0) {
+	RAII_bndry.resize(1, PArrayManage);
+	RAII_bndry.set(0, new MacBndry (ba[0], ncomp, m_geom[0]));
+	m_bndry = &(RAII_bndry[0]);
+
+	m_bc.set_bndry_values(*m_bndry, m_crse_ratio);
+    }
 
     m_coeff.set_coeffs(*m_mgt_solver, *this);
 }

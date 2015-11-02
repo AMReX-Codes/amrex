@@ -914,7 +914,8 @@ def find_build_dirs(tests):
 
 def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
     """ copy the last plotfile output from each test in testList 
-        into the benchmark directory """
+        into the benchmark directory.  Also copy the diffDir, if
+        it exists """
     td = os.getcwd()
     
     for t in test_list:
@@ -949,6 +950,16 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         else:   # no benchmark exists
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
                 cf.write("benchmarks update failed")
+            
+        # is there a diffDir to copy too?
+        if not t.diffDir == "":
+            diff_dir_bench = "{}/{}_{}".format(bench_dir, t.name, t.diffDir)
+            if os.path.isdir(diff_dir_bench):
+                shutil.rmtree(diff_dir_bench)
+                shutil.copytree(t.diffDir, diff_dir_bench)
+            else:
+                shutil.copy(t.diffDir, diff_dir_bench)
+            log.log("new diffDir: {}_{}".format(t.name, t.diffDir))
             
         os.chdir(td)
         
