@@ -14,19 +14,25 @@ namespace
     static const IntVect xdim(D_DECL(1,0,0));
     static const IntVect ydim(D_DECL(0,1,0));
     static const IntVect zdim(D_DECL(0,0,1));
+
+    static const IntVect Unit(D_DECL(1,1,1));
+
+    static const IntVect Zero(D_DECL(0,0,0));
+
+    static const IntVect Node(D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
+
+    static const IntVect Cell(D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
 }
 
 const IntVect&
 IntVect::TheUnitVector ()
 {
-    static const IntVect Unit(D_DECL(1,1,1));
     return Unit;
 }
 
 const IntVect&
 IntVect::TheZeroVector ()
 {
-    static const IntVect Zero(D_DECL(0,0,0));
     return Zero;
 }
 
@@ -46,14 +52,12 @@ IntVect::TheDimensionVector (int d)
 const IntVect&
 IntVect::TheNodeVector ()
 {
-    static const IntVect Node(D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
     return Node;
 }
 
 const IntVect&
 IntVect::TheCellVector ()
 {
-    static const IntVect Cell(D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
     return Cell;
 }
 
