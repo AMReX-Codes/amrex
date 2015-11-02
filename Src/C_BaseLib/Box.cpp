@@ -6,14 +6,10 @@
 #include <BoxLib.H>
 #include <Box.H>
 
-namespace
-{
-    static const Box Unit(IntVect::TheZeroVector(), IntVect::TheZeroVector());
-}
-
 const Box&
 Box::TheUnitBox ()
 {
+    static const Box Unit(IntVect::TheZeroVector(), IntVect::TheZeroVector());
     return Unit;
 }
 
