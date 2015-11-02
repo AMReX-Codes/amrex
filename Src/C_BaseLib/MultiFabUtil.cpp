@@ -101,7 +101,7 @@ namespace BoxLib
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& tbx = mfi.tilebox();
@@ -141,7 +141,7 @@ namespace BoxLib
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& tbx = mfi.tilebox();
