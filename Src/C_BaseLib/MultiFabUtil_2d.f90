@@ -123,8 +123,6 @@ end subroutine bl_avgdown_faces
                              crse,c_l1,c_l2,c_h1,c_h2, &
                              lrat,ncomp)
 
-      use bl_constants_module
-
       implicit none
 
       integer f_l1,f_l2,f_h1,f_h2
@@ -146,7 +144,7 @@ end subroutine bl_avgdown_faces
       !
       do jc = clo(2), chi(2)
          do ic = clo(1), chi(1)
-            crse(ic,jc,:) = ZERO
+            crse(ic,jc,:) = 0.d0
          enddo
       enddo
       !
@@ -164,7 +162,7 @@ end subroutine bl_avgdown_faces
         enddo
       enddo
 
-      volfrac = ONE/dble(lrat(1)*lrat(2))
+      volfrac = 1.d0/dble(lrat(1)*lrat(2))
       do jc = clo(2), chi(2)
          do ic = clo(1), chi(1)
             crse(ic,jc,1:ncomp) = volfrac*crse(ic,jc,1:ncomp)
@@ -183,8 +181,6 @@ end subroutine bl_avgdown_faces
                              fv,fv_l1,fv_l2,fv_h1,fv_h2, &
                              cv,cv_l1,cv_l2,cv_h1,cv_h2, &
                              lrat,ncomp)
-
-      use bl_constants_module
 
       implicit none
 
@@ -210,7 +206,7 @@ end subroutine bl_avgdown_faces
       !
       do jc = clo(2), chi(2)
          do ic = clo(1), chi(1)
-            crse(ic,jc,:) = ZERO
+            crse(ic,jc,:) = 0.d0
          enddo
       enddo
       !
