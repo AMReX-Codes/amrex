@@ -600,7 +600,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   for (int n = 0; n < BL_SPACEDIM; ++n)
       grad_phi.set(n, new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), 1, 0));
 
-  fmg.get_grad_phi(grad_phi);
+  fmg.get_fluxes(grad_phi);
 
   // Average edge-centered gradients to cell centers.
   BoxLib::average_face_to_cellcenter(gphi, grad_phi, geom);
