@@ -464,6 +464,8 @@ public:
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif
 
+    void MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs);
+
 protected:
     //
     // Used by grid_places().

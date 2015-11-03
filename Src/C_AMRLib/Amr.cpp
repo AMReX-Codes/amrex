@@ -2288,6 +2288,8 @@ Amr::regrid (int  lbase,
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
 	} else if(rebalance_grids == 3) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 4) {  // ---- move all grids to proc zero
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), 0);
 	} else {
 	}
 
@@ -3387,3 +3389,39 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
     amr_level[0].GetParticleData(part_data,start_comp,num_comp);
 }
 #endif
+
+
+
+
+void
+Amr::MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs) {
+
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
+
+    DistributionMapping::InitProximityMap();
+    DistributionMapping::Initialize();
+
+    Array<BoxArray> allBoxes(amr_level.size());
+    for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
+      allBoxes[ilev] = boxArray(ilev);
+    }
+    Array<Array<int> > mLDM;
+    // ---- just use the random map for now
+    int maxRank(ParallelDescriptor::NProcsAll() - nSidecarProcs - 1);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "_______ maxRank = " << maxRank << std::endl;
+    }
+
+    mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
+
+    for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+      MultiFab::MoveAllFabs(mLDM[iMap]);
+    }
+    Geometry::FlushPIRMCache();
+}
+
+
+
