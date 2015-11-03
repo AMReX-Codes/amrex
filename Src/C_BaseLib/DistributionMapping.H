@@ -200,7 +200,7 @@ class DistributionMapping
 					       int maxgrid);
     static Array<Array<int> > MultiLevelMapRandom(const Array<IntVect>  &refRatio,
                                                   const Array<BoxArray> &allBoxes,
-						  int maxgrid);
+						  int maxgrid, int maxRank = -1);
     static Array<Array<int> > MultiLevelMapKnapSack(const Array<IntVect>  &refRatio,
                                                     const Array<BoxArray> &allBoxes,
 						    int maxgrid);

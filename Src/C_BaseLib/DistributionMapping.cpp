@@ -496,7 +496,6 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
 {
-//BoxLib::Abort("RoundRobinDoIt");
     Array<int> ord;
 
     LeastUsedCPUs(nprocs,ord);
@@ -1753,9 +1752,13 @@ if(ParallelDescriptor::IOProcessor()) {
 Array<Array<int> >
 DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
                                           const Array<BoxArray> &allBoxes,
-					  int maxgrid)
+					  int maxgrid, int maxRank)
 {
     BL_PROFILE("DistributionMapping::MultiLevelMapRandom()");
+
+    if(maxRank < 0) {
+      maxRank = ParallelDescriptor::NProcs() - 1;
+    }
 
     Array<Array<int> > localPMaps(allBoxes.size());
     for(int n(0); n < localPMaps.size(); ++n) {
@@ -1763,7 +1766,7 @@ DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
 
       if(ParallelDescriptor::IOProcessor()) {
         for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
-          localPMaps[n][ir] = BoxLib::Random_int(ParallelDescriptor::NProcs());
+          localPMaps[n][ir] = BoxLib::Random_int(maxRank + 1);
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
