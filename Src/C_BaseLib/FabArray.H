@@ -1114,6 +1114,9 @@ FabArray<FAB>::defined (int K) const
 	return true;
     }
     else {
+    std::cout << ParallelDescriptor::MyProcAll() << ":<<<<<<<< li K m_fabs_v.size() m_fabs_v[li] indexMap.size() = " << li << "  "
+              << K << "  " << m_fabs_v.size() << "  " << m_fabs_v[li] << "  "
+	      << indexMap.size() << std::endl;
 	return false;
     }
 }
@@ -1950,10 +1953,11 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     {
       if(it->second->ok() == false) {
         BoxLib::Abort("it not ok");
+        BoxLib::Abort("**** Error 0 in MoveAllFabs:  it->second not ok");
       }
       nFabsMoved = it->second->MoveFabs(newDistMapArray);  // just keep the last one
       if( ! it->second->ok()) {
-        BoxLib::Abort("_here 00:  it not ok");
+        BoxLib::Abort("**** Error 1 in MoveAllFabs:  it->second not ok");
       }
       lastFAPtr = it->second;
     }
@@ -1997,6 +2001,8 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
     if(newDistMapArray[idm] < 0 ||
        newDistMapArray[idm] > ParallelDescriptor::NProcs() - 1)
     {
+      std::cout << "**** idm ndm[idm] np = " << newDistMapArray[idm] << "  "
+                << ParallelDescriptor::NProcs() << std::endl;
       BoxLib::Abort("**** Error:  bad newDistMap:2");
     }
   }
@@ -2113,7 +2119,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   // ---- reconstruct the index and fab vectors
   indexMap.clear();
   m_fabs_v.clear();
-  for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++ tIFiter) {
+  for(tIFiter = tempIndexFABs.begin(); tIFiter != tempIndexFABs.end(); ++tIFiter) {
     indexMap.push_back(tIFiter->first);
     m_fabs_v.push_back(tIFiter->second);
   }
