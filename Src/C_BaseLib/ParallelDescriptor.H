@@ -301,6 +301,11 @@ namespace ParallelDescriptor
     {
         return ioProcessor;
     }
+    inline int
+    IOProcessorNumberAll ()
+    {
+        return ioProcessor;
+    }
     //
     // Is this CPU the I/O Processor?
     // To get the rank number, call IOProcessorNumber()
@@ -309,6 +314,11 @@ namespace ParallelDescriptor
     IOProcessor ()
     {
          return MyProc() == IOProcessorNumber();
+    }
+    inline bool
+    IOProcessorAll ()
+    {
+         return MyProcAll() == IOProcessorNumberAll();
     }
     //
     // BoxLib's Parallel Communicators
