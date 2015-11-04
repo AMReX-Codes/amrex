@@ -837,3 +837,33 @@ Box::isSquare () const
     return (size[0] == size[1] && (size[1] == size[2]));
 #endif
 }
+
+Array<int> BoxLib::SerializeBox(const Box &b)
+{
+  int count(0);
+  Array<int> retArray(BL_SPACEDIM * 3);
+  for(int i(0); i < BL_SPACEDIM; ++i) {
+    retArray[count] = b.smallEnd(i);
+    ++count;
+  }
+  for(int i(0); i < BL_SPACEDIM; ++i) {
+    retArray[count] = b.bigEnd(i);
+    ++count;
+  }
+  IntVect ivType(b.type());
+  for(int i(0); i < BL_SPACEDIM; ++i) {
+    retArray[count] = ivType[i];
+    ++count;
+  }
+  return retArray;
+}
+
+
+Box BoxLib::UnSerializeBox(const Array<int> &serarray)
+{
+  const int *iptr = serarray.dataPtr();
+  return Box(IntVect(iptr),
+             IntVect(iptr + BL_SPACEDIM),
+	     IndexType(IntVect(iptr + (2 * BL_SPACEDIM))));
+}
+
