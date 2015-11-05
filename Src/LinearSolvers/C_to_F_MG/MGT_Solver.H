@@ -25,19 +25,13 @@ public:
                int ncomp = 1,
                int verbose = 0);
 
-    void Build(const std::vector<Geometry>& geom, 
-               int* bc, int  stencil_type,
-               const std::vector<DistributionMapping>& dmap,
-               int nc,
-               int ncomp,
-               int verbose);
-
   static void initialize(bool nodal);
   static void Finalize();
   static void FlushFortranOutput();
 
   void set_cfa_const (Real alpha, int lev);
   static void set_cfa (const MultiFab& aa, int lev);
+  static void set_cfaa (const MultiFab& aa, Real alpha, int lev);
   static void set_cfa2 (const MultiFab& aa, int lev);
   static void set_cfb (const MultiFab& bb, Real beta, int lev, int dir);
   static void set_cfbn (const MultiFab& bb, Real beta, int lev, int dir);
@@ -50,14 +44,20 @@ public:
   static void get_gp (MultiFab& mf, int lev, int dir, Real dx);
 
   //
-  // (aa - beta * (del dot bb grad)) phi = RHS
+  // (alpha * aa - beta * (del dot bb grad)) phi = RHS
   //
-  void set_abeclap_coeffs (Real alpha, // aa is constant
+  void set_abeclap_coeffs (Real alpha, // aa is constant one
 			   Real beta,
 			   const Array<PArray<MultiFab> >& bb,
 			   const Array< Array<Real> >& xa,
 			   const Array< Array<Real> >& xb);
-  void set_abeclap_coeffs (const PArray<MultiFab>& aa,
+  void set_abeclap_coeffs (const PArray<MultiFab>& aa, // alpha is one
+			   Real beta,
+			   const Array<PArray<MultiFab> >& bb,
+			   const Array< Array<Real> >& xa,
+			   const Array< Array<Real> >& xb);
+  void set_abeclap_coeffs (Real alpha,
+			   const PArray<MultiFab>& aa,
 			   Real beta,
 			   const Array<PArray<MultiFab> >& bb,
 			   const Array< Array<Real> >& xa,
@@ -114,6 +114,13 @@ public:
   
 private:
 
+   void Build(const std::vector<Geometry>& geom, 
+	      int* bc, int  stencil_type,
+	      const std::vector<DistributionMapping>& dmap,
+	      int nc,
+	      int ncomp);
+
+  int verbose;
   int m_nlevel;
   std::vector<BoxArray> m_grids;
   bool m_nodal;

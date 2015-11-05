@@ -34,6 +34,7 @@ namespace BoxLib
     // exiting from BoxLib land.
     //
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
+    void ExecOnInitialize (PTR_TO_VOID_FUNC);
     //
     // Print out message to cerr and exit via BoxLib::Abort().
     //

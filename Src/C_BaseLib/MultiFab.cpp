@@ -986,6 +986,24 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
     return nm1;
 }
 
+Real
+MultiFab::sum (int comp, bool local) const
+{
+    Real sm = 0.e0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    {
+        sm += get(mfi).sum(mfi.tilebox(), comp, 1);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm);
+
+    return sm;
+}
 
 void
 MultiFab::minus (const MultiFab& mf,

@@ -85,14 +85,16 @@ VPATH_LOCATIONS += $(Fmlocs)
 # list of directories to put in the Fortran include path
 FINCLUDE_LOCATIONS += $(Fmincs)
 
-programs += faverage
+#programs += faverage
 #programs += fcompare
 #programs += fextract
 #programs += fextrema
 #programs += fIDLdump
 #programs += fsnapshot2d
 #programs += fsnapshot3d
-programs += ftime
+#programs += ftime
+#programs += fintgvar2d
+programs += fdumpdata2d
 
 all: $(pnames)
 

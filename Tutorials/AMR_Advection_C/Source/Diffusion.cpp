@@ -3,10 +3,7 @@
 #include "ADR.H"
 #include "ADR_F.H"
 
-#include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <stencil_types.H>
-#include <mg_cpp_f.h>
+#include <FMultiGrid.H>
 
 #define MAX_LEV 15
 
@@ -77,102 +74,6 @@ Diffusion::zeroPhiFluxReg (int level)
 
 void
 Diffusion::applyop (int level, MultiFab& Species, 
-                    MultiFab& DiffTerm, PArray<MultiFab>& diff_coef)
-{
-    if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
-        std::cout << "   " << '\n';
-        std::cout << "... compute diffusive term at level " << level << '\n';
-    }
-
-    int nlevs = 1;
-
-    Array< Array<Real> > xa(1);
-    Array< Array<Real> > xb(1);
-
-    xa[0].resize(BL_SPACEDIM);
-    xb[0].resize(BL_SPACEDIM);
-
-    if (level == 0) {
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-        xa[0][i] = 0.;
-        xb[0][i] = 0.;
-      }
-    } else {
-      const Real* dx_crse   = parent->Geom(level-1).CellSize();
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-        xa[0][i] = 0.5 * dx_crse[i];
-        xb[0][i] = 0.5 * dx_crse[i];
-      }
-    }
-
-    //
-    // Store the Dirichlet boundary condition for phi in bndry.
-    //
-    const Geometry& geom = parent->Geom(level);
-    MacBndry bndry(grids[level],1,geom);
-
-    // Build the homogeneous boundary conditions.  One could setVal
-    // the bndry fabsets directly, but we instead do things as if
-    // we had a fill-patched mf with grows--in that case the bndry
-    // object knows how to grab grow data from the mf on physical
-    // boundarys.  Here we creat an mf, setVal, and pass that to
-    // the bndry object.
-    //
-    if (level == 0)
-    {
-        bndry.setBndryValues(Species,0,0,1,*phys_bc);
-    }
-
-    std::vector<BoxArray> bav(nlevs);
-    std::vector<DistributionMapping> dmv(nlevs);
-
-    ADR* cs = dynamic_cast<ADR*>(&parent->getLevel(level));
-    bav[0] = grids[level];
-    MultiFab& S_new = cs->get_new_data(State_Type);
-    dmv[0] = S_new.DistributionMap();
-    std::vector<Geometry> fgeom(1);
-    fgeom[0] = parent->Geom(level);
-
-    MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, stencil_type);
-    
-    MultiFab* phi_p[1];
-    MultiFab* Res_p[1];
-
-    Array< PArray<MultiFab> > coeffs(1);
-
-    DiffTerm.setVal(0.);
-
-    phi_p[0] = &Species;
-    Res_p[0] = &DiffTerm;
-
-    // Need to do this even if Cartesian because the array is needed in set_coefficients
-    coeffs[0].resize(BL_SPACEDIM,PArrayManage);
-    Geometry g = cs->Geom();
-    for (int i = 0; i < BL_SPACEDIM ; i++) {
-        coeffs[0].set(i, new MultiFab);
-        g.GetFaceArea(coeffs[0][i],grids[level],i,0);
-        MultiFab::Copy(coeffs[0][i],diff_coef[i],0,0,1,0);
-    }
-
-#if (BL_SPACEDIM < 3)
-    // NOTE: we just pass Res here to use in the MFIter loop...
-    if (Geometry::IsRZ() || Geometry::IsSPHERICAL())
-       applyMetricTerms(level,(*Res_p[0]),coeffs[0]);
-#endif
-
-    mgt_solver.set_gravity_coefficients(coeffs,xa,xb);
- 
-    mgt_solver.applyop(phi_p, Res_p, bndry);
-
-#if (BL_SPACEDIM < 3)
-    // Do this to unweight Res
-    if (Geometry::IsSPHERICAL() || Geometry::IsRZ() )
-       unweight_cc(level,(*Res_p[0]));
-#endif
-}
-
-void
-Diffusion::applyop (int level, MultiFab& Species, 
                     MultiFab& Crse, MultiFab& DiffTerm, 
                     PArray<MultiFab>& diff_coef)
 {
@@ -181,100 +82,43 @@ Diffusion::applyop (int level, MultiFab& Species,
         std::cout << "... compute diffusive term at level " << level << '\n';
     }
 
-    int nlevs = 1;
+    PArray<MultiFab> coeffs_curv;
+#if (BL_SPACEDIM < 3)
+    // NOTE: we just pass DiffTerm here to use in the MFIter loop...
+    if (Geometry::IsRZ() || Geometry::IsSPHERICAL())
+    {
+	coeffs_curv.resize(BL_SPACEDIM, PArrayManage);
 
-    Array< Array<Real> > xa(1);
-    Array< Array<Real> > xb(1);
+	for (int i = 0; i< BL_SPACEDIM; ++i) {
+	    coeffs_curv.set(i, new MultiFab(diff_coef[i].boxArray(), 1, 0, Fab_allocate));
+	    MultiFab::Copy(coeffs_curv[i], diff_coef[i], 0, 0, 1, 0);
+	}
 
-    xa[0].resize(BL_SPACEDIM);
-    xb[0].resize(BL_SPACEDIM);
-
-    if (level == 0) {
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-        xa[0][i] = 0.;
-        xb[0][i] = 0.;
-      }
-    } else {
-      const Real* dx_crse   = parent->Geom(level-1).CellSize();
-      for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-        xa[0][i] = 0.5 * dx_crse[i];
-        xb[0][i] = 0.5 * dx_crse[i];
-      }
+	applyMetricTerms(0, DiffTerm, coeffs_curv);
     }
+#endif
 
-    //
-    // Store the Dirichlet boundary condition for phi in bndry.
-    //
-    const Geometry& geom = parent->Geom(level);
-    MacBndry bndry(grids[level],1,geom);
-    const int src_comp  = 0;
-    const int dest_comp = 0;
-    const int num_comp  = 1;
+    PArray<MultiFab> & coeffs = (coeffs_curv.size() > 0) ? coeffs_curv : diff_coef;
 
     IntVect crse_ratio = level > 0 ? parent->refRatio(level-1)
                                    : IntVect::TheZeroVector();
 
-    // Build the homogeneous boundary conditions.  One could setVal
-    // the bndry fabsets directly, but we instead do things as if
-    // we had a fill-patched mf with grows--in that case the bndry
-    // object knows how to grab grow data from the mf on physical
-    // boundarys.  Here we creat an mf, setVal, and pass that to
-    // the bndry object.
-    //
-    BoxArray crse_boxes = BoxArray(grids[level]).coarsen(crse_ratio);
-    const int in_rad     = 0;
-    const int out_rad    = 1; 
-    const int extent_rad = 2;
-    BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
-    crse_br.copyFrom(Crse,1,src_comp,dest_comp,num_comp);
-    bndry.setBndryValues(crse_br,src_comp,Species,src_comp,
-                         dest_comp,num_comp,crse_ratio,*phys_bc);
+    FMultiGrid fmg(parent->Geom(level), level, crse_ratio);
 
-    std::vector<BoxArray> bav(nlevs);
-    std::vector<DistributionMapping> dmv(nlevs);
-
-    ADR* cs = dynamic_cast<ADR*>(&parent->getLevel(level));
-    bav[0] = grids[level];
-    MultiFab& S_new = cs->get_new_data(State_Type);
-    dmv[0] = S_new.DistributionMap();
-    std::vector<Geometry> fgeom(1);
-    fgeom[0] = parent->Geom(level);
-
-    MGT_Solver mgt_solver(fgeom, mg_bc, bav, dmv, false, stencil_type);
-    
-    MultiFab* phi_p[1];
-    MultiFab* Res_p[1];
-
-    Array< PArray<MultiFab> > coeffs(1);
-
-    DiffTerm.setVal(0.);
-
-    phi_p[0] = &Species;
-    Res_p[0] = &DiffTerm;
-
-    // Need to do this even if Cartesian because the array is needed in set_coefficients
-    coeffs[0].resize(BL_SPACEDIM,PArrayManage);
-    Geometry g = cs->Geom();
-    for (int i = 0; i < BL_SPACEDIM ; i++) {
-        coeffs[0].set(i, new MultiFab);
-        g.GetFaceArea(coeffs[0][i],grids[level],i,0);
-        MultiFab::Copy(coeffs[0][i],diff_coef[i],0,0,1,0);
+    if (level == 0) {
+	fmg.set_bc(mg_bc, Species);
+    } else {
+	fmg.set_bc(mg_bc, Crse, Species);
     }
 
-#if (BL_SPACEDIM < 3)
-    // NOTE: we just pass Res here to use in the MFIter loop...
-    if (Geometry::IsRZ() || Geometry::IsSPHERICAL())
-       applyMetricTerms(level,(*Res_p[0]),coeffs[0]);
-#endif
+    fmg.set_diffusion_coeffs(coeffs);
 
-    mgt_solver.set_gravity_coefficients(coeffs,xa,xb);
- 
-    mgt_solver.applyop(phi_p, Res_p, bndry);
+    fmg.applyop(Species, DiffTerm);
 
 #if (BL_SPACEDIM < 3)
     // Do this to unweight Res
     if (Geometry::IsSPHERICAL() || Geometry::IsRZ() )
-       unweight_cc(level,(*Res_p[0]));
+	unweight_cc(level, DiffTerm);
 #endif
 }
 

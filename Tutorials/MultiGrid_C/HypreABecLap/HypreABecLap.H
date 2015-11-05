@@ -22,6 +22,7 @@ public:
   void setScalars(Real sa, Real sb);
   void setACoeffs(const MultiFab& alpha);
   void setBCoeffs(const MultiFab beta[]);
+    void setBCoeffs(const PArray<MultiFab>& beta);
   void setVerbose(int _verbose);
   void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
 	     int max_iter, const BndryData& bndry);

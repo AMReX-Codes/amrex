@@ -1523,7 +1523,6 @@ contains
                                  bottom_level, bottom_solve_time)
     use fabio_module
     use bl_prof_module
-    use impose_neumann_bcs_module
 
     type(mg_tower),  intent(inout) :: mgt
     type(multifab),  intent(inout) :: rh

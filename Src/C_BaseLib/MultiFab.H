@@ -371,6 +371,10 @@ public:
     //
     Array<Real> norm2 (const Array<int>& comps) const;
     //
+    // Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
+    //
+    Real sum (int comp = 0, bool local = false) const;
+    //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the MultiFab.  The subregion consists
     // of the num_comp components starting at component comp.

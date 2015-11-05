@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include <ParallelDescriptor.H>
+#include <MultiFab.H>
+#include <Geometry.H>
 
 #include <InTransitAnalysis.H>
 
@@ -21,15 +23,14 @@ void InTransitAnalysis::DoAnalysis ()
 
     norm0 = mf->norm0();
     probsize = geom->ProbSize();
+    if (ParallelDescriptor::IOProcessor())
+        PrintResults();
 };
 
 void InTransitAnalysis::Finalize()
 {
     if (ParallelDescriptor::IOProcessor())
-    {
         std::cout << "InTransitAnalysis class is finalizing ..." << std::endl;
-        PrintResults();
-    }
 };
 
 void InTransitAnalysis::PrintResults() const
