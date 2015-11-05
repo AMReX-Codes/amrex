@@ -59,6 +59,6 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
     for (int ilev = 0; ilev < nlevs; ++ilev)
     {
 	int amr_level = ilev + base_level;
-	fmg.get_grad_phi(grad_phi_edge[amr_level], ilev);
+	fmg.get_fluxes(grad_phi_edge[amr_level], ilev);
     }
 }
