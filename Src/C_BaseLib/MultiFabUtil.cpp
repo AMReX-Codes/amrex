@@ -77,6 +77,12 @@ namespace BoxLib
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version DOES use volume-weighting
     void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
+                       int scomp, int ncomp, int rr)
+    {
+         average_down(S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
+    }
+
+    void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
         BL_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -133,6 +139,11 @@ namespace BoxLib
     // Average fine cell-based MultiFab onto crse cell-centered MultiFab.
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version does NOT use volume-weighting
+    void average_down (MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp, int rr)
+    {
+         average_down(S_fine,S_crse,scomp,ncomp,rr*IntVect::TheUnitVector());
+    }
+
     void average_down (MultiFab& S_fine, MultiFab& S_crse, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
