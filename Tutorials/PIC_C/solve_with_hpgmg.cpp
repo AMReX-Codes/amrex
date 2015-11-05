@@ -16,6 +16,7 @@ void
 solve_with_hpgmg(MultiFab& rhs,
                  PArray<MultiFab>& grad_phi,
                  const Geometry& geom,
+                 int base_level, int finest_level,
                  Real tol,
                  Real abs_tol)
 {
