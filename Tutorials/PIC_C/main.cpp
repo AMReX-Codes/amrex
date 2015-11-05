@@ -8,12 +8,13 @@
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
+#include <MultiFabUtil.H>
 
 #include "Particles.H"
 
 // declare routines below
 void solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
-                     const Array<Geometry>& geom, int base_level, int finest_level);
+                     const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
 
 int main(int argc, char* argv[])
 {
@@ -147,38 +148,56 @@ int main(int argc, char* argv[])
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_before");
 
-    // Use the PIC approach to deposit the "mass" onto the grid
-    for (int lev = 0; lev < nlevs; lev++)
-       MyPC->AssignDensitySingleLevel(rhs[lev],lev);
+    // **************************************************************************
+    // Compute the total charge of all particles in order to compute the offset
+    //     to make the Poisson equations solvable
+    // **************************************************************************
+
+    Real offset = 0.;
+    if (geom[0].isAllPeriodic()) 
+    {
+        for (int lev = 0; lev < nlevs; lev++)
+            offset = MyPC->sumParticleMass(lev);
+        if (ParallelDescriptor::IOProcessor())
+           std::cout << "Total charge of particles = " << offset << std::endl;
+        offset /= geom[0].ProbSize();
+    }
 
     // **************************************************************************
 
     // Define the density on level 0 from all particles at all levels
     int base_level   = 0;
-    int finest_level = 0;
+    int finest_level = 1;
 
-    // **************************************************************************
     PArray<MultiFab> PartMF;
     MyPC->AssignDensity(PartMF, base_level, 1, finest_level);
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        average_down(PartMF[lev], PartMF[lev+1], rr[lev]);
+        BoxLib::average_down(PartMF[lev+1],PartMF[lev],0,1,rr[lev]);
 
-    for (int lev = 0; lev < num_levels; lev++)
-        MultiFab::Add(Rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
+    for (int lev = 0; lev < nlevs; lev++)
+        MultiFab::Add(rhs[base_level+lev], PartMF[lev], 0, 0, 1, 0);
     // **************************************************************************
-
-    // std::cout << "RHS " << rhs[0][0] << std::endl;
+ 
+    // Define this to be solve at level 0 only
+    base_level   = 0;
+    finest_level = 0;
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
+    if (ParallelDescriptor::IOProcessor())
+       std::cout << "Solving for phi at level 0 ... " << std::endl;
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
 
     // Define this to be solve at level 1 only
     base_level   = 1;
     finest_level = 1;
 
     // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
+    if (ParallelDescriptor::IOProcessor())
+       std::cout << "Solving for phi at level 1 ... " << std::endl;
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
+    if (ParallelDescriptor::IOProcessor())
+       std::cout << "Solved  for phi at level 1 ... " << std::endl;
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we set dummy_dt = 0 so we don't actually move the particles.
@@ -217,7 +236,7 @@ int main(int argc, char* argv[])
     MyPC->WriteAsciiFile("Particles_before");
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level);
+    solve_for_accel(rhs,phi,grad_phi,geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
     // Note that we set dummy_dt = 0 so we don't actually move the particles.

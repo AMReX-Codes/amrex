@@ -7,10 +7,11 @@
 #include <FMultiGrid.H>
 
 void 
-solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
-               const Array<Geometry>& geom, int base_level, Real tol, Real abs_tol)
+solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, 
+               Array< PArray<MultiFab> >& grad_phi_edge, 
+               const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol)
 {
-    int nlevs = rhs.size() - base_level;
+    int nlevs = finest_level - base_level + 1;
 
     int mg_bc[2*BL_SPACEDIM];
 
@@ -45,15 +46,14 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<Multi
     if (base_level == 0) {
 	fmg.set_bc(mg_bc, phi[base_level]);
     } else {
-	MultiFab CPhi; 
-	BoxLib::Abort("need to get CPhi");
-	fmg.set_bc(mg_bc, CPhi, phi[base_level]);
+	fmg.set_bc(mg_bc, phi[base_level-1], phi[base_level]);
     }
 
     fmg.set_const_gravity_coeffs();
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
+    fmg.set_verbose(1);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
    
     for (int ilev = 0; ilev < nlevs; ++ilev)
