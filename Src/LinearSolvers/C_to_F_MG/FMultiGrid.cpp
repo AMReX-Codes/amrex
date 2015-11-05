@@ -231,7 +231,7 @@ FMultiGrid::solve (PArray<MultiFab>& phi,
 }
 
 void
-FMultiGrid::get_grad_phi (PArray<MultiFab>& grad_phi, int ilev)
+FMultiGrid::get_fluxes (PArray<MultiFab>& grad_phi, int ilev)
 {
     BL_ASSERT(ilev < m_nlevels);
 
@@ -240,7 +240,7 @@ FMultiGrid::get_grad_phi (PArray<MultiFab>& grad_phi, int ilev)
 }
 
 void
-FMultiGrid::get_grad_phi (Array<PArray<MultiFab> >& grad_phi)
+FMultiGrid::get_fluxes (Array<PArray<MultiFab> >& grad_phi)
 {
     for (int ilev = 0; ilev < m_nlevels; ++ilev) 
     {	
@@ -250,7 +250,7 @@ FMultiGrid::get_grad_phi (Array<PArray<MultiFab> >& grad_phi)
 }
 
 void
-FMultiGrid::get_grad_phi (PArray<PArray<MultiFab> >& grad_phi)
+FMultiGrid::get_fluxes (PArray<PArray<MultiFab> >& grad_phi)
 {
     for (int ilev = 0; ilev < m_nlevels; ++ilev) 
     {
