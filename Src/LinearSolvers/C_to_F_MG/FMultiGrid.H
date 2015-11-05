@@ -31,9 +31,9 @@
 //   Call solve.  This will store the solution in phi.
 //
 // Step 6: OPTIONAL
-//   Call get_grad_phi to get grad_phi.  The need_grad_phi flag in last step
-//   must be 1.  Note that grad_phi is PArray with BL_SPACEDIM face-cented
-//   MultiFabs or Array<PArray> in case of multiple levels.
+//   Call get_fluxes to get fluxes (i.e., -beta b grad phi).  The need_grad_phi 
+//   flag in last step must be 1.  Note that grad_phi is PArray with BL_SPACEDIM
+//   face-cented MultiFabs or Array<PArray> in case of multiple levels.
 //
 // If one only wants to test a solution by computing residual without actually
 // solving the problem, or apply the operator.  Replace Step 5 with a call to 
@@ -130,9 +130,9 @@ public:
 		int need_grad_phi = 0,
 		int verbose = 0);
 
-    void get_grad_phi (       PArray<MultiFab>  & grad_phi, int ilev = 0);
-    void get_grad_phi ( Array<PArray<MultiFab> >& grad_phi);
-    void get_grad_phi (PArray<PArray<MultiFab> >& grad_phi);
+    void get_fluxes (       PArray<MultiFab>  & grad_phi, int ilev = 0);
+    void get_fluxes ( Array<PArray<MultiFab> >& grad_phi);
+    void get_fluxes (PArray<PArray<MultiFab> >& grad_phi);
 
     void compute_residual (MultiFab & phi,
 			   MultiFab & rhs,
