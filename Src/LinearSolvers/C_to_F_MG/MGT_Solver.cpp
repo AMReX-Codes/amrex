@@ -69,6 +69,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_1d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_1d;
 mgt_set     mgt_set_rh         = mgt_set_rh_1d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_1d;
+mgt_setr    mgt_set_cfaa       = mgt_set_cfaa_1d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_1d;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_1d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_1d;
@@ -90,6 +91,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_2d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_2d;
 mgt_set     mgt_set_rh         = mgt_set_rh_2d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_2d;
+mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_2d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_2d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_2d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_2d;
@@ -113,6 +115,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_3d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_3d;
 mgt_set     mgt_set_rh         = mgt_set_rh_3d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_3d;
+mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_3d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_3d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_3d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_3d;
@@ -146,8 +149,9 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 		       bool _have_rhcc,
                        int nc,
                        int ncomp,
-                       int verbose)
+                       int _verbose)
     :
+    verbose(_verbose),
     m_nlevel(grids.size()),
     m_grids(grids),
     m_nodal(nodal),
@@ -155,7 +159,7 @@ MGT_Solver::MGT_Solver(const std::vector<Geometry>& geom,
 {
     BL_ASSERT(geom.size()==m_nlevel);
     BL_ASSERT(dmap.size()==m_nlevel);
-    Build(geom,bc,stencil_type,dmap,nc,ncomp,verbose);
+    Build(geom,bc,stencil_type,dmap,nc,ncomp);
 }
 
 
@@ -165,8 +169,7 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
                   int stencil_type,
                   const std::vector<DistributionMapping>& dmap,
                   int nc,
-                  int ncomp,
-                  int verbose)
+                  int ncomp)
     
 {
    if (!initialized)
@@ -180,20 +183,20 @@ MGT_Solver::Build(const std::vector<Geometry>& geom,
   // If it's true we use it since the user had to have set it somehow.
   // Otherwise we use def_verbose which is set generically using mg.v.
   //
-  int lverbose = (verbose > 0) ? verbose : def_verbose;
+  verbose = (verbose > 0) ? verbose : def_verbose;
 
   if (m_nodal) {
     mgt_nodal_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                            &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
-                           &lverbose,&def_cg_verbose,&def_max_nlevel,
+                           &verbose,&def_cg_verbose,&def_max_nlevel,
                            &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   } else {
     mgt_cc_alloc(&dm, &m_nlevel, &stencil_type);
     mgt_set_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
                      &def_maxiter,&def_maxiter_b,&def_bottom_solver,&def_bottom_solver_eps,
                      &def_max_L0_growth,
-                     &lverbose,&def_cg_verbose,&def_max_nlevel,
+                     &verbose,&def_cg_verbose,&def_max_nlevel,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
@@ -270,13 +273,7 @@ MGT_Solver::initialize(bool nodal)
 
     initialized = true;
 
-    int comm = 0;
-
-#ifdef BL_USE_MPI
-    comm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-#endif
-
-    mgt_init(&comm);
+    mgt_init();
 
     if (nodal) {
       mgt_get_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
@@ -373,8 +370,8 @@ MGT_Solver::initialize(bool nodal)
 
 
 //
-// (aa - beta * (del dot bb grad)) phi = RHS
-// Here, aa is const alpha.
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+// Here, aa is const one.
 //
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
@@ -417,7 +414,8 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 }
 
 //
-// (aa - beta * (del dot bb grad)) phi = RHS
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+// Here, alpha is one.
 //
 void
 MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
@@ -440,6 +438,47 @@ MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	set_cfa(aa[lev], lev);
+	
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    set_cfb(bb[lev][d], beta, lev, d);
+	}
+    }
+	
+    int dm = BL_SPACEDIM;
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				 pxa.dataPtr(), pxb.dataPtr(), &dm);
+    }
+
+    mgt_finalize_stencil();
+}
+
+//
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+//
+void
+MGT_Solver::set_abeclap_coeffs (Real alpha,
+				const PArray<MultiFab>& aa,
+				Real beta,
+				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<Real> >& xa,
+				const Array< Array<Real> >& xb)
+{
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
+
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	mgt_init_coeffs_lev(&lev);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	set_cfaa(aa[lev], alpha, lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfb(bb[lev][d], beta, lev, d);
@@ -790,21 +829,19 @@ MGT_Solver::nodal_project(MultiFab* p[], MultiFab* vel[], MultiFab* rhcc[], cons
 	  }
       }
 
+      if (verbose > 0) {
 #ifdef _OPENMP
 #pragma omp critical (mgt_rhmax)
 #endif
-      {
 	  rhmax = std::max(rmax_this,rhmax);
       }
   }
 
-  if (rhmax > 0.0) 
-  {
+  if (verbose > 0) {
       ParallelDescriptor::ReduceRealMax(rhmax,ParallelDescriptor::IOProcessorNumber());
       if (ParallelDescriptor::IOProcessor())
-          std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
+	  std::cout << " F90: Source norm after adding nodal RHS is " << rhmax << std::endl;
   }
-  
 
   if (have_rhcc) {
     mgt_add_divucc();
@@ -935,6 +972,23 @@ MGT_Solver::set_cfa (const MultiFab& aa, int lev)
 	mgt_set_cfa (&lev, &n, a.dataPtr(),
 		     abx.loVect(), abx.hiVect(),
 		     bx.loVect(), bx.hiVect());
+    }
+}
+
+void
+MGT_Solver::set_cfaa (const MultiFab& aa, Real alpha, int lev)
+{
+    // the caller has started OMP
+    for (MFIter mfi(aa, true); mfi.isValid(); ++mfi)
+    {
+	const int n = mfi.LocalIndex();
+	const Box& bx = mfi.tilebox();
+	const FArrayBox& a = aa[mfi];
+	const Box& abx = a.box();
+	mgt_set_cfaa (&lev, &n, a.dataPtr(),
+		      abx.loVect(), abx.hiVect(),
+		      bx.loVect(), bx.hiVect(),
+		      &alpha);
     }
 }
 

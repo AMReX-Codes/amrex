@@ -17,11 +17,6 @@ public:
                       MultiFab&             volume,
                       MultiFab*             area);
 
-  // Level 0 version 
-  void applyop(int level,MultiFab& species,
-               MultiFab& DiffTerm, PArray<MultiFab>& diff_coef);
-
-  // Level > 0 version 
   void applyop(int level,MultiFab& species, MultiFab& Crse,
                MultiFab& DiffTerm, PArray<MultiFab>& diff_coef);
 

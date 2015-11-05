@@ -141,6 +141,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring edison, $(NERSC_HOST)), edison)
     WHICHLINUX := EDISON
   endif
+  ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+    WHICHLINUX := CORI
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
@@ -168,6 +171,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring titan, $(UNAMEN)), titan)
     WHICHLINUX := TITAN
   endif
+  ifeq ($(findstring chester, $(UNAMEN)), chester)
+    WHICHLINUX := CHESTER
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
@@ -178,6 +184,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring bint, $(UNAMEN)), bint)
     WHICHLINUX := BABBAGE
+  endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
   endif
 endif
 #
@@ -293,14 +302,20 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        CXXOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        CXXOPTF += -fsanitize=address -fsanitize=undefined
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     ifeq ($(BACKTRACE),TRUE)
         LDFLAGS += -rdynamic
     endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       ?= g++
-    CC	       ?= gcc
+    CXX	       := g++
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -424,16 +439,28 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    ifeq ($(HOST),baragon)
+       override XTRALIBS += -lgfortran
+    else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
        override XTRALIBS += $(_f95_lib)       
     endif
+    endif
 
     FOPTF += -ffixed-line-length-0 -g -O3
     fOPTF += -ffixed-line-length-0 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        FOPTF += -fsanitize=thread
+        fOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        FOPTF += -fsanitize=address -fsanitize=undefined
+        fOPTF += -fsanitize=address -fsanitize=undefined
+    endif
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -482,6 +509,10 @@ ifeq ($(COMP),Intel)
    else
      _icpc := icc
      _icc  := icc
+   endif
+
+   ifeq ($(WHICHLINUX), CORI)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
@@ -754,6 +785,10 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+   endif
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
@@ -1189,4 +1224,11 @@ ifeq ($(USE_HPGMG), TRUE)
 
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif

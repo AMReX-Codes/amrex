@@ -1,9 +1,7 @@
 #ifndef INTRANSITANALYSIS_H
 #define INTRANSITANALYSIS_H
 
-#include <Analysis.H>
-
-class InTransitAnalysis: public AnalysisCallbackInterface
+class InTransitAnalysis
 {
     public:
         void Initialize (MultiFab&, Geometry&, int);

@@ -185,12 +185,14 @@ program fradsphere
         ! read in the data 1 patch at a time
         call fab_bind(pf, i, j)
 
+        lo(:) = 1
+        hi(:) = 1
         lo = lwb(get_box(pf, i, j))
         hi = upb(get_box(pf, i, j))
 
         p => dataptr(pf, i, j)
 
-        do ii = lbound(p,dim=1), ubound(p,dim=1)
+        do ii = lo(1), hi(1)
            if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
               cnt = cnt + 1
                     

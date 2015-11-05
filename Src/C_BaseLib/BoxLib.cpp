@@ -43,6 +43,13 @@
 
 #include <MemPool.H>
 
+#ifdef BL_USE_FORTRAN_MPI
+extern "C" {
+    void bl_fortran_mpi_comm_init (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+}
+#endif
+
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
 //
@@ -230,12 +237,19 @@ BoxLib::Assert (const char* EX,
 namespace
 {
     std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
+    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Initialize_Function_Stack;
 }
 
 void
 BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
 {
     The_Finalize_Function_Stack.push(fp);
+}
+
+void
+BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
+{
+    The_Initialize_Function_Stack.push(fp);
 }
 
 void
@@ -251,7 +265,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
-    signal(SIGFPE, BLBackTrace::handler);
+    signal(SIGFPE,  BLBackTrace::handler);
+    signal(SIGINT,  BLBackTrace::handler);
+    signal(SIGTERM, BLBackTrace::handler);
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
@@ -259,6 +275,18 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);
 #endif
+
+    while (!The_Initialize_Function_Stack.empty())
+    {
+        //
+        // Call the registered function.
+        //
+        (*The_Initialize_Function_Stack.top())();
+        //
+        // And then remove it from the stack.
+        //
+        The_Initialize_Function_Stack.pop();
+    }
 
     if(ParallelDescriptor::NProcsSidecar() > 0) {
       if(ParallelDescriptor::InSidecarGroup()) {
@@ -329,6 +357,11 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 		      << ", might be too small for big runs.\n!\n";
 	}
     }
+
+#ifdef BL_USE_FORTRAN_MPI
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_mpi_comm_init (fcomm);
+#endif
 }
 
 void
@@ -389,5 +422,12 @@ BoxLib::Finalize (bool finalize_parallel)
     if (finalize_parallel)
         ParallelDescriptor::EndParallel();
 #endif
+
+    if (finalize_parallel) {
+#ifdef BL_USE_FORTRAN_MPI
+	bl_fortran_mpi_comm_free();
+#endif
+        ParallelDescriptor::EndParallel();
+    }
 }
 

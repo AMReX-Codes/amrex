@@ -640,7 +640,12 @@ contains
        write(unit=un, fmt='(i0)') idummy
        ! SOME STUFF
        do i = 1, nl
-          write(unit=un, fmt='(i1)', advance = 'no') i-1
+          if (i <= 10) then
+             write(unit=un, fmt='(i1)', advance = 'no') i-1
+          else
+             write(unit=un, fmt='(i2)', advance = 'no') i-1
+          endif
+
           write(unit=un, fmt='(i6)', advance = 'no') nboxes(mfs(i)%la)
           write(unit=un, fmt='(i6)') rdummy
           write(unit=un, fmt='(i1)') idummy

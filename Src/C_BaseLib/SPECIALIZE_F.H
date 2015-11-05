@@ -38,6 +38,7 @@
 #define FORT_FASTPROTDIVIDE  FASTPROTDIVIDE
 #define FORT_FASTINVERT      FASTINVERT
 #elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_FASTSAXPY       fastsaxpy
 #define FORT_FASTCOPY        fastcopy
 #define FORT_FASTCOPYTOMEM   fastcopytomem
 #define FORT_FASTCOPYFROMMEM fastcopyfrommem

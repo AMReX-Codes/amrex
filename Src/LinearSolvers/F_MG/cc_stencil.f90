@@ -190,10 +190,10 @@ contains
     integer,         intent(in), optional :: cf_face(:,:)
     logical,         intent(out), optional:: intbox
 
-    type(box)        :: bx1, src, pd
-    type(boxarray)   :: ba, sba
+    type(box)        :: bx1, pd
+    type(boxarray)   :: ba
     type(layout)     :: la
-    integer          :: i, j, ii, jj, k, ldom, blo, bhi
+    integer          :: i, j, ii, jj, ldom, blo, bhi
     integer, pointer :: mp(:,:,:,:)
     integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
     logical          :: pmask(get_dim(st)), intflag
@@ -3112,47 +3112,47 @@ contains
   !     coefficients and written out.
   !
 
-  subroutine t_polyInterpCoeffTest(norder)
-    integer, intent(in) :: NORDER
-    integer j
-    real(kind=dp_t) c(0:NORDER-1), ci(0:NORDER-1)
-    real(kind=dp_t) y(0:NORDER-1)
-    real(kind=dp_t) x(0:NORDER-1)
-    real(kind=dp_t) xInt
+  ! subroutine t_polyInterpCoeffTest(norder)
+  !   integer, intent(in) :: NORDER
+  !   integer j
+  !   real(kind=dp_t) c(0:NORDER-1), ci(0:NORDER-1)
+  !   real(kind=dp_t) y(0:NORDER-1)
+  !   real(kind=dp_t) x(0:NORDER-1)
+  !   real(kind=dp_t) xInt
 
-    call random_number(ci)
+  !   call random_number(ci)
 
-    j = 0
+  !   j = 0
     
-    x = (/ ZERO, (j+HALF,j=0,NORDER-2) /)
-    do j = 0, NORDER-2
-       y(j) = horner(x(j), ci)
-    end do
+  !   x = (/ ZERO, (j+HALF,j=0,NORDER-2) /)
+  !   do j = 0, NORDER-2
+  !      y(j) = horner(x(j), ci)
+  !   end do
 
-    xInt = -HALF
+  !   xInt = -HALF
 
-    call poly_interp_coeff(c, xInt, x)
+  !   call poly_interp_coeff(c, xInt, x)
 
-    print *, 'x = ', x
-    print *, 'y = ', y
-    print *, 'c = ', c
-    print *, 'Interpolated y = ', sum(c*y)
+  !   print *, 'x = ', x
+  !   print *, 'y = ', y
+  !   print *, 'c = ', c
+  !   print *, 'Interpolated y = ', sum(c*y)
 
-  contains
+  ! contains
 
-    function Horner(xx, cc) result(r)
-      real(kind=dp_t) :: r
-      real(kind=dp_t), intent(in) :: xx
-      real(kind=dp_t), intent(in) :: cc(:)
-      integer :: i
+  !   function Horner(xx, cc) result(r)
+  !     real(kind=dp_t) :: r
+  !     real(kind=dp_t), intent(in) :: xx
+  !     real(kind=dp_t), intent(in) :: cc(:)
+  !     integer :: i
 
-      r = cc(1)
-      do i = 2, size(cc)
-         r = xx*r + cc(i)
-      end do
+  !     r = cc(1)
+  !     do i = 2, size(cc)
+  !        r = xx*r + cc(i)
+  !     end do
 
-    end function Horner
+  !   end function Horner
 
-  end subroutine t_polyInterpCoeffTest
+  ! end subroutine t_polyInterpCoeffTest
 
 end module cc_stencil_module
