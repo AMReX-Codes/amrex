@@ -1520,3 +1520,40 @@ void BoxLib::SyncStrings(const Array<std::string> &localStrings,
 }
 
 
+
+Array<char> BoxLib::SerializeStringArray(const Array<std::string> &stringArray)
+{
+  std::ostringstream stringStream;
+  for(int i(0); i < stringArray.size(); ++i) {
+    stringStream << stringArray[i] << '\n';
+  }
+
+  Array<char> charArray(stringStream.str().size() + 1);
+  std::strcpy(charArray.dataPtr(), stringStream.str().c_str());  // null terminated
+
+  return charArray;
+}
+
+
+
+
+
+Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
+{
+  Array<std::string> stringArray;
+  std::istringstream stringStream(charArray.dataPtr());
+  std::string sTemp;
+  while( ! stringStream.eof()) {
+    std::getline(stringStream, sTemp, '\n');
+    if( ! stringStream.eof()) {
+      stringArray.push_back(sTemp);
+    }
+  }
+
+  return stringArray;
+}
+
+
+
+
+

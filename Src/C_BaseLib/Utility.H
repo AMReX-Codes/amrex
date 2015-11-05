@@ -364,6 +364,8 @@ namespace BoxLib
 	static int nStreamErrors;
     };
 
+    Array<char> SerializeStringArray(const Array<std::string> &stringArray);
+    Array<std::string> UnSerializeStringArray(const Array<char> &charArray);
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
 }
