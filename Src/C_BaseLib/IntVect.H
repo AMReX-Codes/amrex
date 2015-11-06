@@ -153,7 +153,7 @@ public:
     //
     // Unary Minus -- negates all components.
     //
-    const IntVect operator- () const { return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] )); }
+    IntVect operator- () const { return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //
     // Modifies IntVect by addition of a scaler to each component.
     //
@@ -213,56 +213,56 @@ public:
     //
     // Returns component-wise sum of IntVect and argument.
     //
-    const IntVect operator+ (const IntVect& p) const
+    IntVect operator+ (const IntVect& p) const
     {
         return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
     }
     //
     // Return an IntVect that is this IntVect + s.
     //
-    const IntVect operator+ (int s) const
+    IntVect operator+ (int s) const
     {
         return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
     }
     //
     // Returns component-wise difference of IntVect and argument.
     //
-    const IntVect operator- (const IntVect& p) const
+    IntVect operator- (const IntVect& p) const
     {
         return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
     }
     //
     // Return an IntVect that is this IntVect - s.
     //
-    const IntVect operator- (int s) const
+    IntVect operator- (int s) const
     {
         return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
     }
     //
     // Returns component-wise product of IntVect and argument.
     //
-    const IntVect operator* (const IntVect& p) const
+    IntVect operator* (const IntVect& p) const
     {
         return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
     }
     //
     // Returns component-wise product of IntVect and s.
     //
-    const IntVect operator* (int s) const
+    IntVect operator* (int s) const
     {
         return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
     }
     //
     // Returns component-wise division of IntVect by argument.
     //
-    const IntVect operator/ (const IntVect& p) const
+    IntVect operator/ (const IntVect& p) const
     {
         return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
     }
     //
     // Returns component-wise division of IntVect by s.
     //
-    const IntVect operator/ (int s) const
+    IntVect operator/ (int s) const
     {
         return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
     }
@@ -342,6 +342,12 @@ public:
     static const IntVect& TheUnitVector ();
     //
     // This static member function returns a reference to a constant IntVect
+    // object, all of whose BL_SPACEDIM arguments are set to zero except that
+    // the d-direction is set to one. 
+    //
+    static const IntVect& TheDimensionVector (int d);
+    //
+    // This static member function returns a reference to a constant IntVect
     // object, all of whose BL_SPACEDIM arguments are set to IndexType::NODE.
     // It is provided as a convenience to our users when defining Boxes.
     //
@@ -365,49 +371,49 @@ namespace BoxLib
     // eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
     // directions are zero based.
     //
-    const IntVect BASISV (int dir);
+    IntVect BASISV (int dir);
     //
     // Returns the IntVect that is the component-wise minimum of two
     // argument IntVects.
     //
-    const IntVect min (const IntVect& p1, const IntVect& p2);
+    IntVect min (const IntVect& p1, const IntVect& p2);
     //
     // Returns the IntVect that is the component-wise maximum of two
     // argument IntVects.
     //
-    const IntVect max (const IntVect& p1, const IntVect& p2);
+    IntVect max (const IntVect& p1, const IntVect& p2);
     //
     // Returns a IntVect obtained by multiplying each of the
     // components of this IntVect by s.
     //
-    const IntVect scale (const IntVect& p, int s);
+    IntVect scale (const IntVect& p, int s);
     //
     // Returns an IntVect that is the reflection of input in the
     // plane which passes through ref_ix and normal to the
     // coordinate direction idir.
     //
-    const IntVect reflect(const IntVect& a, int ref_ix, int idir);
+    IntVect reflect(const IntVect& a, int ref_ix, int idir);
     //
     // Returns IntVect obtained by adding s to each of the
     // components of this IntVect.
     //
-    const IntVect diagShift (const IntVect& p, int s);
+    IntVect diagShift (const IntVect& p, int s);
     //
     // Returns an IntVect that is the component-wise integer
     // projection of p by s.
     //
-    const IntVect coarsen (const IntVect& p, int s);
+    IntVect coarsen (const IntVect& p, int s);
     //
     // Returns an IntVect which is the component-wise integer
     // projection of IntVect p1 by IntVect p2.
     //
-    const IntVect coarsen (const IntVect& p1, const IntVect& p2);
+    IntVect coarsen (const IntVect& p1, const IntVect& p2);
 }
 //
 // Returns p + s.
 //
 inline
-const IntVect operator+ (int s, const IntVect& p)
+IntVect operator+ (int s, const IntVect& p)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
@@ -415,7 +421,7 @@ const IntVect operator+ (int s, const IntVect& p)
 // Returns -p + s.
 //
 inline
-const IntVect operator- (int s, const IntVect& p)
+IntVect operator- (int s, const IntVect& p)
 {
     return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
 }
@@ -423,7 +429,7 @@ const IntVect operator- (int s, const IntVect& p)
 // Returns p * s.
 //
 inline
-const IntVect operator* (int s, const IntVect& p)
+IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }

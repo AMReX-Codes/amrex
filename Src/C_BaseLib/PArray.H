@@ -94,6 +94,8 @@ public:
     // had a value.
     //
     void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = elem; }
+    // !!!!! Be careful!  This function removes 'const'.
+    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = (T*) elem; }
     //
     // Returns the number of elements.
     //
@@ -162,7 +164,6 @@ template <class T>
 PArray<T>::PArray (const PArray<T>& c)
 {
     BL_ASSERT(c.size()==0);
-
     managed = c.managed;
 }
 

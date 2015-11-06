@@ -70,6 +70,15 @@ public:
     //
     void swapTimeLevels (Real dt);
     //
+    // Points old data to a new MultiFab.
+    //
+    void replaceOldData ( MultiFab* mf );
+    //
+    // Points new data to a new MultiFab.
+    //
+    void replaceNewData ( MultiFab* mf );
+
+    //
     // Sets time of old and new data.
     //
     void setTimeLevel (Real t_new,
@@ -169,6 +178,10 @@ public:
     //
     // Returns the old data.
     //
+    MultiFab* oldDataPtr () { BL_ASSERT(old_data != 0); return old_data; }
+    //
+    // Returns the old data.
+    //
     MultiFab& oldData () { BL_ASSERT(old_data != 0); return *old_data; }
     //
     // Returns the old data.
@@ -185,7 +198,7 @@ public:
     //
     // Returns boundary conditions of specified component on the specified grid.
     //
-    const BCRec getBC (int comp, int i) const;
+    BCRec getBC (int comp, int i) const;
     //
     // Prints out the time interval.
     //

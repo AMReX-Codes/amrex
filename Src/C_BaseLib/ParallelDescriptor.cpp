@@ -5,16 +5,13 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sstream>
+#include <stack>
 
-#include <Analysis.H>
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
 #include <MultiFab.H>
 #include <Geometry.H>
-#ifdef IN_TRANSIT
-#include <InTransitAnalysis.H>
-#endif
 
 namespace ParallelDescriptor
 {
@@ -73,7 +70,17 @@ namespace ParallelDescriptor
 	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
+
+    typedef std::list<ParallelDescriptor::PTR_TO_SIGNAL_HANDLER> SH_LIST;
+    SH_LIST The_Signal_Handler_List;
 }
+
+void
+ParallelDescriptor::AddSignalHandler (PTR_TO_SIGNAL_HANDLER fp)
+{
+  The_Signal_Handler_List.push_back(fp);
+}
+
 
 #ifndef BL_AMRPROF
 //
@@ -1654,55 +1661,29 @@ ParallelDescriptor::SidecarProcess ()
 #ifdef BL_USE_MPI
     bool finished(false);
     int signal(-1);
-    Analysis::analysis = new AnalysisContainer;
     while (!finished)
     {
         // Receive the signal from the compute group.
         ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
-        if (signal == Analysis::QuitSignal)
+
+        // Process the  signal with the set of user-provided signal handlers
+        for (ParallelDescriptor::SH_LIST::iterator it=The_Signal_Handler_List.begin();
+             it != The_Signal_Handler_List.end() && signal != ParallelDescriptor::SidecarQuitSignal;
+             ++it)
+        {
+          signal = (* *it)(signal);
+        }
+
+        if (signal == ParallelDescriptor::SidecarQuitSignal)
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Sidecars received the quit signal." << std::endl;
             finished = true;
-        }
-        else if (signal == Analysis::NyxHaloFinderSignal)
-        {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
-
-            MultiFab *mf = new MultiFab;
-            Geometry *geom = new Geometry;
-
-            int time_step;
-
-            // Receive the necessary data for doing analysis.
-            MultiFab::SendMultiFabToSidecars(mf);
-            Geometry::SendGeometryToSidecars(geom);
-            ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-            InTransitAnalysis ita;
-            ita.Initialize(*mf, *geom, time_step);
-            Analysis::analysis->connectCallback(&ita);
-
-            Analysis::analysis->DoAnalysis();
-            Analysis::analysis->Finalize();
-
-            delete mf;
-            delete geom;
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars completed analysis." << std::endl;
-        }
-        else
-        {
-            std::stringstream ss_error_msg;
-            ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
-            BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
+            break;
         }
     }
-    delete Analysis::analysis;
-#endif
-#endif
     if (ParallelDescriptor::IOProcessor())
       std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
+#endif
+#endif
 }

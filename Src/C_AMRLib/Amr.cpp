@@ -33,6 +33,10 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef USE_PARTICLES
+#include <AmrParGDB.H>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -635,6 +639,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 
     rebalance_grids = 0;
     pp.query("rebalance_grids", rebalance_grids);
+
+#ifdef USE_PARTICLES
+    m_gdb = new AmrParGDB(this);
+#endif
 }
 
 bool
@@ -735,6 +743,10 @@ Amr::deleteDerivePlotVar (const std::string& name)
 Amr::~Amr ()
 {
     levelbld->variableCleanUp();
+
+#ifdef USE_PARTICLES
+    delete m_gdb;
+#endif
 
     Amr::Finalize();
 }
@@ -1071,11 +1083,24 @@ Amr::readProbinFile (int& init)
             // Call the pesky probin reader.
             //
             piStart = ParallelDescriptor::second();
+
+#ifdef DIMENSION_AGNOSTIC
+
+            FORT_PROBINIT(&init,
+                          probin_file_name.dataPtr(),
+                          &probin_file_length,
+                          ZFILL(Geometry::ProbLo()),
+                          ZFILL(Geometry::ProbHi()));
+
+#else
+
             FORT_PROBINIT(&init,
                           probin_file_name.dataPtr(),
                           &probin_file_length,
                           Geometry::ProbLo(),
                           Geometry::ProbHi());
+#endif
+
             piEnd = ParallelDescriptor::second();
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);
@@ -1767,10 +1792,9 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level]+1 << "] ";
-        std::cout << "ADVANCE grids at level "
-                  << level
-                  << " with dt = "
+	std::cout << "[Level " << level 
+		  << " step " << level_steps[level]+1 << "] ";
+        std::cout << "ADVANCE with dt = "
                   << dt_level[level]
                   << std::endl;
     }
@@ -1785,11 +1809,11 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level] << "] ";
+	std::cout << "[Level " << level
+		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
-                  << " cells at level "
-                  << level
+                  << " cells"
                   << std::endl;
     }
 
@@ -1880,10 +1904,12 @@ Amr::coarseTimeStep (Real stop_time)
     amr_level[0].postCoarseTimeStep(cumtime);
 
 #ifdef BL_PROFILING
+#ifdef DEBUG
     std::stringstream dfss;
     dfss << "BytesPerProc.STEP_" << std::setw(5) << std::setfill('0')
          << level_steps[0] - 1 << ".xgr";
     DistributionMapping::PrintDiagnostics(dfss.str());
+#endif
 #endif
 
     if (verbose > 0)

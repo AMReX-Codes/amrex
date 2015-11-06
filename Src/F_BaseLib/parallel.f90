@@ -268,8 +268,7 @@ contains
     logical, intent(in), optional :: do_finalize_MPI
     integer ierr
     external MPI_Comm_Free, MPI_Finalize
-    !call MPI_Comm_Free(m_comm, ierr)  !Note: This is *supposed* to be the right way to do this, but it crashes on Linux.  comment out leads to small mem leak
-    m_comm = MPI_COMM_WORLD
+    call MPI_Comm_Free(m_comm, ierr)
     if (present(do_finalize_MPI) ) then
        if (do_finalize_MPI) call MPI_Finalize(ierr)
     else
@@ -352,9 +351,9 @@ contains
        if ( ranks(i) .ne. back(v) ) call push_back(v,ranks(i))
     end do
     !
-    ! Build a duplicate of the MPI_COMM_WORLD group.
+    ! Build a duplicate of the parent group.
     !
-    call MPI_Comm_group(MPI_COMM_WORLD, world_group, ierr)
+    call MPI_Comm_group(m_comm, world_group, ierr)
 
     call MPI_group_incl(world_group, size(v), dataptr(v), this_group, ierr)
 
@@ -364,7 +363,7 @@ contains
     !
     ! This sets comm to MPI_COMM_NULL on those ranks not in this_group.
     !
-    call MPI_Comm_create(MPI_COMM_WORLD, this_group, comm, ierr)
+    call MPI_Comm_create(m_comm, this_group, comm, ierr)
 
     call MPI_Group_free(this_group,  ierr)
     call MPI_Group_free(world_group, ierr)
@@ -2170,5 +2169,15 @@ contains
           call parallel_abort("unknown MPI_op for ll_t")
        end select
   end function mpi_op_long
+
+  subroutine parallel_comm_init_from_c (comm) bind(c, name='bl_fortran_mpi_comm_init')
+    use iso_c_binding
+    integer(c_int), intent(in), value :: comm
+    call parallel_initialize(comm)
+  end subroutine parallel_comm_init_from_c
+
+  subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
+    call parallel_finalize(.false.) ! do not finalize MPI but free communicator
+  end subroutine parallel_comm_free_from_c
 
 end module parallel

@@ -215,6 +215,8 @@ class BLProfiler
     static int GetTraceFlushSize() { return traceFlushSize; }
     static void SetTraceFlushSize(int fsize) { traceFlushSize = fsize; }
 
+    static void SetNFiles(int nfiles) { nProfFiles = nfiles; }
+
   private:
     Real bltstart, bltelapsed;
     std::string fname;

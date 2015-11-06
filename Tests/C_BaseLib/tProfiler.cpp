@@ -22,6 +22,7 @@ using std::endl;
 
 // --------------------------------------------------------------
 void Sleep(unsigned int sleeptime) {
+  BL_PROFILE("Sleep()");
   BL_PROFILE_REGION_START("R::Sleep");
   if(ParallelDescriptor::IOProcessor()) {
     cout << "Sleeping " << sleeptime << endl;
@@ -91,7 +92,7 @@ void nonap() {
 int main(int argc, char *argv[]) {
   BoxLib::Initialize(argc, argv);
 
-  sleep(1);
+//  sleep(1);
   BL_PROFILE_INIT_PARAMS(3.0, true, true);
   BL_PROFILE_REGION_START("R::main");
   BL_PROFILE_VAR("main()", pmain);
@@ -99,8 +100,7 @@ int main(int argc, char *argv[]) {
   int myProc(ParallelDescriptor::MyProc());
   int nProcs(ParallelDescriptor::NProcs());
 
-/*
-{
+{ // ---- test sync strings
   Array<std::string> localStrings, syncedStrings;
   bool alreadySynced;
 
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
 }
 
-{
+{ // ---- test already synced strings
   Array<std::string> localStrings, syncedStrings;
   bool alreadySynced;
   
@@ -173,25 +173,23 @@ int main(int argc, char *argv[]) {
   }
 
 }
-*/
 
 
 
-/*
-  if(myProc == nProcs - 1) {
     BL_PROFILE_VAR("NProcs-1 func(2)", pnpm1);
     sleep(2);
     BL_PROFILE_VAR_STOP(pnpm1);
-  }
+
   if(myProc == 0) {
     BL_PROFILE_VAR("Proc 0 func(1)", p0fun);
     sleep(1);
     BL_PROFILE_VAR_STOP(p0fun);
   }
-*/
 
-  //sleep(2);
-  //nap(3);
+  BL_PROFILE_REGION_START("R::Sleepnap");
+  Sleep(2);
+  nap(3);
+  BL_PROFILE_REGION_STOP("R::Sleepnap");
 
 /*
   BL_PROFILE_REGION_START("R::Part 1");
@@ -225,10 +223,10 @@ int main(int argc, char *argv[]) {
   BL_PROFILE_VAR_STOP(ptpi);
   cout << "Test fort int time = " << ParallelDescriptor::second() - tpiStart << endl;
 
+
   //sleep(1);
 
 /*
-*/
   Box b(IntVect(0,0), IntVect(80,80));
   Box b0(IntVect(0,0), IntVect(39,80));
   Box b1(IntVect(40,0), IntVect(80,80));
@@ -301,6 +299,7 @@ int main(int argc, char *argv[]) {
   cout << "rdNative32 = " << rdNative32 << endl;
   RealDescriptor n32RD(FPC::Native32RealDescriptor());
   cout << "n32RD = " << n32RD << endl;
+*/
 
 /*
 // ----
@@ -336,6 +335,7 @@ int main(int argc, char *argv[]) {
   cout << "after TestPD_convert:  fMin fMax = " << fMin << "  " << fMax << endl;
 */
 
+/*
   // ----
   BL_PROFILE_VAR("TestPD_convert_native32", tpdcn32);
   for(int nt(0); nt < nTimes; ++nt) {
@@ -368,6 +368,7 @@ int main(int argc, char *argv[]) {
     fMax = std::max(fMax, floatVals[i]);
   }
   cout << "after TestCast_convert:  fMin fMax = " << fMin << "  " << fMax << endl;
+*/
 
 
 

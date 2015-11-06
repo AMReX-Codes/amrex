@@ -687,6 +687,7 @@ contains
 
     use bc_module
     use impose_neumann_bcs_module
+    use nodal_stencil_module
 
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(in   ) :: sg(0:,0:)
@@ -767,6 +768,7 @@ contains
   subroutine grid_laplace_3d(sg, dd, ff, uu, mm, ng, stencil_type, uniform_dh)
     use bc_module
     use impose_neumann_bcs_module
+    use nodal_stencil_module
     integer           , intent(in   ) :: ng
     real (kind = dp_t), intent(in   ) :: sg(0:,0:,0:)
     real (kind = dp_t), intent(inout) :: dd(0:,0:,0:)

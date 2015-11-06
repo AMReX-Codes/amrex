@@ -28,6 +28,19 @@ extern "C"
                                       const int* lo, const int * hi, const int* nvar,
                                       const int* domain_lo, const int* domain_hi,
                                       const Real* dx, const int* level, const Real* avg);
+
+    // Dimension agnostic version that always has three elements.
+    // Note that this is only implemented for the ErrorFunc class, not ErrorFunc2.
+
+    typedef void (*ErrorFunc3DDefault)(int* tag, const int* tlo, const int* thi,
+                                       const int* tagval, const int* clearval,
+         			       Real* data, const int* data_lo, const int* data_hi, 
+                                       const int* lo, const int * hi, const int* nvar,
+                                       const int* domain_lo, const int* domain_hi,
+                                       const Real* dx, const Real* xlo,
+                                       const Real* prob_lo, const Real* time,
+                                       const int* level);  
+  
 }
 
 //
@@ -62,6 +75,10 @@ public:
         //
         ErrorFunc (ErrorFuncDefault inFunc);
         //
+        // A Constructor.
+        //
+        ErrorFunc (ErrorFunc3DDefault inFunc);      
+        //
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
         //
@@ -81,11 +98,22 @@ public:
                                   const Real* dx, const Real* xlo,
                                   const Real* prob_lo, const Real* time,
                                   const int* level) const;
+        //
+        // Tag cells using dimension-agnostic "regular" function.
+        //
+        virtual void operator () (int* tag, const int* tlo, const int* thi,
+                                  const int* tagval, const int* clearval,
+                                  Real* data, const int* data_lo, const int* data_hi,
+                                  const int* lo, const int * hi, const int* nvar,
+                                  const int* domain_lo, const int* domain_hi,
+                                  const Real* dx, const Real* xlo,
+                                  const Real* prob_lo, const Real* time,
+                                  const int* level) const;      
     protected:
 
-        ErrorFuncDefault  m_func;
+        ErrorFuncDefault   m_func;
+        ErrorFunc3DDefault m_func3D;      
     };
-
     class ErrorFunc2
     {
     public:

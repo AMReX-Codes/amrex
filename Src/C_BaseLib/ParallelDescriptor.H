@@ -21,6 +21,9 @@
 
 namespace ParallelDescriptor
 {
+    const int SidecarQuitSignal = -1;
+
+
     //
     // Data structure used by a few routines when MPI is enabled.
     //
@@ -169,6 +172,9 @@ namespace ParallelDescriptor
     void StartParallel (int*    argc = 0,
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
+
+    typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
+    void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
     //
     // Perform any needed parallel finalization.  This MUST be the
     // last routine in this class called from within a program.

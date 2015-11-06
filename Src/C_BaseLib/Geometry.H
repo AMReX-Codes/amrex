@@ -376,7 +376,10 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-        const int SeqNum = ParallelDescriptor::SeqNum();
+	Array<int> SeqNum(FabArrayBase::comm_num_pieces);
+	for (int i=0; i<SeqNum.size(); ++i) {
+	    SeqNum[i] = ParallelDescriptor::SeqNum();
+	}
 
         if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
@@ -455,18 +458,35 @@ namespace BoxLib
 
 	Array<MPI_Request> send_reqs;
 
+	const int threshold = FabArrayBase::comm_piece_threshold / sizeof(value_type);
+
 	if (FabArrayBase::do_async_sends)
 	{
-	    send_reqs.reserve(N_snds);
-	    for (int i=0; i<N_snds; ++i) {
-                send_reqs.push_back(ParallelDescriptor::Asend
-				    (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+	    send_reqs.reserve(N_snds*FabArrayBase::comm_num_pieces);
+	}
+	for (int i=0; i<N_snds; ++i) {
+	    const int N = send_N[i];
+	    int npieces = std::min((N+threshold-1)/threshold, FabArrayBase::comm_num_pieces);
+	    int psize = N / npieces;
+	    for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+		int start = ipiece*psize;
+		int nelem  = (ipiece < npieces-1) ? psize : N-start;
+		if (FabArrayBase::do_async_sends) {
+		    send_reqs.push_back(ParallelDescriptor::Asend
+					(send_data[i]+start,
+					 nelem,
+					 send_rank[i],
+					 SeqNum[ipiece]).req());
+		} else {
+		    ParallelDescriptor::Send(send_data[i]+start,
+					     nelem,
+					     send_rank[i],
+					     SeqNum[ipiece]);
+		}
             }
-	} else {
-	    for (int i=0; i<N_snds; ++i) {
-                ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+	    if (! FabArrayBase::do_async_sends) {
                 BoxLib::The_Arena()->free(send_data[i]);
-            }
+	    }
         }
 
         //
@@ -504,8 +524,9 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-	    stats.resize(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    const int N_recv_reqs = recv_reqs.size();
+	    stats.resize(N_recv_reqs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
@@ -589,7 +610,10 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-        const int SeqNum = ParallelDescriptor::SeqNum();
+	Array<int> SeqNum(FabArrayBase::comm_num_pieces);
+	for (int i=0; i<SeqNum.size(); ++i) {
+	    SeqNum[i] = ParallelDescriptor::SeqNum();
+	}
 
         if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
@@ -605,7 +629,7 @@ namespace BoxLib
 #ifdef BL_USE_UPCXX
         FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
                                     mf.fpb_recv_data,mf.fpb_recv_from,
-                                    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
+                                    mf.fpb_ncomp,SeqNum[0],&BLPgas::fpb_recv_event);
 #else
         FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -679,8 +703,11 @@ namespace BoxLib
             }
 	}
 
+
+	const int threshold = FabArrayBase::comm_piece_threshold / sizeof(value_type);
+
 #ifdef BL_USE_UPCXX
-  BLPgas::fpb_send_counter = 0;
+	BLPgas::fpb_send_counter = 0;
 #else
 	Array<MPI_Request>& send_reqs = mf.fpb_send_reqs;
 	mf.fpb_send_reqs.reserve(N_snds);
@@ -690,18 +717,28 @@ namespace BoxLib
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
                          send_rank[i],
                          send_N[i]*sizeof(value_type),
-                         SeqNum,
+                         SeqNum[0],
                          &BLPgas::fpb_send_event,
                          &BLPgas::fpb_send_counter);
 #else
-	    send_reqs.push_back(ParallelDescriptor::Asend
-                          (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+	    const int N = send_N[i];
+	    int npieces = std::min((N+threshold-1)/threshold, FabArrayBase::comm_num_pieces);
+	    int psize = N / npieces;
+	    for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+		int start = ipiece*psize;
+		int nelem  = (ipiece < npieces-1) ? psize : N-start;
+		send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i]+start,
+				     nelem,
+				     send_rank[i],
+				     SeqNum[ipiece]).req());
+	    }
 #endif
 	}
 
 #ifdef BL_USE_UPCXX
-  while (BLPgas::fpb_send_counter < N_snds)
-    upcxx::advance();
+	while (BLPgas::fpb_send_counter < N_snds)
+	    upcxx::advance();
 #endif
 
         //
@@ -770,8 +807,9 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-	    stats.resize(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	    const int N_recv_reqs = mf.fpb_recv_reqs.size();
+	    stats.resize(N_recv_reqs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)

@@ -4,6 +4,8 @@ module mg_module
   use cc_stencil_module
   use mg_tower_module
   use stencil_defect_module
+  use stencil_types_module
+  use bc_functions_module
 
   implicit none
 
@@ -158,7 +160,7 @@ contains
     else
        if (mgt%stencil_type .eq. CC_CROSS_STENCIL) then
           ! Note that the cross stencils have 
-          !      ns = 2*dm (lo/hi each direction) + 1 (center) + 1 (extra used only at bc)
+          !      ns = 2*dm (lo/hi each direction) + 1 (center) + dm (extra used only at bc)
           if (mgt%dim .eq. 1) then
              mgt%ns = 4
           else if (mgt%dim .eq. 2) then
@@ -213,10 +215,12 @@ contains
        !
        ! Set the stencil to zero; gotta do it by hand as multifab routines won't work.
        !
+       !$omp parallel do private(j,p)
        do j = 1, nfabs(mgt%ss(i))
           p => dataptr(mgt%ss(i), j)
           p = zero
        end do
+       !$omp end parallel do
 
        call imultifab_build(mgt%mm(i), la1, 1, 0, nodal)
        if ( i /= n ) &
@@ -909,6 +913,7 @@ contains
     use cc_restriction_module, only: cc_restriction_1d, cc_restriction_2d, cc_restriction_3d
     use nodal_restriction_module, only: nodal_restriction_1d, nodal_restriction_2d, &
                                         nodal_restriction_3d
+    use impose_neumann_bcs_module
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(inout) :: crse
@@ -918,7 +923,8 @@ contains
     integer :: loc(mgt%dim), lof(mgt%dim)
     integer :: lom_fine(mgt%dim)
     integer :: lom_crse(mgt%dim)
-    integer :: lo(mgt%dim), hi(mgt%dim)
+    integer ::  lo(mgt%dim),  hi(mgt%dim)
+    integer :: vlo(mgt%dim), vhi(mgt%dim)
     integer :: i, n, ir(mgt%dim)
     logical :: nodal_flag
     real(kind=dp_t), pointer :: fp(:,:,:,:)
@@ -926,7 +932,7 @@ contains
     integer        , pointer :: mp_fine(:,:,:,:)
     integer        , pointer :: mp_crse(:,:,:,:)
 
-    integer :: mg_restriction_mode
+    integer :: mg_restriction_mode, ng
     type(bl_prof_timer), save :: bpt
 
     call bl_proffortfuncstart("mg_tower_restriction")
@@ -940,9 +946,29 @@ contains
        call multifab_fill_boundary(fine)
        call setval(crse, ZERO, all=.true.)
        mg_restriction_mode = 1
+    
+       !$omp parallel do private(i,fp,mp_fine,lof,lom_fine,ng,n)
+       do i = 1, nfabs(fine)
+          fp      => dataptr(fine,    i)
+          mp_fine => dataptr(mm_fine, i)
+          lof      = lwb(get_pbox(fine,    i))
+          lom_fine = lwb(get_pbox(mm_fine, i))
+          ng       = lom_fine(1) - lof(1)
+          do n = 1, ncomp(fine)
+             select case (mgt%dim)
+             case (1)
+                call impose_neumann_bcs_1d(fp(:,1,1,n),mp_fine(:,1,1,1),lom_fine,ng)
+             case (2)
+                call impose_neumann_bcs_2d(fp(:,:,1,n),mp_fine(:,:,1,1),lom_fine,ng)
+             case (3)
+                call impose_neumann_bcs_3d(fp(:,:,:,n),mp_fine(:,:,:,1),lom_fine,ng)
+             end select
+          end do
+       end do
+       !$omp end parallel do
     end if
 
-    !$OMP PARALLEL DO PRIVATE(i,n,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi)
+    !$OMP PARALLEL DO PRIVATE(i,n,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi)
     do i = 1, nfabs(crse)
 
        cp       => dataptr(crse, i)
@@ -956,6 +982,8 @@ contains
        lom_crse = lwb(get_pbox(mm_crse,i))
        lo       = lwb(get_ibox(crse,i))
        hi       = upb(get_ibox(crse,i))
+       vlo      = lo
+       vhi      = hi
 
        do n = 1, mgt%nc
           select case ( mgt%dim )
@@ -965,7 +993,7 @@ contains
              else
                 call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
                                           mp_fine(:,1,1,1), lom_fine, &
-                                          mp_crse(:,1,1,1), lom_crse, lo, hi, ir, .false., &
+                                          mp_crse(:,1,1,1), lom_crse, lo, hi, vlo, vhi, ir, .false., &
                                           mg_restriction_mode)
              end if
           case (2)
@@ -974,7 +1002,7 @@ contains
              else
                 call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
                                           mp_fine(:,:,1,1), lom_fine, &
-                                          mp_crse(:,:,1,1), lom_crse, lo, hi, ir, .false., &
+                                          mp_crse(:,:,1,1), lom_crse, lo, hi, vlo, vhi, ir, .false., &
                                           mg_restriction_mode)
              end if
           case (3)
@@ -983,7 +1011,7 @@ contains
              else
                 call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
                                           mp_fine(:,:,:,1), lom_fine, &
-                                          mp_crse(:,:,:,1), lom_crse, lo, hi, ir, .false., &
+                                          mp_crse(:,:,:,1), lom_crse, lo, hi, vlo, vhi, ir, .false., &
                                           mg_restriction_mode)
              end if
           end select
@@ -1282,6 +1310,7 @@ contains
   subroutine mg_tower_prolongation(mgt, uu, lev)
     use bl_prof_module
     use mg_prolongation_module
+    use impose_neumann_bcs_module
 
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: uu
@@ -1494,7 +1523,6 @@ contains
                                  bottom_level, bottom_solve_time)
     use fabio_module
     use bl_prof_module
-    use impose_neumann_bcs_module
 
     type(mg_tower),  intent(inout) :: mgt
     type(multifab),  intent(inout) :: rh

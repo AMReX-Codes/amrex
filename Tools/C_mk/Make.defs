@@ -141,6 +141,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring edison, $(NERSC_HOST)), edison)
     WHICHLINUX := EDISON
   endif
+  ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+    WHICHLINUX := CORI
+  endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
   endif
@@ -168,6 +171,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring titan, $(UNAMEN)), titan)
     WHICHLINUX := TITAN
   endif
+  ifeq ($(findstring chester, $(UNAMEN)), chester)
+    WHICHLINUX := CHESTER
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
@@ -178,6 +184,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring bint, $(UNAMEN)), bint)
     WHICHLINUX := BABBAGE
+  endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
   endif
 endif
 #
@@ -250,6 +259,14 @@ ifeq ($(USE_UPCXX),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifndef DIMENSION_AGNOSTIC
+  DIMENSION_AGNOSTIC = FALSE
+endif
+
+ifndef USE_ASSERTION
+  USE_ASSERTION = FALSE
+endif
+
 #
 # Defaults for BoxLib style programs.
 #
@@ -285,14 +302,20 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        CXXOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        CXXOPTF += -fsanitize=address -fsanitize=undefined
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     ifeq ($(BACKTRACE),TRUE)
         LDFLAGS += -rdynamic
     endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       ?= g++
-    CC	       ?= gcc
+    CXX	       := g++
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -416,16 +439,28 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    ifeq ($(HOST),baragon)
+       override XTRALIBS += -lgfortran
+    else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
        override XTRALIBS += $(_f95_lib)       
     endif
+    endif
 
     FOPTF += -ffixed-line-length-0 -g -O3
     fOPTF += -ffixed-line-length-0 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        FOPTF += -fsanitize=thread
+        fOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        FOPTF += -fsanitize=address -fsanitize=undefined
+        fOPTF += -fsanitize=address -fsanitize=undefined
+    endif
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -474,6 +509,10 @@ ifeq ($(COMP),Intel)
    else
      _icpc := icc
      _icc  := icc
+   endif
+
+   ifeq ($(WHICHLINUX), CORI)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
@@ -746,6 +785,10 @@ ifeq ($(FCOMP),Intel)
      fOPTF += -g
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+   endif
    ifeq ($(WHICHLINUX), EDISON)
      FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
@@ -1010,6 +1053,18 @@ ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
 
+ifeq ($(DIMENSION_AGNOSTIC),TRUE)
+DEFINES += -DDIMENSION_AGNOSTIC
+endif
+
+ifeq ($(DEBUG),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+else
+ifeq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+endif
+endif
+
 ifeq ($(BL_ALIGN_BYTE),64)
   DEFINES += -DBL_ALIGN_BYTE=64
 else 
@@ -1093,4 +1148,87 @@ endif
  
 ifdef WARNINGS
     CXX += $(FULLWARN)
+endif
+
+# Use Sam Williams's HPGMG code as a drop-in replacement for BoxLib's in-house
+# multigrid solver. HPGMG is single-level only, so no AMR.
+ifeq ($(USE_HPGMG), TRUE)
+  include $(HPGMG_DIR)/source/Make.package
+  DEFINES += -DUSEHPGMG=1 -DUSE_MPI=1
+
+# use a unique MPI subcommunicator for each level of the multigrid?
+  ifeq ($(HPGMG_USE_SUBCOMM), TRUE)
+    DEFINES += -DUSE_SUBCOMM=1
+  endif
+
+# which bottom solver?
+  ifeq ($(HPGMG_BOTTOM_SOLVER), BICGSTAB)
+    DEFINES += -DUSE_BICGSTAB=1
+  else ifeq ($(HPGMG_BOTTOM_SOLVER), CG)
+    DEFINES += -DUSE_CG=1
+  else ifeq ($(HPGMG_BOTTOM_SOLVER), CABICGSTAB)
+    DEFINES += -DUSE_CABICGSTAB=1
+  else
+    DEFINES += -DUSE_BICGSTAB=1
+  endif
+
+# which smoothing method?
+  ifeq ($(HPGMG_SMOOTHER), GSRB)
+    DEFINES += -DUSE_GSRB=1
+    # HPGMG has several different ways to apply the GSRB smooths
+    ifeq ($(HPGMG_GSRB_TYPE), STRIDE2)
+      DEFINES += -DGSRB_STRIDE2=1
+    else ifeq ($(HPGMG_GSRB_TYPE), FP)
+      DEFINES += -DGSRB_FP=1
+    else ifeq ($(HPGMG_GSRB_TYPE), BRANCH)
+      DEFINES += -DGSRB_BRANCH=1
+    else
+      DEFINES += -DGSRB_STRIDE2=1
+    endif
+    ifeq ($(HPGMG_GSRB_OOP), TRUE)
+      DEFINES += -DGSRB_OOP=1
+    endif
+  else ifeq ($(HPGMG_SMOOTHER), CHEBY)
+    DEFINES += -DUSE_CHEBY=1
+  else ifeq ($(HPGMG_SMOOTHER), JACOBI)
+    DEFINES += -DUSE_JACOBI=1
+  else ifeq ($(HPGMG_SMOOTHER), L1JACOBI)
+    DEFINES += -DUSE_L1JACOBI=1
+  else
+   DEFINES += -DUSE_GSRB=1
+  endif
+
+# if this is true then the first cycle we do is F
+  ifeq ($(HPGMG_FCYCLES), TRUE)
+    DEFINES += -DUSE_FCYCLES=1
+    # do pure F-cycles until it converges
+    ifeq ($(HPGMG_POST_F_CYCLE_TYPE), F)
+      DEFINES += -DUNLIMIT_F_CYCLES=1
+    # do exactly 1 F-cycle followed by however many V-cycles it takes to converge
+    else ifeq ($(HPGMG_POST_F_CYCLE_TYPE), V)
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+    else
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+    endif
+  endif
+
+# is this a Helmholtz problem or a Poisson problem?
+  ifeq ($(HPGMG_HELMHOLTZ), TRUE)
+    DEFINES += -DUSE_HELMHOLTZ=1
+  endif
+
+# the constant-coefficient stencil requires significantly less data movement during the calculation
+  ifeq ($(HPGMG_STENCIL_VARIABLE_COEFFICIENT), TRUE)
+    DEFINES += -DSTENCIL_VARIABLE_COEFFICIENT=1
+  endif
+
+  INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
+  VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif
