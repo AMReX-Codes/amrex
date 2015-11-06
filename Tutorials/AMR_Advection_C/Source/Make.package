@@ -11,7 +11,6 @@ f90EXE_sources += network.f90
 f90EXE_sources += burner.f90
 f90EXE_sources += meth_params.f90
 f90EXE_sources += prob_params.f90
-f90EXE_sources += interpolate.f90
 
 ifeq ($(USE_REACT), TRUE)
 CEXE_sources += ADR_react.cpp
