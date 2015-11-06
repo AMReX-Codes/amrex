@@ -111,13 +111,6 @@ BL_FORT_PROC_DECL(SUMMASS,summass)
 BL_FORT_PROC_DECL(ENFORCE_NONNEGATIVE_SPECIES,enforce_nonnegative_species)
     (BL_FORT_FAB_ARG(S_new), const int lo[], const int hi[]);
 
-BL_FORT_PROC_DECL(AVGDOWN,avgdown)
-    (BL_FORT_FAB_ARG(crse_fab), const int& nc,
-     const BL_FORT_FAB_ARG(crse_vol),
-     const BL_FORT_FAB_ARG(fine_fab),
-     const BL_FORT_FAB_ARG(fine_vol),
-     const int ovlo[], const int ovhi[], const int rat[]);
-
 BL_FORT_PROC_DECL(EXT_SRC,ext_src)
     (const int* lo, const int* hi,
      BL_FORT_FAB_ARG(old_state),
