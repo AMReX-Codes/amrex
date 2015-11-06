@@ -26,6 +26,9 @@ IntVect FabArrayBase::mfghostiter_tile_size(1024,8,8);
 IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
+int FabArrayBase::comm_num_pieces      = 1;
+int FabArrayBase::comm_piece_threshold = 8064;  // (8K - 128) bytes
+
 int FabArrayBase::nFabArrays(0);
 
 
@@ -72,6 +75,13 @@ FabArrayBase::Initialize ()
         for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
+#ifdef _OPENMP
+    comm_num_pieces = std::max(1, omp_get_max_threads()/2);
+#endif
+    pp.query("comm_num_pieces"     , comm_num_pieces);
+    pp.query("comm_piece_threshold", comm_piece_threshold); 
+    BL_ASSERT(comm_num_pieces >= 1 && comm_piece_threshold >= 0);
+
     pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
@@ -102,7 +112,7 @@ FabArrayBase::FabArrayBase ()
 
 FabArrayBase::~FabArrayBase () {}
 
-const Box
+Box
 FabArrayBase::fabbox (int K) const
 {
     return BoxLib::grow(boxarray[K], n_grow);
@@ -1063,12 +1073,7 @@ Box
 MFIter::nodaltilebox (int dir) const 
 { 
     Box bx(tileArray[currentIndex]);
-    if (bx.type(dir) == IndexType::CELL) {
-	bx.surroundingNodes(dir);
-	if (bx.bigEnd(dir) != validbox().bigEnd(dir)+1) {
-	    bx.growHi(dir,-1);
-	}
-    }
+    this->nodalize(bx, dir);
     return bx;
 }
 
@@ -1090,6 +1095,34 @@ MFIter::growntilebox (int ng) const
 	    }
 	}
 	return bx;
+    }
+}
+
+Box
+MFIter::grownnodaltilebox (int dir, int ng) const
+{
+    Box bx = growntilebox(ng);
+    this->nodalize(bx, dir);
+    return bx;
+}
+
+void
+MFIter::nodalize (Box& bx, int dir) const
+{
+    int d0, d1;
+    if (dir >= 0 && dir <= BL_SPACEDIM-1) {
+	d0 = d1 = dir;
+    } else {
+	d0 = 0;
+	d1 = BL_SPACEDIM-1;
+    }
+    for (int d=d0; d<=d1; ++d) {
+	if (bx.type(d) == IndexType::CELL) {
+	    bx.surroundingNodes(d);
+	    if (bx.bigEnd(d) < validbox().bigEnd(d)+1) {
+		bx.growHi(d,-1);
+	    }
+	}
     }
 }
 

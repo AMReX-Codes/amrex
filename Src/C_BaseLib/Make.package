@@ -90,9 +90,16 @@ T_headers += ccse-mpi.H
 # Geometry / Coordinate system routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp
-  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H
+  C$(BOXLIB_BASE)_sources += CoordSys.cpp Geometry.cpp MultiFabUtil.cpp
+  C$(BOXLIB_BASE)_headers += CoordSys.H Geometry.H MultiFabUtil.H
 endif
+
+#
+# Boundary-related 
+#
+C$(BOXLIB_BASE)_sources += BCRec.cpp
+C$(BOXLIB_BASE)_headers += BCRec.H
+C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
 #
 # Fortran interface routines.
@@ -110,6 +117,8 @@ ifneq ($(BL_NO_FORT),TRUE)
   F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
 
   f90$(BOXLIB_BASE)_sources += threadbox.f90
+
+  f90$(BOXLIB_BASE)_sources += MultiFabUtil_$(DIM)d.f90
 endif
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
@@ -131,6 +140,11 @@ ifeq ($(USE_UPCXX),TRUE)
   C$(BOXLIB_BASE)_headers += BLPgas.H
 endif
 
-# On-the-fly data analysis tools (which must be defined in userland)
-C$(BOXLIB_BASE)_headers += Analysis.H
-C$(BOXLIB_BASE)_sources += Analysis.cpp
+ifeq ($(USE_PARTICLES), TRUE)
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
+  C$(BOXLIB_BASE)_sources += Particles.cpp
+  C$(BOXLIB_BASE)_headers += Particles.H ParGDB.H
+  F$(BOXLIB_BASE)_headers += Particles_F.H
+  F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
+endif
+

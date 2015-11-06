@@ -6,6 +6,9 @@ BOXLIB_HOME ?= ../../
 #    then the line below will be ignored
 HYPRE_DIR ?= $(HOME)/lib/hypre
 
+# location of finite-volume HPGMG, if you decide to use it
+HPGMG_DIR ?= $(HOME)/hpgmg/finite-volume
+
 # If you try to build with USE_MPI = TRUE and the make system can not find your mpi files, it may be because
 #    MPI_HOME is not already defined on your machine.  In that case, you may need to set
 #    the following variables according to the path of MPI on your particular machine.  
@@ -28,6 +31,15 @@ FCOMP=gfortran
 
 USE_HYPRE = FALSE
 USE_F90_SOLVERS = TRUE
+
+USE_HPGMG = TRUE
+HPGMG_FCYCLES = TRUE
+HPGMG_POST_F_CYCLE_TYPE = V
+HPGMG_HELMHOLTZ = TRUE
+HPGMG_STENCIL_VARIABLE_COEFFICIENT = FALSE
+HPGMG_USE_SUBCOMM = TRUE
+HPGMG_BOTTOM_SOLVER= BICGSTAB
+HPGMG_SMOOTHER = GSRB
 
 # Make BoxLib_C bottom CG solver use the old convergence criteria for comparison with BoxLib_F
 CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
@@ -98,6 +110,17 @@ vpath %.H   : . $(vpathdir)
 vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
+
+ifeq ($(USE_HPGMG), TRUE)
+  # need to get the HPGMG sources too
+  vpath %.c   : . $(VPATH_LOCATIONS)
+  vpath %.h   : . $(VPATH_LOCATIONS)
+  vpath %.cpp : . $(VPATH_LOCATIONS)
+  vpath %.H   : . $(VPATH_LOCATIONS)
+  vpath %.F   : . $(VPATH_LOCATIONS)
+  vpath %.f   : . $(VPATH_LOCATIONS)
+  vpath %.f90 : . $(VPATH_LOCATIONS)
+endif
 
 all: $(executable)
 	@echo SUCCESS

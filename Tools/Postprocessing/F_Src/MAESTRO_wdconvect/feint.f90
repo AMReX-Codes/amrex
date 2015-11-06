@@ -186,26 +186,26 @@ program feint
                                   XO16_comp,    &  ! X(O16)        = 4
                                   XMg24_comp /))   ! X(Mg24)       = 5
 
+        lo(:) = 1
+        hi(:) = 1
         lo = lwb(get_box(pf, i, j))
         hi = upb(get_box(pf, i, j))
 
-
         ! get a pointer to the current patch
         p => dataptr(pf, i, j)
-
         
         ! loop over all of the zones in the patch.  Here, we convert
         ! the cell-centered indices at the current level into the
         ! corresponding RANGE on the finest level, and test if we've
         ! stored data in any of those locations.  If we haven't then
         ! we store this level's data and mark that range as filled.
-        do kk = lbound(p,dim=3), ubound(p,dim=3)
+        do kk = lo(3), hi(3)
            zz = (kk + HALF)*dx(3)/rr
 
-           do jj = lbound(p,dim=2), ubound(p,dim=2)
+           do jj = lo(2), hi(2)
               yy = (jj + HALF)*dx(2)/rr
 
-              do ii = lbound(p,dim=1), ubound(p,dim=1)
+              do ii = lo(1), hi(1)
                  xx = (ii + HALF)*dx(1)/rr
 
                  if ( any(imask(ii*r1:(ii+1)*r1-1, &

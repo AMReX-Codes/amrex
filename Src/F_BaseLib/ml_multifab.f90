@@ -401,83 +401,95 @@ contains
   end subroutine ml_multifab_destroy
 
   function ml_multifab_dot_cc(x, compx, y, compy) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab), intent(in) :: x
     type(ml_multifab), intent(in) :: y
     integer, intent(in) :: compx, compy
     integer :: n
     type(bl_prof_timer), save :: bpt
     call build(bpt, "ml_multifab_dot_cc")
-
     if ( x%mla /= y%mla ) call bl_error("ML_DOT: incommensurate")
     n = x%nlevel
-    r = dot(x%mf(n), compx, y%mf(n), compy)
+    r = dot(x%mf(n), compx, y%mf(n), compy, local=.true.)
     do n = x%nlevel-1, 1, -1
        r = r/product(x%mla%mba%rr(n,:)) &
-            + dot(x%mf(n), compx, y%mf(n), compy, mask=x%mla%mask(n))
+            + dot(x%mf(n), compx, y%mf(n), compy, mask=x%mla%mask(n), local=.true.)
     end do
-
+    r1 = r
+    call parallel_reduce(r, r1, MPI_SUM)
     call destroy(bpt)
   end function ml_multifab_dot_cc
 
   function ml_multifab_sum(x) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab), intent(in) :: x
     integer :: n
     n = x%nlevel
-    r = multifab_sum(x%mf(n))
+    r = multifab_sum(x%mf(n), local=.true.)
     do n = x%nlevel-1, 1, -1
        r = r/product(x%mla%mba%rr(n,:)) &
-            + multifab_sum(x%mf(n), mask = x%mla%mask(n))
+            + multifab_sum(x%mf(n), mask = x%mla%mask(n), local=.true.)
     end do
+    r1 = r
+    call parallel_reduce(r, r1, MPI_SUM)
   end function ml_multifab_sum
 
   function ml_multifab_norm_l2(x) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab) :: x
     integer :: n
     n = x%nlevel
-    r = norm_l2(x%mf(n))**2
+    r1 = norm_l2(x%mf(n), local=.true.)
+    r = r1*r1
     do n = x%nlevel-1, 1, -1
-       r = r/product(x%mla%mba%rr(n,:)) &
-            + norm_l2(x%mf(n), mask = x%mla%mask(n))**2
+       r1 = norm_l2(x%mf(n), mask = x%mla%mask(n), local=.true.)
+       r = r/product(x%mla%mba%rr(n,:)) + r1*r1
     end do
+    r1 = r
+    call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
   end function ml_multifab_norm_l2
   function ml_multifab_norm_l2_c(x, c) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab) :: x
     integer, intent(in) :: c
     integer :: n
     n = x%nlevel
-    r = norm_l2(x%mf(n), c)**2
+    r1 = norm_l2(x%mf(n), c, local=.true.)
+    r = r1*r1
     do n = x%nlevel-1, 1, -1
-       r = r/product(x%mla%mba%rr(n,:)) &
-            + norm_l2(x%mf(n), c, mask = x%mla%mask(n))**2
+       r1 = norm_l2(x%mf(n), c, mask = x%mla%mask(n), local=.true.)
+       r = r/product(x%mla%mba%rr(n,:)) + r1*r1
     end do
+    r1 = r
+    call parallel_reduce(r, r1, MPI_SUM)
     r = sqrt(r)
   end function ml_multifab_norm_l2_c
 
   function ml_multifab_norm_inf(x) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab) :: x
     integer :: n
     n = x%nlevel
-    r = norm_inf(x%mf(n))
+    r = norm_inf(x%mf(n), local=.true.)
     do n = x%nlevel-1, 1, -1
-       r = max(r, norm_inf(x%mf(n), mask = x%mla%mask(n)))
+       r = max(r, norm_inf(x%mf(n), mask = x%mla%mask(n), local=.true.))
     end do
+    r1 = r
+    call parallel_reduce(r, r1, MPI_MAX)
   end function ml_multifab_norm_inf
   function ml_multifab_norm_inf_c(x, c) result(r)
-    real(kind=dp_t) :: r
+    real(kind=dp_t) :: r, r1
     type(ml_multifab) :: x
     integer, intent(in) :: c
     integer :: n
     n = x%nlevel
-    r = norm_inf(x%mf(n))
+    r = norm_inf(x%mf(n), local=.true.)
     do n = x%nlevel-1, 1, -1
-       r = max(r, norm_inf(x%mf(n), c, mask = x%mla%mask(n)))
+       r = max(r, norm_inf(x%mf(n), c, mask = x%mla%mask(n), local=.true.))
     end do
+    r1 = r
+    call parallel_reduce(r, r1, MPI_MAX)
   end function ml_multifab_norm_inf_c
 
   subroutine ml_multifab_rescale_c(x, c, val, off)

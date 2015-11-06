@@ -238,7 +238,7 @@ StateData::allocOldData ()
     }
 }
 
-const BCRec
+BCRec
 StateData::getBC (int comp, int i) const
 {
     BCRec bcr;
@@ -306,6 +306,20 @@ StateData::swapTimeLevels (Real dt)
         new_time.stop += dt;
     }
     std::swap(old_data, new_data);
+}
+
+void
+StateData::replaceOldData (MultiFab* mf)
+{
+    std::swap(old_data, mf);
+    delete mf;
+}
+
+void
+StateData::replaceNewData (MultiFab* mf)
+{
+    std::swap(new_data, mf);
+    delete mf;
 }
 
 void

@@ -26,6 +26,8 @@ module layout_module
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
      integer   :: ns = 0                 ! src box number
+     integer   :: lnd = 0                ! dst local index number
+     integer   :: lns = 0                ! src local index number
      type(box) :: dbx                    ! dst sub-box
      type(box) :: sbx                    ! src sub-box
      integer   :: pv = 0                 ! number of points in buf prior to this
@@ -56,6 +58,8 @@ module layout_module
   type local_copy_desc
      integer   :: ns = 0    ! Source box in layout
      integer   :: nd = 0    ! Destination box in layout
+     integer   :: lns = 0   ! src local index number
+     integer   :: lnd = 0   ! dst local index number
      type(box) :: sbx       ! Sub-box for this copy
      type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
@@ -318,7 +322,7 @@ module layout_module
   end interface
 
   private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
-  private :: tilearray_build
+  private :: tilearray_build, internal_sync_unique_cover
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
@@ -1257,6 +1261,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 bxasc%l_con%cpy(li_r)%nd  = j
                 bxasc%l_con%cpy(li_r)%ns  = i
+                bxasc%l_con%cpy(li_r)%lnd = local_index(la,j)
+                bxasc%l_con%cpy(li_r)%lns = local_index(la,i)
                 bxasc%l_con%cpy(li_r)%sbx = sbx
                 bxasc%l_con%cpy(li_r)%dbx = dbx
                 li_r                      = li_r + 1
@@ -1272,6 +1278,7 @@ contains
                 pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
                 bxasc%r_con%rcv(i_r)%nd  = j
                 bxasc%r_con%rcv(i_r)%ns  = i
+                bxasc%r_con%rcv(i_r)%lnd = local_index(la,j)
                 bxasc%r_con%rcv(i_r)%sbx = sbx
                 bxasc%r_con%rcv(i_r)%dbx = dbx
                 bxasc%r_con%rcv(i_r)%pr  = get_proc(la, i)
@@ -1291,6 +1298,7 @@ contains
                 pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
                 bxasc%r_con%snd(i_s)%nd  = j
                 bxasc%r_con%snd(i_s)%ns  = i
+                bxasc%r_con%snd(i_s)%lns = local_index(la,i)
                 bxasc%r_con%snd(i_s)%sbx = sbx
                 bxasc%r_con%snd(i_s)%dbx = dbx
                 bxasc%r_con%snd(i_s)%pr  = get_proc(la, j)
@@ -1357,6 +1365,8 @@ contains
                    lcnt_r                    = lcnt_r + 1
                    bxasc%l_con%cpy(li_r)%nd  = i
                    bxasc%l_con%cpy(li_r)%ns  = j
+                   bxasc%l_con%cpy(li_r)%lnd = local_index(la,i)
+                   bxasc%l_con%cpy(li_r)%lns = local_index(la,j)
                    bxasc%l_con%cpy(li_r)%sbx = sbx
                    bxasc%l_con%cpy(li_r)%dbx = dbx
                    li_r                      = li_r + 1
@@ -1372,6 +1382,7 @@ contains
                    pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
                    bxasc%r_con%snd(i_s)%nd  = i
                    bxasc%r_con%snd(i_s)%ns  = j
+                   bxasc%r_con%snd(i_s)%lns = local_index(la,j)
                    bxasc%r_con%snd(i_s)%sbx = sbx
                    bxasc%r_con%snd(i_s)%dbx = dbx
                    bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
@@ -1388,6 +1399,7 @@ contains
                    pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
                    bxasc%r_con%rcv(i_r)%nd  = i
                    bxasc%r_con%rcv(i_r)%ns  = j
+                   bxasc%r_con%rcv(i_r)%lnd = local_index(la,i)
                    bxasc%r_con%rcv(i_r)%sbx = sbx
                    bxasc%r_con%rcv(i_r)%dbx = dbx
                    bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
@@ -1825,6 +1837,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 snasc%l_con%cpy(li_r)%nd  = i
                 snasc%l_con%cpy(li_r)%ns  = j
+                snasc%l_con%cpy(li_r)%lnd = local_index(la,i)
+                snasc%l_con%cpy(li_r)%lns = local_index(la,j)
                 snasc%l_con%cpy(li_r)%sbx = sbx
                 snasc%l_con%cpy(li_r)%dbx = dbx
                 li_r                      = li_r + 1
@@ -1840,6 +1854,7 @@ contains
                 pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(dbx)
                 snasc%r_con%snd(i_s)%nd  = i
                 snasc%r_con%snd(i_s)%ns  = j
+                snasc%r_con%snd(i_s)%lns = local_index(la,j)
                 snasc%r_con%snd(i_s)%sbx = sbx
                 snasc%r_con%snd(i_s)%dbx = dbx
                 snasc%r_con%snd(i_s)%pr  = get_proc(la, i)
@@ -1856,6 +1871,7 @@ contains
                 pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(dbx)
                 snasc%r_con%rcv(i_r)%nd  = i
                 snasc%r_con%rcv(i_r)%ns  = j
+                snasc%r_con%rcv(i_r)%lnd = local_index(la,i)
                 snasc%r_con%rcv(i_r)%sbx = sbx
                 snasc%r_con%rcv(i_r)%dbx = dbx
                 snasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
@@ -2083,6 +2099,8 @@ contains
              lcnt_r                    = lcnt_r + 1
              cpasc%l_con%cpy(li_r)%nd  = i
              cpasc%l_con%cpy(li_r)%ns  = j
+             cpasc%l_con%cpy(li_r)%lnd = local_index(la_dst,i)
+             cpasc%l_con%cpy(li_r)%lns = local_index(la_src,j)
              cpasc%l_con%cpy(li_r)%sbx = bx
              cpasc%l_con%cpy(li_r)%dbx = bx
              li_r                      = li_r + 1
@@ -2098,6 +2116,7 @@ contains
              pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
              cpasc%r_con%snd(i_s)%nd    = i
              cpasc%r_con%snd(i_s)%ns    = j
+             cpasc%r_con%snd(i_s)%lns   = local_index(la_src,j)
              cpasc%r_con%snd(i_s)%sbx   = bx
              cpasc%r_con%snd(i_s)%dbx   = bx
              cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
@@ -2114,6 +2133,7 @@ contains
              pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
              cpasc%r_con%rcv(i_r)%nd    = i
              cpasc%r_con%rcv(i_r)%ns    = j
+             cpasc%r_con%rcv(i_r)%lnd   = local_index(la_dst,i)
              cpasc%r_con%rcv(i_r)%sbx   = bx
              cpasc%r_con%rcv(i_r)%dbx   = bx
              cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
@@ -2325,6 +2345,8 @@ contains
                 lcnt_r                         = lcnt_r + 1
                 flasc%flux%l_con%cpy(li_r)%nd  = j
                 flasc%flux%l_con%cpy(li_r)%ns  = i
+                flasc%flux%l_con%cpy(li_r)%lnd = local_index(la_dst,j)
+                flasc%flux%l_con%cpy(li_r)%lns = local_index(la_src,i)
                 flasc%flux%l_con%cpy(li_r)%sbx = isect
                 flasc%flux%l_con%cpy(li_r)%dbx = isect
                 li_r                           = li_r + 1
@@ -2344,6 +2366,7 @@ contains
                 pvol(la_dst%lap%prc(j), 2)    = pvol(la_dst%lap%prc(j), 2) + volume(isect)
                 flasc%flux%r_con%snd(i_s)%nd  = j
                 flasc%flux%r_con%snd(i_s)%ns  = i
+                flasc%flux%r_con%snd(i_s)%lns = local_index(la_src,i)
                 flasc%flux%r_con%snd(i_s)%sbx = isect
                 flasc%flux%r_con%snd(i_s)%dbx = isect
                 flasc%flux%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
@@ -2352,6 +2375,7 @@ contains
                 mpvol(la_dst%lap%prc(j), 2)   = mpvol(la_dst%lap%prc(j), 2) + volume(isect)
                 flasc%mask%r_con%snd(i_s)%nd  = j
                 flasc%mask%r_con%snd(i_s)%ns  = i
+                flasc%mask%r_con%snd(i_s)%lns = local_index(la_src,i)
                 flasc%mask%r_con%snd(i_s)%sbx = isect
                 flasc%mask%r_con%snd(i_s)%dbx = isect
                 flasc%mask%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
@@ -2376,6 +2400,7 @@ contains
                 pvol(la_src%lap%prc(i), 1)    = pvol(la_src%lap%prc(i), 1) + volume(isect)
                 flasc%flux%r_con%rcv(i_r)%nd  = j
                 flasc%flux%r_con%rcv(i_r)%ns  = i
+                flasc%flux%r_con%rcv(i_r)%lnd = local_index(la_dst,j)
                 flasc%flux%r_con%rcv(i_r)%sbx = isect
                 flasc%flux%r_con%rcv(i_r)%dbx = isect
                 flasc%flux%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
@@ -2388,6 +2413,7 @@ contains
                 mpvol(la_src%lap%prc(i), 1)   = mpvol(la_src%lap%prc(i), 1) + volume(isect)
                 flasc%mask%r_con%rcv(i_r)%nd  = j
                 flasc%mask%r_con%rcv(i_r)%ns  = i
+                flasc%mask%r_con%rcv(i_r)%lnd = local_index(la_dst,j)
                 flasc%mask%r_con%rcv(i_r)%sbx = isect
                 flasc%mask%r_con%rcv(i_r)%dbx = isect
                 flasc%mask%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
@@ -3050,6 +3076,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 cpasc%l_con%cpy(li_r)%nd  = i
                 cpasc%l_con%cpy(li_r)%ns  = j
+                cpasc%l_con%cpy(li_r)%lnd = local_index(la_dst,i)
+                cpasc%l_con%cpy(li_r)%lns = local_index(la_src,j)
                 cpasc%l_con%cpy(li_r)%sbx = bx
                 cpasc%l_con%cpy(li_r)%dbx = bx
                 li_r                      = li_r + 1
@@ -3065,6 +3093,7 @@ contains
                 pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
                 cpasc%r_con%snd(i_s)%nd    = i
                 cpasc%r_con%snd(i_s)%ns    = j
+                cpasc%r_con%snd(i_s)%lns   = local_index(la_src,j)
                 cpasc%r_con%snd(i_s)%sbx   = bx
                 cpasc%r_con%snd(i_s)%dbx   = bx
                 cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
@@ -3081,6 +3110,7 @@ contains
                 pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
                 cpasc%r_con%rcv(i_r)%nd    = i
                 cpasc%r_con%rcv(i_r)%ns    = j
+                cpasc%r_con%rcv(i_r)%lnd   = local_index(la_dst,i)
                 cpasc%r_con%rcv(i_r)%sbx   = bx
                 cpasc%r_con%rcv(i_r)%dbx   = bx
                 cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
@@ -3576,11 +3606,16 @@ contains
     do n=1, nlbx
        bx = get_box(la%lap%bxa, la%lap%idx(n))
 
-       ntiles(n) = 1
-       do idim = 1, dim
-          nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
-          ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
-       end do
+       if (empty(bx)) then
+          ntiles(n) = 0
+          nt_in_fab(:,n) = 0
+       else
+          ntiles(n) = 1
+          do idim = 1, dim
+             nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
+             ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
+          end do
+       end if
 
        n_tot_tiles = n_tot_tiles + ntiles(n)
     end do
@@ -3624,6 +3659,8 @@ contains
     i = 1
 
     do n=1, nlbx
+
+       if (ntiles(n) .eq. 0) cycle
 
        if (it+ntiles(n)-1 < tlo) then
           it = it + ntiles(n)

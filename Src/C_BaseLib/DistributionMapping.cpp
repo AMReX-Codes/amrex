@@ -972,9 +972,9 @@ Distribute (const std::vector<SFCToken>&     tokens,
 
         totalvol += vol;
 
-        if ((totalvol/(i+1)) > volpercpu &&
-            cnt > 1                      &&
-            K < tokens.size())
+        if ((totalvol/(i+1)) > volpercpu &&  // Too much for this bin.
+            cnt > 1                      &&  // More than one box in this bin.
+            i < nprocs-1)                    // Not the last bin, which has to take all.
         {
             --K;
             v[i].pop_back();
