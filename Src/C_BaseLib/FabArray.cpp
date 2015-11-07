@@ -952,6 +952,13 @@ MFIter::Initialize (int sharing, int chunksize)
     }
 #endif
     
+#ifdef BL_USE_UPCXX
+    if (ParallelDescriptor::TeamSize() > 1) {
+	tid = ParallelDescriptor::MyRankInTeam();
+	nthreads = ParallelDescriptor::TeamSize();
+    }
+#endif
+
     // First let's figure out how many tiles we are going to have
     int n_tot_tiles=0;
     Array<IntVect> nt_in_fab;
