@@ -1479,9 +1479,13 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     const int MyProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
-      if(distributionMap[i] == MyProc) {
-        indexMap.push_back(i);
-      }
+#ifdef BL_USE_UPCXX
+	if(ParallelDescriptor::sameTeam(distributionMap[i])) {
+#else
+	if(distributionMap[i] == MyProc) {
+#endif
+	    indexMap.push_back(i);
+	}
     }
 
     if(alloc == Fab_allocate) {
@@ -1529,13 +1533,55 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    m_fabs_v.reserve(indexMap.size());
+    int n = indexMap.size();
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+    bool alloc = true;
+
+    m_fabs_v.reserve(n);
+
+    for (int i = 0; i < n; ++i)
     {
-        const Box& tmp = BoxLib::grow(fai.validbox(), n_grow);
-	m_fabs_v.push_back(new FAB(tmp, n_comp));
+#ifdef BL_USE_UPCXX
+	alloc = i%ParallelDescriptor::TeamSize() == ParallelDescriptor::MyRankInTeam();
+#endif
+	int K = indexMap[i];
+        const Box& tmp = BoxLib::grow(box(K), n_grow);
+	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
     }
+
+#ifdef BL_USE_UPCXX
+    if (ParallelDescriptor::TeamSize() > 1) 
+    {
+	int nworkers = ParallelDescriptor::TeamSize();
+	int tid = ParallelDescriptor::MyRankInTeam();
+	const upcxx::team& team = ParallelDescriptor::MyTeam();
+	
+	int np = (n + nworkers-1) / nworkers;
+	
+	std::vector<upcxx::global_ptr<void> > psrc(np);
+	std::vector<upcxx::global_ptr<void> > pdst(np*nworkers);
+	
+	int j = 0;
+	for (int i = 0; i < n; ++i) {
+	    alloc = i%nworkers == tid;
+	    if (alloc) {
+	        void* p = (void*) m_fabs_v[i]->dataPtr();
+	        psrc[j++] = upcxx::global_ptr<void>(p);
+            }
+        }
+
+	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
+
+	for (int i = 0; i < n; ++i) {
+	    alloc = i%nworkers == tid;
+	    if (!alloc) {
+	        int j = (i / nworkers) + (i % nworkers) * np;
+		void* p = (void*) pdst[j];
+		m_fabs_v[i]->setPtr((value_type *) p);
+            }
+        }
+    }
+#endif
 }
 
 template <class FAB>

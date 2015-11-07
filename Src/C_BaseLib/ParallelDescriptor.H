@@ -11,6 +11,10 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_USE_UPCXX
+#include <upcxx.h>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -173,6 +177,8 @@ namespace ParallelDescriptor
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
+    void StartTeams ();
+
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
     //
@@ -241,6 +247,15 @@ namespace ParallelDescriptor
     extern int m_nProcs_comp;
     extern int m_nProcs_sidecar;
     extern int nSidecarProcs;
+    //
+    extern int m_TeamSize;
+    extern int m_nTeams;
+    extern int m_MyTeamColor;
+    extern int m_MyTeamLead;
+    extern int m_MyRankInTeam;
+#ifdef BL_USE_UPCXX
+    extern upcxx::team m_MyTeam;
+#endif
 
     inline void
     SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
@@ -298,6 +313,54 @@ namespace ParallelDescriptor
     {
          return MyProc() == IOProcessorNumber();
     }
+    //
+    inline int
+    TeamSize ()
+    {
+	return m_TeamSize;
+    }
+    inline int
+    NTeams ()
+    {
+	return m_nTeams;
+    }
+    inline int
+    MyTeamColor ()
+    {
+	return m_MyTeamColor;
+    }
+    inline int
+    MyTeamLead ()
+    {
+	return m_MyTeamLead;
+    }
+    inline int
+    MyRankInTeam ()
+    {
+	return m_MyRankInTeam;
+    }
+    inline int
+    TeamLead (int rank)
+    {
+	return rank - rank % m_TeamSize;
+    }
+    inline bool
+    isTeamLead ()
+    {
+	return MyRankInTeam() == 0;
+    }
+    inline bool
+    sameTeam (int rank)
+    {
+	return MyTeamLead() == TeamLead(rank);
+    }
+#ifdef BL_USE_UPCXX
+    inline const upcxx::team&
+    MyTeam ()
+    {
+	return m_MyTeam;
+    }
+#endif
     //
     // BoxLib's Parallel Communicators
     //    m_comm_all     is for all procs, probably MPI_COMM_WORLD

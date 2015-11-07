@@ -147,16 +147,17 @@ FArrayBox::FArrayBox ()
 }
 
 FArrayBox::FArrayBox (const Box& b,
-                      int        n)
+                      int        n,
+		      bool       alloc)
     :
-    BaseFab<Real>(b,n)
+    BaseFab<Real>(b,n,alloc)
 {
+    if (fabio == 0) FArrayBox::Initialize();
+
     //
     // For debugging purposes set values to QNAN when possible.
     //
-    if (fabio == 0) FArrayBox::Initialize();
-
-    if ( do_initval )
+    if ( alloc && do_initval )
 	setVal(initval);
 }
 

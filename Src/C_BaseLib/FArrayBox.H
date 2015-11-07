@@ -215,7 +215,8 @@ public:
     // (variables) at each data point in the Box.
     //
     explicit FArrayBox (const Box& b,
-                        int        ncomp=1);
+                        int        ncomp=1,
+			bool       alloc=true);
     //
     // Set the fab to the value r.
     //
