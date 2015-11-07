@@ -436,15 +436,24 @@ private:
 class MFIter
 {
 public:
+    enum Flags {
+	Tiling    = 0x01, 
+	NoSharing = 0x02 // For OMP only, if on, all threads loops over all grids.
+    };  // All these flags are off by default.
     //
     // Construct a MFIter.
     //
-    // no tiling
-    explicit MFIter (const FabArrayBase& fabarray, int sharing=1);
+    // The default is no tiling
+    explicit MFIter (const FabArrayBase& fabarray,
+		     unsigned char       flags=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize=0); 
-    // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize=0);
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     bool                do_tiling); 
+    // tiling with explicit size, flags, and chunksize
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     const IntVect&      tilesize,
+		     unsigned char       flags=0,
+		     int                 chunksize=0);
     //
     // Skip tileArray initialization
     //
@@ -507,7 +516,7 @@ protected:
     Array<int>          localIndexMap;
     Array<Box>          tileArray;
 
-    void Initialize (int sharing, int chunksize);
+    void Initialize (unsigned char flags=0, int chunksize=0);
 };
 
 /*
