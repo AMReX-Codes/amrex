@@ -1,3 +1,4 @@
+// TODO: divide works among teams, not processes
 
 #include <winstd.H>
 
