@@ -816,6 +816,10 @@ public:
 
     bool defined (int i) const;
     bool defined (const MFIter& mfi) const;
+
+    const std::vector<bool>& isOwner () const {
+	return m_is_owner;
+    }
     //
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
@@ -866,6 +870,7 @@ protected:
     // The data.
     //
     std::vector<FAB*> m_fabs_v;
+    std::vector<bool> m_is_owner;
 
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
            // <ngrids to find distmap, <FabArrayID, FabArray *> >
@@ -1538,6 +1543,7 @@ FabArray<FAB>::AllocFabs ()
     bool alloc = true;
 
     m_fabs_v.reserve(n);
+    m_is_owner.reserve(n);
 
     // TODO: rotate the starting point of round robin
     for (int i = 0; i < n; ++i)
@@ -1548,6 +1554,7 @@ FabArray<FAB>::AllocFabs ()
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
+	m_is_owner.push_back(alloc);
     }
 
 #ifdef BL_USE_UPCXX
@@ -1564,8 +1571,7 @@ FabArray<FAB>::AllocFabs ()
 	
 	int j = 0;
 	for (int i = 0; i < n; ++i) {
-	    alloc = i%nworkers == tid;
-	    if (alloc) {
+	    if (m_is_owner[i]) {
 	        void* p = (void*) m_fabs_v[i]->dataPtr();
 	        psrc[j++] = upcxx::global_ptr<void>(p);
             }
@@ -1574,8 +1580,7 @@ FabArray<FAB>::AllocFabs ()
 	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
 
 	for (int i = 0; i < n; ++i) {
-	    alloc = i%nworkers == tid;
-	    if (!alloc) {
+	    if (!m_is_owner[i]) {
 	        int j = (i / nworkers) + (i % nworkers) * np;
 		void* p = (void*) pdst[j];
 		m_fabs_v[i]->setPtr((value_type *) p);
