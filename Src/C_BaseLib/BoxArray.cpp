@@ -966,9 +966,10 @@ BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
 
         for (Array<Box>::const_iterator bl_it = ba->begin(), bl_it_end = ba->end(); bl_it != bl_it_end; ++bl_it)
         {
+	    IntVect ivType(bl_it->type());
+            const int *index_type = ivType.getVect();
             const int *smallEnd = bl_it->smallEnd().getVect();
             const int *bigEnd = bl_it->bigEnd().getVect();
-            const int *index_type = bl_it->type().getVect();
 
             // getVect() requires a constant pointer, but MPI buffers require
             // non-constant pointers. Sorry this is awful.
@@ -1003,6 +1004,36 @@ BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
         ba->define(bl);
         if (ParallelDescriptor::IOProcessor()) std::cout << "done!" << std::endl;
     }
+}
+
+
+Array<int> BoxLib::SerializeBoxArray(const BoxArray &ba)
+{
+  int nIntsInBox(3 * BL_SPACEDIM);
+  Array<int> retArray(ba.size() * nIntsInBox, -1);
+  for(int i(0); i < ba.size(); ++i) {
+    Array<int> aiBox(BoxLib::SerializeBox(ba[i]));
+    for(int j(0); j < nIntsInBox; ++j) {
+      retArray[i * nIntsInBox] = aiBox[j];
+    }
+  }
+  return retArray;
+}
+
+
+BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
+{
+  int nIntsInBox(3 * BL_SPACEDIM);
+  int nBoxes(serarray.size() / nIntsInBox);
+  BoxArray ba(nBoxes);
+  for(int i(0); i < nBoxes; ++i) {
+    Array<int> aiBox(nIntsInBox);
+    for(int j(0); j < nIntsInBox; ++j) {
+      aiBox[j] = serarray[i * nIntsInBox];
+    }
+    ba.set(i, BoxLib::UnSerializeBox(aiBox));
+  }
+  return ba;
 }
 #endif
 

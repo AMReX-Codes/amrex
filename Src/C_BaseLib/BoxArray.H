@@ -40,6 +40,9 @@ namespace BoxLib
     //   read in a special way
     //
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
+
+    Array<int> SerializeBoxArray(const BoxArray &ba);
+    BoxArray UnSerializeBoxArray(const Array<int> &serarray);
 }
 
 //
