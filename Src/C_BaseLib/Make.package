@@ -136,8 +136,8 @@ f90$(BOXLIB_BASE)_sources += mempool_f.f90
 
 # UPCXX
 ifeq ($(USE_UPCXX),TRUE)
-  C$(BOXLIB_BASE)_sources += BLPgas.cpp
-  C$(BOXLIB_BASE)_headers += BLPgas.H
+  C$(BOXLIB_BASE)_sources += BLPgas.cpp UArena.cpp
+  C$(BOXLIB_BASE)_headers += BLPgas.H UArena.H
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)

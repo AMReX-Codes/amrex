@@ -1539,6 +1539,7 @@ FabArray<FAB>::AllocFabs ()
 
     m_fabs_v.reserve(n);
 
+    // TODO: rotate the starting point of round robin
     for (int i = 0; i < n; ++i)
     {
 #ifdef BL_USE_UPCXX
