@@ -883,43 +883,51 @@ FabArrayBase::ResetNGrow () const
 }
 
 
-MFIter::MFIter (const FabArrayBase& fabarray, int sharing)
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		unsigned char       flags)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(D_DECL(1024000,1024000,1024000))
 {
-    Initialize(sharing,0);
-}
-
-MFIter::MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(D_DECL(1024000,1024000,1024000))
-{
-    if (do_tiling) 
+    if (flags & Tiling)
 	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize(1,chunksize);
+    Initialize(flags);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize)
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		bool                do_tiling)
+    :
+    fabArray(fabarray),
+    currentIndex(0),
+    tileSize(D_DECL(1024000,1024000,1024000))
+{
+    if (do_tiling)
+	tileSize = FabArrayBase::mfiter_tile_size;
+    Initialize();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		const IntVect&      tilesize, 
+		unsigned char       flags,
+		int                 chunksize)
     :
     fabArray(fabarray),
     currentIndex(0),
     tileSize(tilesize)
 {
-    Initialize(1,chunksize);
+    Initialize(flags,chunksize);
 }
 
 void 
-MFIter::Initialize (int sharing, int chunksize) 
+MFIter::Initialize (unsigned char flags, int chunksize) 
 {
     int tid = 0;
     int nthreads = 1;
     
 #ifdef _OPENMP
-    if (omp_in_parallel() && sharing) {
+    int nosharing = flags & NoSharing;
+    if (omp_in_parallel() && !nosharing) {
 	tid = omp_get_thread_num();
 	nthreads = omp_get_num_threads();
     }
