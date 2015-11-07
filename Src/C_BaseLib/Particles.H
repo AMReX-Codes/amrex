@@ -6247,7 +6247,13 @@ ParticleContainer<N>::Checkpoint (const std::string& dir,
     //
     // We'll allow up to nOutFiles active writers at a time.
     //
-    const int nOutFiles = std::min(64,NProcs);
+    int nOutFiles(64);
+    ParmParse pp("particles");
+    pp.query("particles_nfiles",nOutFiles);
+    if(nOutFiles == -1) {
+      nOutFiles = NProcs;
+    }
+    nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
 
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
     {
@@ -7099,16 +7105,17 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(lev <= m_gdb->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
-    //
-    // We'll spread the output over this many files.
-    //
-    // Should this be ParmParse'd in?
-    //
-    const int MaxOutFiles = 32;
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelDescriptor::NProcs();
-    const int   nOutFiles = std::min(MaxOutFiles, NProcs);
+    // We'll spread the output over this many files.
+    int nOutFiles(64);
+    ParmParse pp("particles");
+    pp.query("particles_nfiles",nOutFiles);
+    if(nOutFiles == -1) {
+      nOutFiles = NProcs;
+    }
+    nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
     const int   nSets     = ((NProcs + (nOutFiles - 1)) / nOutFiles);
     const int   mySet     = (MyProc / nOutFiles);
 
