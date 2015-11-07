@@ -362,7 +362,7 @@ public:
     //
     // Given a normal FabArray (i.e., with non-overlapping boxarray),
     // this sets n_grow and turns it into a special FabArray with overlapping boxarray.
-    // This is useful for parallel copy, which only copies form valid to valid regions.
+    // This is useful for parallel copy, which only copies from valid to valid regions.
     void SetNGrow (int n_grow_new) const;
     // This reset it back to normal.  These two should always appear in pair.
     void ResetNGrow () const;
