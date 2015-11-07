@@ -33,6 +33,22 @@ CoordSys::Coord ()
     return c_sys;
 }
 
+int
+CoordSys::CoordInt ()
+{
+    switch (c_sys)
+    {
+        case undef:
+            return -1;
+        case cartesian:
+            return 0;
+        case RZ:
+            return 1;
+        case SPHERICAL:
+            return 2;
+    }
+}
+
 void
 CoordSys::SetOffset (const Real* x_lo)
 {

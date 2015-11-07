@@ -52,6 +52,10 @@ public:
     //
     static CoordType Coord ();
     //
+    // Returns the CoordType as an int.
+    //
+    static int CoordInt ();
+    //
     // Is CoordType == SPHERICAL?
     //
     static bool IsSPHERICAL ();
