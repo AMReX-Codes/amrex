@@ -861,6 +861,7 @@ Array<int> BoxLib::SerializeBox(const Box &b)
 
 Box BoxLib::UnSerializeBox(const Array<int> &serarray)
 {
+  BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
   const int *iptr = serarray.dataPtr();
   return Box(IntVect(iptr),
              IntVect(iptr + BL_SPACEDIM),
