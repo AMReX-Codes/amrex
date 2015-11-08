@@ -115,6 +115,12 @@ public:
     //
     const Array<int>& IndexMap () const { return indexMap; }
     //
+    // Returns owenership of fabs. The concept of ownership only applies when UPC++
+    // team is used. In that case, each fab is shared by team workers, with one
+    // taking the ownership.
+    //
+    const std::vector<bool>& OwnerShip () const { return ownership; }
+    //
     // Returns local index in the vector of FABs.
     //
     int localindex (int K) const { 
@@ -421,6 +427,7 @@ protected:
     mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
     Array<int>          indexMap;
+    std::vector<bool>   ownership;
     mutable int         n_grow;
     int                 n_comp;
     int                 faID;
@@ -437,8 +444,10 @@ class MFIter
 {
 public:
     enum Flags {
-	Tiling    = 0x01, 
-	NoSharing = 0x02 // For OMP only, if on, all threads loops over all grids.
+	Tiling       = 0x01, 
+	OMPNoSharing = 0x02, // For OMP only. If on, all threads loops over all grids.
+	UPCOwnerOnly = 0x04, // For UPC++ only. If on, only loops over fabs owned.
+	SkipInit     = 0x08  // MGGhostIter can skip Initialize().
     };  // All these flags are off by default.
     //
     // Construct a MFIter.
@@ -454,10 +463,6 @@ public:
 		     const IntVect&      tilesize,
 		     unsigned char       flags=0,
 		     int                 chunksize=0);
-    //
-    // Skip tileArray initialization
-    //
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, bool skip_init);
     //
     // Returns the tile Box at the current index.
     //
@@ -529,7 +534,8 @@ class MFGhostIter
 public:
 
     explicit MFGhostIter (const FabArrayBase& fabarray, 
-			  const IntVect& tilesize=FabArrayBase::mfghostiter_tile_size);
+			  const IntVect&      tilesize=FabArrayBase::mfghostiter_tile_size,
+			  unsigned char       flags = 0);
 
 private:
 
@@ -826,9 +832,6 @@ public:
     bool defined (int i) const;
     bool defined (const MFIter& mfi) const;
 
-    const std::vector<bool>& isOwner () const {
-	return m_is_owner;
-    }
     //
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
@@ -879,7 +882,6 @@ protected:
     // The data.
     //
     std::vector<FAB*> m_fabs_v;
-    std::vector<bool> m_is_owner;
 
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
            // <ngrids to find distmap, <FabArrayID, FabArray *> >
@@ -1552,7 +1554,7 @@ FabArray<FAB>::AllocFabs ()
     bool alloc = true;
 
     m_fabs_v.reserve(n);
-    m_is_owner.reserve(n);
+    ownership.reserve(n);
 
     // TODO: rotate the starting point of round robin
     for (int i = 0; i < n; ++i)
@@ -1563,7 +1565,7 @@ FabArray<FAB>::AllocFabs ()
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
-	m_is_owner.push_back(alloc);
+	ownership.push_back(alloc);
     }
 
 #ifdef BL_USE_UPCXX
@@ -1580,7 +1582,7 @@ FabArray<FAB>::AllocFabs ()
 	
 	int j = 0;
 	for (int i = 0; i < n; ++i) {
-	    if (m_is_owner[i]) {
+	    if (ownership[i]) {
 	        void* p = (void*) m_fabs_v[i]->dataPtr();
 	        psrc[j++] = upcxx::global_ptr<void>(p);
             }
@@ -1589,7 +1591,7 @@ FabArray<FAB>::AllocFabs ()
 	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
 
 	for (int i = 0; i < n; ++i) {
-	    if (!m_is_owner[i]) {
+	    if (!ownership[i]) {
 	        int j = (i / nworkers) + (i % nworkers) * np;
 		void* p = (void*) pdst[j];
 		m_fabs_v[i]->setPtr((value_type *) p);

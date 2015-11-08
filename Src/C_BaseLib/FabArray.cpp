@@ -937,18 +937,11 @@ MFIter::MFIter (const FabArrayBase& fabarray,
     Initialize(flags,chunksize);
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, bool skip_init)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(tilesize)
-{
-    if (!skip_init) Initialize(1,0);
-}
-
 void 
 MFIter::Initialize (unsigned char flags, int chunksize) 
 {
+    if (flags & SkipInit) return;
+
     int tid = 0;
     int nthreads = 1;
     
@@ -959,11 +952,20 @@ MFIter::Initialize (unsigned char flags, int chunksize)
 	nthreads = omp_get_num_threads();
     }
 #endif
+
+    int owner_only = 0;
+    const std::vector<bool>& is_owner = fabArray.OwnerShip();
     
 #ifdef BL_USE_UPCXX
     if (ParallelDescriptor::TeamSize() > 1) {
-	tid = ParallelDescriptor::MyRankInTeam();
-	nthreads = ParallelDescriptor::TeamSize();
+	owner_only = flags & UPCOwnerOnly;
+	if (owner_only) {
+	    tid = 0;
+	    nthreads = 1;
+	} else {
+	    tid = ParallelDescriptor::MyRankInTeam();
+	    nthreads = ParallelDescriptor::TeamSize();
+	}
     }
 #endif
 
@@ -971,6 +973,9 @@ MFIter::Initialize (unsigned char flags, int chunksize)
     int n_tot_tiles=0;
     Array<IntVect> nt_in_fab;
     for (int i=0; i<fabArray.IndexMap().size(); i++) {
+
+	if (owner_only && !is_owner[i]) continue;
+
 	int K = fabArray.IndexMap()[i]; 
 	const Box& bx = fabArray.box(K);
 	
@@ -1023,11 +1028,16 @@ MFIter::Initialize (unsigned char flags, int chunksize)
     tileArray.reserve(sz);
 	
     int it = 0;
+    int ifab = -1;
     for (int i=0; i<fabArray.IndexMap().size(); i++) {
+
+	if (owner_only && !is_owner[i]) continue;
 	
+	++ifab;
+
 	int ntiles = 1;
 	for (int d=0; d<BL_SPACEDIM; d++) {
-	    ntiles *= nt_in_fab[i][d];
+	    ntiles *= nt_in_fab[ifab][d];
 	}
 	
 	if (it+ntiles-1 < tlo) {
@@ -1041,15 +1051,15 @@ MFIter::Initialize (unsigned char flags, int chunksize)
 	IntVect tsize, nleft;
 	for (int d=0; d<BL_SPACEDIM; d++) {
 	    int ncells = bx.length(d);
-	    tsize[d] = ncells/nt_in_fab[i][d];
-	    nleft[d] = ncells - nt_in_fab[i][d]*tsize[d];
+	    tsize[d] = ncells/nt_in_fab[ifab][d];
+	    nleft[d] = ncells - nt_in_fab[ifab][d]*tsize[d];
 	}
 	
 	IntVect small, big, ijk;  // note that the initial values are all zero.
 	ijk[0] = -1;
 	for (int t=0; t<ntiles; t++) {
 	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d]<nt_in_fab[i][d]-1) {
+		if (ijk[d]<nt_in_fab[ifab][d]-1) {
 		    ijk[d]++;
 		    break;
 		} else {
@@ -1141,9 +1151,11 @@ MFIter::nodalize (Box& bx, int dir) const
     }
 }
 
-MFGhostIter::MFGhostIter (const FabArrayBase& fabarray, const IntVect& tilesize)
+MFGhostIter::MFGhostIter (const FabArrayBase& fabarray,
+			  const IntVect&      tilesize,
+			  unsigned char       flags)
     :
-    MFIter(fabarray,tilesize,true)
+    MFIter(fabarray, tilesize, flags&SkipInit)
 {
     Initialize();
 }
