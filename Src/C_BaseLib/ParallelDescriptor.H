@@ -360,6 +360,11 @@ namespace ParallelDescriptor
     {
 	return m_MyTeam;
     }
+    inline void
+    TeamBarrier ()
+    {
+	m_MyTeam.barrier();
+    }
 #endif
     //
     // BoxLib's Parallel Communicators
