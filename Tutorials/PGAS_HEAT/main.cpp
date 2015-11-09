@@ -33,6 +33,7 @@ BL_FORT_PROC_DECL(INIT_PHI,init_phi)
 static Real kernel_time = 0;
 static Real FB_time     = 0;
 static int  do_tiling   = 1;
+static int  upcxx_barrier = 1;
 
 void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry geom)
 {
@@ -46,6 +47,11 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 
     old_phi->FillBoundary_finish();
     geom.FillPeriodicBoundary_finish(*old_phi);
+
+#ifdef BL_USE_UPCXX
+    if (upcxx_barrier)
+	ParallelDescriptor::TeamBarrier();
+#endif
     
     Real t1 = ParallelDescriptor::second();
 
@@ -77,6 +83,11 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 		 Ncomp,dx, dt);
 	}
     }
+
+#ifdef BL_USE_UPCXX
+    if (upcxx_barrier)
+	ParallelDescriptor::TeamBarrier();
+#endif
     
     kernel_time += ParallelDescriptor::second() - t1;
 }
@@ -122,6 +133,8 @@ main (int argc, char* argv[])
     pp.query("nsteps",nsteps);
 
     pp.query("do_tiling", do_tiling);
+
+    pp.query("upcxx_barrier", upcxx_barrier);
 
     // Define a single box covering the domain
     IntVect dom_lo(0,0,0);
@@ -192,6 +205,11 @@ main (int argc, char* argv[])
 	     BL_TO_FORTRAN((*new_phi)[mfi]),Ncomp,
 	     dx,geom.ProbLo(),geom.ProbHi());
     }
+
+#ifdef BL_USE_UPCXX
+    if (upcxx_barrier)
+	ParallelDescriptor::TeamBarrier();
+#endif
 
     // Call the compute_dt routine to return a time step which we will pass to advance
     Real dt = compute_dt(dx[0]);
