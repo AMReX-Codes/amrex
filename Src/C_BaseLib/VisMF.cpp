@@ -1,3 +1,4 @@
+// TODO: need to work on read for upc++
 
 #include <winstd.H>
 #include <fstream>
@@ -494,10 +495,11 @@ VisMF::Header::Header (const MultiFab& mf,
 {
 #ifdef BL_USE_MPI
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    unsigned char flags = MFIter::UPCOwnerOnly;
     //
     // Calculate m_min and m_max on the CPU owning the fab.
     //
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf,flags); mfi.isValid(); ++mfi)
     {
         const int idx = mfi.index();
 
@@ -540,7 +542,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
     int ioffset = 0;
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf,flags); mfi.isValid(); ++mfi)
     {
         const int idx = mfi.index();
 
@@ -683,6 +685,8 @@ VisMF::Write (const MultiFab&    mf,
 
     VisMF::Header hdr(mf, how);
 
+    unsigned char flags = MFIter::UPCOwnerOnly;
+
     if (set_ghost)
     {
         MultiFab* the_mf = const_cast<MultiFab*>(&mf);
@@ -691,7 +695,7 @@ VisMF::Write (const MultiFab&    mf,
         BL_ASSERT(hdr.m_ba == mf.boxArray());
         BL_ASSERT(hdr.m_ncomp == mf.nComp());
 
-        for (MFIter mfi(*the_mf); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*the_mf,flags); mfi.isValid(); ++mfi)
         {
             const int idx = mfi.index();
 
@@ -744,7 +748,7 @@ VisMF::Write (const MultiFab&    mf,
                 if (!FabFile.good())
                     BoxLib::FileOpenFailed(FullName);
 
-                for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+                for (MFIter mfi(mf,flags); mfi.isValid(); ++mfi)
                 {
                     hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],BName,FabFile,bytes);
                 }
@@ -798,7 +802,7 @@ VisMF::Write (const MultiFab&    mf,
 
     int ioffset = 0;
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf,flags); mfi.isValid(); ++mfi)
         senddata[ioffset++] = hdr.m_fod[mfi.index()].m_head;
 
     BL_ASSERT(ioffset == nmtags[ParallelDescriptor::MyProc()]);
