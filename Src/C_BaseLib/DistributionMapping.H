@@ -275,6 +275,11 @@ private:
     //
     static void LeastUsedCPUs (int nprocs, Array<int>& result);
     //
+    // rteam: Least used ordering of Teams
+    // rworker[i]: Least used ordering of team workers for Team i
+    //
+    static void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker);
+    //
     // Look for a cached processor map.
     //
     bool GetMap (const BoxArray& boxes);

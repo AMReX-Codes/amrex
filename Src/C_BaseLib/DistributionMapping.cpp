@@ -1,4 +1,4 @@
-// TODO: divide works among teams, not processes
+// TODO: strategies other than SFC
 
 #include <winstd.H>
 
@@ -281,6 +281,77 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 #endif
 }
 
+void
+DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
+				     Array<Array<int> >& rworker)
+{
+#ifdef BL_USE_UPCXX
+    BL_PROFILE("DistributionMapping::LeastUsedTeams()");
+
+    int nteams = ParallelDescriptor::NTeams();
+    int nworkers = ParallelDescriptor::TeamSize();
+
+    int nprocs = ParallelDescriptor::NProcs();
+    Array<long> bytes(nprocs);
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
+
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
+    MPI_Allgather(&thisbyte,
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  bytes.dataPtr(),
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  ParallelDescriptor::Communicator());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
+
+    std::vector<LIpair> LIpairV;
+    std::vector<LIpair> LIworker;
+
+    LIpairV.reserve(nteams);
+    LIworker.resize(nworkers);
+
+    rteam.resize(nteams);
+    rworker.resize(nteams);
+
+    for (int i(0); i < nteams; ++i)
+    {
+	rworker[i].resize(nworkers);
+
+	long teambytes = 0;
+	int offset = i*nworkers;
+	for (int j = 0; j < nworkers; ++j)
+	{
+	    long b = bytes[offset+j];
+	    teambytes += b;
+	    LIworker[j] = LIpair(b,j);
+	}
+
+	Sort(LIworker, false);
+	
+	for (int j = 0; j < nworkers; ++j)
+	{
+	    rworker[i][j] = LIworker[j].second;
+	}
+
+        LIpairV.push_back(LIpair(teambytes,i));
+    }
+
+    bytes.clear();
+
+    Sort(LIpairV, false);
+
+    for (int i(0); i < nteams; ++i)
+    {
+        rteam[i] = LIpairV[i].second;
+    }
+#else
+    BoxLib::Abort("DistributionMapping::LeastUsedTeams: not supposed to be here");
+#endif
+}
+
 bool
 DistributionMapping::GetMap (const BoxArray& boxes)
 {
@@ -497,7 +568,6 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
 {
-//BoxLib::Abort("RoundRobinDoIt");
     Array<int> ord;
 
     LeastUsedCPUs(nprocs,ord);
@@ -998,6 +1068,13 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
+    int nteams = nprocs;
+    int nworkers = 1;
+#ifdef BL_USE_UPCXX
+    nteams = ParallelDescriptor::NTeams();
+    nworkers = ParallelDescriptor::TeamSize();
+#endif
+
     std::vector<SFCToken> tokens;
 
     const int N = boxes.size();
@@ -1029,55 +1106,83 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
     //
-    // Split'm up as equitably as possible per CPU.
+    // Split'm up as equitably as possible per team.
     //
-    Real volpercpu = 0;
+    Real volperteam = 0;
     for (int i = 0, N = tokens.size(); i < N; ++i)
-        volpercpu += tokens[i].m_vol;
-    volpercpu /= nprocs;
+        volperteam += tokens[i].m_vol;
+    volperteam /= nteams;
 
-    std::vector< std::vector<int> > vec(nprocs);
+    std::vector< std::vector<int> > vec(nteams);
 
-    Distribute(tokens,nprocs,volpercpu,vec);
+    Distribute(tokens,nteams,volperteam,vec);
 
     tokens.clear();
 
-    Array<long> wgts_per_cpu(nprocs,0);
+    Array<long> wgts_per_team(nteams,0);
 
     for (unsigned int i = 0, N = vec.size(); i < N; ++i)
     {
         const std::vector<int>& vi = vec[i];
 
         for (int j = 0, M = vi.size(); j < M; ++j)
-            wgts_per_cpu[i] += wgts[vi[j]];
+            wgts_per_team[i] += wgts[vi[j]];
     }
 
     std::vector<LIpair> LIpairV;
 
-    LIpairV.reserve(nprocs);
+    LIpairV.reserve(nteams);
 
-    for (int i = 0; i < nprocs; ++i)
+    for (int i = 0; i < nteams; ++i)
     {
-        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
+        LIpairV.push_back(LIpair(wgts_per_team[i],i));
     }
 
     Sort(LIpairV, true);
 
     Array<int> ord;
+    Array<Array<int> > wrkerord;
 
-    LeastUsedCPUs(nprocs,ord);
+    if (nteams == nprocs) {
+	LeastUsedCPUs(nprocs,ord);
+    } else {
+	LeastUsedTeams(ord,wrkerord);
+    }
 
-    for (int i = 0; i < nprocs; ++i)
+    for (int i = 0; i < nteams; ++i)
     {
-        const int cpu = ord[i];
-        const int idx = LIpairV[i].second;
+        const int team = ord[i];
+        const int idx  = LIpairV[i].second;
 
         const std::vector<int>& vi = vec[idx];
 
-        for (int j = 0, N = vi.size(); j < N; ++j)
-        {
-            m_ref->m_pmap[vi[j]] = cpu;
-        }
+	if (nteams == nprocs) {
+	    for (int j = 0, N = vi.size(); j < N; ++j)
+	    {
+		m_ref->m_pmap[vi[j]] = team;
+	    }
+	} else {
+	    int leadrank = team * nworkers;
+	    int N = vi.size();
+	    int nb = N / nworkers;
+	    int nleft = N - nb*nworkers;
+
+	    for (int w = 0; w < nworkers; ++w)
+	    {
+		int jb, je;
+		if (w < nleft) { // get nb+1 boxes
+		    jb = w*(nb+1);
+		    je = jb + nb;
+		}
+		else {           // get nb boxes
+		    jb = w*nb + nleft;
+		    je = jb + nb - 1;
+		}
+		for (int j = jb; j <= je; ++j) {
+		    m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
+		}
+	    }
+	}
     }
     //
     // Set sentinel equal to our processor number.
@@ -1087,15 +1192,15 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         Real sum_wgt = 0, max_wgt = 0;
-        for (int i = 0, N = wgts_per_cpu.size(); i < N; ++i)
+        for (int i = 0, N = wgts_per_team.size(); i < N; ++i)
         {
-            const long W = wgts_per_cpu[i];
+            const long W = wgts_per_team[i];
             if (W > max_wgt)
                 max_wgt = W;
             sum_wgt += W;
         }
 
-        std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+        std::cout << "SFC efficiency: " << (sum_wgt/(nteams*max_wgt)) << '\n';
     }
 }
 
