@@ -1556,14 +1556,21 @@ FabArray<FAB>::AllocFabs ()
     m_fabs_v.reserve(n);
     ownership.reserve(n);
 
-    // TODO: rotate the starting point of round robin
+#ifdef BL_USE_UPCXX
+    int myproc = ParallelDescriptor::MyProc();
+    int nworkers = ParallelDescriptor::TeamSize();
+    int teamlead = ParallelDescriptor::MyTeamLead();
+    std::vector<int> dmworker(n);
+#endif
+
     for (int i = 0; i < n; ++i)
     {
-#ifdef BL_USE_UPCXX
-	alloc = i%ParallelDescriptor::TeamSize() == ParallelDescriptor::MyRankInTeam();
-#endif
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
+#ifdef BL_USE_UPCXX
+	alloc = (distributionMap[K] == myproc);
+	dmworker[i] = distributionMap[K] - teamlead;
+#endif
 	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
 	ownership.push_back(alloc);
     }
@@ -1571,8 +1578,6 @@ FabArray<FAB>::AllocFabs ()
 #ifdef BL_USE_UPCXX
     if (ParallelDescriptor::TeamSize() > 1) 
     {
-	int nworkers = ParallelDescriptor::TeamSize();
-	int tid = ParallelDescriptor::MyRankInTeam();
 	const upcxx::team& team = ParallelDescriptor::MyTeam();
 	
 	int np = (n + nworkers-1) / nworkers;
@@ -1587,15 +1592,17 @@ FabArray<FAB>::AllocFabs ()
 	        psrc[j++] = upcxx::global_ptr<void>(p);
             }
         }
-
+	
 	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
 
+	std::vector<int> offset(nworkers,0);
 	for (int i = 0; i < n; ++i) {
 	    if (!ownership[i]) {
-	        int j = (i / nworkers) + (i % nworkers) * np;
+		int w = dmworker[i]; // Box i is owned by worker w.
+		int j = w*np + (offset[w]++);
 		void* p = (void*) pdst[j];
-		m_fabs_v[i]->setPtr((value_type *) p);
-            }
+		m_fabs_v[i]->setPtr((value_type *) p);		
+	    }
         }
     }
 #endif
