@@ -264,11 +264,16 @@ contains
     call MPI_Op_create(sum_long, .true., MPI_SUM_LONG, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
-  subroutine parallel_finalize(do_finalize_MPI)
+  subroutine parallel_finalize(comm, do_finalize_MPI)
+    integer, intent(in), optional :: comm
     logical, intent(in), optional :: do_finalize_MPI
     integer ierr
     external MPI_Comm_Free, MPI_Finalize
-    call MPI_Comm_Free(m_comm, ierr)
+    if (present(comm)) then
+      call MPI_Comm_Free(comm, ierr)
+    else
+      call MPI_Comm_Free(m_comm, ierr)
+    endif
     if (present(do_finalize_MPI) ) then
        if (do_finalize_MPI) call MPI_Finalize(ierr)
     else
@@ -2176,8 +2181,10 @@ contains
     call parallel_initialize(comm)
   end subroutine parallel_comm_init_from_c
 
-  subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
-    call parallel_finalize(.false.) ! do not finalize MPI but free communicator
+  subroutine parallel_comm_free_from_c (comm) bind(c, name='bl_fortran_mpi_comm_free')
+    use iso_c_binding
+    integer(c_int), intent(in), value :: comm
+    call parallel_finalize(comm, .false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
 
 end module parallel
