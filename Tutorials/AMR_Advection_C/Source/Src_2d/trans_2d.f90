@@ -129,8 +129,11 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
+          if (i.eq.12 .and.j.eq.0) print *,'TRANS BEF ',qp(i,j,QRHO), qm(i+1,j,QRHO)
+          if (i.eq.12 .and.j.eq.0) print *,'TRANS FY  ',fy(i,j,URHO),fy(i,j+1,URHO)
           qpo(i  ,j,QRHO) = qp(i  ,j,QRHO) - hdtdy*(fy(i,j+1,URHO)-fy(i,j  ,URHO))
           qmo(i+1,j,QRHO) = qm(i+1,j,QRHO) - hdtdy*(fy(i,j+1,URHO)-fy(i,j  ,URHO))
+          if (i.eq.12 .and.j.eq.0) print *,'TRANS ',qpo(i,j,QRHO), qmo(i+1,j,QRHO)
 
       enddo
       enddo

@@ -245,8 +245,9 @@ Geometry::FillPeriodicBoundary_local (MultiFab& mf,
 
             if (TheDomain.contains(dst)) continue;
 
-	    int sharing = 0;  // must be 0 to turn off work sharing for this MFIter is inside another MFIter
-            for (MFIter mfisrc(mf,sharing); mfisrc.isValid(); ++mfisrc)
+            // Turn off sharing among threas because this MFIter is inside another MFIter
+	    unsigned char flags = MFIter::OMPNoSharing || MFIter::UPCNoTeamBarrier;
+            for (MFIter mfisrc(mf,flags); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;
 
@@ -987,7 +988,16 @@ Geometry::GetFPB (const Geometry&      geom,
         {
             const int src_owner = dm[j];
 
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
+	    bool send = src_owner == MyProc;
+	    bool recv = dst_owner == MyProc;
+#ifdef BL_USE_UPCXX
+	    bool local = ParallelDescriptor::sameTeam(dst_owner) 
+		&&       ParallelDescriptor::sameTeam(src_owner);
+#else
+	    bool local = send && recv;
+#endif
+
+	    if (!local && !send && !recv) continue;
 
             Box src = ba[j] & TheDomain;
 
@@ -1026,18 +1036,15 @@ Geometry::GetFPB (const Geometry&      geom,
                     tag.dstIndex = i;
                     tag.srcIndex = j;
 
-                    if (dst_owner == MyProc)
+		    if (local)
+		    {
+			TheFPB.m_LocTags->push_back(tag);
+		    }
+		    else if (recv)
                     {
-                        if (src_owner == MyProc)
-                        {
-                            TheFPB.m_LocTags->push_back(tag);
-                        }
-                        else
-                        {
-                            FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
-                        }
+			FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
                     }
-                    else if (src_owner == MyProc)
+                    else if (send)
                     {
                         FabArrayBase::SetSendTag(*TheFPB.m_SndTags,dst_owner,tag,*TheFPB.m_SndVols,tag.dbox);
                     }

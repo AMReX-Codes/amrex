@@ -1,119 +1,3 @@
-
-! :: ----------------------------------------------------------
-! :: Volume-weight average the fine grid data onto the coarse
-! :: grid.  Overlap is given in coarse grid coordinates.
-! ::
-! :: INPUTS / OUTPUTS:
-! ::  crse      <=  coarse grid data
-! ::  clo,chi    => index limits of crse array interior
-! ::  ngc        => number of ghost cells in coarse array
-! ::  nvar	 => number of components in arrays
-! ::  fine       => fine grid data
-! ::  flo,fhi    => index limits of fine array interior
-! ::  ngf        => number of ghost cells in fine array
-! ::  rfine      => (ignore) used in 2-D RZ calc
-! ::  lo,hi      => index limits of overlap (crse grid)
-! ::  lrat       => refinement ratio
-! ::
-! :: NOTE:
-! ::  Assumes all data cell centered
-! :: ----------------------------------------------------------
-! ::
-      subroutine avgdown(crse,c_l1,c_l2,c_h1,c_h2,nvar, &
-                         cv,cv_l1,cv_l2,cv_h1,cv_h2, &
-                         fine,f_l1,f_l2,f_h1,f_h2, &
-                         fv,fv_l1,fv_l2,fv_h1,fv_h2,lo,hi,lrat)
-      implicit none
-      integer c_l1,c_l2,c_h1,c_h2
-      integer cv_l1,cv_l2,cv_h1,cv_h2
-      integer f_l1,f_l2,f_h1,f_h2
-      integer fv_l1,fv_l2,fv_h1,fv_h2
-      integer lo(2), hi(2)
-      integer nvar, lrat(2)
-      double precision crse(c_l1:c_h1,c_l2:c_h2,nvar)
-      double precision cv(cv_l1:cv_h1,cv_l2:cv_h2)
-      double precision fine(f_l1:f_h1,f_l2:f_h2,nvar)
-      double precision fv(fv_l1:fv_h1,fv_l2:fv_h2)
-
-      integer i, j, n, ic, jc, ioff, joff
-      integer lenx, leny, mxlen
-      integer lratx, lraty
-
-      lratx = lrat(1)
-      lraty = lrat(2)
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      mxlen = max(lenx,leny)
-
-      if (lenx .eq. mxlen) then
-         do n = 1, nvar
- 
-!           Set coarse grid to zero on overlap
-            do jc = lo(2), hi(2)
-               do ic = lo(1), hi(1)
-                  crse(ic,jc,n) = 0.d0
-               enddo
-            enddo
-
-!           Sum fine data
-            do joff = 0, lraty-1
-               do jc = lo(2), hi(2)
-                  j = jc*lraty + joff
-                  do ioff = 0, lratx-1
-                     do ic = lo(1), hi(1)
-                        i = ic*lratx + ioff
-                        crse(ic,jc,n) = crse(ic,jc,n) + fv(i,j) * fine(i,j,n)
-                     enddo
-                  enddo
-               enddo
-            enddo
-
-!           Divide out by volume weight
-            do jc = lo(2), hi(2)
-               do ic = lo(1), hi(1)
-                  crse(ic,jc,n) = crse(ic,jc,n) / cv(ic,jc)
-               enddo
-            enddo
-            
-         enddo
-
-      else
-
-         do n = 1, nvar
-
-!           Set coarse grid to zero on overlap
-            do ic = lo(1), hi(1)
-               do jc = lo(2), hi(2)
-                  crse(ic,jc,n) = 0.d0
-               enddo
-            enddo
- 
-!           Sum fine data
-            do ioff = 0, lratx-1
-               do ic = lo(1), hi(1)
-                  i = ic*lratx + ioff
-                  do joff = 0, lraty-1
-                     do jc = lo(2), hi(2)
-                        j = jc*lraty + joff
-                        crse(ic,jc,n) = crse(ic,jc,n) + fv(i,j) * fine(i,j,n)
-                     enddo
-                  enddo
-               enddo
-            enddo
-             
-!           Divide out by volume weight
-            do ic = lo(1), hi(1)
-               do jc = lo(2), hi(2)
-                  crse(ic,jc,n) = crse(ic,jc,n) / cv(ic,jc)
-               enddo
-            enddo
-            
-         enddo
-
-      end if
-
-      end subroutine avgdown
-
 ! ::
 ! :: ----------------------------------------------------------
 ! ::
@@ -272,11 +156,11 @@
 
          do n = UFS, UFS+nspec-1
            if (uout(i,j,n) .lt. eps) then
-              print *,'Species ',n,' still negative at (i,j) = ',i,j,uout(i,j,n)
+              print *,'Species ',n-UFS+1,' still negative at (i,j) = ',i,j,uout(i,j,n)
               any_negative = .true.
            end if
            if ( uout(i,j,n) .gt. 1.d0 .and. abs(uout(i,j,n)-1.d0) .gt. 1.e-15) then
-              print *,'Species ',n,' still overshoots at (i,j) = ',i,j,(uout(i,j,n)-1.d0)
+              print *,'Species ',n-UFS+1,' still overshoots at (i,j) = ',i,j,(uout(i,j,n)-1.d0)
               any_negative = .true.
            end if
          end do

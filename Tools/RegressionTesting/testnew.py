@@ -329,11 +329,14 @@ class Suite(object):
         outdir = self.testTopDir + self.suiteName + "-tests/"
 
         # this will work through 2099
-        dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
-                                                  d.startswith("20"))]
-        dirs.sort()
+        if os.path.isdir(outdir):
+            dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
+                                                      d.startswith("20"))]
+            dirs.sort()
 
-        return dirs[-1]
+            return dirs[-1]
+        else:
+            return None
 
     def get_test_failures(self, test_dir):
         """ look at the test run in test_dir and return the list of tests that
@@ -911,7 +914,8 @@ def find_build_dirs(tests):
 
 def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
     """ copy the last plotfile output from each test in testList 
-        into the benchmark directory """
+        into the benchmark directory.  Also copy the diffDir, if
+        it exists """
     td = os.getcwd()
     
     for t in test_list:
@@ -946,6 +950,16 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         else:   # no benchmark exists
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
                 cf.write("benchmarks update failed")
+            
+        # is there a diffDir to copy too?
+        if not t.diffDir == "":
+            diff_dir_bench = "{}/{}_{}".format(bench_dir, t.name, t.diffDir)
+            if os.path.isdir(diff_dir_bench):
+                shutil.rmtree(diff_dir_bench)
+                shutil.copytree(t.diffDir, diff_dir_bench)
+            else:
+                shutil.copy(t.diffDir, diff_dir_bench)
+            log.log("new diffDir: {}_{}".format(t.name, t.diffDir))
             
         os.chdir(td)
         
@@ -1740,7 +1754,7 @@ def test_suite(argv):
 
                     if diff_status == 0:
                         with open("{}.compare.out".format(test.name), 'a') as cf:
-                            cf.write("diff was SUCCESSFUL\n")
+                            cf.write("\ndiff was SUCCESSFUL\n")
 
             else:   # make_benchmarks
 
@@ -1809,36 +1823,37 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if outputFile != "" and args.make_benchmarks == None:
+        if outputFile != "":
+            if args.make_benchmarks == None:
 
-            if test.doVis: 
+                if test.doVis: 
 
-                if test.dim == 1:
-                    suite.log.log("Visualization not supported for dim = {}".format(test.dim))
-                else:
-                    suite.log.log("doing the visualization...")
-                    tool = suite.tools["fsnapshot{}d".format(test.dim)]
-                    run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                        tool, suite.compare_tool_dir, test.visVar, outputFile))
+                    if test.dim == 1:
+                        suite.log.log("Visualization not supported for dim = {}".format(test.dim))
+                    else:
+                        suite.log.log("doing the visualization...")
+                        tool = suite.tools["fsnapshot{}d".format(test.dim)]
+                        run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
+                            tool, suite.compare_tool_dir, test.visVar, outputFile))
 
-                    # convert the .ppm files into .png files
-                    ppm_file = get_recent_filename(outputDir, "", ".ppm")
-                    png_file = ppm_file.replace(".ppm", ".png")
-                    run("convert {} {}".format(ppm_file, png_file))
+                        # convert the .ppm files into .png files
+                        ppm_file = get_recent_filename(outputDir, "", ".ppm")
+                        png_file = ppm_file.replace(".ppm", ".png")
+                        run("convert {} {}".format(ppm_file, png_file))
 
-            if not test.analysisRoutine == "":
+                if not test.analysisRoutine == "":
 
-                suite.log.log("doing the analysis...")
-                if test.useExtraBuildDir > 0:
-                    tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
-                else:
-                    tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
+                    suite.log.log("doing the analysis...")
+                    if test.useExtraBuildDir > 0:
+                        tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
+                    else:
+                        tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
 
-                shutil.copy(tool, os.getcwd())
+                    shutil.copy(tool, os.getcwd())
 
-                option = eval("suite.{}".format(test.analysisMainArgs))
-                run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                      option, outputFile))
+                    option = eval("suite.{}".format(test.analysisMainArgs))
+                    run("{} {} {}".format(os.path.basename(test.analysisRoutine),
+                                          option, outputFile))
 
         else:
             if test.doVis or test.analysisRoutine != "":
@@ -2467,8 +2482,9 @@ def report_single_test(suite, test):
                     ht.end_table()
                     hf.write("<pre>\n")
 
-                    hf.write(line.strip())
+                    hf.write(line)
                     in_diff_region = True
+                    continue
 
                 if line.strip().startswith("level"):
                     ht.print_single_row(line.strip())
@@ -2508,7 +2524,7 @@ def report_single_test(suite, test):
 
             else:
                 # diff region
-                hf.write(line.strip())
+                hf.write(line)
 
         if in_diff_region:
             hf.write("</pre>\n")

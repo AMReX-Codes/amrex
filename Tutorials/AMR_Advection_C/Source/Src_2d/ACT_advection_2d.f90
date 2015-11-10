@@ -118,7 +118,6 @@
                          ugdx,ugdx_l1,ugdx_l2,ugdx_h1,ugdx_h2, &
                          ugdy,ugdy_l1,ugdy_l2,ugdy_h1,ugdy_h2)
 
-      use network, only : nspec
       use meth_params_module, only : QU, QV, QVAR, NVAR
 
       implicit none
@@ -411,7 +410,6 @@
                          dq,qxm,qxp,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
                          ilo1,ilo2,ihi1,ihi2,dx,dt)
 
-      use network           , only : nspec
       use meth_params_module, only : iorder, QVAR, QRHO, QU, QFA, QFS, nadv
 
       implicit none
@@ -472,7 +470,6 @@
                          dq,qym,qyp,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
                          ilo1,ilo2,ihi1,ihi2,dy,dt)
 
-      use network, only : nspec
       use meth_params_module, only : iorder, QVAR, QRHO, QV, QFA, QFS, nadv
 
       implicit none

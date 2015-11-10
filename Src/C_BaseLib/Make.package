@@ -95,6 +95,13 @@ ifneq ($(BL_NO_FORT),TRUE)
 endif
 
 #
+# Boundary-related 
+#
+C$(BOXLIB_BASE)_sources += BCRec.cpp
+C$(BOXLIB_BASE)_headers += BCRec.H
+C$(BOXLIB_BASE)_headers += BC_TYPES.H
+
+#
 # Fortran interface routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
@@ -129,10 +136,15 @@ f90$(BOXLIB_BASE)_sources += mempool_f.f90
 
 # UPCXX
 ifeq ($(USE_UPCXX),TRUE)
-  C$(BOXLIB_BASE)_sources += BLPgas.cpp
-  C$(BOXLIB_BASE)_headers += BLPgas.H
+  C$(BOXLIB_BASE)_sources += BLPgas.cpp UArena.cpp
+  C$(BOXLIB_BASE)_headers += BLPgas.H UArena.H
 endif
 
-# On-the-fly data analysis tools (which must be defined in userland)
-C$(BOXLIB_BASE)_headers += Analysis.H
-C$(BOXLIB_BASE)_sources += Analysis.cpp
+ifeq ($(USE_PARTICLES), TRUE)
+  DEFINES += -DUSE_PARTICLES -DPARTICLES
+  C$(BOXLIB_BASE)_sources += Particles.cpp
+  C$(BOXLIB_BASE)_headers += Particles.H ParGDB.H
+  F$(BOXLIB_BASE)_headers += Particles_F.H
+  F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
+endif
+

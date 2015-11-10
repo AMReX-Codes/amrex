@@ -24,9 +24,7 @@ program fcompare
   real(kind=dp_t), pointer :: mp(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
-  integer :: lo_b(MAX_SPACEDIM), hi_b(MAX_SPACEDIM)
 
-  integer :: flo_a(MAX_SPACEDIM), fhi_a(MAX_SPACEDIM)
   integer :: flo_b(MAX_SPACEDIM), fhi_b(MAX_SPACEDIM)
 
   real(kind=dp_t) :: dx_a(MAX_SPACEDIM), dx_b(MAX_SPACEDIM)
@@ -50,7 +48,7 @@ program fcompare
   integer :: i, j
   integer :: ii, jj, kk
 
-  integer ir_a, ir_b
+  integer ir_a, ir_b, ng
 
   integer :: itest
 
@@ -68,6 +66,8 @@ program fcompare
 
   character(len=20), allocatable :: plot_names(:)
 
+  logical :: do_ghost, gc_warn
+
   !---------------------------------------------------------------------------
   ! process the command line arguments
 
@@ -79,6 +79,7 @@ program fcompare
   plotfile_b = ""
 
   diffvar = ""
+  do_ghost = .false.
 
   allocate(plot_names(1))
 
@@ -100,6 +101,10 @@ program fcompare
         farg = farg + 1
         call get_command_argument(farg, value = fname)
         read(fname, *) norm
+
+     case ('-g','--ghost')
+        farg = farg + 1
+        do_ghost = .true.
 
      case ('--diffvar')
         farg = farg + 1
@@ -161,24 +166,13 @@ program fcompare
      call bl_error("ERROR: number of levels do not match")
   endif
 
-
   ! check if the finest domains are the same size
   bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
-  flo_a = 1
-  fhi_a = 1
-  flo_a(1:dm) = lwb(bx_a)
-  fhi_a(1:dm) = upb(bx_a)
-
   bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
-  flo_b(1:dm) = lwb(bx_b)
-  fhi_b(1:dm) = upb(bx_b)
 
-  if ( (flo_a(1) /= flo_b(1) .OR. fhi_a(1) /= fhi_b(1)) .OR. &
-      ((flo_a(2) /= flo_b(2) .OR. fhi_a(2) /= fhi_b(2)) .AND. pf_a%dim >= 2) .OR. &
-      ((flo_a(3) /= flo_b(3) .OR. fhi_a(3) /= fhi_b(3)) .AND. pf_a%dim == 3) ) then
+  if (.not. box_equal(bx_a, bx_b)) then
      call bl_error("ERROR: grids do not match")
   endif
-
   
   ! check if they have the same number of variables
   if (pf_a%nvars /= pf_b%nvars) then
@@ -296,6 +290,8 @@ program fcompare
   write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
   write (*,999)
 
+  gc_warn = .false.
+
   do i = 1, pf_a%flevel
 
      aerror(:) = ZERO
@@ -329,21 +325,30 @@ program fcompare
 
         ! make sure that the grids match
         bx_a = get_box(pf_a, i, j)
+
         lo_a = 1
         hi_a = 1
         lo_a(1:dm) = lwb(bx_a)
         hi_a(1:dm) = upb(bx_a)
 
         bx_b = get_box(pf_b, i, j)
-        lo_b = 1
-        hi_b = 1
-        lo_b(1:dm) = lwb(bx_b)
-        hi_b(1:dm) = upb(bx_b)
 
-        if ( (lo_a(1) /= lo_b(1) .OR. hi_a(1) /= hi_b(1)) .OR. &
-             (pf_a%dim >= 2 .AND. (lo_a(2) /= lo_b(2) .OR. hi_a(2) /= hi_b(2))) .OR. &
-             (pf_a%dim == 3 .AND. (lo_a(3) /= lo_b(3) .OR. hi_a(3) /= hi_b(3))) ) then
+        if (.not. box_equal(bx_a, bx_b)) then
            call bl_error("ERROR: grids do not match")
+        endif
+
+        if (.not. nghost(pf_a, i, j) == nghost(pf_b, i, j)) then
+           if (.not. gc_warn) then
+              call bl_warn("WARNING: grids have different numbers of ghost cells")
+              gc_warn = .true.
+           endif
+           ng = 0
+        else
+           if (do_ghost) then
+              ng = nghost(pf_a, i, j)
+           else
+              ng = 0
+           endif
         endif
 
         ! loop over the variables.  Take plotfile_a to be the one defining
@@ -368,36 +373,27 @@ program fcompare
               mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
            endif
 
-
            ! check for NaNs -- comparisons don't work when they are present
-           call fab_contains_nan(p_a, &
-                                 (hi_a(3)-lo_a(3)+1)* &
-                                 (hi_a(2)-lo_a(2)+1)* &
-                                 (hi_a(1)-lo_a(1)+1),  ir_a)
-
+           ! note: regardless of do_ghost, this will check the ghostcells
+           ! too if they are present.
+           call fab_contains_nan(p_a, volume(get_pbox(pf_a, i, j)), ir_a)
            if (ir_a == 1) has_nan_a(n_a) = .true.
 
-
-           call fab_contains_nan(p_b, &
-                                 (hi_b(3)-lo_b(3)+1)* &
-                                 (hi_b(2)-lo_b(2)+1)* &
-                                 (hi_b(1)-lo_b(1)+1),  ir_b)
-
+           call fab_contains_nan(p_b, volume(get_pbox(pf_b, i, j)), ir_b)
            if (ir_b == 1) has_nan_b(n_a) = .true.
 
            if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
 
-
-           do kk = lo_a(3), hi_a(3)
-              do jj = lo_a(2), hi_a(2)
-                 do ii = lo_a(1), hi_a(1)
+           do kk = lo_a(3)-ng, hi_a(3)+ng
+              do jj = lo_a(2)-ng, hi_a(2)+ng
+                 do ii = lo_a(1)-ng, hi_a(1)+ng
 
                     pa = abs(p_a(ii,jj,kk,1))
                     pb = abs(p_b(ii,jj,kk,1))
                     pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
 
                     if (norm == 0) then
-                       aerror(n_a) = max(aerror(n_a),pd)
+                       aerror(n_a) = max(aerror(n_a), pd)
 
                        rerror(n_a) = max(rerror(n_a), pd)
                        rerror_denom(n_a) = max(rerror_denom(n_a), pa)
