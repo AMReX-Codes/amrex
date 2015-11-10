@@ -1162,26 +1162,18 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 		m_ref->m_pmap[vi[j]] = team;
 	    }
 	} else {
+#ifdef BL_USE_UPCXX
 	    int leadrank = team * nworkers;
 	    int N = vi.size();
-	    int nb = N / nworkers;
-	    int nleft = N - nb*nworkers;
-
 	    for (int w = 0; w < nworkers; ++w)
 	    {
-		int jb, je;
-		if (w < nleft) { // get nb+1 boxes
-		    jb = w*(nb+1);
-		    je = jb + nb;
-		}
-		else {           // get nb boxes
-		    jb = w*nb + nleft;
-		    je = jb + nb - 1;
-		}
-		for (int j = jb; j <= je; ++j) {
-		    m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
-		}
+	        ParallelDescriptor::team_for(0, N, w, [&] (int j) {
+                    m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
+                });
 	    }
+#else
+	    BoxLib::Abort("SFCProcessorMapDoIt: Team is only implemented for UPC++");
+#endif
 	}
     }
     //
