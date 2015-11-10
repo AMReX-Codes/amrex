@@ -49,7 +49,8 @@ BLBackTrace::handler(int s)
 	}
     }
 
-    sleep(30);
+    if (ParallelDescriptor::NProcs() > 1)
+	sleep(30);
 
     switch (s) {
     case SIGSEGV:
@@ -58,8 +59,10 @@ BLBackTrace::handler(int s)
     case SIGFPE:
 	BoxLib::Abort("Erroneous arithmetic operation");
 	break;
+    case SIGINT:
+	BoxLib::Abort("SIGINT");
     case SIGTERM:
-	BoxLib::Abort("External interrupt");
+	BoxLib::Abort("SIGTERM");
 	break;
     default:
 	ParallelDescriptor::Abort();

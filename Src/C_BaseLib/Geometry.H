@@ -567,6 +567,8 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
+	const DistributionMapping& dmap = mf.DistributionMap();
+
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.
@@ -575,7 +577,7 @@ namespace BoxLib
             if (geom.isPeriodic(n))
                 BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
 #endif
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
+        const Geometry::FPB fpb(mf.boxArray(),dmap,geom.Domain(),mf.nGrow(),corners);
 
         Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
 
@@ -745,19 +747,39 @@ namespace BoxLib
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
 	int N_loc = (*TheFPB.m_LocTags).size();
+	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
+	{
+#ifdef BL_USE_UPCXX
+	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
+            {
+                const auto& tag = (*TheFPB.m_LocTags)[i];
+
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.dstIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.srcIndex]));
+
+		mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+	    });
+#else
+	    BoxLib::Abort("FillPeriodicBoundary_nowait: Team only works with UPC++");
+#endif
+	}
+	else
+	{
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_loc)
 #endif
-	for (int i=0; i<N_loc; ++i)
-	{
-            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+	    for (int i=0; i<N_loc; ++i)
+	    {
+		const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
 
-            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.dstIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.srcIndex]));
 
-            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-        }
-
+		if (dmap[tag.dstIndex] == ParallelDescriptor::MyProc()) {
+		    mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+		}
+	    }
+	}
 #endif /*BL_USE_MPI*/
     }
 	
@@ -859,17 +881,16 @@ namespace BoxLib
 
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
 
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+        auto cache_it = Geometry::GetFPB(geom,fpb,mf);
 
         BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
 
-        const Geometry::FPB& TheFPB = cache_it->second;
+        const auto& TheFPB = cache_it->second;
 
-        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
+        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty()) {
+	    ParallelDescriptor::TeamBarrier();
             return;
+	}
 
         typedef typename FAB::value_type value_type;
 
@@ -887,8 +908,7 @@ namespace BoxLib
 
 	    for (int k = 0; k < N_rcvs; k++)
 	    {
-		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it 
-		    = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
+		auto m_it = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 		recv_fctc.push_back(&(m_it->second));
 	    }
@@ -901,10 +921,9 @@ namespace BoxLib
 		value_type*  dptr = mf.fpb_recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
-		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
+		const auto& fctc = *recv_fctc[k];
 
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                     it != fctc.end(); ++it)
+                for (auto it = fctc.begin(); it != fctc.end(); ++it)
                 {
                     const Box& bx  = it->dbox;
                     const int  Cnt = bx.numPts()*mf.fpb_ncomp;
@@ -929,6 +948,7 @@ namespace BoxLib
 	    mf.fpb_send_reqs.clear();
 	}
 
+	ParallelDescriptor::TeamBarrier();
     }
 #endif /*BL_USE_UPCXX*/
 

@@ -5,15 +5,17 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sstream>
+#include <stack>
 
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
 #include <MultiFab.H>
 #include <Geometry.H>
-#ifdef IN_TRANSIT
-#include <InTransitAnalysis.H>
-#include <Analysis.H>
+#include <ParmParse.H>
+
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 namespace ParallelDescriptor
@@ -34,6 +36,15 @@ namespace ParallelDescriptor
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
+
+    int m_TeamSize     = -1;
+    int m_nTeams       = -1;
+    int m_MyTeamColor  = -1;
+    int m_MyTeamLead   = -1;
+    int m_MyRankInTeam = -1;
+#ifdef BL_USE_UPCXX
+    upcxx::team m_MyTeam;
+#endif
     //
     // BoxLib's Communicators
     //
@@ -73,7 +84,17 @@ namespace ParallelDescriptor
 	void DoReduceLong     (long*      r, MPI_Op op, int cnt, int cpu);
 	void DoReduceInt      (int*       r, MPI_Op op, int cnt, int cpu);
     }
+
+    typedef std::list<ParallelDescriptor::PTR_TO_SIGNAL_HANDLER> SH_LIST;
+    SH_LIST The_Signal_Handler_List;
 }
+
+void
+ParallelDescriptor::AddSignalHandler (PTR_TO_SIGNAL_HANDLER fp)
+{
+  The_Signal_Handler_List.push_back(fp);
+}
+
 
 #ifndef BL_AMRPROF
 //
@@ -406,6 +427,37 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_nProcs_all != -1);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
+}
+
+void
+ParallelDescriptor::StartTeams ()
+{
+    ParmParse pp;
+    int upcxx_team_size = 1;
+    pp.query("upcxx_team_size", upcxx_team_size);
+    
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
+    if (nprocs % upcxx_team_size != 0)
+	BoxLib::Abort("Number of processes not divisible by upcxx team_size");
+
+#ifdef _OPENMP
+    if (omp_get_num_threads() > 1 && upcxx_team_size > 1)
+	BoxLib::Abort("OMP threads and UPC++ teams cannot coexist");
+#endif
+
+    m_TeamSize     = upcxx_team_size;
+    m_nTeams       = nprocs / upcxx_team_size;
+    m_MyTeamColor  = rank / upcxx_team_size;
+    m_MyTeamLead   = m_MyTeamColor * upcxx_team_size;
+    m_MyRankInTeam = rank - m_MyTeamLead;
+
+#ifdef BL_USE_UPCXX
+    upcxx::team* team;
+    upcxx::team_all.split(m_MyTeamColor, m_MyRankInTeam, team);
+    m_MyTeam = *team;
+#endif
 }
 
 double
@@ -1654,57 +1706,29 @@ ParallelDescriptor::SidecarProcess ()
 #ifdef BL_USE_MPI
     bool finished(false);
     int signal(-1);
-    Analysis::analysis = new AnalysisContainer;
-    InTransitAnalysis ita;
     while (!finished)
     {
-        Real time1 = MPI_Wtime();
         // Receive the signal from the compute group.
         ParallelDescriptor::Bcast(&signal, 1, 0, ParallelDescriptor::CommunicatorInter());
-        if (signal == Analysis::QuitSignal)
+
+        // Process the  signal with the set of user-provided signal handlers
+        for (ParallelDescriptor::SH_LIST::iterator it=The_Signal_Handler_List.begin();
+             it != The_Signal_Handler_List.end() && signal != ParallelDescriptor::SidecarQuitSignal;
+             ++it)
+        {
+          signal = (* *it)(signal);
+        }
+
+        if (signal == ParallelDescriptor::SidecarQuitSignal)
         {
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Sidecars received the quit signal." << std::endl;
             finished = true;
             break;
         }
-        else if (signal == Analysis::NyxHaloFinderSignal)
-        {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars got the Nyx halo finder analysis signal!" << std::endl;
-
-            MultiFab mf;
-            Geometry geom;
-
-            int time_step;
-
-            // Receive the necessary data for doing analysis.
-            MultiFab::SendMultiFabToSidecars(&mf);
-            Geometry::SendGeometryToSidecars(&geom);
-            ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
-            Real time2 = MPI_Wtime();
-            if (ParallelDescriptor::IOProcessor())
-              std::cout << "SIDECAR PROCESSES: time spent receiving data from compute: " << time2 - time1 << std::endl;
-
-            ita.Initialize(mf, geom, time_step);
-            Analysis::analysis->connectCallback(&ita);
-
-            Analysis::analysis->DoAnalysis();
-            Analysis::analysis->Finalize();
-        }
-        else
-        {
-            std::stringstream ss_error_msg;
-            ss_error_msg << "Unknown signal sent to sidecars: -----> " << signal << " <-----" << std::endl;
-            BoxLib::Error(const_cast<const char*>(ss_error_msg.str().c_str()));
-        }
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Sidecars completed analysis." << std::endl;
     }
-    delete Analysis::analysis;
-#endif
-#endif
     if (ParallelDescriptor::IOProcessor())
       std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
+#endif
+#endif
 }

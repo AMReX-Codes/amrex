@@ -56,9 +56,15 @@ endif
 
 ifeq ($(USE_MPI),TRUE)
   f90EXE_sources += parallel.f90
+  DEFINES += -DBL_USE_FORTRAN_MPI
 else
   f90EXE_sources += parallel_stubs.f90
 endif
 
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
+
+# MultiFab_C_F
+f90EXE_sources += multifab_c.f90
+CEXE_headers += MultiFab_C_F.H
+CEXE_sources += MultiFab_C_F.cpp

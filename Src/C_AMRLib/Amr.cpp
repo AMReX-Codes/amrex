@@ -33,6 +33,10 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef USE_PARTICLES
+#include <AmrParGDB.H>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -635,6 +639,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 
     rebalance_grids = 0;
     pp.query("rebalance_grids", rebalance_grids);
+
+#ifdef USE_PARTICLES
+    m_gdb = new AmrParGDB(this);
+#endif
 }
 
 bool
@@ -735,6 +743,10 @@ Amr::deleteDerivePlotVar (const std::string& name)
 Amr::~Amr ()
 {
     levelbld->variableCleanUp();
+
+#ifdef USE_PARTICLES
+    delete m_gdb;
+#endif
 
     Amr::Finalize();
 }
@@ -1780,10 +1792,9 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level]+1 << "] ";
-        std::cout << "ADVANCE grids at level "
-                  << level
-                  << " with dt = "
+	std::cout << "[Level " << level 
+		  << " step " << level_steps[level]+1 << "] ";
+        std::cout << "ADVANCE with dt = "
                   << dt_level[level]
                   << std::endl;
     }
@@ -1798,11 +1809,11 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level] << "] ";
+	std::cout << "[Level " << level
+		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
-                  << " cells at level "
-                  << level
+                  << " cells"
                   << std::endl;
     }
 

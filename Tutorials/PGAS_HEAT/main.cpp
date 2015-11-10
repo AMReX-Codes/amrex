@@ -46,7 +46,7 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 
     old_phi->FillBoundary_finish();
     geom.FillPeriodicBoundary_finish(*old_phi);
-    
+
     Real t1 = ParallelDescriptor::second();
 
     FB_time += t1 - t0;
@@ -77,7 +77,7 @@ void advance (MultiFab* old_phi, MultiFab* new_phi, Real* dx, Real dt, Geometry 
 		 Ncomp,dx, dt);
 	}
     }
-    
+
     kernel_time += ParallelDescriptor::second() - t1;
 }
 
