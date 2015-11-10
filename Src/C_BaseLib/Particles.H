@@ -502,9 +502,9 @@ protected:
     int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
     Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
 
-    bool allow_particles_near_boundary;
 
     ParGDBBase* m_gdb;
+    bool allow_particles_near_boundary;
     ParGDB      m_gdb_object;
     Array<PMap> m_particles;
 
@@ -6496,6 +6496,38 @@ ParticleContainer<N>::WriteParticles (int            lev,
             //
             const int iChunkSize = 2+BL_SPACEDIM;
 
+#ifdef BL_LOWMEMPWRITE
+	    int maxItemsToWrite(8192);
+	    int cntBufSize(maxItemsToWrite * iChunkSize);
+	    int nItems(cnt), nItemsToWrite(0);
+            Array<int> istuff(cntBufSize);
+            typename PBox::const_iterator it  = pbox.begin();
+            typename PBox::const_iterator End = pbox.end();
+
+	    while(nItems > 0) {
+              int *iptr = istuff.dataPtr();
+	      int itemCount(0);
+              for( ; it != End && itemCount < maxItemsToWrite; ++it) {
+                if(it->m_id > 0) {
+                    BL_ASSERT(it->m_lev == lev);
+                    BL_ASSERT(it->m_grid == grid);
+
+                    iptr[0] = it->m_id;
+                    iptr[1] = it->m_cpu;
+
+                    D_TERM(iptr[2] = it->m_cell[0];,
+                           iptr[3] = it->m_cell[1];,
+                           iptr[4] = it->m_cell[2];);
+
+                    iptr += iChunkSize;
+                }
+		++itemCount;
+              }
+	      nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
+              ofs.write((char *) istuff.dataPtr(), nItemsToWrite * iChunkSize * sizeof(int));
+	      nItems -= nItemsToWrite;
+	    }
+#else
             Array<int> istuff(cnt*iChunkSize);
 
             int* iptr = istuff.dataPtr();
@@ -6519,12 +6551,45 @@ ParticleContainer<N>::WriteParticles (int            lev,
             }
 
             ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+#endif
         }
 
-        const int rChunkSize = BL_SPACEDIM+N;
+
         //
         // Write the Real data in binary.
         //
+        const int rChunkSize = BL_SPACEDIM+N;
+
+#ifdef BL_LOWMEMPWRITE
+	int maxItemsToWrite(8192);
+	int cntBufSize(maxItemsToWrite * rChunkSize);
+	int nItems(cnt), nItemsToWrite(0);
+        Array<ParticleBase::RealType> rstuff(cntBufSize);
+        typename PBox::const_iterator it = pbox.begin();
+        typename PBox::const_iterator End = pbox.end();
+
+	while(nItems > 0) {
+          ParticleBase::RealType *rptr = rstuff.dataPtr();
+	  int itemCount(0);
+          for( ; it != End && itemCount < maxItemsToWrite; ++it) {
+            if(it->m_id > 0) {
+                D_TERM(rptr[0] = it->m_pos[0];,
+                       rptr[1] = it->m_pos[1];,
+                       rptr[2] = it->m_pos[2];);
+
+                for (int i = 0; i < N; i++) {
+                  rptr[BL_SPACEDIM+i] = it->m_data[i];
+		}
+                rptr += rChunkSize;
+            }
+	    ++itemCount;
+          }
+
+	  nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
+          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(ParticleBase::RealType));
+	  nItems -= nItemsToWrite;
+	}
+#else
         Array<ParticleBase::RealType> rstuff(cnt*rChunkSize);
 
         ParticleBase::RealType* rptr = rstuff.dataPtr();
@@ -6545,6 +6610,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
         }
 
         ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleBase::RealType));
+#endif
     }
 }
 
