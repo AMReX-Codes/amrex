@@ -964,7 +964,7 @@ MFIter::Initialize (int chunksize)
     int nthreads = 1;
     
 #ifdef _OPENMP
-    int nosharing = flags & NoSharing;
+    int nosharing = flags & OMPNoSharing;
     if (omp_in_parallel() && !nosharing) {
 	tid = omp_get_thread_num();
 	nthreads = omp_get_num_threads();
