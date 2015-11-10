@@ -3348,7 +3348,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 #ifdef BL_USE_UPCXX
       value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-      if (data == NULL) {
+      if (data == nullptr) {
         printf("Failed to allocate %zu bytes global address space memory!\n",
                sizeof(value_type)*N);
         printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
