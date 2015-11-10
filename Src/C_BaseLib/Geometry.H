@@ -567,6 +567,8 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
+	const DistributionMapping& dmap = mf.DistributionMap();
+
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.
@@ -575,7 +577,7 @@ namespace BoxLib
             if (geom.isPeriodic(n))
                 BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
 #endif
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
+        const Geometry::FPB fpb(mf.boxArray(),dmap,geom.Domain(),mf.nGrow(),corners);
 
         Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
 
@@ -745,19 +747,39 @@ namespace BoxLib
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
 	int N_loc = (*TheFPB.m_LocTags).size();
+	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
+	{
+#ifdef BL_USE_UPCXX
+	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
+            {
+                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.dstIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.srcIndex]));
+
+		mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+	    });
+#else
+	    BoxLib::Abort("FillPeriodicBoundary_nowait: Team only works with UPC++");
+#endif
+	}
+	else
+	{
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_loc)
 #endif
-	for (int i=0; i<N_loc; ++i)
-	{
-            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+	    for (int i=0; i<N_loc; ++i)
+	    {
+		const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
 
-            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.dstIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.srcIndex]));
 
-            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-        }
-
+		if (dmap[tag.dstIndex] == ParallelDescriptor::MyProc()) {
+		    mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+		}
+	    }
+	}
 #endif /*BL_USE_MPI*/
     }
 	
