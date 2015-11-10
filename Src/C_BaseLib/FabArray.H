@@ -3424,17 +3424,52 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
     int N_loc = (*TheSI.m_LocTags).size();
+    if (ParallelDescriptor::TeamSize() > 1)
+    {
+#ifdef BL_USE_UPCXX
+	if (TheSI.m_threadsafe_loc)
+	{
+	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) {
+	        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+
+		BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+
+	        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    });
+	}
+	else
+	{
+	    for (int i=0; i<N_loc; ++i)
+	    {
+		const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+
+		BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+		BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+
+		if (distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc()) {
+		    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+		}
+	    }
+	}
+#else
+	BoxLib::Abort("FillBoundary_nowait: Team only works with UPC++");
+#endif
+    }
+    else
+    {
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
-    for (int i=0; i<N_loc; ++i)
-    {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+	for (int i=0; i<N_loc; ++i)
+	{
+	    const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+	    BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+	    BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	}
     }
 
 #endif /*BL_USE_MPI*/

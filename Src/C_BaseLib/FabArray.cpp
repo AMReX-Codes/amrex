@@ -664,8 +664,18 @@ FabArrayBase::TheFB (bool                cross,
                 const Box& bx        = isects[j].second;
                 const int  src_owner = dm[k];
 
-                if ( (k == i) || (dst_owner != MyProc && src_owner != MyProc) ) continue;
-
+		if (k == i) continue;
+		
+		bool send = src_owner == MyProc;
+		bool recv = dst_owner == MyProc;
+#ifdef BL_USE_UPCXX
+		bool local = ParallelDescriptor::sameTeam(dst_owner) 
+		    &&       ParallelDescriptor::sameTeam(src_owner);
+#else
+		bool local = send && recv;
+#endif
+		if (!local && !send && !recv) continue;
+		
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 
 		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
@@ -676,18 +686,15 @@ FabArrayBase::TheFB (bool                cross,
                     tag.fabIndex = i;
                     tag.srcIndex = k;
 
-                    if (dst_owner == MyProc)
+		    if (local)
+		    {
+			TheFB.m_LocTags->push_back(tag);
+		    }
+                    else if (recv)
                     {
-                        if (src_owner == MyProc)
-                        {
-                            TheFB.m_LocTags->push_back(tag);
-                        }
-                        else
-                        {
-                            FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it);
-                        }
+			FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it);
                     }
-                    else if (src_owner == MyProc)
+                    else if (send)
                     {
                         FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,*it);
                     }
@@ -721,7 +728,6 @@ FabArrayBase::TheFB (bool                cross,
     //
     // set thread safety
     //
-#ifdef _OPENMP
     if (ba[0].cellCentered()) {
 	TheFB.m_threadsafe_loc = true;
 	TheFB.m_threadsafe_rcv = true;
@@ -729,7 +735,6 @@ FabArrayBase::TheFB (bool                cross,
 	TheFB.m_threadsafe_loc = false;
 	TheFB.m_threadsafe_rcv = false;
     }
-#endif
 
     return cache_it;
 }
