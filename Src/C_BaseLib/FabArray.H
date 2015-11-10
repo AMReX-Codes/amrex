@@ -3650,7 +3650,7 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 {
   int TotalRcvsVolume = 0;
 
-  for (auto it = m_RcvVols.begin(), End = m_RcvVols.end(); it != End; ++it)
+  for (auto it = m_RcvVols.begin(); it != m_RcvVols.end(); ++it)
   {
       TotalRcvsVolume += it->second;
   }
@@ -3671,7 +3671,7 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 
   int Offset = 0;
 
-  for (auto m_it = m_RcvTags.begin(), m_End = m_RcvTags.end(); m_it != m_End; ++m_it)
+  for (auto m_it = m_RcvTags.begin(); m_it != m_RcvTags.end(); ++m_it)
   {
       auto vol_it = m_RcvVols.find(m_it->first);
 
