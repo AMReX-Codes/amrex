@@ -365,6 +365,37 @@ namespace ParallelDescriptor
     {
 	m_MyTeam.barrier();
     }
+    inline std::pair<int,int>
+    team_range (int begin, int end)
+    {
+	int rb, re;
+	int nworkers = ParallelDescriptor::TeamSize();
+	if (nworkers == 1) {
+	    rb = begin;
+	    re = end;
+	} else {
+	    int ntot = end - begin;
+	    int nr   = ntot / nworkers;
+	    int nlft = ntot - nr * nworkers;
+	    int rit  = ParallelDescriptor::MyRankInTeam();
+	    if (rit < nlft) {  // get nr+1 items
+		rb = begin + rit * (nr + 1);
+		re = rb + nr + 1;
+	    } else {           // get nr items
+		rb = begin + rit * nr + nlft;
+		re = rb + nr;
+	    }
+	}
+	return std::make_pair(rb,re);
+    }
+    template <typename F>
+    void team_for (int begin, int end, const F& f)
+    {
+	auto range = team_range(begin, end);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
 #endif
     //
     // BoxLib's Parallel Communicators
