@@ -752,7 +752,7 @@ namespace BoxLib
 #ifdef BL_USE_UPCXX
 	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
             {
-                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+                const auto& tag = (*TheFPB.m_LocTags)[i];
 
 		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.dstIndex]));
 		BL_ASSERT(ParallelDescriptor::sameTeam(dmap[tag.srcIndex]));
@@ -881,11 +881,11 @@ namespace BoxLib
 
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
 
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+        auto cache_it = Geometry::GetFPB(geom,fpb,mf);
 
         BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
 
-        const Geometry::FPB& TheFPB = cache_it->second;
+        const auto& TheFPB = cache_it->second;
 
         if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty()) {
 	    ParallelDescriptor::TeamBarrier();
@@ -908,8 +908,7 @@ namespace BoxLib
 
 	    for (int k = 0; k < N_rcvs; k++)
 	    {
-		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it 
-		    = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
+		auto m_it = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 		recv_fctc.push_back(&(m_it->second));
 	    }
@@ -922,10 +921,9 @@ namespace BoxLib
 		value_type*  dptr = mf.fpb_recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
-		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
+		const auto& fctc = *recv_fctc[k];
 
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                     it != fctc.end(); ++it)
+                for (auto it = fctc.begin(); it != fctc.end(); ++it)
                 {
                     const Box& bx  = it->dbox;
                     const int  Cnt = bx.numPts()*mf.fpb_ncomp;

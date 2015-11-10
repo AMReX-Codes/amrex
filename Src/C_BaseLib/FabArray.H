@@ -1582,7 +1582,7 @@ FabArray<FAB>::AllocFabs ()
 #ifdef BL_USE_UPCXX
     if (ParallelDescriptor::TeamSize() > 1) 
     {
-	const upcxx::team& team = ParallelDescriptor::MyTeam();
+	const auto& team = ParallelDescriptor::MyTeam();
 	
 	int np = (n + nworkers-1) / nworkers;
 	
@@ -3433,7 +3433,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #ifdef BL_USE_UPCXX
 	ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
         {
-	    const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+	    const auto& tag = (*TheSI.m_LocTags)[i];
 
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
@@ -3567,11 +3567,11 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_finish_UPCXX ()
 {
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
+    auto cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
-    const FabArrayBase::SI& TheSI = cache_it->second;
+    const auto& TheSI = cache_it->second;
 
     if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty()) {
 	ParallelDescriptor::TeamBarrier();
@@ -3593,8 +3593,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it 
-		= TheSI.m_RcvTags->find(fb_recv_from[k]);
+	    auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
@@ -3607,10 +3606,9 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	    value_type* dptr = fb_recv_data[k];
 	    BL_ASSERT(dptr != 0);
 
-	    const CopyComTagsContainer& cctc = *recv_cctc[k];
+	    const auto& cctc = *recv_cctc[k];
 
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
+	    for (auto it = cctc.begin(); it != cctc.end(); ++it)
 	    {
 		const Box& bx  = it->box;
 		const int  Cnt = bx.numPts()*fb_ncomp;
@@ -3652,13 +3650,10 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 {
   int TotalRcvsVolume = 0;
 
-  for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-         End = m_RcvVols.end();
-       it != End;
-       ++it)
-    {
+  for (auto it = m_RcvVols.begin(), End = m_RcvVols.end(); it != End; ++it)
+  {
       TotalRcvsVolume += it->second;
-    }
+  }
 
   TotalRcvsVolume *= ncomp;
 
@@ -3676,12 +3671,9 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 
   int Offset = 0;
 
-  for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
-         m_End = m_RcvTags.end();
-       m_it != m_End;
-       ++m_it)
-    {
-      std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+  for (auto m_it = m_RcvTags.begin(), m_End = m_RcvTags.end(); m_it != m_End; ++m_it)
+  {
+      auto vol_it = m_RcvVols.find(m_it->first);
 
       BL_ASSERT(vol_it != m_RcvVols.end());
 
