@@ -2181,10 +2181,14 @@ contains
     call parallel_initialize(comm)
   end subroutine parallel_comm_init_from_c
 
-  subroutine parallel_comm_free_from_c (comm) bind(c, name='bl_fortran_mpi_comm_free')
+  subroutine parallel_sidecar_comm_free_from_c (comm) bind(c, name='bl_fortran_sidecar_mpi_comm_free')
     use iso_c_binding
     integer(c_int), intent(in), value :: comm
     call parallel_finalize(comm, .false.) ! do not finalize MPI but free communicator
+  end subroutine parallel_sidecar_comm_free_from_c
+
+  subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
+    call parallel_finalize(do_finalize_MPI=.false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
 
 end module parallel
