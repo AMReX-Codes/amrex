@@ -865,11 +865,10 @@ namespace BoxLib
 
         const Geometry::FPB& TheFPB = cache_it->second;
 
-        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
+        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty()) {
+	    ParallelDescriptor::TeamBarrier();
             return;
+	}
 
         typedef typename FAB::value_type value_type;
 
@@ -929,6 +928,7 @@ namespace BoxLib
 	    mf.fpb_send_reqs.clear();
 	}
 
+	ParallelDescriptor::TeamBarrier();
     }
 #endif /*BL_USE_UPCXX*/
 

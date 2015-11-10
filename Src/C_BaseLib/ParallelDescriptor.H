@@ -363,7 +363,8 @@ namespace ParallelDescriptor
     inline void
     TeamBarrier ()
     {
-	m_MyTeam.barrier();
+	if (TeamSize() > 1)
+	    m_MyTeam.barrier();
     }
     inline std::pair<int,int>
     team_range (int begin, int end, int rit = -1)
