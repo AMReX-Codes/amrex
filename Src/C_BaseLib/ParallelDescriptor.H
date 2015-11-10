@@ -366,7 +366,7 @@ namespace ParallelDescriptor
 	m_MyTeam.barrier();
     }
     inline std::pair<int,int>
-    team_range (int begin, int end)
+    team_range (int begin, int end, int rit = -1)
     {
 	int rb, re;
 	int nworkers = ParallelDescriptor::TeamSize();
@@ -377,7 +377,7 @@ namespace ParallelDescriptor
 	    int ntot = end - begin;
 	    int nr   = ntot / nworkers;
 	    int nlft = ntot - nr * nworkers;
-	    int rit  = ParallelDescriptor::MyRankInTeam();
+	    if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
 	    if (rit < nlft) {  // get nr+1 items
 		rb = begin + rit * (nr + 1);
 		re = rb + nr + 1;
@@ -392,6 +392,14 @@ namespace ParallelDescriptor
     void team_for (int begin, int end, const F& f)
     {
 	auto range = team_range(begin, end);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, const F& f)
+    {
+	auto range = team_range(begin, end, rit);
 	for (int i = range.first; i < range.second; ++i) {
 	    f(i);
 	}
