@@ -46,7 +46,8 @@
 #ifdef BL_USE_FORTRAN_MPI
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
-    void bl_fortran_mpi_comm_free (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
 }
 #endif
 
@@ -412,8 +413,12 @@ BoxLib::Finalize (bool finalize_parallel)
     
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
+#ifdef IN_TRANSIT
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_mpi_comm_free(fcomm);
+    bl_fortran_sidecar_mpi_comm_free(fcomm);
+#else
+    bl_fortran_mpi_comm_free();
+#endif
 #endif
         ParallelDescriptor::EndParallel();
     }
