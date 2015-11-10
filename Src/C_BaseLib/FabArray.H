@@ -444,10 +444,11 @@ class MFIter
 {
 public:
     enum Flags {
-	Tiling       = 0x01, 
-	OMPNoSharing = 0x02, // For OMP only. If on, all threads loops over all grids.
-	UPCOwnerOnly = 0x04, // For UPC++ only. If on, only loops over fabs owned.
-	SkipInit     = 0x08  // MGGhostIter can skip Initialize().
+	Tiling           = 0x01, 
+	OMPNoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+	UPCOwnerOnly     = 0x04, // For UPC++ only. If on, only loops over fabs owned.
+	UPCNoTeamBarrier = 0x08, // For UPC++ only. If on, there is no barrier in MFIter dtor.
+	SkipInit         = 0x10  // MGGhostIter can skip Initialize().
     };  // All these flags are off by default.
     //
     // Construct a MFIter.
@@ -463,6 +464,8 @@ public:
 		     const IntVect&      tilesize,
 		     unsigned char       flags=0,
 		     int                 chunksize=0);
+    // dtor
+    ~MFIter ();
     //
     // Returns the tile Box at the current index.
     //
@@ -520,8 +523,9 @@ protected:
     Array<int>          indexMap;
     Array<int>          localIndexMap;
     Array<Box>          tileArray;
+    unsigned char       flags;
 
-    void Initialize (unsigned char flags=0, int chunksize=0);
+    void Initialize (int chunksize=0);
 };
 
 /*
@@ -3584,11 +3588,10 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
-        //
-        // No work to do.
-        //
+    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty()) {
+	ParallelDescriptor::TeamBarrier();
         return;
+    }
 
     BLPgas::fb_recv_event.wait(); // wait for the recvs
 
@@ -3647,6 +3650,8 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
       fb_send_data.clear();
       fb_send_reqs.clear();
     }
+
+    ParallelDescriptor::TeamBarrier();
 }
 
 template<typename T1, typename T2>

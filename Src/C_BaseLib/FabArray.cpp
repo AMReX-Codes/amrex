@@ -907,15 +907,14 @@ FabArrayBase::ResetNGrow () const
 
 
 MFIter::MFIter (const FabArrayBase& fabarray, 
-		unsigned char       flags)
+		unsigned char       _flags)
     :
     fabArray(fabarray),
     currentIndex(0),
-    tileSize(D_DECL(1024000,1024000,1024000))
+    tileSize(D_DECL(1024000,1024000,1024000)),
+    flags(_flags)
 {
-    if (flags & Tiling)
-	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize(flags);
+    Initialize();
 }
 
 MFIter::MFIter (const FabArrayBase& fabarray, 
@@ -923,28 +922,42 @@ MFIter::MFIter (const FabArrayBase& fabarray,
     :
     fabArray(fabarray),
     currentIndex(0),
-    tileSize(D_DECL(1024000,1024000,1024000))
+    tileSize(D_DECL(1024000,1024000,1024000)),
+    flags(0)
 {
     if (do_tiling)
-	tileSize = FabArrayBase::mfiter_tile_size;
+	flags = Tiling;
     Initialize();
 }
 
 MFIter::MFIter (const FabArrayBase& fabarray, 
 		const IntVect&      tilesize, 
-		unsigned char       flags,
+		unsigned char       _flags,
 		int                 chunksize)
     :
     fabArray(fabarray),
     currentIndex(0),
-    tileSize(tilesize)
+    tileSize(tilesize),
+    flags(_flags)
 {
-    Initialize(flags,chunksize);
+    flags |= Tiling; // make sure tiling is on
+    Initialize(chunksize);
+}
+
+MFIter::~MFIter ()
+{
+#if BL_USE_UPCXX
+    if ( ! (flags & UPCNoTeamBarrier) )
+	ParallelDescriptor::TeamBarrier();
+#endif
 }
 
 void 
-MFIter::Initialize (unsigned char flags, int chunksize) 
+MFIter::Initialize (int chunksize) 
 {
+    if (flags & Tiling)
+	tileSize = FabArrayBase::mfiter_tile_size;
+
     if (flags & SkipInit) return;
 
     int tid = 0;
@@ -1158,9 +1171,9 @@ MFIter::nodalize (Box& bx, int dir) const
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray,
 			  const IntVect&      tilesize,
-			  unsigned char       flags)
+			  unsigned char       _flags)
     :
-    MFIter(fabarray, tilesize, flags&SkipInit)
+    MFIter(fabarray, tilesize, flags & Tiling & SkipInit)
 {
     Initialize();
 }
