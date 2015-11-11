@@ -75,9 +75,9 @@ FabArrayBase::Initialize ()
         for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
-#ifdef _OPENMP
-    comm_num_pieces = std::max(1, omp_get_max_threads()/2);
-#endif
+//#ifdef _OPENMP
+//    comm_num_pieces = std::max(1, omp_get_max_threads()/2);
+//#endif
     pp.query("comm_num_pieces"     , comm_num_pieces);
     pp.query("comm_piece_threshold", comm_piece_threshold); 
     BL_ASSERT(comm_num_pieces >= 1 && comm_piece_threshold >= 0);
