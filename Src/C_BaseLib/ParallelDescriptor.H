@@ -253,6 +253,7 @@ namespace ParallelDescriptor
     extern int m_MyTeamColor;
     extern int m_MyTeamLead;
     extern int m_MyRankInTeam;
+    extern int m_AgrgtTeamMsg;
 #ifdef BL_USE_UPCXX
     extern upcxx::team m_MyTeam;
 #endif
@@ -338,6 +339,11 @@ namespace ParallelDescriptor
     MyRankInTeam ()
     {
 	return m_MyRankInTeam;
+    }
+    inline int
+    TeamMsgAggMethod ()
+    {
+	return m_AgrgtTeamMsg;
     }
     inline int
     TeamLead (int rank)

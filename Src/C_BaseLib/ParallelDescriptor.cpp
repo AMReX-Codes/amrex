@@ -42,6 +42,7 @@ namespace ParallelDescriptor
     int m_MyTeamColor  = -1;
     int m_MyTeamLead   = -1;
     int m_MyRankInTeam = -1;
+    int m_AgrgtTeamMsg =  0;
 #ifdef BL_USE_UPCXX
     upcxx::team m_MyTeam;
 #endif
@@ -432,26 +433,29 @@ ParallelDescriptor::EndParallel ()
 void
 ParallelDescriptor::StartTeams ()
 {
-    ParmParse pp;
-    int upcxx_team_size = 1;
-    pp.query("upcxx_team_size", upcxx_team_size);
+    ParmParse pp("team");
+    int team_size = 1;
+    int team_aggregate_message_method = 0;
+    pp.query("size", team_size);
+    pp.query("aggregate_message", team_aggregate_message_method);
     
     int nprocs = ParallelDescriptor::NProcs();
     int rank   = ParallelDescriptor::MyProc();
 
-    if (nprocs % upcxx_team_size != 0)
+    if (nprocs % team_size != 0)
 	BoxLib::Abort("Number of processes not divisible by upcxx team_size");
 
 #ifdef _OPENMP
-    if (omp_get_num_threads() > 1 && upcxx_team_size > 1)
+    if (omp_get_num_threads() > 1 && team_size > 1)
 	BoxLib::Abort("OMP threads and UPC++ teams cannot coexist");
 #endif
 
-    m_TeamSize     = upcxx_team_size;
-    m_nTeams       = nprocs / upcxx_team_size;
-    m_MyTeamColor  = rank / upcxx_team_size;
-    m_MyTeamLead   = m_MyTeamColor * upcxx_team_size;
+    m_TeamSize     = team_size;
+    m_nTeams       = nprocs / team_size;
+    m_MyTeamColor  = rank / team_size;
+    m_MyTeamLead   = m_MyTeamColor * team_size;
     m_MyRankInTeam = rank - m_MyTeamLead;
+    m_AgrgtTeamMsg = team_aggregate_message_method;
 
 #ifdef BL_USE_UPCXX
     upcxx::team* team;
