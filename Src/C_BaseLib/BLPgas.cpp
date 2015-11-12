@@ -101,7 +101,7 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
                  upcxx::event *done_event,
                  int *send_counter)
 {
-#ifdef DEBUG
+#ifdef UPCXX_DEBUG
   std::cout << "myrank " << upcxx::myrank() << " pgas_send: src " << src
             << " dst " << dst << " nbytes " << nbytes
             << " SeqNum " << SeqNum << " signal_event " << signal_event
@@ -133,7 +133,7 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
         send_info.src_ptr = src;
         send_info.done_event = done_event;
         send_info.send_counter = send_counter;
-#ifdef DEBUG
+#ifdef UPCXX_DEBUG
         std::cout << "myrank " << upcxx::myrank() << " send found SeqNum match "
                   << SeqNum << "\n";
 #endif
@@ -142,7 +142,7 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
         assert(send_info.dst_ptr == NULL);
         send_info.dst_ptr = dst;
         send_info.signal_event = signal_event;
-#ifdef DEBUG
+#ifdef UPCXX_DEBUG
         std::cout << "myrank " << upcxx::myrank() << " recv found SeqNum match "
                   << SeqNum << "\n";
 #endif

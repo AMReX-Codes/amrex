@@ -130,7 +130,6 @@
                          ugdy,ugdy_l1,ugdy_l2,ugdy_l3,ugdy_h1,ugdy_h2,ugdy_h3, &
                          ugdz,ugdz_l1,ugdz_l2,ugdz_l3,ugdz_h1,ugdz_h2,ugdz_h3)
 
-      use network, only : nspec
       use meth_params_module, only : QU, QV, QW, QVAR, NVAR
 
       implicit none

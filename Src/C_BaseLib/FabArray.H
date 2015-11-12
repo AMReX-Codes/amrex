@@ -115,6 +115,12 @@ public:
     //
     const Array<int>& IndexMap () const { return indexMap; }
     //
+    // Returns owenership of fabs. The concept of ownership only applies when UPC++
+    // team is used. In that case, each fab is shared by team workers, with one
+    // taking the ownership.
+    //
+    const std::vector<bool>& OwnerShip () const { return ownership; }
+    //
     // Returns local index in the vector of FABs.
     //
     int localindex (int K) const { 
@@ -421,6 +427,7 @@ protected:
     mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
     Array<int>          indexMap;
+    std::vector<bool>   ownership;
     mutable int         n_grow;
     int                 n_comp;
     int                 faID;
@@ -436,19 +443,29 @@ private:
 class MFIter
 {
 public:
+    enum Flags {
+	Tiling           = 0x01, 
+	OMPNoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+	UPCOwnerOnly     = 0x04, // For UPC++ only. If on, only loops over fabs owned.
+	UPCNoTeamBarrier = 0x08, // For UPC++ only. If on, there is no barrier in MFIter dtor.
+	SkipInit         = 0x10  // MGGhostIter can skip Initialize().
+    };  // All these flags are off by default.
     //
     // Construct a MFIter.
     //
-    // no tiling
-    explicit MFIter (const FabArrayBase& fabarray, int sharing=1);
+    // The default is no tiling
+    explicit MFIter (const FabArrayBase& fabarray,
+		     unsigned char       flags=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize=0); 
-    // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize=0);
-    //
-    // Skip tileArray initialization
-    //
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, bool skip_init);
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     bool                do_tiling); 
+    // tiling with explicit size, flags, and chunksize
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     const IntVect&      tilesize,
+		     unsigned char       flags=0,
+		     int                 chunksize=0);
+    // dtor
+    ~MFIter ();
     //
     // Returns the tile Box at the current index.
     //
@@ -506,8 +523,9 @@ protected:
     Array<int>          indexMap;
     Array<int>          localIndexMap;
     Array<Box>          tileArray;
+    unsigned char       flags;
 
-    void Initialize (int sharing, int chunksize);
+    void Initialize (int chunksize=0);
 };
 
 /*
@@ -520,7 +538,8 @@ class MFGhostIter
 public:
 
     explicit MFGhostIter (const FabArrayBase& fabarray, 
-			  const IntVect& tilesize=FabArrayBase::mfghostiter_tile_size);
+			  const IntVect&      tilesize=FabArrayBase::mfghostiter_tile_size,
+			  unsigned char       flags = 0);
 
 private:
 
@@ -816,6 +835,7 @@ public:
 
     bool defined (int i) const;
     bool defined (const MFIter& mfi) const;
+
     //
     // Copy on intersection within a FabArray.  Data is copied from
     // valid regions to intersecting regions of definition.  The
@@ -1479,9 +1499,13 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     const int MyProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
-      if(distributionMap[i] == MyProc) {
-        indexMap.push_back(i);
-      }
+#ifdef BL_USE_UPCXX
+	if(ParallelDescriptor::sameTeam(distributionMap[i])) {
+#else
+	if(distributionMap[i] == MyProc) {
+#endif
+	    indexMap.push_back(i);
+	}
     }
 
     if(alloc == Fab_allocate) {
@@ -1529,13 +1553,63 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    m_fabs_v.reserve(indexMap.size());
+    int n = indexMap.size();
 
-    for (MFIter fai(*this); fai.isValid(); ++fai)
+    bool alloc = true;
+
+    m_fabs_v.reserve(n);
+    ownership.reserve(n);
+
+#ifdef BL_USE_UPCXX
+    int myproc = ParallelDescriptor::MyProc();
+    int nworkers = ParallelDescriptor::TeamSize();
+    int teamlead = ParallelDescriptor::MyTeamLead();
+    std::vector<int> dmworker(n);
+#endif
+
+    for (int i = 0; i < n; ++i)
     {
-        const Box& tmp = BoxLib::grow(fai.validbox(), n_grow);
-	m_fabs_v.push_back(new FAB(tmp, n_comp));
+	int K = indexMap[i];
+        const Box& tmp = BoxLib::grow(box(K), n_grow);
+#ifdef BL_USE_UPCXX
+	alloc = (distributionMap[K] == myproc);
+	dmworker[i] = distributionMap[K] - teamlead;
+#endif
+	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
+	ownership.push_back(alloc);
     }
+
+#ifdef BL_USE_UPCXX
+    if (ParallelDescriptor::TeamSize() > 1) 
+    {
+	const auto& team = ParallelDescriptor::MyTeam();
+	
+	int np = (n + nworkers-1) / nworkers;
+	
+	std::vector<upcxx::global_ptr<void> > psrc(np);
+	std::vector<upcxx::global_ptr<void> > pdst(np*nworkers);
+	
+	int j = 0;
+	for (int i = 0; i < n; ++i) {
+	    if (ownership[i]) {
+	        void* p = (void*) m_fabs_v[i]->dataPtr();
+	        psrc[j++] = upcxx::global_ptr<void>(p);
+            }
+        }
+	
+	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
+
+	std::vector<int> offset(nworkers,0);
+	for (int i = 0; i < n; ++i) {
+	    if (!ownership[i]) {
+		int w = dmworker[i]; // Box i is owned by worker w.
+		int j = w*np + (offset[w]++);
+		void* p = (void*) pdst[j];
+		m_fabs_v[i]->setPtr((value_type *) p);		
+	    }
+        }
+    }
+#endif
 }
 
 template <class FAB>
@@ -3274,7 +3348,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 #ifdef BL_USE_UPCXX
       value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-      if (data == NULL) {
+      if (data == nullptr) {
         printf("Failed to allocate %zu bytes global address space memory!\n",
                sizeof(value_type)*N);
         printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
@@ -3354,19 +3428,39 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
     int N_loc = (*TheSI.m_LocTags).size();
+    if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
+    {
+#ifdef BL_USE_UPCXX
+	ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
+        {
+	    const auto& tag = (*TheSI.m_LocTags)[i];
+
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+
+	    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	});
+#else
+	BoxLib::Abort("FillBoundary_nowait: Team only works with UPC++");
+#endif
+    }
+    else
+    {
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
-    for (int i=0; i<N_loc; ++i)
-    {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+	for (int i=0; i<N_loc; ++i)
+	{
+	    const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
-        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.fabIndex]));
+	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+	    
+	    if (distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc()) {
+		get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	    }
+	}
     }
-
 #endif /*BL_USE_MPI*/
 }
 
@@ -3473,17 +3567,16 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_finish_UPCXX ()
 {
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
+    auto cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
-    const FabArrayBase::SI& TheSI = cache_it->second;
+    const auto& TheSI = cache_it->second;
 
-    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
-        //
-        // No work to do.
-        //
+    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty()) {
+	ParallelDescriptor::TeamBarrier();
         return;
+    }
 
     BLPgas::fb_recv_event.wait(); // wait for the recvs
 
@@ -3500,8 +3593,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it 
-		= TheSI.m_RcvTags->find(fb_recv_from[k]);
+	    auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
@@ -3514,10 +3606,9 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	    value_type* dptr = fb_recv_data[k];
 	    BL_ASSERT(dptr != 0);
 
-	    const CopyComTagsContainer& cctc = *recv_cctc[k];
+	    const auto& cctc = *recv_cctc[k];
 
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
+	    for (auto it = cctc.begin(); it != cctc.end(); ++it)
 	    {
 		const Box& bx  = it->box;
 		const int  Cnt = bx.numPts()*fb_ncomp;
@@ -3542,6 +3633,8 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
       fb_send_data.clear();
       fb_send_reqs.clear();
     }
+
+    ParallelDescriptor::TeamBarrier();
 }
 
 template<typename T1, typename T2>
@@ -3557,13 +3650,10 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 {
   int TotalRcvsVolume = 0;
 
-  for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
-         End = m_RcvVols.end();
-       it != End;
-       ++it)
-    {
+  for (auto it = m_RcvVols.begin(); it != m_RcvVols.end(); ++it)
+  {
       TotalRcvsVolume += it->second;
-    }
+  }
 
   TotalRcvsVolume *= ncomp;
 
@@ -3581,12 +3671,9 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 
   int Offset = 0;
 
-  for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
-         m_End = m_RcvTags.end();
-       m_it != m_End;
-       ++m_it)
-    {
-      std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
+  for (auto m_it = m_RcvTags.begin(); m_it != m_RcvTags.end(); ++m_it)
+  {
+      auto vol_it = m_RcvVols.find(m_it->first);
 
       BL_ASSERT(vol_it != m_RcvVols.end());
 

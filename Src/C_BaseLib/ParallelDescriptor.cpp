@@ -12,6 +12,11 @@
 #include <ParallelDescriptor.H>
 #include <MultiFab.H>
 #include <Geometry.H>
+#include <ParmParse.H>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace ParallelDescriptor
 {
@@ -31,6 +36,15 @@ namespace ParallelDescriptor
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
+
+    int m_TeamSize     = -1;
+    int m_nTeams       = -1;
+    int m_MyTeamColor  = -1;
+    int m_MyTeamLead   = -1;
+    int m_MyRankInTeam = -1;
+#ifdef BL_USE_UPCXX
+    upcxx::team m_MyTeam;
+#endif
     //
     // BoxLib's Communicators
     //
@@ -413,6 +427,37 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_nProcs_all != -1);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
+}
+
+void
+ParallelDescriptor::StartTeams ()
+{
+    ParmParse pp;
+    int upcxx_team_size = 1;
+    pp.query("upcxx_team_size", upcxx_team_size);
+    
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
+    if (nprocs % upcxx_team_size != 0)
+	BoxLib::Abort("Number of processes not divisible by upcxx team_size");
+
+#ifdef _OPENMP
+    if (omp_get_num_threads() > 1 && upcxx_team_size > 1)
+	BoxLib::Abort("OMP threads and UPC++ teams cannot coexist");
+#endif
+
+    m_TeamSize     = upcxx_team_size;
+    m_nTeams       = nprocs / upcxx_team_size;
+    m_MyTeamColor  = rank / upcxx_team_size;
+    m_MyTeamLead   = m_MyTeamColor * upcxx_team_size;
+    m_MyRankInTeam = rank - m_MyTeamLead;
+
+#ifdef BL_USE_UPCXX
+    upcxx::team* team;
+    upcxx::team_all.split(m_MyTeamColor, m_MyRankInTeam, team);
+    m_MyTeam = *team;
+#endif
 }
 
 double
