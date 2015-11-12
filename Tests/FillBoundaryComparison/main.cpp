@@ -99,6 +99,8 @@ main (int argc, char* argv[])
 	}
     }
 
+    ParallelDescriptor::Barrier();
+
     PArray<MultiFab> mfs(nlevels, PArrayManage);
     PArray<BoxArray> bas(nlevels, PArrayManage);
     bas.set(0, new BoxArray(ba));
@@ -110,6 +112,10 @@ main (int argc, char* argv[])
 	mfs.set(lev, new MultiFab(bas[lev], 1, 1));
 	mfs[lev].setVal(1.0);
     }
+
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
 
     Array<Real> points(nlevels);
     for (int lev=0; lev<nlevels; ++lev) {
