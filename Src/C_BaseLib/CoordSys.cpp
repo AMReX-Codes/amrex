@@ -46,6 +46,8 @@ CoordSys::CoordInt ()
             return 1;
         case SPHERICAL:
             return 2;
+        default:
+            return -1;
     }
 }
 
