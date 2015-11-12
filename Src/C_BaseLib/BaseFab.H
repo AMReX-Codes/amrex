@@ -107,7 +107,8 @@ public:
     // Make BaseFab with desired domain and number of components.
     //
     explicit BaseFab (const Box& bx,
-                      int        n = 1);
+                      int        n = 1,
+		      bool       alloc = true);
     //
     // The destructor deletes the array memory.
     //
@@ -198,6 +199,8 @@ public:
     // Same as above except works on const FABs.
     //
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    //
+    void setPtr (T* p) { BL_ASSERT(dptr == 0); dptr = p; }
     //
     // Returns true if the data for the FAB has been allocated.
     //
@@ -860,7 +863,7 @@ protected:
     //
     // Allocates memory for the BaseFab<T>.
     //
-    void define ();
+    void define (bool alloc=true);
     //
     // The function called by BaseFab copy operations.
     //
@@ -885,6 +888,7 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+    bool    ptr_owner;// Owner of T*?
 
 private:
     //
@@ -1101,7 +1105,7 @@ BaseFab<T>::copy (const BaseFab<T>& src,
 
 template <class T>
 void
-BaseFab<T>::define ()
+BaseFab<T>::define (bool alloc)
 {
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
@@ -1109,7 +1113,11 @@ BaseFab<T>::define ()
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
     truesize = nvar*numpts;
-    dptr     = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    
+    if (!alloc) return;
+
+    dptr = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    ptr_owner = true;
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1143,7 +1151,8 @@ BaseFab<T>::BaseFab ()
     nvar(0),
     numpts(0),
     truesize(0),
-    dptr(0)
+    dptr(0),
+    ptr_owner(false)
 {}
 
 template <class T>
@@ -1156,15 +1165,17 @@ BaseFab<T>::operator= (const T& t)
 
 template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
-                     int        n)
+                     int        n,
+		     bool       alloc)
     :
     domain(bx),
     dlen(bx.size()),
     nvar(n),
     numpts(bx.numPts()),
-    dptr(0)
+    dptr(0),
+    ptr_owner(false)
 {
-    define();
+    define(alloc);
 }
 
 template <class T>
@@ -1218,22 +1229,25 @@ BaseFab<T>::clear ()
         //
         T* ptr = dptr;
 
-        for (long i = 0; i < truesize; i++, ptr++)
-        {
-            ptr->~T();
-        }
-        BoxLib::The_Arena()->free(dptr);
+	if (ptr_owner)
+	{
+	    for (long i = 0; i < truesize; i++, ptr++)
+	    {
+		ptr->~T();
+	    }
+	    BoxLib::The_Arena()->free(dptr);
 
-        dptr = 0;
-
-	long tst = truesize*sizeof(T);
-        BoxLib::private_total_bytes_allocated_in_fabs -= tst;
-	if(nvar > 0) {
-	    if(sizeof(T) == sizeof(Real)) {
-		long ncells = truesize/nvar;
-		BoxLib::private_total_cells_allocated_in_fabs -= ncells;
+	    long tst = truesize*sizeof(T);
+	    BoxLib::private_total_bytes_allocated_in_fabs -= tst;
+	    if(nvar > 0) {
+		if(sizeof(T) == sizeof(Real)) {
+		    long ncells = truesize/nvar;
+		    BoxLib::private_total_cells_allocated_in_fabs -= ncells;
+		}
 	    }
 	}
+
+        dptr = 0;
     }
 }
 

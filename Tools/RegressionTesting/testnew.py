@@ -1823,36 +1823,37 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if outputFile != "" and args.make_benchmarks == None:
+        if outputFile != "":
+            if args.make_benchmarks == None:
 
-            if test.doVis: 
+                if test.doVis: 
 
-                if test.dim == 1:
-                    suite.log.log("Visualization not supported for dim = {}".format(test.dim))
-                else:
-                    suite.log.log("doing the visualization...")
-                    tool = suite.tools["fsnapshot{}d".format(test.dim)]
-                    run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                        tool, suite.compare_tool_dir, test.visVar, outputFile))
+                    if test.dim == 1:
+                        suite.log.log("Visualization not supported for dim = {}".format(test.dim))
+                    else:
+                        suite.log.log("doing the visualization...")
+                        tool = suite.tools["fsnapshot{}d".format(test.dim)]
+                        run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
+                            tool, suite.compare_tool_dir, test.visVar, outputFile))
 
-                    # convert the .ppm files into .png files
-                    ppm_file = get_recent_filename(outputDir, "", ".ppm")
-                    png_file = ppm_file.replace(".ppm", ".png")
-                    run("convert {} {}".format(ppm_file, png_file))
+                        # convert the .ppm files into .png files
+                        ppm_file = get_recent_filename(outputDir, "", ".ppm")
+                        png_file = ppm_file.replace(".ppm", ".png")
+                        run("convert {} {}".format(ppm_file, png_file))
 
-            if not test.analysisRoutine == "":
+                if not test.analysisRoutine == "":
 
-                suite.log.log("doing the analysis...")
-                if test.useExtraBuildDir > 0:
-                    tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
-                else:
-                    tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
+                    suite.log.log("doing the analysis...")
+                    if test.useExtraBuildDir > 0:
+                        tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
+                    else:
+                        tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
 
-                shutil.copy(tool, os.getcwd())
+                    shutil.copy(tool, os.getcwd())
 
-                option = eval("suite.{}".format(test.analysisMainArgs))
-                run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                      option, outputFile))
+                    option = eval("suite.{}".format(test.analysisMainArgs))
+                    run("{} {} {}".format(os.path.basename(test.analysisRoutine),
+                                          option, outputFile))
 
         else:
             if test.doVis or test.analysisRoutine != "":

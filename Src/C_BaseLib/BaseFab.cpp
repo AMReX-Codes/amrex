@@ -7,6 +7,11 @@
 #include <BaseFab.H>
 #include <BArena.H>
 #include <CArena.H>
+
+#ifdef BL_USE_UPCXX
+#include <UArena.H>
+#endif
+
 #if !(defined(BL_NO_FORT) || defined(WIN32))
 #include <SPECIALIZE_F.H>
 #endif
@@ -29,7 +34,9 @@ BoxLib::BF_init::BF_init ()
     {
         BL_ASSERT(the_arena == 0);
 
-#if defined(BL_COALESCE_FABS)
+#if defined(BL_USE_UPCXX)
+	the_arena = new UArena;
+#elif defined(BL_COALESCE_FABS)
         the_arena = new CArena;
 #else
         the_arena = new BArena;

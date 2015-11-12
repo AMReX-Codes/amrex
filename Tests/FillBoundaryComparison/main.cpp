@@ -142,6 +142,9 @@ main (int argc, char* argv[])
 	    }
 	}
 	Real e = double(iround+ParallelDescriptor::MyProc());
+#ifdef BL_USE_UPCXX
+       upcxx::barrier();
+#endif
 	ParallelDescriptor::ReduceRealMax(e);
 	err += e;
     }

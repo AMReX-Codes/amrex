@@ -1039,46 +1039,12 @@ ADR::avgDown (int state_indx)
     if (level == parent->finestLevel()) return;
 
     ADR& fine_lev = getLevel(level+1);
-    MultiFab&  S_crse   = get_new_data(state_indx);
     MultiFab&  S_fine   = fine_lev.get_new_data(state_indx);
-    MultiFab&  fvolume  = fine_lev.volume;
-    const int  ncomp    = S_fine.nComp();
+    MultiFab&  S_crse   = get_new_data(state_indx);
 
-    BL_ASSERT(S_crse.boxArray() == volume.boxArray());
-    BL_ASSERT(fvolume.boxArray() == S_fine.boxArray());
-    //
-    // Coarsen() the fine stuff on processors owning the fine data.
-    //
-    BoxArray crse_S_fine_BA(S_fine.boxArray().size());
-
-    for (int i = 0; i < S_fine.boxArray().size(); ++i)
-    {
-        crse_S_fine_BA.set(i,BoxLib::coarsen(S_fine.boxArray()[i],fine_ratio));
-    }
-
-    MultiFab crse_S_fine(crse_S_fine_BA,ncomp,0);
-    MultiFab crse_fvolume(crse_S_fine_BA,1,0);
-
-    crse_fvolume.copy(volume);
-
-    for (MFIter mfi(S_fine); mfi.isValid(); ++mfi)
-    {
-        const int        i        = mfi.index();
-        const Box&       ovlp     = crse_S_fine_BA[i];
-        FArrayBox&       crse_fab = crse_S_fine[mfi];
-        const FArrayBox& crse_vol = crse_fvolume[mfi];
-        const FArrayBox& fine_fab = S_fine[mfi];
-        const FArrayBox& fine_vol = fvolume[mfi];
-
-	BL_FORT_PROC_CALL(AVGDOWN,avgdown)
-            (BL_TO_FORTRAN(crse_fab), ncomp,
-             BL_TO_FORTRAN(crse_vol),
-             BL_TO_FORTRAN(fine_fab),
-             BL_TO_FORTRAN(fine_vol),
-             ovlp.loVect(),ovlp.hiVect(),fine_ratio.getVect());
-    }
-
-    S_crse.copy(crse_S_fine);
+    BoxLib::average_down(S_fine,S_crse,
+                         fine_lev.geom,geom,
+                         0,S_fine.nComp(),parent->refRatio(level));
 }
 
 void

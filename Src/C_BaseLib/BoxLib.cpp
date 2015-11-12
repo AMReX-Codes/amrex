@@ -274,6 +274,8 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);
+    if (upcxx::myrank() != ParallelDescriptor::MyProc())
+	BoxLib::Abort("UPC++ rank != MPI rank");
 #endif
 
     while (!The_Initialize_Function_Stack.empty())
@@ -342,6 +344,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
             }
         }
     }
+#endif
+
+#ifdef BL_USE_MPI
+    ParallelDescriptor::StartTeams();
 #endif
 
     mempool_init();
@@ -417,17 +423,14 @@ BoxLib::Finalize (bool finalize_parallel)
     upcxx::finalize();
 #endif
 
-    /* Don't shut down MPI if GASNet is still using MPI */
-#ifndef GASNET_CONDUIT_MPI
-    if (finalize_parallel)
-        ParallelDescriptor::EndParallel();
-#endif
-
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
 	bl_fortran_mpi_comm_free();
 #endif
+    /* Don't shut down MPI if GASNet is still using MPI */
+#ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
+#endif
     }
 }
 
