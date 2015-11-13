@@ -271,12 +271,17 @@ public:
     static Geometry::FPBMMapIter GetFPB (const Geometry&      geom,
                                          const Geometry::FPB& fpb,
                                          const FabArrayBase&  mf);
+#ifdef BL_USE_MPI
     //
     // Send Geometry to sidecar procs.
     //
-#ifdef BL_USE_MPI
     static void SendGeometryToSidecars (Geometry *geom);
+    //
+    // Send Geometry to sidecar procs.
+    //
+    void BroadcastGeometry (int fromProc, MPI_Comm comm);
 #endif
+
 private:
     //
     // Helper functions.
