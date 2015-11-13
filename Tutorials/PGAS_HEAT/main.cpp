@@ -224,6 +224,10 @@ main (int argc, char* argv[])
 	}
     }
 
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
     Real advance_time = ParallelDescriptor::second() - adv_start_time;
@@ -237,10 +241,10 @@ main (int argc, char* argv[])
     // Tell the I/O Processor to write out the "run time"
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "----------------------------------------------\n";
-//	std::cout << "Kernel       time = " << kernel_time << std::endl;
+	std::cout << "Kernel       time = " << kernel_time << std::endl;
 	std::cout << "FillBoundary time = " << FB_time << std::endl;
-//	std::cout << "Advance      time = " << advance_time << std::endl;
-//	std::cout << "Total run    time = " << stop_time << std::endl;
+	std::cout << "Advance      time = " << advance_time << std::endl;
+	std::cout << "Total run    time = " << stop_time << std::endl;
     }
 
     Real dmin = (*new_phi).min(0);
