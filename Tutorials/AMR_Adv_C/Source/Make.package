@@ -1,17 +1,17 @@
-CEXE_sources += ADR.cpp ADR_advance.cpp ADR_setup.cpp 
-CEXE_sources += ADR_error.cpp ADRBld.cpp
+CEXE_sources += Adv.cpp Adv_advance.cpp Adv_setup.cpp 
+CEXE_sources += Adv_error.cpp AdvBld.cpp
 CEXE_sources += main.cpp 
 
-CEXE_headers += ADR.H
+CEXE_headers += Adv.H
 
-FEXE_headers += ADR_F.H	Derive_F.H
+FEXE_headers += Adv_F.H	Derive_F.H
 
-f90EXE_sources += ADR_nd.f90
+f90EXE_sources += Adv_nd.f90
 f90EXE_sources += meth_params.f90
 f90EXE_sources += prob_params.f90
 
 ifeq ($(USE_DIFFUSION), TRUE)
-CEXE_sources += ADR_diffusion.cpp
+CEXE_sources += Adv_diffusion.cpp
 CEXE_sources += Diffusion.cpp
 CEXE_headers += Diffusion.H
 endif
