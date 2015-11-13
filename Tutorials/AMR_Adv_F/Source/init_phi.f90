@@ -13,12 +13,11 @@ module init_phi_module
 
 contains
 
-  subroutine init_phi_on_level(phi,dx,prob_lo,the_bc_level)
+  subroutine init_phi_on_level(phi,dx,prob_lo)
 
     type(multifab) , intent(inout) :: phi
     real(kind=dp_t), intent(in   ) :: dx
     real(kind=dp_t), intent(in   ) :: prob_lo(phi%dim)
-    type(bc_level) , intent(in   ) :: the_bc_level
 
     ! local
     integer i,ng,dm
@@ -43,8 +42,6 @@ contains
 
     call multifab_fill_boundary(phi)
     
-    call multifab_physbc(phi,1,1,1,the_bc_level)
-
   end subroutine init_phi_on_level
   
   subroutine init_phi(mla,phi,dx,prob_lo,the_bc_tower)

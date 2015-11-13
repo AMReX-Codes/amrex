@@ -16,17 +16,6 @@ program main
 
   implicit none
 
-  ! stuff you can set with the inputs file (otherwise use default values below)
-  integer    :: max_levs, dim, nsteps, plot_int, n_cell, max_grid_size
-  integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
-  real(dp_t) :: cluster_min_eff
-  integer    :: regrid_int
-  integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
-
-  ! subcycling
-  logical    :: do_subcycling
-  integer    :: num_substeps
-
   ! dummy indices using for reading in inputs file
   integer :: un, farg, narg
   logical :: need_inputs_file, found_inputs_file
@@ -53,6 +42,8 @@ program main
   real(dp_t) :: time,start_time,run_time,run_time_IOproc
   real(dp_t) :: dt_adv, dt_diff
   
+  integer :: num_substeps
+
   type(box)         :: bx
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
@@ -63,9 +54,31 @@ program main
 
   type(bc_tower) :: the_bc_tower
 
-  namelist /probin/ max_levs, dim, nsteps, plot_int, n_cell, max_grid_size, amr_buf_width, &
-       cluster_minwidth, cluster_blocking_factor, cluster_min_eff, regrid_int, &
-       bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi, do_subcycling
+
+
+  ! namelist parameters you can set with the inputs file
+  ! (otherwise use default values below)
+  integer    :: dim, max_levs, plot_int, n_cell, max_grid_size, nsteps, regrid_int
+  logical    :: do_subcycling
+  integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
+  real(dp_t) :: cluster_min_eff
+
+  namelist /probin/ dim                      ! dimensionality of problem
+  namelist /probin/ max_levs                 ! total number of AMR levels
+  namelist /probin/ plot_int                 ! plotfile interval
+  namelist /probin/ n_cell                   ! number of cells on each side
+  namelist /probin/ max_grid_size            ! max number of cells on each side
+  namelist /probin/ nsteps                   ! number of time steps
+  namelist /probin/ regrid_int               ! how often to regrid
+  namelist /probin/ do_subcycling            ! use subcycling
+  ! allowable boundary condition options currently are
+  ! -1 = PERIODIC
+  namelist /probin/ bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  namelist /probin/ amr_buf_width            ! number of buffer cells between successive levels
+  namelist /probin/ cluster_minwidth         ! minimimum size of an AMR grid
+  namelist /probin/ cluster_blocking_factor  ! grids must be an integer multiple
+  namelist /probin/ cluster_min_eff          ! larger value means more, smaller, tighter grids
 
   ! if running in parallel, this will print out the number of MPI 
   ! processes and OpenMP threads
@@ -78,31 +91,27 @@ program main
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! default values - will get overwritten by the inputs file
 
-  max_levs      = 3
   dim           = 2
-  nsteps        = 1000
-  plot_int      = 100
-  n_cell        = 256
-  max_grid_size = 64
-  amr_buf_width = 2
+  max_levs      = 3
+  plot_int      = 1
+  n_cell        = 64
+  max_grid_size = 16
+  nsteps        = 10
 
+  regrid_int = 4
+  do_subcycling = .true.
+
+  bc_x_lo = -1 ! PERIODIC
+  bc_x_hi = -1 ! PERIODIC
+  bc_y_lo = -1 ! PERIODIC
+  bc_y_hi = -1 ! PERIODIC
+  bc_z_lo = -1 ! PERIODIC
+  bc_z_hi = -1 ! PERIODIC
+
+  amr_buf_width = 2
   cluster_minwidth = 16
   cluster_blocking_factor = 8
   cluster_min_eff = 0.7d0
-  regrid_int = 4
-
-  ! allowable options for this example are
-  ! -1 = PERIODIC
-  ! 12 = OUTLET (dphi/dn=0 at boundary)
-  ! 15 = NO_SLIP_WALL (wall with fixed phi=1)
-  bc_x_lo       = -1 ! PERIODIC
-  bc_x_hi       = -1 ! PERIODIC
-  bc_y_lo       = -1 ! PERIODIC
-  bc_y_hi       = -1 ! PERIODIC
-  bc_z_lo       = -1 ! PERIODIC
-  bc_z_hi       = -1 ! PERIODIC
-
-  do_subcycling = .true.
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! read inputs file and overwrite any default values
@@ -215,7 +224,7 @@ program main
   ! initialize phi_new on level 1
   ! Here we choose to initialize phi_new because at the beginning of each time step
   !      we will copy phi_new into phi_old
-  call init_phi_on_level(phi_new(1),dx(1),prob_lo,the_bc_tower%bc_tower_array(1))
+  call init_phi_on_level(phi_new(1),dx(1),prob_lo)
 
   nl = 1
   new_grid = .true.
@@ -239,7 +248,7 @@ program main
         call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
             
         ! initialize phi on level nl+1
-        call init_phi_on_level(phi_new(nl+1),dx(nl+1),prob_lo,the_bc_tower%bc_tower_array(nl+1))
+        call init_phi_on_level(phi_new(nl+1),dx(nl+1),prob_lo)
 
         ! increment current level counter
         nl = nl+1
