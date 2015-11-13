@@ -16,11 +16,6 @@ program main
 
   implicit none
 
-  ! dummy indices using for reading in inputs file
-  integer :: un, farg, narg
-  logical :: need_inputs_file, found_inputs_file
-  character(len=128) :: inputs_file_name
-
   ! will be allocated with dim components
   integer       , allocatable :: lo(:), hi(:)
   logical       , allocatable :: is_periodic(:)
@@ -42,8 +37,6 @@ program main
   real(dp_t) :: time,start_time,run_time,run_time_IOproc
   real(dp_t) :: dt_adv, dt_diff
   
-  integer :: num_substeps
-
   type(box)         :: bx
   type(ml_boxarray) :: mba
   type(ml_layout)   :: mla
@@ -52,17 +45,30 @@ program main
   ! Boundary register to hold the fine flux contributions at the coarse resolution
   type(bndry_reg), allocatable :: bndry_flx(:)
 
+  ! holds description of boundary conditions
   type(bc_tower) :: the_bc_tower
 
-
+  ! for problems with subcycling,
+  ! num_substeps is the number of fine steps (at level n+1) for each coarse
+  ! (at level n) time step in subcycling algorithm. In other words, it is
+  ! the time refinement ratio, which depends on the problem type being solved.
+  ! In the current implementation, num_substeps must be set to 
+  !    2 (for an explicit hyperbolic problem)
+  integer, parameter :: num_substeps = 2
 
   ! namelist parameters you can set with the inputs file
   ! (otherwise use default values below)
+  ! see description in comments below
   integer    :: dim, max_levs, plot_int, n_cell, max_grid_size, nsteps, regrid_int
   logical    :: do_subcycling
   integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
   integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
   real(dp_t) :: cluster_min_eff
+
+  ! dummy indices using for reading in inputs file
+  integer :: un, farg, narg
+  logical :: need_inputs_file, found_inputs_file
+  character(len=128) :: inputs_file_name
 
   namelist /probin/ dim                      ! dimensionality of problem
   namelist /probin/ max_levs                 ! total number of AMR levels
@@ -299,38 +305,19 @@ program main
   if (.not.do_subcycling) then
 
      ! Choose a time step with a local advective CFL of 0.9 
-     dt_adv  = 0.9d0*dx(max_levs) / max(abs(uadv),abs(vadv))
-
-     ! Choose a time step with a local diffusive CFL of 0.9 
-     dt_diff = 0.9d0*dx(max_levs)**2/(2.d0*dim*mu)
-
      ! Set the dt for all levels based on the criterion at the finest level
-     ! We must use the most restrictive of the two time steps constraints
-     dt(:) = min(dt_adv,dt_diff)
+     dt(:) = 0.9d0*dx(max_levs) / max(abs(uadv),abs(vadv))
 
   else
 
-     ! num_substeps is the number of fine steps (at level n+1) for each coarse
-     ! (at level n) time step in subcycling algorithm. In other words, it is
-     ! the time refinement ratio, which depends on the problem type being solved.
-
      ! Choose a time step with a local advective CFL of 0.9 
-     dt_adv  = 0.9d0*dx(1) / max(abs(uadv),abs(vadv))
+     dt(1) = 0.9d0*dx(1) / max(abs(uadv),abs(vadv))
 
-     ! Choose a time step with a local diffusive CFL of 0.9 
-     dt_diff = 0.9d0*dx(1)**2/(2.d0*dim*mu)
-
-     ! We must use the most restrictive of the two time steps constraints
-     dt(1) = min(dt_adv,dt_diff)
-
-     ! In the current implementation, num_substeps must be set to 
-     !    2 (for an explicit hyperbolic problem) or 
-     !    4 (for an explicit parabolic  problem) 
-     num_substeps = 4
-
+     ! Set the dt for all levels based on refinement ratio
      do n = 2, max_levs 
         dt(n) = dt(n-1) / dble(num_substeps)
      end do
+
   endif
 
   ! Write plotfile at t=0
@@ -341,7 +328,7 @@ program main
   allocate(bndry_flx(2:nlevs))
   do n = 2, nlevs
      call flux_reg_build(bndry_flx(n),mla%la(n),mla%la(n-1),mla%mba%rr(n-1,:), &
-          ml_layout_get_pd(mla,n-1),nc=1)
+                         ml_layout_get_pd(mla,n-1),nc=1)
   end do
 
   do istep=1,nsteps
