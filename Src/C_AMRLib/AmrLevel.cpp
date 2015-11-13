@@ -1783,3 +1783,139 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
+
+
+
+void
+AmrLevel::MakeSidecarsSmaller(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
+                              int ioProcNumSCS, int ioProcNumAll, int scsMyId,
+			      MPI_Comm scsComm)
+{
+using std::cout;
+using std::endl;
+cout << "++++++++++ derive_lst.dlist().size() = " << derive_lst.dlist().size() << endl;
+ParallelDescriptor::Barrier(scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        parent = aptr;
+      }
+
+      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
+
+      // ---- IntVects
+      Array<int> allIntVects;
+      int allIntVectsSize(0);
+      if(scsMyId == ioProcNumSCS) {
+        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
+        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
+
+        allIntVectsSize = allIntVects.size();
+      }
+
+      ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        allIntVects.resize(allIntVectsSize);
+      }
+      ParallelDescriptor::Bcast(allIntVects.dataPtr(), allIntVectsSize, ioProcNumAll, scsComm);
+
+      if(scsMyId != ioProcNumSCS) {
+        int count(0);
+        for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
+        for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
+      }
+
+      // ---- Boxes
+      Array<int> baseBoxAI;
+      if(scsMyId == ioProcNumSCS) {
+        baseBoxAI = BoxLib::SerializeBox(m_AreaToTag);
+      }
+      if(scsMyId != ioProcNumSCS) {
+        baseBoxAI.resize(BoxLib::SerializeBoxSize());
+      }
+      ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        m_AreaToTag = BoxLib::UnSerializeBox(baseBoxAI);
+      }
+      
+      // ---- Geometry
+      geom.BroadcastGeometry(ioProcNumSCS, scsComm);
+      
+      // ---- BoxArrays
+      int sbaG_Size(-2), sbaANTT_Size(-2);
+      Array<int> sbaG, sbaANTT;
+      if(scsMyId == ioProcNumSCS) {
+        sbaG = BoxLib::SerializeBoxArray(grids);
+        sbaG_Size = sbaG.size();
+        sbaANTT = BoxLib::SerializeBoxArray(m_AreaNotToTag);
+        sbaANTT_Size = sbaANTT.size();
+      }
+      ParallelDescriptor::Bcast(&sbaG_Size, 1, ioProcNumSCS, scsComm);
+      ParallelDescriptor::Bcast(&sbaANTT_Size, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        sbaG.resize(sbaG_Size);
+        sbaANTT.resize(sbaANTT_Size);
+      }
+      if(sbaG_Size > 0) {
+        ParallelDescriptor::Bcast(sbaG.dataPtr(), sbaG.size(), ioProcNumSCS, scsComm);
+      }
+      if(sbaANTT_Size > 0) {
+        ParallelDescriptor::Bcast(sbaANTT.dataPtr(), sbaANTT.size(), ioProcNumSCS, scsComm);
+      }
+      if(scsMyId != ioProcNumSCS) {
+        if(sbaG_Size > 0) {
+          grids = BoxLib::UnSerializeBoxArray(sbaG);
+	}
+        if(sbaANTT_Size > 0) {
+          m_AreaNotToTag = BoxLib::UnSerializeBoxArray(sbaANTT);
+	}
+      }
+      
+#ifdef USE_PARTICLES
+      int sbaPG_Size(-2);
+      Array<int> sbaPG;
+      if(scsMyId == ioProcNumSCS) {
+        sbaPG = BoxLib::SerializeBoxArray(particle_grids);
+        sbaPG_Size = sbaPG.size();
+      }
+      ParallelDescriptor::Bcast(&sbaPG_Size, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        sbaPG.resize(sbaPG_Size);
+      }
+      if(sbaPG_Size > 0) {
+        ParallelDescriptor::Bcast(sbaPG.dataPtr(), sbaPG.size(), ioProcNumSCS, scsComm);
+        if(scsMyId != ioProcNumSCS) {
+          particle_grids = BoxLib::UnSerializeBoxArray(sbaPG);
+        }
+      }
+
+      Array<int> dmapA;
+      int dmapA_Size(-3);
+      if(scsMyId == ioProcNumSCS) {
+        dmapA = particle_dmap.ProcessorMap();
+        dmapA_Size = dmapA.size();
+      }
+      ParallelDescriptor::Bcast(&dmapA_Size, 1, ioProcNumSCS, scsComm);
+      if(dmapA_Size > 0) {
+        if(scsMyId != ioProcNumSCS) {
+          dmapA.resize(dmapA_Size);
+        }
+        ParallelDescriptor::Bcast(dmapA.dataPtr(), dmapA.size(), ioProcNumSCS, scsComm);
+        if(scsMyId != ioProcNumSCS) {
+	  dmapA[dmapA.size() - 1] = ParallelDescriptor::MyProcComp();  // ---- set the sentinel
+          particle_dmap.define(dmapA);
+        }
+      }
+
+      int posg(particles_on_same_grids);
+      ParallelDescriptor::Bcast(&posg, 1, ioProcNumSCS, scsComm);
+      particles_on_same_grids = posg;
+#endif
+
+}
+
+
+
+
+
+
+
+
