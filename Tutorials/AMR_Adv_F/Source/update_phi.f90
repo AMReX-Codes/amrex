@@ -33,7 +33,7 @@ contains
 
     do n=1,nlevs
 
-       call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(:,n),dx(n),dt(n))
+       call update_phi_single_level(mla,phi_old(n),phi_new(n),flux(n,:),dx(n),dt(n))
 
     end do
 

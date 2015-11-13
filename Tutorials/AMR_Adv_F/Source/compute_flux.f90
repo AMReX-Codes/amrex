@@ -18,10 +18,11 @@ module compute_flux_module
 
 contains
 
-  subroutine compute_flux(mla,phi,flux,dx,dt,the_bc_tower)
+  subroutine compute_flux(mla,phi,velocity,flux,dx,dt,the_bc_tower)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(in   ) :: phi(:)
+    type(multifab) , intent(in   ) :: velocity(:,:)
     type(multifab) , intent(inout) :: flux(:,:)
     real(kind=dp_t), intent(in   ) :: dx(:), dt(:)
     type(bc_tower) , intent(in   ) :: the_bc_tower
@@ -36,50 +37,59 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       call compute_flux_single_level(mla,phi(n),flux(:,n),dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+       call compute_flux_single_level(mla,phi(n),velocity(n,:),flux(n,:), &
+                                      dx(n),dt(n),the_bc_tower%bc_tower_array(n))
     end do
 
     ! set level n-1 fluxes to be the average of the level n fluxes covering it
     ! the loop over nlevs must count backwards to make sure the finer grids are done first
     do n=nlevs,2,-1
        do i=1,dm
-          call ml_edge_restriction_c(flux(i,n-1),1,flux(i,n),1,mla%mba%rr(n-1,:),i,1)
+          call ml_edge_restriction_c(flux(n-1,i),1,flux(n,i),1,mla%mba%rr(n-1,:),i,1)
        end do
     end do
 
   end subroutine compute_flux
 
-  subroutine compute_flux_single_level(mla,phi,flux,dx,dt,the_bc_level)
+  subroutine compute_flux_single_level(mla,phi,velocity,flux,dx,dt,the_bc_level)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(in   ) :: phi
+    type(multifab) , intent(in   ) :: velocity(:)
     type(multifab) , intent(inout) :: flux(:)
     real(kind=dp_t), intent(in   ) :: dx, dt
     type(bc_level) , intent(in   ) :: the_bc_level
 
     ! local variables
     integer :: lo(mla%dim), hi(mla%dim)
-    integer :: dm, ng_p, ng_f, i
+    integer :: dm, ng_p, ng_f, ng_u, i
 
     real(kind=dp_t), pointer ::  pp(:,:,:,:)
     real(kind=dp_t), pointer :: fxp(:,:,:,:)
     real(kind=dp_t), pointer :: fyp(:,:,:,:)
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
+    real(kind=dp_t), pointer ::  up(:,:,:,:)
+    real(kind=dp_t), pointer ::  vp(:,:,:,:)
+    real(kind=dp_t), pointer ::  wp(:,:,:,:)
 
     dm    = mla%dim
 
     ng_p = phi%ng
     ng_f = flux(1)%ng
+    ng_u = velocity(1)%ng
 
     do i=1,nfabs(phi)
        pp  => dataptr(phi,i)
        fxp => dataptr(flux(1),i)
        fyp => dataptr(flux(2),i)
+       up  => dataptr(velocity(1),i)
+       vp  => dataptr(velocity(2),i)
        lo = lwb(get_box(phi,i))
        hi = upb(get_box(phi,i))
        select case(dm)
        case (2)
           call compute_flux_2d(pp(:,:,1,1), ng_p, &
+                               up(:,:,1,1), vp(:,:,1,1), ng_u, &
                                fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
                                lo, hi, dx, dt, &
                                the_bc_level%adv_bc_level_array(i,:,:,1))
@@ -95,13 +105,16 @@ contains
 
   end subroutine compute_flux_single_level
 
-  subroutine compute_flux_2d(phi, ng_p, fluxx, fluxy, ng_f, lo, hi, dx, dt, adv_bc)
+  subroutine compute_flux_2d(phi, ng_p, umac, vmac, ng_u, fluxx, fluxy, ng_f, &
+                             lo, hi, dx, dt, adv_bc)
     
-    use prob_module , only : mu, uadv, vadv
+    use prob_module , only : mu
     use slope_module, only : slope_2d
 
-    integer          :: lo(2), hi(2), ng_p, ng_f
+    integer          :: lo(2), hi(2), ng_p, ng_f, ng_u
     double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:)
+    double precision ::  umac(lo(1)-ng_u:,lo(2)-ng_u:)
+    double precision ::  vmac(lo(1)-ng_u:,lo(2)-ng_u:)
     double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: dx, dt
@@ -118,8 +131,6 @@ contains
 
     allocate(slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
-    eps = 1.d-8 * max(uadv,vadv)
-
     ! Compute the slopes in the x-direction
     call slope_2d(phi  ,lo(1)-ng_p,lo(2)-ng_p,hi(1)+ng_p,hi(2)+ng_p, &
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
@@ -133,15 +144,13 @@ contains
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
 
-          if (abs(uadv) < eps) then
-              phi_edge = 0.5d0 * (phi(i,j) + phi(i-1,j))
-          else if (uadv > 0.d0) then
-              phi_edge = phi(i-1,j) + 0.5d0 * (1.d0 - uadv*dt/dx)*slope(i-1,j)
+          if (umac(i,j) > 0.d0) then
+              phi_edge = phi(i-1,j) + 0.5d0 * (1.d0 - umac(i,j)*dt/dx)*slope(i-1,j)
           else
-              phi_edge = phi(i  ,j) - 0.5d0 * (1.d0 + uadv*dt/dx)*slope(i  ,j)
+              phi_edge = phi(i  ,j) - 0.5d0 * (1.d0 + umac(i,j)*dt/dx)*slope(i  ,j)
           endif
 
-          fluxx(i,j) = fluxx(i,j) - uadv * phi_edge
+          fluxx(i,j) = fluxx(i,j) - umac(i,j) * phi_edge
 
        end do
     end do
@@ -155,15 +164,13 @@ contains
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
           
-          if (abs(vadv) < eps) then
-              phi_edge = 0.5d0 * (phi(i,j) + phi(i,j-1))
-          else if (vadv > 0.d0) then
-              phi_edge = phi(i,j-1) + 0.5d0 * (1.d0 - vadv*dt/dx)*slope(i,j-1)
+          if (vmac(i,j) > 0.d0) then
+              phi_edge = phi(i,j-1) + 0.5d0 * (1.d0 - vmac(i,j)*dt/dx)*slope(i,j-1)
           else
-              phi_edge = phi(i,j  ) - 0.5d0 * (1.d0 + vadv*dt/dx)*slope(i,j  )
+              phi_edge = phi(i,j  ) - 0.5d0 * (1.d0 + vmac(i,j)*dt/dx)*slope(i,j  )
           endif
 
-          fluxy(i,j) = fluxy(i,j) - vadv * phi_edge
+          fluxy(i,j) = fluxy(i,j) - vmac(i,j) * phi_edge
 
        end do
     end do
