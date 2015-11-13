@@ -225,8 +225,8 @@ program main
   ! build the level 1 layout
   call layout_build_ba(la_array(1),mba%bas(1),mba%pd(1),is_periodic)
 
-  ! build the level 1 multifab with 1 component and 2 ghost cells
-  call multifab_build(phi_new(1),la_array(1),1,2)
+  ! build the level 1 multifab with 1 component and 3 ghost cells
+  call multifab_build(phi_new(1),la_array(1),1,3)
 
   ! define level 1 of the_bc_tower
   call bc_tower_level_build(the_bc_tower,1,la_array(1))
@@ -252,11 +252,11 @@ program main
         call copy(mba%bas(nl+1),get_boxarray(la_array(nl+1)))
 
         ! Build the level nl+1 data
-        call multifab_build(phi_new(nl+1),la_array(nl+1),1,2)
+        call multifab_build(phi_new(nl+1),la_array(nl+1),1,3)
         
         ! define level nl+1 of the_bc_tower
         call bc_tower_level_build(the_bc_tower,nl+1,la_array(nl+1))
-            
+
         ! initialize phi on level nl+1
         call init_phi_on_level(phi_new(nl+1),dx(nl+1),prob_lo)
 
@@ -298,8 +298,8 @@ program main
   ! Note that we need two ghost cells because we construct fluxes for the advective fluxes
   ! If we were doing pure explicit diffusion we would use just one ghost cell.
   do n=1,nlevs
-     call multifab_build(phi_new(n),mla%la(n),1,2)
-     call multifab_build(phi_old(n),mla%la(n),1,2)
+     call multifab_build(phi_new(n),mla%la(n),1,3)
+     call multifab_build(phi_old(n),mla%la(n),1,3)
      do i=1,dim
         call multifab_build_edge(velocity(n,i),mla%la(n),1,1,i)
      end do
@@ -312,14 +312,14 @@ program main
 
   if (.not.do_subcycling) then
 
-     ! Choose a time step with a local advective CFL of 0.9 
+     ! Choose a time step with a local advective CFL of 0.5
      ! Set the dt for all levels based on the criterion at the finest level
-     dt(:) = 0.9d0*dx(max_levs) / max(abs(uadv),abs(vadv))
+     dt(:) = 0.5d0*dx(max_levs)
 
   else
 
-     ! Choose a time step with a local advective CFL of 0.9 
-     dt(1) = 0.9d0*dx(1) / max(abs(uadv),abs(vadv))
+     ! Choose a time step with a local advective CFL of 0.5 
+     dt(1) = 0.5d0*dx(1)
 
      ! Set the dt for all levels based on refinement ratio
      do n = 2, max_levs 
@@ -367,7 +367,7 @@ program main
 
         ! Create new phi_old and velocity after regridding
         do n = 1,nlevs
-          call multifab_build(phi_old(n),mla%la(n),1,2)
+          call multifab_build(phi_old(n),mla%la(n),1,3)
           do i=1,dim
              call multifab_build_edge(velocity(n,i),mla%la(n),1,1,i)
           end do
@@ -385,7 +385,8 @@ program main
      call compute_velocity(mla,velocity,dx,time)
 
      ! Advance phi by one coarse time step
-     call advance(mla,phi_old,phi_new,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
+     call advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,the_bc_tower, &
+                  do_subcycling,num_substeps)
 
      time = time + dt(1)
 

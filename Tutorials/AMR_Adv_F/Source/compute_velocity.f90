@@ -47,8 +47,6 @@ contains
        end do
     end do
 
-
-
   end subroutine compute_velocity
 
   subroutine compute_velocity_2d(velx, vely, ng, lo, hi, dx, time)
@@ -80,8 +78,6 @@ contains
           velx(i,j) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) / (4.d0*dx)
        end do
     end do
-
-
 
     ! y velocity
     do j=lo(2)-1,hi(2)+2

@@ -20,11 +20,13 @@ module advance_module
 
 contains
 
-  subroutine advance(mla,phi_old,phi_new,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
+  subroutine advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,the_bc_tower, &
+                     do_subcycling,num_substeps)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
+    type(multifab) , intent(in   ) :: velocity(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt(:)
@@ -35,7 +37,7 @@ contains
     ! local variables
     integer   :: i,istep,dm,n,nlevs,ng_p
     ! Array of edge-based multifabs; one for each direction
-    type(multifab) :: flux(mla%dim,mla%nlevel)
+    type(multifab) :: flux(mla%nlevel,mla%dim)
 
     dm    = mla%dim
     nlevs = mla%nlevel
@@ -54,7 +56,7 @@ contains
           n = 1
           istep = 1
           ! note that update_level is recursive
-          call update_level(n,mla,phi_old,phi_new,bndry_flx,&
+          call update_level(n,mla,phi_old,phi_new,velocity,bndry_flx,&
                             dx,dt,the_bc_tower,istep,num_substeps)
 
     else
@@ -67,7 +69,7 @@ contains
           !    i.e. it lives on the i-edges.
           do n = 1,nlevs
              do i = 1, dm
-                call multifab_build_edge(flux(i,n),mla%la(n),1,0,i)
+                call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
              end do
           end do
           
@@ -77,14 +79,14 @@ contains
           end do
 
           ! Compute the face-centered gradients in each direction
-          call compute_flux(mla,phi_old,flux,dx,dt,the_bc_tower)
+          call compute_flux(mla,phi_old,velocity,flux,dx,dt,the_bc_tower)
 
           ! update phi using forward Euler discretization
           call update_phi(mla,phi_old,phi_new,flux,dx,dt,the_bc_tower)
 
           do n = 1,nlevs
              do i = 1, dm
-                call multifab_destroy(flux(i,n))
+                call multifab_destroy(flux(n,i))
              end do
           end do
 
@@ -92,12 +94,13 @@ contains
 
   end subroutine advance
 
-  recursive subroutine update_level(n,mla,phi_old,phi_new,bndry_flx,&
+  recursive subroutine update_level(n,mla,phi_old,phi_new,velocity,bndry_flx,&
                                     dx,dt,the_bc_tower,step,num_substeps)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
+    type(multifab) , intent(in   ) :: velocity(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
     real(kind=dp_t), intent(in   ) :: dt(:)
@@ -166,7 +169,8 @@ contains
     end do
 
     ! Compute fluxes at level n.
-    call compute_flux_single_level(mla,phi_old(n),flux,dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+    call compute_flux_single_level(mla,phi_old(n),velocity(n,:),flux, &
+                                   dx(n),dt(n),the_bc_tower%bc_tower_array(n))
 
     ! Update solution at level n.
     call update_phi_single_level(mla,phi_old(n),phi_new(n),flux,dx(n),dt(n))
@@ -193,8 +197,8 @@ contains
        end do
 
        do istep = 1, num_substeps
-          call update_level(n+1,mla,phi_old,phi_new,bndry_flx,&
-               dx,dt,the_bc_tower,istep,num_substeps)
+          call update_level(n+1,mla,phi_old,phi_new,velocity,bndry_flx,&
+                            dx,dt,the_bc_tower,istep,num_substeps)
        end do
 
        if ( parallel_IOProcessor() ) &
