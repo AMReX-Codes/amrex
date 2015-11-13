@@ -55,7 +55,7 @@ contains
           istep = 1
           ! note that update_level is recursive
           call update_level(n,mla,phi_old,phi_new,bndry_flx,&
-               dx,dt,the_bc_tower,istep,num_substeps)
+                            dx,dt,the_bc_tower,istep,num_substeps)
 
     else
 

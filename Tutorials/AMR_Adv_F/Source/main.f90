@@ -1,15 +1,17 @@
 program main
  
-  use multifab_module
   use bl_IO_module
   use ml_layout_module
   use init_phi_module
+  use compute_velocity_module
   use write_plotfile_module
   use advance_module
   use define_bc_module
   use bndry_reg_module
   use make_new_grids_module
   use regrid_module
+
+  use fabio_module
 
   ! This is where we keep the problem-specific values
   use prob_module
@@ -28,6 +30,7 @@ program main
   real(dp_t)    , allocatable :: dx(:), dt(:)
   type(multifab), allocatable :: phi_old(:)
   type(multifab), allocatable :: phi_new(:)
+  type(multifab), allocatable :: velocity(:,:)
 
   ! logical multifab indicating which cells are refined
   ! will be allocated with max_levs components
@@ -148,6 +151,7 @@ program main
   allocate(dt(max_levs))
   allocate(phi_old(max_levs))
   allocate(phi_new(max_levs))
+  allocate(velocity(max_levs,dim))
   allocate(la_array(max_levs))
 
   ! put all the domain boundary conditions into phys_bc
@@ -281,6 +285,7 @@ program main
      call destroy(la_array(n))
   end do
 
+  ! build ml_layout with nlevs levels, NOT max_levs levels
   call ml_layout_restricted_build(mla,mba,nlevs,is_periodic)
 
   call destroy(mba)
@@ -295,6 +300,9 @@ program main
   do n=1,nlevs
      call multifab_build(phi_new(n),mla%la(n),1,2)
      call multifab_build(phi_old(n),mla%la(n),1,2)
+     do i=1,dim
+        call multifab_build_edge(velocity(n,i),mla%la(n),1,1,i)
+     end do
   end do
 
   call init_phi(mla,phi_new,dx,prob_lo,the_bc_tower)
@@ -337,9 +345,12 @@ program main
      if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
           (mod(istep-1,regrid_int) .eq. 0) ) then
 
-        ! Destroy phi_old before regridding
+        ! Destroy phi_old and velocity before regridding
         do n = 1,nlevs
           call multifab_destroy(phi_old(n))
+          do i = 1, dim
+             call multifab_destroy(velocity(n,i))
+          end do
         end do
 
         do n=2,nlevs
@@ -354,9 +365,12 @@ program main
                 ml_layout_get_pd(mla,n-1),nc=1)
         end do
 
-        ! Create new phi_old after regridding
+        ! Create new phi_old and velocity after regridding
         do n = 1,nlevs
           call multifab_build(phi_old(n),mla%la(n),1,2)
+          do i=1,dim
+             call multifab_build_edge(velocity(n,i),mla%la(n),1,1,i)
+          end do
         end do
 
      end if
@@ -366,6 +380,9 @@ program main
         print*,'  '
         print*,' STEP = ', istep, ' TIME = ',time, ' DT = ',dt(1)
      end if
+
+     ! compute velocity
+     call compute_velocity(mla,velocity,dx,time)
 
      ! Advance phi by one coarse time step
      call advance(mla,phi_old,phi_new,bndry_flx,dx,dt,the_bc_tower,do_subcycling,num_substeps)
@@ -383,8 +400,11 @@ program main
 
   ! Make sure to destroy the multifabs or you'll leak memory
   do n = 1,nlevs
-     call destroy(phi_old(n))
      call destroy(phi_new(n))
+     call destroy(phi_old(n))
+     do i = 1, dim
+        call multifab_destroy(velocity(n,i))
+     end do
   end do
 
   call bc_tower_destroy(the_bc_tower)
