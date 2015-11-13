@@ -129,6 +129,7 @@ namespace BoxLib
     Box minBox (const Box& b1, const Box& b2);
 
     Array<int> SerializeBox(const Box &b);
+    int SerializeBoxSize();
     Box UnSerializeBox(const Array<int> &serarray);
 }
 

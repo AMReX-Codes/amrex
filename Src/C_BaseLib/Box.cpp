@@ -859,6 +859,11 @@ Array<int> BoxLib::SerializeBox(const Box &b)
 }
 
 
+int BoxLib::SerializeBoxSize() {
+  return (BL_SPACEDIM * 3);
+}
+
+
 Box BoxLib::UnSerializeBox(const Array<int> &serarray)
 {
   BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
