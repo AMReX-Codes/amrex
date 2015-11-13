@@ -125,6 +125,10 @@ contains
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
                   lo(1),lo(2),hi(1),hi(2),1,1) 
 
+    ! set these to zero and increment below
+    fluxx = 0.d0
+    fluxy = 0.d0
+
     ! x-fluxes: add the advective fluxes -- these are 2nd order slopes
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
