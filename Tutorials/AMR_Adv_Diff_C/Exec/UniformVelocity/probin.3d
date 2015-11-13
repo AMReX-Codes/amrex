@@ -1,0 +1,7 @@
+&fortin
+  probtype = 1
+  adverr   = 0.2
+
+  diff_coeff = 1.d-4
+/
+
