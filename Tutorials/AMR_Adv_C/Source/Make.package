@@ -10,8 +10,3 @@ f90EXE_sources += Adv_nd.f90
 f90EXE_sources += meth_params.f90
 f90EXE_sources += prob_params.f90
 
-ifeq ($(USE_DIFFUSION), TRUE)
-CEXE_sources += Adv_diffusion.cpp
-CEXE_sources += Diffusion.cpp
-CEXE_headers += Diffusion.H
-endif
