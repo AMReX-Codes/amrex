@@ -1,0 +1,10 @@
+AMR_Adv_Diff_C:  This code advects and diffuses a single scalar field with a 
+velocity field that is specified on faces.
+
+It is a BoxLib based code designed to run in parallel using MPI
+to distribute grid patches.
+
+The directory Exec/KotheRiderVortex includes a makefile and a sample inputs file.  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d. 
+(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
+or with Visit.
