@@ -3391,6 +3391,14 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 #endif
 
 
+namespace
+{
+  const unsigned int msps(1000000);
+
+  void USleep(double sleepsec) {
+    usleep(sleepsec * msps);
+  }
+}
 
 
 void
@@ -3422,6 +3430,464 @@ Amr::MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs) {
     }
     Geometry::FlushPIRMCache();
 }
+
+
+void
+Amr::MakeSidecarsSmaller(int nSidecarProcs, int prevSidecarProcs) {
+
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
+
+using std::cout;
+using std::endl;
+    MPI_Group scsGroup, allGroup;
+    MPI_Comm  scsComm;
+
+    BL_ASSERT(nSidecarProcs < prevSidecarProcs);
+    int myProcAll(ParallelDescriptor::MyProcAll());
+    int nProcsAll(ParallelDescriptor::NProcsAll());
+    int ioProcNumAll(ParallelDescriptor::IOProcessorNumberAll());
+    int ioProcNumSCS(-1);
+    if(ParallelDescriptor::IOProcessor()) {
+    }
+    USleep(0.2);
+
+    // ---- make a group with ioprocnum and the new comp ranks that were part of the sidecar
+    // ---- then initialize all required data for the new ranks (amr, amrlevels, ...)
+    if(nSidecarProcs > 0) {
+      Array<int> groupRanks(prevSidecarProcs - nSidecarProcs + 1, -1);  // ---- + 1 for ioprocnum
+      groupRanks[0] = ioProcNumAll;
+      int ngStart(nProcsAll - prevSidecarProcs);
+      for(int ip(1); ip < groupRanks.size(); ++ip) {
+        groupRanks[ip] = ngStart++;
+      }
+      if(ParallelDescriptor::IOProcessor()) {
+        for(int ip(0); ip < groupRanks.size(); ++ip) {
+          cout << "gggggggg groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
+        }
+      }
+      BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &allGroup) );
+      BL_MPI_REQUIRE( MPI_Group_incl(allGroup, groupRanks.size(), groupRanks.dataPtr(), &scsGroup) );
+      BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::CommunicatorAll(), scsGroup, &scsComm) );
+
+      // ---- dont always assume ioprocnum == 0 everywhere
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(allGroup, 1, &ioProcNumAll, scsGroup, &ioProcNumSCS) );
+    }
+
+    int scsMyId;
+    if(nSidecarProcs > 0) {
+      BL_MPI_REQUIRE( MPI_Group_rank(scsGroup, &scsMyId) );
+    }
+
+    // ---- send all amr data from ioprocnum to the new comp ranks
+    if(scsMyId != MPI_UNDEFINED) {
+      //USleep(scsMyId / 10.0);
+      //cout << "myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
+      //PrintData(cout);
+      //ParallelDescriptor::Bcast(&cumtime, 1, ioProcNumAll, scsComm);
+      //USleep(scsMyId / 10.0);
+      //cout << "$$$$$$$$ myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
+      //PrintData(cout);
+
+
+      // ---- pack up the ints
+      Array<int> allInts;
+      int allIntsSize(0);
+      int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
+      int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(geom.size());
+      int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
+      if(scsMyId == ioProcNumSCS) {
+        allInts.push_back(max_level);
+        allInts.push_back(finest_level);
+        allInts.push_back(n_proper);
+        allInts.push_back(last_checkpoint); 
+        allInts.push_back(check_int);
+        allInts.push_back(last_plotfile);   
+        allInts.push_back(plot_int);
+        allInts.push_back(file_name_digits);
+        allInts.push_back(message_int);
+        allInts.push_back(which_level_being_advanced);
+        allInts.push_back(verbose);
+        allInts.push_back(record_grid_info);
+        allInts.push_back(record_run_info);
+        allInts.push_back(record_run_info_terse);
+        allInts.push_back(sub_cycle);
+        allInts.push_back(stream_max_tries);
+        allInts.push_back(rebalance_grids);
+
+        allInts.push_back(level_steps.size());
+        for(int i(0); i < level_steps.size(); ++i)     { allInts.push_back(level_steps[i]); }
+        allInts.push_back(level_count.size());
+        for(int i(0); i < level_count.size(); ++i)     { allInts.push_back(level_count[i]); }
+        allInts.push_back(n_cycle.size());
+        for(int i(0); i < n_cycle.size(); ++i)         { allInts.push_back(n_cycle[i]); }
+        allInts.push_back(regrid_int.size());
+        for(int i(0); i < regrid_int.size(); ++i)      { allInts.push_back(regrid_int[i]); }
+        allInts.push_back(n_error_buf.size());
+        for(int i(0); i < n_error_buf.size(); ++i)    { allInts.push_back(n_error_buf[i]); }
+        allInts.push_back(blocking_factor.size());
+        for(int i(0); i < blocking_factor.size(); ++i) { allInts.push_back(blocking_factor[i]); }
+        allInts.push_back(max_grid_size.size());
+        for(int i(0); i < max_grid_size.size(); ++i)   { allInts.push_back(max_grid_size[i]); }
+
+	// ---- for non-int arrays
+        allInts.push_back(dt_level.size());
+        allInts.push_back(dt_min.size());
+        allInts.push_back(ref_ratio.size());
+        allInts.push_back(amr_level.size());
+        allInts.push_back(geom.size());
+        allInts.push_back(state_plot_vars.size());
+        allInts.push_back(derive_plot_vars.size());
+
+        allIntsSize = allInts.size();
+      }
+
+      ParallelDescriptor::Bcast(&allIntsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        allInts.resize(allIntsSize);
+      }
+      ParallelDescriptor::Bcast(allInts.dataPtr(), allIntsSize, ioProcNumAll, scsComm);
+
+      // ---- unpack the ints
+      if(scsMyId != ioProcNumSCS) {
+	int count(0), aSize(-1);
+        max_level                  = allInts[count++];
+        finest_level               = allInts[count++];
+        n_proper                   = allInts[count++];
+        last_checkpoint            = allInts[count++]; 
+        check_int                  = allInts[count++];
+        last_plotfile              = allInts[count++];   
+        plot_int                   = allInts[count++];
+        file_name_digits           = allInts[count++];
+        message_int                = allInts[count++];
+        which_level_being_advanced = allInts[count++];
+        verbose                    = allInts[count++];
+        record_grid_info           = allInts[count++];
+        record_run_info            = allInts[count++];
+        record_run_info_terse      = allInts[count++];
+        sub_cycle                  = allInts[count++];
+        stream_max_tries           = allInts[count++];
+        rebalance_grids            = allInts[count++];
+
+
+        aSize                      = allInts[count++];
+	level_steps.resize(aSize);
+        for(int i(0); i < level_steps.size(); ++i)     { level_steps[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        level_count.resize(aSize);
+        for(int i(0); i < level_count.size(); ++i)     { level_count[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        n_cycle.resize(aSize);
+        for(int i(0); i < n_cycle.size(); ++i)         { n_cycle[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        regrid_int.resize(aSize);
+        for(int i(0); i < regrid_int.size(); ++i)      { regrid_int[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        n_error_buf.resize(aSize);
+        for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        blocking_factor.resize(aSize);
+        for(int i(0); i < blocking_factor.size(); ++i) { blocking_factor[i] = allInts[count++]; }
+        aSize                      = allInts[count++];
+        max_grid_size.resize(aSize);
+        for(int i(0); i < max_grid_size.size(); ++i)   { max_grid_size[i] = allInts[count++]; }
+
+        dt_level_Size              = allInts[count++];
+        dt_min_Size                = allInts[count++];
+        ref_ratio_Size             = allInts[count++];
+        amr_level_Size             = allInts[count++];
+        geom_Size                  = allInts[count++];
+        state_plot_vars_Size       = allInts[count++];
+        derive_plot_vars_Size      = allInts[count++];
+
+	BL_ASSERT(count == allInts.size());
+      }
+
+
+      // ---- pack up the Reals
+      Array<Real> allReals;
+      int allRealsSize(0);
+      if(scsMyId == ioProcNumSCS) {
+        allReals.push_back(cumtime);
+        allReals.push_back(start_time);
+        allReals.push_back(grid_eff);
+        allReals.push_back(check_per);
+        allReals.push_back(plot_per);
+
+        for(int i(0); i < dt_level.size(); ++i)   { allReals.push_back(dt_level[i]); }
+        for(int i(0); i < dt_min.size(); ++i)     { allReals.push_back(dt_min[i]); }
+
+	allRealsSize = allReals.size();
+      }
+
+      ParallelDescriptor::Bcast(&allRealsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        allReals.resize(allRealsSize);
+      }
+      ParallelDescriptor::Bcast(allReals.dataPtr(), allRealsSize, ioProcNumAll, scsComm);
+
+      // ---- unpack the Reals
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+        cumtime    = allReals[count++];
+        start_time = allReals[count++];
+        grid_eff   = allReals[count++];
+        check_per  = allReals[count++];
+        plot_per   = allReals[count++];
+
+	dt_level.resize(dt_level_Size);
+        for(int i(0); i < dt_level.size(); ++i)  { dt_level[i] = allReals[count++]; }
+	dt_min.resize(dt_min_Size);
+        for(int i(0); i < dt_min.size(); ++i)    { dt_min[i]   = allReals[count++]; }
+      }
+
+      // ---- pack up the bools
+      Array<int> allBools;  // ---- just use ints here
+      int allBoolsSize(0);
+      if(scsMyId == ioProcNumSCS) {
+        allBools.push_back(abort_on_stream_retry_failure);
+        allBools.push_back(bUserStopRequest);
+        for(int i(0); i < BL_SPACEDIM; ++i)    { allBools.push_back(isPeriodic[i]); }
+        allBools.push_back(first_plotfile);
+
+	allBoolsSize = allBools.size();
+      }
+
+      ParallelDescriptor::Bcast(&allBoolsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        allBools.resize(allBoolsSize);
+      }
+      ParallelDescriptor::Bcast(allBools.dataPtr(), allBoolsSize, ioProcNumAll, scsComm);
+
+      // ---- unpack the bools
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+
+        abort_on_stream_retry_failure = allBools[count++];
+        bUserStopRequest              = allBools[count++];
+        for(int i(0); i < BL_SPACEDIM; ++i)    { isPeriodic[i] = allBools[count++]; }
+        first_plotfile                = allBools[count++];
+      }
+
+
+      // ---- pack up the strings
+      Array<std::string> allStrings;
+      Array<char> serialStrings;
+      int serialStringsSize(0);
+      if(scsMyId == ioProcNumSCS) {
+        allStrings.push_back(regrid_grids_file);
+        allStrings.push_back(initial_grids_file);
+        allStrings.push_back(check_file_root);
+        allStrings.push_back(subcycling_mode);
+        allStrings.push_back(plot_file_root);
+        allStrings.push_back(restart_chkfile);
+        allStrings.push_back(restart_pltfile);
+        allStrings.push_back(probin_file);
+
+        std::list<std::string>::iterator lit;
+	for( lit = state_plot_vars.begin(); lit != state_plot_vars.end(); ++lit) {
+          allStrings.push_back(*lit);
+	}
+	for( lit = derive_plot_vars.begin(); lit != derive_plot_vars.end(); ++lit) {
+          allStrings.push_back(*lit);
+	}
+
+	serialStrings = BoxLib::SerializeStringArray(allStrings);
+	serialStringsSize = serialStrings.size();
+      }
+
+      ParallelDescriptor::Bcast(&serialStringsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        serialStrings.resize(serialStringsSize);
+      }
+      ParallelDescriptor::Bcast(serialStrings.dataPtr(), serialStringsSize, ioProcNumAll, scsComm);
+
+      // ---- unpack the strings
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+        allStrings = BoxLib::UnSerializeStringArray(serialStrings);
+
+        regrid_grids_file  = allStrings[count++];
+        initial_grids_file = allStrings[count++];
+        check_file_root    = allStrings[count++];
+        subcycling_mode    = allStrings[count++];
+        plot_file_root     = allStrings[count++];
+        restart_chkfile    = allStrings[count++];
+        restart_pltfile    = allStrings[count++];
+        probin_file        = allStrings[count++];
+
+        for(int i(0); i < state_plot_vars_Size; ++i) {
+          state_plot_vars.push_back(allStrings[count++]);
+	}
+        for(int i(0); i < derive_plot_vars_Size; ++i) {
+          derive_plot_vars.push_back(allStrings[count++]);
+	}
+      }
+
+
+      // ---- pack up the IntVects
+      Array<int> allIntVects;
+      int allIntVectsSize(0);
+      if(scsMyId == ioProcNumSCS) {
+        for(int lev(0); lev < ref_ratio.size(); ++lev) {
+          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(ref_ratio[lev][i]); }
+	}
+
+	allIntVectsSize = allIntVects.size();
+	BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
+      }
+
+      ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        allIntVects.resize(allIntVectsSize);
+      }
+      ParallelDescriptor::Bcast(allIntVects.dataPtr(), allIntVectsSize, ioProcNumAll, scsComm);
+
+      // ---- unpack the IntVects
+      if(scsMyId != ioProcNumSCS) {
+	int count(0);
+	BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
+
+	ref_ratio.resize(ref_ratio_Size);
+        for(int lev(0); lev < ref_ratio.size(); ++lev) {
+          for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
+	}
+      }
+
+
+
+      if(scsMyId != ioProcNumSCS) {
+        levelbld = getLevelBld();
+        //levelbld->variableSetUp();
+      }
+
+
+      // ---- handle amrlevels
+      if(scsMyId != ioProcNumSCS) {
+        amr_level.resize(0);
+        //amr_level.resize(amr_level_Size);
+        amr_level.resize(amr_level_Size, PArrayManage);
+        for(int lev(0); lev < amr_level.size(); ++lev) {
+	  amr_level.set(lev,(*levelbld)());
+	}
+      }
+      for(int lev(0); lev < amr_level.size(); ++lev) {
+        amr_level[lev].MakeSidecarsSmaller(this, nSidecarProcs, prevSidecarProcs,
+	                                   ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      }
+
+
+      // ---- handle geom
+      if(scsMyId != ioProcNumSCS) {
+        geom.resize(geom_Size);
+      }
+      for(int lev(0); lev < geom.size(); ++lev) {
+        geom[lev].BroadcastGeometry(ioProcNumSCS, scsComm);
+      }
+
+#ifdef USE_STATIONDATA
+      BoxLib::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
+      // ---- handle station
+      if(scsMyId != ioProcNumSCS) {
+      }
+#endif
+
+
+
+    }  // ---- end if(scsMyId != MPI_UNDEFINED)
+
+
+    if(scsComm != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&scsComm) );
+    }
+    if(scsGroup != MPI_GROUP_NULL) {
+      BL_MPI_REQUIRE( MPI_Group_free(&scsGroup) );
+    }
+
+
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "%%%%%%%% finished MakeSideCarsSmaller." << endl;
+    }
+
+}
+
+
+void
+Amr::PrintData(std::ostream& os) {
+using std::endl;
+#define SHOWVAL(val) { os << #val << " = " << val << std::endl; }
+  os << "---------------------------------------------" << std::endl;
+  //SHOWVAL(regrid_grids_file);
+  //SHOWVAL(initial_grids_file);
+  SHOWVAL(max_level);
+  SHOWVAL(finest_level);
+  SHOWVAL(cumtime);
+  SHOWVAL(start_time);
+  //SHOWVAL(verbose);
+  //SHOWVAL(plot_file_root);
+  //SHOWVAL(check_int);
+  //SHOWVAL(ref_ratio.size());
+  //for(int i(0); i < ref_ratio.size(); ++i) {
+    //os << "ref_ratio[" << i << "] = " << ref_ratio[i] << endl;
+  //}
+  SHOWVAL(amr_level.size());
+  os << endl;
+  for(int i(0); i < amr_level.size(); ++i) {
+    AmrLevel &amrlev = amr_level[i];
+    os << "amr_level[" << i << "] = " << &(amr_level[i]) << endl;
+    SHOWVAL(amrlev.numGrids());
+    SHOWVAL(amrlev.nStep());
+    SHOWVAL(amrlev.countCells());
+    MultiFab &mf0 = amrlev.get_new_data(0);
+    SHOWVAL(mf0.DistributionMap());
+    SHOWVAL(mf0.boxArray());
+    SHOWVAL(mf0.NFabArrays());
+    SHOWVAL(mf0.FabArrayID());
+  }
+  SHOWVAL(geom.size());
+  for(int i(0); i < geom.size(); ++i) {
+    os << "geom[" << i << "] = " << geom[i] << endl;
+  }
+
+  /*
+  std::cout << "state_plot_vars = " << endl;
+  for(std::list<std::string>::const_iterator li = state_plot_vars.begin(), End = state_plot_vars.end();
+      li != End; ++li)
+  {
+    os << ":::: " << *li << endl;
+  }
+  */
+  os << "=============================================" << endl;
+}
+
+#if 0
+void
+Amr::SendDataToNewProcs() {
+
+    if (ParallelDescriptor::IOProcessor()) {
+      Array<std::string> origSA;
+      origSA.push_back("string0");
+      origSA.push_back("__string1");
+      origSA.push_back("string222");
+      std::cout << ">>>>>>>>>>>>>>>>>>" << std::endl;
+      for(int i(0); i < origSA.size(); ++i) {
+        std::cout << "origSA[" << i << "] = " << origSA[i] << std::endl;
+      }
+      Array<char> charArray(BoxLib::SerializeStringArray(origSA));
+      Array<std::string> unSA(BoxLib::UnSerializeStringArray(charArray));
+      for(int i(0); i < unSA.size(); ++i) {
+        std::cout << "unSA[" << i << "] = " << unSA[i] << std::endl;
+      }
+      std::cout << "~~~~~~~~~~~~~~~~~~" << std::endl;
+      std::cout << "<<<<<<<<<<<<<<<<<<" << std::endl;
+    }
+
+}
+#endif
+
+
 
 
 

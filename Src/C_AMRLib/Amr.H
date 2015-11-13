@@ -465,6 +465,8 @@ public:
 #endif
 
     void MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs);
+    void MakeSidecarsSmaller(int nSidecarProcs, int prevSidecarProcs);
+    void PrintData(std::ostream& os);
 
 protected:
     //
