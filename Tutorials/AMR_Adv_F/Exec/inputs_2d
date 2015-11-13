@@ -1,25 +1,25 @@
 &probin
 
- max_levs = 3
- dim = 2
- plot_int = 1
- n_cell = 64
- max_grid_size = 16
+  dim = 2                     ! dimensionality of problem
+  max_levs = 3                ! total number of AMR levels
+  plot_int = 1                ! plotfile interval
+  n_cell = 64                 ! number of cells on each side
+  max_grid_size = 16          ! max number of cells on each side
+  nsteps = 10                 ! number of time steps
 
- nsteps = 10
+  regrid_int = 4              ! how often to regrid
+  do_subcycling = T           ! use subcycling
 
- do_subcycling = T
+  ! allowable boundary condition options currently are
+  ! -1 = PERIODIC
+  bc_x_lo = -1
+  bc_x_hi = -1
+  bc_y_lo = -1
+  bc_y_hi = -1
 
- ! allowable options for this example are
- ! -1 = PERIODIC
- ! 12 = OUTLET (dphi/dn=0 at boundary)
- ! 15 = NO_SLIP_WALL (wall with fixed phi=1)
- bc_x_lo = -1
- bc_x_hi = -1
- bc_y_lo = -1
- bc_y_hi = -1
+  amr_buf_width = 2           ! number of buffer cells between successive levels
+  cluster_minwidth = 16       ! minimimum size of an AMR grid
+  cluster_blocking_factor = 8 ! grids must be an integer multiple
+  cluster_min_eff = 0.7d0     ! larger value means more, smaller, tighter grids
 
- amr_buf_width = 2
- cluster_blocking_factor = 2
- regrid_int = 1
 /
