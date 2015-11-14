@@ -20,7 +20,6 @@ BL_FORT_PROC_DECL(STATE_ERROR, state_error)
 BL_FORT_PROC_DECL(INITDATA,initdata)
     (const int& level, const Real& time, 
      const int* lo, const int* hi,
-     const int& num_state,
      BL_FORT_FAB_ARG_3D(state),
      const Real* dx, const Real* xlo, const Real* xhi);
 
