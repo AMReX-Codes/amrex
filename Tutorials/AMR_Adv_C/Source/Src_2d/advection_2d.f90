@@ -12,8 +12,6 @@
                         flux2,flux2_l1,flux2_l2,flux2_h1,flux2_h2, &
                         dx,dt)
 
-      use meth_params_module, only : NVAR
-
       implicit none
 
       integer lo(2),hi(2)
@@ -25,12 +23,12 @@
       integer flux1_l1,flux1_l2,flux1_h1,flux1_h2
       integer flux2_l1,flux2_l2,flux2_h1,flux2_h2
 
-      double precision uin(uin_l1:uin_h1,uin_l2:uin_h2,NVAR)
-      double precision uout(uout_l1:uout_h1,uout_l2:uout_h2,NVAR)
+      double precision uin(uin_l1:uin_h1,uin_l2:uin_h2)
+      double precision uout(uout_l1:uout_h1,uout_l2:uout_h2)
       double precision ugdx(ugdx_l1:ugdx_h1,ugdx_l2:ugdx_h2)
       double precision ugdy(ugdy_l1:ugdy_h1,ugdy_l2:ugdy_h2)
-      double precision flux1(flux1_l1:flux1_h1,flux1_l2:flux1_h2,NVAR)
-      double precision flux2(flux2_l1:flux2_h1,flux2_l2:flux2_h2,NVAR)
+      double precision flux1(flux1_l1:flux1_h1,flux1_l2:flux1_h2)
+      double precision flux2(flux2_l1:flux2_h1,flux2_l2:flux2_h2)
       double precision dx(2),dt,time
 
       call set_ugdv(ugdx,ugdx_l1,ugdx_l2,ugdx_h1,ugdx_h2, &
