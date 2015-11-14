@@ -1,8 +1,8 @@
 
 #include "LevelBld.H"
-#include "ADR.H"
+#include "Adv.H"
 
-class ADRBld
+class AdvBld
     :
     public LevelBld
 {
@@ -16,38 +16,38 @@ class ADRBld
                                   Real            time);
 };
 
-ADRBld ADR_bld;
+AdvBld Adv_bld;
 
 LevelBld*
 getLevelBld ()
 {
-    return &ADR_bld;
+    return &Adv_bld;
 }
 
 void
-ADRBld::variableSetUp ()
+AdvBld::variableSetUp ()
 {
-    ADR::variableSetUp();
+    Adv::variableSetUp();
 }
 
 void
-ADRBld::variableCleanUp ()
+AdvBld::variableCleanUp ()
 {
-    ADR::variableCleanUp();
+    Adv::variableCleanUp();
 }
 
 AmrLevel*
-ADRBld::operator() ()
+AdvBld::operator() ()
 {
-    return new ADR;
+    return new Adv;
 }
 
 AmrLevel*
-ADRBld::operator() (Amr&            papa,
-                       int             lev,
-                       const Geometry& level_geom,
-                       const BoxArray& ba,
-                       Real            time)
+AdvBld::operator() (Amr&            papa,
+		    int             lev,
+		    const Geometry& level_geom,
+		    const BoxArray& ba,
+		    Real            time)
 {
-    return new ADR(papa, lev, level_geom, ba, time);
+    return new Adv(papa, lev, level_geom, ba, time);
 }

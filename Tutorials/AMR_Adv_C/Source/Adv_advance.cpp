@@ -1,20 +1,14 @@
-#include <winstd.H>
 
-#include "ADR.H"
-#include "ADR_F.H"
-
-#ifdef DIFFUSION
-#include "Diffusion.H"
-#endif
-
-using std::string;
+#include <Adv.H>
+#include <Adv_F.H>
 
 Real
-ADR::advance (Real time,
+Adv::advance (Real time,
               Real dt,
               int  iteration,
               int  ncycle)
 {
+#if 0
     u_gdnv = new MultiFab[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -163,4 +157,6 @@ ADR::advance (Real time,
     delete [] u_gdnv;
 
     return dt;
+#endif
+    return 0;
 }
