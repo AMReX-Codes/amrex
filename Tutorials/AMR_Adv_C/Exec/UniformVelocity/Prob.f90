@@ -13,12 +13,12 @@ end subroutine PROBINIT
 
 subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
-     dx, prob_lo, prob_hi)
+     dx, prob_lo)
   integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
   double precision, intent(inout) :: phi(phi_lo(1):phi_hi(1), &
        &                                 phi_lo(2):phi_hi(2), &
        &                                 phi_lo(3):phi_hi(3))
-  double precision, intent(in) :: dx(3), prob_lo(3), prob_hi(3)
+  double precision, intent(in) :: dx(3), prob_lo(3)
 
   integer          :: dm
   integer          :: i,j,k
