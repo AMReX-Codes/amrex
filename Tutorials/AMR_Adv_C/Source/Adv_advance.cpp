@@ -8,25 +8,6 @@ Adv::advance (Real time,
               int  iteration,
               int  ncycle)
 {
-#if 0
-    u_gdnv = new MultiFab[BL_SPACEDIM];
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-	BoxArray edge_grids(grids);
-	edge_grids.surroundingNodes(dir);
-	u_gdnv[dir].define(edge_grids,1,1,Fab_allocate);
-	u_gdnv[dir].setVal(1.e40);
-    }
-    
-    int finest_level = parent->finestLevel();
-
-    if (do_reflux && level < finest_level) {
-        //
-        // Set reflux registers to zero.
-        //
-        getFluxReg(level+1).setVal(0.0);
-    }
-
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -36,127 +17,96 @@ Adv::advance (Real time,
     MultiFab& S_new = get_new_data(State_Type);
 
     const Real prev_time = state[State_Type].prevTime();
+    const Real cur_time = state[State_Type].curTime();
+    
+    std::cout << "times " << prev_time << ", " << cur_time << std::endl;
 
-    Real cur_time = state[State_Type].curTime();
-        
-        //
-        // Get pointers to Flux registers, or set pointer to zero if not there.
-        //
-        FluxRegister *fine    = 0;
-        FluxRegister *current = 0;
-        
-        if (do_reflux && level < finest_level)
-            fine = &getFluxReg(level+1);
-        if (do_reflux && level > 0)
-            current = &getFluxReg(level);
+    //
+    // Get pointers to Flux registers, or set pointer to zero if not there.
+    //
+    FluxRegister *fine    = 0;
+    FluxRegister *current = 0;
+    
+    int finest_level = parent->finestLevel();
 
-        AmrLevel &levelData = *this;
-        Geometry g = levelData.Geom();
+    if (do_reflux && level < finest_level) {
+	fine = &getFluxReg(level+1);
+	fine->setVal(0.0);
+    }
 
-        // Integrate, looping through the grids.
-        FArrayBox divu;
-        FArrayBox flux[BL_SPACEDIM];
-        
-        const Real *dx = geom.CellSize();
+    if (do_reflux && level > 0) {
+	current = &getFluxReg(level);
+    }
 
-        MultiFab fluxes[BL_SPACEDIM];
+    MultiFab fluxes[BL_SPACEDIM];
 
-        if (do_reflux && fine)
-        {
-            for (int j = 0; j < BL_SPACEDIM; j++)
-            {
-                BoxArray ba = S_new.boxArray();
-                ba.surroundingNodes(j);
-                fluxes[j].define(ba, NUM_STATE, 0, Fab_allocate);
-            }
-        }
+    if (do_reflux)
+    {
+	for (int j = 0; j < BL_SPACEDIM; j++)
+	{
+	    BoxArray ba = S_new.boxArray();
+	    ba.surroundingNodes(j);
+	    fluxes[j].define(ba, NUM_STATE, 0, Fab_allocate);
+	}
+    }
 
+    // State with ghost cells
+    MultiFab Sborder(grids, NUM_STATE, NUM_GROW);
+    Amrlevel::FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
 
-       MultiFab ext_src_old(grids,NUM_STATE,1,Fab_allocate);
-       ext_src_old.setVal(0.0);
-
-#ifdef DIFFUSION
-       MultiFab OldDiffTerm(grids,NUM_STATE,1);
-       OldDiffTerm.setVal(0.);
-       if (diffuse_adv == 1) {
-          for (int iadv = 0; iadv < NumAdv; iadv++)
-             add_diffusion_to_old_source(ext_src_old,OldDiffTerm,prev_time,FirstAdv+iadv);
-       }
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-       ext_src_old.FillBoundary();
-        
-       for (FillPatchIterator fpi(*this, S_new, NUM_GROW,
-                                   time, State_Type, 0, NUM_STATE);
-             fpi.isValid();
-             ++fpi)
-        {
-            int mfiindex = fpi.index();
+    {
+	FArrayBox flux[BL_SPACEDIM], ugdn[BL_SPACEDIM];
 
-            Box bx(fpi.UngrownBox());
+	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.tilebox();
 
-            // Create FAB for extended grid values (including boundaries) and fill.
-            FArrayBox &state = fpi();
-            FArrayBox &stateout = S_new[fpi];
-            
-            // Allocate fabs for fluxes.
-            for (int i = 0; i < BL_SPACEDIM ; i++)  
-                flux[i].resize(BoxLib::surroundingNodes(bx,i),NUM_STATE);
+	    const FArrayBox& state    = Sborder[mfi];
+	    const FArrayBox& stateout =   S_new[mfi];
 
-            const int*  domain_lo = geom.Domain().loVect();
-            const int*  domain_hi = geom.Domain().hiVect();
+	    // Allocate fabs for fluxes and Godunov velocities.
+	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
+		flux[i].resize(bxtmp,NUM_STATE);
+		ugdn[i].resize(BoxLib::grow(bxtmp,1),1);
+	    }
 
-            Real cflLoc = -1.0e+20;
-            int is_finest_level = 0;
-            if (level == finest_level) is_finest_level = 1;
+	    // get ugdn
+
+#if 0
             BL_FORT_PROC_CALL(ADVECT,advect)
-                (&time,
-                 bx.loVect(), bx.hiVect(),
-                 domain_lo, domain_hi,
-                 BL_TO_FORTRAN(state), BL_TO_FORTRAN(stateout),
-		 BL_TO_FORTRAN(u_gdnv[0][fpi]),
-		 BL_TO_FORTRAN(u_gdnv[1][fpi]),
-#if (BL_SPACEDIM == 3)
-		 BL_TO_FORTRAN(u_gdnv[2][fpi]),
-#endif
+                (&time, bx.loVect(), bx.hiVect(),
+                 BL_TO_FORTRAN(state), 
+		 BL_TO_FORTRAN(stateout),
+		 D_DECL(BL_TO_FORTRAN(u_gdnv[0]),
+			BL_TO_FORTRAN(u_gdnv[1]),
+			BL_TO_FORTRAN(u_gdnv[2])),
                  D_DECL(BL_TO_FORTRAN(flux[0]), 
                         BL_TO_FORTRAN(flux[1]), 
                         BL_TO_FORTRAN(flux[2])), 
                  dx, &dt);
-
-            if (do_reflux)
-            {
-                if (fine)
-                {
-                    for (int i = 0; i < BL_SPACEDIM ; i++)
-                        fluxes[i][fpi].copy(flux[i]);
-                }
-                if (current)
-                {
-                    for (int i = 0; i < BL_SPACEDIM ; i++)
-                        current->FineAdd(flux[i],i,mfiindex,0,0,NUM_STATE,1);
-                }
-            }
-        }
-
-        if (do_reflux && fine)
-        {
-            for (int i = 0; i < BL_SPACEDIM ; i++)
-                fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1);
-        }
-
-#ifdef DIFFUSION
-     if (diffuse_adv == 1) {
-        for (int iadv = 0; iadv < NumAdv; iadv++)
-           time_center_diffusion(S_new, OldDiffTerm, cur_time, dt, FirstAdv+iadv);
-     }
 #endif
 
-    // Copy old velocity into new velocity -- assumes velocity unchanging.
-    MultiFab::Copy(S_new,S_old,Xvel,Xvel,BL_SPACEDIM,0);
+	    if (do_reflux) {
+		for (int i = 0; i < BL_SPACEDIM ; i++)
+		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+	    }
+	}
+    }
 
-    delete [] u_gdnv;
+    if (do_reflux) {
+	if (current) {
+	    for (int i = 0; i < BL_SPACEDIM ; i++)
+		current->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
+	}
+	if (fine) {
+	    for (int i = 0; i < BL_SPACEDIM ; i++)
+		fine->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
+	}
+    }
 
     return dt;
-#endif
-    return 0;
 }
