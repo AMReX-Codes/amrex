@@ -1,13 +1,4 @@
-#include <winstd.H>
 
-#include <algorithm>
-#include <cstdio>
-#include <vector>
-#include <iostream>
-#include <string>
-
-#include <Utility.H>
-#include <CONSTANTS.H>
 #include <Adv.H>
 #include <Adv_F.H>
 #include <VisMF.H>

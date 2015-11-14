@@ -1,17 +1,8 @@
-#include <winstd.H>
-#ifndef WIN32
-#include <unistd.h>
-#endif
 
 #include <new>
-#include <cstdio>
 #include <iostream>
 #include <iomanip>
 
-#include <REAL.H>
-#include <Utility.H>
-#include <IntVect.H>
-#include <Box.H>
 #include <Amr.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
