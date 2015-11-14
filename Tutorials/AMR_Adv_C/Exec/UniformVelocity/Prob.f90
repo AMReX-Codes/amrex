@@ -20,12 +20,15 @@ subroutine initdata(level, time, lo, hi, &
        &                                 phi_lo(3):phi_hi(3))
   double precision, intent(in) :: dx(3), prob_lo(3), prob_hi(3)
 
+  integer          :: dm
   integer          :: i,j,k
   double precision :: x,y,z,r1,r2,r3
   
-  print *, lo, hi, phi_lo, phi_hi
-  print *, dx
-  print *, prob_lo, prob_hi
+  if (phi_lo(3) .eq. 0 .and. phi_hi(3) .eq. 0) then
+     dm = 2
+  else
+     dm = 3
+  end if
 
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
@@ -35,12 +38,15 @@ subroutine initdata(level, time, lo, hi, &
         do i=lo(1),hi(1)
            x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
            
-           r1 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
-           r2 = ((x-0.0d0)**2 + (y-0.0d0)**2 + (z-0.0d0)**2) / 0.01d0
-           r3 = ((x+0.5d0)**2 + (y+0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
-           
-           phi(i,j,k) = 1.d0 + exp(-r1) + exp(-r2) + exp(-r3)
-           
+           if ( dm.eq. 2) then
+              r1 = ((x-0.5d0)**2 + (y-0.7d0)**2) / 0.01d0
+              phi(i,j,k) = 1.d0 + exp(-r1)
+           else
+              r1 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
+              r2 = ((x-0.0d0)**2 + (y-0.0d0)**2 + (z-0.0d0)**2) / 0.01d0
+              r3 = ((x+0.5d0)**2 + (y+0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
+              phi(i,j,k) = 1.d0 + exp(-r1) + exp(-r2) + exp(-r3)
+           end if
         end do
      end do
   end do
