@@ -2,6 +2,7 @@
 #include <Adv.H>
 #include <Adv_F.H>
 #include <ParmParse.H>
+#include <BC_TYPES.H>
 
 void
 Adv::variableSetUp ()
@@ -15,7 +16,16 @@ Adv::variableSetUp ()
                            StateDescriptor::Point,0,NUM_STATE,
 			   &cell_cons_interp);
 
-    desc_lst.setComponent(State_Type, 0, "phi", BCRec(), StateDescriptor::BndryFunc());
+    int lo_bc[BL_SPACEDIM];
+    int hi_bc[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+    }
+    
+    BCRec bc(lo_bc, hi_bc);
+
+    desc_lst.setComponent(State_Type, 0, "phi", bc, 
+			  StateDescriptor::BndryFunc(BL_FORT_PROC_CALL(NULLFILL,nullfill)));
 
     //
     // read taggin parameters from probin file
