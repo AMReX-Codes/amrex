@@ -1,7 +1,6 @@
 #ifndef _Adv_H_
 #define _Adv_H_
 
-#include <BC_TYPES.H>
 #include <AmrLevel.H>
 #include <FluxRegister.H>
 
