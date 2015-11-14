@@ -8,8 +8,6 @@ Adv::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    buildMetrics();
-
     BL_ASSERT(flux_reg == 0);
     if (level > 0 && do_reflux)
         flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);

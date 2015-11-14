@@ -141,15 +141,6 @@ public:
                            int          tagval,
                            Real         time,
 			   int          n_error_buf = 0, int ngrow = 0);
-    //
-    //Get area
-    //
-    MultiFab* Area ();
-    MultiFab& Area (int dir);
-    //
-    // Get volume
-    //
-    MultiFab& Volume ();
 
     static int  NUM_STATE;
     static int  NUM_GROW;
@@ -169,13 +160,9 @@ protected:
 
     void avgDown (int state_indx);
 
-    void buildMetrics ();
-
     //
     // The data.
     //
-    MultiFab             volume;
-    MultiFab             area[BL_SPACEDIM];
     FluxRegister*        flux_reg;
     //
     // Static data members.
@@ -188,27 +175,6 @@ protected:
 //
 // Inlines.
 //
-
-inline
-MultiFab*
-Adv::Area ()
-{
-    return area;
-}
-
-inline
-MultiFab&
-Adv::Area (int dir)
-{
-    return area[dir];
-}
-
-inline
-MultiFab&
-Adv::Volume ()
-{
-    return volume;
-}
 
 inline
 Adv&
