@@ -7,10 +7,46 @@ module compute_velocity_module
 
   private
 
-  public :: compute_velocity
+  public :: compute_velocity_on_level, compute_velocity
 
 contains
-  
+
+  subroutine compute_velocity_on_level(velocity,dx,time)
+
+    type(multifab) , intent(inout) :: velocity(:)
+    real(kind=dp_t), intent(in   ) :: dx,time
+
+    ! local
+    integer :: i,dm,ng
+    integer :: lo(velocity(1)%dim), hi(velocity(1)%dim)
+
+    real(kind=dp_t), pointer :: dp1(:,:,:,:)
+    real(kind=dp_t), pointer :: dp2(:,:,:,:)
+    real(kind=dp_t), pointer :: dp3(:,:,:,:)
+    
+    do i=1,nfabs(velocity(1))
+       dp1 => dataptr(velocity(1),i)
+       dp2 => dataptr(velocity(2),i)
+       lo = lwb(get_box(velocity(1),i))
+       hi = upb(get_box(velocity(1),i))
+       select case(dm)
+       case (2)
+          call compute_velocity_2d(dp1(:,:,1,1), dp2(:,:,1,1), ng, &
+                                   lo, hi, dx, time)
+       case (3)
+          dp3 => dataptr(velocity(3),i)
+          call compute_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
+                                   lo, hi, dx, time)
+       end select
+    end do
+
+    do i=1,dm
+       call multifab_fill_boundary(velocity(i))
+    end do
+
+  end subroutine compute_velocity_on_level
+
+
   subroutine compute_velocity(mla,velocity,dx,time)
 
     type(ml_layout), intent(in   ) :: mla
@@ -44,6 +80,12 @@ contains
              call compute_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
                                       lo, hi, dx(n), time)
           end select
+       end do
+    end do
+    
+    do n=1,nlevs
+       do i=1,dm
+          call multifab_fill_boundary(velocity(n,i))
        end do
     end do
 
@@ -99,8 +141,6 @@ contains
     double precision :: dx,time
  
     ! local varables
-    integer          :: i,j,k
-    double precision :: x,y,z
 
 
 

@@ -3,7 +3,7 @@
 BOXLIB_HOME ?= ../..
 
 NDEBUG    :=
-MPI       :=
+MPI       := t
 OMP       :=
 PROF      :=
 COMP      := gfortran
