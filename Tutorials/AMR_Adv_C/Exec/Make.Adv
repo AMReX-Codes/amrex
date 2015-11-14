@@ -8,10 +8,9 @@ EBASE := main
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 
 all: $(executable) 
-	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
-Bdirs 	:= Source Source/Src_$(DIM)d
+Bdirs 	:= Source Source/Src_nd #Source/Src_$(DIM)d
 Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib 
 
 Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
@@ -24,17 +23,6 @@ include $(Bpack)
 
 INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
-
-# job_info support
-CEXE_sources += buildInfo.cpp
-CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
-INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
-
-buildInfo.cpp: $(BOXLIB_HOME)/Tools/C_scripts/makebuild_C.py \
-          --boxlib_home "$(BOXLIB_HOME)" \
-          --COMP "$(COMP)" \
-          --FCOMP "$(FCOMP)" \
-          --GIT "$(TOP) $(BOXLIB_HOME)"
 
 vpath %.c   . $(VPATH_LOCATIONS)
 vpath %.cpp . $(VPATH_LOCATIONS)
@@ -49,8 +37,6 @@ vpath %.fi  . $(VPATH_LOCATIONS)
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
-clean::
-	$(SILENT) $(RM) buildInfo.cpp
 
 #-----------------------------------------------------------------------------
 # for debugging.  To see the value of a Makefile variable,

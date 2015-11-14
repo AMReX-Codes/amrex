@@ -1,0 +1,11 @@
+
+&tagging
+  
+   phierr = 1.d20
+   phigrad = 1.d0
+
+   max_phierr_lev = -1
+   max_phigrad_lev = -1
+
+/
+

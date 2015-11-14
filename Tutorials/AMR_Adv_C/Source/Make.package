@@ -1,12 +1,10 @@
 CEXE_sources += Adv.cpp Adv_advance.cpp Adv_setup.cpp 
-CEXE_sources += Adv_error.cpp AdvBld.cpp
+CEXE_sources += AdvBld.cpp Adv_io.cpp
 CEXE_sources += main.cpp 
 
 CEXE_headers += Adv.H
 
-FEXE_headers += Adv_F.H	Derive_F.H
+FEXE_headers += Adv_F.H
 
-f90EXE_sources += Adv_nd.f90
-f90EXE_sources += meth_params.f90
-f90EXE_sources += prob_params.f90
+
 
