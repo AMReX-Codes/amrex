@@ -52,7 +52,7 @@ Adv::advance (Real time,
 
     // State with ghost cells
     MultiFab Sborder(grids, NUM_STATE, NUM_GROW);
-    Amrlevel::FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
+    AmrLevel::FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
 
 #ifdef _OPENMP
 #pragma omp parallel

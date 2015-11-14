@@ -70,8 +70,6 @@ Adv::Adv (Amr&            papa,
     :
     AmrLevel(papa,lev,level_geom,bl,time) 
 {
-    buildMetrics();
-
     flux_reg = 0;
     if (level > 0 && do_reflux)
         flux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
@@ -80,26 +78,6 @@ Adv::Adv (Amr&            papa,
 Adv::~Adv () 
 {
     delete flux_reg;
-}
-
-void
-Adv::buildMetrics ()
-{
-    // Build volume and face area arrays.
-
-    volume.clear();
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        area[dir].clear();
-    }
-
-    geom.GetVolume(volume,grids,NUM_GROW);
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        geom.GetFaceArea(area[dir],grids,dir,NUM_GROW);
-    }
 }
 
 void
@@ -354,7 +332,7 @@ Adv::reflux ()
 
     const Real strt = ParallelDescriptor::second();
 
-    getFluxReg(level+1).Reflux(get_new_data(State_Type),volume,1.0,0,0,NUM_STATE,geom);
+    getFluxReg(level+1).Reflux(get_new_data(State_Type),1.0,0,0,NUM_STATE,geom);
     
     if (verbose)
     {
