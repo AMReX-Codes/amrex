@@ -11,6 +11,7 @@ module advance_module
   use bndry_reg_module
   use compute_flux_module
   use update_phi_module
+  use compute_velocity_module
 
   implicit none
 
@@ -20,24 +21,29 @@ module advance_module
 
 contains
 
-  subroutine advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,the_bc_tower, &
+  subroutine advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,time,the_bc_tower, &
                      do_subcycling,num_substeps)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
-    type(multifab) , intent(in   ) :: velocity(:,:)
+    type(multifab) , intent(inout) :: velocity(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
-    real(kind=dp_t), intent(in   ) :: dt(:)
+    real(kind=dp_t), intent(in   ) :: dt(:),time
     type(bc_tower) , intent(in   ) :: the_bc_tower
     logical        , intent(in   ) :: do_subcycling
     integer        , intent(in   ) :: num_substeps
 
     ! local variables
     integer   :: i,istep,dm,n,nlevs,ng_p
+
     ! Array of edge-based multifabs; one for each direction
     type(multifab) :: flux(mla%nlevel,mla%dim)
+
+    ! keep track of how many time steps at each level 
+    ! of refinement have been completed
+    integer :: num_steps_completed(mla%nlevel)
 
     dm    = mla%dim
     nlevs = mla%nlevel
@@ -55,9 +61,11 @@ contains
 
           n = 1
           istep = 1
+          num_steps_completed(:) = 0
           ! note that update_level is recursive
           call update_level(n,mla,phi_old,phi_new,velocity,bndry_flx,&
-                            dx,dt,the_bc_tower,istep,num_substeps)
+                            dx,dt,time,the_bc_tower,istep,num_substeps, &
+                            num_steps_completed)
 
     else
 
@@ -72,6 +80,8 @@ contains
                 call multifab_build_edge(flux(n,i),mla%la(n),1,0,i)
              end do
           end do
+
+          call compute_velocity(mla,velocity,dx,time+0.5d0*dt(1))
           
           ! Copy phi_new from the previous time step into phi_old for this time step
           do n = 1, nlevs
@@ -95,20 +105,22 @@ contains
   end subroutine advance
 
   recursive subroutine update_level(n,mla,phi_old,phi_new,velocity,bndry_flx,&
-                                    dx,dt,the_bc_tower,step,num_substeps)
+                                    dx,dt,time,the_bc_tower,step,num_substeps, &
+                                    num_steps_completed)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: phi_old(:)
     type(multifab) , intent(inout) :: phi_new(:)
-    type(multifab) , intent(in   ) :: velocity(:,:)
+    type(multifab) , intent(inout) :: velocity(:,:)
     type(bndry_reg), intent(inout) :: bndry_flx(2:)
     real(kind=dp_t), intent(in   ) :: dx(:)
-    real(kind=dp_t), intent(in   ) :: dt(:)
+    real(kind=dp_t), intent(in   ) :: dt(:),time
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: n,step
     integer        , intent(in   ) :: num_substeps
+    integer        , intent(inout) :: num_steps_completed(:)
 
-    real(kind=dp_t) :: alpha, scale
+    real(kind=dp_t) :: alpha, scale, tplushalf
     integer         :: istep, i, dm, ng_p
     ! Array of edge-based multifabs; one for each direction
     type(multifab) :: flux(mla%dim)
@@ -116,9 +128,14 @@ contains
     dm = mla%dim
     ng_p = phi_new(n)%ng
 
+    tplushalf = time + (0.5d0+num_steps_completed(n))*dt(n)
+
     ! We only want one processor to write to screen
     if ( parallel_IOProcessor() ) &
        print*,'   Advancing level: ',n,' with dt = ',dt(n)
+
+    ! compute velocity at half-time level
+    call compute_velocity(mla,velocity,dx,tplushalf)
 
     ! Copy phi_new from the previous time step into phi_old for this time step
     call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
@@ -198,7 +215,8 @@ contains
 
        do istep = 1, num_substeps
           call update_level(n+1,mla,phi_old,phi_new,velocity,bndry_flx,&
-                            dx,dt,the_bc_tower,istep,num_substeps)
+                            dx,dt,time,the_bc_tower,istep,num_substeps, &
+                            num_steps_completed)
        end do
 
        if ( parallel_IOProcessor() ) &
@@ -212,6 +230,8 @@ contains
        !     previous values of phi at level n under level (n+1) grids.
        call ml_cc_restriction_c(phi_new(n),1,phi_new(n+1),1,mla%mba%rr(n,:),1)
     end if
+
+    num_steps_completed(n) = num_steps_completed(n)+1
 
   end subroutine update_level
 

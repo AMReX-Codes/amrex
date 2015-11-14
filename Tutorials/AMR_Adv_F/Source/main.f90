@@ -381,11 +381,8 @@ program main
         print*,' STEP = ', istep, ' TIME = ',time, ' DT = ',dt(1)
      end if
 
-     ! compute velocity
-     call compute_velocity(mla,velocity,dx,time)
-
      ! Advance phi by one coarse time step
-     call advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,the_bc_tower, &
+     call advance(mla,phi_old,phi_new,velocity,bndry_flx,dx,dt,time,the_bc_tower, &
                   do_subcycling,num_substeps)
 
      time = time + dt(1)
