@@ -79,7 +79,6 @@ Adv::initData ()
     //
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-    const Real* prob_hi = geom.ProbHi();
     MultiFab& S_new = get_new_data(State_Type);
     Real cur_time   = state[State_Type].curTime();
 
@@ -95,7 +94,7 @@ Adv::initData ()
           BL_FORT_PROC_CALL(INITDATA,initdata)
 	      (level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
 	       BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
-	       ZFILL(prob_lo), ZFILL(prob_hi));
+	       ZFILL(prob_lo));
     }
 
     if (verbose && ParallelDescriptor::IOProcessor())

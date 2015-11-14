@@ -27,6 +27,15 @@ BL_FORT_PROC_DECL(INITDATA,initdata)
     (const int& level, const Real& time, 
      const int* lo, const int* hi,
      BL_FORT_FAB_ARG_3D(state),
-     const Real* dx, const Real* xlo, const Real* xhi);
+     const Real* dx, const Real* problo);
+
+BL_FORT_PROC_DECL(SET_EDGE_VELOCITY,set_edge_velocity)
+    (const int& level, const Real& time, 
+     const int* lo, const int* hi,
+     D_DECL(BL_FORT_FAB_ARG(xvel),
+            BL_FORT_FAB_ARG(yvel),
+            BL_FORT_FAB_ARG(zvel)),
+     const Real* dx, const Real* problo);
+   
 
 #endif
