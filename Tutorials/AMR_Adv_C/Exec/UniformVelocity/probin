@@ -1,8 +1,13 @@
+&fortin
+
+   adv_vel = 1.d0, 0.d0, 0.d0
+
+/
 
 &tagging
   
    phierr = 1.d20
-   phigrad = 1.d0
+   phigrad = 1.d20
 
    max_phierr_lev = -1
    max_phigrad_lev = -1

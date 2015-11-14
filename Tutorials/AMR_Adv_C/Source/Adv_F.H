@@ -10,11 +10,6 @@ BL_FORT_PROC_DECL(NULLFILL,nullfill)
      const Real* dx, const Real* glo, 
      const Real* time, const int* bc);
 
-BL_FORT_PROC_DECL(ESTDT,estdt)
-    (const int* lo, const int* hi, 
-     const BL_FORT_FAB_ARG_3D(state),
-     const Real* dx, Real* dt);
-
 BL_FORT_PROC_DECL(STATE_ERROR, state_error)
     (int* tag, const int* tag_lo, const int* tag_hi,
      BL_FORT_FAB_ARG_3D(state),
@@ -29,9 +24,8 @@ BL_FORT_PROC_DECL(INITDATA,initdata)
      BL_FORT_FAB_ARG_3D(state),
      const Real* dx, const Real* problo);
 
-BL_FORT_PROC_DECL(SET_EDGE_VELOCITY,set_edge_velocity)
+BL_FORT_PROC_DECL(GET_EDGE_VELOCITY,get_edge_velocity)
     (const int& level, const Real& time, 
-     const int* lo, const int* hi,
      D_DECL(BL_FORT_FAB_ARG(xvel),
             BL_FORT_FAB_ARG(yvel),
             BL_FORT_FAB_ARG(zvel)),
