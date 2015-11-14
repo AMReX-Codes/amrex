@@ -1,20 +1,49 @@
 
 subroutine PROBINIT (init,name,namlen,problo,probhi)
 
+  use probdata_module
+
   implicit none
 
   integer, intent(in) :: init, namlen
   integer, intent(in) :: name(namlen)
   double precision, intent(in) :: problo(*), probhi(*)
 
-  ! nothing to be done for this problem
+  integer untin,i
+
+  namelist /fortin/ adv_vel
+  
+  !
+  ! Build "probin" filename -- the name of file containing fortin namelist.
+  !     
+  integer maxlen
+  parameter (maxlen=256)
+  character probin*(maxlen)
+  
+  if (namlen .gt. maxlen) then
+     write(6,*) 'probin file name too long'
+     stop
+  end if
+  
+  do i = 1, namlen
+     probin(i:i) = char(name(i))
+  end do
+  
+  ! Read namelists
+  untin = 9
+  open(untin,file=probin(1:namlen),form='formatted',status='old')
+  read(untin,fortin)
+  close(unit=untin)
+
 end subroutine PROBINIT
 
 
 subroutine initdata(level, time, lo, hi, &
      phi, phi_lo, phi_hi, &
      dx, prob_lo)
+  implicit none
   integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
+  double precision, intent(in) :: time
   double precision, intent(inout) :: phi(phi_lo(1):phi_hi(1), &
        &                                 phi_lo(2):phi_hi(2), &
        &                                 phi_lo(3):phi_hi(3))

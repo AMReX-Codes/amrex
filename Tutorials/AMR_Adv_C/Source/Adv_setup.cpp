@@ -5,6 +5,12 @@
 #include <BC_TYPES.H>
 
 void
+Adv::variableCleanUp () 
+{
+    desc_lst.clear();
+}
+
+void
 Adv::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);

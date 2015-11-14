@@ -18,8 +18,10 @@ Adv::advance (Real time,
 
     const Real prev_time = state[State_Type].prevTime();
     const Real cur_time = state[State_Type].curTime();
-    
-    std::cout << "times " << prev_time << ", " << cur_time << std::endl;
+    const Real ctr_time = 0.5*(prev_time + cur_time);
+
+    const Real* dx = geom.CellSize();
+    const Real* prob_lo = geom.ProbLo();
 
     //
     // Get pointers to Flux registers, or set pointer to zero if not there.
@@ -58,7 +60,7 @@ Adv::advance (Real time,
 #pragma omp parallel
 #endif
     {
-	FArrayBox flux[BL_SPACEDIM], ugdn[BL_SPACEDIM];
+	FArrayBox flux[BL_SPACEDIM], uedg[BL_SPACEDIM];
 
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
@@ -71,10 +73,15 @@ Adv::advance (Real time,
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
 		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,NUM_STATE);
-		ugdn[i].resize(BoxLib::grow(bxtmp,1),1);
+		uedg[i].resize(BoxLib::grow(bxtmp,1),1);
 	    }
 
-	    // get ugdn
+	    BL_FORT_PROC_CALL(GET_EDGE_VELOCITY,get_edge_velocity)
+		(level, ctr_time,
+		 D_DECL(BL_TO_FORTRAN(uedg[0]),
+			BL_TO_FORTRAN(uedg[1]),
+			BL_TO_FORTRAN(uedg[2])),
+		 dx, prob_lo);
 
 #if 0
             BL_FORT_PROC_CALL(ADVECT,advect)
