@@ -10,7 +10,7 @@ include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
 all: $(executable) 
 	@echo SUCCESS
 
-Bdirs 	:= Source Source/Src_nd #Source/Src_$(DIM)d
+Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
 Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib 
 
 Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
