@@ -108,7 +108,6 @@ Adv::initData ()
     //
     // Loop over grids, call FORTRAN function to init with data.
     //
-    int ns          = NUM_STATE;
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
     const Real* prob_hi = geom.ProbHi();
@@ -125,7 +124,7 @@ Adv::initData ()
         const int* hi      = box.hiVect();
 
           BL_FORT_PROC_CALL(INITDATA,initdata)
-	      (level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi), ns,
+	      (level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
 	       BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
 	       ZFILL(prob_lo), ZFILL(prob_hi));
     }
@@ -398,8 +397,6 @@ Adv::errorEst (TagBoxArray& tags,
 	       int          n_error_buf,
 	       int          ngrow)
 {
-    const int*  domain_lo = geom.Domain().loVect();
-    const int*  domain_hi = geom.Domain().hiVect();
     const Real* dx        = geom.CellSize();
     const Real* prob_lo   = geom.ProbLo();
 
