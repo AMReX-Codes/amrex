@@ -2,8 +2,6 @@
 module flux_module
   implicit none
 
-  double precision, parameter :: eps = 1.d-8
-
   private
 
   public :: cmpflx
@@ -22,12 +20,12 @@ contains
     ! Upwind 
     do    j = lo(2),hi(2)
        do i = lo(1),hi(1)
-          if (abs(v(i,j)) .lt. eps) then
-             f(i,j) = 0.5d0 * (qm(i,j) + qp(i,j)) * v(i,j)
-          else if (v(i,j) .gt. 0.d0) then
+          if (v(i,j) .gt. 0.d0) then
              f(i,j) = qm(i,j) * v(i,j)
-          else 
+          else if (v(i,j) .lt. 0.d0) then
              f(i,j) = qp(i,j) * v(i,j)
+          else 
+             f(i,j) = 0.5d0 * (qm(i,j) + qp(i,j)) * v(i,j)
           endif
        end do
     end do
