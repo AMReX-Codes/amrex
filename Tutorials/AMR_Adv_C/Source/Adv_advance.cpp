@@ -59,7 +59,7 @@ Adv::advance (Real time,
 #pragma omp parallel
 #endif
     {
-	FArrayBox flux[BL_SPACEDIM], uedg[BL_SPACEDIM];
+	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
@@ -72,23 +72,23 @@ Adv::advance (Real time,
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
 		const Box& bxtmp = BoxLib::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,NUM_STATE);
-		uedg[i].resize(BoxLib::grow(bxtmp,1),1);
+		uface[i].resize(BoxLib::grow(bxtmp,1),1);
 	    }
 
-	    BL_FORT_PROC_CALL(GET_EDGE_VELOCITY,get_edge_velocity)
+	    BL_FORT_PROC_CALL(GET_FACE_VELOCITY,get_face_velocity)
 		(level, ctr_time,
-		 D_DECL(BL_TO_FORTRAN(uedg[0]),
-			BL_TO_FORTRAN(uedg[1]),
-			BL_TO_FORTRAN(uedg[2])),
+		 D_DECL(BL_TO_FORTRAN(uface[0]),
+			BL_TO_FORTRAN(uface[1]),
+			BL_TO_FORTRAN(uface[2])),
 		 dx, prob_lo);
 
             BL_FORT_PROC_CALL(ADVECT,advect)
                 (time, bx.loVect(), bx.hiVect(),
                  BL_TO_FORTRAN_3D(statein), 
 		 BL_TO_FORTRAN_3D(stateout),
-		 D_DECL(BL_TO_FORTRAN_3D(uedg[0]),
-			BL_TO_FORTRAN_3D(uedg[1]),
-			BL_TO_FORTRAN_3D(uedg[2])),
+		 D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+			BL_TO_FORTRAN_3D(uface[1]),
+			BL_TO_FORTRAN_3D(uface[2])),
                  D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                         BL_TO_FORTRAN_3D(flux[1]), 
                         BL_TO_FORTRAN_3D(flux[2])), 

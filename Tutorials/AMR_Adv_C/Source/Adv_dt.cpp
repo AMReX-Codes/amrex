@@ -23,24 +23,24 @@ Adv::estTimeStep (Real)
 #pragma omp parallel reduction(min:dt_est)
 #endif
     {
-	FArrayBox uedg[BL_SPACEDIM];
+	FArrayBox uface[BL_SPACEDIM];
 
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
 		const Box& bx = mfi.nodaltilebox(i);
-		uedg[i].resize(bx,1);
+		uface[i].resize(bx,1);
 	    }
 
-	    BL_FORT_PROC_CALL(GET_EDGE_VELOCITY,get_edge_velocity)
+	    BL_FORT_PROC_CALL(GET_FACE_VELOCITY,get_face_velocity)
 		(level, cur_time,
-		 D_DECL(BL_TO_FORTRAN(uedg[0]),
-			BL_TO_FORTRAN(uedg[1]),
-			BL_TO_FORTRAN(uedg[2])),
+		 D_DECL(BL_TO_FORTRAN(uface[0]),
+			BL_TO_FORTRAN(uface[1]),
+			BL_TO_FORTRAN(uface[2])),
 		 dx, prob_lo);
 
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		dt_est = std::min(dt_est, dx[i] / (1.e-10 + uedg[i].norm(0)));
+		dt_est = std::min(dt_est, dx[i] / (1.e-10 + uface[i].norm(0)));
 	    }
 	}
     }
