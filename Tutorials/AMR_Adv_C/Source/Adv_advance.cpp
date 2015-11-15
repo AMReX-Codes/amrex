@@ -13,7 +13,6 @@ Adv::advance (Real time,
         state[k].swapTimeLevels(dt);
     }
 
-    MultiFab& S_old = get_old_data(State_Type);
     MultiFab& S_new = get_new_data(State_Type);
 
     const Real prev_time = state[State_Type].prevTime();
@@ -66,8 +65,8 @@ Adv::advance (Real time,
 	{
 	    const Box& bx = mfi.tilebox();
 
-	    const FArrayBox& state    = Sborder[mfi];
-	    const FArrayBox& stateout =   S_new[mfi];
+	    const FArrayBox& statein = Sborder[mfi];
+	    FArrayBox& stateout      =   S_new[mfi];
 
 	    // Allocate fabs for fluxes and Godunov velocities.
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -83,19 +82,17 @@ Adv::advance (Real time,
 			BL_TO_FORTRAN(uedg[2])),
 		 dx, prob_lo);
 
-#if 0
             BL_FORT_PROC_CALL(ADVECT,advect)
-                (&time, bx.loVect(), bx.hiVect(),
-                 BL_TO_FORTRAN(state), 
-		 BL_TO_FORTRAN(stateout),
-		 D_DECL(BL_TO_FORTRAN(u_gdnv[0]),
-			BL_TO_FORTRAN(u_gdnv[1]),
-			BL_TO_FORTRAN(u_gdnv[2])),
-                 D_DECL(BL_TO_FORTRAN(flux[0]), 
-                        BL_TO_FORTRAN(flux[1]), 
-                        BL_TO_FORTRAN(flux[2])), 
-                 dx, &dt);
-#endif
+                (time, bx.loVect(), bx.hiVect(),
+                 BL_TO_FORTRAN_3D(statein), 
+		 BL_TO_FORTRAN_3D(stateout),
+		 D_DECL(BL_TO_FORTRAN_3D(uedg[0]),
+			BL_TO_FORTRAN_3D(uedg[1]),
+			BL_TO_FORTRAN_3D(uedg[2])),
+                 D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+                        BL_TO_FORTRAN_3D(flux[1]), 
+                        BL_TO_FORTRAN_3D(flux[2])), 
+                 dx, dt);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++)
