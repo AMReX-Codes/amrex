@@ -46,6 +46,9 @@ contains
     integer :: i, j
 
     j = lo(2)-1
+    do i = lo(1), hi(1)
+       qm(i,j+1) = qm(i,j+1) + hdtdx * (fx(i,j)-fx(i+1,j))
+    end do
 
     do j = lo(2), hi(2)-1
        do i = lo(1), hi(1)
@@ -55,6 +58,9 @@ contains
     end do
 
     j = hi(2)
+    do i = lo(1), hi(1)
+       qp(i,j  ) = qp(i,j  ) + hdtdx * (fx(i,j)-fx(i+1,j))
+    end do
 
   end subroutine transx
 
