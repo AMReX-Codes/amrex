@@ -67,14 +67,14 @@ subroutine state_error(tag,tag_lo,tag_hi, &
               ax = max(ax, abs(state(i,j,k)-state(i+1,j,k)))
               ay = abs(state(i,j-1,k)-state(i,j,k))
               ay = max(ay, abs(state(i,j,k)-state(i,j+1,k)))
-              if (max(ax,ay) .ge. phigrad) then
-                 tag(i,j,k) = set
-              else if (dim .eq. 3) then
+              if (dim .eq. 2) then
+                 az = 0.d0
+              else
                  az = abs(state(i,j,k-1)-state(i,j,k))
                  az = max(az, abs(state(i,j,k)-state(i,j,k+1)))
-                 if (az .ge. phigrad) then
-                    tag(i,j,k) = set
-                 end if
+              end if
+              if (max(ax,ay,az) .ge. phigrad) then
+                 tag(i,j,k) = set
               end if
             enddo
          enddo
