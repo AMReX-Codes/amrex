@@ -65,6 +65,15 @@ main (int   argc,
         amrptr->coarseTimeStep(stop_time);
     }
 
+    // Write final checkpoint and plotfile
+    if (amrptr->stepOfLastCheckPoint() < amrptr->levelSteps(0)) {
+        amrptr->checkPoint();
+    }
+
+    if (amrptr->stepOfLastPlotFile() < amrptr->levelSteps(0)) {
+        amrptr->writePlotFile();
+    }
+
     delete amrptr;
 
     Real dRunTime2 = ParallelDescriptor::second() - dRunTime1;
