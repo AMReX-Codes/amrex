@@ -1,5 +1,5 @@
 
-subroutine get_edge_velocity(level, time, &
+subroutine get_face_velocity(level, time, &
      vx, vx_l1, vx_l2, vx_h1, vx_h2, &
      vy, vy_l1, vy_l2, vy_h1, vy_h2, &
      dx, prob_lo)
@@ -19,4 +19,4 @@ subroutine get_edge_velocity(level, time, &
   vx = adv_vel(1)
   vy = adv_vel(2)
 
-end subroutine get_edge_velocity
+end subroutine get_face_velocity

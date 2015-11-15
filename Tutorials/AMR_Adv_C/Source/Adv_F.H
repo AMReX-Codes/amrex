@@ -24,7 +24,7 @@ BL_FORT_PROC_DECL(INITDATA,initdata)
      BL_FORT_FAB_ARG_3D(state),
      const Real* dx, const Real* problo);
 
-BL_FORT_PROC_DECL(GET_EDGE_VELOCITY,get_edge_velocity)
+BL_FORT_PROC_DECL(GET_FACE_VELOCITY,get_face_velocity)
     (const int& level, const Real& time, 
      D_DECL(BL_FORT_FAB_ARG(xvel),
             BL_FORT_FAB_ARG(yvel),
