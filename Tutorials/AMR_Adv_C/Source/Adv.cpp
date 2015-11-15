@@ -6,7 +6,7 @@
 #include <ParmParse.H>
 
 int      Adv::verbose         = 0;
-Real     Adv::cfl             = 0.9;
+Real     Adv::cfl             = 0.8;
 int      Adv::do_reflux       = 1;
 
 int      Adv::NUM_STATE       = 1;  // One variable in the state
@@ -107,13 +107,8 @@ Adv::init (AmrLevel &old)
     setTimeLevel(cur_time,dt_old,dt_new);
 
     MultiFab& S_new = get_new_data(State_Type);
-    
-    for (FillPatchIterator fpi(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
-          fpi.isValid();
-          ++fpi)
-    {
-        S_new[fpi].copy(fpi());
-    }
+
+    FillPatch(old, S_new, 0, cur_time, State_Type, 0, NUM_STATE);
 }
 
 //
