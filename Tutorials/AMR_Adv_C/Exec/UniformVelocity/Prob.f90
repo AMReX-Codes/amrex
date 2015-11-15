@@ -51,7 +51,7 @@ subroutine initdata(level, time, lo, hi, &
 
   integer          :: dm
   integer          :: i,j,k
-  double precision :: x,y,z,r1,r2,r3
+  double precision :: x,y,z,r2
   
   if (phi_lo(3) .eq. 0 .and. phi_hi(3) .eq. 0) then
      dm = 2
@@ -68,13 +68,11 @@ subroutine initdata(level, time, lo, hi, &
            x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
            
            if ( dm.eq. 2) then
-              r1 = ((x-0.5d0)**2 + (y-0.7d0)**2) / 0.01d0
-              phi(i,j,k) = 1.d0 + exp(-r1)
+              r2 = ((x-0.5d0)**2 + (y-0.5d0)**2) / 0.01d0
+              phi(i,j,k) = 1.d0 + exp(-r2)
            else
-              r1 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
-              r2 = ((x-0.0d0)**2 + (y-0.0d0)**2 + (z-0.0d0)**2) / 0.01d0
-              r3 = ((x+0.5d0)**2 + (y+0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
-              phi(i,j,k) = 1.d0 + exp(-r1) + exp(-r2) + exp(-r3)
+              r2 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.5d0)**2) / 0.01d0
+              phi(i,j,k) = 1.d0 + exp(-r2)
            end if
         end do
      end do
