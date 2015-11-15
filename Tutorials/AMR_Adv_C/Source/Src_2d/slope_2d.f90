@@ -61,7 +61,8 @@ contains
     double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
     double precision, intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
 
-    double precision, dimension(:,:), pointer :: dsgn, dlim, df, dcen
+    ! Some compiler may not support 'contiguous'.  Remove it in that case.
+    double precision, dimension(:,:), pointer, contiguous :: dsgn, dlim, df, dcen
 
     call bl_allocate(dsgn, lo(1), hi(1), lo(2)-1, hi(2)+1)
     call bl_allocate(dlim, lo(1), hi(1), lo(2)-1, hi(2)+1)
