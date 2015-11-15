@@ -1,5 +1,5 @@
 f90EXE_sources += adv_$(DIM)d.f90
-#f90EXE_sources += advection_$(DIM)d.f90
-#f90EXE_sources += slope_$(DIM)d.f90
-#f90EXE_sources += trace_$(DIM)d.f90
-
+f90EXE_sources += flux_$(DIM)d.f90
+f90EXE_sources += slope_$(DIM)d.f90
+f90EXE_sources += trace_$(DIM)d.f90
+f90EXE_sources += trans_$(DIM)d.f90

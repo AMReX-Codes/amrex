@@ -30,6 +30,17 @@ BL_FORT_PROC_DECL(GET_EDGE_VELOCITY,get_edge_velocity)
             BL_FORT_FAB_ARG(yvel),
             BL_FORT_FAB_ARG(zvel)),
      const Real* dx, const Real* problo);
-   
+
+BL_FORT_PROC_DECL(ADVECT,advect)
+    (const Real& time, const int* lo, const int*hi,
+     const BL_FORT_FAB_ARG_3D(statein),
+     BL_FORT_FAB_ARG_3D(stateout),
+     D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
+            const BL_FORT_FAB_ARG_3D(yvel),
+            const BL_FORT_FAB_ARG_3D(zvel)),
+     D_DECL(BL_FORT_FAB_ARG_3D(fx),
+            BL_FORT_FAB_ARG_3D(fy),
+            BL_FORT_FAB_ARG_3D(fz)),
+     const Real* dx, const Real& dt);
 
 #endif
