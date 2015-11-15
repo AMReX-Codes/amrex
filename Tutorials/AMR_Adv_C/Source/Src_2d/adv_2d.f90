@@ -46,7 +46,7 @@ subroutine advect(time, lo, hi, &
 
   ! We use BoxLib's bl_allocate to allocate memeory 
   ! instead of intrinsic allocate because it is faster inside OMP.
-  ! One must remember to call bl_deallocate)
+  ! One must remember to call bl_deallocate.
 
   ! *x* is on x-face and y-center
   ! *y* is on y-face and x-center
@@ -61,7 +61,7 @@ subroutine advect(time, lo, hi, &
 
   ! Trace to x-faces
   ! scratch space: dq       on (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1) 
-  ! Input        : uin      on (lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2) 
+  ! Input        : uin      on (lo(1)-3:hi(1)+3,lo(2)-2:hi(2)+2) 
   !                vx       on (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1)
   ! Output       : qxm, qxp on (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1)
   call tracex((/lo(1),lo(2)-1/), ghi, hdtdx(1), &
@@ -72,7 +72,7 @@ subroutine advect(time, lo, hi, &
 
   ! Trace to y-faces
   ! scratch space: dq       on (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1)
-  ! Input        : uin      on (lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2)
+  ! Input        : uin      on (lo(1)-2:hi(1)+2,lo(2)-3:hi(2)+3)
   !                vy       on (lo(1)-1:hi(1)+1,lo(2):hi(2)+1)
   ! Output       : qym, qyp on (lo(1)-1:hi(1)+1,lo(2):hi(2)+1)
   call tracey((/lo(1)-1,lo(2)/), ghi, hdtdx(2), &
@@ -128,7 +128,7 @@ subroutine advect(time, lo, hi, &
               flxy, fy_lo, fy_hi)
 
   ! Do a conservative update
-  do j = lo(2),hi(2)
+  do    j = lo(2),hi(2)
      do i = lo(1),hi(1)
         uout(i,j) = uin(i,j) + &
              ( (flxx(i,j) - flxx(i+1,j)) * dtdx(1) &
@@ -137,14 +137,14 @@ subroutine advect(time, lo, hi, &
   enddo
 
   ! Scale by face area in order to correctly reflx
-  do j = lo(2),hi(2)
+  do    j = lo(2),hi(2)
      do i = lo(1),hi(1)+1
         flxx(i,j) = flxx(i,j) * ( dt * dx(2))
      enddo
   enddo
   
   ! Scale by face area in order to correctly reflx
-  do j = lo(2),hi(2)+1 
+  do    j = lo(2),hi(2)+1 
      do i = lo(1),hi(1)
         flxy(i,j) = flxy(i,j) * (dt * dx(1))
      enddo
