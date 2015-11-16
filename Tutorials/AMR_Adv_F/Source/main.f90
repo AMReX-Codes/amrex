@@ -57,6 +57,7 @@ program main
   ! (otherwise use default values below)
   ! see description in comments below
   integer    :: dim, max_levs, plot_int, n_cell, max_grid_size, nsteps, regrid_int
+  real(dp_t) :: cfl,stop_time
   logical    :: do_subcycling
   integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
   integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
@@ -73,6 +74,8 @@ program main
   namelist /probin/ n_cell                   ! number of cells on each side
   namelist /probin/ max_grid_size            ! max number of cells on each side
   namelist /probin/ nsteps                   ! number of time steps
+  namelist /probin/ cfl                      ! advective cfl
+  namelist /probin/ stop_time                ! simulation stop time
   namelist /probin/ regrid_int               ! how often to regrid
   namelist /probin/ do_subcycling            ! use subcycling
   ! allowable boundary condition options currently are
@@ -100,6 +103,8 @@ program main
   n_cell        = 64
   max_grid_size = 16
   nsteps        = 10
+  cfl           = 0.9d0
+  stop_time     = 2.d0
 
   regrid_int = 4
   do_subcycling = .true.
@@ -308,12 +313,12 @@ program main
 
      ! Choose a time step with a local advective CFL of 0.9
      ! Set the dt for all levels based on the criterion at the finest level
-     dt(:) = 0.9d0*dx(max_levs)
+     dt(:) = cfl*dx(max_levs)
 
   else
 
      ! Choose a time step with a local advective CFL of 0.9
-     dt(1) = 0.9d0*dx(1)
+     dt(1) = cfl*dx(1)
 
      ! Set the dt for all levels based on refinement ratio
      do n = 2, max_levs 
@@ -334,6 +339,18 @@ program main
   end do
 
   do istep=1,nsteps
+
+     if (time+dt(1) .gt. stop_time) then
+        if (.not.do_subcycling) then
+           dt(:) = stop_time - time
+        else
+           dt(1) = stop_time - time
+           ! Set the dt for all levels based on refinement ratio
+           do n = 2, max_levs 
+              dt(n) = dt(n-1) / dble(num_substeps)
+           end do
+        endif
+     end if
 
      ! regrid
      if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
@@ -383,10 +400,12 @@ program main
 
      ! Write plotfile after every plot_int time steps, or if the simulation is done.
      if (plot_int .gt. 0) then
-        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps .or. time .ge. stop_time) then
            call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
         end if
      end if
+
+     if (time .ge. stop_time) exit
 
   end do
 
