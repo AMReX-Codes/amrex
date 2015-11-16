@@ -123,8 +123,7 @@ contains
 
     ! local variables
     integer          :: i,j
-    double precision :: eps
-    double precision :: hdtdx, qdtdx
+    double precision :: hdtdx
     double precision, allocatable :: slope(:,:)
     double precision, allocatable :: phix(:,:)
     double precision, allocatable :: phiy(:,:)
@@ -137,10 +136,8 @@ contains
     allocate(phix_temp(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
     allocate(phiy_temp(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
 
-    eps = 1.d-8
 
     hdtdx = 0.5d0*dt/dx
-    qdtdx = 0.25d0*dt/dx
 
     ! ****************************************************************
     ! Advective Flxues
@@ -155,12 +152,10 @@ contains
     do j=lo(2)-1,hi(2)+1
        do i=lo(1),hi(1)+1
 
-          if (umac(i,j) .lt. -eps) then
+          if (umac(i,j) .lt. 0.d0) then
              phix(i,j) = phi(i,j) + (-1.d0 - umac(i,j))*hdtdx*slope(i,j)
-          else if (umac(i,j) .gt. eps) then
-             phix(i,j) = phi(i-1,j) + (1.d0 - umac(i,j))*hdtdx*slope(i-1,j)
           else
-             phix(i,j) = 0.5d0*(phi(i-1,j) + phi(i,j))
+             phix(i,j) = phi(i-1,j) + (1.d0 - umac(i,j))*hdtdx*slope(i-1,j)
           end if
 
           phix_temp(i,j) = phix(i,j)
@@ -177,12 +172,10 @@ contains
     do j=lo(2),hi(2)+1
        do i=lo(1)-1,hi(1)+1
 
-          if (vmac(i,j) .lt. -eps) then
+          if (vmac(i,j) .lt. 0.d0) then
              phiy(i,j) = phi(i,j) + (-1.d0 - vmac(i,j))*hdtdx*slope(i,j)
-          else if (vmac(i,j) .gt. eps) then
-             phiy(i,j) = phi(i,j-1) + (1.d0 - vmac(i,j))*hdtdx*slope(i,j-1)
           else
-             phiy(i,j) = 0.5d0*(phi(i,j-1) + phi(i,j))
+             phiy(i,j) = phi(i,j-1) + (1.d0 - vmac(i,j))*hdtdx*slope(i,j-1)
           end if
 
           phiy_temp(i,j) = phiy(i,j)
@@ -194,13 +187,10 @@ contains
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
 
-          if (umac(i,j) .lt. -eps) then
+          if (umac(i,j) .lt. 0.d0) then
              phix(i,j) = phix(i,j) - hdtdx*( 0.5d0*(vmac(i  ,j+1)+vmac(i  ,j)) * (phiy_temp(i  ,j+1)-phiy_temp(i  ,j)) )
-          else if (umac(i,j) .gt. eps) then
-             phix(i,j) = phix(i,j) - hdtdx*( 0.5d0*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy_temp(i-1,j+1)-phiy_temp(i-1,j)) )
           else
-             phix(i,j) = phix(i,j) - qdtdx*( 0.25d0*(     vmac(i,j+1)+     vmac(i,j)+     vmac(i-1,j+1)+     vmac(i-1,j)) &
-                                                   *(phiy_temp(i,j+1)-phiy_temp(i,j)+phiy_temp(i-1,j+1)-phiy_temp(i-1,j)) )
+             phix(i,j) = phix(i,j) - hdtdx*( 0.5d0*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy_temp(i-1,j+1)-phiy_temp(i-1,j)) )
           end if
 
           ! compute final x-fluxes
@@ -213,13 +203,10 @@ contains
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
 
-          if (vmac(i,j) .lt. -eps) then
+          if (vmac(i,j) .lt. 0.d0) then
              phiy(i,j) = phiy(i,j) - hdtdx*( 0.5d0*(umac(i+1,j  )+umac(i,j  )) * (phix_temp(i+1,j  )-phix_temp(i,j  )) )
-          else if (vmac(i,j) .gt. eps) then
-             phiy(i,j) = phiy(i,j) - hdtdx*( 0.5d0*(umac(i+1,j-1)+umac(i,j-1)) * (phix_temp(i+1,j-1)-phix_temp(i,j-1)) )
           else
-             phiy(i,j) = phiy(i,j) - qdtdx*( 0.25d0*(     umac(i+1,j)+     umac(i,j)+     umac(i+1,j-1)+     umac(i,j-1)) &
-                                                   *(phix_temp(i+1,j)-phix_temp(i,j)+phix_temp(i+1,j-1)-phix_temp(i,j-1)) )
+             phiy(i,j) = phiy(i,j) - hdtdx*( 0.5d0*(umac(i+1,j-1)+umac(i,j-1)) * (phix_temp(i+1,j-1)-phix_temp(i,j-1)) )
           end if
 
           ! compute final y-fluxes
