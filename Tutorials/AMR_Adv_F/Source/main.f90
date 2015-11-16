@@ -38,7 +38,6 @@ program main
   integer    :: istep,i,n,nl,nlevs
   logical    :: new_grid
   real(dp_t) :: time,start_time,run_time,run_time_IOproc
-  real(dp_t) :: dt_adv, dt_diff
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
@@ -312,14 +311,14 @@ program main
 
   if (.not.do_subcycling) then
 
-     ! Choose a time step with a local advective CFL of 0.5
+     ! Choose a time step with a local advective CFL of 0.9
      ! Set the dt for all levels based on the criterion at the finest level
-     dt(:) = 0.5d0*dx(max_levs)
+     dt(:) = 0.9d0*dx(max_levs)
 
   else
 
-     ! Choose a time step with a local advective CFL of 0.5 
-     dt(1) = 0.5d0*dx(1)
+     ! Choose a time step with a local advective CFL of 0.9
+     dt(1) = 0.9d0*dx(1)
 
      ! Set the dt for all levels based on refinement ratio
      do n = 2, max_levs 

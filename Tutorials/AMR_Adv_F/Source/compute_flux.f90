@@ -96,6 +96,7 @@ contains
 
        case (3)
           fzp => dataptr(flux(3),i)
+          wp  => dataptr(velocity(3),i)
           call compute_flux_3d(pp(:,:,:,1), ng_p, &
                                fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
                                lo, hi, dx, dt, &
@@ -122,60 +123,112 @@ contains
 
     ! local variables
     integer          :: i,j
-    double precision :: dlft,drgt,dcen,dlim,phi_edge,eps
+    double precision :: eps
+    double precision :: hdtdx, qdtdx
     double precision, allocatable :: slope(:,:)
+    double precision, allocatable :: phix(:,:)
+    double precision, allocatable :: phiy(:,:)
+    double precision, allocatable :: fluxx_temp(:,:)
+    double precision, allocatable :: fluxy_temp(:,:)
+
+    allocate(     slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(      phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(      phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
+    allocate(fluxx_temp(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(fluxy_temp(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
+
+    eps = 1.d-8
+
+    hdtdx = 0.5d0*dt/dx
+    qdtdx = 0.25d0*dt/dx
 
     ! ****************************************************************
     ! Advective Flxues
     ! ****************************************************************
-
-    allocate(slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
     ! Compute the slopes in the x-direction
     call slope_2d(phi  ,lo(1)-ng_p,lo(2)-ng_p,hi(1)+ng_p,hi(2)+ng_p, &
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
                   lo(1),lo(2),hi(1),hi(2),1,1) 
 
-    ! set these to zero and increment below
-    fluxx = 0.d0
-    fluxy = 0.d0
-
-    ! x-fluxes: add the advective fluxes -- these are 2nd order slopes
-    do j=lo(2),hi(2)
+    ! compute phi on x edges using umac to upwind
+    do j=lo(2)-1,hi(2)+1
        do i=lo(1),hi(1)+1
 
-          if (umac(i,j) > 0.d0) then
-              phi_edge = phi(i-1,j) + 0.5d0 * (1.d0 - umac(i,j)*dt/dx)*slope(i-1,j)
+          if (umac(i,j) .lt. -eps) then
+             phix(i,j) = phi(i,j) + (-1.d0 - umac(i,j))*hdtdx*slope(i,j)
+          else if (umac(i,j) .gt. eps) then
+             phix(i,j) = phi(i-1,j) + (1.d0 - umac(i,j))*hdtdx*slope(i-1,j)
           else
-              phi_edge = phi(i  ,j) - 0.5d0 * (1.d0 + umac(i,j)*dt/dx)*slope(i  ,j)
-          endif
+             phix(i,j) = 0.5d0*(phi(i-1,j) + phi(i,j))
+          end if
 
-          fluxx(i,j) = fluxx(i,j) - umac(i,j) * phi_edge
+          fluxx_temp(i,j) = -phix(i,j)*umac(i,j)
 
        end do
     end do
 
-    ! Compute the slopes in the y-direction
+    ! compute the slopes in the y-direction
     call slope_2d(phi  ,lo(1)-ng_p,lo(2)-ng_p,hi(1)+ng_p,hi(2)+ng_p, &
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
                   lo(1),lo(2),hi(1),hi(2),1,2) 
 
-    ! y-fluxes: add the advective fluxes
+    ! compute phi on y edges using umac to upwind
     do j=lo(2),hi(2)+1
-       do i=lo(1),hi(1)
-          
-          if (vmac(i,j) > 0.d0) then
-              phi_edge = phi(i,j-1) + 0.5d0 * (1.d0 - vmac(i,j)*dt/dx)*slope(i,j-1)
-          else
-              phi_edge = phi(i,j  ) - 0.5d0 * (1.d0 + vmac(i,j)*dt/dx)*slope(i,j  )
-          endif
+       do i=lo(1)-1,hi(1)+1
 
-          fluxy(i,j) = fluxy(i,j) - vmac(i,j) * phi_edge
+          if (vmac(i,j) .lt. -eps) then
+             phiy(i,j) = phi(i,j) + (-1.d0 - vmac(i,j))*hdtdx*slope(i,j)
+          else if (vmac(i,j) .gt. eps) then
+             phiy(i,j) = phi(i,j-1) + (1.d0 - vmac(i,j))*hdtdx*slope(i,j-1)
+          else
+             phiy(i,j) = 0.5d0*(phi(i,j-1) + phi(i,j))
+          end if
+
+          fluxy_temp(i,j) = -phiy(i,j)*vmac(i,j)
 
        end do
     end do
 
-    deallocate(slope)
+    ! Use the fluxes on y-edges to add transverse contributions on x-edges
+    do j=lo(2),hi(2)
+       do i=lo(1),hi(1)+1
+
+          if (umac(i,j) .lt. -eps) then
+             phix(i,j) = phix(i,j) + hdtdx*(fluxy_temp(i,j+1)-fluxy_temp(i,j))
+          else if (umac(i,j) .gt. eps) then
+             phix(i,j) = phix(i,j) + hdtdx*(fluxy_temp(i-1,j+1)-fluxy_temp(i-1,j))
+          else
+             phix(i,j) = phix(i,j) + qdtdx*(fluxy_temp(i,j+1)-fluxy_temp(i,j)) &
+                                   + qdtdx*(fluxy_temp(i-1,j+1)-fluxy_temp(i-1,j))
+          end if
+
+          ! compute final x-fluxes
+          fluxx(i,j) = -phix(i,j)*umac(i,j)
+
+       end do
+    end do
+
+    ! Use the fluxes on x-edges to add transverse contributions on y-edges
+    do j=lo(2),hi(2)+1
+       do i=lo(1),hi(1)
+
+          if (vmac(i,j) .lt. -eps) then
+             phiy(i,j) = phiy(i,j) + hdtdx*(fluxx_temp(i+1,j)-fluxx_temp(i,j))
+          else if (vmac(i,j) .gt. eps) then
+             phiy(i,j) = phiy(i,j) + hdtdx*(fluxx_temp(i+1,j-1)-fluxx_temp(i,j-1))
+          else
+             phiy(i,j) = phiy(i,j) + qdtdx*(fluxx_temp(i+1,j)-fluxx_temp(i,j)) &
+                                   + qdtdx*(fluxx_temp(i+1,j-1)-fluxx_temp(i,j-1))
+          end if
+
+          ! compute final y-fluxes
+          fluxy(i,j) = -phiy(i,j)*vmac(i,j)
+
+       end do
+    end do
+
+    deallocate(slope,phix,phiy,fluxx_temp,fluxy_temp)
 
   end subroutine compute_flux_2d
 
@@ -195,96 +248,6 @@ contains
 
     ! local variables
     integer          :: i,j,k
-    double precision :: dlft,drgt,dcen,dlim,phi_edge,eps
-    double precision, allocatable :: slope(:,:,:)
-
-    ! ****************************************************************
-    ! Advective fluxes
-    ! ****************************************************************
-
-    allocate(slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-
-    eps = 1.d-8 * max(max(uadv,vadv),wadv)
-
-    ! Compute the slopes in the x-direction
-    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p,&
-                  slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1,   &
-                  lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,1) 
-
-    ! x-fluxes: add the advective fluxes -- these are 2nd order slopes
-    !$omp parallel do private(i,j,k)
-    do k=lo(3),hi(3)
-       do j=lo(2),hi(2)
-          do i=lo(1),hi(1)+1
-
-             if (abs(uadv) < eps) then
-                 phi_edge = 0.5d0 * (phi(i,j,k) + phi(i-1,j,k))
-             else if (uadv > 0.d0) then
-                 phi_edge = phi(i-1,j,k) + 0.5d0 * (1.d0 - uadv*dt/dx)*slope(i-1,j,k)
-             else
-                 phi_edge = phi(i  ,j,k) - 0.5d0 * (1.d0 + uadv*dt/dx)*slope(i  ,j,k)
-             endif
-   
-             fluxx(i,j,k) = fluxx(i,j,k) - uadv * phi_edge
-
-          end do
-       end do
-    end do
-    !$omp end parallel do
-
-    ! Compute the slopes in the y-direction
-    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p,&
-                  slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1,   &
-                  lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,2) 
-
-    ! y-fluxes: add the advective fluxes
-    !$omp parallel do private(i,j,k)
-    do k=lo(3),hi(3)
-       do j=lo(2),hi(2)+1
-          do i=lo(1),hi(1)
-
-             if (abs(vadv) < eps) then
-                 phi_edge = 0.5d0 * (phi(i,j,k) + phi(i,j-1,k))
-             else if (vadv > 0.d0) then
-                 phi_edge = phi(i,j-1,k) + 0.5d0 * (1.d0 - vadv*dt/dx)*slope(i,j-1,k)
-             else
-                 phi_edge = phi(i,j  ,k) - 0.5d0 * (1.d0 + vadv*dt/dx)*slope(i,j  ,k)
-             endif
-   
-             fluxy(i,j,k) = fluxy(i,j,k) - vadv * phi_edge
-   
-          end do
-       end do
-    end do
-    !$omp end parallel do
-
-    ! Compute the slopes in the y-direction
-    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p,&
-                  slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1,   &
-                  lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,3) 
-
-    ! z-fluxes: add the advective fluxes
-    !$omp parallel do private(i,j,k)
-    do k=lo(3),hi(3)+1
-       do j=lo(2),hi(2)
-          do i=lo(1),hi(1)
-
-             if (abs(wadv) < eps) then
-                 phi_edge = 0.5d0 * (phi(i,j,k) + phi(i,j,k-1))
-             else if (wadv > 0.d0) then
-                 phi_edge = phi(i,j,k-1) + 0.5d0 * (1.d0 - wadv*dt/dx)*slope(i,j,k-1)
-             else
-                 phi_edge = phi(i,j,k  ) - 0.5d0 * (1.d0 + wadv*dt/dx)*slope(i,j,k  )
-             endif
-   
-             fluxz(i,j,k) = fluxz(i,j,k) - wadv * phi_edge
-   
-          end do
-       end do
-    end do
-    !$omp end parallel do
-
-    deallocate(slope)
 
   end subroutine compute_flux_3d
 
