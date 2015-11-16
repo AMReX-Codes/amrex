@@ -118,9 +118,10 @@ contains
     ! local variables
     integer          :: i,j
     double precision :: hdtdx
+
     double precision, allocatable :: slope(:,:)
-    double precision, allocatable :: phix(:,:)
-    double precision, allocatable :: phiy(:,:)
+    double precision, allocatable :: phix   (:,:)
+    double precision, allocatable :: phiy   (:,:)
     double precision, allocatable :: phix_1d(:,:)
     double precision, allocatable :: phiy_1d(:,:)
 
@@ -227,12 +228,18 @@ contains
     integer          :: i,j,k
     double precision :: hdtdx
     double precision, allocatable :: slope(:,:,:)
-    double precision, allocatable :: phix(:,:,:)
-    double precision, allocatable :: phiy(:,:,:)
-    double precision, allocatable :: phiz(:,:,:)
+    double precision, allocatable :: phix   (:,:,:)
     double precision, allocatable :: phix_1d(:,:,:)
+    double precision, allocatable :: phix_y (:,:,:)
+    double precision, allocatable :: phix_z (:,:,:)
+    double precision, allocatable :: phiy   (:,:,:)
     double precision, allocatable :: phiy_1d(:,:,:)
+    double precision, allocatable :: phiy_x (:,:,:)
+    double precision, allocatable :: phiy_z (:,:,:)
+    double precision, allocatable :: phiz   (:,:,:)
     double precision, allocatable :: phiz_1d(:,:,:)
+    double precision, allocatable :: phiz_x (:,:,:)
+    double precision, allocatable :: phiz_y (:,:,:)
 
     allocate(slope  (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
     allocate(phix   (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
