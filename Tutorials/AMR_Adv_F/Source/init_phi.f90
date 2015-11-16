@@ -93,7 +93,7 @@ contains
  
     ! local varables
     integer          :: i,j
-    double precision :: x,y,r1,r2,r3
+    double precision :: x,y,r1
 
     do j=lo(2),hi(2)
        y = prob_lo(2) + (dble(j)+0.5d0) * dx
@@ -118,7 +118,7 @@ contains
  
     ! local varables
     integer          :: i,j,k
-    double precision :: x,y,z,r1,r2,r3
+    double precision :: x,y,z,r1
 
     !$omp parallel do private(i,j,k,x,y,z,r1,r2,r3)
     do k=lo(3),hi(3)
@@ -128,11 +128,9 @@ contains
           do i=lo(1),hi(1)
              x = prob_lo(1) + (dble(i)+0.5d0) * dx
 
-             r1 = ((x-0.5d0)**2 + (y-0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
-             r2 = ((x-0.0d0)**2 + (y-0.0d0)**2 + (z-0.0d0)**2) / 0.01d0
-             r3 = ((x+0.5d0)**2 + (y+0.5d0)**2 + (z-0.0d0)**2) / 0.01d0
+             r1 = ((x-0.5d0)**2 + (y-0.7d0)**2 + (z-0.5d0)**2) / 0.01d0
 
-             phi(i,j,k) = 1.d0 + exp(-r1) + exp(-r2) + exp(-r3)
+             phi(i,j,k) = 1.d0 + exp(-r1)
 
           end do
        end do
