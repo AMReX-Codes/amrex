@@ -153,9 +153,9 @@ contains
        do i=lo(1),hi(1)+1
 
           if (umac(i,j) .lt. 0.d0) then
-             phix(i,j) = phi(i,j) + (-1.d0 - umac(i,j))*hdtdx*slope(i,j)
+             phix(i,j) = phi(i  ,j) - (0.5d0 + hdtdx*umac(i,j))*slope(i  ,j)
           else
-             phix(i,j) = phi(i-1,j) + (1.d0 - umac(i,j))*hdtdx*slope(i-1,j)
+             phix(i,j) = phi(i-1,j) + (0.5d0 - hdtdx*umac(i,j))*slope(i-1,j)
           end if
 
           phix_temp(i,j) = phix(i,j)
@@ -173,9 +173,9 @@ contains
        do i=lo(1)-1,hi(1)+1
 
           if (vmac(i,j) .lt. 0.d0) then
-             phiy(i,j) = phi(i,j) + (-1.d0 - vmac(i,j))*hdtdx*slope(i,j)
+             phiy(i,j) = phi(i,j  ) - (0.5d0 + hdtdx*vmac(i,j))*slope(i,j  )
           else
-             phiy(i,j) = phi(i,j-1) + (1.d0 - vmac(i,j))*hdtdx*slope(i,j-1)
+             phiy(i,j) = phi(i,j-1) + (0.5d0 - hdtdx*vmac(i,j))*slope(i,j-1)
           end if
 
           phiy_temp(i,j) = phiy(i,j)
