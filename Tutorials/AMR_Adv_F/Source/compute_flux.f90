@@ -94,6 +94,7 @@ contains
           fzp => dataptr(flux(3),i)
           wp  => dataptr(velocity(3),i)
           call compute_flux_3d(pp(:,:,:,1), ng_p, &
+                               up(:,:,:,1), vp(:,:,:,1), wp(:,:,:,1), ng_u, &
                                fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
                                lo, hi, dx, dt)
        end select
@@ -123,12 +124,11 @@ contains
     double precision, allocatable :: phix_temp(:,:)
     double precision, allocatable :: phiy_temp(:,:)
 
-    allocate(     slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-    allocate(      phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
-    allocate(      phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
+    allocate(    slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(     phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(     phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
     allocate(phix_temp(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
     allocate(phiy_temp(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
-
 
     hdtdx = 0.5d0*dt/dx
 
@@ -212,13 +212,16 @@ contains
 
   end subroutine compute_flux_2d
 
-  subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, &
+  subroutine compute_flux_3d(phi, ng_p, umac, vmac, wmac, ng_u, fluxx, fluxy, fluxz, ng_f, &
                              lo, hi, dx, dt)
 
     use slope_module, only : slope_3d
 
-    integer          :: lo(3), hi(3), ng_p, ng_f
+    integer          :: lo(3), hi(3), ng_p, ng_f, ng_u
     double precision ::   phi(lo(1)-ng_p:,lo(2)-ng_p:,lo(3)-ng_p:)
+    double precision ::  umac(lo(1)-ng_u:,lo(2)-ng_u:,lo(3)-ng_u:)
+    double precision ::  vmac(lo(1)-ng_u:,lo(2)-ng_u:,lo(3)-ng_u:)
+    double precision ::  wmac(lo(1)-ng_u:,lo(2)-ng_u:,lo(3)-ng_u:)
     double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
@@ -226,6 +229,122 @@ contains
 
     ! local variables
     integer          :: i,j,k
+    double precision :: hdtdx
+    double precision, allocatable :: slope(:,:,:)
+    double precision, allocatable :: phix(:,:,:)
+    double precision, allocatable :: phiy(:,:,:)
+    double precision, allocatable :: phiz(:,:,:)
+    double precision, allocatable :: phix_temp(:,:,:)
+    double precision, allocatable :: phiy_temp(:,:,:)
+    double precision, allocatable :: phiz_temp(:,:,:)
+
+    allocate(    slope(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(     phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(     phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(     phiz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
+    allocate(phix_temp(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiy_temp(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiz_temp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
+
+    hdtdx = 0.5d0*dt/dx
+
+    ! Compute the slopes in the x-direction
+    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p, &
+                  slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
+                  lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,1) 
+    
+    ! compute phi on x edges using umac to upwind
+    do k=lo(3)-1,hi(3)+1
+       do j=lo(2)-1,hi(2)+1
+          do i=lo(1),hi(1)+1
+
+             if (umac(i,j,k) .lt. 0.d0) then
+                phix(i,j,k) = phi(i  ,j,k) - (0.5d0 + hdtdx*umac(i,j,k))*slope(i  ,j,k)
+             else
+                phix(i,j,k) = phi(i-1,j,k) + (0.5d0 - hdtdx*umac(i,j,k))*slope(i-1,j,k)
+             end if
+
+             phix_temp(i,j,k) = phix(i,j,k)
+
+          end do
+       end do
+    end do
+
+    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p, &
+         slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
+         lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,2) 
+
+    ! compute phi on y edges using umac to upwind
+    do k=lo(3)-1,hi(3)+1
+       do j=lo(2),hi(2)+1
+          do i=lo(1)-1,hi(1)+1
+
+             if (vmac(i,j,k) .lt. 0.d0) then
+                phiy(i,j,k) = phi(i,j  ,k) - (0.5d0 + hdtdx*vmac(i,j,k))*slope(i,j  ,k)
+             else
+                phiy(i,j,k) = phi(i,j-1,k) + (0.5d0 - hdtdx*vmac(i,j,k))*slope(i,j-1,k)
+             end if
+
+             phiy_temp(i,j,k) = phiy(i,j,k)
+
+          end do
+       end do
+    end do
+
+    call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p, &
+                  slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
+                  lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,3) 
+
+    ! compute phi on z edges using umac to upwind
+    do k=lo(3),hi(3)+1
+       do j=lo(2)-1,hi(2)+1
+          do i=lo(1)-1,hi(1)+1
+
+             if (wmac(i,j,k) .lt. 0.d0) then
+                phiz(i,j,k) = phi(i,j,k  ) - (0.5d0 + hdtdx*wmac(i,j,k))*slope(i,j,k  )
+             else
+                phiz(i,j,k) = phi(i,j,k-1) + (0.5d0 - hdtdx*wmac(i,j,k))*slope(i,j,k-1)
+             end if
+
+             phiz_temp(i,j,k) = phiz(i,j,k)
+
+          end do
+       end do
+    end do
+
+
+
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)+1
+
+             fluxx(i,j,k) = umac(i,j,k)*phix(i,j,k)
+
+          end do
+       end do
+    end do
+
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)+1
+          do i=lo(1),hi(1)
+
+             fluxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k)
+
+          end do
+       end do
+    end do
+
+    do k=lo(3),hi(3)+1
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)
+
+             fluxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k)
+
+          end do
+       end do
+    end do
+
+
 
   end subroutine compute_flux_3d
 
