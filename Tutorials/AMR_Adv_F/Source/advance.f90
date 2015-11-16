@@ -89,7 +89,7 @@ contains
           end do
 
           ! Compute the face-centered gradients in each direction
-          call compute_flux(mla,phi_old,velocity,flux,dx,dt,the_bc_tower)
+          call compute_flux(mla,phi_old,velocity,flux,dx,dt)
 
           ! update phi using forward Euler discretization
           call update_phi(mla,phi_old,phi_new,flux,dx,dt,the_bc_tower)
@@ -187,7 +187,7 @@ contains
 
     ! Compute fluxes at level n.
     call compute_flux_single_level(mla,phi_old(n),velocity(n,:),flux, &
-                                   dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+                                   dx(n),dt(n))
 
     ! Update solution at level n.
     call update_phi_single_level(mla,phi_old(n),phi_new(n),flux,dx(n),dt(n))

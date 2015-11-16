@@ -18,14 +18,13 @@ module compute_flux_module
 
 contains
 
-  subroutine compute_flux(mla,phi,velocity,flux,dx,dt,the_bc_tower)
+  subroutine compute_flux(mla,phi,velocity,flux,dx,dt)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(in   ) :: phi(:)
     type(multifab) , intent(in   ) :: velocity(:,:)
     type(multifab) , intent(inout) :: flux(:,:)
     real(kind=dp_t), intent(in   ) :: dx(:), dt(:)
-    type(bc_tower) , intent(in   ) :: the_bc_tower
 
     ! local variables
     integer :: dm, ng_p, ng_f, i, n, nlevs
@@ -37,8 +36,7 @@ contains
     ng_f = flux(1,1)%ng
 
     do n=1,nlevs
-       call compute_flux_single_level(mla,phi(n),velocity(n,:),flux(n,:), &
-                                      dx(n),dt(n),the_bc_tower%bc_tower_array(n))
+       call compute_flux_single_level(mla,phi(n),velocity(n,:),flux(n,:),dx(n),dt(n))
     end do
 
     ! set level n-1 fluxes to be the average of the level n fluxes covering it
@@ -51,14 +49,13 @@ contains
 
   end subroutine compute_flux
 
-  subroutine compute_flux_single_level(mla,phi,velocity,flux,dx,dt,the_bc_level)
+  subroutine compute_flux_single_level(mla,phi,velocity,flux,dx,dt)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(in   ) :: phi
     type(multifab) , intent(in   ) :: velocity(:)
     type(multifab) , intent(inout) :: flux(:)
     real(kind=dp_t), intent(in   ) :: dx, dt
-    type(bc_level) , intent(in   ) :: the_bc_level
 
     ! local variables
     integer :: lo(mla%dim), hi(mla%dim)
@@ -91,23 +88,21 @@ contains
           call compute_flux_2d(pp(:,:,1,1), ng_p, &
                                up(:,:,1,1), vp(:,:,1,1), ng_u, &
                                fxp(:,:,1,1),  fyp(:,:,1,1), ng_f, &
-                               lo, hi, dx, dt, &
-                               the_bc_level%adv_bc_level_array(i,:,:,1))
+                               lo, hi, dx, dt)
 
        case (3)
           fzp => dataptr(flux(3),i)
           wp  => dataptr(velocity(3),i)
           call compute_flux_3d(pp(:,:,:,1), ng_p, &
                                fxp(:,:,:,1),  fyp(:,:,:,1), fzp(:,:,:,1), ng_f, &
-                               lo, hi, dx, dt, &
-                               the_bc_level%adv_bc_level_array(i,:,:,1))
+                               lo, hi, dx, dt)
        end select
     end do
 
   end subroutine compute_flux_single_level
 
   subroutine compute_flux_2d(phi, ng_p, umac, vmac, ng_u, fluxx, fluxy, ng_f, &
-                             lo, hi, dx, dt, adv_bc)
+                             lo, hi, dx, dt)
     
     use prob_module , only : mu
     use slope_module, only : slope_2d
@@ -119,7 +114,6 @@ contains
     double precision :: fluxx(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:)
     double precision :: dx, dt
-    integer          :: adv_bc(:,:)
 
     ! local variables
     integer          :: i,j
@@ -220,7 +214,7 @@ contains
   end subroutine compute_flux_2d
 
   subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, &
-                             lo, hi, dx, dt, adv_bc)
+                             lo, hi, dx, dt)
 
     use prob_module , only : mu, uadv, vadv, wadv
     use slope_module, only : slope_3d
@@ -231,7 +225,6 @@ contains
     double precision :: fluxy(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: fluxz(lo(1)-ng_f:,lo(2)-ng_f:,lo(3)-ng_f:)
     double precision :: dx, dt
-    integer          :: adv_bc(:,:)
 
     ! local variables
     integer          :: i,j,k
