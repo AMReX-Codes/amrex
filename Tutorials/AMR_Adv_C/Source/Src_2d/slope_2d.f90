@@ -1,112 +1,128 @@
 module slope_module
  
   implicit none
- 
+
+  double precision, parameter:: four3rd=4.d0/3.d0, sixth=1.d0/6.d0
+  
   private
  
-  public slope
+  public :: slopex, slopey
  
 contains
  
-! :::
-! ::: ------------------------------------------------------------------
-! :::
+  subroutine slopex(lo, hi, &
+                    q, qlo, qhi, &
+                    dq, dqlo, dqhi)
 
-      subroutine slope(q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                       dq,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                       ilo1,ilo2,ihi1,ihi2,nv,idir)
+    implicit none
 
-      implicit none
+    integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2)
+    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    double precision, intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
 
-      integer ilo,ihi
-      integer qd_l1,qd_l2,qd_h1,qd_h2
-      integer qpd_l1,qpd_l2,qpd_h1,qpd_h2
-      integer ilo1,ilo2,ihi1,ihi2,nv,idir
+    integer :: i, j
+    double precision, dimension(lo(1)-1:hi(1)+1) :: dsgn, dlim, df, dcen
+    double precision :: dlft, drgt, slop, dq1
 
-      double precision     q( qd_l1: qd_h1, qd_l2: qd_h2,nv)
-      double precision    dq(qpd_l1:qpd_h1,qpd_l2:qpd_h2,nv)
+    do j = lo(2), hi(2)
 
-!     Local arrays
-      double precision, allocatable::dsgn(:),dlim(:),df(:),dcen(:)
-
-      integer i, j, n
-      double precision dlft, drgt, slop, dq1
-      double precision four3rd, sixth
-
-      four3rd = 4.d0/3.d0
-      sixth = 1.d0/6.d0
-
-      ilo = MIN(ilo1,ilo2)
-      ihi = MAX(ihi1,ihi2)
-
-      allocate (dsgn(ilo-2:ihi+2))
-      allocate (dlim(ilo-2:ihi+2))
-      allocate (  df(ilo-2:ihi+2))
-      allocate (dcen(ilo-2:ihi+2))
-
-      do n = 1, nv 
-          if (idir .eq. 1) then
-
-             ! slopes in first coordinate direction
-             do j = ilo2-1, ihi2+1
-
-                ! first compute Fromm slopes
-                do i = ilo1-2, ihi1+2
-                      dlft = 2.d0*(q(i  ,j,n) - q(i-1,j,n))
-                      drgt = 2.d0*(q(i+1,j,n) - q(i  ,j,n))
-                      dcen(i) = .25d0 * (dlft+drgt)
-                      dsgn(i) = sign(1.d0, dcen(i))
-                      slop = min( abs(dlft), abs(drgt) )
-!                      dlim(i) = cvmgp( slop, 0.d0, dlft*drgt )
-                      if (dlft*drgt .ge. 0.d0) then
-                         dlim(i) = slop
-                      else
-                         dlim(i) = 0.d0
-                      endif
-                      df(i) = dsgn(i)*min( dlim(i), abs(dcen(i)) )
-                  enddo
-
-!                 Now limited fourth order slopes
-                  do i = ilo1-1, ihi1+1
-                      dq1 = four3rd*dcen(i) - sixth*(df(i+1) + df(i-1))
-                      dq(i,j,n) = dsgn(i)*min(dlim(i),abs(dq1))
-                  enddo
-              enddo
-
+       ! first compute Fromm slopes
+       do i = lo(1)-1, hi(1)+1
+          dlft = 2.d0*(q(i  ,j) - q(i-1,j))
+          drgt = 2.d0*(q(i+1,j) - q(i  ,j))
+          dcen(i) = .25d0 * (dlft+drgt)
+          dsgn(i) = sign(1.d0, dcen(i))
+          slop = min( abs(dlft), abs(drgt) )
+          if (dlft*drgt .ge. 0.d0) then
+             dlim(i) = slop
           else
-
-
-!            Compute slopes in second coordinate direction
-             do i = ilo1-1, ihi1+1
-
-!               First compute Fromm slopes for this column
-                do j = ilo2-2, ihi2+2
-                      dlft = 2.d0*(q(i,j  ,n) - q(i,j-1,n))
-                      drgt = 2.d0*(q(i,j+1,n) - q(i,j  ,n))
-                      dcen(j) = .25d0 * (dlft+drgt)
-                      dsgn(j) = sign( 1.d0, dcen(j) )
-                      slop = min( abs(dlft), abs(drgt) )
-                      if (dlft*drgt .ge. 0.d0) then
-                         dlim(j) = slop
-                      else
-                         dlim(j) = 0.d0
-                      endif
-                      df(j) = dsgn(j)*min( dlim(j),abs(dcen(j)) )
-                  enddo
-
-!                 Now compute limited fourth order slopes
-                  do j = ilo2-1, ihi2+1
-                      dq1 = four3rd*dcen(j) - &
-                           sixth*( df(j+1) + df(j-1) )
-                      dq(i,j,n) = dsgn(j)*min(dlim(j),abs(dq1))
-                  enddo
-              enddo
-
+             dlim(i) = 0.d0
           endif
-      enddo
+          df(i) = dsgn(i)*min( dlim(i), abs(dcen(i)) )
+       end do
 
-      deallocate(dsgn,dlim,df,dcen)
+       ! Now limited fourth order slopes
+       do i = lo(1), hi(1)
+          dq1 = four3rd*dcen(i) - sixth*(df(i+1) + df(i-1))
+          dq(i,j) = dsgn(i)*min(dlim(i),abs(dq1))
+       end do
+    enddo
 
-      end subroutine slope
+  end subroutine slopex
+
+
+  subroutine slopey(lo, hi, &
+                    q, qlo, qhi, &
+                    dq, dqlo, dqhi)
+
+    use mempool_module, only : bl_allocate, bl_deallocate
+
+    integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2)
+    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    double precision, intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+
+    ! Some compiler may not support 'contiguous'.  Remove it in that case.
+    double precision, dimension(:,:), pointer, contiguous :: dsgn, dlim, df, dcen
+
+    call bl_allocate(dsgn, lo(1), hi(1), lo(2)-1, hi(2)+1)
+    call bl_allocate(dlim, lo(1), hi(1), lo(2)-1, hi(2)+1)
+    call bl_allocate(df  , lo(1), hi(1), lo(2)-1, hi(2)+1)
+    call bl_allocate(dcen, lo(1), hi(1), lo(2)-1, hi(2)+1)
+
+    call slopey_doit(lo, hi, &
+                     q, qlo, qhi, &
+                     dq, dqlo, dqhi, &
+                     dsgn, dlim, df, dcen, (/lo(1),lo(2)-1/), (/hi(1),hi(2)+1/))
+
+    call bl_deallocate(dsgn)
+    call bl_deallocate(dlim)
+    call bl_deallocate(df)
+    call bl_deallocate(dcen)
+
+  end subroutine slopey
+
+  subroutine slopey_doit(lo, hi, &
+                         q, qlo, qhi, &
+                         dq, dqlo, dqhi, &
+                         dsgn, dlim, df, dcen, ddlo, ddhi)
+
+    integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2), &
+         ddlo(2), ddhi(2)
+    double precision, intent(in ) ::  q  ( qlo(1): qhi(1), qlo(2): qhi(2))
+    double precision, intent(out) :: dq  (dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    double precision              :: dsgn(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    double precision              :: dlim(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    double precision              :: df  (ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    double precision              :: dcen(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+
+    integer :: i, j
+    double precision :: dlft, drgt, slop, dq1
+
+    ! first compute Fromm slopes
+    do j    = lo(2)-1, hi(2)-1
+       do i = lo(1)  , hi(1)
+          dlft = 2.d0*(q(i,j  ) - q(i,j-1))
+          drgt = 2.d0*(q(i,j+1) - q(i,j  ))
+          dcen(i,j) = .25d0 * (dlft+drgt)
+          dsgn(i,j) = sign( 1.d0, dcen(i,j) )
+          slop = min( abs(dlft), abs(drgt) )
+          if (dlft*drgt .ge. 0.d0) then
+             dlim(i,j) = slop
+          else
+             dlim(i,j) = 0.d0
+          endif
+          df(i,j) = dsgn(i,j)*min( dlim(i,j),abs(dcen(i,j)) )
+       end do
+    end do
+
+    ! Now compute limited fourth order slopes
+    do j    = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          dq1 = four3rd*dcen(i,j) - sixth*( df(i,j+1) + df(i,j-1) )
+          dq(i,j) = dsgn(i,j)*min(dlim(i,j),abs(dq1))
+       end do
+    end do
+
+  end subroutine slopey_doit
 
 end module slope_module 

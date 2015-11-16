@@ -1,5 +1,4 @@
-BOXLIB_HOME ?= /path/to/BoxLib
-SDCLIB_HOME ?= /path/to/SDCLib
+BOXLIB_HOME ?= ../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
@@ -8,21 +7,15 @@ DEBUG      = TRUE
 DEBUG      = FALSE
 
 DIM        = 2
+#DIM       = 3
 
-COMP	   = gcc
+COMP	   = g++
 FCOMP	   = gfortran
 
-USE_MPI       = FALSE
-USE_REACT     = TRUE
-USE_DIFFUSION = TRUE
-USE_SDCLIB    = FALSE
+USE_MPI    = TRUE
+USE_OMP    = FALSE
 
 Bpack   := ./Make.package 
 Blocs   := . 
 
-ifeq ($(USE_SDCLIB), TRUE)
-Bpack += $(SDCLIB_HOME)/Make.package  
-Blocs += $(SDCLIB_HOME)/include $(SDCLIB_HOME)/src
-endif
-
-include ../Make.ADR
+include ../Make.Adv

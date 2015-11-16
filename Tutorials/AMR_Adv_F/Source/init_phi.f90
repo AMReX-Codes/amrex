@@ -120,7 +120,7 @@ contains
     integer          :: i,j,k
     double precision :: x,y,z,r1,r2,r3
 
-    !$omp parallel do private(i,j,k,x,y,z,r2)
+    !$omp parallel do private(i,j,k,x,y,z,r1,r2,r3)
     do k=lo(3),hi(3)
        z = prob_lo(3) + (dble(k)+0.5d0) * dx
        do j=lo(2),hi(2)
