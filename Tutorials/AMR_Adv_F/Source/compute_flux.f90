@@ -126,12 +126,20 @@ contains
     double precision, allocatable :: phiy_1d(:,:)
 
     allocate(slope  (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
-    allocate(phix   (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
+
+    ! final edge states
+    ! allocated from lo:hi+1 in the normal direction
+    !           from lo:hi   in the transverse direction
+    allocate(phix   (lo(1):hi(1)+1,lo(2):hi(2)  ))
+    allocate(phiy   (lo(1):hi(1)  ,lo(2):hi(2)+1))
+
+    ! normal (1D) predictor states
+    ! allocated from lo:hi+1  in the normal direction
+    !                lo-1:hi+1 in the transverse directions
     allocate(phix_1d(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
-    allocate(phiy   (lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
     allocate(phiy_1d(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
 
-    hdtdx = 0.5d0*dt/dx
+    hdtdx = dt/(2.d0*dx)
 
     ! ****************************************************************
     ! Advective Flxues
@@ -142,7 +150,7 @@ contains
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
                   lo(1),lo(2),hi(1),hi(2),1,1) 
 
-    ! compute phi on x edges using umac to upwind
+    ! compute phi on x faces using umac to upwind; ignore transverse terms
     do j=lo(2)-1,hi(2)+1
        do i=lo(1),hi(1)+1
 
@@ -160,7 +168,7 @@ contains
                   slope,lo(1)-1   ,lo(2)-1   ,hi(1)+1   ,hi(2)+1, &
                   lo(1),lo(2),hi(1),hi(2),1,2) 
 
-    ! compute phi on y edges using umac to upwind
+    ! compute phi on y faces using umac to upwind; ignore transverse terms
     do j=lo(2),hi(2)+1
        do i=lo(1)-1,hi(1)+1
 
@@ -173,7 +181,7 @@ contains
        end do
     end do
 
-    ! Use the fluxes on y-edges to add transverse contributions on x-edges
+    ! update phi on x faces by adding in y-transverse terms
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)+1
 
@@ -189,7 +197,7 @@ contains
        end do
     end do
 
-    ! Use the fluxes on x-edges to add transverse contributions on y-edges
+    ! update phi on y faces by adding in x-transverse terms
     do j=lo(2),hi(2)+1
        do i=lo(1),hi(1)
 
@@ -226,7 +234,7 @@ contains
 
     ! local variables
     integer          :: i,j,k
-    double precision :: hdtdx
+    double precision :: hdtdx, tdtdx
     double precision, allocatable :: slope(:,:,:)
     double precision, allocatable :: phix   (:,:,:)
     double precision, allocatable :: phix_1d(:,:,:)
@@ -242,27 +250,41 @@ contains
     double precision, allocatable :: phiz_y (:,:,:)
 
     allocate(slope  (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phix   (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phix_1d(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phix_y (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phix_z (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiy   (lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiy_1d(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiy_x (lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiy_z (lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiz   (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
-    allocate(phiz_1d(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
-    allocate(phiz_x (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
-    allocate(phiz_y (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
 
-    hdtdx = 0.5d0*dt/dx
+    ! final edge states
+    ! allocated from lo:hi+1 in the normal direction
+    !           from lo:hi   in the transverse direction
+    allocate(phix   (lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ))
+    allocate(phiy   (lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ))
+    allocate(phiz   (lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1))
+
+    ! normal (1D) predictor states
+    ! allocated from lo:hi+1   in the normal direction
+    !                lo-1:hi+1 in the transverse directions
+    allocate(phix_1d(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiy_1d(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiz_1d(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
+
+    ! These are transverse terms.  The size allocation is tricky.
+    ! lo:hi+1   in the normal direction
+    ! lo:hi     in the transverse direction
+    ! lo-1:hi+1 in the unused direction
+    allocate(phix_y (lo(1)  :hi(1)+1,lo(2)  :hi(2)  ,lo(3)-1:hi(3)+1))
+    allocate(phix_z (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)  ))
+    allocate(phiy_x (lo(1)  :hi(1)  ,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiy_z (lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)  :hi(3)  ))
+    allocate(phiz_x (lo(1)  :hi(1)  ,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
+    allocate(phiz_y (lo(1)-1:hi(1)+1,lo(2)  :hi(2)  ,lo(3)  :hi(3)+1))
+
+    hdtdx = dt/(2.d0*dx)
+    tdtdx = dt/(3.d0*dx)
 
     ! Compute the slopes in the x-direction
     call slope_3d(phi  ,lo(1)-ng_p,lo(2)-ng_p,lo(3)-ng_p,hi(1)+ng_p,hi(2)+ng_p,hi(3)+ng_p, &
                   slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
                   lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,1) 
     
-    ! compute phi on x edges using umac to upwind
+    ! compute phi on x faces using umac to upwind; ignore transverse terms
     do k=lo(3)-1,hi(3)+1
        do j=lo(2)-1,hi(2)+1
           do i=lo(1),hi(1)+1
@@ -281,7 +303,7 @@ contains
                   slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
                   lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,2) 
 
-    ! compute phi on y edges using umac to upwind
+    ! compute phi on y faces using umac to upwind; ignore transverse terms
     do k=lo(3)-1,hi(3)+1
        do j=lo(2),hi(2)+1
           do i=lo(1)-1,hi(1)+1
@@ -300,7 +322,7 @@ contains
                   slope,lo(1)-1   ,lo(2)-1   ,lo(3)-1   ,hi(1)+1   ,hi(2)+1   ,hi(3)+1, &
                   lo(1),lo(2),lo(3),hi(1),hi(2),hi(3),1,3) 
 
-    ! compute phi on z edges using umac to upwind
+    ! compute phi on z faces using umac to upwind; ignore transverse terms
     do k=lo(3),hi(3)+1
        do j=lo(2)-1,hi(2)+1
           do i=lo(1)-1,hi(1)+1
@@ -315,33 +337,176 @@ contains
        end do
     end do
 
+    !!!!!!!!!!!!!!!!!!!!
     ! transverse terms
+    !!!!!!!!!!!!!!!!!!!!
 
+    ! update phi on x faces by adding in y-transverse terms
+    do k=lo(3)-1,hi(3)+1
+       do j=lo(2),hi(2)
+          do i=lo(1),hi(1)+1
 
+             if (umac(i,j,k) .lt. 0.d0) then
+                phix_y(i,j,k) = phix_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_1d(i  ,j+1,k)-phiy_1d(i  ,j,k)) )
+             else
+                phix_y(i,j,k) = phix_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i-1,j+1,k)+vmac(i-1,j,k)) * (phiy_1d(i-1,j+1,k)-phiy_1d(i-1,j,k)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    ! update phi on x faces by adding in z-transverse terms
+    do k=lo(3),hi(3)
+       do j=lo(2)-1,hi(2)+1
+          do i=lo(1),hi(1)+1
+
+             if (umac(i,j,k) .lt. 0.d0) then
+                phix_z(i,j,k) = phix_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i  ,j,k+1)+wmac(i  ,j,k)) * (phiz_1d(i  ,j,k+1)-phiz_1d(i  ,j,k)) )
+             else
+                phix_z(i,j,k) = phix_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i-1,j,k+1)+wmac(i-1,j,k)) * (phiz_1d(i-1,j,k+1)-phiz_1d(i-1,j,k)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    ! update phi on y faces by adding in x-transverse terms
+    do k=lo(3)-1,hi(3)+1
+       do j=lo(2),hi(2)+1
+          do i=lo(1),hi(1)
+
+             if (vmac(i,j,k) .lt. 0.d0) then
+                phiy_x(i,j,k) = phiy_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j  ,k)+umac(i,j  ,k)) * (phix_1d(i+1,j  ,k)-phix_1d(i,j  ,k)) )
+             else
+                phiy_x(i,j,k) = phiy_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j-1,k)+umac(i,j-1,k)) * (phix_1d(i+1,j-1,k)-phix_1d(i,j-1,k)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    ! update phi on y faces by adding in z-transverse terms
+    do k=lo(3),hi(3)
+       do j=lo(2),hi(2)+1
+          do i=lo(1)-1,hi(1)+1
+
+             if (vmac(i,j,k) .lt. 0.d0) then
+                phiy_z(i,j,k) = phiy_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i,j  ,k+1)+wmac(i,j  ,k)) * (phiz_1d(i,j  ,k+1)-phiz_1d(i,j  ,k)) )
+             else
+                phiy_z(i,j,k) = phiy_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i,j-1,k+1)+wmac(i,j-1,k)) * (phiz_1d(i,j-1,k+1)-phiz_1d(i,j-1,k)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    ! update phi on z faces by adding in x-transverse terms
+    do k=lo(3),hi(3)+1
+       do j=lo(2)-1,hi(2)+1
+          do i=lo(1),hi(1)
+
+             if (wmac(i,j,k) .lt. 0.d0) then
+                phiz_x(i,j,k) = phiz_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j,k  )+umac(i,j,k  )) * (phix_1d(i+1,j,k  )-phix_1d(i,j,k  )) )
+             else
+                phiz_x(i,j,k) = phiz_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j,k-1)+umac(i,j,k-1)) * (phix_1d(i+1,j,k-1)-phix_1d(i,j,k-1)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    ! update phi on z faces by adding in y-transverse terms
+    do k=lo(3),hi(3)+1
+       do j=lo(2),hi(2)
+          do i=lo(1)-1,hi(1)+1
+
+             if (wmac(i,j,k) .lt. 0.d0) then
+                phiz_y(i,j,k) = phiz_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i,j+1,k  )+vmac(i,j,k  )) * (phiy_1d(i,j+1,k  )-phiy_1d(i,j,k  )) )
+             else
+                phiz_y(i,j,k) = phiz_1d(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy_1d(i,j+1,k-1)-phiy_1d(i,j,k-1)) )
+             end if
+
+          end do
+       end do
+    end do
+
+    !!!!!!!!!!!!!!!!!!!!
+    ! final edge states
+    !!!!!!!!!!!!!!!!!!!!
+
+    ! update phi on x faces by adding in yz and zy transverse terms
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)+1
 
+             if (umac(i,j,k) .lt. 0.d0) then
+                phix(i,j,k) = phix_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_z(i  ,j+1,k)-phiy_z(i  ,j,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i  ,j,k+1)+wmac(i  ,j,k)) * (phiz_y(i  ,j,k+1)-phiz_y(i  ,j,k)) )
+             else
+                phix(i,j,k) = phix_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(vmac(i-1,j+1,k)+vmac(i-1,j,k)) * (phiy_z(i-1,j+1,k)-phiy_z(i-1,j,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i-1,j,k+1)+wmac(i-1,j,k)) * (phiz_y(i-1,j,k+1)-phiz_y(i-1,j,k)) )
+             end if
+
+             ! compute final x-fluxes
              fluxx(i,j,k) = -umac(i,j,k)*phix(i,j,k)
 
           end do
        end do
     end do
 
+    ! update phi on y faces by adding in xz and zx transverse terms
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)+1
           do i=lo(1),hi(1)
 
+             if (vmac(i,j,k) .lt. 0.d0) then
+                phiy(i,j,k) = phiy_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j  ,k)+umac(i,j  ,k)) * (phix_z(i+1,j  ,k)-phix_z(i,j  ,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i,j  ,k+1)+wmac(i,j  ,k)) * (phiz_x(i,j  ,k+1)-phiz_x(i,j  ,k)) )
+             else
+                phiy(i,j,k) = phiy_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j-1,k)+umac(i,j-1,k)) * (phix_z(i+1,j-1,k)-phix_z(i,j-1,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i,j-1,k+1)+wmac(i,j-1,k)) * (phiz_x(i,j-1,k+1)-phiz_x(i,j-1,k)) )
+             end if
+
+             ! compute final y-fluxes
              fluxy(i,j,k) = -vmac(i,j,k)*phiy(i,j,k)
 
           end do
        end do
     end do
 
+    ! update phi on z faces by adding in xy and yx transverse terms
     do k=lo(3),hi(3)+1
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
 
+             if (wmac(i,j,k) .lt. 0.d0) then
+                phiz(i,j,k) = phiz_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j,k  )+umac(i  ,j,k)) * (phix_y(i+1,j,k  )-phix_y(i,j,k  )) ) &
+                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_x(i,j+1,k  )-phiy_x(i,j,k  )) )
+             else
+                phiz(i,j,k) = phiz_1d(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j,k-1)+umac(i,j,k-1)) * (phix_y(i+1,j,k-1)-phix_y(i,j,k-1)) ) &
+                     - hdtdx*( 0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy_x(i,j+1,k-1)-phiy_x(i,j,k-1)) )
+             end if
+
+             ! compute final z-fluxes
              fluxz(i,j,k) = -wmac(i,j,k)*phiz(i,j,k)
 
           end do
