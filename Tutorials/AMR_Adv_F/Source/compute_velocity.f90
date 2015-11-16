@@ -103,6 +103,11 @@ contains
     double precision :: x,y
     double precision :: psi(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2)
 
+    ! hack test
+    velx = 1.d0
+    vely = 1.d0
+    return
+
     ! streamfunction psi
     do j = lo(2)-2, hi(2)+2
        y = (dble(j)+0.5d0)*dx
@@ -144,6 +149,12 @@ contains
     integer          :: i,j,k
     double precision :: x,y
     double precision :: psi(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3)-1:hi(3)+1)
+
+    ! hack test
+    velx = 1.d0
+    vely = 1.d0
+    velz = 1.d0
+    return
 
     ! streamfunction psi
     do k = lo(3)-1, hi(3)+1
