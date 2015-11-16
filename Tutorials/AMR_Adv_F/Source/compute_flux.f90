@@ -104,7 +104,6 @@ contains
   subroutine compute_flux_2d(phi, ng_p, umac, vmac, ng_u, fluxx, fluxy, ng_f, &
                              lo, hi, dx, dt)
     
-    use prob_module , only : mu
     use slope_module, only : slope_2d
 
     integer          :: lo(2), hi(2), ng_p, ng_f, ng_u
@@ -216,7 +215,6 @@ contains
   subroutine compute_flux_3d(phi, ng_p, fluxx, fluxy, fluxz, ng_f, &
                              lo, hi, dx, dt)
 
-    use prob_module , only : mu, uadv, vadv, wadv
     use slope_module, only : slope_3d
 
     integer          :: lo(3), hi(3), ng_p, ng_f
