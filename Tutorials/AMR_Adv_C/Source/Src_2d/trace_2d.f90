@@ -1,187 +1,84 @@
-! ::: 
-! ::: ------------------------------------------------------------------
-! ::: 
 
-      subroutine trace(q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                       dq,qxm,qxp,qym,qyp,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                       ilo1,ilo2,ihi1,ihi2,dx,dy,dt)
+module trace_module
+  implicit none
 
-      use meth_params_module, only : QVAR, QFA, nadv
+  private
+  public :: tracex, tracey
 
-      implicit none
+contains
 
-      integer ilo1,ilo2,ihi1,ihi2
-      integer qd_l1,qd_l2,qd_h1,qd_h2
-      integer qpd_l1,qpd_l2,qpd_h1,qpd_h2
+  subroutine tracex(lo, hi, hdtdx, &
+                    dq, dqlo, dqhi, &
+                    q ,  qlo,  qhi, &
+                    vx, vxlo, vxhi, &
+                    qm, qp, mplo, mphi)
 
-      double precision dx, dy, dt
-      double precision     q(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision  dq(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision qxm(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision qxp(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision qym(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision qyp(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
+    use slope_module, only : slopex
 
-      ! Local variables
-      integer i, j
-      integer n, iadv
+    integer, intent(in) :: lo(2), hi(2), dqlo(2), dqhi(2), qlo(2), qhi(2),&
+         vxlo(2), vxhi(2), mplo(2), mphi(2)
+    double precision, intent(in)  :: hdtdx
+    double precision              :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    double precision, intent(in ) :: vx(vxlo(1):vxhi(1),vxlo(2):vxhi(2))
+    double precision, intent(out) :: qm(mplo(1):mphi(1),mplo(2):mphi(2))
+    double precision, intent(out) :: qp(mplo(1):mphi(1),mplo(2):mphi(2))
+    
+    integer :: i, j
 
-      ! Default dq=0.
-      dq(ilo1-1:ihi1+1,ilo2-1:ihi2+1,1:QVAR) = 0.d0
+    call slopex((/lo(1)-1,lo(2)/), hi, &
+                q, qlo, qhi, &
+                dq, dqlo, dqhi)
+ 
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (vx(i,j) .ge. 0.d0) then
+             qm(i,j) = q(i-1,j) + (0.5d0 - vx(i,j)*hdtdx) * dq(i-1,j)
+             qp(i,j) = q(i,j)
+          else
+             qm(i,j) = q(i-1,j)
+             qp(i,j) = q(i,j) - (0.5d0 + vx(i,j)*hdtdx) * dq(i,j)
+          end if
+       end do
+    end do
 
-      do iadv = 1, nadv
-         n = QFA + iadv - 1
-         call trace_x(n,q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                      dq,qxm,qxp,ilo1-1,ilo2-1,ihi1+2,ihi2+2, &
-                      ilo1,ilo2,ihi1,ihi2,dx,dt)
-      end do
+  end subroutine tracex
 
-!     ------------------------------------------------------------------
+  subroutine tracey(lo, hi, hdtdy, &
+                    dq, dqlo, dqhi, &
+                    q ,  qlo,  qhi, &
+                    vy, vylo, vyhi, &
+                    qm, qp, mplo, mphi)
 
-      do iadv = 1, nadv
-         n = QFA + iadv - 1
-         call trace_y(n,q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                      dq,qym,qyp,ilo1-1,ilo2-1,ihi1+2,ihi2+2, &
-                      ilo1,ilo2,ihi1,ihi2,dy,dt)
-      end do
+    use slope_module, only : slopey
 
-      end subroutine trace
+    integer, intent(in) :: lo(2), hi(2), dqlo(2), dqhi(2), qlo(2), qhi(2),&
+         vylo(2), vyhi(2), mplo(2), mphi(2)
+    double precision, intent(in)  :: hdtdy
+    double precision              :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    double precision, intent(in ) :: vy(vylo(1):vyhi(1),vylo(2):vyhi(2))
+    double precision, intent(out) :: qm(mplo(1):mphi(1),mplo(2):mphi(2))
+    double precision, intent(out) :: qp(mplo(1):mphi(1),mplo(2):mphi(2))
 
-! ::: 
-! ::: ------------------------------------------------------------------
-! ::: 
+    integer :: i, j
 
-      subroutine trace_x(n,q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                         dq,qxm,qxp,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                         ilo1,ilo2,ihi1,ihi2,dx,dt)
+    call slopey((/lo(1),lo(2)-1/), hi, &
+                q, qlo, qhi, &
+                dq, dqlo, dqhi)
+ 
+    do j    = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (vy(i,j) .ge. 0.d0) then
+             qm(i,j) = q(i,j-1) + (0.5d0 - vy(i,j)*hdtdy) * dq(i,j-1)
+             qp(i,j) = q(i,j)
+          else
+             qm(i,j) = q(i,j-1)
+             qp(i,j) = q(i,j) - (0.5d0 + vy(i,j)*hdtdy) * dq(i,j)
+          end if
+       end do
+    end do
+ 
+  end subroutine tracey
 
-      use meth_params_module, only : QVAR, QU, QFA, nadv
-
-      implicit none
-
-      integer n
-      integer ilo1,ilo2,ihi1,ihi2
-      integer qd_l1,qd_l2,qd_h1,qd_h2
-      integer qpd_l1,qpd_l2,qpd_h1,qpd_h2
-
-      double precision :: dx, dt
-      double precision ::   q(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision ::  dq(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision :: qxm(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision :: qxp(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-
-      ! Local variables
-      integer          :: i, j
-      double precision :: dtdx
-      double precision :: u, spzero, acmprght, acmpleft
-
-      dtdx = dt/dx
-
-      ! Compute slopes in x-direction
-      call slope( q, qd_l1, qd_l2, qd_h1, qd_h2, &
-                 dq, qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                 ilo1,ilo2,ihi1,ihi2,QVAR,1)
-
-      do j = ilo2-1, ihi2+1
-
-         ! Right state
-         do i = ilo1, ihi1+1
-            u = q(i,j,QU)
-            if (u .gt. 0.d0) then
-               spzero = -1.d0
-            else
-               spzero = u*dtdx
-            endif
-            acmprght = 0.5d0*(-1.d0 - spzero )*dq(i,j,n)
-            qxp(i,j,n) = q(i,j,n) + acmprght
-
-            if (abs(ugdx(i,j)) < eps) then
-                phi_edge = 0.5d0 * (phi(i,j) + phi(i-1,j))
-            else if (ugdx(i,j) > 0.d0) then
-                phi_edge = phi(i-1,j) + 0.5d0 * (1.d0 - uadv*dt/dx)*dq(i-1,j)
-            else
-                phi_edge = phi(i  ,j) - 0.5d0 * (1.d0 + uadv*dt/dx)*dq(i  ,j)
-            endif
-  
-         enddo
-
-         ! Left state
-         do i = ilo1-1, ihi1
-            u = q(i,j,QU)
-            if (u .ge. 0.d0) then
-               spzero = u*dtdx
-            else
-               spzero = 1.d0
-            endif
-            acmpleft = 0.5d0*(1.d0 - spzero )*dq(i,j,n)
-            qxm(i+1,j,n) = q(i,j,n) + acmpleft
-         enddo
-
-      enddo
-
-      end subroutine trace_x
-
-! ::: 
-! ::: ------------------------------------------------------------------
-! ::: 
-
-      subroutine trace_y(n,q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                         dq,qym,qyp,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                         ilo1,ilo2,ihi1,ihi2,dy,dt)
-
-      use meth_params_module, only : QVAR, QV, QFA, nadv
-
-      implicit none
-
-      integer n
-      integer ilo1,ilo2,ihi1,ihi2
-      integer qd_l1,qd_l2,qd_h1,qd_h2
-      integer qpd_l1,qpd_l2,qpd_h1,qpd_h2
-
-      double precision ::  dy, dt
-      double precision ::   q(qd_l1:qd_h1,qd_l2:qd_h2,QVAR)
-      double precision ::  dq(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision :: qym(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-      double precision :: qyp(qpd_l1:qpd_h1,qpd_l2:qpd_h2,QVAR)
-
-      ! Local variables
-      integer          :: i, j
-      double precision :: v, spzero, acmptop, acmpbot
-      double precision :: dtdy
-
-      dtdy = dt/dy
-
-      ! Compute slopes in y-direction
-      call slope(q,qd_l1,qd_l2,qd_h1,qd_h2, &
-                 dq,qpd_l1,qpd_l2,qpd_h1,qpd_h2, &
-                 ilo1,ilo2,ihi1,ihi2,QVAR,2)
-
-      do i = ilo1-1, ihi1+1
-
-         ! Top state
-         do j = ilo2, ihi2+1
-            v = q(i,j,QV)
-            if (v .gt. 0.d0) then
-               spzero = -1.d0
-            else
-               spzero = v*dtdy
-            endif
-            acmptop = 0.5d0*(-1.d0 - spzero )*dq(i,j,n)
-            qyp(i,j,n) = q(i,j,n) + acmptop
-         enddo
-
-         ! Bottom state
-         do j = ilo2-1, ihi2
-            v = q(i,j,QV)
-            if (v .ge. 0.d0) then
-               spzero = v*dtdy
-            else
-               spzero = 1.d0
-            endif
-            acmpbot = 0.5d0*(1.d0 - spzero )*dq(i,j,n)
-            qym(i,j+1,n) = q(i,j,n) + acmpbot
-         enddo
-
-      enddo
-
-      end subroutine trace_y
+end module trace_module
