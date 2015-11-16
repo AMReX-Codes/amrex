@@ -11,11 +11,6 @@ program main
   use make_new_grids_module
   use regrid_module
 
-  use fabio_module
-
-  ! This is where we keep the problem-specific values
-  use prob_module
-
   implicit none
 
   ! will be allocated with dim components
