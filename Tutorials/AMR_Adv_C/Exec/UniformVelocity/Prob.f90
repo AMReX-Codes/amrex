@@ -29,6 +29,8 @@ subroutine PROBINIT (init,name,namlen,problo,probhi)
      probin(i:i) = char(name(i))
   end do
   
+  adv_vel = 1.d0
+
   ! Read namelists
   untin = 9
   open(untin,file=probin(1:namlen),form='formatted',status='old')
