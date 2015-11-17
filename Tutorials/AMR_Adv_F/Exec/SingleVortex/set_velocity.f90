@@ -1,4 +1,4 @@
-module compute_velocity_module
+module set_velocity_module
 
   use ml_layout_module
   use bl_constants_module
@@ -7,11 +7,11 @@ module compute_velocity_module
 
   private
 
-  public :: compute_velocity_on_level, compute_velocity
+  public :: set_velocity_on_level, set_velocity
 
 contains
 
-  subroutine compute_velocity_on_level(velocity,dx,time)
+  subroutine set_velocity_on_level(velocity,dx,time)
 
     type(multifab) , intent(inout) :: velocity(:)
     real(kind=dp_t), intent(in   ) :: dx,time
@@ -31,11 +31,11 @@ contains
        hi = upb(get_box(velocity(1),i))
        select case(dm)
        case (2)
-          call compute_velocity_2d(dp1(:,:,1,1), dp2(:,:,1,1), ng, &
+          call set_velocity_2d(dp1(:,:,1,1), dp2(:,:,1,1), ng, &
                                    lo, hi, dx, time)
        case (3)
           dp3 => dataptr(velocity(3),i)
-          call compute_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
+          call set_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
                                    lo, hi, dx, time)
        end select
     end do
@@ -44,10 +44,10 @@ contains
        call multifab_fill_boundary(velocity(i))
     end do
 
-  end subroutine compute_velocity_on_level
+  end subroutine set_velocity_on_level
 
 
-  subroutine compute_velocity(mla,velocity,dx,time)
+  subroutine set_velocity(mla,velocity,dx,time)
 
     type(ml_layout), intent(in   ) :: mla
     type(multifab) , intent(inout) :: velocity(:,:)
@@ -73,11 +73,11 @@ contains
           hi = upb(get_box(velocity(n,1),i))
           select case(dm)
           case (2)
-             call compute_velocity_2d(dp1(:,:,1,1), dp2(:,:,1,1), ng, &
+             call set_velocity_2d(dp1(:,:,1,1), dp2(:,:,1,1), ng, &
                                       lo, hi, dx(n), time)
           case (3)
              dp3 => dataptr(velocity(n,3),i)
-             call compute_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
+             call set_velocity_3d(dp1(:,:,:,1), dp2(:,:,:,1), dp3(:,:,:,1), ng, &
                                       lo, hi, dx(n), time)
           end select
        end do
@@ -89,9 +89,9 @@ contains
        end do
     end do
 
-  end subroutine compute_velocity
+  end subroutine set_velocity
   
-  subroutine compute_velocity_2d(velx, vely, ng, lo, hi, dx, time)
+  subroutine set_velocity_2d(velx, vely, ng, lo, hi, dx, time)
 
     integer          :: lo(2), hi(2), ng
     double precision :: velx(lo(1)-ng:,lo(2)-ng:)
@@ -102,11 +102,6 @@ contains
     integer          :: i,j
     double precision :: x,y
     double precision :: psi(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2)
-
-    ! hack test
-    velx = 1.d0
-    vely = 1.d0
-    return
 
     ! streamfunction psi
     do j = lo(2)-2, hi(2)+2
@@ -135,9 +130,9 @@ contains
        end do
     end do
 
-  end subroutine compute_velocity_2d
+  end subroutine set_velocity_2d
 
-  subroutine compute_velocity_3d(velx, vely, velz, ng, lo, hi, dx, time)
+  subroutine set_velocity_3d(velx, vely, velz, ng, lo, hi, dx, time)
 
     integer          :: lo(3), hi(3), ng
     double precision :: velx(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
@@ -149,12 +144,6 @@ contains
     integer          :: i,j,k
     double precision :: x,y
     double precision :: psi(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3)-1:hi(3)+1)
-
-    ! hack test
-    velx = 1.d0
-    vely = 1.d0
-    velz = 1.d0
-    return
 
     ! streamfunction psi
     do k = lo(3)-1, hi(3)+1
@@ -192,6 +181,6 @@ contains
     ! z velocity
     velz = 1.d0
 
-  end subroutine compute_velocity_3d
+  end subroutine set_velocity_3d
 
-end module compute_velocity_module
+end module set_velocity_module
