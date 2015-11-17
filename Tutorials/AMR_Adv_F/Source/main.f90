@@ -476,20 +476,20 @@ contains
       call set_velocity(mla,vel,dx,time_n)
 
       vmax = -HUGE(1.d0)
-      do n = 1, max_levs 
+      do n = 1, nlevs
          do i=1,dim
             vmax = max(vmax,norm_inf(vel(n,i)))
          end do
       end do
 
       ! Store the old dt so we make sure we don't grow too fast
-      dt_old(:) = dt(:)
+      dt_old(1:nlevs) = dt(1:nlevs)
 
       if (.not.do_subcycling) then
 
          ! Choose a time step with a local advective CFL of "cfl" (set in the inputs file)
          ! Set the dt for all levels based on the criterion at the finest level
-         dt(:) = cfl*dx(max_levs) / vmax
+         dt(:) = cfl*dx(nlevs) / vmax
 
          ! We don't let dt grow by more than the factor of cfl_grow_fac over the previous dt
          dt(:) = min(dt(:), cfl_grow_fac * dt_old(:))
@@ -511,7 +511,7 @@ contains
              dt(1) = stop_time - time
     
          ! Set the dt for all levels based on refinement ratio
-         do n = 2, max_levs 
+         do n = 2, nlevs 
             dt(n) = dt(n-1) / dble(num_substeps)
          end do
 
