@@ -89,7 +89,18 @@ Adv::computeNewDt (int                   finest_level,
 	{
 	    dt_min[i] = std::min(dt_min[i],dt_level[i]);
 	}
-    } 
+    }
+    else 
+    {
+	//
+	// Limit dt's by change_max * old dt
+	//
+	static Real change_max = 1.1;
+	for (int i = 0; i <= finest_level; i++)
+	{
+	    dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+	}
+    }
     
     //
     // Find the minimum over all levels
