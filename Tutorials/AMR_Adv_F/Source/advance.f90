@@ -194,7 +194,7 @@ contains
 
     if (n .gt. 1) then
        ! Copy fine fluxes from cell boundaries into boundary registers for use in refluxing.
-       scale = dt(n)*dx(n)**(dm-1) ! dt*area
+       scale = -dt(n)*dx(n)**(dm-1) ! -dt*area
        call flux_reg_fine_add(bndry_flx(n),flux,scale)
     end if
 
@@ -206,7 +206,7 @@ contains
 
     else  ! Now recursively update the next finer level
 
-       scale = -dt(n)*dx(n)**(dm-1) ! -dt*area
+       scale = dt(n)*dx(n)**(dm-1) ! dt*area
        call flux_reg_crse_init(bndry_flx(n+1), flux, scale)
 
        do i = 1, dm
