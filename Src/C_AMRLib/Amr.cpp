@@ -3784,7 +3784,7 @@ using std::endl;
         geom.resize(geom_Size);
       }
       for(int lev(0); lev < geom.size(); ++lev) {
-        geom[lev].BroadcastGeometry(ioProcNumSCS, scsComm);
+        Geometry::BroadcastGeometry(geom[lev], ioProcNumSCS, scsComm);
       }
 
 #ifdef USE_STATIONDATA

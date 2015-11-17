@@ -1837,7 +1837,7 @@ ParallelDescriptor::Barrier(scsComm);
       }
       
       // ---- Geometry
-      geom.BroadcastGeometry(ioProcNumSCS, scsComm);
+      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
       
       // ---- BoxArrays
       int sbaG_Size(-2), sbaANTT_Size(-2);
@@ -1910,6 +1910,9 @@ ParallelDescriptor::Barrier(scsComm);
       particles_on_same_grids = posg;
 #endif
 
+      for(int i(0); i < state.size(); ++i) {
+        state[i].MakeSidecarsSmaller(...);
+      }
 }
 
 
