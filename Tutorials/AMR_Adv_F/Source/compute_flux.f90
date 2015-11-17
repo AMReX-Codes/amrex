@@ -194,7 +194,7 @@ contains
           end if
 
           ! compute final x-fluxes
-          fluxx(i,j) = -phix(i,j)*umac(i,j)
+          fluxx(i,j) = phix(i,j)*umac(i,j)
 
        end do
     end do
@@ -212,7 +212,7 @@ contains
           end if
 
           ! compute final y-fluxes
-          fluxy(i,j) = -phiy(i,j)*vmac(i,j)
+          fluxy(i,j) = phiy(i,j)*vmac(i,j)
 
        end do
     end do
@@ -467,7 +467,7 @@ contains
              end if
 
              ! compute final x-fluxes
-             fluxx(i,j,k) = -umac(i,j,k)*phix(i,j,k)
+             fluxx(i,j,k) = umac(i,j,k)*phix(i,j,k)
 
           end do
        end do
@@ -489,7 +489,7 @@ contains
              end if
 
              ! compute final y-fluxes
-             fluxy(i,j,k) = -vmac(i,j,k)*phiy(i,j,k)
+             fluxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k)
 
           end do
        end do
@@ -511,7 +511,7 @@ contains
              end if
 
              ! compute final z-fluxes
-             fluxz(i,j,k) = -wmac(i,j,k)*phiz(i,j,k)
+             fluxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k)
 
           end do
        end do
