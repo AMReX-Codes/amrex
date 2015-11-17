@@ -2,7 +2,7 @@
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
 BOXLIB_HOME ?= ../..
 
-NDEBUG    :=
+NDEBUG    := t
 MPI       := t
 OMP       :=
 PROF      :=
@@ -11,8 +11,10 @@ MKVERBOSE := t
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 
-include ../Source/GPackage.mak
-VPATH_LOCATIONS += ../Source
+include ./GPackage.mak
+include ../../Source/GPackage.mak
+
+VPATH_LOCATIONS += .	../../Source
 
 include $(BOXLIB_HOME)/Src/F_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
