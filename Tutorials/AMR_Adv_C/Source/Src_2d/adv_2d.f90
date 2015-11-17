@@ -35,7 +35,7 @@ subroutine advect(time, lo, hi, &
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:), pointer, contiguous :: &
-       qx, qy, qyp, dq, udqdx, vdqdy
+       qx, qy, dq, udqdx, vdqdy
 
   dtdx = dt/dx
   hdtdx = dtdx * 0.5d0
