@@ -111,7 +111,7 @@ subroutine advect(time, lo, hi, &
   do       k = lo(3), hi(3)+1
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           flxz(i,j,k) = flxx(i,j,k) * (dt * dx(1)*dx(2))
+           flxz(i,j,k) = flxz(i,j,k) * (dt * dx(1)*dx(2))
         enddo
      enddo
   enddo
