@@ -30,7 +30,7 @@ subroutine advect(time, lo, hi, &
 
   integer :: i, j
   integer :: glo(2), ghi(2)
-  double precision :: dtdx(2)
+  double precision :: dtdx(2), umax, vmax
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
@@ -54,6 +54,15 @@ subroutine advect(time, lo, hi, &
   ! we like to use BoxLib's bl_allocate to allocate memeory instead of the intrinsic
   ! allocate.  Bl_allocate is much faster than allocate inside OMP.  
   ! Note that one MUST CALL BL_DEALLOCATE.
+
+  ! check if CFL condition is violated.
+  umax = maxval(abs(vx))
+  vmax = maxval(abs(vy))
+  if ( umax*dt .ge. dx(1) .or. &
+       vmax*dt .ge. dx(2) ) then
+     print *, "umax = ", umax, ", vmax = ", vmax, ", dt = ", dt, ", dx = ", dx
+     call bl_error("CFL violation. Use smaller adv.cfl.")
+  end if
 
   ! call a function to compute flux
   call compute_flux_2d(lo, hi, dt, dx, &
