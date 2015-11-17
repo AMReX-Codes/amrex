@@ -1073,75 +1073,39 @@ Geometry::PIRMCacheSize ()
 void
 Geometry::SendGeometryToSidecars (Geometry *geom)
 {
-  int MPI_IntraGroup_Broadcast_Rank;
+  int fromProc;
 
   MPI_Comm commSource = ParallelDescriptor::CommunicatorComp();
   MPI_Comm commDest   = ParallelDescriptor::CommunicatorSidecar();
   MPI_Comm commInter  = ParallelDescriptor::CommunicatorInter();
+  MPI_Comm comm = commInter;
 
-  int coord;
-  int is_periodic[BL_SPACEDIM];
-  Real realBox_lo[BL_SPACEDIM];
-  Real realBox_hi[BL_SPACEDIM];
-  Array<int> baseBoxAI;
+  bool bcastSource(ParallelDescriptor::Communicator() == commSource);
 
-  if(ParallelDescriptor::Communicator() == commSource) {
-    MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
+  if(bcastSource) {
+    fromProc = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
     BL_ASSERT(ParallelDescriptor::IOProcessorNumber() == 0);  // ---- because we are assuming this in commDest
   }
-  if(ParallelDescriptor::Communicator() == commDest) {
-    MPI_IntraGroup_Broadcast_Rank = 0;  // ---- really the rank of MPI_ROOT in commSource
+  if( ! bcastSource) {
+    fromProc = 0;  // ---- really the rank of MPI_ROOT in commSource
   }
 
-
-  if(ParallelDescriptor::Communicator() == commSource) {  // ---- initialize the source data
-    const RealBox &realBox = geom->ProbDomain();
-    for(int n(0); n < BL_SPACEDIM; ++n) {
-      realBox_lo[n] = realBox.lo(n);
-      realBox_hi[n] = realBox.hi(n);
-    }
-
-    coord = geom->CoordInt();
-
-    for(unsigned int i(0); i < BL_SPACEDIM; ++i) {
-      is_periodic[i] = geom->isPeriodic(i);
-    }
-
-    baseBoxAI = BoxLib::SerializeBox(geom->Domain());
-  }
-
-
-  // ---- do the broadcasts
-  if(ParallelDescriptor::Communicator() == commDest) {
-    baseBoxAI.resize(BoxLib::SerializeBoxSize());
-  }
-  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(),
-                            MPI_IntraGroup_Broadcast_Rank, commInter);
-
-  ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM,
-                            MPI_IntraGroup_Broadcast_Rank, commInter);
-  ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM,
-                            MPI_IntraGroup_Broadcast_Rank, commInter);
-
-  ParallelDescriptor::Bcast(&coord, 1, MPI_IntraGroup_Broadcast_Rank, commInter);
-  ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, commInter);
-  ParallelDescriptor::Bcast(&Geometry::spherical_origin_fix, 1, MPI_IntraGroup_Broadcast_Rank, commInter);
-  ParallelDescriptor::Bcast(&Geometry::fpb_cache_max_size, 1, MPI_IntraGroup_Broadcast_Rank, commInter);
-
-
-  if(ParallelDescriptor::Communicator() == commDest) {  // ---- define the destination geometry
-    Box baseBox(BoxLib::UnSerializeBox(baseBoxAI));
-    RealBox realBox(realBox_lo, realBox_hi);
-
-    geom->define(baseBox, &realBox, coord, is_periodic);
-  }
+  Geometry::BroadcastGeometry(*geom, fromProc, comm, bcastSource);
 }
 
 
 
 void
-Geometry::BroadcastGeometry (int fromProc, MPI_Comm comm)
+Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm)
+{
+  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
+  Geometry::BroadcastGeometry(geom, fromProc, comm, bcastSource);
+}
+
+
+
+void
+Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource)
 {
   int coord;
   int is_periodic[BL_SPACEDIM];
@@ -1149,35 +1113,26 @@ Geometry::BroadcastGeometry (int fromProc, MPI_Comm comm)
   Real realBox_hi[BL_SPACEDIM];
   Array<int> baseBoxAI;
 
-
-  if(ParallelDescriptor::MyProc() == fromProc) {  // ---- initialize the source data
-    const RealBox &realBox = this->ProbDomain();
+  if(bcastSource) {  // ---- initialize the source data
+    const RealBox &realBox = geom.ProbDomain();
     for(int n(0); n < BL_SPACEDIM; ++n) {
       realBox_lo[n] = realBox.lo(n);
       realBox_hi[n] = realBox.hi(n);
+      is_periodic[n] = geom.isPeriodic(n);
     }
-
-    coord = this->CoordInt();
-
-    for(unsigned int i(0); i < BL_SPACEDIM; ++i) {
-      is_periodic[i] = this->isPeriodic(i);
-    }
-
-    baseBoxAI = BoxLib::SerializeBox(this->Domain());
+    coord = geom.CoordInt();
+    baseBoxAI = BoxLib::SerializeBox(geom.Domain());
   }
 
 
   // ---- do the broadcasts
-  if(ParallelDescriptor::MyProc() != fromProc) {
+  if( ! bcastSource) {
     baseBoxAI.resize(BoxLib::SerializeBoxSize());
   }
-  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(),
-                            fromProc, comm);
+  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), fromProc, comm);
 
-  ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM,
-                            fromProc, comm);
-  ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM,
-                            fromProc, comm);
+  ParallelDescriptor::Bcast(realBox_lo, BL_SPACEDIM, fromProc, comm);
+  ParallelDescriptor::Bcast(realBox_hi, BL_SPACEDIM, fromProc, comm);
 
   ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
   ParallelDescriptor::Bcast(is_periodic, BL_SPACEDIM, fromProc, comm);
@@ -1185,11 +1140,11 @@ Geometry::BroadcastGeometry (int fromProc, MPI_Comm comm)
   ParallelDescriptor::Bcast(&Geometry::fpb_cache_max_size, 1, fromProc, comm);
 
 
-  if(ParallelDescriptor::MyProc() != fromProc) {  // ---- define the destination geometry
+  if( ! bcastSource) {    // ---- define the destination geometry
     Box baseBox(BoxLib::UnSerializeBox(baseBoxAI));
     RealBox realBox(realBox_lo, realBox_hi);
 
-    this->define(baseBox, &realBox, coord, is_periodic);
+    geom.define(baseBox, &realBox, coord, is_periodic);
   }
 }
 #endif

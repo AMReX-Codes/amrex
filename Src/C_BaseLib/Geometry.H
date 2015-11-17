@@ -277,9 +277,8 @@ public:
     //
     static void SendGeometryToSidecars (Geometry *geom);
     //
-    // Send Geometry to sidecar procs.
-    //
-    void BroadcastGeometry (int fromProc, MPI_Comm comm);
+    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm);
+    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource);
 #endif
 
 private:
