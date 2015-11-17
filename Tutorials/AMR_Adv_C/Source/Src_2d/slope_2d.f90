@@ -22,19 +22,18 @@ contains
 
     integer :: i, j
     double precision, dimension(lo(1)-1:hi(1)+1) :: dsgn, dlim, df, dcen
-    double precision :: dlft, drgt, slop, dq1
+    double precision :: dlft, drgt, dq1
 
     do j = lo(2), hi(2)
 
        ! first compute Fromm slopes
        do i = lo(1)-1, hi(1)+1
-          dlft = 2.d0*(q(i  ,j) - q(i-1,j))
-          drgt = 2.d0*(q(i+1,j) - q(i  ,j))
-          dcen(i) = .25d0 * (dlft+drgt)
+          dlft = q(i  ,j) - q(i-1,j)
+          drgt = q(i+1,j) - q(i  ,j)
+          dcen(i) = .5d0 * (dlft+drgt)
           dsgn(i) = sign(1.d0, dcen(i))
-          slop = min( abs(dlft), abs(drgt) )
           if (dlft*drgt .ge. 0.d0) then
-             dlim(i) = slop
+             dlim(i) = 2.d0 * min( abs(dlft), abs(drgt) )
           else
              dlim(i) = 0.d0
           endif
@@ -96,18 +95,17 @@ contains
     double precision              :: dcen(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
 
     integer :: i, j
-    double precision :: dlft, drgt, slop, dq1
+    double precision :: dlft, drgt, dq1
 
     ! first compute Fromm slopes
-    do j    = lo(2)-1, hi(2)-1
+    do j    = lo(2)-1, hi(2)+1
        do i = lo(1)  , hi(1)
-          dlft = 2.d0*(q(i,j  ) - q(i,j-1))
-          drgt = 2.d0*(q(i,j+1) - q(i,j  ))
-          dcen(i,j) = .25d0 * (dlft+drgt)
+          dlft = q(i,j  ) - q(i,j-1)
+          drgt = q(i,j+1) - q(i,j  )
+          dcen(i,j) = .5d0 * (dlft+drgt)
           dsgn(i,j) = sign( 1.d0, dcen(i,j) )
-          slop = min( abs(dlft), abs(drgt) )
           if (dlft*drgt .ge. 0.d0) then
-             dlim(i,j) = slop
+             dlim(i,j) = 2.d0 * min( abs(dlft), abs(drgt) )
           else
              dlim(i,j) = 0.d0
           endif
