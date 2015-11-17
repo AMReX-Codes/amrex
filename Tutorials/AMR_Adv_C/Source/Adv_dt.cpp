@@ -39,15 +39,11 @@ Adv::estTimeStep (Real)
 			BL_TO_FORTRAN(uface[2])),
 		 dx, prob_lo);
 
-	    Real mxnorm[BL_SPACEDIM];
-	    Real umax = 0.0;
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		mxnorm[i] = uface[i].norm(0);
-		umax = std::max(umax,mxnorm[i]);
-	    }
-	    Real ueps = umax * 1.e-10;
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		dt_est = std::min(dt_est, dx[i] / (ueps + mxnorm[i]));
+		Real umax = uface[i].norm(0);
+		if (umax > 1.e-100) {
+		    dt_est = std::min(dt_est, dx[i] / umax);
+		}
 	    }
 	}
     }
