@@ -242,6 +242,10 @@ Adv::errorEst (TagBoxArray& tags,
 		 &tagval, &clearval, 
 		 ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
 		 ZFILL(dx), ZFILL(prob_lo), &time, &level);
+	    //
+	    // Now update the tags in the TagBox.
+	    //
+	    tagfab.tags_and_untags(itags, tilebx);
 	}
     }
 }

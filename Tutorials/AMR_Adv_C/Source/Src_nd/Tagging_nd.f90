@@ -44,13 +44,13 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   else
      dim = 3
   end if
-  
+
   ! Tag on regions of high phi
   if (level .lt. max_phierr_lev) then
      do       k = lo(3), hi(3)
         do    j = lo(2), hi(2)
            do i = lo(1), hi(1)
-              if (state(i,j,k) .ge. phierr) then
+              if (state(i,j,k) .ge. phierr(level)) then
                  tag(i,j,k) = set
               endif
            enddo
@@ -73,7 +73,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                  az = abs(state(i,j,k-1)-state(i,j,k))
                  az = max(az, abs(state(i,j,k)-state(i,j,k+1)))
               end if
-              if (max(ax,ay,az) .ge. phigrad) then
+              if (max(ax,ay,az) .ge. phigrad(level)) then
                  tag(i,j,k) = set
               end if
             enddo
