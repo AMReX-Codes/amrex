@@ -172,19 +172,16 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
             ref_ratio(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
             brs_bcs(n)%uncovered)
     end do
 
-    call multifab_fill_boundary(full_soln(nlevs))
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
+                           mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     ! Make sure to correct the coarse cells immediately next to fine grids
