@@ -3,10 +3,10 @@ program main
   use bl_IO_module
   use ml_layout_module
   use init_phi_module
-  use compute_velocity_module
   use write_plotfile_module
   use advance_module
   use define_bc_module
+  use set_velocity_module
   use bndry_reg_module
   use make_new_grids_module
   use regrid_module
@@ -33,6 +33,7 @@ program main
   integer    :: istep,i,n,nl,nlevs
   logical    :: new_grid
   real(dp_t) :: time,start_time,run_time,run_time_IOproc
+  real(dp_t) :: vmax
   
   type(box)         :: bx
   type(ml_boxarray) :: mba
@@ -60,6 +61,7 @@ program main
   real(dp_t) :: cfl,stop_time
   logical    :: do_subcycling
   integer    :: bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  real(dp_t) :: prob_lo_x, prob_lo_y, prob_lo_z, prob_hi_x, prob_hi_y, prob_hi_z
   integer    :: amr_buf_width, cluster_minwidth, cluster_blocking_factor
   real(dp_t) :: cluster_min_eff
 
@@ -81,6 +83,7 @@ program main
   ! allowable boundary condition options currently are
   ! -1 = PERIODIC
   namelist /probin/ bc_x_lo, bc_x_hi, bc_y_lo, bc_y_hi, bc_z_lo, bc_z_hi
+  namelist /probin/ prob_lo_x, prob_lo_y, prob_lo_z, prob_hi_x, prob_hi_y, prob_hi_z
   namelist /probin/ amr_buf_width            ! number of buffer cells between successive levels
   namelist /probin/ cluster_minwidth         ! minimimum size of an AMR grid
   namelist /probin/ cluster_blocking_factor  ! grids must be an integer multiple
@@ -115,6 +118,13 @@ program main
   bc_y_hi = -1 ! PERIODIC
   bc_z_lo = -1 ! PERIODIC
   bc_z_hi = -1 ! PERIODIC
+
+  prob_lo_x = 0.d0
+  prob_lo_y = 0.d0
+  prob_lo_z = 0.d0
+  prob_hi_x = 1.d0
+  prob_hi_y = 1.d0
+  prob_hi_z = 1.d0
 
   amr_buf_width = 2
   cluster_minwidth = 16
@@ -190,9 +200,15 @@ program main
   ! tell mba about the ref_ratio between levels
   call ml_boxarray_set_ref_ratio(mba)
 
-  ! physical problem is a box on (-1,-1) to (1,1)
-  prob_lo(:) = -1.d0
-  prob_hi(:) =  1.d0
+  ! physical problem is a box on (0,0) to (1,1)
+  prob_lo(1) = prob_lo_x
+  prob_hi(1) = prob_hi_x
+  prob_lo(2) = prob_lo_y
+  prob_hi(2) = prob_hi_y
+  if (dim .gt. 2) then
+      prob_lo(3) = prob_lo_z
+      prob_hi(3) = prob_hi_z
+  end if
 
   ! set grid spacing at each level
   ! the grid spacing is the same in each direction
@@ -200,6 +216,10 @@ program main
   do n=2,max_levs
      dx(n) = dx(n-1) / mba%rr(n-1,1)
   end do
+
+  ! We initialize dt to very large here because we will not let dt grow 
+  !    by more than 10% when we compute it in each time step
+  dt(:) = HUGE(1.0) 
 
   ! tell the_bc_tower about max_levs, dim, and phys_bc
   call bc_tower_init(the_bc_tower,max_levs,dim,phys_bc)
@@ -309,24 +329,6 @@ program main
   istep = 0
   time = 0.d0
 
-  if (.not.do_subcycling) then
-
-     ! Choose a time step with a local advective CFL of 0.9
-     ! Set the dt for all levels based on the criterion at the finest level
-     dt(:) = cfl*dx(max_levs)
-
-  else
-
-     ! Choose a time step with a local advective CFL of 0.9
-     dt(1) = cfl*dx(1)
-
-     ! Set the dt for all levels based on refinement ratio
-     do n = 2, max_levs 
-        dt(n) = dt(n-1) / dble(num_substeps)
-     end do
-
-  endif
-
   ! Write plotfile at t=0
   call write_plotfile(mla,phi_new,istep,dx,time,prob_lo,prob_hi)
 
@@ -340,17 +342,8 @@ program main
 
   do istep=1,nsteps
 
-     if (time+dt(1) .gt. stop_time) then
-        if (.not.do_subcycling) then
-           dt(:) = stop_time - time
-        else
-           dt(1) = stop_time - time
-           ! Set the dt for all levels based on refinement ratio
-           do n = 2, max_levs 
-              dt(n) = dt(n-1) / dble(num_substeps)
-           end do
-        endif
-     end if
+     ! Compute dt using the CFL condition and making sure we don't go past stop_time
+     call compute_dt(velocity,time,dt)
 
      ! regrid
      if ( istep > 1 .and. max_levs > 1 .and. regrid_int > 0 .and. &
@@ -463,5 +456,67 @@ program main
   call flush(6)
 
   call boxlib_finalize()
+
+contains
+
+  subroutine compute_dt(vel,time_n,dt)
+
+      type(multifab) , intent(inout) :: vel(:,:)
+      real(dp_t)     , intent(in   ) :: time_n
+      real(dp_t)     , intent(inout) :: dt(:)
+
+      ! Local variables
+      real(dp_t)                     :: dt_old(mla%nlevel)
+      real(dp_t)                     :: cfl_grow_fac
+
+      ! We don't let dt grow by more than 10% over the previous dt
+      cfl_grow_fac = 1.1d0
+
+      ! Here we set the velocity so we can find the max vel to use in setting dt
+      call set_velocity(mla,vel,dx,time_n)
+
+      vmax = -HUGE(1.d0)
+      do n = 1, nlevs
+         do i=1,dim
+            vmax = max(vmax,norm_inf(vel(n,i)))
+         end do
+      end do
+
+      ! Store the old dt so we make sure we don't grow too fast
+      dt_old(1:nlevs) = dt(1:nlevs)
+
+      if (.not.do_subcycling) then
+
+         ! Choose a time step with a local advective CFL of "cfl" (set in the inputs file)
+         ! Set the dt for all levels based on the criterion at the finest level
+         dt(:) = cfl*dx(nlevs) / vmax
+
+         ! We don't let dt grow by more than the factor of cfl_grow_fac over the previous dt
+         dt(:) = min(dt(:), cfl_grow_fac * dt_old(:))
+
+         ! Make sure we don't overshoot stop_time
+         if (time+dt(1) .gt. stop_time) &
+            dt(:) = stop_time - time
+
+      else
+
+         ! Choose a time step with a local advective CFL of "cfl" (set in the inputs file)
+         dt(1) = cfl*dx(1) / vmax
+
+         ! We don't let dt grow by more than the factor of cfl_grow_fac over the previous dt
+         dt(1) = min(dt(1), cfl_grow_fac * dt_old(1))
+
+         ! Make sure we don't overshoot stop_time
+         if (time+dt(1) .gt. stop_time) &
+             dt(1) = stop_time - time
+    
+         ! Set the dt for all levels based on refinement ratio
+         do n = 2, nlevs 
+            dt(n) = dt(n-1) / dble(num_substeps)
+         end do
+
+      endif
+
+  end subroutine compute_dt
 
 end program main

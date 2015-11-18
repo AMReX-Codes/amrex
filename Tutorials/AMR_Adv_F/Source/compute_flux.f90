@@ -122,22 +122,14 @@ contains
     double precision, allocatable :: slope(:,:)
     double precision, allocatable :: phix   (:,:)
     double precision, allocatable :: phiy   (:,:)
-    double precision, allocatable :: phix_1d(:,:)
-    double precision, allocatable :: phiy_1d(:,:)
 
     allocate(slope  (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1))
 
-    ! final edge states
-    ! allocated from lo:hi+1 in the normal direction
-    !           from lo:hi   in the transverse direction
-    allocate(phix   (lo(1):hi(1)+1,lo(2):hi(2)  ))
-    allocate(phiy   (lo(1):hi(1)  ,lo(2):hi(2)+1))
-
     ! normal (1D) predictor states
-    ! allocated from lo:hi+1  in the normal direction
+    ! allocated from lo  :hi+1 in the normal direction
     !                lo-1:hi+1 in the transverse directions
-    allocate(phix_1d(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
-    allocate(phiy_1d(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
+    allocate(phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1))
+    allocate(phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1))
 
     hdtdx = dt/(2.d0*dx)
 
@@ -155,9 +147,9 @@ contains
        do i=lo(1),hi(1)+1
 
           if (umac(i,j) .lt. 0.d0) then
-             phix_1d(i,j) = phi(i  ,j) - (0.5d0 + hdtdx*umac(i,j))*slope(i  ,j)
+             phix(i,j) = phi(i  ,j) - (0.5d0 + hdtdx*umac(i,j))*slope(i  ,j)
           else
-             phix_1d(i,j) = phi(i-1,j) + (0.5d0 - hdtdx*umac(i,j))*slope(i-1,j)
+             phix(i,j) = phi(i-1,j) + (0.5d0 - hdtdx*umac(i,j))*slope(i-1,j)
           end if
 
        end do
@@ -173,9 +165,9 @@ contains
        do i=lo(1)-1,hi(1)+1
 
           if (vmac(i,j) .lt. 0.d0) then
-             phiy_1d(i,j) = phi(i,j  ) - (0.5d0 + hdtdx*vmac(i,j))*slope(i,j  )
+             phiy(i,j) = phi(i,j  ) - (0.5d0 + hdtdx*vmac(i,j))*slope(i,j  )
           else
-             phiy_1d(i,j) = phi(i,j-1) + (0.5d0 - hdtdx*vmac(i,j))*slope(i,j-1)
+             phiy(i,j) = phi(i,j-1) + (0.5d0 - hdtdx*vmac(i,j))*slope(i,j-1)
           end if
 
        end do
@@ -186,13 +178,15 @@ contains
        do i=lo(1),hi(1)+1
 
           if (umac(i,j) .lt. 0.d0) then
-             phix(i,j) = phix_1d(i,j) - hdtdx*( 0.5d0*(vmac(i  ,j+1)+vmac(i  ,j)) * (phiy_1d(i  ,j+1)-phiy_1d(i  ,j)) )
+             fluxx(i,j) = phix(i,j) &
+                  - hdtdx*( 0.5d0*(vmac(i  ,j+1)+vmac(i  ,j)) * (phiy(i  ,j+1)-phiy(i  ,j)) )
           else
-             phix(i,j) = phix_1d(i,j) - hdtdx*( 0.5d0*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy_1d(i-1,j+1)-phiy_1d(i-1,j)) )
+             fluxx(i,j) = phix(i,j) &
+                  - hdtdx*( 0.5d0*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy(i-1,j+1)-phiy(i-1,j)) )
           end if
 
           ! compute final x-fluxes
-          fluxx(i,j) = -phix(i,j)*umac(i,j)
+          fluxx(i,j) = fluxx(i,j)*umac(i,j)
 
        end do
     end do
@@ -202,18 +196,20 @@ contains
        do i=lo(1),hi(1)
 
           if (vmac(i,j) .lt. 0.d0) then
-             phiy(i,j) = phiy_1d(i,j) - hdtdx*( 0.5d0*(umac(i+1,j  )+umac(i,j  )) * (phix_1d(i+1,j  )-phix_1d(i,j  )) )
+             fluxy(i,j) = phiy(i,j) &
+                  - hdtdx*( 0.5d0*(umac(i+1,j  )+umac(i,j  )) * (phix(i+1,j  )-phix(i,j  )) )
           else
-             phiy(i,j) = phiy_1d(i,j) - hdtdx*( 0.5d0*(umac(i+1,j-1)+umac(i,j-1)) * (phix_1d(i+1,j-1)-phix_1d(i,j-1)) )
+             fluxy(i,j) = phiy(i,j) &
+                  - hdtdx*( 0.5d0*(umac(i+1,j-1)+umac(i,j-1)) * (phix(i+1,j-1)-phix(i,j-1)) )
           end if
 
           ! compute final y-fluxes
-          fluxy(i,j) = -phiy(i,j)*vmac(i,j)
+          fluxy(i,j) = fluxy(i,j)*vmac(i,j)
 
        end do
     end do
 
-    deallocate(slope,phix,phiy,phix_1d,phiy_1d)
+    deallocate(slope,phix,phiy)
 
   end subroutine compute_flux_2d
 
@@ -237,37 +233,27 @@ contains
     double precision :: hdtdx, tdtdx
     double precision, allocatable :: slope(:,:,:)
     double precision, allocatable :: phix   (:,:,:)
-    double precision, allocatable :: phix_1d(:,:,:)
     double precision, allocatable :: phix_y (:,:,:)
     double precision, allocatable :: phix_z (:,:,:)
     double precision, allocatable :: phiy   (:,:,:)
-    double precision, allocatable :: phiy_1d(:,:,:)
     double precision, allocatable :: phiy_x (:,:,:)
     double precision, allocatable :: phiy_z (:,:,:)
     double precision, allocatable :: phiz   (:,:,:)
-    double precision, allocatable :: phiz_1d(:,:,:)
     double precision, allocatable :: phiz_x (:,:,:)
     double precision, allocatable :: phiz_y (:,:,:)
 
     allocate(slope  (lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
 
-    ! final edge states
-    ! allocated from lo:hi+1 in the normal direction
-    !           from lo:hi   in the transverse direction
-    allocate(phix   (lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ))
-    allocate(phiy   (lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ))
-    allocate(phiz   (lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1))
-
     ! normal (1D) predictor states
-    ! allocated from lo:hi+1   in the normal direction
+    ! allocated from lo  :hi+1 in the normal direction
     !                lo-1:hi+1 in the transverse directions
-    allocate(phix_1d(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiy_1d(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
-    allocate(phiz_1d(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
+    allocate(phix(lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiy(lo(1)-1:hi(1)+1,lo(2)  :hi(2)+1,lo(3)-1:hi(3)+1))
+    allocate(phiz(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)+1))
 
     ! These are transverse terms.  The size allocation is tricky.
-    ! lo:hi+1   in the normal direction
-    ! lo:hi     in the transverse direction
+    ! lo  :hi+1 in the normal direction
+    ! lo  :hi   in the transverse direction
     ! lo-1:hi+1 in the unused direction
     allocate(phix_y (lo(1)  :hi(1)+1,lo(2)  :hi(2)  ,lo(3)-1:hi(3)+1))
     allocate(phix_z (lo(1)  :hi(1)+1,lo(2)-1:hi(2)+1,lo(3)  :hi(3)  ))
@@ -290,9 +276,9 @@ contains
           do i=lo(1),hi(1)+1
 
              if (umac(i,j,k) .lt. 0.d0) then
-                phix_1d(i,j,k) = phi(i  ,j,k) - (0.5d0 + hdtdx*umac(i,j,k))*slope(i  ,j,k)
+                phix(i,j,k) = phi(i  ,j,k) - (0.5d0 + hdtdx*umac(i,j,k))*slope(i  ,j,k)
              else
-                phix_1d(i,j,k) = phi(i-1,j,k) + (0.5d0 - hdtdx*umac(i,j,k))*slope(i-1,j,k)
+                phix(i,j,k) = phi(i-1,j,k) + (0.5d0 - hdtdx*umac(i,j,k))*slope(i-1,j,k)
              end if
 
           end do
@@ -309,9 +295,9 @@ contains
           do i=lo(1)-1,hi(1)+1
 
              if (vmac(i,j,k) .lt. 0.d0) then
-                phiy_1d(i,j,k) = phi(i,j  ,k) - (0.5d0 + hdtdx*vmac(i,j,k))*slope(i,j  ,k)
+                phiy(i,j,k) = phi(i,j  ,k) - (0.5d0 + hdtdx*vmac(i,j,k))*slope(i,j  ,k)
              else
-                phiy_1d(i,j,k) = phi(i,j-1,k) + (0.5d0 - hdtdx*vmac(i,j,k))*slope(i,j-1,k)
+                phiy(i,j,k) = phi(i,j-1,k) + (0.5d0 - hdtdx*vmac(i,j,k))*slope(i,j-1,k)
              end if
 
           end do
@@ -328,9 +314,9 @@ contains
           do i=lo(1)-1,hi(1)+1
 
              if (wmac(i,j,k) .lt. 0.d0) then
-                phiz_1d(i,j,k) = phi(i,j,k  ) - (0.5d0 + hdtdx*wmac(i,j,k))*slope(i,j,k  )
+                phiz(i,j,k) = phi(i,j,k  ) - (0.5d0 + hdtdx*wmac(i,j,k))*slope(i,j,k  )
              else
-                phiz_1d(i,j,k) = phi(i,j,k-1) + (0.5d0 - hdtdx*wmac(i,j,k))*slope(i,j,k-1)
+                phiz(i,j,k) = phi(i,j,k-1) + (0.5d0 - hdtdx*wmac(i,j,k))*slope(i,j,k-1)
              end if
 
           end do
@@ -347,11 +333,11 @@ contains
           do i=lo(1),hi(1)+1
 
              if (umac(i,j,k) .lt. 0.d0) then
-                phix_y(i,j,k) = phix_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_1d(i  ,j+1,k)-phiy_1d(i  ,j,k)) )
+                phix_y(i,j,k) = phix(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy(i  ,j+1,k)-phiy(i  ,j,k)) )
              else
-                phix_y(i,j,k) = phix_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(vmac(i-1,j+1,k)+vmac(i-1,j,k)) * (phiy_1d(i-1,j+1,k)-phiy_1d(i-1,j,k)) )
+                phix_y(i,j,k) = phix(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i-1,j+1,k)+vmac(i-1,j,k)) * (phiy(i-1,j+1,k)-phiy(i-1,j,k)) )
              end if
 
           end do
@@ -364,11 +350,11 @@ contains
           do i=lo(1),hi(1)+1
 
              if (umac(i,j,k) .lt. 0.d0) then
-                phix_z(i,j,k) = phix_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(wmac(i  ,j,k+1)+wmac(i  ,j,k)) * (phiz_1d(i  ,j,k+1)-phiz_1d(i  ,j,k)) )
+                phix_z(i,j,k) = phix(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i  ,j,k+1)+wmac(i  ,j,k)) * (phiz(i  ,j,k+1)-phiz(i  ,j,k)) )
              else
-                phix_z(i,j,k) = phix_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(wmac(i-1,j,k+1)+wmac(i-1,j,k)) * (phiz_1d(i-1,j,k+1)-phiz_1d(i-1,j,k)) )
+                phix_z(i,j,k) = phix(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i-1,j,k+1)+wmac(i-1,j,k)) * (phiz(i-1,j,k+1)-phiz(i-1,j,k)) )
              end if
 
           end do
@@ -381,11 +367,11 @@ contains
           do i=lo(1),hi(1)
 
              if (vmac(i,j,k) .lt. 0.d0) then
-                phiy_x(i,j,k) = phiy_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(umac(i+1,j  ,k)+umac(i,j  ,k)) * (phix_1d(i+1,j  ,k)-phix_1d(i,j  ,k)) )
+                phiy_x(i,j,k) = phiy(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j  ,k)+umac(i,j  ,k)) * (phix(i+1,j  ,k)-phix(i,j  ,k)) )
              else
-                phiy_x(i,j,k) = phiy_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(umac(i+1,j-1,k)+umac(i,j-1,k)) * (phix_1d(i+1,j-1,k)-phix_1d(i,j-1,k)) )
+                phiy_x(i,j,k) = phiy(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j-1,k)+umac(i,j-1,k)) * (phix(i+1,j-1,k)-phix(i,j-1,k)) )
              end if
 
           end do
@@ -398,11 +384,11 @@ contains
           do i=lo(1)-1,hi(1)+1
 
              if (vmac(i,j,k) .lt. 0.d0) then
-                phiy_z(i,j,k) = phiy_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(wmac(i,j  ,k+1)+wmac(i,j  ,k)) * (phiz_1d(i,j  ,k+1)-phiz_1d(i,j  ,k)) )
+                phiy_z(i,j,k) = phiy(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i,j  ,k+1)+wmac(i,j  ,k)) * (phiz(i,j  ,k+1)-phiz(i,j  ,k)) )
              else
-                phiy_z(i,j,k) = phiy_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(wmac(i,j-1,k+1)+wmac(i,j-1,k)) * (phiz_1d(i,j-1,k+1)-phiz_1d(i,j-1,k)) )
+                phiy_z(i,j,k) = phiy(i,j,k) &
+                     - tdtdx* (0.5d0*(wmac(i,j-1,k+1)+wmac(i,j-1,k)) * (phiz(i,j-1,k+1)-phiz(i,j-1,k)) )
              end if
 
           end do
@@ -415,11 +401,11 @@ contains
           do i=lo(1),hi(1)
 
              if (wmac(i,j,k) .lt. 0.d0) then
-                phiz_x(i,j,k) = phiz_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(umac(i+1,j,k  )+umac(i,j,k  )) * (phix_1d(i+1,j,k  )-phix_1d(i,j,k  )) )
+                phiz_x(i,j,k) = phiz(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j,k  )+umac(i,j,k  )) * (phix(i+1,j,k  )-phix(i,j,k  )) )
              else
-                phiz_x(i,j,k) = phiz_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(umac(i+1,j,k-1)+umac(i,j,k-1)) * (phix_1d(i+1,j,k-1)-phix_1d(i,j,k-1)) )
+                phiz_x(i,j,k) = phiz(i,j,k) &
+                     - tdtdx* (0.5d0*(umac(i+1,j,k-1)+umac(i,j,k-1)) * (phix(i+1,j,k-1)-phix(i,j,k-1)) )
              end if
 
           end do
@@ -432,11 +418,11 @@ contains
           do i=lo(1)-1,hi(1)+1
 
              if (wmac(i,j,k) .lt. 0.d0) then
-                phiz_y(i,j,k) = phiz_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(vmac(i,j+1,k  )+vmac(i,j,k  )) * (phiy_1d(i,j+1,k  )-phiy_1d(i,j,k  )) )
+                phiz_y(i,j,k) = phiz(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i,j+1,k  )+vmac(i,j,k  )) * (phiy(i,j+1,k  )-phiy(i,j,k  )) )
              else
-                phiz_y(i,j,k) = phiz_1d(i,j,k) &
-                     - tdtdx* (0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy_1d(i,j+1,k-1)-phiy_1d(i,j,k-1)) )
+                phiz_y(i,j,k) = phiz(i,j,k) &
+                     - tdtdx* (0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy(i,j+1,k-1)-phiy(i,j,k-1)) )
              end if
 
           end do
@@ -453,17 +439,17 @@ contains
           do i=lo(1),hi(1)+1
 
              if (umac(i,j,k) .lt. 0.d0) then
-                phix(i,j,k) = phix_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_z(i  ,j+1,k)-phiy_z(i  ,j,k)) ) &
-                     - hdtdx*( 0.5d0*(wmac(i  ,j,k+1)+wmac(i  ,j,k)) * (phiz_y(i  ,j,k+1)-phiz_y(i  ,j,k)) )
+                fluxx(i,j,k) = phix(i,j,k) &
+                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k  )+vmac(i  ,j,k)) * (phiy_z(i  ,j+1,k  )-phiy_z(i  ,j,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i  ,j  ,k+1)+wmac(i  ,j,k)) * (phiz_y(i  ,j  ,k+1)-phiz_y(i  ,j,k)) )
              else
-                phix(i,j,k) = phix_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(vmac(i-1,j+1,k)+vmac(i-1,j,k)) * (phiy_z(i-1,j+1,k)-phiy_z(i-1,j,k)) ) &
-                     - hdtdx*( 0.5d0*(wmac(i-1,j,k+1)+wmac(i-1,j,k)) * (phiz_y(i-1,j,k+1)-phiz_y(i-1,j,k)) )
+                fluxx(i,j,k) = phix(i,j,k) &
+                     - hdtdx*( 0.5d0*(vmac(i-1,j+1,k  )+vmac(i-1,j,k)) * (phiy_z(i-1,j+1,k  )-phiy_z(i-1,j,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i-1,j  ,k+1)+wmac(i-1,j,k)) * (phiz_y(i-1,j  ,k+1)-phiz_y(i-1,j,k)) )
              end if
 
              ! compute final x-fluxes
-             fluxx(i,j,k) = -umac(i,j,k)*phix(i,j,k)
+             fluxx(i,j,k) = fluxx(i,j,k)*umac(i,j,k)
 
           end do
        end do
@@ -475,17 +461,17 @@ contains
           do i=lo(1),hi(1)
 
              if (vmac(i,j,k) .lt. 0.d0) then
-                phiy(i,j,k) = phiy_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(umac(i+1,j  ,k)+umac(i,j  ,k)) * (phix_z(i+1,j  ,k)-phix_z(i,j  ,k)) ) &
-                     - hdtdx*( 0.5d0*(wmac(i,j  ,k+1)+wmac(i,j  ,k)) * (phiz_x(i,j  ,k+1)-phiz_x(i,j  ,k)) )
+                fluxy(i,j,k) = phiy(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j  ,k  )+umac(i,j  ,k)) * (phix_z(i+1,j  ,k  )-phix_z(i,j  ,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i  ,j  ,k+1)+wmac(i,j  ,k)) * (phiz_x(i  ,j  ,k+1)-phiz_x(i,j  ,k)) )
              else
-                phiy(i,j,k) = phiy_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(umac(i+1,j-1,k)+umac(i,j-1,k)) * (phix_z(i+1,j-1,k)-phix_z(i,j-1,k)) ) &
-                     - hdtdx*( 0.5d0*(wmac(i,j-1,k+1)+wmac(i,j-1,k)) * (phiz_x(i,j-1,k+1)-phiz_x(i,j-1,k)) )
+                fluxy(i,j,k) = phiy(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j-1,k  )+umac(i,j-1,k)) * (phix_z(i+1,j-1,k  )-phix_z(i,j-1,k)) ) &
+                     - hdtdx*( 0.5d0*(wmac(i  ,j-1,k+1)+wmac(i,j-1,k)) * (phiz_x(i  ,j-1,k+1)-phiz_x(i,j-1,k)) )
              end if
 
              ! compute final y-fluxes
-             fluxy(i,j,k) = -vmac(i,j,k)*phiy(i,j,k)
+             fluxy(i,j,k) = fluxy(i,j,k)*vmac(i,j,k)
 
           end do
        end do
@@ -497,17 +483,17 @@ contains
           do i=lo(1),hi(1)
 
              if (wmac(i,j,k) .lt. 0.d0) then
-                phiz(i,j,k) = phiz_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(umac(i+1,j,k  )+umac(i  ,j,k)) * (phix_y(i+1,j,k  )-phix_y(i,j,k  )) ) &
-                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k)+vmac(i  ,j,k)) * (phiy_x(i,j+1,k  )-phiy_x(i,j,k  )) )
+                fluxz(i,j,k) = phiz(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j  ,k  )+umac(i  ,j,k)) * (phix_y(i+1,j  ,k  )-phix_y(i,j,k  )) ) &
+                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k  )+vmac(i  ,j,k)) * (phiy_x(i  ,j+1,k  )-phiy_x(i,j,k  )) )
              else
-                phiz(i,j,k) = phiz_1d(i,j,k) &
-                     - hdtdx*( 0.5d0*(umac(i+1,j,k-1)+umac(i,j,k-1)) * (phix_y(i+1,j,k-1)-phix_y(i,j,k-1)) ) &
-                     - hdtdx*( 0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy_x(i,j+1,k-1)-phiy_x(i,j,k-1)) )
+                fluxz(i,j,k) = phiz(i,j,k) &
+                     - hdtdx*( 0.5d0*(umac(i+1,j  ,k-1)+umac(i,j,k-1)) * (phix_y(i+1,j  ,k-1)-phix_y(i,j,k-1)) ) &
+                     - hdtdx*( 0.5d0*(vmac(i  ,j+1,k-1)+vmac(i,j,k-1)) * (phiy_x(i  ,j+1,k-1)-phiy_x(i,j,k-1)) )
              end if
 
              ! compute final z-fluxes
-             fluxz(i,j,k) = -wmac(i,j,k)*phiz(i,j,k)
+             fluxz(i,j,k) = fluxz(i,j,k)*wmac(i,j,k)
 
           end do
        end do
@@ -515,7 +501,7 @@ contains
 
 
     deallocate(slope,phix,phix_y,phix_z,phiy,phiy_x,phiy_z)
-    deallocate(phiz,phiz_x,phiz_y,phix_1d,phiy_1d,phiz_1d)
+    deallocate(phiz,phiz_x,phiz_y)
 
   end subroutine compute_flux_3d
 
