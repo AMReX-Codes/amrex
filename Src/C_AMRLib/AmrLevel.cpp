@@ -2,6 +2,8 @@
 #include <winstd.H>
 #include <sstream>
 
+#include <unistd.h>
+
 #include <AmrLevel.H>
 #include <Derive.H>
 #include <ParallelDescriptor.H>
@@ -1911,8 +1913,13 @@ ParallelDescriptor::Barrier(scsComm);
 #endif
 
       for(int i(0); i < state.size(); ++i) {
-        state[i].MakeSidecarsSmaller(...);
+        state[i].MakeSidecarsSmaller(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
+cout << ParallelDescriptor::MyProcAll() << "::::_here 9:  scsMyId = "
+     << scsMyId << endl;
+sleep(1);
+ParallelDescriptor::Barrier(scsComm);
+
 }
 
 

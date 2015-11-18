@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 
+#include <unistd.h>
+
 #include <RealBox.H>
 #include <StateData.H>
 #include <StateDescriptor.H>
@@ -623,4 +625,69 @@ StateData::printTimeInterval (std::ostream &os) const
        << ']'
        << '\n';
 }
+
+
+void StateData::MakeSidecarsSmaller(const StateDescriptor &sdPtr,
+                                    int ioProcNumSCS, int ioProcNumAll,
+                                    int scsMyId, MPI_Comm scsComm)
+{
+using std::cout;
+using std::endl;
+cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  scsMyId = "
+           << scsMyId << endl;
+sleep(1);
+ParallelDescriptor::Barrier(scsComm);
+
+      desc = &sdPtr;
+
+      // ---- TimeIntervals
+      ParallelDescriptor::Bcast(&new_time.start, 1, ioProcNumSCS, scsComm);
+      ParallelDescriptor::Bcast(&new_time.stop,  1, ioProcNumSCS, scsComm);
+      ParallelDescriptor::Bcast(&old_time.start, 1, ioProcNumSCS, scsComm);
+      ParallelDescriptor::Bcast(&old_time.stop,  1, ioProcNumSCS, scsComm);
+
+      // ---- Boxes
+      Array<int> baseBoxAI;
+      if(scsMyId == ioProcNumSCS) {
+        baseBoxAI = BoxLib::SerializeBox(domain);
+      }
+      if(scsMyId != ioProcNumSCS) {
+        baseBoxAI.resize(BoxLib::SerializeBoxSize());
+      }
+      ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        domain = BoxLib::UnSerializeBox(baseBoxAI);
+      }
+///////  make broadcast box function
+///////  make broadcast boxarray function
+
+      // ---- BoxArrays
+      int sbaG_Size(-2);
+      Array<int> sbaG;
+      if(scsMyId == ioProcNumSCS) {
+        sbaG = BoxLib::SerializeBoxArray(grids);
+        sbaG_Size = sbaG.size();
+      }
+      ParallelDescriptor::Bcast(&sbaG_Size, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        sbaG.resize(sbaG_Size);
+      }
+      if(sbaG_Size > 0) {
+        ParallelDescriptor::Bcast(sbaG.dataPtr(), sbaG.size(), ioProcNumSCS, scsComm);
+      }
+      if(scsMyId != ioProcNumSCS) {
+        if(sbaG_Size > 0) {
+          grids = BoxLib::UnSerializeBoxArray(sbaG);
+        }
+      }
+
+      //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.faID  old_data.faID = "
+           //<< new_data->FabArrayID() << "  " << old_data->FabArrayID() << endl;
+      cout << ParallelDescriptor::MyProcAll() << "::::_here 1:  new_data  old_data = "
+           << new_data << "  " << old_data << endl;
+
+      ParallelDescriptor::Barrier(scsComm);
+}
+
+
 
