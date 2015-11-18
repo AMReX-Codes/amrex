@@ -39,15 +39,11 @@ Adv::estTimeStep (Real)
 			BL_TO_FORTRAN(uface[2])),
 		 dx, prob_lo);
 
-	    Real mxnorm[BL_SPACEDIM];
-	    Real umax = 0.0;
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		mxnorm[i] = uface[i].norm(0);
-		umax = std::max(umax,mxnorm[i]);
-	    }
-	    Real ueps = umax * 1.e-10;
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		dt_est = std::min(dt_est, dx[i] / (ueps + mxnorm[i]));
+		Real umax = uface[i].norm(0);
+		if (umax > 1.e-100) {
+		    dt_est = std::min(dt_est, dx[i] / umax);
+		}
 	    }
 	}
     }
@@ -93,7 +89,18 @@ Adv::computeNewDt (int                   finest_level,
 	{
 	    dt_min[i] = std::min(dt_min[i],dt_level[i]);
 	}
-    } 
+    }
+    else 
+    {
+	//
+	// Limit dt's by change_max * old dt
+	//
+	static Real change_max = 1.1;
+	for (int i = 0; i <= finest_level; i++)
+	{
+	    dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
+	}
+    }
     
     //
     // Find the minimum over all levels

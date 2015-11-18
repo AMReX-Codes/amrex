@@ -11,7 +11,7 @@ module advance_module
   use bndry_reg_module
   use compute_flux_module
   use update_phi_module
-  use compute_velocity_module
+  use set_velocity_module
 
   implicit none
 
@@ -81,7 +81,7 @@ contains
              end do
           end do
 
-          call compute_velocity(mla,velocity,dx,time+0.5d0*dt(1))
+          call set_velocity(mla,velocity,dx,time+0.5d0*dt(1))
           
           ! Copy phi_new from the previous time step into phi_old for this time step
           do n = 1, nlevs
@@ -135,7 +135,7 @@ contains
        print*,'   Advancing level: ',n,' with dt = ',dt(n)
 
     ! compute velocity at half-time level
-    call compute_velocity(mla,velocity,dx,tplushalf)
+    call set_velocity(mla,velocity,dx,tplushalf)
 
     ! Copy phi_new from the previous time step into phi_old for this time step
     call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
@@ -194,7 +194,7 @@ contains
 
     if (n .gt. 1) then
        ! Copy fine fluxes from cell boundaries into boundary registers for use in refluxing.
-       scale = dt(n)*dx(n)**(dm-1) ! dt*area
+       scale = -dt(n)*dx(n)**(dm-1) ! -dt*area
        call flux_reg_fine_add(bndry_flx(n),flux,scale)
     end if
 
@@ -206,7 +206,7 @@ contains
 
     else  ! Now recursively update the next finer level
 
-       scale = -dt(n)*dx(n)**(dm-1) ! -dt*area
+       scale = dt(n)*dx(n)**(dm-1) ! dt*area
        call flux_reg_crse_init(bndry_flx(n+1), flux, scale)
 
        do i = 1, dm

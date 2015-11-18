@@ -1,41 +1,13 @@
 
 subroutine PROBINIT (init,name,namlen,problo,probhi)
 
-  use probdata_module
-
   implicit none
 
   integer, intent(in) :: init, namlen
   integer, intent(in) :: name(namlen)
   double precision, intent(in) :: problo(*), probhi(*)
 
-  integer untin,i
-
-  namelist /fortin/ adv_vel
-  
-  !
-  ! Build "probin" filename -- the name of file containing fortin namelist.
-  !     
-  integer maxlen
-  parameter (maxlen=256)
-  character probin*(maxlen)
-  
-  if (namlen .gt. maxlen) then
-     write(6,*) 'probin file name too long'
-     stop
-  end if
-  
-  do i = 1, namlen
-     probin(i:i) = char(name(i))
-  end do
-  
-  adv_vel = 1.d0
-
-  ! Read namelists
-  untin = 9
-  open(untin,file=probin(1:namlen),form='formatted',status='old')
-  read(untin,fortin)
-  close(unit=untin)
+  ! nothing needs to be done here
 
 end subroutine PROBINIT
 
@@ -70,10 +42,10 @@ subroutine initdata(level, time, lo, hi, &
            x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
            
            if ( dm.eq. 2) then
-              r2 = ((x-0.0d0)**2 + (y-0.0d0)**2) / 0.01d0
+              r2 = ((x-0.5d0)**2 + (y-0.75d0)**2) / 0.01d0
               phi(i,j,k) = 1.d0 + exp(-r2)
            else
-              r2 = ((x-0.0d0)**2 + (y-0.0d0)**2 + (z-0.0d0)**2) / 0.01d0
+              r2 = ((x-0.5d0)**2 + (y-0.75d0)**2 + (z-0.5d0)**2) / 0.01d0
               phi(i,j,k) = 1.d0 + exp(-r2)
            end if
         end do

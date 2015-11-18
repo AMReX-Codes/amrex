@@ -6,7 +6,7 @@
 #include <ParmParse.H>
 
 int      Adv::verbose         = 0;
-Real     Adv::cfl             = 0.8;
+Real     Adv::cfl             = 0.9;
 int      Adv::do_reflux       = 1;
 
 int      Adv::NUM_STATE       = 1;  // One variable in the state
@@ -242,6 +242,10 @@ Adv::errorEst (TagBoxArray& tags,
 		 &tagval, &clearval, 
 		 ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
 		 ZFILL(dx), ZFILL(prob_lo), &time, &level);
+	    //
+	    // Now update the tags in the TagBox.
+	    //
+	    tagfab.tags_and_untags(itags, tilebx);
 	}
     }
 }

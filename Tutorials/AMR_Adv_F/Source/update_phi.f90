@@ -106,8 +106,9 @@ contains
 
     do j=lo(2),hi(2)
        do i=lo(1),hi(1)
-          phi_new(i,j) = phi_old(i,j) + &
-               ( fluxx(i+1,j)-fluxx(i,j) + fluxy(i,j+1)-fluxy(i,j) ) * dtdx
+          phi_new(i,j) = phi_old(i,j) - &
+               ( fluxx(i+1,j)-fluxx(i,j) &
+                +fluxy(i,j+1)-fluxy(i,j) ) * dtdx
        end do
     end do
 
@@ -133,7 +134,7 @@ contains
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
           do i=lo(1),hi(1)
-             phi_new(i,j,k) = phi_old(i,j,k) + &
+             phi_new(i,j,k) = phi_old(i,j,k) - &
                   ( fluxx(i+1,j,k)-fluxx(i,j,k) &
                    +fluxy(i,j+1,k)-fluxy(i,j,k) &
                    +fluxz(i,j,k+1)-fluxz(i,j,k) ) * dtdx
