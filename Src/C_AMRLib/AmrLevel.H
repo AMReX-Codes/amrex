@@ -429,9 +429,9 @@ public:
 			  int       ncomp,
 	                  int       dcomp=0);
     
-    void MakeSidecarsSmaller(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                             int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			     MPI_Comm scsComm);
+    virtual void MakeSidecarsSmaller(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
+                                     int ioProcNumSCS, int ioProcNumAll, int scsMyId,
+			             MPI_Comm scsComm);
 
 protected:
     //
