@@ -306,7 +306,7 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm mpi_comm)
 {
-    m_comm_all = mpi_comm;
+    //m_comm_all = mpi_comm;
 
     int sflag(0);
 
@@ -316,6 +316,8 @@ ParallelDescriptor::StartParallel (int*    argc,
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
     }
     
+    BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
+
     // ---- find the maximum value for a tag
     int flag(0), *attrVal;
     BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
