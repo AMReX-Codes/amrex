@@ -1030,7 +1030,7 @@ def convert_to_f_make_flag(opt, test_not=False):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-def test_suite():
+def test_suite(argv):
 
     usage = """
     input file structure
@@ -1267,7 +1267,7 @@ def test_suite():
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    args=get_args()
+    args=get_args(arg_string=argv)
 
     #--------------------------------------------------------------------------
     # read in the test information
@@ -2988,4 +2988,4 @@ def report_all_runs(suite, activeTestList):
 # m a i n
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 if __name__== "__main__":
-    test_suite()
+    test_suite(sys.argv[1:])
