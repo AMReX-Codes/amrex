@@ -46,6 +46,7 @@ public:
     // Return bndry values (used in calls to FORTRAN).
     //
     const int* vect () const { return bc; }
+    int vectSize () const { return (2 * BL_SPACEDIM); }
     //
     // Return low-end boundary data.
     //
