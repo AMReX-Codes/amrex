@@ -1746,6 +1746,7 @@ MultiFab::CreateHPGMGLevel (level_type* level,
     // All the boxes have identical size and shape, so we just pick one of them
     // as a representative to fill in all the level data for HPGMG.
     MFIter mfi(mf);
+    while (!mfi.isValid()) ++mfi;
 
     const Box& bx = mfi.validbox();
     const int box_dim = bx.length(0); /* Since we've already checked that all boxes are the same size, we can just use the size from one of them here. */
