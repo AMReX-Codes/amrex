@@ -17,7 +17,7 @@
 #define STENCIL_MAX_SHAPES        3
 #define  VECTOR_ALPHA        5  // cell centered coefficient
 #define BC_PERIODIC  0
-#define  VECTOR_UTRUE        1  // exact solution used to generate f
+#define  VECTOR_E            1  // error used in residual correction FMG
 #define  VECTOR_F            3  // original right-hand side (Au=f), cell centered
 #define  VECTOR_U            4  // numerical solution
 #define BC_DIRICHLET 1
@@ -117,9 +117,11 @@ typedef struct {
   #endif
   double dominant_eigenvalue_of_DinvA;		// estimate on the dominate eigenvalue of D^{-1}A
   int must_subtract_mean;			// e.g. Poisson with Periodic BC's
+  double    * __restrict__ RedBlack_base;       // allocated pointer... will be aligned for the first non ghost zone element
   double    * __restrict__ RedBlack_FP;	        // Red/Black Mask (i.e. 0.0 or 1.0) for even/odd planes (2*kStride).
 
   int num_threads;
+  double    * __restrict__ fluxes;		// temporary array used to hold the flux values used by FV operators
 
   // statistics information...
   struct {
@@ -187,7 +189,6 @@ extern "C" {
                                int write_scale, int my_blockcopy_tile_i,
                                int my_blockcopy_tile_j, int my_blockcopy_tile_k,
                                int subtype);
-    void initialize_valid_region (level_type * level);
     void build_exchange_ghosts (level_type * level, int shape);
     void build_boundary_conditions (level_type * level, int shape);
     void initialize_problem (level_type * level, double hLevel, double a, double b);
