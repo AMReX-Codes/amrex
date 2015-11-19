@@ -352,11 +352,11 @@ public:
     static IntVect comm_tile_size;  // communication tile size
 
     //
-    // The number of FabArrays defined
+    // The number of FabArrays that have been defined during this run
     //
     static int nFabArrays;
     static int NFabArrays() { return nFabArrays; }
-    int FabArrayID() const  { return faID; }
+    int AllocatedFAPtrID() const  { return aFAPId; }
 
     // DO NOT CALL THESE IF YOU DO NOT KNOW WHAT YOU ARE DOING!!!
     //
@@ -379,7 +379,7 @@ protected:
     Array<int>          indexMap;
     mutable int         n_grow;
     int                 n_comp;
-    int                 faID;
+    int                 aFAPId;  // ---- id of currently allocated fab array pointers
 
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
@@ -937,7 +937,7 @@ class FabArrayCopyDescriptor
 
     void clear ();
 
-    int nFabArrays () const { return fabArrays.size(); }
+    int CurrentNFabArrays () const { return fabArrays.size(); }
 
     int nFabComTags () const { return fabComTagList.size(); }
 
@@ -1184,7 +1184,7 @@ FabArray<FAB>::clear ()
 #endif
     } else {
       std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.erase(faID);
+      faPtrCachedMap.erase(aFAPId);
     }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
@@ -1325,12 +1325,12 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
       if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
 	int dmapSize(distributionMap.size());
 	std::map<int, FabArray<FAB> *> tempMap;
-	tempMap.insert(std::make_pair(faID, this));
+	tempMap.insert(std::make_pair(aFAPId, this));
         FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
 
       } else {
         std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-        faPtrCachedMap.insert(std::make_pair(faID, this));
+        faPtrCachedMap.insert(std::make_pair(aFAPId, this));
       }
     }
 }

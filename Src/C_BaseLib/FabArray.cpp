@@ -89,7 +89,7 @@ FabArrayBase::Initialize ()
 FabArrayBase::FabArrayBase ()
 {
     Initialize();
-    faID = nFabArrays++;
+    aFAPId = nFabArrays++;
 }
 
 FabArrayBase::~FabArrayBase () {}
