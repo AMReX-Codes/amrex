@@ -1801,6 +1801,7 @@ ParallelDescriptor::Barrier(scsComm);
         parent = aptr;
       }
 
+      // ---- ints
       ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
 
       // ---- IntVects
@@ -1912,9 +1913,17 @@ ParallelDescriptor::Barrier(scsComm);
       particles_on_same_grids = posg;
 #endif
 
+#ifdef USE_SLABSTAT
+      BoxLib::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
+#endif
+
+      // ---- state
       for(int i(0); i < state.size(); ++i) {
         state[i].MakeSidecarsSmaller(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
+
+
+
 cout << ParallelDescriptor::MyProcAll() << "::::_here 9:  scsMyId = "
      << scsMyId << endl;
 sleep(1);

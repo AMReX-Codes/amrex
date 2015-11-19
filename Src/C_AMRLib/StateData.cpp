@@ -638,6 +638,7 @@ cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  scsMyId = "
 sleep(1);
 ParallelDescriptor::Barrier(scsComm);
 
+      // ---- StateDescriptor
       desc = &sdPtr;
 
       // ---- TimeIntervals
@@ -681,8 +682,9 @@ ParallelDescriptor::Barrier(scsComm);
         }
       }
 
-      //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.faID  old_data.faID = "
-           //<< new_data->FabArrayID() << "  " << old_data->FabArrayID() << endl;
+      // ---- MultiFabs
+      //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.aFAPId  old_data.aFAPId = "
+           //<< new_data->AllocatedFAPtrID() << "  " << old_data->AllocatedFAPtrID() << endl;
       cout << ParallelDescriptor::MyProcAll() << "::::_here 1:  new_data  old_data = "
            << new_data << "  " << old_data << endl;
 
