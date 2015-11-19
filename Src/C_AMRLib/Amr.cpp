@@ -3844,7 +3844,7 @@ using std::endl;
     SHOWVAL(mf0.DistributionMap());
     SHOWVAL(mf0.boxArray());
     SHOWVAL(mf0.NFabArrays());
-    SHOWVAL(mf0.FabArrayID());
+    SHOWVAL(mf0.AllocatedFAPtrID());
   }
   SHOWVAL(geom.size());
   for(int i(0); i < geom.size(); ++i) {
