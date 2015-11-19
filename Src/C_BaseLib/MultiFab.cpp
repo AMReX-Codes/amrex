@@ -1756,11 +1756,19 @@ MultiFab::CreateHPGMGLevel (level_type* level,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << std::endl << "attempting to create a " << box_dim*boxes_in_i << "^3 level from " << TotalBoxes << " x " << box_dim << "^3 boxes distributed among " << num_ranks << " tasks..." << std::endl;
-    if (domain_boundary_condition==BC_DIRICHLET)
+      std::cout << std::endl << "attempting to create a " << box_dim*boxes_in_i << "^3 level from " << TotalBoxes << " x " << box_dim << "^3 boxes distributed among " << num_ranks << " tasks..." << std::endl;
+      if (domain_boundary_condition==BC_DIRICHLET)
+      {
         std::cout << "boundary condition = BC_DIRICHLET" << std::endl;
-    if (domain_boundary_condition==BC_PERIODIC)
+      }
+      else if (domain_boundary_condition==BC_PERIODIC)
+      {
         std::cout << "boundary condition = BC_PERIODIC" << std::endl;
+      }
+      else
+      {
+        BoxLib::Error("Unknown boundary condition supplied");
+      }
     }
 
     int omp_threads = 1;
