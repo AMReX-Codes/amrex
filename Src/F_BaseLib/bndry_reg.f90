@@ -18,6 +18,7 @@ module bndry_reg_module
      logical :: other    = .false.
      logical :: mask     = .false.
      logical :: nodal(3) = .false.
+     logical :: have_periodic_boxes = .false.
      integer :: width    = 0
      type(multifab), pointer ::  bmf(:,:) => Null()
      type(multifab), pointer :: obmf(:,:) => Null()
@@ -93,6 +94,7 @@ contains
     br%other       = .false.
     br%mask        = .false.
     br%nodal(1:dm) = lnodal
+    br%have_periodic_boxes = .false.
 
     lpdc = box_nodalize(pdc, lnodal)
 
@@ -181,6 +183,7 @@ contains
     br%other = lother
     br%mask  = mask
     br%nodal = .false.
+    br%have_periodic_boxes = .false.
     br%width = lwidth
 
     nlb = 0
@@ -371,6 +374,7 @@ contains
           if (any(br%pmask(1:dm))) then
              call box_periodic_shift(pdc, bx, br%nodal(1:dm), br%pmask(1:dm), 0, shft, nbxs, bxs)
              do j = 1, nbxs
+                br%have_periodic_boxes = .true.
                 revshft = -shft(j,:)
                 bxtmp = shift(bxs(j), revshft) ! this is the original unshifted sub-box
                 ! these cells are marked true because they are in the 'periodic' domain
@@ -422,6 +426,7 @@ contains
     br%other       = .false.
     br%mask        = .false.
     br%nodal(1:dm) = lnodal
+    br%have_periodic_boxes = .false.
 
     allocate(bxs(nb))
     allocate(br%bmf(dm,0:1), br%laf(dm,0:1))
@@ -466,37 +471,13 @@ contains
 
     integer                   :: i, j, f, n(2)
     type(multifab)            :: mftmp
-    type(layout)              :: mf_la
-    type(box)                 :: domain
-    logical                   :: have_periodic_boxes
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "br_copy")
 
     n = shape(br%bmf)
 
-    mf_la = get_layout(mf)
-
-    have_periodic_boxes = .false.
-
-    if ( any(get_pmask(mf_la)) ) then
-
-       domain = grow(get_pd(mf_la), nghost(mf), .not. get_pmask(mf_la))
-
-       loop: do f = 0, n(2)-1
-          do i = 1, n(1)
-             do j = 1, nboxes(br%bmf(i,f)%la)
-                if ( .not. contains(domain, get_box(br%bmf(i,f)%la,j)) ) then
-                   have_periodic_boxes = .true.
-                   exit loop
-                end if
-             end do
-          end do
-       end do loop
-
-    end if
-
-    if ( have_periodic_boxes ) then
+    if ( br%have_periodic_boxes ) then
        !
        ! Need to fill the ghost cells of the crse array before copying from them.
        !
@@ -508,7 +489,7 @@ contains
              end do
           end do
        else
-          call multifab_build(mftmp, mf_la, ncomp(mf), br%width, mf%nodal)
+          call multifab_build(mftmp, get_layout(mf), ncomp(mf), br%width, mf%nodal)
           call copy(mftmp, mf)
           call multifab_fill_boundary(mftmp)
           do f = 0, n(2)-1
