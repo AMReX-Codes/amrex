@@ -3,6 +3,7 @@
 
 #include <ParGDB.H>
 #include <Amr.H>
+#include <BL_CXX11.H>
 
 class AmrParGDB
     : public ParGDBBase
@@ -14,21 +15,21 @@ public:
 
     ~AmrParGDB () {;}
     
-    virtual const Geometry& Geom (int level) const;
+    virtual const Geometry& Geom (int level) const BL_OVERRIDE;
     virtual const DistributionMapping& ParticleDistributionMap 
-                                             (int level) const;
-    virtual const BoxArray& ParticleBoxArray (int level) const;
-    virtual const BoxArray&         boxArray (int level) const;
+                                             (int level) const BL_OVERRIDE;
+    virtual const BoxArray& ParticleBoxArray (int level) const BL_OVERRIDE;
+    virtual const BoxArray&         boxArray (int level) const BL_OVERRIDE;
 
-    virtual bool LevelDefined (int level) const;
-    virtual int finestLevel () const;
-    virtual int initialBaLevels () const;
+    virtual bool LevelDefined (int level) const BL_OVERRIDE;
+    virtual int finestLevel () const BL_OVERRIDE;
+    virtual int initialBaLevels () const BL_OVERRIDE;
 
-    virtual int subCycle () const;
-    virtual IntVect refRatio (int level) const;
-    virtual int MaxRefRatio (int level) const;
+    virtual int subCycle () const BL_OVERRIDE;
+    virtual IntVect refRatio (int level) const BL_OVERRIDE;
+    virtual int MaxRefRatio (int level) const BL_OVERRIDE;
 
-    virtual bool ParticlesOnSameGrids (int level) const;
+    virtual bool ParticlesOnSameGrids (int level) const BL_OVERRIDE;
 
 protected:
     Amr* m_amr;
