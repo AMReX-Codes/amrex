@@ -314,16 +314,12 @@ MultiFab::contains_nan (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	bool pr = false;
-	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(ngrow);
-	    
-	    if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
-		pr = true;
-	}
-	r |= pr;
+	const Box& bx = mfi.growntilebox(ngrow);
+	
+	if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
+	    r = true;
     }
 
     if (!local)
@@ -354,16 +350,12 @@ MultiFab::contains_inf (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	bool pr = false;
-	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(ngrow);
-
-	    if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
-		pr = true;
-	}
-	r |= pr;
+	const Box& bx = mfi.growntilebox(ngrow);
+	
+	if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
+	    r = true;
     }
 
     if (!local)
@@ -436,21 +428,12 @@ MultiFab::min (int comp,
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mn = std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(nghost);
-	    priv_mn = std::min(priv_mn, get(mfi).min(bx,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_min)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& bx = mfi.growntilebox(nghost);
+	mn = std::min(mn, get(mfi).min(bx,comp));
     }
 
     if (!local)
@@ -470,23 +453,14 @@ MultiFab::min (const Box& region,
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mn = std::numeric_limits<Real>::max();
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& b = mfi.growntilebox(nghost) & region;
-
-	    if (b.ok())
-		priv_mn = std::min(priv_mn, get(mfi).min(b,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_min_region)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& b = mfi.growntilebox(nghost) & region;
+	
+	if (b.ok())
+	    mn = std::min(mn, get(mfi).min(b,comp));
     }
 
     if (!local)
@@ -505,21 +479,12 @@ MultiFab::max (int comp,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mx = -std::numeric_limits<Real>::max();
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(nghost);
-	    priv_mx = std::max(priv_mx, get(mfi).max(bx,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_max)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	const Box& bx = mfi.growntilebox(nghost);
+	mx = std::max(mx, get(mfi).max(bx,comp));
     }
 
     if (!local)
@@ -539,23 +504,14 @@ MultiFab::max (const Box& region,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mx = -std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& b = mfi.growntilebox(nghost) & region;
+	const Box& b = mfi.growntilebox(nghost) & region;
 
-	    if (b.ok())
-		priv_mx = std::max(priv_mx, get(mfi).max(b,comp));
-        }
-#ifdef _OPENMP
-#pragma omp critical (multifab_max_region)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	if (b.ok())
+	    mx = std::max(mx, get(mfi).max(b,comp));
     }
 	
     if (!local)
@@ -738,11 +694,10 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
-	Real priv_nm0 = -std::numeric_limits<Real>::max();
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
@@ -750,14 +705,8 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
-		priv_nm0 = std::max(priv_nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
+		nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
 	    }
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_norm0_ba)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
 	}
     }
  
@@ -773,20 +722,11 @@ MultiFab::norm0 (int comp, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_nm0 = -std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    priv_nm0 = std::max(priv_nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_norm0)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
-	}
+	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
     }
 
     if (!local)
