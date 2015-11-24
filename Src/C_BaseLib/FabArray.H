@@ -3311,8 +3311,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
 #ifdef BL_USE_UPCXX
-    FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
-                                fb_recv_data,fb_recv_from,ncomp,SeqNum[0],&BLPgas::fb_recv_event);
+    if (ParallelDescriptor::isTeamReceiver()) {
+	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+				    fb_recv_data,fb_recv_from,ncomp,SeqNum[0],&BLPgas::fb_recv_event);
+    }
 #else
     FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
@@ -3328,101 +3330,104 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     Array<int>                         send_rank;
     Array<const CopyComTagsContainer*> send_cctc;
 
-    send_data.reserve(N_snds);
-    send_N   .reserve(N_snds);
-    send_rank.reserve(N_snds);
-    send_cctc.reserve(N_snds);
-
-    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
-             m_End = TheSI.m_SndTags->end();
-         m_it != m_End;
-         ++m_it)
+    if (ParallelDescriptor::isTeamSender())
     {
-	std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_cctc.reserve(N_snds);
+	
+	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
+		 m_End = TheSI.m_SndTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
 
-        BL_ASSERT(vol_it != TheSI.m_SndVols->end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
+	    BL_ASSERT(vol_it != TheSI.m_SndVols->end());
+	    
+	    const int N = vol_it->second*ncomp;
+	    
+	    BL_ASSERT(N < std::numeric_limits<int>::max());
+	    
 #ifdef BL_USE_UPCXX
-      value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-      if (data == nullptr) {
-        printf("Failed to allocate %zu bytes global address space memory!\n",
-               sizeof(value_type)*N);
-        printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
-        printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-	BoxLib::Abort("FillBoundary_nowait: Failed to allocate in global address space memory");
-      }
+	    value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
+	    if (data == nullptr) {
+		printf("Failed to allocate %zu bytes global address space memory!\n",
+		       sizeof(value_type)*N);
+		printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
+		printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
+		BoxLib::Abort("FillBoundary_nowait: Failed to allocate in global address space memory");
+	    }
 #else
-      value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
 
-	send_data.push_back(data);
-	send_N   .push_back(N);
-	send_rank.push_back(m_it->first);
-	send_cctc.push_back(&(m_it->second));
-    }
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_cctc.push_back(&(m_it->second));
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-    for (int i=0; i<N_snds; ++i)
-    {
-	value_type* dptr = send_data[i];
-	BL_ASSERT(dptr != 0);
-
-	const CopyComTagsContainer& cctc = *send_cctc[i];
-
-	for (CopyComTagsContainer::const_iterator it = cctc.begin();
+	for (int i=0; i<N_snds; ++i)
+	{
+	    value_type* dptr = send_data[i];
+	    BL_ASSERT(dptr != 0);
+	    
+	    const CopyComTagsContainer& cctc = *send_cctc[i];
+	    
+	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
-        {
-            BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-            const Box& bx = it->box;
-            get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
-            const int Cnt = bx.numPts()*ncomp;
-            dptr += Cnt;
-        }
-    }
+	    {
+		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
+		const Box& bx = it->box;
+		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
+		const int Cnt = bx.numPts()*ncomp;
+		dptr += Cnt;
+	    }
+	}
 
-    const int threshold = comm_piece_threshold / sizeof(value_type);
+	const int threshold = comm_piece_threshold / sizeof(value_type);
 
 #ifdef BL_USE_UPCXX
-    BLPgas::fb_send_counter = 0;
+	BLPgas::fb_send_counter = 0;
 #else
-    Array<MPI_Request>& send_reqs = fb_send_reqs;
-    send_reqs.reserve(N_snds*comm_num_pieces);
+	Array<MPI_Request>& send_reqs = fb_send_reqs;
+	send_reqs.reserve(N_snds*comm_num_pieces);
 #endif
-    for (int i=0; i<N_snds; ++i) {
+	for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
-      BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                   send_rank[i],
-                   send_N[i]*sizeof(value_type),
-                   SeqNum[0],
-                   &BLPgas::fb_send_event,
-                   &BLPgas::fb_send_counter);
+	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
+			 send_rank[i],
+			 send_N[i]*sizeof(value_type),
+			 SeqNum[0],
+			 &BLPgas::fb_send_event,
+			 &BLPgas::fb_send_counter);
 #else
-      const int N = send_N[i];
-      int npieces = std::min((N+threshold-1)/threshold, comm_num_pieces);
-      int psize = N / npieces;
-      for (int ipiece = 0; ipiece < npieces; ++ipiece) {
-	  int start = ipiece*psize;
-	  int nelem  = (ipiece < npieces-1) ? psize : N-start;
-	  send_reqs.push_back(ParallelDescriptor::Asend
-			      (send_data[i]+start,
-			       nelem,
-			       send_rank[i],
-			       SeqNum[ipiece]).req());
-      }
+	    const int N = send_N[i];
+	    int npieces = std::min((N+threshold-1)/threshold, comm_num_pieces);
+	    int psize = N / npieces;
+	    for (int ipiece = 0; ipiece < npieces; ++ipiece) {
+		int start = ipiece*psize;
+		int nelem  = (ipiece < npieces-1) ? psize : N-start;
+		send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i]+start,
+				     nelem,
+				     send_rank[i],
+				     SeqNum[ipiece]).req());
+	    }
 #endif
-    }
+	}
 
 #ifdef BL_USE_UPCXX
-    // Need to make sure at least half of the sends have been started
-    while (BLPgas::fb_send_counter < N_snds)
-      upcxx::advance();
+	// Need to make sure at least half of the sends have been started
+	while (BLPgas::fb_send_counter < N_snds)
+	    upcxx::advance();
 #endif
+    }
 
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
@@ -3578,60 +3583,66 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
         return;
     }
 
-    BLPgas::fb_recv_event.wait(); // wait for the recvs
-
-    //
-    //  wait and unpack
-    //
-
-    const int N_rcvs = TheSI.m_RcvTags->size();
-
-    if (N_rcvs > 0)
+    if (ParallelDescriptor::isTeamReceiver())
     {
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
+	BLPgas::fb_recv_event.wait(); // wait for the recvs
 
-	for (int k = 0; k < N_rcvs; k++) 
+	//
+	//  wait and unpack
+	//
+	
+	const int N_rcvs = TheSI.m_RcvTags->size();
+	
+	if (N_rcvs > 0)
 	{
-	    auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
-	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-	    recv_cctc.push_back(&(m_it->second));
-	}	
+	    Array<const CopyComTagsContainer*> recv_cctc;
+	    recv_cctc.reserve(N_rcvs);
+
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
+		BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+		recv_cctc.push_back(&(m_it->second));
+	    }	
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
 #endif
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    value_type* dptr = fb_recv_data[k];
-	    BL_ASSERT(dptr != 0);
-
-	    const auto& cctc = *recv_cctc[k];
-
-	    for (auto it = cctc.begin(); it != cctc.end(); ++it)
+	    for (int k = 0; k < N_rcvs; k++) 
 	    {
-		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-		dptr += Cnt;
-	    }	    
+		value_type* dptr = fb_recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const auto& cctc = *recv_cctc[k];
+		
+		for (auto it = cctc.begin(); it != cctc.end(); ++it)
+		{
+		    const Box& bx  = it->box;
+		    const int  Cnt = bx.numPts()*fb_ncomp;
+		    get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+		    dptr += Cnt;
+		}	    
+	    }
 	}
+
+	upcxx::deallocate(fb_the_recv_data);
+
+	fb_recv_from.clear();
+	fb_recv_data.clear();
+	fb_recv_reqs.clear();
     }
 
-    upcxx::deallocate(fb_the_recv_data);
+    if (ParallelDescriptor::isTeamSender())
+    {
+	if (!TheSI.m_SndTags->empty()) {
+	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
+	    FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data,
+					      &BLPgas::fb_send_event,
+					      &BLPgas::fb_send_counter);
 
-    fb_recv_from.clear();
-    fb_recv_data.clear();
-    fb_recv_reqs.clear();
-
-    if (!TheSI.m_SndTags->empty()) {
-      // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-      FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data,
-                                        &BLPgas::fb_send_event,
-                                        &BLPgas::fb_send_counter);
-
-      fb_send_data.clear();
-      fb_send_reqs.clear();
+	    fb_send_data.clear();
+	    fb_send_reqs.clear();
+	}
     }
 
     ParallelDescriptor::TeamBarrier();

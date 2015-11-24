@@ -649,7 +649,7 @@ FabArrayBase::TheFB (bool                cross,
             boxes[0] = BoxLib::grow(vbx,si.m_ngrow);
         }
 
-        const int dst_owner = dm[i];
+        const int dst_fab_owner = dm[i];
 
         for (std::vector<Box>::const_iterator it = boxes.begin(),
                  End = boxes.end();
@@ -662,18 +662,18 @@ FabArrayBase::TheFB (bool                cross,
             {
                 const int  k         = isects[j].first;
                 const Box& bx        = isects[j].second;
-                const int  src_owner = dm[k];
+                const int  src_fab_owner = dm[k];
 
 		if (k == i) continue;
 		
-		bool send = src_owner == MyProc;
-		bool recv = dst_owner == MyProc;
-#ifdef BL_USE_UPCXX
-		bool local = ParallelDescriptor::sameTeam(dst_owner) 
-		    &&       ParallelDescriptor::sameTeam(src_owner);
-#else
-		bool local = send && recv;
-#endif
+		int send_rank, recv_rank;
+		bool send, recv, local;
+		send_rank = ParallelDescriptor::TeamSender(src_fab_owner);
+		recv_rank = ParallelDescriptor::TeamReceiver(dst_fab_owner);
+		send = ParallelDescriptor::sameTeam(src_fab_owner);
+		recv = ParallelDescriptor::sameTeam(dst_fab_owner);
+		local = send && recv;
+
 		if (!local && !send && !recv) continue;
 		
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
@@ -692,11 +692,11 @@ FabArrayBase::TheFB (bool                cross,
 		    }
                     else if (recv)
                     {
-			FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,src_owner,tag,*TheFB.m_RcvVols,*it);
+			FabArrayBase::SetRecvTag(*TheFB.m_RcvTags,send_rank,tag,*TheFB.m_RcvVols,*it);
                     }
                     else if (send)
                     {
-                        FabArrayBase::SetSendTag(*TheFB.m_SndTags,dst_owner,tag,*TheFB.m_SndVols,*it);
+                        FabArrayBase::SetSendTag(*TheFB.m_SndTags,recv_rank,tag,*TheFB.m_SndVols,*it);
                     }
                 }
             }

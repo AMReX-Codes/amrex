@@ -360,6 +360,52 @@ namespace ParallelDescriptor
     {
 	return MyTeamLead() == TeamLead(rank);
     }
+    inline bool
+    isTeamSender ()
+    {
+	bool sender = true;
+	if (TeamMsgAggMethod() == 1) {        // only worker 0 does send
+	    if (MyRankInTeam() != 0) sender = false; 
+	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	    // only worker 0 does send
+	    if (MyRankInTeam() != 0) sender = false;
+	}
+	return sender;
+    }
+    inline int
+    TeamSender (int rank)  // sender for this rank
+    {
+	int r = rank;
+	if (TeamMsgAggMethod() == 1) {
+	    r = TeamLead(rank);
+	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	    r = TeamLead(rank);
+	}
+	return r;
+    }
+    inline bool
+    isTeamReceiver ()
+    {
+	bool receiver = true;
+	if (TeamMsgAggMethod() == 1) {        // only worker 0 does recv
+	    if (MyRankInTeam() != 0) receiver = false; 
+	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	    // only worker 1 does send
+	    if (MyRankInTeam() != 1) receiver = false;
+	}
+	return receiver;
+    }
+    inline int
+    TeamReceiver (int rank)  // receiver for this rank
+    {
+	int r = rank;
+	if (TeamMsgAggMethod() == 1) {
+	    r = TeamLead(rank);
+	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	    r = TeamLead(rank) + 1;
+	}
+	return r;
+    }
 #ifdef BL_USE_UPCXX
     inline const upcxx::team&
     MyTeam ()
