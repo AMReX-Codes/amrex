@@ -689,6 +689,12 @@ Geometry::GetVolume (MultiFab&       vol,
                      int             ngrow) const
 {
     vol.define(grds,1,ngrow,Fab_allocate);
+    GetVolume(vol);
+}
+
+void
+Geometry::GetVolume (MultiFab&       vol) const
+{
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -732,6 +738,14 @@ Geometry::GetFaceArea (MultiFab&       area,
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
     area.define(edge_boxes,1,ngrow,Fab_allocate);
+
+    GetFaceArea(area, dir);
+}
+
+void
+Geometry::GetFaceArea (MultiFab&       area,
+                       int             dir) const
+{
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
