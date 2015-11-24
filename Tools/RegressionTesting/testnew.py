@@ -847,6 +847,50 @@ class Log(object):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def get_args(arg_string=None):
+    """ parse the commandline arguments.  If arg_string is present, we
+        parse from there, otherwise we use the default (sys.argv) """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", type=int, default=-1,
+                        help="restrict tests to a particular dimensionality")
+    parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
+                        help="make new benchmarks? (must provide a comment)")
+    parser.add_argument("--copy_benchmarks", type=str, default=None, metavar="comment",
+                        help="copy the last plotfiles from the failed tests of the most recent run as the new benchmarks.  No git pull is done and no new runs are performed (must provide a comment)")
+    parser.add_argument("--no_update", type=str, default="None", metavar="name",
+                        help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
+    parser.add_argument("--single_test", type=str, default="", metavar="test-name",
+                        help="name of a single test to run")
+    parser.add_argument("--tests", type=str, default="", metavar="'test1 test2 test3'",
+                        help="a space-separated list of tests to run")
+    parser.add_argument("--do_temp_run", action="store_true",
+                        help="is this a temporary run? (output not stored or logged)")
+    parser.add_argument("--send_no_email", action="store_true",
+                        help="do not send emails when tests fail")
+    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
+    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--note", type=str, default="",
+                        help="a note on the resulting test webpages")
+    parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",
+                        help="complete the generation of the report from a crashed test suite run named testdir")
+    parser.add_argument("--redo_failed", action="store_true",
+                        help="only run the tests that failed last time")
+    parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
+                        help="the input file (INI format) containing the suite and test parameters")
+
+    if not arg_string is None:
+        args = parser.parse_args(arg_string)
+    else:
+        args = parser.parse_args()
+
+    return args
+
+
 def run(string, stdin=False, outfile=None, store_command=False, env=None, outfile_mode="a", log=None):
 
     # shlex.split will preserve inner quotes
@@ -1223,39 +1267,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", type=int, default=-1,
-                        help="restrict tests to a particular dimensionality")
-    parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
-                        help="make new benchmarks? (must provide a comment)")
-    parser.add_argument("--copy_benchmarks", type=str, default=None, metavar="comment",
-                        help="copy the last plotfiles from the failed tests of the most recent run as the new benchmarks.  No git pull is done and no new runs are performed (must provide a comment)")
-    parser.add_argument("--no_update", type=str, default="None", metavar="name",
-                        help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
-    parser.add_argument("--single_test", type=str, default="", metavar="test-name",
-                        help="name of a single test to run")
-    parser.add_argument("--tests", type=str, default="", metavar="'test1 test2 test3'",
-                        help="a space-separated list of tests to run")
-    parser.add_argument("--do_temp_run", action="store_true",
-                        help="is this a temporary run? (output not stored or logged)")
-    parser.add_argument("--send_no_email", action="store_true",
-                        help="do not send emails when tests fail")
-    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
-    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
-    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
-    parser.add_argument("--note", type=str, default="",
-                        help="a note on the resulting test webpages")
-    parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",
-                        help="complete the generation of the report from a crashed test suite run named testdir")
-    parser.add_argument("--redo_failed", action="store_true",
-                        help="only run the tests that failed last time")
-    parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
-                        help="the input file (INI format) containing the suite and test parameters")
-
-    args=parser.parse_args()
+    args=get_args(arg_string=argv)
 
     #--------------------------------------------------------------------------
     # read in the test information
@@ -2976,5 +2988,4 @@ def report_all_runs(suite, activeTestList):
 # m a i n
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 if __name__== "__main__":
-
-    test_suite(sys.argv)
+    test_suite(sys.argv[1:])

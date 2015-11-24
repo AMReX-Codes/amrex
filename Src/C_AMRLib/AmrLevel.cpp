@@ -456,6 +456,27 @@ AmrLevel::get_data (int  state_indx,
     return bogus;
 }
 
+const BoxArray&
+AmrLevel::getEdgeBoxArray (int dir) const
+{
+    BL_ASSERT(dir >=0 && dir < BL_SPACEDIM);
+    if (edge_grids[dir].empty()) {
+	edge_grids[dir] = grids;
+	edge_grids[dir].surroundingNodes(dir);
+    }
+    return edge_grids[dir];
+}
+
+const BoxArray&
+AmrLevel::getNodalBoxArray () const
+{
+    if (nodal_grids.empty()) {
+	nodal_grids = grids;
+	nodal_grids.surroundingNodes();
+    }
+    return nodal_grids;
+}
+
 void
 AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
                                  int        state_indx,

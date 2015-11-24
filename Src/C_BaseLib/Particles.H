@@ -20,6 +20,7 @@
 #include <VisMF.H>
 #include <Particles_F.H>
 #include <RealBox.H>
+#include <BL_CXX11.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -320,16 +321,16 @@ public:
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
 
-    Real sumParticleMass (int level) const;
+    virtual Real sumParticleMass (int level) const BL_OVERRIDE;
     void sumParticleMomentum (int lev, Real* mom) const;
 
     void Increment (MultiFab& mf, int level);
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
+    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
 
-    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
+    virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
@@ -353,10 +354,10 @@ public:
     Real estTimestep (MultiFab& grav_vector,         int level, Real cfl) const;
     Real estTimestep (MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
-    void Redistribute (bool where_already_called = false,
-                       bool full_where           = false,
-                       int  lev_min              = 0, 
-                       int  nGrow                = 0);
+    virtual void Redistribute (bool where_already_called = false,
+			       bool full_where           = false,
+			       int  lev_min              = 0, 
+			       int  nGrow                = 0) BL_OVERRIDE;
 
     void RedistributeMPI (PMap& not_ours);
     //
@@ -404,15 +405,19 @@ public:
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
-    void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0,
-                        int start_comp_for_accel = -1);
+    virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
+				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
+    virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
+				Real a_new = 1.0, Real a_half = 1.0,
+				int start_comp_for_accel = -1) BL_OVERRIDE;
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
     //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
+    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
+    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+				Real a_new = 1.0, Real a_half = 1.0) BL_OVERRIDE;
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -422,7 +427,7 @@ public:
     //
     // Removes all particles at a given level
     //
-    void RemoveParticlesAtLevel (int level);
+    virtual void RemoveParticlesAtLevel (int level) BL_OVERRIDE;
     //
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels
@@ -502,9 +507,9 @@ protected:
     int         m_relativistic; // if 1 then we weight the mass by gamma in AssignDensity*
     Real        m_csq;          // the square of the speed of light -- used to compute relativistic effects
 
-    bool allow_particles_near_boundary;
 
     ParGDBBase* m_gdb;
+    bool allow_particles_near_boundary;
     ParGDB      m_gdb_object;
     Array<PMap> m_particles;
 
@@ -6496,6 +6501,38 @@ ParticleContainer<N>::WriteParticles (int            lev,
             //
             const int iChunkSize = 2+BL_SPACEDIM;
 
+#ifdef BL_LOWMEMPWRITE
+	    int maxItemsToWrite(8192);
+	    int cntBufSize(maxItemsToWrite * iChunkSize);
+	    int nItems(cnt), nItemsToWrite(0);
+            Array<int> istuff(cntBufSize);
+            typename PBox::const_iterator it  = pbox.begin();
+            typename PBox::const_iterator End = pbox.end();
+
+	    while(nItems > 0) {
+              int *iptr = istuff.dataPtr();
+	      int itemCount(0);
+              for( ; it != End && itemCount < maxItemsToWrite; ++it) {
+                if(it->m_id > 0) {
+                    BL_ASSERT(it->m_lev == lev);
+                    BL_ASSERT(it->m_grid == grid);
+
+                    iptr[0] = it->m_id;
+                    iptr[1] = it->m_cpu;
+
+                    D_TERM(iptr[2] = it->m_cell[0];,
+                           iptr[3] = it->m_cell[1];,
+                           iptr[4] = it->m_cell[2];);
+
+                    iptr += iChunkSize;
+                }
+		++itemCount;
+              }
+	      nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
+              ofs.write((char *) istuff.dataPtr(), nItemsToWrite * iChunkSize * sizeof(int));
+	      nItems -= nItemsToWrite;
+	    }
+#else
             Array<int> istuff(cnt*iChunkSize);
 
             int* iptr = istuff.dataPtr();
@@ -6519,12 +6556,45 @@ ParticleContainer<N>::WriteParticles (int            lev,
             }
 
             ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+#endif
         }
 
-        const int rChunkSize = BL_SPACEDIM+N;
+
         //
         // Write the Real data in binary.
         //
+        const int rChunkSize = BL_SPACEDIM+N;
+
+#ifdef BL_LOWMEMPWRITE
+	int maxItemsToWrite(8192);
+	int cntBufSize(maxItemsToWrite * rChunkSize);
+	int nItems(cnt), nItemsToWrite(0);
+        Array<ParticleBase::RealType> rstuff(cntBufSize);
+        typename PBox::const_iterator it = pbox.begin();
+        typename PBox::const_iterator End = pbox.end();
+
+	while(nItems > 0) {
+          ParticleBase::RealType *rptr = rstuff.dataPtr();
+	  int itemCount(0);
+          for( ; it != End && itemCount < maxItemsToWrite; ++it) {
+            if(it->m_id > 0) {
+                D_TERM(rptr[0] = it->m_pos[0];,
+                       rptr[1] = it->m_pos[1];,
+                       rptr[2] = it->m_pos[2];);
+
+                for (int i = 0; i < N; i++) {
+                  rptr[BL_SPACEDIM+i] = it->m_data[i];
+		}
+                rptr += rChunkSize;
+            }
+	    ++itemCount;
+          }
+
+	  nItemsToWrite = nItems > maxItemsToWrite ? maxItemsToWrite : nItems;
+          ofs.write((char *) rstuff.dataPtr(), nItemsToWrite * rChunkSize * sizeof(ParticleBase::RealType));
+	  nItems -= nItemsToWrite;
+	}
+#else
         Array<ParticleBase::RealType> rstuff(cnt*rChunkSize);
 
         ParticleBase::RealType* rptr = rstuff.dataPtr();
@@ -6545,6 +6615,7 @@ ParticleContainer<N>::WriteParticles (int            lev,
         }
 
         ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(ParticleBase::RealType));
+#endif
     }
 }
 
