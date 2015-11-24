@@ -37,12 +37,12 @@ namespace ParallelDescriptor
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
 
-    int m_TeamSize     = -1;
-    int m_nTeams       = -1;
-    int m_MyTeamColor  = -1;
-    int m_MyTeamLead   = -1;
-    int m_MyRankInTeam = -1;
-    int m_AgrgtTeamMsg =  0;
+    int m_TeamSize     = 1;
+    int m_nTeams       = 1;
+    int m_MyTeamColor  = 0;
+    int m_MyTeamLead   = 0;
+    int m_MyRankInTeam = 0;
+    int m_AgrgtTeamMsg = 0;
 #ifdef BL_USE_UPCXX
     upcxx::team m_MyTeam;
 #endif
