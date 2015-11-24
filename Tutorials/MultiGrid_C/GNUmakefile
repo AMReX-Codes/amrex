@@ -103,19 +103,6 @@ ifeq ($(USE_HYPRE), TRUE)
   DEFINES += -DUSEHYPRE
 endif
 
-ifeq ($(USE_HPGMG), TRUE)
-  # need to get the HPGMG sources too
-
-  include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
-  include $(HPGMG_DIR)/source/Make.package
-
-  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
-  INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
-
-  vpathdir          += $(BOXLIB_HOME)/Src/Extern/hpgmg
-  vpathdir          += $(HPGMG_DIR)/source
-endif
-
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
 vpath %.cpp : . $(vpathdir)
@@ -123,6 +110,17 @@ vpath %.H   : . $(vpathdir)
 vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
+
+# The HPGMG hooks in Make.defs populate VPATH_LOCATIONS, not vpathdir, so we
+# need to grab these too. In fact everything in Make.defs uses VPATH_LOCATIONS
+# instead of vpathdir. Perhaps they should be consolidated ...
+vpath %.c   : . $(VPATH_LOCATIONS)
+vpath %.h   : . $(VPATH_LOCATIONS)
+vpath %.cpp : . $(VPATH_LOCATIONS)
+vpath %.H   : . $(VPATH_LOCATIONS)
+vpath %.F   : . $(VPATH_LOCATIONS)
+vpath %.f   : . $(VPATH_LOCATIONS)
+vpath %.f90 : . $(VPATH_LOCATIONS)
 
 all: $(executable)
 	@echo SUCCESS
