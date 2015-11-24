@@ -176,7 +176,12 @@ SMC::evolve ()
 	}
     }
 
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#else
     ParallelDescriptor::Barrier();
+#endif
+
     Real wt1 = ParallelDescriptor::second();
 
     Real wt_fb = wt_fb1 + wt_fb2;
