@@ -744,6 +744,12 @@ Geometry::GetVolume (MultiFab&       vol,
                      int             ngrow) const
 {
     vol.define(grds,1,ngrow,Fab_allocate);
+    GetVolume(vol);
+}
+
+void
+Geometry::GetVolume (MultiFab&       vol) const
+{
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -787,6 +793,14 @@ Geometry::GetFaceArea (MultiFab&       area,
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
     area.define(edge_boxes,1,ngrow,Fab_allocate);
+
+    GetFaceArea(area, dir);
+}
+
+void
+Geometry::GetFaceArea (MultiFab&       area,
+                       int             dir) const
+{
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1144,7 +1158,8 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
   {
     // Data to construct base Box
     const Box& baseBox = geom->Domain();
-    const int *box_index_type = baseBox.type().getVect();
+    const IntVect box_index_type = baseBox.type();
+    const int* box_index_type_IV = box_index_type.getVect();
     const int *smallEnd = baseBox.smallEnd().getVect();
     const int *bigEnd = baseBox.bigEnd().getVect();
 
@@ -1178,7 +1193,7 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
     }
 
       // Step 1: send the base Box
-      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(const_cast<int*>(box_index_type_IV), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
       ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 

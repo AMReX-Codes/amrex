@@ -47,6 +47,7 @@
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
 }
 #endif
 
@@ -425,7 +426,12 @@ BoxLib::Finalize (bool finalize_parallel)
 
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
-	bl_fortran_mpi_comm_free();
+#ifdef IN_TRANSIT
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_sidecar_mpi_comm_free(fcomm);
+#else
+    bl_fortran_mpi_comm_free();
+#endif
 #endif
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI

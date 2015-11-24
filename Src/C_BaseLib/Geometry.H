@@ -108,6 +108,8 @@ public:
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
                     int             grow) const;
+    // Fill the pre-built multifab with volume
+    void GetVolume (MultiFab&       vol) const;
 
     void GetVolume (FArrayBox&       vol,
                     const BoxArray& grds,
@@ -129,6 +131,9 @@ public:
                       const BoxArray& grds,
                       int             dir,
                       int             grow) const;
+    // Fill the pre-built multifab with area
+    void GetFaceArea (MultiFab&       area,
+                      int             dir) const;
 
     void GetFaceArea (FArrayBox&      area,
                       const BoxArray& grds,
