@@ -3,6 +3,7 @@
 
 #include <AmrLevel.H>
 #include <FluxRegister.H>
+#include <BL_CXX11.H>
 
 #include <iostream>
 
@@ -37,26 +38,26 @@ public:
     //
     //The destructor.
     //
-    virtual ~Adv ();
+    virtual ~Adv () BL_OVERRIDE;
     //
     //Restart from a checkpoint file.
     //
     virtual void restart (Amr&          papa,
                           std::istream& is,
-			  bool          bReadSpecial = false);
+			  bool          bReadSpecial = false) BL_OVERRIDE;
 
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different
                types of plot files. For Adv it has the form: Adv-Vnnn
     */
-    virtual std::string thePlotFileType () const;
+    virtual std::string thePlotFileType () const BL_OVERRIDE;
 
     //
     //Write a plotfile to specified directory.
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how);
+                                VisMF::How         how) BL_OVERRIDE;
     //
     //Define data descriptors.
     //
@@ -68,26 +69,26 @@ public:
     //
     //Initialize grid data at problem start-up.
     //
-    virtual void initData ();
+    virtual void initData () BL_OVERRIDE;
     //
     //Initialize data on this level from another Adv (during regrid).
     //
-    virtual void init (AmrLevel& old);
+    virtual void init (AmrLevel& old) BL_OVERRIDE;
     //
     //Initialize data on this level after regridding if old level did not previously exist
     //
-    virtual void init ();
+    virtual void init () BL_OVERRIDE;
     //
     //Proceed with next timestep?
     //
-    virtual int okToContinue () { return 1; }
+    virtual int okToContinue () BL_OVERRIDE { return 1; }
     //
     //Advance grids at this level in time.
     //
     virtual Real advance (Real time,
                           Real dt,
                           int  iteration,
-                          int  ncycle);
+                          int  ncycle) BL_OVERRIDE;
     //
     //Estimate time step.
     //
@@ -104,7 +105,7 @@ public:
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   Real                  stop_time);
+                                   Real                  stop_time) BL_OVERRIDE;
     //
     //Compute new `dt'.
     //
@@ -115,23 +116,23 @@ public:
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
                                Real                  stop_time,
-                               int                   post_regrid_flag);
+                               int                   post_regrid_flag) BL_OVERRIDE;
     //
     //Do work after timestep().
     //
-    virtual void post_timestep (int iteration);
+    virtual void post_timestep (int iteration) BL_OVERRIDE;
     //
     //Do work after regrid().
     //
-    virtual void post_regrid (int lbase, int new_finest) { ; }
+    virtual void post_regrid (int lbase, int new_finest) BL_OVERRIDE { ; }
     //
     //Do work after a restart().
     //
-    virtual void post_restart () { ; }
+    virtual void post_restart () BL_OVERRIDE { ; }
     //
     //Do work after init().
     //
-    virtual void post_init (Real stop_time);
+    virtual void post_init (Real stop_time) BL_OVERRIDE;
     //
     //Error estimation for regridding.
     //
@@ -139,7 +140,7 @@ public:
                            int          clearval,
                            int          tagval,
                            Real         time,
-			   int          n_error_buf = 0, int ngrow = 0);
+			   int          n_error_buf = 0, int ngrow = 0) BL_OVERRIDE;
 
     static int  NUM_STATE;
     static int  NUM_GROW;
