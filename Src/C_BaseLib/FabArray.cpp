@@ -649,7 +649,7 @@ FabArrayBase::TheFB (bool                cross,
             boxes[0] = BoxLib::grow(vbx,si.m_ngrow);
         }
 
-        const int dst_fab_owner = dm[i];
+        const int dst_owner = dm[i];
 
         for (std::vector<Box>::const_iterator it = boxes.begin(),
                  End = boxes.end();
@@ -662,18 +662,16 @@ FabArrayBase::TheFB (bool                cross,
             {
                 const int  k         = isects[j].first;
                 const Box& bx        = isects[j].second;
-                const int  src_fab_owner = dm[k];
+                const int  src_owner = dm[k];
 
 		if (k == i) continue;
 		
-		int send_rank, recv_rank;
-		bool send, recv, local;
-		send_rank = ParallelDescriptor::TeamSender(src_fab_owner);
-		recv_rank = ParallelDescriptor::TeamReceiver(dst_fab_owner);
-		send = MyProc == send_rank;
-		recv = MyProc == recv_rank;
-		local = ParallelDescriptor::sameTeam(src_fab_owner) &&
-		        ParallelDescriptor::sameTeam(dst_fab_owner);
+		int send_rank = ParallelDescriptor::TeamSender(src_owner);
+		int recv_rank = ParallelDescriptor::TeamReceiver(dst_owner);
+		bool send = MyProc == send_rank;
+		bool recv = MyProc == recv_rank;
+		bool local = ParallelDescriptor::sameTeam(src_owner) &&
+                             ParallelDescriptor::sameTeam(dst_owner);
 
 		if (!local && !send && !recv) continue;
 		
