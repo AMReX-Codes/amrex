@@ -1,4 +1,3 @@
-
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
@@ -22,6 +21,7 @@
 #include <vector>
 #include <string>
 #include <typeinfo>
+#include <algorithm>
 
 namespace ParallelDescriptor
 {
@@ -406,6 +406,25 @@ namespace ParallelDescriptor
 	}
 	return r;
     }
+    inline int
+    TeamFreeSize ()
+    {
+	int r = TeamSize();
+	if (TeamMsgAggMethod() == 1) {
+	    r -= 1;  // Worker 0 is not free
+	} else if (TeamMsgAggMethod() == 2) {
+	    r -= 2; // Worker 1 is not free
+	}
+	if (r <= 0) r = TeamSize(); // If none is free, the whole team is free.
+	return r;
+    }
+    inline int
+    MyRankInTeamFree ()
+    {
+	int r = MyRankInTeam() - (TeamSize()-TeamFreeSize());
+	if (r < 0) r = TeamSize();  // If r < 0, set it to invalid team rank.
+	return r;
+    }
 #ifdef BL_USE_UPCXX
     inline const upcxx::team&
     MyTeam ()
@@ -419,18 +438,20 @@ namespace ParallelDescriptor
 	    m_MyTeam.barrier();
     }
     inline std::pair<int,int>
-    team_range (int begin, int end, int rit = -1)
+    team_range (int begin, int end, int rit = -1, int nworkers = 0)
     {
 	int rb, re;
-	int nworkers = ParallelDescriptor::TeamSize();
-	if (nworkers == 1) {
+	if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
+	if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+	if (rit >= nworkers) {
+	    rb = re = end;
+	} else if (nworkers == 1) {
 	    rb = begin;
 	    re = end;
 	} else {
 	    int ntot = end - begin;
 	    int nr   = ntot / nworkers;
 	    int nlft = ntot - nr * nworkers;
-	    if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
 	    if (rit < nlft) {  // get nr+1 items
 		rb = begin + rit * (nr + 1);
 		re = rb + nr + 1;
@@ -453,6 +474,14 @@ namespace ParallelDescriptor
     void team_for (int begin, int end, int rit, const F& f)
     {
 	auto range = team_range(begin, end, rit);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, int nworkers, const F& f)
+    {
+	auto range = team_range(begin, end, rit, nworkers);
 	for (int i = range.first; i < range.second; ++i) {
 	    f(i);
 	}

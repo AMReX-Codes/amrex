@@ -760,7 +760,11 @@ namespace BoxLib
 	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
 	{
 #ifdef BL_USE_UPCXX
-	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
+	    // Only free processes will do the local copy.
+	    // If none is free, all will have to do it.
+	    int nworkers = ParallelDescriptor::TeamFreeSize();
+	    int wid = ParallelDescriptor::MyRankInTeamFree();
+	    ParallelDescriptor::team_for(0, N_loc, wid, nworkers, [&] (int i) 
             {
                 const auto& tag = (*TheFPB.m_LocTags)[i];
 
