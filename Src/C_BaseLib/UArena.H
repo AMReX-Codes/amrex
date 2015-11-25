@@ -21,11 +21,11 @@ public:
     // Allocates a dynamic memory arena of size sz.
     // Returns a pointer to this memory.
     //
-    virtual void* alloc (std::size_t sz);
+    virtual void* alloc (std::size_t sz) override;
     //
     // Deletes the arena pointed to by pt.
     //
-    virtual void free (void* pt);
+    virtual void free (void* pt) override;
 };
 
 #endif /*BL_UARENA_H*/
