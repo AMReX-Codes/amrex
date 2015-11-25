@@ -373,7 +373,7 @@ namespace ParallelDescriptor
 	return sender;
     }
     inline int
-    TeamSender (int rank)  // sender for this rank
+    TeamSender (int rank)  // sender for data owned by this rank
     {
 	int r = rank;
 	if (TeamMsgAggMethod() == 1) {
@@ -396,7 +396,7 @@ namespace ParallelDescriptor
 	return receiver;
     }
     inline int
-    TeamReceiver (int rank)  // receiver for this rank
+    TeamReceiver (int rank)  // receiver for data owned by this rank
     {
 	int r = rank;
 	if (TeamMsgAggMethod() == 1) {

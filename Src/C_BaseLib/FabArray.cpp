@@ -670,9 +670,10 @@ FabArrayBase::TheFB (bool                cross,
 		bool send, recv, local;
 		send_rank = ParallelDescriptor::TeamSender(src_fab_owner);
 		recv_rank = ParallelDescriptor::TeamReceiver(dst_fab_owner);
-		send = ParallelDescriptor::sameTeam(src_fab_owner);
-		recv = ParallelDescriptor::sameTeam(dst_fab_owner);
-		local = send && recv;
+		send = MyProc == send_rank;
+		recv = MyProc == recv_rank;
+		local = ParallelDescriptor::sameTeam(src_fab_owner) &&
+		        ParallelDescriptor::sameTeam(dst_fab_owner);
 
 		if (!local && !send && !recv) continue;
 		

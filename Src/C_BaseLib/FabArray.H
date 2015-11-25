@@ -3578,12 +3578,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
     const auto& TheSI = cache_it->second;
 
-    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty()) {
-	ParallelDescriptor::TeamBarrier();
-        return;
-    }
-
-    if (ParallelDescriptor::isTeamReceiver())
+    if (ParallelDescriptor::isTeamReceiver() && !TheSI.m_RcvTags->empty())
     {
 	BLPgas::fb_recv_event.wait(); // wait for the recvs
 
@@ -3632,7 +3627,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	fb_recv_reqs.clear();
     }
 
-    if (ParallelDescriptor::isTeamSender())
+    if (ParallelDescriptor::isTeamSender() && TheSI.m_SndTags->empty())
     {
 	if (!TheSI.m_SndTags->empty()) {
 	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
