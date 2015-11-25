@@ -1002,14 +1002,12 @@ Geometry::GetFPB (const Geometry&      geom,
         {
             const int src_owner = dm[j];
 
-	    bool send = src_owner == MyProc;
-	    bool recv = dst_owner == MyProc;
-#ifdef BL_USE_UPCXX
-	    bool local = ParallelDescriptor::sameTeam(dst_owner) 
-		&&       ParallelDescriptor::sameTeam(src_owner);
-#else
-	    bool local = send && recv;
-#endif
+	    int send_rank = ParallelDescriptor::TeamSender(src_owner);
+	    int recv_rank = ParallelDescriptor::TeamReceiver(dst_owner);
+	    bool send = MyProc == send_rank;
+	    bool recv = MyProc == recv_rank;
+	    bool local = ParallelDescriptor::sameTeam(src_owner) &&
+                         ParallelDescriptor::sameTeam(dst_owner);
 
 	    if (!local && !send && !recv) continue;
 
@@ -1056,11 +1054,11 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		    else if (recv)
                     {
-			FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
+			FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,send_rank,tag,*TheFPB.m_RcvVols,tag.dbox);
                     }
                     else if (send)
                     {
-                        FabArrayBase::SetSendTag(*TheFPB.m_SndTags,dst_owner,tag,*TheFPB.m_SndVols,tag.dbox);
+                        FabArrayBase::SetSendTag(*TheFPB.m_SndTags,recv_rank,tag,*TheFPB.m_SndVols,tag.dbox);
                     }
                 }
             }
