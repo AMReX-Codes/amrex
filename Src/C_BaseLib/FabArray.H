@@ -3301,37 +3301,37 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	SeqNum[i] = ParallelDescriptor::SeqNum();
     }
 
-    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
-        //
+    const int N_locs = TheSI.m_LocTags->size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
         // No work to do.
-        //
         return;
 
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
+    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
-    if (ParallelDescriptor::isTeamReceiver()) {
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum[0],&BLPgas::fb_recv_event);
-    }
 #else
-    FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
-				fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
+	FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+				    fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 #endif
+    }
 
     //
     // Post send's
     //
-    const int N_snds = TheSI.m_SndTags->size();
-
-    Array<value_type*> &               send_data = fb_send_data;
-    Array<int>                         send_N;
-    Array<int>                         send_rank;
-    Array<const CopyComTagsContainer*> send_cctc;
-
-    if (ParallelDescriptor::isTeamSender())
+    if (ParallelDescriptor::isTeamSender() && N_snds > 0)
     {
+        Array<value_type*> &               send_data = fb_send_data;
+	Array<int>                         send_N;
+	Array<int>                         send_rank;
+	Array<const CopyComTagsContainer*> send_cctc;
+
 	send_data.reserve(N_snds);
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
@@ -3432,7 +3432,6 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    int N_loc = (*TheSI.m_LocTags).size();
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
 #ifdef BL_USE_UPCXX
@@ -3440,7 +3439,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	// If none is free, all will have to do it.
 	int nworkers = ParallelDescriptor::TeamFreeSize();
 	int wid = ParallelDescriptor::MyRankInTeamFree();
-	ParallelDescriptor::team_for(0, N_loc, wid, nworkers, [&] (int i) 
+	ParallelDescriptor::team_for(0, N_locs, wid, nworkers, [&] (int i) 
         {
 	    const auto& tag = (*TheSI.m_LocTags)[i];
 
@@ -3458,7 +3457,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
-	for (int i=0; i<N_loc; ++i)
+	for (int i=0; i<N_locs; ++i)
 	{
 	    const CopyComTag& tag = (*TheSI.m_LocTags)[i];
 
@@ -3504,22 +3503,16 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    if (TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
-        //
-        // No work to do.
-        //
-        return;
-
     Array<MPI_Status> stats;
-
-    //
-    //  wait and unpack
-    //
 
     const int N_rcvs = TheSI.m_RcvTags->size();
 
-    if (N_rcvs > 0)
+    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0)
     {
+        //
+        //  wait and unpack
+        //
+
 	Array<const CopyComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
 
@@ -3554,16 +3547,18 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 		dptr += Cnt;
 	    }	    
 	}
+
+	BoxLib::The_Arena()->free(fb_the_recv_data);
+
+	fb_recv_from.clear();
+	fb_recv_data.clear();
+	fb_recv_reqs.clear();
     }
 
-    BoxLib::The_Arena()->free(fb_the_recv_data);
+    const int N_snds = TheSI.m_SndTags->size();
 
-    fb_recv_from.clear();
-    fb_recv_data.clear();
-    fb_recv_reqs.clear();
-
-    if (!TheSI.m_SndTags->empty()) {
-      FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),fb_send_reqs,fb_send_data,stats);
+    if (ParallelDescriptor::isTeamSender() && N_snds > 0) {
+      FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
       fb_send_data.clear();
       fb_send_reqs.clear();
     }
@@ -3582,46 +3577,43 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
     const auto& TheSI = cache_it->second;
 
-    if (ParallelDescriptor::isTeamReceiver() && !TheSI.m_RcvTags->empty())
-    {
-	BLPgas::fb_recv_event.wait(); // wait for the recvs
+    const int N_rcvs = TheSI.m_RcvTags->size();
 
+    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0)
+    {
 	//
 	//  wait and unpack
 	//
 	
-	const int N_rcvs = TheSI.m_RcvTags->size();
-	
-	if (N_rcvs > 0)
-	{
-	    Array<const CopyComTagsContainer*> recv_cctc;
-	    recv_cctc.reserve(N_rcvs);
+	BLPgas::fb_recv_event.wait(); // wait for the recvs
 
-	    for (int k = 0; k < N_rcvs; k++) 
-	    {
-		auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
-		BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-		recv_cctc.push_back(&(m_it->second));
-	    }	
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
+	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+	    recv_cctc.push_back(&(m_it->second));
+	}	
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
 #endif
-	    for (int k = 0; k < N_rcvs; k++) 
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    value_type* dptr = fb_recv_data[k];
+	    BL_ASSERT(dptr != 0);
+		
+	    const auto& cctc = *recv_cctc[k];
+	    
+	    for (auto it = cctc.begin(); it != cctc.end(); ++it)
 	    {
-		value_type* dptr = fb_recv_data[k];
-		BL_ASSERT(dptr != 0);
-		
-		const auto& cctc = *recv_cctc[k];
-		
-		for (auto it = cctc.begin(); it != cctc.end(); ++it)
-		{
-		    const Box& bx  = it->box;
-		    const int  Cnt = bx.numPts()*fb_ncomp;
-		    get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-		    dptr += Cnt;
-		}	    
-	    }
+	        const Box& bx  = it->box;
+		const int  Cnt = bx.numPts()*fb_ncomp;
+		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+		dptr += Cnt;
+	    }	    
 	}
 
 	upcxx::deallocate(fb_the_recv_data);
@@ -3631,17 +3623,17 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	fb_recv_reqs.clear();
     }
 
-    if (ParallelDescriptor::isTeamSender() && TheSI.m_SndTags->empty())
-    {
-	if (!TheSI.m_SndTags->empty()) {
-	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-	    FabArrayBase::GrokAsyncSends_PGAS(TheSI.m_SndTags->size(),fb_send_data,
-					      &BLPgas::fb_send_event,
-					      &BLPgas::fb_send_counter);
+    const int N_snds = TheSI.m_SndTags->size();
 
-	    fb_send_data.clear();
-	    fb_send_reqs.clear();
-	}
+    if (ParallelDescriptor::isTeamSender() && N_snds > 0)
+    {
+        // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
+        FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,
+					  &BLPgas::fb_send_event,
+					  &BLPgas::fb_send_counter);
+	
+	fb_send_data.clear();
+	fb_send_reqs.clear();
     }
 
     ParallelDescriptor::TeamBarrier();

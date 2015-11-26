@@ -413,7 +413,7 @@ namespace ParallelDescriptor
 	if (TeamMsgAggMethod() == 1) {
 	    r -= 1;  // Worker 0 is not free
 	} else if (TeamMsgAggMethod() == 2) {
-	    r -= 2; // Worker 1 is not free
+	    r -= 2; // Workers 0 and 1 are not free
 	}
 	if (r <= 0) r = TeamSize(); // If none is free, the whole team is free.
 	return r;

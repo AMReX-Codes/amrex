@@ -648,15 +648,15 @@ namespace BoxLib
         //
         // Post send's
         //
-	const int N_snds = TheFPB.m_SndTags->size();
-
-	Array<value_type*>&                    send_data = mf.fpb_send_data;
-	Array<int>                             send_N;
-	Array<int>                             send_rank;
-	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
-
 	if (ParallelDescriptor::isTeamSender())
 	{
+            Array<value_type*>&                    send_data = mf.fpb_send_data;
+	    Array<int>                             send_N;
+	    Array<int>                             send_rank;
+	    Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
+
+	    const int N_snds = TheFPB.m_SndTags->size();
+
 	    send_data.reserve(N_snds);
 	    send_N   .reserve(N_snds);
 	    send_rank.reserve(N_snds);
