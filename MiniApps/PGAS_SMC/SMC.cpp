@@ -10,8 +10,8 @@ int         SMC::nprim             = 0;
 int         SMC::nspec             = 0;
 int         SMC::nplot             = 0;
 int         SMC::ngrow             = 0;
-Array<int>  SMC::ncell             (3,128);
-int         SMC::max_grid_size     = 32;
+Array<int>  SMC::ncell             (3,256);
+Array<int>  SMC::max_grid_size     (3,128);
 int         SMC::max_step          = 5;
 Real        SMC::stop_time         = 3.e-3;
 Array<Real> SMC::prob_lo           (3, -0.05);
@@ -66,7 +66,15 @@ SMC::init_runtime ()
 	pp.queryarr("ncell", ncell, 0, 3);
     }
 
-    pp.query("max_grid_size", max_grid_size);
+    n = pp.countval("max_grid_size");
+    if (n == 1) {
+      int mgs;
+      pp.query("max_grid_size", mgs);
+      max_grid_size[0] = max_grid_size[1] = max_grid_size[2] = mgs;
+    } else if (n == 3) {
+      pp.queryarr("max_grid_size", max_grid_size, 0, 3);
+    }
+
     pp.query("max_step", max_step);
     pp.query("stop_time", stop_time);
 
