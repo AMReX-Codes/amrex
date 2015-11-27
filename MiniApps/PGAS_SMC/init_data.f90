@@ -15,6 +15,7 @@ contains
     
     double precision, parameter :: Pi = 3.141592653589793238462643383279502884197d0
     double precision, parameter :: rfire = 0.01d0
+    double precision, parameter :: Lperiodic = 0.1d0
     
     integer          :: i,j,k,n
     double precision :: x, y, z, r
@@ -29,11 +30,11 @@ contains
     kz = 2.d0*Pi/(phhi(3) - phlo(3))
     
     do k=tlo(3),thi(3)
-       z = phlo(3) + dx(3)*(k + 0.5d0)
+       z = mod(dx(3)*(k+0.5d0), Lperiodic) - 0.5d0*Lperiodic 
        do j=tlo(2),thi(2)
-          y = phlo(2) + dx(2)*(j + 0.5d0)
+          y = mod(dx(2)*(j+0.5d0), Lperiodic) - 0.5d0*Lperiodic
           do i=tlo(1),thi(1)
-             x = phlo(1) + dx(1)*(i + 0.5d0)
+             x = mod(dx(1)*(i+0.5d0), Lperiodic) - 0.5d0*Lperiodic
              
              r = sqrt(x**2+y**2+z**2)
              
