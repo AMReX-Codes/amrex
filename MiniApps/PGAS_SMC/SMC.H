@@ -2,6 +2,7 @@
 #define _SMC_H_
 
 #include <Array.H>
+#include <IntVect.H>
 #include <Geometry.H>
 #include <MultiFab.H>
 
@@ -46,7 +47,7 @@ private:
 
     // runtime parameters;
     static Array<int> ncell;
-    static int max_grid_size;
+    static Array<int> max_grid_size;
     static int max_step;
     static Real stop_time;
     static Array<Real> prob_lo;
