@@ -10,19 +10,19 @@ int         SMC::nprim             = 0;
 int         SMC::nspec             = 0;
 int         SMC::nplot             = 0;
 int         SMC::ngrow             = 0;
-Array<int>  SMC::ncell             (3,256);
-Array<int>  SMC::max_grid_size     (3,128);
+Array<int>  SMC::ncell             (3,128);
+Array<int>  SMC::max_grid_size     (3,64);
 int         SMC::max_step          = 5;
 Real        SMC::stop_time         = 3.e-3;
-Array<Real> SMC::prob_lo           (3, -0.05);
-Array<Real> SMC::prob_hi           (3,  0.05);
+Array<Real> SMC::prob_lo           (3,  0.0);
+Array<Real> SMC::prob_hi           (3,  0.1);
 int         SMC::verbose           = 2;
 int         SMC::cfl_int           = 10;
 Real        SMC::cfl               = 0.1;
 Real        SMC::init_shrink       = 0.5;
 Real        SMC::fixed_dt          = -1.0e10;
 int         SMC::plot_int          = -1;
-int         SMC::overlap           = 1;
+int         SMC::overlap           = 0;
 
 SMC::SMC ()
 {
