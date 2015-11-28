@@ -1190,6 +1190,13 @@ MFGhostIter::Initialize ()
     }
 #endif
 
+#ifdef BL_USE_UPCXX
+    if (ParallelDescriptor::TeamSize() > 1) {
+	tid = ParallelDescriptor::MyRankInTeam();
+	nthreads = ParallelDescriptor::TeamSize();
+    }
+#endif
+
     BoxList alltiles;
     Array<int> allindex;
     Array<int> alllocalindex;
