@@ -49,7 +49,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:lcourno)
 #endif
-    for (MFIter mfi(UU); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(UU,true); mfi.isValid(); ++mfi) {
 	const Box& tbx0 = mfi.tilebox();
 	const Box& tbxg = mfi.growntilebox(ng_ctoprim);
 	const Box&  bx  = mfi.validbox();
@@ -105,7 +105,7 @@ SMC::compute_dUdt (MultiFab& UU, int istep)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(UU); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(UU,true); mfi.isValid(); ++mfi) {
 	const Box& tbx = mfi.tilebox();
 	const Box&  bx = mfi.validbox();
 
