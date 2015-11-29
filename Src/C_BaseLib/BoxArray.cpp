@@ -969,6 +969,13 @@ BoxArray::removeOverlap ()
     BL_ASSERT(isDisjoint());
 }
 
+ptrdiff_t 
+BoxArray::getRefID () const
+{
+    static BoxArray ba0(Box::TheUnitBox());
+    return m_ref.operator->() - ba0.m_ref.operator->();
+}
+
 #ifdef BL_USE_MPI
 void
 BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
