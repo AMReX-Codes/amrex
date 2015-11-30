@@ -324,6 +324,10 @@ public:
     //
     static IntVect mfiter_tile_size;
     //
+    // Huge box size, larger than any boxes we use
+    //
+    static IntVect mfiter_huge_box_size;
+    //
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
@@ -367,6 +371,15 @@ public:
     // This reset it back to normal.  These two should always appear in pair.
     void ResetNGrow () const;
 
+    struct TileArray
+    {
+	Array<int> indexMap;	
+	Array<int> localIndexMap;
+	Array<Box> tileArray;
+    };
+
+    const TileArray& getTileArray (const IntVect& tilesize) const;
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -384,6 +397,42 @@ protected:
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
 
+    // Key for unique combination of BoxArray and DistributionMapping
+    // Note both BoxArray and DistributionMapping are reference counted.
+    // Objects with the same references have the same key.
+    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+
+    BDKey getBDKey () const {
+	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+    }
+
+    // No operator< for std::pair before C++14
+    class CompareBDKey
+    {
+    public:
+	bool operator () (const BDKey& lhs,
+			  const BDKey& rhs) const
+	    {
+		return (lhs.first < rhs.first)
+		    || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
+	    }
+    };
+
+    // We use tile size as the key for the inner map.
+    typedef std::map<IntVect, TileArray   , IntVect::Compare> TA_inner_map;
+    typedef std::map<BDKey  , TA_inner_map, CompareBDKey>     TA_outer_map;
+    //
+    static TA_outer_map m_TheTileArrayCache;
+    //
+    void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
+    //
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
+
+    //
+    // Keep track of how many FabArrays are built with the same BDKey.
+    //
+    static std::map<BDKey, int> BD_count;
+
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
     static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
@@ -393,27 +442,27 @@ class MFIter
 {
 public:
     enum Flags {
-	Tiling    = 0x01, 
-	NoSharing = 0x02 // For OMP only, if on, all threads loops over all grids.
+        Tiling        = 0x01,
+        NoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+        NoTeamBarrier = 0x04  // For Team only. If on, there is no barrier in MFIter dtor.
     };  // All these flags are off by default.
     //
     // Construct a MFIter.
     //
     // The default is no tiling
     explicit MFIter (const FabArrayBase& fabarray,
-		     unsigned char       flags=0);
+		     unsigned char       flags_=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
     explicit MFIter (const FabArrayBase& fabarray, 
 		     bool                do_tiling); 
-    // tiling with explicit size, flags, and chunksize
+    // tiling with explicit size and flags
     explicit MFIter (const FabArrayBase& fabarray, 
 		     const IntVect&      tilesize,
-		     unsigned char       flags=0,
-		     int                 chunksize=0);
+		     unsigned char       flags_=0);
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return tileArray[currentIndex]; }
+    const Box& tilebox () const { return ta.tileArray[currentIndex]; }
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -433,11 +482,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(indexMap[currentIndex]); }
+    const Box& validbox () const { return fabArray.box(ta.indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(ta.indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -445,15 +494,15 @@ public:
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid () { return currentIndex < indexMap.size(); }
+    bool isValid () { return currentIndex < endIndex; }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return indexMap[currentIndex]; }
+    int index () const { return ta.indexMap[currentIndex]; }
     //
     // local index into the vector of fab pointers, m_fabs_v
     //
-    int LocalIndex () const { return localIndexMap[currentIndex]; }
+    int LocalIndex () const { return ta.localIndexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -462,13 +511,14 @@ public:
 private:
 
     const FabArrayBase& fabArray;
-    int                 currentIndex;
-    IntVect             tileSize;
-    Array<int>          indexMap;
-    Array<int>          localIndexMap;
-    Array<Box>          tileArray;
+    const FabArrayBase::TileArray& ta;
 
-    void Initialize (unsigned char flags=0, int chunksize=0);
+    unsigned char flags;
+    int           currentIndex;
+    int           beginIndex;
+    int           endIndex;
+
+    void Initialize ();
 };
 
 //
@@ -1178,6 +1228,24 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
+    BDKey key = getBDKey();
+    std::map<BDKey, int>::iterator cnt_it = BD_count.find(key);
+    if (cnt_it != BD_count.end()) 
+    {
+	--(cnt_it->second);
+	if (cnt_it->second == 0) 
+	{
+	    BD_count.erase(cnt_it);
+
+            // Since this is the last one built with these BoxArray 
+            // and DistributionMapping, erase it from the TileArray cache.
+	    TA_outer_map& tao = m_TheTileArrayCache;
+	    TA_outer_map::iterator tao_it = tao.find(key);
+	    if(tao_it != tao.end()) {
+		tao.erase(tao_it);
+	    }
+	}
+    }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
@@ -1321,6 +1389,14 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
       if(distributionMap[i] == MyProc) {
         indexMap.push_back(i);
       }
+    }
+    
+    BDKey key = getBDKey();
+    std::map<BDKey, int>::iterator it = BD_count.find(key);
+    if (it == BD_count.end()) {
+	BD_count[key] = 1;
+    } else {
+	++(it->second);
     }
 
     if(alloc == Fab_allocate) {
