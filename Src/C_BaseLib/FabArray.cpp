@@ -14,17 +14,18 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
-IntVect FabArrayBase::comm_tile_size(1024);
 #elif BL_SPACEDIM == 2
 IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
-IntVect FabArrayBase::comm_tile_size(1024, 8);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
-IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
+IntVect FabArrayBase::comm_tile_size(D_DECL(1024000, 8, 8));
+IntVect FabArrayBase::mfiter_huge_box_size(D_DECL(1024000,1024000,1024000));
 
 int FabArrayBase::nFabArrays(0);
 
+FabArrayBase::TA_outer_map FabArrayBase::m_TheTileArrayCache;
+std::map<FabArrayBase::BDKey, int> FabArrayBase::BD_count;
 
 namespace
 {
@@ -882,140 +883,67 @@ FabArrayBase::ResetNGrow () const
     boxarray_orig.clear();
 }
 
-
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		unsigned char       flags)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(D_DECL(1024000,1024000,1024000))
+const FabArrayBase::TileArray& 
+FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
-    if (flags & Tiling)
-	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize(flags);
-}
+    static TileArray* ta;
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		bool                do_tiling)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(D_DECL(1024000,1024000,1024000))
-{
-    if (do_tiling)
-	tileSize = FabArrayBase::mfiter_tile_size;
-    Initialize();
-}
-
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		const IntVect&      tilesize, 
-		unsigned char       flags,
-		int                 chunksize)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(tilesize)
-{
-    Initialize(flags,chunksize);
-}
-
-void 
-MFIter::Initialize (unsigned char flags, int chunksize) 
-{
-    int tid = 0;
-    int nthreads = 1;
-    
-#ifdef _OPENMP
-    int nosharing = flags & NoSharing;
-    if (omp_in_parallel() && !nosharing) {
-	tid = omp_get_thread_num();
-	nthreads = omp_get_num_threads();
-    }
+#ifdef _openmp
+#pragma omp single
 #endif
-    
-    // First let's figure out how many tiles we are going to have
-    int n_tot_tiles=0;
-    Array<IntVect> nt_in_fab;
-    for (int i=0; i<fabArray.IndexMap().size(); i++) {
-	int K = fabArray.IndexMap()[i]; 
-	const Box& bx = fabArray.box(K);
-	
+    {
+	TA_outer_map& tao = FabArrayBase::m_TheTileArrayCache;
+	BDKey key = getBDKey();
+	TA_outer_map::iterator tao_it = tao.find(key);
+	if (tao_it == tao.end()) {
+	    std::pair<TA_outer_map::iterator,bool> ret =
+		tao.insert(std::make_pair(key, TA_inner_map()));
+	    tao_it = ret.first;
+	}
+
+	TA_inner_map& tai = tao_it->second;
+	TA_inner_map::iterator tai_it = tai.find(tilesize);
+	if (tai_it == tai.end()) {
+	    std::pair<TA_inner_map::iterator,bool> ret =
+		tai.insert(std::make_pair(tilesize, TileArray()));
+	    ta = &(ret.first->second);
+	    buildTileArray(tilesize, *ta);
+	}
+	else
+	{
+	    ta = &(tai_it->second);
+	}
+    }
+
+    return *ta;
+}
+
+void
+FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
+{
+    for (int i = 0; i < indexMap.size(); ++i)
+    {
+	const int K = indexMap[i]; 
+	const Box& bx = boxarray[K];
+
+	IntVect nt_in_fab, tsize, nleft;
 	int ntiles = 1;
-	IntVect nt;
-	for (int d=0; d<BL_SPACEDIM; d++) {
-	    nt[d] = std::max(bx.length(d)/tileSize[d], 1);
-	    ntiles *= nt[d];
-	}
-	
-	nt_in_fab.push_back(nt);
-	n_tot_tiles += ntiles;
-    }
-
-    int tlo, thi, sz;
-    if (chunksize <= 0) {
-	// figure out the tile no range, tlo and thi for this thread
-	if (n_tot_tiles < nthreads) { // there are more threads than tiles
-	    if (tid < n_tot_tiles) {
-		tlo = thi = tid;
-	    } else {
-		return;
-	    }
-	} else {
-	    int tiles_per_thread = n_tot_tiles/nthreads;
-	    int nleft = n_tot_tiles - tiles_per_thread*nthreads;
-	    if (tid < nleft) {
-		tlo = tid*(tiles_per_thread+1);
-		thi = tlo + tiles_per_thread;
-	    } else {
-		tlo = tid*tiles_per_thread + nleft;
-		thi = tlo + tiles_per_thread - 1;
-	    }
-	}
-
-	sz = thi-tlo+1;
-    }
-    else {
-	tlo = -1;
-	thi = n_tot_tiles;
-	int nchunks = (n_tot_tiles+chunksize-1) / chunksize;
-	int chunks_per_thread = nchunks/nthreads;
-	int nleft = nchunks-chunks_per_thread*nthreads;
-	if (tid < nleft) chunks_per_thread++;
-	sz = chunks_per_thread*chunksize;
-    }
-
-    indexMap.reserve(sz);
-    localIndexMap.reserve(sz);
-    tileArray.reserve(sz);
-	
-    int it = 0;
-    for (int i=0; i<fabArray.IndexMap().size(); i++) {
-	
-	int ntiles = 1;
-	for (int d=0; d<BL_SPACEDIM; d++) {
-	    ntiles *= nt_in_fab[i][d];
-	}
-	
-	if (it+ntiles-1 < tlo) {
-	    it += ntiles;
-	    continue;
-	}
-	
-	int K = fabArray.IndexMap()[i]; 
-	const Box& bx = fabArray.box(K);
-	
-	IntVect tsize, nleft;
 	for (int d=0; d<BL_SPACEDIM; d++) {
 	    int ncells = bx.length(d);
-	    tsize[d] = ncells/nt_in_fab[i][d];
-	    nleft[d] = ncells - nt_in_fab[i][d]*tsize[d];
+	    nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
+	    tsize    [d] = ncells/nt_in_fab[d];
+	    nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+	    ntiles *= nt_in_fab[d];
 	}
-	
+
 	IntVect small, big, ijk;  // note that the initial values are all zero.
 	ijk[0] = -1;
-	for (int t=0; t<ntiles; t++) {
+	for (int t = 0; t < ntiles; ++t) {
+	    ta.indexMap.push_back(K);
+	    ta.localIndexMap.push_back(i);
+
 	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d]<nt_in_fab[i][d]-1) {
+		if (ijk[d]<nt_in_fab[d]-1) {
 		    ijk[d]++;
 		    break;
 		} else {
@@ -1023,37 +951,120 @@ MFIter::Initialize (unsigned char flags, int chunksize)
 		}
 	    }
 
-	    if ( (chunksize <=0 && it >= tlo) ||
-		 (chunksize > 0 && (it/chunksize)%nthreads == tid) ) 
-	    {
-		for (int d=0; d<BL_SPACEDIM; d++) {
-		    if (ijk[d] < nleft[d]) {
-			small[d] = ijk[d]*(tsize[d]+1);
-			big[d] = small[d] + tsize[d];
-		    } else {
-			small[d] = ijk[d]*tsize[d] + nleft[d];
-			big[d] = small[d] + tsize[d] - 1;
-		    }
+	    for (int d=0; d<BL_SPACEDIM; d++) {
+		if (ijk[d] < nleft[d]) {
+		    small[d] = ijk[d]*(tsize[d]+1);
+		    big[d] = small[d] + tsize[d];
+		} else {
+		    small[d] = ijk[d]*tsize[d] + nleft[d];
+		    big[d] = small[d] + tsize[d] - 1;
 		}
-		
-		indexMap.push_back(K);
-		localIndexMap.push_back(i);
-		
-		Box tbx(small, big, bx.ixType());
-		tbx.shift(bx.smallEnd());
-		tileArray.push_back(tbx);
 	    }
-	    
-	    it++;
-	    if (it > thi) return;
+
+	    Box tbx(small, big, bx.ixType());
+	    tbx.shift(bx.smallEnd());
+
+	    ta.tileArray.push_back(tbx);
 	}
     }
+}
+
+void
+FabArrayBase::flushTileArray (const IntVect& tileSize) const
+{
+    BDKey key = getBDKey();
+
+    TA_outer_map& tao = m_TheTileArrayCache;
+    TA_outer_map::iterator tao_it = tao.find(key);
+    if(tao_it != tao.end()) {
+	if (tileSize == IntVect::TheZeroVector()) {
+	    tao.erase(tao_it);
+	} else {
+	    TA_inner_map& tai = tao_it->second;
+	    TA_inner_map::iterator tai_it = tai.find(tileSize);
+	    if (tai_it != tai.end()) {
+		tai.erase(tai_it);
+	    }
+	}
+    }
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		unsigned char       flags_)
+    :
+    fabArray(fabarray),
+    ta(fabArray.getTileArray((flags_ & Tiling) 
+			     ? FabArrayBase::mfiter_tile_size
+			     : FabArrayBase::mfiter_huge_box_size)),
+    flags(flags_)
+
+{
+    Initialize();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		bool                do_tiling)
+    :
+    fabArray(fabarray),
+    ta(fabArray.getTileArray(do_tiling 
+			     ? FabArrayBase::mfiter_tile_size
+			     : FabArrayBase::mfiter_huge_box_size)),
+    flags(do_tiling ? Tiling : 0)
+{
+    Initialize();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray, 
+		const IntVect&      tilesize, 
+		unsigned char       flags_)
+    :
+    fabArray(fabarray),
+    ta(fabArray.getTileArray(tilesize)),
+    flags(flags_ | Tiling)
+{
+    Initialize();
+}
+
+void 
+MFIter::Initialize ()
+{
+    int rit = 0;
+    int nworkers = 1;
+    
+#ifdef _OPENMP
+    int nosharing = flags & NoSharing;
+    if (omp_in_parallel() && !nosharing) {
+	rit = omp_get_thread_num();
+	nworkers = omp_get_num_threads();
+    }
+#endif
+
+    int ntot = ta.indexMap.size();
+
+    if (nworkers == 1)
+    {
+	beginIndex = 0;
+	endIndex = ntot;
+    }
+    else
+    {
+	int nr   = ntot / nworkers;
+	int nlft = ntot - nr * nworkers;
+	if (rit < nlft) {  // get nr+1 items
+	    beginIndex = rit * (nr + 1);
+	    endIndex = beginIndex + nr + 1;
+	} else {           // get nr items
+	    beginIndex = rit * nr + nlft;
+	    endIndex = beginIndex + nr;
+	}
+    }
+    currentIndex = beginIndex;
 }
 
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    Box bx(tileArray[currentIndex]);
+    Box bx(ta.tileArray[currentIndex]);
     this->nodalize(bx, dir);
     return bx;
 }
@@ -1063,9 +1074,9 @@ MFIter::growntilebox (int ng) const
 {
     if (ng < 0) ng = fabArray.nGrow();
     if (ng == 0) {
-	return tileArray[currentIndex];
+	return ta.tileArray[currentIndex];
     } else {
-	Box bx(tileArray[currentIndex]);
+	Box bx(ta.tileArray[currentIndex]);
 	const Box& vbx = validbox();
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
