@@ -302,6 +302,11 @@ public:
 
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    //
+    // This gives a unique ID of the reference
+    //
+    ptrdiff_t getRefID () const;
+
 #ifdef BL_USE_MPI
     static void SendBoxArrayToSidecars(BoxArray *ba);
 #endif
