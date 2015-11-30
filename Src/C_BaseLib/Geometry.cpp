@@ -246,7 +246,7 @@ Geometry::FillPeriodicBoundary_local (MultiFab& mf,
             if (TheDomain.contains(dst)) continue;
 
             // Turn off sharing among threas because this MFIter is inside another MFIter
-	    unsigned char flags = MFIter::OMPNoSharing || MFIter::UPCNoTeamBarrier;
+	    unsigned char flags = MFIter::NoSharing || MFIter::NoTeamBarrier;
             for (MFIter mfisrc(mf,flags); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;

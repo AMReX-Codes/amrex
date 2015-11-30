@@ -495,7 +495,7 @@ VisMF::Header::Header (const MultiFab& mf,
 {
 #ifdef BL_USE_MPI
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
-    unsigned char flags = MFIter::UPCOwnerOnly;
+    unsigned char flags = MFIter::OwnerOnly;
     //
     // Calculate m_min and m_max on the CPU owning the fab.
     //
@@ -685,7 +685,7 @@ VisMF::Write (const MultiFab&    mf,
 
     VisMF::Header hdr(mf, how);
 
-    unsigned char flags = MFIter::UPCOwnerOnly;
+    unsigned char flags = MFIter::OwnerOnly;
 
     if (set_ghost)
     {

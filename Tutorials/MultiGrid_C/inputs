@@ -7,6 +7,11 @@ solver_type = All
 # bc_type = Periodic
 bc_type = Dirichlet
 
+# This sets the order of approximation used by the BoxLib_C solver
+# at Dirichlet boundaries.  The BoxLib_C results match the BoxLib_F
+# results when the BoxLib_C solver uses maxorder = 3.
+Lp.maxorder = 3
+
 a = 1.e-3
 b = 1.0
 # a case with constant diffusion coefficient
@@ -26,7 +31,7 @@ comp_norm = 1 # compute 2 norm of the error
 n_cell        = 128
 max_grid_size = 32
 
-tol_rel = 1.e-6
+tol_rel = 1.e-10
 tol_abs = 0.0
 
 #For BoxLib_F: 
