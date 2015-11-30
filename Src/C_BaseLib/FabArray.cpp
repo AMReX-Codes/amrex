@@ -903,7 +903,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 
 //    bool cached;
 
-#ifdef _openmp
+#ifdef _OPENMP
 #pragma omp single
 #endif
     {
