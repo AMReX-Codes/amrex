@@ -69,7 +69,7 @@ c
      $                 + a * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
      $                          + 0.25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
                else
-                  print *, 'FORT_SET_RHS: unknow boundary type'
+                  print *, 'FORT_SET_RHS: unknown boundary type'
                   stop
                endif
             end do
