@@ -32,7 +32,7 @@ w     = 0.05
 
 plot_rhs  = 0 # plot the RHS
 plot_beta = 0 # plot diffusion coefficient
-plot_soln = 0 # plot the solution
+plot_soln = 1 # plot the solution
 plot_asol = 0 # plot analytic solution
 plot_err  = 0 # plot the error
 comp_norm = 0 # compute 2 norm of the error
