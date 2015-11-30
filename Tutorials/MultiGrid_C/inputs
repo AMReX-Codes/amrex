@@ -9,7 +9,7 @@ bc_type = Dirichlet
 
 # The Lp.maxorder flag sets the order of approximation used by the BoxLib_C solver
 # at Dirichlet boundaries.  
-# The mg.stencil_order flag sets the order of approximation used by the BoxLib_F solver
+# The mg.maxorder flag sets the order of approximation used by the BoxLib_F solver
 # at Dirichlet boundaries.  
 
 # These flags must be set to the same value for the solutions to match.
@@ -18,10 +18,10 @@ bc_type = Dirichlet
 # HPGMG approximates Dirichlet boundaries to be of order 2 so we use that by default.
 
 Lp.maxorder = 3
-mg.stencil_order = 3
+mg.maxorder = 3
 # OR
 Lp.maxorder = 2
-mg.stencil_order = 2
+mg.maxorder = 2
 
 a = 1.e-3
 b = 1.0
