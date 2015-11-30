@@ -41,6 +41,7 @@ int  plot_soln     = 0;
 int  plot_asol     = 0; 
 int  plot_err      = 0;
 int  comp_norm     = 1;
+int  stencil_order = 2;
 
 Real dx[BL_SPACEDIM];
 
@@ -94,6 +95,7 @@ int main(int argc, char* argv[])
 
   ParmParse ppmg("mg");  
   ppmg.query("v", verbose);
+  ppmg.query("stencil_order", stencil_order);
   
   ParmParse pp;
 
@@ -592,6 +594,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   }
 
   fmg.set_bc(mg_bc);
+  fmg.set_maxorder(stencil_order);
 
   fmg.set_scalars(a, b);
   fmg.set_coefficients(alpha, beta);
