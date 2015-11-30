@@ -141,3 +141,7 @@ ifeq ($(USE_PARTICLES), TRUE)
   F$(BOXLIB_BASE)_headers += Particles_F.H
   F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
 endif
+
+# C++11 stuff
+C$(BOXLIB_BASE)_headers += BL_CXX11.H
+
