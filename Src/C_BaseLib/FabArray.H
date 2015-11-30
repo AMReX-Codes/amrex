@@ -402,6 +402,9 @@ protected:
     // Objects with the same references have the same key.
     typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
+    mutable BDKey m_bdkey;
+    mutable BDKey m_bdkey_orig;
+
     BDKey getBDKey () const {
 	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
     }
@@ -1228,8 +1231,9 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    BDKey key = getBDKey();
-    std::map<BDKey, int>::iterator cnt_it = BD_count.find(key);
+    BL_ASSERT(getBDKey() == m_bdkey);
+
+    std::map<BDKey, int>::iterator cnt_it = BD_count.find(m_bdkey);
     if (cnt_it != BD_count.end()) 
     {
 	--(cnt_it->second);
@@ -1240,7 +1244,7 @@ FabArray<FAB>::clear ()
             // Since this is the last one built with these BoxArray 
             // and DistributionMapping, erase it from the TileArray cache.
 	    TA_outer_map& tao = m_TheTileArrayCache;
-	    TA_outer_map::iterator tao_it = tao.find(key);
+	    TA_outer_map::iterator tao_it = tao.find(m_bdkey);
 	    if(tao_it != tao.end()) {
 		tao.erase(tao_it);
 	    }
@@ -1391,10 +1395,10 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
       }
     }
     
-    BDKey key = getBDKey();
-    std::map<BDKey, int>::iterator it = BD_count.find(key);
+    m_bdkey = getBDKey();
+    std::map<BDKey, int>::iterator it = BD_count.find(m_bdkey);
     if (it == BD_count.end()) {
-	BD_count[key] = 1;
+	BD_count[m_bdkey] = 1;
     } else {
 	++(it->second);
     }

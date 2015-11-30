@@ -723,6 +723,11 @@ FabArrayBase::Finalize ()
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
 
+    if (m_TheTileArrayCache.size() > 0 && ParallelDescriptor::IOProcessor()) {
+	std::cout << "WARNING: TheTileArrayCache is not empty: " 
+		  << m_TheTileArrayCache.size() << std::endl;
+    }
+
     initialized = false;
 }
 
@@ -867,19 +872,27 @@ FabArrayBase::SetNGrow (int n_grow_new) const
 
     if (n_grow_new == n_grow) return;
 
-    n_grow_orig = n_grow;
+    n_grow_orig   = n_grow;
     boxarray_orig = boxarray;
+    m_bdkey_orig  = m_bdkey;
 
     n_grow = n_grow_new;
     boxarray.grow(n_grow_orig-n_grow_new);
+
+    m_bdkey = getBDKey();
 }
 
 void
 FabArrayBase::ResetNGrow () const
 {
     if (boxarray_orig.empty()) return;
-    n_grow = n_grow_orig;
+
+    flushTileArray();
+
+    n_grow   =   n_grow_orig;
     boxarray = boxarray_orig;
+    m_bdkey  =  m_bdkey_orig;
+
     boxarray_orig.clear();
 }
 
@@ -888,30 +901,37 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     static TileArray* ta;
 
+//    bool cached;
+
 #ifdef _openmp
 #pragma omp single
 #endif
     {
 	TA_outer_map& tao = FabArrayBase::m_TheTileArrayCache;
-	BDKey key = getBDKey();
-	TA_outer_map::iterator tao_it = tao.find(key);
+
+	BL_ASSERT(getBDKey() == m_bdkey);
+
+	TA_outer_map::iterator tao_it = tao.find(m_bdkey);
 	if (tao_it == tao.end()) {
 	    std::pair<TA_outer_map::iterator,bool> ret =
-		tao.insert(std::make_pair(key, TA_inner_map()));
+		tao.insert(std::make_pair(m_bdkey, TA_inner_map()));
 	    tao_it = ret.first;
 	}
 
 	TA_inner_map& tai = tao_it->second;
+
 	TA_inner_map::iterator tai_it = tai.find(tilesize);
 	if (tai_it == tai.end()) {
 	    std::pair<TA_inner_map::iterator,bool> ret =
 		tai.insert(std::make_pair(tilesize, TileArray()));
 	    ta = &(ret.first->second);
 	    buildTileArray(tilesize, *ta);
+//	    cached = false;
 	}
 	else
 	{
 	    ta = &(tai_it->second);
+//	    cached = true;
 	}
     }
 
@@ -972,10 +992,10 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 void
 FabArrayBase::flushTileArray (const IntVect& tileSize) const
 {
-    BDKey key = getBDKey();
+    BL_ASSERT(getBDKey() == m_bdkey);
 
     TA_outer_map& tao = m_TheTileArrayCache;
-    TA_outer_map::iterator tao_it = tao.find(key);
+    TA_outer_map::iterator tao_it = tao.find(m_bdkey);
     if(tao_it != tao.end()) {
 	if (tileSize == IntVect::TheZeroVector()) {
 	    tao.erase(tao_it);
@@ -997,7 +1017,6 @@ MFIter::MFIter (const FabArrayBase& fabarray,
 			     ? FabArrayBase::mfiter_tile_size
 			     : FabArrayBase::mfiter_huge_box_size)),
     flags(flags_)
-
 {
     Initialize();
 }
