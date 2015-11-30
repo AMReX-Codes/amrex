@@ -519,7 +519,11 @@ contains
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
 
     ng = pf%grids(i)%fabs(j)%ng
-    allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
+    if (lo(3) .eq. hi(3)) then
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), nc))
+    else
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
+    endif
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
          pf%grids(i)%fabs(j)%p(:,:,:,:), &
