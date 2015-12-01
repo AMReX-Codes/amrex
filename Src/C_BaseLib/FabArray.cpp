@@ -896,7 +896,8 @@ FabArrayBase::ResetNGrow () const
     boxarray_orig.clear();
 }
 
-const FabArrayBase::TileArray& 
+#if 0
+const FabArrayBase::TileArray* 
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     static TileArray* ta;
@@ -935,8 +936,58 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	}
     }
 
-    return *ta;
+    TileArray* p;
+#ifdef _OPENMP
+#pragma omp atomic read
+#endif
+    p = ta;
+    return p;
 }
+
+#else
+
+const FabArrayBase::TileArray* 
+FabArrayBase::getTileArray (const IntVect& tilesize) const
+{
+    TileArray* p;
+//    bool cached;
+
+#ifdef _OPENMP
+#pragma omp critical(gettilearray)
+#endif
+    {
+	TA_outer_map& tao = FabArrayBase::m_TheTileArrayCache;
+
+	BL_ASSERT(getBDKey() == m_bdkey);
+
+	TA_outer_map::iterator tao_it = tao.find(m_bdkey);
+	if (tao_it == tao.end()) {
+	    std::pair<TA_outer_map::iterator,bool> ret =
+		tao.insert(std::make_pair(m_bdkey, TA_inner_map()));
+	    tao_it = ret.first;
+	}
+
+	TA_inner_map& tai = tao_it->second;
+
+	TA_inner_map::iterator tai_it = tai.find(tilesize);
+	if (tai_it == tai.end()) {
+	    std::pair<TA_inner_map::iterator,bool> ret =
+		tai.insert(std::make_pair(tilesize, TileArray()));
+	    p = &(ret.first->second);
+	    buildTileArray(tilesize, *p);
+//	    cached = false;
+	}
+	else
+	{
+	    p = &(tai_it->second);
+//	    cached = true;
+	}
+    }
+
+    return p;
+}
+
+#endif
 
 void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
@@ -1013,9 +1064,9 @@ MFIter::MFIter (const FabArrayBase& fabarray,
 		unsigned char       flags_)
     :
     fabArray(fabarray),
-    ta(fabArray.getTileArray((flags_ & Tiling) 
-			     ? FabArrayBase::mfiter_tile_size
-			     : FabArrayBase::mfiter_huge_box_size)),
+    pta(fabArray.getTileArray((flags_ & Tiling) 
+			      ? FabArrayBase::mfiter_tile_size
+			      : FabArrayBase::mfiter_huge_box_size)),
     flags(flags_)
 {
     Initialize();
@@ -1025,9 +1076,9 @@ MFIter::MFIter (const FabArrayBase& fabarray,
 		bool                do_tiling)
     :
     fabArray(fabarray),
-    ta(fabArray.getTileArray(do_tiling 
-			     ? FabArrayBase::mfiter_tile_size
-			     : FabArrayBase::mfiter_huge_box_size)),
+    pta(fabArray.getTileArray(do_tiling 
+			      ? FabArrayBase::mfiter_tile_size
+			      : FabArrayBase::mfiter_huge_box_size)),
     flags(do_tiling ? Tiling : 0)
 {
     Initialize();
@@ -1038,7 +1089,7 @@ MFIter::MFIter (const FabArrayBase& fabarray,
 		unsigned char       flags_)
     :
     fabArray(fabarray),
-    ta(fabArray.getTileArray(tilesize)),
+    pta(fabArray.getTileArray(tilesize)),
     flags(flags_ | Tiling)
 {
     Initialize();
@@ -1047,6 +1098,8 @@ MFIter::MFIter (const FabArrayBase& fabarray,
 void 
 MFIter::Initialize ()
 {
+    if (pta == 0) return;
+
     int rit = 0;
     int nworkers = 1;
     
@@ -1058,7 +1111,7 @@ MFIter::Initialize ()
     }
 #endif
 
-    int ntot = ta.indexMap.size();
+    int ntot = pta->indexMap.size();
 
     if (nworkers == 1)
     {
@@ -1083,7 +1136,7 @@ MFIter::Initialize ()
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    Box bx(ta.tileArray[currentIndex]);
+    Box bx(pta->tileArray[currentIndex]);
     this->nodalize(bx, dir);
     return bx;
 }
@@ -1093,9 +1146,9 @@ MFIter::growntilebox (int ng) const
 {
     if (ng < 0) ng = fabArray.nGrow();
     if (ng == 0) {
-	return ta.tileArray[currentIndex];
+	return pta->tileArray[currentIndex];
     } else {
-	Box bx(ta.tileArray[currentIndex]);
+	Box bx(pta->tileArray[currentIndex]);
 	const Box& vbx = validbox();
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
