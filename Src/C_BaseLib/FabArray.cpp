@@ -896,56 +896,6 @@ FabArrayBase::ResetNGrow () const
     boxarray_orig.clear();
 }
 
-#if 0
-const FabArrayBase::TileArray* 
-FabArrayBase::getTileArray (const IntVect& tilesize) const
-{
-    static TileArray* ta;
-
-//    bool cached;
-
-#ifdef _OPENMP
-#pragma omp single
-#endif
-    {
-	TA_outer_map& tao = FabArrayBase::m_TheTileArrayCache;
-
-	BL_ASSERT(getBDKey() == m_bdkey);
-
-	TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-	if (tao_it == tao.end()) {
-	    std::pair<TA_outer_map::iterator,bool> ret =
-		tao.insert(std::make_pair(m_bdkey, TA_inner_map()));
-	    tao_it = ret.first;
-	}
-
-	TA_inner_map& tai = tao_it->second;
-
-	TA_inner_map::iterator tai_it = tai.find(tilesize);
-	if (tai_it == tai.end()) {
-	    std::pair<TA_inner_map::iterator,bool> ret =
-		tai.insert(std::make_pair(tilesize, TileArray()));
-	    ta = &(ret.first->second);
-	    buildTileArray(tilesize, *ta);
-//	    cached = false;
-	}
-	else
-	{
-	    ta = &(tai_it->second);
-//	    cached = true;
-	}
-    }
-
-    TileArray* p;
-#ifdef _OPENMP
-#pragma omp atomic read
-#endif
-    p = ta;
-    return p;
-}
-
-#else
-
 const FabArrayBase::TileArray* 
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
@@ -986,8 +936,6 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 
     return p;
 }
-
-#endif
 
 void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
