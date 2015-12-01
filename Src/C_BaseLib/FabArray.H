@@ -462,6 +462,8 @@ public:
     explicit MFIter (const FabArrayBase& fabarray, 
 		     const IntVect&      tilesize,
 		     unsigned char       flags_=0);
+    // dtor
+    ~MFIter ();
     //
     // Returns the tile Box at the current index.
     //

@@ -1043,6 +1043,11 @@ MFIter::MFIter (const FabArrayBase& fabarray,
     Initialize();
 }
 
+MFIter::~MFIter ()
+{
+    ;
+}
+
 void 
 MFIter::Initialize ()
 {
