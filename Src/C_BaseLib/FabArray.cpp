@@ -24,8 +24,13 @@ IntVect FabArrayBase::mfiter_huge_box_size(D_DECL(1024000,1024000,1024000));
 
 int FabArrayBase::nFabArrays(0);
 
-FabArrayBase::TA_outer_map FabArrayBase::m_TheTileArrayCache;
-std::map<FabArrayBase::BDKey, int> FabArrayBase::BD_count;
+FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
+FabArrayBase::TA_outer_map         FabArrayBase::m_TheTileArrayCache;
+//
+std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
+//
+FabArrayBase::TACStats             FabArrayBase::m_TAC_stats;
 
 namespace
 {
@@ -202,11 +207,6 @@ FabArrayBase::CPC::bytes () const
 
     return cnt;
 }
-
-//
-// The copy() cache.
-//
-FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC&          cpc,
@@ -521,8 +521,6 @@ FabArrayBase::SI::bytes () const
     return cnt;
 }
 
-FabArrayBase::FBCache FabArrayBase::m_TheFBCache;
-
 FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
@@ -723,10 +721,8 @@ FabArrayBase::Finalize ()
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
 
-    if (m_TheTileArrayCache.size() > 0 && ParallelDescriptor::IOProcessor()) {
-	std::cout << "WARNING: TheTileArrayCache is not empty: " 
-		  << m_TheTileArrayCache.size() << std::endl;
-    }
+    if (ParallelDescriptor::IOProcessor())
+	m_TAC_stats.printStats();
 
     initialized = false;
 }
@@ -900,7 +896,6 @@ const FabArrayBase::TileArray*
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     TileArray* p;
-//    bool cached;
 
 #ifdef _OPENMP
 #pragma omp critical(gettilearray)
@@ -911,7 +906,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	BL_ASSERT(getBDKey() == m_bdkey);
 
 	TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-	if (tao_it == tao.end()) {
+	if (tao_it == tao.end()) 
+	{
 	    std::pair<TA_outer_map::iterator,bool> ret =
 		tao.insert(std::make_pair(m_bdkey, TA_inner_map()));
 	    tao_it = ret.first;
@@ -920,18 +916,26 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	TA_inner_map& tai = tao_it->second;
 
 	TA_inner_map::iterator tai_it = tai.find(tilesize);
-	if (tai_it == tai.end()) {
+	if (tai_it == tai.end()) 
+	{
 	    std::pair<TA_inner_map::iterator,bool> ret =
 		tai.insert(std::make_pair(tilesize, TileArray()));
 	    p = &(ret.first->second);
 	    buildTileArray(tilesize, *p);
-//	    cached = false;
+	    m_TAC_stats.recordBuild();
 	}
 	else
 	{
 	    p = &(tai_it->second);
-//	    cached = true;
 	}
+#ifdef _OPENMP
+#pragma omp master
+#endif
+	{
+	    ++(p->nuse);
+	    m_TAC_stats.recordUse();
+        }
+	
     }
 
     return p;
@@ -940,6 +944,8 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
+    ta.nuse = 0;
+
     for (int i = 0; i < indexMap.size(); ++i)
     {
 	const int K = indexMap[i]; 
@@ -995,13 +1001,19 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 
     TA_outer_map& tao = m_TheTileArrayCache;
     TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-    if(tao_it != tao.end()) {
-	if (tileSize == IntVect::TheZeroVector()) {
+    if(tao_it != tao.end()) 
+    {
+	if (tileSize == IntVect::TheZeroVector()) 
+	{
+	    m_TAC_stats.recordErase(tao_it->second);
 	    tao.erase(tao_it);
-	} else {
+	} 
+	else 
+	{
 	    TA_inner_map& tai = tao_it->second;
 	    TA_inner_map::iterator tai_it = tai.find(tileSize);
 	    if (tai_it != tai.end()) {
+		m_TAC_stats.recordErase(tai_it->second);
 		tai.erase(tai_it);
 	    }
 	}

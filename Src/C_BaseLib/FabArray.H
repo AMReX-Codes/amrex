@@ -373,6 +373,7 @@ public:
 
     struct TileArray
     {
+	int nuse;
 	Array<int> indexMap;	
 	Array<int> localIndexMap;
 	Array<Box> tileArray;
@@ -426,6 +427,44 @@ protected:
     typedef std::map<BDKey  , TA_inner_map, CompareBDKey>     TA_outer_map;
     //
     static TA_outer_map m_TheTileArrayCache;
+    //
+    struct TACStats
+    {
+	int       size;
+	int       maxsize;
+	int       maxuse;
+        long long nbuild;
+	long long nerase;
+	long long nuse;
+	TACStats () : size(0), maxsize(0), maxuse(0), nbuild(0), nerase(0) {;}
+	void recordBuild () {
+	    ++size;
+	    ++nbuild; 
+	    maxsize = std::max(maxsize, size);
+	}
+	void recordErase (const TA_inner_map& tai) {
+	    size   -= tai.size();
+	    nerase += tai.size();
+	    for (TA_inner_map::const_iterator it = tai.begin(); it != tai.end(); ++it) {
+		maxuse = std::max(maxuse, it->second.nuse);
+	    }
+	}
+	void recordErase (const TileArray& ta) {
+	    --size;
+	    ++nerase;
+	    maxuse = std::max(maxuse, ta.nuse);
+	}
+	void recordUse () {
+	    ++nuse;
+	}
+	void printStats () {
+	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
+		      << ", tot # of erasures: " << nerase << ", tot # of uses: " << nuse << "\n"
+		      << "                max size: " << maxsize << ", max # uses: " << maxuse
+		      << std::endl;
+	}
+    };
+    static TACStats m_TAC_stats;
     //
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
@@ -1241,19 +1280,20 @@ FabArray<FAB>::clear ()
     {
 	BL_ASSERT(getBDKey() == m_bdkey);
 
-	std::map<BDKey, int>::iterator cnt_it = BD_count.find(m_bdkey);
-	if (cnt_it != BD_count.end()) 
+	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+	if (cnt_it != m_BD_count.end()) 
 	{
 	    --(cnt_it->second);
 	    if (cnt_it->second == 0) 
 	    {
-		BD_count.erase(cnt_it);
+		m_BD_count.erase(cnt_it);
 		
 		// Since this is the last one built with these BoxArray 
 		// and DistributionMapping, erase it from the TileArray cache.
 		TA_outer_map& tao = m_TheTileArrayCache;
 		TA_outer_map::iterator tao_it = tao.find(m_bdkey);
 		if(tao_it != tao.end()) {
+		    m_TAC_stats.recordErase(tao_it->second);
 		    tao.erase(tao_it);
 		}
 	    }
@@ -1405,9 +1445,9 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
     
     m_bdkey = getBDKey();
-    std::map<BDKey, int>::iterator it = BD_count.find(m_bdkey);
-    if (it == BD_count.end()) {
-	BD_count[m_bdkey] = 1;
+    std::map<BDKey, int>::iterator it = m_BD_count.find(m_bdkey);
+    if (it == m_BD_count.end()) {
+	m_BD_count[m_bdkey] = 1;
     } else {
 	++(it->second);
     }
