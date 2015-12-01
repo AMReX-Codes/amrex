@@ -378,7 +378,7 @@ public:
 	Array<Box> tileArray;
     };
 
-    const TileArray& getTileArray (const IntVect& tilesize) const;
+    const TileArray* getTileArray (const IntVect& tilesize) const;
 
 protected:
 
@@ -465,7 +465,7 @@ public:
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return ta.tileArray[currentIndex]; }
+    const Box& tilebox () const { return pta->tileArray[currentIndex]; }
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -485,11 +485,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(ta.indexMap[currentIndex]); }
+    const Box& validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(ta.indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -501,11 +501,11 @@ public:
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return ta.indexMap[currentIndex]; }
+    int index () const { return pta->indexMap[currentIndex]; }
     //
     // local index into the vector of fab pointers, m_fabs_v
     //
-    int LocalIndex () const { return ta.localIndexMap[currentIndex]; }
+    int LocalIndex () const { return pta->localIndexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -514,7 +514,7 @@ public:
 private:
 
     const FabArrayBase& fabArray;
-    const FabArrayBase::TileArray& ta;
+    const FabArrayBase::TileArray* pta;
 
     unsigned char flags;
     int           currentIndex;
