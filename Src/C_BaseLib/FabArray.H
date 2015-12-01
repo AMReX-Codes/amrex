@@ -462,6 +462,10 @@ public:
     explicit MFIter (const FabArrayBase& fabarray, 
 		     const IntVect&      tilesize,
 		     unsigned char       flags_=0);
+    // tiling with explicit tilearray and flags
+    explicit MFIter (const FabArrayBase&            fabarray, 
+		     const FabArrayBase::TileArray* pta_,
+		     unsigned char                  flags_=0);
     // dtor
     ~MFIter ();
     //
