@@ -1231,22 +1231,25 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    BL_ASSERT(getBDKey() == m_bdkey);
-
-    std::map<BDKey, int>::iterator cnt_it = BD_count.find(m_bdkey);
-    if (cnt_it != BD_count.end()) 
+    if (! boxarray.empty() ) 
     {
-	--(cnt_it->second);
-	if (cnt_it->second == 0) 
-	{
-	    BD_count.erase(cnt_it);
+	BL_ASSERT(getBDKey() == m_bdkey);
 
-            // Since this is the last one built with these BoxArray 
-            // and DistributionMapping, erase it from the TileArray cache.
-	    TA_outer_map& tao = m_TheTileArrayCache;
-	    TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-	    if(tao_it != tao.end()) {
-		tao.erase(tao_it);
+	std::map<BDKey, int>::iterator cnt_it = BD_count.find(m_bdkey);
+	if (cnt_it != BD_count.end()) 
+	{
+	    --(cnt_it->second);
+	    if (cnt_it->second == 0) 
+	    {
+		BD_count.erase(cnt_it);
+		
+		// Since this is the last one built with these BoxArray 
+		// and DistributionMapping, erase it from the TileArray cache.
+		TA_outer_map& tao = m_TheTileArrayCache;
+		TA_outer_map::iterator tao_it = tao.find(m_bdkey);
+		if(tao_it != tao.end()) {
+		    tao.erase(tao_it);
+		}
 	    }
 	}
     }
