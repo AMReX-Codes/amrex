@@ -31,6 +31,7 @@ FabArrayBase::TA_outer_map         FabArrayBase::m_TheTileArrayCache;
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 //
 FabArrayBase::TACStats             FabArrayBase::m_TAC_stats;
+FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
@@ -721,8 +722,10 @@ FabArrayBase::Finalize ()
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
 
-    if (ParallelDescriptor::IOProcessor())
-	m_TAC_stats.printStats();
+    if (ParallelDescriptor::IOProcessor()) {
+	m_TAC_stats.print();
+	m_FA_stats.print();
+    }
 
     initialized = false;
 }

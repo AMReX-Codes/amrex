@@ -457,7 +457,7 @@ protected:
 	void recordUse () {
 	    ++nuse;
 	}
-	void printStats () {
+	void print () {
 	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
 		      << ", tot # of erasures: " << nerase << ", tot # of uses: " << nuse << "\n"
 		      << "                max size: " << maxsize << ", max # uses: " << maxuse
@@ -473,7 +473,40 @@ protected:
     //
     // Keep track of how many FabArrays are built with the same BDKey.
     //
-    static std::map<BDKey, int> BD_count;
+    static std::map<BDKey, int> m_BD_count;
+    //
+    struct FabArrayStats
+    {
+	int num_fabarrays;
+	int max_num_fabarrays;
+	int max_num_boxarrays;
+	int max_num_ba_use;
+	long long num_build;
+	FabArrayStats () : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
+			   max_num_ba_use(1), num_build(0) {;}
+	void recordBuild () {
+	    ++num_fabarrays;
+	    ++num_build;
+	    max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
+	}
+	void recordDelete () {
+	    --num_fabarrays;
+	}
+	void recordMaxNumBoxArrays (int n) {
+	    max_num_boxarrays = std::max(max_num_boxarrays, n);
+	}
+	void recordMaxNumBAUse (int n) {
+	    max_num_ba_use = std::max(max_num_ba_use, n);
+	}
+	void print () {
+	    std::cout << "FabArray: tot # of builds: " << num_build
+		      << ", max # of FabArrays: " << max_num_fabarrays
+		      << ", max # of BoxArrays: " << max_num_boxarrays
+		      << ", max # of BoxArray resues: " << max_num_ba_use
+		      << std::endl;
+	}
+    };
+    static FabArrayStats m_FA_stats;
 
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
@@ -1341,7 +1374,9 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-{}
+{
+    m_FA_stats.recordBuild();
+}
 
 template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
@@ -1350,6 +1385,7 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          FabAlloc        alloc,
 			 const IntVect&  nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,alloc,nodal);
 }
 
@@ -1361,12 +1397,14 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          FabAlloc                   alloc,
 			 const IntVect&             nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,dm,alloc,nodal);
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
+    m_FA_stats.recordDelete();
     clear();
 }
 
@@ -1448,10 +1486,12 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     std::map<BDKey, int>::iterator it = m_BD_count.find(m_bdkey);
     if (it == m_BD_count.end()) {
 	m_BD_count[m_bdkey] = 1;
+	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
     } else {
 	++(it->second);
+	m_FA_stats.recordMaxNumBAUse(it->second);
     }
-
+    
     if(alloc == Fab_allocate) {
       AllocFabs();
 
