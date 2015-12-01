@@ -1043,6 +1043,17 @@ MFIter::MFIter (const FabArrayBase& fabarray,
     Initialize();
 }
 
+MFIter::MFIter (const FabArrayBase&            fabarray, 
+		const FabArrayBase::TileArray* pta_,
+		unsigned char                  flags_)
+    :
+    fabArray(fabarray),
+    pta(pta_),
+    flags(flags_ | Tiling)
+{
+    Initialize();
+}
+
 MFIter::~MFIter ()
 {
     ;
