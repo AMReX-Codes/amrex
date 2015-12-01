@@ -15,8 +15,6 @@ bc_type = Dirichlet
 # These flags must be set to the same value for the solutions to match.
 # The HPGMG solver has the equivalent order to maxorder = 3.
 
-# HPGMG approximates Dirichlet boundaries to be of order 2 so we use that by default.
-
 Lp.maxorder = 3
 mg.maxorder = 3
 # OR
