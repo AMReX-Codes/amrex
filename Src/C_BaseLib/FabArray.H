@@ -500,9 +500,9 @@ protected:
 	}
 	void print () {
 	    std::cout << "FabArray: tot # of builds: " << num_build
-		      << ", max # of FabArrays: " << max_num_fabarrays
-		      << ", max # of BoxArrays: " << max_num_boxarrays
-		      << ", max # of BoxArray resues: " << max_num_ba_use
+		      << ", max # of FabArrays: " << max_num_fabarrays << ",\n"
+		      << "          max # of BoxArrays: " << max_num_boxarrays
+		      << ", max # of BoxArray reuses: " << max_num_ba_use
 		      << std::endl;
 	}
     };
