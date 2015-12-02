@@ -459,6 +459,16 @@ protected:
 	    ++nuse;
 	}
 	void print () {
+	    // in case some FabArrays have not been deleted.
+	    for (TA_outer_map::const_iterator it_o = m_TheTileArrayCache.begin();
+		 it_o != m_TheTileArrayCache.end(); ++it_o) 
+	    {
+		for (TA_inner_map::const_iterator it_i = it_o->second.begin();
+		     it_i != it_o->second.end(); ++it_i)
+		{
+		    maxuse = std::max(maxuse, it_i->second.nuse);
+		}
+	    }
 	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
 		      << ", tot # of erasures: " << nerase << ",\n"
 		      << "                tot # of uses: " << nuse
