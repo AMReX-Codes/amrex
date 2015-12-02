@@ -189,7 +189,7 @@ public:
 	}
 	void recordUse () { ++nuse; }
 	void print () {
-	    std::cout << "### " << name << "\n";
+	    std::cout << "### " << name << " ###\n";
 	    std::cout << "    tot # of builds  : " << nbuild  << "\n"
 		      << "    tot # of erasures: " << nerase  << "\n"
 		      << "    tot # of uses    : " << nuse    << "\n"
@@ -242,8 +242,8 @@ public:
         BoxArray            m_ba;
         DistributionMapping m_dm;
         int                 m_ngrow;
+	int                 m_nuse;
         bool                m_cross;
-        bool                m_reused;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
         //
@@ -263,6 +263,8 @@ public:
     typedef FBCache::iterator FBCacheIter;
 
     static FBCache m_TheFBCache;
+
+    static CacheStats m_FBC_stats;
     //
     // When copy()ing from one FabArray to another we can do a copy or an add.
     //
