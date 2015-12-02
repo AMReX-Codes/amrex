@@ -430,12 +430,12 @@ protected:
     //
     struct TACStats
     {
-	int       size;
-	int       maxsize;
-	int       maxuse;
-        long long nbuild;
-	long long nerase;
-	long long nuse;
+	int  size;
+	int  maxsize;
+	int  maxuse;
+        long nbuild;
+	long nerase;
+	long nuse;
 	TACStats () : size(0), maxsize(0), maxuse(0), nbuild(0), nerase(0) {;}
 	void recordBuild () {
 	    ++size;
@@ -477,11 +477,11 @@ protected:
     //
     struct FabArrayStats
     {
-	int num_fabarrays;
-	int max_num_fabarrays;
-	int max_num_boxarrays;
-	int max_num_ba_use;
-	long long num_build;
+	int  num_fabarrays;
+	int  max_num_fabarrays;
+	int  max_num_boxarrays;
+	int  max_num_ba_use;
+	long num_build;
 	FabArrayStats () : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
 			   max_num_ba_use(1), num_build(0) {;}
 	void recordBuild () {
