@@ -2520,6 +2520,13 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 
 }
 
+ptrdiff_t 
+DistributionMapping::getRefID () const
+{
+    static DistributionMapping dm0(Array<int>(1), false);
+    return m_ref.operator->() - dm0.m_ref.operator->();
+}
+
 #ifdef BL_USE_MPI
 void
 DistributionMapping::SendDistributionMappingToSidecars(DistributionMapping *dm)

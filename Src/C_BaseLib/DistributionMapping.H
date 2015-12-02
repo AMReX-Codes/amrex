@@ -208,6 +208,11 @@ class DistributionMapping
     static int NDistMaps() { return nDistMaps; }
     int DistMapID() const { return dmID; }
 
+    //
+    // This gives a unique ID of the reference, which is different from dmID above.
+    //
+    ptrdiff_t getRefID () const;
+
 #ifdef BL_USE_MPI
     static void SendDistributionMappingToSidecars(DistributionMapping *dm);
 #endif
