@@ -324,6 +324,10 @@ public:
     //
     static IntVect mfiter_tile_size;
     //
+    // Huge box size, larger than any boxes we use
+    //
+    static IntVect mfiter_huge_box_size;
+    //
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
@@ -367,6 +371,16 @@ public:
     // This reset it back to normal.  These two should always appear in pair.
     void ResetNGrow () const;
 
+    struct TileArray
+    {
+	int nuse;
+	Array<int> indexMap;	
+	Array<int> localIndexMap;
+	Array<Box> tileArray;
+    };
+
+    const TileArray* getTileArray (const IntVect& tilesize) const;
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -384,6 +398,116 @@ protected:
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
 
+    // Key for unique combination of BoxArray and DistributionMapping
+    // Note both BoxArray and DistributionMapping are reference counted.
+    // Objects with the same references have the same key.
+    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+
+    mutable BDKey m_bdkey;
+    mutable BDKey m_bdkey_orig;
+
+    BDKey getBDKey () const {
+	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+    }
+
+    // No operator< for std::pair before C++14
+    class CompareBDKey
+    {
+    public:
+	bool operator () (const BDKey& lhs,
+			  const BDKey& rhs) const
+	    {
+		return (lhs.first < rhs.first)
+		    || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
+	    }
+    };
+
+    // We use tile size as the key for the inner map.
+    typedef std::map<IntVect, TileArray   , IntVect::Compare> TA_inner_map;
+    typedef std::map<BDKey  , TA_inner_map, CompareBDKey>     TA_outer_map;
+    //
+    static TA_outer_map m_TheTileArrayCache;
+    //
+    struct TACStats
+    {
+	int  size;
+	int  maxsize;
+	int  maxuse;
+        long nbuild;
+	long nerase;
+	long nuse;
+	TACStats () : size(0), maxsize(0), maxuse(0), nbuild(0), nerase(0) {;}
+	void recordBuild () {
+	    ++size;
+	    ++nbuild; 
+	    maxsize = std::max(maxsize, size);
+	}
+	void recordErase (const TA_inner_map& tai) {
+	    size   -= tai.size();
+	    nerase += tai.size();
+	    for (TA_inner_map::const_iterator it = tai.begin(); it != tai.end(); ++it) {
+		maxuse = std::max(maxuse, it->second.nuse);
+	    }
+	}
+	void recordErase (const TileArray& ta) {
+	    --size;
+	    ++nerase;
+	    maxuse = std::max(maxuse, ta.nuse);
+	}
+	void recordUse () {
+	    ++nuse;
+	}
+	void print () {
+	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
+		      << ", tot # of erasures: " << nerase << ", tot # of uses: " << nuse << "\n"
+		      << "                max size: " << maxsize << ", max # uses: " << maxuse
+		      << std::endl;
+	}
+    };
+    static TACStats m_TAC_stats;
+    //
+    void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
+    //
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
+
+    //
+    // Keep track of how many FabArrays are built with the same BDKey.
+    //
+    static std::map<BDKey, int> m_BD_count;
+    //
+    struct FabArrayStats
+    {
+	int  num_fabarrays;
+	int  max_num_fabarrays;
+	int  max_num_boxarrays;
+	int  max_num_ba_use;
+	long num_build;
+	FabArrayStats () : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
+			   max_num_ba_use(1), num_build(0) {;}
+	void recordBuild () {
+	    ++num_fabarrays;
+	    ++num_build;
+	    max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
+	}
+	void recordDelete () {
+	    --num_fabarrays;
+	}
+	void recordMaxNumBoxArrays (int n) {
+	    max_num_boxarrays = std::max(max_num_boxarrays, n);
+	}
+	void recordMaxNumBAUse (int n) {
+	    max_num_ba_use = std::max(max_num_ba_use, n);
+	}
+	void print () {
+	    std::cout << "FabArray: tot # of builds: " << num_build
+		      << ", max # of FabArrays: " << max_num_fabarrays << ",\n"
+		      << "          max # of BoxArrays: " << max_num_boxarrays
+		      << ", max # of BoxArray reuses: " << max_num_ba_use
+		      << std::endl;
+	}
+    };
+    static FabArrayStats m_FA_stats;
+
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
     static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
@@ -393,27 +517,33 @@ class MFIter
 {
 public:
     enum Flags {
-	Tiling    = 0x01, 
-	NoSharing = 0x02 // For OMP only, if on, all threads loops over all grids.
+        Tiling        = 0x01,
+        NoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+        NoTeamBarrier = 0x04  // For Team only. If on, there is no barrier in MFIter dtor.
     };  // All these flags are off by default.
     //
     // Construct a MFIter.
     //
     // The default is no tiling
     explicit MFIter (const FabArrayBase& fabarray,
-		     unsigned char       flags=0);
+		     unsigned char       flags_=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
     explicit MFIter (const FabArrayBase& fabarray, 
 		     bool                do_tiling); 
-    // tiling with explicit size, flags, and chunksize
+    // tiling with explicit size and flags
     explicit MFIter (const FabArrayBase& fabarray, 
 		     const IntVect&      tilesize,
-		     unsigned char       flags=0,
-		     int                 chunksize=0);
+		     unsigned char       flags_=0);
+    // tiling with explicit tilearray and flags
+    explicit MFIter (const FabArrayBase&            fabarray, 
+		     const FabArrayBase::TileArray* pta_,
+		     unsigned char                  flags_=0);
+    // dtor
+    ~MFIter ();
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return tileArray[currentIndex]; }
+    const Box& tilebox () const { return pta->tileArray[currentIndex]; }
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -433,11 +563,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(indexMap[currentIndex]); }
+    const Box& validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -445,15 +575,15 @@ public:
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid () { return currentIndex < indexMap.size(); }
+    bool isValid () { return currentIndex < endIndex; }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return indexMap[currentIndex]; }
+    int index () const { return pta->indexMap[currentIndex]; }
     //
     // local index into the vector of fab pointers, m_fabs_v
     //
-    int LocalIndex () const { return localIndexMap[currentIndex]; }
+    int LocalIndex () const { return pta->localIndexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -462,13 +592,14 @@ public:
 private:
 
     const FabArrayBase& fabArray;
-    int                 currentIndex;
-    IntVect             tileSize;
-    Array<int>          indexMap;
-    Array<int>          localIndexMap;
-    Array<Box>          tileArray;
+    const FabArrayBase::TileArray* pta;
 
-    void Initialize (unsigned char flags=0, int chunksize=0);
+    unsigned char flags;
+    int           currentIndex;
+    int           beginIndex;
+    int           endIndex;
+
+    void Initialize ();
 };
 
 //
@@ -1178,6 +1309,29 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
+    if (! boxarray.empty() ) 
+    {
+	BL_ASSERT(getBDKey() == m_bdkey);
+
+	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+	if (cnt_it != m_BD_count.end()) 
+	{
+	    --(cnt_it->second);
+	    if (cnt_it->second == 0) 
+	    {
+		m_BD_count.erase(cnt_it);
+		
+		// Since this is the last one built with these BoxArray 
+		// and DistributionMapping, erase it from the TileArray cache.
+		TA_outer_map& tao = m_TheTileArrayCache;
+		TA_outer_map::iterator tao_it = tao.find(m_bdkey);
+		if(tao_it != tao.end()) {
+		    m_TAC_stats.recordErase(tao_it->second);
+		    tao.erase(tao_it);
+		}
+	    }
+	}
+    }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
@@ -1220,7 +1374,9 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-{}
+{
+    m_FA_stats.recordBuild();
+}
 
 template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
@@ -1229,6 +1385,7 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          FabAlloc        alloc,
 			 const IntVect&  nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,alloc,nodal);
 }
 
@@ -1240,12 +1397,14 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          FabAlloc                   alloc,
 			 const IntVect&             nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,dm,alloc,nodal);
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
+    m_FA_stats.recordDelete();
     clear();
 }
 
@@ -1322,7 +1481,17 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         indexMap.push_back(i);
       }
     }
-
+    
+    m_bdkey = getBDKey();
+    std::map<BDKey, int>::iterator it = m_BD_count.find(m_bdkey);
+    if (it == m_BD_count.end()) {
+	m_BD_count[m_bdkey] = 1;
+	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
+    } else {
+	++(it->second);
+	m_FA_stats.recordMaxNumBAUse(it->second);
+    }
+    
     if(alloc == Fab_allocate) {
       AllocFabs();
 
