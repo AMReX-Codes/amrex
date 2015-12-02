@@ -629,7 +629,7 @@ public:
     //
     bool isValid () {
 	return (currentIndex < endIndex) &&
-	    ( fabArray.isOwner(ta.localIndexMap[currentIndex]) || !(flags & OwnerOnly) ); 
+	    ( fabArray.isOwner(pta->localIndexMap[currentIndex]) || !(flags & OwnerOnly) ); 
     }
     //
     // The index into the underlying BoxArray of the current FAB.
@@ -662,22 +662,22 @@ protected:
  */
 class MFGhostIter
     :
-    private MFIter
+    public MFIter
 {
 public:
 
-    explicit MFGhostIter (const FabArrayBase& fabarray, 
-			  const IntVect&      tilesize=FabArrayBase::mfghostiter_tile_size);
+    explicit MFGhostIter (const FabArrayBase& fabarray);
 
 private:
 
-    int                 currentIndex;
-    IntVect             tileSize;
-    Array<int>          indexMap;
-    Array<int>          localIndexMap;
-    Array<Box>          tileArray;
+    FabArrayBase::TileArray lta;
 
     void Initialize ();
+
+    // disabled
+    Box nodaltilebox (int dir) const;
+    Box growntilebox (int ng=-1) const;
+    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
 };
 
 

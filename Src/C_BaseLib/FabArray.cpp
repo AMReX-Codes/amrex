@@ -1091,7 +1091,10 @@ MFIter::MFIter (const FabArrayBase&            fabarray,
 
 MFIter::~MFIter ()
 {
-    ;
+#if BL_USE_UPCXX
+    if ( ! (flags & NoTeamBarrier) )
+	ParallelDescriptor::TeamBarrier();
+#endif
 }
 
 void 
@@ -1142,14 +1145,6 @@ MFIter::Initialize ()
 	}
     }
     currentIndex = beginIndex;
-}
-
-MFIter::~MFIter ()
-{
-#if BL_USE_UPCXX
-    if ( ! (flags & NoTeamBarrier) )
-	ParallelDescriptor::TeamBarrier();
-#endif
 }
 
 Box
@@ -1209,13 +1204,12 @@ MFIter::nodalize (Box& bx, int dir) const
     }
 }
 
-MFGhostIter::MFGhostIter (const FabArrayBase& fabarray,
-			  const IntVect&      tilesize)
+MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :
-    fabArray(fabarray),
-    currentIndex(0),
-    tileSize(tilesize)
+    MFIter(fabarray, 0, Tiling)
 {
+    lta.nuse = 0;
+    pta = &lta;
     Initialize();
 }
 
@@ -1272,13 +1266,13 @@ MFGhostIter::Initialize ()
     BoxList::const_iterator bli = alltiles.begin();
     for (int i=0; i<nskip; ++i) ++bli;
 
-    indexMap.reserve(ntiles);
-    localIndexMap.reserve(ntiles);
-    tileArray.reserve(ntiles);
+    lta.indexMap.reserve(ntiles);
+    lta.localIndexMap.reserve(ntiles);
+    lta.tileArray.reserve(ntiles);
 
     for (int i=0; i<ntiles; ++i) {
-	indexMap.push_back(allindex[i+nskip]);
-	localIndexMap.push_back(alllocalindex[i+nskip]);
-	tileArray.push_back(*bli++);
+	lta.indexMap.push_back(allindex[i+nskip]);
+	lta.localIndexMap.push_back(alllocalindex[i+nskip]);
+	lta.tileArray.push_back(*bli++);
     }
 }
