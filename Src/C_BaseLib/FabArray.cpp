@@ -30,6 +30,7 @@ FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("Fill Boundary Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("Copy Cache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -115,7 +116,7 @@ FabArrayBase::fabbox (int K) const
 
 FabArrayBase::CPC::CPC ()
     :
-    m_reused(false),
+    m_nuse(0),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -133,7 +134,7 @@ FabArrayBase::CPC::CPC (const BoxArray&            dstba,
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
-    m_reused(false),
+    m_nuse(0),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -239,8 +240,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     {
         if (it->second == cpc)
         {
-            it->second.m_reused = true;
-
+	    ++it->second.m_nuse;
+	    m_CPC_stats.recordUse();
             return it;
         }
     }
@@ -260,16 +261,18 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         {
             last_it = it;
 
-            if (!it->second.m_reused)
+            if (it->second.m_nuse <= 1)
                 erase_it = it;
         }
 
         if (erase_it != End)
         {
+	    m_CPC_stats.recordErase(erase_it->second.m_nuse);
             TheCopyCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+	    m_CPC_stats.recordErase(last_it->second.m_nuse);
             TheCopyCache.erase(last_it);
         }
     }
@@ -290,6 +293,11 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     TheCPC.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
+
+    TheCPC.m_nuse = 1;
+
+    m_CPC_stats.recordBuild();
+    m_CPC_stats.recordUse();
 
     if (dst.IndexMap().empty() && src.IndexMap().empty())
         //
@@ -376,12 +384,6 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 }
 
 void
-FabArrayBase::EraseFromTheCPC (CPCCacheIter& cache_it)
-{
-    FabArrayBase::m_TheCopyCache.erase(cache_it);    
-}
-
-void
 FabArrayBase::CPC::FlushCache ()
 {
     long stats[3] = {0,0,0}; // size, reused, bytes
@@ -393,8 +395,9 @@ FabArrayBase::CPC::FlushCache ()
          ++it)
     {
         stats[2] += it->second.bytes();
-        if (it->second.m_reused)
+        if (it->second.m_nuse >= 2)
             stats[1]++;
+	m_CPC_stats.recordErase(it->second.m_nuse);
     }
 
     if (FabArrayBase::Verbose)
@@ -544,10 +547,8 @@ FabArrayBase::TheFB (bool                cross,
     {
         if (it->second == si)
         {
-            ++it->second.m_nuse;
-
+	    ++it->second.m_nuse;
 	    m_FBC_stats.recordUse();
-
             return it;
         }
     }
@@ -739,6 +740,7 @@ FabArrayBase::Finalize ()
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();
+	m_CPC_stats.print();
     }
 
     initialized = false;
