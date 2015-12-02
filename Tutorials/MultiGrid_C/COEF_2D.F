@@ -36,10 +36,10 @@ c
             
             if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
                asol(i,j) = 1.d0 * cos(tpi*x) * cos(tpi*y)
-     $              + .25d0 * cos(fpi*x) * cos(fpi*y)
+     $                  + .25d0 * cos(fpi*x) * cos(fpi*y)
             else if (ibnd .eq. LO_DIRICHLET) then
                asol(i,j) = 1.d0 * sin(tpi*x) * sin(tpi*y)
-     $              + .25d0 * sin(fpi*x) * sin(fpi*y)
+     $                  + .25d0 * sin(fpi*x) * sin(fpi*y)
             else
                print *, 'FORT_COMP_ASOL: unknown boundary type'
                stop

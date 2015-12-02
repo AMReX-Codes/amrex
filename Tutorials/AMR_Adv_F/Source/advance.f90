@@ -45,6 +45,8 @@ contains
     ! of refinement have been completed
     integer :: num_steps_completed(mla%nlevel)
 
+    real(kind=dp_t) :: vmax
+
     dm    = mla%dim
     nlevs = mla%nlevel
     ng_p = phi_new(1)%ng
@@ -83,6 +85,23 @@ contains
 
           call set_velocity(mla,velocity,dx,time+0.5d0*dt(1))
           
+          ! make sure we are not violating cfl since the time step is based
+          ! on the velocity at t^n
+          do n=1,nlevs
+             vmax = -HUGE(1.d0)
+             do i=1,dm
+                vmax = max(vmax,norm_inf(velocity(n,i)))
+             end do
+             if (dt(n) .gt. dx(n)/vmax) then
+                if ( parallel_IOProcessor() ) then
+                   print*,'Violating CFL at level n=',n
+                   print*,'dt,vmax,dx',dt(n),vmax,dx
+                   print*,'sigma=dt*vmax/dx',dt(n)*vmax/dx(n)
+                end if
+                call bl_error()
+             end if
+          end do
+
           ! Copy phi_new from the previous time step into phi_old for this time step
           do n = 1, nlevs
              call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)
@@ -120,7 +139,7 @@ contains
     integer        , intent(in   ) :: num_substeps
     integer        , intent(inout) :: num_steps_completed(:)
 
-    real(kind=dp_t) :: alpha, scale, tplushalf
+    real(kind=dp_t) :: alpha, scale, tplushalf, vmax
     integer         :: istep, i, dm, ng_p
     ! Array of edge-based multifabs; one for each direction
     type(multifab) :: flux(mla%dim)
@@ -136,6 +155,21 @@ contains
 
     ! compute velocity at half-time level
     call set_velocity(mla,velocity,dx,tplushalf)
+
+    ! make sure we are not violating cfl since the time step is based
+    ! on the velocity at t^n
+    vmax = -HUGE(1.d0)
+    do i=1,dm
+       vmax = max(vmax,norm_inf(velocity(n,i)))
+    end do
+    if (dt(n) .gt. dx(n)/vmax) then
+       if ( parallel_IOProcessor() ) then
+          print*,'Violating CFL at level n=',n
+          print*,'dt,vmax,dx',dt(n),vmax,dx
+          print*,'sigma=dt*vmax/dx',dt(n)*vmax/dx(n)
+       end if
+       call bl_error()
+    end if
 
     ! Copy phi_new from the previous time step into phi_old for this time step
     call multifab_copy(mdst=phi_old(n),msrc=phi_new(n),ng=ng_p)

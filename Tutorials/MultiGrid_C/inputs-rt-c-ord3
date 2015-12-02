@@ -1,7 +1,7 @@
 # solver_type = Hypre
 # solver_type = BoxLib_F
-# solver_type = BoxLib_C
-solver_type = All
+solver_type = BoxLib_C
+# solver_type = All
 
 # bc_type = Neumann
 # bc_type = Periodic
@@ -13,13 +13,13 @@ bc_type = Dirichlet
 # at Dirichlet boundaries.  
 
 # These flags must be set to the same value for the solutions to match.
-# The HPGMG solver has the equivalent order to maxorder = 2.
+# The HPGMG solver has the equivalent order to maxorder = 3.
 
 Lp.maxorder = 3
 mg.maxorder = 3
 # OR
-Lp.maxorder = 2
-mg.maxorder = 2
+# Lp.maxorder = 2
+# mg.maxorder = 2
 
 a = 1.e-3
 b = 1.0
