@@ -1253,4 +1253,7 @@ MFGhostIter::Initialize ()
 	lta.localIndexMap.push_back(alllocalindex[i+nskip]);
 	lta.tileArray.push_back(*bli++);
     }
+
+    currentIndex = beginIndex = 0;
+    endIndex = lta.indexMap.size();
 }
