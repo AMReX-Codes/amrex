@@ -519,7 +519,11 @@ contains
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
 
     ng = pf%grids(i)%fabs(j)%ng
-    allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
+    if (lo(3) .eq. hi(3)) then
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), nc))
+    else
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
+    endif
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
          pf%grids(i)%fabs(j)%p(:,:,:,:), &
@@ -553,7 +557,13 @@ contains
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
     ng = pf%grids(i)%fabs(j)%ng
-    allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, size(c)))
+ 
+    ! This handles the case where it really is 2D so there no ghost cells in the z-direction
+    if (lo(3) .eq. hi(3)) then
+        allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), size(c)))
+    else
+        allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, size(c)))
+    end if
     do n = 1, size(c)
        call fabio_read_skip_d(fd,              &
             pf%grids(i)%fabs(j)%offset,        &

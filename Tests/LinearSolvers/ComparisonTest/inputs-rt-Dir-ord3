@@ -22,7 +22,7 @@ write_plot = 1 # write plotfile
 comp_norm = 1 # compute 2 norm of the error
 
 n_cell        = 128
-max_level     = 0
+max_level     = 2
 max_grid_size = 128
 
 tol_rel = 1.e-10

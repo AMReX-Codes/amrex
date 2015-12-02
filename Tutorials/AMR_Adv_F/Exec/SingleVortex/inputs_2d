@@ -6,6 +6,8 @@
   n_cell = 64                 ! number of cells on each side of the domain at the base level
   max_grid_size = 16          ! max number of cells on each side of an individual grid
   cfl = 0.7d0                 ! advective cfl
+                              ! In this test problem, the velocity is time-dependent.  
+                              ! We need to use 0.7 to satisfy CFL condition.
 
   ! The stopping criterion will be whichever of these is reached first:
   nsteps = 1000               ! number of time steps

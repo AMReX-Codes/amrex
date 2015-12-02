@@ -1598,11 +1598,21 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
         const int *box_index_type = box.type().getVect();
         const int *smallEnd = box.smallEnd().getVect();
         const int *bigEnd = box.bigEnd().getVect();
-        // getVect() requires a constant pointer, but MPI buffers require
-        // non-constant pointers. Sorry this is awful.
-        ParallelDescriptor::Bcast(const_cast<int*>(box_index_type), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+
+        // getVect() returns a const pointer, but MPI buffers require
+        // non-constant pointers. So we have to copy the data to these
+        // temporary arrays and use those as the buffers for MPI.
+        int box_index_type_MPI_buff[BL_SPACEDIM];
+        int smallEnd_MPI_buff[BL_SPACEDIM];
+        int bigEnd_MPI_buff[BL_SPACEDIM];
+        for (unsigned int i = 0; i < BL_SPACEDIM; ++i) {
+            box_index_type_MPI_buff[i] = box_index_type[i];
+            smallEnd_MPI_buff[i] = smallEnd[i];
+            bigEnd_MPI_buff[i] = bigEnd[i];
+        }
+        ParallelDescriptor::Bcast(&box_index_type_MPI_buff[0], BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&smallEnd_MPI_buff[0]      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&bigEnd_MPI_buff[0]        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
       }
 
       int nComp = mf->nComp();
