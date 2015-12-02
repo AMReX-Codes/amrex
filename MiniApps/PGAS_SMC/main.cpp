@@ -9,9 +9,10 @@ main (int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
-    SMC smc;
-
-    smc.evolve();
+    {
+	SMC smc;
+	smc.evolve();
+    }
 
     BL_PROFILE_VAR_STOP(pmain);
 
