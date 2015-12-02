@@ -292,7 +292,7 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
-        bool                m_reused;
+        int                 m_nuse;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
         //
@@ -313,11 +313,12 @@ public:
 
     static CPCCache m_TheCopyCache;
 
+    static CacheStats m_CPC_stats;
+
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
                                 const FabArrayBase& src);
 
-    static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
     // Used for collecting information used in communicating FABs.
     //
