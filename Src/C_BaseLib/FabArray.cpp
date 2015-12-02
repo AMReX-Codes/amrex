@@ -29,6 +29,7 @@ FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("Fill Boundary Cache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -423,8 +424,8 @@ FabArrayBase::CPC::FlushCache ()
 FabArrayBase::SI::SI ()
     :
     m_ngrow(-1),
+    m_nuse(0),
     m_cross(false),
-    m_reused(false),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -441,8 +442,8 @@ FabArrayBase::SI::SI (const BoxArray&            ba,
     m_ba(ba),
     m_dm(dm),
     m_ngrow(ngrow),
+    m_nuse(0),
     m_cross(cross),
-    m_reused(false),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -543,7 +544,9 @@ FabArrayBase::TheFB (bool                cross,
     {
         if (it->second == si)
         {
-            it->second.m_reused = true;
+            ++it->second.m_nuse;
+
+	    m_FBC_stats.recordUse();
 
             return it;
         }
@@ -564,17 +567,19 @@ FabArrayBase::TheFB (bool                cross,
         {
             last_it = it;
 
-            if (!it->second.m_reused)
+            if (it->second.m_nuse <= 1)
                 erase_it = it;
         }
 
         if (erase_it != End)
         {
+	    m_FBC_stats.recordErase(erase_it->second.m_nuse);
             m_TheFBCache.erase(erase_it);
         }
         else if (last_it != End)
         {
-             m_TheFBCache.erase(last_it);
+	    m_FBC_stats.recordErase(last_it->second.m_nuse);
+	    m_TheFBCache.erase(last_it);
         }
     }
     //
@@ -596,6 +601,11 @@ FabArrayBase::TheFB (bool                cross,
     TheFB.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
     TheFB.m_SndVols = new std::map<int,int>;
     TheFB.m_RcvVols = new std::map<int,int>;
+
+    TheFB.m_nuse = 1;
+
+    m_FBC_stats.recordBuild();
+    m_FBC_stats.recordUse();
 
     if (mf.IndexMap().empty())
         //
@@ -728,6 +738,7 @@ FabArrayBase::Finalize ()
     if (ParallelDescriptor::IOProcessor()) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
+	m_FBC_stats.print();
     }
 
     initialized = false;
@@ -745,8 +756,9 @@ FabArrayBase::FlushSICache ()
          ++it)
     {
         stats[2] += it->second.bytes();
-        if (it->second.m_reused)
+        if (it->second.m_nuse >= 2)
             stats[1]++;
+	m_FBC_stats.recordErase(it->second.m_nuse);
     }
 
     if (FabArrayBase::Verbose)
