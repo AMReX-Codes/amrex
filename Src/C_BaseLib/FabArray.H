@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <string>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -163,6 +164,40 @@ public:
                           Array<MPI_Request>&                    recv_reqs,
                           int                                    ncomp,
                           int                                    SeqNum);
+    //
+    struct CacheStats
+    {
+	int         size;     // current size: nbuild - nerase
+	int         maxsize;  // highest water mark of size
+	int         maxuse;   // max # of uses of a cached item
+	long        nuse;     // # of uses of the whole cache
+	long        nbuild;   // # of build operations
+	long        nerase;   // # of erase operations
+	std::string name;     // name of the cache
+	CacheStats (const std::string& name_) 
+	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),name(name_) {;}
+	void recordBuild () {
+	    ++size;  
+	    ++nbuild;  
+	    maxsize = std::max(maxsize, size); 
+	}
+	void recordErase (int n) { 
+	    // n: how many times the item to be deleted has been used.
+	    --size;
+	    ++nerase;
+	    maxuse = std::max(maxuse, n);
+	}
+	void recordUse () { ++nuse; }
+	void print () {
+	    std::cout << "### " << name << "\n";
+	    std::cout << "    tot # of builds  : " << nbuild  << "\n"
+		      << "    tot # of erasures: " << nerase  << "\n"
+		      << "    tot # of uses    : " << nuse    << "\n"
+		      << "    max cache size   : " << maxsize << "\n"
+		      << "    max # of uses    : " << maxuse
+		      << std::endl;
+	}
+    };
     //
     // Used by a bunch of routines when communicating via MPI.
     //
@@ -424,63 +459,17 @@ protected:
     };
 
     // We use tile size as the key for the inner map.
-    typedef std::map<IntVect, TileArray   , IntVect::Compare> TA_inner_map;
-    typedef std::map<BDKey  , TA_inner_map, CompareBDKey>     TA_outer_map;
+    typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
+    typedef std::map<BDKey  , TAMap    , CompareBDKey    > TACache;
     //
-    static TA_outer_map m_TheTileArrayCache;
-    //
-    struct TACStats
-    {
-	int  size;
-	int  maxsize;
-	int  maxuse;
-        long nbuild;
-	long nerase;
-	long nuse;
-	TACStats () : size(0), maxsize(0), maxuse(0), nbuild(0), nerase(0) {;}
-	void recordBuild () {
-	    ++size;
-	    ++nbuild; 
-	    maxsize = std::max(maxsize, size);
-	}
-	void recordErase (const TA_inner_map& tai) {
-	    size   -= tai.size();
-	    nerase += tai.size();
-	    for (TA_inner_map::const_iterator it = tai.begin(); it != tai.end(); ++it) {
-		maxuse = std::max(maxuse, it->second.nuse);
-	    }
-	}
-	void recordErase (const TileArray& ta) {
-	    --size;
-	    ++nerase;
-	    maxuse = std::max(maxuse, ta.nuse);
-	}
-	void recordUse () {
-	    ++nuse;
-	}
-	void print () {
-	    // in case some FabArrays have not been deleted.
-	    for (TA_outer_map::const_iterator it_o = m_TheTileArrayCache.begin();
-		 it_o != m_TheTileArrayCache.end(); ++it_o) 
-	    {
-		for (TA_inner_map::const_iterator it_i = it_o->second.begin();
-		     it_i != it_o->second.end(); ++it_i)
-		{
-		    maxuse = std::max(maxuse, it_i->second.nuse);
-		}
-	    }
-	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
-		      << ", tot # of erasures: " << nerase << ",\n"
-		      << "                tot # of uses: " << nuse
-		      << ", max size: " << maxsize << ", max # uses: " << maxuse
-		      << std::endl;
-	}
-    };
-    static TACStats m_TAC_stats;
+    static TACache     m_TheTileArrayCache;
+    static CacheStats  m_TAC_stats;
     //
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
     void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
+    // This flushes the entire cache.
+    static void flushTileArrayCache ();
 
     //
     // Keep track of how many FabArrays are built with the same BDKey.
@@ -1335,12 +1324,7 @@ FabArray<FAB>::clear ()
 		
 		// Since this is the last one built with these BoxArray 
 		// and DistributionMapping, erase it from the TileArray cache.
-		TA_outer_map& tao = m_TheTileArrayCache;
-		TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-		if(tao_it != tao.end()) {
-		    m_TAC_stats.recordErase(tao_it->second);
-		    tao.erase(tao_it);
-		}
+		flushTileArray();
 	    }
 	}
     }
