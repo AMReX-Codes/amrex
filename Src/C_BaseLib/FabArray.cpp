@@ -24,13 +24,14 @@ IntVect FabArrayBase::mfiter_huge_box_size(D_DECL(1024000,1024000,1024000));
 
 int FabArrayBase::nFabArrays(0);
 
-FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
-FabArrayBase::TA_outer_map         FabArrayBase::m_TheTileArrayCache;
-//
+FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+
+FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
+
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
-//
-FabArrayBase::TACStats             FabArrayBase::m_TAC_stats;
+
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
@@ -722,9 +723,11 @@ FabArrayBase::Finalize ()
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
 
+    FabArrayBase::flushTileArrayCache();
+
     if (ParallelDescriptor::IOProcessor()) {
-	m_TAC_stats.print();
 	m_FA_stats.print();
+	m_TAC_stats.print();
     }
 
     initialized = false;
@@ -980,25 +983,44 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 {
     BL_ASSERT(getBDKey() == m_bdkey);
 
-    TA_outer_map& tao = m_TheTileArrayCache;
-    TA_outer_map::iterator tao_it = tao.find(m_bdkey);
+    TACache& tao = m_TheTileArrayCache;
+    TACache::iterator tao_it = tao.find(m_bdkey);
     if(tao_it != tao.end()) 
     {
 	if (tileSize == IntVect::TheZeroVector()) 
 	{
-	    m_TAC_stats.recordErase(tao_it->second);
+	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
+		 tai_it != tao_it->second.end(); ++tai_it)
+	    {
+		m_TAC_stats.recordErase(tai_it->second.nuse);
+	    }
 	    tao.erase(tao_it);
 	} 
 	else 
 	{
-	    TA_inner_map& tai = tao_it->second;
-	    TA_inner_map::iterator tai_it = tai.find(tileSize);
+	    TAMap& tai = tao_it->second;
+	    TAMap::iterator tai_it = tai.find(tileSize);
 	    if (tai_it != tai.end()) {
-		m_TAC_stats.recordErase(tai_it->second);
+		m_TAC_stats.recordErase(tai_it->second.nuse);
 		tai.erase(tai_it);
 	    }
 	}
     }
+}
+
+void
+FabArrayBase::flushTileArrayCache ()
+{
+    for (TACache::const_iterator tao_it = m_TheTileArrayCache.begin();
+	 tao_it != m_TheTileArrayCache.end(); ++tao_it)
+    {
+	for (TAMap::const_iterator tai_it = tao_it->second.begin();
+	     tai_it != tao_it->second.end(); ++tai_it)
+	{
+	    m_TAC_stats.recordErase(tai_it->second.nuse);
+	}
+    }
+    m_TheTileArrayCache.clear();
 }
 
 MFIter::MFIter (const FabArrayBase& fabarray, 
