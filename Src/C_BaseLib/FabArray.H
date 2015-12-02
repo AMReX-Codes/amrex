@@ -502,10 +502,11 @@ protected:
 	    max_num_ba_use = std::max(max_num_ba_use, n);
 	}
 	void print () {
-	    std::cout << "FabArray: tot # of builds: " << num_build
-		      << ", max # of FabArrays: " << max_num_fabarrays << ",\n"
-		      << "          max # of BoxArrays: " << max_num_boxarrays
-		      << ", max # of BoxArray reuses: " << max_num_ba_use
+	    std::cout << "### FabArray ###\n";
+	    std::cout << "    tot # of builds       : " << num_build         << "\n"
+		      << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
+		      << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
+		      << "    max # of BoxArray uses: " << max_num_ba_use
 		      << std::endl;
 	}
     };
