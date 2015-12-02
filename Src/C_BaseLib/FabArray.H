@@ -377,6 +377,7 @@ public:
 	Array<int> indexMap;	
 	Array<int> localIndexMap;
 	Array<Box> tileArray;
+	TileArray () : nuse(-1) {;}
     };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
@@ -459,8 +460,9 @@ protected:
 	}
 	void print () {
 	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
-		      << ", tot # of erasures: " << nerase << ", tot # of uses: " << nuse << "\n"
-		      << "                max size: " << maxsize << ", max # uses: " << maxuse
+		      << ", tot # of erasures: " << nerase << ",\n"
+		      << "                tot # of uses: " << nuse
+		      << ", max size: " << maxsize << ", max # uses: " << maxuse
 		      << std::endl;
 	}
     };
@@ -1483,13 +1485,11 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
     
     m_bdkey = getBDKey();
-    std::map<BDKey, int>::iterator it = m_BD_count.find(m_bdkey);
-    if (it == m_BD_count.end()) {
-	m_BD_count[m_bdkey] = 1;
+    int cnt = ++(m_BD_count[m_bdkey]);
+    if (cnt == 1) { // new one
 	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
     } else {
-	++(it->second);
-	m_FA_stats.recordMaxNumBAUse(it->second);
+	m_FA_stats.recordMaxNumBAUse(cnt);
     }
     
     if(alloc == Fab_allocate) {
