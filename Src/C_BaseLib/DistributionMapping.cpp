@@ -351,7 +351,7 @@ DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_ca
 {
     dmID = nDistMaps++;
 
-    if (put_in_cache && ParallelDescriptor::NProcs() > 1)
+    if (put_in_cache)
     {
         //
         // We want to save this pmap in the cache.
@@ -418,25 +418,15 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
         m_ref->m_pmap.resize(boxes.size() + 1);
     }
 
-    if (nprocs == 1)
+    if ( ! GetMap(boxes))
     {
-        for (int i = 0, N = m_ref->m_pmap.size(); i < N; ++i)
-        {
-            m_ref->m_pmap[i] = 0;
-        }
-    }
-    else
-    {
-        if ( ! GetMap(boxes))
-        {
-	    BL_ASSERT(m_BuildMap != 0);
-
-            (this->*m_BuildMap)(boxes,nprocs);
-            //
-            // Add the new processor map to the cache.
-            //
-            m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-        }
+	BL_ASSERT(m_BuildMap != 0);
+	
+	(this->*m_BuildMap)(boxes,nprocs);
+	//
+	// Add the new processor map to the cache.
+	//
+	m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
     }
 }
 
@@ -479,17 +469,14 @@ DistributionMapping::FlushCache ()
 void
 DistributionMapping::PutInCache ()
 {
-    if (ParallelDescriptor::NProcs() > 1)
-    {
-        //
-        // We want to save this pmap in the cache.
-        // It's an error if a pmap of this length has already been cached.
-        //
-	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-	if (r.second == false) {
-	    BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
-	}
+    //
+    // We want to save this pmap in the cache.
+    // It's an error if a pmap of this length has already been cached.
+    //
+    std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
+    r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    if (r.second == false) {
+	BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
     }
 }
 
