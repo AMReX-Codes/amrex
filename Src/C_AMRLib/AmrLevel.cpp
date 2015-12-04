@@ -1270,7 +1270,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            Real      time,
                            int       index,
                            int       scomp,
-                           int       ncomp)
+                           int       ncomp,
+			   int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
     //
@@ -1278,6 +1279,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     //
     BL_ASSERT(level != 0);
     BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
+    BL_ASSERT(nghost <= mf.nGrow());
     BL_ASSERT(0 <= index && index < desc_lst.size());
 
     int                     DComp   = dcomp;
@@ -1302,7 +1304,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
 
-            crseBA.set(j,mapper->CoarseBox(mf_BA[j],crse_ratio));
+            crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
         MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
@@ -1317,7 +1319,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         for (int i = 0; i < N; i++)
         {
             const int  idx = fpi.m_fabs.IndexMap()[i];
-            const Box& dbx = mf_BA[idx];
+            const Box& dbx = BoxLib::grow(mf_BA[idx],nghost);
 
             Array<BCRec> bcr(ncomp);
 

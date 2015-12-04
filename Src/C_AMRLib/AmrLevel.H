@@ -288,7 +288,8 @@ public:
                           Real      time,
                           int       state_idx,
                           int       scomp,
-                          int       ncomp);
+                          int       ncomp,
+			  int       nghost = 0);
     //
     // Function to set physical boundary conditions.
     //
