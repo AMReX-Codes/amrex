@@ -855,29 +855,32 @@ public:
                CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest into dest.
+    // valid + nghost region of this FabArray with the FAB dest into dest.
     //
-    void copy (FAB& dest) const;
+    void copy (FAB& dest,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest and the Box
+    // valid + nghost region of this FabArray with the FAB dest and the Box
     // subbox into that subregion of dest.
     //
     void copy (FAB&       dest,
-               const Box& subbox) const;
+               const Box& subbox,
+	       int        nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest into dest, starting at
     // component dest_comp in dest.
     //
     void copy (FAB& dest,
                int  src_comp,
                int  dest_comp,
-               int  num_comp) const;
+               int  num_comp,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest and the Box subbox, into
     // dest, starting at component dest_comp in dest.
     //
@@ -885,7 +888,8 @@ public:
                const Box& subbox,
                int        src_comp,
                int        dest_comp,
-               int        num_comp) const;
+               int        num_comp,
+	       int        nghost = 0) const;
 
     void shift (const IntVect& v);
 
@@ -1940,17 +1944,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB& dest) const
+FabArray<FAB>::copy (FAB& dest,
+		     int  nghsot) const
 {
-    copy(dest, dest.box(), 0, 0, dest.nComp());
+    copy(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB&       dest,
-                     const Box& subbox) const
+                     const Box& subbox,
+		     int        nghost) const
 {
-    copy(dest, subbox, 0, 0, dest.nComp());
+    copy(dest, subbox, 0, 0, dest.nComp(), nghost);
 }
 
 template <class FAB>
@@ -1958,9 +1964,10 @@ void
 FabArray<FAB>::copy (FAB& dest,
                      int  scomp,
                      int  dcomp,
-                     int  ncomp) const
+                     int  ncomp,
+		     int  nghost) const
 {
-    copy(dest, dest.box(), scomp, dcomp, ncomp);
+    copy(dest, dest.box(), scomp, dcomp, ncomp, nghost);
 }
 
 template <class FAB>
@@ -1969,20 +1976,22 @@ FabArray<FAB>::copy (FAB&       dest,
                      const Box& subbox,
                      int        scomp,
                      int        dcomp,
-                     int        ncomp) const
+                     int        ncomp,
+		     int        nghost) const
 {
     BL_PROFILE("FabArray::copy(fab)");
 
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
+    BL_ASSERT(nghost <= nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
-            if (boxarray[j].intersects(subbox))
+	    const Box& bx = BoxLib::grow(boxarray[j],nghost);
+	    const Box& destbox = bx & subbox;
+	    if (destbox.ok())
             {
-                Box destbox = boxarray[j] & subbox;
-
                 dest.copy(get(j),destbox,scomp,destbox,dcomp,ncomp);
             }
         }
@@ -1994,10 +2003,10 @@ FabArray<FAB>::copy (FAB&       dest,
 
     for (int i = 0, N = size(); i < N; i++)
     {
-        if (subbox.intersects(boxarray[i]))
+	const Box& srcbox = BoxLib::grow(boxarray[i],nghost);
+	const Box& bx = srcbox & subbox;
+	if (bx.ok())
         {
-            Box bx = subbox & boxarray[i];
-
             ovlp.resize(bx,ncomp);
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
