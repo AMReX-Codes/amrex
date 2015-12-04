@@ -7,7 +7,9 @@
 #include <ParmParse.H>
 #include <BLProfiler.H>
 #include <FArrayBox.H>
+#if !(defined(BL_NO_FORT) || defined(WIN32))
 #include <Geometry.H>
+#endif
 #include <VisMF.H>
 #include <Utility.H>
 
@@ -2393,6 +2395,7 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
 }
 
 
+#if !(defined(BL_NO_FORT) || defined(WIN32))
 void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
                                                Array<IntVect>  &refRatio,
                                                Array<BoxArray> &allBoxes)
@@ -2519,6 +2522,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 
 
 }
+#endif
 
 ptrdiff_t 
 DistributionMapping::getRefID () const
