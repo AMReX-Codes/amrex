@@ -33,6 +33,7 @@ USE_HYPRE = FALSE
 USE_F90_SOLVERS = TRUE
 
 USE_HPGMG = TRUE
+USE_HPGMG = FALSE
 HPGMG_FCYCLES = TRUE
 HPGMG_POST_F_CYCLE_TYPE = V
 HPGMG_HELMHOLTZ = TRUE
@@ -111,16 +112,16 @@ vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
 
-ifeq ($(USE_HPGMG), TRUE)
-  # need to get the HPGMG sources too
-  vpath %.c   : . $(VPATH_LOCATIONS)
-  vpath %.h   : . $(VPATH_LOCATIONS)
-  vpath %.cpp : . $(VPATH_LOCATIONS)
-  vpath %.H   : . $(VPATH_LOCATIONS)
-  vpath %.F   : . $(VPATH_LOCATIONS)
-  vpath %.f   : . $(VPATH_LOCATIONS)
-  vpath %.f90 : . $(VPATH_LOCATIONS)
-endif
+# The HPGMG hooks in Make.defs populate VPATH_LOCATIONS, not vpathdir, so we
+# need to grab these too. In fact everything in Make.defs uses VPATH_LOCATIONS
+# instead of vpathdir. Perhaps they should be consolidated ...
+vpath %.c   : . $(VPATH_LOCATIONS)
+vpath %.h   : . $(VPATH_LOCATIONS)
+vpath %.cpp : . $(VPATH_LOCATIONS)
+vpath %.H   : . $(VPATH_LOCATIONS)
+vpath %.F   : . $(VPATH_LOCATIONS)
+vpath %.f   : . $(VPATH_LOCATIONS)
+vpath %.f90 : . $(VPATH_LOCATIONS)
 
 all: $(executable)
 	@echo SUCCESS

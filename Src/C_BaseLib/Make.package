@@ -132,7 +132,9 @@ endif
 # Memory pool
 C$(BOXLIB_BASE)_headers += MemPool.H
 C$(BOXLIB_BASE)_sources += MemPool.cpp
-f90$(BOXLIB_BASE)_sources += mempool_f.f90
+ifneq ($(BL_NO_FORT),TRUE)
+  f90$(BOXLIB_BASE)_sources += mempool_f.f90
+endif
 
 ifeq ($(USE_PARTICLES), TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
@@ -141,3 +143,7 @@ ifeq ($(USE_PARTICLES), TRUE)
   F$(BOXLIB_BASE)_headers += Particles_F.H
   F$(BOXLIB_BASE)_sources += Particles_$(DIM)D.F
 endif
+
+# C++11 stuff
+C$(BOXLIB_BASE)_headers += BL_CXX11.H
+

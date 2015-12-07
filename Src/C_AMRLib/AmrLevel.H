@@ -213,6 +213,8 @@ public:
     // List of grids at this level.
     //
     const BoxArray& boxArray () const { return grids; }
+    const BoxArray& getEdgeBoxArray (int dir) const;
+    const BoxArray& getNodalBoxArray () const;
     //
     // Number of grids at this level.
     //
@@ -247,6 +249,7 @@ public:
     // Returns the geometry object.
     //
     const Geometry& Geom () const { return geom; }
+    //
     const IntVect& fineRatio () const { return fine_ratio; }
     //
     // Returns number of cells on level.
@@ -285,7 +288,8 @@ public:
                           Real      time,
                           int       state_idx,
                           int       scomp,
-                          int       ncomp);
+                          int       ncomp,
+			  int       nghost = 0);
     //
     // Function to set physical boundary conditions.
     //
@@ -476,6 +480,10 @@ protected:
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
 private:
+
+    mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
+    mutable BoxArray      nodal_grids;              // all nodal grids
+
     //
     // Disallowed.
     //

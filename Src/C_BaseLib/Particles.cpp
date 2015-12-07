@@ -502,14 +502,12 @@ ParticleBase::NextID ()
     int next;
 
 #ifdef _OPENMP
-#pragma omp critical(nextid_lock)
+#pragma omp atomic capture
 #endif
-    {
-        if (the_next_id == std::numeric_limits<int>::max())
-            BoxLib::Abort("ParticleBase::NextID() -- too many particles");
+    next = the_next_id++;
 
-        next = the_next_id++;
-    }
+    if (next == std::numeric_limits<int>::max())
+	BoxLib::Abort("ParticleBase::NextID() -- too many particles");
 
     return next;
 }
@@ -517,10 +515,9 @@ ParticleBase::NextID ()
 int
 ParticleBase::UnprotectedNextID ()
 {
-    int next;
-    if (the_next_id == std::numeric_limits<int>::max())
+    int next = the_next_id++;
+    if (next == std::numeric_limits<int>::max())
 	BoxLib::Abort("ParticleBase::NextID() -- too many particles");
-    next = the_next_id++;
     return next;
 }
 

@@ -20,6 +20,7 @@
 #include <VisMF.H>
 #include <Particles_F.H>
 #include <RealBox.H>
+#include <BL_CXX11.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -320,16 +321,16 @@ public:
     void addOneParticle (int id_in, int cpu_in, 
                          std::vector<double>& xloc, std::vector<double>& attributes); 
 
-    Real sumParticleMass (int level) const;
+    virtual Real sumParticleMass (int level) const BL_OVERRIDE;
     void sumParticleMomentum (int lev, Real* mom) const;
 
     void Increment (MultiFab& mf, int level);
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const;
+    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
 
-    void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const;
+    virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
     void AssignDensityAndVels (PArray<MultiFab>& mf, int lev_min = 0) const;
 
@@ -353,10 +354,10 @@ public:
     Real estTimestep (MultiFab& grav_vector,         int level, Real cfl) const;
     Real estTimestep (MultiFab& grav_vector, Real a, int level, Real cfl) const;
 
-    void Redistribute (bool where_already_called = false,
-                       bool full_where           = false,
-                       int  lev_min              = 0, 
-                       int  nGrow                = 0);
+    virtual void Redistribute (bool where_already_called = false,
+			       bool full_where           = false,
+			       int  lev_min              = 0, 
+			       int  nGrow                = 0) BL_OVERRIDE;
 
     void RedistributeMPI (PMap& not_ours);
     //
@@ -404,15 +405,19 @@ public:
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on CELL-BASED gravity component
     //
-    void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (MultiFab& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0,
-                        int start_comp_for_accel = -1);
+    virtual void moveKickDrift (MultiFab& grav_vector, int level, Real timestep, 
+				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
+    virtual void moveKick      (MultiFab& grav_vector, int level, Real timestep, 
+				Real a_new = 1.0, Real a_half = 1.0,
+				int start_comp_for_accel = -1) BL_OVERRIDE;
     //
     // The following two functions form a KICK DRIFT KICK scheme for integrating the motion of the particles in
     //   comoving coordinates -- these rely on EDGE-BASED gravity component
     //
-    void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_old = 1.0, Real a_half = 1.0);
-    void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, Real a_new = 1.0, Real a_half = 1.0);
+    virtual void moveKickDrift (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+				Real a_old = 1.0, Real a_half = 1.0) BL_OVERRIDE;
+    virtual void moveKick      (PArray<MultiFab>& grav_vector, int level, Real timestep, 
+				Real a_new = 1.0, Real a_half = 1.0) BL_OVERRIDE;
     //
     // after the moveKickDrift step the positions of the particles are advanced for a full timestep,
     // so this scheme should work in the overall algorithm...
@@ -422,7 +427,7 @@ public:
     //
     // Removes all particles at a given level
     //
-    void RemoveParticlesAtLevel (int level);
+    virtual void RemoveParticlesAtLevel (int level) BL_OVERRIDE;
     //
     // Creates virtual particles for a given level that represent
     // in some capacity all particles at finer levels

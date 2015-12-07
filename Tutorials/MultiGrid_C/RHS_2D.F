@@ -28,7 +28,7 @@ c
       pi = 4.d0 * datan(1.d0)
       tpi = 2.0d0 * pi
       fpi = 4.0d0 * pi
-      fac = 12.d0 * pi**2
+      fac = 2.0d0 * tpi**2
  
       theta = 0.5d0*log(3.0) / (w + 1.d-50)
 
@@ -45,25 +45,28 @@ c
             dbdrfac = dbdrfac * b
             
             if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
+
                rhs(i,j) = beta*fac*(cos(tpi*x) * cos(tpi*y)
-     $                              + cos(fpi*x) * cos(fpi*y))
+     $                            + cos(fpi*x) * cos(fpi*y))
      $              + dbdrfac*((x-0.5d0)*(tpi*sin(tpi*x) * cos(tpi*y)
      $                                   + pi*sin(fpi*x) * cos(fpi*y))
      $                       + (y-0.5d0)*(tpi*cos(tpi*x) * sin(tpi*y)  
      $                                   + pi*cos(fpi*x) * sin(fpi*y)))
-     $              + a * (cos(tpi*x) * cos(tpi*y)
-     $                       + 0.25d0 * cos(fpi*x) * cos(fpi*y))
+     $              + a * (                   cos(tpi*x) * cos(tpi*y)
+     $                             + 0.25d0 * cos(fpi*x) * cos(fpi*y))
+
             else if (ibnd .eq. LO_DIRICHLET) then
+
                rhs(i,j) = beta*fac*(sin(tpi*x) * sin(tpi*y)
-     $                              + sin(fpi*x) * sin(fpi*y))
+     $                            + sin(fpi*x) * sin(fpi*y))
      $              + dbdrfac*((x-0.5d0)*(-tpi*cos(tpi*x) * sin(tpi*y)  
      $                                    - pi*cos(fpi*x) * sin(fpi*y))
      $                       + (y-0.5d0)*(-tpi*sin(tpi*x) * cos(tpi*y)  
      $                                    - pi*sin(fpi*x) * cos(fpi*y)))
-     $              + a * (sin(tpi*x) * sin(tpi*y)
-     $                       + 0.25d0 * sin(fpi*x) * sin(fpi*y))
+     $              + a * (                    sin(tpi*x) * sin(tpi*y)
+     $                              + 0.25d0 * sin(fpi*x) * sin(fpi*y))
             else
-               print *, 'FORT_SET_RHS: unknow boundary type'
+               print *, 'FORT_SET_RHS: unknown boundary type'
                stop
             endif
          end do
