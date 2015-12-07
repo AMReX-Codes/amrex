@@ -3227,7 +3227,8 @@ Amr::initPltAndChk ()
 
     if (check_int > 0 && check_per > 0)
     {
-        BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
+        if (ParallelDescriptor::IOProcessor())
+	    BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
@@ -3241,7 +3242,8 @@ Amr::initPltAndChk ()
 
     if (plot_int > 0 && plot_per > 0)
     {
-        BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
     }
 
     stream_max_tries = 4;

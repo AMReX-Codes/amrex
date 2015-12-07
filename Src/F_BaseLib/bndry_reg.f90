@@ -18,6 +18,7 @@ module bndry_reg_module
      logical :: other    = .false.
      logical :: mask     = .false.
      logical :: nodal(3) = .false.
+     integer :: width    = 0
      type(multifab), pointer ::  bmf(:,:) => Null()
      type(multifab), pointer :: obmf(:,:) => Null()
      type(lmultifab) :: uncovered
@@ -180,6 +181,7 @@ contains
     br%other = lother
     br%mask  = mask
     br%nodal = .false.
+    br%width = lwidth
 
     nlb = 0
     call reserve(indx, 2*dm*nb)
@@ -458,21 +460,18 @@ contains
     call destroy(bpt)
   end subroutine bndry_reg_build
 
-  subroutine bndry_reg_copy(br, mf, filled)
+  subroutine bndry_reg_copy(br, mf)
     type(multifab) , intent(inout) :: mf
     type(bndry_reg), intent(inout) :: br
-    logical, intent(in), optional  :: filled
 
     integer                   :: i, j, f, n(2)
+    type(multifab)            :: mftmp
     type(layout)              :: mf_la
     type(box)                 :: domain
     logical                   :: have_periodic_boxes
     type(bl_prof_timer), save :: bpt
-    logical                   :: lfilled
 
     call build(bpt, "br_copy")
-
-    lfilled = .false.;  if (present(filled)) lfilled = filled
 
     n = shape(br%bmf)
 
@@ -501,13 +500,24 @@ contains
        !
        ! Need to fill the ghost cells of the crse array before copying from them.
        !
-       if (.not.lfilled) call multifab_fill_boundary(mf)
-
-       do f = 0, n(2)-1
-          do i = 1, n(1)
-             call copy(br%bmf(i,f), mf, ngsrc=nghost(mf))
+       if (nghost(mf) .ge. br%width) then
+          call multifab_fill_boundary(mf)
+          do f = 0, n(2)-1
+             do i = 1, n(1)
+                call copy(br%bmf(i,f), mf, ngsrc=br%width)
+             end do
           end do
-       end do
+       else
+          call multifab_build(mftmp, mf_la, ncomp(mf), br%width, mf%nodal)
+          call copy(mftmp, mf)
+          call multifab_fill_boundary(mftmp)
+          do f = 0, n(2)-1
+             do i = 1, n(1)
+                call copy(br%bmf(i,f), mftmp, ngsrc=br%width)
+             end do
+          end do
+          call destroy(mftmp)
+       end if
 
     else
        do f = 0, n(2)-1
@@ -549,22 +559,22 @@ contains
   !   call destroy(bpt)
   ! end subroutine bndry_reg_copy_from_other
 
-  subroutine bndry_reg_copy_c(br, cb, mf, cm, nc)
-    type(multifab), intent(in) :: mf
-    type(bndry_reg), intent(inout) :: br
-    integer, intent(in) :: cb, cm
-    integer, intent(in), optional :: nc
-    integer :: i, f, n(2)
-    type(bl_prof_timer), save :: bpt
-    call build(bpt, "br_copy_c")
-    n = shape(br%bmf)
-    do f = 0, n(2)-1
-       do i = 1, n(1)
-          call copy(br%bmf(i,f), cb, mf, cm, nc = nc)
-       end do
-    end do
-    call destroy(bpt)
-  end subroutine bndry_reg_copy_c
+  ! subroutine bndry_reg_copy_c(br, cb, mf, cm, nc)
+  !   type(multifab), intent(in) :: mf
+  !   type(bndry_reg), intent(inout) :: br
+  !   integer, intent(in) :: cb, cm
+  !   integer, intent(in), optional :: nc
+  !   integer :: i, f, n(2)
+  !   type(bl_prof_timer), save :: bpt
+  !   call build(bpt, "br_copy_c")
+  !   n = shape(br%bmf)
+  !   do f = 0, n(2)-1
+  !      do i = 1, n(1)
+  !         call copy(br%bmf(i,f), cb, mf, cm, nc = nc)
+  !      end do
+  !   end do
+  !   call destroy(bpt)
+  ! end subroutine bndry_reg_copy_c
 
   subroutine bndry_reg_setval(br, val, all)
     type(bndry_reg), intent(inout) :: br

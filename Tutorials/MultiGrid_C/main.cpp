@@ -23,6 +23,10 @@
 #include <HypreABecLap.H>
 #endif
 
+#ifdef USEHPGMG
+#include <BL_HPGMG.H>
+#endif
+
 #include <COEF_F.H>
 #include <RHS_F.H>
 #include <writePlotFile.H>
@@ -37,6 +41,7 @@ int  plot_soln     = 0;
 int  plot_asol     = 0; 
 int  plot_err      = 0;
 int  comp_norm     = 1;
+int  maxorder      = 2;
 
 Real dx[BL_SPACEDIM];
 
@@ -90,6 +95,7 @@ int main(int argc, char* argv[])
 
   ParmParse ppmg("mg");  
   ppmg.query("v", verbose);
+  ppmg.query("maxorder", maxorder);
   
   ParmParse pp;
 
@@ -588,6 +594,7 @@ void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   }
 
   fmg.set_bc(mg_bc);
+  fmg.set_maxorder(maxorder);
 
   fmg.set_scalars(a, b);
   fmg.set_coefficients(alpha, beta);
@@ -659,13 +666,13 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
   const double h0 = dx[0];
   // Create the geometric structure of the HPGMG grid using the RHS MultiFab as
   // a template. This doesn't copy any actual data.
-  MultiFab::CreateHPGMGLevel(&level_h, rhs, n_cell, max_grid_size, my_rank, num_ranks, domain_boundary_condition, numVectors, h0);
+  CreateHPGMGLevel(&level_h, rhs, n_cell, max_grid_size, my_rank, num_ranks, domain_boundary_condition, numVectors, h0);
 
   // Set up the coefficients for the linear operator L.
-  MultiFab::SetupHPGMGCoefficients(a, b, alpha, beta_cc, &level_h);
+  SetupHPGMGCoefficients(a, b, alpha, beta_cc, &level_h);
 
   // Now that the HPGMG grid is built, populate it with RHS data.
-  MultiFab::ConvertToHPGMGLevel(rhs, n_cell, max_grid_size, &level_h, VECTOR_F);
+  ConvertToHPGMGLevel(rhs, n_cell, max_grid_size, &level_h, VECTOR_F);
 
 #ifdef USE_HELMHOLTZ
   if (ParallelDescriptor::IOProcessor()) {
@@ -728,7 +735,7 @@ void solve_with_HPGMG(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& 
   richardson_error(&MG_h,0,VECTOR_U);
 
   // Now convert solution from HPGMG back to rhs MultiFab.
-  MultiFab::ConvertFromHPGMGLevel(soln, &level_h, VECTOR_U);
+  ConvertFromHPGMGLevel(soln, &level_h, VECTOR_U);
 
   const double norm_from_HPGMG = norm(&level_h, VECTOR_U);
   const double mean_from_HPGMG = mean(&level_h, VECTOR_U);

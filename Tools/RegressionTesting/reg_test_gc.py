@@ -5,6 +5,7 @@ import shutil
 import sys
 import getopt
 import string
+import argparse
 import testnew as reg_test
 
 def reg_test_gc(argv):
@@ -55,9 +56,11 @@ def reg_test_gc(argv):
 
     workdir = os.getcwd()
 
-    reg_test.bold("loading " + testFile)
+    print "loading ", testFile
 
-    suite, testList = reg_test.LoadParams(testFile)
+    args=reg_test.get_args([testFile])
+
+    suite, testList = reg_test.load_params(args)
     activeTestList = [t.name for t in testList]
 
     benchmarkTestList = [t for t in testList if not (t.compileTest or t.restartTest)]
@@ -67,7 +70,7 @@ def reg_test_gc(argv):
 
 
     ### clean up the web dir
-    reg_test.bold("\ncleaning " + suite.webTopDir)
+    print "\ncleaning ", suite.webTopDir
 
     os.chdir(suite.webTopDir)
     validDirs = []
@@ -105,7 +108,7 @@ def reg_test_gc(argv):
 
     ### clean up the test dir
     testDirs = os.path.join(suite.testTopDir,suite.suiteName+"-tests")
-    reg_test.bold("\ncleaning " + testDirs)
+    print "\ncleaning ", testDirs
 
     os.chdir(testDirs)
     validDirs = []
@@ -126,11 +129,10 @@ def reg_test_gc(argv):
             if not found:
                 rmDir(d)
     
-    reg_test.bold("\ncreating suite report...")
-    tableHeight = min(max(suite.lenTestName, 4), 16)
-    reg_test.reportAllRuns(suite, activeTestList, suite.webTopDir, tableHeight=tableHeight)
+    print "\ncreating suite report..."
+    reg_test.report_all_runs(suite, activeTestList)
 
-    reg_test.bold("\nGarbage cleaning finished.")
+    print "\nGarbage cleaning finished."
 
 
 def valid_date(gcdate):
@@ -139,26 +141,26 @@ def valid_date(gcdate):
     except ValueError:
         return ''
 
-    if reg_test.isInt(y):
+    try:
         yi = int(y)
         if yi > 2099 or yi < 2000:
             return ''
-    else:
+    except ValueError:
         return ''
 
-    if reg_test.isInt(m):
+    try:
         mi = int(m)
         if mi > 12 or mi < 1:
             print 'm='+m+'!'
             return ''
-    else:
+    except ValueError:
         return ''
 
-    if reg_test.isInt(d):
+    try:
         di = int(d)
         if di > 31 or di < 1:
             return ''
-    else:
+    except ValueError:
         return ''
 
     return '-'.join([y,m.zfill(2),d.zfill(2)])

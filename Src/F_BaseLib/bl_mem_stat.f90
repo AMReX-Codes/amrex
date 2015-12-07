@@ -64,48 +64,48 @@ contains
   subroutine mem_stats_alloc_ll(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer(kind=ll_t) :: vol
-    !$OMP CRITICAL(memstats)
+    !$omp atomic update
     ms%num_alloc = ms%num_alloc + vol
+    !$omp atomic update
     ms%cnt_alloc = ms%cnt_alloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_ll
 
   subroutine mem_stats_alloc_i(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer :: vol
-    !$OMP CRITICAL(memstats)
+    !$omp atomic update
     ms%num_alloc = ms%num_alloc + int(vol,kind=ll_t)
+    !$omp atomic update
     ms%cnt_alloc = ms%cnt_alloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_alloc_i
 
   subroutine mem_stats_alloc_c(ms)
     type(mem_stats), intent(inout) :: ms
-    !$OMP ATOMIC
+    !$omp atomic
     ms%cnt_alloc = ms%cnt_alloc + 1
   end subroutine mem_stats_alloc_c
 
   subroutine mem_stats_dealloc_ll(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer(kind=ll_t) :: vol
-    !$OMP CRITICAL(memstats)
+    !$omp atomic update
     ms%num_dealloc = ms%num_dealloc + vol
+    !$omp atomic update
     ms%cnt_dealloc = ms%cnt_dealloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_ll
 
   subroutine mem_stats_dealloc_i(ms, vol)
     type(mem_stats), intent(inout) :: ms
     integer :: vol
-    !$OMP CRITICAL(memstats)
+    !$omp atomic update
     ms%num_dealloc = ms%num_dealloc + int(vol,kind=ll_t)
+    !$omp atomic update
     ms%cnt_dealloc = ms%cnt_dealloc + 1
-    !$OMP END CRITICAL(memstats)
   end subroutine mem_stats_dealloc_i
 
   subroutine mem_stats_dealloc_c(ms)
     type(mem_stats), intent(inout) :: ms
-    !$OMP ATOMIC
+    !$omp atomic
     ms%cnt_dealloc = ms%cnt_dealloc + 1
   end subroutine mem_stats_dealloc_c
 

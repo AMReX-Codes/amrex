@@ -43,7 +43,7 @@ c
                   asol(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
      $                       + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
                else
-                  print *, 'FORT_COMP_ASOL: unknow boundary type'
+                  print *, 'FORT_COMP_ASOL: unknown boundary type'
                   stop
                endif
             end do

@@ -16,14 +16,14 @@ public:
               int             _ncomp,
               const Geometry& _geom);
 
-    ~MacBndry ();
+    virtual ~MacBndry ()  BL_OVERRIDE;
 
     virtual void setBndryConds (const BCRec& phys_bc,
-                                int          ratio);
+                                int          ratio) BL_OVERRIDE;
 
     virtual void setBndryConds (const BCRec&   phys_bc,
                                 const IntVect& ratio,
-                                int            comp=0);
+                                int            comp=0) BL_OVERRIDE;
     void setHomogValues (const BCRec&   bc,
                          const IntVect& ratio);
 
