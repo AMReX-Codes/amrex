@@ -631,6 +631,7 @@ void StateData::MakeSidecarsSmaller(const StateDescriptor &sdPtr,
                                     int ioProcNumSCS, int ioProcNumAll,
                                     int scsMyId, MPI_Comm scsComm)
 {
+#if BL_USE_MPI
 using std::cout;
 using std::endl;
 cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  scsMyId = "
@@ -683,12 +684,18 @@ ParallelDescriptor::Barrier(scsComm);
       }
 
       // ---- MultiFabs
+      ParallelDescriptor::Barrier(scsComm);
+      if(ParallelDescriptor::IOProcessor()) {
+        MultiFab::LockAllFAPointers();
+        MultiFab::CheckFAPointerLocks();
+      }
       //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.aFAPId  old_data.aFAPId = "
            //<< new_data->AllocatedFAPtrID() << "  " << old_data->AllocatedFAPtrID() << endl;
       cout << ParallelDescriptor::MyProcAll() << "::::_here 1:  new_data  old_data = "
            << new_data << "  " << old_data << endl;
 
       ParallelDescriptor::Barrier(scsComm);
+#endif
 }
 
 

@@ -1793,9 +1793,10 @@ AmrLevel::MakeSidecarsSmaller(Amr *aptr, int nSidecarProcs, int prevSidecarProcs
                               int ioProcNumSCS, int ioProcNumAll, int scsMyId,
 			      MPI_Comm scsComm)
 {
+#if BL_USE_MPI
 using std::cout;
 using std::endl;
-cout << "++++++++++ derive_lst.dlist().size() = " << derive_lst.dlist().size() << endl;
+cout << scsMyId << "::++++++++++ derive_lst.dlist().size() = " << derive_lst.dlist().size() << endl;
 ParallelDescriptor::Barrier(scsComm);
       if(scsMyId != ioProcNumSCS) {
         parent = aptr;
@@ -1918,17 +1919,21 @@ ParallelDescriptor::Barrier(scsComm);
 #endif
 
       // ---- state
+      int stateSize(state.size());
+      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        state.resize(stateSize);
+      }
       for(int i(0); i < state.size(); ++i) {
         state[i].MakeSidecarsSmaller(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
-
-
 
 cout << ParallelDescriptor::MyProcAll() << "::::_here 9:  scsMyId = "
      << scsMyId << endl;
 sleep(1);
 ParallelDescriptor::Barrier(scsComm);
 
+#endif
 }
 
 

@@ -90,6 +90,7 @@ FabArrayBase::FabArrayBase ()
 {
     Initialize();
     aFAPId = nFabArrays++;
+    aFAPIdLock = 0;  // ---- not locked
 }
 
 FabArrayBase::~FabArrayBase () {}
