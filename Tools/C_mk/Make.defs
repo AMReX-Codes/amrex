@@ -126,6 +126,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cab, $(UNAMEN)), cab)
     WHICHLINUX := CAB
   endif
+  ifeq ($(findstring syrah, $(UNAMEN)), syrah)
+    WHICHLINUX := SYRAH
+  endif
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
   endif
