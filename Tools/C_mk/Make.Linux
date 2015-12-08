@@ -108,7 +108,7 @@ endif
 # Now Fortran stuff.
 #
 FORT_CPP := gcc -E -traditional
-FORT_CPP := cpp -E -traditional
+FORT_CPP := cpp -E -traditional-cpp -P
 
 ifeq ($(FCOMP),PathScale)
   FC  = pathf95
