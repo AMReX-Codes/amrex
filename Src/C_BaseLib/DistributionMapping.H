@@ -33,7 +33,7 @@ class DistributionMapping
     //
     // The distribution strategies
     //
-    enum Strategy { ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
+    enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
     //
     // The default constructor.
     //
