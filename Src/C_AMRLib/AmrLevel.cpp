@@ -1691,6 +1691,34 @@ AmrLevel::setPlotVariables ()
     }
 }
 
+void
+AmrLevel::setSmallPlotVariables ()
+{
+    ParmParse pp("amr");
+
+    if (pp.contains("small_plot_vars"))
+    {
+        std::string nm;
+      
+        int nPltVars = pp.countval("small_plot_vars");
+      
+        for (int i = 0; i < nPltVars; i++)
+        {
+            pp.get("small_plot_vars", nm, i);
+
+	    parent->addStateSmallPlotVar(nm);
+        }
+    }
+    else 
+    {
+        //
+        // The default is to use none.
+        //
+        parent->clearStateSmallPlotVarList();
+    }
+  
+}
+
 AmrLevel::TimeLevel
 AmrLevel::which_time (int  indx,
                       Real time) const
@@ -1735,6 +1763,12 @@ AmrLevel::estimateWork ()
 
 bool
 AmrLevel::writePlotNow ()
+{
+    return false;
+}
+
+bool
+AmrLevel::writeSmallPlotNow ()
 {
     return false;
 }
