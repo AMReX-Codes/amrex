@@ -380,6 +380,7 @@ protected:
     mutable int         n_grow;
     int                 n_comp;
     int                 aFAPId;  // ---- id of currently allocated fab array pointers
+    int                 aFAPIdLock;  // ---- lock for resizing sidecars
 
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
@@ -768,6 +769,8 @@ public:
 
     int MoveFabs (const Array<int> &newDistMapArray);
     static void MoveAllFabs (const Array<int> &newDistMapArray);
+    static void LockAllFAPointers ();
+    static void CheckFAPointerLocks ();
 
 protected:
     //
@@ -1920,6 +1923,50 @@ FabArray<FAB>::shift (const IntVect& v)
     {
         get(fai).shift(v);
     }
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::LockAllFAPointers ()
+{
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      faPtr->aFAPIdLock = 1;
+    }
+  }
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::CheckFAPointerLocks ()
+{
+  std::cout << "}}}} _in LockAllFAPointers:  allocatedFAPointers.size() = "
+            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    std::cout << "}}}} }}}} _in LockAllFAPointers:  faPtrCachedMap.size() = "
+              << faPtrCachedMap.size() << std::endl;
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      std::cout << "}}}} }}}} }}}} _in LockAllFAPointers:  FAPtrId  idLock = " 
+                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+    }
+
+  }
 }
 
 

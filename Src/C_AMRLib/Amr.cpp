@@ -3434,7 +3434,7 @@ Amr::MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs) {
 
 void
 Amr::MakeSidecarsSmaller(int nSidecarProcs, int prevSidecarProcs) {
-
+#if BL_USE_MPI
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
@@ -3811,6 +3811,7 @@ using std::endl;
       cout << "%%%%%%%% finished MakeSideCarsSmaller." << endl;
     }
 
+#endif
 }
 
 
