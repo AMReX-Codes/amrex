@@ -2254,3 +2254,19 @@ void MultiFab::ConvertFromHPGMGLevel(MultiFab& mf,
   }
 }
 #endif /* USEHPGMG */
+
+void
+MultiFab::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
+                                    int scsMyId, MPI_Comm scsComm)
+{
+  // ---- bools
+  int cFN(check_for_nan), cFI(check_for_inf);
+  ParallelDescriptor::Bcast(&cFN, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&cFI, 1, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    check_for_nan = cFN;
+    check_for_inf = cFI;
+  }
+  FabArray::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+}
+
