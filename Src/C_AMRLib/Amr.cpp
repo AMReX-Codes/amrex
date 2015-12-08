@@ -54,8 +54,10 @@
 // Static class members.  Set defaults in Initialize()!!!
 //
 std::list<std::string> Amr::state_plot_vars;
+std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
+bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -95,6 +97,7 @@ Amr::Initialize ()
     // Set all defaults here!!!
     //
     Amr::first_plotfile      = true;
+    Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -245,9 +248,11 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     //
     grid_eff               = 0.7;
     plot_int               = -1;
+    small_plot_int         = -1;
     n_proper               = 1;
     max_level              = -1;
     last_plotfile          = 0;
+    last_smallplotfile     = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
@@ -658,6 +663,19 @@ Amr::isStatePlotVar (const std::string& name)
     return false;
 }
 
+bool
+Amr::isStateSmallPlotVar (const std::string& name)
+{
+    for (std::list<std::string>::const_iterator li = state_small_plot_vars.begin(), End = state_small_plot_vars.end();
+         li != End;
+         ++li)
+    {
+        if (*li == name)
+            return true;
+    }
+    return false;
+}
+
 void
 Amr::fillStatePlotVarList ()
 {
@@ -676,10 +694,23 @@ Amr::clearStatePlotVarList ()
 }
 
 void
+Amr::clearStateSmallPlotVarList ()
+{
+    state_small_plot_vars.clear();
+}
+
+void
 Amr::addStatePlotVar (const std::string& name)
 {
     if (!isStatePlotVar(name))
         state_plot_vars.push_back(name);
+}
+
+void
+Amr::addStateSmallPlotVar (const std::string& name)
+{
+    if (!isStateSmallPlotVar(name))
+        state_small_plot_vars.push_back(name);
 }
 
 void
@@ -954,6 +985,110 @@ Amr::writePlotFile ()
 }
 
 void
+Amr::writeSmallPlotFile ()
+{
+    if ( ! Plot_Files_Output()) return;
+
+    BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
+    BL_PROFILE("Amr::writeSmallPlotFile()");
+
+    VisMF::SetNOutFiles(plot_nfiles);
+
+    if (first_smallplotfile) 
+    {
+        first_smallplotfile = false;
+        amr_level[0].setSmallPlotVariables();
+    }
+
+    // Don't continue if we have no variables to plot.
+    
+    if (stateSmallPlotVars().size() == 0) return;
+
+    Real dPlotFileTime0 = ParallelDescriptor::second();
+
+    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,level_steps[0],file_name_digits);
+
+    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+        std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+    if (record_run_info && ParallelDescriptor::IOProcessor())
+        runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+                             stream_max_tries);
+
+  const std::string pltfileTemp(pltfile + ".temp");
+
+  while(sretry.TryFileOutput()) {
+    //
+    //  if either the pltfile or pltfileTemp exists, rename them
+    //  to move them out of the way.  then create pltfile
+    //  with the temporary name, then rename it back when
+    //  it is finished writing.  then stream retry can rename
+    //  it to a bad suffix if there were stream errors.
+    //
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+
+    std::string HeaderFileName(pltfileTemp + "/Header");
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ofstream HeaderFile;
+
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    int old_prec(0);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+	                                        std::ios::binary);
+        if ( ! HeaderFile.good())
+            BoxLib::FileOpenFailed(HeaderFileName);
+        old_prec = HeaderFile.precision(15);
+    }
+
+    for (int k(0); k <= finest_level; ++k)
+        amr_level[k].writeSmallPlotFile(pltfileTemp, HeaderFile);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HeaderFile.precision(old_prec);
+        if ( ! HeaderFile.good())
+            BoxLib::Error("Amr::writePlotFile() failed");
+    }
+
+    last_smallplotfile = level_steps[0];
+
+    if (verbose > 0)
+    {
+        const int IOProc        = ParallelDescriptor::IOProcessorNumber();
+        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+
+        ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+    }
+    ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+    //
+    // the plotfile file now has the regular name
+    //
+
+  }  // end while
+  BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
+}
+
+void
 Amr::checkInput ()
 {
     if (max_level < 0)
@@ -1031,6 +1166,8 @@ Amr::init (Real strt_time,
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
             writePlotFile();
+	if (small_plot_int > 0 || small_plot_per > 0)
+	    writeSmallPlotFile();
     }
 #ifdef HAS_XGRAPH
     if (first_plotfile)
@@ -2048,6 +2185,11 @@ Amr::coarseTimeStep (Real stop_time)
         writePlotFile();
     }
 
+    if (writeSmallPlotNow())
+    {
+        writeSmallPlotFile();
+    }
+
     bUserStopRequest = to_stop;
     if (to_stop)
     {
@@ -2089,6 +2231,32 @@ Amr::writePlotNow()
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
               plot_test == 1 ||
               amr_level[0].writePlotNow());
+} 
+
+bool
+Amr::writeSmallPlotNow()
+{
+    int plot_test = 0;
+    if (small_plot_per > 0.0)
+    {
+#ifdef BL_USE_NEWPLOTPER
+      Real rN(0.0);
+      Real rR = modf(cumtime/small_plot_per, &rN);
+      if (rR < (dt_level[0]*0.001))
+#else
+      const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
+      const int num_per_new = (cumtime            ) / small_plot_per;
+
+      if (num_per_old != num_per_new)
+#endif
+	{
+	  plot_test = 1;
+	}
+    }
+
+    return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 
+              plot_test == 1 ||
+              amr_level[0].writeSmallPlotNow());
 } 
 
 void
@@ -3244,6 +3412,21 @@ Amr::initPltAndChk ()
     {
         if (ParallelDescriptor::IOProcessor())
             BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+    }
+
+    small_plot_file_root = "smallplt";
+    pp.query("small_plot_file",plot_file_root);
+
+    small_plot_int = -1;
+    pp.query("small_plot_int",small_plot_int);
+
+    small_plot_per = -1.0;
+    pp.query("small_plot_per",small_plot_per);
+
+    if (small_plot_int > 0 && small_plot_per > 0)
+    {
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
 
     stream_max_tries = 4;

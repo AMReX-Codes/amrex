@@ -64,6 +64,14 @@ public:
                                 std::ostream&      os,
                                 VisMF::How         how = VisMF::OneFilePerCPU) = 0;
     //
+    // Write small plot file stuff to specified directory.  
+    // Unlike writePlotFile, this is NOT a pure virtual function 
+    // so implementation by derived classes is optional.
+    //
+    virtual void writeSmallPlotFile (const std::string& dir,
+                                     std::ostream&      os,
+				     VisMF::How         how = VisMF::OneFilePerCPU) {};
+    //
     // Write current state to checkpoint file.
     //
     virtual void checkPoint (const std::string& dir,
@@ -383,6 +391,10 @@ public:
     // 
     virtual void setPlotVariables ();
     //
+    // Modify list of variables to be plotted
+    // 
+    virtual void setSmallPlotVariables ();
+    //
     // Estimate the amount of work required to advance Just this level
     // based on the number of cells.
     // This estimate can be overwritten with different methods
@@ -399,6 +411,11 @@ public:
     // Does the AmrLevel want Amr to write a plotfile now?
     //
     virtual bool writePlotNow ();
+
+    //
+    // Does the AmrLevel want Amr to write a small plotfile now?
+    //
+    virtual bool writeSmallPlotNow ();
 
 #ifdef USE_PARTICLES
     //
