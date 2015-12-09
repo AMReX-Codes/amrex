@@ -11,7 +11,10 @@ amr.n_cell           =  64   64   64
 
 # TIME STEP CONTROL
 adv.cfl            = 0.7     # cfl number for hyperbolic system
-
+                             # In this test problem, the velocity is
+			     # time-dependent.  We could use 0.9 in
+			     # the 3D test, but need to use 0.7 in 2D
+			     # to satisfy CFL condition.
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv
 amr.v              = 1       # verbosity in Amr
