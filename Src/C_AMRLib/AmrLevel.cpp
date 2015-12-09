@@ -1828,68 +1828,17 @@ ParallelDescriptor::Barrier(scsComm);
       }
 
       // ---- Boxes
-      Array<int> baseBoxAI;
-      if(scsMyId == ioProcNumSCS) {
-        baseBoxAI = BoxLib::SerializeBox(m_AreaToTag);
-      }
-      if(scsMyId != ioProcNumSCS) {
-        baseBoxAI.resize(BoxLib::SerializeBoxSize());
-      }
-      ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        m_AreaToTag = BoxLib::UnSerializeBox(baseBoxAI);
-      }
+      BoxLib::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
       
       // ---- Geometry
       Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
       
       // ---- BoxArrays
-      int sbaG_Size(-2), sbaANTT_Size(-2);
-      Array<int> sbaG, sbaANTT;
-      if(scsMyId == ioProcNumSCS) {
-        sbaG = BoxLib::SerializeBoxArray(grids);
-        sbaG_Size = sbaG.size();
-        sbaANTT = BoxLib::SerializeBoxArray(m_AreaNotToTag);
-        sbaANTT_Size = sbaANTT.size();
-      }
-      ParallelDescriptor::Bcast(&sbaG_Size, 1, ioProcNumSCS, scsComm);
-      ParallelDescriptor::Bcast(&sbaANTT_Size, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        sbaG.resize(sbaG_Size);
-        sbaANTT.resize(sbaANTT_Size);
-      }
-      if(sbaG_Size > 0) {
-        ParallelDescriptor::Bcast(sbaG.dataPtr(), sbaG.size(), ioProcNumSCS, scsComm);
-      }
-      if(sbaANTT_Size > 0) {
-        ParallelDescriptor::Bcast(sbaANTT.dataPtr(), sbaANTT.size(), ioProcNumSCS, scsComm);
-      }
-      if(scsMyId != ioProcNumSCS) {
-        if(sbaG_Size > 0) {
-          grids = BoxLib::UnSerializeBoxArray(sbaG);
-	}
-        if(sbaANTT_Size > 0) {
-          m_AreaNotToTag = BoxLib::UnSerializeBoxArray(sbaANTT);
-	}
-      }
-      
+      BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+      BoxLib::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
+
 #ifdef USE_PARTICLES
-      int sbaPG_Size(-2);
-      Array<int> sbaPG;
-      if(scsMyId == ioProcNumSCS) {
-        sbaPG = BoxLib::SerializeBoxArray(particle_grids);
-        sbaPG_Size = sbaPG.size();
-      }
-      ParallelDescriptor::Bcast(&sbaPG_Size, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        sbaPG.resize(sbaPG_Size);
-      }
-      if(sbaPG_Size > 0) {
-        ParallelDescriptor::Bcast(sbaPG.dataPtr(), sbaPG.size(), ioProcNumSCS, scsComm);
-        if(scsMyId != ioProcNumSCS) {
-          particle_grids = BoxLib::UnSerializeBoxArray(sbaPG);
-        }
-      }
+      BoxLib::BroadcastBoxArray(particle_grids, scsMyId, ioProcNumSCS, scsComm);
 
       Array<int> dmapA;
       int dmapA_Size(-3);
@@ -1927,12 +1876,6 @@ ParallelDescriptor::Barrier(scsComm);
       for(int i(0); i < state.size(); ++i) {
         state[i].MakeSidecarsSmaller(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
-
-cout << ParallelDescriptor::MyProcAll() << "::::_here 9:  scsMyId = "
-     << scsMyId << endl;
-sleep(1);
-ParallelDescriptor::Barrier(scsComm);
-
 #endif
 }
 
