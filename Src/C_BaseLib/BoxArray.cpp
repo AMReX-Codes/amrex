@@ -158,6 +158,22 @@ BoxArray::Ref::define (std::istream& is)
 }
 
 void
+BoxArray::define (const Box& bx)
+{
+    BL_ASSERT(size() == 0);
+    if (!m_ref.unique())
+	uniqify();
+    m_ref->define(bx);
+}
+
+void
+BoxArray::Ref::define (const Box& bx)
+{
+    BL_ASSERT(m_abox.size() == 0);
+    m_abox.push_back(bx);
+}
+
+void
 BoxArray::define (const BoxList& bl)
 {
     BL_ASSERT(size() == 0);
@@ -951,6 +967,13 @@ BoxArray::removeOverlap ()
     *this = nba;
 
     BL_ASSERT(isDisjoint());
+}
+
+ptrdiff_t 
+BoxArray::getRefID () const
+{
+    static BoxArray ba0(Box::TheUnitBox());
+    return m_ref.operator->() - ba0.m_ref.operator->();
 }
 
 #ifdef BL_USE_MPI

@@ -163,7 +163,8 @@ class Suite(object):
         # about.  It is set automatically, not by users
         self.useExtraBuild = 0
 
-        self.extraBuildDirs = []
+        self.extra_build_dirs = []
+        self.extra_build_branches = []
 
         # this should be the environment variable name that should be
         # set so the builds in the extraBuildDir can see the main
@@ -175,7 +176,7 @@ class Suite(object):
         # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
-        self.extraBuildNames = []
+        self.extra_build_names = []
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -329,11 +330,14 @@ class Suite(object):
         outdir = self.testTopDir + self.suiteName + "-tests/"
 
         # this will work through 2099
-        dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
-                                                  d.startswith("20"))]
-        dirs.sort()
+        if os.path.isdir(outdir):
+            dirs = [d for d in os.listdir(outdir) if (os.path.isdir(outdir + d) and
+                                                      d.startswith("20"))]
+            dirs.sort()
 
-        return dirs[-1]
+            return dirs[-1]
+        else:
+            return None
 
     def get_test_failures(self, test_dir):
         """ look at the test run in test_dir and return the list of tests that
@@ -573,14 +577,24 @@ def load_params(args):
                 # we will keep the extra build directories in a list -- we
                 # want them in the correct order in the list so we can simply
                 # index later
-                if len(mysuite.extraBuildDirs) == 0:
-                    mysuite.extraBuildDirs.append(mysuite.check_test_dir(value))
+
+                try: branch = convert_type(cp.get("main", "extraBuildBranch"))
+                except: branch = "master"
+                
+                if len(mysuite.extra_build_dirs) == 0:
+                    mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
+                    mysuite.extra_build_branches.append(branch)
                 else:
-                    mysuite.extraBuildDirs.insert(0,mysuite.check_test_dir(value))
+                    mysuite.extra_build_dirs.insert(0, mysuite.check_test_dir(value))
+                    mysuite.extra_build_branches.insert(0, branch)
 
             elif opt == "extraBuildDir2":
-                mysuite.extraBuildDirs.append(mysuite.check_test_dir(value))
+                try: branch = convert_type(cp.get("main", "extraBuildBranch2"))
+                except: branch = "master"
 
+                mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
+                mysuite.extra_build_branches.append(branch)
+                
             elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
             else:
@@ -591,7 +605,7 @@ def load_params(args):
             mysuite.log.warn("WARNING: suite parameter %s not valid" % (opt))
 
 
-    mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
+    mysuite.useExtraBuild = len(mysuite.extra_build_dirs)
 
     # create the repo objects
     mysuite.repos["BoxLib"] = Repo(mysuite, mysuite.boxLibDir, "BoxLib",
@@ -618,14 +632,14 @@ def load_params(args):
 
     # update additional compiled string for any extra build directory
     if mysuite.useExtraBuild > 0:
-        for n in range(len(mysuite.extraBuildDirs)):
-            extra_build_name = os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n]))
-            mysuite.extraBuildNames.append(extra_build_name)
+        for n in range(len(mysuite.extra_build_dirs)):
+            extra_build_name = os.path.basename(os.path.normpath(mysuite.extra_build_dirs[n]))
+            mysuite.extra_build_names.append(extra_build_name)
 
             mysuite.repos["extra_build-{}".format(n)] = \
-                Repo(mysuite, mysuite.extraBuildDirs[n],
+                Repo(mysuite, mysuite.extra_build_dirs[n],
                      extra_build_name, 
-                     branch_wanted="master")
+                     branch_wanted=mysuite.extra_build_branches[n])
 
         # since we are building in the extraBuildDir, we need to
         # tell make where the sourceDir is
@@ -706,7 +720,7 @@ def load_params(args):
 
         # make sure that the build directory actually exists
         if mytest.useExtraBuildDir > 0:
-            bDir = mysuite.extraBuildDirs[mytest.useExtraBuildDir-1] + mytest.buildDir
+            bDir = mysuite.extra_build_dirs[mytest.useExtraBuildDir-1] + mytest.buildDir
         else:
             bDir = mysuite.sourceDir + mytest.buildDir
 
@@ -844,6 +858,50 @@ class Log(object):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+def get_args(arg_string=None):
+    """ parse the commandline arguments.  If arg_string is present, we
+        parse from there, otherwise we use the default (sys.argv) """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", type=int, default=-1,
+                        help="restrict tests to a particular dimensionality")
+    parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
+                        help="make new benchmarks? (must provide a comment)")
+    parser.add_argument("--copy_benchmarks", type=str, default=None, metavar="comment",
+                        help="copy the last plotfiles from the failed tests of the most recent run as the new benchmarks.  No git pull is done and no new runs are performed (must provide a comment)")
+    parser.add_argument("--no_update", type=str, default="None", metavar="name",
+                        help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
+    parser.add_argument("--single_test", type=str, default="", metavar="test-name",
+                        help="name of a single test to run")
+    parser.add_argument("--tests", type=str, default="", metavar="'test1 test2 test3'",
+                        help="a space-separated list of tests to run")
+    parser.add_argument("--do_temp_run", action="store_true",
+                        help="is this a temporary run? (output not stored or logged)")
+    parser.add_argument("--send_no_email", action="store_true",
+                        help="do not send emails when tests fail")
+    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
+    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--note", type=str, default="",
+                        help="a note on the resulting test webpages")
+    parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",
+                        help="complete the generation of the report from a crashed test suite run named testdir")
+    parser.add_argument("--redo_failed", action="store_true",
+                        help="only run the tests that failed last time")
+    parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
+                        help="the input file (INI format) containing the suite and test parameters")
+
+    if not arg_string is None:
+        args = parser.parse_args(arg_string)
+    else:
+        args = parser.parse_args()
+
+    return args
+
+
 def run(string, stdin=False, outfile=None, store_command=False, env=None, outfile_mode="a", log=None):
 
     # shlex.split will preserve inner quotes
@@ -911,7 +969,8 @@ def find_build_dirs(tests):
 
 def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
     """ copy the last plotfile output from each test in testList 
-        into the benchmark directory """
+        into the benchmark directory.  Also copy the diffDir, if
+        it exists """
     td = os.getcwd()
     
     for t in test_list:
@@ -946,6 +1005,16 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         else:   # no benchmark exists
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
                 cf.write("benchmarks update failed")
+            
+        # is there a diffDir to copy too?
+        if not t.diffDir == "":
+            diff_dir_bench = "{}/{}_{}".format(bench_dir, t.name, t.diffDir)
+            if os.path.isdir(diff_dir_bench):
+                shutil.rmtree(diff_dir_bench)
+                shutil.copytree(t.diffDir, diff_dir_bench)
+            else:
+                shutil.copy(t.diffDir, diff_dir_bench)
+            log.log("new diffDir: {}_{}".format(t.name, t.diffDir))
             
         os.chdir(td)
         
@@ -1209,39 +1278,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     # parse the commandline arguments
     #--------------------------------------------------------------------------
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", type=int, default=-1,
-                        help="restrict tests to a particular dimensionality")
-    parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
-                        help="make new benchmarks? (must provide a comment)")
-    parser.add_argument("--copy_benchmarks", type=str, default=None, metavar="comment",
-                        help="copy the last plotfiles from the failed tests of the most recent run as the new benchmarks.  No git pull is done and no new runs are performed (must provide a comment)")
-    parser.add_argument("--no_update", type=str, default="None", metavar="name",
-                        help="which codes to exclude from the git update? (None, All, or a comma-separated list of codes)")
-    parser.add_argument("--single_test", type=str, default="", metavar="test-name",
-                        help="name of a single test to run")
-    parser.add_argument("--tests", type=str, default="", metavar="'test1 test2 test3'",
-                        help="a space-separated list of tests to run")
-    parser.add_argument("--do_temp_run", action="store_true",
-                        help="is this a temporary run? (output not stored or logged)")
-    parser.add_argument("--send_no_email", action="store_true",
-                        help="do not send emails when tests fail")
-    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
-    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
-    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
-    parser.add_argument("--note", type=str, default="",
-                        help="a note on the resulting test webpages")
-    parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",
-                        help="complete the generation of the report from a crashed test suite run named testdir")
-    parser.add_argument("--redo_failed", action="store_true",
-                        help="only run the tests that failed last time")
-    parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
-                        help="the input file (INI format) containing the suite and test parameters")
-
-    args=parser.parse_args()
+    args=get_args(arg_string=argv)
 
     #--------------------------------------------------------------------------
     # read in the test information
@@ -1348,7 +1385,7 @@ def test_suite(argv):
         if suite.extSrcName.lower() in nouplist: suite.repos["extra_source"].update = False
 
         # each extra build directory has its own update flag
-        for n, e in enumerate(suite.extraBuildNames):
+        for n, e in enumerate(suite.extra_build_names):
             if e.lower() in nouplist:
                 suite.repos["extra_build-{}".format(n)].update = False
 
@@ -1382,8 +1419,8 @@ def test_suite(argv):
     for dir, source_tree in all_build_dirs:
 
         if source_tree > 0:
-            suite.log.log("{} in {}".format(dir, suite.extraBuildNames[source_tree-1]))
-            os.chdir(suite.extraBuildDirs[source_tree-1] + dir)
+            suite.log.log("{} in {}".format(dir, suite.extra_build_names[source_tree-1]))
+            os.chdir(suite.extra_build_dirs[source_tree-1] + dir)
         else:
             suite.log.log("{}".format(dir))
             os.chdir(suite.sourceDir + dir)
@@ -1416,7 +1453,7 @@ def test_suite(argv):
         # compile the code
         #----------------------------------------------------------------------
         if test.useExtraBuildDir > 0:
-            bDir = suite.extraBuildDirs[test.useExtraBuildDir-1] + test.buildDir
+            bDir = suite.extra_build_dirs[test.useExtraBuildDir-1] + test.buildDir
         else:
             bDir = suite.sourceDir + test.buildDir
 
@@ -1740,7 +1777,7 @@ def test_suite(argv):
 
                     if diff_status == 0:
                         with open("{}.compare.out".format(test.name), 'a') as cf:
-                            cf.write("diff was SUCCESSFUL\n")
+                            cf.write("\ndiff was SUCCESSFUL\n")
 
             else:   # make_benchmarks
 
@@ -1809,36 +1846,37 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if outputFile != "" and args.make_benchmarks == None:
+        if outputFile != "":
+            if args.make_benchmarks == None:
 
-            if test.doVis: 
+                if test.doVis: 
 
-                if test.dim == 1:
-                    suite.log.log("Visualization not supported for dim = {}".format(test.dim))
-                else:
-                    suite.log.log("doing the visualization...")
-                    tool = suite.tools["fsnapshot{}d".format(test.dim)]
-                    run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                        tool, suite.compare_tool_dir, test.visVar, outputFile))
+                    if test.dim == 1:
+                        suite.log.log("Visualization not supported for dim = {}".format(test.dim))
+                    else:
+                        suite.log.log("doing the visualization...")
+                        tool = suite.tools["fsnapshot{}d".format(test.dim)]
+                        run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
+                            tool, suite.compare_tool_dir, test.visVar, outputFile))
 
-                    # convert the .ppm files into .png files
-                    ppm_file = get_recent_filename(outputDir, "", ".ppm")
-                    png_file = ppm_file.replace(".ppm", ".png")
-                    run("convert {} {}".format(ppm_file, png_file))
+                        # convert the .ppm files into .png files
+                        ppm_file = get_recent_filename(outputDir, "", ".ppm")
+                        png_file = ppm_file.replace(".ppm", ".png")
+                        run("convert {} {}".format(ppm_file, png_file))
 
-            if not test.analysisRoutine == "":
+                if not test.analysisRoutine == "":
 
-                suite.log.log("doing the analysis...")
-                if test.useExtraBuildDir > 0:
-                    tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
-                else:
-                    tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
+                    suite.log.log("doing the analysis...")
+                    if test.useExtraBuildDir > 0:
+                        tool = "{}/{}".format(suite.extra_build_dirs[test.useExtraBuildDir-1], test.analysisRoutine)
+                    else:
+                        tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
 
-                shutil.copy(tool, os.getcwd())
+                    shutil.copy(tool, os.getcwd())
 
-                option = eval("suite.{}".format(test.analysisMainArgs))
-                run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                      option, outputFile))
+                    option = eval("suite.{}".format(test.analysisMainArgs))
+                    run("{} {} {}".format(os.path.basename(test.analysisRoutine),
+                                          option, outputFile))
 
         else:
             if test.doVis or test.analysisRoutine != "":
@@ -2356,7 +2394,7 @@ def report_single_test(suite, test):
 
     if test.useExtraBuildDir > 0:
         ll.indent()
-        ll.item("in {}".format(suite.extraBuildDirs[test.useExtraBuildDir-1]))
+        ll.item("in {}".format(suite.extra_build_dirs[test.useExtraBuildDir-1]))
         ll.outdent()
 
     if not test.compileTest:
@@ -2467,8 +2505,9 @@ def report_single_test(suite, test):
                     ht.end_table()
                     hf.write("<pre>\n")
 
-                    hf.write(line.strip())
+                    hf.write(line)
                     in_diff_region = True
+                    continue
 
                 if line.strip().startswith("level"):
                     ht.print_single_row(line.strip())
@@ -2508,7 +2547,7 @@ def report_single_test(suite, test):
 
             else:
                 # diff region
-                hf.write(line.strip())
+                hf.write(line)
 
         if in_diff_region:
             hf.write("</pre>\n")
@@ -2960,5 +2999,4 @@ def report_all_runs(suite, activeTestList):
 # m a i n
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 if __name__== "__main__":
-
-    test_suite(sys.argv)
+    test_suite(sys.argv[1:])

@@ -69,6 +69,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_1d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_1d;
 mgt_set     mgt_set_rh         = mgt_set_rh_1d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_1d;
+mgt_setr    mgt_set_cfaa       = mgt_set_cfaa_1d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_1d;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_1d;
 mgt_set_cfn mgt_set_cfbnx      = mgt_set_cfbnx_1d;
@@ -90,6 +91,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_2d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_2d;
 mgt_set     mgt_set_rh         = mgt_set_rh_2d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_2d;
+mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_2d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_2d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_2d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_2d;
@@ -113,6 +115,7 @@ mgt_get_dir mgt_get_gp         = mgt_get_gp_3d;
 mgt_setni   mgt_set_pr         = mgt_set_pr_3d;
 mgt_set     mgt_set_rh         = mgt_set_rh_3d;
 mgt_set     mgt_set_cfa        = mgt_set_cfa_3d;
+mgt_setr     mgt_set_cfaa      = mgt_set_cfaa_3d;
 mgt_setn    mgt_set_cfa2       = mgt_set_cfa2_3d;
 mgt_set_c   mgt_set_cfa_const  = mgt_set_cfa_3d_const;
 mgt_set_cf  mgt_set_cfbx       = mgt_set_cfbx_3d;
@@ -270,13 +273,7 @@ MGT_Solver::initialize(bool nodal)
 
     initialized = true;
 
-    int comm = 0;
-
-#ifdef BL_USE_MPI
-    comm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-#endif
-
-    mgt_init(&comm);
+    mgt_init();
 
     if (nodal) {
       mgt_get_nodal_defaults(&def_nu_1,&def_nu_2,&def_nu_b,&def_nu_f,
@@ -373,8 +370,8 @@ MGT_Solver::initialize(bool nodal)
 
 
 //
-// (aa - beta * (del dot bb grad)) phi = RHS
-// Here, aa is const alpha.
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+// Here, aa is const one.
 //
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
@@ -417,7 +414,8 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 }
 
 //
-// (aa - beta * (del dot bb grad)) phi = RHS
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+// Here, alpha is one.
 //
 void
 MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
@@ -440,6 +438,47 @@ MGT_Solver::set_abeclap_coeffs (const PArray<MultiFab>& aa,
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
 	set_cfa(aa[lev], lev);
+	
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    set_cfb(bb[lev][d], beta, lev, d);
+	}
+    }
+	
+    int dm = BL_SPACEDIM;
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	mgt_finalize_stencil_lev(&lev, xa[lev].dataPtr(), xb[lev].dataPtr(), 
+				 pxa.dataPtr(), pxb.dataPtr(), &dm);
+    }
+
+    mgt_finalize_stencil();
+}
+
+//
+// (alpha * aa - beta * (del dot bb grad)) phi = RHS
+//
+void
+MGT_Solver::set_abeclap_coeffs (Real alpha,
+				const PArray<MultiFab>& aa,
+				Real beta,
+				const Array<PArray<MultiFab> >& bb,
+				const Array< Array<Real> >& xa,
+				const Array< Array<Real> >& xb)
+{
+    Array<Real> pxa(BL_SPACEDIM, 0.0);
+    Array<Real> pxb(BL_SPACEDIM, 0.0);
+
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	mgt_init_coeffs_lev(&lev);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for ( int lev = 0; lev < m_nlevel; ++lev )
+    {
+	set_cfaa(aa[lev], alpha, lev);
 	
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    set_cfb(bb[lev][d], beta, lev, d);
@@ -933,6 +972,23 @@ MGT_Solver::set_cfa (const MultiFab& aa, int lev)
 	mgt_set_cfa (&lev, &n, a.dataPtr(),
 		     abx.loVect(), abx.hiVect(),
 		     bx.loVect(), bx.hiVect());
+    }
+}
+
+void
+MGT_Solver::set_cfaa (const MultiFab& aa, Real alpha, int lev)
+{
+    // the caller has started OMP
+    for (MFIter mfi(aa, true); mfi.isValid(); ++mfi)
+    {
+	const int n = mfi.LocalIndex();
+	const Box& bx = mfi.tilebox();
+	const FArrayBox& a = aa[mfi];
+	const Box& abx = a.box();
+	mgt_set_cfaa (&lev, &n, a.dataPtr(),
+		      abx.loVect(), abx.hiVect(),
+		      bx.loVect(), bx.hiVect(),
+		      &alpha);
     }
 }
 

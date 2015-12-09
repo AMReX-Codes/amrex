@@ -18,18 +18,24 @@ module plotfile_module
   end interface build
 
   type plotfile_fab
+     ! a single array of data (a boxlib FAB).  
      private
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: filename = ""
      integer(kind=c_long) :: offset = 0
      integer(kind=c_long) :: size = 0
      type(box) :: bx
+     type(box) :: pbx  ! the physical box will include ghost cells
      integer :: nc = 0, ng = 0
      real(kind=dp_t), pointer, dimension(:) :: mx => Null(), mn => Null()
      real(kind=dp_t), pointer, dimension(:,:,:,:) :: p => Null()
   end type plotfile_fab
 
   type plotfile_grid
+     ! this is like a multifab -- it is the collection of the data at
+     ! the same level of refinemnet.  Note that the fabs themselves
+     ! are pointers here -- we only allocate and read them on demand,
+     ! to conserve space
      private
      integer :: dim = 0
      integer :: nboxes = 0
@@ -43,6 +49,8 @@ module plotfile_module
   end type plotfile_grid
 
   type plotfile
+     ! the plotfile container that holds pointers to the
+     ! grids
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: root = ""
      character(len=MAX_VAR_NAME), pointer :: names(:) => Null()
@@ -64,12 +72,20 @@ module plotfile_module
      module procedure plotfile_get_box
   end interface
 
+  interface get_pbox
+     module procedure plotfile_get_pbox
+  end interface
+
   interface dataptr
      module procedure plotfile_dataptr
   end interface
 
   interface nvars
      module procedure plotfile_nvars
+  end interface
+
+  interface nghost
+     module procedure plotfile_nghost
   end interface
 
   interface var_name
@@ -131,6 +147,9 @@ contains
   end function plotfile_time
 
   function plotfile_dataptr(pf, n, i) result(r)
+    ! this returns the pointer to a single FAB of data.  Note: this
+    ! does not actually allocate it or read it in.  To allocate the
+    ! data first, you should use one of the bind routines.
     real(kind=dp_t), pointer :: r(:,:,:,:)
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n, i
@@ -138,6 +157,8 @@ contains
   end function plotfile_dataptr
 
   function plotfile_get_pd_box(pf, n) result(r)
+    ! this is the box (integer indices of the corners) of the 
+    ! entire domain at a given level of refinement.
     type(box) :: r
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n
@@ -152,11 +173,22 @@ contains
   end function plotfile_get_dx
 
   function plotfile_get_box(pf, n, i) result(r)
+    ! this returns the box for the valid data (i.e. excluding any
+    ! ghost cells)
     type(box) :: r
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: n, i
     r = pf%grids(n)%fabs(i)%bx
   end function plotfile_get_box
+
+  function plotfile_get_pbox(pf, n, i) result(r)
+    ! this returns the box for the entire fab, including
+    ! ghost cells
+    type(box) :: r
+    type(plotfile), intent(in) :: pf
+    integer, intent(in) :: n, i
+    r = pf%grids(n)%fabs(i)%pbx
+  end function plotfile_get_pbox
 
   function plotfile_nboxes_n(pf, n) result(r)
     integer :: r
@@ -207,6 +239,13 @@ contains
     type(plotfile), intent(in) :: pf
     r = pf%nvars
   end function plotfile_nvars
+
+  function plotfile_nghost(pf, n, i) result(r)
+    integer :: r
+    type(plotfile), intent(in) :: pf
+    integer, intent(in) :: n, i
+    r = pf%grids(n)%fabs(i)%ng
+  end function plotfile_nghost
 
   subroutine plotfile_build(pf, root, unit, verbose)
     use bl_stream_module
@@ -303,7 +342,7 @@ contains
     subroutine build_ns_plotfile()
       use bl_error_module
       integer :: i, n
-      integer :: j, nc
+      integer :: j, nc, ng
       integer :: n1
       character(len=MAX_PATH_NAME) :: str, str1, cdummy
       integer :: idummy
@@ -359,9 +398,11 @@ contains
               status = 'old', file = trim(trim(pf%root) // "/" //  &
               trim(pf%grids(i)%fileprefix) // "/" // &
               trim(pf%grids(i)%header)) )
-         read(unit=lun, fmt=*) idummy, idummy, nc, idummy
+         read(unit=lun, fmt=*) idummy, idummy, nc, ng
          if ( nc /= pf%nvars ) &
               call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+         !if ( ng /= 0) &
+         !     call bl_error("BUILD_PLOTFILE: ng /= 0 not supported", ng)
          call bl_stream_expect(strm, '(')
          n = bl_stream_scan_int(strm)
          if ( n /= pf%grids(i)%nboxes ) &
@@ -369,8 +410,10 @@ contains
          idummy = bl_stream_scan_int(strm)
          do j = 1, pf%grids(i)%nboxes
             call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
-            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%bx)
+            pf%grids(i)%fabs(j)%pbx = grow(pf%grids(i)%fabs(j)%bx, ng)
+            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%pbx) 
             pf%grids(i)%fabs(j)%nc = nc
+            pf%grids(i)%fabs(j)%ng = ng
          end do
          call bl_stream_expect(strm, ')')
          read(unit=lun, fmt=*) idummy
@@ -459,7 +502,7 @@ contains
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j
     integer :: fd
-    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM), nc
+    integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM), nc, ng
 
     if ( i < 0 .or. i > pf%flevel ) &
          call bl_error('fab_bind: level out of bounds')
@@ -474,7 +517,13 @@ contains
     nc = pf%nvars
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
-    allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), nc))
+
+    ng = pf%grids(i)%fabs(j)%ng
+    if (lo(3) .eq. hi(3)) then
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), nc))
+    else
+       allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, nc))
+    endif
     call fabio_read_d(fd,              &
          pf%grids(i)%fabs(j)%offset,   &
          pf%grids(i)%fabs(j)%p(:,:,:,:), &
@@ -495,7 +544,7 @@ contains
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j, c(:)
 
-    integer :: n
+    integer :: n, ng
     integer :: fd
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
 
@@ -507,7 +556,14 @@ contains
     hi = 1
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
-    allocate(pf%grids(i)%fabs(j)%p(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), size(c)))
+    ng = pf%grids(i)%fabs(j)%ng
+ 
+    ! This handles the case where it really is 2D so there no ghost cells in the z-direction
+    if (lo(3) .eq. hi(3)) then
+        allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), size(c)))
+    else
+        allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng, size(c)))
+    end if
     do n = 1, size(c)
        call fabio_read_skip_d(fd,              &
             pf%grids(i)%fabs(j)%offset,        &

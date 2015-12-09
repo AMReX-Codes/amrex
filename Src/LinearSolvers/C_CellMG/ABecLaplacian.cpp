@@ -63,11 +63,9 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     const bool tiling = true;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:res)
 #endif
     {
-	Real pres = 0.0;
-
 	for (MFIter amfi(a,tiling); amfi.isValid(); ++amfi)
 	{
 	    Real tres;
@@ -99,14 +97,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 		       h[level]);
 #endif
 
-	    pres = std::max(pres, tres);
-	}
-
-#ifdef _OPENMP
-#pragma omp critical(ABec_norm)
-#endif
-	{ // reduction(max:) only became available in OpenMP 3.1, so we still use omp critical here
-	    res = std::max(res, pres);
+	    res = std::max(res, tres);
 	}
     }
 
@@ -277,6 +268,15 @@ ABecLaplacian::setCoefficients (const MultiFab &_a,
 void
 ABecLaplacian::setCoefficients (const MultiFab& _a,
                                 const MultiFab* _b)
+{
+    aCoefficients(_a);
+    for (int n = 0; n < BL_SPACEDIM; ++n)
+        bCoefficients(_b[n], n);
+}
+
+void
+ABecLaplacian::setCoefficients (const MultiFab& _a,
+                                const PArray<MultiFab>& _b)
 {
     aCoefficients(_a);
     for (int n = 0; n < BL_SPACEDIM; ++n)

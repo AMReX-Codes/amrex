@@ -459,7 +459,9 @@ ifeq ($(MACHINE), Linux)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
                           ifneq ($(WHICHLINUX), BABBAGE)
-                            BL_MPI_LIBS += -lmpich
+                            ifneq ($(WHICHLINUX), MIRA)
+                              BL_MPI_LIBS += -lmpich
+                            endif
                           endif
                         endif  
                       endif  
@@ -583,7 +585,8 @@ ifeq ($(MACHINE), Darwin)
         CC  := $(MPIHOME)/bin/mpicc
 
         MPI_HOME=$(MPIHOME)
-	LIBRARIES += -lmpi_f77
+	#LIBRARIES += -lmpi_f77
+	LIBRARIES += -lmpi_mpifh
      else
         ifndef MPI_HOME
           $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)

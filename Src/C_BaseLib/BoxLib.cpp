@@ -43,6 +43,14 @@
 
 #include <MemPool.H>
 
+#ifdef BL_USE_FORTRAN_MPI
+extern "C" {
+    void bl_fortran_mpi_comm_init (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
+}
+#endif
+
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
 //
@@ -347,6 +355,11 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 		      << ", might be too small for big runs.\n!\n";
 	}
     }
+
+#ifdef BL_USE_FORTRAN_MPI
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_mpi_comm_init (fcomm);
+#endif
 }
 
 void
@@ -398,7 +411,16 @@ BoxLib::Finalize (bool finalize_parallel)
       }
     }
     
-    if (finalize_parallel)
+    if (finalize_parallel) {
+#ifdef BL_USE_FORTRAN_MPI
+#ifdef IN_TRANSIT
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_sidecar_mpi_comm_free(fcomm);
+#else
+    bl_fortran_mpi_comm_free();
+#endif
+#endif
         ParallelDescriptor::EndParallel();
+    }
 }
 

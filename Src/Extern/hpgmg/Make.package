@@ -1,0 +1,2 @@
+CEXE_sources += BL_HPGMG.cpp
+CEXE_headers += BL_HPGMG.H

@@ -126,6 +126,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cab, $(UNAMEN)), cab)
     WHICHLINUX := CAB
   endif
+  ifeq ($(findstring syrah, $(UNAMEN)), syrah)
+    WHICHLINUX := SYRAH
+  endif
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
   endif
@@ -184,6 +187,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring bint, $(UNAMEN)), bint)
     WHICHLINUX := BABBAGE
+  endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
   endif
 endif
 #
@@ -298,14 +304,17 @@ ifdef USE_GCC
     ifeq ($(THREAD_SANITIZER),TRUE)
         CXXOPTF += -fsanitize=thread
     endif
+    ifeq ($(FSANITIZER),TRUE)
+        CXXOPTF += -fsanitize=address -fsanitize=undefined
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
     ifeq ($(BACKTRACE),TRUE)
         LDFLAGS += -rdynamic
     endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       ?= g++
-    CC	       ?= gcc
+    CXX	       := g++
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -444,6 +453,10 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     ifeq ($(THREAD_SANITIZER),TRUE)
         FOPTF += -fsanitize=thread
         fOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        FOPTF += -fsanitize=address -fsanitize=undefined
+        fOPTF += -fsanitize=address -fsanitize=undefined
     endif
     FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
     fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
@@ -1200,6 +1213,17 @@ ifeq ($(USE_HPGMG), TRUE)
     DEFINES += -DSTENCIL_VARIABLE_COEFFICIENT=1
   endif
 
+  include $(HPGMG_DIR)/source/Make.package
+  include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/Extern/hpgmg
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif
