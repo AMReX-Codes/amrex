@@ -7,6 +7,7 @@
 #include <Amr.H>
 #include <AmrLevel.H>
 #include <sdc.h>
+#include <BL_CXX11.H>
 
 using namespace std;
 
@@ -100,7 +101,8 @@ public:
 			Real time,
 			int iteration,
 			int niter ,
-			Real stop_time) { BL_ASSERT(false); }
+			Real stop_time) BL_OVERRIDE 
+	{ BL_ASSERT(false); }
 
 };
 

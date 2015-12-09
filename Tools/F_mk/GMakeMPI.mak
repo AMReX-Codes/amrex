@@ -16,13 +16,14 @@ endif
 ifeq ($(ARCH),Darwin)
 
   # specifics for maudib
-  ifeq ($(findstring maudib, $(UNAMEN)), maudib)
+  ifeq ($(findstring rawk, $(UNAMEN)), rawk)
     FC = mpif90
     F90 = mpif90
     CC = mpicc
     CXX = mpicxx
 
     MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+    MPIHOME=$(MPI_HOME)
     LIBRARIES += lmpi_mpifh    
 
   # attempt at general support for Mac; only works if MPIHOME env var is set
@@ -164,6 +165,24 @@ ifeq ($(findstring h2o, $(UNAMEN)), h2o)
       F90FLAGS += -hpgas_runtime
       CFLAGS += -hpgas_runtime
       CXXFLAGS += -hpgas_runtime
+    endif
+endif
+ifeq ($(findstring mira, $(UNAMEN)), mira)
+    #
+    # The BlueGene/Q at ALCF
+    #
+    ifeq ($(COMP),IBM)
+      ifdef MPI
+        ifdef OMP
+          CXX := mpixlcxx_r
+          FC  := mpixlf95_r
+          F90 := mpixlf95_r
+        else
+          CXX := mpixlcxx
+          FC  := mpixlf95
+          F90 := mpixlf95
+        endif
+      endif
     endif
 endif
 

@@ -4112,7 +4112,7 @@ contains
 
        if ( .not. present(nodal_mask) ) call build_nodal_dot_mask(tmask, mf)
 
-       !$omp parallel private(mp,mp1,ma,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2) reduction(+:r1)
+       !$omp parallel private(mp,mp1,ma,lmp,i,j,k,n,lo,hi,mfi,bx,tid,r2)
        tid = omp_get_thread_num()
        call mfiter_build(mfi,mf,.true.)
        do while(next_tile(mfi,n))

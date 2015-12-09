@@ -102,6 +102,11 @@ public:
     const_iterator begin () const { return m_ref->m_abox.begin(); }
     const_iterator   end () const { return m_ref->m_abox.end();   }
     //
+    // Initialize the BoxArray from a single box.
+    // It is an error if the BoxArray has already been initialized.
+    //
+    void define (const Box& bx);
+    //
     // Initialize the BoxArray from the supplied BoxList.
     // It is an error if the BoxArray has already been initialized.
     //
@@ -297,6 +302,11 @@ public:
 
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    //
+    // This gives a unique ID of the reference
+    //
+    ptrdiff_t getRefID () const;
+
 #ifdef BL_USE_MPI
     static void SendBoxArrayToSidecars(BoxArray *ba);
 #endif
@@ -323,6 +333,7 @@ private:
         //
         // Some defines()s to match those in BoxArray.
         //
+        void define (const Box& bx);
         void define (const BoxList& bl);
 
         void define (std::istream& is);

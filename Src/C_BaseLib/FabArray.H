@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <string>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -164,6 +165,40 @@ public:
                           int                                    ncomp,
                           int                                    SeqNum);
     //
+    struct CacheStats
+    {
+	int         size;     // current size: nbuild - nerase
+	int         maxsize;  // highest water mark of size
+	int         maxuse;   // max # of uses of a cached item
+	long        nuse;     // # of uses of the whole cache
+	long        nbuild;   // # of build operations
+	long        nerase;   // # of erase operations
+	std::string name;     // name of the cache
+	CacheStats (const std::string& name_) 
+	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),name(name_) {;}
+	void recordBuild () {
+	    ++size;  
+	    ++nbuild;  
+	    maxsize = std::max(maxsize, size); 
+	}
+	void recordErase (int n) { 
+	    // n: how many times the item to be deleted has been used.
+	    --size;
+	    ++nerase;
+	    maxuse = std::max(maxuse, n);
+	}
+	void recordUse () { ++nuse; }
+	void print () {
+	    std::cout << "### " << name << " ###\n";
+	    std::cout << "    tot # of builds  : " << nbuild  << "\n"
+		      << "    tot # of erasures: " << nerase  << "\n"
+		      << "    tot # of uses    : " << nuse    << "\n"
+		      << "    max cache size   : " << maxsize << "\n"
+		      << "    max # of uses    : " << maxuse
+		      << std::endl;
+	}
+    };
+    //
     // Used by a bunch of routines when communicating via MPI.
     //
     struct CopyComTag
@@ -207,8 +242,8 @@ public:
         BoxArray            m_ba;
         DistributionMapping m_dm;
         int                 m_ngrow;
+	int                 m_nuse;
         bool                m_cross;
-        bool                m_reused;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
         //
@@ -228,6 +263,8 @@ public:
     typedef FBCache::iterator FBCacheIter;
 
     static FBCache m_TheFBCache;
+
+    static CacheStats m_FBC_stats;
     //
     // When copy()ing from one FabArray to another we can do a copy or an add.
     //
@@ -255,7 +292,7 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
-        bool                m_reused;
+        int                 m_nuse;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
         //
@@ -276,11 +313,12 @@ public:
 
     static CPCCache m_TheCopyCache;
 
+    static CacheStats m_CPC_stats;
+
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
                                 const FabArrayBase& src);
 
-    static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
     // Used for collecting information used in communicating FABs.
     //
@@ -323,6 +361,10 @@ public:
     // Default tilesize in MFIter
     //
     static IntVect mfiter_tile_size;
+    //
+    // Huge box size, larger than any boxes we use
+    //
+    static IntVect mfiter_huge_box_size;
     //
     // The maximum number of components to copy() at a time.
     //
@@ -367,6 +409,17 @@ public:
     // This reset it back to normal.  These two should always appear in pair.
     void ResetNGrow () const;
 
+    struct TileArray
+    {
+	int nuse;
+	Array<int> indexMap;	
+	Array<int> localIndexMap;
+	Array<Box> tileArray;
+	TileArray () : nuse(-1) {;}
+    };
+
+    const TileArray* getTileArray (const IntVect& tilesize) const;
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -384,6 +437,82 @@ protected:
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
 
+    // Key for unique combination of BoxArray and DistributionMapping
+    // Note both BoxArray and DistributionMapping are reference counted.
+    // Objects with the same references have the same key.
+    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+
+    mutable BDKey m_bdkey;
+    mutable BDKey m_bdkey_orig;
+
+    BDKey getBDKey () const {
+	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+    }
+
+    // No operator< for std::pair before C++14
+    class CompareBDKey
+    {
+    public:
+	bool operator () (const BDKey& lhs,
+			  const BDKey& rhs) const
+	    {
+		return (lhs.first < rhs.first)
+		    || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
+	    }
+    };
+
+    // We use tile size as the key for the inner map.
+    typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
+    typedef std::map<BDKey  , TAMap    , CompareBDKey    > TACache;
+    //
+    static TACache     m_TheTileArrayCache;
+    static CacheStats  m_TAC_stats;
+    //
+    void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
+    //
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector()) const;
+    // This flushes the entire cache.
+    static void flushTileArrayCache ();
+
+    //
+    // Keep track of how many FabArrays are built with the same BDKey.
+    //
+    static std::map<BDKey, int> m_BD_count;
+    //
+    struct FabArrayStats
+    {
+	int  num_fabarrays;
+	int  max_num_fabarrays;
+	int  max_num_boxarrays;
+	int  max_num_ba_use;
+	long num_build;
+	FabArrayStats () : num_fabarrays(0), max_num_fabarrays(0), max_num_boxarrays(0),
+			   max_num_ba_use(1), num_build(0) {;}
+	void recordBuild () {
+	    ++num_fabarrays;
+	    ++num_build;
+	    max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
+	}
+	void recordDelete () {
+	    --num_fabarrays;
+	}
+	void recordMaxNumBoxArrays (int n) {
+	    max_num_boxarrays = std::max(max_num_boxarrays, n);
+	}
+	void recordMaxNumBAUse (int n) {
+	    max_num_ba_use = std::max(max_num_ba_use, n);
+	}
+	void print () {
+	    std::cout << "### FabArray ###\n";
+	    std::cout << "    tot # of builds       : " << num_build         << "\n"
+		      << "    max # of FabArrays    : " << max_num_fabarrays << "\n"
+		      << "    max # of BoxArrays    : " << max_num_boxarrays << "\n"
+		      << "    max # of BoxArray uses: " << max_num_ba_use
+		      << std::endl;
+	}
+    };
+    static FabArrayStats m_FA_stats;
+
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
     static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
@@ -392,19 +521,34 @@ private:
 class MFIter
 {
 public:
+    enum Flags {
+        Tiling        = 0x01,
+        NoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+        NoTeamBarrier = 0x04  // For Team only. If on, there is no barrier in MFIter dtor.
+    };  // All these flags are off by default.
     //
     // Construct a MFIter.
     //
-    // no tiling
-    explicit MFIter (const FabArrayBase& fabarray, int sharing=1);
+    // The default is no tiling
+    explicit MFIter (const FabArrayBase& fabarray,
+		     unsigned char       flags_=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, bool do_tiling, int chunksize=0); 
-    // tiling with explicit size
-    explicit MFIter (const FabArrayBase& fabarray, const IntVect& tilesize, int chunksize=0);
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     bool                do_tiling); 
+    // tiling with explicit size and flags
+    explicit MFIter (const FabArrayBase& fabarray, 
+		     const IntVect&      tilesize,
+		     unsigned char       flags_=0);
+    // tiling with explicit tilearray and flags
+    explicit MFIter (const FabArrayBase&            fabarray, 
+		     const FabArrayBase::TileArray* pta_,
+		     unsigned char                  flags_=0);
+    // dtor
+    ~MFIter ();
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return tileArray[currentIndex]; }
+    const Box& tilebox () const { return pta->tileArray[currentIndex]; }
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -424,11 +568,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(indexMap[currentIndex]); }
+    const Box& validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
@@ -436,15 +580,15 @@ public:
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid () { return currentIndex < indexMap.size(); }
+    bool isValid () { return currentIndex < endIndex; }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return indexMap[currentIndex]; }
+    int index () const { return pta->indexMap[currentIndex]; }
     //
     // local index into the vector of fab pointers, m_fabs_v
     //
-    int LocalIndex () const { return localIndexMap[currentIndex]; }
+    int LocalIndex () const { return pta->localIndexMap[currentIndex]; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -453,13 +597,14 @@ public:
 private:
 
     const FabArrayBase& fabArray;
-    int                 currentIndex;
-    IntVect             tileSize;
-    Array<int>          indexMap;
-    Array<int>          localIndexMap;
-    Array<Box>          tileArray;
+    const FabArrayBase::TileArray* pta;
 
-    void Initialize (int sharing, int chunksize);
+    unsigned char flags;
+    int           currentIndex;
+    int           beginIndex;
+    int           endIndex;
+
+    void Initialize ();
 };
 
 //
@@ -710,29 +855,32 @@ public:
                CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest into dest.
+    // valid + nghost region of this FabArray with the FAB dest into dest.
     //
-    void copy (FAB& dest) const;
+    void copy (FAB& dest,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest and the Box
+    // valid + nghost region of this FabArray with the FAB dest and the Box
     // subbox into that subregion of dest.
     //
     void copy (FAB&       dest,
-               const Box& subbox) const;
+               const Box& subbox,
+	       int        nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest into dest, starting at
     // component dest_comp in dest.
     //
     void copy (FAB& dest,
                int  src_comp,
                int  dest_comp,
-               int  num_comp) const;
+               int  num_comp,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest and the Box subbox, into
     // dest, starting at component dest_comp in dest.
     //
@@ -740,7 +888,8 @@ public:
                const Box& subbox,
                int        src_comp,
                int        dest_comp,
-               int        num_comp) const;
+               int        num_comp,
+	       int        nghost = 0) const;
 
     void shift (const IntVect& v);
 
@@ -1169,6 +1318,24 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
+    if (! boxarray.empty() ) 
+    {
+	BL_ASSERT(getBDKey() == m_bdkey);
+
+	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+	if (cnt_it != m_BD_count.end()) 
+	{
+	    --(cnt_it->second);
+	    if (cnt_it->second == 0) 
+	    {
+		m_BD_count.erase(cnt_it);
+		
+		// Since this is the last one built with these BoxArray 
+		// and DistributionMapping, erase it from the TileArray cache.
+		flushTileArray();
+	    }
+	}
+    }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
@@ -1211,7 +1378,9 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-{}
+{
+    m_FA_stats.recordBuild();
+}
 
 template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
@@ -1220,6 +1389,7 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          FabAlloc        alloc,
 			 const IntVect&  nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,alloc,nodal);
 }
 
@@ -1231,12 +1401,14 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          FabAlloc                   alloc,
 			 const IntVect&             nodal)
 {
+    m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,dm,alloc,nodal);
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
+    m_FA_stats.recordDelete();
     clear();
 }
 
@@ -1313,7 +1485,15 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         indexMap.push_back(i);
       }
     }
-
+    
+    m_bdkey = getBDKey();
+    int cnt = ++(m_BD_count[m_bdkey]);
+    if (cnt == 1) { // new one
+	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
+    } else {
+	m_FA_stats.recordMaxNumBAUse(cnt);
+    }
+    
     if(alloc == Fab_allocate) {
       AllocFabs();
 
@@ -1764,17 +1944,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB& dest) const
+FabArray<FAB>::copy (FAB& dest,
+		     int  nghsot) const
 {
-    copy(dest, dest.box(), 0, 0, dest.nComp());
+    copy(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB&       dest,
-                     const Box& subbox) const
+                     const Box& subbox,
+		     int        nghost) const
 {
-    copy(dest, subbox, 0, 0, dest.nComp());
+    copy(dest, subbox, 0, 0, dest.nComp(), nghost);
 }
 
 template <class FAB>
@@ -1782,9 +1964,10 @@ void
 FabArray<FAB>::copy (FAB& dest,
                      int  scomp,
                      int  dcomp,
-                     int  ncomp) const
+                     int  ncomp,
+		     int  nghost) const
 {
-    copy(dest, dest.box(), scomp, dcomp, ncomp);
+    copy(dest, dest.box(), scomp, dcomp, ncomp, nghost);
 }
 
 template <class FAB>
@@ -1793,20 +1976,22 @@ FabArray<FAB>::copy (FAB&       dest,
                      const Box& subbox,
                      int        scomp,
                      int        dcomp,
-                     int        ncomp) const
+                     int        ncomp,
+		     int        nghost) const
 {
     BL_PROFILE("FabArray::copy(fab)");
 
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
+    BL_ASSERT(nghost <= nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
-            if (boxarray[j].intersects(subbox))
+	    const Box& bx = BoxLib::grow(boxarray[j],nghost);
+	    const Box& destbox = bx & subbox;
+	    if (destbox.ok())
             {
-                Box destbox = boxarray[j] & subbox;
-
                 dest.copy(get(j),destbox,scomp,destbox,dcomp,ncomp);
             }
         }
@@ -1818,10 +2003,10 @@ FabArray<FAB>::copy (FAB&       dest,
 
     for (int i = 0, N = size(); i < N; i++)
     {
-        if (subbox.intersects(boxarray[i]))
+	const Box& srcbox = BoxLib::grow(boxarray[i],nghost);
+	const Box& bx = srcbox & subbox;
+	if (bx.ok())
         {
-            Box bx = subbox & boxarray[i];
-
             ovlp.resize(bx,ncomp);
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
