@@ -17,6 +17,8 @@
 #include <BLassert.H>
 #include <REAL.H>
 #include <Array.H>
+#include <Box.H>
+#include <BoxArray.H>
 
 //
 // Useful C++ Utility Functions
@@ -368,6 +370,9 @@ namespace BoxLib
     Array<std::string> UnSerializeStringArray(const Array<char> &charArray);
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
+
+    void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
+    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
 }
 
 //
