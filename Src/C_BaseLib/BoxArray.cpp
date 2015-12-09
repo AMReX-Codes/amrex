@@ -23,33 +23,38 @@ BoxArray::decrementCounters () const
 //
 BoxArray::BoxArray ()
     :
+    m_typ(IndexType()),
     m_ref(new BoxArray::Ref)
 {}
 
 BoxArray::BoxArray (const Box& bx)
     :
+    m_typ(bx.ixType()),
     m_ref(new BoxArray::Ref(1))
 {
-    m_ref->m_abox[0] = bx;
+    m_ref->m_abox[0] = BoxLib::enclosedCells(bx);
 }
 
 BoxArray::BoxArray (const BoxList& bl)
     :
+    m_typ(bl.ixType()),
     m_ref(new BoxArray::Ref(bl))
 {}
 
 BoxArray::BoxArray (size_t n)
     :
+    m_typ(IndexType()),
     m_ref(new BoxArray::Ref(n))
 {}
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
+    m_typ(bxvec->ixType()),
     m_ref(new BoxArray::Ref(nbox))
 {
     for (int i = 0; i < nbox; i++)
-        m_ref->m_abox[i] = *bxvec++;
+        m_ref->m_abox[i] = BoxLib::enclosedCells(*bxvec++);
 }
 
 //
@@ -57,6 +62,7 @@ BoxArray::BoxArray (const Box* bxvec,
 //
 BoxArray::BoxArray (const BoxArray& rhs)
     :
+    m_typ(rhs.m_typ),
     m_ref(rhs.m_ref)
 {}
 
@@ -67,6 +73,7 @@ BoxArray&
 BoxArray::operator= (const BoxArray& rhs)
 {
     decrementCounters();
+    m_typ = rhs.m_typ;
     m_ref = rhs.m_ref;
     return *this;
 }
@@ -120,9 +127,10 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
+    if (i == 0) m_typ = ibox.ixType();
     if (!m_ref.unique())
         uniqify();
-    m_ref->m_abox.set(i, ibox);
+    m_ref->m_abox.set(i, BoxLib::enclosedCells(ibox));
 }
 
 //
@@ -137,6 +145,7 @@ BoxArray::readFrom (std::istream& is)
     if (!m_ref.unique())
         uniqify();
     m_ref->define(is);
+    type_update();
 }
 
 void
@@ -163,7 +172,8 @@ BoxArray::define (const Box& bx)
     BL_ASSERT(size() == 0);
     if (!m_ref.unique())
 	uniqify();
-    m_ref->define(bx);
+    m_typ = bx.ixType();
+    m_ref->define(BoxLib::enclosedCells(bx));
 }
 
 void
@@ -180,6 +190,7 @@ BoxArray::define (const BoxList& bl)
     if (!m_ref.unique())
         uniqify();
     m_ref->define(bl);
+    type_update();
 }
 
 void
@@ -200,7 +211,25 @@ BoxArray::define (const BoxArray& bs)
 {
     BL_ASSERT(size() == 0);
     decrementCounters();
+    m_typ = bs.m_typ;
     m_ref = bs.m_ref;
+}
+
+void
+BoxArray::type_update ()
+{
+    if (!empty())
+    {
+	m_typ = m_ref->m_abox[0].ixType();
+	if (! m_typ.cellCentered())
+	{
+	    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); 
+		 it != End; ++it)
+	    {
+		it->enclosedCells();
+	    }
+	}
+    }
 }
 
 BoxArray::~BoxArray ()
@@ -211,7 +240,7 @@ BoxArray::~BoxArray ()
 bool
 BoxArray::operator== (const BoxArray& rhs) const
 {
-    return m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox;
+    return m_typ == rhs.m_typ && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
 }
 
 bool
@@ -394,13 +423,10 @@ BoxArray::contains (const IntVect& iv) const
 {
     if (size() > 0)
     {
-        std::vector< std::pair<int,Box> > isects;
-        intersections(Box(iv,iv,get(0).ixType()),isects);
-        for (int i = 0, N = isects.size(); i < N; i++)
-            if (get(isects[i].first).contains(iv))
-                return true;
+	return intersects(Box(iv,iv,ixType()));
+    } else {
+	return false;
     }
-    return false;
 }
 
 bool
@@ -408,7 +434,7 @@ BoxArray::contains (const Box& b) const
 {
     if (size() > 0)
     {
-        BL_ASSERT(get(0).sameType(b));
+        BL_ASSERT(m_typ == b.ixType());
 
         std::vector< std::pair<int,Box> > isects;
 
@@ -434,8 +460,8 @@ BoxArray::contains (const BoxArray& bl) const
 
     if (!minimalBox().contains(bl.minimalBox())) return false;
 
-    for (BoxArray::const_iterator it = bl.begin(), End = bl.end(); it != End; ++it)
-        if (!contains(*it))
+    for (int i = 0, N = bl.size(); i < N; ++i)
+        if (!contains(bl[i]))
             return false;
 
     return true;
@@ -444,70 +470,35 @@ BoxArray::contains (const BoxArray& bl) const
 BoxArray&
 BoxArray::surroundingNodes ()
 {
-    if (!m_ref.unique())
-        uniqify();
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].surroundingNodes();
+    m_typ = IndexType::TheNodeType();
     return *this;
 }
 
 BoxArray&
 BoxArray::surroundingNodes (int dir)
 {
-    if (!m_ref.unique())
-        uniqify();
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].surroundingNodes(dir);
+    m_typ.setType(dir, IndexType::NODE);
     return *this;
 }
 
 BoxArray&
 BoxArray::enclosedCells ()
 {
-    if (!m_ref.unique())
-        uniqify();
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].enclosedCells();
+    m_typ = IndexType::TheCellType();
     return *this;
 }
 
 BoxArray&
 BoxArray::enclosedCells (int dir)
 {
-    if (!m_ref.unique())
-        uniqify();
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].enclosedCells(dir);
+    m_typ.setType(dir, IndexType::CELL);
     return *this;
 }
 
 BoxArray&
 BoxArray::convert (IndexType typ)
 {
-    if (!m_ref.unique())
-        uniqify();
-    const int N = m_ref->m_abox.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-        m_ref->m_abox[i].convert(typ);
+    m_typ = typ;
     return *this;
 }
 
@@ -518,8 +509,9 @@ BoxArray::convert (Box (*fp)(const Box&))
 
     if (!m_ref.unique())
         uniqify();
-    for (Array<Box>::iterator it = m_ref->m_abox.begin(), End = m_ref->m_abox.end(); it != End; ++it)
-        *it = (*fp)(*it);
+    const int N = size();
+    for (int i = 0; i < N; ++i)
+	set(i,fp(get(i)));
     return *this;
 }
 
@@ -531,8 +523,9 @@ BoxArray::writeOn (std::ostream& os) const
     //
     os << '(' << size() << ' ' << 0 << '\n';
 
-    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
-        os << *it << '\n';
+    const int N = size();
+    for (int i = 0; i < N; ++i)
+        os << get(i) << '\n';
 
     os << ')';
 
@@ -545,16 +538,16 @@ BoxArray::writeOn (std::ostream& os) const
 bool
 BoxArray::isDisjoint () const
 {
+    BL_ASSERT(m_typ.cellCentered());
+
     std::vector< std::pair<int,Box> > isects;
 
-    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+    const int N = size();
+    for (int i = 0; i < N; ++i)
     {
-        intersections(*it,isects);
-
-        if ( !(isects.size() == 1 && isects[0].second == *it) )
-        {
+	intersections(get(i),isects);
+        if ( isects.size() > 1 )
             return false;
-        }
     }
 
     return true;
@@ -567,14 +560,11 @@ BoxArray::ok () const
 
     if (size() > 0)
     {
-        const Box& bx0 = m_ref->m_abox[0];
-
-        if (size() == 1) isok = bx0.ok();
+        if (size() == 1) isok = get(0).ok();
 
         for (int i = 1, N = size(); i < N && isok; i++)
         {
-            const Box& bxi = m_ref->m_abox[i];
-            isok = bxi.ok() && bxi.sameType(bx0);
+	    isok = get(i).ok();
         }
     }
 
@@ -585,9 +575,13 @@ long
 BoxArray::numPts () const
 {
     long result = 0;
-    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+    const int N = size();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+    for (int i = 0; i < N; ++i)
     {
-        result += it->numPts();
+        result += get(i).numPts();
     }
     return result;
 }
@@ -596,9 +590,13 @@ double
 BoxArray::d_numPts () const
 {
     double result = 0;
-    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+    const int N = size();
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:result)
+#endif
+    for (int i = 0; i < N; ++i)
     {
-        result += it->d_numPts();
+        result += get(i).d_numPts();
     }
     return result;
 }
@@ -637,8 +635,8 @@ operator<< (std::ostream&   os,
        << 0
        << ")\n       ";
 
-    for (BoxArray::const_iterator it = ba.begin(), End = ba.end(); it != End; ++it)
-        os << *it << ' ';
+    for (int i = 0, N = ba.size(); i < N; ++i)
+        os << ba[i] << ' ';
 
     os << ")\n";
 
@@ -652,10 +650,11 @@ BoxList
 BoxArray::boxList () const
 {
     BoxList newb;
-    if ( size() > 0 ) {
-	newb.set(get(0).ixType());
-	for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
-	    newb.push_back(*it);
+    const int N = size();
+    if ( N > 0 ) {
+	newb.set(ixType());
+	for (int i = 0; i < N; ++i)
+	    newb.push_back(get(i));
     }
     return newb;
 }
@@ -664,12 +663,14 @@ Box
 BoxArray::minimalBox () const
 {
     Box minbox;
-    if (size() > 0)
+    const int N = size();
+    if (N > 0)
     {
         minbox = m_ref->m_abox.get(0);
-        for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
-            minbox.minBox(*it);
+	for (int i = 1; i < N; ++i)
+            minbox.minBox(m_ref->m_abox.get(i));
     }
+    minbox.convert(m_typ);
     return minbox;
 }
 
@@ -711,9 +712,9 @@ BoxLib::intersect (const BoxArray& lhs,
 {
     if (lhs.size() == 0 || rhs.size() == 0) return BoxArray();
     BoxList bl(lhs[0].ixType());
-    for (BoxArray::const_iterator it = lhs.begin(), End = lhs.end(); it != End; ++it)
+    for (int i = 0, Nl = lhs.size(); i < Nl; ++i)
     {
-        BoxArray ba  = BoxLib::intersect(rhs, *it);
+        BoxArray ba  = BoxLib::intersect(rhs, lhs[i]);
         BoxList  tmp = ba.boxList();
         bl.catenate(tmp);
     }
@@ -729,9 +730,9 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     //
     // First get list of all ghost cells.
     //
-    const IndexType btype = ba[0].ixType();
+    const IndexType btype = ba.ixType();
 
-    BoxList bcells = ba.boxList(), gcells(btype), leftover(btype);
+    BoxList bcells = ba.boxList(), gcells(btype);
 
     bcells.simplify();
 
@@ -739,9 +740,10 @@ BoxLib::GetBndryCells (const BoxArray& ba,
 
     bcells.clear();
 
-    for (BoxArray::const_iterator it = tba.begin(), End = tba.end(); it != End; ++it)
+    for (int i = 0, N = tba.size(); i < N; ++i)
     {
-        bcells = BoxLib::boxDiff(BoxLib::grow(*it,ngrow),*it);
+	const Box& bx = tba[i];
+        bcells = BoxLib::boxDiff(BoxLib::grow(bx,ngrow),bx);
 
 	gcells.catenate(bcells);
     }
@@ -763,7 +765,7 @@ BoxLib::GetBndryCells (const BoxArray& ba,
             //
             // Collect all the intersection pieces.
             //
-            BoxList pieces(btype);
+            BoxList pieces(btype), leftover(btype);
             for (int i = 0, N = isects.size(); i < N; i++)
                 pieces.push_back(isects[i].second);
             leftover = BoxLib::complementIn(*it,pieces);
@@ -786,14 +788,6 @@ BoxLib::GetBndryCells (const BoxArray& ba,
     return gcells;
 }
 
-std::vector< std::pair<int,Box> >
-BoxArray::intersections (const Box& bx, bool first_only) const
-{
-    std::vector< std::pair<int,Box> > isects;
-    intersections(bx,isects,first_only);
-    return isects;
-}
-
 void
 BoxArray::clear_hash_bin () const
 {
@@ -801,6 +795,14 @@ BoxArray::clear_hash_bin () const
     {
         m_ref->hash.clear();
     }
+}
+
+std::vector< std::pair<int,Box> >
+BoxArray::intersections (const Box& bx, bool first_only) const
+{
+    std::vector< std::pair<int,Box> > isects;
+    intersections(bx,isects,first_only);
+    return isects;
 }
 
 void
@@ -818,19 +820,20 @@ BoxArray::intersections (const Box&                         bx,
     {
         if (BoxHashMap.empty() && size() > 0)
         {
-            BL_ASSERT(bx.sameType(get(0)));
+            BL_ASSERT(bx.ixType() == m_typ);
             //
             // Calculate the bounding box & maximum extent of the boxes.
             //
-            IntVect maxext(D_DECL(0,0,0));
+            Box boundingbox = BoxLib::surroundingNodes(m_ref->m_abox[0]);
+	    IntVect maxext = boundingbox.size();
 
-            Box boundingbox = get(0);
+	    const int N = size();
 
-            for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+	    for (int i = 1; i < N; ++i)
             {
-                boundingbox.minBox(*it);
-
-                maxext = BoxLib::max(maxext, it->size());
+                const Box& bx = BoxLib::surroundingNodes(m_ref->m_abox[i]);
+		boundingbox.minBox(bx);
+                maxext = BoxLib::max(maxext, bx.size());
             }
 
             boundingbox.coarsen(maxext);
@@ -838,9 +841,9 @@ BoxArray::intersections (const Box&                         bx,
             m_ref->crsn = maxext;
             m_ref->bbox = boundingbox;
 
-            for (int i = 0, N = size(); i < N; i++)
+            for (int i = 0; i < N; i++)
             {
-                BoxHashMap[BoxLib::coarsen(get(i).smallEnd(),maxext)].push_back(i);
+                BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
             }
         }
     }
@@ -849,7 +852,7 @@ BoxArray::intersections (const Box&                         bx,
 
     if (!BoxHashMap.empty())
     {
-        BL_ASSERT(bx.sameType(get(0)));
+        BL_ASSERT(bx.ixType() == m_typ);
 
         Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
         const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
@@ -890,6 +893,8 @@ BoxArray::intersections (const Box&                         bx,
 void
 BoxArray::removeOverlap ()
 {
+    BL_ASSERT(m_type.cellCentered());
+
     if (!m_ref.unique()) uniqify();
 
     std::map< IntVect,std::vector<int>,IntVect::Compare >& BoxHashMap = m_ref->hash;
@@ -987,15 +992,17 @@ BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
         int ba_size = ba->size();
         ParallelDescriptor::Bcast(&ba_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 
-        for (Array<Box>::const_iterator bl_it = ba->begin(), bl_it_end = ba->end(); bl_it != bl_it_end; ++bl_it)
+	const IntVect& index_type = ba->ixType().ixType();
+	ParallelDescriptor::Bcast(const_cast<int*>(index_type.getVect()), BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());	
+
+	for (int i = 0; i < ba_size; ++i)
         {
-            const int *smallEnd = bl_it->smallEnd().getVect();
-            const int *bigEnd = bl_it->bigEnd().getVect();
-            const int *index_type = bl_it->type().getVect();
+	    const Box& bx = ba->getCellCenteredBox(i);
+            const int *smallEnd =bx.smallEnd().getVect();
+            const int *bigEnd = bx.bigEnd().getVect();
 
             // getVect() requires a constant pointer, but MPI buffers require
             // non-constant pointers. Sorry this is awful.
-            ParallelDescriptor::Bcast(const_cast<int*>(index_type)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
             ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
             ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)          , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
         }
@@ -1008,15 +1015,16 @@ BoxArray::SendBoxArrayToSidecars(BoxArray *ba)
         if (ParallelDescriptor::IOProcessor()) std::cout << "receiving " << ba_size << " boxes ... ";
 
         int box_index_type[BL_SPACEDIM];
+	ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+	const IntVect box_index_type_IV(box_index_type);
+
         int smallEnd[BL_SPACEDIM];
         int bigEnd[BL_SPACEDIM];
         for (unsigned int i=0; i<ba_size; ++i)
         {
-            ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
             ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
             ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
 
-            const IntVect box_index_type_IV(box_index_type);
             const IntVect smallEnd_IV(smallEnd);
             const IntVect bigEnd_IV(bigEnd);
 

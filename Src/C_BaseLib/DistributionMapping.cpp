@@ -1108,9 +1108,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+	for (int i = 0, N = boxes.size(); i < N; ++i)
         {
-            wgts.push_back(it->volume());
+            wgts.push_back(boxes[i].volume());
         }
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
@@ -1483,9 +1483,9 @@ DistributionMapping::PFCProcessorMap (const BoxArray& boxes,
     std::vector<long> wgts;
     wgts.reserve(boxes.size());
 
-    for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+    for (int i = 0, N = boxes.size(); i < N; ++i)
     {
-      wgts.push_back(it->numPts());
+      wgts.push_back(boxes[i].numPts());
     }
     PFCProcessorMapDoIt(boxes,wgts,nprocs);
 }
