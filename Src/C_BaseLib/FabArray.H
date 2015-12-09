@@ -25,6 +25,7 @@
 #include <FArrayBox.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
+#include <Utility.H>
 #include <ccse-mpi.H>
 #include <BLProfiler.H>
 
@@ -771,6 +772,8 @@ public:
     static void MoveAllFabs (const Array<int> &newDistMapArray);
     static void LockAllFAPointers ();
     static void CheckFAPointerLocks ();
+    virtual void MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
+                                      int scsMyId, MPI_Comm scsComm);
 
 protected:
     //
@@ -1967,6 +1970,31 @@ FabArray<FAB>::CheckFAPointerLocks ()
     }
 
   }
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
+                                    int scsMyId, MPI_Comm scsComm)
+{
+  std::cout << "]]]] _in FabArray::MakeSidecarsSmaller." << std::endl;
+
+  // ---- BoxArrays
+  BoxLib::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
+  BoxLib::BroadcastBoxArray(boxarray_orig, scsMyId, ioProcNumSCS, scsComm);
+
+  // ---- DistributionMapping
+  int sentinelProc(ParallelDescriptor::MyProcComp());
+  BoxLib::BroadcastDistributionMapping(distributionMap, sentinelProc,
+                                       scsMyId, ioProcNumSCS, scsComm);
+
+  // ---- ints
+  ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&n_grow_orig, 1, ioProcNumSCS, scsComm);
+
 }
 
 

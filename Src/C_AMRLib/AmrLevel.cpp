@@ -1840,23 +1840,9 @@ ParallelDescriptor::Barrier(scsComm);
 #ifdef USE_PARTICLES
       BoxLib::BroadcastBoxArray(particle_grids, scsMyId, ioProcNumSCS, scsComm);
 
-      Array<int> dmapA;
-      int dmapA_Size(-3);
-      if(scsMyId == ioProcNumSCS) {
-        dmapA = particle_dmap.ProcessorMap();
-        dmapA_Size = dmapA.size();
-      }
-      ParallelDescriptor::Bcast(&dmapA_Size, 1, ioProcNumSCS, scsComm);
-      if(dmapA_Size > 0) {
-        if(scsMyId != ioProcNumSCS) {
-          dmapA.resize(dmapA_Size);
-        }
-        ParallelDescriptor::Bcast(dmapA.dataPtr(), dmapA.size(), ioProcNumSCS, scsComm);
-        if(scsMyId != ioProcNumSCS) {
-	  dmapA[dmapA.size() - 1] = ParallelDescriptor::MyProcComp();  // ---- set the sentinel
-          particle_dmap.define(dmapA);
-        }
-      }
+      int sentinelProc(ParallelDescriptor::MyProcComp());
+      BoxLib::BroadcastDistributionMapping(particle_dmap, sentinelProc, scsMyId,
+                                           ioProcNumSCS, scsComm);
 
       int posg(particles_on_same_grids);
       ParallelDescriptor::Bcast(&posg, 1, ioProcNumSCS, scsComm);

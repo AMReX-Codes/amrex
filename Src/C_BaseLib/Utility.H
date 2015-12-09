@@ -19,6 +19,7 @@
 #include <Array.H>
 #include <Box.H>
 #include <BoxArray.H>
+#include <DistributionMapping.H>
 
 //
 // Useful C++ Utility Functions
@@ -373,6 +374,8 @@ namespace BoxLib
 
     void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
+    void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+                                      int myLocalId, int rootId, MPI_Comm localComm);
 }
 
 //
