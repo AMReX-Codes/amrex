@@ -299,6 +299,9 @@ public:
               FabAlloc                   mem_mode = Fab_allocate,
 	      const IntVect&             nodal = IntVect::TheZeroVector());
 
+    virtual ~MultiFab() { }
+
+
     void operator= (const Real& r);
     //
     // Returns the minimum value contained in component comp of the
