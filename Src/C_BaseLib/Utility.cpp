@@ -1555,5 +1555,42 @@ Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
 
 
 
+void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm)
+{
+  Array<int> baseBoxAI;
+  if(myLocalId == rootId) {
+    baseBoxAI = BoxLib::SerializeBox(bB);
+  }
+  if(myLocalId != rootId) {
+    baseBoxAI.resize(BoxLib::SerializeBoxSize());
+  }
+  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), rootId, localComm);
+  if(myLocalId != rootId) {
+    bB = BoxLib::UnSerializeBox(baseBoxAI);
+  }
+}
 
+
+
+void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm)
+{
+  int sbaG_Size(-2);
+  Array<int> sbaG;
+  if(myLocalId == rootId) {
+    sbaG = BoxLib::SerializeBoxArray(bBA);
+    sbaG_Size = sbaG.size();
+  }
+  ParallelDescriptor::Bcast(&sbaG_Size, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    sbaG.resize(sbaG_Size);
+  }
+  if(sbaG_Size > 0) {
+    ParallelDescriptor::Bcast(sbaG.dataPtr(), sbaG.size(), rootId, localComm);
+  }
+  if(myLocalId != rootId) {
+    if(sbaG_Size > 0) {
+      bBA = BoxLib::UnSerializeBoxArray(sbaG);
+    }
+  }
+}
 
