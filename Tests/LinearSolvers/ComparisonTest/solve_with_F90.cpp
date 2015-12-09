@@ -20,12 +20,17 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
 
   int composite_solve = 0;
   Real tolerance_rel, tolerance_abs;
+  int maxorder = 3;
   {
     ParmParse pp;
     pp.query("composite_solve", composite_solve);
     
     pp.get("tol_rel", tolerance_rel);
     pp.get("tol_abs", tolerance_abs);
+  }
+  {
+      ParmParse pp("mg");
+      pp.query("maxorder", maxorder);
   }
 
   int nlevel = geom.size();
@@ -72,6 +77,7 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
       FMultiGrid fmg(geom);
       
       fmg.set_bc(mg_bc, soln[0]);
+      fmg.set_maxorder(maxorder);
 
       fmg.set_scalars(a, b);
       fmg.set_coefficients(const_cast<PArray<MultiFab>&>(alph), bcoeffs);
@@ -90,6 +96,7 @@ void solve_with_F90(PArray<MultiFab>& soln, Real a, Real b,
 	  } else {
 	      fmg.set_bc(mg_bc, soln[ilev-1], soln[ilev]);
 	  }
+	  fmg.set_maxorder(maxorder);
 
 	  fmg.set_scalars(a, b);
 	  fmg.set_coefficients(const_cast<MultiFab&>(alph[ilev]), bcoeffs[ilev]);

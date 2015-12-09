@@ -924,32 +924,11 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 #pragma omp critical(gettilearray)
 #endif
     {
-	TA_outer_map& tao = FabArrayBase::m_TheTileArrayCache;
-
 	BL_ASSERT(getBDKey() == m_bdkey);
-
-	TA_outer_map::iterator tao_it = tao.find(m_bdkey);
-	if (tao_it == tao.end()) 
-	{
-	    std::pair<TA_outer_map::iterator,bool> ret =
-		tao.insert(std::make_pair(m_bdkey, TA_inner_map()));
-	    tao_it = ret.first;
-	}
-
-	TA_inner_map& tai = tao_it->second;
-
-	TA_inner_map::iterator tai_it = tai.find(tilesize);
-	if (tai_it == tai.end()) 
-	{
-	    std::pair<TA_inner_map::iterator,bool> ret =
-		tai.insert(std::make_pair(tilesize, TileArray()));
-	    p = &(ret.first->second);
+	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][tilesize];
+	if (p->nuse == -1) {
 	    buildTileArray(tilesize, *p);
 	    m_TAC_stats.recordBuild();
-	}
-	else
-	{
-	    p = &(tai_it->second);
 	}
 #ifdef _OPENMP
 #pragma omp master
@@ -958,7 +937,6 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    ++(p->nuse);
 	    m_TAC_stats.recordUse();
         }
-	
     }
 
     return p;
@@ -1275,4 +1253,7 @@ MFGhostIter::Initialize ()
 	lta.localIndexMap.push_back(alllocalindex[i+nskip]);
 	lta.tileArray.push_back(*bli++);
     }
+
+    currentIndex = beginIndex = 0;
+    endIndex = lta.indexMap.size();
 }

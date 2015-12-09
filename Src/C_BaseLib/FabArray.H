@@ -427,6 +427,7 @@ public:
 	Array<int> indexMap;	
 	Array<int> localIndexMap;
 	Array<Box> tileArray;
+	TileArray () : nuse(-1) {;}
     };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
@@ -509,9 +510,20 @@ protected:
 	    ++nuse;
 	}
 	void print () {
+	    // in case some FabArrays have not been deleted.
+	    for (TA_outer_map::const_iterator it_o = m_TheTileArrayCache.begin();
+		 it_o != m_TheTileArrayCache.end(); ++it_o) 
+	    {
+		for (TA_inner_map::const_iterator it_i = it_o->second.begin();
+		     it_i != it_o->second.end(); ++it_i)
+		{
+		    maxuse = std::max(maxuse, it_i->second.nuse);
+		}
+	    }
 	    std::cout << "TileArrayCache: tot # of builds: " << nbuild 
-		      << ", tot # of erasures: " << nerase << ", tot # of uses: " << nuse << "\n"
-		      << "                max size: " << maxsize << ", max # uses: " << maxuse
+		      << ", tot # of erasures: " << nerase << ",\n"
+		      << "                tot # of uses: " << nuse
+		      << ", max size: " << maxsize << ", max # uses: " << maxuse
 		      << std::endl;
 	}
     };
@@ -1667,13 +1679,11 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
     
     m_bdkey = getBDKey();
-    std::map<BDKey, int>::iterator it = m_BD_count.find(m_bdkey);
-    if (it == m_BD_count.end()) {
-	m_BD_count[m_bdkey] = 1;
+    int cnt = ++(m_BD_count[m_bdkey]);
+    if (cnt == 1) { // new one
 	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
     } else {
-	++(it->second);
-	m_FA_stats.recordMaxNumBAUse(it->second);
+	m_FA_stats.recordMaxNumBAUse(cnt);
     }
     
     if(alloc == Fab_allocate) {

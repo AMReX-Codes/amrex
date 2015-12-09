@@ -1,11 +1,11 @@
 # solver_type = Hypre
 # solver_type = BoxLib_F
-# solver_type = BoxLib_C
-solver_type = All
+solver_type = BoxLib_C
+# solver_type = All
 
-# bc_type = Neumann
+bc_type = Neumann
 # bc_type = Periodic
-bc_type = Dirichlet
+# bc_type = Dirichlet
 
 # The Lp.maxorder flag sets the order of approximation used by the BoxLib_C solver
 # at Dirichlet boundaries.  
