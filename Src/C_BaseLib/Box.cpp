@@ -81,6 +81,22 @@ Box::convert (IndexType t)
 }
 
 Box
+BoxLib::convert (const Box& b, const IntVect& typ)
+{
+    Box bx(b);
+    bx.convert(typ);
+    return bx;
+}
+
+Box
+BoxLib::convert (const Box& b, const IndexType& t)
+{
+    Box bx(b);
+    bx.convert(t);
+    return bx;
+}
+
+Box
 BoxLib::surroundingNodes (const Box& b,
                           int        dir)
 {
