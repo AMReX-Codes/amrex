@@ -1594,3 +1594,34 @@ void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Com
   }
 }
 
+
+void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
+                                          int myLocalId, int rootId, MPI_Comm localComm)
+{
+  int dmStrategy(dM.strategy());
+  ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
+  }
+
+  Array<int> dmapA;
+  int dmapA_Size(-3);
+  if(myLocalId == rootId) {
+    dmapA = dM.ProcessorMap();
+    dmapA_Size = dmapA.size();
+  }
+  ParallelDescriptor::Bcast(&dmapA_Size, 1, rootId, localComm);
+  if(dmapA_Size > 0) {
+    if(myLocalId != rootId) {
+      dmapA.resize(dmapA_Size);
+    }
+    ParallelDescriptor::Bcast(dmapA.dataPtr(), dmapA.size(), rootId, localComm);
+    if(myLocalId != rootId) {
+      dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
+      dM.define(dmapA);
+    }
+  }
+}
+
+
+
