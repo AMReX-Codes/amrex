@@ -73,6 +73,11 @@ namespace BoxLib
     //
     Box surroundingNodes (const Box& b);
     //
+    // Return a Box with different type
+    //
+    Box convert (const Box& b, const IntVect& typ);
+    Box convert (const Box& b, const IndexType& typ);
+    //
     // Return a Box with CELL based coordinates in 
     // direction dir that is enclosed by b.
     // NOTE: equivalent to b.convert(dir,CELL)
@@ -205,7 +210,7 @@ public:
     //
     // Return the indexing type.
     //
-    const IntVect type () const { return btype.ixType(); }
+    IntVect type () const { return btype.ixType(); }
     //
     // Return the indexing type in the specified direction.
     //
