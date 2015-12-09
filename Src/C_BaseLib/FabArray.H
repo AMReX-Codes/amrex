@@ -86,10 +86,10 @@ public:
     //
     const BoxArray& boxArray () const { return boxarray; }
     //
-    // Returns a constant reference to the Kth Box in the BoxArray.
+    // Returns the Kth Box in the BoxArray.
     // That is, the valid region of the Kth grid.
     //
-    const Box& box (int K) const { return boxarray[K]; }
+    Box box (int K) const { return boxarray[K]; }
     //
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
@@ -461,6 +461,9 @@ protected:
 	    }
     };
 
+    //
+    // Tiling
+    //
     // We use tile size as the key for the inner map.
     typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
     typedef std::map<BDKey  , TAMap    , CompareBDKey    > TACache;
@@ -548,7 +551,7 @@ public:
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return pta->tileArray[currentIndex]; }
+    Box tilebox () const;
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -562,13 +565,9 @@ public:
     //
     Box grownnodaltilebox (int dir=-1, int ng=-1) const;
     //
-    // Nodalize a tile box
-    //
-    void nodalize (Box& bx, int dir) const;
-    //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
+    Box validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
@@ -603,6 +602,7 @@ private:
     int           currentIndex;
     int           beginIndex;
     int           endIndex;
+    IndexType     typ;
 
     void Initialize ();
 };
@@ -1636,7 +1636,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     if (size() == 0 || src.size() == 0) return;
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
-    BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
+    BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
 
     BL_ASSERT(src.nGrow() >= snghost);
     BL_ASSERT(    nGrow() >= dnghost);

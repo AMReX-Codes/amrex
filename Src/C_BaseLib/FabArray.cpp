@@ -925,6 +925,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][tilesize];
 	if (p->nuse == -1) {
 	    buildTileArray(tilesize, *p);
+	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
 	}
 #ifdef _OPENMP
@@ -942,12 +943,12 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
-    ta.nuse = 0;
+    // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
 
     for (int i = 0; i < indexMap.size(); ++i)
     {
 	const int K = indexMap[i]; 
-	const Box& bx = boxarray[K];
+	const Box& bx = boxarray.getCellCenteredBox(K);
 
 	IntVect nt_in_fab, tsize, nleft;
 	int ntiles = 1;
@@ -984,7 +985,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		}
 	    }
 
-	    Box tbx(small, big, bx.ixType());
+	    Box tbx(small, big, IndexType::TheCellType());
 	    tbx.shift(bx.smallEnd());
 
 	    ta.tileArray.push_back(tbx);
@@ -1037,46 +1038,46 @@ FabArrayBase::flushTileArrayCache ()
     m_TheTileArrayCache.clear();
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
+MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray((flags_ & Tiling) 
-			      ? FabArrayBase::mfiter_tile_size
-			      : FabArrayBase::mfiter_huge_box_size)),
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray((flags_ & Tiling) 
+			       ? FabArrayBase::mfiter_tile_size
+			       : FabArrayBase::mfiter_huge_box_size)),
     flags(flags_)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		bool                do_tiling)
+MFIter::MFIter (const FabArrayBase& fabarray_, 
+		bool                do_tiling_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray(do_tiling 
-			      ? FabArrayBase::mfiter_tile_size
-			      : FabArrayBase::mfiter_huge_box_size)),
-    flags(do_tiling ? Tiling : 0)
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray(do_tiling_ 
+			       ? FabArrayBase::mfiter_tile_size
+			       : FabArrayBase::mfiter_huge_box_size)),
+    flags(do_tiling_ ? Tiling : 0)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		const IntVect&      tilesize, 
+MFIter::MFIter (const FabArrayBase& fabarray_, 
+		const IntVect&      tilesize_, 
 		unsigned char       flags_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray(tilesize)),
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray(tilesize_)),
     flags(flags_ | Tiling)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase&            fabarray, 
+MFIter::MFIter (const FabArrayBase&            fabarray_, 
 		const FabArrayBase::TileArray* pta_,
 		unsigned char                  flags_)
     :
-    fabArray(fabarray),
+    fabArray(fabarray_),
     pta(pta_),
     flags(flags_ | Tiling)
 {
@@ -1124,24 +1125,59 @@ MFIter::Initialize ()
 	}
     }
     currentIndex = beginIndex;
+
+    typ = fabArray.boxArray().ixType();
+}
+
+Box 
+MFIter::tilebox () const
+{ 
+    Box bx(pta->tileArray[currentIndex]);
+    if (! typ.cellCentered())
+    {
+	bx.convert(typ);
+	const IntVect& Big = validbox().bigEnd();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
+		if (bx.bigEnd(d) < Big[d]) {
+		    bx.growHi(d,-1);
+		}
+	    }
+	}
+    }
+    return bx;
 }
 
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
     Box bx(pta->tileArray[currentIndex]);
-    this->nodalize(bx, dir);
+    bx.convert(typ);
+    const IntVect& Big = validbox().bigEnd();
+    int d0, d1;
+    if (dir < 0) {
+	d0 = 0;
+	d1 = BL_SPACEDIM-1;
+    } else {
+	d0 = d1 = dir;
+    }
+    for (int d=d0; d<=d1; ++d) {
+	if (typ.cellCentered(d)) { // validbox should also be cell-centered in d-direction.
+	    bx.surroundingNodes(d);
+	    if (bx.bigEnd(d) <= Big[d]) {
+		bx.growHi(d,-1);
+	    }
+	}
+    }
     return bx;
 }
 
 Box 
 MFIter::growntilebox (int ng) const 
 {
+    Box bx = tilebox();
     if (ng < 0) ng = fabArray.nGrow();
-    if (ng == 0) {
-	return pta->tileArray[currentIndex];
-    } else {
-	Box bx(pta->tileArray[currentIndex]);
+    if (ng > 0) {
 	const Box& vbx = validbox();
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
@@ -1151,34 +1187,26 @@ MFIter::growntilebox (int ng) const
 		bx.growHi(d, ng);
 	    }
 	}
-	return bx;
     }
+    return bx;
 }
 
 Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
-    Box bx = growntilebox(ng);
-    this->nodalize(bx, dir);
-    return bx;
-}
-
-void
-MFIter::nodalize (Box& bx, int dir) const
-{
-    int d0, d1;
-    if (dir >= 0 && dir <= BL_SPACEDIM-1) {
-	d0 = d1 = dir;
-    } else {
-	d0 = 0;
-	d1 = BL_SPACEDIM-1;
-    }
-    for (int d=d0; d<=d1; ++d) {
-	if (bx.type(d) == IndexType::CELL) {
-	    bx.surroundingNodes(d);
-	    if (bx.bigEnd(d) < validbox().bigEnd(d)+1) {
-		bx.growHi(d,-1);
+    Box bx = nodaltilebox(dir);
+    if (ng < 0) ng = fabArray.nGrow();
+    if (ng > 0) {
+	const Box& vbx = validbox();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+		bx.growLo(d, ng);
+	    }
+	    if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+		bx.growHi(d, ng);
 	    }
 	}
     }
+    return bx;
 }
+
