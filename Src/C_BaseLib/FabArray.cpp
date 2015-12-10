@@ -885,39 +885,6 @@ FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
 #endif
 }
 
-void
-FabArrayBase::SetNGrow (int n_grow_new) const
-{
-    BL_ASSERT(n_grow_new >= 0);
-    BL_ASSERT(n_grow_new <= n_grow);
-    BL_ASSERT(boxarray_orig.empty());
-
-    if (n_grow_new == n_grow) return;
-
-    n_grow_orig   = n_grow;
-    boxarray_orig = boxarray;
-    m_bdkey_orig  = m_bdkey;
-
-    n_grow = n_grow_new;
-    boxarray.grow(n_grow_orig-n_grow_new);
-
-    m_bdkey = getBDKey();
-}
-
-void
-FabArrayBase::ResetNGrow () const
-{
-    if (boxarray_orig.empty()) return;
-
-    flushTileArray();
-
-    n_grow   =   n_grow_orig;
-    boxarray = boxarray_orig;
-    m_bdkey  =  m_bdkey_orig;
-
-    boxarray_orig.clear();
-}
-
 const FabArrayBase::TileArray* 
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
