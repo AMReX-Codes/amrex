@@ -87,9 +87,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring davinci, $(UNAMEN)), davinci)
     WHICHLINUX := DAVINCI
   endif
-  ifeq ($(findstring homer, $(UNAMEN)), homer)
-    WHICHLINUX := HOMER
-  endif
   ifeq ($(findstring hyperion, $(UNAMEN)), hyperion)
     WHICHLINUX := HYPERION
   endif
