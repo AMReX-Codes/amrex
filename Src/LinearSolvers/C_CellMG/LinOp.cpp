@@ -497,7 +497,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     //
     // Determine index type of incoming MultiFab.
     //
-    const IndexType iType(fn.boxArray()[0].ixType());
+    const IndexType iType(fn.boxArray().ixType());
     const IndexType cType(D_DECL(IndexType::CELL, IndexType::CELL, IndexType::CELL));
     const IndexType xType(D_DECL(IndexType::NODE, IndexType::CELL, IndexType::CELL));
     const IndexType yType(D_DECL(IndexType::CELL, IndexType::NODE, IndexType::CELL));
