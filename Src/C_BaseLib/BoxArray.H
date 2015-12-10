@@ -24,9 +24,9 @@ namespace BoxLib
     //
     BoxArray complementIn (const Box& b, const BoxArray& ba);
     //
-    // Makes a BoxArray from the intersection of Box b and BoxArray ba.
+    // Makes a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     //
-    BoxArray intersect (const BoxArray& ba, const Box& b);
+    BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
     //
     // Makes a BoxArray from the intersection of two BoxArrays.
     //
@@ -267,11 +267,11 @@ public:
     //
     BoxList boxList () const;
     //
-    // True if the Box intersects with this BoxArray.
+    // True if the Box intersects with this BoxArray(+ghostcells).
     // The Box must have the same IndexType as those in this
     // BoxArray.
     //
-    bool intersects (const Box& b) const;
+    bool intersects (const Box& b, int ng = 0) const;
     //
     // True if the IntVect is within any of the Boxes in this BoxArray.
     //
@@ -291,9 +291,25 @@ public:
     //
     Box minimalBox () const;
 
-    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only=false) const;
-
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, bool first_only=false) const;
+    //
+    // Returns intersections of Box and BoxArray(+ghsotcells).
+    // ng = 0 if unspecified.  first_only = false, if unspecified.  
+    //
+    std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx,
+						     bool       first_only) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
+						     int        ng) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
+						     bool first_only, int ng) const;
+    //
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
+			int ng) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only, int ng) const;
     //
     // Clear out the internal hash table used by intersections.
     //
