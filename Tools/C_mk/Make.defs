@@ -318,6 +318,11 @@ ifdef USE_GCC
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+
+    ifeq ($(findstring 5, $(__gcc_major_version)), 5)
+    	 CXXOPTF += -fno-inline
+    endif
+    
     CXXFLAGS = -Wno-deprecated
     ifeq ($(USE_IN_SITU), TRUE)
         # Necessary to compile in situ analysis
