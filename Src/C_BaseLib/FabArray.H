@@ -1644,7 +1644,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     if (snghost > 0) src.SetNGrow(src.nGrow()-snghost);
     if (dnghost > 0)     SetNGrow(    nGrow()-dnghost);
 
-    if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
+    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
     {
         //

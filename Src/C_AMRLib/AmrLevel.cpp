@@ -593,7 +593,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     PArray<AmrLevel>& amrLevels  = m_amrlevel.parent->getAmrLevels();
     const AmrLevel&   topLevel   = amrLevels[m_amrlevel.level];
     const Box&        topPDomain = topLevel.state[m_index].getDomain();
-    const IndexType   boxType    = m_leveldata.boxArray()[0].ixType();
+    const IndexType&  boxType    = m_leveldata.boxArray().ixType();
     const bool        extrap     = AmrLevel::desc_lst[m_index].extrap();
     //
     // Check that the interpolaters are identical.
@@ -1498,7 +1498,7 @@ AmrLevel::derive (const std::string& name,
 
         // Assert because we do not know how to un-convert the destination
         //   and also, implicitly assume the convert in fact is trivial
-        BL_ASSERT(mf.boxArray()[0].ixType()==IndexType::TheCellType());
+        BL_ASSERT(mf.boxArray().ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
         srcBA.convert(rec->boxMap());
 

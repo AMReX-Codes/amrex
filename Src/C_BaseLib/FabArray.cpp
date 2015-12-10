@@ -716,7 +716,7 @@ FabArrayBase::TheFB (bool                cross,
     // set thread safety
     //
 #ifdef _OPENMP
-    if (ba[0].cellCentered()) {
+    if (ba.ixType().cellCentered()) {
 	TheFB.m_threadsafe_loc = true;
 	TheFB.m_threadsafe_rcv = true;
     } else {
