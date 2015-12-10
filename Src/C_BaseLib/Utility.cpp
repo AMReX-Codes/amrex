@@ -1555,16 +1555,29 @@ Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
 
 
 
+template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm)
+{
+  int aT_Size(-2);
+  if(myLocalId == rootId) {
+    aT_Size = aT.size();
+  }
+  ParallelDescriptor::Bcast(&aT_Size, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    aT.resize(aT_Size);
+  }
+  if(aT_Size > 0) {
+    ParallelDescriptor::Bcast(aT.dataPtr(), aT.size(), rootId, localComm);
+  }
+}
+
+
 void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm)
 {
   Array<int> baseBoxAI;
   if(myLocalId == rootId) {
     baseBoxAI = BoxLib::SerializeBox(bB);
   }
-  if(myLocalId != rootId) {
-    baseBoxAI.resize(BoxLib::SerializeBoxSize());
-  }
-  ParallelDescriptor::Bcast(baseBoxAI.dataPtr(), baseBoxAI.size(), rootId, localComm);
+  BoxLib::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
   if(myLocalId != rootId) {
     bB = BoxLib::UnSerializeBox(baseBoxAI);
   }
@@ -1574,21 +1587,13 @@ void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm
 
 void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm)
 {
-  int sbaG_Size(-2);
   Array<int> sbaG;
   if(myLocalId == rootId) {
     sbaG = BoxLib::SerializeBoxArray(bBA);
-    sbaG_Size = sbaG.size();
   }
-  ParallelDescriptor::Bcast(&sbaG_Size, 1, rootId, localComm);
+  BoxLib::BroadcastArray(sbaG, myLocalId, rootId, localComm);
   if(myLocalId != rootId) {
-    sbaG.resize(sbaG_Size);
-  }
-  if(sbaG_Size > 0) {
-    ParallelDescriptor::Bcast(sbaG.dataPtr(), sbaG.size(), rootId, localComm);
-  }
-  if(myLocalId != rootId) {
-    if(sbaG_Size > 0) {
+    if(sbaG.size() > 0) {
       bBA = BoxLib::UnSerializeBoxArray(sbaG);
     }
   }
@@ -1605,17 +1610,12 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
   }
 
   Array<int> dmapA;
-  int dmapA_Size(-3);
+
   if(myLocalId == rootId) {
     dmapA = dM.ProcessorMap();
-    dmapA_Size = dmapA.size();
   }
-  ParallelDescriptor::Bcast(&dmapA_Size, 1, rootId, localComm);
-  if(dmapA_Size > 0) {
-    if(myLocalId != rootId) {
-      dmapA.resize(dmapA_Size);
-    }
-    ParallelDescriptor::Bcast(dmapA.dataPtr(), dmapA.size(), rootId, localComm);
+  BoxLib::BroadcastArray(dmapA, myLocalId, rootId, localComm);
+  if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
       dM.define(dmapA);

@@ -372,6 +372,7 @@ namespace BoxLib
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
 
+    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
