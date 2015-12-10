@@ -128,12 +128,16 @@ FabArrayBase::CPC::CPC ()
 FabArrayBase::CPC::CPC (const BoxArray&            dstba,
                         const BoxArray&            srcba,
                         const DistributionMapping& dstdm,
-                        const DistributionMapping& srcdm)
+                        const DistributionMapping& srcdm,
+			int                        dstng,
+			int                        srcng)
     :
     m_dstba(dstba),
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
+    m_dstng(dstng),
+    m_srcng(srcng),
     m_nuse(0),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
@@ -309,7 +313,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
     for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
     {
-        TheCPC.m_srcba.intersections(TheCPC.m_dstba[i],isects);
+        TheCPC.m_srcba.intersections(BoxLib::grow(TheCPC.m_dstba[i], TheCPC.m_dstng),
+				     isects,
+				     TheCPC.m_srcng);
 
         const int dst_owner = TheCPC.m_dstdm[i];
 
