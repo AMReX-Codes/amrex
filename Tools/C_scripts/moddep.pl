@@ -160,6 +160,7 @@ sub find_uses {
 	# allow more than one 'use on a line'
 	while ( $line =~ /(^|;)\s*use\s+(\w+)/ig ) {
 	    my $use = $2;
+	    next if (lc($use) eq "iso_c_binding");
 	    $self->{'uses'}{$use} = 1;
 	    print "#\t\tuses = $use\n" if $debug;
 	}
