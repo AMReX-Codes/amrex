@@ -844,7 +844,6 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
-    m_fabs.SetNGrow(0);
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
@@ -888,8 +887,6 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
-
-    m_fabs.ResetNGrow();
 }
 
 static
