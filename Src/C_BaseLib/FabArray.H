@@ -277,7 +277,9 @@ public:
         CPC (const BoxArray&            dstba,
              const BoxArray&            srcba,
              const DistributionMapping& dstdm,
-             const DistributionMapping& srcdm);
+             const DistributionMapping& srcdm,
+	     int                        dstng,
+	     int                        srcng);
 
         ~CPC ();
 
@@ -292,6 +294,8 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
+	int                 m_dstng;
+	int                 m_srcng;
         int                 m_nuse;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
@@ -399,15 +403,6 @@ public:
     static int nFabArrays;
     static int NFabArrays() { return nFabArrays; }
     int FabArrayID() const  { return faID; }
-
-    // DO NOT CALL THESE IF YOU DO NOT KNOW WHAT YOU ARE DOING!!!
-    //
-    // Given a normal FabArray (i.e., with non-overlapping boxarray),
-    // this sets n_grow and turns it into a special FabArray with overlapping boxarray.
-    // This is useful for parallel copy, which only copies form valid to valid regions.
-    void SetNGrow (int n_grow_new) const;
-    // This reset it back to normal.  These two should always appear in pair.
-    void ResetNGrow () const;
 
     struct TileArray
     {
@@ -1641,9 +1636,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     BL_ASSERT(src.nGrow() >= snghost);
     BL_ASSERT(    nGrow() >= dnghost);
 
-    if (snghost > 0) src.SetNGrow(src.nGrow()-snghost);
-    if (dnghost > 0)     SetNGrow(    nGrow()-dnghost);
-
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
     {
@@ -1669,12 +1661,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
-    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
+    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap, dnghost, snghost);
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
 
@@ -1705,8 +1695,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
@@ -1721,8 +1709,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
     //
@@ -1913,8 +1899,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
-    if (snghost > 0) src.ResetNGrow();
-    if (dnghost > 0)     ResetNGrow();
     return;
 
 #endif /*BL_USE_MPI*/

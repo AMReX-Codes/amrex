@@ -5338,12 +5338,8 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
         // This level could exist and simply have no particles.
         //
         return;
-    //
-    // Copy and grow the box array for the finer level.
-    //
-    BoxArray fine_grown = m_gdb->ParticleBoxArray(level + 1);
 
-    fine_grown.grow(ngrow);
+    const BoxArray& fine = m_gdb->ParticleBoxArray(level + 1);
     
     std::vector< std::pair<int,Box> > isects;
 
@@ -5366,7 +5362,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
             //
             // Is it in the grown finer level?
             //
-            fine_grown.intersections(Box(iv,iv),isects);
+            fine.intersections(Box(iv,iv),isects,ngrow);
             //
             // Here we add the particle to each potential grid.
             //

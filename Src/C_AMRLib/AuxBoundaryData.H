@@ -26,7 +26,8 @@ public:
     void copyFrom (const MultiFab& srcmf,
                    int             src_comp,
                    int             dst_comp,
-                   int             num_comp);
+                   int             num_comp,
+		   int             src_ng = 0);
 
     size_t size () const
     {
