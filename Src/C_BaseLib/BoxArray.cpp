@@ -893,7 +893,7 @@ BoxArray::intersections (const Box&                         bx,
 void
 BoxArray::removeOverlap ()
 {
-    BL_ASSERT(m_type.cellCentered());
+    BL_ASSERT(m_typ.cellCentered());
 
     if (!m_ref.unique()) uniqify();
 
