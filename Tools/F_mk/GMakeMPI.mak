@@ -214,14 +214,6 @@ ifeq ($(HOST),kiryu)
 
 endif
 
-
-ifeq ($(HOST),gojira)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
-endif
-
 ifeq ($(HOST),angilas)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
@@ -229,8 +221,7 @@ ifeq ($(HOST),angilas)
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 
-
-DEFAULT_MACHINES := battra gigan gamera manda hedorah atragon ebirah orga rodan baragon megalon posse artoo mothra gimantis
+DEFAULT_MACHINES := artoo atragon baragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan 
 
 ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
   MPIHOME=/usr/lib/mpich
