@@ -593,7 +593,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     PArray<AmrLevel>& amrLevels  = m_amrlevel.parent->getAmrLevels();
     const AmrLevel&   topLevel   = amrLevels[m_amrlevel.level];
     const Box&        topPDomain = topLevel.state[m_index].getDomain();
-    const IndexType   boxType    = m_leveldata.boxArray()[0].ixType();
+    const IndexType&  boxType    = m_leveldata.boxArray().ixType();
     const bool        extrap     = AmrLevel::desc_lst[m_index].extrap();
     //
     // Check that the interpolaters are identical.
@@ -844,7 +844,6 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
-    m_fabs.SetNGrow(0);
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
@@ -888,8 +887,6 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
-
-    m_fabs.ResetNGrow();
 }
 
 static
@@ -1270,7 +1267,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            Real      time,
                            int       index,
                            int       scomp,
-                           int       ncomp)
+                           int       ncomp,
+			   int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
     //
@@ -1278,6 +1276,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     //
     BL_ASSERT(level != 0);
     BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
+    BL_ASSERT(nghost <= mf.nGrow());
     BL_ASSERT(0 <= index && index < desc_lst.size());
 
     int                     DComp   = dcomp;
@@ -1302,7 +1301,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
 
-            crseBA.set(j,mapper->CoarseBox(mf_BA[j],crse_ratio));
+            crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
         MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
@@ -1317,7 +1316,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         for (int i = 0; i < N; i++)
         {
             const int  idx = fpi.m_fabs.IndexMap()[i];
-            const Box& dbx = mf_BA[idx];
+            const Box& dbx = BoxLib::grow(mf_BA[idx],nghost);
 
             Array<BCRec> bcr(ncomp);
 
@@ -1496,7 +1495,7 @@ AmrLevel::derive (const std::string& name,
 
         // Assert because we do not know how to un-convert the destination
         //   and also, implicitly assume the convert in fact is trivial
-        BL_ASSERT(mf.boxArray()[0].ixType()==IndexType::TheCellType());
+        BL_ASSERT(mf.boxArray().ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
         srcBA.convert(rec->boxMap());
 
@@ -1689,6 +1688,34 @@ AmrLevel::setPlotVariables ()
     }
 }
 
+void
+AmrLevel::setSmallPlotVariables ()
+{
+    ParmParse pp("amr");
+
+    if (pp.contains("small_plot_vars"))
+    {
+        std::string nm;
+      
+        int nPltVars = pp.countval("small_plot_vars");
+      
+        for (int i = 0; i < nPltVars; i++)
+        {
+            pp.get("small_plot_vars", nm, i);
+
+	    parent->addStateSmallPlotVar(nm);
+        }
+    }
+    else 
+    {
+        //
+        // The default is to use none.
+        //
+        parent->clearStateSmallPlotVarList();
+    }
+  
+}
+
 AmrLevel::TimeLevel
 AmrLevel::which_time (int  indx,
                       Real time) const
@@ -1733,6 +1760,12 @@ AmrLevel::estimateWork ()
 
 bool
 AmrLevel::writePlotNow ()
+{
+    return false;
+}
+
+bool
+AmrLevel::writeSmallPlotNow ()
 {
     return false;
 }

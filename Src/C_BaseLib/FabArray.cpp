@@ -28,13 +28,16 @@ int FabArrayBase::comm_piece_threshold = 8064;  // (8K - 128) bytes
 
 int FabArrayBase::nFabArrays(0);
 
-FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
-FabArrayBase::TA_outer_map         FabArrayBase::m_TheTileArrayCache;
-//
+FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+
+FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("Fill Boundary Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("Copy Cache");
+
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
-//
-FabArrayBase::TACStats             FabArrayBase::m_TAC_stats;
+
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
@@ -129,7 +132,7 @@ FabArrayBase::fabbox (int K) const
 
 FabArrayBase::CPC::CPC ()
     :
-    m_reused(false),
+    m_nuse(0),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -141,13 +144,17 @@ FabArrayBase::CPC::CPC ()
 FabArrayBase::CPC::CPC (const BoxArray&            dstba,
                         const BoxArray&            srcba,
                         const DistributionMapping& dstdm,
-                        const DistributionMapping& srcdm)
+                        const DistributionMapping& srcdm,
+			int                        dstng,
+			int                        srcng)
     :
     m_dstba(dstba),
     m_srcba(srcba),
     m_dstdm(dstdm),
     m_srcdm(srcdm),
-    m_reused(false),
+    m_dstng(dstng),
+    m_srcng(srcng),
+    m_nuse(0),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -253,8 +260,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     {
         if (it->second == cpc)
         {
-            it->second.m_reused = true;
-
+	    ++it->second.m_nuse;
+	    m_CPC_stats.recordUse();
             return it;
         }
     }
@@ -274,16 +281,18 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         {
             last_it = it;
 
-            if (!it->second.m_reused)
+            if (it->second.m_nuse <= 1)
                 erase_it = it;
         }
 
         if (erase_it != End)
         {
+	    m_CPC_stats.recordErase(erase_it->second.m_nuse);
             TheCopyCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+	    m_CPC_stats.recordErase(last_it->second.m_nuse);
             TheCopyCache.erase(last_it);
         }
     }
@@ -305,6 +314,11 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
 
+    TheCPC.m_nuse = 1;
+
+    m_CPC_stats.recordBuild();
+    m_CPC_stats.recordUse();
+
     if (dst.IndexMap().empty() && src.IndexMap().empty())
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
@@ -315,7 +329,9 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
     for (int i = 0, N = TheCPC.m_dstba.size(); i < N; i++)
     {
-        TheCPC.m_srcba.intersections(TheCPC.m_dstba[i],isects);
+        TheCPC.m_srcba.intersections(BoxLib::grow(TheCPC.m_dstba[i], TheCPC.m_dstng),
+				     isects,
+				     TheCPC.m_srcng);
 
         const int dst_owner = TheCPC.m_dstdm[i];
 
@@ -390,12 +406,6 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 }
 
 void
-FabArrayBase::EraseFromTheCPC (CPCCacheIter& cache_it)
-{
-    FabArrayBase::m_TheCopyCache.erase(cache_it);    
-}
-
-void
 FabArrayBase::CPC::FlushCache ()
 {
     long stats[3] = {0,0,0}; // size, reused, bytes
@@ -407,8 +417,9 @@ FabArrayBase::CPC::FlushCache ()
          ++it)
     {
         stats[2] += it->second.bytes();
-        if (it->second.m_reused)
+        if (it->second.m_nuse >= 2)
             stats[1]++;
+	m_CPC_stats.recordErase(it->second.m_nuse);
     }
 
     if (FabArrayBase::Verbose)
@@ -438,8 +449,8 @@ FabArrayBase::CPC::FlushCache ()
 FabArrayBase::SI::SI ()
     :
     m_ngrow(-1),
+    m_nuse(0),
     m_cross(false),
-    m_reused(false),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -456,8 +467,8 @@ FabArrayBase::SI::SI (const BoxArray&            ba,
     m_ba(ba),
     m_dm(dm),
     m_ngrow(ngrow),
+    m_nuse(0),
     m_cross(cross),
-    m_reused(false),
     m_threadsafe_loc(false),
     m_threadsafe_rcv(false),
     m_LocTags(0),
@@ -558,8 +569,8 @@ FabArrayBase::TheFB (bool                cross,
     {
         if (it->second == si)
         {
-            it->second.m_reused = true;
-
+	    ++it->second.m_nuse;
+	    m_FBC_stats.recordUse();
             return it;
         }
     }
@@ -579,17 +590,19 @@ FabArrayBase::TheFB (bool                cross,
         {
             last_it = it;
 
-            if (!it->second.m_reused)
+            if (it->second.m_nuse <= 1)
                 erase_it = it;
         }
 
         if (erase_it != End)
         {
+	    m_FBC_stats.recordErase(erase_it->second.m_nuse);
             m_TheFBCache.erase(erase_it);
         }
         else if (last_it != End)
         {
-             m_TheFBCache.erase(last_it);
+	    m_FBC_stats.recordErase(last_it->second.m_nuse);
+	    m_TheFBCache.erase(last_it);
         }
     }
     //
@@ -611,6 +624,11 @@ FabArrayBase::TheFB (bool                cross,
     TheFB.m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
     TheFB.m_SndVols = new std::map<int,int>;
     TheFB.m_RcvVols = new std::map<int,int>;
+
+    TheFB.m_nuse = 1;
+
+    m_FBC_stats.recordBuild();
+    m_FBC_stats.recordUse();
 
     if (mf.IndexMap().empty())
         //
@@ -725,7 +743,7 @@ FabArrayBase::TheFB (bool                cross,
     //
     // set thread safety
     //
-    if (ba[0].cellCentered()) {
+    if (ba.ixType().cellCentered()) {
 	TheFB.m_threadsafe_loc = true;
 	TheFB.m_threadsafe_rcv = true;
     } else {
@@ -742,9 +760,13 @@ FabArrayBase::Finalize ()
     FabArrayBase::FlushSICache();
     FabArrayBase::CPC::FlushCache();
 
+    FabArrayBase::flushTileArrayCache();
+
     if (ParallelDescriptor::IOProcessor()) {
-	m_TAC_stats.print();
 	m_FA_stats.print();
+	m_TAC_stats.print();
+	m_FBC_stats.print();
+	m_CPC_stats.print();
     }
 
     initialized = false;
@@ -762,8 +784,9 @@ FabArrayBase::FlushSICache ()
          ++it)
     {
         stats[2] += it->second.bytes();
-        if (it->second.m_reused)
+        if (it->second.m_nuse >= 2)
             stats[1]++;
+	m_FBC_stats.recordErase(it->second.m_nuse);
     }
 
     if (FabArrayBase::Verbose)
@@ -882,39 +905,6 @@ FabArrayBase::RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags)
 #endif
 }
 
-void
-FabArrayBase::SetNGrow (int n_grow_new) const
-{
-    BL_ASSERT(n_grow_new >= 0);
-    BL_ASSERT(n_grow_new <= n_grow);
-    BL_ASSERT(boxarray_orig.empty());
-
-    if (n_grow_new == n_grow) return;
-
-    n_grow_orig   = n_grow;
-    boxarray_orig = boxarray;
-    m_bdkey_orig  = m_bdkey;
-
-    n_grow = n_grow_new;
-    boxarray.grow(n_grow_orig-n_grow_new);
-
-    m_bdkey = getBDKey();
-}
-
-void
-FabArrayBase::ResetNGrow () const
-{
-    if (boxarray_orig.empty()) return;
-
-    flushTileArray();
-
-    n_grow   =   n_grow_orig;
-    boxarray = boxarray_orig;
-    m_bdkey  =  m_bdkey_orig;
-
-    boxarray_orig.clear();
-}
-
 const FabArrayBase::TileArray* 
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
@@ -928,6 +918,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	p = &FabArrayBase::m_TheTileArrayCache[m_bdkey][tilesize];
 	if (p->nuse == -1) {
 	    buildTileArray(tilesize, *p);
+	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
 	}
 #ifdef _OPENMP
@@ -945,12 +936,12 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
-    ta.nuse = 0;
+    // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
 
     for (int i = 0; i < indexMap.size(); ++i)
     {
 	const int K = indexMap[i]; 
-	const Box& bx = boxarray[K];
+	const Box& bx = boxarray.getCellCenteredBox(K);
 
 	IntVect nt_in_fab, tsize, nleft;
 	int ntiles = 1;
@@ -987,7 +978,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		}
 	    }
 
-	    Box tbx(small, big, bx.ixType());
+	    Box tbx(small, big, IndexType::TheCellType());
 	    tbx.shift(bx.smallEnd());
 
 	    ta.tileArray.push_back(tbx);
@@ -1000,67 +991,86 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 {
     BL_ASSERT(getBDKey() == m_bdkey);
 
-    TA_outer_map& tao = m_TheTileArrayCache;
-    TA_outer_map::iterator tao_it = tao.find(m_bdkey);
+    TACache& tao = m_TheTileArrayCache;
+    TACache::iterator tao_it = tao.find(m_bdkey);
     if(tao_it != tao.end()) 
     {
 	if (tileSize == IntVect::TheZeroVector()) 
 	{
-	    m_TAC_stats.recordErase(tao_it->second);
+	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
+		 tai_it != tao_it->second.end(); ++tai_it)
+	    {
+		m_TAC_stats.recordErase(tai_it->second.nuse);
+	    }
 	    tao.erase(tao_it);
 	} 
 	else 
 	{
-	    TA_inner_map& tai = tao_it->second;
-	    TA_inner_map::iterator tai_it = tai.find(tileSize);
+	    TAMap& tai = tao_it->second;
+	    TAMap::iterator tai_it = tai.find(tileSize);
 	    if (tai_it != tai.end()) {
-		m_TAC_stats.recordErase(tai_it->second);
+		m_TAC_stats.recordErase(tai_it->second.nuse);
 		tai.erase(tai_it);
 	    }
 	}
     }
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
+void
+FabArrayBase::flushTileArrayCache ()
+{
+    for (TACache::const_iterator tao_it = m_TheTileArrayCache.begin();
+	 tao_it != m_TheTileArrayCache.end(); ++tao_it)
+    {
+	for (TAMap::const_iterator tai_it = tao_it->second.begin();
+	     tai_it != tao_it->second.end(); ++tai_it)
+	{
+	    m_TAC_stats.recordErase(tai_it->second.nuse);
+	}
+    }
+    m_TheTileArrayCache.clear();
+}
+
+MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray((flags_ & Tiling) 
-			      ? FabArrayBase::mfiter_tile_size
-			      : FabArrayBase::mfiter_huge_box_size)),
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray((flags_ & Tiling) 
+			       ? FabArrayBase::mfiter_tile_size
+			       : FabArrayBase::mfiter_huge_box_size)),
     flags(flags_)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		bool                do_tiling)
+MFIter::MFIter (const FabArrayBase& fabarray_, 
+		bool                do_tiling_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray(do_tiling 
-			      ? FabArrayBase::mfiter_tile_size
-			      : FabArrayBase::mfiter_huge_box_size)),
-    flags(do_tiling ? Tiling : 0)
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray(do_tiling_ 
+			       ? FabArrayBase::mfiter_tile_size
+			       : FabArrayBase::mfiter_huge_box_size)),
+    flags(do_tiling_ ? Tiling : 0)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase& fabarray, 
-		const IntVect&      tilesize, 
+MFIter::MFIter (const FabArrayBase& fabarray_, 
+		const IntVect&      tilesize_, 
 		unsigned char       flags_)
     :
-    fabArray(fabarray),
-    pta(fabArray.getTileArray(tilesize)),
+    fabArray(fabarray_),
+    pta(fabarray_.getTileArray(tilesize_)),
     flags(flags_ | Tiling)
 {
     Initialize();
 }
 
-MFIter::MFIter (const FabArrayBase&            fabarray, 
+MFIter::MFIter (const FabArrayBase&            fabarray_, 
 		const FabArrayBase::TileArray* pta_,
 		unsigned char                  flags_)
     :
-    fabArray(fabarray),
+    fabArray(fabarray_),
     pta(pta_),
     flags(flags_ | Tiling)
 {
@@ -1123,24 +1133,59 @@ MFIter::Initialize ()
 	}
     }
     currentIndex = beginIndex;
+
+    typ = fabArray.boxArray().ixType();
+}
+
+Box 
+MFIter::tilebox () const
+{ 
+    Box bx(pta->tileArray[currentIndex]);
+    if (! typ.cellCentered())
+    {
+	bx.convert(typ);
+	const IntVect& Big = validbox().bigEnd();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (typ.nodeCentered(d)) { // validbox should also be nodal in d-direction.
+		if (bx.bigEnd(d) < Big[d]) {
+		    bx.growHi(d,-1);
+		}
+	    }
+	}
+    }
+    return bx;
 }
 
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
     Box bx(pta->tileArray[currentIndex]);
-    this->nodalize(bx, dir);
+    bx.convert(typ);
+    const IntVect& Big = validbox().bigEnd();
+    int d0, d1;
+    if (dir < 0) {
+	d0 = 0;
+	d1 = BL_SPACEDIM-1;
+    } else {
+	d0 = d1 = dir;
+    }
+    for (int d=d0; d<=d1; ++d) {
+	if (typ.cellCentered(d)) { // validbox should also be cell-centered in d-direction.
+	    bx.surroundingNodes(d);
+	    if (bx.bigEnd(d) <= Big[d]) {
+		bx.growHi(d,-1);
+	    }
+	}
+    }
     return bx;
 }
 
 Box 
 MFIter::growntilebox (int ng) const 
 {
+    Box bx = tilebox();
     if (ng < 0) ng = fabArray.nGrow();
-    if (ng == 0) {
-	return pta->tileArray[currentIndex];
-    } else {
-	Box bx(pta->tileArray[currentIndex]);
+    if (ng > 0) {
 	const Box& vbx = validbox();
 	for (int d=0; d<BL_SPACEDIM; ++d) {
 	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
@@ -1150,36 +1195,27 @@ MFIter::growntilebox (int ng) const
 		bx.growHi(d, ng);
 	    }
 	}
-	return bx;
     }
+    return bx;
 }
 
 Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
-    Box bx = growntilebox(ng);
-    this->nodalize(bx, dir);
-    return bx;
-}
-
-void
-MFIter::nodalize (Box& bx, int dir) const
-{
-    int d0, d1;
-    if (dir >= 0 && dir <= BL_SPACEDIM-1) {
-	d0 = d1 = dir;
-    } else {
-	d0 = 0;
-	d1 = BL_SPACEDIM-1;
-    }
-    for (int d=d0; d<=d1; ++d) {
-	if (bx.type(d) == IndexType::CELL) {
-	    bx.surroundingNodes(d);
-	    if (bx.bigEnd(d) < validbox().bigEnd(d)+1) {
-		bx.growHi(d,-1);
+    Box bx = nodaltilebox(dir);
+    if (ng < 0) ng = fabArray.nGrow();
+    if (ng > 0) {
+	const Box& vbx = validbox();
+	for (int d=0; d<BL_SPACEDIM; ++d) {
+	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+		bx.growLo(d, ng);
+	    }
+	    if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+		bx.growHi(d, ng);
 	    }
 	}
     }
+    return bx;
 }
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)

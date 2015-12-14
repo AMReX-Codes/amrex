@@ -1185,7 +1185,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
       }
     }
 
-    IndexType boxType(destBoxes[0].ixType());
+    IndexType boxType(destBoxes.ixType());
     BoxList unfilledBoxesOnThisLevel(boxType);
     BoxList unfillableBoxesOnThisLevel(boxType);
     // Do this for all local fab boxes.
