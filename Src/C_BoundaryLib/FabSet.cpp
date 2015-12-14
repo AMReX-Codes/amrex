@@ -288,14 +288,11 @@ FabSet::linComb (Real            a,
 
     std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
-    BoxArray ba_isects = bxa;
-    ba_isects.grow(ngrow);
-
     std::vector< std::pair<int,Box> > isects;
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        ba_isects.intersections(get(fsi).box(),isects);
+        bxa.intersections(get(fsi).box(),isects,ngrow);
 
         const int index = fsi.index();
 
@@ -331,8 +328,6 @@ FabSet::linComb (Real            a,
             BL_ASSERT(fbids_mfb.back().box() == ovlp);
         }
     }
-
-    ba_isects.clear_hash_bin();    
 
     BL_COMM_PROFILE_NAMETAG("CD::FabSet::linComb()");
     mfcd.CollectData();

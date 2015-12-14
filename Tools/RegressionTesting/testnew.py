@@ -163,7 +163,8 @@ class Suite(object):
         # about.  It is set automatically, not by users
         self.useExtraBuild = 0
 
-        self.extraBuildDirs = []
+        self.extra_build_dirs = []
+        self.extra_build_branches = []
 
         # this should be the environment variable name that should be
         # set so the builds in the extraBuildDir can see the main
@@ -175,7 +176,7 @@ class Suite(object):
         # basename of the various source directories
         self.srcName = ""
         self.extSrcName = ""
-        self.extraBuildNames = []
+        self.extra_build_names = []
 
         self.MPIcommand = ""
         self.MPIhost = ""
@@ -576,14 +577,24 @@ def load_params(args):
                 # we will keep the extra build directories in a list -- we
                 # want them in the correct order in the list so we can simply
                 # index later
-                if len(mysuite.extraBuildDirs) == 0:
-                    mysuite.extraBuildDirs.append(mysuite.check_test_dir(value))
+
+                try: branch = convert_type(cp.get("main", "extraBuildBranch"))
+                except: branch = "master"
+                
+                if len(mysuite.extra_build_dirs) == 0:
+                    mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
+                    mysuite.extra_build_branches.append(branch)
                 else:
-                    mysuite.extraBuildDirs.insert(0,mysuite.check_test_dir(value))
+                    mysuite.extra_build_dirs.insert(0, mysuite.check_test_dir(value))
+                    mysuite.extra_build_branches.insert(0, branch)
 
             elif opt == "extraBuildDir2":
-                mysuite.extraBuildDirs.append(mysuite.check_test_dir(value))
+                try: branch = convert_type(cp.get("main", "extraBuildBranch2"))
+                except: branch = "master"
 
+                mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
+                mysuite.extra_build_branches.append(branch)
+                
             elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
             else:
@@ -594,7 +605,7 @@ def load_params(args):
             mysuite.log.warn("WARNING: suite parameter %s not valid" % (opt))
 
 
-    mysuite.useExtraBuild = len(mysuite.extraBuildDirs)
+    mysuite.useExtraBuild = len(mysuite.extra_build_dirs)
 
     # create the repo objects
     mysuite.repos["BoxLib"] = Repo(mysuite, mysuite.boxLibDir, "BoxLib",
@@ -621,14 +632,14 @@ def load_params(args):
 
     # update additional compiled string for any extra build directory
     if mysuite.useExtraBuild > 0:
-        for n in range(len(mysuite.extraBuildDirs)):
-            extra_build_name = os.path.basename(os.path.normpath(mysuite.extraBuildDirs[n]))
-            mysuite.extraBuildNames.append(extra_build_name)
+        for n in range(len(mysuite.extra_build_dirs)):
+            extra_build_name = os.path.basename(os.path.normpath(mysuite.extra_build_dirs[n]))
+            mysuite.extra_build_names.append(extra_build_name)
 
             mysuite.repos["extra_build-{}".format(n)] = \
-                Repo(mysuite, mysuite.extraBuildDirs[n],
+                Repo(mysuite, mysuite.extra_build_dirs[n],
                      extra_build_name, 
-                     branch_wanted="master")
+                     branch_wanted=mysuite.extra_build_branches[n])
 
         # since we are building in the extraBuildDir, we need to
         # tell make where the sourceDir is
@@ -709,7 +720,7 @@ def load_params(args):
 
         # make sure that the build directory actually exists
         if mytest.useExtraBuildDir > 0:
-            bDir = mysuite.extraBuildDirs[mytest.useExtraBuildDir-1] + mytest.buildDir
+            bDir = mysuite.extra_build_dirs[mytest.useExtraBuildDir-1] + mytest.buildDir
         else:
             bDir = mysuite.sourceDir + mytest.buildDir
 
@@ -1374,7 +1385,7 @@ def test_suite(argv):
         if suite.extSrcName.lower() in nouplist: suite.repos["extra_source"].update = False
 
         # each extra build directory has its own update flag
-        for n, e in enumerate(suite.extraBuildNames):
+        for n, e in enumerate(suite.extra_build_names):
             if e.lower() in nouplist:
                 suite.repos["extra_build-{}".format(n)].update = False
 
@@ -1408,8 +1419,8 @@ def test_suite(argv):
     for dir, source_tree in all_build_dirs:
 
         if source_tree > 0:
-            suite.log.log("{} in {}".format(dir, suite.extraBuildNames[source_tree-1]))
-            os.chdir(suite.extraBuildDirs[source_tree-1] + dir)
+            suite.log.log("{} in {}".format(dir, suite.extra_build_names[source_tree-1]))
+            os.chdir(suite.extra_build_dirs[source_tree-1] + dir)
         else:
             suite.log.log("{}".format(dir))
             os.chdir(suite.sourceDir + dir)
@@ -1442,7 +1453,7 @@ def test_suite(argv):
         # compile the code
         #----------------------------------------------------------------------
         if test.useExtraBuildDir > 0:
-            bDir = suite.extraBuildDirs[test.useExtraBuildDir-1] + test.buildDir
+            bDir = suite.extra_build_dirs[test.useExtraBuildDir-1] + test.buildDir
         else:
             bDir = suite.sourceDir + test.buildDir
 
@@ -1857,7 +1868,7 @@ def test_suite(argv):
 
                     suite.log.log("doing the analysis...")
                     if test.useExtraBuildDir > 0:
-                        tool = "{}/{}".format(suite.extraBuildDirs[test.useExtraBuildDir-1],test.analysisRoutine)
+                        tool = "{}/{}".format(suite.extra_build_dirs[test.useExtraBuildDir-1], test.analysisRoutine)
                     else:
                         tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
 
@@ -2383,7 +2394,7 @@ def report_single_test(suite, test):
 
     if test.useExtraBuildDir > 0:
         ll.indent()
-        ll.item("in {}".format(suite.extraBuildDirs[test.useExtraBuildDir-1]))
+        ll.item("in {}".format(suite.extra_build_dirs[test.useExtraBuildDir-1]))
         ll.outdent()
 
     if not test.compileTest:

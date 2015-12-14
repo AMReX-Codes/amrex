@@ -89,17 +89,6 @@ ifeq ($(findstring grace, $(HOST)), grace)
         F90 := ftn -target=linux
     endif
 endif
-ifeq ($(findstring hopper, $(HOST)), hopper)
-    #
-    # hopper.nersc.gov
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
-    endif
-endif
 ifeq ($(findstring edison, $(HOST)), edison)
     #
     # edison.nersc.gov
@@ -191,6 +180,7 @@ ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
 
+
 ifeq ($(HOST),naphta)
   MPIHOME=/usr/lib/mpich
   mpi_include_dir = $(MPIHOME)/include
@@ -201,26 +191,6 @@ ifeq ($(HOST),naphta)
   endif
 endif
 
-ifeq ($(findstring battra, $(HOST)), battra)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-
-ifeq ($(HOST),gigan)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-
-ifeq ($(HOST),gamera)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
 
 ifeq ($(HOST),kiryu)
   MPIHOME=/usr/local 
@@ -233,90 +203,22 @@ ifeq ($(HOST),kiryu)
 
 endif
 
-ifeq ($(HOST),manda)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),hedorah)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),gojira)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
-endif
-ifeq ($(HOST),atragon)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),ebirah)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),orga)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),rodan)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),baragon)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),megalon)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),posse)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),artoo)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),mothra)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),gimantis)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
 ifeq ($(HOST),angilas)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
+
+DEFAULT_MACHINES := artoo atragon baragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan 
+
+ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+
 
 ifeq ($(findstring donev, $(HOSTNAME)), donev)
    ifeq ($(MPIVENDOR),OpenMPIv1)

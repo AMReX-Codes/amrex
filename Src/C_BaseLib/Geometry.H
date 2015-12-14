@@ -342,6 +342,10 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
+        Box TheDomain = geom.Domain();
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (mf.boxArray().ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.

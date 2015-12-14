@@ -228,7 +228,7 @@ Geometry::FillPeriodicBoundary_local (MultiFab& mf,
 
     Box TheDomain = Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
-        if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+        if (mf.boxArray().ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
 #ifdef _OPENMP
@@ -350,7 +350,7 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
     //
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
-        if (srcmf.boxArray()[0].ixType()[n] == IndexType::NODE)
+        if (srcmf.boxArray().ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
@@ -596,7 +596,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
     BL_ASSERT(scomp+ncomp <= srcmf.nComp());
     BL_ASSERT(dcomp+ncomp <= dstmf.nComp());
-    BL_ASSERT(srcmf.boxArray()[0].ixType() == dstmf.boxArray()[0].ixType());
+    BL_ASSERT(srcmf.boxArray().ixType() == dstmf.boxArray().ixType());
 
     SumPeriodicBoundaryInnards(dstmf,srcmf,*this,scomp,dcomp,ncomp);
 }
@@ -986,7 +986,7 @@ Geometry::GetFPB (const Geometry&      geom,
 
     Box TheDomain = geom.Domain();
     for (int n = 0; n < BL_SPACEDIM; n++)
-        if (ba[0].ixType()[n] == IndexType::NODE)
+        if (ba.ixType()[n] == IndexType::NODE)
             TheDomain.surroundingNodes(n);
 
     Array<IntVect> pshifts(27);

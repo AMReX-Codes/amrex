@@ -132,7 +132,9 @@ endif
 # Memory pool
 C$(BOXLIB_BASE)_headers += MemPool.H
 C$(BOXLIB_BASE)_sources += MemPool.cpp
-f90$(BOXLIB_BASE)_sources += mempool_f.f90
+ifneq ($(BL_NO_FORT),TRUE)
+  f90$(BOXLIB_BASE)_sources += mempool_f.f90
+endif
 
 # UPCXX
 ifeq ($(USE_UPCXX),TRUE)
