@@ -429,16 +429,12 @@ protected:
     int                 n_comp;
     int                 faID;
 
-    mutable BoxArray    boxarray_orig;
-    mutable int         n_grow_orig;
-
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
     // Objects with the same references have the same key.
     typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
     mutable BDKey m_bdkey;
-    mutable BDKey m_bdkey_orig;
 
     BDKey getBDKey () const {
 	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
