@@ -321,7 +321,7 @@ namespace BoxLib
 
         Box TheDomain = geom.Domain();
         for (int n = 0; n < BL_SPACEDIM; n++)
-            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
+            if (mf.boxArray().ixType()[n] == IndexType::NODE)
                 TheDomain.surroundingNodes(n);
 #ifndef NDEBUG
         //

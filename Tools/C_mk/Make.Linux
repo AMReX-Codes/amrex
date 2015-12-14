@@ -108,7 +108,7 @@ endif
 # Now Fortran stuff.
 #
 FORT_CPP := gcc -E -traditional
-FORT_CPP := cpp -E -traditional
+FORT_CPP := cpp -E -traditional-cpp -P
 
 ifeq ($(FCOMP),PathScale)
   FC  = pathf95
@@ -404,6 +404,25 @@ ifeq ($(WHICHLINUX), HERA)
 endif
 
 ifeq ($(WHICHLINUX), CAB)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC  := mpiifort
+      fC  := mpiifort
+    else
+      CXX := mpiCC
+      CC  := gcc
+      FC  := gfortran
+      F90 := gfortran
+      fC  := gfortran
+    endif
+  endif
+endif
+
+ifeq ($(WHICHLINUX), SYRAH)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     ifeq ($(COMP), Intel)

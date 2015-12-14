@@ -86,10 +86,10 @@ public:
     //
     const BoxArray& boxArray () const { return boxarray; }
     //
-    // Returns a constant reference to the Kth Box in the BoxArray.
+    // Returns the Kth Box in the BoxArray.
     // That is, the valid region of the Kth grid.
     //
-    const Box& box (int K) const { return boxarray[K]; }
+    Box box (int K) const { return boxarray[K]; }
     //
     // Returns the Kth FABs Box in the FabArray.
     // That is, the region the Kth fab is actually defined on.
@@ -277,7 +277,9 @@ public:
         CPC (const BoxArray&            dstba,
              const BoxArray&            srcba,
              const DistributionMapping& dstdm,
-             const DistributionMapping& srcdm);
+             const DistributionMapping& srcdm,
+	     int                        dstng,
+	     int                        srcng);
 
         ~CPC ();
 
@@ -292,6 +294,8 @@ public:
         BoxArray            m_srcba;
         DistributionMapping m_dstdm;
         DistributionMapping m_srcdm;
+	int                 m_dstng;
+	int                 m_srcng;
         int                 m_nuse;
 	bool                m_threadsafe_loc;
 	bool                m_threadsafe_rcv;
@@ -400,15 +404,6 @@ public:
     static int NFabArrays() { return nFabArrays; }
     int FabArrayID() const  { return faID; }
 
-    // DO NOT CALL THESE IF YOU DO NOT KNOW WHAT YOU ARE DOING!!!
-    //
-    // Given a normal FabArray (i.e., with non-overlapping boxarray),
-    // this sets n_grow and turns it into a special FabArray with overlapping boxarray.
-    // This is useful for parallel copy, which only copies form valid to valid regions.
-    void SetNGrow (int n_grow_new) const;
-    // This reset it back to normal.  These two should always appear in pair.
-    void ResetNGrow () const;
-
     struct TileArray
     {
 	int nuse;
@@ -434,16 +429,12 @@ protected:
     int                 n_comp;
     int                 faID;
 
-    mutable BoxArray    boxarray_orig;
-    mutable int         n_grow_orig;
-
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
     // Objects with the same references have the same key.
     typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
     mutable BDKey m_bdkey;
-    mutable BDKey m_bdkey_orig;
 
     BDKey getBDKey () const {
 	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
@@ -461,6 +452,9 @@ protected:
 	    }
     };
 
+    //
+    // Tiling
+    //
     // We use tile size as the key for the inner map.
     typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
     typedef std::map<BDKey  , TAMap    , CompareBDKey    > TACache;
@@ -548,7 +542,7 @@ public:
     //
     // Returns the tile Box at the current index.
     //
-    const Box& tilebox () const { return pta->tileArray[currentIndex]; }
+    Box tilebox () const;
     //
     // Returns the dir-nodal (or all nodal if dir<0) Box at the current index.
     //
@@ -562,13 +556,9 @@ public:
     //
     Box grownnodaltilebox (int dir=-1, int ng=-1) const;
     //
-    // Nodalize a tile box
-    //
-    void nodalize (Box& bx, int dir) const;
-    //
     // Returns the valid Box that current tile resides.
     //
-    const Box& validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
+    Box validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
@@ -603,6 +593,7 @@ private:
     int           currentIndex;
     int           beginIndex;
     int           endIndex;
+    IndexType     typ;
 
     void Initialize ();
 };
@@ -855,29 +846,32 @@ public:
                CpOp                 op = FabArrayBase::COPY);
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest into dest.
+    // valid + nghost region of this FabArray with the FAB dest into dest.
     //
-    void copy (FAB& dest) const;
+    void copy (FAB& dest,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // valid region of this FabArray with the FAB dest and the Box
+    // valid + nghost region of this FabArray with the FAB dest and the Box
     // subbox into that subregion of dest.
     //
     void copy (FAB&       dest,
-               const Box& subbox) const;
+               const Box& subbox,
+	       int        nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest into dest, starting at
     // component dest_comp in dest.
     //
     void copy (FAB& dest,
                int  src_comp,
                int  dest_comp,
-               int  num_comp) const;
+               int  num_comp,
+	       int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
-    // num_comp component valid region of this FabArray, starting at
+    // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest and the Box subbox, into
     // dest, starting at component dest_comp in dest.
     //
@@ -885,7 +879,8 @@ public:
                const Box& subbox,
                int        src_comp,
                int        dest_comp,
-               int        num_comp) const;
+               int        num_comp,
+	       int        nghost = 0) const;
 
     void shift (const IntVect& v);
 
@@ -1632,15 +1627,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     if (size() == 0 || src.size() == 0) return;
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
-    BL_ASSERT(boxArray()[0].ixType() == src.boxArray()[0].ixType());
+    BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
 
     BL_ASSERT(src.nGrow() >= snghost);
     BL_ASSERT(    nGrow() >= dnghost);
 
-    if (snghost > 0) src.SetNGrow(src.nGrow()-snghost);
-    if (dnghost > 0)     SetNGrow(    nGrow()-dnghost);
-
-    if ((src.boxArray()[0].cellCentered() || op == FabArrayBase::COPY) &&
+    if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap))
     {
         //
@@ -1665,12 +1657,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
-    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap);
+    const CPC cpc(boxarray, src.boxarray, distributionMap, src.distributionMap, dnghost, snghost);
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, *this, src);
 
@@ -1701,8 +1691,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             }
         }
 
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
 
@@ -1717,8 +1705,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         // No work to do.
         //
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
         return;
     }
     //
@@ -1909,8 +1895,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
-    if (snghost > 0) src.ResetNGrow();
-    if (dnghost > 0)     ResetNGrow();
     return;
 
 #endif /*BL_USE_MPI*/
@@ -1940,17 +1924,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB& dest) const
+FabArray<FAB>::copy (FAB& dest,
+		     int  nghsot) const
 {
-    copy(dest, dest.box(), 0, 0, dest.nComp());
+    copy(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB&       dest,
-                     const Box& subbox) const
+                     const Box& subbox,
+		     int        nghost) const
 {
-    copy(dest, subbox, 0, 0, dest.nComp());
+    copy(dest, subbox, 0, 0, dest.nComp(), nghost);
 }
 
 template <class FAB>
@@ -1958,9 +1944,10 @@ void
 FabArray<FAB>::copy (FAB& dest,
                      int  scomp,
                      int  dcomp,
-                     int  ncomp) const
+                     int  ncomp,
+		     int  nghost) const
 {
-    copy(dest, dest.box(), scomp, dcomp, ncomp);
+    copy(dest, dest.box(), scomp, dcomp, ncomp, nghost);
 }
 
 template <class FAB>
@@ -1969,20 +1956,22 @@ FabArray<FAB>::copy (FAB&       dest,
                      const Box& subbox,
                      int        scomp,
                      int        dcomp,
-                     int        ncomp) const
+                     int        ncomp,
+		     int        nghost) const
 {
     BL_PROFILE("FabArray::copy(fab)");
 
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
+    BL_ASSERT(nghost <= nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         for (int j = 0, N = size(); j < N; ++j)
         {
-            if (boxarray[j].intersects(subbox))
+	    const Box& bx = BoxLib::grow(boxarray[j],nghost);
+	    const Box& destbox = bx & subbox;
+	    if (destbox.ok())
             {
-                Box destbox = boxarray[j] & subbox;
-
                 dest.copy(get(j),destbox,scomp,destbox,dcomp,ncomp);
             }
         }
@@ -1994,10 +1983,10 @@ FabArray<FAB>::copy (FAB&       dest,
 
     for (int i = 0, N = size(); i < N; i++)
     {
-        if (subbox.intersects(boxarray[i]))
+	const Box& srcbox = BoxLib::grow(boxarray[i],nghost);
+	const Box& bx = srcbox & subbox;
+	if (bx.ok())
         {
-            Box bx = subbox & boxarray[i];
-
             ovlp.resize(bx,ncomp);
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
