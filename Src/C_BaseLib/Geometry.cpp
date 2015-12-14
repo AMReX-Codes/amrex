@@ -227,9 +227,7 @@ Geometry::FillPeriodicBoundary_local (MultiFab& mf,
     BL_PROFILE("Geometry::FillPeriodicBoundary_local()");
 
     Box TheDomain = Domain();
-    for (int n = 0; n < BL_SPACEDIM; n++)
-        if (mf.boxArray().ixType()[n] == IndexType::NODE)
-            TheDomain.surroundingNodes(n);
+    TheDomain.convert(mf.boxArray().ixType());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -349,10 +347,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
     // Note that in the usual case dstmf == srcmf.
     //
     Box TheDomain = geom.Domain();
-    for (int n = 0; n < BL_SPACEDIM; n++)
-        if (srcmf.boxArray().ixType()[n] == IndexType::NODE)
-            TheDomain.surroundingNodes(n);
-
+    TheDomain.convert(srcmf.boxArray().ixType());
+ 
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
     Array<IntVect>             pshifts(27);
@@ -985,9 +981,7 @@ Geometry::GetFPB (const Geometry&      geom,
         return cache_it;
 
     Box TheDomain = geom.Domain();
-    for (int n = 0; n < BL_SPACEDIM; n++)
-        if (ba.ixType()[n] == IndexType::NODE)
-            TheDomain.surroundingNodes(n);
+    TheDomain.convert(ba.ixType());
 
     Array<IntVect> pshifts(27);
 
