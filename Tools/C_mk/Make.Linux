@@ -352,27 +352,6 @@ ifeq ($(WHICHLINUX), FREEDOM)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOPPER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  DEFINES += -DBL_HOPPER
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC
-    CC  := cc
-    FC  := ftn
-    F90 := ftn
-    fC  := ftn
-  endif
-  ifeq ($(USE_IPM),TRUE)
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    else
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-  ifeq ($(USE_DUMPI),TRUE)
-    LIBRARIES += $(DUMPI_LINK_OPTS)
-  endif
-endif
 
 ifeq ($(WHICHLINUX), GARNET)
   DEFINES += -DMPICH_SKIP_MPICXX

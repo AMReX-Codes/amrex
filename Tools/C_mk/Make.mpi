@@ -428,9 +428,6 @@ ifeq ($(MACHINE), Linux)
     ifeq ($(WHICHLINUX),EDISON)
       BL_MPI_LIBS += -lmpichf90
     endif
-    ifeq ($(WHICHLINUX),HOPPER)
-      BL_MPI_LIBS += -lmpichf90
-    endif
     ifeq ($(WHICHLINUX),BLUE_WATERS)
       BL_MPI_LIBS += -lmpichf90
     endif
