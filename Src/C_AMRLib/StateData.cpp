@@ -656,11 +656,6 @@ ParallelDescriptor::Barrier(scsComm);
       BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
 
       // ---- MultiFabs
-      ParallelDescriptor::Barrier(scsComm);
-      if(ParallelDescriptor::IOProcessor()) {
-        MultiFab::LockAllFAPointers();
-        MultiFab::CheckFAPointerLocks();
-      }
       //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.aFAPId  old_data.aFAPId = "
            //<< new_data->AllocatedFAPtrID() << "  " << old_data->AllocatedFAPtrID() << endl;
 
@@ -674,15 +669,34 @@ ParallelDescriptor::Barrier(scsComm);
              << makeNewDataId << endl;
       }
       ParallelDescriptor::Bcast(&makeNewDataId, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS && makeNewDataId >= 0) {
-        new_data = new MultiFab;
+      if(scsMyId != ioProcNumSCS) {
+        if(makeNewDataId >= 0) {
+          new_data = new MultiFab;
+        } else {
+          new_data = 0;
+	}
       }
-      new_data->MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      if(new_data != 0) {
+        new_data->MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      }
 
-      if(ParallelDescriptor::MyProcAll() == 12) {
-        cout << ParallelDescriptor::MyProcAll() << "::::_here 1212:  fap = " << endl;
-        MultiFab::CheckFAPointerLocks();
+      if(old_data != 0) {
+	makeOldDataId = old_data->AllocatedFAPtrID();
+        cout << ParallelDescriptor::MyProcAll() << "::::_here 3333:  old_data.aFAPId  = "
+             << makeOldDataId << endl;
       }
+      ParallelDescriptor::Bcast(&makeOldDataId, 1, ioProcNumSCS, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        if(makeOldDataId >= 0) {
+          old_data = new MultiFab;
+        } else {
+          old_data = 0;
+	}
+      }
+      if(old_data != 0) {
+        old_data->MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      }
+
       ParallelDescriptor::Barrier(scsComm);
 #endif
 }
