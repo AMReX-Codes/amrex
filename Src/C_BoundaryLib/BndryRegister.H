@@ -57,7 +57,7 @@ public:
     //
     // The destructor.
     //
-    ~BndryRegister();
+    virtual ~BndryRegister();
     //
     // Get box domain (as an array of boxes).
     //
@@ -147,6 +147,12 @@ public:
     // Read (used for reading from checkpoint)
     //
     void read (const std::string& name, std::istream& is);
+
+    //
+    // MakeSidecarsSmaller
+    //
+    virtual void MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
+                                     int scsMyId, MPI_Comm scsComm);
 
 protected:
     //

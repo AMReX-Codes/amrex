@@ -334,3 +334,19 @@ BndryRegister::read (const std::string& name, std::istream& is)
         bndry[face()].read(facename);
     }
 }
+
+void
+BndryRegister::MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
+                                   int scsMyId, MPI_Comm scsComm)
+{
+  // ---- BoxArrays
+  BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
+
+  // ---- FabSet
+  for(int i(0); i < (2 * BL_SPACEDIM); ++i) {
+    bndry[i].MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+  }
+}
+
+
+
