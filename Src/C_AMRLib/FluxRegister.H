@@ -38,7 +38,7 @@ public:
     //
     // The destructor.
     //
-    ~FluxRegister ();
+    virtual ~FluxRegister ();
     //
     // An enum that says whether to add or copy src data to members.
     //
@@ -224,6 +224,12 @@ public:
     // Read (used for reading from checkpoint)
     //
     void read (const std::string& name, std::istream& is);
+
+    //
+    // MakeSidecarsSmaller
+    //
+    virtual void MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
+                                     int scsMyId, MPI_Comm scsComm);
 
 private:
     //
