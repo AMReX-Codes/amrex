@@ -230,6 +230,11 @@ public:
     //
     void read (const std::string& name);
 
+    //
+    // Promote MakeSidecarsSmaller() back to public.
+    //
+    using MultiFab::MakeSidecarsSmaller;
+
 protected:
     //
     // copyFrom(MultiFab) and plusFrom(MultiFab) use common function.
