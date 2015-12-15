@@ -129,12 +129,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
   endif
-  ifeq ($(findstring hopper, $(UNAMEN)), hopper)
-    WHICHLINUX := HOPPER
-  endif
-  ifeq ($(findstring hopper, $(NERSC_HOST)), hopper)
-    WHICHLINUX := HOPPER
-  endif
   ifeq ($(findstring edison, $(UNAMEN)), edison)
     WHICHLINUX := EDISON
   endif
