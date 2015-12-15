@@ -550,11 +550,11 @@ public:
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
-    Box growntilebox (int ng=-1) const;
+    Box growntilebox (int ng=-1000000) const;
     //
     //  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
     //
-    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
+    Box grownnodaltilebox (int dir=-1, int ng=-1000000) const;
     //
     // Returns the valid Box that current tile resides.
     //

@@ -1149,16 +1149,14 @@ Box
 MFIter::growntilebox (int ng) const 
 {
     Box bx = tilebox();
-    if (ng < 0) ng = fabArray.nGrow();
-    if (ng > 0) {
-	const Box& vbx = validbox();
-	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-		bx.growLo(d, ng);
-	    }
-	    if (bx.bigEnd(d) == vbx.bigEnd(d)) {
-		bx.growHi(d, ng);
-	    }
+    if (ng < -100) ng = fabArray.nGrow();
+    const Box& vbx = validbox();
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ng);
+	}
+	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
+	    bx.growHi(d, ng);
 	}
     }
     return bx;
@@ -1168,16 +1166,14 @@ Box
 MFIter::grownnodaltilebox (int dir, int ng) const
 {
     Box bx = nodaltilebox(dir);
-    if (ng < 0) ng = fabArray.nGrow();
-    if (ng > 0) {
-	const Box& vbx = validbox();
-	for (int d=0; d<BL_SPACEDIM; ++d) {
-	    if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-		bx.growLo(d, ng);
-	    }
-	    if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-		bx.growHi(d, ng);
-	    }
+    if (ng < -100) ng = fabArray.nGrow();
+    const Box& vbx = validbox();
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ng);
+	}
+	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+	    bx.growHi(d, ng);
 	}
     }
     return bx;
