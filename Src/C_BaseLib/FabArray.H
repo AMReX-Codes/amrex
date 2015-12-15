@@ -1339,6 +1339,10 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         faPtrCachedMap.insert(std::make_pair(aFAPId, this));
       }
     }
+
+if(aFAPId == 1) {
+  //BL_ASSERT(aFAPId != 1);
+}
 }
 
 template <class FAB>
@@ -1952,24 +1956,31 @@ template <class FAB>
 void
 FabArray<FAB>::CheckFAPointerLocks ()
 {
-  std::cout << "}}}} _in LockAllFAPointers:  allocatedFAPointers.size() = "
+  int pLocked(0), pUnlocked(0);
+  std::cout << "}}}} _in CheckFAPointerLocks:  allocatedFAPointers.size() = "
             << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
   for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-    std::cout << "}}}} }}}} _in LockAllFAPointers:  faPtrCachedMap.size() = "
+    std::cout << "}}}} }}}} _in ChackFAPointerLocks:  faPtrCachedMap.size() = "
               << faPtrCachedMap.size() << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
       FabArray<FAB> *faPtr = it->second;
-      std::cout << "}}}} }}}} }}}} _in LockAllFAPointers:  FAPtrId  idLock = " 
+      std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  FAPtrId  idLock = " 
                 << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+      if(faPtr->aFAPIdLock) {
+        ++pLocked;
+      } else {
+        ++pUnlocked;
+      }
     }
-
   }
+  std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  " << pLocked << " of "
+            << pLocked + pUnlocked << " FAPpinters locked." << std::endl;
 }
 
 
@@ -1995,6 +2006,40 @@ FabArray<FAB>::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&n_grow_orig, 1, ioProcNumSCS, scsComm);
 
+  // ---- add to allocatedFAPointers
+  int isAllocated(0);
+  if(scsMyId == ioProcNumSCS) {
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {  // ---- not found
+      isAllocated = 0;
+    } else {  // ---- now look for the fapid
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      if(faPtrCachedMap.find(aFAPId) != faPtrCachedMap.end()) {
+        isAllocated = 1;
+      }
+    }
+  }
+  ParallelDescriptor::Bcast(&isAllocated, 1, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    if(isAllocated) {  // ---- insert into the maps
+      typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter =
+                   FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+      if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+        int dmapSize(distributionMap.size());
+        std::map<int, FabArray<FAB> *> tempMap;
+        tempMap.insert(std::make_pair(aFAPId, this));
+        FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
+
+      } else {
+        std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+        faPtrCachedMap.insert(std::make_pair(aFAPId, this));
+      }
+    }
+  }
+
+  // ---- unlock
+  aFAPIdLock = 0;
 }
 
 
