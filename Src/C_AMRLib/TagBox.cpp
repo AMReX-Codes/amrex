@@ -738,3 +738,13 @@ TagBoxArray::coarsen (const IntVect & ratio)
 
     m_border = 0;
 }
+
+void
+TagBoxArray::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
+                                  int scsMyId, MPI_Comm scsComm)
+{
+  ParallelDescriptor::Bcast(&m_border, 1, ioProcNumAll, scsComm);
+}
+
+
+
