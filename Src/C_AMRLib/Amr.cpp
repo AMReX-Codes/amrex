@@ -3765,9 +3765,12 @@ using std::endl;
 
 
       // ---- handle amrlevels
+      if(scsMyId == ioProcNumSCS) {
+        MultiFab::LockAllFAPointers();
+      }
+
       if(scsMyId != ioProcNumSCS) {
         amr_level.resize(0);
-        //amr_level.resize(amr_level_Size);
         amr_level.resize(amr_level_Size, PArrayManage);
         for(int lev(0); lev < amr_level.size(); ++lev) {
 	  amr_level.set(lev,(*levelbld)());
@@ -3776,6 +3779,9 @@ using std::endl;
       for(int lev(0); lev < amr_level.size(); ++lev) {
         amr_level[lev].MakeSidecarsSmaller(this, nSidecarProcs, prevSidecarProcs,
 	                                   ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+      }
+      if(scsMyId == ioProcNumSCS) {
+        MultiFab::CheckFAPointerLocks();
       }
 
 
