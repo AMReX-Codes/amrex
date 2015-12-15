@@ -160,6 +160,9 @@ public:
     //
     IntVect* collate (long& numtags) const;
 
+    virtual void MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
+                                      int scsMyId, MPI_Comm scsComm);
+
 private:
     //
     // Disallowed.
