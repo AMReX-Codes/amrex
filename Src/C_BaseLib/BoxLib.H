@@ -4,6 +4,8 @@
 
 #include <ccse-mpi.H>
 
+#include <stdio.h>
+
 //
 // Error-reporting Functions and Version Number
 //
@@ -63,6 +65,8 @@ namespace BoxLib
     //
     void OutOfMemory (const char* file,
                       int         line);
+    //
+    void print_backtrace_info (FILE* f);
 #ifdef NDEBUG
     const bool NDebug = true;
 #else
