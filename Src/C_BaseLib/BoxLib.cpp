@@ -315,8 +315,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif    
 
-//    exename = argv[0];
-
 #ifndef WIN32
     //
     // Make sure to catch new failures.
