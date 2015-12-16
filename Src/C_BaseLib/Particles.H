@@ -5407,9 +5407,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
     BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 2);,
-           BL_ASSERT(umac[1].nGrow() >= 2);,
-           BL_ASSERT(umac[2].nGrow() >= 2););
+    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
+           BL_ASSERT(umac[1].nGrow() >= 1);,
+           BL_ASSERT(umac[2].nGrow() >= 1););
 
     D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
