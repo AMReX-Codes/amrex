@@ -5420,20 +5420,22 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
-    MultiFab* umac_pointer[BL_SPACEDIM];
+    PArray<MultiFab> umac_pointer;
     if (m_gdb->ParticlesOnSameGrids(lev))
     {
+	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
-           umac_pointer[i] = &umac[i];
+	    umac_pointer.set(i, &umac[i]);
     }
     else
     {
+	umac_pointer.resize(BL_SPACEDIM, PArrayManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-           umac_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
-                                          umac[i].nGrow(),Fab_allocate);
-           umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp());
-           umac_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
+					     umac[i].nGrow(),Fab_allocate));
+	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp());
+	    umac_pointer[i].FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
         }
     }
 
@@ -5447,9 +5449,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
             PBox&     pbox = pmap_it->second;
             const int n    = pbox.size();
 
-            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&(*umac_pointer[0])[grid],
-                                                   &(*umac_pointer[1])[grid],
-                                                   &(*umac_pointer[2])[grid]) };
+            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&umac_pointer[0][grid],
+                                                   &umac_pointer[1][grid],
+                                                   &umac_pointer[2][grid]) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
