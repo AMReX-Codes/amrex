@@ -255,12 +255,13 @@ BoxLib::print_backtrace_info (FILE* f)
 	}
 	cmd += " -Cfie " + exename; 
 	if (have_addr2line) {
-	    fprintf(f, "== Please note that the line number reported by addr2line may not be accurate.\n");
-	    fprintf(f, "   If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
-	    fprintf(f, "   to find out the offset for that line.\n");
+	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
+	    fprintf(f, "    to find out the offset for that line.\n");
 	}
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
+	    line += "\n";
 	    if (have_addr2line) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
@@ -268,20 +269,16 @@ BoxLib::print_backtrace_info (FILE* f)
 		    std::string addr = line.substr(found1+1, found2-found1-1);
 		    std::string full_cmd = cmd + " " + addr;
 		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-			line += "\n    ";
 			char buff[512];
 			while (fgets(buff, sizeof(buff), ps)) {
-			    size_t len = strlen(buff);
+			    line += "    ";
 			    line += buff;
-			    if (buff[len-1] == '\n') {
-				line += "    ";
-			    }
 			}
 			pclose(ps);
 		    }
 		}
 	    }
-	    fprintf(f, "%2d: %s\n", i, line.c_str());
+	    fprintf(f, "%2d: %s", i, line.c_str());
 	}
     }
 }
