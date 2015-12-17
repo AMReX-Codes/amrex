@@ -85,6 +85,12 @@ namespace BoxLib
     void average_down (MultiFab& S_fine, MultiFab& S_crse, const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
+  
+        if (S_fine.is_nodal() || S_crse.is_nodal())
+        {
+            BoxLib::Error("Can't use BoxLib::average_down for nodal MultiFab!");
+        }
+
 #if (BL_SPACEDIM == 3)
 	BoxLib::average_down(S_fine, S_crse, scomp, ncomp, ratio);
 	return;
