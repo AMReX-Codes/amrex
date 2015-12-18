@@ -305,18 +305,6 @@ BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 void
 BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
-#ifdef __linux__
-    {
-	if (argv[0][0] != '/') {
-	    char temp[1024];
-	    getcwd(temp,1024);
-	    exename = temp;
-	    exename += "/";
-	}
-	exename += argv[0];
-    }
-#endif    
-
 #ifndef WIN32
     //
     // Make sure to catch new failures.
@@ -333,6 +321,18 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
+#ifdef __linux__
+    {
+	if (argv[0][0] != '/') {
+	    char temp[1024];
+	    getcwd(temp,1024);
+	    exename = temp;
+	    exename += "/";
+	}
+	exename += argv[0];
+    }
+#endif    
 
     while (!The_Initialize_Function_Stack.empty())
     {
