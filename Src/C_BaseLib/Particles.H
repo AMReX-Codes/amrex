@@ -5392,7 +5392,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
 }
     
 //
-// Uses a predictor/corrector to advance particles using umac.
+// Uses midpoint method to advance particles using umac.
 //
 
 template <int N>
@@ -5404,7 +5404,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 {
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
-    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
+    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
     D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
@@ -5493,27 +5493,19 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                     if (ipass == 0)
                     {
                         //
-                        // Predictor:
+                        // Save old position and the vel & predict location at dt/2.
                         //
-                        // Save old position and the vel & predict new time location.
-                        //
-                        p.m_data[vcomp + d]             = p.m_pos[d];
-                        p.m_data[vcomp + d+BL_SPACEDIM] = vel;
-
-                        p.m_pos[d] += dt*vel;
+                        p.m_data[vcomp+d] = p.m_pos[d];
+                        p.m_pos[d] += 0.5*dt*vel;
                     }
                     else
                     {
                         //
-                        // Corrector:
+                        // Update to final time using the orig position and the vel at dt/2.
                         //
-                        // Update to final time using the orig position and the new vel.
-                        //
+                        p.m_pos[d]  = p.m_data[vcomp+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
-                        //
-                        p.m_pos[d]  = Real(0.5) * (p.m_data[vcomp + d] + p.m_pos[d] + dt*vel);
-
-                        p.m_data[vcomp + d] = Real(0.5) * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
+			p.m_data[vcomp+d] = vel;
                     }
                 }
                 
@@ -7170,7 +7162,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(mf.nGrow() >= 1);
     BL_ASSERT(!basename.empty());
-    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
+    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev <= m_gdb->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
