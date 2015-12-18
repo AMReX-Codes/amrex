@@ -278,7 +278,7 @@ BoxLib::print_backtrace_info (FILE* f)
 		    }
 		}
 	    }
-	    fprintf(f, "%2d: %s", i, line.c_str());
+	    fprintf(f, "%2d: %s\n", i, line.c_str());
 	}
     }
 }
