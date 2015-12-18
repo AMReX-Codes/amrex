@@ -305,6 +305,8 @@ BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 void
 BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
+    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
 #ifndef WIN32
     //
     // Make sure to catch new failures.
@@ -319,8 +321,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     signal(SIGINT,  BLBackTrace::handler);
     signal(SIGTERM, BLBackTrace::handler);
 #endif
-
-    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
 #ifdef __linux__
     {
