@@ -3415,7 +3415,7 @@ Amr::initPltAndChk ()
     }
 
     small_plot_file_root = "smallplt";
-    pp.query("small_plot_file",plot_file_root);
+    pp.query("small_plot_file",small_plot_file_root);
 
     small_plot_int = -1;
     pp.query("small_plot_int",small_plot_int);
