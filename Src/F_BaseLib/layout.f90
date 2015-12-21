@@ -2820,7 +2820,7 @@ contains
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
     integer :: dm, n, i, j, k, cnt, full
-    type(box) :: bx, cbx
+    type(box) :: bx, cbx, nbx
     integer :: lcrsn
     integer :: sz
     type(box_hash_bin), pointer :: bins(:,:,:)
@@ -2831,8 +2831,11 @@ contains
     dm = la%lap%dim
     ba = get_boxarray(la)
     vsz = 0; vsz(1:dm) = -Huge(1)
+    bx = nobox(ba%dim)
     do n = 1, nboxes(ba)
-       vsz(1:dm) = max(vsz(1:dm),extent(get_box(ba,n)))
+       nbx = box_nodalize(get_box(ba,n),(/.true.,.true.,.true./))
+       bx = bbox(bx, nbx)
+       vsz(1:dm) = max(vsz(1:dm),extent(nbx))
     end do
     if ( present(crsn) ) then
        lcrsn = crsn
@@ -2840,7 +2843,6 @@ contains
        lcrsn = maxval(vsz)
     end if
     la%lap%crsn = lcrsn
-    bx  = boxarray_bbox(ba)
     cbx = coarsen(bx, lcrsn)
     la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
     la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
@@ -2885,20 +2887,27 @@ contains
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
-  function layout_get_box_intersector(la, bx) result(bi)
+  function layout_get_box_intersector(la, bx, ng_in) result(bi)
     use bl_error_module
     type(box_intersector), pointer :: bi(:)
     type(layout), intent(inout) :: la
     type(box), intent(in) :: bx
+    integer, intent(in), optional :: ng_in
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: dm
     type(box) :: bx1
-    integer :: i, j, k, n
+    integer :: i, j, k, n, ng
     type(boxarray) :: ba
     integer, parameter :: ChunkSize = 50
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)
+
+    if (present(ng_in)) then
+       ng = ng_in
+    else
+       ng = 0
+    end if
 
     !$OMP CRITICAL(initboxhashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
@@ -2909,7 +2918,7 @@ contains
     dm = la%lap%dim
     ba = get_boxarray(la)
     bins => la%lap%bins
-    bx1 = coarsen(bx, la%lap%crsn)
+    bx1 = coarsen(grow(bx,ng), la%lap%crsn)
     lo = 0; lo(1:dm) = lwb(bx1)
     hi = 0; hi(1:dm) = upb(bx1)
     cnt = 0
@@ -2921,12 +2930,12 @@ contains
 
                 if ( associated(bins(i,j,k)%iv) ) then
                    do n = 1, size(bins(i,j,k)%iv)
-                      bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                      bx1 = intersection(bx, grow(get_box(ba,bins(i,j,k)%iv(n)),ng))
                       if ( empty(bx1) ) cycle
                       cnt = cnt + 1
 
                       if (cnt > size(bi)) then
-                         allocate(tbi(size(bi) * 2))
+                         allocate(tbi(int(size(bi)*1.5)))
                          tbi(1:cnt-1) = bi(1:cnt-1)
                          deallocate(bi)
                          bi => tbi
@@ -2947,12 +2956,12 @@ contains
 
              if ( associated(bins(i,j,k)%iv) ) then
                 do n = 1, size(bins(i,j,k)%iv)
-                   bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                   bx1 = intersection(bx, grow(get_box(ba,bins(i,j,k)%iv(n)),ng))
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
 
                    if (cnt > size(bi)) then
-                      allocate(tbi(size(bi) * 2))
+                      allocate(tbi(int(size(bi)*1.5)))
                       tbi(1:cnt-1) = bi(1:cnt-1)
                       deallocate(bi)
                       bi => tbi
@@ -2972,12 +2981,12 @@ contains
 
           if ( associated(bins(i,j,k)%iv) ) then
              do n = 1, size(bins(i,j,k)%iv)
-                bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                bx1 = intersection(bx, grow(get_box(ba,bins(i,j,k)%iv(n)),ng))
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
 
                 if (cnt > size(bi)) then
-                   allocate(tbi(size(bi) * 2))
+                   allocate(tbi(int(size(bi)*1.5)))
                    tbi(1:cnt-1) = bi(1:cnt-1)
                    deallocate(bi)
                    bi => tbi
