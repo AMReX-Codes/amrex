@@ -202,7 +202,6 @@ contains
     type(box)           :: domain,bxi,bxj,bx_to,bx_from
     type(box)           :: domain_edge_src, domain_edge_dst
     type(layout)        :: dstla, srcla
-    type(boxarray)      :: ba
     real(dp_t), pointer :: ap(:,:,:,:), bp(:,:,:,:)
     integer             :: i,j,ii,jj,idir,jdir,kdir,proc,dm,nc
     logical             :: nodal(get_dim(dst))
@@ -235,22 +234,12 @@ contains
     domain     = box_nodalize(get_pd(get_layout(dst)),nodal)
     dlen(1:dm) = extent(domain)
 
+    dstla = get_layout(dst)
+    srcla = get_layout(src)
+
     call build(bpt, "periodic_add_copy")
 
-    if ( synced ) call multifab_build(temp_dst,get_layout(dst),nc,0,nodal)
-    !
-    ! Need to build temporary layouts with nodal boxarrays for the intersection tests below.
-    !
-    call boxarray_build_copy(ba, get_boxarray(get_layout(dst)))
-    call boxarray_nodalize(ba, nodal)
-    ! LA_LOCAL ==> bypass processor distribution calculation.
-    call layout_build_ba(dstla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  
-    call boxarray_destroy(ba)
-    call boxarray_build_copy(ba, get_boxarray(get_layout(src)))
-    call boxarray_nodalize(ba, nodal)
-    ! LA_LOCAL ==> bypass processor distribution calculation.
-    call layout_build_ba(srcla, ba, boxarray_bbox(ba), mapping = LA_LOCAL)  
-    call boxarray_destroy(ba)
+    if ( synced ) call multifab_build(temp_dst,dstla,nc,0,nodal)
 
     do kdir = -1,1
 
@@ -280,12 +269,12 @@ contains
              !
              ! Add values from domain_edge_src side to domain_edge_dst side
              !
-             bidst => layout_get_box_intersector(dstla, domain_edge_dst)
+             bidst => layout_get_box_intersector(dstla, domain_edge_dst, nodal_in=nodal)
 
              do jj = 1, size(bidst)
                 j     =  bidst(jj)%i
                 bxj   =  bidst(jj)%bx
-                bisrc => layout_get_box_intersector(srcla, domain_edge_src)
+                bisrc => layout_get_box_intersector(srcla, domain_edge_src, nodal_in=nodal)
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
                    if ( remote(dst%la,j) .and. remote(src%la,i) ) cycle
@@ -340,9 +329,6 @@ contains
     end do
 
     if ( synced ) call multifab_destroy(temp_dst)
-
-    call layout_destroy(dstla)
-    call layout_destroy(srcla)
 
     call destroy(bpt)
 
