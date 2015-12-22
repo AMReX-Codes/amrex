@@ -269,12 +269,12 @@ contains
              !
              ! Add values from domain_edge_src side to domain_edge_dst side
              !
-             bidst => layout_get_box_intersector(dstla, domain_edge_dst, nodal_in=nodal)
+             bidst => layout_get_box_intersector(dstla, domain_edge_dst, nodal_la=nodal)
 
              do jj = 1, size(bidst)
                 j     =  bidst(jj)%i
                 bxj   =  bidst(jj)%bx
-                bisrc => layout_get_box_intersector(srcla, domain_edge_src, nodal_in=nodal)
+                bisrc => layout_get_box_intersector(srcla, domain_edge_src, nodal_la=nodal)
                 do ii = 1, size(bisrc)
                    i = bisrc(ii)%i
                    if ( remote(dst%la,j) .and. remote(src%la,i) ) cycle

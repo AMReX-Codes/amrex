@@ -1214,10 +1214,9 @@ contains
 
   end subroutine boxarray_bndry_periodic
 
-  subroutine sumassoc_build_innards(bxasc, la, lap, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
     integer,          intent(in)    :: ng
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
@@ -1237,9 +1236,9 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false., bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, .false., bxasc%idim)
        do ii = 1, nboxes(bxai)
-          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_in=bxasc%nodal)
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1268,8 +1267,8 @@ contains
                    bxasc%r_con%rcv => n_rcv
                 end if
                 cnt_r                    = cnt_r + 1
-                parr(lap%prc(i), 1)      = parr(lap%prc(i), 1) + 1
-                pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
+                parr(la%lap%prc(i), 1)   = parr(la%lap%prc(i), 1) + 1
+                pvol(la%lap%prc(i), 1)   = pvol(la%lap%prc(i), 1) + volume(dbx)
                 bxasc%r_con%rcv(i_r)%nd  = j
                 bxasc%r_con%rcv(i_r)%ns  = i
                 bxasc%r_con%rcv(i_r)%lnd = local_index(la,j)
@@ -1288,8 +1287,8 @@ contains
                    bxasc%r_con%snd => n_snd
                 end if
                 cnt_s                    = cnt_s + 1
-                parr(lap%prc(j), 2)      = parr(lap%prc(j), 2) + 1
-                pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
+                parr(la%lap%prc(j), 2)   = parr(la%lap%prc(j), 2) + 1
+                pvol(la%lap%prc(j), 2)   = pvol(la%lap%prc(j), 2) + volume(dbx)
                 bxasc%r_con%snd(i_s)%nd  = j
                 bxasc%r_con%snd(i_s)%ns  = i
                 bxasc%r_con%snd(i_s)%lns = local_index(la,i)
@@ -1305,10 +1304,9 @@ contains
     end do
   end subroutine sumassoc_build_innards
 
-  subroutine boxassoc_build_innards(bxasc, la, lap, ng, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine boxassoc_build_innards(bxasc, la, ng, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
     integer,          intent(in)    :: ng
     logical,          intent(in)    :: cross
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
@@ -1331,9 +1329,9 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross, bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, cross, bxasc%idim)
        do ii = 1, nboxes(bxai)
-          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_in=bxasc%nodal)
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1366,8 +1364,8 @@ contains
                       bxasc%r_con%snd => n_snd
                    end if
                    cnt_s                    = cnt_s + 1
-                   parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                   pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
+                   parr(la%lap%prc(i), 2)   = parr(la%lap%prc(i), 2) + 1
+                   pvol(la%lap%prc(i), 2)   = pvol(la%lap%prc(i), 2) + volume(sbx)
                    bxasc%r_con%snd(i_s)%nd  = i
                    bxasc%r_con%snd(i_s)%ns  = j
                    bxasc%r_con%snd(i_s)%lns = local_index(la,j)
@@ -1383,8 +1381,8 @@ contains
                       bxasc%r_con%rcv => n_rcv
                    end if
                    cnt_r                    = cnt_r + 1
-                   parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                   pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
+                   parr(la%lap%prc(j), 1)   = parr(la%lap%prc(j), 1) + 1
+                   pvol(la%lap%prc(j), 1)   = pvol(la%lap%prc(j), 1) + volume(sbx)
                    bxasc%r_con%rcv(i_r)%nd  = i
                    bxasc%r_con%rcv(i_r)%ns  = j
                    bxasc%r_con%rcv(i_r)%lnd = local_index(la,i)
@@ -1467,9 +1465,9 @@ contains
        if (bxasc%idim .ne. 0) then
           call bl_error("BOXASSOC_BUILD: sumassoc_build_innards not supported for nonzero idim")
        end if
-       call sumassoc_build_innards(bxasc, la, lap, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     else
-       call boxassoc_build_innards(bxasc, la, lap, ng, bxasc%cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call boxassoc_build_innards(bxasc, la, ng, bxasc%cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 
     call clear_box_hash_bin(la%lap)
@@ -1687,7 +1685,7 @@ contains
        jbx = grow(box_nodalize(get_box(la, j), nodal), ng)
        call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
        do jj = 1, cnt
-          bi => layout_get_box_intersector(la, shift(jbx,shft(jj,:)), ng_in=ng, nodal_in=nodal)
+          bi => layout_get_box_intersector(la, shift(jbx,shft(jj,:)), ng_la=ng, nodal_la=nodal)
           do ii = 1, size(bi)
              !
              ! Only consider j -> i for i >= j
@@ -2042,7 +2040,7 @@ contains
     latmp = la_src  ! la_src is considered like C++ mutable
     do i = 1, nboxes(cpasc%ba_dst)
        bi => layout_get_box_intersector(latmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst), &
-                                        nodal_in=nd_src)
+                                        nodal_la=nd_src)
        do jj = 1, size(bi)
           j = bi(jj)%i
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
@@ -2257,7 +2255,7 @@ contains
     do j = 1, nboxes(bxa_dst)
 
        bi => layout_get_box_intersector(la_src, box_nodalize(get_box(bxa_dst,j), nd_dst), &
-            &                           nodal_in=nd_src)
+            &                           nodal_la=nd_src)
 
        do ii = 1, size(bi)
           i = bi(ii)%i
@@ -2818,13 +2816,13 @@ contains
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
-  function layout_get_box_intersector(la, bx, ng_in, nodal_in) result(bi)
+  function layout_get_box_intersector(la, bx, ng_la, nodal_la) result(bi)
     use bl_error_module
     type(box_intersector), pointer :: bi(:)
     type(layout), intent(inout) :: la
     type(box), intent(in) :: bx
-    integer, intent(in), optional :: ng_in        ! extra ghost cells for la's boxaray
-    logical, intent(in), optional :: nodal_in(:)  ! nodal flag for la's boxarray
+    integer, intent(in), optional :: ng_la        ! extra ghost cells for la's boxaray
+    logical, intent(in), optional :: nodal_la(:)  ! nodal flag for la's boxarray
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: dm
@@ -2838,14 +2836,14 @@ contains
 
     dm = la%lap%dim
 
-    if (present(ng_in)) then
-       ng = ng_in
+    if (present(ng_la)) then
+       ng = ng_la
     else
        ng = 0
     end if
 
-    if (present(nodal_in)) then
-       nodal(1:dm) = nodal_in(1:dm)
+    if (present(nodal_la)) then
+       nodal(1:dm) = nodal_la(1:dm)
     else
        nodal = .false.
     end if
