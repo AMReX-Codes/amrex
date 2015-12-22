@@ -1726,6 +1726,8 @@ contains
        end do
     end do
 
+    call clear_box_hash_bin(la%lap)
+
   end subroutine internal_sync_unique_cover
 
   subroutine syncassoc_build(snasc, lap, ng, nodal, lall)
@@ -2101,6 +2103,8 @@ contains
        end do
        deallocate(bi)
     end do
+
+    call clear_box_hash_bin(latmp%lap)
 
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s

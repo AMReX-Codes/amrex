@@ -328,6 +328,9 @@ contains
        end do
     end do
 
+    call clear_box_hash_bin(dstla%lap)
+    call clear_box_hash_bin(srcla%lap)
+
     if ( synced ) call multifab_destroy(temp_dst)
 
     call destroy(bpt)
