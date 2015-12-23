@@ -2124,15 +2124,16 @@ Amr::coarseTimeStep (Real stop_time)
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
 
     int check_test = 0;
+
     if (check_per > 0.0)
     {
-      const int num_per_old = cumtime / check_per;
-      const int num_per_new = (cumtime+dt_level[0]) / check_per;
+      const int num_per_old = (cumtime-dt_level[0]) / check_per;
+      const int num_per_new = (cumtime            ) / check_per;
 
       if (num_per_old != num_per_new)
-	{
-	 check_test = 1;
-	}
+      {
+	check_test = 1;
+      }
     }
 
     int to_stop       = 0;    
