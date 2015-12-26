@@ -951,12 +951,12 @@ Geometry::GetFPB (const Geometry&      geom,
 
             if (fpb.m_do_corners)
             {
-                for (int i = 0; i < BL_SPACEDIM; i++)
+                for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 {
-                    if (!geom.isPeriodic(i))
+                    if (!geom.isPeriodic(dir))
                     {
-                        src.growLo(i,fpb.m_ngrow);
-                        src.growHi(i,fpb.m_ngrow);
+                        src.growLo(dir,fpb.m_ngrow);
+                        src.growHi(dir,fpb.m_ngrow);
                     }
                 }
             }
@@ -1027,7 +1027,7 @@ Geometry::GetFPB (const Geometry&      geom,
     //
     // set thread safety
     //
-    if ( ba[0].cellCentered() ) {
+    if ( ba.ixType().cellCentered() && fpb.m_do_corners == false ) {
 	TheFPB.m_threadsafe_loc = true;
 	TheFPB.m_threadsafe_rcv = true;
     } else {
