@@ -339,7 +339,13 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const int dst_owner = dm_dst[k_dst];
 
 	    if (dst_owner == MyProc) {
-		TheCPC.m_LocTags->push_back(CopyComTag(bx, k_dst, k_src));
+		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+		for (BoxList::const_iterator
+			 it_tile  = tilelist.begin(),
+			 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		{
+		    TheCPC.m_LocTags->push_back(CopyComTag(*it_tile, k_dst, k_src));
+		}
 	    } else {
 		send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
 	    }
@@ -677,7 +683,13 @@ FabArrayBase::TheFB (bool                cross,
 	    if (krcv == ksnd) continue;  // same box
 
 	    if (dst_owner == MyProc) {
-		TheFB.m_LocTags->push_back(CopyComTag(bx, krcv, ksnd));
+		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+		for (BoxList::const_iterator
+			 it_tile  = tilelist.begin(),
+			 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		{
+		    TheFB.m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
+		}
 	    } else {
 		send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
 	    }
