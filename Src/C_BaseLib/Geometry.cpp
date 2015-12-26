@@ -351,7 +351,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                         tag.box      = dbx;
                         tag.fabIndex = i;
 
-                        FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,tag.box);
+                        FabArrayBase::SetTag(m_RcvTags, src_owner, tag,
+					     m_RcvVols, tag.box);
                     }
                 }
                 else if (src_owner == MyProc)
@@ -359,7 +360,8 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                     tag.box      = sbx;
                     tag.fabIndex = j;
 
-                    FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,tag.box);
+                    FabArrayBase::SetTag(m_SndTags, dst_owner, tag, 
+					 m_SndVols, tag.box);
                 }
             }
         }
@@ -988,12 +990,14 @@ Geometry::GetFPB (const Geometry&      geom,
                         }
                         else
                         {
-                            FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags,src_owner,tag,*TheFPB.m_RcvVols,tag.dbox);
+                            FabArrayBase::SetTag(*TheFPB.m_RcvTags, src_owner, tag, 
+						 *TheFPB.m_RcvVols, tag.dbox);
                         }
                     }
                     else if (src_owner == MyProc)
                     {
-                        FabArrayBase::SetSendTag(*TheFPB.m_SndTags,dst_owner,tag,*TheFPB.m_SndVols,tag.dbox);
+                        FabArrayBase::SetTag(*TheFPB.m_SndTags, dst_owner, tag,
+					     *TheFPB.m_SndVols, tag.dbox);
                     }
                 }
             }
