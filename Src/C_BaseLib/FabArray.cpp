@@ -341,14 +341,14 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                     }
                     else
                     {
-                        FabArrayBase::SetTag(*TheCPC.m_RcvTags, src_owner, tag,
-					     *TheCPC.m_RcvVols, *it);
+                        FabArrayBase::SetRecvTag(*TheCPC.m_RcvTags, src_owner, tag,
+						 *TheCPC.m_RcvVols, *it);
                     }
                 }
                 else if (src_owner == MyProc)
                 {
-                    FabArrayBase::SetTag(*TheCPC.m_SndTags, dst_owner, tag,
-					 *TheCPC.m_SndVols, *it);
+                    FabArrayBase::SetSendTag(*TheCPC.m_SndTags, dst_owner, tag,
+					     *TheCPC.m_SndVols, *it);
                 }
             }
         }
