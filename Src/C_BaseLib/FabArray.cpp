@@ -711,16 +711,19 @@ FabArrayBase::TheFB (bool                cross,
 			lo.setSmall(dir, dstfabbx.smallEnd(dir) - ng);
 			lo.setBig  (dir, dstfabbx.smallEnd(dir) - 1);
 			lo &= bx;
+			if (lo.ok()) {
+			    boxes.push_back(lo);
+			    vol += lo.numPts();
+			}
 
 			Box hi = dstfabbx;
 			hi.setSmall(dir, dstfabbx.bigEnd(dir) + 1);
 			hi.setBig  (dir, dstfabbx.bigEnd(dir) + ng);
 			hi &= bx;
-
-			boxes.push_back(lo);
-			boxes.push_back(hi);
-			vol += lo.numPts();
-			vol += hi.numPts();
+			if (hi.ok()) {
+			    boxes.push_back(hi);
+			    vol += hi.numPts();
+			}
 		    }
 		} else {
 		    boxes.push_back(bx);
