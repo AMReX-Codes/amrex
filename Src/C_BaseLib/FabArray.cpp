@@ -396,6 +396,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    std::sort(cctv.begin(), cctv.end());
 
 	    std::vector<CopyComTag> new_cctv;
+	    new_cctv.reserve(cctv.size());
 
 	    for (std::vector<CopyComTag>::const_iterator 
 		     it2  = cctv.begin(),
@@ -741,6 +742,7 @@ FabArrayBase::TheFB (bool                cross,
 	    std::sort(cctv.begin(), cctv.end());
 
 	    std::vector<CopyComTag> new_cctv;
+	    new_cctv.reserve(cctv.size());
 
 	    for (std::vector<CopyComTag>::const_iterator 
 		     it2  = cctv.begin(),
