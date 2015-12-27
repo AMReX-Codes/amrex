@@ -1171,23 +1171,24 @@ contains
     if ( cross ) then
        gbx = box_nodalize(b,nodal)
        do i = 1, gbx%dim
-          if (idim .ne. 0 .and. idim .ne. i) cycle
-          !
-          ! lo face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          upbx(i) = lwbx(i) - 1
-          lwbx(i) = lwbx(i) - ng
-          call push_back(bl, make_box(lwbx,upbx))
-          !
-          ! hi face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          lwbx(i) = upbx(i) + 1
-          upbx(i) = upbx(i) + ng
-          call push_back(bl, make_box(lwbx,upbx))
+          if (idim .eq. 0 .or. idim .eq. i) then
+             !
+             ! lo face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             upbx(i) = lwbx(i) - 1
+             lwbx(i) = lwbx(i) - ng
+             call push_back(bl, make_box(lwbx,upbx))
+             !
+             ! hi face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             lwbx(i) = upbx(i) + 1
+             upbx(i) = upbx(i) + ng
+             call push_back(bl, make_box(lwbx,upbx))
+          end if
        end do
        call boxarray_build_l(tba, bl, sort = .false.)
        call destroy(bl)
