@@ -34,6 +34,141 @@ import tarfile
 import time
 
 
+usage = """
+The test suite and its tests are defined through an input file in an INI
+configuration file format.
+
+The "main" block specifies the global test suite parameters:
+
+  [main]
+
+  testTopDir     = < full path to test output directory >
+  webTopDir      = < full path to test web output directory >
+
+  sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
+
+  suiteName = < descriptive name (i.e. Castro) >
+
+  reportActiveTestsOnly = <0: web shows every test ever run; 
+                           1: just current tests >
+ 
+  goUpLink = <1: add "Go UP" link at top of the web page >
+
+  FCOMP = < name of Fortran compiler >
+  COMP  = < name of C/C++ compiler >
+
+  purge_output = <0: leave all plotfiles in place; 
+                  1: delete plotfiles after compare >
+
+  MAKE = < name of make >
+  numMakeJobs = < number of make jobs >
+
+  MPIcommand = < MPI run command, with holders for host, # of proc, command >
+
+     This should look something like:
+
+          mpiexec -host @host@ -n @nprocs@ @command@ >
+
+  MPIhost = < host for MPI job -- depends on MPI implementation >
+
+  sendEmailWhenFail = < 1: send email when any tests fail >
+
+  emailTo = < list of email addresses separated by commas, such as,
+              foo@example.com, bar@example.com >
+
+  emailBody = < email body >
+
+
+The source git repositories are defined in separate blocks.  There
+will always be a "BoxLib" block, and usually a "source" block which is
+the default directory used for compiling the tests.  Any extra repos
+(including those where additional tests are to be build) are defined
+in their own block starting with "extra-"
+
+The general form is:
+
+  [name]
+
+  dir = < full path to git repo >
+
+  branch = < desired branch in the git repo >
+
+  build = < 1: this is a directory that tests will be compiled in >
+
+  comp_string = < a string that is added to the make line >
+
+      comp_string can refer to both the main source directory (as @source@)
+      and its own directory (as @self@), for example:
+ 
+      comp_string = CASTRO_DIR=@source@ WDMERGER_HOME=@self@
+
+
+Each test is given its own block, with the general form:
+
+  [Sod-x]
+
+  buildDir = < relative path (from sourceDir) for this problem >
+
+  inputFile = < input file name >
+  probinFile = < probin file name >
+
+  dim = < dimensionality: 1, 2, or 3 >
+
+  aux?File = < name of additional file needed by the test >
+  link?File = < name of additional file needed by the test >
+
+      Here "?" is 1, 2, or 3, allowing for several files per test
+
+  restartTest = < is this a restart test? 0 for no, 1 for yes >
+  restartFileNum = < # of file to restart from (if restart test) >
+
+  useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
+  numprocs = < # of processors to run on (if parallel job) >
+
+  useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
+  numthreads = < # of threads to us with OpenMP (if OpenMP job) >
+
+  debug = < 0 for normal run, 1 if we want debugging options on >
+
+  compileTest = < 0 for normal run, 1 if we just test compilation >
+
+  selfTest = < 0 for normal run, 1 if test self-diagnoses if it succeeded >
+  stSuccessString = < string to find in self-test output to determine success >
+
+  doVis = < 0 for no visualization, 1 if we do visualization >
+  visVar = < string of the variable to visualize >
+
+  analysisRoutine = < name of the script to run on the output >
+
+      The script is run as:
+
+        analysisRoutine [options] plotfile 
+
+  analysisMainArgs = < commandline arguments to pass to the analysisRoutine -- 
+                       these should refer to options from the [main] block >
+
+  analysisOutputImage = < name on analysis result image to show on web page >
+
+  compareFile = < explicit output file to do the comparison with >
+
+  diffDir = < directory/file to do a plain text diff on (recursive, if dir) >
+
+  diffOpts = < options to use with the diff command for the diffDir comparison >
+
+
+Getting started:
+
+To set up a test suite, it is probably easiest to write the
+testfile.ini as described above and then run the test routine with the
+--make_benchmarks option to create the benchmark directory.
+Subsequent runs can be done as usual, and will compare to the newly
+created benchmarks.  If differences arise in the comparisons due to
+(desired) code changes, the benchmarks can be updated using
+--make_benchmarks to reflect the new ``correct'' solution.
+
+"""
+
+
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # T E S T   C L A S S E S
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -46,7 +181,8 @@ class Test(object):
         self.log = None
 
         self.buildDir = ""
-        self.useExtraBuildDir = 0
+
+        self.extra_build_dir = ""
 
         self.testSrcTree = ""
 
@@ -132,12 +268,15 @@ class Test(object):
         return last_plot
 
 
+
 class Suite(object):
 
     def __init__ (self, args):
 
         self.args = args
-        
+
+        # this will hold all of the Repo() objects for the BoxLib, source,
+        # and build directories
         self.repos = {}
 
         self.test_file_path = os.getcwd() + '/' + self.args.input_file[0]
@@ -146,38 +285,13 @@ class Suite(object):
         self.sub_title = ""
 
         self.sourceTree = ""
-        self.boxLibDir = ""
-        self.sourceDir = ""
         self.testTopDir = ""
         self.webTopDir = ""
 
-        self.useExtSrc = 0     # set automatically -- not by users
-        self.extSrcDir = ""
-        self.extSrcCompString = ""
-
-        self.boxLibGitBranch = "development"
-        self.sourceGitBranch = "development"
-        self.extSrcGitBranch = "development"
-
-        # this will hold the # of extra build directories we need to worry
-        # about.  It is set automatically, not by users
-        self.useExtraBuild = 0
-
-        self.extra_build_dirs = []
-        self.extra_build_branches = []
-
-        # this should be the environment variable name that should be
-        # set so the builds in the extraBuildDir can see the main
-        # source.  This environment variable will be set to the
-        # sourceTree path and included on the make lines
-        self.extraBuildDirCompString = ""
-
-        # these are set automatically by the script -- they hold the
-        # basename of the various source directories
-        self.srcName = ""
-        self.extSrcName = ""
-        self.extra_build_names = []
-
+        # set automatically
+        self.source_dir = ""
+        self.boxlib_dir = ""
+        
         self.MPIcommand = ""
         self.MPIhost = ""
 
@@ -364,15 +478,19 @@ class Suite(object):
         os.chdir(cwd)
         return failed
 
-    def make_realclean(self):
+    def make_realclean(self, repo="source"):
+        build_comp_string = ""
+        if self.repos[repo].build == 1:
+            build_comp_string = self.repos[repo].comp_string
+            
         cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
-            self.MAKE, self.boxLibDir,
-            self.extSrcCompString, self.extraBuildDirCompString)
+            self.MAKE, self.boxlib_dir,
+            self.extra_src_comp_string, build_comp_string)
         run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
         comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
-            self.MAKE, self.numMakeJobs, self.boxLibDir, self.FCOMP, opts, target)
+            self.MAKE, self.numMakeJobs, self.boxlib_dir, self.FCOMP, opts, target)
         self.log.log(comp_string)
         run(comp_string, outfile=outfile)
         return comp_string
@@ -397,11 +515,11 @@ class Suite(object):
     def build_tools(self, test_list):
 
         self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
-            os.path.normpath(self.boxLibDir))
+            os.path.normpath(self.boxlib_dir))
 
         os.chdir(self.compare_tool_dir)
 
-        self.make_realclean()
+        self.make_realclean(repo="BoxLib")
 
         tools = ["fcompare", "fboxinfo"]
         if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")
@@ -425,16 +543,23 @@ class Suite(object):
 class Repo(object):
     """ a simple class to manage our git operations """
     def __init__(self, suite, directory, name, 
-                 branch_wanted=None, hash_wanted=None, update=True):
+                 branch_wanted=None, hash_wanted=None,
+                 build=0, comp_string=None):
+
         self.suite = suite
         self.dir = directory
         self.name = name
         self.branch_wanted = branch_wanted
-        self.branch_orig = None
         self.hash_wanted = hash_wanted
+
+        self.build = build   # does this repo contain build directories?
+        self.comp_string = comp_string   # environment vars needed to build
+        
+        # for storage
+        self.branch_orig = None
         self.hash_current = None
 
-        self.update = update
+        self.update = True
         if hash_wanted:
             self.update = False
 
@@ -550,7 +675,6 @@ def load_params(args):
     mysuite.log = log
 
     valid_options = list(mysuite.__dict__.keys())
-    valid_options += ["extraBuildDir", "extraBuildDir2"]
 
     for opt in cp.options("main"):
 
@@ -565,35 +689,8 @@ def load_params(args):
                 else:
                     mysuite.sourceTree = value
 
-            elif opt == "sourceDir": mysuite.sourceDir = mysuite.check_test_dir(value)
-            elif opt == "boxLibDir": mysuite.boxLibDir = mysuite.check_test_dir(value)
             elif opt == "testTopDir": mysuite.testTopDir = mysuite.check_test_dir(value)
             elif opt == "webTopDir": mysuite.webTopDir = os.path.normpath(value) + "/"
-            elif opt == "extSrcDir":
-                mysuite.extSrcDir = mysuite.check_test_dir(value)
-                mysuite.useExtSrc = 1
-
-            elif opt == "extraBuildDir":
-                # we will keep the extra build directories in a list -- we
-                # want them in the correct order in the list so we can simply
-                # index later
-
-                try: branch = convert_type(cp.get("main", "extraBuildBranch"))
-                except: branch = "master"
-                
-                if len(mysuite.extra_build_dirs) == 0:
-                    mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
-                    mysuite.extra_build_branches.append(branch)
-                else:
-                    mysuite.extra_build_dirs.insert(0, mysuite.check_test_dir(value))
-                    mysuite.extra_build_branches.insert(0, branch)
-
-            elif opt == "extraBuildDir2":
-                try: branch = convert_type(cp.get("main", "extraBuildBranch2"))
-                except: branch = "master"
-
-                mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
-                mysuite.extra_build_branches.append(branch)
                 
             elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
@@ -605,50 +702,81 @@ def load_params(args):
             mysuite.log.warn("WARNING: suite parameter %s not valid" % (opt))
 
 
-    mysuite.useExtraBuild = len(mysuite.extra_build_dirs)
+    # BoxLib -- this will always be defined
+    try: rdir = cp.get("BoxLib", "dir")
+    except: rdir = None
+    rdir = mysuite.check_test_dir(rdir)    
 
-    # create the repo objects
-    mysuite.repos["BoxLib"] = Repo(mysuite, mysuite.boxLibDir, "BoxLib",
-                                   branch_wanted=mysuite.boxLibGitBranch, 
-                                   hash_wanted=mysuite.args.boxLibGitHash)
+    try: branch = convert_type(cp.get("BoxLib", "branch"))
+    except: branch = None
 
-    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
-    if not mysuite.sourceTree == "BoxLib":
-        mysuite.repos["source"] = Repo(mysuite, mysuite.sourceDir, mysuite.srcName,
-                                       branch_wanted=mysuite.sourceGitBranch, 
-                                       hash_wanted=mysuite.args.sourceGitHash)
+    try: rhash = convert_type(cp.get("BoxLib", "hash"))
+    except: rhash = None
+    
+    mysuite.repos["BoxLib"] = Repo(mysuite, rdir, "BoxLib",
+                                   branch_wanted=branch, hash_wanted=rhash)
 
-    if mysuite.useExtSrc:
-        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
 
-        # update the additional compilation str for additional source dir
-        if mysuite.extSrcCompString != "":
-            mysuite.extSrcCompString += "="+mysuite.extSrcDir
+    # now all the other build and source directories
+    other_srcs = [s for s in cp.sections() if s.startswith("extra-")]
+    if not mysuite.sourceTree == "BoxLib": other_srcs.append("source")
+        
+    for s in other_srcs:
+        if s.startswith("extra-"):
+            k = s.split("-")[1]
+        else:
+            k = "source"
+        
+        try: rdir = cp.get(s, "dir")
+        except: rdir = None
+        rdir = mysuite.check_test_dir(rdir)    
+        
+        try: branch = convert_type(cp.get(s, "branch"))
+        except: branch = None
 
-        mysuite.repos["extra_source"] = Repo(mysuite, mysuite.extSrcDir, 
-                                             mysuite.extSrcName,
-                                             branch_wanted=mysuite.extSrcGitBranch,
-                                             hash_wanted=mysuite.args.extSrcGitHash)
+        try: rhash = convert_type(cp.get(s, "hash"))
+        except: rhash = None
 
-    # update additional compiled string for any extra build directory
-    if mysuite.useExtraBuild > 0:
-        for n in range(len(mysuite.extra_build_dirs)):
-            extra_build_name = os.path.basename(os.path.normpath(mysuite.extra_build_dirs[n]))
-            mysuite.extra_build_names.append(extra_build_name)
+        try: build = convert_type(cp.get(s, "build"))
+        except: build = 0
 
-            mysuite.repos["extra_build-{}".format(n)] = \
-                Repo(mysuite, mysuite.extra_build_dirs[n],
-                     extra_build_name, 
-                     branch_wanted=mysuite.extra_build_branches[n])
+        if s == "source": build = 1
 
-        # since we are building in the extraBuildDir, we need to
-        # tell make where the sourceDir is
-        if mysuite.extraBuildDirCompString != "":
-            mysuite.extraBuildDirCompString += "="+mysuite.sourceDir
+        try: comp_string = cp.get(s, "comp_string")
+        except: comp_string = None
+        
+        name = os.path.basename(os.path.normpath(rdir))
 
+        mysuite.repos[k] = Repo(mysuite, rdir, name,
+                                branch_wanted=branch, hash_wanted=rhash,
+                                build=build, comp_string=comp_string)                                
+
+            
     # BoxLib-only tests don't have a sourceDir
-    if mysuite.sourceTree == "BoxLib": mysuite.sourceDir = mysuite.boxLibDir
+    mysuite.boxlib_dir = mysuite.repos["BoxLib"].dir
+    
+    if mysuite.sourceTree == "BoxLib":
+        mysuite.source_dir = mysuite.repos["BoxLib"].dir
+    else:
+        mysuite.source_dir = mysuite.repos["source"].dir
 
+
+    # now flesh out the compile strings -- they may refer to either themselves
+    # or the source dir
+    for r in mysuite.repos.keys():
+        s = mysuite.repos[r].comp_string
+        if not s is None:
+            mysuite.repos[r].comp_string = \
+                s.replace("@self@", mysuite.repos[r].dir).replace("@source@", mysuite.repos["source"].dir)
+
+
+    # the suite needs to know both ext_src_comp_string 
+    mysuite.extra_src_comp_string = ""
+    for r in mysuite.repos.keys():
+        if not mysuite.repos[r].build == 1:
+            if not mysuite.repos[r].comp_string is None:
+                mysuite.extra_src_comp_string += "{} ".format(mysuite.repos[r].comp_string)
+            
     # checks
     if mysuite.sendEmailWhenFail and not args.send_no_email:
         if mysuite.emailTo == [] or mysuite.emailBody == "":
@@ -660,8 +788,8 @@ def load_params(args):
         if mysuite.emailSubject == "":
             mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
 
-    if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
-        mysuite.sourceDir == "" or mysuite.testTopDir == ""):
+    if (mysuite.sourceTree == "" or mysuite.boxlib_dir == "" or
+        mysuite.source_dir == "" or mysuite.testTopDir == ""):
         mysuite.log.fail("ERROR: required suite-wide directory not specified\n" + \
                          "(sourceTree, boxLibDir, sourceDir, testTopDir)")
 
@@ -681,7 +809,7 @@ def load_params(args):
 
     for sec in cp.sections():
 
-        if sec == "main": continue
+        if sec in ["main", "BoxLib", "source"] or sec.startswith("extra-"): continue
 
         # maximum test name length -- used for HTML formatting
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
@@ -719,10 +847,10 @@ def load_params(args):
 
 
         # make sure that the build directory actually exists
-        if mytest.useExtraBuildDir > 0:
-            bDir = mysuite.extra_build_dirs[mytest.useExtraBuildDir-1] + mytest.buildDir
+        if not mytest.extra_build_dir == "":
+            bDir = mysuite.repos[mytest.extra_build_dir].dir + mytest.buildDir
         else:
-            bDir = mysuite.sourceDir + mytest.buildDir
+            bDir = mysuite.source_dir + mytest.buildDir
 
         if not os.path.isdir(bDir):
             mysuite.log.warn("WARNING: invalid build directory: {}".format(bDir))
@@ -862,7 +990,8 @@ def get_args(arg_string=None):
     """ parse the commandline arguments.  If arg_string is present, we
         parse from there, otherwise we use the default (sys.argv) """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=usage, formatter_class=argparse.RawDescriptionHelpFormatter)
+    
     parser.add_argument("-d", type=int, default=-1,
                         help="restrict tests to a particular dimensionality")
     parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
@@ -893,12 +1022,12 @@ def get_args(arg_string=None):
                         help="only run the tests that failed last time")
     parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
                         help="the input file (INI format) containing the suite and test parameters")
-
+    
     if not arg_string is None:
         args = parser.parse_args(arg_string)
     else:
         args = parser.parse_args()
-
+        
     return args
 
 
@@ -950,7 +1079,7 @@ def find_build_dirs(tests):
         # in (e.g. the extra build dir)
 
         # first find the list of unique build directories
-        dir_pair = (obj.buildDir, obj.useExtraBuildDir)
+        dir_pair = (obj.buildDir, obj.extra_build_dir)
         if build_dirs.count(dir_pair) == 0:
             build_dirs.append(dir_pair)
 
@@ -1042,237 +1171,6 @@ def convert_to_f_make_flag(opt, test_not=False):
 # test
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 def test_suite(argv):
-
-    usage = """
-    input file structure
-
-      testfile.ini
-          This is the input file that defines the tests that the
-          suite knows about.  It has the format
-
-            [main]
-            boxLibDir      = < directory to the BoxLib/ directory >
-            sourceDir      = < directory to the main Source directory >
-            testTopDir     = < full path to test output directory >
-            webTopDir      = < full path to test web directory >
-            extSrcDir      = < directory to an extra source directory other than
-                               BoxLib and the main source, if there is one >
-            extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
-                                 are set, they will be used by make as follows,
-                                 make extSrcCompString=extSrcDir >
-
-            sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
-
-            suiteName = < descriptive name (i.e. Castro) >
-
-
-            FCOMP = < name of Fortran compiler >
-            COMP  = < name of C/C++ compiler >
-
-            MAKE        = < name of make >
-            numMakeJobs = < number of make jobs >
-
-            MPIcommand = < MPI run command, with placeholders for host,
-                           # of proc, and program command.  Should look
-                           something like :
-                           mpiexec -host @host@ -n @nprocs@ @command@ >
-
-            MPIhost = < host for MPI job -- depends on MPI implementation >
-
-            reportActiveTestsOnly = <If 1, inactive tests will not be include in the web page.>
-
-            goUpLink = <If 1, add "Go UP" link at top of the web page.>
-
-            sendEmailWhenFail = < If 1, send email when any tests fail>
-            emailTo           = < list of email addresses separated by commas,
-                                  such as,
-                                  foo@example.com, bar@example.com >
-            emailBody         = < email body >
-
-            [Sod-x]
-            buildDir = < relative path (from sourceDir) for this problem >
-            inputFile = < input file name >
-            probinFile = < probin file name >
-            dim = < dimensionality: 1, 2, or 3 >
-
-            aux1File = < name of additional file needed by the test >
-            link1File = < name of additional file needed by the test >
-
-            restartTest = < is this a restart test? 0 for no, 1 for yes >
-            restartFileNum = < # of file to restart from (if restart test) >
-
-            useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
-            numprocs = < # of processors to run on (if parallel job) >
-
-            useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
-            numthreads = < # of threads to us with OpenMP (if OpenMP job) >
-
-            debug = < 0 for normal run, 1 if we want debugging options on >
-
-            compileTest = < 0 for normal run, 1 if we just test compilation >
-
-            selfTest = < 0 for normal run, 1 if test self-diagnoses if it
-                         succeeded >
-            stSuccessString = < string to search for in self-test output to
-                         determine success >
-
-            doVis = < 0 for no visualization, 1 if we do visualization >
-            visVar = < string of the variable to visualize >
-
-            analysisRoutine = < name of the script to run on the output.  The
-                                script is run as:
-
-                                analysisRoutine [options] plotfile >
-
-            analysisMainArgs = < commandline arguments to pass to the
-                                 analysisRoutine -- these should refer to
-                                 options from the [main] block >
-
-            analysisOutputImage = < result of the analysis to show on the
-                                    test results page >
-
-            compareFile = < explicit output file to do the comparison with >
-
-            diffDir = < directory or file to do a plain text diff on
-                       (recursive, if directory) >
-
-            diffOpts = < options to use with the diff command for the diffDir
-                        comparison >
-
-          Here, [main] lists the parameters for the test suite as a
-          whole and [Sod-x] is a single test.  There can be many more
-          tests, each with their own unique name, following the format
-          of [Sod-x] above.
-
-          In [main],
-
-            boxLibDir is the full path to the BoxLib/ directory.
-
-            sourceDir should be the full path to the directory where
-            the application source directories live.  For example,
-            this could point to Castro/
-
-            testTopDir is the full path to the directory that will
-            contain the test run directories, the test web
-            directories, and the test benchmark directories.  It can
-            be the same as sourceDir.  The necessary sub- directories
-            will be created at runtime if they don't already exist.
-
-            sourceTree is either C_Src for applications in the C++
-            BoxLib framework or F_Src for applications in the F90
-            BoxLib framework.  For internal BoxLib tests, sourceTree
-            is set to BoxLib.  In this case, each test will need to
-            specify what source tree to use for itself (through the
-            test parameter testSrcTree).
-
-            suiteName is a descriptive name for the test run.  The
-            output directories will be named suiteName-tests/ and
-            suiteName-web/.  The benchmark directory will be
-            suiteName-benchmarks/.
-
-            FCOMP is the name of the Fortran compiler -- this should be
-            a name that the Makefiles of the code recognize.
-
-            COMP is the name of the C++ compiler -- this should be a
-            name that the Makefils of the code recognize.
-
-            MAKE is the name of the make utility -- this should be name that
-            the operating system recongnizes.
-
-            numMakeJobs is the number of make jobs to run simultaneously.
-
-            To run jobs in Parallel, the following need to be set:
-
-               MPIcommand is the full MPI run command, with placeholders
-               for the hosts to run on, number of processors, and executable.
-               For MPICH-2, this would look like:
-
-                 MPIcommand = mpiexec -host @host@ -n @nprocs@ @command@
-
-               MPIhost is the name of the host to run on -- you may or may
-               not need this, depending on the machine you are running on.
-
-               The number of processors is problem dependent and will be
-               set in the problem specific blocks described below.
-
-          For a test problem (e.g. [Sod-x]),
-
-            buildDir is the relative path (wrt sourceDir) where the
-            make command will be issued for the test problem.
-
-            inputFile and probinFile are the names of the input file
-            and associated probin file, respectively.  Note, a
-            probinFile is only required for a C_Src (not F_Src)
-            sourceTree run.
-
-            dim is the dimensionality for the problem.
-
-            aux1File (also aux2File and aux3File) is the name of
-            any additional file needed by the test.  This will be
-            COPIED into the run directory
-
-            link1File (also link2File and link3File) is the name of
-            any additional file needed by the test.  This can be
-            used instead of the aux files.  The difference is that the
-            link files are SYMLINKed into the run directory, instead
-            of copied.
-
-            restartTest = 1 means that this is a restart test.  Instead of
-            comparing to a stored benchmark, we will run the test and then
-            restart from restartFileNum and run until the end.  The last
-            file from the original run and the last from the restart will
-            be compared.
-
-            useMPI is set to 1 if the job is parallel (with MPI).  In
-            this case, you also must specify the number of processors,
-            via numprocs.
-
-            useOMP is set to 1 if the job uses OpenMP.  In this case,
-            you also must specify the number of threads, via
-            numthreads.
-
-            debug is set to 1 if we want to turn on the debugging
-            options defined in the problem's makefile.
-
-            compileTest is set to 0 for a normal test.  Setting to 1 will
-            just test compilation, and not any subsequent output.
-
-            selfTest is set to 0 for a normal test, in which case the
-            test output will be compared to the stored benchmark.  Setting
-            to 1 will determine success by searching for the string
-            stSuccessString in the execution output.
-
-            compareFile is the name of the plotfile that is output that
-            should be used for the comparison.  Normally this is not
-            specified and the suite uses the last plotfile output by the
-            test.
-
-            diffDir is the optional name of a directory (or single
-            file) output by the test that you wish to do a plain test
-            comparison on with a stored benchmark version of the
-            directory.  This is just a straight diff (recursively,
-            within the directory).  This is used, for example, for
-            particle output from some of the codes.  diffOpts is
-            a string providing options to the diff command.  For
-            example: '-I "^#"' to ignore command lines in
-            Maestro diag files.
-
-          Each test problem should get its own [testname] block
-          defining the problem.  The name between the [..] will be how
-          the test is referred to on the webpages.
-
-    Getting started:
-
-      To set up a test suite, it is probably easiest to write the
-      testfile.ini as described above and then run the test routine
-      with the --make_benchmarks option to create the benchmark
-      directory.  Subsequent runs can be done as usual, and will
-      compare to the newly created benchmarks.  If differences arise
-      in the comparisons due to (desired) code changes, the benchmarks
-      can be updated using --make_benchmarks to reflect the new
-      ``correct'' solution.
-
-    """
 
 
     #--------------------------------------------------------------------------
@@ -1418,14 +1316,14 @@ def test_suite(argv):
 
     for dir, source_tree in all_build_dirs:
 
-        if source_tree > 0:
-            suite.log.log("{} in {}".format(dir, suite.extra_build_names[source_tree-1]))
-            os.chdir(suite.extra_build_dirs[source_tree-1] + dir)
+        if not source_tree == "":
+            suite.log.log("{} in {}".format(dir, source_tree))
+            os.chdir(suite.repos[source_tree].dir + dir)
+            suite.make_realclean(repo=source_tree)
         else:
             suite.log.log("{}".format(dir))
-            os.chdir(suite.sourceDir + dir)
-
-        suite.make_realclean()
+            os.chdir(suite.source_dir + dir)
+            suite.make_realclean()
 
     os.chdir(suite.testTopDir)
 
@@ -1452,19 +1350,22 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # compile the code
         #----------------------------------------------------------------------
-        if test.useExtraBuildDir > 0:
-            bDir = suite.extra_build_dirs[test.useExtraBuildDir-1] + test.buildDir
+        if not test.extra_build_dir == "":
+            bdir = suite.repos[test.extra_build_dir].dir + test.buildDir
         else:
-            bDir = suite.sourceDir + test.buildDir
+            bdir = suite.source_dir + test.buildDir
 
-        os.chdir(bDir)
+        os.chdir(bdir)
 
         if test.reClean == 1:
             # for one reason or another, multiple tests use different
             # build options, make clean again to be safe
             suite.log.log("re-making clean...")
-            suite.make_realclean()
-
+            if not test.extra_build_dir == "":
+                suite.make_realclean(repo=test.extra_build_dir)
+            else:
+                suite.make_realclean()
+                
         suite.log.log("building...")
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
@@ -1490,14 +1391,14 @@ def test_suite(argv):
             else:
                 buildOptions += "USE_OMP=FALSE "
 
-            if test.useExtraBuildDir > 0:
-                buildOptions += suite.extraBuildDirCompString + " "
+            if not test.extra_build_dir == "":
+                buildOptions += suite.repos[test.extra_build_dir].comp_string + " "
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
             comp_string = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
-                (suite.MAKE, suite.numMakeJobs, suite.boxLibDir,
-                 suite.extSrcCompString, test.addToCompileString,
+                (suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
+                 suite.extra_src_comp_string, test.addToCompileString,
                  test.dim, buildOptions, suite.COMP, suite.FCOMP,
                  executable)
 
@@ -1512,15 +1413,15 @@ def test_suite(argv):
             build_options += "MPI={} ".format(convert_to_f_make_flag(test.useMPI))
             build_options += "OMP={} ".format(convert_to_f_make_flag(test.useOMP))
 
-            if test.useExtraBuildDir > 0:
-                build_options += suite.extraBuildDirCompString + " "
+            if not test.extra_build_dir == "":
+                build_options += suite.repos[test.extra_build_dir].comp_string + " "
 
             comp_string = suite.build_f(opts="{} {} {}".format(
-                suite.extSrcCompString, test.addToCompileString, build_options),
+                suite.extra_src_comp_string, test.addToCompileString, build_options),
                           outfile="{}/{}.make.out".format(outputDir, test.name))
 
             # we need a better way to get the executable name here
-            executable = get_recent_filename(bDir,"main",".exe")
+            executable = get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
 
@@ -1867,10 +1768,10 @@ def test_suite(argv):
                 if not test.analysisRoutine == "":
 
                     suite.log.log("doing the analysis...")
-                    if test.useExtraBuildDir > 0:
-                        tool = "{}/{}".format(suite.extra_build_dirs[test.useExtraBuildDir-1], test.analysisRoutine)
+                    if not test.extra_build_dir == "":
+                        tool = "{}/{}".format(suite.repos[test.extra_build_dir].dir, test.analysisRoutine)
                     else:
-                        tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
+                        tool = "{}/{}".format(suite.source_dir, test.analysisRoutine)
 
                     shutil.copy(tool, os.getcwd())
 
@@ -2392,9 +2293,9 @@ def report_single_test(suite, test):
 
     ll.item("Build directory: {}".format(test.buildDir))
 
-    if test.useExtraBuildDir > 0:
+    if not test.extra_build_dir == "":
         ll.indent()
-        ll.item("in {}".format(suite.extra_build_dirs[test.useExtraBuildDir-1]))
+        ll.item("in {}".format(suite.repos[test.extra_build_dir].dir))
         ll.outdent()
 
     if not test.compileTest:
