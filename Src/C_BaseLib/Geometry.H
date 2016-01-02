@@ -226,6 +226,15 @@ public:
         Box dbox;
         int srcIndex;
         int dstIndex;
+	FPBComTag () {}
+	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
+	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
+	bool operator< (const FPBComTag& rhs) const {
+	    return (srcIndex < rhs.srcIndex)
+		|| ((srcIndex == rhs.srcIndex) && (dstIndex < rhs.dstIndex))
+		|| ((srcIndex == rhs.srcIndex) && (dstIndex == rhs.dstIndex)
+		    && IntVect::Compare()(dbox.smallEnd(), rhs.dbox.smallEnd()));
+	}
     };
     //
     // Used in caching FillPeriodicBoundary().
