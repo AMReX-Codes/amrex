@@ -481,11 +481,17 @@ class Suite(object):
     def make_realclean(self, repo="source"):
         build_comp_string = ""
         if self.repos[repo].build == 1:
-            build_comp_string = self.repos[repo].comp_string
+            if not self.repos[repo].comp_string is None:
+                build_comp_string = self.repos[repo].comp_string
+
+        extra_src_comp_string = ""
+        if not self.extra_src_comp_string is None:
+            extra_src_comp_string = self.extra_src_comp_string
             
         cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
             self.MAKE, self.boxlib_dir,
-            self.extra_src_comp_string, build_comp_string)
+            extra_src_comp_string, build_comp_string)
+
         run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
@@ -554,7 +560,7 @@ class Repo(object):
 
         self.build = build   # does this repo contain build directories?
         self.comp_string = comp_string   # environment vars needed to build
-        
+
         # for storage
         self.branch_orig = None
         self.hash_current = None
