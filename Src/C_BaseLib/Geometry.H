@@ -168,11 +168,21 @@ public:
     //
     // Fill ghost cells of all components with periodic data.
     //
+    // do_corners: the corner here refers to physical DOMAIN corners
+    // that are partially but not all periodic.  If do_corners=true,
+    // these corners will be filled with peridoically shifted GHOST
+    // cell data, because no valid cell data are available for the
+    // role.  Note that this does not refer to corner cells of boxes
+    // that are not at DOMAIN corners.  Corner cells of a box will
+    // always be filled if valid cell data are available periodically.
+    //
     void FillPeriodicBoundary (MultiFab& mf,
                                bool      do_corners = false,
                                bool      local      = false) const;
     //
     // Fill ghost cells of selected components with periodic data.
+    //
+    // do_corners: see comments above.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
