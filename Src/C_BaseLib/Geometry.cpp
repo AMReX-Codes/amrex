@@ -921,113 +921,172 @@ Geometry::GetFPB (const Geometry&      geom,
     TheFPB.m_SndVols = new std::map<int,int>;
     TheFPB.m_RcvVols = new std::map<int,int>;
 
-    if (mf.IndexMap().empty())
+    const Array<int>& imap = mf.IndexMap();
+
+    if (imap.empty())
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
         return cache_it;
 
+    const int nlocal = imap.size();
+    const int ng = fpb.m_ngrow;
+    std::vector<std::pair<int,Box> > isects;
+    Array<IntVect> pshifts(26);
+
     Box TheDomain = geom.Domain();
     TheDomain.convert(ba.ixType());
+    const Box& GrownDomain = BoxLib::grow(TheDomain,ng);
 
-    Array<IntVect> pshifts(27);
+    FPB::MapOfFPBComTagContainers send_tags; // temp copy
 
-    for (int i = 0, N = ba.size(); i < N; i++)
+    for (int i = 0; i < nlocal; ++i)
     {
-        const Box& dst      = BoxLib::grow(ba[i],fpb.m_ngrow);
-        const int dst_owner = dm[i];
+	const   int k_src = imap[i];
+	const Box& bx_src = ba[k_src];
 
-        if (TheDomain.contains(dst)) continue;
+	if (TheDomain.contains(BoxLib::grow(bx_src,ng))) continue;
 
-        for (int j = 0, N = ba.size(); j < N; j++)
-        {
-            const int src_owner = dm[j];
+	geom.periodicShift(GrownDomain, bx_src, pshifts);
 
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
+	for (Array<IntVect>::const_iterator pit = pshifts.begin(), pEnd = pshifts.end();
+	     pit != pEnd; ++pit)
+	{
+	    const IntVect& iv   = *pit;
+	    const Box&     shft = bx_src + iv;
 
-            Box src = ba[j] & TheDomain;
+	    ba.intersections(shft, isects, ng);
 
-            if (TheDomain.contains(BoxLib::grow(src,fpb.m_ngrow))) continue;
+	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    {
+		const int k_dst     = isects[j].first;
+		Box       bx        = isects[j].second;
+		const int dst_owner = dm[k_dst];
 
-            if (fpb.m_do_corners)
-            {
-                for (int dir = 0; dir < BL_SPACEDIM; dir++)
-                {
-                    if (!geom.isPeriodic(dir))
-                    {
-                        src.growLo(dir,fpb.m_ngrow);
-                        src.growHi(dir,fpb.m_ngrow);
-                    }
-                }
-            }
+		if (fpb.m_do_corners) {
+		    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+			if (!geom.isPeriodic(dir)) {
+			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir)) {
+				bx.growLo(dir,ng);
+			    }
+			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)) {
+				bx.growHi(dir,ng);
+			    }
+			}
+		    }
+		}
 
-            geom.periodicShift(dst, src, pshifts);
-
-            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                 it != End;
-                 ++it)
-            {
-                const IntVect& iv   = *it;
-                const Box&     shft = src + iv;
-
-                Box dbox_tmp = dst & shft;
-
-		const BoxList tilelist(dbox_tmp, FabArrayBase::comm_tile_size);
-
-		for (BoxList::const_iterator it = tilelist.begin(), End = tilelist.end(); it != End; ++it)
-                {
-                    FPBComTag tag;
-                    tag.dbox     = *it;
-                    tag.sbox     = tag.dbox - iv;
-                    tag.dstIndex = i;
-                    tag.srcIndex = j;
-
-                    if (dst_owner == MyProc)
-                    {
-                        if (src_owner == MyProc)
-                        {
-                            TheFPB.m_LocTags->push_back(tag);
-                        }
-                        else
-                        {
-                            FabArrayBase::SetRecvTag(*TheFPB.m_RcvTags, src_owner, tag, 
-						     *TheFPB.m_RcvVols, tag.dbox);
-                        }
-                    }
-                    else if (src_owner == MyProc)
-                    {
-                        FabArrayBase::SetSendTag(*TheFPB.m_SndTags, dst_owner, tag,
-						 *TheFPB.m_SndVols, tag.dbox);
-                    }
-                }
-            }
-        }
-    }
-    //
-    // Squeeze out any unused memory ...
-    //
-    FPB::FPBComTagsContainer tmp(*TheFPB.m_LocTags); 
-
-    TheFPB.m_LocTags->swap(tmp);
-
-    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_SndTags->begin(), End = TheFPB.m_SndTags->end(); it != End; ++it)
-    {
-        FPB::FPBComTagsContainer tmp(it->second);
-
-        it->second.swap(tmp);
+		if (dst_owner == MyProc) {
+		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+		    for (BoxList::const_iterator
+			     it_tile  = tilelist.begin(),
+			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		    {
+			TheFPB.m_LocTags->push_back(FPBComTag((*it_tile)-iv, *it_tile, 
+							      k_src, k_dst));
+		    }
+		} else {
+		    send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
+		}
+	    }
+	}
     }
 
-    for (FPB::MapOfFPBComTagContainers::iterator it = TheFPB.m_RcvTags->begin(), End = TheFPB.m_RcvTags->end(); it != End; ++it)
-    {
-        FPB::FPBComTagsContainer tmp(it->second);
+    FPB::MapOfFPBComTagContainers recv_tags; // temp copy
 
-        it->second.swap(tmp);
+    for (int i = 0; i < nlocal; ++i)
+    {
+	const int   k_dst = imap[i];
+	const Box& bx_dst = BoxLib::grow(ba[k_dst], ng);
+
+	if (TheDomain.contains(bx_dst)) continue;
+
+	geom.periodicShift(TheDomain, bx_dst, pshifts);
+
+	for (Array<IntVect>::const_iterator pit = pshifts.begin(), pEnd = pshifts.end();
+	     pit != pEnd; ++pit)
+	{
+	    const IntVect& iv   = *pit;
+	    const Box&     shft = bx_dst + iv;
+
+	    ba.intersections(shft, isects);
+
+	    for (int j = 0, M = isects.size(); j < M; ++j)
+	    {
+		const int k_src     = isects[j].first;
+		Box       bx        = isects[j].second;
+		const int src_owner = dm[k_src];
+
+		if (fpb.m_do_corners) {
+		    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+			if (!geom.isPeriodic(dir)) {
+			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir)) {
+				bx.growLo(dir,ng);
+			    }
+			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)) {
+				bx.growHi(dir,ng);
+			    }
+			}
+		    }
+		}
+
+		if (src_owner == MyProc) continue; // local copy has been dealt with 
+
+		recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
+	    }
+	}
+    }
+
+    for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
+    {
+	FPB::MapOfFPBComTagContainers & Tags
+	    = (ipass == 0) ? *TheFPB.m_SndTags : *TheFPB.m_RcvTags;
+	FPB::MapOfFPBComTagContainers & tmpTags
+	    = (ipass == 0) ?         send_tags :         recv_tags;
+	std::map<int,int> & Vols
+	    = (ipass == 0) ? *TheFPB.m_SndVols : *TheFPB.m_RcvVols;
+
+	for (FPB::MapOfFPBComTagContainers::iterator
+		 it  = tmpTags.begin(),
+		 End = tmpTags.end();   it != End; ++it)
+	{
+	    const int key = it->first;
+	    std::vector<FPBComTag>& fctv = it->second;
+
+	    // We need to fix the order so that the send and recv processes match.
+	    std::sort(fctv.begin(), fctv.end());
+
+	    std::vector<FPBComTag> new_fctv;
+	    new_fctv.reserve(fctv.size());
+
+	    for (std::vector<FPBComTag>::const_iterator
+		     it2  = fctv.begin(),
+		     End2 = fctv.end();   it2 != End2; ++it2)
+	    {
+		const Box& sbx = it2->sbox;
+		const Box& dbx = it2->dbox;
+		IntVect diff = sbx.smallEnd() - dbx.smallEnd();
+
+		Vols[key] += sbx.numPts();
+		
+		const BoxList tilelist(sbx, FabArrayBase::comm_tile_size);
+		for (BoxList::const_iterator 
+			 it_tile  = tilelist.begin(), 
+			 End_tile = tilelist.end();    it_tile != End_tile; ++it_tile)
+                {
+		    new_fctv.push_back(FPBComTag(*it_tile, (*it_tile)-diff,
+						 it2->srcIndex, it2->dstIndex));
+		}
+	    }
+
+	    Tags[key].swap(new_fctv);
+	} 
     }
 
     //
     // set thread safety
     //
-    if ( ba.ixType().cellCentered() && fpb.m_do_corners == false ) {
+    if ( ba.ixType().cellCentered() ) {
 	TheFPB.m_threadsafe_loc = true;
 	TheFPB.m_threadsafe_rcv = true;
     } else {
