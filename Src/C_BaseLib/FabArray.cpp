@@ -373,8 +373,8 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	}
     }
 
-    ba_src.clear_hash_bin();
-    ba_dst.clear_hash_bin();
+//    ba_src.clear_hash_bin();
+//    ba_dst.clear_hash_bin();
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
@@ -720,7 +720,7 @@ FabArrayBase::TheFB (bool                cross,
 	}
     }
 
-    ba.clear_hash_bin();
+//    ba.clear_hash_bin();
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
