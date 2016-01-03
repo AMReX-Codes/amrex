@@ -201,6 +201,7 @@ public:
                               int       src_comp,
                               int       num_comp) const;
 
+#if 0
     void SumPeriodicBoundary (MultiFab&       dstmf,
                               const MultiFab& srcmf) const;
 
@@ -209,6 +210,7 @@ public:
                               int             dcomp,
                               int             scomp,
                               int             ncomp) const;
+#endif
     //
     // Flush the cache of PIRM information.
     //
