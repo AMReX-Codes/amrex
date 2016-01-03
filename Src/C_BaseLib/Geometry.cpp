@@ -173,6 +173,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf) const
     SumPeriodicBoundary(mf,0,mf.nComp());
 }
 
+#if 0
 void
 Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
                                const MultiFab& srcmf) const
@@ -181,6 +182,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
     SumPeriodicBoundary(dstmf, srcmf, 0, 0, srcmf.nComp());
 }
+#endif
 
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
@@ -528,6 +530,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     SumPeriodicBoundaryInnards(mf,mf,*this,scomp,scomp,ncomp);
 }
 
+#if 0
 void
 Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
                                const MultiFab& srcmf,
@@ -543,6 +546,7 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
 
     SumPeriodicBoundaryInnards(dstmf,srcmf,*this,scomp,dcomp,ncomp);
 }
+#endif
 
 Geometry::Geometry () {}
 
