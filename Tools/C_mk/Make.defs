@@ -531,54 +531,6 @@ ifeq ($(COMP),Intel)
    endif
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
-   ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
-       ICC_VERSION := 5.0.1
-       ICC_MAJOR_VERSION := 5
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 6.0, $(__icc_version)), Version 6.0)
-       ICC_VERSION := 6.0
-       ICC_MAJOR_VERSION := 6
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 7., $(__icc_version)), Version 7.)
-       ICC_MAJOR_VERSION := 7
-       ifeq ($(findstring 7.0, $(__icc_version)), 7.0)
-	   ICC_VERSION := 7.0
-	   ICC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstring 7.1, $(__icc_version)), 7.1)
-           ICC_VERSION := 7.1
-	   ICC_MINOR_VERSION := 1
-       endif
-       endif
-   else
-   ifeq ($(findstring Version 8.0, $(__icc_version)), Version 8.0)
-       ICC_VERSION := 8.0
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 8.1, $(__icc_version)), Version 8.1)
-       ICC_VERSION := 8.1
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-       CXXOPTF += -wd1572
-       CXXDEBF += -wd1572
-   else
-   ifeq ($(findstring Version 9.0, $(__icc_version)), Version 9.0)
-       ICC_VERSION := 9.0
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 9.1, $(__icc_version)), Version 9.1)
-       ICC_VERSION := 9.1
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 1
-       CXXDEBF += -Wunused-variable
-       _icpc := icpc
-   else
    ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
        ICC_VERSION := 10.0
        ICC_MAJOR_VERSION := 10
@@ -609,13 +561,6 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 12
        ICC_MINOR_VERSION := 1
        _icpc := icpc
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
    endif
    endif
    endif
@@ -671,59 +616,6 @@ ifeq ($(FCOMP),Intel)
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    endif
 
-   ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
-       IFC_VERSION := 5.0.1
-       IFC_MAJOR_VERSION := 5
-       IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
-       override XTRALIBS += $(IA32ROOT)/lib/icrt.link
-   else
-   ifeq ($(findstring Version 6.0, $(__ifc_version)), Version 6.0)
-       IFC_VERSION := 6.0
-       IFC_MAJOR_VERSION := 6
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
-   else
-   ifeq ($(findstring Version 7, $(__ifc_version)), Version 7)
-       IFC_MAJOR_VERSION := 7
-       ifeq ($(findstr Version 7.0, $(__ifc_version)), 7.0)
-         IFC_VERSION := 7.0
-         IFC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstr Version 7.1, $(__ifc_version)), 7.1)
-         IFC_VERSION := 7.1
-         IFC_MINOR_VERSION := 1
-       endif
-       endif
-#      LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
-   else
-   ifeq ($(findstring Version 8.0, $(__ifc_version)), Version 8.0)
-       IFC_VERSION := 8.0
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 8.1, $(__ifc_version)), Version 8.1)
-       IFC_VERSION := 8.1
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 1
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 9.0, $(__ifc_version)), Version 9.0)
-       IFC_VERSION := 9.0
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
-   else
-   ifeq ($(findstring Version 9.1, $(__ifc_version)), Version 9.1)
-       IFC_VERSION := 9.1
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 1
-       FDEBF += -warn unused
-       fDEBF += -warn unused
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
-#  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
-   else
    ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
        IFC_VERSION := 10.0
        IFC_MAJOR_VERSION := 10
@@ -750,13 +642,6 @@ ifeq ($(FCOMP),Intel)
        IFC_VERSION := 12.1
        IFC_MAJOR_VERSION := 12
        IFC_MINOR_VERSION := 1
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
    endif
    endif
    endif
