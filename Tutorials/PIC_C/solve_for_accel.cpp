@@ -66,11 +66,11 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
    solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
 #endif
 
-    // Average edge-centered gradients to cell centers.
+    // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
         BoxLib::average_face_to_cellcenter(grad_phi[lev], grad_phi_edge[lev], geom[lev]);
-        geom[lev].FillPeriodicBoundary(grad_phi[lev],true);  // wz: why only fill periodic boundary?
+        BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
     }
 
     // VisMF::Write(grad_phi,"GradPhi");
