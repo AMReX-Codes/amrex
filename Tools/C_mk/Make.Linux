@@ -104,10 +104,10 @@ endif
 endif
 endif
 endif
+
 #
 # Now Fortran stuff.
 #
-FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional-cpp -P
 
 ifeq ($(FCOMP),PathScale)
@@ -528,13 +528,6 @@ ifeq ($(WHICHLINUX), HYPERION)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOMER)
-  ifeq ($(USE_MPI),TRUE)
-    CXX = mpicxx
-    FC = mpif90 -module $(fmoddir)
-    fC = mpif90 -module $(fmoddir)    
-  endif
-endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3
