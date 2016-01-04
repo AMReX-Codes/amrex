@@ -249,10 +249,6 @@ endif
 ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
 endif
-ifdef pF90EXE_sources
-pF90EXE_roots := $(notdir $(pF90EXE_sources))
--include $(pF90EXE_roots:%.f90=$(depEXETempDir)/%.d)
-endif
 ifdef fEXE_sources
 -include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
 endif
