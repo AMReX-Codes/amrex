@@ -173,17 +173,6 @@ Geometry::SumPeriodicBoundary (MultiFab& mf) const
     SumPeriodicBoundary(mf,0,mf.nComp());
 }
 
-#if 0
-void
-Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
-                               const MultiFab& srcmf) const
-{
-    BL_ASSERT(dstmf.nComp() >= srcmf.nComp());
-
-    SumPeriodicBoundary(dstmf, srcmf, 0, 0, srcmf.nComp());
-}
-#endif
-
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       scomp,
@@ -281,6 +270,11 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                             int             ncomp)
 {
     BL_PROFILE("SumPeriodicBoundaryInnards()");
+
+    if (!dstmf.boxArray().ixType().cellCentered()) 
+	BoxLib::Abort("SumPeriodicBoundary: dstmf must be cell centered");
+    if (!srcmf.boxArray().ixType().cellCentered()) 
+	BoxLib::Abort("SumPeriodicBoundary: srcmf must be cell centered");
 
 #ifndef NDEBUG
     //
@@ -529,24 +523,6 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 
     SumPeriodicBoundaryInnards(mf,mf,*this,scomp,scomp,ncomp);
 }
-
-#if 0
-void
-Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
-                               const MultiFab& srcmf,
-                               int             dcomp,
-                               int             scomp,
-                               int             ncomp) const
-{
-    if (!isAnyPeriodic() || srcmf.nGrow() == 0 || srcmf.size() == 0 || dstmf.size() == 0) return;
-
-    BL_ASSERT(scomp+ncomp <= srcmf.nComp());
-    BL_ASSERT(dcomp+ncomp <= dstmf.nComp());
-    BL_ASSERT(srcmf.boxArray().ixType() == dstmf.boxArray().ixType());
-
-    SumPeriodicBoundaryInnards(dstmf,srcmf,*this,scomp,dcomp,ncomp);
-}
-#endif
 
 void
 Geometry::PeriodicCopy (MultiFab&       dstmf,
