@@ -195,20 +195,20 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     BL_PROFILE("Geometry::FillPeriodicBoundary()");
 
-    Box TheDomain = Domain();
-    TheDomain.convert(mf.boxArray().ixType());
-
     if ( local )
     {
         //
         // Do what you can with the FABs you own.  No parallelism allowed.
         //
 
+	Box TheDomain = Domain();
+	TheDomain.convert(mf.boxArray().ixType());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<IntVect> pshifts(27);
+        Array<IntVect> pshifts(26);
 
         for (MFIter mfidst(mf); mfidst.isValid(); ++mfidst)
         {
@@ -298,7 +298,7 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
  
     MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
     std::map<int,int>          m_SndVols, m_RcvVols;
-    Array<IntVect>             pshifts(27);
+    Array<IntVect>             pshifts(26);
     const int                  ngrow  = srcmf.nGrow();
     const int                  MyProc = ParallelDescriptor::MyProc();
     const BoxArray&            srcba  = srcmf.boxArray();
@@ -547,6 +547,23 @@ Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
     SumPeriodicBoundaryInnards(dstmf,srcmf,*this,scomp,dcomp,ncomp);
 }
 #endif
+
+void
+Geometry::PeriodicCopy (MultiFab&       dstmf,
+			const MultiFab& srcmf) const
+{
+    PeriodicCopy(dstmf, srcmf, 0, 0, srcmf.nComp());
+}
+
+void 
+Geometry::PeriodicCopy (MultiFab&       dstmf,
+			const MultiFab& srcmf,
+			int             dcomp,
+			int             scomp,
+			int             ncomp) const
+{
+    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp);
+}
 
 Geometry::Geometry () {}
 

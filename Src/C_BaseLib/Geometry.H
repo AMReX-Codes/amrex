@@ -170,7 +170,7 @@ public:
     //
     // do_corners: the corner here refers to physical DOMAIN corners
     // that are partially but not all periodic.  If do_corners=true,
-    // these corners will be filled with peridoically shifted GHOST
+    // these corners will be filled with periodically shifted GHOST
     // cell data, because no valid cell data are available for the
     // role.  Note that this does not refer to corner cells of boxes
     // that are not at DOMAIN corners.  Corner cells of a box will
@@ -211,6 +211,17 @@ public:
                               int             scomp,
                               int             ncomp) const;
 #endif
+    // 
+    // Copy periodically shifted data from srcmf to dstmf.
+    // Usually this only makes sense for nodal/edge/face MultiFabs.
+    //
+    void PeriodicCopy (MultiFab&       dstmf,
+		       const MultiFab& srcmf) const;
+    void PeriodicCopy (MultiFab&       dstmf,
+		       const MultiFab& srcmf,
+		       int             dcomp,
+		       int             scomp,
+		       int             ncomp) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -537,6 +548,78 @@ namespace BoxLib
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
+    }
+
+    template <class FAB>
+    void
+    PeriodicCopy (const Geometry&      geom,
+		  FabArray<FAB>&       dstmf,
+		  const FabArray<FAB>& srcmf,
+		  int                  dcomp,
+		  int                  scomp,
+		  int                  ncomp)
+    {
+	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
+
+	const Box&                 domain = geom.Domain();
+	const BoxArray&            srcba  = srcmf.boxArray();
+	const DistributionMapping& srcdm  = srcmf.DistributionMap();
+	const IndexType&           srctyp = srcba.ixType();
+
+	BL_ASSERT(srctyp == dstmf.boxArray().ixType());
+
+	const Box& nd_domain = BoxLib::convert(domain, srctyp);
+
+	BoxList bl(srctyp);
+	Array<int> iproc;
+	Array<int> boxid;
+	Array<IntVect> boxshft;
+	Array<IntVect> pshifts(26);
+
+	for (int i = 0; i < srcba.size(); ++i) 
+	{
+	    const Box& bx0 = srcba[i];
+
+	    if (!nd_domain.contains(BoxLib::grow(bx0,1))) // not strictly contained
+	    {
+		geom.periodicShift(nd_domain,bx0,pshifts);
+
+		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		     it != End; ++it)
+		{
+		    const IntVect& iv   = *it;
+		    const Box&     shft = bx0 + iv;
+		    const Box&     bx   = shft & nd_domain;
+		    bl.push_back(bx);
+		    iproc.push_back(srcdm[i]);
+		    boxid.push_back(i);
+		    boxshft.push_back(iv);
+		}
+	    }
+	}
+	
+	if (bl.size() > 0)
+	{
+	    BoxArray shftba(bl);
+
+	    iproc.push_back(ParallelDescriptor::MyProc());
+	    DistributionMapping shftdm(iproc);
+
+	    FabArray<FAB> shftmf(shftba, ncomp, 0, shftdm);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter mfi(shftmf); mfi.isValid(); ++mfi)
+	    {
+		const Box& bx = mfi.validbox();
+		int i = mfi.index();
+		Box sbx = bx - boxshft[i];
+		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
+	    }
+
+	    dstmf.copy(shftmf, 0, dcomp, ncomp);
+	}
     }
 }
 
