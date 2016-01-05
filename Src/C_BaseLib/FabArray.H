@@ -248,6 +248,13 @@ public:
         Box box;
         int fabIndex;
         int srcIndex;
+	CopyComTag () {}
+	explicit CopyComTag (const Box& b, int fidx, int sidx)
+	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
+	bool operator< (const CopyComTag& rhs) const {
+	    return (fabIndex < rhs.fabIndex)
+		|| ((fabIndex == rhs.fabIndex) && (srcIndex < rhs.srcIndex));
+	}
         //
         // Some typedefs & helper functions used throughout the code.
         //
@@ -602,11 +609,11 @@ public:
     //
     // Returns the tile box at the current index grown to include ghost cells.
     //
-    Box growntilebox (int ng=-1) const;
+    Box growntilebox (int ng=-1000000) const;
     //
     //  Returns the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
     //
-    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
+    Box grownnodaltilebox (int dir=-1, int ng=-1000000) const;
     //
     // Returns the valid Box that current tile resides.
     //

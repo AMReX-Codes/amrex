@@ -28,13 +28,11 @@ BLBackTrace::handler(int s)
 	errfilename = ss.str();
     }
 
-    const int nbuf = 32;
-    void *buffer[nbuf];
-    int nptrs = backtrace(buffer, nbuf);
-    FILE* p = fopen(errfilename.c_str(), "w");
-    backtrace_symbols_fd(buffer, nptrs, fileno(p));
-    fclose(p);
-
+    if (FILE* p = fopen(errfilename.c_str(), "w")) {
+	BoxLib::print_backtrace_info(p);
+	fclose(p);
+    }
+    
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
 	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);

@@ -129,12 +129,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
   endif
-  ifeq ($(findstring hopper, $(UNAMEN)), hopper)
-    WHICHLINUX := HOPPER
-  endif
-  ifeq ($(findstring hopper, $(NERSC_HOST)), hopper)
-    WHICHLINUX := HOPPER
-  endif
   ifeq ($(findstring edison, $(UNAMEN)), edison)
     WHICHLINUX := EDISON
   endif
@@ -310,9 +304,6 @@ ifdef USE_GCC
     endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-    ifeq ($(BACKTRACE),TRUE)
-        LDFLAGS += -rdynamic
-    endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
     CXX	       := g++
     CC	       := gcc

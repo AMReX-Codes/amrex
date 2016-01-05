@@ -72,6 +72,11 @@ __TIME__;
 #undef bl_str
 #undef bl_xstr
 
+namespace
+{
+    std::string exename;
+}
+
 //
 // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
 // to ensure that when writing the message to stderr, that no additional
@@ -226,14 +231,58 @@ BoxLib::Assert (const char* EX,
     BLBackTrace::handler(SIGABRT);
 #else
 #ifdef __linux__
-    const int nbuf = 16;
-    void *buffer[nbuf];
-    int nptrs = backtrace(buffer, nbuf);
-    backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
+    BoxLib::print_backtrace_info(stderr);
 #endif
     ParallelDescriptor::Abort();
 #endif
 }
+
+#ifdef __linux__
+void
+BoxLib::print_backtrace_info (FILE* f)
+{
+    const int nbuf = 32;
+    char **strings = NULL;
+    void *buffer[nbuf];
+    int nptrs = backtrace(buffer, nbuf);
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings != NULL) {
+	int have_addr2line = 0;
+	std::string cmd = "/usr/bin/addr2line";
+	if (FILE *fp = fopen(cmd.c_str(), "r")) {
+	    fclose(fp);
+	    have_addr2line = 1;
+	}
+	cmd += " -Cfie " + exename; 
+	if (have_addr2line) {
+	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
+	    fprintf(f, "    to find out the offset for that line.\n");
+	}
+	for (int i = 0; i < nptrs; ++i) {
+	    std::string line = strings[i];
+	    line += "\n";
+	    if (have_addr2line) {
+		std::size_t found1 = line.rfind('[');
+		std::size_t found2 = line.rfind(']');
+		if (found1 != std::string::npos && found2 != std::string::npos) {
+		    std::string addr = line.substr(found1+1, found2-found1-1);
+		    std::string full_cmd = cmd + " " + addr;
+		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+			char buff[512];
+			while (fgets(buff, sizeof(buff), ps)) {
+			    line += "    ";
+			    line += buff;
+			}
+			pclose(ps);
+		    }
+		}
+	    }
+	    fprintf(f, "%2d: %s\n", i, line.c_str());
+	}
+    }
+}
+#endif
 
 namespace
 {
@@ -256,6 +305,8 @@ BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 void
 BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
+    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
 #ifndef WIN32
     //
     // Make sure to catch new failures.
@@ -271,7 +322,17 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     signal(SIGTERM, BLBackTrace::handler);
 #endif
 
-    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+#ifdef __linux__
+    {
+	if (argv[0][0] != '/') {
+	    char temp[1024];
+	    getcwd(temp,1024);
+	    exename = temp;
+	    exename += "/";
+	}
+	exename += argv[0];
+    }
+#endif    
 
 #ifdef BL_USE_UPCXX
     upcxx::init(&argc, &argv);

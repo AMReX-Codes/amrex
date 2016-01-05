@@ -5392,7 +5392,7 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
 }
     
 //
-// Uses a predictor/corrector to advance particles using umac.
+// Uses midpoint method to advance particles using umac.
 //
 
 template <int N>
@@ -5404,12 +5404,12 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 {
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
-    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
+    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev >= 0 && lev < m_particles.size());
 
-    D_TERM(BL_ASSERT(umac[0].nGrow() >= 2);,
-           BL_ASSERT(umac[1].nGrow() >= 2);,
-           BL_ASSERT(umac[2].nGrow() >= 2););
+    D_TERM(BL_ASSERT(umac[0].nGrow() >= 1);,
+           BL_ASSERT(umac[1].nGrow() >= 1);,
+           BL_ASSERT(umac[2].nGrow() >= 1););
 
     D_TERM(BL_ASSERT(!umac[0].contains_nan());,
            BL_ASSERT(!umac[1].contains_nan());,
@@ -5420,20 +5420,22 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
-    MultiFab* umac_pointer[BL_SPACEDIM];
+    PArray<MultiFab> umac_pointer;
     if (m_gdb->ParticlesOnSameGrids(lev))
     {
+	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
-           umac_pointer[i] = &umac[i];
+	    umac_pointer.set(i, &umac[i]);
     }
     else
     {
+	umac_pointer.resize(BL_SPACEDIM, PArrayManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-           umac_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
-                                          umac[i].nGrow(),Fab_allocate);
-           umac_pointer[i]->copy(umac[i],0,0,umac[i].nComp());
-           umac_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
+					     umac[i].nGrow(),Fab_allocate));
+	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp());
+	    umac_pointer[i].FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
         }
     }
 
@@ -5447,9 +5449,9 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
             PBox&     pbox = pmap_it->second;
             const int n    = pbox.size();
 
-            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&(*umac_pointer[0])[grid],
-                                                   &(*umac_pointer[1])[grid],
-                                                   &(*umac_pointer[2])[grid]) };
+            FArrayBox* fab[BL_SPACEDIM] = { D_DECL(&umac_pointer[0][grid],
+                                                   &umac_pointer[1][grid],
+                                                   &umac_pointer[2][grid]) };
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -5491,27 +5493,19 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                     if (ipass == 0)
                     {
                         //
-                        // Predictor:
+                        // Save old position and the vel & predict location at dt/2.
                         //
-                        // Save old position and the vel & predict new time location.
-                        //
-                        p.m_data[vcomp + d]             = p.m_pos[d];
-                        p.m_data[vcomp + d+BL_SPACEDIM] = vel;
-
-                        p.m_pos[d] += dt*vel;
+                        p.m_data[vcomp+d] = p.m_pos[d];
+                        p.m_pos[d] += 0.5*dt*vel;
                     }
                     else
                     {
                         //
-                        // Corrector:
+                        // Update to final time using the orig position and the vel at dt/2.
                         //
-                        // Update to final time using the orig position and the new vel.
-                        //
+                        p.m_pos[d]  = p.m_data[vcomp+d] + dt*vel;
                         // Save the velocity for use in Timestamp().
-                        //
-                        p.m_pos[d]  = Real(0.5) * (p.m_data[vcomp + d] + p.m_pos[d] + dt*vel);
-
-                        p.m_data[vcomp + d] = Real(0.5) * (p.m_data[vcomp + d+BL_SPACEDIM] + vel);
+			p.m_data[vcomp+d] = vel;
                     }
                 }
                 
@@ -7168,7 +7162,7 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(vcomp >= 0);
     BL_ASSERT(mf.nGrow() >= 1);
     BL_ASSERT(!basename.empty());
-    BL_ASSERT(N >= vcomp + 2*BL_SPACEDIM);
+    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev <= m_gdb->finestLevel());
 
     const Real strttime = ParallelDescriptor::second();
