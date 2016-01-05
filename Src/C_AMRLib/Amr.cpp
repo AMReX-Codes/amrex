@@ -2124,15 +2124,16 @@ Amr::coarseTimeStep (Real stop_time)
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
 
     int check_test = 0;
+
     if (check_per > 0.0)
     {
-      const int num_per_old = cumtime / check_per;
-      const int num_per_new = (cumtime+dt_level[0]) / check_per;
+      const int num_per_old = (cumtime-dt_level[0]) / check_per;
+      const int num_per_new = (cumtime            ) / check_per;
 
       if (num_per_old != num_per_new)
-	{
-	 check_test = 1;
-	}
+      {
+	check_test = 1;
+      }
     }
 
     int to_stop       = 0;    
@@ -3415,7 +3416,7 @@ Amr::initPltAndChk ()
     }
 
     small_plot_file_root = "smallplt";
-    pp.query("small_plot_file",plot_file_root);
+    pp.query("small_plot_file",small_plot_file_root);
 
     small_plot_int = -1;
     pp.query("small_plot_int",small_plot_int);

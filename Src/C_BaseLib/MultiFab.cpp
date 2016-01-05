@@ -386,6 +386,13 @@ AbortOnInf (const FArrayBox& fab)
     BoxLib::Abort("FArrayBox contains a Inf");
 }
 
+bool 
+MultiFab::is_nodal () const
+{
+    return boxArray().ixType().nodeCentered();
+}
+
+
 const FArrayBox&
 MultiFab::operator[] (int K) const
 {

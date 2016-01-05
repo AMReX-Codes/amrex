@@ -460,6 +460,11 @@ public:
     //
     bool contains_inf (bool local=false) const;
 
+    //
+    // This tests on whether the MultiFab is fully nodal.
+    //
+    bool is_nodal () const;
+
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
 
     const FArrayBox& operator[] (int K) const;
