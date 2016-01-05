@@ -66,12 +66,12 @@ $(objTempDir)/%.o: %.c
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(SILENT) $(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
 
-$(objTempDir)/%.o: %.F90
-	@echo Compiling $*.F90 ...
-	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
-	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
+#$(objTempDir)/%.o: %.F90
+#	@echo Compiling $*.F90 ...
+#	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+#	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+#	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
+#	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.F
 	@echo Compiling $*.F ...
@@ -116,6 +116,7 @@ $(objEXETempDir)/%.o: %.F
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(SILENT) $(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
+VPATH := $(VPATH) $(f77TempDir)
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
