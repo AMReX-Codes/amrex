@@ -977,5 +977,7 @@ FluxRegister::MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
   if(scsMyId != ioProcNumSCS) {
     for(int i(0); i < BL_SPACEDIM; ++i) { ratio[i] = iv[i]; }
   }
+  BndryRegister::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll,
+                                     scsMyId, scsComm);
 }
 
