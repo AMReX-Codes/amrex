@@ -15,11 +15,12 @@
 TagBox::TagBox () {}
 
 TagBox::TagBox (const Box& bx,
-                int        n)
+                int        n,
+                bool       alloc)
     :
-    BaseFab<TagBox::TagType>(bx,n)
+    BaseFab<TagBox::TagType>(bx,n,alloc)
 {
-    setVal(TagBox::CLEAR);
+    if (alloc) setVal(TagBox::CLEAR);
 }
 
 void

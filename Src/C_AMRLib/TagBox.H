@@ -39,7 +39,7 @@ public:
     //
     // Construct a TagBox on Box bx with number of components n.
     //
-    TagBox (const Box& bx, int n = 1);
+    explicit TagBox (const Box& bx, int n = 1, bool alloc = true);
     //
     // Resize the box on which the TagBox is defined.
     //
