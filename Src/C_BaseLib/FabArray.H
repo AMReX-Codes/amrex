@@ -480,6 +480,14 @@ protected:
     //
     static std::map<BDKey, int> m_BD_count;
     //
+    // clear BD count and TileArray cache associated with this BD, if no other is using this BD. 
+    // 
+    void clearThisBD ();
+    //
+    // add the current BD into BD count database
+    //
+    void addThisBD ();
+    //
     struct FabArrayStats
     {
 	int  num_fabarrays;
@@ -1316,24 +1324,7 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    if (! boxarray.empty() ) 
-    {
-	BL_ASSERT(getBDKey() == m_bdkey);
-
-	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
-	if (cnt_it != m_BD_count.end()) 
-	{
-	    --(cnt_it->second);
-	    if (cnt_it->second == 0) 
-	    {
-		m_BD_count.erase(cnt_it);
-		
-		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from the TileArray cache.
-		flushTileArray();
-	    }
-	}
-    }
+    clearThisBD();
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
@@ -1483,14 +1474,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         indexMap.push_back(i);
       }
     }
-    
-    m_bdkey = getBDKey();
-    int cnt = ++(m_BD_count[m_bdkey]);
-    if (cnt == 1) { // new one
-	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
-    } else {
-	m_FA_stats.recordMaxNumBAUse(cnt);
-    }
+
+    addThisBD();
     
     if(alloc == Fab_allocate) {
       AllocFabs();
@@ -2078,10 +2063,12 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
+    clearThisBD();  // The new boxarry will have a different ID.
     for(int id(0); id < BL_SPACEDIM; ++id)
     {
       boxarray.shift(id, v[id]);
     }
+    addThisBD();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
