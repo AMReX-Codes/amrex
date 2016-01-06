@@ -2839,8 +2839,11 @@ contains
     end do
 
     np = parallel_nprocs()
-
-    if (np == 1) return
+    
+    if (np == 1) then
+       call boxassoc_destroy(bxasc)
+       return
+    end if
 
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
@@ -2870,6 +2873,8 @@ contains
        p => dataptr(mf, bxasc%r_con%rcv(i)%lnd, bxasc%r_con%rcv(i)%dbx, c, nc)
        call reshape_d_1_4(p, g_rcv_d, 1 + nc*bxasc%r_con%rcv(i)%pv, sh, sum_d)
     end do
+
+    call boxassoc_destroy(bxasc)
 
   end subroutine multifab_sum_boundary_c
 

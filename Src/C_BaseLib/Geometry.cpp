@@ -181,17 +181,6 @@ Geometry::SumPeriodicBoundary (MultiFab& mf) const
     SumPeriodicBoundary(mf,0,mf.nComp());
 }
 
-#if 0
-void
-Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
-                               const MultiFab& srcmf) const
-{
-    BL_ASSERT(dstmf.nComp() >= srcmf.nComp());
-
-    SumPeriodicBoundary(dstmf, srcmf, 0, 0, srcmf.nComp());
-}
-#endif
-
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       scomp,
@@ -340,6 +329,11 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
                             int             ncomp)
 {
     BL_PROFILE("SumPeriodicBoundaryInnards()");
+
+    if (!dstmf.boxArray().ixType().cellCentered()) 
+	BoxLib::Abort("SumPeriodicBoundary: dstmf must be cell centered");
+    if (!srcmf.boxArray().ixType().cellCentered()) 
+	BoxLib::Abort("SumPeriodicBoundary: srcmf must be cell centered");
 
 #ifndef NDEBUG
     //
@@ -588,24 +582,6 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 
     SumPeriodicBoundaryInnards(mf,mf,*this,scomp,scomp,ncomp);
 }
-
-#if 0
-void
-Geometry::SumPeriodicBoundary (MultiFab&       dstmf,
-                               const MultiFab& srcmf,
-                               int             dcomp,
-                               int             scomp,
-                               int             ncomp) const
-{
-    if (!isAnyPeriodic() || srcmf.nGrow() == 0 || srcmf.size() == 0 || dstmf.size() == 0) return;
-
-    BL_ASSERT(scomp+ncomp <= srcmf.nComp());
-    BL_ASSERT(dcomp+ncomp <= dstmf.nComp());
-    BL_ASSERT(srcmf.boxArray().ixType() == dstmf.boxArray().ixType());
-
-    SumPeriodicBoundaryInnards(dstmf,srcmf,*this,scomp,dcomp,ncomp);
-}
-#endif
 
 void
 Geometry::PeriodicCopy (MultiFab&       dstmf,
@@ -1009,6 +985,9 @@ Geometry::GetFPB (const Geometry&      geom,
         //
         return cache_it;
 
+    // All workers in the same team will have identical copies of tags for local copy
+    // so that they can share work.  But for remote communication, they are all different.
+
     const int nlocal = imap.size();
     const int ng = fpb.m_ngrow;
     std::vector<std::pair<int,Box> > isects;
@@ -1057,14 +1036,7 @@ Geometry::GetFPB (const Geometry&      geom,
 		}
 
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator
-			     it_tile  = tilelist.begin(),
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		    {
-			TheFPB.m_LocTags->push_back(FPBComTag((*it_tile)-iv, *it_tile, 
-							      k_src, k_dst));
-		    }
+		    continue; // local copy will be dealt with later
 		} else if (MyProc == ParallelDescriptor::TeamSender(dm[k_src])) {
 		    int recv_rank = ParallelDescriptor::TeamReceiver(dst_owner);
 		    send_tags[recv_rank].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
@@ -1075,12 +1047,42 @@ Geometry::GetFPB (const Geometry&      geom,
 
     FPB::MapOfFPBComTagContainers recv_tags; // temp copy
 
+    BaseFab<int> localtouch, remotetouch;
+    bool check_local = false, check_remote = false;
+#ifdef _OPENMP
+    if (omp_get_max_threads() > 1) {
+        check_local = true;
+        check_remote = true;
+    }
+#endif    
+
+    if (ParallelDescriptor::TeamSize() > 1) {
+	check_local = true;
+    }
+
+    if ( ba.ixType().cellCentered() ) {
+	TheFPB.m_threadsafe_loc = true;
+	TheFPB.m_threadsafe_rcv = true;
+        check_local = false;
+        check_remote = false;
+    }
+
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   k_dst = imap[i];
 	const Box& bx_dst = BoxLib::grow(ba[k_dst], ng);
 
 	if (TheDomain.contains(bx_dst)) continue;
+
+	if (check_local) {
+	    localtouch.resize(bx_dst);
+	    localtouch.setVal(0);
+	}
+
+	if (check_remote) {
+	    remotetouch.resize(bx_dst);
+	    remotetouch.setVal(0);
+	}
 
 	geom.periodicShift(TheDomain, bx_dst, pshifts);
 
@@ -1111,14 +1113,37 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (ParallelDescriptor::sameTeam(src_owner)) continue; // local copy has been dealt with
-
-		if (MyProc == ParallelDescriptor::TeamReceiver(dm[k_dst])) {
+		if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+		    for (BoxList::const_iterator
+			     it_tile  = tilelist.begin(),
+			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		    {
+			TheFPB.m_LocTags->push_back(FPBComTag(*it_tile, (*it_tile)-iv,
+							      k_src, k_dst));
+		    }
+		    if (check_local) {
+			localtouch.plus(1, bx-iv);
+		    }
+		} else if (MyProc == ParallelDescriptor::TeamReceiver(dm[k_dst])) {
 		    int send_rank = ParallelDescriptor::TeamSender(src_owner);
 		    recv_tags[send_rank].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
+		    if (check_remote) {
+			remotetouch.plus(1, bx-iv);
+		    }
 		}
 	    }
 	}
+
+	if (check_local) {  
+	    // safe if a cell is touched no more than once 
+	    // keep checking thread safety if it is safe so far
+            check_local = TheFPB.m_threadsafe_loc = localtouch.max() <= 1;
+        }
+
+	if (check_remote) {
+            check_remote = TheFPB.m_threadsafe_rcv = remotetouch.max() <= 1;
+        }
     }
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
@@ -1165,17 +1190,6 @@ Geometry::GetFPB (const Geometry&      geom,
 
 	    Tags[key].swap(new_fctv);
 	} 
-    }
-
-    //
-    // set thread safety
-    //
-    if ( ba.ixType().cellCentered() ) {
-	TheFPB.m_threadsafe_loc = true;
-	TheFPB.m_threadsafe_rcv = true;
-    } else {
-	TheFPB.m_threadsafe_loc = false;
-	TheFPB.m_threadsafe_rcv = false;
     }
 
     return cache_it;
