@@ -1093,6 +1093,41 @@ FabArrayBase::flushTileArrayCache ()
     m_TheTileArrayCache.clear();
 }
 
+void
+FabArrayBase::clearThisBD ()
+{
+    if (! boxarray.empty() ) 
+    {
+	BL_ASSERT(getBDKey() == m_bdkey);
+
+	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
+	if (cnt_it != m_BD_count.end()) 
+	{
+	    --(cnt_it->second);
+	    if (cnt_it->second == 0) 
+	    {
+		m_BD_count.erase(cnt_it);
+		
+		// Since this is the last one built with these BoxArray 
+		// and DistributionMapping, erase it from the TileArray cache.
+		flushTileArray();
+	    }
+	}
+    }
+}
+
+void
+FabArrayBase::addThisBD ()
+{
+    m_bdkey = getBDKey();
+    int cnt = ++(m_BD_count[m_bdkey]);
+    if (cnt == 1) { // new one
+	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
+    } else {
+	m_FA_stats.recordMaxNumBAUse(cnt);
+    }
+}
+
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
     :
