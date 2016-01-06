@@ -521,10 +521,6 @@ protected:
 	}
     };
     static FabArrayStats m_FA_stats;
-
-private:
-    static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
-    static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
 };
 
 class MFIter
