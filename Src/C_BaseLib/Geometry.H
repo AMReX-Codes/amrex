@@ -223,17 +223,6 @@ public:
     void SumPeriodicBoundary (MultiFab& mf,
                               int       src_comp,
                               int       num_comp) const;
-
-#if 0
-    void SumPeriodicBoundary (MultiFab&       dstmf,
-                              const MultiFab& srcmf) const;
-
-    void SumPeriodicBoundary (MultiFab&       dstmf,
-                              const MultiFab& srcmf,
-                              int             dcomp,
-                              int             scomp,
-                              int             ncomp) const;
-#endif
     // 
     // Copy periodically shifted data from srcmf to dstmf.
     // Usually this only makes sense for nodal/edge/face MultiFabs.

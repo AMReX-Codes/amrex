@@ -447,7 +447,7 @@ ParallelDescriptor::StartTeams ()
 
 #ifdef _OPENMP
     if (omp_get_num_threads() > 1 && team_size > 1)
-	BoxLib::Abort("OMP threads and UPC++ teams cannot coexist");
+	BoxLib::Abort("Threads and teams cannot coexist");
 #endif
 
     m_TeamSize     = team_size;
