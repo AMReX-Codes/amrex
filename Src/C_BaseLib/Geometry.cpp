@@ -973,23 +973,30 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (dst_owner == MyProc) {
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator
-			     it_tile  = tilelist.begin(),
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		    {
-			TheFPB.m_LocTags->push_back(FPBComTag((*it_tile)-iv, *it_tile, 
-							      k_src, k_dst));
-		    }
-		} else {
-		    send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
-		}
+		if (dst_owner == MyProc) continue;  // local copy will be dealt with later
+
+		send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
 	    }
 	}
     }
 
     FPB::MapOfFPBComTagContainers recv_tags; // temp copy
+
+    BaseFab<int> localtouch, remotetouch;
+    bool check_local = false, check_remote = false;
+#ifdef _OPENMP
+    if (omp_get_max_threads() > 1) {
+        check_local = true;
+        check_remote = true;
+    }
+#endif    
+
+    if ( ba.ixType().cellCentered() ) {
+	TheFPB.m_threadsafe_loc = true;
+	TheFPB.m_threadsafe_rcv = true;
+        check_local = false;
+        check_remote = false;
+    }
 
     for (int i = 0; i < nlocal; ++i)
     {
@@ -997,6 +1004,16 @@ Geometry::GetFPB (const Geometry&      geom,
 	const Box& bx_dst = BoxLib::grow(ba[k_dst], ng);
 
 	if (TheDomain.contains(bx_dst)) continue;
+
+	if (check_local) {
+	    localtouch.resize(bx_dst);
+	    localtouch.setVal(0);
+	}
+
+	if (check_remote) {
+	    remotetouch.resize(bx_dst);
+	    remotetouch.setVal(0);
+	}
 
 	geom.periodicShift(TheDomain, bx_dst, pshifts);
 
@@ -1027,11 +1044,36 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (src_owner == MyProc) continue; // local copy has been dealt with 
-
-		recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
+		if (src_owner == MyProc) { // local copy
+		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
+		    for (BoxList::const_iterator
+			     it_tile  = tilelist.begin(),
+			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		    {
+			TheFPB.m_LocTags->push_back(FPBComTag(*it_tile, (*it_tile)-iv,
+							      k_src, k_dst));
+		    }
+		    if (check_local) {
+			localtouch.plus(1, bx-iv);
+		    }
+		} else {
+		    recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
+		    if (check_remote) {
+			remotetouch.plus(1, bx-iv);
+		    }
+		}
 	    }
 	}
+
+	if (check_local) {  
+	    // safe if a cell is touched no more than once 
+	    // keep checking thread safety if it is safe so far
+            check_local = TheFPB.m_threadsafe_loc = localtouch.max() <= 1;
+        }
+
+	if (check_remote) {
+            check_remote = TheFPB.m_threadsafe_rcv = remotetouch.max() <= 1;
+        }
     }
 
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
@@ -1078,17 +1120,6 @@ Geometry::GetFPB (const Geometry&      geom,
 
 	    Tags[key].swap(new_fctv);
 	} 
-    }
-
-    //
-    // set thread safety
-    //
-    if ( ba.ixType().cellCentered() ) {
-	TheFPB.m_threadsafe_loc = true;
-	TheFPB.m_threadsafe_rcv = true;
-    } else {
-	TheFPB.m_threadsafe_loc = false;
-	TheFPB.m_threadsafe_rcv = false;
     }
 
     return cache_it;
