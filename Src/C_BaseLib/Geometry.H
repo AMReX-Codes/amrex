@@ -402,10 +402,7 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-	Array<int> SeqNum(FabArrayBase::comm_num_pieces);
-	for (int i=0; i<SeqNum.size(); ++i) {
-	    SeqNum[i] = ParallelDescriptor::SeqNum();
-	}
+	const int SeqNum = ParallelDescriptor::SeqNum();
 
         if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
@@ -484,35 +481,18 @@ namespace BoxLib
 
 	Array<MPI_Request> send_reqs;
 
-	const int threshold = FabArrayBase::comm_piece_threshold / sizeof(value_type);
-
 	if (FabArrayBase::do_async_sends)
 	{
-	    send_reqs.reserve(N_snds*FabArrayBase::comm_num_pieces);
-	}
-	for (int i=0; i<N_snds; ++i) {
-	    const int N = send_N[i];
-	    int npieces = std::min((N+threshold-1)/threshold, FabArrayBase::comm_num_pieces);
-	    int psize = N / npieces;
-	    for (int ipiece = 0; ipiece < npieces; ++ipiece) {
-		int start = ipiece*psize;
-		int nelem  = (ipiece < npieces-1) ? psize : N-start;
-		if (FabArrayBase::do_async_sends) {
-		    send_reqs.push_back(ParallelDescriptor::Asend
-					(send_data[i]+start,
-					 nelem,
-					 send_rank[i],
-					 SeqNum[ipiece]).req());
-		} else {
-		    ParallelDescriptor::Send(send_data[i]+start,
-					     nelem,
-					     send_rank[i],
-					     SeqNum[ipiece]);
-		}
+	    send_reqs.reserve(N_snds);
+	    for (int i=0; i<N_snds; ++i) {
+                send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i],send_N[i],send_rank[i],SeqNum).req());
             }
-	    if (! FabArrayBase::do_async_sends) {
+	} else {
+	    for (int i=0; i<N_snds; ++i) {
+                ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
                 BoxLib::The_Arena()->free(send_data[i]);
-	    }
+            }
         }
 
         //
@@ -638,10 +618,7 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-	Array<int> SeqNum(FabArrayBase::comm_num_pieces);
-	for (int i=0; i<SeqNum.size(); ++i) {
-	    SeqNum[i] = ParallelDescriptor::SeqNum();
-	}
+	const int SeqNum = ParallelDescriptor::SeqNum();
 
         if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
@@ -657,7 +634,7 @@ namespace BoxLib
 #ifdef BL_USE_UPCXX
 	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,
-				    mf.fpb_ncomp,SeqNum[0],&BLPgas::fpb_recv_event);
+				    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
 #else
         FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -732,9 +709,6 @@ namespace BoxLib
 		}
 	    }
 
-
-	    const int threshold = FabArrayBase::comm_piece_threshold / sizeof(value_type);
-
 #ifdef BL_USE_UPCXX
 	    BLPgas::fpb_send_counter = 0;
 #else
@@ -746,22 +720,15 @@ namespace BoxLib
 		BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
 			     send_rank[i],
 			     send_N[i]*sizeof(value_type),
-			     SeqNum[0],
+			     SeqNum,
 			     &BLPgas::fpb_send_event,
 			     &BLPgas::fpb_send_counter);
 #else
-		const int N = send_N[i];
-		int npieces = std::min((N+threshold-1)/threshold, FabArrayBase::comm_num_pieces);
-		int psize = N / npieces;
-		for (int ipiece = 0; ipiece < npieces; ++ipiece) {
-		    int start = ipiece*psize;
-		    int nelem  = (ipiece < npieces-1) ? psize : N-start;
-		    send_reqs.push_back(ParallelDescriptor::Asend
-					(send_data[i]+start,
-					 nelem,
-					 send_rank[i],
-					 SeqNum[ipiece]).req());
-		}
+		send_reqs.push_back(ParallelDescriptor::Asend
+				    (send_data[i],
+				     send_N[i],
+				     send_rank[i],
+				     SeqNum).req());
 #endif
 	    }
 	    
