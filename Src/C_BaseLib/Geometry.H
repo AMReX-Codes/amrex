@@ -981,7 +981,7 @@ namespace BoxLib
 	    mf.fpb_send_reqs.clear();
 	}
 
-	ParallelDescriptor::TeamBarrier();
+	ParallelDescriptor::MyTeam().Barrier();
     }
 #endif /*BL_USE_UPCXX*/
 

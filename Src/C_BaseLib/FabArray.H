@@ -1731,7 +1731,7 @@ FabArray<FAB>::AllocFabs ()
 #ifdef BL_USE_UPCXX
     if (ParallelDescriptor::TeamSize() > 1) 
     {
-	const auto& team = ParallelDescriptor::MyTeam();
+	const auto& team = ParallelDescriptor::MyTeam().get();
 	
 	int np = (n + nworkers-1) / nworkers;
 	
@@ -3781,7 +3781,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	fb_send_reqs.clear();
     }
 
-    ParallelDescriptor::TeamBarrier();
+    ParallelDescriptor::MyTeam().Barrier();
 }
 
 template<typename T1, typename T2>

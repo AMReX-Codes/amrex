@@ -1175,7 +1175,7 @@ MFIter::~MFIter ()
 {
 #if BL_USE_UPCXX
     if ( ! (flags & NoTeamBarrier) )
-	ParallelDescriptor::TeamBarrier();
+	ParallelDescriptor::MyTeam().Barrier();
 #endif
 }
 

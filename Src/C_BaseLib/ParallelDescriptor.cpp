@@ -36,16 +36,10 @@ namespace ParallelDescriptor
     int m_nProcs_comp    = nProcs_undefined;
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
-
-    int m_TeamSize     = 1;
-    int m_nTeams       = 1;
-    int m_MyTeamColor  = 0;
-    int m_MyTeamLead   = 0;
-    int m_MyRankInTeam = 0;
-    int m_AgrgtTeamMsg = 0;
-#ifdef BL_USE_UPCXX
-    upcxx::team m_MyTeam;
-#endif
+    //
+    // Team
+    //
+    ProcessTeam m_Team;
     //
     // BoxLib's Communicators
     //
@@ -332,6 +326,12 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
+#ifdef BL_USE_MPI3
+    int mpi_version, mpi_subversion;
+    BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
+    if (mpi_version < 3) BoxLib::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+#endif
+
     if(m_MyId_all == 0 && nSidecarProcs > 0) {
       std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
     }
@@ -428,40 +428,6 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_nProcs_all != -1);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
-}
-
-void
-ParallelDescriptor::StartTeams ()
-{
-    ParmParse pp("team");
-    int team_size = 1;
-    int team_aggregate_message_method = 0;
-    pp.query("size", team_size);
-    pp.query("aggregate_message", team_aggregate_message_method);
-    
-    int nprocs = ParallelDescriptor::NProcs();
-    int rank   = ParallelDescriptor::MyProc();
-
-    if (nprocs % team_size != 0)
-	BoxLib::Abort("Number of processes not divisible by upcxx team_size");
-
-#ifdef _OPENMP
-    if (omp_get_num_threads() > 1 && team_size > 1)
-	BoxLib::Abort("Threads and teams cannot coexist");
-#endif
-
-    m_TeamSize     = team_size;
-    m_nTeams       = nprocs / team_size;
-    m_MyTeamColor  = rank / team_size;
-    m_MyTeamLead   = m_MyTeamColor * team_size;
-    m_MyRankInTeam = rank - m_MyTeamLead;
-    m_AgrgtTeamMsg = team_aggregate_message_method;
-
-#ifdef BL_USE_UPCXX
-    upcxx::team* team;
-    upcxx::team_all.split(m_MyTeamColor, m_MyRankInTeam, team);
-    m_MyTeam = *team;
-#endif
 }
 
 double
@@ -1735,4 +1701,62 @@ ParallelDescriptor::SidecarProcess ()
       std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
 #endif
 #endif
+}
+
+
+void
+ParallelDescriptor::StartTeams ()
+{
+    int team_size = 1;
+    int team_aggregate_message_method = 0;
+
+#ifdef BL_USE_MPI
+    ParmParse pp("team");
+    pp.query("size", team_size);
+    if (team_size > 1)
+	pp.query("aggregate_message", team_aggregate_message_method);
+#endif
+
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
+    if (nprocs % team_size != 0)
+	BoxLib::Abort("Number of processes not divisible by team size");
+
+#ifdef _OPENMP
+    if (omp_get_num_threads() > 1 && team_size > 1)
+	BoxLib::Abort("Threads and teams cannot coexist");
+#endif
+
+    m_Team.m_numTeams     = nprocs / team_size;
+    m_Team.m_size         = team_size;
+    m_Team.m_color        = rank / team_size;
+    m_Team.m_lead         = m_Team.m_color * team_size;
+    m_Team.m_rankInTeam   = rank - m_Team.m_lead;
+    m_Team.m_agrgtTeamMsg = team_aggregate_message_method;
+
+    if (team_size > 1)
+    {
+#ifdef BL_USE_UPCXX
+	upcxx::team* team;
+	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
+        m_Team.m_team = team;
+#elif defined(BL_USE_MPI3)
+	MPI_Group grp, teamgrp;
+	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
+	int team_ranks[team_size];
+	for (int i = 0; i < team_size; ++i) {
+	    team_ranks[i] = MyTeamLead() + i;
+	}
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &teamgrp) );
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+					teamgrp, &m_Team.get()) );
+#endif
+    }
+}
+
+void
+ParallelDescriptor::EndTeams ()
+{
+    m_Team.clear();
 }
