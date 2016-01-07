@@ -1341,18 +1341,17 @@ FabArrayBase::GrokAsyncSends (int                 N_snds,
 #ifdef BL_USE_MPI
     BL_ASSERT(FabArrayBase::do_async_sends && N_snds > 0);
 
-    int N_send_reqs = send_reqs.size();
-    stats.resize(N_send_reqs);
+    stats.resize(N_snds);
 
-    BL_ASSERT(send_reqs.size() >= N_snds);
+    BL_ASSERT(send_reqs.size() == N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
     Array<int> indx;
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_send_reqs, indx, stats, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
-    BL_MPI_REQUIRE( MPI_Waitall(N_send_reqs, send_reqs.dataPtr(), stats.dataPtr()) );
+    BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
 
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_send_reqs, indx, stats, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, send_reqs, N_snds, indx, stats, false);
 
     for (int i = 0; i < N_snds; i++)
         BoxLib::The_Arena()->free(send_data[i]);
@@ -3262,9 +3261,8 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
-	const int N_recv_reqs = recv_reqs.size();
-	stats.resize(N_recv_reqs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	stats.resize(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3554,9 +3552,8 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
-	const int N_recv_reqs = fb_recv_reqs.size();
-	stats.resize(N_recv_reqs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	stats.resize(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)

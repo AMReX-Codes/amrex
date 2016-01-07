@@ -530,9 +530,8 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-	    const int N_recv_reqs = recv_reqs.size();
-	    stats.resize(N_recv_reqs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    stats.resize(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
@@ -824,9 +823,8 @@ namespace BoxLib
 		recv_fctc.push_back(&(m_it->second));
 	    }
 
-	    const int N_recv_reqs = mf.fpb_recv_reqs.size();
-	    stats.resize(N_recv_reqs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_recv_reqs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	    stats.resize(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
