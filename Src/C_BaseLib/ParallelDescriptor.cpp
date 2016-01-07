@@ -1708,13 +1708,10 @@ void
 ParallelDescriptor::StartTeams ()
 {
     int team_size = 1;
-    int team_aggregate_message_method = 0;
 
 #ifdef BL_USE_MPI
     ParmParse pp("team");
     pp.query("size", team_size);
-    if (team_size > 1)
-	pp.query("aggregate_message", team_aggregate_message_method);
 #endif
 
     int nprocs = ParallelDescriptor::NProcs();
@@ -1728,12 +1725,11 @@ ParallelDescriptor::StartTeams ()
 	BoxLib::Abort("Threads and teams cannot coexist");
 #endif
 
-    m_Team.m_numTeams     = nprocs / team_size;
-    m_Team.m_size         = team_size;
-    m_Team.m_color        = rank / team_size;
-    m_Team.m_lead         = m_Team.m_color * team_size;
-    m_Team.m_rankInTeam   = rank - m_Team.m_lead;
-    m_Team.m_agrgtTeamMsg = team_aggregate_message_method;
+    m_Team.m_numTeams    = nprocs / team_size;
+    m_Team.m_size        = team_size;
+    m_Team.m_color       = rank / team_size;
+    m_Team.m_lead        = m_Team.m_color * team_size;
+    m_Team.m_rankInTeam  = rank - m_Team.m_lead;
 
     if (team_size > 1)
     {
