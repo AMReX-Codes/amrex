@@ -291,7 +291,6 @@ namespace ParallelDescriptor
 	int    m_color;
 	int    m_lead;
 	int    m_rankInTeam;
-	int    m_agrgtTeamMsg;
     };
 
     extern ProcessTeam m_Team;
@@ -379,11 +378,6 @@ namespace ParallelDescriptor
 	return m_Team.m_rankInTeam;
     }
     inline int
-    TeamMsgAggMethod ()
-    {
-	return m_Team.m_agrgtTeamMsg;
-    }
-    inline int
     TeamLead (int rank)
     {
 	return rank - rank % m_Team.m_size;
@@ -397,71 +391,6 @@ namespace ParallelDescriptor
     sameTeam (int rank)
     {
 	return MyTeamLead() == TeamLead(rank);
-    }
-    inline bool
-    isTeamSender ()
-    {
-	bool sender = true;
-	if (TeamMsgAggMethod() == 1) {        // only worker 0 does send
-	    if (MyRankInTeam() != 0) sender = false; 
-	} else if (TeamMsgAggMethod() == 2) { 
-	    // only worker 0 does send
-	    if (MyRankInTeam() != 0) sender = false;
-	}
-	return sender;
-    }
-    inline int
-    TeamSender (int rank)  // sender for data owned by this rank
-    {
-	int r = rank;
-	if (TeamMsgAggMethod() == 1) {
-	    r = TeamLead(rank);
-	} else if (TeamMsgAggMethod() == 2) { 
-	    r = TeamLead(rank);
-	}
-	return r;
-    }
-    inline bool
-    isTeamReceiver ()
-    {
-	bool receiver = true;
-	if (TeamMsgAggMethod() == 1) {        // only worker 0 does recv
-	    if (MyRankInTeam() != 0) receiver = false; 
-	} else if (TeamMsgAggMethod() == 2) { 
-	    // only worker 1 does send
-	    if (MyRankInTeam() != 1) receiver = false;
-	}
-	return receiver;
-    }
-    inline int
-    TeamReceiver (int rank)  // receiver for data owned by this rank
-    {
-	int r = rank;
-	if (TeamMsgAggMethod() == 1) {
-	    r = TeamLead(rank);
-	} else if (TeamMsgAggMethod() == 2) { 
-	    r = TeamLead(rank) + 1;
-	}
-	return r;
-    }
-    inline int
-    TeamFreeSize ()
-    {
-	int r = TeamSize();
-	if (TeamMsgAggMethod() == 1) {
-	    r -= 1;  // Worker 0 is not free
-	} else if (TeamMsgAggMethod() == 2) {
-	    r -= 2; // Workers 0 and 1 are not free
-	}
-	if (r <= 0) r = TeamSize(); // If none is free, the whole team is free.
-	return r;
-    }
-    inline int
-    MyRankInTeamFree ()
-    {
-	int r = MyRankInTeam() - (TeamSize()-TeamFreeSize());
-	if (r < 0) r = TeamSize();  // If r < 0, set it to invalid team rank.
-	return r;
     }
     inline const ProcessTeam&
     MyTeam ()

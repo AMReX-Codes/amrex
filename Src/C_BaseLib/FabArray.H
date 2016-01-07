@@ -3457,7 +3457,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0) {
+    if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum[0],&BLPgas::fb_recv_event);
@@ -3470,7 +3470,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Post send's
     //
-    if (ParallelDescriptor::isTeamSender() && N_snds > 0)
+    if (N_snds > 0)
     {
         Array<value_type*> &               send_data = fb_send_data;
 	Array<int>                         send_N;
@@ -3580,11 +3580,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
 #ifdef BL_USE_CXX11
-	// Only free processes will do the local copy.
-	// If none is free, all will have to do it.
-	int nworkers = ParallelDescriptor::TeamFreeSize();
-	int wid = ParallelDescriptor::MyRankInTeamFree();
-	ParallelDescriptor::team_for(0, N_locs, wid, nworkers, [&] (int i) 
+	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
 	    const auto& tag = (*TheSI.m_LocTags)[i];
 
@@ -3652,7 +3648,7 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 
     const int N_rcvs = TheSI.m_RcvTags->size();
 
-    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0)
+    if (N_rcvs > 0)
     {
         //
         //  wait and unpack
@@ -3702,7 +3698,7 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 
     const int N_snds = TheSI.m_SndTags->size();
 
-    if (ParallelDescriptor::isTeamSender() && N_snds > 0) {
+    if (N_snds > 0) {
       FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
       fb_send_data.clear();
       fb_send_reqs.clear();
@@ -3724,7 +3720,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
     const int N_rcvs = TheSI.m_RcvTags->size();
 
-    if (ParallelDescriptor::isTeamReceiver() && N_rcvs > 0)
+    if (N_rcvs > 0)
     {
 	//
 	//  wait and unpack
@@ -3770,7 +3766,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 
     const int N_snds = TheSI.m_SndTags->size();
 
-    if (ParallelDescriptor::isTeamSender() && N_snds > 0)
+    if (N_snds > 0)
     {
         // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
         FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,

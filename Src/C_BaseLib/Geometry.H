@@ -655,11 +655,9 @@ namespace BoxLib
 	// Post rcvs. Allocate one chunk of space to hold'm all.
 	//
 #ifdef BL_USE_UPCXX
-	if (ParallelDescriptor::isTeamReceiver()) {
-	    FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-					mf.fpb_recv_data,mf.fpb_recv_from,
-					mf.fpb_ncomp,SeqNum[0],&BLPgas::fpb_recv_event);
-	}
+	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+				    mf.fpb_recv_data,mf.fpb_recv_from,
+				    mf.fpb_ncomp,SeqNum[0],&BLPgas::fpb_recv_event);
 #else
         FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -669,7 +667,6 @@ namespace BoxLib
         //
         // Post send's
         //
-	if (ParallelDescriptor::isTeamSender())
 	{
             Array<value_type*>&                    send_data = mf.fpb_send_data;
 	    Array<int>                             send_N;
@@ -781,11 +778,7 @@ namespace BoxLib
 	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
 	{
 #ifdef BL_USE_UPCXX
-	    // Only free processes will do the local copy.
-	    // If none is free, all will have to do it.
-	    int nworkers = ParallelDescriptor::TeamFreeSize();
-	    int wid = ParallelDescriptor::MyRankInTeamFree();
-	    ParallelDescriptor::team_for(0, N_loc, wid, nworkers, [&] (int i) 
+	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
             {
                 const auto& tag = (*TheFPB.m_LocTags)[i];
 
@@ -924,7 +917,7 @@ namespace BoxLib
 
         typedef typename FAB::value_type value_type;
 
-	if (ParallelDescriptor::isTeamReceiver() && !TheFPB.m_RcvTags->empty())
+	if (!TheFPB.m_RcvTags->empty())
 	{
 	    BLPgas::fpb_recv_event.wait(); // wait for the recvs
 
@@ -972,7 +965,7 @@ namespace BoxLib
 	    mf.fpb_recv_reqs.clear();
 	}
 
-        if (ParallelDescriptor::isTeamSender() && !TheFPB.m_SndTags->empty()) {
+        if (!TheFPB.m_SndTags->empty()) {
 	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
 	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data,
 					      &BLPgas::fpb_send_event,

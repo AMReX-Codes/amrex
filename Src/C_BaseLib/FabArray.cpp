@@ -731,9 +731,8 @@ FabArrayBase::TheFB (bool                cross,
 
 	    if (ParallelDescriptor::sameTeam(dst_owner)) {
 		continue;  // local copy will be dealt with later
-	    } else if (MyProc == ParallelDescriptor::TeamSender(dm[ksnd])) {
-		int recv_rank = ParallelDescriptor::TeamReceiver(dst_owner);
-		send_tags[recv_rank].push_back(CopyComTag(bx, krcv, ksnd));
+	    } else if (MyProc == dm[ksnd]) {
+		send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
 	    }
 	}
     }
@@ -796,9 +795,8 @@ FabArrayBase::TheFB (bool                cross,
 		if (check_local) {
 		    localtouch.plus(1, bx);
 		}
-	    } else if (MyProc == ParallelDescriptor::TeamReceiver(dm[krcv])) {
-		int send_rank = ParallelDescriptor::TeamSender(src_owner);
-		recv_tags[send_rank].push_back(CopyComTag(bx, krcv, ksnd));
+	    } else if (MyProc == dm[krcv]) {
+		recv_tags[src_owner].push_back(CopyComTag(bx, krcv, ksnd));
 		if (check_remote) {
 		    remotetouch.plus(1, bx);
 		}

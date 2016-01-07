@@ -1037,9 +1037,8 @@ Geometry::GetFPB (const Geometry&      geom,
 
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue; // local copy will be dealt with later
-		} else if (MyProc == ParallelDescriptor::TeamSender(dm[k_src])) {
-		    int recv_rank = ParallelDescriptor::TeamReceiver(dst_owner);
-		    send_tags[recv_rank].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
+		} else if (MyProc == dm[k_src]) {
+		    send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
 		}
 	    }
 	}
@@ -1125,9 +1124,8 @@ Geometry::GetFPB (const Geometry&      geom,
 		    if (check_local) {
 			localtouch.plus(1, bx-iv);
 		    }
-		} else if (MyProc == ParallelDescriptor::TeamReceiver(dm[k_dst])) {
-		    int send_rank = ParallelDescriptor::TeamSender(src_owner);
-		    recv_tags[send_rank].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
+		} else if (MyProc == dm[k_dst]) {
+		    recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
 		    if (check_remote) {
 			remotetouch.plus(1, bx-iv);
 		    }
