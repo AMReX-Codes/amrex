@@ -178,6 +178,7 @@ namespace ParallelDescriptor
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     void StartTeams ();
+    void EndTeams ();
 
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
@@ -248,15 +249,52 @@ namespace ParallelDescriptor
     extern int m_nProcs_sidecar;
     extern int nSidecarProcs;
     //
-    extern int m_TeamSize;
-    extern int m_nTeams;
-    extern int m_MyTeamColor;
-    extern int m_MyTeamLead;
-    extern int m_MyRankInTeam;
-    extern int m_AgrgtTeamMsg;
+    // Team
+    //
+    struct ProcessTeam
+    {
 #ifdef BL_USE_UPCXX
-    extern upcxx::team m_MyTeam;
+	typedef upcxx::team team_t;
+#else
+	typedef MPI_Comm team_t;
 #endif
+
+	void Barrier () const { 
+	    if (m_size > 1) {
+#ifdef BL_USE_UPCXX
+		m_team.barrier();
+#elif defined(BL_USE_MPI3)
+		MPI_Barrier(m_team);
+#endif
+	    }
+	}
+
+	// ProcessTeam m_Team is a global static object.
+	// When it is destroyed, MPI is proably alread gone.
+	// So we should not destroy MPI_Comm in the dtor.
+	void clear () {
+	    if (m_size > 1) {
+#ifdef BL_USE_UPCXX
+		;
+#elif defined(BL_USE_MPI3)
+		MPI_Comm_free(&m_team);
+#endif
+	    }
+	}
+	
+	team_t& get() { return m_team; }
+	const team_t& get() const { return m_team; }
+
+	team_t m_team;
+	int    m_numTeams;
+	int    m_size;
+	int    m_color;
+	int    m_lead;
+	int    m_rankInTeam;
+	int    m_agrgtTeamMsg;
+    };
+
+    extern ProcessTeam m_Team;
 
     inline void
     SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
@@ -318,37 +356,37 @@ namespace ParallelDescriptor
     inline int
     TeamSize ()
     {
-	return m_TeamSize;
+	return m_Team.m_size;
     }
     inline int
     NTeams ()
     {
-	return m_nTeams;
+	return m_Team.m_numTeams;
     }
     inline int
     MyTeamColor ()
     {
-	return m_MyTeamColor;
+	return m_Team.m_color;
     }
     inline int
     MyTeamLead ()
     {
-	return m_MyTeamLead;
+	return m_Team.m_lead;
     }
     inline int
     MyRankInTeam ()
     {
-	return m_MyRankInTeam;
+	return m_Team.m_rankInTeam;
     }
     inline int
     TeamMsgAggMethod ()
     {
-	return m_AgrgtTeamMsg;
+	return m_Team.m_agrgtTeamMsg;
     }
     inline int
     TeamLead (int rank)
     {
-	return rank - rank % m_TeamSize;
+	return rank - rank % m_Team.m_size;
     }
     inline bool
     isTeamLead ()
@@ -366,7 +404,7 @@ namespace ParallelDescriptor
 	bool sender = true;
 	if (TeamMsgAggMethod() == 1) {        // only worker 0 does send
 	    if (MyRankInTeam() != 0) sender = false; 
-	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	} else if (TeamMsgAggMethod() == 2) { 
 	    // only worker 0 does send
 	    if (MyRankInTeam() != 0) sender = false;
 	}
@@ -378,7 +416,7 @@ namespace ParallelDescriptor
 	int r = rank;
 	if (TeamMsgAggMethod() == 1) {
 	    r = TeamLead(rank);
-	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	} else if (TeamMsgAggMethod() == 2) { 
 	    r = TeamLead(rank);
 	}
 	return r;
@@ -389,7 +427,7 @@ namespace ParallelDescriptor
 	bool receiver = true;
 	if (TeamMsgAggMethod() == 1) {        // only worker 0 does recv
 	    if (MyRankInTeam() != 0) receiver = false; 
-	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	} else if (TeamMsgAggMethod() == 2) { 
 	    // only worker 1 does send
 	    if (MyRankInTeam() != 1) receiver = false;
 	}
@@ -401,7 +439,7 @@ namespace ParallelDescriptor
 	int r = rank;
 	if (TeamMsgAggMethod() == 1) {
 	    r = TeamLead(rank);
-	} else if (TeamMsgAggMethod() == 2 && TeamSize() > 1) { 
+	} else if (TeamMsgAggMethod() == 2) { 
 	    r = TeamLead(rank) + 1;
 	}
 	return r;
@@ -425,17 +463,10 @@ namespace ParallelDescriptor
 	if (r < 0) r = TeamSize();  // If r < 0, set it to invalid team rank.
 	return r;
     }
-#ifdef BL_USE_UPCXX
-    inline const upcxx::team&
+    inline const ProcessTeam&
     MyTeam ()
     {
-	return m_MyTeam;
-    }
-    inline void
-    TeamBarrier ()
-    {
-	if (TeamSize() > 1)
-	    m_MyTeam.barrier();
+	return m_Team;
     }
     inline std::pair<int,int>
     team_range (int begin, int end, int rit = -1, int nworkers = 0)
@@ -462,6 +493,7 @@ namespace ParallelDescriptor
 	}
 	return std::make_pair(rb,re);
     }
+#ifdef BL_USE_CXX11
     template <typename F>
     void team_for (int begin, int end, const F& f)
     {

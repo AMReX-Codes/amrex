@@ -253,6 +253,11 @@ ifeq ($(USE_UPCXX),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifeq ($(USE_MPI3),TRUE)
+  USE_MPI = TRUE
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -932,13 +937,20 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
   VPATH_LOCATIONS   += $(ARRAYVIEWDIR)
 endif
 
-
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI
-    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 else
     MPISuffix	:=
+endif
+
+ifeq ($(USE_MPI3),TRUE)
+    MPISuffix := .MPI3
+    CPPFLAGS  += -DBL_USE_MPI3
+endif
+
+ifeq ($(USE_MPI),TRUE)
+    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
