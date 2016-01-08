@@ -195,6 +195,10 @@ public:
 	CopyComTag () {}
 	explicit CopyComTag (const Box& b, int fidx, int sidx)
 	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
+	// CopyComTag needs to be sortable if it is used in remote communication.
+	// Note that the intersection of two boxes is at most one box.
+	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
+	// *this == rhs.
 	bool operator< (const CopyComTag& rhs) const {
 	    return (fabIndex < rhs.fabIndex)
 		|| ((fabIndex == rhs.fabIndex) && (srcIndex < rhs.srcIndex));
