@@ -454,10 +454,10 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 		     it != cctc.end(); ++it)
 		{
 		    BL_ASSERT(mf.DistributionMap()[it->srcIndex] == ParallelDescriptor::MyProc());
-		    const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
-		    const Box& dstbox = tag.sbox;
+		    const Box& srcbox = it->dbox;   // Note the switch of dst and src here.
+		    const Box& dstbox = it->sbox;
 		    fab.resize(srcbox,ncomp);
-		    const int Cnt = dbx.numPts()*ncomp;
+		    const int Cnt = dstbox.numPts()*ncomp;
 		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
 		    mf[it->srcIndex].plus(fab,srcbox,dstbox,0,scomp,ncomp);
 		    dptr += Cnt;
