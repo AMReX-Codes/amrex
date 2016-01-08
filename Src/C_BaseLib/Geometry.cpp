@@ -296,7 +296,9 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 	for (int i=0; i<N_loc; ++i)
         {
 	    const Geometry::FPBComTag& tag = LocTags[i];
-            mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
+	    const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
+	    const Box& dstbox = tag.sbox;
+            mf[tag.srcIndex].plus(mf[tag.dstIndex],srcbox,dstbox,scomp,scomp,ncomp);
 	}
 
         return;
@@ -411,7 +413,9 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
         BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-        mf[tag.srcIndex].plus(mf[tag.dstIndex],tag.dbox,tag.sbox,scomp,scomp,ncomp);
+	const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
+	const Box& dstbox = tag.sbox;
+        mf[tag.srcIndex].plus(mf[tag.dstIndex],srcbox,dstbox,scomp,scomp,ncomp);
     }
 
     //
@@ -450,12 +454,12 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
 		     it != cctc.end(); ++it)
 		{
 		    BL_ASSERT(mf.DistributionMap()[it->srcIndex] == ParallelDescriptor::MyProc());
-		    const Box& dbx = it->dbox;
-		    const Box& sbx = it->sbox;
-		    fab.resize(sbx,ncomp);
+		    const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
+		    const Box& dstbox = tag.sbox;
+		    fab.resize(srcbox,ncomp);
 		    const int Cnt = dbx.numPts()*ncomp;
 		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
-		    mf[it->srcIndex].plus(fab,dbx,sbx,0,scomp,ncomp);
+		    mf[it->srcIndex].plus(fab,srcbox,dstbox,0,scomp,ncomp);
 		    dptr += Cnt;
 		}
 	    }
