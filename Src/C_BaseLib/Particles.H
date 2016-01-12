@@ -7160,7 +7160,6 @@ ParticleContainer<N>::Timestamp (const std::string&      basename,
     BL_ASSERT(lev >= 0);
     BL_ASSERT(time >= 0);
     BL_ASSERT(vcomp >= 0);
-    BL_ASSERT(mf.nGrow() >= 1);
     BL_ASSERT(!basename.empty());
     BL_ASSERT(N >= vcomp + BL_SPACEDIM);
     BL_ASSERT(lev <= m_gdb->finestLevel());
