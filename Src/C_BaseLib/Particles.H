@@ -444,7 +444,7 @@ public:
     void AddParticlesAtLevel (int level, PBox& virts, bool where_already_called = false);
     // **************************************************************************************************************** 
 
-    void AdvectWithUmac (MultiFab* umac, int level, Real dt, const int vcomp = 0);
+    void AdvectWithUmac (MultiFab* umac, int level, Real dt, int vcomp = 0);
 
     void RemoveParticlesNotAtFinestLevel ();
 
@@ -5398,9 +5398,9 @@ ParticleContainer<N>::CreateGhostParticles (int   level,
 template <int N>
 void
 ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
-                                      int             lev,
-                                      Real            dt,
-                                      const int       vcomp)
+                                      int       lev,
+                                      Real      dt,
+                                      int       vcomp)
 {
     BL_ASSERT(OK(true, lev, umac[0].nGrow()-1));
     BL_ASSERT(vcomp >= 0);
@@ -5432,10 +5432,10 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 	umac_pointer.resize(BL_SPACEDIM, PArrayManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
+	    int ng = umac[i].nGrow();
 	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
-					     umac[i].nGrow(),Fab_allocate));
-	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp());
-	    umac_pointer[i].FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
+					     ng,Fab_allocate));
+	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
 
@@ -5509,8 +5509,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
                     }
                 }
                 
-                //This assumes enough boundary cells in all directions, it shouldn't be a problem
-                ParticleBase::RestrictedWhere(p,m_gdb, umac[0].nGrow()-1); 
+                ParticleBase::RestrictedWhere(p,m_gdb, umac[0].nGrow()); 
             }
         }
     }
