@@ -446,6 +446,8 @@ public:
 
     void AdvectWithUmac (MultiFab* umac, int level, Real dt, int vcomp = 0);
 
+    void AdvectWithUcc (const MultiFab& ucc, int level, Real dt, int vcomp = 0);
+
     void RemoveParticlesNotAtFinestLevel ();
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true) const;
@@ -5525,6 +5527,103 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
         if (ParallelDescriptor::IOProcessor())
         {
             std::cout << "ParticleContainer<N>::AdvectWithUmac() time: " << stoptime << '\n';
+        }
+#ifdef BL_LAZY
+	});
+#endif
+    }
+}
+
+//
+// Uses midpoint method to advance particles using cell-centered velocity
+//
+
+template <int N>
+void
+ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
+				     int             lev,
+				     Real            dt,
+				     int             vcomp)
+{
+    BL_ASSERT(Ucc.nGrow() > 0);
+    BL_ASSERT(OK(true, lev, Ucc.nGrow()-1));
+    BL_ASSERT(vcomp >= 0);
+    BL_ASSERT(N >= vcomp + BL_SPACEDIM);
+    BL_ASSERT(lev >= 0 && lev < m_particles.size());
+
+    BL_ASSERT(!Ucc.contains_nan());
+
+    const Real      strttime = ParallelDescriptor::second();
+    const Geometry& geom     = m_gdb->Geom(lev);
+
+    BL_ASSERT(m_gdb->ParticlesOnSameGrids(lev));
+
+    int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
+
+    for (int ipass = 0; ipass < 2; ipass++)
+    {
+        PMap& pmap = m_particles[lev];
+
+        for (typename PMap::iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
+        {
+            const int grid = pmap_it->first;
+            PBox&     pbox = pmap_it->second;
+            const int n    = pbox.size();
+
+	    const FArrayBox& fab = Ucc[grid];
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < n; i++)
+            {
+                ParticleType& p = pbox[i];
+                
+                if (p.m_id <= 0) continue;
+
+                BL_ASSERT(p.m_grid == grid);
+
+		Real v[BL_SPACEDIM];
+
+		ParticleBase::Interp(p, geom, fab, idx, v, BL_SPACEDIM);
+
+		if (ipass == 0) {
+		    //
+		    // Save old position and the vel & predict location at dt/2.
+		    //
+		    for (int d = 0; d < BL_SPACEDIM; d++)
+		    {
+			p.m_data[vcomp+d] = p.m_pos[d];
+                        p.m_pos[d] += 0.5*dt*v[d];
+                    }
+		} else {
+		    //
+		    // Update to final time using the orig position and the vel at dt/2.
+		    //
+		    for (int d = 0; d < BL_SPACEDIM; d++)
+		    {
+                        p.m_pos[d]  = p.m_data[vcomp+d] + dt*v[d];
+                        // Save the velocity for use in Timestamp().
+			p.m_data[vcomp+d] = v[d];
+                    }
+                }
+                
+                ParticleBase::RestrictedWhere(p,m_gdb, Ucc.nGrow()); 
+            }
+        }
+    }
+    if (m_verbose > 1)
+    {
+        Real stoptime = ParallelDescriptor::second() - strttime;
+
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
+        ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "ParticleContainer<N>::AdvectWithUcc() time: " << stoptime << '\n';
         }
 #ifdef BL_LAZY
 	});
