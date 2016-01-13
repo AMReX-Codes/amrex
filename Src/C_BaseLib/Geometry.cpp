@@ -326,7 +326,7 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     //
     Real* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(RcvTags,RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
