@@ -81,6 +81,8 @@ public:
     //
     int nComp () const { return n_comp; }
     //
+    bool empty () const { return boxarray.empty(); }
+    //
     // Returns a constant reference to the BoxArray that defines the
     // valid region associated with this FabArray.
     //
