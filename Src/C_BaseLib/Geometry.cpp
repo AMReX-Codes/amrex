@@ -312,14 +312,6 @@ Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
 #endif
 }
 
-//
-// Some useful typedefs.
-//
-typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
-
-typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
-
-static
 void
 Geometry::SumPeriodicBoundary (MultiFab& mf,
                                int       scomp,

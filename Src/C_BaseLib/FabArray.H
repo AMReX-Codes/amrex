@@ -3361,7 +3361,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
 #else
-	FabArrayBase::PostRcvs     (*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+	FabArrayBase::PostRcvs     (*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 #endif
     }
