@@ -641,7 +641,7 @@ namespace BoxLib
 				    mf.fpb_recv_data,mf.fpb_recv_from,
 				    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
 #else
-        FabArrayBase::PostRcvs     (*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+        FabArrayBase::PostRcvs     (*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
 				    mf.fpb_ncomp,SeqNum);
 #endif
