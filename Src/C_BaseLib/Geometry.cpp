@@ -321,120 +321,68 @@ typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagConta
 
 static
 void
-SumPeriodicBoundaryInnards (MultiFab&       dstmf,
-                            const MultiFab& srcmf,
-                            const Geometry& geom,
-                            int             scomp,
-                            int             dcomp,
-                            int             ncomp)
+Geometry::SumPeriodicBoundary (MultiFab& mf,
+                               int       scomp,
+                               int       ncomp) const
 {
     BL_PROFILE("SumPeriodicBoundaryInnards()");
 
-    if (!dstmf.boxArray().ixType().cellCentered()) 
-	BoxLib::Abort("SumPeriodicBoundary: dstmf must be cell centered");
-    if (!srcmf.boxArray().ixType().cellCentered()) 
-	BoxLib::Abort("SumPeriodicBoundary: srcmf must be cell centered");
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
-#ifndef NDEBUG
-    //
-    // Don't let folks ask for more grow cells than they have valid region.
-    //
-    for (int n = 0; n < BL_SPACEDIM; n++)
-        if (geom.isPeriodic(n))
-            BL_ASSERT(srcmf.nGrow() <= geom.Domain().length(n));
-#endif
-    //
-    // Note that in the usual case dstmf == srcmf.
-    //
-    Box TheDomain = geom.Domain();
-    TheDomain.convert(srcmf.boxArray().ixType());
- 
-    MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
-    std::map<int,int>          m_SndVols, m_RcvVols;
-    Array<IntVect>             pshifts(26);
-    const int                  ngrow  = srcmf.nGrow();
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    const BoxArray&            srcba  = srcmf.boxArray();
-    const BoxArray&            dstba  = dstmf.boxArray();
-    const DistributionMapping& srcdm  = srcmf.DistributionMap();
-    const DistributionMapping& dstdm  = dstmf.DistributionMap();
+    BL_ASSERT( mf.boxArray().ixType().cellCentered() ); 
 
-    for (int i = 0, K = dstba.size(); i < K; i++)
+    //
+    // We're going to attempt to reuse the information in the FPB
+    // cache.  The intersection info should be that same.  It's what we do
+    // with it that's different.  Basically we have to send the m_RcvTags and
+    // receive the m_SndTags.
+    //
+    const Geometry& geom = *this;
+
+    const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),false);
+
+    Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+
+    BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
+
+    const Geometry::FPB& TheFPB_ = cache_it->second;
+
+    const FPB::FPBComTagsContainer&      LocTags = *(TheFPB_.m_LocTags);
+    const FPB::MapOfFPBComTagContainers& SndTags = *(TheFPB_.m_RcvTags);
+    const FPB::MapOfFPBComTagContainers& RcvTags = *(TheFPB_.m_SndTags);
+    const std::map<int,int>&             SndVols = *(TheFPB_.m_RcvVols);
+    const std::map<int,int>&             RcvVols = *(TheFPB_.m_SndVols);
+
+    if (ParallelDescriptor::NProcs() == 1)
     {
-        const Box& dst       = dstba[i];
-        const int  dst_owner = dstdm[i];
-
-        if (TheDomain.contains(BoxLib::grow(dst,ngrow))) continue;
-        //
-        // We may overlap with the periodic boundary.  Some other ghost
-        // region(s) could be periodically-shiftable into our valid region.
-        //
-        for (int j = 0, N = srcba.size(); j < N; j++)
+	//
+	// There can only be local work to do.
+	//
+	int N_loc = LocTags.size();
+	// undafe to do OMP
+	for (int i=0; i<N_loc; ++i)
         {
-            const int src_owner = srcdm[j];
+	    const Geometry::FPBComTag& tag = LocTags[i];
+	    const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
+	    const Box& dstbox = tag.sbox;
+            mf[tag.srcIndex].plus(mf[tag.dstIndex],srcbox,dstbox,scomp,scomp,ncomp);
+	}
 
-            if (dst_owner != MyProc && src_owner != MyProc) continue;
-
-            const Box& src = BoxLib::grow(srcba[j],ngrow);
-
-            if (TheDomain.contains(src)) continue;
-
-            geom.periodicShift(dst, src, pshifts);
-
-            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                 it != End;
-                 ++it)
-            {
-                const IntVect& iv  = *it;
-                const Box&    shft = src + iv;
-                const Box&    dbx  = dst & shft;
-                const Box&    sbx  = dbx - iv;
-
-                FabArrayBase::CopyComTag tag;
-
-                if (dst_owner == MyProc)
-                {
-                    if (src_owner == MyProc)
-                    {
-                        //
-                        // Do the local work right here.
-                        //
-                        dstmf[i].plus(srcmf[j],sbx,dbx,scomp,dcomp,ncomp);
-                    }
-                    else
-                    {
-                        tag.box      = dbx;
-                        tag.fabIndex = i;
-
-                        FabArrayBase::SetRecvTag(m_RcvTags, src_owner, tag,
-						 m_RcvVols, tag.box);
-                    }
-                }
-                else if (src_owner == MyProc)
-                {
-                    tag.box      = sbx;
-                    tag.fabIndex = j;
-
-                    FabArrayBase::SetSendTag(m_SndTags, dst_owner, tag, 
-					     m_SndVols, tag.box);
-                }
-            }
-        }
+        return;
     }
 
 #ifdef BL_USE_MPI
-    if (ParallelDescriptor::NProcs() == 1) return;
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (m_SndTags.empty() && m_RcvTags.empty())
-        //
-        // No parallel work for this MPI process to do.
-        //
-        return;
+    if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
+	//
+	// No work to do.
+	//
+	return;
 
     Array<MPI_Status>  stats;
     Array<int>         recv_from;
@@ -445,31 +393,31 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
     //
     Real* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(m_RcvTags,m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
     //
-    const int N_snds = m_SndTags.size();
+    const int N_snds = SndTags.size();
 
-    Array<Real*>                       send_data;
-    Array<int>                         send_N;
-    Array<int>                         send_rank;
-    Array<const CopyComTagsContainer*> send_cctc;
+    Array<Real*>                           send_data;
+    Array<int>                             send_N;
+    Array<int>                             send_rank;
+    Array<const FPB::FPBComTagsContainer*> send_cctc;
 
     send_data.reserve(N_snds);
     send_N   .reserve(N_snds);
     send_rank.reserve(N_snds);
     send_cctc.reserve(N_snds);
 
-    for (MapOfCopyComTagContainers::const_iterator m_it = m_SndTags.begin(),
-             m_End = m_SndTags.end();
+    for (FPB::MapOfFPBComTagContainers::const_iterator m_it = SndTags.begin(),
+             m_End = SndTags.end();
          m_it != m_End;
          ++m_it)
     {
-        std::map<int,int>::const_iterator vol_it = m_SndVols.find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = SndVols.find(m_it->first);
 
-        BL_ASSERT(vol_it != m_SndVols.end());
+        BL_ASSERT(vol_it != SndVols.end());
 
         const int N = vol_it->second*ncomp;
 
@@ -488,77 +436,97 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 #endif
     for (int i=0; i<N_snds; ++i)
     {
-	Real* dptr = send_data[i];
+	Real*dptr = send_data[i];
 	BL_ASSERT(dptr != 0);
-	
-	const CopyComTagsContainer& cctc = *send_cctc[i];
-	
-	for (CopyComTagsContainer::const_iterator it = cctc.begin();
-	     it != cctc.end(); ++it)
-	{
-	    const Box& bx = it->box;
-	    srcmf[it->fabIndex].copyToMem(bx,scomp,ncomp,dptr);
-	    const int Cnt = bx.numPts()*ncomp;
-	    dptr += Cnt;
-	}
+
+	const FPB::FPBComTagsContainer& cctc = *send_cctc[i];
+
+        for (FPB::FPBComTagsContainer::const_iterator it = cctc.begin();
+             it != cctc.end(); ++it)
+        {
+            BL_ASSERT(mf.DistributionMap()[it->dstIndex] == ParallelDescriptor::MyProc());
+            const Box& dbx = it->dbox;
+            mf[it->dstIndex].copyToMem(dbx,scomp,ncomp,dptr);
+            const int Cnt = dbx.numPts()*ncomp;
+            dptr += Cnt;
+        }
     }
-    
+
     Array<MPI_Request> send_reqs;
-    
+
     if (FabArrayBase::do_async_sends)
     {
 	send_reqs.reserve(N_snds);
 	for (int i=0; i<N_snds; ++i) {
-	    send_reqs.push_back(ParallelDescriptor::Asend
+            send_reqs.push_back(ParallelDescriptor::Asend
 				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
-	}
+        }
     } else {
 	for (int i=0; i<N_snds; ++i) {
-	    ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
-	    BoxLib::The_Arena()->free(send_data[i]);
-	}
+            ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
+            BoxLib::The_Arena()->free(send_data[i]);
+        }
     }
-        
+
     //
-    // wait and unpack
+    // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    const int N_rcvs = m_RcvTags.size();
+    int N_loc = LocTags.size();
+    // undafe to do OMP
+    for (int i=0; i<N_loc; ++i)
+    {
+        const FPBComTag& tag = LocTags[i];
+
+        BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+	const Box& srcbox = tag.dbox;   // Note the switch of dst and src here.
+	const Box& dstbox = tag.sbox;
+        mf[tag.srcIndex].plus(mf[tag.dstIndex],srcbox,dstbox,scomp,scomp,ncomp);
+    }
+
+    //
+    //  wait and unpack
+    //
+    const int N_rcvs = RcvTags.size();
 
     if (N_rcvs > 0)
     {
-	Array<const CopyComTagsContainer*> recv_cctc;
+	Array<const FPB::FPBComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
 
-	for (int k=0; k<N_rcvs; k++)
-	{
-	    MapOfCopyComTagContainers::const_iterator m_it = m_RcvTags.find(recv_from[k]);
-            BL_ASSERT(m_it != m_RcvTags.end());
+        for (int k = 0; k < N_rcvs; k++)
+        {
+	    FPB::MapOfFPBComTagContainers::const_iterator m_it = RcvTags.find(recv_from[k]);
+            BL_ASSERT(m_it != RcvTags.end());
 
 	    recv_cctc.push_back(&(m_it->second));
 	}
 
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-	    
-	// unsafe to use OMP here
+
+	// unsafe to do OMP
 	{
 	    FArrayBox fab;
 
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
-		Real* dptr = recv_data[k];
+		const Real* dptr = recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
-		const CopyComTagsContainer& cctc = *recv_cctc[k];
+		const FPB::FPBComTagsContainer& cctc = *recv_cctc[k];
 		
-		for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		for (FPB::FPBComTagsContainer::const_iterator it = cctc.begin();
 		     it != cctc.end(); ++it)
 		{
-		    const Box& bx = it->box;
-		    fab.resize(bx,ncomp);
-		    const int Cnt = bx.numPts()*ncomp;
-		    memcpy(fab.dataPtr(),dptr,Cnt*sizeof(Real));
-		    dstmf[it->fabIndex].plus(fab,bx,bx,0,dcomp,ncomp);
+		    BL_ASSERT(mf.DistributionMap()[it->srcIndex] == ParallelDescriptor::MyProc());
+		    const Box& srcbox = it->dbox;   // Note the switch of dst and src here.
+		    const Box& dstbox = it->sbox;
+		    fab.resize(srcbox,ncomp);
+		    const int Cnt = dstbox.numPts()*ncomp;
+		    memcpy(fab.dataPtr(), dptr, Cnt*sizeof(Real));
+		    mf[it->srcIndex].plus(fab,srcbox,dstbox,0,scomp,ncomp);
 		    dptr += Cnt;
 		}
 	    }
@@ -567,20 +535,11 @@ SumPeriodicBoundaryInnards (MultiFab&       dstmf,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+    if (FabArrayBase::do_async_sends && !SndTags.empty())
+        FabArrayBase::GrokAsyncSends(N_snds,send_reqs,send_data,stats);
 
-#endif /*BL_USE_MPI*/
-}
+#endif
 
-void
-Geometry::SumPeriodicBoundary (MultiFab& mf,
-                               int       scomp,
-                               int       ncomp) const
-{
-    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
-    SumPeriodicBoundaryInnards(mf,mf,*this,scomp,scomp,ncomp);
 }
 
 void

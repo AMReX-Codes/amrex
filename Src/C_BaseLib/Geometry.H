@@ -254,11 +254,17 @@ public:
 	FPBComTag () {}
 	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
 	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
+	// FPBComTag needs to be sortable if it is used in remote communication.
+	// Unlike CopyComTag, we have to compare the destination box too, because
+	// the source fab could have several periodically shifted partners.  
+	// So the destination fab essentially intersects with several source fabs,
+	// and we need to compare the small end of the intersection box too.
+	// Note that no two different objects could possibly have the same srcIndex,
+	// dstIndex and dbox.smallEnd(). 
 	bool operator< (const FPBComTag& rhs) const {
-	    return (srcIndex < rhs.srcIndex)
-		|| ((srcIndex == rhs.srcIndex) && (dstIndex < rhs.dstIndex))
-		|| ((srcIndex == rhs.srcIndex) && (dstIndex == rhs.dstIndex)
-		    && IntVect::Compare()(dbox.smallEnd(), rhs.dbox.smallEnd()));
+	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+		   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
+                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd()))))));
 	}
     };
     //
@@ -421,7 +427,7 @@ namespace BoxLib
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+        FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
         //
         // Post send's
