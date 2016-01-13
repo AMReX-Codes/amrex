@@ -157,11 +157,10 @@ public:
                                 Array<T*>&          send_data,
                                 Array<MPI_Status>&  stats);
 
-    template<typename T1, typename T2>
-    static void PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
-                          const std::map<int,int>&               m_RcvVols,
-                          T2*&                                   the_recv_data,
-                          Array<T2*>&                            recv_data,
+    template<typename T>
+    static void PostRcvs (const std::map<int,int>&               m_RcvVols,
+                          T*&                                    the_recv_data,
+                          Array<T*>&                             recv_data,
                           Array<int>&                            recv_from,
                           Array<MPI_Request>&                    recv_reqs,
                           int                                    ncomp,
@@ -1185,12 +1184,11 @@ FabArrayBase::SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
     }
 }
 
-template<typename T1, typename T2>
+template<typename T>
 void
-FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
-                        const std::map<int,int>&               m_RcvVols,
-                        T2*&                                   the_recv_data,
-                        Array<T2*>&                            recv_data,
+FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
+                        T*&                                    the_recv_data,
+                        Array<T*>&                             recv_data,
                         Array<int>&                            recv_from,
                         Array<MPI_Request>&                    recv_reqs,
                         int                                    ncomp,
@@ -1208,28 +1206,24 @@ FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
 
     TotalRcvsVolume *= ncomp;
 
-    BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
+    BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
+    the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
 
     int Offset = 0;
 
-    for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
     {
-        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
+        const int N = it->second*ncomp;
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
         recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+        recv_from.push_back(it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,it->first,SeqNum).req());
 
         Offset += N;
     }
@@ -1719,7 +1713,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
+        FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
 
 	//
 	// Post send's
@@ -2981,7 +2975,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     value_type* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
