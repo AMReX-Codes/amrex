@@ -186,11 +186,10 @@ public:
                           int                                    SeqNum);
 
 #ifdef BL_USE_UPCXX
-    template<typename T1, typename T2>
-    static void PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
-                               const std::map<int,int>&               m_RcvVols,
-                               T2*&                                   the_recv_data,
-                               Array<T2*>&                            recv_data,
+    template<typename T>
+    static void PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
+                               T*&                                    the_recv_data,
+                               Array<T*>&                             recv_data,
                                Array<int>&                            recv_from,
                                int                                    ncomp,
                                int                                    SeqNum,
@@ -3358,7 +3357,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
-	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvTags,*TheSI.m_RcvVols,fb_the_recv_data,
+	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
 #else
 	FabArrayBase::PostRcvs     (*TheSI.m_RcvVols,fb_the_recv_data,
@@ -3666,12 +3665,11 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
     ParallelDescriptor::MyTeam().Barrier();
 }
 
-template<typename T1, typename T2>
+ template<typename T>
 void
-FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
-                             const std::map<int,int>&               m_RcvVols,
-                             T2*&                                   the_recv_data,
-                             Array<T2*>&                            recv_data,
+FabArrayBase::PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
+                             T*&                                    the_recv_data,
+                             Array<T*>&                             recv_data,
                              Array<int>&                            recv_from,
                              int                                    ncomp,
                              int                                    SeqNum,
@@ -3686,10 +3684,10 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 
   TotalRcvsVolume *= ncomp;
 
-  BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
+  BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-  /// the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
-  the_recv_data = (T2*)upcxx::allocate<T2>(TotalRcvsVolume);
+  /// the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
+  the_recv_data = (T*)upcxx::allocate<T>(TotalRcvsVolume);
   if (the_recv_data == NULL) {
     printf("Failed to allocate %d bytes global address space memory!\n",
            TotalRcvsVolume);
@@ -3700,28 +3698,23 @@ FabArrayBase::PostRcvs_PGAS (const std::map< int,std::vector<T1> >& m_RcvTags,
 
   int Offset = 0;
 
-  for (auto m_it = m_RcvTags.begin(); m_it != m_RcvTags.end(); ++m_it)
+  for (auto it = m_RcvVols.begin(); it != m_RcvVols.end(); ++it)
   {
-      auto vol_it = m_RcvVols.find(m_it->first);
-
-      BL_ASSERT(vol_it != m_RcvVols.end());
-
-      const int N = vol_it->second*ncomp;
+      const int N = it->second*ncomp;
 
       BL_ASSERT(N < std::numeric_limits<int>::max());
 
       recv_data.push_back(&the_recv_data[Offset]);
-      recv_from.push_back(m_it->first);
-      /// recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
-      /// Send an AM to the sender m_it->first with the recv pointer being &the_recv_data[Offset]
+      recv_from.push_back(it->first);
+      /// Send an AM to the sender it->first with the recv pointer being &the_recv_data[Offset]
       upcxx::global_ptr<void> dst_ptr =
         upcxx::global_ptr<void>(&the_recv_data[Offset], upcxx::myrank());
       // Increment the event reference before launching the remote task
       recv_event->incref();
       // Launch a remote task on the sender to send me data
-      BLPgas::Request(m_it->first,
+      BLPgas::Request(it->first,
                       dst_ptr,
-                      N*sizeof(T2),
+                      N*sizeof(T),
                       SeqNum,
                       recv_event);
       upcxx::advance(); // poll the UPC++ progress engine and the network

@@ -637,7 +637,7 @@ namespace BoxLib
 	// Post rcvs. Allocate one chunk of space to hold'm all.
 	//
 #ifdef BL_USE_UPCXX
-	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 				    mf.fpb_recv_data,mf.fpb_recv_from,
 				    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
 #else
