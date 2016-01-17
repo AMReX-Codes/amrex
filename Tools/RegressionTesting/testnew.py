@@ -33,6 +33,16 @@ import sys
 import tarfile
 import time
 
+do_timings_plots = True
+
+try: import numpy as np
+except: do_timings_plots = False
+
+try: import matplotlib.pyplot as plt
+except: do_timings_plots = False
+
+try: import matplotlib.dates as dates
+except: do_timings_plots = False
 
 usage = """
 The test suite and its tests are defined through an input file in an INI
@@ -474,6 +484,90 @@ class Suite(object):
         all_tests.sort()
 
         return valid_dirs, all_tests
+
+    def make_timing_plots(self, active_test_list):
+        """ plot the wallclock time history for all the valid tests """
+
+        valid_dirs, all_tests = self.get_run_history(active_test_list)
+
+        # store the timings in NumPy arrays in a dictionary
+        timings = {}
+        N = len(valid_dirs)
+        for t in all_tests:
+            timings[t] = np.zeros(N, dtype=np.float64)
+
+        # now get the timings from the web output
+        for n, d in enumerate(valid_dirs):
+            for t in all_tests:
+                ofile = "{}/{}/{}.html".format(self.webTopDir, d, t)
+                try: f = open(ofile)
+                except:
+                    timings[t][n] = 0.0
+                    continue
+                
+                found = False
+                for line in f:
+                    if "Execution time" in line:
+                        found = True
+                        # this is of the form: <li>Execution time: 412.930 s
+                        timings[t][n] = float(line.split(":")[1].strip().split(" ")[0])
+                        break
+
+                    elif "(seconds)" in line:
+                        found = True
+                        # this is the older form -- split on "="
+                        # form: <p><b>Execution Time</b> (seconds) = 399.414828
+                        timings[t][n] = float(line.split("=")[1])
+                        break
+                    
+                f.close()    
+                if not found:
+                    timings[t][n] = 0.0
+                    
+        # make the plots
+        for t in all_tests:
+            _d = valid_dirs[:]
+            _t = list(timings[t])
+            
+            days = []
+            times = []
+            for n, ttime in enumerate(_t):
+                if not ttime == 0.0:
+                    # sometimes the date is of the form YYYY-MM-DD-NNN, where NNN
+                    # is the run -- remove that
+                    date = _d[n]
+                    if len(date) > 10:
+                        date = date[:date.rfind("-")]
+                        
+                    days.append(dates.datestr2num(date))
+                    times.append(ttime)
+
+
+            if len(times) == 0: continue
+            
+            plt.clf()
+            plt.plot_date(days, times, "o", xdate=True)
+
+            years = dates.YearLocator()   # every year
+            months = dates.MonthLocator()
+            yearsFmt = dates.DateFormatter('%Y')
+
+            ax = plt.gca()
+            ax.xaxis.set_major_locator(years)
+            ax.xaxis.set_major_formatter(yearsFmt)
+            ax.xaxis.set_minor_locator(months)
+
+            plt.ylabel("time (seconds)")
+            plt.title(t)
+            
+            if max(times)/min(times) > 10.0:
+                ax.set_yscale("log")
+                
+            fig = plt.gcf()
+            fig.autofmt_xdate()
+
+            plt.savefig("{}/{}-timings.png".format(self.webTopDir, t))
+            
         
     def get_last_run(self):
         """ return the name of the directory corresponding to the previous
@@ -2809,6 +2903,8 @@ def report_all_runs(suite, active_test_list):
     create_css(tableHeight=tableHeight)
 
     valid_dirs, all_tests = suite.get_run_history(active_test_list)
+
+    if do_timings_plots: suite.make_timing_plots(active_test_list)
     
     #--------------------------------------------------------------------------
     # generate the HTML
@@ -2837,6 +2933,17 @@ def report_all_runs(suite, active_test_list):
     hf.write("</TR>\n")
 
 
+    if do_timings_plots:
+        hf.write("<tr><td class='date'>plots</td>")
+        for t in all_tests:
+            plot_file = "{}-timings.png".format(t)
+            if os.path.isfile(plot_file):
+                hf.write("<TD ALIGN=CENTER title=\"{} timings plot\"><H3><a href=\"{}\">[~]</a></H3></TD>\n".format(t, plot_file))
+            else:
+                hf.write("<TD ALIGN=CENTER><H3>&nbsp;</H3></TD>\n")
+
+        hf.write("</TR>\n")
+        
     # loop over all the test runs
     for dir in valid_dirs:
 
