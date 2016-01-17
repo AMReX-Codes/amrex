@@ -2213,6 +2213,7 @@ r"""
 <TITLE>@TITLE@</TITLE>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
 <LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 </HEAD>
 <BODY>
 <!--GOUPLINK-->
@@ -2938,7 +2939,7 @@ def report_all_runs(suite, active_test_list):
         for t in all_tests:
             plot_file = "{}-timings.png".format(t)
             if os.path.isfile(plot_file):
-                hf.write("<TD ALIGN=CENTER title=\"{} timings plot\"><H3><a href=\"{}\">[~]</a></H3></TD>\n".format(t, plot_file))
+                hf.write("<TD ALIGN=CENTER title=\"{} timings plot\"><H3><a href=\"{}\"><i class=\"fa fa-line-chart\"></i></a></H3></TD>\n".format(t, plot_file))
             else:
                 hf.write("<TD ALIGN=CENTER><H3>&nbsp;</H3></TD>\n")
 
