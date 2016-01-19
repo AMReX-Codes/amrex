@@ -806,9 +806,20 @@ namespace BoxLib
 	}
     }
 
-#endif /* BL_USE_MPI_ONESIDED */
-  
     template <class FAB>
+    void
+    FillPeriodicBoundary_nowait (const Geometry& geom,
+                          FabArray<FAB>&  mf,
+                          int             scomp,
+                          int             ncomp,
+			  bool            corners=false)
+    {
+      FillPeriodicBoundary(geom, mf, scomp, ncomp, corners, ParallelDescriptor::win);
+    }
+  
+#else  
+
+  template <class FAB>
     void
     FillPeriodicBoundary_nowait (const Geometry& geom,
 				 FabArray<FAB>&  mf,
@@ -1022,6 +1033,8 @@ namespace BoxLib
 	}
 #endif /*BL_USE_MPI*/
     }
+
+#endif /* BL_USE_MPI_ONESIDED */  
 	
 #ifdef BL_USE_MPI
     template <class FAB>
