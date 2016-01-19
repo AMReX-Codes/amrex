@@ -17,6 +17,12 @@ module mempool_module
      module procedure bl_allocate_i1
      module procedure bl_allocate_i2
      module procedure bl_allocate_i3
+     module procedure bl_allocate_d1_v
+     module procedure bl_allocate_d2_v
+     module procedure bl_allocate_d3_v
+     module procedure bl_allocate_d1_vc
+     module procedure bl_allocate_d2_vc
+     module procedure bl_allocate_d3_vc
   end interface
 
   interface bl_deallocate
@@ -195,6 +201,135 @@ contains
       a => fp
     end subroutine shift_bound_d6
   end subroutine bl_allocate_d6
+
+  subroutine bl_allocate_d1_v(a, lo, hi)
+    double precision, pointer, intent(inout) :: a(:)
+    integer, intent(in) :: lo(1), hi(1)
+    integer :: n(1)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:)
+    n = hi - lo + 1
+    sz = szd * int(n(1),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d1_v(fp, lo, a)
+  contains
+    subroutine shift_bound_d1_v(fp, lo, a)
+      integer, intent(in) :: lo(1)
+      double precision, target, intent(in) :: fp(lo(1):)
+      double precision, pointer, intent(inout) :: a(:)
+      a => fp
+    end subroutine shift_bound_d1_v
+  end subroutine bl_allocate_d1_v
+
+  subroutine bl_allocate_d2_v(a, lo, hi)
+    double precision, pointer, intent(inout) :: a(:,:)
+    integer, intent(in) :: lo(2), hi(2)
+    integer :: n(2)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:)
+    n = hi - lo + 1
+    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d2_v(fp, lo, a)
+  contains
+    subroutine shift_bound_d2_v(fp, lo, a)
+      integer, intent(in) :: lo(2)
+      double precision, target, intent(in) :: fp(lo(1):,lo(2):)
+      double precision, pointer, intent(inout) :: a(:,:)
+      a => fp
+    end subroutine shift_bound_d2_v
+  end subroutine bl_allocate_d2_v
+
+  subroutine bl_allocate_d3_v(a, lo, hi)
+    double precision, pointer, intent(inout) :: a(:,:,:)
+    integer, intent(in) :: lo(3), hi(3)
+    integer :: n(3)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:,:)
+    n = hi - lo + 1
+    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d3_v(fp, lo, a)
+  contains
+    subroutine shift_bound_d3_v(fp, lo, a)
+      integer, intent(in) :: lo(3)
+      double precision, target, intent(in) :: fp(lo(1):,lo(2):,lo(3):)
+      double precision, pointer, intent(inout) :: a(:,:,:)
+      a => fp
+    end subroutine shift_bound_d3_v
+  end subroutine bl_allocate_d3_v
+
+  subroutine bl_allocate_d1_vc(a, lo, hi, ncomp)
+    double precision, pointer, intent(inout) :: a(:,:)
+    integer, intent(in) :: lo(1), hi(1), ncomp
+    integer :: n(2)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:)
+    n(1:1) = hi - lo + 1
+    n(2) = ncomp
+    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d1_vc(fp, lo, a)
+  contains
+    subroutine shift_bound_d1_vc(fp, lo, a)
+      integer, intent(in) :: lo(1)
+      double precision, target, intent(in) :: fp(lo(1):,1:)
+      double precision, pointer, intent(inout) :: a(:,:)
+      a => fp
+    end subroutine shift_bound_d1_vc
+  end subroutine bl_allocate_d1_vc
+
+  subroutine bl_allocate_d2_vc(a, lo, hi, ncomp)
+    double precision, pointer, intent(inout) :: a(:,:,:)
+    integer, intent(in) :: lo(2), hi(2), ncomp
+    integer :: n(3)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:,:)
+    n(1:2) = hi - lo + 1
+    n(3) = ncomp
+    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d2_vc(fp, lo, a)
+  contains
+    subroutine shift_bound_d2_vc(fp, lo, a)
+      integer, intent(in) :: lo(2)
+      double precision, target, intent(in) :: fp(lo(1):,lo(2):,1:)
+      double precision, pointer, intent(inout) :: a(:,:,:)
+      a => fp
+    end subroutine shift_bound_d2_vc
+  end subroutine bl_allocate_d2_vc
+
+  subroutine bl_allocate_d3_vc(a, lo, hi, ncomp)
+    double precision, pointer, intent(inout) :: a(:,:,:,:)
+    integer, intent(in) :: lo(3), hi(3), ncomp
+    integer :: n(4)
+    integer (kind=c_size_t) :: sz
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:,:,:)
+    n(1:3) = hi - lo + 1
+    n(4) = ncomp
+    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t)
+    cp = mempool_alloc(sz)
+    call c_f_pointer(cp, fp, shape=n)
+    call shift_bound_d3_vc(fp, lo, a)
+  contains
+    subroutine shift_bound_d3_vc(fp, lo, a)
+      integer, intent(in) :: lo(3)
+      double precision, target, intent(in) :: fp(lo(1):,lo(2):,lo(3):,1:)
+      double precision, pointer, intent(inout) :: a(:,:,:,:)
+      a => fp
+    end subroutine shift_bound_d3_vc
+  end subroutine bl_allocate_d3_vc
 
   subroutine bl_deallocate_d1(a)
     double precision, pointer, intent(inout) :: a(:)

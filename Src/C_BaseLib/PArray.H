@@ -141,6 +141,11 @@ public:
     // in the PArray<T>.
     //
     T* remove (int i);
+    //
+    // Pushes a pointer to the back of the array.
+    // This also returns the pushed pointer.
+    //
+    T* push_back(T* p);
 
 private:
     //
@@ -181,6 +186,14 @@ PArray<T>::remove (int i)
     void* tmp = vp[i];
     vp[i]     = 0;
     return (T*) tmp;
+}
+
+template <class T>
+T*
+PArray<T>::push_back (T* p)
+{
+    vp.push_back((void*) p);
+    return p;
 }
 
 template <class T>

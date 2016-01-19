@@ -100,6 +100,17 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn
     endif
 endif
+ifeq ($(findstring cori, $(HOST)), cori)
+    #
+    # cori.nersc.gov
+    #
+    ifdef MPI
+        CXX := CC
+        CC  := cc
+        FC  := ftn
+        F90 := ftn
+    endif
+endif
 ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
     #
     # babbage.nersc.gov
