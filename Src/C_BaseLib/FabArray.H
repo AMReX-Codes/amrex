@@ -3366,7 +3366,11 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
+#ifdef BL_USE_MPI_ONESIDED
+    FillBoundary(0, nComp(), cross);
+#else  
     FillBoundary_nowait(0, nComp(), cross);
+#endif
 }
 
 #ifdef BL_USE_MPI_ONESIDED
@@ -3809,6 +3813,10 @@ FabArray<FAB>::FillBoundary_finish ()
 
     FillBoundary_finish_UPCXX();
 
+#elif  BL_USE_MPI_ONESIDED
+
+    /* nothing ned to do here */
+    
 #elif defined BL_USE_MPI
 
     FillBoundary_finish_MPI();

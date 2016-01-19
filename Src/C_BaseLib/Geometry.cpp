@@ -309,6 +309,8 @@ Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
 
 #ifdef BL_USE_UPCXX    
     BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
+#elif  BL_USE_MPI_ONESIDED
+    /* nothing need to be done here */
 #elif defined BL_USE_MPI
     BoxLib::FillPeriodicBoundary_finish_MPI(*this, mf);
 #endif
