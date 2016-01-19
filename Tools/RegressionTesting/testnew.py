@@ -38,9 +38,12 @@ do_timings_plots = True
 try: import numpy as np
 except: do_timings_plots = False
 
-try: import matplotlib.pyplot as plt
+try: import matplotlib
 except: do_timings_plots = False
-
+else:
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    
 try: import matplotlib.dates as dates
 except: do_timings_plots = False
 
