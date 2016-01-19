@@ -201,6 +201,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 #ifdef BL_USE_UPCXX
         BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
 	BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
+#elif  BL_USE_MPI_ONESIDED
+	BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners, ParallelDescriptor::win);
 #else
         BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
 #endif

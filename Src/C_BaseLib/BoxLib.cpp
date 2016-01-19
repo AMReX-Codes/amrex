@@ -340,6 +340,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	BoxLib::Abort("UPC++ rank != MPI rank");
 #endif
 
+#ifdef BL_USE_MPI_ONESIDED
+    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::win);
+#endif
+
     while (!The_Initialize_Function_Stack.empty())
     {
         //
