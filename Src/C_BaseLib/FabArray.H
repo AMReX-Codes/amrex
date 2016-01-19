@@ -81,6 +81,8 @@ public:
     //
     int nComp () const { return n_comp; }
     //
+    bool empty () const { return boxarray.empty(); }
+    //
     // Returns a constant reference to the BoxArray that defines the
     // valid region associated with this FabArray.
     //
@@ -155,11 +157,10 @@ public:
                                 Array<T*>&          send_data,
                                 Array<MPI_Status>&  stats);
 
-    template<typename T1, typename T2>
-    static void PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
-                          const std::map<int,int>&               m_RcvVols,
-                          T2*&                                   the_recv_data,
-                          Array<T2*>&                            recv_data,
+    template<typename T>
+    static void PostRcvs (const std::map<int,int>&               m_RcvVols,
+                          T*&                                    the_recv_data,
+                          Array<T*>&                             recv_data,
                           Array<int>&                            recv_from,
                           Array<MPI_Request>&                    recv_reqs,
                           int                                    ncomp,
@@ -206,6 +207,17 @@ public:
         Box box;
         int fabIndex;
         int srcIndex;
+	CopyComTag () {}
+	explicit CopyComTag (const Box& b, int fidx, int sidx)
+	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
+	// CopyComTag needs to be sortable if it is used in remote communication.
+	// Note that the intersection of two boxes is at most one box.
+	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
+	// *this == rhs.
+	bool operator< (const CopyComTag& rhs) const {
+	    return (fabIndex < rhs.fabIndex)
+		|| ((fabIndex == rhs.fabIndex) && (srcIndex < rhs.srcIndex));
+	}
         //
         // Some typedefs & helper functions used throughout the code.
         //
@@ -473,6 +485,14 @@ protected:
     //
     static std::map<BDKey, int> m_BD_count;
     //
+    // clear BD count and TileArray cache associated with this BD, if no other is using this BD. 
+    // 
+    void clearThisBD ();
+    //
+    // add the current BD into BD count database
+    //
+    void addThisBD ();
+    //
     struct FabArrayStats
     {
 	int  num_fabarrays;
@@ -506,10 +526,6 @@ protected:
 	}
     };
     static FabArrayStats m_FA_stats;
-
-private:
-    static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
-    static bool RcvThreadSafety(const MapOfCopyComTagContainers* RcvTags);
 };
 
 class MFIter
@@ -1168,12 +1184,11 @@ FabArrayBase::SetSendTag (std::map< int,std::vector<T> >& m_SndTags,
     }
 }
 
-template<typename T1, typename T2>
+template<typename T>
 void
-FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
-                        const std::map<int,int>&               m_RcvVols,
-                        T2*&                                   the_recv_data,
-                        Array<T2*>&                            recv_data,
+FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
+                        T*&                                    the_recv_data,
+                        Array<T*>&                             recv_data,
                         Array<int>&                            recv_from,
                         Array<MPI_Request>&                    recv_reqs,
                         int                                    ncomp,
@@ -1191,28 +1206,24 @@ FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
 
     TotalRcvsVolume *= ncomp;
 
-    BL_ASSERT((TotalRcvsVolume*sizeof(T2)) < std::numeric_limits<int>::max());
+    BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-    the_recv_data = static_cast<T2*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T2)));
+    the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
 
     int Offset = 0;
 
-    for (typename std::map< int,std::vector<T1> >::const_iterator m_it = m_RcvTags.begin(),
-             m_End = m_RcvTags.end();
-         m_it != m_End;
-         ++m_it)
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
     {
-        std::map<int,int>::const_iterator vol_it = m_RcvVols.find(m_it->first);
-
-        BL_ASSERT(vol_it != m_RcvVols.end());
-
-        const int N = vol_it->second*ncomp;
+        const int N = it->second*ncomp;
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
         recv_data.push_back(&the_recv_data[Offset]);
-        recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+        recv_from.push_back(it->first);
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,it->first,SeqNum).req());
 
         Offset += N;
     }
@@ -1309,24 +1320,7 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-    if (! boxarray.empty() ) 
-    {
-	BL_ASSERT(getBDKey() == m_bdkey);
-
-	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
-	if (cnt_it != m_BD_count.end()) 
-	{
-	    --(cnt_it->second);
-	    if (cnt_it->second == 0) 
-	    {
-		m_BD_count.erase(cnt_it);
-		
-		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from the TileArray cache.
-		flushTileArray();
-	    }
-	}
-    }
+    clearThisBD();
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
@@ -1476,14 +1470,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         indexMap.push_back(i);
       }
     }
-    
-    m_bdkey = getBDKey();
-    int cnt = ++(m_BD_count[m_bdkey]);
-    if (cnt == 1) { // new one
-	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
-    } else {
-	m_FA_stats.recordMaxNumBAUse(cnt);
-    }
+
+    addThisBD();
     
     if(alloc == Fab_allocate) {
       AllocFabs();
@@ -1725,7 +1713,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
+        FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
 
 	//
 	// Post send's
@@ -2071,10 +2059,12 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
+    clearThisBD();  // The new boxarry will have a different ID.
     for(int id(0); id < BL_SPACEDIM; ++id)
     {
       boxarray.shift(id, v[id]);
     }
+    addThisBD();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2985,7 +2975,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     //
     value_type* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(*TheSI.m_RcvTags,*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
