@@ -27,7 +27,10 @@ namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
 
-
+#ifdef BL_USE_MPI_ONESIDED
+    extern MPI_Win win;
+#endif
+  
     //
     // Data structure used by a few routines when MPI is enabled.
     //

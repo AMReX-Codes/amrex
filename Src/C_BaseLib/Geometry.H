@@ -198,6 +198,15 @@ public:
                                bool      do_corners = false,
                                bool      local      = false) const;
 
+#ifdef BL_USE_MPI_ONESIDED
+    void FillPeriodicBoundary_Onesided (MultiFab& mf,
+                               int       src_comp,
+                               int       num_comp,
+                               bool      do_corners = false,
+			       bool      local      = false,
+			       MPI_Win & win) const;
+#endif
+  
     void FillPeriodicBoundary_local (MultiFab& mf,
 				     int       src_comp,
 				     int       num_comp,
@@ -568,6 +577,237 @@ namespace BoxLib
 #endif /*BL_USE_MPI*/
     }
 
+#ifdef BL_USE_MPI_ONESIDED
+  
+    template <class FAB>
+    void
+    FillPeriodicBoundary (const Geometry& geom,
+                          FabArray<FAB>&  mf,
+                          int             scomp,
+                          int             ncomp,
+                          bool            corners=false,
+			  MPI_win &       win)
+    {
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+#ifndef NDEBUG
+        //
+        // Don't let folks ask for more grow cells than they have valid region.
+        //
+        for (int n = 0; n < BL_SPACEDIM; n++)
+            if (geom.isPeriodic(n))
+                BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
+#endif
+        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
+
+        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+
+        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
+
+        const Geometry::FPB& TheFPB = cache_it->second;
+
+        if (ParallelDescriptor::NProcs() == 1)
+        {
+            //
+            // There can only be local work to do.
+            //
+	    int N_loc = (*TheFPB.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
+#endif
+	    for (int i=0; i<N_loc; ++i)
+	    {
+                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            }
+
+            return;
+        }
+
+        //
+        // Do this before prematurely exiting if running in parallel.
+        // Otherwise sequence numbers will not match across MPI processes.
+        //
+	const int SeqNum = ParallelDescriptor::SeqNum();
+
+	const int N_locs = TheFPB.m_LocTags->size();
+	const int N_rcvs = TheFPB.m_RcvTags->size();
+	const int N_snds = TheFPB.m_SndTags->size();
+			
+        if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
+            //
+            // No work to do.
+            //
+            return;
+
+        typedef typename FAB::value_type value_type;
+
+        Array<MPI_Status>  stats;
+        Array<int>         recv_from;
+        Array<value_type*> recv_data;
+        Array<MPI_Request> recv_reqs;
+        //
+        // Post rcvs. Allocate one chunk of space to hold'm all.
+        //
+        value_type* the_recv_data = 0;
+
+	MPI_Comm tgroup, rgroup;
+	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
+
+	if (N_rcvs > 0) {
+	  FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+	  MPI_Group_incl(tgroup, recv_from.size(), recv_from.DataPtr(), &rgoup);
+	  MPI_Win_post(rgroup, 0, win);
+	}
+	
+        //
+        // Post send's
+        //
+
+	Array<value_type*>                     send_data;
+	Array<int>                             send_N;
+	Array<int>                             send_rank;
+	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
+	Array<MPI_Request>                     send_reqs;
+	Array<MPI_Aint>                        send_disp;
+
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_fctc.reserve(N_snds);
+	send_disp.reserve(N_snds);
+	send_reqs.reserve(N_snds);
+
+        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
+                 m_End = TheFPB.m_SndTags->end();
+             m_it != m_End;
+             ++m_it)
+        {
+            std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
+
+            BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
+
+            const int N = vol_it->second*ncomp;
+
+            BL_ASSERT(N < std::numeric_limits<int>::max());
+
+            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_fctc.push_back(&(m_it->second));
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (int i=0; i<N_snds; ++i)
+	{
+	    value_type* dptr = send_data[i];
+	    BL_ASSERT(dptr != 0);
+
+	    const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
+
+            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+                 it != fctc.end(); ++it)
+            {
+                const Box& bx = it->sbox;
+                mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
+                const int Cnt = bx.numPts()*ncomp;
+                dptr += Cnt;
+            }
+	}
+
+	int send_counter = 0;
+	
+	for (int i=0; i<N_snds; ++i) {
+	  send_reqs.push_back(ParallelDescriptor::Arecv
+			      (&send_disp[i],1,send_rank[i],SeqNum).req());
+	}
+	
+	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	if (N_snds > 0) MPI_Win_start(sgroup,0,win);
+
+	while (send_counter < N_snds) {
+	  MPI_Status status;
+	  int index;
+	  
+	  MPI_Waitany(N_snds, send_reqs.dataPtr(), index, status);
+	  BL_ASSERT(status.MPI_TAG = SeqNum);
+	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
+	  MPI_put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
+		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
+	  send_counter++;
+	}
+
+        //
+        // Do the local work.  Hope for a bit of communication/computation overlap.
+        //
+	int N_loc = (*TheFPB.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
+#endif
+	for (int i=0; i<N_loc; ++i)
+	{
+            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
+
+            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
+        }
+
+	//
+	// wait and unpack
+	if (N_rcvs > 0) MPI_Win_wait(win);
+	if (N_snds > 0) MPI_Win_complete(win);
+	// check the completion of send disp ?
+
+	if (N_rcvs > 0)
+	{
+	    Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
+	    recv_fctc.reserve(N_rcvs);
+
+	    for (int k = 0; k < N_rcvs; k++)
+	    {
+		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[k]);
+                BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
+		
+		recv_fctc.push_back(&(m_it->second));
+	    }
+	    
+#ifdef _OPENMP
+#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
+#endif
+	    for (int k = 0; k < N_rcvs; k++) 
+	    {
+		value_type*  dptr = recv_data[k];
+		BL_ASSERT(dptr != 0);
+		
+		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
+
+                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+                     it != fctc.end(); ++it)
+                {
+                    const Box& bx  = it->dbox;
+                    const int  Cnt = bx.numPts()*ncomp;
+                    mf[it->dstIndex].copyFromMem(bx,scomp,ncomp,dptr);
+                    dptr += Cnt;
+                }
+            }
+	    MPI_Win_detach(win, the_recv_data);
+	    BoxLib::The_Arena()->free(the_recv_data);
+	}
+
+	if (N_snds > 0) {
+	  for (int i = 0; i < N_snds; i++)
+	    BoxLib::The_Arena()->free(send_data[i]);
+	}
+    }
+
+#endif /* BL_USE_MPI_ONESIDED */
+  
     template <class FAB>
     void
     FillPeriodicBoundary_nowait (const Geometry& geom,

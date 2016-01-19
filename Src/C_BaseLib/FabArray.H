@@ -185,6 +185,19 @@ public:
                           int                                    ncomp,
                           int                                    SeqNum);
 
+#ifdef BL_USE_MPI_ONESIDED
+    template<typename T>
+    static void PostRcvs_MPI_Onesided (
+			  const std::map<int,int>&               m_RcvVols,
+                          T*&                                    the_recv_data,
+                          Array<T*>&                             recv_data,
+                          Array<int>&                            recv_from,
+                          Array<MPI_Request>&                    recv_reqs,
+                          int                                    ncomp,
+                          int                                    SeqNum,
+			  MPI_Win &                              win);
+#endif
+  
 #ifdef BL_USE_UPCXX
     template<typename T>
     static void PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
@@ -1329,6 +1342,59 @@ FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
         Offset += N;
     }
 }
+
+#ifdef BL_USE_MPI_ONESIDED
+template<typename T>
+void
+FabArrayBase::PostRcvs_MPI_Onesided (
+			const std::map<int,int>&               m_RcvVols,
+                        T*&                                    the_recv_data,
+                        Array<T*>&                             recv_data,
+                        Array<int>&                            recv_from,
+                        Array<MPI_Request>&                    recv_reqs,
+                        int                                    ncomp,
+			int                                    SeqNum,
+			MPI_Win &                              win)
+{
+    int TotalRcvsVolume = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        TotalRcvsVolume += it->second;
+    }
+
+    TotalRcvsVolume *= ncomp;
+
+    BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
+
+    the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
+
+    MPI_Win_attach(win, the_recv_data, TotalRcvsVolume*sizeof(T));
+
+    int Offset = 0;
+
+    for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
+             End = m_RcvVols.end();
+         it != End;
+         ++it)
+    {
+        const int N = it->second*ncomp;
+
+        BL_ASSERT(N < std::numeric_limits<int>::max());
+
+        recv_data.push_back(&the_recv_data[Offset]);
+        recv_from.push_back(it->first);
+	MPI_Aint disp;
+	MPI_Get_address(&the_recv_data[Offset], &disp);
+        recv_reqs.push_back(ParallelDescriptor::Asend(&disp,1,it->first,SeqNum).req());
+
+        Offset += N;
+    }
+}
+#endif   // BL_USE_MPI_ONESIDED
 
 template<typename T>
 void
@@ -3070,6 +3136,8 @@ FabArray<FAB>::FillBoundary (bool cross)
 #ifdef BL_USE_UPCXX
     FillBoundary_nowait(0, nComp(), cross);
     FillBoundary_finish();
+#elif  BL_USE_MPI_ONESIDED
+    FillBoundary(0, nComp(), cross);
 #else
     FillBoundary_MPI(0, nComp(), cross);
 #endif
@@ -3084,6 +3152,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
 #ifdef BL_USE_UPCXX
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
+#elif  BL_USE_MPI_ONESIDED
+    FillBoundary_MPI_Onesided(scomp, nComp(), cross, ParallelDescriptor::win);    
 #else
     FillBoundary_MPI(scomp, ncomp, cross);
 #endif
@@ -3291,13 +3361,240 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
 
 #endif /*BL_USE_MPI*/
 }
-
+ 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
     FillBoundary_nowait(0, nComp(), cross);
 }
+
+#ifdef BL_USE_MPI_ONESIDED
+
+template <class FAB>
+void
+  FabArray<FAB>::FillBoundary_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
+{
+    if ( n_grow <= 0 ) return;
+
+    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
+
+    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
+
+    if (ParallelDescriptor::NProcs() == 1)
+    {
+        //
+        // There can only be local work to do.
+        //
+	int N_loc = (*TheSI.m_LocTags).size();
+#ifdef _OPENMP
+#pragma omp parallel for if (TheSI.m_threadsafe_loc)
+#endif
+	for (int i=0; i<N_loc; ++i)
+        {
+            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+
+            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+        }
+
+        return;
+    }
+   
+    fb_cross = cross;
+    fb_scomp = scomp;
+    fb_ncomp = ncomp;
+    
+    //
+    // Do this before prematurely exiting if running in parallel.
+    // Otherwise sequence numbers will not match across MPI processes.
+    //
+    const int SeqNum = ParallelDescriptor::SeqNum();
+
+    const int N_locs = TheSI.m_LocTags->size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
+
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
+        // No work to do.
+        return;
+
+    Array<MPI_Status>  stats;
+    Array<int>         recv_from;
+    Array<value_type*> recv_data;
+    Array<MPI_Request> recv_reqs;    
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+    value_type* the_recv_data = 0;
+    
+    MPI_Comm tgroup, rgroup;
+    MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
+	
+    if (N_rcvs > 0) {
+      FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum,win);
+
+	MPI_Group_incl(tgroup, recv_from.size(), recv_from.DataPtr(), &rgoup);
+	MPI_Win_post(rgroup, 0, win);
+    }
+
+    //
+    // Post send's
+    //
+    Array<value_type*>                 send_data;
+    Array<int>                         send_N;
+    Array<int>                         send_rank;
+    Array<const CopyComTagsContainer*> send_cctc;
+    Array<MPI_Request>                 send_reqs;
+    Array<MPI_Aint>                    send_disp;
+	
+    if (N_snds > 0)
+    {
+	send_data.reserve(N_snds);
+	send_N   .reserve(N_snds);
+	send_rank.reserve(N_snds);
+	send_cctc.reserve(N_snds);
+	send_disp.reserve(N_snds);
+	send_reqs.reserve(N_snds);
+	
+	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
+		 m_End = TheSI.m_SndTags->end();
+	     m_it != m_End;
+	     ++m_it)
+	{
+	    std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
+
+	    BL_ASSERT(vol_it != TheSI.m_SndVols->end());
+	    
+	    const int N = vol_it->second*ncomp;
+	    
+	    BL_ASSERT(N < std::numeric_limits<int>::max());
+	    
+	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+
+	    send_data.push_back(data);
+	    send_N   .push_back(N);
+	    send_rank.push_back(m_it->first);
+	    send_cctc.push_back(&(m_it->second));
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (int i=0; i<N_snds; ++i)
+	{
+	    value_type* dptr = send_data[i];
+	    BL_ASSERT(dptr != 0);
+	    
+	    const CopyComTagsContainer& cctc = *send_cctc[i];
+	    
+	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		 it != cctc.end(); ++it)
+	    {
+		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
+		const Box& bx = it->box;
+		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
+		const int Cnt = bx.numPts()*ncomp;
+		dptr += Cnt;
+	    }
+	}
+
+	int send_counter = 0;
+
+	for (int i=0; i<N_snds; ++i) {
+	  send_reqs.push_back(ParallelDescriptor::Arecv
+			      (&send_disp[i],1,send_rank[i],SeqNum).req());
+	}
+		
+	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	MPI_Win_start(sgroup,0,win);
+	
+	while (send_counter < N_snds) {
+	  MPI_Status status;
+	  int index;
+	  
+	  MPI_Waitany(N_snds, send_reqs.dataPtr(), index, status);
+	  BL_ASSERT(status.MPI_TAG = SeqNum);
+	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
+	  MPI_put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
+		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
+	  send_counter++;
+	}
+
+    }
+
+     //
+    // Do the local work.  Hope for a bit of communication/computation overlap.
+    //
+#ifdef _OPENMP
+#pragma omp parallel for if (TheSI.m_threadsafe_loc)
+#endif
+    for (int i=0; i<N_locs; ++i)
+    {
+        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+
+	BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
+        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+	   
+    }
+
+    if (N_rcvs > 0) MPI_Win_wait(win);
+    if (N_snds > 0) MPI_Win_complete(win);
+    // check the completion of send disp ?
+
+    if (N_rcvs > 0)
+    {
+	Array<const CopyComTagsContainer*> recv_cctc;
+	recv_cctc.reserve(N_rcvs);
+
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
+	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
+	    
+	    recv_cctc.push_back(&(m_it->second));
+	}	
+
+#ifdef _OPENMP
+#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
+#endif
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+	    value_type*  dptr = recv_data[k];
+	    BL_ASSERT(dptr != 0);
+
+	    const CopyComTagsContainer& cctc = *recv_cctc[k];
+
+	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
+		 it != cctc.end(); ++it)
+	    {
+		const Box& bx  = it->box;
+		const int  Cnt = bx.numPts()*ncomp;
+		get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
+		dptr += Cnt;
+	    }	    
+	}
+    }
+
+    if (N_rcvs > 0) {
+      MPI_Win_detach(win, the_recv_data);
+      BoxLib::The_Arena()->free(the_recv_data);
+    }
+    
+    if (N_snds > 0) {
+      for (int i = 0; i < N_snds; i++)
+        BoxLib::The_Arena()->free(send_data[i]);
+    }
+
+    
+}
+#endif /*BL_USE_MPI_ONESIDED */
 
 template <class FAB>
 void
@@ -3332,11 +3629,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
         return;
     }
-
+   
     fb_cross = cross;
     fb_scomp = scomp;
     fb_ncomp = ncomp;
-
+    
 #ifdef BL_USE_MPI
     //
     // Do this before prematurely exiting if running in parallel.
@@ -3452,7 +3749,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
 #endif
 	}
-
+	
 #ifdef BL_USE_UPCXX
 	// Need to make sure at least half of the sends have been started
 	while (BLPgas::fb_send_counter < N_snds)
@@ -3460,9 +3757,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 #endif
     }
 
-    //
+     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
+ 
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
 #ifdef BL_USE_CXX11
