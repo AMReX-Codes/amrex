@@ -197,15 +197,6 @@ public:
                                int       num_comp,
                                bool      do_corners = false,
                                bool      local      = false) const;
-
-#ifdef BL_USE_MPI_ONESIDED
-    void FillPeriodicBoundary_Onesided (MultiFab& mf,
-                               int       src_comp,
-                               int       num_comp,
-                               bool      do_corners = false,
-			       bool      local      = false,
-			       MPI_Win & win) const;
-#endif
   
     void FillPeriodicBoundary_local (MultiFab& mf,
 				     int       src_comp,
@@ -368,6 +359,9 @@ std::istream& operator>> (std::istream&, Geometry&);
 
 namespace BoxLib
 {
+
+#ifndef BL_USE_MPI_ONESIDED
+
     template <class FAB>
     void
     FillPeriodicBoundary (const Geometry& geom,
@@ -577,6 +571,8 @@ namespace BoxLib
 #endif /*BL_USE_MPI*/
     }
 
+#endif /* not BL_USE_MPI_ONESIDED */
+
 #ifdef BL_USE_MPI_ONESIDED
   
     template <class FAB>
@@ -585,8 +581,8 @@ namespace BoxLib
                           FabArray<FAB>&  mf,
                           int             scomp,
                           int             ncomp,
-                          bool            corners=false,
-			  MPI_win &       win)
+                          MPI_Win &       win,
+                          bool            corners=false)
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
@@ -651,12 +647,12 @@ namespace BoxLib
         //
         value_type* the_recv_data = 0;
 
-	MPI_Comm tgroup, rgroup;
+	MPI_Comm tgroup, rgroup, sgroup;
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
 	if (N_rcvs > 0) {
 	  FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
-	  MPI_Group_incl(tgroup, recv_from.size(), recv_from.DataPtr(), &rgoup);
+	  MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
 	  MPI_Win_post(rgroup, 0, win);
 	}
 	
@@ -733,10 +729,10 @@ namespace BoxLib
 	  MPI_Status status;
 	  int index;
 	  
-	  MPI_Waitany(N_snds, send_reqs.dataPtr(), index, status);
+	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
 	  BL_ASSERT(status.MPI_TAG = SeqNum);
 	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
-	  MPI_put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
+	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
 		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
 	  send_counter++;
 	}
@@ -814,8 +810,21 @@ namespace BoxLib
                           int             ncomp,
 			  bool            corners=false)
     {
-      FillPeriodicBoundary(geom, mf, scomp, ncomp, corners, ParallelDescriptor::win);
+      FillPeriodicBoundary(geom, mf, scomp, ncomp, ParallelDescriptor::win, corners);
     }
+
+    template <class FAB>
+    void
+    FillPeriodicBoundary (const Geometry& geom,
+                          FabArray<FAB>&  mf,
+                          int             scomp,
+                          int             ncomp,
+                          bool            corners=false)
+   {
+      FillPeriodicBoundary(geom, mf, scomp, ncomp, ParallelDescriptor::win, corners);
+    }
+
+
   
 #else  
 

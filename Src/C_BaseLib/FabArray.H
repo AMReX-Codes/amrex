@@ -993,6 +993,10 @@ public:
     // MPI version
     void FillBoundary_MPI (int scomp, int ncomp, bool cross);
 
+#ifdef BL_USE_MPI_ONESIDED
+    void FillBoundary_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win);
+#endif
+
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_finish ();
@@ -3436,13 +3440,13 @@ void
     //
     value_type* the_recv_data = 0;
     
-    MPI_Comm tgroup, rgroup;
+    MPI_Comm tgroup, rgroup, sgroup;
     MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 	
     if (N_rcvs > 0) {
       FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum,win);
 
-	MPI_Group_incl(tgroup, recv_from.size(), recv_from.DataPtr(), &rgoup);
+	MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
 	MPI_Win_post(rgroup, 0, win);
     }
 
@@ -3521,10 +3525,10 @@ void
 	  MPI_Status status;
 	  int index;
 	  
-	  MPI_Waitany(N_snds, send_reqs.dataPtr(), index, status);
+	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
 	  BL_ASSERT(status.MPI_TAG = SeqNum);
 	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
-	  MPI_put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
+	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
 		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
 	  send_counter++;
 	}

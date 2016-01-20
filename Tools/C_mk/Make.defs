@@ -846,6 +846,13 @@ else
     UPCXXSuffix :=
 endif
 
+ifeq ($(USE_MPI_ONESIDED),TRUE)
+    MPI1Suffix := .Onesided
+    CPPFLAGS    += -DBL_USE_MPI_ONESIDED
+else
+    MPI1Suffix :=
+endif
+
 ifeq ($(USE_IPM),TRUE)
     IPMSuffix	:= .IPM
 else
@@ -997,7 +1004,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(MPI1Suffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
