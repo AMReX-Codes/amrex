@@ -651,7 +651,7 @@ namespace BoxLib
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
 	if (N_rcvs > 0) {
-	  FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+	  FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum,win);
 	  MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
 	  MPI_Win_post(rgroup, 0, win);
 	}
@@ -728,7 +728,7 @@ namespace BoxLib
 	while (send_counter < N_snds) {
 	  MPI_Status status;
 	  int index;
-	  
+
 	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
 	  BL_ASSERT(status.MPI_TAG = SeqNum);
 	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
@@ -756,8 +756,8 @@ namespace BoxLib
 
 	//
 	// wait and unpack
+        if (N_snds > 0) MPI_Win_complete(win);
 	if (N_rcvs > 0) MPI_Win_wait(win);
-	if (N_snds > 0) MPI_Win_complete(win);
 	// check the completion of send disp ?
 
 	if (N_rcvs > 0)

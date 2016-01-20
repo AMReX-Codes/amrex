@@ -3157,7 +3157,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
 #elif  BL_USE_MPI_ONESIDED
-    FillBoundary_MPI_Onesided(scomp, nComp(), cross, ParallelDescriptor::win);    
+    FillBoundary_MPI_Onesided(scomp, ncomp, cross, ParallelDescriptor::win);    
 #else
     FillBoundary_MPI(scomp, ncomp, cross);
 #endif
@@ -3459,6 +3459,8 @@ void
     Array<const CopyComTagsContainer*> send_cctc;
     Array<MPI_Request>                 send_reqs;
     Array<MPI_Aint>                    send_disp;
+
+    int send_counter = 0;
 	
     if (N_snds > 0)
     {
@@ -3511,8 +3513,6 @@ void
 	    }
 	}
 
-	int send_counter = 0;
-
 	for (int i=0; i<N_snds; ++i) {
 	  send_reqs.push_back(ParallelDescriptor::Arecv
 			      (&send_disp[i],1,send_rank[i],SeqNum).req());
@@ -3524,7 +3524,9 @@ void
 	while (send_counter < N_snds) {
 	  MPI_Status status;
 	  int index;
-	  
+
+//   std::cout << "BB2 before " << ParallelDescriptor::MyProc() << " send_counter " << send_counter << " N_snds " << N_snds << std::endl;
+
 	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
 	  BL_ASSERT(status.MPI_TAG = SeqNum);
 	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
@@ -3535,7 +3537,7 @@ void
 
     }
 
-     //
+    //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
 #ifdef _OPENMP
@@ -3552,8 +3554,8 @@ void
 	   
     }
 
-    if (N_rcvs > 0) MPI_Win_wait(win);
     if (N_snds > 0) MPI_Win_complete(win);
+    if (N_rcvs > 0) MPI_Win_wait(win);
     // check the completion of send disp ?
 
     if (N_rcvs > 0)
