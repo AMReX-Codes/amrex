@@ -1325,8 +1325,6 @@ contains
     !
     call stencil_multifab_copy(aa_local, aa)
 
-    call diag_initialize(aa_local,rh_local,mm,stencil_type)
-
     cnt = 0
     !
     ! Compute rr = aa_local * uu - rh_local
@@ -1375,10 +1373,10 @@ contains
 
     do i = 1, max_iter
        call copy(zz,rr)
+       call itsol_precon(aa_local, zz, rr, mm)
        rho = dot(rr, zz, nodal_mask)
        if ( i == 1 ) then
           call copy(pp, zz)
-          call itsol_precon(aa_local, zz, rr, mm)
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
