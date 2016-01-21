@@ -994,7 +994,8 @@ public:
     void FillBoundary_MPI (int scomp, int ncomp, bool cross);
 
 #ifdef BL_USE_MPI_ONESIDED
-    void FillBoundary_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win);
+    void FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win);
+    void FillBoundary_finish_MPI_Onesided();
 #endif
 
     void FillBoundary_nowait (bool cross = false);
@@ -3157,7 +3158,8 @@ FabArray<FAB>::FillBoundary (int  scomp,
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
 #elif  BL_USE_MPI_ONESIDED
-    FillBoundary_MPI_Onesided(scomp, ncomp, cross, ParallelDescriptor::win);    
+    FillBoundary_nowait_MPI_Onesided(scomp, ncomp, cross, ParallelDescriptor::win);
+    FillBoundary_finish_MPI_Onesided();
 #else
     FillBoundary_MPI(scomp, ncomp, cross);
 #endif
@@ -3371,7 +3373,7 @@ void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
 #ifdef BL_USE_MPI_ONESIDED
-    FillBoundary(0, nComp(), cross);
+    FillBoundary_nowait_MPI_Onesided(0, nComp(), cross, ParallelDescriptor::win);
 #else  
     FillBoundary_nowait(0, nComp(), cross);
 #endif
@@ -3381,7 +3383,7 @@ FabArray<FAB>::FillBoundary_nowait (bool cross)
 
 template <class FAB>
 void
-  FabArray<FAB>::FillBoundary_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
+  FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
 {
     if ( n_grow <= 0 ) return;
 
@@ -3444,16 +3446,17 @@ void
     MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 	
     if (N_rcvs > 0) {
-      FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum,win);
+      FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
+					  fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum,win);
 
-	MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
+	MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	MPI_Win_post(rgroup, 0, win);
     }
 
     //
     // Post send's
     //
-    Array<value_type*>                 send_data;
+    Array<value_type*> &               send_data = fb_send_data;
     Array<int>                         send_N;
     Array<int>                         send_rank;
     Array<const CopyComTagsContainer*> send_cctc;
@@ -3553,7 +3556,25 @@ void
         get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
 	   
     }
+}
 
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
+{
+    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
+
+    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
+
+    const FabArrayBase::SI& TheSI = cache_it->second;
+
+    Array<MPI_Status> stats;
+
+    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
+
+    MPI_win & win = ParallelDescriptor::win;
+    
     if (N_snds > 0) MPI_Win_complete(win);
     if (N_rcvs > 0) MPI_Win_wait(win);
     // check the completion of send disp ?
@@ -3590,20 +3611,23 @@ void
 		dptr += Cnt;
 	    }	    
 	}
-    }
 
-    if (N_rcvs > 0) {
-      MPI_Win_detach(win, the_recv_data);
-      BoxLib::The_Arena()->free(the_recv_data);
+	MPI_Win_detach(win, fb_the_recv_data);
+	BoxLib::The_Arena()->free(the_recv_data);
+
+	fb_recv_from.clear();
+	fb_recv_data.clear();
+	fb_recv_reqs.clear();
     }
     
     if (N_snds > 0) {
       for (int i = 0; i < N_snds; i++)
-        BoxLib::The_Arena()->free(send_data[i]);
+        BoxLib::The_Arena()->free(fb_send_data[i]);
+      fb_send_data.clear();
     }
 
-    
 }
+
 #endif /*BL_USE_MPI_ONESIDED */
 
 template <class FAB>
@@ -3821,7 +3845,7 @@ FabArray<FAB>::FillBoundary_finish ()
 
 #elif  BL_USE_MPI_ONESIDED
 
-    /* nothing ned to do here */
+    FillBoundary_finish_MPI_Onesided();
     
 #elif defined BL_USE_MPI
 

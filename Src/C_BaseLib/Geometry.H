@@ -359,9 +359,6 @@ std::istream& operator>> (std::istream&, Geometry&);
 
 namespace BoxLib
 {
-
-#ifndef BL_USE_MPI_ONESIDED
-
     template <class FAB>
     void
     FillPeriodicBoundary (const Geometry& geom,
@@ -571,13 +568,11 @@ namespace BoxLib
 #endif /*BL_USE_MPI*/
     }
 
-#endif /* not BL_USE_MPI_ONESIDED */
-
 #ifdef BL_USE_MPI_ONESIDED
   
     template <class FAB>
     void
-    FillPeriodicBoundary (const Geometry& geom,
+    FillPeriodicBoundary_nowait_Onesided (const Geometry& geom,
                           FabArray<FAB>&  mf,
                           int             scomp,
                           int             ncomp,
@@ -638,21 +633,21 @@ namespace BoxLib
 
         typedef typename FAB::value_type value_type;
 
-        Array<MPI_Status>  stats;
-        Array<int>         recv_from;
-        Array<value_type*> recv_data;
-        Array<MPI_Request> recv_reqs;
+	mf.fpb_corners = corners;
+	mf.fpb_scomp = scomp;
+	mf.fpb_ncomp = ncomp;
+	
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
-        value_type* the_recv_data = 0;
 
 	MPI_Comm tgroup, rgroup, sgroup;
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
 	if (N_rcvs > 0) {
-	  FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum,win);
-	  MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
+	  FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+					      mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,ncomp,SeqNum,win);
+	  MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
 	  MPI_Win_post(rgroup, 0, win);
 	}
 	
@@ -660,7 +655,7 @@ namespace BoxLib
         // Post send's
         //
 
-	Array<value_type*>                     send_data;
+	Array<value_type*>  &                  send_data = mf.fpb_send_data;
 	Array<int>                             send_N;
 	Array<int>                             send_rank;
 	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
@@ -753,7 +748,37 @@ namespace BoxLib
 
             mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
+    }
 
+    template <class FAB>
+    void
+    FillPeriodicBoundary_finish_MPI (const Geometry& geom,
+				     FabArray<FAB>& mf)
+    {
+        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+	if (ParallelDescriptor::NProcs() == 1) return;
+
+        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
+
+        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
+
+        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
+
+        const Geometry::FPB& TheFPB = cache_it->second;
+
+        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
+            //
+            // No work to do.
+            //
+            return;
+
+        typedef typename FAB::value_type value_type;
+
+        const int N_rcvs = TheFPB.m_RcvTags->size();
+	const int N_snds = TheFPB.m_RcvTags->size();
+
+	MPI_Win & win = ParallelDescriptor::win;
 	//
 	// wait and unpack
         if (N_snds > 0) MPI_Win_complete(win);
@@ -792,41 +817,22 @@ namespace BoxLib
                     dptr += Cnt;
                 }
             }
-	    MPI_Win_detach(win, the_recv_data);
-	    BoxLib::The_Arena()->free(the_recv_data);
+	    MPI_Win_detach(win, mf.fpb_the_recv_data);
+	    BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+
+	    mf.fpb_recv_from.clear();
+	    mf.fpb_recv_data.clear();
+	    mf.fpb_recv_reqs.clear();
 	}
 
 	if (N_snds > 0) {
 	  for (int i = 0; i < N_snds; i++)
-	    BoxLib::The_Arena()->free(send_data[i]);
+	    BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
+	  mf.fpb_send_data.clear();
 	}
     }
-
-    template <class FAB>
-    void
-    FillPeriodicBoundary_nowait (const Geometry& geom,
-                          FabArray<FAB>&  mf,
-                          int             scomp,
-                          int             ncomp,
-			  bool            corners=false)
-    {
-      FillPeriodicBoundary(geom, mf, scomp, ncomp, ParallelDescriptor::win, corners);
-    }
-
-    template <class FAB>
-    void
-    FillPeriodicBoundary (const Geometry& geom,
-                          FabArray<FAB>&  mf,
-                          int             scomp,
-                          int             ncomp,
-                          bool            corners=false)
-   {
-      FillPeriodicBoundary(geom, mf, scomp, ncomp, ParallelDescriptor::win, corners);
-    }
-
-
   
-#else  
+#endif  
 
   template <class FAB>
     void
@@ -1041,9 +1047,7 @@ namespace BoxLib
 	    }
 	}
 #endif /*BL_USE_MPI*/
-    }
-
-#endif /* BL_USE_MPI_ONESIDED */  
+    } 
 	
 #ifdef BL_USE_MPI
     template <class FAB>

@@ -202,7 +202,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
 	BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
 #elif  BL_USE_MPI_ONESIDED
-	BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, ParallelDescriptor::win, corners);
+	BoxLib::FillPeriodicBoundary_nowait_Onesided(*this, mf, scomp, ncomp, ParallelDescriptor::win, corners);
+	BoxLib::FillPeriodicBoundary_finish_Onesided(*this, mf);
 #else
         BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
 #endif
@@ -297,8 +298,11 @@ Geometry::FillPeriodicBoundary_nowait (MultiFab& mf,
     else
     {
 	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
+#ifdef BL_USE_MPI_ONESIDED
+	BoxLib::FillPeriodicBoundary_nowait_Onesided(*this, mf, scomp, ncomp, ParallelDescriptor::win, corners);
+#else
         BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
+#endif
     }
 }
 
@@ -310,7 +314,7 @@ Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
 #ifdef BL_USE_UPCXX    
     BoxLib::FillPeriodicBoundary_finish_UPCXX(*this, mf);
 #elif  BL_USE_MPI_ONESIDED
-    /* nothing need to be done here */
+    BoxLib::FillPeriodicBoundary_finish_Onesided(*this, mf);
 #elif defined BL_USE_MPI
     BoxLib::FillPeriodicBoundary_finish_MPI(*this, mf);
 #endif
