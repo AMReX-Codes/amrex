@@ -1262,7 +1262,7 @@ contains
 
   end subroutine itsol_CABiCGStab_solve
 
-  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
+  subroutine itsol_cg_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
                             stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
     integer    , intent(in   ) :: max_iter, verbose, stencil_type
@@ -1442,7 +1442,7 @@ contains
     call multifab_destroy(aa_local)
     call multifab_destroy(rh_local)
 
-  end subroutine itsol_CG_Solve
+  end subroutine itsol_cg_solve
 
   subroutine itsol_precon(aa, uu, rh, mm, method)
     use bl_prof_module
