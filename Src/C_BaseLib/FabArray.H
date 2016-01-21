@@ -3573,7 +3573,7 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
     const int N_rcvs = TheSI.m_RcvTags->size();
     const int N_snds = TheSI.m_SndTags->size();
 
-    MPI_win & win = ParallelDescriptor::win;
+    MPI_Win & win = ParallelDescriptor::win;
     
     if (N_snds > 0) MPI_Win_complete(win);
     if (N_rcvs > 0) MPI_Win_wait(win);
@@ -3586,7 +3586,7 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
+	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    
 	    recv_cctc.push_back(&(m_it->second));
@@ -3597,7 +3597,7 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
 #endif
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    value_type*  dptr = recv_data[k];
+	    value_type*  dptr = fb_recv_data[k];
 	    BL_ASSERT(dptr != 0);
 
 	    const CopyComTagsContainer& cctc = *recv_cctc[k];
@@ -3606,14 +3606,14 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
 		 it != cctc.end(); ++it)
 	    {
 		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*ncomp;
-		get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
+		const int  Cnt = bx.numPts()*fb_ncomp;
+		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
 		dptr += Cnt;
 	    }	    
 	}
 
 	MPI_Win_detach(win, fb_the_recv_data);
-	BoxLib::The_Arena()->free(the_recv_data);
+	BoxLib::The_Arena()->free(fb_the_recv_data);
 
 	fb_recv_from.clear();
 	fb_recv_data.clear();

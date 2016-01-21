@@ -60,6 +60,7 @@ namespace ParallelDescriptor
 
 #ifdef BL_USE_MPI_ONESIDED
     MPI_Win win;
+    MPI_Win pwin;
 #endif
   
     namespace util

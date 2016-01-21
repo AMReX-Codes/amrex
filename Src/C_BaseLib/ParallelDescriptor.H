@@ -29,6 +29,7 @@ namespace ParallelDescriptor
 
 #ifdef BL_USE_MPI_ONESIDED
     extern MPI_Win win;
+    extern MPI_Win pwin;
 #endif
   
     //

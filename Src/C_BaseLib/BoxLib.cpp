@@ -342,6 +342,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
 #ifdef BL_USE_MPI_ONESIDED
     MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::win);
+    MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::pwin);
 #endif
 
     while (!The_Initialize_Function_Stack.empty())
