@@ -752,8 +752,8 @@ namespace BoxLib
 
     template <class FAB>
     void
-    FillPeriodicBoundary_finish_MPI (const Geometry& geom,
-				     FabArray<FAB>& mf)
+    FillPeriodicBoundary_finish_Onesided (const Geometry& geom,
+				     FabArray<FAB>& mf, MPI_Win & win)
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
@@ -778,7 +778,6 @@ namespace BoxLib
         const int N_rcvs = TheFPB.m_RcvTags->size();
 	const int N_snds = TheFPB.m_RcvTags->size();
 
-	MPI_Win & win = ParallelDescriptor::win;
 	//
 	// wait and unpack
         if (N_snds > 0) MPI_Win_complete(win);
@@ -792,7 +791,7 @@ namespace BoxLib
 
 	    for (int k = 0; k < N_rcvs; k++)
 	    {
-		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[k]);
+		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 		
 		recv_fctc.push_back(&(m_it->second));
@@ -803,7 +802,7 @@ namespace BoxLib
 #endif
 	    for (int k = 0; k < N_rcvs; k++) 
 	    {
-		value_type*  dptr = recv_data[k];
+		value_type*  dptr = mf.fpb_recv_data[k];
 		BL_ASSERT(dptr != 0);
 		
 		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
@@ -812,8 +811,8 @@ namespace BoxLib
                      it != fctc.end(); ++it)
                 {
                     const Box& bx  = it->dbox;
-                    const int  Cnt = bx.numPts()*ncomp;
-                    mf[it->dstIndex].copyFromMem(bx,scomp,ncomp,dptr);
+                    const int  Cnt = bx.numPts()*mf.fpb_ncomp;
+                    mf[it->dstIndex].copyFromMem(bx,mf.fpb_scomp,mf.fpb_ncomp,dptr);
                     dptr += Cnt;
                 }
             }
