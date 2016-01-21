@@ -907,17 +907,22 @@ Geometry::GetFPB (const Geometry&      geom,
 
 	    for (int j = 0, M = isects.size(); j < M; ++j)
 	    {
-		const int k_dst     = isects[j].first;
-		Box       bx        = isects[j].second;
-		const int dst_owner = dm[k_dst];
+		const int  k_dst     = isects[j].first;
+		const Box& bx_dst    = ba[k_dst];
+		Box        bx        = isects[j].second;
+		const int  dst_owner = dm[k_dst];
 
 		if (fpb.m_do_corners) {
 		    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
 			if (!geom.isPeriodic(dir)) {
-			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir)) {
+			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir) 
+				&& bx_dst.smallEnd(dir) == TheDomain.smallEnd(dir) )
+			    {
 				bx.growLo(dir,ng);
 			    }
-			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)) {
+			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)
+				&& bx_dst.bigEnd(dir) == TheDomain.bigEnd(dir) )
+			    {
 				bx.growHi(dir,ng);
 			    }
 			}
@@ -951,28 +956,29 @@ Geometry::GetFPB (const Geometry&      geom,
 
     for (int i = 0; i < nlocal; ++i)
     {
-	const int   k_dst = imap[i];
-	const Box& bx_dst = BoxLib::grow(ba[k_dst], ng);
+	const int   k_dst   = imap[i];
+	const Box& bx_dst   = ba[k_dst];
+	const Box& bx_dst_g = BoxLib::grow(bx_dst, ng);
 
-	if (TheDomain.contains(bx_dst)) continue;
+	if (TheDomain.contains(bx_dst_g)) continue;
 
 	if (check_local) {
-	    localtouch.resize(bx_dst);
+	    localtouch.resize(bx_dst_g);
 	    localtouch.setVal(0);
 	}
 
 	if (check_remote) {
-	    remotetouch.resize(bx_dst);
+	    remotetouch.resize(bx_dst_g);
 	    remotetouch.setVal(0);
 	}
 
-	geom.periodicShift(TheDomain, bx_dst, pshifts);
+	geom.periodicShift(TheDomain, bx_dst_g, pshifts);
 
 	for (Array<IntVect>::const_iterator pit = pshifts.begin(), pEnd = pshifts.end();
 	     pit != pEnd; ++pit)
 	{
 	    const IntVect& iv   = *pit;
-	    const Box&     shft = bx_dst + iv;
+	    const Box&     shft = bx_dst_g + iv;
 
 	    ba.intersections(shft, isects);
 
@@ -985,10 +991,14 @@ Geometry::GetFPB (const Geometry&      geom,
 		if (fpb.m_do_corners) {
 		    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
 			if (!geom.isPeriodic(dir)) {
-			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir)) {
+			    if (bx.smallEnd(dir) == TheDomain.smallEnd(dir)
+				&& bx_dst.smallEnd(dir) == TheDomain.smallEnd(dir) )
+			    {
 				bx.growLo(dir,ng);
 			    }
-			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)) {
+			    if (bx.bigEnd(dir) == TheDomain.bigEnd(dir)
+				&& bx_dst.bigEnd(dir) == TheDomain.bigEnd(dir) )
+			    {
 				bx.growHi(dir,ng);
 			    }
 			}
