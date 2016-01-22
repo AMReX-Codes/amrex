@@ -3471,8 +3471,9 @@ void
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
 	send_cctc.reserve(N_snds);
-	send_disp.reserve(N_snds);
 	send_reqs.reserve(N_snds);
+
+	send_disp.resize(N_snds);
 	
 	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
 		 m_End = TheSI.m_SndTags->end();
