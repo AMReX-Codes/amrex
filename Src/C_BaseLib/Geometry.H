@@ -666,8 +666,9 @@ namespace BoxLib
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
 	send_fctc.reserve(N_snds);
-	send_disp.reserve(N_snds);
 	send_reqs.reserve(N_snds);
+
+	send_disp.resize(N_snds);
 
         for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
                  m_End = TheFPB.m_SndTags->end();
@@ -725,8 +726,8 @@ namespace BoxLib
 	  int index;
 
 	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-	  BL_ASSERT(status.MPI_TAG = SeqNum);
-	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
+	  BL_ASSERT(status.MPI_TAG == SeqNum);
+	  BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
 	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
 		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
 	  send_counter++;

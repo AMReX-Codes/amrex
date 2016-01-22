@@ -3532,8 +3532,9 @@ void
 //   std::cout << "BB2 before " << ParallelDescriptor::MyProc() << " send_counter " << send_counter << " N_snds " << N_snds << std::endl;
 
 	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-	  BL_ASSERT(status.MPI_TAG = SeqNum);
-	  BL_ASSERT(status.MPI_SOURCE = send_rank[index]);
+
+	  BL_ASSERT(status.MPI_TAG == SeqNum);
+	  BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
 	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
 		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
 	  send_counter++;
