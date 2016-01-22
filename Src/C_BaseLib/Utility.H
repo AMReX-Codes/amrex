@@ -9,6 +9,7 @@
 
 #ifndef WIN32
 #include <sys/types.h>
+#include <unistd.h>
 #if !defined(COLUMBIA)
 #include <sys/wait.h>
 #endif
@@ -377,6 +378,9 @@ namespace BoxLib
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
                                       int myLocalId, int rootId, MPI_Comm localComm);
+    const unsigned int msps(1000000);
+    void USleep(double sleepsec);
+
 }
 
 //
