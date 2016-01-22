@@ -22,6 +22,7 @@
 #include <BLProfiler.H>
 
 #include <ParallelDescriptor.H>
+#include <BoxArray.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -1624,4 +1625,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
 }
 
 
+void BoxLib::USleep(double sleepsec) {
+  usleep(sleepsec * msps);
+}
 
