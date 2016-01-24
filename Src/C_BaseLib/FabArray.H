@@ -193,6 +193,7 @@ public:
                           Array<T*>&                             recv_data,
                           Array<int>&                            recv_from,
                           Array<MPI_Request>&                    recv_reqs,
+                          Array<MPI_Aint>          &             recv_disp,
                           int                                    ncomp,
                           int                                    SeqNum,
 			  MPI_Win &                              win);
@@ -1357,6 +1358,7 @@ FabArrayBase::PostRcvs_MPI_Onesided (
                         Array<T*>&                             recv_data,
                         Array<int>&                            recv_from,
                         Array<MPI_Request>&                    recv_reqs,
+                        Array<MPI_Aint> &                      recv_disp,
                         int                                    ncomp,
 			int                                    SeqNum,
 			MPI_Win &                              win)
@@ -1381,6 +1383,7 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
     int Offset = 0;
 
+    int i = 0;
     for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
              End = m_RcvVols.end();
          it != End;
@@ -1392,11 +1395,11 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(it->first);
-	MPI_Aint disp;
-	MPI_Get_address(&the_recv_data[Offset], &disp);
-        recv_reqs.push_back(ParallelDescriptor::Asend(&disp,1,it->first,SeqNum).req());
+	MPI_Get_address(&the_recv_data[Offset], &recv_disp[i]);
+        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp[i],1,it->first,SeqNum).req());
 
         Offset += N;
+        i++;
     }
 }
 #endif   // BL_USE_MPI_ONESIDED
@@ -3437,6 +3440,9 @@ void
     Array<int>         recv_from;
     Array<value_type*> recv_data;
     Array<MPI_Request> recv_reqs;    
+
+    Array<MPI_Aint>    recv_disp;
+    recv_disp.resize(N_rcvs);
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
@@ -3447,7 +3453,7 @@ void
 	
     if (N_rcvs > 0) {
       FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
-					  fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum,win);
+					  fb_recv_data,fb_recv_from,fb_recv_reqs, recv_disp, ncomp,SeqNum,win);
 
 	MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	MPI_Win_post(rgroup, 0, win);
@@ -3529,8 +3535,6 @@ void
 	  MPI_Status status;
 	  int index;
 
-//   std::cout << "BB2 before " << ParallelDescriptor::MyProc() << " send_counter " << send_counter << " N_snds " << N_snds << std::endl;
-
 	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
 
 	  BL_ASSERT(status.MPI_TAG == SeqNum);
@@ -3580,6 +3584,8 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
     if (N_snds > 0) MPI_Win_complete(win);
     if (N_rcvs > 0) MPI_Win_wait(win);
     // check the completion of send disp ?
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (N_rcvs > 0)
     {
