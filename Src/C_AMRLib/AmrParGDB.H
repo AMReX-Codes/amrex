@@ -3,7 +3,6 @@
 
 #include <ParGDB.H>
 #include <Amr.H>
-#include <BL_CXX11.H>
 
 class AmrParGDB
     : public ParGDBBase
@@ -13,13 +12,17 @@ public:
     AmrParGDB (Amr* amr)
 	: m_amr(amr) { BL_ASSERT(amr != 0); }
 
-    ~AmrParGDB () {;}
+    virtual ~AmrParGDB () {;}
     
     virtual const Geometry& Geom (int level) const BL_OVERRIDE;
     virtual const DistributionMapping& ParticleDistributionMap 
                                              (int level) const BL_OVERRIDE;
     virtual const BoxArray& ParticleBoxArray (int level) const BL_OVERRIDE;
     virtual const BoxArray&         boxArray (int level) const BL_OVERRIDE;
+
+    virtual void SetParticleBoxArray (int level,
+				      const DistributionMapping& new_dm,
+				      const BoxArray           & new_ba) BL_OVERRIDE;
 
     virtual bool LevelDefined (int level) const BL_OVERRIDE;
     virtual int finestLevel () const BL_OVERRIDE;
@@ -61,6 +64,14 @@ const BoxArray&
 AmrParGDB::boxArray (int level) const
 {
     return m_amr->boxArray(level);
+}
+
+inline
+void AmrParGDB::SetParticleBoxArray (int level,
+				     const DistributionMapping& new_dm,
+				     const BoxArray           & new_ba)
+{
+    BoxLib::Abort("AmrParGDB::SetParticleBoxArray: not implemented yet");
 }
 
 inline 
