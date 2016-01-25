@@ -622,8 +622,8 @@ namespace BoxLib
 	const int SeqNum = ParallelDescriptor::SeqNum();
 
 	const int N_locs = TheFPB.m_LocTags->size();
-	const int N_rcvs = TheFPB.m_RcvTags->size();
-	const int N_snds = TheFPB.m_SndTags->size();
+	int N_rcvs = TheFPB.m_RcvTags->size();
+	int N_snds = TheFPB.m_SndTags->size();
 			
         if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
             //
@@ -654,6 +654,8 @@ namespace BoxLib
 	  MPI_Win_post(rgroup, 0, win);
 	}
 	
+        N_rcvs = mf.fpb_recv_from.size();
+
         //
         // Post send's
         //
@@ -684,6 +686,8 @@ namespace BoxLib
 
             const int N = vol_it->second*ncomp;
 
+            if (N == 0) continue;
+
             BL_ASSERT(N < std::numeric_limits<int>::max());
 
             value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
@@ -693,6 +697,8 @@ namespace BoxLib
 	    send_rank.push_back(m_it->first);
 	    send_fctc.push_back(&(m_it->second));
 	}
+
+       N_snds = send_rank.size();
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -752,6 +758,9 @@ namespace BoxLib
 
             mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
         }
+
+        mf.fpb_nsnds = N_snds;
+        mf.fpb_nrcvs = N_rcvs;
     }
 
     template <class FAB>
@@ -779,8 +788,11 @@ namespace BoxLib
 
         typedef typename FAB::value_type value_type;
 
-        const int N_rcvs = TheFPB.m_RcvTags->size();
-	const int N_snds = TheFPB.m_RcvTags->size();
+//        const int N_rcvs = TheFPB.m_RcvTags->size();
+//	const int N_snds = TheFPB.m_RcvTags->size();
+
+        const int N_rcvs = mf.fpb_nrcvs;
+        const int N_snds = mf.fpb_nsnds;
 
 	//
 	// wait and unpack
