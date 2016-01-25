@@ -259,6 +259,11 @@ public:
     //
     void GetCellVolCoord (Array<Real>& loc, const Box& region, int dir) const;
 
+#ifdef BL_USE_MPI
+    static void BroadcastCoordSys (CoordSys &geom, int fromProc, MPI_Comm comm);
+    static void BroadcastCoordSys (CoordSys &geom, int fromProc, MPI_Comm comm, bool bcastSource);
+#endif
+
 protected:
     //
     // Static data.
