@@ -4,7 +4,8 @@
 #include <PArray.H>
 #include <Geometry.H>
 #include <MultiFab.H>
-
+#include <BL_CXX11.H>
+				      
 class ParGDBBase
 {
 public:
@@ -17,6 +18,10 @@ public:
                                              (int level) const = 0;
     virtual const BoxArray& ParticleBoxArray (int level) const = 0;
     virtual const BoxArray&         boxArray (int level) const = 0;
+
+    virtual void SetParticleBoxArray (int level,
+				      const DistributionMapping& new_dm,
+				      const BoxArray           & new_ba) = 0;
 
     virtual bool LevelDefined (int level) const = 0;
     virtual int finestLevel () const = 0;
@@ -50,21 +55,25 @@ public:
 
     virtual ~ParGDB () {;}
 
-    virtual const Geometry& Geom (int level) const;
+    virtual const Geometry& Geom (int level) const BL_OVERRIDE;
     virtual const DistributionMapping& ParticleDistributionMap 
-                                             (int level) const;
-    virtual const BoxArray& ParticleBoxArray (int level) const;
-    virtual const BoxArray&         boxArray (int level) const;
+                                             (int level) const BL_OVERRIDE;
+    virtual const BoxArray& ParticleBoxArray (int level) const BL_OVERRIDE;
+    virtual const BoxArray&         boxArray (int level) const BL_OVERRIDE;
 
-    virtual bool LevelDefined (int level) const;
-    virtual int finestLevel () const;
-    virtual int initialBaLevels () const;
+    virtual void SetParticleBoxArray (int level,
+				      const DistributionMapping& new_dm,
+				      const BoxArray           & new_ba) BL_OVERRIDE;
 
-    virtual int subCycle () const;
-    virtual IntVect refRatio (int level) const;
-    virtual int MaxRefRatio (int level) const;
+    virtual bool LevelDefined (int level) const BL_OVERRIDE;
+    virtual int finestLevel () const BL_OVERRIDE;
+    virtual int initialBaLevels () const BL_OVERRIDE;
 
-    virtual bool ParticlesOnSameGrids (int level) const;
+    virtual int subCycle () const BL_OVERRIDE;
+    virtual IntVect refRatio (int level) const BL_OVERRIDE;
+    virtual int MaxRefRatio (int level) const BL_OVERRIDE;
+
+    virtual bool ParticlesOnSameGrids (int level) const BL_OVERRIDE;
 
 protected:
 
@@ -138,6 +147,17 @@ const BoxArray&
 ParGDB::boxArray (int level) const
 {
     return m_ba[level];
+}
+
+inline
+void 
+ParGDB::SetParticleBoxArray (int level,
+			     const DistributionMapping& new_dm,
+			     const BoxArray           & new_ba)
+{
+    BL_ASSERT(level < m_nlevels);
+    m_dmap.set(level, &new_dm);
+    m_ba.set(level, &new_ba);
 }
 
 inline 

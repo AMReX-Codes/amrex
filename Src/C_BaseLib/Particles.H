@@ -302,6 +302,11 @@ public:
 	m_gdb = & m_gdb_object;
     }
 
+    void SetParticleBoxArray (int lev,
+			      const DistributionMapping& new_dmap,
+			      const BoxArray           & new_ba)
+    { m_gdb->SetParticleBoxArray(lev, new_dmap, new_ba); }
+
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
