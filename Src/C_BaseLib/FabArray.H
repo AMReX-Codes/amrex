@@ -1059,6 +1059,9 @@ public:
     Array<int>         fb_recv_from;
     Array<value_type*> fb_recv_data;
     Array<MPI_Request> fb_recv_reqs;
+#ifdef BL_USE_MPI_ONESIDED
+    Array<MPI_Aint>    fb_recv_disp;
+#endif
     //
     Array<value_type*> fb_send_data;
     Array<MPI_Request> fb_send_reqs;
@@ -1071,6 +1074,9 @@ public:
     Array<int>         fpb_recv_from;
     Array<value_type*> fpb_recv_data;
     Array<MPI_Request> fpb_recv_reqs;
+#ifdef BL_USE_MPI_ONESIDED
+    Array<MPI_Aint>    fpb_recv_disp;
+#endif
     //
     Array<value_type*> fpb_send_data;
     Array<MPI_Request> fpb_send_reqs;
@@ -1383,7 +1389,6 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
     int Offset = 0;
 
-    int i = 0;
     for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
              End = m_RcvVols.end();
          it != End;
@@ -1395,11 +1400,12 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(it->first);
-	MPI_Get_address(&the_recv_data[Offset], &recv_disp[i]);
-        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp[i],1,it->first,SeqNum).req());
+	MPI_Aint disp;
+	MPI_Get_address(&the_recv_data[Offset], &disp);
+	recv_disp.push_back(disp);
+        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp.back(),1,it->first,SeqNum).req());
 
         Offset += N;
-        i++;
     }
 }
 #endif   // BL_USE_MPI_ONESIDED
@@ -3386,7 +3392,7 @@ FabArray<FAB>::FillBoundary_nowait (bool cross)
 
 template <class FAB>
 void
-  FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
+FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
 {
     if ( n_grow <= 0 ) return;
 
@@ -3436,13 +3442,6 @@ void
         // No work to do.
         return;
 
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from;
-    Array<value_type*> recv_data;
-    Array<MPI_Request> recv_reqs;    
-
-    Array<MPI_Aint>    recv_disp;
-    recv_disp.resize(N_rcvs);
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
@@ -3452,8 +3451,9 @@ void
     MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 	
     if (N_rcvs > 0) {
-      FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
-					  fb_recv_data,fb_recv_from,fb_recv_reqs, recv_disp, ncomp,SeqNum,win);
+	FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
+					    fb_recv_data,fb_recv_from,fb_recv_reqs, 
+					    fb_recv_disp, ncomp,SeqNum,win);
 
 	MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	MPI_Win_post(rgroup, 0, win);
@@ -3462,17 +3462,15 @@ void
     //
     // Post send's
     //
-    Array<value_type*> &               send_data = fb_send_data;
-    Array<int>                         send_N;
-    Array<int>                         send_rank;
-    Array<const CopyComTagsContainer*> send_cctc;
-    Array<MPI_Request>                 send_reqs;
-    Array<MPI_Aint>                    send_disp;
-
-    int send_counter = 0;
-	
     if (N_snds > 0)
     {
+	Array<value_type*> &               send_data = fb_send_data;
+	Array<int>                         send_N;
+	Array<int>                         send_rank;
+	Array<const CopyComTagsContainer*> send_cctc;
+	Array<MPI_Request>                 send_reqs;
+	Array<MPI_Aint>                    send_disp;
+
 	send_data.reserve(N_snds);
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
@@ -3531,6 +3529,7 @@ void
 	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
 	MPI_Win_start(sgroup,0,win);
 	
+	int send_counter = 0;	
 	while (send_counter < N_snds) {
 	  MPI_Status status;
 	  int index;
@@ -3626,6 +3625,7 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
 	fb_recv_from.clear();
 	fb_recv_data.clear();
 	fb_recv_reqs.clear();
+	fb_recv_disp.clear();
     }
     
     if (N_snds > 0) {
