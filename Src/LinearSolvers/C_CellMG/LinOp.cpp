@@ -18,15 +18,13 @@ namespace
 int LinOp::def_harmavg;
 int LinOp::def_verbose;
 int LinOp::def_maxorder;
+int LinOp::LinOp_grow;
 
-#ifndef NDEBUG
-//
+// Important:
 // LinOp::applyBC fills LinOp_grow ghost cells with data expected in
 // LinOp::apply therefore, the incoming MultiFab to LinOp::applyBC better
-// have this many ghost allocated.
+// have LinOp_grow many ghost allocated.
 //
-const int LinOp_grow = 1;
-#endif
 
 void
 LinOp::Initialize ()
@@ -38,6 +36,7 @@ LinOp::Initialize ()
     LinOp::def_harmavg  = 0;
     LinOp::def_verbose  = 0;
     LinOp::def_maxorder = 2;
+    LinOp::LinOp_grow   = 1; // Must be consistent with expectations of apply/applyBC, not parm-parsed
 
     ParmParse pp("Lp");
 
