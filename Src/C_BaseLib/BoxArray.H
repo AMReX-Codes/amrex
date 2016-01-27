@@ -147,6 +147,10 @@ public:
     //
     bool operator!= (const BoxArray& rhs) const;
     //
+    //  Are the BoxArrays equal after conversion to cell-centered
+    //
+    bool CellEqual (const BoxArray& rhs) const;
+    //
     // Forces each Box in BoxArray to have sides <= block_size.
     //
     BoxArray& maxSize (int block_size);
