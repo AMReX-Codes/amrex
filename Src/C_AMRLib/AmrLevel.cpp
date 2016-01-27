@@ -241,7 +241,6 @@ AmrLevel::make_particle_dmap ()
     // take a shortcut if possible
     if (grids == particle_grids) {
 	particle_dmap = get_new_data(0).DistributionMap();
-	particles_on_same_grids = true;
 	return;
     }
 
@@ -277,7 +276,6 @@ AmrLevel::make_particle_dmap ()
     {
         const bool put_in_cache = true;
         particle_dmap = DistributionMapping(ParticleProcMap,put_in_cache);
-        particles_on_same_grids = false;
     }
     else
     {
@@ -290,7 +288,6 @@ AmrLevel::make_particle_dmap ()
         {
            // Just copy the grids distribution map to the particle_grids distribution map
            particle_dmap = get_new_data(0).DistributionMap();
-           particles_on_same_grids = true;
         }
     }
 }
