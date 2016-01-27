@@ -2665,7 +2665,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic,1) if (n > 1)
+#pragma omp parallel for schedule(dynamic,1)
 #endif
     for (int j = 0; j < ngrids; j++)
     {
