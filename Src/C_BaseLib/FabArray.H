@@ -3458,8 +3458,13 @@ void
     MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 	
     if (N_rcvs > 0) {
+
+      double t0 = ParallelDescriptor::second();
       FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
 					  fb_recv_data,fb_recv_from,fb_recv_reqs, recv_disp, ncomp,SeqNum,win);
+      double t1 = ParallelDescriptor::second();
+      ParallelDescriptor::timing[0] += t1 - t0;
+
 
       MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
       MPI_Win_post(rgroup, 0, win);
@@ -3514,6 +3519,8 @@ void
 
 	N_snds = send_rank.size();
 	
+        double t0 = ParallelDescriptor::second();
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3535,6 +3542,9 @@ void
 	    }
 	}
 
+        double t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[3] += t1 - t0;
+
 	for (int i=0; i<N_snds; ++i) {
 	  send_reqs.push_back(ParallelDescriptor::Arecv
 			      (&send_disp[i],1,send_rank[i],SeqNum).req());
@@ -3551,8 +3561,15 @@ void
 
 	  BL_ASSERT(status.MPI_TAG == SeqNum);
 	  BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+
+          double t0 = ParallelDescriptor::second();
+
 	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
 		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
+
+          double t1 = ParallelDescriptor::second();
+          ParallelDescriptor::timing[1] += t1 - t0;
+
 	  send_counter++;
 	}
 
@@ -3561,6 +3578,9 @@ void
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
+
+    double t0 = ParallelDescriptor::second();
+
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_loc)
 #endif
@@ -3574,6 +3594,9 @@ void
         get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
 	   
     }
+
+    double t1 = ParallelDescriptor::second();
+    ParallelDescriptor::timing[4] += t1 - t0;
 
     fb_nsnds = N_snds;
     fb_nrcvs = N_rcvs;
@@ -3598,8 +3621,13 @@ void
     const int N_snds = fb_nsnds;
     MPI_Win & win = ParallelDescriptor::win;
     
+    double t0 = ParallelDescriptor::second();
+
     if (N_snds > 0) MPI_Win_complete(win);
     if (N_rcvs > 0) MPI_Win_wait(win);
+
+    double t1 = ParallelDescriptor::second();
+    ParallelDescriptor::timing[2] += t1 - t0;
 
     if (N_rcvs > 0)
     {
@@ -3613,6 +3641,8 @@ void
 	    
 	    recv_cctc.push_back(&(m_it->second));
 	}	
+
+        double t0 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3633,6 +3663,9 @@ void
 		dptr += Cnt;
 	    }	    
 	}
+
+        double t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[3] += t1 - t0;
 
 	MPI_Win_detach(win, fb_the_recv_data);
 	BoxLib::The_Arena()->free(fb_the_recv_data);
@@ -3708,6 +3741,8 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
+    double t0 = ParallelDescriptor::second();
+
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvVols,fb_the_recv_data,
@@ -3717,6 +3752,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 				    fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 #endif
     }
+
+    double t1 = ParallelDescriptor::second();
+    ParallelDescriptor::timing[0] += t1 - t0;
+
 
     //
     // Post send's
@@ -3765,6 +3804,8 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    send_cctc.push_back(&(m_it->second));
 	}
 
+        double t0 = ParallelDescriptor::second();
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3786,12 +3827,19 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    }
 	}
 
+        double t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[3] += t1 - t0;
+
+
 #ifdef BL_USE_UPCXX
 	BLPgas::fb_send_counter = 0;
 #else
 	Array<MPI_Request>& send_reqs = fb_send_reqs;
 	send_reqs.reserve(N_snds);
 #endif
+
+        t0 = ParallelDescriptor::second();
+
 	for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
@@ -3805,18 +3853,24 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
 #endif
 	}
-	
+
 #ifdef BL_USE_UPCXX
 	// Need to make sure at least half of the sends have been started
 	while (BLPgas::fb_send_counter < N_snds)
 	    upcxx::advance();
 #endif
+
+        t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[1] += t1 - t0;
+
     }
 
      //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
  
+    t0 = ParallelDescriptor::second();
+
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
 #ifdef BL_USE_CXX11
@@ -3850,6 +3904,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    }
 	}
     }
+
+    t1 = ParallelDescriptor::second();
+    ParallelDescriptor::timing[4] += t1 - t0;
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -3909,8 +3967,16 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 	    recv_cctc.push_back(&(m_it->second));
 	}	
 
+        double t0 = ParallelDescriptor::second();
+
 	stats.resize(N_rcvs);
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+
+        double t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[2] += t1 - t0;
+
+
+        t0 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3931,6 +3997,10 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 		dptr += Cnt;
 	    }	    
 	}
+
+        t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[3] += t1 - t0;
+
 
 	BoxLib::The_Arena()->free(fb_the_recv_data);
 
@@ -3969,7 +4039,13 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	//  wait and unpack
 	//
 	
+        double t0 = ParallelDescriptor::second();
+
 	BLPgas::fb_recv_event.wait(); // wait for the recvs
+
+        double t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[2] += t1 - t0;
+
 
 	Array<const CopyComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
@@ -3980,6 +4056,8 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
+
+        t0 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3999,6 +4077,9 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 		dptr += Cnt;
 	    }	    
 	}
+
+        t1 = ParallelDescriptor::second();
+        ParallelDescriptor::timing[3] += t1 - t0;
 
 	upcxx::deallocate(fb_the_recv_data);
 

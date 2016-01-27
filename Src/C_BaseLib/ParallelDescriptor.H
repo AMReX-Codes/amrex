@@ -31,6 +31,7 @@ namespace ParallelDescriptor
     extern MPI_Win win;
     extern MPI_Win pwin;
 #endif
+    extern double timing[100];
   
     //
     // Data structure used by a few routines when MPI is enabled.
