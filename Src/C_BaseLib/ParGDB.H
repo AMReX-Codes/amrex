@@ -1,7 +1,7 @@
 #ifndef _ParGDB_H
 #define _ParGDB_H
 
-#include <PArray.H>
+#include <Array.H>
 #include <Geometry.H>
 #include <MultiFab.H>
 #include <BL_CXX11.H>
@@ -77,11 +77,11 @@ public:
 
 protected:
 
-    PArray<Geometry>            m_geom;
-    PArray<DistributionMapping> m_dmap;
-    PArray<BoxArray>            m_ba;
-    Array<int>                  m_rr;
-    int                         m_nlevels;
+    Array<Geometry>            m_geom;
+    Array<DistributionMapping> m_dmap;
+    Array<BoxArray>            m_ba;
+    Array<int>                 m_rr;
+    int                        m_nlevels;
 
 };
 
@@ -90,17 +90,11 @@ ParGDB::ParGDB (const Geometry            & geom,
 		const DistributionMapping & dmap,
 		const BoxArray            & ba)
     :
+    m_geom(1,geom),
+    m_dmap(1,dmap),
+    m_ba(1,ba),
     m_nlevels(1)
-{
-    m_geom.resize(1);
-    m_geom.set(0, &geom);
-
-    m_dmap.resize(1);
-    m_dmap.set(0, &dmap);
-
-    m_ba.resize(1);
-    m_ba.set(0, &ba);
-}
+{ }
 
 inline
 ParGDB::ParGDB (const Array<Geometry>            & geom, 
@@ -108,18 +102,12 @@ ParGDB::ParGDB (const Array<Geometry>            & geom,
 		const Array<BoxArray>            & ba,
 		const Array<int>                 & rr)
     :
+    m_geom(geom),
+    m_dmap(dmap),
+    m_ba(ba),
     m_rr(rr),
     m_nlevels(ba.size())
-{
-    m_geom.resize(m_nlevels);
-    m_dmap.resize(m_nlevels);
-    m_ba.resize(m_nlevels);
-    for (int lev=0; lev<m_nlevels; ++lev) {
-	m_geom.set(lev, &geom[lev]);
-	m_dmap.set(lev, &dmap[lev]);
-	m_ba.set  (lev, &ba[lev]);
-    }
-}
+{ }
 
 inline 
 const Geometry& 
@@ -156,8 +144,8 @@ ParGDB::SetParticleBoxArray (int level,
 			     const BoxArray           & new_ba)
 {
     BL_ASSERT(level < m_nlevels);
-    m_dmap.set(level, &new_dm);
-    m_ba.set(level, &new_ba);
+    m_dmap[level] = new_dm;
+    m_ba[level] = new_ba;
 }
 
 inline 
