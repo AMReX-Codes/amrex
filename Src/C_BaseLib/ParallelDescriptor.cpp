@@ -62,6 +62,7 @@ namespace ParallelDescriptor
     MPI_Win win;
     MPI_Win pwin;
 #endif
+    double timing[100];
   
     namespace util
     {

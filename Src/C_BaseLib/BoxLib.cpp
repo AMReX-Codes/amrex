@@ -344,6 +344,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::win);
     MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::pwin);
 #endif
+    for (int i = 0; i < 100; i++) ParallelDescriptor::timing[i] = 0;
 
     while (!The_Initialize_Function_Stack.empty())
     {
