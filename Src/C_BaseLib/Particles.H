@@ -233,7 +233,9 @@ struct ParticleContainerBase
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const = 0;
 
-    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+    virtual void AssignDensitySingleLevel      (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+    virtual void AssignCellDensitySingleLevel  (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
+    virtual void AssignNodalDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const = 0;
 
     virtual Real sumParticleMass (int level) const = 0;
 
@@ -302,6 +304,11 @@ public:
 	m_gdb = & m_gdb_object;
     }
 
+    void SetParticleBoxArray (int lev,
+			      const DistributionMapping& new_dmap,
+			      const BoxArray           & new_ba)
+    { m_gdb->SetParticleBoxArray(lev, new_dmap, new_ba); }
+
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
@@ -328,7 +335,9 @@ public:
 
     long IncrementWithTotal (MultiFab& mf, int level);
 
-    virtual void AssignDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void AssignDensitySingleLevel      (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void AssignCellDensitySingleLevel  (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
+    virtual void AssignNodalDensitySingleLevel (MultiFab& mf, int level, int ncomp=1, int particle_lvl_offset = 0) const BL_OVERRIDE;
 
     virtual void AssignDensity (PArray<MultiFab>& mf, int lev_min = 0, int ncomp = 1, int finest_level = -1) const BL_OVERRIDE;
 
@@ -375,6 +384,7 @@ public:
     // If "only_valid" is true it only counts valid particles.
     //
     long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
+    Array<long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
     //
     // Returns # of particles at all levels
     //
@@ -473,6 +483,9 @@ public:
     PMap& GetParticles(int lev) { return m_particles[lev]; }
 
 protected:
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+
     //
     // Helper function for Checkpoint() and WritePlotFile().
     //
@@ -524,6 +537,51 @@ ParticleContainer<N>::TotalNumberOfParticles (bool only_valid, bool only_local) 
     long nparticles = 0;
     for (int lev = 0; lev <= m_gdb->finestLevel(); lev++)
         nparticles += NumberOfParticlesAtLevel(lev,only_valid,only_local);
+    return nparticles;
+}
+
+template <int N>
+Array<long>
+ParticleContainer<N>::NumberOfParticlesInGrid (int  lev, 
+                                               bool only_valid,
+                                               bool only_local) const
+{
+    int ngrids = m_gdb->ParticleBoxArray(lev).size();
+    Array<long> nparticles(ngrids,0);
+
+    if (lev >= 0 && lev < m_particles.size())
+    {
+        const PMap& pmap = m_particles[lev];
+
+        for (typename PMap::const_iterator pmap_it = pmap.begin(), End = pmap.end();
+             pmap_it != End;
+             ++pmap_it)
+        {
+            int         pgrd = pmap_it->first;
+            const PBox& pbox = pmap_it->second;
+
+            nparticles[pgrd] = 0;
+
+            if (only_valid)
+            {
+                for (typename PBox::const_iterator it = pbox.begin(), pboxEnd = pbox.end();
+                     it != pboxEnd;
+                     ++it)
+                {
+                    if (it->m_id > 0)
+                        nparticles[pgrd]++;
+                }
+            }
+            else
+            {
+                nparticles[pgrd] = pbox.size();
+            }
+        }
+
+        if (!only_local)
+            ParallelDescriptor::ReduceLongSum(&nparticles[0],ngrids);
+    }
+
     return nparticles;
 }
 
@@ -2251,7 +2309,7 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
     MultiFab* mf_pointer;
 
-    if (m_gdb->ParticlesOnSameGrids(lev))
+    if (OnSameGrids(lev, mf))
     {
         // If we are already working with the internal mf defined on the
         // particle_box_array, then we just work with this.
@@ -2261,7 +2319,8 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
     {
         // If mf is not defined on the particle_box_array, then we need
         // to make a temporary mf_pointer here and copy it into mf at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),mf.nComp(),mf.nGrow(),Fab_allocate);
+        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),mf.nComp(),mf.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
     }
 
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
@@ -2335,13 +2394,14 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
     long num_particles_at_level = 0;
 
     MultiFab* gv_pointer;
-    if (m_gdb->ParticlesOnSameGrids(lev))
+    if (OnSameGrids(lev, gv))
     {
         gv_pointer = 0;
     }
     else 
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),gv.nComp(),gv.nGrow(),Fab_allocate);
+        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), gv.nComp(), gv.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
         gv_pointer->copy(gv,0,0,BL_SPACEDIM);
         gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
@@ -2506,7 +2566,7 @@ ParticleContainer<N>::sumParticleMomentum (int   lev,
 }
 
 //
-// This is the single-level version
+// This is the single-level version -- it takes either cell-centered or node-centered MF's
 //
 template <int N>
 void
@@ -2522,10 +2582,38 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     BL_ASSERT(m_csq > 0.);
 #endif
 
+    if (lev >= m_particles.size())
+    {
+        //
+        // Don't do anything if there are no particles at this level.
+        //
+        return;
+    }
+
+    // Keep the same external interface to the applications, but if the
+    if (mf_to_be_filled.is_nodal())
+    {
+        AssignNodalDensitySingleLevel(mf_to_be_filled,lev,ncomp,particle_lvl_offset);
+    }
+    else
+    {
+        AssignCellDensitySingleLevel(mf_to_be_filled,lev,ncomp,particle_lvl_offset);
+    }
+}
+
+//
+// This is the single-level version for cell-centered density
+//
+template <int N>
+void
+ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
+                                                    int       lev,
+                                                    int       ncomp,
+                                                    int       particle_lvl_offset) const
+{
     MultiFab* mf_pointer;
 
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (mf_to_be_filled.boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev, mf_to_be_filled))
     {
         // If we are already working with the internal mf defined on the 
         // particle_box_array, then we just work with this.
@@ -2535,17 +2623,15 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     {
         // If mf_to_be_filled is not defined on the particle_box_array, then we need 
         // to make a temporary here and copy into mf_to_be_filled at the end.
-        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),ncomp,mf_to_be_filled.nGrow(),Fab_allocate);
+        mf_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, mf_to_be_filled.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
     }
 
-    if (lev >= m_particles.size())
-    {
-        //
-        // Don't do anything if there are no particles at this level.
-        //
-	if (mf_pointer != &mf_to_be_filled) delete mf_pointer;
-        return;
-    }
+    // We must have ghost cells for each FAB so that a particle in one grid can spread its effect to an
+    //    adjacent grid by first putting the value into ghost cells of its own grid.  The mf->sumBoundary call then
+    //    adds the value from one grid's ghost cell to another grid's valid region.
+    if (mf_pointer->nGrow() < 1) 
+       BoxLib::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = m_gdb->Geom(lev);
@@ -2553,7 +2639,7 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     const Real*     dx_particle = m_gdb->Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
     const PMap&     pmap        = m_particles[lev];
-    const int       n           = pmap.size();
+    const int       ngrids      = pmap.size();
 
     if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
         BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -2566,8 +2652,8 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     // way no thread will step on any other.  If there's only one grid per CPU,
     // then oh well ....
     //
-    Array<int>         pgrd(n);
-    Array<const PBox*> pbxs(n);
+    Array<int>         pgrd(ngrids);
+    Array<const PBox*> pbxs(ngrids);
 
     int j = 0;
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end();
@@ -2579,12 +2665,12 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic,1) if (n > 1)
+#pragma omp parallel for schedule(dynamic,1)
 #endif
-    for (int i = 0; i < n; i++)
+    for (int j = 0; j < ngrids; j++)
     {
-        const PBox& pbx = *pbxs[i];
-        FArrayBox&  fab = (*mf_pointer)[pgrd[i]];
+        const PBox& pbx = *pbxs[j];
+        FArrayBox&  fab = (*mf_pointer)[pgrd[j]];
 
         Array<Real>    fracs;
         Array<IntVect> cells;
@@ -2689,6 +2775,19 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
 }
 
 //
+// This is the single-level version for nodal density
+//
+template <int N>
+void
+ParticleContainer<N>::AssignNodalDensitySingleLevel (MultiFab& mf_to_be_filled,
+                                                     int       lev,
+                                                     int       ncomp,
+                                                     int       particle_lvl_offset) const
+{
+    BoxLib::Error("AssignNodalDensitySingleLevel not implemented yet");
+}
+
+//
 // This is the multi-level version.
 //
 // The PArray should be empty on input.
@@ -2750,8 +2849,13 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
     // Test whether the grid structure of the boxArray is the same
     //       as the ParticleBoxArray at all levels 
-    bool all_grids_the_same = true; for (int lev = lev_min; lev <= finest_level; lev++)
-        if (!m_gdb->ParticlesOnSameGrids(lev))  all_grids_the_same = false;
+    bool all_grids_the_same = true; 
+    for (int lev = lev_min; lev <= finest_level; lev++) {
+        if (!OnSameGrids(lev, mf_to_be_filled[lev])) {
+	    all_grids_the_same = false;
+	    break;
+	}
+    }
 
     if (all_grids_the_same)
     {
@@ -2764,7 +2868,8 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
-            mf_part.set(lev_index, new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1));
+            mf_part.set(lev_index, new MultiFab(m_gdb->ParticleBoxArray(lev), ncomp, 1,
+						m_gdb->ParticleDistributionMap(lev)));
     
             for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
                 mf_part[lev_index][mfi].setVal(0);
@@ -4362,13 +4467,14 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
     PMap& pmap = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (m_gdb->ParticlesOnSameGrids(lev))
+    if (OnSameGrids(lev,gv))
     {
         gv_pointer = 0;
     }
     else 
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv.nGrow(),Fab_allocate);
+        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev), 1, gv.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev), Fab_allocate);
         gv_pointer->copy(gv,0,0,BL_SPACEDIM);
         gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
@@ -4440,16 +4546,17 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
     MultiFab* gv_pointer;
     MultiFab* gv_pointer_old;
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (gv.boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev,gv))
     {
         gv_pointer     = 0;
         gv_pointer_old = 0;
     }
     else 
     {
-        gv_pointer     = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv.nGrow(),Fab_allocate);
-        gv_pointer_old = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv_old.nGrow(),Fab_allocate);
+        gv_pointer     = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv.nGrow(),
+				      m_gdb->ParticleDistributionMap(lev), Fab_allocate);
+        gv_pointer_old = new MultiFab(m_gdb->ParticleBoxArray(lev),1,gv_old.nGrow(),
+				      m_gdb->ParticleDistributionMap(lev), Fab_allocate);
         gv_pointer->copy(gv,0,0,BL_SPACEDIM);
         gv_pointer_old->copy(gv_old,0,0,BL_SPACEDIM);
         gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
@@ -4541,14 +4648,14 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
     PMap&      pmap          = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (grav_vector.boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev, grav_vector))
     {
         gv_pointer = &grav_vector;
     }
     else
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),Fab_allocate);
+        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev),Fab_allocate);
         for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
             gv_pointer->setVal(0.);
         gv_pointer->copy(grav_vector,0,0,grav_vector.nComp());
@@ -4680,14 +4787,14 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
     PMap&      pmap      = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (grav_vector.boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev,grav_vector))
     {
         gv_pointer = &grav_vector;
     }
     else 
     {
-        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),Fab_allocate);
+        gv_pointer = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector.nComp(),grav_vector.nGrow(),
+				  m_gdb->ParticleDistributionMap(lev),Fab_allocate);
         for (MFIter mfi(*gv_pointer); mfi.isValid(); ++mfi)
             gv_pointer->setVal(0.);
         gv_pointer->copy(grav_vector,0,0,grav_vector.nComp());
@@ -4786,8 +4893,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     PMap&           pmap          = m_particles[lev];
 
     MultiFab* gv_pointer[BL_SPACEDIM];
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (grav_vector[0].boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev,grav_vector[0]))
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
            gv_pointer[i] = &grav_vector[i];
@@ -4797,7 +4903,8 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
            gv_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector[i].nComp(),
-                                        grav_vector[i].nGrow(),Fab_allocate);
+                                        grav_vector[i].nGrow(),
+					m_gdb->ParticleDistributionMap(lev),Fab_allocate);
            gv_pointer[i]->copy(grav_vector[i],0,0,grav_vector[i].nComp());
            gv_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
         }
@@ -4942,8 +5049,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     PMap&           pmap      = m_particles[lev];
 
     MultiFab* gv_pointer[BL_SPACEDIM];
-    if (m_gdb->ParticlesOnSameGrids(lev))
-    // if (grav_vector[0].boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (OnSameGrids(lev,grav_vector[0]))
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
            gv_pointer[i] = &grav_vector[i];
@@ -4953,7 +5059,8 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
            gv_pointer[i] = new MultiFab(m_gdb->ParticleBoxArray(lev),grav_vector[i].nComp(),
-                                        grav_vector[i].nGrow(),Fab_allocate);
+                                        grav_vector[i].nGrow(),
+					m_gdb->ParticleDistributionMap(lev),Fab_allocate);
            gv_pointer[i]->copy(grav_vector[i],0,0,grav_vector[i].nComp());
            gv_pointer[i]->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
         }
@@ -5423,7 +5530,8 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
     const Real*     plo      = geom.ProbLo();
 
     PArray<MultiFab> umac_pointer;
-    if (m_gdb->ParticlesOnSameGrids(lev))
+    // We assume that if umac[0]'s boxArray matches then the others will too...
+    if (OnSameGrids(lev, umac[0]))
     {
 	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -5435,8 +5543,13 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    int ng = umac[i].nGrow();
-	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
-					     ng,Fab_allocate));
+	    
+	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),
+					     umac[i].nComp(),
+					     ng,
+					     m_gdb->ParticleDistributionMap(lev),
+					     Fab_allocate,
+					     IntVect::TheDimensionVector(i)));
 	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
@@ -5556,7 +5669,7 @@ ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(lev);
 
-    BL_ASSERT(m_gdb->ParticlesOnSameGrids(lev));
+    BL_ASSERT(OnSameGrids(lev,Ucc));
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 

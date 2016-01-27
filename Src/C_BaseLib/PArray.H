@@ -93,9 +93,9 @@ public:
     // value elem.  It is an error if the i'th element previously
     // had a value.
     //
-    void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = elem; }
+    void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0 || managed == PArrayNoManage); vp[i] = elem; }
     // !!!!! Be careful!  This function removes 'const'.
-    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = (T*) elem; }
+    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0 || managed == PArrayNoManage); vp[i] = (T*) elem; }
     //
     // Returns the number of elements.
     //
