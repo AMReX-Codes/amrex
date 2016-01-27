@@ -644,14 +644,13 @@ namespace BoxLib
 	MPI_Comm tgroup, rgroup, sgroup;
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
-        Array<MPI_Aint>  recv_disp;
-        recv_disp.resize(N_rcvs);
 
 	if (N_rcvs > 0) {
-	  FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-					      mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,recv_disp,ncomp,SeqNum,win);
-	  MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
-	  MPI_Win_post(rgroup, 0, win);
+	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+						mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
+						mf.fpb_recv_disp,ncomp,SeqNum,win);
+	    MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
+	    MPI_Win_post(rgroup, 0, win);
 	}
 	
         N_rcvs = mf.fpb_recv_from.size();
@@ -838,6 +837,7 @@ namespace BoxLib
 	    mf.fpb_recv_from.clear();
 	    mf.fpb_recv_data.clear();
 	    mf.fpb_recv_reqs.clear();
+            mf.fpb_recv_disp.clear();
 	}
 
 	if (N_snds > 0) {
