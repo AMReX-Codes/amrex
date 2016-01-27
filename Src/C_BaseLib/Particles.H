@@ -5538,7 +5538,8 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 
     PArray<MultiFab> umac_pointer;
     // We assume that if umac[0]'s boxArray matches then the others will too...
-    if (umac[0].boxArray() == m_gdb->ParticleBoxArray(lev))
+//    if (umac[0].boxArray() == m_gdb->ParticleBoxArray(lev))
+    if (m_gdb->ParticlesOnSameGrids(lev))
     {
 	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -5550,8 +5551,13 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    int ng = umac[i].nGrow();
-	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),umac[i].nComp(),
-					     ng,Fab_allocate));
+	    
+	    umac_pointer.set(i, new MultiFab(m_gdb->ParticleBoxArray(lev),
+					     umac[i].nComp(),
+					     ng,
+					     m_gdb->ParticleDistributionMap(lev),
+					     Fab_allocate,
+					     IntVect::TheDimensionVector(i)));
 	    umac_pointer[i].copy(umac[i],0,0,umac[i].nComp(),ng,ng);
         }
     }
