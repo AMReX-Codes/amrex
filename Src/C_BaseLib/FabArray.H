@@ -3586,8 +3586,6 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
     if (N_rcvs > 0) MPI_Win_wait(win);
     // check the completion of send disp ?
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
     if (N_rcvs > 0)
     {
 	Array<const CopyComTagsContainer*> recv_cctc;
