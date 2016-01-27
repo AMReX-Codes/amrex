@@ -121,8 +121,6 @@ int main(int argc, char* argv[])
         ba[lev].maxSize(32);
     }
 
-    BoxArray orig_ba(ba[0]);
-
     // ********************************************************************************************
     // Set up the arrays for the solve
     // ********************************************************************************************
@@ -210,13 +208,15 @@ int main(int argc, char* argv[])
         if (ParallelDescriptor::IOProcessor()) 
             std::cout << "Before remapping, # of boxes: " << ba.size() << ", efficiency: " <<  oldeff << "\n";
 
-        splitBoxes(ba[0], new_particle_cost, particle_cost, max_grid_size);
+	BoxArray new_ba = ba[0];
+
+        splitBoxes(new_ba, new_particle_cost, particle_cost, max_grid_size);
         if (ParallelDescriptor::IOProcessor()) 
             std::cout << "ba after split " << ba[0] << std::endl;
 
-        DistributionMapping new_dm = getCostCountDM(new_particle_cost, ba[0]);
+        DistributionMapping new_dm = getCostCountDM(new_particle_cost, new_ba);
 
-        MyPC->SetParticleBoxArray(lev,new_dm,ba[0]);
+        MyPC->SetParticleBoxArray(lev,new_dm,new_ba);
         MyPC->Redistribute();
         new_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
 
@@ -254,8 +254,8 @@ int main(int argc, char* argv[])
     int finest_level = nlevs-1;
 
     PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs);
-    PartMF.set(0,new MultiFab(orig_ba,1,1));
+    PartMF.resize(nlevs,PArrayManage);
+    PartMF.set(0,new MultiFab(ba[0],1,1));
     PartMF[0].setVal(0.0);
 
 //  MyPC->AssignDensity(PartMF, base_level, 1, finest_level);
