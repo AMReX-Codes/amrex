@@ -1388,6 +1388,9 @@ FabArrayBase::PostRcvs_MPI_Onesided (
     MPI_Win_attach(win, the_recv_data, TotalRcvsVolume*sizeof(T));
 
     int Offset = 0;
+    int i = 0;
+
+    recv_disp.resize(m_RcvTags.size());  /// Must resize it now, otherwise push_back may reallocate the vector
 
     for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
              End = m_RcvVols.end();
@@ -1400,11 +1403,10 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(it->first);
-	MPI_Aint disp;
-	MPI_Get_address(&the_recv_data[Offset], &disp);
-	recv_disp.push_back(disp);
-        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp.back(),1,it->first,SeqNum).req());
+	MPI_Get_address(&the_recv_data[Offset], &recv_disp[i]);
+        recv_reqs.push_back(ParallelDescriptor::Asend(&recv_disp[i],1,it->first,SeqNum).req());
 
+	i++;
         Offset += N;
     }
 }
