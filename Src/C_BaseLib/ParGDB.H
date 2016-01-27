@@ -31,7 +31,7 @@ public:
     virtual IntVect refRatio (int level) const = 0;
     virtual int MaxRefRatio (int level) const = 0;
 
-    virtual bool ParticlesOnSameGrids (int level) const = 0;
+    bool OnSameGrids (int level, const MultiFab& mf) const;
 };
 
 //
@@ -73,8 +73,6 @@ public:
     virtual IntVect refRatio (int level) const BL_OVERRIDE;
     virtual int MaxRefRatio (int level) const BL_OVERRIDE;
 
-    virtual bool ParticlesOnSameGrids (int level) const BL_OVERRIDE;
-
 protected:
 
     Array<Geometry>            m_geom;
@@ -84,6 +82,14 @@ protected:
     int                        m_nlevels;
 
 };
+
+inline
+bool
+ParGDBBase::OnSameGrids (int level, const MultiFab& mf) const
+{
+    return (mf.DistributionMap() == ParticleDistributionMap(level) &&
+	    mf.boxArray().CellEqual(ParticleBoxArray(level)));
+}
 
 inline
 ParGDB::ParGDB (const Geometry            & geom, 
@@ -191,13 +197,6 @@ ParGDB::MaxRefRatio (int level) const
     for (int lev = 0; lev < m_nlevels-1; lev++)
        max_ref_ratio = std::max(max_ref_ratio, m_rr[lev]);
     return max_ref_ratio;
-}
-
-inline
-bool 
-ParGDB::ParticlesOnSameGrids (int level) const
-{
-    return true;
 }
 
 #endif
