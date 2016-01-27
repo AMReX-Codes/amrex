@@ -1390,7 +1390,7 @@ FabArrayBase::PostRcvs_MPI_Onesided (
     int Offset = 0;
     int i = 0;
 
-    recv_disp.resize(m_RcvTags.size());  /// Must resize it now, otherwise push_back may reallocate the vector
+    recv_disp.resize(m_RcvVols.size());  /// Must resize it now, otherwise push_back may reallocate the vector
 
     for (std::map<int,int>::const_iterator it = m_RcvVols.begin(),
              End = m_RcvVols.end();
