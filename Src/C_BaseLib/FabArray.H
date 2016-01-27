@@ -1055,7 +1055,6 @@ public:
     bool fb_cross;
     int fb_scomp, fb_ncomp;
 
-    int fb_nsnds, fb_nrcvs;
     //
     value_type*        fb_the_recv_data;
     Array<int>         fb_recv_from;
@@ -1082,8 +1081,6 @@ public:
     //
     Array<value_type*> fpb_send_data;
     Array<MPI_Request> fpb_send_reqs;
-
-    int fpb_nsnds, fpb_nrcvs;
 };
 
 class FabArrayId
@@ -1405,8 +1402,6 @@ FabArrayBase::PostRcvs_MPI_Onesided (
 
         BL_ASSERT(N < std::numeric_limits<int>::max());
 
-	if (N == 0) continue;
-	
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(it->first);
 	MPI_Get_address(&the_recv_data[Offset], &recv_disp[i]);
@@ -3443,8 +3438,8 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
     const int SeqNum = ParallelDescriptor::SeqNum();
 
     const int N_locs = TheSI.m_LocTags->size();
-    int N_rcvs = TheSI.m_RcvTags->size();
-    int N_snds = TheSI.m_SndTags->size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
 
     if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
         // No work to do.
@@ -3452,7 +3447,6 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    /// value_type* the_recv_data = 0;
     
     MPI_Comm tgroup, rgroup, sgroup;
     MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
@@ -3471,8 +3465,6 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
       MPI_Win_post(rgroup, 0, win);
     }
 
-    N_rcvs = fb_recv_from.size();
-    
     //
     // Post send's
     //
@@ -3506,8 +3498,6 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
 	    
 	    BL_ASSERT(N < std::numeric_limits<int>::max());
 
-	    if (N == 0) continue;
-	    
 	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 
 	    send_data.push_back(data);
@@ -3516,8 +3506,6 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
 	    send_cctc.push_back(&(m_it->second));
 	}
 
-	N_snds = send_rank.size();
-	
         double t0 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
@@ -3600,9 +3588,6 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
 
     double t1 = ParallelDescriptor::second();
     ParallelDescriptor::timing[4] += t1 - t0;
-
-    fb_nsnds = N_snds;
-    fb_nrcvs = N_rcvs;
 }
 
 template <class FAB>
@@ -3617,11 +3602,9 @@ void
 
     Array<MPI_Status> stats;
 
-    //    const int N_rcvs = TheSI.m_RcvTags->size();
-    //    const int N_snds = TheSI.m_SndTags->size();
+    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
 
-    const int N_rcvs = fb_nrcvs;
-    const int N_snds = fb_nsnds;
     MPI_Win & win = ParallelDescriptor::win;
     
     double t0 = ParallelDescriptor::second();
