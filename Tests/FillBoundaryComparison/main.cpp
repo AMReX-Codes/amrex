@@ -170,7 +170,7 @@ main (int argc, char* argv[])
 	std::cout << "Fill Boundary Time: " << wt1-wt0 << std::endl;
 	std::cout << "----------------------------------------------" << std::endl;
 	std::cout << "ignore this line " << err << std::endl;
-        std::cout << "Time distribution (post, send, wait, pack, local) : " << ParallelDescriptor::timing[0] << " " << ParallelDescriptor::timing[1] << " " << ParallelDescriptor::timing[2] << " " << ParallelDescriptor::timing[3] << " " << ParallelDescriptor::timing[4] << std::endl;
+        std::cout << "Time distribution (post, send, wait, pack, local) : " << ParallelDescriptor::timing[0] << " " << ParallelDescriptor::timing[1] << " " << ParallelDescriptor::timing[2] << " " << ParallelDescriptor::timing[3] << " " << ParallelDescriptor::timing[4] << " / " <<  ParallelDescriptor::timing[5] << std::endl;
     }
 
     BoxLib::Finalize();
