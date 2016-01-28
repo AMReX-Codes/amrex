@@ -628,9 +628,9 @@ StateData::printTimeInterval (std::ostream &os) const
 }
 
 
-void StateData::MakeSidecarsSmaller(const StateDescriptor &sdPtr,
-                                    int ioProcNumSCS, int ioProcNumAll,
-                                    int scsMyId, MPI_Comm scsComm)
+void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
+                               int ioProcNumSCS, int ioProcNumAll,
+                               int scsMyId, MPI_Comm scsComm)
 {
 #if BL_USE_MPI
 using std::cout;
@@ -665,7 +665,7 @@ using std::endl;
 	}
       }
       if(new_data != 0) {
-        new_data->MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+        new_data->AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
 
       if(old_data != 0) {
@@ -680,7 +680,7 @@ using std::endl;
 	}
       }
       if(old_data != 0) {
-        old_data->MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+        old_data->AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
 
       ParallelDescriptor::Barrier(scsComm);

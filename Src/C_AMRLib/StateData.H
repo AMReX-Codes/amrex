@@ -213,9 +213,9 @@ public:
     bool hasNewData () const { return new_data != 0; }
 
 
-    void MakeSidecarsSmaller(const StateDescriptor &sdPtr,
-                             int ioProcNumSCS, int ioProcNumAll,
-                             int scsMyId, MPI_Comm scsComm);
+    void AddProcsToComp(const StateDescriptor &sdPtr,
+                        int ioProcNumSCS, int ioProcNumAll,
+                        int scsMyId, MPI_Comm scsComm);
 
 private:
 
