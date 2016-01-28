@@ -586,7 +586,7 @@ TagBoxArray::collate (long& numtags) const
     //
     IntVect* TheGlobalCollateSpace = new IntVect[numtags];
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    const int IOProcNumber(ParallelDescriptor::IOProcessorNumber());
 
 #if BL_USE_MPI
     Array<int> nmtags(1,0);
@@ -608,7 +608,7 @@ TagBoxArray::collate (long& numtags) const
                nmtags.dataPtr(),
                1,
                ParallelDescriptor::Mpi_typemap<int>::type(),
-               IOProc,
+               IOProcNumber,
                ParallelDescriptor::Communicator());
 
     BL_COMM_PROFILE(BLProfiler::GatherTi, sizeof(int), BLProfiler::NoTag(),
@@ -626,7 +626,7 @@ TagBoxArray::collate (long& numtags) const
             offset[i] = offset[i-1] + nmtags[i-1];
     }
     //
-    // Gather all the tags to IOProc into TheGlobalCollateSpace.
+    // Gather all the tags to IOProcNumber into TheGlobalCollateSpace.
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
@@ -640,7 +640,7 @@ TagBoxArray::collate (long& numtags) const
                 nmtags.dataPtr(),
                 offset.dataPtr(),
                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                IOProc,
+                IOProcNumber,
                 ParallelDescriptor::Communicator());
 
     BL_COMM_PROFILE(BLProfiler::Gatherv, numtags * sizeof(IntVect),
@@ -672,8 +672,8 @@ TagBoxArray::collate (long& numtags) const
     //
     // Now broadcast them back to the other processors.
     //
-    ParallelDescriptor::Bcast(&numtags, 1, IOProc);
-    ParallelDescriptor::Bcast(reinterpret_cast<int*>(TheGlobalCollateSpace), numtags*BL_SPACEDIM, IOProc);
+    ParallelDescriptor::Bcast(&numtags, 1, IOProcNumber);
+    ParallelDescriptor::Bcast(reinterpret_cast<int*>(TheGlobalCollateSpace), numtags*BL_SPACEDIM, IOProcNumber);
 
     return TheGlobalCollateSpace;
 }
@@ -744,6 +744,8 @@ TagBoxArray::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
                                   int scsMyId, MPI_Comm scsComm)
 {
   ParallelDescriptor::Bcast(&m_border, 1, ioProcNumAll, scsComm);
+  FabArray::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll,
+                                scsMyId, scsComm);
 }
 
 
