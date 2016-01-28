@@ -21,11 +21,6 @@ int     Geometry::spherical_origin_fix;
 RealBox Geometry::prob_domain;
 bool    Geometry::is_periodic[BL_SPACEDIM];
 
-namespace
-{
-    bool verbose;
-}
-
 const int fpb_cache_max_size_def = 25;
 
 int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
@@ -663,13 +658,11 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     //
     // Set default values here!!!
     //
-    verbose                        = true;
     Geometry::spherical_origin_fix = 0;
     Geometry::fpb_cache_max_size   = fpb_cache_max_size_def;
 
     D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
 
-    pp.query("verbose",              verbose);
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
     pp.query("fpb_cache_max_size",   Geometry::fpb_cache_max_size);
     //
@@ -1176,7 +1169,7 @@ Geometry::FlushPIRMCache ()
             stats[1]++;
     }
 
-    if (verbose)
+    if (BoxLib::verbose)
     {
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {

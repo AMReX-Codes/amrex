@@ -309,6 +309,12 @@ public:
 			      const BoxArray           & new_ba)
     { m_gdb->SetParticleBoxArray(lev, new_dmap, new_ba); }
 
+    const BoxArray& ParticleBoxArray (int lev) const 
+	{ return m_gdb->ParticleBoxArray(lev); }
+
+    const DistributionMapping& ParticleDistributionMap (int lev) const 
+	{ return m_gdb->ParticleDistributionMap(lev); }
+
     const ParGDBBase* GetParGDB () const { return m_gdb; }
 
     void InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep = 0);
@@ -2851,7 +2857,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!OnSameGrids(lev, mf_to_be_filled[lev])) {
+        if (!OnSameGrids(lev, mf_to_be_filled[lev-lev_min])) {
 	    all_grids_the_same = false;
 	    break;
 	}

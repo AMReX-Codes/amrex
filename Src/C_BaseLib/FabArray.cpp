@@ -9,7 +9,6 @@
 //
 // Set default values in Initialize()!!!
 //
-bool    FabArrayBase::Verbose;
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 #if BL_SPACEDIM == 1
@@ -54,7 +53,6 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::Verbose           = true;
     FabArrayBase::do_async_sends    = true;
     FabArrayBase::MaxComp           = 25;
 
@@ -80,7 +78,6 @@ FabArrayBase::Initialize ()
         for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
-    pp.query("verbose",             FabArrayBase::Verbose);
     pp.query("maxcomp",             FabArrayBase::MaxComp);
     pp.query("do_async_sends",      FabArrayBase::do_async_sends);
     pp.query("fb_cache_max_size",   fb_cache_max_size);
@@ -480,7 +477,7 @@ FabArrayBase::CPC::FlushCache ()
 	m_CPC_stats.recordErase(it->second.m_nuse);
     }
 
-    if (FabArrayBase::Verbose)
+    if (BoxLib::verbose)
     {
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -895,7 +892,7 @@ FabArrayBase::Finalize ()
 
     FabArrayBase::flushTileArrayCache();
 
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor() && BoxLib::verbose) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();
@@ -922,7 +919,7 @@ FabArrayBase::FlushSICache ()
 	m_FBC_stats.recordErase(it->second.m_nuse);
     }
 
-    if (FabArrayBase::Verbose)
+    if (BoxLib::verbose)
     {
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
