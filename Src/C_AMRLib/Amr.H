@@ -464,8 +464,8 @@ public:
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
 #endif
 
-    void MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs);
-    void MakeSidecarsSmaller(int nSidecarProcs, int prevSidecarProcs);
+    void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
+    void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
     void PrintData(std::ostream& os);
 
 protected:
