@@ -16,9 +16,6 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
     for (int i = 0; i < cost_in.size(); i++)
        totcost += cost_in[i];
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "Total cost " << totcost << std::endl;
-
     long avgcost    = totcost / ParallelDescriptor::NProcs();
     long cost_split = avgcost / 2;
     long cost_merge = avgcost / 3;
@@ -26,10 +23,7 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
     newcost = cost_in;
 
     int base_box_size = max_grid_size;
-    int half_box_size = base_box_size;
-
-    base_box_size = half_box_size;
-    half_box_size = base_box_size/2;
+    int half_box_size = base_box_size/2;
     if (half_box_size*2 != base_box_size) return;
 
     Array<long> cost = newcost;
@@ -37,7 +31,8 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
     BoxList newbl;
     newcost.clear();
 	
-	for (int i=0, N=ba.size(); i<N; i++) {
+    for (int i=0, N=ba.size(); i<N; i++) 
+    {
 	    const Box& bx = ba[i];
 	    const Real ct = cost[i];
 	    if (ct > cost_split &&
