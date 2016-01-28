@@ -30,8 +30,6 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
             grad_phi_edge[lev].set(n, new MultiFab(BoxArray(rhs[lev].boxArray()).surroundingNodes(n), 1, 1));
     }
 
-    Real     strt    = ParallelDescriptor::second();
-
     // ***************************************************
     // Make sure the RHS sums to 0 if fully periodic
     // ***************************************************
@@ -65,22 +63,5 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
         BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
     }
 
-    VisMF::Write(grad_phi[0],"GradPhi");
-
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      end    = ParallelDescriptor::second() - strt;
-
-#if 0
-#ifdef BL_LAZY
-        Lazy::QueueReduction( [=] () mutable {
-#endif
-        ParallelDescriptor::ReduceRealMax(end,IOProc);
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "solve_for_phi() time = " << end << std::endl;
-#ifdef BL_LAZY
-        });
-#endif
-#endif
-    }
+    // VisMF::Write(grad_phi[0],"GradPhi");
 }

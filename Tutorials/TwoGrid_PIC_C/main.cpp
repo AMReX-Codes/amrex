@@ -59,12 +59,12 @@ int main(int argc, char* argv[])
        left_corner.setLo(n,0.0);
        left_corner.setHi(n,1.0);
     }
-    left_corner.setLo(0,0.7);
-    left_corner.setHi(0,0.9);
-    left_corner.setLo(1,0.7);
-    left_corner.setHi(1,0.9);
-    left_corner.setLo(2,0.7);
-    left_corner.setHi(2,0.9);
+    left_corner.setLo(0,0.55);
+    left_corner.setLo(1,0.55);
+    left_corner.setLo(2,0.85);
+    left_corner.setHi(0,0.95);
+    left_corner.setHi(1,0.95);
+    left_corner.setHi(2,0.95);
 
     // Define the lower and upper corner of a 3D domain
     IntVect domain_lo(0 , 0, 0); 
@@ -155,12 +155,13 @@ int main(int argc, char* argv[])
     
     // Build a new particle container to hold my particles.
     MyParticleContainer* MyPC = new MyParticleContainer(geom,dmap,ba,rr);
+    MyPC->SetVerbose(0);
 
     // This allows us to write the gravitational acceleration into these components 
     int accel_comp = BL_SPACEDIM+1;
     Real dummy_dt  = 0.0;
 
-    int num_particles = 100;
+    int num_particles = 1000;
     int iseed = 10;
     Real mass  = 10.0;
 
@@ -176,7 +177,7 @@ int main(int argc, char* argv[])
     // **************************************************************************
 
     // Initialize "num_particles" number of particles, each with mass/charge "mass"
-    bool serialize = false;
+    bool serialize = true;
     MyPC->InitRandom(num_particles,iseed,mass,serialize,left_corner);
 
     // Write out the positions, masses and accelerations of each particle.
@@ -187,50 +188,88 @@ int main(int argc, char* argv[])
     // **************************************************************************
 
     int lev = 0;
-    Array<long> particle_cost = MyPC->NumberOfParticlesInGrid(lev);
-    for (int i = 0; i < particle_cost.size(); i++)
-       if (dmap[0][i] == ParallelDescriptor::MyProc() && particle_cost[i] > 0)
-           std::cout << "PROC: GRID: OLD COST OF GRID " << dmap[0][i] << " " << i << " " << particle_cost[i] << std::endl;
+    Array<long> old_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
 
     ParallelDescriptor::Barrier();
 
-    Real oldeff = getEfficiency(dmap[0], particle_cost);
-    if (ParallelDescriptor::IOProcessor()) 
-        std::cout << "OLD EFFICIENCY " << oldeff << std::endl;
+    Real oldeff = getEfficiency(dmap[0], old_particle_cost);
 
     ParallelDescriptor::Barrier();
 
+    if (oldeff >= 0.8) 
+        if (ParallelDescriptor::IOProcessor()) 
+        {
+            std::cout << "*** " << std::endl;
+            std::cout << "*** No remapping required: # of boxes: " << ba[0].size() << ", efficiency: " <<  oldeff << "\n";
+            std::cout << "*** " << std::endl;
+        }
+
+    BoxArray new_ba = ba[0];
     Array<long> new_particle_cost;
 
-#if 1
-//  if (oldeff < 0.9) 
+    DistributionMapping new_dm;
+
+    while (oldeff < 0.8) 
     {
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "Before remapping, # of boxes: " << ba.size() << ", efficiency: " <<  oldeff << "\n";
+        {
+            std::cout << "*** " << std::endl;
+            std::cout << "*** Before remapping, # of boxes: " << new_ba.size() << ", efficiency: " <<  oldeff << "\n";
+        }
 
-	BoxArray new_ba = ba[0];
+        // This returns new_particle_cost as an *estimate* of the new cost per grid, based just
+        //      on dividing the cost proportionally as the grid is divided
+        splitBoxes(new_ba, new_particle_cost, old_particle_cost, max_grid_size);
 
-        splitBoxes(new_ba, new_particle_cost, particle_cost, max_grid_size);
+        // We use this approximate cost to get a new DistrbutionMapping so we can go ahead and move the particles
+        new_dm = getCostCountDM(new_particle_cost, new_ba);
+
+        // We get an *estimate* of the new efficiency
+        Real neweff = getEfficiency(new_dm, new_particle_cost);
+
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "ba after split " << ba[0] << std::endl;
+        {
+           std::cout << "*** After  remapping, # of boxes: " << new_ba.size() << ", approx. eff: " <<  neweff << "\n";
+        }
 
-        DistributionMapping new_dm = getCostCountDM(new_particle_cost, new_ba);
-
+        // Now we actually move the particles onto the new_ba with the new_dm
         MyPC->SetParticleBoxArray(lev,new_dm,new_ba);
         MyPC->Redistribute();
-        new_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
 
-        for (int i = 0; i < new_particle_cost.size(); i++)
-            if (new_dm[i] == ParallelDescriptor::MyProc() && new_particle_cost[i] > 0)
-                std::cout << "PROC: GRID: NEW COST OF GRID " << new_dm[i] << " " << i << " " << new_particle_cost[i] << std::endl;
+        // This counts how many particles are *actually* in each grid of the ParticleContainer's new ParticleBoxArray
+        Array<long> new_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
 
-         ParallelDescriptor::Barrier();
+        // Here we get the *actual* new efficiency
+        neweff = getEfficiency(new_dm, new_particle_cost);
 
-         Real neweff = getEfficiency(new_dm, new_particle_cost);
-         if (ParallelDescriptor::IOProcessor()) 
-                 std::cout << "NEW EFFICIENCY " << neweff << std::endl;
+        if (ParallelDescriptor::IOProcessor()) 
+        {
+           std::cout << "*** After  remapping, # of boxes: " << new_ba.size() << ", actual  eff: " <<  neweff << "\n";
+        }
+
+        oldeff = neweff;
+        old_particle_cost = new_particle_cost;
+
+        if (neweff < 0.7)
+        {
+            // We use this actual cost to get a new DistrbutionMapping so we can try to improve our load balancing
+            new_dm = getCostCountDM(new_particle_cost, new_ba);
+
+           // The particles are already using this BoxArray but we are sending a new DistributionMapping
+           MyPC->SetParticleBoxArray(lev,new_dm,new_ba);
+           MyPC->Redistribute();
+
+           // This is the efficiency of the new_dm
+           Real neweff = getEfficiency(new_dm, new_particle_cost);
+
+           if (ParallelDescriptor::IOProcessor()) 
+           {
+              std::cout << "*** After new dm    , # of boxes: " << new_ba.size() << ", actual  eff: " <<  neweff << "\n";
+           }
+           oldeff = neweff;
+           old_particle_cost = new_particle_cost;
+        }
     }
-#endif
 
     // **************************************************************************
     // Compute the total charge of all particles in order to compute the offset
