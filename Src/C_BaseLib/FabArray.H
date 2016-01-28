@@ -394,10 +394,6 @@ public:
     //
     static bool do_async_sends;
     //
-    // Print out some stuff; default is false.
-    //
-    static bool Verbose;
-    //
     // Initialize from ParmParse with "fabarray" prefix.
     //
     static void Initialize ();
