@@ -33,6 +33,19 @@ import sys
 import tarfile
 import time
 
+do_timings_plots = True
+
+try: import numpy as np
+except: do_timings_plots = False
+
+try: import matplotlib
+except: do_timings_plots = False
+else:
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    
+try: import matplotlib.dates as dates
+except: do_timings_plots = False
 
 usage = """
 The test suite and its tests are defined through an input file in an INI
@@ -437,6 +450,128 @@ class Suite(object):
         self.full_test_dir = full_test_dir
         self.full_web_dir = full_web_dir
 
+    def get_run_history(self, active_test_list):
+        """ return the list of output directories run over the
+            history of the suite and a separate list of the tests
+            run (unique names) """
+
+        valid_dirs = []
+        all_tests = []
+
+        # start by finding the list of valid test directories
+        for file in os.listdir(self.webTopDir):
+
+            # look for a directory of the form 20* (this will work up until 2099
+            if file.startswith("20") and os.path.isdir(file):
+
+                # look for the status file
+                status_file = file + '/' + file + '.status'
+                if os.path.isfile(status_file):
+                    valid_dirs.append(file)
+
+        valid_dirs.sort()
+        valid_dirs.reverse()
+
+        # now find all of the unique problems in the test directories
+        for dir in valid_dirs:
+
+            for file in os.listdir(self.webTopDir + dir):
+                if file.endswith(".status") and not file.startswith("20"):
+                    index = string.rfind(file, ".status")
+                    test_name = file[0:index]
+
+                    if all_tests.count(test_name) == 0:
+                        if (not self.reportActiveTestsOnly) or (test_name in active_test_list):
+                            all_tests.append(test_name)
+
+        all_tests.sort()
+
+        return valid_dirs, all_tests
+
+    def make_timing_plots(self, active_test_list):
+        """ plot the wallclock time history for all the valid tests """
+
+        valid_dirs, all_tests = self.get_run_history(active_test_list)
+
+        # store the timings in NumPy arrays in a dictionary
+        timings = {}
+        N = len(valid_dirs)
+        for t in all_tests:
+            timings[t] = np.zeros(N, dtype=np.float64)
+
+        # now get the timings from the web output
+        for n, d in enumerate(valid_dirs):
+            for t in all_tests:
+                ofile = "{}/{}/{}.html".format(self.webTopDir, d, t)
+                try: f = open(ofile)
+                except:
+                    timings[t][n] = 0.0
+                    continue
+                
+                found = False
+                for line in f:
+                    if "Execution time" in line:
+                        found = True
+                        # this is of the form: <li>Execution time: 412.930 s
+                        timings[t][n] = float(line.split(":")[1].strip().split(" ")[0])
+                        break
+
+                    elif "(seconds)" in line:
+                        found = True
+                        # this is the older form -- split on "="
+                        # form: <p><b>Execution Time</b> (seconds) = 399.414828
+                        timings[t][n] = float(line.split("=")[1])
+                        break
+                    
+                f.close()    
+                if not found:
+                    timings[t][n] = 0.0
+                    
+        # make the plots
+        for t in all_tests:
+            _d = valid_dirs[:]
+            _t = list(timings[t])
+            
+            days = []
+            times = []
+            for n, ttime in enumerate(_t):
+                if not ttime == 0.0:
+                    # sometimes the date is of the form YYYY-MM-DD-NNN, where NNN
+                    # is the run -- remove that
+                    date = _d[n]
+                    if len(date) > 10:
+                        date = date[:date.rfind("-")]
+                        
+                    days.append(dates.datestr2num(date))
+                    times.append(ttime)
+
+
+            if len(times) == 0: continue
+            
+            plt.clf()
+            plt.plot_date(days, times, "o", xdate=True)
+
+            years = dates.YearLocator()   # every year
+            months = dates.MonthLocator()
+            yearsFmt = dates.DateFormatter('%Y')
+
+            ax = plt.gca()
+            ax.xaxis.set_major_locator(years)
+            ax.xaxis.set_major_formatter(yearsFmt)
+            ax.xaxis.set_minor_locator(months)
+
+            plt.ylabel("time (seconds)")
+            plt.title(t)
+            
+            if max(times)/min(times) > 10.0:
+                ax.set_yscale("log")
+                
+            fig = plt.gcf()
+            fig.autofmt_xdate()
+
+            plt.savefig("{}/{}-timings.png".format(self.webTopDir, t))
+            
+        
     def get_last_run(self):
         """ return the name of the directory corresponding to the previous
             run of the test suite """
@@ -1189,7 +1324,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     suite, testList = load_params(args)
 
-    activeTestList = [t.name for t in testList]
+    active_test_list = [t.name for t in testList]
 
     testList = suite.get_tests_to_run(testList)
 
@@ -1207,6 +1342,8 @@ def test_suite(argv):
         if not os.path.isdir(suite.full_web_dir):
             suite.log.fail("Crash directory does not exist")
 
+        suite.test_dir = args.complete_report_from_crash
+        
         # find all the tests that completed in that web directory
         tests = []
         testFile = ""
@@ -1228,12 +1365,11 @@ def test_suite(argv):
         # create the report for this test run
         num_failed = report_this_test_run(suite, was_benchmark_run,
                                           "recreated report after crash of suite",
-                                          "",  
-                                          tests, args.complete_report_from_crash, testFile)
+                                          "", tests, testFile)
 
         # create the suite report
         suite.log.bold("creating suite report...")
-        report_all_runs(suite, activeTestList)
+        report_all_runs(suite, active_test_list)
         suite.log.close_log()
         sys.exit("done")
 
@@ -1257,7 +1393,7 @@ def test_suite(argv):
                                           "copy_benchmarks used -- no new tests run",
                                           "",  
                                           testList, args.input_file[0])
-        report_all_runs(suite, activeTestList)        
+        report_all_runs(suite, active_test_list)        
         sys.exit("done")
 
     
@@ -1920,7 +2056,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     suite.log.skip()
     suite.log.bold("creating suite report...")
-    report_all_runs(suite, activeTestList)
+    report_all_runs(suite, active_test_list)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -2080,6 +2216,7 @@ r"""
 <TITLE>@TITLE@</TITLE>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
 <LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 </HEAD>
 <BODY>
 <!--GOUPLINK-->
@@ -2553,7 +2690,7 @@ def report_test_failure(suite, message, test):
 
 
 def report_this_test_run(suite, make_benchmarks, note, update_time,
-                      testList, testFile):
+                         testList, testFile):
     """ generate the master page for a single run of the test suite """
 
     # get the current directory
@@ -2761,7 +2898,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     return num_failed
 
 
-def report_all_runs(suite, activeTestList):
+def report_all_runs(suite, active_test_list):
 
     tableHeight = min(max(suite.lenTestName, 4), 16)
     
@@ -2769,49 +2906,10 @@ def report_all_runs(suite, activeTestList):
 
     create_css(tableHeight=tableHeight)
 
-    validDirs = []
-    allTests = []
+    valid_dirs, all_tests = suite.get_run_history(active_test_list)
 
-
-    #--------------------------------------------------------------------------
-    # start by finding the list of valid test directories
-    #--------------------------------------------------------------------------
-    for file in os.listdir(suite.webTopDir):
-
-        # look for a directory of the form 20* (this will work up until 2099
-        if file.startswith("20") and os.path.isdir(file):
-
-            # look for the status file
-            status_file = file + '/' + file + '.status'
-
-            if os.path.isfile(status_file):
-                validDirs.append(file)
-
-
-    validDirs.sort()
-    validDirs.reverse()
-
-
-    #--------------------------------------------------------------------------
-    # now find all of the unique problems in the test directories
-    #--------------------------------------------------------------------------
-    for dir in validDirs:
-
-        for file in os.listdir(suite.webTopDir + dir):
-
-            if file.endswith(".status") and not file.startswith("20"):
-
-                index = string.rfind(file, ".status")
-                testName = file[0:index]
-
-                if allTests.count(testName) == 0:
-                    if (not suite.reportActiveTestsOnly) or (testName in activeTestList):
-                        allTests.append(testName)
-
-
-    allTests.sort()
-
-
+    if do_timings_plots: suite.make_timing_plots(active_test_list)
+    
     #--------------------------------------------------------------------------
     # generate the HTML
     #--------------------------------------------------------------------------
@@ -2833,19 +2931,30 @@ def report_all_runs(suite, activeTestList):
 
     # write out the header
     hf.write("<TR><TH ALIGN=CENTER>date</TH>\n")
-    for test in allTests:
+    for test in all_tests:
         hf.write("<TH><div class='verticaltext'>%s</div></TH>\n" % (test))
 
     hf.write("</TR>\n")
 
 
+    if do_timings_plots:
+        hf.write("<tr><td class='date'>plots</td>")
+        for t in all_tests:
+            plot_file = "{}-timings.png".format(t)
+            if os.path.isfile(plot_file):
+                hf.write("<TD ALIGN=CENTER title=\"{} timings plot\"><H3><a href=\"{}\"><i class=\"fa fa-line-chart\"></i></a></H3></TD>\n".format(t, plot_file))
+            else:
+                hf.write("<TD ALIGN=CENTER><H3>&nbsp;</H3></TD>\n")
+
+        hf.write("</TR>\n")
+        
     # loop over all the test runs
-    for dir in validDirs:
+    for dir in valid_dirs:
 
         # first look to see if there are any valid tests at all --
         # otherwise we don't do anything for this date
         valid = 0
-        for test in allTests:
+        for test in all_tests:
             status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)
             if os.path.isfile(status_file):
                 valid = 1
@@ -2857,7 +2966,7 @@ def report_all_runs(suite, activeTestList):
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
                  (dir, dir) )
 
-        for test in allTests:
+        for test in all_tests:
 
             # look to see if the current test was part of this suite run
             status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)

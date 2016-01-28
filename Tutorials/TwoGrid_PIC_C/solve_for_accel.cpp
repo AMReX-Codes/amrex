@@ -8,14 +8,10 @@
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
+#include <VisMF.H>
 
 void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
                       const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
-#ifdef USEHPGMG
-void solve_with_hpgmg(PArray<MultiFab>& rhs, Array< PArray<MultiFab> >& grad_phi_edge, const Array<Geometry>& geom, 
-                      int base_level, int finest_level, Real tol, Real abs_tol);
-#endif
-
 void 
 solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& grad_phi, 
 		const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
@@ -33,8 +29,6 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
         for (int n = 0; n < BL_SPACEDIM; ++n)
             grad_phi_edge[lev].set(n, new MultiFab(BoxArray(rhs[lev].boxArray()).surroundingNodes(n), 1, 1));
     }
-
-    Real     strt    = ParallelDescriptor::second();
 
     // ***************************************************
     // Make sure the RHS sums to 0 if fully periodic
@@ -60,11 +54,7 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
 
-#ifdef USEHPGMG
-   solve_with_hpgmg(rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
-#else
    solve_with_f90  (rhs,phi,grad_phi_edge,geom,base_level,finest_level,tol,abs_tol);
-#endif
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
@@ -73,22 +63,5 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
         BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
     }
 
-    // VisMF::Write(grad_phi,"GradPhi");
-
-    {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-        Real      end    = ParallelDescriptor::second() - strt;
-
-#if 0
-#ifdef BL_LAZY
-        Lazy::QueueReduction( [=] () mutable {
-#endif
-        ParallelDescriptor::ReduceRealMax(end,IOProc);
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "solve_for_phi() time = " << end << std::endl;
-#ifdef BL_LAZY
-        });
-#endif
-#endif
-    }
+    // VisMF::Write(grad_phi[0],"GradPhi");
 }
