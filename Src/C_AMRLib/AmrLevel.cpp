@@ -1789,9 +1789,9 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
 
 
 void
-AmrLevel::MakeSidecarsSmaller(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                              int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			      MPI_Comm scsComm)
+AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
+                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
+			 MPI_Comm scsComm)
 {
 #if BL_USE_MPI
 using std::cout;
@@ -1837,6 +1837,7 @@ ParallelDescriptor::Barrier(scsComm);
       BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
       BoxLib::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
 
+
 #ifdef USE_PARTICLES
       BoxLib::BroadcastBoxArray(particle_grids, scsMyId, ioProcNumSCS, scsComm);
 
@@ -1860,7 +1861,7 @@ ParallelDescriptor::Barrier(scsComm);
         state.resize(stateSize);
       }
       for(int i(0); i < state.size(); ++i) {
-        state[i].MakeSidecarsSmaller(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
 #endif
 }
