@@ -72,6 +72,8 @@ namespace BoxLib
 #else
     const bool NDebug = false;
 #endif
+
+    extern int verbose;
 }
 
 #endif /*BL_BOXLIB_H*/
