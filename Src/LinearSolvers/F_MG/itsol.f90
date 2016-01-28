@@ -1262,7 +1262,7 @@ contains
 
   end subroutine itsol_CABiCGStab_solve
 
-  subroutine itsol_CG_Solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
+  subroutine itsol_cg_solve(aa, uu, rh, mm, eps, max_iter, verbose, stencil_type, lcross, &
                             stat, singular_in, uniform_dh, nodal_mask)
     use bl_prof_module
     integer    , intent(in   ) :: max_iter, verbose, stencil_type
@@ -1325,8 +1325,6 @@ contains
     !
     call stencil_multifab_copy(aa_local, aa)
 
-    call diag_initialize(aa_local,rh_local,mm,stencil_type)
-
     cnt = 0
     !
     ! Compute rr = aa_local * uu - rh_local
@@ -1375,10 +1373,10 @@ contains
 
     do i = 1, max_iter
        call copy(zz,rr)
+       call itsol_precon(aa_local, zz, rr, mm)
        rho = dot(rr, zz, nodal_mask)
        if ( i == 1 ) then
           call copy(pp, zz)
-          call itsol_precon(aa_local, zz, rr, mm)
        else
           if ( rho_1 == ZERO ) then
              if ( present(stat) ) then
@@ -1444,7 +1442,7 @@ contains
     call multifab_destroy(aa_local)
     call multifab_destroy(rh_local)
 
-  end subroutine itsol_CG_Solve
+  end subroutine itsol_cg_solve
 
   subroutine itsol_precon(aa, uu, rh, mm, method)
     use bl_prof_module
