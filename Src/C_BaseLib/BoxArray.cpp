@@ -1013,8 +1013,9 @@ Array<int> BoxLib::SerializeBoxArray(const BoxArray &ba)
   Array<int> retArray(ba.size() * nIntsInBox, -1);
   for(int i(0); i < ba.size(); ++i) {
     Array<int> aiBox(BoxLib::SerializeBox(ba[i]));
-    for(int j(0); j < nIntsInBox; ++j) {
-      retArray[i * nIntsInBox] = aiBox[j];
+    BL_ASSERT(aiBox.size() == nIntsInBox);
+    for(int j(0); j < aiBox.size(); ++j) {
+      retArray[i * aiBox.size() + j] = aiBox[j];
     }
   }
   return retArray;
@@ -1029,7 +1030,7 @@ BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
   for(int i(0); i < nBoxes; ++i) {
     Array<int> aiBox(nIntsInBox);
     for(int j(0); j < nIntsInBox; ++j) {
-      aiBox[j] = serarray[i * nIntsInBox];
+      aiBox[j] = serarray[i * nIntsInBox + j];
     }
     ba.set(i, BoxLib::UnSerializeBox(aiBox));
   }
