@@ -1,16 +1,10 @@
 #include <iostream>
 
-#include <BoxLib.H>
-#include <MultiFab.H>
-#include <MultiFabUtil.H>
-#include <BLFort.H>
-#include <MacBndry.H>
-#include <MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <stencil_types.H>
+#include <ParallelDescriptor.H>
+#include <BoxArray.H>
 
 void
-splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int max_grid_size)
+splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size)
 {
     long totcost = 0;
     for (int i = 0; i < cost_in.size(); i++)
@@ -22,7 +16,7 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
 
     newcost = cost_in;
 
-    int base_box_size = max_grid_size;
+    int base_box_size = heavy_grid_size;
     int half_box_size = base_box_size/2;
     if (half_box_size*2 != base_box_size) return;
 
