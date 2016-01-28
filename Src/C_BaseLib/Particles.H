@@ -2857,7 +2857,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!OnSameGrids(lev, mf_to_be_filled[lev])) {
+        if (!OnSameGrids(lev, mf_to_be_filled[lev-lev_min])) {
 	    all_grids_the_same = false;
 	    break;
 	}
