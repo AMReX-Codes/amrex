@@ -57,6 +57,7 @@ Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
 int                    Amr::useFixedUpToLevel;
 
+
 namespace
 {
     const std::string CheckPointVersion("CheckPointVersion_1.0");
@@ -2174,8 +2175,9 @@ Amr::regrid (int  lbase,
     int             new_finest;
     Array<BoxArray> new_grid_places(max_level+1);
 
-    if (lbase <= std::min(finest_level,max_level-1))
+    if (lbase <= std::min(finest_level,max_level-1)) {
       grid_places(lbase,time,new_finest, new_grid_places);
+    }
 
     bool regrid_level_zero =
         (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray()) && (!initial);
@@ -2675,9 +2677,7 @@ Amr::grid_places (int              lbase,
             new_grids[lev].maxSize(max_grid_size[lev]);
         }
     }
-
-    // Use grids in regrid_grids_file 
-    else if ( !regrid_grids_file.empty() )
+    else if ( !regrid_grids_file.empty() )     // Use grids in regrid_grids_file 
     {
         new_finest = std::min(max_level,(finest_level+1));
         new_finest = std::min(new_finest,regrid_ba.size());
@@ -2713,8 +2713,9 @@ Amr::grid_places (int              lbase,
         for (int n=0; n<BL_SPACEDIM; n++)
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
     }
-    for (i = lbase; i <= max_crse; i++)
-        pc_domain[i] = BoxLib::coarsen(geom[i].Domain(),bf_lev[i]);
+    for(i = lbase; i <= max_crse; i++) {
+      pc_domain[i] = BoxLib::coarsen(geom[i].Domain(),bf_lev[i]);
+    }
     //
     // Construct proper nesting domains.
     //
@@ -2785,10 +2786,13 @@ Amr::grid_places (int              lbase,
         // Only use error estimation to tag cells for the creation of new grids
         //      if the grids at that level aren't already fixed.
         //
-        if ( !(useFixedCoarseGrids && levc < useFixedUpToLevel) )
+
+        if ( !(useFixedCoarseGrids && levc < useFixedUpToLevel) ) {
             amr_level[levc].errorEst(tags,
                                      TagBox::CLEAR,TagBox::SET,time,
                                      n_error_buf[levc],ngrow);
+	}
+
         //
         // If new grids have been constructed above this level, project
         // those grids down and tag cells on intersections to ensure
@@ -2994,9 +2998,9 @@ Amr::grid_places (int              lbase,
 		}
 	      }
 	    }
-
-            if (levf > useFixedUpToLevel)
-                new_grids[levf].define(new_bx);
+            if(levf > useFixedUpToLevel) {
+              new_grids[levf].define(new_bx);
+	    }
         }
         //
         // Don't forget to get rid of space used for collate()ing.
@@ -3391,18 +3395,8 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 #endif
 
 
-namespace
-{
-  const unsigned int msps(1000000);
-
-  void USleep(double sleepsec) {
-    usleep(sleepsec * msps);
-  }
-}
-
-
 void
-Amr::MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs) {
+Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
@@ -3433,7 +3427,7 @@ Amr::MakeSidecarsLarger(int nSidecarProcs, int prevSidecarProcs) {
 
 
 void
-Amr::MakeSidecarsSmaller(int nSidecarProcs, int prevSidecarProcs) {
+Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #if BL_USE_MPI
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
@@ -3450,9 +3444,6 @@ using std::endl;
     int nProcsAll(ParallelDescriptor::NProcsAll());
     int ioProcNumAll(ParallelDescriptor::IOProcessorNumberAll());
     int ioProcNumSCS(-1);
-    if(ParallelDescriptor::IOProcessor()) {
-    }
-    USleep(0.2);
 
     // ---- make a group with ioprocnum and the new comp ranks that were part of the sidecar
     // ---- then initialize all required data for the new ranks (amr, amrlevels, ...)
@@ -3490,6 +3481,13 @@ using std::endl;
       //USleep(scsMyId / 10.0);
       //cout << "$$$$$$$$ myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
       //PrintData(cout);
+
+cout << "vvvvvvvvvvvvvvvvvvvvvvvvv myProcAll scsMyId cachestats = " << myProcAll << "  " << scsMyId << "  " << endl;
+DistributionMapping::CacheStats(cout);
+    // ---- sync cached distribution maps
+    DistributionMapping::SyncCache(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+cout << "^^^^^^^^^^^^^^^^^^^^^^^^^ myProcAll scsMyId cachestats = " << myProcAll << "  " << scsMyId << "  " << endl;
+DistributionMapping::CacheStats(cout);
 
 
       // ---- pack up the ints
@@ -3777,8 +3775,8 @@ using std::endl;
 	}
       }
       for(int lev(0); lev < amr_level.size(); ++lev) {
-        amr_level[lev].MakeSidecarsSmaller(this, nSidecarProcs, prevSidecarProcs,
-	                                   ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+        amr_level[lev].AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
+	                              ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
       if(scsMyId == ioProcNumSCS) {
         MultiFab::CheckFAPointerLocks();
@@ -3799,7 +3797,6 @@ using std::endl;
       if(scsMyId != ioProcNumSCS) {
       }
 #endif
-
 
 
     }  // ---- end if(scsMyId != MPI_UNDEFINED)
