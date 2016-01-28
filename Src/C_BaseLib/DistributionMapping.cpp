@@ -519,7 +519,8 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    CacheStats(std::cout);
+    if (BoxLib::verbose)
+	CacheStats(std::cout);
     //
     // Remove maps that aren't referenced anywhere else.
     //
