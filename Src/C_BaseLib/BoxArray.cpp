@@ -249,6 +249,12 @@ BoxArray::operator!= (const BoxArray& rhs) const
     return !operator==(rhs);
 }
 
+bool
+BoxArray::CellEqual (const BoxArray& rhs) const
+{
+    return m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox;
+}
+
 BoxArray&
 BoxArray::refine (int refinement_ratio)
 {
