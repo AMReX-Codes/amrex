@@ -635,10 +635,6 @@ void StateData::MakeSidecarsSmaller(const StateDescriptor &sdPtr,
 #if BL_USE_MPI
 using std::cout;
 using std::endl;
-cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  scsMyId = "
-           << scsMyId << endl;
-sleep(1);
-ParallelDescriptor::Barrier(scsComm);
 
       // ---- StateDescriptor
       desc = &sdPtr;
@@ -656,17 +652,9 @@ ParallelDescriptor::Barrier(scsComm);
       BoxLib::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
 
       // ---- MultiFabs
-      //cout << ParallelDescriptor::MyProcAll() << "::::_here 0:  new_data.aFAPId  old_data.aFAPId = "
-           //<< new_data->AllocatedFAPtrID() << "  " << old_data->AllocatedFAPtrID() << endl;
-
-      cout << ParallelDescriptor::MyProcAll() << "::::_here 1:  new_data  old_data = "
-           << new_data << "  " << old_data << endl;
-
       int makeNewDataId(-7), makeOldDataId(-7);
       if(new_data != 0) {
 	makeNewDataId = new_data->AllocatedFAPtrID();
-        cout << ParallelDescriptor::MyProcAll() << "::::_here 3333:  new_data.aFAPId  = "
-             << makeNewDataId << endl;
       }
       ParallelDescriptor::Bcast(&makeNewDataId, 1, ioProcNumSCS, scsComm);
       if(scsMyId != ioProcNumSCS) {
@@ -682,8 +670,6 @@ ParallelDescriptor::Barrier(scsComm);
 
       if(old_data != 0) {
 	makeOldDataId = old_data->AllocatedFAPtrID();
-        cout << ParallelDescriptor::MyProcAll() << "::::_here 3333:  old_data.aFAPId  = "
-             << makeOldDataId << endl;
       }
       ParallelDescriptor::Bcast(&makeOldDataId, 1, ioProcNumSCS, scsComm);
       if(scsMyId != ioProcNumSCS) {
