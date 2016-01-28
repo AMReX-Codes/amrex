@@ -483,6 +483,9 @@ public:
     PMap& GetParticles(int lev) { return m_particles[lev]; }
 
 protected:
+
+    bool OnSameGrids (int level, const MultiFab& mf) const { return m_gdb->OnSameGrids(level, mf); }
+
     //
     // Helper function for Checkpoint() and WritePlotFile().
     //
@@ -2306,8 +2309,7 @@ ParticleContainer<N>::IncrementWithTotal (MultiFab& mf,
 
     MultiFab* mf_pointer;
 
-    if (mf.boxArray() == m_gdb->ParticleBoxArray(lev) && 
-	mf.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev, mf))
     {
         // If we are already working with the internal mf defined on the
         // particle_box_array, then we just work with this.
@@ -2392,8 +2394,7 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
     long num_particles_at_level = 0;
 
     MultiFab* gv_pointer;
-    if (gv.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	gv.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev, gv))
     {
         gv_pointer = 0;
     }
@@ -2612,8 +2613,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
 {
     MultiFab* mf_pointer;
 
-    if (mf_to_be_filled.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	mf_to_be_filled.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev, mf_to_be_filled))
     {
         // If we are already working with the internal mf defined on the 
         // particle_box_array, then we just work with this.
@@ -2851,8 +2851,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (mf_to_be_filled[lev].boxArray() != m_gdb->ParticleBoxArray(lev) ||
-	    mf_to_be_filled[lev].DistributionMap() != m_gdb->ParticleDistributionMap(lev)) {
+        if (!OnSameGrids(lev, mf_to_be_filled[lev])) {
 	    all_grids_the_same = false;
 	    break;
 	}
@@ -4468,8 +4467,7 @@ ParticleContainer<N>::movePredict (const MultiFab& gv,
     PMap& pmap = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (gv.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	gv.DistributionMap() == m_gdb->ParticleDistributionMap(lev)) 
+    if (OnSameGrids(lev,gv))
     {
         gv_pointer = 0;
     }
@@ -4548,8 +4546,7 @@ ParticleContainer<N>::moveCorrect (const MultiFab& gv_old,
 
     MultiFab* gv_pointer;
     MultiFab* gv_pointer_old;
-    if (gv.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	gv.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev,gv))
     {
         gv_pointer     = 0;
         gv_pointer_old = 0;
@@ -4651,8 +4648,7 @@ ParticleContainer<N>::moveKickDrift (MultiFab& grav_vector,
     PMap&      pmap          = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (grav_vector.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	grav_vector.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev, grav_vector))
     {
         gv_pointer = &grav_vector;
     }
@@ -4791,8 +4787,7 @@ ParticleContainer<N>::moveKick (MultiFab& grav_vector,
     PMap&      pmap      = m_particles[lev];
 
     MultiFab* gv_pointer;
-    if (grav_vector.boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	grav_vector.DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev,grav_vector))
     {
         gv_pointer = &grav_vector;
     }
@@ -4898,8 +4893,7 @@ ParticleContainer<N>::moveKickDrift (PArray<MultiFab>& grav_vector,
     PMap&           pmap          = m_particles[lev];
 
     MultiFab* gv_pointer[BL_SPACEDIM];
-    if (grav_vector[0].boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	grav_vector[0].DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev,grav_vector[0]))
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
            gv_pointer[i] = &grav_vector[i];
@@ -5055,8 +5049,7 @@ ParticleContainer<N>::moveKick (PArray<MultiFab>& grav_vector,
     PMap&           pmap      = m_particles[lev];
 
     MultiFab* gv_pointer[BL_SPACEDIM];
-    if (grav_vector[0].boxArray() == m_gdb->ParticleBoxArray(lev) &&
-	grav_vector[0].DistributionMap() == m_gdb->ParticleDistributionMap(lev))
+    if (OnSameGrids(lev,grav_vector[0]))
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
            gv_pointer[i] = &grav_vector[i];
@@ -5538,8 +5531,7 @@ ParticleContainer<N>::AdvectWithUmac (MultiFab* umac,
 
     PArray<MultiFab> umac_pointer;
     // We assume that if umac[0]'s boxArray matches then the others will too...
-//    if (umac[0].boxArray() == m_gdb->ParticleBoxArray(lev))
-    if (m_gdb->ParticlesOnSameGrids(lev))
+    if (OnSameGrids(lev, umac[0]))
     {
 	umac_pointer.resize(BL_SPACEDIM, PArrayNoManage);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -5677,8 +5669,7 @@ ParticleContainer<N>::AdvectWithUcc (const MultiFab& Ucc,
     const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(lev);
 
-    BL_ASSERT(Ucc.boxArray() == m_gdb->ParticleBoxArray(lev));
-    BL_ASSERT(Ucc.DistributionMap() == m_gdb->ParticleDistributionMap(lev));
+    BL_ASSERT(OnSameGrids(lev,Ucc));
 
     int idx[BL_SPACEDIM] = {D_DECL(0,1,2)};
 

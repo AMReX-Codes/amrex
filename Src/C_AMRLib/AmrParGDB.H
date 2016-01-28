@@ -32,8 +32,6 @@ public:
     virtual IntVect refRatio (int level) const BL_OVERRIDE;
     virtual int MaxRefRatio (int level) const BL_OVERRIDE;
 
-    virtual bool ParticlesOnSameGrids (int level) const BL_OVERRIDE;
-
 protected:
     Amr* m_amr;
 };
@@ -114,13 +112,6 @@ int
 AmrParGDB::MaxRefRatio (int level) const
 {
     return m_amr->MaxRefRatio(level);
-}
-
-inline
-bool 
-AmrParGDB::ParticlesOnSameGrids (int level) const
-{
-    return m_amr->getLevel(level).ParticlesOnSameGrids();
 }
 
 #endif
