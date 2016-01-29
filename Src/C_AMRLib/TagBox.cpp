@@ -740,12 +740,12 @@ TagBoxArray::coarsen (const IntVect & ratio)
 }
 
 void
-TagBoxArray::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
-                                  int scsMyId, MPI_Comm scsComm)
+TagBoxArray::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                             int scsMyId, MPI_Comm scsComm)
 {
   ParallelDescriptor::Bcast(&m_border, 1, ioProcNumAll, scsComm);
-  FabArray::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll,
-                                scsMyId, scsComm);
+  FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
+                           scsMyId, scsComm);
 }
 
 

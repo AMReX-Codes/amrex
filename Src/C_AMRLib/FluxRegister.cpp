@@ -961,8 +961,8 @@ FluxRegister::read (const std::string& name, std::istream& is)
 }
 
 void
-FluxRegister::MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
-                                  int scsMyId, MPI_Comm scsComm)
+FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
+                             int scsMyId, MPI_Comm scsComm)
 {
   // ---- ints
   ParallelDescriptor::Bcast(&fine_level, 1, ioProcNumSCS, scsComm);
@@ -977,7 +977,7 @@ FluxRegister::MakeSidecarsSmaller(int ioProcNumSCS, int ioProcNumAll,
   if(scsMyId != ioProcNumSCS) {
     for(int i(0); i < BL_SPACEDIM; ++i) { ratio[i] = iv[i]; }
   }
-  BndryRegister::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll,
-                                     scsMyId, scsComm);
+  BndryRegister::AddProcsToComp(ioProcNumSCS, ioProcNumAll,
+                                scsMyId, scsComm);
 }
 
