@@ -231,9 +231,9 @@ public:
     void read (const std::string& name);
 
     //
-    // Promote MakeSidecarsSmaller() back to public.
+    // Promote AddProcsToComp() back to public.
     //
-    using MultiFab::MakeSidecarsSmaller;
+    using MultiFab::AddProcsToComp;
 
 protected:
     //
