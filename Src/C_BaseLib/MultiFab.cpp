@@ -2256,8 +2256,8 @@ void MultiFab::ConvertFromHPGMGLevel(MultiFab& mf,
 #endif /* USEHPGMG */
 
 void
-MultiFab::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
-                                    int scsMyId, MPI_Comm scsComm)
+MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                          int scsMyId, MPI_Comm scsComm)
 {
   // ---- bools
   int cFN(check_for_nan), cFI(check_for_inf);
@@ -2267,6 +2267,6 @@ MultiFab::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
     check_for_nan = cFN;
     check_for_inf = cFI;
   }
-  FabArray::MakeSidecarsSmaller(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+  FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
 
