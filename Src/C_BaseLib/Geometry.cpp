@@ -1113,6 +1113,8 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
   Real realBox_hi[BL_SPACEDIM];
   Array<int> baseBoxAI;
 
+  CoordSys::BroadcastCoordSys(geom, fromProc, comm, bcastSource);
+
   if(bcastSource) {  // ---- initialize the source data
     const RealBox &realBox = geom.ProbDomain();
     for(int n(0); n < BL_SPACEDIM; ++n) {
