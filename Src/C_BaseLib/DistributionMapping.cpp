@@ -293,6 +293,12 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     {
         m_ref = it->second;
 
+        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
+	  CacheStats(std::cout);
+	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
+	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
+		    << "  " << N << "  " << m_ref->m_pmap[N] << std::endl;
+	}
         BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
         return true;
@@ -472,6 +478,54 @@ DistributionMapping::FlushCache ()
             ++it;
         }
     }
+}
+
+void
+DistributionMapping::SyncCache (int ioProcNumSCS, int ioProcNumAll,
+                                int scsMyId, MPI_Comm scsComm)
+{
+  int dmStrategy(strategy());
+  ParallelDescriptor::Bcast(&dmStrategy, 1, ioProcNumAll, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
+  }
+
+  if(scsMyId != ioProcNumSCS) {
+    DistributionMapping::m_Cache.clear();
+  }
+  int nCacheSize(CacheSize());
+  ParallelDescriptor::Bcast(&nCacheSize, 1, ioProcNumAll, scsComm);
+
+
+  Array<Array<int> >dmapArrays;
+  std::map< int,LnClassPtr<Ref> >::const_iterator it;
+  if(scsMyId == ioProcNumSCS) {
+    for(it = m_Cache.begin(); it != m_Cache.end(); ++it) {
+      dmapArrays.push_back(it->second->m_pmap);
+    }
+    BL_ASSERT(dmapArrays.size() == nCacheSize);
+  }
+  if(scsMyId != ioProcNumSCS) {
+    dmapArrays.resize(nCacheSize);
+  }
+
+  for(int i(0); i < nCacheSize; ++i) {
+    BoxLib::BroadcastArray(dmapArrays[i], scsMyId, ioProcNumSCS, scsComm);
+    if(dmapArrays[i].size() > 0) {
+      if(scsMyId != ioProcNumSCS) {
+        int sentinelProc(ParallelDescriptor::MyProcComp());
+        dmapArrays[i][dmapArrays[i].size() - 1] = sentinelProc;  // ---- set the sentinel
+	DistributionMapping dmSet(dmapArrays[i], true);
+      }
+    }
+  }
+
+    ParallelDescriptor::Bcast(&nDistMaps, 1, ioProcNumAll, scsComm);
+    //ParallelDescriptor::Bcast(&dmID, 1, ioProcNumAll, scsComm);
+
+    std::cout << scsMyId << "::=========== SyncCache stats:  ndm csize = " << NDistMaps() << "  " << CacheSize() << std::endl;
+    CacheStats(std::cout);
+
 }
 
 void
@@ -2353,9 +2407,11 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    if (ParallelDescriptor::IOProcessor() && m_Cache.size())
+    //if (ParallelDescriptor::IOProcessor() && m_Cache.size())
+    if (m_Cache.size())
     {
-        os << "DistributionMapping::m_Cache.size() = "
+        //os << "DistributionMapping::m_Cache.size() = "
+        os << ParallelDescriptor::MyProc() << "::DistributionMapping::m_Cache.size() = "
            << m_Cache.size()
            << " [ (refs,size): ";
 
