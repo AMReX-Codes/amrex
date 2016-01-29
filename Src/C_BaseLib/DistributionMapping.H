@@ -123,6 +123,12 @@ class DistributionMapping
     //
     static void FlushCache ();
     //
+    // Synchronize the cache of processor maps across all processors.
+    // This is used for resizing the sidecars.
+    //
+    static void SyncCache (int ioProcNumSCS, int ioProcNumAll,
+                           int scsMyId, MPI_Comm scsComm);
+    //
     // The size of the cache.
     //
     static int CacheSize ();
