@@ -997,11 +997,13 @@ Amr::checkInput ()
             BoxLib::Error("max_grid_size not divisible by blocking_factor");
     }
 
-    if (!Geometry::ProbDomain().ok())
+    if( ! Geometry::ProbDomain().ok()) {
         BoxLib::Error("checkInput: bad physical problem size");
+    }
 
-    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    if(verbose > 0 && ParallelDescriptor::IOProcessor()) {
        std::cout << "Successfully read inputs file ... " << '\n';
+    }
 }
 
 void
@@ -1010,7 +1012,7 @@ Amr::init (Real strt_time,
 {
     BL_PROFILE_REGION_START("Amr::init()");
     BL_PROFILE("Amr::init()");
-    if (!restart_chkfile.empty() && restart_chkfile != "init")
+    if( ! restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
     }
@@ -1018,8 +1020,9 @@ Amr::init (Real strt_time,
     {
         initialInit(strt_time,stop_time);
         checkPoint();
-        if (plot_int > 0 || plot_per > 0)
+        if(plot_int > 0 || plot_per > 0) {
             writePlotFile();
+	}
     }
 #ifdef HAS_XGRAPH
     if (first_plotfile)
@@ -2206,15 +2209,15 @@ Amr::regrid (int  lbase,
     //
     // Reclaim old-time grid space for all remain levels > lbase.
     //
-    for (int lev = start; lev <= finest_level; lev++)
-    {
-        amr_level[lev].removeOldData();
+    for(int lev = start; lev <= finest_level; ++lev) {
+      amr_level[lev].removeOldData();
     }
     //
     // Reclaim all remaining storage for levels > new_finest.
     //
-    for (int lev = new_finest+1; lev <= finest_level; lev++)
-        amr_level.clear(lev);
+    for(int lev = new_finest + 1; lev <= finest_level; ++lev) {
+      amr_level.clear(lev);
+    }
 
     finest_level = new_finest;
     //
@@ -2230,13 +2233,22 @@ Amr::regrid (int  lbase,
     //
     // Define the new grids from level start up to new_finest.
     //
-    for (int lev = start; lev <= new_finest; lev++) 
-    {
+    for(int lev = start; lev <= new_finest; ++lev) {
         //
         // Construct skeleton of new level.
         //
+//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
+  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1142:  calling levelbld" << std::endl;
+//}
+
         AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
 
+ParallelDescriptor::Barrier();
+//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
+  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1143:  after calling levelbld" << std::endl;
+//}
         if (initial)
         {
             //
@@ -2255,7 +2267,16 @@ Amr::regrid (int  lbase,
             // NOTE: The init function may use a filPatch from the old level,
             //       which therefore needs remain in the hierarchy during the call.
             //
+ParallelDescriptor::Barrier();
+//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
+  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1144:  calling a->init" << std::endl;
+//}
             a->init(amr_level[lev]);
+//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
+  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1145:  after calling a->init" << std::endl;
+//}
             amr_level.clear(lev);
             amr_level.set(lev,a);
        }
@@ -3434,6 +3455,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
 
+    //DistributionMapping::InitProximityMap();
+    //DistributionMapping::Initialize();
 using std::cout;
 using std::endl;
     MPI_Group scsGroup, allGroup;
@@ -3456,7 +3479,7 @@ using std::endl;
       }
       if(ParallelDescriptor::IOProcessor()) {
         for(int ip(0); ip < groupRanks.size(); ++ip) {
-          cout << "gggggggg groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
+          cout << "_in AddProcsToComp:  groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
         }
       }
       BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &allGroup) );
@@ -3641,6 +3664,7 @@ DistributionMapping::CacheStats(cout);
         for(int i(0); i < dt_min.size(); ++i)    { dt_min[i]   = allReals[count++]; }
       }
 
+
       // ---- pack up the bools
       Array<int> allBools;  // ---- just use ints here
       int allBoolsSize(0);
@@ -3753,7 +3777,6 @@ DistributionMapping::CacheStats(cout);
           for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
 	}
       }
-
 
 
       if(scsMyId != ioProcNumSCS) {

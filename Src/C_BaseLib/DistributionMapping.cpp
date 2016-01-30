@@ -552,7 +552,14 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 {
     Array<int> ord;
 
+#ifdef BL_USE_RRLUCPU
     LeastUsedCPUs(nprocs,ord);
+#else
+    ord.resize(nprocs);
+    for(int i(0); i < nprocs; ++i) {
+      ord[i] = i;
+    }
+#endif
 
     if (LIpairV)
     {
