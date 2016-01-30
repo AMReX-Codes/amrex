@@ -1038,7 +1038,7 @@ Geometry::FlushPIRMCache ()
         if (it->second.m_reused)
             stats[1]++;
     }
-
+verbose = false;
     if (verbose)
     {
 #ifdef BL_LAZY

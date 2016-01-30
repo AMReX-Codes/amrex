@@ -1796,8 +1796,6 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
 #if BL_USE_MPI
 using std::cout;
 using std::endl;
-cout << scsMyId << "::++++++++++ derive_lst.dlist().size() = " << derive_lst.dlist().size() << endl;
-ParallelDescriptor::Barrier(scsComm);
       if(scsMyId != ioProcNumSCS) {
         parent = aptr;
       }
@@ -1807,25 +1805,18 @@ ParallelDescriptor::Barrier(scsComm);
 
       // ---- IntVects
       Array<int> allIntVects;
-      int allIntVectsSize(0);
       if(scsMyId == ioProcNumSCS) {
         for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
         for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
-
-        allIntVectsSize = allIntVects.size();
       }
-
-      ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        allIntVects.resize(allIntVectsSize);
-      }
-      ParallelDescriptor::Bcast(allIntVects.dataPtr(), allIntVectsSize, ioProcNumAll, scsComm);
+      BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
 
       if(scsMyId != ioProcNumSCS) {
         int count(0);
         for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
         for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
       }
+
 
       // ---- Boxes
       BoxLib::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);

@@ -772,8 +772,8 @@ public:
     static void MoveAllFabs (const Array<int> &newDistMapArray);
     static void LockAllFAPointers ();
     static void CheckFAPointerLocks ();
-    virtual void MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
-                                      int scsMyId, MPI_Comm scsComm);
+    virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                                 int scsMyId, MPI_Comm scsComm);
 
 protected:
     //
@@ -1339,10 +1339,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         faPtrCachedMap.insert(std::make_pair(aFAPId, this));
       }
     }
-
-if(aFAPId == 1) {
-  //BL_ASSERT(aFAPId != 1);
-}
 }
 
 template <class FAB>
@@ -1957,21 +1953,21 @@ void
 FabArray<FAB>::CheckFAPointerLocks ()
 {
   int pLocked(0), pUnlocked(0);
-  std::cout << "}}}} _in CheckFAPointerLocks:  allocatedFAPointers.size() = "
-            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+  //std::cout << "}}}} _in CheckFAPointerLocks:  allocatedFAPointers.size() = "
+            //<< FabArray<FAB>::allocatedFAPointers.size() << std::endl;
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
   for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-    std::cout << "}}}} }}}} _in ChackFAPointerLocks:  faPtrCachedMap.size() = "
-              << faPtrCachedMap.size() << std::endl;
+    //std::cout << "}}}} }}}} _in ChackFAPointerLocks:  faPtrCachedMap.size() = "
+              //<< faPtrCachedMap.size() << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
       FabArray<FAB> *faPtr = it->second;
-      std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  FAPtrId  idLock = " 
-                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+      //std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  FAPtrId  idLock = " 
+                //<< faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
       if(faPtr->aFAPIdLock) {
         ++pLocked;
       } else {
@@ -1986,11 +1982,9 @@ FabArray<FAB>::CheckFAPointerLocks ()
 
 template <class FAB>
 void
-FabArray<FAB>::MakeSidecarsSmaller (int ioProcNumSCS, int ioProcNumAll,
-                                    int scsMyId, MPI_Comm scsComm)
+FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
+                               int scsMyId, MPI_Comm scsComm)
 {
-  std::cout << "]]]] _in FabArray::MakeSidecarsSmaller." << std::endl;
-
   // ---- BoxArrays
   BoxLib::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
   BoxLib::BroadcastBoxArray(boxarray_orig, scsMyId, ioProcNumSCS, scsComm);

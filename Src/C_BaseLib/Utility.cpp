@@ -1626,6 +1626,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
 
 
 void BoxLib::USleep(double sleepsec) {
-  usleep(sleepsec * msps);
+  //usleep(sleepsec * msps);
+  usleep(sleepsec * msps / 4.0);
 }
 
