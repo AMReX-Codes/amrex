@@ -2239,7 +2239,7 @@ Amr::regrid (int  lbase,
         //
 //if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
   BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1142:  calling levelbld" << std::endl;
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1142:  calling levelbld:  lev = " << lev << std::endl;
 //}
 
         AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
@@ -2270,7 +2270,7 @@ ParallelDescriptor::Barrier();
 ParallelDescriptor::Barrier();
 //if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
   BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1144:  calling a->init" << std::endl;
+  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1144:  calling a->init:  lev compgroup sidecargroup = " << lev << "  " << ParallelDescriptor::InCompGroup() << "  " << ParallelDescriptor::InSidecarGroup() << std::endl;
 //}
             a->init(amr_level[lev]);
 //if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
@@ -3504,6 +3504,15 @@ using std::endl;
       //USleep(scsMyId / 10.0);
       //cout << "$$$$$$$$ myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
       //PrintData(cout);
+
+    int currentSeqNumber(-4);
+    if(scsMyId == ioProcNumSCS) {
+      currentSeqNumber = ParallelDescriptor::SeqNum(1);
+    }
+    ParallelDescriptor::Bcast(&currentSeqNumber, 1, ioProcNumAll, scsComm);
+    if(scsMyId != ioProcNumSCS) {
+      ParallelDescriptor::SeqNum(2, currentSeqNumber);
+    }
 
 cout << "vvvvvvvvvvvvvvvvvvvvvvvvv myProcAll scsMyId cachestats = " << myProcAll << "  " << scsMyId << "  " << endl;
 DistributionMapping::CacheStats(cout);
