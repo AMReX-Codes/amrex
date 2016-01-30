@@ -1470,10 +1470,13 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
 // This function is the same whether or not we're using MPI.
 //
 int
-ParallelDescriptor::SeqNum ()
+ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
 {
     static int seqno = m_MinTag;
 
+    switch(getsetinc) {
+      case 0:  // ---- increment and return result
+      {
     int result = seqno++;
 
     if (seqno > m_MaxTag) {
@@ -1482,6 +1485,28 @@ ParallelDescriptor::SeqNum ()
     }
 
     return result;
+      }
+      case 1:  // ---- get current seqno
+      {
+        return seqno;
+      }
+      case 2:  // ---- set current seqno
+      {
+	seqno = newvalue;
+        return seqno;
+      }
+    }
+
+/*
+    int result = seqno++;
+
+    if (seqno > m_MaxTag) {
+      seqno = m_MinTag;
+      BL_COMM_PROFILE_TAGWRAP();
+    }
+
+    return result;
+*/
 }
 
 

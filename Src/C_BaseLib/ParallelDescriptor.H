@@ -23,7 +23,6 @@ namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
 
-
     //
     // Data structure used by a few routines when MPI is enabled.
     //
@@ -526,7 +525,7 @@ namespace ParallelDescriptor
     //
     // Returns sequential message sequence numbers in range 1000-9000.
     //
-    int SeqNum ();
+    int SeqNum (int getsetinc = 0, int newvalue = 0);
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
@@ -568,6 +567,7 @@ namespace ParallelDescriptor
     // Starts sidecar processes for doing on-the-fly simulation analysis.
     //
     void SidecarProcess ();
+
 }
 
 #define BL_MPI_REQUIRE(x)						\
