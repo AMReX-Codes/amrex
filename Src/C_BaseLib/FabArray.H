@@ -2779,7 +2779,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
     BoxLib::The_Arena()->free(recv_data);
 
-    if (FabArrayBase::do_async_sends && !send_reqs.empty())
+    if (FabArrayBase::do_async_sends && ! send_reqs.empty())
     {
         //
         // Now grok the asynchronous send buffers & free up send buffer space.
@@ -2792,8 +2792,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
         BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
 
-        for (int i = 0; i < N_snds; i++)
-            BoxLib::The_Arena()->free(send_data[i]);
+        for(int i(0); i < N_snds; ++i) {
+          BoxLib::The_Arena()->free(send_data[i]);
+	}
     }
 
 #endif /*BL_USE_MPI*/
