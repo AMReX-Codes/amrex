@@ -627,14 +627,17 @@ public:
     //
     // Increments iterator to the next tile we own.
     //
-    void operator++ () { ++currentIndex;}
+    void operator++ () {
+	++currentIndex;
+	if (flags & OwnerOnly)
+	    while (currentIndex < endIndex && 
+		   !fabArray.isOwner(pta->localIndexMap[currentIndex]))
+		++currentIndex;
+    }
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
-    bool isValid () {
-	return (currentIndex < endIndex) &&
-	    ( fabArray.isOwner(pta->localIndexMap[currentIndex]) || !(flags & OwnerOnly) ); 
-    }
+    bool isValid () { return currentIndex < endIndex; }
     //
     // The index into the underlying BoxArray of the current FAB.
     //
