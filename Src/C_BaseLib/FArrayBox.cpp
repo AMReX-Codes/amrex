@@ -149,9 +149,10 @@ FArrayBox::FArrayBox ()
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n,
-		      bool       alloc)
+		      bool       alloc,
+		      bool       shared)
     :
-    BaseFab<Real>(b,n,alloc)
+    BaseFab<Real>(b,n,alloc,shared)
 {
     if (fabio == 0) FArrayBox::Initialize();
 

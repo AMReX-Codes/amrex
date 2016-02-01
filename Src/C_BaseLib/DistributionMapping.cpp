@@ -287,7 +287,7 @@ void
 DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 				     Array<Array<int> >& rworker)
 {
-#ifdef BL_USE_UPCXX
+#if defined(BL_USE_TEAM)
     BL_PROFILE("DistributionMapping::LeastUsedTeams()");
 
     int nteams = ParallelDescriptor::NTeams();
@@ -1060,7 +1060,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     int nteams = nprocs;
     int nworkers = 1;
-#ifdef BL_USE_UPCXX
+#if defined(BL_USE_TEAM)
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
 #endif

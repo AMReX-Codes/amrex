@@ -72,6 +72,9 @@ namespace BLPgas
   extern upcxx::event fpb_send_event;
   extern upcxx::event fpb_recv_event;
   extern int          fpb_send_counter;
+
+  void* alloc (std::size_t _sz);
+  void free (void* pt);  
 }
 
 #endif

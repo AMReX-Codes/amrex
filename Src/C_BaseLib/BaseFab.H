@@ -21,6 +21,12 @@
 #include <BLProfiler.H>
 #include <PArray.H>
 
+#include <ParallelDescriptor.H>
+
+#ifdef BL_USE_UPCXX
+#include <BLPgas.H>
+#endif
+
 namespace BoxLib
 {
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
@@ -108,7 +114,8 @@ public:
     //
     explicit BaseFab (const Box& bx,
                       int        n = 1,
-		      bool       alloc = true);
+		      bool       alloc = true,
+		      bool       shared = false);
     //
     // The destructor deletes the array memory.
     //
@@ -134,6 +141,10 @@ public:
     // comments for constructors above.)  The memory is freed.
     //
     void clear ();
+    //
+    // Retruns how many bytes used
+    //
+    size_t nBytes () const { return truesize*sizeof(T); }
     //
     // Returns the number of components.
     //
@@ -864,6 +875,9 @@ protected:
     // Allocates memory for the BaseFab<T>.
     //
     void define (bool alloc=true);
+#ifdef BL_USE_MPI3
+    void define_mpi_shared_memory(bool alloc);
+#endif
     //
     // The function called by BaseFab copy operations.
     //
@@ -889,6 +903,11 @@ protected:
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
+
+    bool    shared_memory;  // Is the memory allocated in shared memory?
+#ifdef BL_USE_MPI3
+    MPI_Win win_shared;
+#endif    
 
 private:
     //
@@ -1116,7 +1135,18 @@ BaseFab<T>::define (bool alloc)
     
     if (!alloc) return;
 
-    dptr = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    if (shared_memory)
+    {
+#if defined(BL_USE_UPCXX)
+	dptr = static_cast<T*>(BLPgas::alloc(truesize*sizeof(T)));
+#else
+        BoxLib::Abort("BaseFab::define: don't know how to allocate shared memory");
+#endif
+    }
+    else 
+    {
+	dptr = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    }
     ptr_owner = true;
     //
     // Now call T::T() on the raw memory so we have valid Ts.
@@ -1144,6 +1174,74 @@ BaseFab<T>::define (bool alloc)
     }
 }
 
+#ifdef BL_USE_MPI3
+template <class T>
+void
+BaseFab<T>::define_mpi_shared_memory (bool alloc)
+{
+    BL_ASSERT(nvar > 0);
+    BL_ASSERT(dptr == 0);
+    BL_ASSERT(numpts > 0);
+    BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
+    
+    truesize = nvar*numpts;
+    
+    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
+    BL_ASSERT(ParallelDescriptor::TeamSize() > 1);
+
+#ifndef NDEBUG
+    int ialloc = (alloc) ? 1 : 0;
+    std::vector<int> all_alloc(ParallelDescriptor::TeamSize());
+    MPI_Allgather(&ialloc, 1, MPI_INT, &all_alloc[0], 1, MPI_INT, team_comm);
+    BL_ASSERT(std::accumulate(all_alloc.begin(), all_alloc.end(), 0) == 1);
+#endif
+
+    long alloc_truesize = (alloc) ? truesize : 0;
+    void * baseptr;
+    BL_MPI_REQUIRE( MPI_Win_allocate_shared(truesize*sizeof(T), sizeof(T), 
+					    MPI_INFO_NULL, team_comm, 
+					    baseptr, &win_shared) );
+    
+    if (alloc)
+    {
+	ptr_owner = true;
+	dptr = (T*)baseptr;
+	//
+	// Now call T::T() on the raw memory so we have valid Ts.
+	//
+	T* ptr = dptr;
+	//
+	// Note this must be long not int for very large (e.g.,1024^3) boxes.
+	//
+	for (long i = 0; i < truesize; i++, ptr++)
+	{
+	    new (ptr) T;
+	}
+
+	long tst = truesize*sizeof(T);
+	BoxLib::private_total_bytes_allocated_in_fabs += tst;
+	BoxLib::private_total_bytes_allocated_in_fabs_hwm 
+	    = std::max(BoxLib::private_total_bytes_allocated_in_fabs_hwm,
+		       BoxLib::private_total_bytes_allocated_in_fabs);
+	
+	if(sizeof(T) == sizeof(Real)) {
+	    BoxLib::private_total_cells_allocated_in_fabs += numpts;
+	    BoxLib::private_total_cells_allocated_in_fabs_hwm 
+		= std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
+			   BoxLib::private_total_cells_allocated_in_fabs);
+	}
+    }
+    else
+    {
+	MPI_Aint sz;
+	int disp;
+	BL_MPI_REQUIRE( MPI_Win_shared_query(win_shared, MPI_PROC_NULL, &sz,
+					     &disp, baseptr) );
+	dptr = (T*) baseptr;
+    }
+}
+#endif
+
 template <class T>
 BaseFab<T>::BaseFab ()
     :
@@ -1166,16 +1264,26 @@ BaseFab<T>::operator= (const T& t)
 template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
                      int        n,
-		     bool       alloc)
+		     bool       alloc,
+		     bool       shared)
     :
     domain(bx),
     dlen(bx.size()),
     nvar(n),
     numpts(bx.numPts()),
     dptr(0),
-    ptr_owner(false)
+    ptr_owner(false),
+    shared_memory(shared)
 {
-    define(alloc);
+#ifdef BL_USE_MPI3
+    if (shared_memory) {
+	define_mpi_shared_memory(alloc);
+    } 
+    else
+#endif
+    {
+	define(alloc);
+    }
 }
 
 template <class T>
@@ -1235,7 +1343,21 @@ BaseFab<T>::clear ()
 	    {
 		ptr->~T();
 	    }
-	    BoxLib::The_Arena()->free(dptr);
+
+	    if (shared_memory)
+	    {
+#if defined (BL_USE_UPCXX)
+		BLPgas::free(dptr);
+#elif defined (BL_USE_MPI3)
+		MPI_Win_free(&win_shared);
+#else
+		BoxLib::Abort("BaseFab::clear: don't know how to free shared memory");
+#endif
+	    }
+	    else 
+	    {
+		BoxLib::The_Arena()->free(dptr);
+	    }
 
 	    long tst = truesize*sizeof(T);
 	    BoxLib::private_total_bytes_allocated_in_fabs -= tst;
@@ -1246,6 +1368,11 @@ BaseFab<T>::clear ()
 		}
 	    }
 	}
+#if defined (BL_USE_MPI3)
+	else {
+	    MPI_Win_free(&win_shared);	    
+	}
+#endif
 
         dptr = 0;
     }

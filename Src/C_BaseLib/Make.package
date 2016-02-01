@@ -138,8 +138,8 @@ endif
 
 # UPCXX
 ifeq ($(USE_UPCXX),TRUE)
-  C$(BOXLIB_BASE)_sources += BLPgas.cpp UArena.cpp
-  C$(BOXLIB_BASE)_headers += BLPgas.H UArena.H
+  C$(BOXLIB_BASE)_sources += BLPgas.cpp
+  C$(BOXLIB_BASE)_headers += BLPgas.H
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)

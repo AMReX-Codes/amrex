@@ -1646,7 +1646,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     const int MyProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
-#ifdef BL_USE_UPCXX
+#if defined(BL_USE_TEAM)
 	if(ParallelDescriptor::sameTeam(distributionMap[i])) {
 #else
 	if(distributionMap[i] == MyProc) {
@@ -1673,6 +1673,10 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         faPtrCachedMap.insert(std::make_pair(faID, this));
       }
     }
+
+#ifdef BL_USE_TEAM
+    ParallelDescriptor::MyTeam().FenceBarrier();
+#endif
 }
 
 template <class FAB>
@@ -1705,26 +1709,28 @@ FabArray<FAB>::AllocFabs ()
     int n = indexMap.size();
 
     bool alloc = true;
+    bool shared = false;
 
     m_fabs_v.reserve(n);
     ownership.reserve(n);
 
-#ifdef BL_USE_UPCXX
+#if defined(BL_USE_TEAM)
     int myproc = ParallelDescriptor::MyProc();
     int nworkers = ParallelDescriptor::TeamSize();
     int teamlead = ParallelDescriptor::MyTeamLead();
     std::vector<int> dmworker(n);
+    shared = nworkers > 1;
 #endif
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
-#ifdef BL_USE_UPCXX
+#ifdef BL_USE_TEAM
 	alloc = (distributionMap[K] == myproc);
 	dmworker[i] = distributionMap[K] - teamlead;
 #endif
-	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc));
+	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shared));
 	ownership.push_back(alloc);
     }
 
@@ -1732,9 +1738,9 @@ FabArray<FAB>::AllocFabs ()
     if (ParallelDescriptor::TeamSize() > 1) 
     {
 	const auto& team = ParallelDescriptor::MyTeam().get();
-	
+
 	int np = (n + nworkers-1) / nworkers;
-	
+
 	std::vector<upcxx::global_ptr<void> > psrc(np);
 	std::vector<upcxx::global_ptr<void> > pdst(np*nworkers);
 	
@@ -3445,7 +3451,7 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
     //
     
     MPI_Group tgroup, rgroup, sgroup;
-    MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
+    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
 	
     if (N_rcvs > 0) {
 
@@ -3588,7 +3594,7 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
 
 template <class FAB>
 void
-  FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
+FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
 {
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
@@ -3664,6 +3670,9 @@ void
       fb_send_data.clear();
     }
 
+#ifdef BL_USE_TEAM
+    ParallelDescriptor::MyTeam().FenceBarrier();
+#endif
 }
 
 #endif /*BL_USE_MPI_ONESIDED */
@@ -3768,17 +3777,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    
 	    BL_ASSERT(N < std::numeric_limits<int>::max());
 	    
+	    value_type* data = static_cast<value_type*>
 #ifdef BL_USE_UPCXX
-	    value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-	    if (data == nullptr) {
-		printf("Failed to allocate %zu bytes global address space memory!\n",
-		       sizeof(value_type)*N);
-		printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
-		printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-		BoxLib::Abort("FillBoundary_nowait: Failed to allocate in global address space memory");
-	    }
+		(BLPgas::alloc(N*sizeof(value_type)));
 #else
-	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+	        (BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
 
 	    send_data.push_back(data);
@@ -4064,7 +4067,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
         t1 = ParallelDescriptor::second();
         ParallelDescriptor::timing[3] += t1 - t0;
 
-	upcxx::deallocate(fb_the_recv_data);
+	BLPgas::free(fb_the_recv_data);
 
 	fb_recv_from.clear();
 	fb_recv_data.clear();
@@ -4084,7 +4087,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	fb_send_reqs.clear();
     }
 
-    ParallelDescriptor::MyTeam().Barrier();
+    ParallelDescriptor::MyTeam().FenceBarrier();
 }
 
  template<typename T>
@@ -4108,15 +4111,7 @@ FabArrayBase::PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
 
   BL_ASSERT((TotalRcvsVolume*sizeof(T)) < std::numeric_limits<int>::max());
 
-  /// the_recv_data = static_cast<T*>(BoxLib::The_Arena()->alloc(TotalRcvsVolume*sizeof(T)));
-  the_recv_data = (T*)upcxx::allocate<T>(TotalRcvsVolume);
-  if (the_recv_data == NULL) {
-    printf("Failed to allocate %d bytes global address space memory!\n",
-           TotalRcvsVolume);
-    printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
-    printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-    BoxLib::Abort("PostRcvs_PGAS: Failed to allocate in global address space memory");
-  }
+  the_recv_data = (T*) BLPgas::alloc(TotalRcvsVolume*sizeof(T));
 
   int Offset = 0;
 
@@ -4155,10 +4150,10 @@ FabArrayBase::GrokAsyncSends_PGAS (int                 N_snds,
   BL_ASSERT(send_data.size() == N_snds);
   // Need to make sure all sends have been started
   while ((*send_counter) < N_snds)
-    upcxx::advance();
+      upcxx::advance();
   send_event->wait(); // wait for the sends
   for (int i = 0; i < N_snds; i++)
-    upcxx::deallocate(send_data[i]);
+      BLPgas::free(send_data[i]);
 }
 #endif /* BL_USE_UPCXX */
 
