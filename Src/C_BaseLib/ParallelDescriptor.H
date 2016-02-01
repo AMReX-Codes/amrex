@@ -278,7 +278,7 @@ namespace ParallelDescriptor
 	    }
 	}
 
-	void FenceBarrier () const {
+	void MemoryBarrier () const {
 	    if (m_size > 1) {
 #ifdef BL_USE_UPCXX
 		m_team.barrier();
