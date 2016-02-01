@@ -641,7 +641,7 @@ namespace BoxLib
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
 
-	MPI_Comm tgroup, rgroup, sgroup;
+	MPI_Group tgroup, rgroup, sgroup;
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
 
