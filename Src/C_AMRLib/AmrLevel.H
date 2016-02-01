@@ -233,10 +233,6 @@ public:
     //
     const BoxArray& ParticleBoxArray () const { return particle_grids; }
     //
-    // Are the particles on the same grids?
-    //
-    bool ParticlesOnSameGrids () const { return particles_on_same_grids; }
-    //
     // DistributionMap for particle_grids at this level.
     //
     const DistributionMapping& ParticleDistributionMap () const { return particle_dmap; }
@@ -481,7 +477,6 @@ protected:
 #ifdef USE_PARTICLES
     BoxArray              particle_grids; // Cell-centered locations of grids on which particles live.
     DistributionMapping   particle_dmap; // Distribution map associated with particle_grids.
-    bool                  particles_on_same_grids; // Are the BoxArrays particle_grids and grids identical?
 #endif
     Amr*                  parent;       // Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
