@@ -1678,7 +1678,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
 
 #ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().FenceBarrier();
+    ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
 
@@ -3674,7 +3674,7 @@ FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
     }
 
 #ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().FenceBarrier();
+    ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
 
@@ -4090,7 +4090,7 @@ FabArray<FAB>::FillBoundary_finish_UPCXX ()
 	fb_send_reqs.clear();
     }
 
-    ParallelDescriptor::MyTeam().FenceBarrier();
+    ParallelDescriptor::MyTeam().MemoryBarrier();
 }
 
  template<typename T>

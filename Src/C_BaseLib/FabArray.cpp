@@ -1160,7 +1160,7 @@ MFIter::~MFIter ()
 {
 #if BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
-	ParallelDescriptor::MyTeam().FenceBarrier();
+	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 }
 
