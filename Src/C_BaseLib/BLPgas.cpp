@@ -1,6 +1,8 @@
 
 #include <BLassert.H>
 #include <BLPgas.H>
+#include <ParallelDescriptor.H>
+#include <BaseFab.H>
 
 #ifdef BL_USE_CXX11
 #include <unordered_map>
@@ -168,4 +170,27 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
   // Create a new send_info and store the receiver part of it
   SendInfo send_info {src, dst, nbytes, SeqNum, signal_event, done_event, send_counter};
   pgas_send_info_map.insert(std::pair<upcxx::rank_t, SendInfo>(dst.where(), send_info));
+}
+
+void*
+BLPgas::alloc (std::size_t _sz)
+{
+    auto p = upcxx::allocate(_sz);
+    if (p == nullptr) {
+	std::cout << "===== Proc. " << ParallelDescriptor::MyProc() << " =====\n";
+	std::cout << "   Failed to allocate " << _sz << " bytes global address space memory!\n";
+	std::cout << "   Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n";
+	std::cout << "   For example, export GASNET_MAX_SEGSIZE=512MB\n";
+	std::cout << "   Total Bytes Allocated in Fabs: " << BoxLib::TotalBytesAllocatedInFabs();
+	std::cout << "   Highest Watermark in Fabs: " << BoxLib::TotalBytesAllocatedInFabsHWM();
+	std::cout << std::endl;
+	BoxLib::Abort("BLPgas: upcxx::allocate failed");
+    }
+    return p;
+}
+
+void
+BLPgas::free (void* pt)
+{
+    upcxx::deallocate(pt);
 }

@@ -944,17 +944,11 @@ namespace BoxLib
 		
 		BL_ASSERT(N < std::numeric_limits<int>::max());
 		
+		value_type* data = static_cast<value_type*>
 #ifdef BL_USE_UPCXX
-		value_type* data = static_cast<value_type*>(upcxx::allocate<value_type>(N));
-		if (data == NULL) {
-		    printf("Failed to allocate %zu bytes global address space memory!\n",
-			   sizeof(value_type)*N);
-		    printf("Please try to increase the GASNET_MAX_SEGSIZE environment variable.\n");
-		    printf("For example, export GASNET_MAX_SEGSIZE=512MB\n");
-		    BoxLib::Abort("FillPeriodicBoundary_nowait: Failed to allocate in global address space memory");
-		}
+		    (BLPgas::alloc(N*sizeof(value_type)));
 #else
-		value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+		    (BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
 #endif
 		
 		send_data.push_back(data);
@@ -1198,7 +1192,7 @@ namespace BoxLib
 		}
 	    }
 
-	    upcxx::deallocate(mf.fpb_the_recv_data);
+	    BLPgas::free(mf.fpb_the_recv_data);
 
 	    mf.fpb_recv_from.clear();
 	    mf.fpb_recv_data.clear();

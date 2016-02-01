@@ -1158,9 +1158,9 @@ MFIter::MFIter (const FabArrayBase&            fabarray_,
 
 MFIter::~MFIter ()
 {
-#if BL_USE_UPCXX
+#if BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
-	ParallelDescriptor::MyTeam().Barrier();
+	ParallelDescriptor::MyTeam().FenceBarrier();
 #endif
 }
 

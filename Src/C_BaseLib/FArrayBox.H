@@ -216,7 +216,8 @@ public:
     //
     explicit FArrayBox (const Box& b,
                         int        ncomp=1,
-			bool       alloc=true);
+			bool       alloc=true,
+			bool       shared=false);
     //
     // Set the fab to the value r.
     //

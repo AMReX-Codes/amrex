@@ -250,6 +250,7 @@ ifndef USE_CXX11
 endif
 
 ifeq ($(USE_UPCXX),TRUE)
+  USE_MPI = TRUE
   USE_CXX11 = TRUE
 endif
 
@@ -844,6 +845,14 @@ ifeq ($(USE_UPCXX),TRUE)
     include $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
 else
     UPCXXSuffix :=
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+else
+  ifeq ($(USE_MPI3),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+  endif
 endif
 
 ifeq ($(USE_MPI_ONESIDED),TRUE)

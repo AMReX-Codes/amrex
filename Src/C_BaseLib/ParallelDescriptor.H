@@ -14,6 +14,10 @@
 #include <upcxx.h>
 #endif
 
+#ifdef BL_USE_MPI3
+#include <atomic>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -274,6 +278,18 @@ namespace ParallelDescriptor
 	    }
 	}
 
+	void FenceBarrier () const {
+	    if (m_size > 1) {
+#ifdef BL_USE_UPCXX
+		m_team.barrier();
+#elif defined(BL_USE_MPI3)
+		std::atomic_thread_fence(std::memory_order_release);
+		MPI_Barrier(m_team);
+		std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+	    }
+	}
+
 	// ProcessTeam m_Team is a global static object.
 	// When it is destroyed, MPI is proably alread gone.
 	// So we should not destroy MPI_Comm in the dtor.
@@ -282,6 +298,8 @@ namespace ParallelDescriptor
 #ifdef BL_USE_UPCXX
 		;
 #elif defined(BL_USE_MPI3)
+		MPI_Win_free(&m_win);
+		MPI_Group_free(&m_group);
 		MPI_Comm_free(&m_team);
 #endif
 	    }
@@ -290,12 +308,25 @@ namespace ParallelDescriptor
 	team_t& get() { return m_team; }
 	const team_t& get() const { return m_team; }
 
+#ifdef BL_USE_MPI3
+	MPI_Win& get_win() { return m_win; }
+	const MPI_Win& get_win() const { return m_win; }
+
+	MPI_Group& get_group() { return m_group; }
+	const MPI_Group& get_group() const { return m_group; }
+#endif
+
 	team_t m_team;
 	int    m_numTeams;
 	int    m_size;
 	int    m_color;
 	int    m_lead;
 	int    m_rankInTeam;
+
+#ifdef BL_USE_MPI3
+	MPI_Win   m_win;
+	MPI_Group m_group;
+#endif
     };
 
     extern ProcessTeam m_Team;

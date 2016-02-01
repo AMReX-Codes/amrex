@@ -1744,15 +1744,16 @@ ParallelDescriptor::StartTeams ()
 	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
         m_Team.m_team = team;
 #elif defined(BL_USE_MPI3)
-	MPI_Group grp, teamgrp;
+	MPI_Group grp;
 	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
 	int team_ranks[team_size];
 	for (int i = 0; i < team_size; ++i) {
 	    team_ranks[i] = MyTeamLead() + i;
 	}
-	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &teamgrp) );
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
 	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
-					teamgrp, &m_Team.get()) );
+					m_Team.get_group(), &m_Team.get()) );
+	BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, m_Team.get(), &m_Team.get_win()) );
 #endif
     }
 }
