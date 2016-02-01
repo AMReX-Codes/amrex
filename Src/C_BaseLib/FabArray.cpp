@@ -1173,8 +1173,7 @@ MFIter::Initialize ()
     int nworkers = 1;
     
 #ifdef _OPENMP
-    int nosharing = flags & NoSharing;
-    if (omp_in_parallel() && !nosharing) {
+    if (omp_in_parallel()) {
 	rit = omp_get_thread_num();
 	nworkers = omp_get_num_threads();
     }
@@ -1187,7 +1186,8 @@ MFIter::Initialize ()
     }
 #endif
 
-    if (flags & OwnerOnly) { //
+    if ( (flags & NoSharing) || 
+	 (flags & OwnerOnly) ) {
 	rit = 0;
 	nworkers = 1;
     }
@@ -1212,6 +1212,12 @@ MFIter::Initialize ()
 	}
     }
     currentIndex = beginIndex;
+
+    if (flags & OwnerOnly) { //move currentIndex to the first tile we own.
+	while (currentIndex < endIndex && 
+	       !fabArray.isOwner(pta->localIndexMap[currentIndex]))
+	    ++currentIndex;
+    }
 
     typ = fabArray.boxArray().ixType();
 }
