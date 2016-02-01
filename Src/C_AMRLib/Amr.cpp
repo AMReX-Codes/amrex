@@ -2237,18 +2237,9 @@ Amr::regrid (int  lbase,
         //
         // Construct skeleton of new level.
         //
-//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
-  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1142:  calling levelbld:  lev = " << lev << std::endl;
-//}
 
         AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
 
-ParallelDescriptor::Barrier();
-//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
-  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1143:  after calling levelbld" << std::endl;
-//}
         if (initial)
         {
             //
@@ -2267,16 +2258,7 @@ ParallelDescriptor::Barrier();
             // NOTE: The init function may use a filPatch from the old level,
             //       which therefore needs remain in the hierarchy during the call.
             //
-ParallelDescriptor::Barrier();
-//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
-  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1144:  calling a->init:  lev compgroup sidecargroup = " << lev << "  " << ParallelDescriptor::InCompGroup() << "  " << ParallelDescriptor::InSidecarGroup() << std::endl;
-//}
             a->init(amr_level[lev]);
-//if(ParallelDescriptor::MyProcAll() == 0 || ParallelDescriptor::MyProcAll() == 12) {
-  BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-  std::cout << ParallelDescriptor::MyProcAll() << "::ssssssssssss _here 1145:  after calling a->init" << std::endl;
-//}
             amr_level.clear(lev);
             amr_level.set(lev,a);
        }
@@ -3444,6 +3426,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
       MultiFab::MoveAllFabs(mLDM[iMap]);
     }
     Geometry::FlushPIRMCache();
+    VisMF::SetNOutFiles(checkpoint_nfiles);
 }
 
 
@@ -3841,9 +3824,10 @@ DistributionMapping::CacheStats(cout);
       BL_MPI_REQUIRE( MPI_Group_free(&scsGroup) );
     }
 
+    VisMF::SetNOutFiles(checkpoint_nfiles);
 
     if(ParallelDescriptor::IOProcessor()) {
-      cout << "%%%%%%%% finished MakeSideCarsSmaller." << endl;
+      cout << "%%%%%%%% finished AddProcsToComp." << endl;
     }
 
 #endif
