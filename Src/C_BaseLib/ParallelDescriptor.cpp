@@ -1477,14 +1477,12 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
     switch(getsetinc) {
       case 0:  // ---- increment and return result
       {
-    int result = seqno++;
-
-    if (seqno > m_MaxTag) {
-      seqno = m_MinTag;
-      BL_COMM_PROFILE_TAGWRAP();
-    }
-
-    return result;
+        int result = seqno++;
+        if (seqno > m_MaxTag) {
+          seqno = m_MinTag;
+          BL_COMM_PROFILE_TAGWRAP();
+        }
+        return result;
       }
       case 1:  // ---- get current seqno
       {
@@ -1494,6 +1492,11 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
       {
 	seqno = newvalue;
         return seqno;
+      }
+      default:  // ---- error
+      {
+	BoxLib::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
+        return -1;
       }
     }
 
