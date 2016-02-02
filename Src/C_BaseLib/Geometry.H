@@ -1219,7 +1219,7 @@ namespace BoxLib
 	    mf.fpb_send_reqs.clear();
 	}
 
-	ParallelDescriptor::MyTeam().Barrier();
+	ParallelDescriptor::MyTeam().MemoryBarrier();
     }
 #endif /*BL_USE_UPCXX*/
 
