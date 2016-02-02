@@ -294,24 +294,13 @@ namespace ParallelDescriptor
 	// When it is destroyed, MPI is proably alread gone.
 	// So we should not destroy MPI_Comm in the dtor.
 	void clear () {
-	    if (m_size > 1) {
-#ifdef BL_USE_UPCXX
-		;
-#elif defined(BL_USE_MPI3)
-		MPI_Win_free(&m_win);
-		MPI_Group_free(&m_group);
-		MPI_Comm_free(&m_team);
-#endif
-	    }
+	    ;
 	}
 	
 	team_t& get() { return m_team; }
 	const team_t& get() const { return m_team; }
 
 #ifdef BL_USE_MPI3
-	MPI_Win& get_win() { return m_win; }
-	const MPI_Win& get_win() const { return m_win; }
-
 	MPI_Group& get_group() { return m_group; }
 	const MPI_Group& get_group() const { return m_group; }
 #endif
@@ -324,7 +313,6 @@ namespace ParallelDescriptor
 	int    m_rankInTeam;
 
 #ifdef BL_USE_MPI3
-	MPI_Win   m_win;
 	MPI_Group m_group;
 #endif
     };
