@@ -1197,7 +1197,7 @@ BaseFab<T>::define_mpi_shared_memory (bool alloc)
 #endif
 
     long alloc_truesize = (alloc) ? truesize : 0;
-    BL_MPI_REQUIRE( MPI_Win_allocate_shared(truesize*sizeof(T), sizeof(T), 
+    BL_MPI_REQUIRE( MPI_Win_allocate_shared(alloc_truesize*sizeof(T), sizeof(T), 
 					    MPI_INFO_NULL, team_comm, 
 					    &dptr, &win_shared) );
     
