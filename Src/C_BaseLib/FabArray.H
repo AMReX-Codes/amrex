@@ -3383,7 +3383,7 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
         FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),send_reqs,send_data,stats);
 
 #ifdef BL_USE_TEAM
-    ParallelDescriptor::MemoryBarrier();
+    ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
 #endif /*BL_USE_MPI*/
