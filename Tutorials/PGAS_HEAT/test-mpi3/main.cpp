@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     MPI_Win win_shared;
     void* baseptr;
     MPI_Win_allocate_shared(8*sizeof(double), sizeof(double),
-			    MPI_INFO_NULL, team_comm, baseptr, &win_shared);
+			    MPI_INFO_NULL, team_comm, &baseptr, &win_shared);
 
     double* p = (double*) baseptr;
     for (int i = 0; i < N; ++i) {
@@ -70,7 +70,9 @@ int main(int argc, char* argv[])
     }
 
     MPI_Win_free(&win_shared);
+#ifdef MANUAL_SPLIT
     MPI_Group_free(&team_grp);
+#endif
     MPI_Comm_free(&team_comm);
     MPI_Finalize();
 }
