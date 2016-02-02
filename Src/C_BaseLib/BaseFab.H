@@ -1197,15 +1197,13 @@ BaseFab<T>::define_mpi_shared_memory (bool alloc)
 #endif
 
     long alloc_truesize = (alloc) ? truesize : 0;
-    void * baseptr;
     BL_MPI_REQUIRE( MPI_Win_allocate_shared(truesize*sizeof(T), sizeof(T), 
 					    MPI_INFO_NULL, team_comm, 
-					    baseptr, &win_shared) );
+					    &dptr, &win_shared) );
     
     if (alloc)
     {
 	ptr_owner = true;
-	dptr = (T*)baseptr;
 	//
 	// Now call T::T() on the raw memory so we have valid Ts.
 	//
@@ -1233,11 +1231,11 @@ BaseFab<T>::define_mpi_shared_memory (bool alloc)
     }
     else
     {
+	ptr_owner = false;
 	MPI_Aint sz;
 	int disp;
 	BL_MPI_REQUIRE( MPI_Win_shared_query(win_shared, MPI_PROC_NULL, &sz,
-					     &disp, baseptr) );
-	dptr = (T*) baseptr;
+					     &disp, &dptr) );
     }
 }
 #endif
