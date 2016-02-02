@@ -206,14 +206,16 @@ c
      $     alpha, beta,
      $     a, DIMS(a),
      $     b, DIMS(b),
-     $     lo,hi,nc,
+     $     nc,
      $     h,
-     $     xflux,DIMS(xflux),
-     $     yflux,DIMS(yflux)
+     $     xlo,xhi,xflux,DIMS(xflux),
+     $     ylo,yhi,yflux,DIMS(yflux)
      $     )
       implicit none
       REAL_T alpha, beta
-      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer nc
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
       integer DIMDEC(x)
       integer DIMDEC(a)
       integer DIMDEC(b)
@@ -262,8 +264,8 @@ c
       bh1i = beta / h11
       bh2i = beta / h21
 
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)+1
+      do j = xlo(2), xhi(2)
+         do i = xlo(1), xhi(1)
             
             btm2 = btildei(i-1,j-2)
             btm1 = btildei(i-1,j-1)
@@ -293,8 +295,8 @@ c
          end do
       end do
 
-      do j = lo(2), hi(2)+1
-         do i = lo(1), hi(1)
+      do j = ylo(2), yhi(2)
+         do i = ylo(1), yhi(1)
             
             btm2 = btildej(i-2,j-1)
             btm1 = btildej(i-1,j-1)
@@ -895,7 +897,7 @@ c-----------------------------------------------------------------------
             do n = 1,nc
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     if((cfab(i,j,n) * cfab(i-1,j,n)).gt.0.d0)then
+                     if((cfab(i,j,n) * cfab(i-1,j,n)).ne.0.d0)then
                         efab(i,j,n)
      &                       = 2*(cfab(i,j,n) * cfab(i-1,j,n))/
      &                       (cfab(i,j,n) + cfab(i-1,j,n))
@@ -909,7 +911,7 @@ c-----------------------------------------------------------------------
             do n = 1,nc
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
-                     if((cfab(i,j,n) * cfab(i,j-1,n)).gt.0.d0)then
+                     if((cfab(i,j,n) * cfab(i,j-1,n)).ne.0.d0)then
                         efab(i,j,n)
      &                       = 2*(cfab(i,j,n) * cfab(i,j-1,n))/
      &                       (cfab(i,j,n) + cfab(i,j-1,n))

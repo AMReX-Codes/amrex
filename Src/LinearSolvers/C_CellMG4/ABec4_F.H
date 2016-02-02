@@ -163,13 +163,16 @@ extern "C"
         const Real* alpha, const Real* beta,
         const Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
         const Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
-        const int *lo, const int *hi, const int *nc,
+        const int *nc,
         const Real *h,
+        const int *xlo, const int *xhi,
         const Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi)
 #if (BL_SPACEDIM >= 2)
+        ,const int *ylo, const int *yhi
         ,const Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
 #endif
 #if (BL_SPACEDIM == 3)
+        ,const int *zlo, const int *zhi
         ,const Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
 #endif
         );

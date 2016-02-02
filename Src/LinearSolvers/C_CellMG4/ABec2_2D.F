@@ -3,7 +3,7 @@
 #include "CONSTANTS.H"
 #include "LO_BCTYPES.H"
 
-      subroutine ab2_gsrb (lo, hi,
+      subroutine ab2_gsrb (lo, hi, blo, bhi,
      &     phi, phi_l1, phi_l2, phi_h1, phi_h2,
      &     res, res_l1, res_l2, res_h1, res_h2,
      &     alpha, beta,
@@ -21,7 +21,7 @@
      &     nc, h, redBlack)
 
       implicit none
-      integer lo(2), hi(2), nc, redblack
+      integer lo(2), hi(2), blo(2), bhi(2), nc, redblack
       integer phi_l1, phi_l2, phi_h1, phi_h2
       integer res_l1, res_l2, res_h1, res_h2      
       integer a_l1,   a_h1,   a_l2,    a_h2
@@ -96,14 +96,14 @@ c
             ioff = MOD(j + redblack,2)
             do i = lo(1) + ioff,hi(1),2
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $              +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
@@ -125,14 +125,14 @@ c
          do i = lo(1) + redblack,hi(1),2
              do j = lo(2), hi(2)
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $               + dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
@@ -171,14 +171,14 @@ c
            do j = lo(2) + redblack,hi(2),2
              do i = lo(1), hi(1)
 c     
-               cf0 = merge(f0(lo(1),j), 0.0D0,
-     $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = merge(f1(i,lo(2)), 0.0D0,
-     $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = merge(f2(hi(1),j), 0.0D0,
-     $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = merge(f3(i,hi(2)), 0.0D0,
-     $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
+               cf0 = merge(f0(blo(1),j), 0.0D0,
+     $              (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
+               cf1 = merge(f1(i,blo(2)), 0.0D0,
+     $              (j .eq. blo(2)) .and. (m1(i,blo(2)-1).gt.0))
+               cf2 = merge(f2(bhi(1),j), 0.0D0,
+     $              (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
+               cf3 = merge(f3(i,bhi(2)), 0.0D0,
+     $              (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
      $               + dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
