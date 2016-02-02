@@ -617,7 +617,10 @@ contains
        
        totalvol = totalvol + vol
        
-       if ( (totalvol/i) > volpercpu .and. (cnt > 1) .and. (k <= sz) ) then
+       if (     (totalvol/i) > volpercpu &  ! Too much for this bin.
+          .and. (cnt > 1)                &  ! More than one box in this bin.
+          .and. (k <= sz)              ) &  ! Not the last bin, which has to take all.
+       then
           k        = k - 1
           vol      = vol - ibxs(iorder(k))
           totalvol = totalvol - ibxs(iorder(k))

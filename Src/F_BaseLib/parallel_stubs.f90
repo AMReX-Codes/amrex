@@ -6,6 +6,8 @@ module parallel
 
   use bl_types
 
+  use iso_c_binding, only : c_long
+
   implicit none
 
 
@@ -62,10 +64,12 @@ module parallel
      module procedure parallel_reduce_d
      module procedure parallel_reduce_r
      module procedure parallel_reduce_i
+     module procedure parallel_reduce_cl
      module procedure parallel_reduce_l
      module procedure parallel_reduce_dv
      module procedure parallel_reduce_rv
      module procedure parallel_reduce_iv
+     module procedure parallel_reduce_clv
      module procedure parallel_reduce_lv
   end interface parallel_reduce
 
@@ -73,6 +77,7 @@ module parallel
 !      module procedure parallel_isend_dv
 !      module procedure parallel_isend_rv
 !      module procedure parallel_isend_iv
+!      module procedure parallel_isend_clv
 !      module procedure parallel_isend_lv
 !   end interface parallel_isend
 
@@ -80,6 +85,7 @@ module parallel
 !      module procedure parallel_irecv_dv
 !      module procedure parallel_irecv_rv
 !      module procedure parallel_irecv_iv
+!      module procedure parallel_irecv_clv
 !      module procedure parallel_irecv_lv
 !   end interface parallel_irecv
 
@@ -105,6 +111,13 @@ module parallel
      module procedure parallel_send_i5
      module procedure parallel_send_i6
      module procedure parallel_send_i7
+     module procedure parallel_send_cl1
+     module procedure parallel_send_cl2
+     module procedure parallel_send_cl3
+     module procedure parallel_send_cl4
+     module procedure parallel_send_cl5
+     module procedure parallel_send_cl6
+     module procedure parallel_send_cl7
      module procedure parallel_send_z1
      module procedure parallel_send_z2
      module procedure parallel_send_z3
@@ -136,6 +149,13 @@ module parallel
      module procedure parallel_recv_i5
      module procedure parallel_recv_i6
      module procedure parallel_recv_i7
+     module procedure parallel_recv_cl1
+     module procedure parallel_recv_cl2
+     module procedure parallel_recv_cl3
+     module procedure parallel_recv_cl4
+     module procedure parallel_recv_cl5
+     module procedure parallel_recv_cl6
+     module procedure parallel_recv_cl7
      module procedure parallel_recv_z1
      module procedure parallel_recv_z2
      module procedure parallel_recv_z3
@@ -161,10 +181,12 @@ module parallel
      module procedure parallel_bcast_d
      module procedure parallel_bcast_r
      module procedure parallel_bcast_i
+     module procedure parallel_bcast_cl
      module procedure parallel_bcast_l
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
+     module procedure parallel_bcast_clv
      module procedure parallel_bcast_lv
   end interface parallel_bcast
 
@@ -172,6 +194,7 @@ module parallel
      module procedure parallel_scatter_dv
      module procedure parallel_scatter_rv
      module procedure parallel_scatter_iv
+     module procedure parallel_scatter_clv
      module procedure parallel_scatter_lv
   end interface parallel_scatter
 
@@ -182,6 +205,7 @@ module parallel
      module procedure parallel_gather_d
      module procedure parallel_gather_r
      module procedure parallel_gather_i
+     module procedure parallel_gather_cl
      module procedure parallel_gather_l
      module procedure parallel_gather_c
      module procedure parallel_gather_z
@@ -192,6 +216,7 @@ module parallel
      module procedure parallel_gather_rv
      module procedure parallel_gather_iv
      module procedure parallel_gather_lv
+     module procedure parallel_gather_clv
      module procedure parallel_gather_cv
      module procedure parallel_gather_zv
   end interface parallel_gather
@@ -200,6 +225,7 @@ module parallel
      module procedure parallel_allgather_dv
      module procedure parallel_allgather_rv
      module procedure parallel_allgather_iv
+     module procedure parallel_allgather_clv
      module procedure parallel_allgather_lv
      module procedure parallel_allgather_zv
   end interface parallel_allgather
@@ -209,6 +235,8 @@ module parallel
      module procedure parallel_alltoall_dv
      module procedure parallel_alltoall_i
      module procedure parallel_alltoall_iv
+     module procedure parallel_alltoall_cl
+     module procedure parallel_alltoall_clv
      module procedure parallel_alltoall_l
      module procedure parallel_alltoall_lv
   end interface
@@ -345,6 +373,14 @@ contains
     integer, intent(out) :: r
     r = a
   end subroutine parallel_reduce_i
+  subroutine parallel_reduce_cl(r, a, op, proc, comm)
+    integer (kind=c_long), intent(in) :: a
+    integer, intent(in) :: op
+    integer, intent(in), optional :: proc
+    integer, intent(in), optional :: comm
+    integer (kind=c_long), intent(out) :: r
+    r = a
+  end subroutine parallel_reduce_cl
   subroutine parallel_reduce_l(r, a, op, proc, comm)
     logical, intent(in) :: a
     integer, intent(in) :: op
@@ -373,6 +409,14 @@ contains
     integer, intent(out) :: r(:)
     r = a
   end subroutine parallel_reduce_iv
+  subroutine parallel_reduce_clv(r, a, op, proc, comm)
+    integer(kind=c_long), intent(in) :: a(:)
+    integer, intent(in) :: op
+    integer, intent(in), optional :: proc
+    integer, intent(in), optional :: comm
+    integer(kind=c_long), intent(out) :: r(:)
+    r =a 
+  end subroutine parallel_reduce_clv
   subroutine parallel_reduce_lv(r, a, op, proc, comm)
     logical, intent(in) :: a(:)
     integer, intent(in) :: op
@@ -411,9 +455,20 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_ISEND_IV')
     r = -1
   end function parallel_isend_iv
+  function parallel_isend_clv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    integer(kind=c_long), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_ISEND_CLV')
+    r = -1
+  end function parallel_isend_clv
   function parallel_isend_lv(a, n, proc, tag, comm) result(r)
     integer :: r
     logical, intent(in) :: a(*)
@@ -422,7 +477,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_ISEND_LV')
     r = -1
   end function parallel_isend_lv
   function parallel_isend_zv(a, n, proc, tag, comm) result(r)
@@ -433,7 +488,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_DV')
+    call parallel_abort('PARALLEL_ISEND_ZV')
     r = -1
   end function parallel_isend_zv
 
@@ -447,7 +502,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_IRECV_DV')
     a(1:n) = HUGE(a)
     r = -1
   end function parallel_irecv_dv
@@ -459,7 +514,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_IRECV_RV')
     a(1:n) = HUGE(a)
     r = -1
   end function parallel_irecv_rv
@@ -471,10 +526,22 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_IRECV_IV')
     a(1:n) = HUGE(a)
     r = -1
   end function parallel_irecv_iv
+  function parallel_irecv_clv(a, n, proc, tag, comm) result(r)
+    integer :: r
+    integer(kind=c_long), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_IRECV_CLV')
+    a(1:n) = HUGE(a)
+    r = -1
+  end function parallel_irecv_clv
   function parallel_irecv_lv(a, n, proc, tag, comm) result(r)
     integer :: r
     logical, intent(out) :: a(*)
@@ -483,7 +550,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_IRECV_LV')
     a(1:n) = .FALSE.
     r = -1
   end function parallel_irecv_lv
@@ -495,7 +562,7 @@ contains
     integer l_comm
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
-    call parallel_abort('PARALLEL_ISEND_RV')
+    call parallel_abort('PARALLEL_IRECV_ZV')
     a(1:n) = Huge(1.0_dp_t)
     r = -1
   end function parallel_irecv_zv
@@ -679,6 +746,57 @@ contains
     if ( present(comm) ) l_comm = comm
     call parallel_abort('PARALLEL_SEND')
   end subroutine parallel_send_iv
+  subroutine parallel_send_cl1(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl1
+  subroutine parallel_send_cl2(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl2
+  subroutine parallel_send_cl3(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl3
+  subroutine parallel_send_cl4(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl4
+  subroutine parallel_send_cl5(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl5
+  subroutine parallel_send_cl6(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl6
+  subroutine parallel_send_cl7(a, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    call parallel_send_clv(a, size(a), proc, tag, comm)
+  end subroutine parallel_send_cl7
+  subroutine parallel_send_clv(a, n, proc, tag, comm)
+    integer(kind=c_long), intent(in) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_SEND')
+  end subroutine parallel_send_clv
   subroutine parallel_send_l1(a, proc, tag, comm)
     logical, intent(in) :: a(:)
     integer, intent(in) :: proc, tag
@@ -919,6 +1037,68 @@ contains
     a(1:n) = HUGE(a)
     if ( present(status) ) status = lstatus
   end subroutine parallel_recv_iv
+  subroutine parallel_recv_cl1(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl1
+  subroutine parallel_recv_cl2(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl2
+  subroutine parallel_recv_cl3(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl3
+  subroutine parallel_recv_cl4(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl4
+  subroutine parallel_recv_cl5(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl5
+  subroutine parallel_recv_cl6(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl6
+  subroutine parallel_recv_cl7(a, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(:,:,:,:,:,:,:)
+    integer, intent(in) :: proc, tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    call parallel_recv_clv(a, size(a), proc, tag, comm, status)
+  end subroutine parallel_recv_cl7
+  subroutine parallel_recv_clv(a, n, proc, tag, comm, status)
+    integer(kind=c_long), intent(out) :: a(*)
+    integer, intent(in) :: proc, tag, n
+    integer, intent(in), optional :: comm
+    integer l_comm, lstatus(MPI_STATUS_SIZE)
+    integer, intent(out), optional, dimension(MPI_STATUS_SIZE) :: status
+    lstatus = 0
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    call parallel_abort('PARALLEL_RECV')
+    a(1:n) = HUGE(a)
+    if ( present(status) ) status = lstatus
+  end subroutine parallel_recv_clv
   subroutine parallel_recv_l1(a, proc, tag, comm, status)
     logical, intent(out) :: a(:)
     integer, intent(in) :: proc, tag
@@ -1085,6 +1265,27 @@ contains
     a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
   end subroutine parallel_alltoall_iv
 
+  ! AlltoAll
+  subroutine parallel_alltoall_cl(a, b, n, comm)
+    integer(kind=c_long), intent(in) :: b(*)
+    integer(kind=c_long), intent(inout) :: a(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    integer, intent(in) :: n
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(1:n) = b(1:n)
+  end subroutine parallel_alltoall_cl
+  ! AlltoAll
+  subroutine parallel_alltoall_clv(a, ac, ad, b, bc, bd, comm)
+    integer(kind=c_long), intent(in) :: b(*)
+    integer(kind=c_long), intent(inout) :: a(*)
+    integer, intent(in) :: ac(*), ad(*), bc(*), bd(*)
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm
+    l_comm = m_comm; if ( present(comm) ) l_comm = comm
+    a(ad(1):ad(1)+ac(1)-1) = b(bd(1):bd(1)+bc(1)-1)
+  end subroutine parallel_alltoall_clv
+
   subroutine parallel_alltoall_l(a, b, n, comm)
     logical, intent(in) :: b(*)
     logical, intent(inout) :: a(*)
@@ -1135,6 +1336,17 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_i
+  subroutine parallel_bcast_cl(a, root, comm)
+    integer(kind=c_long) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_cl
   subroutine parallel_bcast_l(a, root, comm)
     logical, intent(in) :: a
     integer, intent(in), optional :: root
@@ -1176,6 +1388,17 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_iv
+  subroutine parallel_bcast_clv(a, root, comm)
+    integer(kind=c_long) :: a(:)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_comm, l_root
+    external MPI_Bcast
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_clv
   subroutine parallel_bcast_lv(a, root, comm)
     logical, intent(in) :: a(:)
     integer, intent(in), optional :: root
@@ -1239,6 +1462,20 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_gather_i
+  subroutine parallel_gather_cl(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    integer(kind=c_long), intent(in) :: snd(*)
+    integer(kind=c_long), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_root, l_comm
+    external MPI_Gather
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_cl
   subroutine parallel_gather_l(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
@@ -1323,6 +1560,21 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_gather_iv
+  subroutine parallel_gather_clv(snd, n, rcv, rcvc, rcvd, root, comm)
+    integer(kind=c_long), intent(in) :: snd(*)
+    integer, intent(in) :: n
+    integer(kind=c_long), intent(inout) :: rcv(*)
+    integer, intent(in) :: rcvc(*), rcvd(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer ierr, l_root, l_comm
+    external MPI_Gatherv
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_gather_clv
   subroutine parallel_gather_lv(snd, n, rcv, rcvc, rcvd, root, comm)
     logical, intent(in) :: snd(*)
     integer, intent(in) :: n
@@ -1397,6 +1649,17 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_allgather_iv
+  subroutine parallel_allgather_clv(snd, rcv, n, comm)
+    integer, intent(in) :: n
+    integer(kind=c_long), intent(in) :: snd(*)
+    integer(kind=c_long), intent(out) :: rcv(*)
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_comm
+    external MPI_Allgather
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_allgather_clv
   subroutine parallel_allgather_lv(snd, rcv, n, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)
@@ -1458,6 +1721,20 @@ contains
     if ( present(comm) ) l_comm = comm
     rcv(1:n) = snd(1:n)
   end subroutine parallel_scatter_iv
+  subroutine parallel_scatter_clv(snd, rcv, n, root, comm)
+    integer, intent(in) :: n
+    integer(kind=c_long), intent(in) :: snd(*)
+    integer(kind=c_long), intent(out) :: rcv(*)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer :: ierr, l_root, l_comm
+    external MPI_Scatter
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+    rcv(1:n) = snd(1:n)
+  end subroutine parallel_scatter_clv
   subroutine parallel_scatter_lv(snd, rcv, n, root, comm)
     integer, intent(in) :: n
     logical, intent(in) :: snd(*)

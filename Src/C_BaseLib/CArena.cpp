@@ -14,7 +14,7 @@ CArena::CArena (size_t hunk_size)
     m_used = 0;
 
     BL_ASSERT(m_hunk >= hunk_size);
-    BL_ASSERT(m_hunk%sizeof(Arena::Word) == 0);
+    BL_ASSERT(m_hunk%Arena::align_size == 0);
 }
 
 CArena::~CArena ()

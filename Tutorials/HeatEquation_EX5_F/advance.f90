@@ -80,7 +80,8 @@ contains
 
        end do
 
-       ! stores beta*grad phi/dx_fine on coarse-fine interfaces
+       ! stores +beta*grad phi/dx_fine on low (relative to fine) coarse-fine interfaces
+       ! stores -beta*grad phi/dx_fine on high coarse-fine interfaces
        ! this gets computed inside of ml_cc_solve
        ! we pass it back out because some algorithms (like projection methods) 
        ! use this information

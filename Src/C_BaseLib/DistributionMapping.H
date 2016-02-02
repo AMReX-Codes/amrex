@@ -75,6 +75,11 @@ class DistributionMapping
     //
     void define (const BoxArray& boxes, int nprocs);
     //
+    // Build mapping out of an Array of ints. You need to call this if you
+    // built your DistributionMapping with the default constructor.
+    //
+    void define (const Array<int>& pmap);
+    //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
     // ProcessorMap()[i] is an integer in the interval [0, NCPU) where
@@ -86,9 +91,18 @@ class DistributionMapping
     //
     int size () const { return m_ref->m_pmap.size(); }
     //
+    // Number of references to this DistributionMapping
+    //
+    int linkCount () const { return m_ref.linkCount(); }
+    //
     // Equivalent to ProcessorMap()[index].
     //
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
+    //
+    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
+    //   All FabArrays using the cached map must move their fabs before
+    //   calling this function.
+    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
     //
     // Set/get the distribution strategy.
     //
@@ -134,7 +148,7 @@ class DistributionMapping
     void PFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
                          int nprocs);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
-                              double* efficiency = 0,
+                              Real* efficiency = 0,
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
@@ -175,12 +189,35 @@ class DistributionMapping
     static int ProximityMap(const int rank)   { return proximityMap[rank];   }
     static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
+#if !(defined(BL_NO_FORT) || defined(WIN32))
     static void ReadCheckPointHeader(const std::string &filename,
 				     Array<IntVect>  &refRatio,
                                      Array<BoxArray> &allBoxes);
+#endif
     static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
                                  const Array<BoxArray> &allBoxes);
 
+    static Array<Array<int> > MultiLevelMapPFC(const Array<IntVect>  &refRatio,
+                                               const Array<BoxArray> &allBoxes,
+					       int maxgrid);
+    static Array<Array<int> > MultiLevelMapRandom(const Array<IntVect>  &refRatio,
+                                                  const Array<BoxArray> &allBoxes,
+						  int maxgrid);
+    static Array<Array<int> > MultiLevelMapKnapSack(const Array<IntVect>  &refRatio,
+                                                    const Array<BoxArray> &allBoxes,
+						    int maxgrid);
+
+    static int NDistMaps() { return nDistMaps; }
+    int DistMapID() const { return dmID; }
+
+    //
+    // This gives a unique ID of the reference, which is different from dmID above.
+    //
+    ptrdiff_t getRefID () const;
+
+#ifdef BL_USE_MPI
+    static void SendDistributionMappingToSidecars(DistributionMapping *dm);
+#endif
 
 private:
     //
@@ -220,7 +257,7 @@ private:
 
     void KnapSackDoIt (const std::vector<long>& wgts,
                        int                      nprocs,
-                       double&                  efficiency,
+                       Real&                    efficiency,
                        bool                     do_full_knapsack,
 		       int                      nmax=std::numeric_limits<int>::max());
 
@@ -284,7 +321,6 @@ private:
         // This latter acts as a sentinel in some FabArray loops.
         //
         Array<int> m_pmap;
-        //Array<long> boxPoints;  // i == rank.  so we can subtract from total
     };
     //
     // The data -- a reference-counted pointer to a Ref.
@@ -302,7 +338,9 @@ private:
     static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
     static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
     static Array<long> totalBoxPoints;  // i == rank
-    //const Array<long> &BoxPoints() { return boxPoints; }
+
+    static int nDistMaps;
+    int dmID;
 };
 
 //

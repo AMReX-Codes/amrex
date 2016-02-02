@@ -23,6 +23,10 @@
 #include <MultiFab.H>
 #endif
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -34,6 +38,17 @@
 #ifdef BL_BACKTRACING
 #include <BLBackTrace.H>
 #include <signal.h>
+#include <fenv.h>
+#endif
+
+#include <MemPool.H>
+
+#ifdef BL_USE_FORTRAN_MPI
+extern "C" {
+    void bl_fortran_mpi_comm_init (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
+}
 #endif
 
 #define bl_str(s)  # s
@@ -56,6 +71,16 @@ __TIME__;
 
 #undef bl_str
 #undef bl_xstr
+
+namespace
+{
+    std::string exename;
+}
+
+namespace BoxLib
+{
+    int verbose = 0;
+}
 
 //
 // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
@@ -208,20 +233,66 @@ BoxLib::Assert (const char* EX,
     write_to_stderr_without_buffering(buf);
 
 #ifdef BL_BACKTRACING
-    BLBackTrace::handler(-1);
+    BLBackTrace::handler(SIGABRT);
 #else
 #ifdef __linux__
-    void *buffer[10];
-    int nptrs = backtrace(buffer, 10);
-    backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
+    BoxLib::print_backtrace_info(stderr);
 #endif
     ParallelDescriptor::Abort();
 #endif
 }
 
+#ifdef __linux__
+void
+BoxLib::print_backtrace_info (FILE* f)
+{
+    const int nbuf = 32;
+    char **strings = NULL;
+    void *buffer[nbuf];
+    int nptrs = backtrace(buffer, nbuf);
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings != NULL) {
+	int have_addr2line = 0;
+	std::string cmd = "/usr/bin/addr2line";
+	if (FILE *fp = fopen(cmd.c_str(), "r")) {
+	    fclose(fp);
+	    have_addr2line = 1;
+	}
+	cmd += " -Cfie " + exename; 
+	if (have_addr2line) {
+	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
+	    fprintf(f, "    to find out the offset for that line.\n");
+	}
+	for (int i = 0; i < nptrs; ++i) {
+	    std::string line = strings[i];
+	    line += "\n";
+	    if (have_addr2line) {
+		std::size_t found1 = line.rfind('[');
+		std::size_t found2 = line.rfind(']');
+		if (found1 != std::string::npos && found2 != std::string::npos) {
+		    std::string addr = line.substr(found1+1, found2-found1-1);
+		    std::string full_cmd = cmd + " " + addr;
+		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+			char buff[512];
+			while (fgets(buff, sizeof(buff), ps)) {
+			    line += "    ";
+			    line += buff;
+			}
+			pclose(ps);
+		    }
+		}
+	    }
+	    fprintf(f, "%2d: %s\n", i, line.c_str());
+	}
+    }
+}
+#endif
+
 namespace
 {
     std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Finalize_Function_Stack;
+    std::stack<BoxLib::PTR_TO_VOID_FUNC> The_Initialize_Function_Stack;
 }
 
 void
@@ -231,8 +302,16 @@ BoxLib::ExecOnFinalize (PTR_TO_VOID_FUNC fp)
 }
 
 void
+BoxLib::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
+{
+    The_Initialize_Function_Stack.push(fp);
+}
+
+void
 BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
 {
+    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+
 #ifndef WIN32
     //
     // Make sure to catch new failures.
@@ -242,19 +321,46 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
 #ifdef BL_BACKTRACING
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+    feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
+    signal(SIGFPE,  BLBackTrace::handler);
+    signal(SIGINT,  BLBackTrace::handler);
+    signal(SIGTERM, BLBackTrace::handler);
 #endif
 
-    ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
+#ifdef __linux__
+    {
+	if (argv[0][0] != '/') {
+	    char temp[1024];
+	    getcwd(temp,1024);
+	    exename = temp;
+	    exename += "/";
+	}
+	exename += argv[0];
+    }
+#endif    
 
-    if(ParallelDescriptor::NProcsPerfMon() > 0) {
-      if(ParallelDescriptor::MyProcAll() == ParallelDescriptor::MyProcAllPerfMon()) {
-        std::cout << "Starting PerfMonProc:  myprocall = "
-                  << ParallelDescriptor::MyProcAll() << std::endl;
-        BLProfiler::PerfMonProcess();
+    while (!The_Initialize_Function_Stack.empty())
+    {
+        //
+        // Call the registered function.
+        //
+        (*The_Initialize_Function_Stack.top())();
+        //
+        // And then remove it from the stack.
+        //
+        The_Initialize_Function_Stack.pop();
+    }
+
+    if(ParallelDescriptor::NProcsSidecar() > 0) {
+      if(ParallelDescriptor::InSidecarGroup()) {
+        if (ParallelDescriptor::IOProcessor())
+          std::cout << "===== SIDECARS INITIALIZED =====" << std::endl;
+        ParallelDescriptor::SidecarProcess();
         BoxLib::Finalize();
         return;
       }
     }
+
 
     BL_PROFILE_INITIALIZE();
 
@@ -299,8 +405,14 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
                 ParmParse::Initialize(argc-2,argv+2,argv[1]);
             }
         }
+
+	ParmParse pp("boxlib");
+	pp.query("v", verbose);
+	pp.query("verbose", verbose);
     }
 #endif
+
+    mempool_init();
 
     std::cout << std::setprecision(10);
 
@@ -313,12 +425,21 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 		      << ", might be too small for big runs.\n!\n";
 	}
     }
+
+#ifdef BL_USE_FORTRAN_MPI
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_mpi_comm_init (fcomm);
+#endif
 }
 
 void
 BoxLib::Finalize (bool finalize_parallel)
 {
     BL_PROFILE_FINALIZE();
+
+#ifdef BL_LAZY
+    Lazy::Finalize();
+#endif
 
     while (!The_Finalize_Function_Stack.empty())
     {
@@ -332,7 +453,47 @@ BoxLib::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-    if (finalize_parallel)
+    // The MemPool stuff is not using The_Finalize_Function_Stack so that
+    // it can be used in Fortran BoxLib.
+    if (BoxLib::verbose)
+    {
+	int mp_min, mp_max, mp_tot;
+	mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
+	if (ParallelDescriptor::NProcs() == 1) {
+	    if (mp_tot > 0) {
+		std::cout << "MemPool: " 
+#ifdef _OPENMP
+			  << "min used in a thread: " << mp_min << " MB, "
+			  << "max used in a thread: " << mp_max << " MB, "
+#endif
+			  << "tot used: " << mp_tot << " MB." << std::endl;
+	    }
+	} else {
+	    int global_max = mp_tot;
+	    int global_min = mp_tot;
+	    ParallelDescriptor::ReduceIntMax(global_max);
+	    if (global_max > 0) {
+		ParallelDescriptor::ReduceIntMin(global_min);
+		if (ParallelDescriptor::IOProcessor()) {
+		    std::cout << "MemPool: " 
+			      << "min used in a rank: " << global_min << " MB, "
+			      << "max used in a rank: " << global_max << " MB."
+			      << std::endl;
+		}
+	    }
+	}
+    }
+    
+    if (finalize_parallel) {
+#ifdef BL_USE_FORTRAN_MPI
+#ifdef IN_TRANSIT
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_sidecar_mpi_comm_free(fcomm);
+#else
+    bl_fortran_mpi_comm_free();
+#endif
+#endif
         ParallelDescriptor::EndParallel();
+    }
 }
 

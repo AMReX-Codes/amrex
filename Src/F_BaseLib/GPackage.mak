@@ -109,3 +109,7 @@ endif
 ifdef RANDOM
   f90sources += mt19937ar.f90
 endif
+
+include $(BOXLIB_HOME)/Src/C_BaseLib/GPackage.mak
+VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib

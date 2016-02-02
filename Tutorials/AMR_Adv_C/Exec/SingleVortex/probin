@@ -1,0 +1,14 @@
+&fortin
+
+   adv_vel = 1.d0, 1.d0, 1.d0
+
+/
+
+&tagging
+  
+   phierr = 1.01d0, 1.1d0, 1.5d0
+
+   max_phierr_lev = 10
+
+/
+

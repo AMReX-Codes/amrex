@@ -33,6 +33,14 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef USE_PARTICLES
+#include <AmrParGDB.H>
+#endif
+
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
 #endif
@@ -46,8 +54,10 @@
 // Static class members.  Set defaults in Initialize()!!!
 //
 std::list<std::string> Amr::state_plot_vars;
+std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
+bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -87,6 +97,7 @@ Amr::Initialize ()
     // Set all defaults here!!!
     //
     Amr::first_plotfile      = true;
+    Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -223,6 +234,7 @@ Amr::Amr (const RealBox* rb, int max_level_in, Array<int> n_cell_in, int coord)
 void
 Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 {
+    BL_PROFILE("Amr::InitAmr()");
     //
     // Determine physics class.
     //
@@ -236,16 +248,19 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     //
     grid_eff               = 0.7;
     plot_int               = -1;
+    small_plot_int         = -1;
     n_proper               = 1;
     max_level              = -1;
     last_plotfile          = 0;
+    last_smallplotfile     = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
     file_name_digits       = 5;
     record_run_info_terse  = false;
     bUserStopRequest       = false;
-
+    message_int            = 10;
+    
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
         isPeriodic[i] = false;
@@ -276,6 +291,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     pp.query("initial_grid_file",initial_grids_file);
     pp.query("regrid_file"      , regrid_grids_file);
 
+    pp.query("message_int", message_int);
+    
     if (pp.contains("run_log"))
     {
         std::string log_file_name;
@@ -624,12 +641,32 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         is.close();
 #undef STRIP
     }
+
+    rebalance_grids = 0;
+    pp.query("rebalance_grids", rebalance_grids);
+
+#ifdef USE_PARTICLES
+    m_gdb = new AmrParGDB(this);
+#endif
 }
 
 bool
 Amr::isStatePlotVar (const std::string& name)
 {
     for (std::list<std::string>::const_iterator li = state_plot_vars.begin(), End = state_plot_vars.end();
+         li != End;
+         ++li)
+    {
+        if (*li == name)
+            return true;
+    }
+    return false;
+}
+
+bool
+Amr::isStateSmallPlotVar (const std::string& name)
+{
+    for (std::list<std::string>::const_iterator li = state_small_plot_vars.begin(), End = state_small_plot_vars.end();
          li != End;
          ++li)
     {
@@ -657,10 +694,23 @@ Amr::clearStatePlotVarList ()
 }
 
 void
+Amr::clearStateSmallPlotVarList ()
+{
+    state_small_plot_vars.clear();
+}
+
+void
 Amr::addStatePlotVar (const std::string& name)
 {
     if (!isStatePlotVar(name))
         state_plot_vars.push_back(name);
+}
+
+void
+Amr::addStateSmallPlotVar (const std::string& name)
+{
+    if (!isStateSmallPlotVar(name))
+        state_small_plot_vars.push_back(name);
 }
 
 void
@@ -724,6 +774,10 @@ Amr::deleteDerivePlotVar (const std::string& name)
 Amr::~Amr ()
 {
     levelbld->variableCleanUp();
+
+#ifdef USE_PARTICLES
+    delete m_gdb;
+#endif
 
     Amr::Finalize();
 }
@@ -869,7 +923,7 @@ Amr::writePlotFile ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilCreateCleanDirectory(pltfile, false);     // dont call barrier
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
     BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
 
     std::string HeaderFileName(pltfileTemp + "/Header");
@@ -928,6 +982,110 @@ Amr::writePlotFile ()
 
   }  // end while
   BL_PROFILE_REGION_STOP("Amr::writePlotFile()");
+}
+
+void
+Amr::writeSmallPlotFile ()
+{
+    if ( ! Plot_Files_Output()) return;
+
+    BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
+    BL_PROFILE("Amr::writeSmallPlotFile()");
+
+    VisMF::SetNOutFiles(plot_nfiles);
+
+    if (first_smallplotfile) 
+    {
+        first_smallplotfile = false;
+        amr_level[0].setSmallPlotVariables();
+    }
+
+    // Don't continue if we have no variables to plot.
+    
+    if (stateSmallPlotVars().size() == 0) return;
+
+    Real dPlotFileTime0 = ParallelDescriptor::second();
+
+    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,level_steps[0],file_name_digits);
+
+    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+        std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+    if (record_run_info && ParallelDescriptor::IOProcessor())
+        runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+                             stream_max_tries);
+
+  const std::string pltfileTemp(pltfile + ".temp");
+
+  while(sretry.TryFileOutput()) {
+    //
+    //  if either the pltfile or pltfileTemp exists, rename them
+    //  to move them out of the way.  then create pltfile
+    //  with the temporary name, then rename it back when
+    //  it is finished writing.  then stream retry can rename
+    //  it to a bad suffix if there were stream errors.
+    //
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+
+    std::string HeaderFileName(pltfileTemp + "/Header");
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ofstream HeaderFile;
+
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    int old_prec(0);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+	                                        std::ios::binary);
+        if ( ! HeaderFile.good())
+            BoxLib::FileOpenFailed(HeaderFileName);
+        old_prec = HeaderFile.precision(15);
+    }
+
+    for (int k(0); k <= finest_level; ++k)
+        amr_level[k].writeSmallPlotFile(pltfileTemp, HeaderFile);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HeaderFile.precision(old_prec);
+        if ( ! HeaderFile.good())
+            BoxLib::Error("Amr::writePlotFile() failed");
+    }
+
+    last_smallplotfile = level_steps[0];
+
+    if (verbose > 0)
+    {
+        const int IOProc        = ParallelDescriptor::IOProcessorNumber();
+        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+
+        ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+    }
+    ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+    //
+    // the plotfile file now has the regular name
+    //
+
+  }  // end while
+  BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
 }
 
 void
@@ -997,6 +1155,7 @@ Amr::init (Real strt_time,
            Real stop_time)
 {
     BL_PROFILE_REGION_START("Amr::init()");
+    BL_PROFILE("Amr::init()");
     if (!restart_chkfile.empty() && restart_chkfile != "init")
     {
         restart(restart_chkfile);
@@ -1007,6 +1166,8 @@ Amr::init (Real strt_time,
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
             writePlotFile();
+	if (small_plot_int > 0 || small_plot_per > 0)
+	    writeSmallPlotFile();
     }
 #ifdef HAS_XGRAPH
     if (first_plotfile)
@@ -1059,11 +1220,24 @@ Amr::readProbinFile (int& init)
             // Call the pesky probin reader.
             //
             piStart = ParallelDescriptor::second();
+
+#ifdef DIMENSION_AGNOSTIC
+
+            FORT_PROBINIT(&init,
+                          probin_file_name.dataPtr(),
+                          &probin_file_length,
+                          ZFILL(Geometry::ProbLo()),
+                          ZFILL(Geometry::ProbHi()));
+
+#else
+
             FORT_PROBINIT(&init,
                           probin_file_name.dataPtr(),
                           &probin_file_length,
                           Geometry::ProbLo(),
                           Geometry::ProbHi());
+#endif
+
             piEnd = ParallelDescriptor::second();
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);
@@ -1109,6 +1283,7 @@ Amr::initialInit (Real              strt_time,
                   const BoxArray*   lev0_grids,
                   const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::initialInit()");
     InitializeInit(strt_time, stop_time, lev0_grids, pmap);
 
     // This is a subtlety, but in the case where we are initializing the data
@@ -1126,7 +1301,8 @@ Amr::InitializeInit(Real              strt_time,
                     const BoxArray*   lev0_grids,
                     const Array<int>* pmap)
 {
-    BL_COMM_PROFILE_NAMETAG("Amr::initialInit TOP");
+    BL_PROFILE("Amr::InitializeInit()");
+    BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1166,6 +1342,7 @@ void
 Amr::FinalizeInit (Real              strt_time,
                    Real              stop_time)
 {
+    BL_PROFILE("Amr::FinalizeInit()");
     //
     // Compute dt and set time levels of all grid data.
     //
@@ -1207,8 +1384,9 @@ Amr::FinalizeInit (Real              strt_time,
     //
     // Perform any special post_initialization operations.
     //
-    for (int lev = 0; lev <= finest_level; lev++)
-        amr_level[lev].post_init(stop_time);
+    for(int lev(0); lev <= finest_level; ++lev) {
+      amr_level[lev].post_init(stop_time);
+    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -1249,19 +1427,6 @@ Amr::restart (const std::string& filename)
     Real dRestartTime0 = ParallelDescriptor::second();
 
     DistributionMapping::Initialize();
-    if(DistributionMapping::strategy() == DistributionMapping::PFC) {
-      Array<IntVect> refRatio;
-      Array<BoxArray> allBoxes;
-      DistributionMapping::ReadCheckPointHeader(filename, refRatio, allBoxes);
-      DistributionMapping::PFCMultiLevelMap(refRatio, allBoxes);
-    }
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "DMCache size = " << DistributionMapping::CacheSize() << std::endl;
-      DistributionMapping::CacheStats(std::cout);
-    }
-    ParallelDescriptor::Barrier();
-
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1567,7 +1732,7 @@ Amr::checkPoint ()
     //  it is finished writing.  then stream retry can rename
     //  it to a bad suffix if there were stream errors.
     //
-    BoxLib::UtilCreateCleanDirectory(ckfile, false);     // dont call barrier
+    BoxLib::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
     BoxLib::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
 
     std::string HeaderFileName = ckfileTemp + "/Header";
@@ -1764,9 +1929,9 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-        std::cout << "ADVANCE grids at level "
-                  << level
-                  << " with dt = "
+	std::cout << "[Level " << level 
+		  << " step " << level_steps[level]+1 << "] ";
+        std::cout << "ADVANCE with dt = "
                   << dt_level[level]
                   << std::endl;
     }
@@ -1781,10 +1946,11 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
+	std::cout << "[Level " << level
+		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
-                  << " cells at level "
-                  << level
+                  << " cells"
                   << std::endl;
     }
 
@@ -1875,36 +2041,52 @@ Amr::coarseTimeStep (Real stop_time)
     amr_level[0].postCoarseTimeStep(cumtime);
 
 #ifdef BL_PROFILING
+#ifdef DEBUG
     std::stringstream dfss;
     dfss << "BytesPerProc.STEP_" << std::setw(5) << std::setfill('0')
          << level_steps[0] - 1 << ".xgr";
     DistributionMapping::PrintDiagnostics(dfss.str());
+#endif
 #endif
 
     if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_stop = ParallelDescriptor::second() - run_strt;
+	const int istep    = level_steps[0];
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
-
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "\nCoarse TimeStep time: " << run_stop << '\n' ;
+            std::cout << "\n[STEP " << istep << "] Coarse TimeStep time: " << run_stop << '\n' ;
+#ifdef BL_LAZY
+	});
+#endif
 
         long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceLongMin(min_fab_kilobytes, IOProc);
         ParallelDescriptor::ReduceLongMax(max_fab_kilobytes, IOProc);
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "\nFAB kilobyte spread across MPI nodes for timestep: ["
+            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes for timestep: ["
                       << min_fab_kilobytes
                       << " ... "
                       << max_fab_kilobytes
                       << "]\n";
         }
+#ifdef BL_LAZY
+	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
+	});
+#endif
+
         //
         // Reset to zero to calculate high-water-mark for next timestep.
         //
@@ -1942,48 +2124,51 @@ Amr::coarseTimeStep (Real stop_time)
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
 
     int check_test = 0;
+
     if (check_per > 0.0)
     {
-      const int num_per_old = cumtime / check_per;
-      const int num_per_new = (cumtime+dt_level[0]) / check_per;
+      const int num_per_old = (cumtime-dt_level[0]) / check_per;
+      const int num_per_new = (cumtime            ) / check_per;
 
       if (num_per_old != num_per_new)
-	{
-	 check_test = 1;
-	}
+      {
+	check_test = 1;
+      }
     }
 
     int to_stop       = 0;    
     int to_checkpoint = 0;
-    if (ParallelDescriptor::IOProcessor())
-    {
-        FILE *fp;
-        if ((fp=fopen("dump_and_continue","r")) != 0)
-        {
-            remove("dump_and_continue");
-            to_checkpoint = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("stop_run","r")) != 0)
-        {
-            remove("stop_run");
-            to_stop = 1;
-            fclose(fp);
-        }
-        else if ((fp=fopen("dump_and_stop","r")) != 0)
-        {
-            remove("dump_and_stop");
-            to_checkpoint = 1;
-            to_stop = 1;
-            fclose(fp);
-        }
+    if (message_int > 0 && level_steps[0] % message_int == 0) {
+	if (ParallelDescriptor::IOProcessor())
+	{
+	    FILE *fp;
+	    if ((fp=fopen("dump_and_continue","r")) != 0)
+	    {
+		remove("dump_and_continue");
+		to_checkpoint = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("stop_run","r")) != 0)
+	    {
+		remove("stop_run");
+		to_stop = 1;
+		fclose(fp);
+	    }
+	    else if ((fp=fopen("dump_and_stop","r")) != 0)
+	    {
+		remove("dump_and_stop");
+		to_checkpoint = 1;
+		to_stop = 1;
+		fclose(fp);
+	    }
+	}
+	int packed_data[2];
+	packed_data[0] = to_stop;
+	packed_data[1] = to_checkpoint;
+	ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+	to_stop = packed_data[0];
+	to_checkpoint = packed_data[1];
     }
-    int packed_data[2];
-    packed_data[0] = to_stop;
-    packed_data[1] = to_checkpoint;
-    ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
-    to_stop = packed_data[0];
-    to_checkpoint = packed_data[1];
 
     if(to_stop == 1 && to_checkpoint == 0) {  // prevent main from writing files
       last_checkpoint = level_steps[0];
@@ -1999,6 +2184,11 @@ Amr::coarseTimeStep (Real stop_time)
     if (writePlotNow() || to_checkpoint)
     {
         writePlotFile();
+    }
+
+    if (writeSmallPlotNow())
+    {
+        writeSmallPlotFile();
     }
 
     bUserStopRequest = to_stop;
@@ -2044,11 +2234,38 @@ Amr::writePlotNow()
               amr_level[0].writePlotNow());
 } 
 
+bool
+Amr::writeSmallPlotNow()
+{
+    int plot_test = 0;
+    if (small_plot_per > 0.0)
+    {
+#ifdef BL_USE_NEWPLOTPER
+      Real rN(0.0);
+      Real rR = modf(cumtime/small_plot_per, &rN);
+      if (rR < (dt_level[0]*0.001))
+#else
+      const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
+      const int num_per_new = (cumtime            ) / small_plot_per;
+
+      if (num_per_old != num_per_new)
+#endif
+	{
+	  plot_test = 1;
+	}
+    }
+
+    return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 
+              plot_test == 1 ||
+              amr_level[0].writeSmallPlotNow());
+} 
+
 void
 Amr::defBaseLevel (Real              strt_time, 
                    const BoxArray*   lev0_grids,
                    const Array<int>* pmap)
 {
+    BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
     which_level_being_advanced = -1;
 
@@ -2226,14 +2443,39 @@ Amr::regrid (int  lbase,
             amr_level.clear(lev);
             amr_level.set(lev,a);
         }
-
     }
+
+
     //
     // Check at *all* levels whether we need to do anything special now that the grids
-    //       at levels lbase+1 and higher have may have changed.  
+    //       at levels lbase+1 and higher may have changed.  
     //
-    for (int lev = 0; lev <= new_finest; lev++)
-        amr_level[lev].post_regrid(lbase,new_finest);
+    for(int lev(0); lev <= new_finest; ++lev) {
+      amr_level[lev].post_regrid(lbase,new_finest);
+    }
+
+    if(rebalance_grids > 0) {
+      DistributionMapping::InitProximityMap();
+      DistributionMapping::Initialize();
+        Array<BoxArray> allBoxes(amr_level.size());
+	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
+	  allBoxes[ilev] = boxArray(ilev);
+	}
+        Array<Array<int> > mLDM;
+	if(rebalance_grids == 1) {
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 2) {
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+	} else if(rebalance_grids == 3) {
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+	} else {
+	}
+
+        for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+          MultiFab::MoveAllFabs(mLDM[iMap]);
+        }
+      Geometry::FlushPIRMCache();
+    }
 
 #ifdef USE_STATIONDATA
     station.findGrid(amr_level,geom);
@@ -2642,7 +2884,7 @@ Amr::grid_places (int              lbase,
     for (i = 0; i <= max_crse; i++)
     {
         for (int n=0; n<BL_SPACEDIM; n++)
-            bf_lev[i][n] = std::max(1,blocking_factor[i]/ref_ratio[i][n]);
+            bf_lev[i][n] = std::max(1,blocking_factor[i+1]/ref_ratio[i][n]);
     }
     for (i = lbase; i < max_crse; i++)
     {
@@ -2865,6 +3107,15 @@ Amr::grid_places (int              lbase,
             new_bx.refine(bf_lev[levc]);
             new_bx.simplify();
             BL_ASSERT(new_bx.isDisjoint());
+	    
+	    if (new_bx.size()>0) {
+	      if ( !(geom[levc].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
+		// Chop new grids outside domain, note that this is likely to result in
+		//  new grids that violate blocking_factor....see warning checking below
+		new_bx = BoxLib::intersect(new_bx,geom[levc].Domain());
+	      }
+	    }
+
             IntVect largest_grid_size;
             for (int n = 0; n < BL_SPACEDIM; n++)
                 largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
@@ -2902,6 +3153,26 @@ Amr::grid_places (int              lbase,
             //
             new_bx.refine(ref_ratio[levc]);
             BL_ASSERT(new_bx.isDisjoint());
+
+	    if (new_bx.size()>0) {
+	      if ( !(geom[levf].Domain().contains(BoxArray(new_bx).minimalBox())) ) {
+		new_bx = BoxLib::intersect(new_bx,geom[levf].Domain());
+	      }
+	      if (ParallelDescriptor::IOProcessor()) {
+		for (int d=0; d<BL_SPACEDIM; ++d) {
+		  bool ok = true;
+		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
+		    int len = bli->length(d);
+		  int bf = blocking_factor[levf];
+		  ok &= (len/bf) * bf == len;
+		  }
+		  if (!ok) {
+		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
+		  }
+		}
+	      }
+	    }
+
             if (levf > useFixedUpToLevel)
                 new_grids[levf].define(new_bx);
         }
@@ -2919,16 +3190,22 @@ Amr::grid_places (int              lbase,
     {
         Real stoptime = ParallelDescriptor::second() - strttime;
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-
         if (ParallelDescriptor::IOProcessor())
             std::cout << "grid_places() time: " << stoptime << " new finest: " << new_finest<< '\n';
+#ifdef BL_LAZY
+	});
+#endif
     }
 }
 
 void
 Amr::bldFineLevels (Real strt_time)
 {
+    BL_PROFILE("Amr::bldFineLevels()");
     finest_level = 0;
 
     Array<BoxArray> grids(max_level+1);
@@ -2992,6 +3269,7 @@ Amr::bldFineLevels (Real strt_time)
 void
 Amr::initSubcycle ()
 {
+    BL_PROFILE("Amr::initSubcycle()");
     ParmParse pp("amr");
     int i;
     sub_cycle = true;
@@ -3111,28 +3389,45 @@ Amr::initPltAndChk ()
     pp.query("check_file",check_file_root);
 
     check_int = -1;
-    int got_check_int = pp.query("check_int",check_int);
+    pp.query("check_int",check_int);
 
     check_per = -1.0;
-    int got_check_per = pp.query("check_per",check_per);
+    pp.query("check_per",check_per);
 
-    if (got_check_int == 1 && got_check_per == 1)
+    if (check_int > 0 && check_per > 0)
     {
-        BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
+        if (ParallelDescriptor::IOProcessor())
+	    BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
 
     plot_int = -1;
-    int got_plot_int = pp.query("plot_int",plot_int);
+    pp.query("plot_int",plot_int);
 
     plot_per = -1.0;
-    int got_plot_per = pp.query("plot_per",plot_per);
+    pp.query("plot_per",plot_per);
 
-    if (got_plot_int == 1 && got_plot_per == 1)
+    if (plot_int > 0 && plot_per > 0)
     {
-        BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+    }
+
+    small_plot_file_root = "smallplt";
+    pp.query("small_plot_file",small_plot_file_root);
+
+    small_plot_int = -1;
+    pp.query("small_plot_int",small_plot_int);
+
+    small_plot_per = -1.0;
+    pp.query("small_plot_per",small_plot_per);
+
+    if (small_plot_int > 0 && small_plot_per > 0)
+    {
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
 
     stream_max_tries = 4;

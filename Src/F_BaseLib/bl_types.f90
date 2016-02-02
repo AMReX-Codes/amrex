@@ -29,7 +29,7 @@ module bl_types
   integer, parameter, public :: qp_t = (1 + sign(1,qp_t_0))/2*qp_t_0 + (1 - sign(1,qp_t_0))/2*dp_t
 
   !! A long long data type used to attempt to get sufficient
-  !! decimal digits to compute box volues.
+  !! decimal digits to compute box volumes.
   integer, parameter, private :: i4_t = selected_int_kind(9)
   integer, parameter, private :: i8_t = selected_int_kind(15)
   ! integer, parameter, public :: ll_t = selected_int_kind(15)

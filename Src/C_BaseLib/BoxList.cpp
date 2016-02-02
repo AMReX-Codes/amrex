@@ -49,49 +49,54 @@ BoxList::remove (iterator bli)
     return *this;
 }
 
-const BoxList
+BoxList
 BoxLib::intersect (const BoxList& bl,
 		   const Box&     b)
 {
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newbl(bl);
-    return newbl.intersect(b);
+    newbl.intersect(b);
+    return newbl;
 }
 
-const BoxList
+BoxList
 BoxLib::intersect (const BoxList& bl,
                    const BoxList& br)
 {
     BL_ASSERT(bl.ixType() == br.ixType());
     BoxList newbl(bl);
-    return newbl.intersect(br);
+    newbl.intersect(br);
+    return newbl;
 }
 
-const BoxList
+BoxList
 BoxLib::refine (const BoxList& bl,
 		int            ratio)
 {
     BoxList nbl(bl);
-    return nbl.refine(ratio);
+    nbl.refine(ratio);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::coarsen (const BoxList& bl,
                  int            ratio)
 {
     BoxList nbl(bl);
-    return nbl.coarsen(ratio);
+    nbl.coarsen(ratio);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::accrete (const BoxList& bl,
                  int            sz)
 {
     BoxList nbl(bl);
-    return nbl.accrete(sz);
+    nbl.accrete(sz);
+    return nbl;
 }
 
-const BoxList
+BoxList
 BoxLib::removeOverlap (const BoxList& bl)
 {
     BoxArray ba(bl);
@@ -129,9 +134,42 @@ BoxList::BoxList (const BoxArray &ba)
     btype()
 {
     if (ba.size() > 0)
-        btype = ba[0].ixType();
+        btype = ba.ixType();
     for (int i = 0, N = ba.size(); i < N; ++i)
         push_back(ba[i]);
+}
+
+BoxList::BoxList(const Box& bx, const IntVect& tilesize)
+    : btype(bx.ixType())
+{
+    int ntiles = 1;
+    IntVect nt;
+    for (int d=0; d<BL_SPACEDIM; d++) {
+	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
+	ntiles *= nt[d];
+    }
+
+    IntVect small, big, ijk;  // note that the initial values are all zero.
+    ijk[0] = -1;
+    for (int t=0; t<ntiles; ++t) {
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    if (ijk[d]<nt[d]-1) {
+		ijk[d]++;
+		break;
+	    } else {
+		ijk[d] = 0;
+	    }
+	}
+
+	for (int d=0; d<BL_SPACEDIM; d++) {
+	    small[d] = ijk[d]*tilesize[d];
+	    big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
+	}
+
+	Box tbx(small, big, btype);
+	tbx.shift(bx.smallEnd());
+	push_back(tbx);
+    }
 }
 
 bool
@@ -255,7 +293,7 @@ BoxList::intersect (const BoxList& b)
     return *this;
 }
 
-const BoxList
+BoxList
 BoxLib::complementIn (const Box&     b,
                       const BoxList& bl)
 {
@@ -447,7 +485,7 @@ BoxList::shiftHalf (const IntVect& iv)
 // Returns a list of boxes defining the compliment of b2 in b1in.
 //
 
-const BoxList
+BoxList
 BoxLib::boxDiff (const Box& b1in,
 		 const Box& b2)
 {
@@ -467,7 +505,7 @@ BoxLib::boxDiff (const Box& b1in,
            const int* b2lo = b2.loVect();
            const int* b2hi = b2.hiVect();
 
-           for (int i = 0; i < BL_SPACEDIM; i++)
+           for (int i = BL_SPACEDIM-1; i >= 0; i--)
            {
                const int* b1lo = b1.loVect();
                const int* b1hi = b1.hiVect();
@@ -611,7 +649,7 @@ BoxList::minimize ()
     return cnt;
 }
 
-const Box
+Box
 BoxList::minimalBox () const
 {
     Box minbox(IntVect::TheUnitVector(), IntVect::TheZeroVector(), ixType());

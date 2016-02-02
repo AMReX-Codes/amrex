@@ -5,6 +5,7 @@
 #include <REAL.H>
 #include <Geometry.H>
 #include <MultiFab.H>
+#include <MultiFabUtil.H>
 #include <Derive.H>
 #include <BCRec.H>
 #include <Interpolater.H>
@@ -63,6 +64,14 @@ public:
                                 std::ostream&      os,
                                 VisMF::How         how = VisMF::OneFilePerCPU) = 0;
     //
+    // Write small plot file stuff to specified directory.  
+    // Unlike writePlotFile, this is NOT a pure virtual function 
+    // so implementation by derived classes is optional.
+    //
+    virtual void writeSmallPlotFile (const std::string& dir,
+                                     std::ostream&      os,
+				     VisMF::How         how = VisMF::OneFilePerCPU) {};
+    //
     // Write current state to checkpoint file.
     //
     virtual void checkPoint (const std::string& dir,
@@ -75,6 +84,11 @@ public:
     virtual void restart (Amr&          papa,
                           std::istream& is,
 			  bool          bReadSpecial = false);
+
+    //
+    // Old checkpoint may have different number of states than the new source code.
+    //
+    virtual void set_state_in_checkpoint (Array<int>& state_in_checkpoint);
 
 #ifdef USE_PARTICLES
     //
@@ -207,6 +221,8 @@ public:
     // List of grids at this level.
     //
     const BoxArray& boxArray () const { return grids; }
+    const BoxArray& getEdgeBoxArray (int dir) const;
+    const BoxArray& getNodalBoxArray () const;
     //
     // Number of grids at this level.
     //
@@ -216,10 +232,6 @@ public:
     // List of particle_grids at this level.
     //
     const BoxArray& ParticleBoxArray () const { return particle_grids; }
-    //
-    // List of particle_grids at this level.
-    //
-    bool ParticlesOnSameGrids () const { return particles_on_same_grids; }
     //
     // DistributionMap for particle_grids at this level.
     //
@@ -241,6 +253,7 @@ public:
     // Returns the geometry object.
     //
     const Geometry& Geom () const { return geom; }
+    //
     const IntVect& fineRatio () const { return fine_ratio; }
     //
     // Returns number of cells on level.
@@ -279,7 +292,8 @@ public:
                           Real      time,
                           int       state_idx,
                           int       scomp,
-                          int       ncomp);
+                          int       ncomp,
+			  int       nghost = 0);
     //
     // Function to set physical boundary conditions.
     //
@@ -373,6 +387,10 @@ public:
     // 
     virtual void setPlotVariables ();
     //
+    // Modify list of variables to be plotted
+    // 
+    virtual void setSmallPlotVariables ();
+    //
     // Estimate the amount of work required to advance Just this level
     // based on the number of cells.
     // This estimate can be overwritten with different methods
@@ -389,6 +407,11 @@ public:
     // Does the AmrLevel want Amr to write a plotfile now?
     //
     virtual bool writePlotNow ();
+
+    //
+    // Does the AmrLevel want Amr to write a small plotfile now?
+    //
+    virtual bool writeSmallPlotNow ();
 
 #ifdef USE_PARTICLES
     //
@@ -454,7 +477,6 @@ protected:
 #ifdef USE_PARTICLES
     BoxArray              particle_grids; // Cell-centered locations of grids on which particles live.
     DistributionMapping   particle_dmap; // Distribution map associated with particle_grids.
-    bool                  particles_on_same_grids; // Are the BoxArrays particle_grids and grids identical?
 #endif
     Amr*                  parent;       // Pointer to parent AMR structure.
     IntVect               crse_ratio;   // Refinement ratio to coarser level.
@@ -470,6 +492,10 @@ protected:
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
 
 private:
+
+    mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
+    mutable BoxArray      nodal_grids;              // all nodal grids
+
     //
     // Disallowed.
     //
@@ -511,7 +537,7 @@ class FillPatchIterator
 
     FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
-    const Box& UngrownBox () const { return MFIter::validbox(); }
+    Box UngrownBox () const { return MFIter::validbox(); }
 
     MultiFab& get_mf() { return m_fabs; }
     

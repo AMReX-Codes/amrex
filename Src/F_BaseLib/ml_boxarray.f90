@@ -109,7 +109,7 @@ contains
     mba%pd = mbai%pd
     mba%rr = mbai%rr
     do i = 1, mba%nlevel
-       call copy(mba%bas(i), mbai%bas(i))
+       call boxarray_build_copy(mba%bas(i), mbai%bas(i))
     end do
   end subroutine ml_boxarray_copy
 
@@ -310,7 +310,7 @@ contains
           call print(mba%bas(1),'Level 1 boxarray')
           call bl_error('Level 1 grids must cover entire domain')
        end if
-       call destroy(ba)
+       call boxarray_destroy(ba)
     end if
     !
     ! We now can assume that the level 1 (lowest level) grids cover the entire domain.
@@ -327,9 +327,9 @@ contains
        call boxarray_grow(ba_fine, lnp)
        call boxarray_intersection_bx(ba_fine, mba%pd(i))
        r = contains(ba_crse_fine, ba_fine)
-       call destroy(ba_fine)
+       call boxarray_destroy(ba_fine)
        if ( .not. r ) then
-          call destroy(ba_crse_fine)
+          call boxarray_destroy(ba_crse_fine)
           call destroy(bpt)
           return
        end if
@@ -339,7 +339,7 @@ contains
           ! Collect additional boxes that contribute to periodically 
           ! filling fine ghost cells.
           !
-          call build(fla, mba%bas(i), mba%pd(i), pmask = lpmask, mapping = LA_LOCAL)
+          call layout_build_ba(fla, mba%bas(i), mba%pd(i), pmask = lpmask, mapping = LA_LOCAL)
           ! LA_LOCAL ==> bypass processor distribution calculation.
 
           do j = 1, nboxes(mba%bas(i))
@@ -364,24 +364,24 @@ contains
              call destroy(pbl)
           end do
 
-          call destroy(fla)
+          call layout_destroy(fla)
           !
           ! Check to see if extra boxes are also covered by coarser region.
           !
           if ( size(extra) > 0 ) then
-             call build(ba, extra)
+             call boxarray_build_l(ba, extra)
              call destroy(extra)
              r = contains(ba_crse_fine, ba)
-             call destroy(ba)
+             call boxarray_destroy(ba)
              if ( .not. r ) then
-                call destroy(ba_crse_fine)
+                call boxarray_destroy(ba_crse_fine)
                 call destroy(bpt)
                 return
              end if
           end if
        end if
 
-       call destroy(ba_crse_fine)
+       call boxarray_destroy(ba_crse_fine)
 
     end do
 

@@ -1,10 +1,12 @@
     FC  = nf95
     F90 = nf95
     CC  = gcc
+    CXX = g++
     F90FLAGS += -mdir $(mdir) -I $(mdir)
     FFLAGS   += -mdir $(mdir) -I $(mdir)
     FFLAGS   += -w=x77 -fixed
     CFLAGS += -Wall
+    CXXFLAGS += -Wall
 #   F90FLAGS += -Oassumed=always_contig
     f2kcli_suf := _nag
     ifdef NDEBUG
@@ -24,4 +26,5 @@
       FFLAGS += -pg
       F90FLAGS += -pg
       CFLAGS += -pg
+      CXXFLAGS += -pg
     endif

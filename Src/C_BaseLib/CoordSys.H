@@ -176,6 +176,11 @@ public:
     IntVect UpperIndex (const Real* point) const;
     //
     // Compute cell volumes in given region and place them into
+    // input FAB.
+    //
+    void SetVolume (FArrayBox& vol, const Box& region) const;
+    //
+    // Compute cell volumes in given region and place them into
     // resize()d input FAB.
     //
     void GetVolume (FArrayBox& vol, const Box& region) const;
@@ -205,6 +210,11 @@ public:
     //
     Real Volume (const Real xlo[BL_SPACEDIM],
                  const Real xhi[BL_SPACEDIM]) const;
+    //
+    // Compute area of cell faces in given region and given
+    // index direction and return the result in input FAB.
+    //
+    void SetFaceArea (FArrayBox& area, const Box& region, int dir) const;
     //
     // Compute area of cell faces in given region and given
     // index direction and return the result in resize()d input FAB.

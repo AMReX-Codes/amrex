@@ -7,6 +7,10 @@ module cc_mg_tower_smoother_module
  
   implicit none
 
+  private 
+
+  public :: cc_mg_tower_smoother
+
 contains
 
   subroutine cc_mg_tower_smoother(mgt, lev, ss, uu, ff, mm)
@@ -16,8 +20,12 @@ contains
     use cc_smoothers_module, only: gs_line_solve_1d, gs_rb_smoother_1d, &
          jac_smoother_2d, jac_smoother_3d, &
          gs_rb_smoother_2d,  gs_rb_smoother_3d, &
-         fourth_order_smoother_2d, fourth_order_smoother_3d
+         fourth_order_smoother_2d, fourth_order_smoother_3d, &
+         jac_smoother_ibc_2d, jac_smoother_ibc_3d, &
+         gs_rb_smoother_ibc_2d, gs_rb_smoother_ibc_3d
     use itsol_module, only: itsol_bicgstab_solve
+    use bc_functions_module, only : skewed_q
+    use stencil_util_module, only : is_ibc_stencil
 
     integer        , intent(in   ) :: lev
     type( mg_tower), intent(inout) :: mgt
@@ -107,24 +115,39 @@ contains
                 up => dataptr(uu, i)
                 fp => dataptr(ff, i)
                 sp => dataptr(ss, i)
-                mp => dataptr(mm, i)
-                lo =  lwb(get_box(ss, i))
-                do n = 1, mgt%nc
-                   select case ( mgt%dim)
-                   case (1)
-                      call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
-                           fp(:,1,1,n), mp(:,1,1,1), lo, ng, nn, &
-                           mgt%skewed(lev,i))
-                   case (2)
-                      call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, nn, &
-                           mgt%skewed(lev,i))
-                   case (3)
-                      call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, nn, &
-                           mgt%skewed(lev,i))
-                   end select
-                end do
+
+                lo =  lwb(get_box(ff, i))
+
+                if (is_ibc_stencil(ss,i)) then
+                   do n = 1, mgt%nc
+                      select case ( mgt%dim)
+                      case (2)
+                         call gs_rb_smoother_ibc_2d(sp(:,1,1,1), &
+                                                    up(:,:,1,n), fp(:,:,1,n), lo, ng, nn)
+                      case (3)
+                         call gs_rb_smoother_ibc_3d(sp(:,1,1,1), &
+                                                    up(:,:,:,n), fp(:,:,:,n), lo, ng, nn)
+                      end select
+                   end do
+                else
+                   mp => dataptr(mm, i)
+                   do n = 1, mgt%nc
+                      select case ( mgt%dim)
+                      case (1)
+                         call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
+                              fp(:,1,1,n), mp(:,1,1,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
+                      case (2)
+                         call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
+                              fp(:,:,1,n), mp(:,:,1,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
+                      case (3)
+                         call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
+                              fp(:,:,:,n), mp(:,:,:,1), lo, ng, nn, &
+                              mgt%skewed(lev,i))
+                      end select
+                   end do
+                end if
              end do
           end do
           
@@ -135,33 +158,52 @@ contains
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (1)
-                   call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
-                        fp(:,1,1,n), mp(:,1,1,1), lo, ng, 0, &
-                        mgt%skewed(lev,i))
-                   call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
-                        fp(:,1,1,n), mp(:,1,1,1), lo, ng, 1, &
-                        mgt%skewed(lev,i))
-                case (2)
-                   call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                        fp(:,:,1,n), mp(:,:,1,1), lo, ng, 0, &
-                        mgt%skewed(lev,i))
-                   call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
-                        fp(:,:,1,n), mp(:,:,1,1), lo, ng, 1, &
-                        mgt%skewed(lev,i))
-                case (3)
-                   call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                        fp(:,:,:,n), mp(:,:,:,1), lo, ng, 0, &
-                        mgt%skewed(lev,i))
-                   call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
-                        fp(:,:,:,n), mp(:,:,:,1), lo, ng, 1, &
-                        mgt%skewed(lev,i))
-                end select
-             end do
+
+             lo =  lwb(get_box(ff, i))
+
+             if (is_ibc_stencil(ss,i)) then
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call gs_rb_smoother_ibc_2d(sp(:,1,1,1), &
+                                                 up(:,:,1,n), fp(:,:,1,n), lo, ng, 0)
+                      call gs_rb_smoother_ibc_2d(sp(:,1,1,1), &
+                                                 up(:,:,1,n), fp(:,:,1,n), lo, ng, 1)
+                   case (3)
+                      call gs_rb_smoother_ibc_3d(sp(:,1,1,1), &
+                                                 up(:,:,:,n), fp(:,:,:,n), lo, ng, 0)
+                      call gs_rb_smoother_ibc_3d(sp(:,1,1,1), &
+                                                 up(:,:,:,n), fp(:,:,:,n), lo, ng, 1)
+                   end select
+                end do
+             else
+                mp => dataptr(mm, i)
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (1)
+                      call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
+                           fp(:,1,1,n), mp(:,1,1,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
+                      call gs_rb_smoother_1d(sp(:,:,1,1), up(:,1,1,n), &
+                           fp(:,1,1,n), mp(:,1,1,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
+                   case (2)
+                      call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
+                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
+                      call gs_rb_smoother_2d(sp(:,:,:,1), up(:,:,1,n), &
+                           fp(:,:,1,n), mp(:,:,1,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
+                   case (3)
+                      call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, 0, &
+                           mgt%skewed(lev,i))
+                      call gs_rb_smoother_3d(sp(:,:,:,:), up(:,:,:,n), &
+                           fp(:,:,:,n), mp(:,:,:,1), lo, ng, 1, &
+                           mgt%skewed(lev,i))
+                   end select
+                end do
+             end if
           end do
           
        case ( MG_SMOOTHER_MINION_CROSS )
@@ -220,18 +262,29 @@ contains
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
-             mp => dataptr(mm, i)
-             lo =  lwb(get_box(ss, i))
-             do n = 1, mgt%nc
-                select case ( mgt%dim)
-                case (2)
-                   call jac_smoother_2d(sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                        mp(:,:,1,1), ng)
-                case (3)
-                   call jac_smoother_3d(sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                        mp(:,:,:,1), ng)
-                end select
-             end do
+
+             if (is_ibc_stencil(ss,i)) then
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call jac_smoother_ibc_2d(sp(:,1,1,1), up(:,:,1,n), fp(:,:,1,n), ng)
+                   case (3)
+                      call jac_smoother_ibc_3d(sp(:,1,1,1), up(:,:,:,n), fp(:,:,:,n), ng)
+                   end select
+                end do
+             else
+                mp => dataptr(mm, i)
+                do n = 1, mgt%nc
+                   select case ( mgt%dim)
+                   case (2)
+                      call jac_smoother_2d(sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
+                           mp(:,:,1,1), ng)
+                   case (3)
+                      call jac_smoother_3d(sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
+                           mp(:,:,:,1), ng)
+                   end select
+                end do
+             end if
           end do
           
        case default
@@ -244,70 +297,5 @@ contains
     call bl_proffortfuncstop("cc_mg_tower_smoother")
 
   end subroutine cc_mg_tower_smoother
-
-  subroutine mg_jacobi_smoother(mgt, lev, ss, uu, ff, mm)
-
-    use bl_prof_module
-    use cc_smoothers_module, only: jac_smoother_1d, jac_smoother_2d, jac_smoother_3d
-
-    type(mg_tower), intent(inout) :: mgt
-    type(multifab), intent(inout) :: uu
-    type(multifab), intent(in) :: ff
-    type(multifab), intent(in) :: ss
-    type(imultifab), intent(in) :: mm
-    integer, intent(in) :: lev
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer :: i, n, ng, iter
-    type(bl_prof_timer), save :: bpt
-
-    call bl_proffortfuncstart("mg_jacobi_smoother")
-    call build(bpt, "mgt_jacobi_smoother")
-
-    ng = nghost(uu)
-
-    if ( mgt%skewed_not_set(lev) ) then 
-       do i = 1, nfabs(mm)
-          mp => dataptr(mm, i)
-          mgt%skewed(lev,i) = skewed_q(mp)
-       end do
-       mgt%skewed_not_set(lev) = .false.
-    end if
-
-    if ( .not. cell_centered_q(uu) ) then
-       call bl_error('MG_JACOBI_SMOOTHER ONLY DESIGNED FOR CELL-CENTERED RIGHT NOW')
-    end if
-
-    do iter = 1, mgt%nu1
-
-       call fill_boundary(uu, cross = mgt%lcross)
-
-       do i = 1, nfabs(ff)
-          up => dataptr(uu, i)
-          fp => dataptr(ff, i)
-          sp => dataptr(ss, i)
-          mp => dataptr(mm, i)
-          do n = 1, mgt%nc
-             select case ( mgt%dim)
-             case (1)
-                call jac_smoother_1d(sp(:,:,1,1), up(:,1,1,n), fp(:,1,1,n), &
-                                     mp(:,1,1,1), ng)
-             case (2)
-                call jac_smoother_2d(sp(:,:,:,1), up(:,:,1,n), fp(:,:,1,n), &
-                                     mp(:,:,1,1), ng)
-             case (3)
-                call jac_smoother_3d(sp(:,:,:,:), up(:,:,:,n), fp(:,:,:,n), &
-                                     mp(:,:,:,1), ng)
-             end select
-          end do
-       end do
-    end do
-
-    call destroy(bpt)
-    call bl_proffortfuncstop("mg_jacobi_smoother")
-
-  end subroutine mg_jacobi_smoother
 
 end module cc_mg_tower_smoother_module

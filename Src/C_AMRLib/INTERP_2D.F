@@ -362,14 +362,6 @@ c :::
 
        do n = 1, nvar
 c
-c ...     Prevent underflow for small crse values.
-c
-          do j = cslopelo(2)-1,cslopehi(2)+1
-             do i = cslopelo(1)-1, cslopehi(1)+1
-                crse(i,j,n) = merge(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0d-50)
-             end do
-          end do
-c
 c ...     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
           do j = cslopelo(2),cslopehi(2)

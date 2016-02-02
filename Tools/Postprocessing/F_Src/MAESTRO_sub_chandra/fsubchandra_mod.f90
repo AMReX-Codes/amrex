@@ -218,13 +218,14 @@ contains
     if ( len_trim(slicefile) == 0 ) then
 
       ! get basename of file
-      indslsh = index(pltfile, '/', back = .TRUE.)
+      indslsh = index(pltfile(:len_trim(pltfile)-1), '/', back = .TRUE.)  !The slicing of pltfile is to cut off any trailing '/'
 
       if ( indslsh /= 0 ) then
-        slicefile = trim(pltfile(:indslsh-1)) // ".slice"
+        slicefile = trim(pltfile(indslsh+1:)) // ".slice"
       else
         slicefile = trim(pltfile) // ".slice"
       end if
+
     endif
 
     !Build plotfile object 
@@ -544,6 +545,7 @@ contains
     use eos_module, only: eos_input_rh, eos_input_re, eos
     use eos_type_module, only: eos_t
     use network, only: nspec, network_species_index
+    use omp_lib, only: omp_get_num_threads, omp_get_thread_num
     implicit none
 
     !Args
@@ -562,11 +564,13 @@ contains
     real(kind=dp_t), parameter :: HHEAP_FRAC = 0.005
     type(box) :: cur_box
     type(eos_t) :: eos_state
+    type(globals) :: glb_local
+    type(hheap)   :: hh_local
     logical, allocatable :: imask(:,:,:), fmask(:,:,:)
     logical :: do_globals, do_averages, do_hotspots
-    integer :: r1, rr, n, i, j, ii, jj, kk
+    integer :: r1, rr, n, i, j, k, ii, jj, kk
     integer :: il, ir, jl, jr, kl, kr
-    integer :: indx, b
+    integer :: indx, b, hs_count
     integer, allocatable :: cell_count(:)
     real(kind=dp_t) :: xx, yy, zz, r_zone
     real(kind=dp_t) :: xlo, xhi, cur_xlo, cur_xhi
@@ -609,11 +613,11 @@ contains
     ! over levels, we will compare to the finest level index space to
     ! determine if we've already output here
     !
-    ! fmask is used to mark cells covered by the finest level of refinement.
+    ! NOTE: For large enough grids this mask can take up quite a bit of RAM.
+    ! A 4 level 512^3 run's mask took up 10s of GB.
+    !
     allocate(imask(geo%flo(1):geo%fhi(1),geo%flo(2):geo%fhi(2),geo%flo(3):geo%fhi(3)))
     imask(:,:,:) = .true.
-    allocate(fmask(geo%flo(1):geo%fhi(1),geo%flo(2):geo%fhi(2),geo%flo(3):geo%fhi(3)))
-    fmask(:,:,:) = .false.
     allocate(cell_count(pf%flevel))
     cell_count(:) = 0
 
@@ -660,9 +664,10 @@ contains
         
         print *, 'Unique cells on level ', n , ': ', cell_count(n)
       enddo
-      
-      call init_hheap(hh, int(lhheap_frac*sum(cell_count)))
-      print *, 'Tracking ', int(lhheap_frac*sum(cell_count)), ' hotspots'
+     
+      hs_count = int(lhheap_frac*sum(cell_count))
+      call init_hheap(hh, hs_count)
+      print *, 'Tracking ', hs_count, ' hotspots'
 
       !Reset imask
       imask(:,:,:) = .true.
@@ -682,23 +687,150 @@ contains
       ! the current level
       rr = product(pf%refrat(1:i-1,1))
 
-      ! Set the lengthscale for this level
-      !  ASSUMPTION: dx is the same for all dimensions
-      thist%ell(i) = geo%dx(1)/rr
-      
-
       !If we're doing more than just globals to stdout, update the user on progress
       if ( any((/do_averages, do_hotspots/)) ) then
          print *, 'processing level ', i, ' rr = ', rr
       endif
+      !$omp parallel default(none) firstprivate(i, r1, rr)                     &
+      !$omp firstprivate(glb_local, hs_count)                                  &
+      !$omp private(j,ii,jj,kk, cur_box, hh_local)                             &
+      !$omp private(il, ir, jl, jr, kl, kr, p, xx, yy, zz)                     &
+      !$omp shared(pf, geo, sc, imask, do_averages, do_globals, do_hotspots)   &
+      !$omp shared(radav, glb, hh)   
       
+      if (do_hotspots) then
+         call init_hheap(hh_local, hs_count)
+      endif
+
+      !$omp do
       do j = 1, nboxes(pf, i)
          ! read in the data 1 patch at a time -- read in all the variables
          call fab_bind(pf, i, j)
 
-         !These were never used -- should they be?
-         !lo = lwb(get_box(pf, i, j))
-         !hi = upb(get_box(pf, i, j))
+         !Get bounds of current box
+         cur_box = get_box(pf, i, j)
+         il = lwb(cur_box,1)
+         ir = upb(cur_box,1)
+         jl = lwb(cur_box,2)
+         jr = upb(cur_box,2)
+         kl = lwb(cur_box,3)
+         kr = upb(cur_box,3)
+
+         ! get a pointer to the current patch
+         p => dataptr(pf, i, j)
+
+         ! loop over all of the zones in the patch.  Here, we convert
+         ! the cell-centered indices at the current level into the
+         ! corresponding RANGE on the finest level, and test if we've
+         ! stored data in any of those locations.  If we haven't then
+         ! we store this level's data and mark that range as filled.
+         do kk = lbound(p,dim=3), ubound(p,dim=3)
+            zz = (kk + HALF)*geo%dx(3)/rr + pf%plo(3)
+
+            do jj = lbound(p,dim=2), ubound(p,dim=2)
+               yy = (jj + HALF)*geo%dx(2)/rr + pf%plo(2)
+
+               do ii = lbound(p,dim=1), ubound(p,dim=1)
+                  xx = (ii + HALF)*geo%dx(1)/rr + pf%plo(1)
+
+                  ! since a coarse zone will completely encompass this group
+                  ! of fine zones, we can use any() here or all().  If any()
+                  ! is true, then all() will be too.
+                  if ( any(imask(ii*r1:(ii+1)*r1-1, &
+                                 jj*r1:(jj+1)*r1-1, &
+                                 kk*r1:(kk+1)*r1-1) ) ) then
+
+                     if(do_averages) then
+                        call averages_kernel(xx, yy, zz, ii, jj, kk, r1, p, geo, sc, radav)
+                     end if
+
+                     if(do_globals) then
+                        !call globals_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, glb)
+                        call globals_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, glb_local)
+                     endif
+
+                     if(do_hotspots) then
+                        call hotspots_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, i, hh_local)
+                     endif
+
+                     imask(ii*r1:(ii+1)*r1-1, &
+                           jj*r1:(jj+1)*r1-1, &
+                           kk*r1:(kk+1)*r1-1) = .false.
+                  end if
+               end do
+            enddo
+         enddo
+
+         call fab_unbind(pf, i, j)
+      end do
+      !$omp end do nowait
+
+      if(do_globals) then
+         !Set the shared, global glb object's variables
+         !to be that of the thread with the highest global variables
+         !$omp critical (glb_reduction)
+         if(glb_local%T_peak > glb%T_peak) then
+            glb%T_peak     = glb_local%T_peak     
+            glb%xloc_Tpeak = glb_local%xloc_Tpeak 
+            glb%yloc_Tpeak = glb_local%yloc_Tpeak 
+            glb%zloc_Tpeak = glb_local%zloc_Tpeak 
+            glb%R_Tpeak    = glb_local%R_Tpeak    
+            glb%vx_Tpeak   = glb_local%vx_Tpeak   
+            glb%vy_Tpeak   = glb_local%vy_Tpeak   
+            glb%vz_Tpeak   = glb_local%vz_Tpeak   
+            glb%vr_Tpeak   = glb_local%vr_Tpeak   
+         endif
+         if (glb_local%enuc_peak > glb%enuc_peak) then
+            glb%enuc_peak     = glb_local%enuc_peak     
+            glb%xloc_enucpeak = glb_local%xloc_enucpeak 
+            glb%yloc_enucpeak = glb_local%yloc_enucpeak 
+            glb%zloc_enucpeak = glb_local%zloc_enucpeak 
+            glb%R_enucpeak    = glb_local%R_enucpeak    
+         endif
+         !$omp end critical (glb_reduction)
+      endif
+
+      if(do_hotspots) then
+         !Merge the thread's local heap into the global, shared heap
+         !$omp critical (hh_reduction)
+         do k=1, size(hh_local%list)
+            if(hh_local%list(k)%temp > hh%min_temp) then
+               call hheap_add(hh, hh_local%list(k))
+            endif
+         enddo
+         !$omp end critical (hh_reduction)
+      endif
+
+      !$omp end parallel
+
+      ! adjust r1 for the next lowest level
+      if ( i /= 1 ) r1 = r1*pf%refrat(i-1,1)
+    end do
+
+    r1  = 1
+    ! fmask is used to mark cells covered by the finest level of refinement.
+    deallocate(imask)
+    allocate(fmask(geo%flo(1):geo%fhi(1),geo%flo(2):geo%fhi(2),geo%flo(3):geo%fhi(3)))
+    fmask(:,:,:) = .false.
+    do i = pf%flevel, 1, -1
+      ! rr is the factor between the COARSEST level grid spacing and
+      ! the current level
+      rr = product(pf%refrat(1:i-1,1))
+
+      ! Set the lengthscale for this level
+      !  ASSUMPTION: dx is the same for all dimensions
+      thist%ell(i) = geo%dx(1)/rr
+      
+      !update the user on progress
+      print *, 'thist processing level ', i, ' rr = ', rr
+      
+      !$omp parallel do default(none) firstprivate(i, r1, rr)                     &
+      !$omp private(j,ii,jj,kk, b, cur_box, xmass, eos_state)                  &
+      !$omp private(il, ir, jl, jr, kl, kr, p, xx, yy, zz)                     &
+      !$omp shared(pf, geo, sc, fmask, thist)                     
+      do j = 1, nboxes(pf, i)
+         ! read in the data 1 patch at a time -- read in all the variables
+         call fab_bind(pf, i, j)
 
          !Get bounds of current box
          cur_box = get_box(pf, i, j)
@@ -733,30 +865,6 @@ contains
                do ii = lbound(p,dim=1), ubound(p,dim=1)
                   xx = (ii + HALF)*geo%dx(1)/rr + pf%plo(1)
 
-                  ! since a coarse zone will completely encompass this group
-                  ! of fine zones, we can use any() here or all().  If any()
-                  ! is true, then all() will be too.
-                  if ( any(imask(ii*r1:(ii+1)*r1-1, &
-                                 jj*r1:(jj+1)*r1-1, &
-                                 kk*r1:(kk+1)*r1-1) ) ) then
-
-                     if(do_averages) then
-                       call averages_kernel(xx, yy, zz, ii, jj, kk, r1, p, geo, sc, radav)
-                     end if
-
-                     if(do_globals) then
-                       call globals_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, glb)
-                     endif
-
-                     if(do_hotspots) then
-                       call hotspots_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, i, hh)
-                     endif
-
-                     imask(ii*r1:(ii+1)*r1-1, &
-                           jj*r1:(jj+1)*r1-1, &
-                           kk*r1:(kk+1)*r1-1) = .false.
-                  end if
-
                   !The finest level tracks the regions of vigorous burning, so
                   !we use it to mark where we want to calculate turbulent
                   !fluctuations at varying lengthscales.
@@ -767,6 +875,7 @@ contains
                            nint((p(ii,jj,kk,sc%temp_comp) - thist%min_temp)/thist%dT), &
                            thist%nbins - 1 &
                          )
+                     !$omp atomic
                      thist%tavg(i,b) = thist%tavg(i,b) + 1
 
                      xmass(network_species_index('He4')) = p(ii,jj,kk,sc%XHe4_comp)
@@ -786,6 +895,7 @@ contains
                            thist%nbins - 1 &
                          )
                      b = max(1,b)
+                     !$omp atomic
                      thist%tfeavg(i,b) = thist%tfeavg(i,b) + 1
                   endif
                end do
@@ -794,6 +904,7 @@ contains
 
          call fab_unbind(pf, i, j)
       end do
+      !$omp end parallel do 
 
       ! adjust r1 for the next lowest level
       if ( i /= 1 ) r1 = r1*pf%refrat(i-1,1)
@@ -869,68 +980,85 @@ contains
     ! weight the zone's data by its size
     ! note, for p(:,:,:,n), n refers to index of the
     ! variable as found via plotfile_var_index
+    !$omp atomic
     radav%dens_avg_bin(indx) = radav%dens_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp) * r1**3
 
+    !$omp atomic
     radav%temp_avg_bin(indx) = radav%temp_avg_bin(indx) + &
          p(ii,jj,kk,sc%temp_comp) * r1**3
     
+    !$omp atomic
     radav%pres_avg_bin(indx) = radav%pres_avg_bin(indx) + & !P = P_0 + \pi
          (p(ii,jj,kk,sc%p0_comp) + p(ii,jj,kk,sc%pi_comp)) * r1**3
     
+    !$omp atomic
     radav%magv_avg_bin(indx) = radav%magv_avg_bin(indx) + &
          p(ii,jj,kk,sc%magv_comp) * r1**3
     
+    !$omp atomic
     radav%enuc_avg_bin(indx) = radav%enuc_avg_bin(indx) + &
          p(ii,jj,kk,sc%enuc_comp) * r1**3
     
+    !$omp atomic
     radav%entropy_avg_bin(indx) = radav%entropy_avg_bin(indx) + &
          p(ii,jj,kk,sc%s_comp) * r1**3
 
     ! do the Favre-average here, < rho * X(He4) > / < rho >
+    !$omp atomic
     radav%XHe4_avg_bin(indx) = radav%XHe4_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XHe4_comp) * r1**3
 
     ! do the Favre-average here, < rho * X(C12) > / < rho >
+    !$omp atomic
     radav%XC12_avg_bin(indx) = radav%XC12_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XC12_comp) * r1**3
 
     ! do the Favre-average here, < rho * X(O16) > / < rho >
+    !$omp atomic
     radav%XO16_avg_bin(indx) = radav%XO16_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XO16_comp) * r1**3
     
     ! do the Favre-average here, < rho * Xdot(He4) > / < rho >
+    !$omp atomic
     radav%XdotHe4_avg_bin(indx) = radav%XdotHe4_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XdotHe4_comp) * r1**3
 
     ! do the Favre-average here, < rho * Xdot(C12) > / < rho >
+    !$omp atomic
     radav%XdotC12_avg_bin(indx) = radav%XdotC12_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XdotC12_comp) * r1**3
 
     ! do the Favre-average here, < rho * Xdot(O16) > / < rho >
+    !$omp atomic
     radav%XdotO16_avg_bin(indx) = radav%XdotO16_avg_bin(indx) + &
          p(ii,jj,kk,sc%dens_comp)*p(ii,jj,kk,sc%XdotO16_comp) * r1**3
 
     ! for the RMS quantities, we use the perturbational quantities
     ! already stored in the plotfile
+    !$omp atomic
     radav%dens_rms_bin(indx) = radav%dens_rms_bin(indx) + &
          p(ii,jj,kk,sc%rhopert_comp)*p(ii,jj,kk,sc%rhopert_comp) * r1**3
 
+    !$omp atomic
     radav%temp_rms_bin(indx) = radav%temp_rms_bin(indx) + &
          p(ii,jj,kk,sc%tpert_comp)*p(ii,jj,kk,sc%tpert_comp) * r1**3
 
+    !$omp atomic
     radav%pres_rms_bin(indx) = radav%pres_rms_bin(indx) + &  !\pi = (p - <p>)
          p(ii,jj,kk,sc%pi_comp)*p(ii,jj,kk,sc%pi_comp) * r1**3
 
+    !$omp atomic
     radav%entropy_rms_bin(indx) = radav%entropy_rms_bin(indx) + &
          p(ii,jj,kk,sc%spert_comp)*p(ii,jj,kk,sc%spert_comp) * r1**3
 
+    !$omp atomic
     radav%ncount(indx) = radav%ncount(indx) + r1**3
   end subroutine averages_kernel
 
   !An innermost loop kernel for calculating global values
   !Assumptions: 
-  !   +the globals object is initialized approriately before the first call to this routine
+  !   +the globals object is initialized appropriately before the first call to this routine
   !   +p is properly initialized, bound to a plotfile patch
   subroutine globals_kernel(xx, yy, zz, ii, jj, kk, p, geo, sc, glb)
     !Modules
@@ -947,6 +1075,7 @@ contains
     !Local
 
     ! store the location and value of the peak temperature
+    !!$omp critical (crit_tpeak)
     if (p(ii,jj,kk,sc%temp_comp) > glb%T_peak) then
        glb%T_peak = p(ii,jj,kk,sc%temp_comp)
        glb%xloc_Tpeak = xx
@@ -966,8 +1095,10 @@ contains
                   glb%vy_Tpeak*(yy - geo%yctr)/glb%R_Tpeak + &
                   glb%vz_Tpeak*(zz - geo%zctr)/glb%R_Tpeak
     endif
+    !!$omp end critical (crit_tpeak)
 
     ! store the location and value of the peak enucdot
+    !!$omp critical (crit_enuc)
     if (p(ii,jj,kk,sc%enuc_comp) > glb%enuc_peak) then
        glb%enuc_peak = p(ii,jj,kk,sc%enuc_comp)
 
@@ -979,6 +1110,7 @@ contains
                           (geo%yctr - glb%yloc_enucpeak)**2 + &
                           (geo%zctr - glb%zloc_enucpeak)**2 )
     endif
+    !!$omp end critical (crit_enuc)
   end subroutine globals_kernel
 
   !An innermost loop kernel for calculating the hottest cells
@@ -1002,7 +1134,8 @@ contains
     type(hotspot) :: newhs
     integer :: i
 
-    !If temp is more than hh's minimum, add this cell to the list
+    !If temp is more than hh's minimum, add this cell to the heap
+    !!$omp critical (crit_hheap)
     if(p(ii,jj,kk,sc%temp_comp) > hh%min_temp) then
       newhs%temp = p(ii,jj,kk,sc%temp_comp)
       newhs%rho = p(ii,jj,kk,sc%dens_comp)
@@ -1013,6 +1146,7 @@ contains
     
       call hheap_add(hh, newhs)
     end if
+    !!$omp end critical (crit_hheap)
   end subroutine hotspots_kernel
 
   !An innermost loop kernel for calculating the temperatures at

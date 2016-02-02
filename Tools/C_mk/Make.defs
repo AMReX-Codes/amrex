@@ -87,9 +87,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring davinci, $(UNAMEN)), davinci)
     WHICHLINUX := DAVINCI
   endif
-  ifeq ($(findstring homer, $(UNAMEN)), homer)
-    WHICHLINUX := HOMER
-  endif
   ifeq ($(findstring hyperion, $(UNAMEN)), hyperion)
     WHICHLINUX := HYPERION
   endif
@@ -126,20 +123,20 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cab, $(UNAMEN)), cab)
     WHICHLINUX := CAB
   endif
+  ifeq ($(findstring syrah, $(UNAMEN)), syrah)
+    WHICHLINUX := SYRAH
+  endif
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
-  endif
-  ifeq ($(findstring hopper, $(UNAMEN)), hopper)
-    WHICHLINUX := HOPPER
-  endif
-  ifeq ($(findstring hopper, $(NERSC_HOST)), hopper)
-    WHICHLINUX := HOPPER
   endif
   ifeq ($(findstring edison, $(UNAMEN)), edison)
     WHICHLINUX := EDISON
   endif
   ifeq ($(findstring edison, $(NERSC_HOST)), edison)
     WHICHLINUX := EDISON
+  endif
+  ifeq ($(findstring cori, $(NERSC_HOST)), cori)
+    WHICHLINUX := CORI
   endif
   ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
     WHICHLINUX := GIMANTIS
@@ -149,6 +146,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
     WHICHLINUX := HEDORAH
+  endif
+  ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
+    WHICHLINUX := KUMONGA
   endif
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
@@ -165,6 +165,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring titan, $(UNAMEN)), titan)
     WHICHLINUX := TITAN
   endif
+  ifeq ($(findstring chester, $(UNAMEN)), chester)
+    WHICHLINUX := CHESTER
+  endif
   ifeq ($(findstring hera, $(UNAMEN)), hera)
     WHICHLINUX := HERA
   endif
@@ -172,6 +175,12 @@ ifeq ($(MACHINE), Linux)
     WHICHLINUX := LANL
     # classified machines are a mix of Linux clusters and Cray
     # so this might need to be updated in the future
+  endif
+  ifeq ($(findstring bint, $(UNAMEN)), bint)
+    WHICHLINUX := BABBAGE
+  endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
   endif
 endif
 #
@@ -213,6 +222,13 @@ ifndef BACKTRACE
   BACKTRACE = FALSE
 endif
 
+ifndef LAZY
+  LAZY = FALSE
+endif
+ifeq ($(LAZY),TRUE)
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIM
   DIM = 2
 endif
@@ -227,6 +243,18 @@ endif
 
 ifndef USE_MPI
   USE_MPI = FALSE
+endif
+
+ifndef USE_CXX11
+  USE_CXX11 = FALSE
+endif
+
+ifndef DIMENSION_AGNOSTIC
+  DIMENSION_AGNOSTIC = FALSE
+endif
+
+ifndef USE_ASSERTION
+  USE_ASSERTION = FALSE
 endif
 
 #
@@ -264,17 +292,25 @@ endif
 ifdef USE_GCC
     CXXPRFF    := -p
     CXXOPTF    += -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        CXXOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        CXXOPTF += -fsanitize=address -fsanitize=undefined
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-    ifeq ($(BACKTRACE),TRUE)
-        LDFLAGS += -rdynamic
-    endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       ?= g++
-    CC	       ?= gcc
+    CXX	       := g++
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+
+    ifeq ($(findstring 5, $(__gcc_major_version)), 5)
+    	 CXXOPTF += -fno-inline
+    endif
+    
     CXXFLAGS = -Wno-deprecated
     ifeq ($(USE_IN_SITU), TRUE)
         # Necessary to compile in situ analysis
@@ -291,14 +327,17 @@ ifdef USE_GCC
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
-      COPTF += -fopenmp
-      CDEBF += -fopenmp
     endif
     #
     # Force C to have same flags as C++.
     #
-    COPTF += $(CXXOPTF) -std=c99
-    CDEBF += $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=c99
+    CDEBF := $(CXXDEBF) -std=c99
+
+    ifeq ($(USE_CXX11),TRUE)
+        CXXOPTF += -std=c++11
+        CXXDEBF += -std=c++11
+    endif
 
 else
 
@@ -355,10 +394,10 @@ ifeq ($(findstring rose, $(FCOMP)), rose)
       _f95_lib:=$(shell gfortran -print-file-name=libgfortran.so)
     endif
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -ffixed-line-length-132 -g -O3
-    fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FOPTF += -ffixed-line-length-0 -g -O3
+    fOPTF += -ffixed-line-length-0 -g -O3
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
 endif
 
 ifeq ($(FCOMP),g77)
@@ -392,16 +431,28 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    ifeq ($(HOST),baragon)
+       override XTRALIBS += -lgfortran
+    else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
     else
        override XTRALIBS += $(_f95_lib)       
     endif
+    endif
 
-    FOPTF += -ffixed-line-length-132 -g -O3
-    fOPTF += -ffixed-line-length-132 -g -O3
-    FDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
-    fDEBF += -g -O1 -ffixed-line-length-132 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid -finit-real=nan
+    FOPTF += -ffixed-line-length-0 -g -O3
+    fOPTF += -ffixed-line-length-0 -g -O3
+    ifeq ($(THREAD_SANITIZER),TRUE)
+        FOPTF += -fsanitize=thread
+        fOPTF += -fsanitize=thread
+    endif
+    ifeq ($(FSANITIZER),TRUE)
+        FOPTF += -fsanitize=address -fsanitize=undefined
+        fOPTF += -fsanitize=address -fsanitize=undefined
+    endif
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -418,8 +469,8 @@ ifeq ($(FCOMP),g95)
     fFLAGS = -fno-second-underscore -fmod=$(fmoddir) -I $(fmoddir) 
     _f95_lib:=$(shell g95 -print-file-name=libf95.a)
     override XTRALIBS += $(_f95_lib)
-    FOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
-    fOPTF += -O2 -g -ffixed-line-length-132 -Wall #-Wextra
+    FOPTF += -O2 -g -ffixed-line-length-0 -Wall #-Wextra
+    fOPTF += -O2 -g -ffixed-line-length-0 -Wall #-Wextra
     FDEBF += -g -O0 -fbounds-check
     fDEBF += -g -O0 -fbounds-check
 
@@ -452,65 +503,34 @@ ifeq ($(COMP),Intel)
      _icc  := icc
    endif
 
-   ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip
-   else
-     CXXOPTF += -g -O2 -ip -fp-model source
+   ifeq ($(WHICHLINUX), CORI)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
    endif
-   CXXDEBF += -g -O0
+
+   ifeq ($(WHICHLINUX), EDISON)
+     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+   else
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+       else
+         CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+       endif
+     else
+       CXXOPTF += -g -O2 -ip -fp-model source
+     endif
+   endif
+   CXXDEBF += -g -O0 -Wcheck
 
    COPTF += $(CXXOPTF) -std=c99
    CDEBF += $(CXXDEBF) -std=c99
 
+   ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += -std=c++11
+       CXXDEBF += -std=c++11       
+   endif
+
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
-   ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
-       ICC_VERSION := 5.0.1
-       ICC_MAJOR_VERSION := 5
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 6.0, $(__icc_version)), Version 6.0)
-       ICC_VERSION := 6.0
-       ICC_MAJOR_VERSION := 6
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 7., $(__icc_version)), Version 7.)
-       ICC_MAJOR_VERSION := 7
-       ifeq ($(findstring 7.0, $(__icc_version)), 7.0)
-	   ICC_VERSION := 7.0
-	   ICC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstring 7.1, $(__icc_version)), 7.1)
-           ICC_VERSION := 7.1
-	   ICC_MINOR_VERSION := 1
-       endif
-       endif
-   else
-   ifeq ($(findstring Version 8.0, $(__icc_version)), Version 8.0)
-       ICC_VERSION := 8.0
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 8.1, $(__icc_version)), Version 8.1)
-       ICC_VERSION := 8.1
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-       CXXOPTF += -wd1572
-       CXXDEBF += -wd1572
-   else
-   ifeq ($(findstring Version 9.0, $(__icc_version)), Version 9.0)
-       ICC_VERSION := 9.0
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 9.1, $(__icc_version)), Version 9.1)
-       ICC_VERSION := 9.1
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 1
-       CXXDEBF += -Wunused-variable
-       _icpc := icpc
-   else
    ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
        ICC_VERSION := 10.0
        ICC_MAJOR_VERSION := 10
@@ -541,13 +561,6 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 12
        ICC_MINOR_VERSION := 1
        _icpc := icpc
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
    endif
    endif
    endif
@@ -603,59 +616,6 @@ ifeq ($(FCOMP),Intel)
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    endif
 
-   ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
-       IFC_VERSION := 5.0.1
-       IFC_MAJOR_VERSION := 5
-       IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
-       override XTRALIBS += $(IA32ROOT)/lib/icrt.link
-   else
-   ifeq ($(findstring Version 6.0, $(__ifc_version)), Version 6.0)
-       IFC_VERSION := 6.0
-       IFC_MAJOR_VERSION := 6
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
-   else
-   ifeq ($(findstring Version 7, $(__ifc_version)), Version 7)
-       IFC_MAJOR_VERSION := 7
-       ifeq ($(findstr Version 7.0, $(__ifc_version)), 7.0)
-         IFC_VERSION := 7.0
-         IFC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstr Version 7.1, $(__ifc_version)), 7.1)
-         IFC_VERSION := 7.1
-         IFC_MINOR_VERSION := 1
-       endif
-       endif
-#      LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
-   else
-   ifeq ($(findstring Version 8.0, $(__ifc_version)), Version 8.0)
-       IFC_VERSION := 8.0
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 8.1, $(__ifc_version)), Version 8.1)
-       IFC_VERSION := 8.1
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 1
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 9.0, $(__ifc_version)), Version 9.0)
-       IFC_VERSION := 9.0
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
-   else
-   ifeq ($(findstring Version 9.1, $(__ifc_version)), Version 9.1)
-       IFC_VERSION := 9.1
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 1
-       FDEBF += -warn unused
-       fDEBF += -warn unused
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
-#  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
-   else
    ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
        IFC_VERSION := 10.0
        IFC_MAJOR_VERSION := 10
@@ -687,40 +647,41 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
 
    ifeq ($(USE_OMP),TRUE)
      FOPTF += -openmp
      fOPTF += -openmp
      FDEBF += -openmp
      fDEBF += -openmp
-     ifeq ($(IFC_MAJOR_VERSION),11)
-       FOPTF += -openmp-report2
-       fOPTF += -openmp-report2
-       FDEBF += -openmp-report2
-       fDEBF += -openmp-report2
-     endif
    endif
 
-   FDEBF += -g -u #-C
-   fDEBF += -g -u #-C
+   FDEBF += -g # -u -check all -warn all
+   fDEBF += -g # -u -check all -warn all 
    ifneq ($(IFC_MAJOR_VERSION), 10)
      FOPTF += -g
      fOPTF += -g
    endif
 
+   ifeq ($(WHICHLINUX), CORI)
+     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+   endif
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip
-     fOPTF += -O2 -ip
+     FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
    else
-     FOPTF += -O2 -ip -fp-model source
-     fOPTF += -O2 -ip -fp-model source
+     ifeq ($(WHICHLINUX), BABBAGE)
+       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+         FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+         fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+       else
+         FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+         fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+       endif
+     else
+       FOPTF += -O2 -ip -fp-model source
+       fOPTF += -O2 -ip -fp-model source
+     endif
    endif
 
    ifneq ($(IFC_MAJOR_VERSION), 9)
@@ -824,11 +785,23 @@ else
     ProfSuffix	:=
 endif
 
+ifeq ($(COMP),Intel)
+  ifeq ($(FCOMP),Intel)
+    ifeq ($(ITAC_TRACE), TRUE)
+      ITACSuffix := .ITAC
+    endif
+  endif
+endif
+
 ifeq ($(BACKTRACE),TRUE)
     CPPFLAGS += -DBL_BACKTRACING
     BTSuffix := .BT
 else
     BTSuffix :=
+endif
+
+ifeq ($(LAZY),TRUE)
+    CPPFLAGS += -DBL_LAZY
 endif
 
 ifeq ($(USE_ARRAYVIEW), TRUE)
@@ -867,6 +840,10 @@ ifeq ($(USE_OMP),TRUE)
     #include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 else
     OMPSuffix	:=
+endif
+
+ifeq ($(USE_CXX11),TRUE)
+   CPPFLAGS     += -DBL_USE_CXX11
 endif
 
 ifeq ($(USE_OLDPLOTPER),TRUE)
@@ -929,6 +906,7 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(cEXE_sources:%.c=%.o)				\
 			$(fEXE_sources:%.f=%.o)				\
 			$(f90EXE_sources:%.f90=%.o)			\
+			$(F90EXE_sources:%.F90=%.o)                     \
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
@@ -944,6 +922,45 @@ ifeq ($(PRECISION),FLOAT)
 DEFINES += -DBL_USE_FLOAT
 endif
 
+ifeq ($(DIMENSION_AGNOSTIC),TRUE)
+DEFINES += -DDIMENSION_AGNOSTIC
+endif
+
+ifeq ($(DEBUG),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+else
+ifeq ($(USE_ASSERTION),TRUE)
+  DEFINES += -DBL_USE_ASSERTION
+endif
+endif
+
+ifeq ($(BL_ALIGN_BYTE),64)
+  DEFINES += -DBL_ALIGN_BYTE=64
+else 
+ifeq ($(BL_ALIGN_BYTE),32)
+  DEFINES += -DBL_ALIGN_BYTE=32
+else 
+ifeq ($(BL_ALIGN_BYTE),16)
+  DEFINES += -DBL_ALIGN_BYTE=16
+else 
+ifeq ($(WHICHLINUX),EDISON)
+  DEFINES += -DBL_ALIGN_BYTE=32
+endif
+endif
+endif
+endif
+
+ifeq ($(BL_SIMD_LEN),8)
+  DEFINES += -DBL_SIMD_LEN=8
+else 
+ifeq ($(BL_SIMD_LEN),4)
+  DEFINES += -DBL_SIMD_LEN=4
+else 
+ifeq ($(WHICHLINUX),EDISON)
+  DEFINES += -DBL_SIMD_LEN=4
+endif
+endif
+endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
@@ -956,7 +973,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
@@ -980,7 +997,7 @@ CSRCALL		= $(CEXE_sources) $(CEXE_headers)			\
 FSRCALL		= $(FEXE_sources) $(FEXE_headers)                       \
                   $(FLIB_sources)$(FLIB_headers)
 
-F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers)                   \
+F90SRCALL	= $(pF90EXE_sources) $(F90EXE_headers)                   \
                   $(F90LIB_sources) $(F90LIB_headers)
 
 cSRCALL		= $(cEXE_sources) $(cEXE_headers)                       \
@@ -1000,4 +1017,91 @@ endif
  
 ifdef WARNINGS
     CXX += $(FULLWARN)
+endif
+
+# Use Sam Williams's HPGMG code as a drop-in replacement for BoxLib's in-house
+# multigrid solver. HPGMG is single-level only, so no AMR.
+ifeq ($(USE_HPGMG), TRUE)
+  include $(HPGMG_DIR)/source/Make.package
+  DEFINES += -DUSEHPGMG=1 -DUSE_MPI=1
+
+# use a unique MPI subcommunicator for each level of the multigrid?
+  ifeq ($(HPGMG_USE_SUBCOMM), TRUE)
+    DEFINES += -DUSE_SUBCOMM=1
+  endif
+
+# which bottom solver?
+  ifeq ($(HPGMG_BOTTOM_SOLVER), BICGSTAB)
+    DEFINES += -DUSE_BICGSTAB=1
+  else ifeq ($(HPGMG_BOTTOM_SOLVER), CG)
+    DEFINES += -DUSE_CG=1
+  else ifeq ($(HPGMG_BOTTOM_SOLVER), CABICGSTAB)
+    DEFINES += -DUSE_CABICGSTAB=1
+  else
+    DEFINES += -DUSE_BICGSTAB=1
+  endif
+
+# which smoothing method?
+  ifeq ($(HPGMG_SMOOTHER), GSRB)
+    DEFINES += -DUSE_GSRB=1
+    # HPGMG has several different ways to apply the GSRB smooths
+    ifeq ($(HPGMG_GSRB_TYPE), STRIDE2)
+      DEFINES += -DGSRB_STRIDE2=1
+    else ifeq ($(HPGMG_GSRB_TYPE), FP)
+      DEFINES += -DGSRB_FP=1
+    else ifeq ($(HPGMG_GSRB_TYPE), BRANCH)
+      DEFINES += -DGSRB_BRANCH=1
+    else
+      DEFINES += -DGSRB_STRIDE2=1
+    endif
+    ifeq ($(HPGMG_GSRB_OOP), TRUE)
+      DEFINES += -DGSRB_OOP=1
+    endif
+  else ifeq ($(HPGMG_SMOOTHER), CHEBY)
+    DEFINES += -DUSE_CHEBY=1
+  else ifeq ($(HPGMG_SMOOTHER), JACOBI)
+    DEFINES += -DUSE_JACOBI=1
+  else ifeq ($(HPGMG_SMOOTHER), L1JACOBI)
+    DEFINES += -DUSE_L1JACOBI=1
+  else
+   DEFINES += -DUSE_GSRB=1
+  endif
+
+# if this is true then the first cycle we do is F
+  ifeq ($(HPGMG_FCYCLES), TRUE)
+    DEFINES += -DUSE_FCYCLES=1
+    # do pure F-cycles until it converges
+    ifeq ($(HPGMG_POST_F_CYCLE_TYPE), F)
+      DEFINES += -DUNLIMIT_F_CYCLES=1
+    # do exactly 1 F-cycle followed by however many V-cycles it takes to converge
+    else ifeq ($(HPGMG_POST_F_CYCLE_TYPE), V)
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+    else
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
+    endif
+  endif
+
+# is this a Helmholtz problem or a Poisson problem?
+  ifeq ($(HPGMG_HELMHOLTZ), TRUE)
+    DEFINES += -DUSE_HELMHOLTZ=1
+  endif
+
+# the constant-coefficient stencil requires significantly less data movement during the calculation
+  ifeq ($(HPGMG_STENCIL_VARIABLE_COEFFICIENT), TRUE)
+    DEFINES += -DSTENCIL_VARIABLE_COEFFICIENT=1
+  endif
+
+  include $(HPGMG_DIR)/source/Make.package
+  include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
+  INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
+  VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/Extern/hpgmg
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif

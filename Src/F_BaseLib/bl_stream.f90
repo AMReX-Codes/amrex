@@ -88,10 +88,11 @@ contains
     integer :: r
     type(bl_stream), intent(inout) :: strm
     character :: c
-    logical :: started
+    logical :: started, negative
     call bl_stream_eat_whitespace(strm)
     r = 0
     started = .false.
+    negative = .false.
     do 
        if ( strm%lpb ) then
           c = strm%pb
@@ -99,14 +100,19 @@ contains
        else
           read(unit=strm%unit, fmt='(a)', advance = 'no', eor = 100) c
        end if
-       if ( .not. is_digit(c) ) then
+       if ( .not. is_digit(c) .and. .not. c =="-") then
           if ( .not. started ) call bl_error("BL_STREAM_SCAN_INT: first character in scan: ", c)
           call bl_stream_putback_chr(strm, c)
           exit
        end if
        started = .true.
+       if (c == "-") then
+          negative = .true.
+          cycle
+       endif
        r = r*10 + (ichar(c)-ichar('0'))
     end do
+    if (negative) r = -r
 100 continue
   end function bl_stream_scan_int
 

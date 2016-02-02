@@ -28,6 +28,7 @@ vpath %.H   $(HERE) $(BOXLIB_HOME)/Src/C_BaseLib
 vpath %.cpp $(HERE) $(BOXLIB_HOME)/Src/C_BaseLib
 vpath %.F   $(HERE) $(BOXLIB_HOME)/Src/C_BaseLib
 vpath %.f   $(HERE) $(BOXLIB_HOME)/Src/C_BaseLib
+vpath %.f90 $(HERE) $(BOXLIB_HOME)/Src/C_BaseLib
 
 all: $(executable)
 

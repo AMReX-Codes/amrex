@@ -25,10 +25,19 @@ ifeq ($(COMP),PathScale)
 else
 ifeq ($(COMP),Cray)
   CXX = CC
-  CC  = craycc
+  CC  = cc
 
-  CXXOPTF += -h nomessage=7221 -h fp0
+  CXXOPTF += -g -h nomessage=7221
   CXXDEBF += -g -O0
+
+  # This makes Cray (more specifically cce/8.3.11 on edison) able to compile
+  # the following c99 feature used in ZFILL macro in C_BaseLib/ArrayLim.H:
+  #   my_function( &((Real []){x[0], x[1], 0.}[0]) );
+  CXXOPTF += -h gnu
+  CXXDEBF += -h gnu
+
+  COPTF += -g
+  CDEBF += -g
 
   ifneq ($(USE_OMP),TRUE)
     CXXOPTF += -h noomp
@@ -81,6 +90,11 @@ ifeq ($(COMP),PGI)
     CDEBF += -acc
   endif
 
+  ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += --c++11
+       CXXDEBF += --c++11
+  endif
+
 else
 ifeq ($(COMP),xlC)
   CXX     := xlC
@@ -90,11 +104,11 @@ endif
 endif
 endif
 endif
+
 #
 # Now Fortran stuff.
 #
-FORT_CPP := gcc -E -traditional
-FORT_CPP := cpp -E -traditional
+FORT_CPP := cpp -E -traditional-cpp -P
 
 ifeq ($(FCOMP),PathScale)
   FC  = pathf95
@@ -127,17 +141,17 @@ ifeq ($(FCOMP),PathScale)
 #  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Cray)
-  FC  = crayftn
-  fC  = crayftn
-  F90 = crayftn 
+  FC  = ftn
+  fC  = ftn
+  F90 = ftn 
   FFLAGS +=
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
   F90FLAGS +=
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -h fp0 -O vector1
-  fOPTF += -h fp0 -O vector1
+  FOPTF += -g
+  fOPTF += -g
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -338,27 +352,6 @@ ifeq ($(WHICHLINUX), FREEDOM)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOPPER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  DEFINES += -DBL_HOPPER
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC -target=linux
-    CC  := cc -target=linux
-    FC  := ftn -target=linux
-    F90 := ftn -target=linux
-    fC  := ftn -target=linux
-  endif
-  ifeq ($(USE_IPM),TRUE)
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    else
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-  ifeq ($(USE_DUMPI),TRUE)
-    LIBRARIES += $(DUMPI_LINK_OPTS)
-  endif
-endif
 
 ifeq ($(WHICHLINUX), GARNET)
   DEFINES += -DMPICH_SKIP_MPICXX
@@ -408,6 +401,36 @@ ifeq ($(WHICHLINUX), CAB)
   endif
 endif
 
+ifeq ($(WHICHLINUX), SYRAH)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC  := mpiifort
+      fC  := mpiifort
+    else
+      CXX := mpiCC
+      CC  := gcc
+      FC  := gfortran
+      F90 := gfortran
+      fC  := gfortran
+    endif
+  endif
+endif
+
+ifeq ($(WHICHLINUX), CORI)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := CC
+    CC  := cc
+    FC  := ftn
+    F90 := ftn
+    fC  := ftn
+  endif
+endif
+
 ifeq ($(WHICHLINUX), EDISON)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -418,11 +441,7 @@ ifeq ($(WHICHLINUX), EDISON)
     fC  := ftn
   endif
   ifeq ($(USE_IPM),TRUE)
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    else
-      LIBRARIES += $(IPM_GNU)
-    endif
+    LIBRARIES += $(IPM_GNU)
   endif
   ifeq ($(USE_DUMPI),TRUE)
     LIBRARIES += $(DUMPI_LINK_OPTS)
@@ -509,13 +528,6 @@ ifeq ($(WHICHLINUX), HYPERION)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOMER)
-  ifeq ($(USE_MPI),TRUE)
-    CXX = mpicxx
-    FC = mpif90 -module $(fmoddir)
-    fC = mpif90 -module $(fmoddir)    
-  endif
-endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3
@@ -580,3 +592,136 @@ ifeq ($(HOST), c4)
   FC  = mpif90
 endif    
 
+ifeq ($(WHICHLINUX), BABBAGE)
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpiicpc
+    CC  := mpiicc
+    FC  := mpiifort
+    F90 := mpiifort
+    fC  := mpiifort
+  endif
+endif
+
+# For running natively on the MIC cards
+ifeq ($(MIC), TRUE)
+  CXXOPTF += -mmic
+  CXXDEBF += -mmic
+  FOPTF += -mmic
+  FDEBF += -mmic
+  fOPTF += -mmic
+  fDEBF += -mmic
+endif
+
+ifeq ($(WHICHLINUX), BABBAGE)
+ifeq ($(MIC), TRUE)
+# Because the linker on Babbage isn't very smart
+  override XTRALIBS += -lifcore -Wl,-rpath,$(MIC_LIBRARY_PATH)
+endif
+endif
+
+# Compiler flags for profiling MPI calls using Intel Trace Analyzer and
+# Collector. The "itac" module on Babbage will automatically populate the
+# VT_LIB_DIR environment variable. The "-trace" option is fairly lightweight
+# and traces only MPI calls; you can trace user-defined functions as well using
+# "-tcollect" instead of "-trace" but this generates a HUGE amount of data, so
+# don't use it unless you know what you're doing.
+ifeq ($(COMP),Intel)
+  ifeq ($(FCOMP),Intel)
+    ifeq ($(ITAC_TRACE), TRUE)
+      CXXOPTF += -trace
+      CXXDEBF += -trace
+      FOPTF += -trace
+      fOPTF += -trace
+      override XTRALIBS += -L${VT_LIB_DIR}
+    endif
+  endif
+endif
+
+
+ifeq ($(WHICHLINUX), MIRA)
+
+  ifeq ($(COMP), IBM)
+    ifeq ($(USE_OMP),TRUE)
+      ifeq ($(USE_MPI),TRUE)
+        CXX := mpixlcxx_r
+        CC  := mpixlc_r
+      else
+        CXX := bgxlC_r
+        CC  := bgxlc_r
+      endif
+      CFLAGS   += -qsmp=noauto:omp
+      CXXFLAGS += -qsmp=noauto:omp
+    else
+      ifeq ($(USE_MPI),TRUE)
+        CXX := mpixlcxx
+        CC  := mpixlc
+      else
+        CXX := bgxlC
+        CC  := bgxlc
+      endif
+    endif
+    CFLAGS   += -g
+    CXXFLAGS += -g
+  endif
+
+  ifeq ($(FCOMP), IBM)
+    ifeq ($(USE_OMP),TRUE)
+      ifeq ($(USE_MPI),TRUE)
+        FC  := mpixlf95_r -qfixed=72
+        fC  := mpixlf95_r -qfixed=72
+        F90 := mpixlf95_r
+      else
+        FC  := bgxlf_r -qfixed=72
+        fC  := bgxlf_r -qfixed=72
+        F90 := bgxlf95_r
+      endif
+      FFLAGS += -qsmp=noauto:omp
+      fFLAGS += -qsmp=noauto:omp
+    else
+      ifeq ($(USE_MPI),TRUE)
+        FC  := mpixlf95 -qfixed=72
+        fC  := mpixlf95 -qfixed=72
+        F90 := mpixlf95
+      else
+        FC  := bgxlf95 -qfixed=72
+        fC  := bgxlf95 -qfixed=72
+        F90 := bgxlf95
+      endif
+    endif
+    FFLAGS   += -I $(fmoddir) -qmoddir=$(fmoddir)
+    F90FLAGS += -I $(fmoddir) -qmoddir=$(fmoddir)
+    fFLAGS   += -I $(fmoddir) -qmoddir=$(fmoddir)
+
+    FFLAGS   += -g
+    F90FLAGS += -g
+    fFLAGS   += -g
+  endif
+
+  # Even though flush() is in the Fortran standard, the IBM XL Fortran
+  # compilers for some reason only understand the symbol flush_() (note the
+  # underscore). This flag lets us call flush() without the underscore.
+  FFLAGS   += -qextname=flush
+  fFLAGS   += -qextname=flush
+  F90FLAGS += -qextname=flush
+
+  CXXOPTF += -O2
+  FOPTF   += -O2
+  fOPTF   += -O2
+
+  CXXDEBF += -O0
+  FDEBF   += -O0
+  fDEBF   += -O0
+
+  ifeq ($(COMP), IBM)
+    ifeq ($(FCOMP), IBM)
+      # manual linkage options suggested by ALCF doc page for mixing F90 with C++
+      override XTRALIBS += -L/soft/compilers/ibmcmp-nov2012/xlf/bg/14.1/lib64 -lxlopt -lxl -lxlf90 -lxlfmath
+      # One of these libraries has "aio_*" functions which libxlf90.a needs.
+      # The MPI wrappers will pick it up but the serial wrappers won't. I just
+      # copied this linkage blob from the MPI wrappers by doing "mpixlcxx_r
+      # -show".
+      override XTRALIBS += -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib64 -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/sys/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/sys/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib64 -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib-lopa-xl -lmpl-xl -lpami-gcc -lSPI -lSPI_cnk -lrt -lpthread -lstdc++ -lpthread
+    endif
+  endif
+
+endif

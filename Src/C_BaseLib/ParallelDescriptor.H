@@ -11,12 +11,19 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 #include <vector>
 #include <string>
 #include <typeinfo>
 
 namespace ParallelDescriptor
 {
+    const int SidecarQuitSignal = -1;
+
+
     //
     // Data structure used by a few routines when MPI is enabled.
     //
@@ -149,6 +156,7 @@ namespace ParallelDescriptor
 	int pid () const;
 	MPI_Datatype type () const { return m_type; }
 	MPI_Request  req () const { return m_req; }
+	MPI_Status   stat () const { return m_stat; }
 
     private:
 
@@ -164,6 +172,9 @@ namespace ParallelDescriptor
     void StartParallel (int*    argc = 0,
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
+
+    typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
+    void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
     //
     // Perform any needed parallel finalization.  This MUST be the
     // last routine in this class called from within a program.
@@ -172,76 +183,103 @@ namespace ParallelDescriptor
     //
     // Returns processor number of calling program.
     //
+    extern const int myId_undefined;
+    extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
-    extern int m_MyId_perfmon;
-    extern int m_MyId_all_perfmon;  // id of perfmon proc in all
+    extern int m_MyId_sidecar;
+
     inline int
-    MyProc ()  // use _comp here, almost always what the user wants
+    MyProc ()  // return the "local" process number
     {
-        BL_ASSERT(m_MyId_comp != -1);
-        return m_MyId_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            BL_ASSERT(m_MyId_comp != myId_undefined);
+            return m_MyId_comp;
+        }
+        else
+        {
+            BL_ASSERT(m_MyId_sidecar != myId_undefined);
+            return m_MyId_sidecar;
+        }
     }
     inline int
     MyProcAll ()
     {
-        BL_ASSERT(m_MyId_all != -1);
+        BL_ASSERT(m_MyId_all != myId_undefined);
         return m_MyId_all;
     }
     inline int
     MyProcComp ()
     {
-        BL_ASSERT(m_MyId_comp != -1);
+        BL_ASSERT(m_MyId_comp != myId_undefined);
         return m_MyId_comp;
     }
     inline int
-    MyProcPerfMon ()
+    MyProcSidecar ()
     {
-        BL_ASSERT(m_MyId_perfmon != -1);
-        return m_MyId_perfmon;
+        BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        return m_MyId_sidecar;
     }
-    inline int
-    MyProcAllPerfMon ()
+    inline bool
+    InSidecarGroup ()
     {
-        BL_ASSERT(m_MyId_all_perfmon != -1);
-        return m_MyId_all_perfmon;
+        BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        return (m_MyId_sidecar >= 0);
+    }
+    inline bool
+    InCompGroup ()
+    {
+        BL_ASSERT(m_MyId_comp != myId_undefined);
+        return (m_MyId_comp >= 0);
     }
     //
     // Returns number of CPUs involved in the computation.
     //
+    extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
-    extern int m_nProcs_perfmon;
-    extern int nPerfmonProcs;
+    extern int m_nProcs_sidecar;
+    extern int nSidecarProcs;
+
     inline void
-    SetNProcsPerfMon (const int npmp)
+    SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
     {
         BL_ASSERT(npmp >= 0);
-        nPerfmonProcs = npmp;
+        nSidecarProcs = npmp;
     }
     inline int
-    NProcs ()  // use _comp here, almost always what the user wants
+    NProcs ()  // return the "local" number of processes
     {
-        BL_ASSERT(m_nProcs_comp != -1);
-        return m_nProcs_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            BL_ASSERT(m_nProcs_comp != nProcs_undefined);
+            return m_nProcs_comp;
+        }
+        else
+        {
+            BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
+            return m_nProcs_sidecar;
+        }
     }
     inline int
     NProcsAll ()
     {
-        BL_ASSERT(m_nProcs_all != -1);
+        BL_ASSERT(m_nProcs_all != nProcs_undefined);
         return m_nProcs_all;
     }
     inline int
     NProcsComp ()
     {
-        BL_ASSERT(m_nProcs_comp != -1);
+        BL_ASSERT(m_nProcs_comp != nProcs_undefined);
         return m_nProcs_comp;
     }
     inline int
-    NProcsPerfMon ()
+    NProcsSidecar ()
     {
-        BL_ASSERT(m_nProcs_perfmon != -1);
-        return m_nProcs_perfmon;
+        BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
+        BL_ASSERT(m_nProcs_sidecar == nSidecarProcs);
+        return m_nProcs_sidecar;
     }
     //
     // The CPU number of the I/O Processor.
@@ -264,15 +302,22 @@ namespace ParallelDescriptor
     // BoxLib's Parallel Communicators
     //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
     //    m_comm_comp    is for the nodes doing computations
-    //    m_comm_perfmon is for the in-situ performance monitor
+    //    m_comm_sidecar is for the in-situ performance monitor
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
-    extern MPI_Comm m_comm_perfmon;
+    extern MPI_Comm m_comm_sidecar;
     extern MPI_Comm m_comm_inter;
-    inline MPI_Comm Communicator ()  // use _comp here, almost always what the user wants
+    inline MPI_Comm Communicator ()  // return the "local" communicator
     {
-        return m_comm_comp;
+        if (m_MyId_comp != myId_notInGroup)
+        {
+            return m_comm_comp;
+        }
+        else
+        {
+            return m_comm_sidecar;
+        }
     }
     inline MPI_Comm CommunicatorAll ()
     {
@@ -282,9 +327,9 @@ namespace ParallelDescriptor
     {
         return m_comm_comp;
     }
-    inline MPI_Comm CommunicatorPerfMon ()
+    inline MPI_Comm CommunicatorSidecar ()
     {
-        return m_comm_perfmon;
+        return m_comm_sidecar;
     }
     inline MPI_Comm CommunicatorInter ()
     {
@@ -470,12 +515,16 @@ namespace ParallelDescriptor
     template <class T> Message Arecv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag);
+    template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm);
     template <class T> Message Send(const std::vector<T>& buf, int dst_pid, int tag);
 
     template <class T> Message Recv(T*, size_t n, int pid, int tag);
+    template <class T> Message Recv(T*, size_t n, int pid, int tag, MPI_Comm comm);
     template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
 
     template <class T> void Bcast(T*, size_t n, int root = 0);
+    template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
+    void Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm);
 
     template <class Op, class T> T Reduce(const T& t);
 
@@ -489,8 +538,14 @@ namespace ParallelDescriptor
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 
     void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf,
-                          const bool bExitOnError = true);
+                          bool bExitOnError = true,
+			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
+    void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
+    //
+    // Starts sidecar processes for doing on-the-fly simulation analysis.
+    //
+    void SidecarProcess ();
 }
 
 #define BL_MPI_REQUIRE(x)						\
@@ -586,6 +641,36 @@ ParallelDescriptor::Send (const T* buf,
                              dst_pid,
                              tag,
                              Communicator()) );
+    BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send (const T* buf,
+                          size_t   n,
+                          int      dst_pid,
+                          int      tag,
+			  MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
+
+#ifdef BL_COMM_PROFILING
+    int dst_pid_world(-1);
+    MPI_Group groupComm, groupWorld;
+    BL_MPI_REQUIRE( MPI_Comm_group(comm, &groupComm) );
+    BL_MPI_REQUIRE( MPI_Comm_group(Communicator(), &groupWorld) );
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupComm, 1, &dst_pid, groupWorld, &dst_pid_world) );
+
+    BL_COMM_PROFILE(BLProfiler::SendTsii, n * sizeof(T), dst_pid_world, tag);
+#endif
+
+    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
+                             n,
+                             Mpi_typemap<T>::type(),
+                             dst_pid,
+                             tag,
+                             comm) );
     BL_COMM_PROFILE(BLProfiler::SendTsii, BLProfiler::AfterCall(), dst_pid, tag);
     return Message();
 }
@@ -700,6 +785,40 @@ ParallelDescriptor::Recv (T*     buf,
 
 template <class T>
 ParallelDescriptor::Message
+ParallelDescriptor::Recv (T*     buf,
+                          size_t n,
+                          int    src_pid,
+                          int    tag,
+			  MPI_Comm comm)
+{
+    BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
+
+    MPI_Status stat;
+    BL_MPI_REQUIRE( MPI_Recv(buf,
+                             n,
+                             Mpi_typemap<T>::type(),
+                             src_pid,
+                             tag,
+                             comm,
+                             &stat) );
+#ifdef BL_COMM_PROFILING
+    int src_pid_comm(stat.MPI_SOURCE);
+    int src_pid_world(stat.MPI_SOURCE);
+    if(src_pid_comm != MPI_ANY_SOURCE) {
+      MPI_Group groupComm, groupWorld;
+      BL_MPI_REQUIRE( MPI_Comm_group(comm, &groupComm) );
+      BL_MPI_REQUIRE( MPI_Comm_group(Communicator(), &groupWorld) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupComm, 1, &src_pid_comm, groupWorld, &src_pid_world) );
+    }
+
+    BL_COMM_PROFILE(BLProfiler::RecvTsii, n * sizeof(T), src_pid_world, stat.MPI_TAG);
+#endif
+    return Message(stat, Mpi_typemap<T>::type());
+}
+
+template <class T>
+ParallelDescriptor::Message
 ParallelDescriptor::Recv (std::vector<T>& buf,
                           int             src_pid,
                           int             tag)
@@ -743,6 +862,10 @@ ParallelDescriptor::Bcast (T*     t,
                            size_t n,
                            int    root)
 {
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
     BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
@@ -751,6 +874,28 @@ ParallelDescriptor::Bcast (T*     t,
                               Mpi_typemap<T>::type(),
                               root,
                               Communicator()) );
+    BL_COMM_PROFILE(BLProfiler::BCastTsi, n * sizeof(T), root, BLProfiler::NoTag());
+}
+
+template <class T>
+void
+ParallelDescriptor::Bcast (T*     t,
+                           size_t n,
+                           int    root,
+			   const MPI_Comm &comm)
+{
+#ifdef BL_LAZY
+    Lazy::EvalReduction();
+#endif
+
+    BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
+    BL_COMM_PROFILE(BLProfiler::BCastTsi, BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
+
+    BL_MPI_REQUIRE( MPI_Bcast(t,
+                              n,
+                              Mpi_typemap<T>::type(),
+                              root,
+                              comm) );
     BL_COMM_PROFILE(BLProfiler::BCastTsi, n * sizeof(T), root, BLProfiler::NoTag());
 }
 
@@ -853,6 +998,13 @@ Send(const T* buf, size_t n, int dst_pid, int tag)
 
 template <class T>
 Message
+Send(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
+{
+    return Message();
+}
+
+template <class T>
+Message
 Send(const std::vector<T>& buf, int dst_pid, int tag)
 {
     return Message();
@@ -888,6 +1040,13 @@ Recv(T* buf, size_t n, int src_pid, int tag)
 
 template <class T>
 Message
+Recv(T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
+{
+    return Message();
+}
+
+template <class T>
+Message
 Recv(std::vector<T>& buf, int src_pid, int tag)
 {
     return Message();
@@ -903,6 +1062,11 @@ Reduce(const T& t)
 template <class T>
 void
 Bcast(T* t, size_t n, int root)
+{}
+
+template <class T>
+void
+Bcast(T* t, size_t n, int root, const MPI_Comm &comm)
 {}
 
 template <class T, class T1>

@@ -7,6 +7,10 @@ module cc_stencil_fill_module
 
   implicit none
 
+  private
+
+  public :: stencil_fill_cc_all_mglevels, stencil_fill_const_all_mglevels, stencil_fill_cc
+
 contains
 
   recursive subroutine stencil_fill_cc_all_mglevels(mgt, cell_coeffs, edge_coeffs, &
@@ -93,7 +97,7 @@ contains
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
           call layout_build_ba(old_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%ss(1))))
-          call destroy(ba_cc)
+          call boxarray_destroy(ba_cc)
           call multifab_build_edge(old_edge_coeffs_grown,old_la_grown,ncomp(edge_coeffs(1,d)),0,d)
 
           do i = 1, nfabs(old_edge_coeffs_grown)
@@ -106,12 +110,12 @@ contains
           call boxarray_grow(ba_cc,nghost(edge_coeffs(1,d)))
           call layout_build_ba(new_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
-          call destroy(ba_cc)
+          call boxarray_destroy(ba_cc)
           call multifab_build_edge(new_edge_coeffs_grown,new_la_grown,ncomp(edge_coeffs(1,d)),0,d)
           call multifab_copy_c(new_edge_coeffs_grown,1,old_edge_coeffs_grown,1,nc=ncomp(edge_coeffs(1,d)))
 
-          call destroy(old_edge_coeffs_grown)
-          call destroy(old_la_grown)
+          call multifab_destroy(old_edge_coeffs_grown)
+          call layout_destroy(old_la_grown)
 
           do i = 1, nfabs(new_edge_coeffs_grown)
              sc_orig  => dataptr(coarse_edge_coeffs(maxlev_bottom,d),i,get_pbox(new_edge_coeffs_grown,i),1,ncomp(edge_coeffs(1,d)))
@@ -119,8 +123,8 @@ contains
              sc_orig = sc_grown
           end do
 
-          call destroy(new_edge_coeffs_grown)
-          call destroy(new_la_grown)
+          call multifab_destroy(new_edge_coeffs_grown)
+          call layout_destroy(new_la_grown)
 
        end do
 
@@ -132,20 +136,20 @@ contains
        call stencil_fill_cc_all_mglevels(mgt%bottom_mgt, coarse_cell_coeffs, coarse_edge_coeffs, &
                                          coarse_xa, coarse_xb, coarse_pxa, coarse_pxb, stencil_order, bc_face, nc_opt)
 
-       call destroy(coarse_cell_coeffs(maxlev_bottom))
+       call multifab_destroy(coarse_cell_coeffs(maxlev_bottom))
        deallocate(coarse_cell_coeffs)
 
        do d = 1,dm
-          call destroy(coarse_edge_coeffs(maxlev_bottom,d))
+          call multifab_destroy(coarse_edge_coeffs(maxlev_bottom,d))
        end do
        deallocate(coarse_edge_coeffs)
 
     end if
 
     do i = maxlev-1, 1, -1
-       call destroy(cell_coeffs(i))
+       call multifab_destroy(cell_coeffs(i))
        do d = 1,dm
-          call destroy(edge_coeffs(i,d))
+          call multifab_destroy(edge_coeffs(i,d))
        end do
     end do
 
@@ -367,6 +371,7 @@ contains
                                 dh, mask, xa, xb, pxa, pxb, order, bc_face)
 
     use bl_prof_module
+    use stencil_util_module, only : make_ibc_stencil_fab, simple_ib_const
 
     type(multifab) , intent(inout) :: ss
     real(kind=dp_t), intent(in   ) :: dh(:)
@@ -382,7 +387,7 @@ contains
     real(kind=dp_t), pointer  ::  sp(:,:,:,:)
     integer        , pointer  ::  mp(:,:,:,:)
     integer                   :: i,id,dm
-    logical                   :: pmask(get_dim(ss))
+    logical                   :: pmask(get_dim(ss)), intbox
 
     type(bl_prof_timer), save :: bpt
 
@@ -396,35 +401,52 @@ contains
 
     do i = 1, nfabs(ss)
        bx = get_box(ss,i)
-       call stencil_set_bc(ss, i, mask, bc_face)
-       lxa = xa
-       lxb = xb
-       do id = 1,pd%dim
-          if ( .not. pmask(id) ) then
-             if ( bx%lo(id) == pd%lo(id) ) then
-                lxa(id) = pxa(id)
-             end if
-             if ( bx%hi(id) == pd%hi(id) ) then
-                lxb(id) = pxb(id)
-             end if
-          end if
-       end do
+       call stencil_set_bc(ss, i, mask, bc_face, intbox=intbox)
 
-       sp  => dataptr(ss, i)
-       mp  => dataptr(mask, i)
+       if (intbox) then
 
-       select case (dm)
-       case (1)
-           call bl_error("simple_1d_const not yet implemented")
-       case (2)
-           call simple_2d_const(sp(:,:,:,1),alpha_const,beta_const,&
-                                dh,mp(:,:,1,1), &
-                                bx%lo, bx%hi, lxa, lxb, order)
-       case (3)
-           call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
-                                dh,mp(:,:,:,1), &
-                                bx%lo, bx%hi, lxa, lxb, order)
-       end select
+          call make_ibc_stencil_fab(ss, i, dm)
+          sp  => dataptr(ss, i)
+
+          select case (dm)
+          case (1)
+             call bl_error("simple_1d_ib_const not yet implemented")
+          case default 
+             call simple_ib_const(sp(:,1,1,1), alpha_const, beta_const, dh, dm)
+          end select
+
+       else
+
+          lxa = xa
+          lxb = xb
+          do id = 1,pd%dim
+             if ( .not. pmask(id) ) then
+                if ( bx%lo(id) == pd%lo(id) ) then
+                   lxa(id) = pxa(id)
+                end if
+                if ( bx%hi(id) == pd%hi(id) ) then
+                   lxb(id) = pxb(id)
+                end if
+             end if
+          end do
+          
+          sp  => dataptr(ss, i)
+          mp  => dataptr(mask, i)
+          
+          select case (dm)
+          case (1)
+             call bl_error("simple_1d_const not yet implemented")
+          case (2)
+             call simple_2d_const(sp(:,:,:,1),alpha_const,beta_const,&
+                                  dh,mp(:,:,1,1), &
+                                  bx%lo, bx%hi, lxa, lxb, order)
+          case (3)
+             call simple_3d_const(sp(:,:,:,:),alpha_const,beta_const,&
+                                  dh,mp(:,:,:,1), &
+                                  bx%lo, bx%hi, lxa, lxb, order)
+          end select
+
+       end if
 
     end do
     

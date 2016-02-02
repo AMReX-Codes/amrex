@@ -348,21 +348,10 @@ CMJL      print*, 'omp_in_parallel: ', nested; call flush(6)
          cxcen = half*(cvcx(ic)+cvcx(ic+1))
          voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
       end do
-c
-c         Prevent underflow for small crse values.
-c
+
       do n = 1, nvar 
-!$omp parallel do private(i,j,k) if (.not. nested)
-          do k = cslopelo(3)-1,cslopehi(3)+1
-            do j = cslopelo(2)-1,cslopehi(2)+1
-              do i = cslopelo(1)-1, cslopehi(1)+1 
-                crse(i,j,k,n) = merge(crse(i,j,k,n),zero,abs(crse(i,j,k,n)).gt.1.0d-50)
-              end do
-            end do
-          end do
-!$omp end parallel do
 c
-c         Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
+c     Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
 c
 !$omp parallel do private(i,j,k,koff,joff,ioff) if (.not. nested)
           do k = cslopelo(3),cslopehi(3)

@@ -9,34 +9,41 @@
   F90 := $(COMP)
   ifdef CCOMP
     CC  := $(CCOMP)
+    CXX := $(CCOMP)
   else
     CC  := gcc
+    CXX := g++
   endif
 
   F90FLAGS += -J$(mdir) -I$(mdir)
   FFLAGS   += -J$(mdir) -I$(mdir)
   CFLAGS   += -std=c99 -Wall
+  CXXFLAGS += -Wall
 
   ifdef NDEBUG
     F90FLAGS += -O2 -ftree-vectorize -fno-range-check
     FFLAGS   += -O2 -ftree-vectorize -fno-range-check
     CFLAGS   += -O2 -ftree-vectorize
+    CXXFLAGS += -O2 -ftree-vectorize
   else
     F90FLAGS += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=snan
     FFLAGS   += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=snan
     CFLAGS   += -g -O1
+    CXXFLAGS += -g -O1
   endif
 
   ifdef OMP
     F90FLAGS += -fopenmp
     FFLAGS   += -fopenmp
     CFLAGS   += -fopenmp
+    CXXFLAGS += -fopenmp
   endif
 
   ifdef GPROF
     F90FLAGS += -pg
     FFLAGS   += -pg
     CFLAGS   += -pg
+    CXXFLAGS += -pg
   endif
 
   ifdef ROSE
@@ -50,3 +57,5 @@
       ROSEFLAGS += -rose:openmp
     endif
   endif
+
+  xtr_libraries += -lstdc++

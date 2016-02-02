@@ -86,6 +86,16 @@ ifeq ($(MACHINE), Linux)
 	endif
     endif
 
+    ifeq ($(WHICHLINUX), CHESTER)
+	ifeq ($(USE_MPI),TRUE)
+	   CC := cc
+	   CXX := CC
+	   FC := ftn
+	   F90 := ftn
+	   fC := ftn
+	endif
+    endif
+
     ifeq ($(WHICHLINUX), INTREPID)
 
       ifeq ($(USE_OMP),TRUE)
@@ -153,11 +163,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include/
       BL_MPI_LIBS += -lmpichfarg
     endif
-    ifeq ($(WHICHLINUX), HOMER)
-      MPI_HOME=/usr/local/mpich2/
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib/
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include/
-    endif
     ifeq ($(WHICHLINUX), PCCLUSTER)
       MPI_HOME=/usr/local/pkg/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
@@ -176,6 +181,14 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(HOST), kumonga)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
     ifeq ($(HOST), mothra)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -184,12 +197,13 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST), orga)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+    ifeq ($(HOST),orga)
+      CC := mpicc
+      CXX := mpic++
+      FC := mpif90
+      F90 := mpif90
+      fC := mpif90
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),manda)
@@ -224,7 +238,15 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST),battra)
+    ifeq ($(findstring battra, $(HOST)), battra)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),gamera)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
@@ -395,6 +417,22 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(WHICHLINUX),CORI)
+      BL_MPI_LIBS += -lmpichf90
+    endif
+    ifeq ($(WHICHLINUX),EDISON)
+      BL_MPI_LIBS += -lmpichf90
+    endif
+    ifeq ($(WHICHLINUX),BLUE_WATERS)
+      BL_MPI_LIBS += -lmpichf90
+    endif
+    ifeq ($(WHICHLINUX),TITAN)
+      BL_MPI_LIBS += -lmpichf90
+    endif
+    ifeq ($(WHICHLINUX),CHESTER)
+      BL_MPI_LIBS += -lmpichf90
+    endif
+
     ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
     endif
@@ -412,7 +450,11 @@ ifeq ($(MACHINE), Linux)
                     ifneq ($(WHICHLINUX), DONEV)
                       ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
                         ifneq ($(WHICHLINUX), LENS)
-                          BL_MPI_LIBS += -lmpich
+                          ifneq ($(WHICHLINUX), BABBAGE)
+                            ifneq ($(WHICHLINUX), MIRA)
+                              BL_MPI_LIBS += -lmpich
+                            endif
+                          endif
                         endif  
                       endif  
                     endif  
@@ -437,6 +479,7 @@ ifeq ($(MACHINE), Linux)
         FC  := mpif90
         fC  := mpif90
         F90 := mpif90
+	BL_MPI_LIBS += -lmpichf90
       else        
         LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       endif
@@ -534,7 +577,8 @@ ifeq ($(MACHINE), Darwin)
         CC  := $(MPIHOME)/bin/mpicc
 
         MPI_HOME=$(MPIHOME)
-	LIBRARIES += -lmpi_f77
+	#LIBRARIES += -lmpi_f77
+	LIBRARIES += -lmpi_mpifh
      else
         ifndef MPI_HOME
           $(error SORRY, no MPI specification for your Darwin/Mac machine; check BoxLib/Tools/F_mk/GMakeMPI.mak and/or set MPIHOME environment variable)

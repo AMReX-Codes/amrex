@@ -13,6 +13,7 @@ include $(BOXLIB_HOME)/Tools/F_mk/GMakedefs.mak
 F90FLAGS += -fPIC
 FFLAGS += -fPIC
 CFLAGS += -fPIC
+CXXFLAGS += -fPIC
 
 # core BoxLib directories
 BOXLIB_CORE := Src/F_BaseLib
@@ -30,7 +31,7 @@ VPATH_LOCATIONS += $(Fmlocs)
 all: python_module
 
 python_module: $(objects)
-	f2py --fcompiler=gfortran --f90flags="-J $(mdir)" -c fsnapshot.f90 -m fsnapshot $(objects)
+	f2py --f90flags="-J $(mdir)" -c fsnapshot.f90 -m fsnapshot $(objects) -lstdc++
 
 include $(BOXLIB_HOME)/Tools/F_mk/GMakerules.mak
 
@@ -39,3 +40,7 @@ clean::
 	$(RM) fsnapshot.so
 
 
+# for debugging.  To see the value of a Makefile variable,                      
+# e.g. Fmlocs, simply do "make print-Fmlocs".  This will                        
+# print out the value.                                                          
+print-%: ; @echo $* is $($*) 

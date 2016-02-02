@@ -222,7 +222,7 @@ contains
     type(boxarray), intent(inout) :: ba
     type(list_box), intent(in) :: bl
     logical, intent(in), optional :: sort
-    if ( built_q(ba) ) call destroy(ba)
+    if ( built_q(ba) ) call boxarray_destroy(ba)
     call boxarray_build_l(ba, bl, sort)
   end subroutine boxarray_build_copy_l
 

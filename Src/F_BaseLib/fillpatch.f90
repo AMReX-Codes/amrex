@@ -55,6 +55,7 @@ contains
     type(box) :: gcdom
     type(multifab), target  :: gcrse
     type(multifab), pointer :: pcrse
+    type(mfiter) :: mfi
 
     type(bl_prof_timer), save :: bpt
 
@@ -178,11 +179,11 @@ contains
           call push_back(pbl, value(bln))
           bln => next(bln)
        end do
-       call build(ba, pbl, sort = .false.)
+       call boxarray_build_l(ba, pbl, sort = .false.)
        call destroy(pbl)
-       call build(tmpfine_la, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
-       call destroy(ba)
-       call build(tmpfine, tmpfine_la, nc = nc, ng = ng)
+       call layout_build_ba(tmpfine_la, ba, pd = fdomain, pmask = pmask, explicit_mapping = procmap)
+       call boxarray_destroy(ba)
+       call multifab_build(tmpfine, tmpfine_la, nc = nc, ng = ng)
        !
        ! Now grow the boxes in extra in preparation for building cfine.
        !
@@ -194,15 +195,15 @@ contains
     end if
 
     call splice(bl, extra)
-    call build(ba, bl, sort = .false.)
+    call boxarray_build_l(ba, bl, sort = .false.)
     call destroy(bl)
     call boxarray_coarsen(ba, ir)
     ! Grow by stencil_width for stencil in interpolation routine. 
     ! Don't grow empty boxes!
     call boxarray_grow(ba, stencil_width, allow_empty=.true.) 
-    call build(cfine_la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
-    call destroy(ba)
-    call build(cfine, cfine_la, nc = nc, ng = 0)
+    call layout_build_ba(cfine_la, ba, pd = cdomain, pmask = pmask, explicit_mapping = procmap)
+    call boxarray_destroy(ba)
+    call multifab_build(cfine, cfine_la, nc = nc, ng = 0)
  
     !
     ! Fill cfine from crse.
@@ -226,7 +227,7 @@ contains
     if (fill_crse_physbc) call multifab_physbc(crse,icomp_crse,bcomp,nc,bc_crse)
 
     if (touch) then
-       call build(gcrse, crse_la, nc = ncomp(crse), ng = stencil_width)
+       call multifab_build(gcrse, crse_la, nc = ncomp(crse), ng = stencil_width)
        call copy(gcrse, crse)
        call fill_boundary(gcrse, icomp_crse, nc, ng=nghost(gcrse))
        call multifab_physbc(gcrse,icomp_crse,bcomp,nc,bc_crse)
@@ -237,17 +238,17 @@ contains
 
     ! Set all of cfine to huge so that we can make sure it gets completely filled below.
     ! Empty boxes aren't setval()'d
-    call setval(cfine, Huge(ONE), allow_empty=.true.)
+    call multifab_setval(cfine, Huge(ONE))
 
     call multifab_copy_c(cfine, 1, pcrse, icomp_crse, nc, ngsrc=nghost(pcrse))
 
-    if (multifab_max(cfine, allow_empty=.true., local=.true.) .gt. Huge(ONE)-ONE) then
+    if (multifab_max(cfine, local=.true.) .gt. Huge(ONE)-ONE) then
        call bl_error('fillpatch: cfine was not completely filled by tmpcrse' // &
             ' (likely because grids are not properly nested)')
     end if
 
     nullify(pcrse)
-    if (multifab_built_q(gcrse)) call destroy(gcrse)
+    if (multifab_built_q(gcrse)) call multifab_destroy(gcrse)
 
     !$OMP PARALLEL DO PRIVATE(i,j,cbx,fine_box,fbx,cslope_lo,cslope_hi,local_bc,lo_c,hi_c,lo_f,hi_f) &
     !$OMP PRIVATE(fvcx,fvcy,fvcz,cvcx,cvcy,cvcz,src,fp,dst)
@@ -374,14 +375,15 @@ contains
     if ( have_periodic_gcells ) then
        if ( n_extra_valid_regions > 0 ) then
           call fill_boundary(tmpfine, 1, nc, ng)
-          !$OMP PARALLEL DO PRIVATE(i,bx,dst,src)
-          do i = 1, nfabs(fine)
-             bx  =  grow(get_ibox(fine,i), ng)
+          !$omp parallel private(mfi,i,bx,dst,src)
+          call mfiter_build(mfi,fine,.true.)
+          do while(next_tile(mfi,i))
+             bx = get_growntilebox(mfi,ng)
              dst => dataptr(fine,    i, bx, icomp_fine, nc)
              src => dataptr(tmpfine, i, bx, 1         , nc)
              call cpy_d(dst,src)
           end do
-          !$OMP END PARALLEL DO
+          !$omp end parallel
        else
           !
           ! We can fill periodic ghost cells simply by calling fill_boundary().
@@ -392,12 +394,12 @@ contains
 
     if(.not. no_final_physbc) call multifab_physbc(fine, icomp_fine, bcomp, nc, bc_fine)
 
-    call destroy(cfine)
-    call destroy(cfine_la)
+    call multifab_destroy(cfine)
+    call layout_destroy(cfine_la)
 
     if ( n_extra_valid_regions > 0 ) then
-       call destroy(tmpfine)
-       call destroy(tmpfine_la) 
+       call multifab_destroy(tmpfine)
+       call layout_destroy(tmpfine_la) 
     end if
 
     call destroy(bpt)
@@ -456,14 +458,14 @@ contains
     call multifab_physbc(crse_new,icomp_crse,bcomp,nc,bc_crse)
     call multifab_physbc(crse_old,icomp_crse,bcomp,nc,bc_crse)
 
-    call build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng, nodal=crse_old%nodal)
+    call multifab_build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng, nodal=crse_old%nodal)
     call saxpy(crse, alpha, crse_old, (ONE-alpha), crse_new, all=.true.)
 
     call fillpatch(fine, crse, ng, ir, bc_crse, bc_fine, icomp_fine, icomp_crse, &
          bcomp, nc, no_final_physbc_input, lim_slope_input, lin_limit_input, &
          .false., stencil_width_input, fourth_order_input, fill_crse_physbc_input=.false.)
 
-    call destroy(crse)
+    call multifab_destroy(crse)
 
   end subroutine fillpatch_t
 

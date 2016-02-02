@@ -34,6 +34,7 @@ contains
     dm = get_dim(uedge(1))
     ng_ut = nghost(uedge(1))
 
+    !$omp parallel do private(i,utp,vtp,wtp,lo,hi)
     do i=1,nfabs(uedge(1))
        utp => dataptr(uedge(1),i)
        lo =  lwb(get_box(uedge(1),i))
@@ -53,6 +54,7 @@ contains
                                 lo, hi, the_bc_level%phys_bc_level_array(i,:,:))
        end select
     end do
+    !$omp end parallel do
 
     call destroy(bpt)
 

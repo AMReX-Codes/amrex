@@ -264,7 +264,7 @@ FluxRegister::Reflux (MultiFab&       S,
     // We use this to help "find" FluxRegisters with which we may intersect.
     // It assumes that FluxRegisters have width "1".
     //
-    BoxArray ba = grids; ba.grow(1);
+    const int ng = 1;
 
     for (OrientationIter fi; fi; ++fi)
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
@@ -276,7 +276,7 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         // Find flux register that intersect with this grid.
         //
-        ba.intersections(vbx,isects);
+        grids.intersections(vbx,isects,ng);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -329,7 +329,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
             for (int k = 0, N = grids.size(); k < N; k++)
             {
-                const Box& bx = ba[k];
+                const Box& bx = BoxLib::grow(grids[k],ng);
 
                 if (geom.Domain().contains(bx)) continue;
 
@@ -381,8 +381,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-
-    ba.clear_hash_bin();
 
     fscd.CollectData();
 

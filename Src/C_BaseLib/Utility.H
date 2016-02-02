@@ -109,6 +109,11 @@ namespace BoxLib
     void UtilCreateCleanDirectory (const std::string &path,
                                    bool callbarrier = true);
     //
+    // Rename a current directory if it exists
+    //
+    void UtilRenameDirectoryToOld (const std::string &path,
+                                   bool callbarrier = true);
+    //
     // Aborts after printing message indicating out-of-memory;
     // i.e. operator new has failed. This is the "supported"
     // set_new_handler() function for BoxLib applications.
@@ -226,6 +231,11 @@ namespace BoxLib
     int sizeofRandomState ();
 
     void RestoreRandomState (const Array<unsigned long>& state);
+    //
+    // Create a unique subset or random numbers from a pool
+    //   setSize must be <= poolSize
+    //
+    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
     //
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //

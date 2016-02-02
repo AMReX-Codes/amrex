@@ -103,14 +103,14 @@ contains
 
     do i=1,dm
 
-       call build(f_la,f_ba,get_pd(get_layout(fine(i))),get_pmask(get_layout(fine(i))), &
-                  explicit_mapping=fgasc%prc)
-       call build(c_la,c_ba,get_pd(get_layout(crse(i))),get_pmask(get_layout(crse(i))), &
-                  explicit_mapping=fgasc%prc)
+       call layout_build_ba(f_la,f_ba,get_pd(get_layout(fine(i))),get_pmask(get_layout(fine(i))), &
+                            explicit_mapping=fgasc%prc)
+       call layout_build_ba(c_la,c_ba,get_pd(get_layout(crse(i))),get_pmask(get_layout(crse(i))), &
+                            explicit_mapping=fgasc%prc)
 
        ! Create c_mf and f_mf on the same proc.
-       call build(f_mf,f_la,1,0,nodal_flags(fine(i)))
-       call build(c_mf,c_la,1,0,nodal_flags(crse(i)))
+       call multifab_build(f_mf,f_la,1,0,nodal_flags(fine(i)))
+       call multifab_build(c_mf,c_la,1,0,nodal_flags(crse(i)))
 
        call multifab_copy_c(c_mf, 1, crse(i), 1, 1, ngsrc=1)
 
@@ -158,8 +158,8 @@ contains
        end do
        !$OMP END PARALLEL DO
 
-       call destroy(c_mf)
-       call destroy(c_la)
+       call multifab_destroy(c_mf)
+       call layout_destroy(c_la)
 
        !
        ! Update ghost regions of fine where they overlap with f_mf.
@@ -175,11 +175,11 @@ contains
              fn => dataptr(fine(i), k, bx, 1, 1)
              call cpy_d(fn,fp)
           end do
-          call destroy(tba)
+          call boxarray_destroy(tba)
        end do
 
-       call destroy(f_mf)
-       call destroy(f_la)
+       call multifab_destroy(f_mf)
+       call layout_destroy(f_la)
        
        ng_f = nghost(fine(1))
 
@@ -209,8 +209,8 @@ contains
 
     if (fill_fine_boundary) call multifab_physbc_edgevel(fine,bc_fine)
 
-    call destroy(f_ba)
-    call destroy(c_ba)
+    call boxarray_destroy(f_ba)
+    call boxarray_destroy(c_ba)
     call destroy(bpt)
 
   end subroutine create_umac_grown

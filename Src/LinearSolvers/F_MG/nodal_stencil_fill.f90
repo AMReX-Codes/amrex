@@ -61,7 +61,7 @@ contains
        call boxarray_grow(ba_cc,1)
        call layout_build_ba(old_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
                             explicit_mapping=get_proc(get_layout(mgt%ss(1))))
-       call destroy(ba_cc)
+       call boxarray_destroy(ba_cc)
        call multifab_build(stored_coeffs_grown,old_la_grown,1,ng=0)
 
        do i = 1, nfabs(stored_coeffs_grown)
@@ -74,7 +74,7 @@ contains
        call boxarray_grow(ba_cc,1)
        call layout_build_ba(new_la_grown,ba_cc,boxarray_bbox(ba_cc),pmask = get_pmask(get_layout(mgt%ss(1))), &
             explicit_mapping = get_proc(get_layout(mgt%bottom_mgt%ss(maxlev_bottom))))
-       call destroy(ba_cc)
+       call boxarray_destroy(ba_cc)
        call multifab_build(new_coeffs_grown,new_la_grown,1,ng=0)
        call multifab_copy_c(new_coeffs_grown,1,stored_coeffs_grown,1,1)
 
@@ -84,22 +84,22 @@ contains
           sc_orig = sc_grown
        end do
 
-       call destroy(new_coeffs_grown)
+       call multifab_destroy(new_coeffs_grown)
 
        call stencil_fill_nodal_all_mglevels(mgt%bottom_mgt, coarse_coeffs)
 
-       call destroy(coarse_coeffs(maxlev_bottom))
+       call multifab_destroy(coarse_coeffs(maxlev_bottom))
        deallocate(coarse_coeffs)
 
-       call destroy(stored_coeffs)
-       call destroy(stored_coeffs_grown)
-       call destroy(old_la_grown)
-       call destroy(new_la_grown)
+       call multifab_destroy(stored_coeffs)
+       call multifab_destroy(stored_coeffs_grown)
+       call layout_destroy(old_la_grown)
+       call layout_destroy(new_la_grown)
 
     end if
 
     do i = maxlev-1, 1, -1
-       call destroy(sg(i))
+       call multifab_destroy(sg(i))
     end do
 
   end subroutine stencil_fill_nodal_all_mglevels
@@ -180,7 +180,7 @@ contains
        do kb = kb_lo, 1
           do jb = jb_lo, 1
              do ib = ib_lo, 1
-                call copy(bxa_temp,lb)
+                call boxarray_build_copy_l(bxa_temp,lb)
 
                 shift_vect = 0
 
@@ -203,7 +203,7 @@ contains
                    end if
                 end do
 
-                call destroy(bxa_temp)
+                call boxarray_destroy(bxa_temp)
              end do
           end do
        end do
@@ -225,7 +225,7 @@ contains
     !
     ! Build layout on bxa_periodic.  We use a layout to make the stencil_set_bc_nodal() more efficient.
     !
-    call build(la,bxa_periodic,get_pd(get_layout(sg)),mapping=LA_LOCAL)
+    call layout_build_ba(la,bxa_periodic,get_pd(get_layout(sg)),mapping=LA_LOCAL)
 
     nodal_flag(:) = .true.
     do i = 1, nfabs(sg)
@@ -257,8 +257,8 @@ contains
        end select
     end do
 
-    call destroy(bxa_periodic)
-    call destroy(la)
+    call boxarray_destroy(bxa_periodic)
+    call layout_destroy(la)
     call destroy(bpt)
 
   end subroutine stencil_fill_nodal

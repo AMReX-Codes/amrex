@@ -26,6 +26,8 @@ contains
     dm = data%dim
     ng = data%ng
 
+    ! here, nfabs() return the number of boxes local to the MPI task,
+    ! so this loop only goes over the boxes local to a processor.
     do i=1,nfabs(data)
        dp => dataptr(data,i)
        lo = lwb(get_box(data,i))

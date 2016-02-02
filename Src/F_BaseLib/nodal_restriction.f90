@@ -3,8 +3,7 @@ module nodal_restriction_module
   use bl_constants_module
   use bl_error_module
   use bl_types
-! use bc_functions_module
-  use impose_neumann_bcs_module
+  use bc_functions_module
 
   implicit none
 
@@ -69,28 +68,24 @@ contains
 
   subroutine nodal_restriction_1d(cc, loc, ff, lof, &
                                   mm_fine, lom_fine, mm_crse, lom_crse, &
-                                  lo, hi, ir, inject, mg_restriction_mode)
+                                  lo, hi, vlo, vhi, ir, inject, mg_restriction_mode)
     integer,    intent(in)    :: loc(:)
     integer,    intent(in)    :: lof(:)
     integer,    intent(in)    :: lom_fine(:)
     integer,    intent(in)    :: lom_crse(:)
-    integer,    intent(in)    :: lo(:), hi(:)
+    integer,    intent(in)    :: lo(:), hi(:), vlo(:), vhi(:)
     real(dp_t), intent(inout) :: cc(loc(1):)
-    real(dp_t), intent(inout) :: ff(lof(1):)
+    real(dp_t), intent(in)    :: ff(lof(1):)
     integer,    intent(in)    :: mm_fine(lom_fine(1):)
     integer,    intent(in)    :: mm_crse(lom_crse(1):)
     integer,    intent(in)    :: ir(:)
     logical,    intent(in)    :: inject
     integer,    intent(in)    :: mg_restriction_mode
 
-    integer    :: hif, i, ifine, m, ng
+    integer    :: hif, i, ifine, m
     real(dp_t) :: fac, fac0
 
     hif = lof(1)+size(ff,dim=1)-1
-
-    ng = lom_fine(1) - lof(1)
-
-    call impose_neumann_bcs_1d(ff,mm_fine,lom_fine,ng)
 
     if ( inject ) then
 
@@ -136,23 +131,27 @@ contains
 
     end if
 
-    i = lo(1)
-    if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
+    if (lo(1) .eq. vlo(1)) then
+       i = lo(1)
+       if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
+    end if
 
-    i = hi(1)
-    if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
+    if (hi(1) .eq. vhi(1)) then
+       i = hi(1)
+       if ( bc_dirichlet(mm_crse(i),1,0) ) cc(i) = ZERO
+    end if
 
   end subroutine nodal_restriction_1d
 
   subroutine nodal_restriction_2d(cc, loc, ff, lof, &
                                   mm_fine, lom_fine, mm_crse, lom_crse, &
-                                  lo, hi, ir, inject, mg_restriction_mode)
+                                  lo, hi, vlo, vhi, ir, inject, mg_restriction_mode)
     integer,    intent(in)    :: loc(:)
     integer,    intent(in)    :: lof(:)
     integer,    intent(in)    :: lom_fine(:)
     integer,    intent(in)    :: lom_crse(:)
-    integer,    intent(in)    :: lo(:), hi(:)
-    real(dp_t), intent(inout) :: ff(lof(1):,lof(2):)
+    integer,    intent(in)    :: lo(:), hi(:), vlo(:), vhi(:)
+    real(dp_t), intent(in)    :: ff(lof(1):,lof(2):)
     real(dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer,    intent(in)    :: mm_fine(lom_fine(1):,lom_fine(2):)
     integer,    intent(in)    :: mm_crse(lom_crse(1):,lom_crse(2):)
@@ -160,7 +159,7 @@ contains
     logical,    intent(in)    :: inject
     integer,    intent(in)    :: mg_restriction_mode
 
-    integer    :: i, j, ifine, jfine, m, n, ng
+    integer    :: i, j, ifine, jfine, m, n
     integer    :: ileft,irght,jbot,jtop
     integer    :: hif(2)
     real(dp_t) :: fac,fac0,fac1
@@ -171,8 +170,6 @@ contains
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
     
-    ng = lom_fine(1) - lof(1)
-
     if ( inject ) then
 
        do j = lo(2),hi(2)
@@ -186,8 +183,6 @@ contains
        ! As far as I can tell this is only called by MultiGrid.
        !
        call bl_assert(ir(1)==2 .and. ir(2)==2, 'nodal_restriction_2d: ir==2')
-
-       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
 
        do j = lo(2),hi(2)
           jfine = j*ir(2)
@@ -210,8 +205,6 @@ contains
        !
        ! As far as I can tell this is only called by multi-level solves.
        !
-       call impose_neumann_bcs_2d(ff,mm_fine,lom_fine,ng)
-
        fac0 = ONE / (ir(1)*ir(2))
 
        do j = lo(2),hi(2)
@@ -280,27 +273,41 @@ contains
 
     end if
 
-    do j = lo(2),hi(2)
-      if ( bc_dirichlet(mm_crse(lo(1),j),1,0) ) cc(lo(1),j) = ZERO
-      if ( bc_dirichlet(mm_crse(hi(1),j),1,0) ) cc(hi(1),j) = ZERO
-    end do
+    if (lo(1) .eq. vlo(1)) then
+       do j = lo(2),hi(2)
+          if ( bc_dirichlet(mm_crse(lo(1),j),1,0) ) cc(lo(1),j) = ZERO
+       end do
+    end if
 
-    do i = lo(1),hi(1)
-      if ( bc_dirichlet(mm_crse(i,lo(2)),1,0) ) cc(i,lo(2)) = ZERO
-      if ( bc_dirichlet(mm_crse(i,hi(2)),1,0) ) cc(i,hi(2)) = ZERO
-    end do
+    if (hi(1) .eq. vhi(1)) then
+       do j = lo(2),hi(2)
+          if ( bc_dirichlet(mm_crse(hi(1),j),1,0) ) cc(hi(1),j) = ZERO
+       end do
+    end if    
+
+    if (lo(2) .eq. vlo(2)) then
+       do i = lo(1),hi(1)
+          if ( bc_dirichlet(mm_crse(i,lo(2)),1,0) ) cc(i,lo(2)) = ZERO
+       end do
+    end if
+
+    if (hi(2) .eq. vhi(2)) then
+       do i = lo(1),hi(1)
+          if ( bc_dirichlet(mm_crse(i,hi(2)),1,0) ) cc(i,hi(2)) = ZERO
+       end do
+    end if
 
   end subroutine nodal_restriction_2d
 
   subroutine nodal_restriction_3d(cc, loc, ff, lof, &
                                   mm_fine, lom_fine, mm_crse, lom_crse, &
-                                  lo, hi, ir, inject, mg_restriction_mode)
+                                  lo, hi, vlo, vhi, ir, inject, mg_restriction_mode)
     integer,    intent(in   ) :: loc(:)
     integer,    intent(in   ) :: lof(:)
     integer,    intent(in   ) :: lom_fine(:)
     integer,    intent(in   ) :: lom_crse(:)
-    integer,    intent(in   ) :: lo(:),hi(:)
-    real(dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
+    integer,    intent(in   ) :: lo(:),hi(:),vlo(:),vhi(:)
+    real(dp_t), intent(in   ) :: ff(lof(1):,lof(2):,lof(3):)
     real(dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
     integer,    intent(in   ) :: mm_fine(lom_fine(1):,lom_fine(2):,lom_fine(3):)
     integer,    intent(in   ) :: mm_crse(lom_crse(1):,lom_crse(2):,lom_crse(3):)
@@ -308,7 +315,7 @@ contains
     logical,    intent(in   ) :: inject
     integer,    intent(in   ) :: mg_restriction_mode
 
-    integer    :: i, j, k, l, m, n, ng
+    integer    :: i, j, k, l, m, n
     integer    :: fi, fj, fk
     integer    :: ileft, irght, jbot, jtop, kdwn, kup
     integer    :: hif(3)
@@ -321,8 +328,6 @@ contains
     hif(1) = lof(1)+size(ff,dim=1)-1
     hif(2) = lof(2)+size(ff,dim=2)-1
     hif(3) = lof(3)+size(ff,dim=3)-1
-
-    ng = lom_fine(1) - lof(1)
 
     if ( inject ) then
 
@@ -340,21 +345,19 @@ contains
        !
        call bl_assert(ir(1)==2 .and. ir(2)==2 .and. ir(3)==2, 'nodal_restriction_3d: ir==2')
 
-       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
-
        do k = lo(3),hi(3)
           fk    = k*ir(3)
-          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+          kface = .false. ; if ( (k.eq.vlo(3)) .or. (k.eq.vhi(3)) ) kface = .true.
 
           do j = lo(2),hi(2)
              fj    = j*ir(2)
-             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+             jface = .false. ; if ( (j.eq.vlo(2)) .or. (j.eq.vhi(2)) ) jface = .true.
 
              do i = lo(1),hi(1)
                 fi   = i*ir(1)
                 doit = .true.
 
-                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                if ( jface .or. kface .or. (i.eq.vlo(1)) .or. (i.eq.vhi(1)) ) then
                    if ( bc_dirichlet(mm_fine(fi,fj,fk),1,0) ) doit = .false.
                 end if
 
@@ -383,23 +386,21 @@ contains
        !
        ! As far as I can tell this is only called by multi-level solves.
        !
-       call impose_neumann_bcs_3d(ff,mm_fine,lom_fine,ng)
-
        fac0 = ONE / (ir(1)*ir(2)*ir(3))
 
        do k = lo(3),hi(3)
           fk    = k*ir(3)
-          kface = .false. ; if ( (k.eq.lo(3)) .or. (k.eq.hi(3)) ) kface = .true.
+          kface = .false. ; if ( (k.eq.vlo(3)) .or. (k.eq.vhi(3)) ) kface = .true.
 
           do j = lo(2),hi(2)
              fj    = j*ir(2)
-             jface = .false. ; if ( (j.eq.lo(2)) .or. (j.eq.hi(2)) ) jface = .true.
+             jface = .false. ; if ( (j.eq.vlo(2)) .or. (j.eq.vhi(2)) ) jface = .true.
 
              do i = lo(1),hi(1)
                 fi   = i*ir(1)
                 doit = .true.
 
-                if ( jface .or. kface .or. (i.eq.lo(1)) .or. (i.eq.hi(1)) ) then
+                if ( jface .or. kface .or. (i.eq.vlo(1)) .or. (i.eq.vhi(1)) ) then
                    if ( bc_dirichlet(mm_fine(fi,fj,fk),1,0) ) doit = .false.
                 end if
 
@@ -504,26 +505,53 @@ contains
 
     end if
 
-    do k = lo(3),hi(3)
+    if (lo(1) .eq. vlo(1)) then
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             if ( bc_dirichlet(mm_crse(lo(1),j,k),1,0) ) cc(lo(1),j,k) = ZERO
+          end do
+       end do
+    end if
+
+    if (hi(1) .eq. vhi(1)) then
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+             if ( bc_dirichlet(mm_crse(hi(1),j,k),1,0) ) cc(hi(1),j,k) = ZERO
+          end do
+       end do
+    end if
+
+    if (lo(2) .eq. vlo(2)) then
+       do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+             if ( bc_dirichlet(mm_crse(i,lo(2),k),1,0) ) cc(i,lo(2),k) = ZERO
+          end do
+       end do
+    end if
+
+    if (hi(2) .eq. vhi(2)) then
+       do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+             if ( bc_dirichlet(mm_crse(i,hi(2),k),1,0) ) cc(i,hi(2),k) = ZERO
+          end do
+       end do
+    end if
+
+    if (lo(3) .eq. vlo(3)) then
        do j = lo(2),hi(2)
-          if ( bc_dirichlet(mm_crse(lo(1),j,k),1,0) ) cc(lo(1),j,k) = ZERO
-          if ( bc_dirichlet(mm_crse(hi(1),j,k),1,0) ) cc(hi(1),j,k) = ZERO
+          do i = lo(1),hi(1)
+             if ( bc_dirichlet(mm_crse(i,j,lo(3)),1,0) ) cc(i,j,lo(3)) = ZERO
+          end do
        end do
-    end do
+    end if
 
-    do k = lo(3),hi(3)
-       do i = lo(1),hi(1)
-          if ( bc_dirichlet(mm_crse(i,lo(2),k),1,0) ) cc(i,lo(2),k) = ZERO
-          if ( bc_dirichlet(mm_crse(i,hi(2),k),1,0) ) cc(i,hi(2),k) = ZERO
+    if (hi(3) .eq. vhi(3)) then
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             if ( bc_dirichlet(mm_crse(i,j,hi(3)),1,0) ) cc(i,j,hi(3)) = ZERO
+          end do
        end do
-    end do
-
-    do j = lo(2),hi(2)
-       do i = lo(1),hi(1)
-          if ( bc_dirichlet(mm_crse(i,j,lo(3)),1,0) ) cc(i,j,lo(3)) = ZERO
-          if ( bc_dirichlet(mm_crse(i,j,hi(3)),1,0) ) cc(i,j,hi(3)) = ZERO
-       end do
-    end do
+    end if
 
   end subroutine nodal_restriction_3d
 

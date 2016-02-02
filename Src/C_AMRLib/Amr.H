@@ -14,9 +14,17 @@
 #include <StationData.H>
 #endif
 
+#ifdef USE_PARTICLES
+#include <ParGDB.H>
+#endif
+
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
+
+#ifdef USE_PARTICLES
+class AmrParGDB;
+#endif
 
 //
 //
@@ -178,21 +186,32 @@ public:
     // Time between plot files.
     //
     Real plotPer () const { return plot_per; }
+      //
+    // Number of time steps between small plot files.
+    //
+    int smallplotInt () const { return small_plot_int; }
+    //
+    // Time between plot files.
+    //
+    Real smallplotPer () const { return small_plot_per; }
     //
     // The names of state variables to output in the
     // plotfile.  They can be set using the amr.plot_vars variable
     // in a ParmParse inputs file. 
     //
     static const std::list<std::string>& statePlotVars () { return state_plot_vars; }
+    static const std::list<std::string>& stateSmallPlotVars () { return state_small_plot_vars; }
     //
     // Is the string the name of a variable in state_plot_vars?
     //
     static bool isStatePlotVar (const std::string& name);
+    static bool isStateSmallPlotVar (const std::string& name);
     //
     // If the string is not the name of a variable in state_plot_vars,
     // add it to state_plot_vars.  
     //
     static void addStatePlotVar (const std::string& name);
+    static void addStateSmallPlotVar (const std::string& name);
     //
     // Remove the string from state_plot_vars.
     //
@@ -201,6 +220,7 @@ public:
     // Clear the list of state_plot_vars.
     //
     static void clearStatePlotVarList ();
+    static void clearStateSmallPlotVarList ();
     //
     //  Fill the list of state_plot_vars with all of the state quantities.
     //
@@ -367,6 +387,11 @@ public:
     virtual void writePlotFile ();
     int stepOfLastPlotFile () const {return last_plotfile;}
     //
+    // Write the small plot file to be used for visualization.
+    //
+    virtual void writeSmallPlotFile ();
+    int stepOfLastSmallPlotFile () const {return last_smallplotfile;}
+    //
     // Write current state into a chk* file.
     //
     virtual void checkPoint ();
@@ -462,6 +487,8 @@ public:
     void GetParticleCPU       (Array<int>&  part_cpu);
     void GetParticleLocations (Array<Real>& part_locs);
     void GetParticleData      (Array<Real>& part_data, int start_comp, int num_comp);
+
+    AmrParGDB* GetParGDB () const { return m_gdb; }
 #endif
 
 protected:
@@ -541,6 +568,7 @@ protected:
     // Whether to write a plotfile now
     //
     bool writePlotNow ();
+    bool writeSmallPlotNow ();
 
     void printGridInfo (std::ostream& os,
                         int           min_lev,
@@ -590,10 +618,15 @@ protected:
     Real             check_per;       // How often checkpoint (units of time).
     std::string      check_file_root; // Root name of checkpoint file.
     int              last_plotfile;   // Step number of previous plotfile.
+    int              last_smallplotfile;   // Step number of previous small plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
+    int              small_plot_int;  // How often small plotfile (# of time steps)
+    Real             small_plot_per;  // How often small plotfile (in units of time)
     int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
+    int              message_int;     // How often checking messages touched by user, such as "stop_run"
     std::string      plot_file_root;  // Root name of plotfile.
+    std::string      small_plot_file_root;  // Root name of small plotfile.
 
     int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)
 
@@ -617,14 +650,21 @@ protected:
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
+    int              rebalance_grids;
 
     bool             bUserStopRequest;
     //
     // The static data ...
     //
     static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
+    static std::list<std::string> state_small_plot_vars;  // State Vars to dump to small plotfile 
     static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
     static bool                   first_plotfile;
+    static bool                   first_smallplotfile;
+
+#ifdef USE_PARTICLES
+    AmrParGDB* m_gdb;
+#endif
 
 private:
     //

@@ -296,32 +296,24 @@ iMultiFab::operator[] (int K)
 
 int
 iMultiFab::min (int comp,
-               int nghost) const
+		int nghost,
+		bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     int mn = std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	int priv_mn = std::numeric_limits<int>::max();
-
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(nghost);
-	    priv_mn = std::min(priv_mn,get(mfi).min(bx,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (imultifab_min)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& bx = mfi.growntilebox(nghost);
+	mn = std::min(mn,get(mfi).min(bx,comp));
     }
 
-    ParallelDescriptor::ReduceIntMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
@@ -329,100 +321,76 @@ iMultiFab::min (int comp,
 int
 iMultiFab::min (const Box& region,
                 int        comp,
-                int        nghost) const
+                int        nghost,
+		bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     int mn = std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	int priv_mn = std::numeric_limits<int>::max();
-
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-            const Box& b = mfi.growntilebox(nghost) & region;
-
-	    if (b.ok())
-		priv_mn = std::min(priv_mn, get(mfi).min(b,comp));
-        }
-#ifdef _OPENMP
-#pragma omp critical (imultifab_min_region)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& b = mfi.growntilebox(nghost) & region;
+	
+	if (b.ok())
+	    mn = std::min(mn, get(mfi).min(b,comp));
     }
 
-    ParallelDescriptor::ReduceIntMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceIntMin(mn);
 
     return mn;
 }
 
 int
 iMultiFab::max (int comp,
-               int nghost) const
+		int nghost,
+		bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     int mx = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	int priv_mx = -std::numeric_limits<int>::max();
-
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    priv_mx = std::max(priv_mx, get(mfi).max(mfi.growntilebox(nghost),comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (imultifab_max)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	mx = std::max(mx, get(mfi).max(mfi.growntilebox(nghost),comp));
     }
 
-    ParallelDescriptor::ReduceIntMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
 
 int
 iMultiFab::max (const Box& region,
-               int        comp,
-               int        nghost) const
+		int        comp,
+		int        nghost,
+		bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     int mx = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	int priv_mx = -std::numeric_limits<int>::max();
-
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& b = mfi.growntilebox(nghost) & region;
-
-	    if (b.ok())
-		priv_mx = std::max(priv_mx, get(mfi).max(b,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (imultifab_max_region)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	const Box& b = mfi.growntilebox(nghost) & region;
+	
+	if (b.ok())
+	    mx = std::max(mx, get(mfi).max(b,comp));
     }
 
-    ParallelDescriptor::ReduceIntMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
 }
@@ -598,16 +566,15 @@ iMultiFab::maxIndex (int comp,
 }
 
 int
-iMultiFab::norm0 (int comp, const BoxArray& ba) const
+iMultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
-	int priv_nm0 = -std::numeric_limits<int>::max();
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
@@ -615,45 +582,32 @@ iMultiFab::norm0 (int comp, const BoxArray& ba) const
 	    
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
-		priv_nm0 = std::max(priv_nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
+		nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
 	    }
-	}
-#ifdef _OPENMP
-#pragma omp critical (imultifab_norm0_ba)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
 	}
     }
  
-    ParallelDescriptor::ReduceIntMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(nm0);
  
     return nm0;
 }
 
 int
-iMultiFab::norm0 (int comp) const
+iMultiFab::norm0 (int comp, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	int priv_nm0 = -std::numeric_limits<int>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    priv_nm0 = std::max(priv_nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
-	}
-#ifdef _OPENMP
-#pragma omp critical (imultifab_norm0)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
-	}
+	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
     }
 
-    ParallelDescriptor::ReduceIntMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceIntMax(nm0);
 
     return nm0;
 }
@@ -681,7 +635,7 @@ iMultiFab::norm2 (int comp) const
 }
  
 int
-iMultiFab::norm1 (int comp, int ngrow) const
+iMultiFab::norm1 (int comp, int ngrow, bool local) const
 {
     int nm1 = 0.e0;
 
@@ -693,7 +647,8 @@ iMultiFab::norm1 (int comp, int ngrow) const
         nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
     }
 
-    ParallelDescriptor::ReduceIntSum(nm1);
+    if (!local)
+	ParallelDescriptor::ReduceIntSum(nm1);
 
     return nm1;
 }

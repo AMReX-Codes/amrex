@@ -12,7 +12,9 @@ const int nStrategies(4);
 int
 main (int argc, char** argv)
 {
-    BoxLib::Initialize(argc, argv);
+  BoxLib::Initialize(argc, argv);
+
+  BL_PROFILE_VAR("main()", pmain);
 
   Array<DistributionMapping::Strategy> dmStrategies(nStrategies);
   dmStrategies[0] = DistributionMapping::ROUNDROBIN;
@@ -144,6 +146,8 @@ main (int argc, char** argv)
       }
       std::cout << std::endl << std::endl;
     }
+
+    BL_PROFILE_VAR_STOP(pmain);
 
     BoxLib::Finalize();
 

@@ -23,8 +23,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETVOL(vol,DIMS(vol),offset,dx,coord)
+       subroutine FORT_SETVOL(DIMS(reg),vol,DIMS(vol),offset,dx,coord)
        implicit none
+       integer    DIMDEC(reg)
        integer    DIMDEC(vol)
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
@@ -40,8 +41,8 @@ c
 c         ::::: cartesian
 c
           v = dx(1)*dx(2)
-          do j = ARG_L2(vol), ARG_H2(vol)
-             do i = ARG_L1(vol), ARG_H1(vol)
+          do j = ARG_L2(reg), ARG_H2(reg)
+             do i = ARG_L1(reg), ARG_H1(reg)
                 vol(i,j) = v
              end do
           end do
@@ -49,11 +50,11 @@ c
 c
 c         ::::: R-Z
 c
-          do i = ARG_L1(vol), ARG_H1(vol)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
              v = (half*RZFACTOR)*dx(2)*dx(1)*(ro + ri)
-             do j = ARG_L2(vol), ARG_H2(vol)
+             do j = ARG_L2(reg), ARG_H2(reg)
                 vol(i,j) = abs(v)
              end do
           end do
@@ -61,10 +62,10 @@ c
 c
 c  	  ::::: R-THETA
 c
-          do i = ARG_L1(vol), ARG_H1(vol)
+          do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
-             do j = ARG_L2(vol), ARG_H2(vol)
+             do j = ARG_L2(reg), ARG_H2(reg)
                 pi = offset(2) + dx(2)*j
                 po = pi + dx(2)
                 v = RZFACTOR*(ro**3 - ri**3)*(cos(pi)-cos(po))/three
@@ -195,8 +196,9 @@ c ::  dx           => cell size
 c ::  coord        => coordinate flag (0 =cartesian, 1 = RZ)
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_SETAREA(area,DIMS(area),offset,dx,dir,coord)
+       subroutine FORT_SETAREA(DIMS(reg),area,DIMS(area),offset,dx,dir,coord)
        implicit none
+       integer    DIMDEC(reg)
        integer    DIMDEC(area)
        integer    coord, dir
        REAL_T     dx(SDIM), offset(SDIM)
@@ -212,14 +214,14 @@ c
 c         ::::: cartesian
 c
           if (dir .eq. 0) then
-             do j = ARG_L2(area), ARG_H2(area)
-                do i = ARG_L1(area), ARG_H1(area)
+             do j = ARG_L2(reg), ARG_H2(reg)
+                do i = ARG_L1(reg), ARG_H1(reg)
                    area(i,j) = dx(2)
                 end do
              end do
           else
-             do j = ARG_L2(area), ARG_H2(area)
-                do i = ARG_L1(area), ARG_H1(area)
+             do j = ARG_L2(reg), ARG_H2(reg)
+                do i = ARG_L1(reg), ARG_H1(reg)
                    area(i,j) = dx(1)
                 end do
              end do
@@ -230,18 +232,18 @@ c
 c         ::::: R-Z
 c
           if (dir .eq. 0) then
-             do i = ARG_L1(area), ARG_H1(area)
+             do i = ARG_L1(reg), ARG_H1(reg)
                 ri = offset(1) + dx(1)*i
                 a = abs(RZFACTOR*ri*dx(2))
-                do j = ARG_L2(area), ARG_H2(area)
+                do j = ARG_L2(reg), ARG_H2(reg)
                    area(i,j) = a
                 end do
              end do
           else
-             do i = ARG_L1(area), ARG_H1(area)
+             do i = ARG_L1(reg), ARG_H1(reg)
                 rc = offset(1) + dx(1)*(dble(i)+0.5d0)
                 a = abs(dx(1)*RZFACTOR*rc)
-                do j = ARG_L2(area), ARG_H2(area)
+                do j = ARG_L2(reg), ARG_H2(reg)
                    area(i,j) = a
                 end do
              end do
@@ -249,9 +251,9 @@ c
 
        elseif(coord .eq. 2) then
               if (dir .eq. 0) then
-                 do i = ARG_L1(area), ARG_H1(area)
+                 do i = ARG_L1(reg), ARG_H1(reg)
                     ri = offset(1) + dx(1)*i
-                    do j = ARG_L2(area), ARG_H2(area)
+                    do j = ARG_L2(reg), ARG_H2(reg)
                        pi = offset(2) + dx(2)*j
                        po = pi + dx(2)
                        a = RZFACTOR*ri*ri*(cos(pi)-cos(po))
@@ -259,10 +261,10 @@ c
                     enddo
                  enddo
               elseif(dir .eq. 1) then
-                 do i = ARG_L1(area), ARG_H1(area)
+                 do i = ARG_L1(reg), ARG_H1(reg)
                     ri = offset(1) + dx(1)*i
                     ro = ri + dx(1)
-                    do j = ARG_L2(area), ARG_H2(area)
+                    do j = ARG_L2(reg), ARG_H2(reg)
                        pi = offset(2) + dx(2)*j
                        a = RZFACTOR*sin(pi)*(ro**2 - ri**2)/two
                        area(i,j) = abs(a)

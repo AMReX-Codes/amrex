@@ -20,6 +20,10 @@ extern "C"
                                      const int* dom_lo, const int* dom_hi,
                                      const Real* dx, const Real* grd_lo,
                                      const Real* time, const int* bc);
+    typedef void (*BndryFunc3DDefault)(Real* data, const int* lo, const int* hi,
+                                       const int* dom_lo, const int* dom_hi,
+                                       const Real* dx, const Real* grd_lo,
+                                       const Real* time, const int* bc);
 }
 
 //
@@ -51,10 +55,12 @@ public:
         // A Constructor.
         //
         BndryFunc (BndryFuncDefault inFunc);
+        BndryFunc (BndryFunc3DDefault inFunc);
         //
         // Another Constructor.
         //
         BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc);
+        BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc);
         //
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
@@ -77,11 +83,14 @@ public:
         virtual void operator () (Real* data, const int* lo, const int* hi,
                                   const int* dom_lo, const int* dom_hi,
                                   const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc, bool) const;
+                                  const Real* time, const int* bc, int ng) const;
     private:
 
         BndryFuncDefault  m_func;
         BndryFuncDefault  m_gfunc;
+
+        BndryFunc3DDefault  m_func3D;
+        BndryFunc3DDefault  m_gfunc3D;
     };
     //
     // The default constructor.
@@ -231,6 +240,8 @@ public:
 
     int groupsize (int i) const { return m_groupsize[i]; }
 
+    static void setBndryFuncThreadSafety (int ext_dir_safe) { bf_ext_dir_threadsafe = ext_dir_safe; }
+
 private:
 
     IndexType          type;     // Cell centered, node centered ...
@@ -263,6 +274,11 @@ private:
     //
     Array<int> max_map_start_comp;
     Array<int> min_map_end_comp;
+
+    static int bf_ext_dir_threadsafe;
+    static bool bf_thread_safety (const int* lo,const int* hi,
+				  const int* dom_lo, const int* dom_hi,
+				  const int* bc, int ng);
 };
 
 //
