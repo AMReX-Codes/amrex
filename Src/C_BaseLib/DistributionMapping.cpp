@@ -1152,7 +1152,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 		m_ref->m_pmap[vi[j]] = team;
 	    }
 	} else {
-#ifdef BL_USE_UPCXX
+#ifdef BL_USE_TEAM
 	    int leadrank = team * nworkers;
 	    int N = vi.size();
 	    for (int w = 0; w < nworkers; ++w)
