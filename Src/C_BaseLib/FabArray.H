@@ -3155,14 +3155,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
-#ifdef BL_USE_UPCXX
-    FillBoundary_nowait(0, nComp(), cross);
-    FillBoundary_finish();
-#elif  BL_USE_MPI_ONESIDED
     FillBoundary(0, nComp(), cross);
-#else
-    FillBoundary_MPI(0, nComp(), cross);
-#endif
 }
 
 template <class FAB>
