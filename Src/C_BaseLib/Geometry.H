@@ -565,6 +565,10 @@ namespace BoxLib
         if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags->empty())
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
 
+#ifdef BL_USE_TEAM
+	ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
+
 #endif /*BL_USE_MPI*/
     }
 
@@ -833,6 +837,10 @@ namespace BoxLib
 	    BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
 	  mf.fpb_send_data.clear();
 	}
+
+#ifdef BL_USE_TEAM
+	ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
     }
   
 #endif  
@@ -1128,6 +1136,9 @@ namespace BoxLib
 	    mf.fpb_send_reqs.clear();
 	}
 
+#ifdef BL_USE_TEAM
+	ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
     }
 #endif /*BL_USE_MPI*/
 

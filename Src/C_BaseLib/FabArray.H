@@ -3382,6 +3382,10 @@ FabArray<FAB>::FillBoundary_MPI (int  scomp,
     if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
         FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),send_reqs,send_data,stats);
 
+#ifdef BL_USE_TEAM
+    ParallelDescriptor::MemoryBarrier();
+#endif
+
 #endif /*BL_USE_MPI*/
 }
  
@@ -4005,6 +4009,10 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
       fb_send_data.clear();
       fb_send_reqs.clear();
     }
+
+#ifdef BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
 }
 #endif /*BL_USE_MPI*/
 
