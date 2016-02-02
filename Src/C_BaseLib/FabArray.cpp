@@ -1321,7 +1321,7 @@ MFGhostIter::Initialize ()
     }
 #endif
 
-#ifdef BL_USE_UPCXX
+#ifdef BL_USE_TEAM
     if (ParallelDescriptor::TeamSize() > 1) {
 	rit = ParallelDescriptor::MyRankInTeam();
 	nworkers = ParallelDescriptor::TeamSize();
