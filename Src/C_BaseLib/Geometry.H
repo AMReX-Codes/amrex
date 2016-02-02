@@ -1012,7 +1012,7 @@ namespace BoxLib
 	int N_loc = (*TheFPB.m_LocTags).size();
 	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
 	{
-#ifdef BL_USE_UPCXX
+#ifdef BL_USE_TEAM
 	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
             {
                 const auto& tag = (*TheFPB.m_LocTags)[i];
