@@ -1753,7 +1753,6 @@ ParallelDescriptor::StartTeams ()
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
 	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
 					m_Team.get_group(), &m_Team.get()) );
-	BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, m_Team.get(), &m_Team.get_win()) );
 #endif
     }
 }
