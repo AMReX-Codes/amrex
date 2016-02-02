@@ -73,7 +73,7 @@ contains
                 mp => dataptr(mask, idx, bx1)
                 mp = ibset(mp, BC_BIT(BC_DIR,1,0))
              end do
-             call destroy(ba)
+             call boxarray_destroy(ba)
           end do
        end do
     end do

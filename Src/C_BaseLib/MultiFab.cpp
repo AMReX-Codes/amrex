@@ -243,9 +243,10 @@ MultiFab::MultiFab ()
 MultiFab::MultiFab (const BoxArray& bxs,
                     int             ncomp,
                     int             ngrow,
-                    FabAlloc        alloc)
+                    FabAlloc        alloc,
+                    const IntVect&  nodal)
     :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
     Initialize();
 
@@ -256,9 +257,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     int                        ncomp,
                     int                        ngrow,
                     const DistributionMapping& dm,
-                    FabAlloc                   alloc)
+                    FabAlloc                   alloc,
+                    const IntVect&             nodal)
     :
-    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc)
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
     Initialize();
 
@@ -275,9 +277,10 @@ void
 MultiFab::define (const BoxArray& bxs,
                   int             nvar,
                   int             ngrow,
-                  FabAlloc        alloc)
+                  FabAlloc        alloc,
+		  const IntVect&  nodal)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
 
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
@@ -287,9 +290,10 @@ MultiFab::define (const BoxArray&            bxs,
                   int                        nvar,
                   int                        ngrow,
                   const DistributionMapping& dm,
-                  FabAlloc                   alloc)
+                  FabAlloc                   alloc,
+		  const IntVect&             nodal)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
 
     if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
 }
@@ -297,7 +301,8 @@ MultiFab::define (const BoxArray&            bxs,
 bool 
 MultiFab::contains_nan (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -309,33 +314,31 @@ MultiFab::contains_nan (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	bool pr = false;
-	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(ngrow);
-	    
-	    if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
-		pr = true;
-	}
-	r |= pr;
+	const Box& bx = mfi.growntilebox(ngrow);
+	
+	if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
+	    r = true;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_nan () const
+MultiFab::contains_nan (bool local) const
 {
-    return contains_nan(0,nComp(),nGrow());
+    return contains_nan(0,nComp(),nGrow(),local);
 }
 
 bool 
 MultiFab::contains_inf (int scomp,
                         int ncomp,
-                        int ngrow) const
+                        int ngrow,
+			bool local) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
@@ -347,27 +350,24 @@ MultiFab::contains_inf (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	bool pr = false;
-	for (MFIter mfi(*this,true); mfi.isValid() && !r && !pr; ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(ngrow);
-
-	    if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
-		pr = true;
-	}
-	r |= pr;
+	const Box& bx = mfi.growntilebox(ngrow);
+	
+	if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
+	    r = true;
     }
 
-    ParallelDescriptor::ReduceBoolOr(r);
+    if (!local)
+	ParallelDescriptor::ReduceBoolOr(r);
 
     return r;
 }
 
 bool 
-MultiFab::contains_inf () const
+MultiFab::contains_inf (bool local) const
 {
-    return contains_inf(0,nComp(),nGrow());
+    return contains_inf(0,nComp(),nGrow(),local);
 }
 
 static
@@ -385,6 +385,13 @@ AbortOnInf (const FArrayBox& fab)
     std::cout << fab << std::endl;
     BoxLib::Abort("FArrayBox contains a Inf");
 }
+
+bool 
+MultiFab::is_nodal () const
+{
+    return boxArray().ixType().nodeCentered();
+}
+
 
 const FArrayBox&
 MultiFab::operator[] (int K) const
@@ -420,31 +427,24 @@ MultiFab::operator[] (int K)
 
 Real
 MultiFab::min (int comp,
-               int nghost) const
+               int nghost,
+	       bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mn = std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(nghost);
-	    priv_mn = std::min(priv_mn, get(mfi).min(bx,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_min)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& bx = mfi.growntilebox(nghost);
+	mn = std::min(mn, get(mfi).min(bx,comp));
     }
 
-    ParallelDescriptor::ReduceRealMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
@@ -452,64 +452,50 @@ MultiFab::min (int comp,
 Real
 MultiFab::min (const Box& region,
                int        comp,
-               int        nghost) const
+               int        nghost,
+	       bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(min:mn)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mn = std::numeric_limits<Real>::max();
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& b = mfi.growntilebox(nghost) & region;
-
-	    if (b.ok())
-		priv_mn = std::min(priv_mn, get(mfi).min(b,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_min_region)
-#endif
-	{
-	    mn = std::min(mn, priv_mn);
-	}
+	const Box& b = mfi.growntilebox(nghost) & region;
+	
+	if (b.ok())
+	    mn = std::min(mn, get(mfi).min(b,comp));
     }
 
-    ParallelDescriptor::ReduceRealMin(mn);
+    if (!local)
+	ParallelDescriptor::ReduceRealMin(mn);
 
     return mn;
 }
 
 Real
 MultiFab::max (int comp,
-               int nghost) const
+               int nghost,
+	       bool local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mx = -std::numeric_limits<Real>::max();
-	for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.growntilebox(nghost);
-	    priv_mx = std::max(priv_mx, get(mfi).max(bx,comp));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_max)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	const Box& bx = mfi.growntilebox(nghost);
+	mx = std::max(mx, get(mfi).max(bx,comp));
     }
 
-    ParallelDescriptor::ReduceRealMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -517,33 +503,26 @@ MultiFab::max (int comp,
 Real
 MultiFab::max (const Box& region,
                int        comp,
-               int        nghost) const
+               int        nghost,
+	       bool       local) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:mx)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_mx = -std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& b = mfi.growntilebox(nghost) & region;
+	const Box& b = mfi.growntilebox(nghost) & region;
 
-	    if (b.ok())
-		priv_mx = std::max(priv_mx, get(mfi).max(b,comp));
-        }
-#ifdef _OPENMP
-#pragma omp critical (multifab_max_region)
-#endif
-	{
-	    mx = std::max(mx, priv_mx);
-	}
+	if (b.ok())
+	    mx = std::max(mx, get(mfi).max(b,comp));
     }
 	
-    ParallelDescriptor::ReduceRealMax(mx);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(mx);
 
     return mx;
 }
@@ -717,16 +696,15 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
-MultiFab::norm0 (int comp, const BoxArray& ba) const
+MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
-	Real priv_nm0 = -std::numeric_limits<Real>::max();
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
@@ -734,51 +712,38 @@ MultiFab::norm0 (int comp, const BoxArray& ba) const
 
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
-		priv_nm0 = std::max(priv_nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
+		nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
 	    }
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_norm0_ba)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
 	}
     }
  
-    ParallelDescriptor::ReduceRealMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0);
  
     return nm0;
 }
 
 Real
-MultiFab::norm0 (int comp) const
+MultiFab::norm0 (int comp, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:nm0)
 #endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	Real priv_nm0 = -std::numeric_limits<Real>::max();
-	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-	{
-	    priv_nm0 = std::max(priv_nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
-	}
-#ifdef _OPENMP
-#pragma omp critical (multifab_norm0)
-#endif
-	{
-	    nm0 = std::max(nm0, priv_nm0);
-	}
+	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
     }
 
-    ParallelDescriptor::ReduceRealMax(nm0);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0);
 
     return nm0;
 }
 
 Array<Real>
-MultiFab::norm0 (const Array<int>& comps) const
+MultiFab::norm0 (const Array<int>& comps, bool local) const
 {
     int n = comps.size();
     const Real rmax = std::numeric_limits<Real>::max();
@@ -820,7 +785,8 @@ MultiFab::norm0 (const Array<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+    if (!local)
+	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
 
     return nm0;
 }
@@ -900,7 +866,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 }
  
 Real
-MultiFab::norm1 (int comp, int ngrow) const
+MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
     Real nm1 = 0.e0;
 
@@ -912,13 +878,14 @@ MultiFab::norm1 (int comp, int ngrow) const
         nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
     }
 
-    ParallelDescriptor::ReduceRealSum(nm1);
+    if (!local)
+	ParallelDescriptor::ReduceRealSum(nm1);
 
     return nm1;
 }
 
 Array<Real>
-MultiFab::norm1 (const Array<int>& comps, int ngrow) const
+MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
 {
     int n = comps.size();
     Array<Real> nm1(n, 0.e0);
@@ -960,11 +927,30 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
+    if (!local)
+	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
 
     return nm1;
 }
 
+Real
+MultiFab::sum (int comp, bool local) const
+{
+    Real sm = 0.e0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sm)
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    {
+        sm += get(mfi).sum(mfi.tilebox(), comp, 1);
+    }
+
+    if (!local)
+        ParallelDescriptor::ReduceRealSum(sm);
+
+    return sm;
+}
 
 void
 MultiFab::minus (const MultiFab& mf,
@@ -1390,18 +1376,24 @@ MultiFab::SumBoundary (int scomp,
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
-    const FabArrayBase::SI& TheSI = cache_it->second;
+    const FabArrayBase::SI& TheSI_ = cache_it->second;
+
+    const CopyComTagsContainer&      LocTags = *(TheSI_.m_LocTags);
+    const MapOfCopyComTagContainers& SndTags = *(TheSI_.m_RcvTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheSI_.m_SndTags);
+    const std::map<int,int>&         SndVols = *(TheSI_.m_RcvVols);
+    const std::map<int,int>&         RcvVols = *(TheSI_.m_SndVols);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
-	int N_loc = (*TheSI.m_LocTags).size();
+	int N_loc = LocTags.size();
 	// undafe to do OMP
 	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+            const CopyComTag& tag = LocTags[i];
             mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
         }
 
@@ -1415,7 +1407,7 @@ MultiFab::SumBoundary (int scomp,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
+    if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
         //
         // No work to do.
         //
@@ -1430,12 +1422,12 @@ MultiFab::SumBoundary (int scomp,
     //
     Real* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(*TheSI.m_SndTags,*TheSI.m_SndVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
     //
-    const int N_snds = TheSI.m_SndTags->size();
+    const int N_snds = SndTags.size();
 
     Array<Real*>                       send_data;
     Array<int>                         send_N;
@@ -1447,14 +1439,14 @@ MultiFab::SumBoundary (int scomp,
     send_rank.reserve(N_snds);
     send_cctc.reserve(N_snds);
 
-    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
-             m_End = TheSI.m_RcvTags->end();
+    for (MapOfCopyComTagContainers::const_iterator m_it = SndTags.begin(),
+             m_End = SndTags.end();
          m_it != m_End;
          ++m_it)
     {
-        std::map<int,int>::const_iterator vol_it = TheSI.m_RcvVols->find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = SndVols.find(m_it->first);
 
-        BL_ASSERT(vol_it != TheSI.m_RcvVols->end());
+        BL_ASSERT(vol_it != SndVols.end());
 
         const int N = vol_it->second*ncomp;
 
@@ -1508,11 +1500,11 @@ MultiFab::SumBoundary (int scomp,
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    int N_loc = (*TheSI.m_LocTags).size();
+    int N_loc = LocTags.size();
     // undafe to do OMP
     for (int i=0; i<N_loc; ++i)
     {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+        const CopyComTag& tag = LocTags[i];
 
         BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
@@ -1523,7 +1515,7 @@ MultiFab::SumBoundary (int scomp,
     //
     //  wait and unpack
     //
-    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_rcvs = RcvTags.size();
 
     if (N_rcvs > 0)
     {
@@ -1532,8 +1524,8 @@ MultiFab::SumBoundary (int scomp,
 
         for (int k = 0; k < N_rcvs; k++)
         {
-            MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[k]);
-            BL_ASSERT(m_it != TheSI.m_SndTags->end());
+            MapOfCopyComTagContainers::const_iterator m_it = RcvTags.find(recv_from[k]);
+            BL_ASSERT(m_it != RcvTags.end());
 
 	    recv_cctc.push_back(&(m_it->second));
 	}
@@ -1569,8 +1561,8 @@ MultiFab::SumBoundary (int scomp,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !TheSI.m_RcvTags->empty())
-        FabArrayBase::GrokAsyncSends(TheSI.m_RcvTags->size(),send_reqs,send_data,stats);
+    if (FabArrayBase::do_async_sends && !SndTags.empty())
+        FabArrayBase::GrokAsyncSends(N_snds,send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
 }
@@ -1581,3 +1573,151 @@ MultiFab::SumBoundary ()
     SumBoundary(0, n_comp);
 }
 
+
+// Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
+// the sidecar group.
+
+// Note that the compute MultiFab will be a null pointer on the sidecar nodes,
+// and the sidecar MultiFab will be null on the compute nodes. So be mindful of
+// which processes will be executing which code when you access these pointers.
+#ifdef BL_USE_MPI
+void
+MultiFab::SendMultiFabToSidecars (MultiFab *mf)
+{
+    // Broadcasts to intercommunicators have weird syntax. See below.
+    // Whichever proc is actually broadcasting the data uses MPI_ROOT; all
+    // other procs in that same communicator use MPI_PROC_NULL. On the
+    // receiving end, the source rank is the rank of the broadcasting process
+    // within its local communicator, *not* its rank in MPI_COMM_WORLD.
+    // (Usually broadcasts will come from IOProcessor(), which is typically
+    // rank 0.)
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
+    if (ParallelDescriptor::Communicator() == ParallelDescriptor::CommunicatorComp())
+    {
+      // The in-transit procs also need the distribution map of the compute
+      // group so they know who to MPI_Recv() from.
+      Array<int> comp_procmap = mf->DistributionMap().ProcessorMap();
+      int procmap_size = comp_procmap.size();
+      ParallelDescriptor::Bcast(&procmap_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+
+      // Even though a MultiFab is a distributed object, the layout of the
+      // Boxes themselves is stored on every process, so broadcast them to
+      // everyone on the in-transit side.
+      const BoxArray& boxArray = mf->boxArray();
+      for (int i = 0; i < boxArray.size(); ++i) {
+        const Box& box = boxArray[i];
+        const int *box_index_type = box.type().getVect();
+        const int *smallEnd = box.smallEnd().getVect();
+        const int *bigEnd = box.bigEnd().getVect();
+
+        // getVect() returns a const pointer, but MPI buffers require
+        // non-constant pointers. So we have to copy the data to these
+        // temporary arrays and use those as the buffers for MPI.
+        int box_index_type_MPI_buff[BL_SPACEDIM];
+        int smallEnd_MPI_buff[BL_SPACEDIM];
+        int bigEnd_MPI_buff[BL_SPACEDIM];
+        for (unsigned int i = 0; i < BL_SPACEDIM; ++i) {
+            box_index_type_MPI_buff[i] = box_index_type[i];
+            smallEnd_MPI_buff[i] = smallEnd[i];
+            bigEnd_MPI_buff[i] = bigEnd[i];
+        }
+        ParallelDescriptor::Bcast(&box_index_type_MPI_buff[0], BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&smallEnd_MPI_buff[0]      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&bigEnd_MPI_buff[0]        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+      }
+
+      int nComp = mf->nComp();
+      ParallelDescriptor::Bcast(&nComp, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+
+      int nGhost = mf->nGrow();
+      ParallelDescriptor::Bcast(&nGhost, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+
+      // Now that the sidecars have all the Box data, they will build the DM
+      // and send it back to the compute processes, The compute DM has the same
+      // size since they contain the same number of boxes.
+      Array<int> intransit_procmap(mf->DistributionMap().ProcessorMap().size()+1);
+      ParallelDescriptor::Bcast(&intransit_procmap[0], intransit_procmap.size(), 0, ParallelDescriptor::CommunicatorInter());
+
+      // Both the compute and sidecar procs now have both DMs, so now we can
+      // send the FAB data.
+      for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+      {
+          const int index = mfi.index();
+          if (comp_procmap[index] == ParallelDescriptor::MyProc())
+          {
+            const Box& box = (*mf)[mfi].box();
+            const long numPts = box.numPts();
+            ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+            const Real *dataPtr = (*mf)[mfi].dataPtr();
+            ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+          }
+      }
+    }
+    else
+    {
+      // The sidecars also need the compute proc's DM.
+      int procmap_size;
+      ParallelDescriptor::Bcast(&procmap_size, 1, 0, ParallelDescriptor::CommunicatorInter());
+      Array<int> comp_procmap(procmap_size);
+      ParallelDescriptor::Bcast(&comp_procmap[0], procmap_size, 0, ParallelDescriptor::CommunicatorInter());
+      DistributionMapping CompDM(comp_procmap);
+
+      // Now build the list of Boxes.
+      BoxList bl;
+
+      for (unsigned int i = 0; i < procmap_size-1; ++i) {
+        int box_index_type[BL_SPACEDIM];
+        int smallEnd[BL_SPACEDIM];
+        int bigEnd[BL_SPACEDIM];
+        ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
+
+        IntVect smallEnd_IV(smallEnd);
+        IntVect bigEnd_IV(bigEnd);
+        IntVect box_index_type_IV(box_index_type);
+        Box box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
+        bl.push_back(box);
+      }
+
+      BoxArray ba(bl);
+
+      // Get number of components in the FabArray.
+      int nComp;
+      ParallelDescriptor::Bcast(&nComp, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+      // Get number of ghost cells.
+      int nGhost;
+      ParallelDescriptor::Bcast(&nGhost, 1, 0, ParallelDescriptor::CommunicatorInter());
+
+      // Now that the sidecars have all the Boxes, they can build their DM.
+      DistributionMapping sidecar_DM;
+      sidecar_DM.define(ba, ParallelDescriptor::NProcsSidecar());
+
+      // The compute procs need the sidecars' DM so that we can match Send()s
+      // and Recv()s for the FAB data.
+      Array<int> intransit_procmap = sidecar_DM.ProcessorMap();
+      ParallelDescriptor::Bcast(&intransit_procmap[0], procmap_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+
+      // Now build the sidecar MultiFab with the new DM.
+      mf->define(ba, nComp, nGhost, sidecar_DM, Fab_allocate);
+
+      // Now we populate the MultiFab with data.
+      for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+      {
+          const int index = mfi.index();
+        if (intransit_procmap[index] == ParallelDescriptor::MyProc())
+        {
+          long numPts;
+          ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+          Real FAB_data[numPts*nComp];
+          Real *data_ptr = (*mf)[mfi].dataPtr();
+          ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+          std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
+        }
+      }
+    }
+}
+#endif

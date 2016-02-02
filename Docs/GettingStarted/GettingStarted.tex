@@ -252,7 +252,7 @@ number of components, and number of ghost cells that each \Fab\
 will have.
 \end{itemize}
 A \MultiFab\ has a ``valid'' region that is defined by 
-the \BoxArray or \layout.  Each \Fab\ in the \MultiFab\ is built large enough 
+the \BoxArray~or \layout.  Each \Fab\ in the \MultiFab\ is built large enough 
 to hold valid data and ghost cell data, and thus the \BoxType\ associated with
 each \Fab\ is a grown version of the corresponding \BoxType\ from the \BoxArray.
 Thus, a \Fab\ has no concept 
@@ -505,7 +505,7 @@ This contains compiler settings and directories required by the make system to b
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  We will discuss the implementation of timers in Section \ref{Sec:Timers}.
+    to write timers into your code.  Documentation for timers is coming soon!
 
     \item {\tt COMP} ('{\tt gfortran}, {\tt Intel}, $\ldots$)'
 
@@ -544,7 +544,7 @@ Input files to customize the simulation parameters.
 \end{itemize}
 
 To build the code, edit the {\tt GNUmakefile} and simply type ``{\tt make}''.  An 
-exectubale will appear that has some indication (but not complete)
+executable will appear that has some indication (but not complete)
 about what setting you used in the {\tt GNUmakefile}.  To run the code on a single processor,
 simply type, for example (terminal commands and non-source code files are shaded in red),
 \begin{lstlisting}[backgroundcolor=\color{light-red}]
@@ -590,7 +590,7 @@ This contains compiler settings and directories required by the make system to b
 
     Turns on timer compilation flags.  Timers are useful for optimizing your code since they tell you 
     what subroutines are taking the most time and require more optimization.  Note that you still have 
-    to write timers into your code.  We will discuss the implementation of timers in Chapter \ref{Sec:Timers}.
+    to write timers into your code.  Documentation for timers is coming soon!
 
     \item {\tt COMP} ('{\tt g++}, {\tt Intel}, $\ldots$)'
 
@@ -659,7 +659,7 @@ We solve MG on an AMR hierarchy, which means in places we will encounter
 C-F interfaces.  The \BoxLib\ MG will modify the stencil for the Laplacian
 at C-F interfaces to ensure the correct solution to the Poisson equation
 across these interfaces.  There is no correction step needed in this
-case (this differs from \cite{ricker:2008}).
+case (this differs from Ricker, ApJs (2008).
 
 The MG solver always works with jumps of $2\times$ between levels.  In 
 some codes, we can have jumps of $4\times$ between
@@ -806,7 +806,7 @@ is usually the best choice.
 \item {\tt HO\_CROSS\_STENCIL}: this is a cross-stencil that uses 9 points
 in 2-d and 11-points in 3-d.  For instance, it will use $(i,j)$;
 $(i\pm1,j)$; $(i\pm2,j)$; $(i,j\pm1)$; $(i,j\pm2)$.  This is
-higher-order accurate that {\tt CC\_CROSS\_STENCIL}.
+higher-order accurate than {\tt CC\_CROSS\_STENCIL}.
 
 \item {\tt HO\_DENSE\_STENCIL}: this is a dense-stencil---it uses all the
 points (including corners) in $(i\pm1,j\pm1)$, resulting in a 9-point stencil
@@ -821,7 +821,7 @@ For the nodal solver, the choices are:
   all the points in $(i\pm1,j\pm1)$.  The 
   derivation of this stencil is based on finite-element ideas, defining
   basis functions on the nodes.  This is developed in 2-d in 
-  \cite{almgrenBellSzymczak:1996}.
+  Almgren, Bell, and Szymczack (1996).
 
 \item {\tt ND\_VATER\_STENCIL}: this is an alternate dense stencil derived
   using a similar finite-element idea as above, but a different control
@@ -1176,7 +1176,7 @@ construct tells each thread to work on different values of {\tt k}, with each
 thread getting its own local copy of {\tt i}, {\tt j}, {\tt x}, {\tt y}, {\tt z}, and {\tt r2}.\\
 
 Finally, to tell the compiler that we would like to run with OpenMP, we make sure to
-set {\tt OMP=t} (in Fortran) or {\tt USE\_OMP=TURE} (in C++) in the {\tt GNUmakefile}.
+set {\tt OMP=t} (in Fortran) or {\tt USE\_OMP=TRUE} (in C++) in the {\tt GNUmakefile}.
 Otherwise, all OpenMP directive are
 simply ignored.  Note that at runtime you must have set the 
 {\tt OMP\_NUM\_THREADS} environment variable properly in order for threads to work.

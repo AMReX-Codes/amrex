@@ -10,6 +10,11 @@ module BoxLib
 
   implicit none
 
+  interface 
+     subroutine mempool_init () bind(c)
+     end subroutine mempool_init
+  end interface
+
   private
 
   public :: boxlib_initialize
@@ -22,7 +27,7 @@ contains
   subroutine boxlib_initialize(thread_support_level)
     integer, intent(in), optional :: thread_support_level
     call parallel_initialize(MPI_COMM_WORLD, thread_support_level)
-    if (parallel_IOProcessor() .and. parallel_nprocs() > 1) then
+    if (parallel_IOProcessor()) then
        print*, "MPI initialized with ", parallel_nprocs(), " MPI processes";
        if (present(thread_support_level)) then
           select case(parallel_thread_support_level())
@@ -41,6 +46,7 @@ contains
        print*, "MPI initialized with ", omp_get_max_threads(), " threads";
     endif
     if (omp_get_max_threads() > 1) call omp_set_nested(.false.)
+    call mempool_init ()
   end subroutine boxlib_initialize
 
   !! Finalizes _BoxLib_ applications. This should be the final

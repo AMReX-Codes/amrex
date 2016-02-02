@@ -93,9 +93,17 @@ public:
     //
     bool cellCentered () const { return itype == 0; }
     //
+    // True if the IndexType is CELL based in dir-direction.
+    //
+    bool cellCentered (int dir) const { return (itype & mask(dir)) == 0; }
+    //
     // True if the IndexType is NODE based in all directions.
     //
     bool nodeCentered () const { return itype == (1<<BL_SPACEDIM)-1; }
+    //
+    // True if the IndexType is NODE based in dir-direction.
+    //
+    bool nodeCentered (int dir) const { return (itype & mask(dir)) != 0; }
     //
     // Set IndexType to CellIndex type t in direction dir.
     //

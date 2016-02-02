@@ -4,9 +4,13 @@
 
 #include <winstd.H>
 
+#include <stdint.h>
+
 #include <BLassert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
+
+
 //
 // Forward declaration.
 //
@@ -83,13 +87,15 @@ public:
     MultiFab (const BoxArray& bs,
               int             ncomp,
               int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
+              FabAlloc        mem_mode = Fab_allocate,
+	      const IntVect&  nodal = IntVect::TheZeroVector());
 
     MultiFab (const BoxArray&            bs,
               int                        ncomp,
               int                        ngrow,
               const DistributionMapping& dm,
-              FabAlloc                   mem_mode = Fab_allocate);
+              FabAlloc                   mem_mode = Fab_allocate,
+	      const IntVect&             nodal = IntVect::TheZeroVector());
 
     void operator= (const Real& r);
     //
@@ -99,14 +105,16 @@ public:
     // search only the valid regions of the FArrayBoxes.
     //
     Real min (int comp,
-              int nghost = 0) const;
+              int nghost = 0,
+	      bool local = false) const;
     //
     // Identical to the previous min() function, but confines its
     // search to intersection of Box b and the MultiFab.
     //
     Real min (const Box& b,
               int        comp,
-              int        nghost = 0) const;
+              int        nghost = 0,
+	      bool       local = false) const;
     //
     // Returns the maximum value contained in component comp of the
     // MultiFab.  The parameter nghost determines the number of
@@ -114,33 +122,42 @@ public:
     // search only the valid regions of the FArrayBoxes.
     //
     Real max (int comp,
-              int nghost = 0) const;
+              int nghost = 0,
+	      bool local = false) const;
+    //
+    // Identical to the previous max() function, but confines its
+    // search to intersection of Box b and the MultiFab.
+    //
+    Real max (const Box& b,
+              int        comp,
+              int        nghost = 0,
+	      bool       local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the MultiFab.  No ghost cells are used.
     //
-    Real norm0 (int comp = 0) const;
+    Real norm0 (int comp = 0, bool local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the MultiFab in the intersection of the BoxArray
     // and the valid regions of the MultiFab.  No ghost cells are used.
     //
-    Real norm0 (int comp, const BoxArray& ba) const;
+    Real norm0 (int comp, const BoxArray& ba, bool local = false) const;
     //
     // Returns the maximum *absolute* values contained in 
     // each component of "comps" of the MultiFab.  No ghost cells are used.
     //
-    Array<Real> norm0 (const Array<int>& comps) const;
+    Array<Real> norm0 (const Array<int>& comps, bool local = false) const;
     //
     // Returns the L1 norm of component "comp" over the MultiFab.
     // ngrow ghost cells are used.
     //
-    Real norm1 (int comp = 0, int ngrow = 0) const;
+    Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     //
     // Returns the L1 norm of each component of "comps" over the MultiFab.
     // ngrow ghost cells are used.
     //
-    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0) const;
+    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0, bool local = false) const;
     //
     // Returns the L2 norm of component "comp" over the MultiFab.
     // No ghost cells are used.
@@ -152,12 +169,9 @@ public:
     //
     Array<Real> norm2 (const Array<int>& comps) const;
     //
-    // Identical to the previous max() function, but confines its
-    // search to intersection of Box b and the MultiFab.
+    // Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     //
-    Real max (const Box& b,
-              int        comp,
-              int        nghost = 0) const;
+    Real sum (int comp = 0, bool local = false) const;
     //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the MultiFab.  The subregion consists
@@ -376,6 +390,7 @@ public:
     //
     // Copy from src to dst including nghost ghost cells.
     // The two MultiFabs MUST have the same underlying BoxArray.
+    // The copy is local.  The parallel copy function is in FabArray.H
     //
     static void Copy (MultiFab&       dst,
                       const MultiFab& src,
@@ -417,13 +432,15 @@ public:
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
-                 FabAlloc        mem_mode);
+                 FabAlloc        mem_mode,
+		 const IntVect&  nodal = IntVect::TheZeroVector());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
                  int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc                   mem_mode);
+                 FabAlloc                   mem_mode,
+		 const IntVect&             nodal = IntVect::TheZeroVector());
     //
     // Are there any NaNs in the MF?
     // This may return false, even if the MF contains NaNs, if the machine
@@ -431,9 +448,9 @@ public:
     //
     // This version checks all components and grow cells.
     //
-    bool contains_nan () const;
+    bool contains_nan (bool local=false) const;
 
-    bool contains_nan (int scomp, int ncomp, int ngrow = 0) const;
+    bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     //
     // Are there any Infs in the MF?
     // This may return false, even if the MF contains Infs, if the machine
@@ -441,9 +458,14 @@ public:
     //
     // This version checks all components and grow cells.
     //
-    bool contains_inf () const;
+    bool contains_inf (bool local=false) const;
 
-    bool contains_inf (int scomp, int ncomp, int ngrow = 0) const;
+    //
+    // This tests on whether the MultiFab is fully nodal.
+    //
+    bool is_nodal () const;
+
+    bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
 
     const FArrayBox& operator[] (int K) const;
 
@@ -473,6 +495,17 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+    //
+    // Send a MultiFab from Compute MPI group to Sidecar MPI group.
+    // The pointer to the MultiFab on the sidecars will be null on the compute
+    // processes, and vice versa. So be mindful of which MPI processes you're
+    // on when you access these pointers.
+    //
+    // TODO: allow it to send only selected components
+    //
+#ifdef BL_USE_MPI
+    static void SendMultiFabToSidecars(MultiFab *mf);
+#endif
 
 private:
     //

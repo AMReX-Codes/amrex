@@ -239,8 +239,12 @@ program fextract3d
         ! read in the data 1 patch at a time
         call fab_bind(pf, i, j)
 
+        lo(:) = 1
+        hi(:) = 1
         lo(1:pf%dim) = lwb(get_box(pf, i, j))
         hi(1:pf%dim) = upb(get_box(pf, i, j))
+
+        p => dataptr(pf, i, j)
 
         select case (idir)
 
@@ -248,11 +252,10 @@ program fextract3d
 
            if (dim == 1) then
 
-              p => dataptr(pf, i, j)
               jj = 1
               kk = 1
 
-              do ii = lbound(p,dim=1), ubound(p,dim=1)
+              do ii = lo(1), hi(1)
                  if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
                     cnt = cnt + 1
                     
@@ -269,7 +272,7 @@ program fextract3d
               ! pointer to it
               if ( rr*jloc >= lo(2) .and. rr*jloc <= hi(2) .and. &
                    ( (dim .eq. 2) .or. (rr*kloc >= lo(3) .and. rr*kloc <= hi(3)) ) ) then
-                 p => dataptr(pf, i, j)
+
                  jj = jloc*rr
                  if (dim .eq. 3) then
                     kk = kloc*rr
@@ -283,7 +286,7 @@ program fextract3d
                  ! finest level, and test if we've stored data in any of
                  ! those locations.  If we haven't then we store this
                  ! level's data and mark that range as filled.
-                 do ii = lbound(p,dim=1), ubound(p,dim=1)
+                 do ii = lo(1), hi(1)
                     if ( any(imask(ii*r1:(ii+1)*r1-1) ) ) then
                        cnt = cnt + 1
 
@@ -304,7 +307,6 @@ program fextract3d
            ! pointer to it
            if ( rr*iloc >= lo(1) .and. rr*iloc <= hi(1) .and. &
                 ( (dim .eq. 2) .or. (rr*kloc >= lo(3) .and. rr*kloc <= hi(3)) ) ) then
-              p => dataptr(pf, i, j)
               ii = iloc*rr
               if (dim .eq. 3) then
                 kk = kloc*rr
@@ -319,7 +321,7 @@ program fextract3d
               ! finest level, and test if we've stored data in any of
               ! those locations.  If we haven't then we store this
               ! level's data and mark that range as filled.
-              do jj = lbound(p,dim=2), ubound(p,dim=2)
+              do jj = lo(2), hi(2)
                  if ( any(imask(jj*r1:(jj+1)*r1-1) ) ) then
                     cnt = cnt + 1
 
@@ -338,10 +340,9 @@ program fextract3d
            ! pointer to it
            if ( rr*iloc >= lo(1) .and. rr*iloc <= hi(1) .and. &
                 rr*jloc >= lo(2) .and. rr*jloc <= hi(2)) then
-              p => dataptr(pf, i, j)
+
               ii = iloc*rr
               jj = jloc*rr
-
            
               ! loop over all of the zones in the slice direction.
               ! Here, we convert the cell-centered indices at the
@@ -349,7 +350,7 @@ program fextract3d
               ! finest level, and test if we've stored data in any of
               ! those locations.  If we haven't then we store this
               ! level's data and mark that range as filled.
-              do kk = lbound(p,dim=3), ubound(p,dim=3)
+              do kk = lo(3), hi(3)
                  if ( any(imask(kk*r1:(kk+1)*r1-1) ) ) then
                     cnt = cnt + 1
 

@@ -8,19 +8,22 @@ endif
 ifeq ($(ARCH),AIX)
   F90 = mpxlf95$(rsuf)
   FC  = mpxlf$(rsuf)
+  CC  = mpcc$(rsuf)
+  CXX = mpCC$(rsuf)
   mpi_libraries = -lmpi
 endif
 
 ifeq ($(ARCH),Darwin)
 
   # specifics for maudib
-  ifeq ($(findstring maudib, $(UNAMEN)), maudib)
+  ifeq ($(findstring rawk, $(UNAMEN)), rawk)
     FC = mpif90
     F90 = mpif90
     CC = mpicc
     CXX = mpicxx
 
     MPI_HOME=$(shell dirname `mpicc --showme:libdirs | cut -d" " -f2`)
+    MPIHOME=$(MPI_HOME)
     LIBRARIES += lmpi_mpifh    
 
   # attempt at general support for Mac; only works if MPIHOME env var is set
@@ -65,83 +68,6 @@ endif
 #
 # Host changes ....
 #
-ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
-    #
-    # intrepid.alcf.anl.gov -- we only seem to be able to get the name
-    #                          intrepid from hostname -f.  $HOST or
-    #                          uname -n don't indicate intrepid
-    #
-
-    ifdef OMP
-      CC  := mpixlc_r
-      FC  := mpixlf95_r -qfixed=72
-      F90 := mpixlf95_r
-    else  
-      CC  := mpixlc
-      FC  := mpixlf95 -qfixed=72
-      F90 := mpixlf95
-    endif
-
-    FFLAGS   += -qmoddir=$(mdir) -I$(mdir)
-    F90FLAGS += -qmoddir=$(mdir) -I$(mdir)
-    CFLAGS   += -I$(mdir) -Wp,-DBL_AIX
-
-    ifdef NDEBUG
-      FFLAGS   += -O2 -qarch=450d -qtune=450
-      F90FLAGS += -O2 -qarch=450d -qtune=450
-      CFLAGS   += -O2 -qarch=450d -qtune=450
-    else
-      FFLAGS   += -g -C
-      F90FLAGS += -g -C
-      CFLAGS   += -g -qcheck=bounds
-    endif
-
-    F_C_LINK := LOWERCASE
-
-    # if using the bg* compilers instead of the mpi* wrappers above, you may
-    # need these
-    #
-    #    MPIHOME=/bgsys/drivers/ppcfloor
-    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
-    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
-    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
-    #    mpi_libraries += -lpthread -lrt -lSPI.cna
-endif
-
-ifeq ($(findstring surveyor, $(HOSTNAME)), surveyor)
-    #
-    # surveyor.alcf.anl.gov
-    #
-    CC  := mpixlc
-    FC  := mpixlf95 -qfixed=72
-    F90 := mpixlf95
-
-    FFLAGS   := -qmoddir=$(mdir) -I$(mdir)
-    F90FLAGS := -qmoddir=$(mdir) -I$(mdir)
-    CFLAGS   := -I$(mdir) -Wp,-DBL_AIX
-
-    ifdef NDEBUG
-      FFLAGS   += -O2 -qarch=450d -qtune=450
-      F90FLAGS += -O2 -qarch=450d -qtune=450
-      CFLAGS   += -O2 -qarch=450d -qtune=450
-    else
-      FFLAGS   += -g -C
-      F90FLAGS += -g -C
-      CFLAGS   += -g -qcheck=bounds
-    endif
-
-    F_C_LINK := LOWERCASE
-
-    # if using the bg* compilers instead of the mpi* wrappers above, you may
-    # need these
-    #
-    #    MPIHOME=/bgsys/drivers/ppcfloor
-    #    mpi_include_dir = $(MPIHOME)/arch/include -I$(MPIHOME)/comm/include
-    #    mpi_lib_dir = $(MPIHOME)/comm/lib -L$(MPIHOME)/runtime/SPI
-    #    mpi_libraries += -lmpich.cnk -ldcmfcoll.cnk -ldcmf.cnk 
-    #    mpi_libraries += -lpthread -lrt -lSPI.cna
-endif
-
 ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
     #
     # carver.nersc.gov
@@ -163,17 +89,6 @@ ifeq ($(findstring grace, $(HOST)), grace)
         F90 := ftn -target=linux
     endif
 endif
-ifeq ($(findstring hopper, $(HOST)), hopper)
-    #
-    # hopper.nersc.gov
-    #
-    ifdef MPI
-        CXX := CC -target=linux
-        CC  := cc -target=linux
-        FC  := ftn -target=linux
-        F90 := ftn -target=linux
-    endif
-endif
 ifeq ($(findstring edison, $(HOST)), edison)
     #
     # edison.nersc.gov
@@ -185,7 +100,43 @@ ifeq ($(findstring edison, $(HOST)), edison)
         F90 := ftn
     endif
 endif
+ifeq ($(findstring cori, $(HOST)), cori)
+    #
+    # cori.nersc.gov
+    #
+    ifdef MPI
+        CXX := CC
+        CC  := cc
+        FC  := ftn
+        F90 := ftn
+    endif
+endif
+ifeq ($(findstring bint, $(HOSTNAMEF)), bint)
+    #
+    # babbage.nersc.gov
+    #
+    ifdef MPI
+        CXX := mpiicpc
+        CC  := mpiicc
+        FC  := mpiifort
+        F90 := mpiifort	
+    endif
+endif
 ifeq ($(findstring titan, $(HOST)), titan)
+    #
+    # titan (Oak Ridge, OLCF machine)
+		#
+		# Cray machines require you use their compiler wrappers
+		# even if you aren't using Cray compiler
+    #
+    ifdef MPI
+        CXX := CC 
+        CC  := cc 
+        FC  := ftn
+        F90 := ftn
+    endif
+endif
+ifeq ($(findstring chester, $(HOST)), chester)
     #
     # titan (Oak Ridge, OLCF machine)
 		#
@@ -205,14 +156,33 @@ ifeq ($(findstring h2o, $(UNAMEN)), h2o)
     #
     ifdef MPI
         CXX := CC
-	FC  := ftn
-	F90 := ftn
+        FC  := ftn
+        F90 := ftn
     endif
 
     ifeq ($(COMP),Cray)
-      FFLAGS += -hnopgas_runtime
-      F90FLAGS += -hnopgas_runtime
-      CFLAGS += -hnopgas_runtime
+      FFLAGS += -hpgas_runtime
+      F90FLAGS += -hpgas_runtime
+      CFLAGS += -hpgas_runtime
+      CXXFLAGS += -hpgas_runtime
+    endif
+endif
+ifeq ($(findstring mira, $(UNAMEN)), mira)
+    #
+    # The BlueGene/Q at ALCF
+    #
+    ifeq ($(COMP),IBM)
+      ifdef MPI
+        ifdef OMP
+          CXX := mpixlcxx_r
+          FC  := mpixlf95_r
+          F90 := mpixlf95_r
+        else
+          CXX := mpixlcxx
+          FC  := mpixlf95
+          F90 := mpixlf95
+        endif
+      endif
     endif
 endif
 
@@ -221,15 +191,6 @@ ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
 
-ifeq ($(HOST), orga)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpl -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-endif
 
 ifeq ($(HOST),naphta)
   MPIHOME=/usr/lib/mpich
@@ -241,19 +202,6 @@ ifeq ($(HOST),naphta)
   endif
 endif
 
-ifeq ($(HOST),battra)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-
-ifeq ($(HOST),gigan)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
 
 ifeq ($(HOST),kiryu)
   MPIHOME=/usr/local 
@@ -263,80 +211,25 @@ ifeq ($(HOST),kiryu)
   ifeq ($(COMP),g95)
     $(error SORRY NO MPI WITH G95)
   endif
+
 endif
 
-ifeq ($(HOST),manda)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),hedorah)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),gojira)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
-endif
-ifeq ($(HOST),atragon)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),ebirah)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),rodan)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),baragon)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),megalon)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),posse)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),mothra)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
-ifeq ($(HOST),gimantis)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
 ifeq ($(HOST),angilas)
   MPIHOME=/usr/local
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
+
+DEFAULT_MACHINES := artoo atragon baragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan 
+
+ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread
+endif
+
 
 ifeq ($(findstring donev, $(HOSTNAME)), donev)
    ifeq ($(MPIVENDOR),OpenMPIv1)

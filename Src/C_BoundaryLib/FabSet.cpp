@@ -199,28 +199,7 @@ FabSet::DoIt (const MultiFab& src,
 
     FabArrayBase::CpOp op = (how == FabSet::COPYFROM) ? FabArrayBase::COPY : FabArrayBase::ADD;
 
-    if (ngrow == 0)
-    {
-        this->copy(src,scomp,dcomp,ncomp,op);
-    }
-    else
-    {
-        BoxArray ba = src.boxArray();
-
-        ba.grow(ngrow);
-
-        MultiFab tmpsrc(ba, ncomp, 0);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(tmpsrc,true); mfi.isValid(); ++mfi) {
-	    const Box& bx = mfi.tilebox();
-            tmpsrc[mfi].copy(src[mfi], bx, scomp, bx, 0, ncomp);
-	}
-
-        this->copy(tmpsrc,0,dcomp,ncomp,op);
-    }
+    this->copy(src,scomp,dcomp,ncomp,ngrow,0,op);
 }
 
 FabSet&
@@ -309,14 +288,11 @@ FabSet::linComb (Real            a,
 
     std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
-    BoxArray ba_isects = bxa;
-    ba_isects.grow(ngrow);
-
     std::vector< std::pair<int,Box> > isects;
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        ba_isects.intersections(get(fsi).box(),isects);
+        bxa.intersections(get(fsi).box(),isects,ngrow);
 
         const int index = fsi.index();
 
@@ -352,8 +328,6 @@ FabSet::linComb (Real            a,
             BL_ASSERT(fbids_mfb.back().box() == ovlp);
         }
     }
-
-    ba_isects.clear_hash_bin();    
 
     BL_COMM_PROFILE_NAMETAG("CD::FabSet::linComb()");
     mfcd.CollectData();

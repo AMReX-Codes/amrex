@@ -3,6 +3,7 @@ module layout_module
   use parallel
   use boxarray_module
   use bl_mem_stat_module
+  use omp_module
 
   implicit none
 
@@ -19,9 +20,14 @@ module layout_module
   integer, private :: sfc_threshold = 0
   integer, private :: def_mapping   = LA_KNAPSACK
 
+  integer, private :: def_tile_size(3) = (/1024000, 8, 8 /)
+  integer, private :: comm_tile_size(3) = (/1024000, 8, 8 /)
+
   type comm_dsc
      integer   :: nd = 0                 ! dst box number
      integer   :: ns = 0                 ! src box number
+     integer   :: lnd = 0                ! dst local index number
+     integer   :: lns = 0                ! src local index number
      type(box) :: dbx                    ! dst sub-box
      type(box) :: sbx                    ! src sub-box
      integer   :: pv = 0                 ! number of points in buf prior to this
@@ -52,6 +58,8 @@ module layout_module
   type local_copy_desc
      integer   :: ns = 0    ! Source box in layout
      integer   :: nd = 0    ! Destination box in layout
+     integer   :: lns = 0   ! src local index number
+     integer   :: lnd = 0   ! dst local index number
      type(box) :: sbx       ! Sub-box for this copy
      type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
@@ -129,6 +137,18 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
+
+  type tilearray
+     integer                   :: dim      = 0
+     integer                   :: nthreads = 0
+     integer                   :: ntiles   = 0
+     integer,     dimension(3) :: tilesize = 0
+     integer,          pointer :: tilelo(:,:) => Null()
+     integer,          pointer :: tilehi(:,:) => Null()
+     integer,          pointer :: gidx(:)  => Null() ! global index
+     integer,          pointer :: lidx(:)  => Null() ! local index
+  end type tilearray
+  
   !
   ! Used by layout_get_box_intersector().
   !
@@ -175,6 +195,7 @@ module layout_module
      type(fgassoc), pointer          :: fgasc       => Null()
      type(syncassoc), pointer        :: snasc       => Null()
      type(coarsened_layout), pointer :: crse_la     => Null()
+     type(tilearray),pointer         :: tas(:)      => Null()
      ! Box Hashing
      integer                         :: bahash              = -1
      integer                         :: crsn                = -1
@@ -205,6 +226,7 @@ module layout_module
      module procedure syncassoc_built_q
      module procedure copyassoc_built_q
      module procedure fluxassoc_built_q
+     module procedure tilearray_built_q
   end interface
 
   interface build
@@ -299,8 +321,8 @@ module layout_module
      module procedure boxarray_boxarray_contains
   end interface
 
-
   private :: greater_i, layout_next_id, layout_rep_build, layout_rep_destroy
+  private :: tilearray_build, internal_sync_unique_cover
 
   type(mem_stats), private, save :: la_ms
   type(mem_stats), private, save :: bxa_ms
@@ -348,6 +370,24 @@ contains
     integer :: r
     r = def_mapping
   end function layout_get_mapping
+
+  subroutine layout_set_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    def_tile_size(1:size(tilesize)) = tilesize
+  end subroutine layout_set_tilesize
+  pure function layout_get_tilesize() result(r)
+    integer :: r(3)
+    r = def_tile_size
+  end function layout_get_tilesize
+
+  subroutine layout_set_comm_tilesize(tilesize)
+    integer, intent(in) :: tilesize(:)
+    comm_tile_size(1:size(tilesize)) = tilesize
+  end subroutine layout_set_comm_tilesize
+  pure function layout_get_comm_tilesize() result(r)
+    integer :: r(3)
+    r = comm_tile_size
+  end function layout_get_comm_tilesize
 
   subroutine layout_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
@@ -539,6 +579,7 @@ contains
   end subroutine layout_set_sfc_order
 
   subroutine layout_rep_build(lap, ba, pd, pmask, mapping, explicit_mapping)
+    use omp_module
     use bl_error_module
     type(layout_rep), intent(out) :: lap
     type(boxarray), intent(in) :: ba
@@ -546,7 +587,7 @@ contains
     logical, intent(in) :: pmask(:)
     integer, intent(in), optional :: mapping
     integer, intent(in), optional :: explicit_mapping(:)
-    integer :: lmapping, i, j
+    integer :: lmapping, i, j, nthreads
 
     lmapping = def_mapping; if ( present(mapping) ) lmapping = mapping
     if ( present(explicit_mapping) ) then
@@ -605,6 +646,9 @@ contains
           j = j + 1
        end if
     end do
+
+    nthreads = omp_get_max_threads()
+    allocate(lap%tas(0:nthreads-1))
   end subroutine layout_rep_build
 
   subroutine layout_flush_copyassoc_cache ()
@@ -624,6 +668,7 @@ contains
   end subroutine layout_flush_copyassoc_cache
 
   recursive subroutine layout_rep_destroy(lap, la_type)
+    use omp_module
     type(layout_rep), pointer :: lap
     integer, intent(in) :: la_type
     type(coarsened_layout), pointer :: clp, oclp
@@ -631,12 +676,13 @@ contains
     type(fgassoc),   pointer :: fgxa, ofgxa
     type(syncassoc), pointer :: snxa, osnxa
     type(fluxassoc), pointer :: fla, nfla, pfla
+    integer :: tid
     if (associated(lap%sfc_order)) deallocate(lap%sfc_order)
     if ( la_type /= LA_CRSN ) then
        deallocate(lap%prc)
        deallocate(lap%idx)
     end if
-    call destroy(lap%bxa)
+    call boxarray_destroy(lap%bxa)
     if ( (la_type == LA_BASE) ) then
        deallocate(lap%pmask)
     end if
@@ -707,7 +753,17 @@ contains
        fla => nfla
     end do
 
+    !
+    ! Remove all tilearray's associated with this layout_rep.
+    !
+    !$omp parallel private(tid)
+    tid = omp_get_thread_num()
+    call tilearray_destroy(lap%tas(tid))
+    !$omp end parallel
+    deallocate(lap%tas)
+
     deallocate(lap)
+
   end subroutine layout_rep_destroy
 
   subroutine layout_build_ba(la, ba, pd, pmask, mapping, explicit_mapping)
@@ -736,11 +792,13 @@ contains
   end subroutine layout_destroy
 
   subroutine layout_build_coarse(lac, la, cr)
+    use omp_module
     use bl_error_module
     type(layout), intent(out)   :: lac
     type(layout), intent(inout) :: la
     integer, intent(in) :: cr(:)
     type(coarsened_layout), pointer :: cla
+    integer :: nthreads
 
     if ( size(cr) /= la%lap%dim ) then
        call bl_error("layout_build_coarse(): incommensurate cr")
@@ -777,6 +835,9 @@ contains
     call boxarray_build_copy(cla%la%lap%bxa, la%lap%bxa)
 
     call boxarray_coarsen(cla%la%lap%bxa, cla%crse)
+
+    nthreads = omp_get_max_threads()
+    allocate(cla%la%lap%tas(0:nthreads-1))
 
     ! install the new coarsened layout into the layout
     cla%next => la%lap%crse_la
@@ -1110,25 +1171,26 @@ contains
     if ( cross ) then
        gbx = box_nodalize(b,nodal)
        do i = 1, gbx%dim
-          if (idim .ne. 0 .and. idim .ne. i) cycle
-          !
-          ! lo face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          upbx(i) = lwbx(i) - 1
-          lwbx(i) = lwbx(i) - ng
-          call push_back(bl, make_box(lwbx,upbx))
-          !
-          ! hi face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          lwbx(i) = upbx(i) + 1
-          upbx(i) = upbx(i) + ng
-          call push_back(bl, make_box(lwbx,upbx))
+          if (idim .eq. 0 .or. idim .eq. i) then
+             !
+             ! lo face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             upbx(i) = lwbx(i) - 1
+             lwbx(i) = lwbx(i) - ng
+             call push_back(bl, make_box(lwbx,upbx))
+             !
+             ! hi face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             lwbx(i) = upbx(i) + 1
+             upbx(i) = upbx(i) + ng
+             call push_back(bl, make_box(lwbx,upbx))
+          end if
        end do
-       call build(tba, bl, sort = .false.)
+       call boxarray_build_l(tba, bl, sort = .false.)
        call destroy(bl)
     else
        call boxarray_box_boundary_n(tba, box_nodalize(b,nodal), ng)       
@@ -1145,7 +1207,7 @@ contains
        end do
        bv(nboxes(tba)+1:nboxes(tba)+cnt) = bxs(1:cnt)
        shfts(nboxes(tba)+1:nboxes(tba)+cnt,:) = shft(1:cnt,:)
-       call destroy(tba)
+       call boxarray_destroy(tba)
        call boxarray_build_v(tba, bv, sort = .false.)
     end if
 
@@ -1153,13 +1215,10 @@ contains
 
   end subroutine boxarray_bndry_periodic
 
-  subroutine sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
-    type(layout),     intent(inout) :: latmp
     integer,          intent(in)    :: ng
-    logical,          intent(in)    :: anynodal
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
@@ -1178,13 +1237,9 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false., bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, .false., bxasc%idim)
        do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
-          end if
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1200,6 +1255,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 bxasc%l_con%cpy(li_r)%nd  = j
                 bxasc%l_con%cpy(li_r)%ns  = i
+                bxasc%l_con%cpy(li_r)%lnd = local_index(la,j)
+                bxasc%l_con%cpy(li_r)%lns = local_index(la,i)
                 bxasc%l_con%cpy(li_r)%sbx = sbx
                 bxasc%l_con%cpy(li_r)%dbx = dbx
                 li_r                      = li_r + 1
@@ -1211,10 +1268,11 @@ contains
                    bxasc%r_con%rcv => n_rcv
                 end if
                 cnt_r                    = cnt_r + 1
-                parr(lap%prc(i), 1)      = parr(lap%prc(i), 1) + 1
-                pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
+                parr(la%lap%prc(i), 1)   = parr(la%lap%prc(i), 1) + 1
+                pvol(la%lap%prc(i), 1)   = pvol(la%lap%prc(i), 1) + volume(dbx)
                 bxasc%r_con%rcv(i_r)%nd  = j
                 bxasc%r_con%rcv(i_r)%ns  = i
+                bxasc%r_con%rcv(i_r)%lnd = local_index(la,j)
                 bxasc%r_con%rcv(i_r)%sbx = sbx
                 bxasc%r_con%rcv(i_r)%dbx = dbx
                 bxasc%r_con%rcv(i_r)%pr  = get_proc(la, i)
@@ -1230,10 +1288,11 @@ contains
                    bxasc%r_con%snd => n_snd
                 end if
                 cnt_s                    = cnt_s + 1
-                parr(lap%prc(j), 2)      = parr(lap%prc(j), 2) + 1
-                pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
+                parr(la%lap%prc(j), 2)   = parr(la%lap%prc(j), 2) + 1
+                pvol(la%lap%prc(j), 2)   = pvol(la%lap%prc(j), 2) + volume(dbx)
                 bxasc%r_con%snd(i_s)%nd  = j
                 bxasc%r_con%snd(i_s)%ns  = i
+                bxasc%r_con%snd(i_s)%lns = local_index(la,i)
                 bxasc%r_con%snd(i_s)%sbx = sbx
                 bxasc%r_con%snd(i_s)%dbx = dbx
                 bxasc%r_con%snd(i_s)%pr  = get_proc(la, j)
@@ -1246,18 +1305,17 @@ contains
     end do
   end subroutine sumassoc_build_innards
 
-  subroutine boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine boxassoc_build_innards(bxasc, la, ng, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
-    type(layout),     intent(inout) :: latmp
     integer,          intent(in)    :: ng
-    logical,          intent(in)    :: anynodal
     logical,          intent(in)    :: cross
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
     integer                         :: i, j, ii, jj, i_r, i_s, li_r
+    type(list_box)                  :: bl
+    type(list_box_node), pointer    :: bln
     type(boxarray)                  :: bxa, bxai
     type(box)                       :: sbx, dbx
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
@@ -1272,67 +1330,73 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross, bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, cross, bxasc%idim)
        do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
-          end if
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
-             sbx = bi(jj)%bx
-             dbx = shift(sbx,-shft(ii,:))
-             if ( local(la,i) .and. local(la, j) ) then
-                if ( li_r > size(bxasc%l_con%cpy) ) then
-                   allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
-                   n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
-                   deallocate(bxasc%l_con%cpy)
-                   bxasc%l_con%cpy => n_cpy
+             call list_build_tilebox(bl, bi(jj)%bx, comm_tile_size)
+             bln => begin(bl)
+             do while (associated(bln))
+                sbx = value(bln)
+                bln => next(bln)
+                dbx = shift(sbx,-shft(ii,:))
+                if ( local(la,i) .and. local(la, j) ) then
+                   if ( li_r > size(bxasc%l_con%cpy) ) then
+                      allocate(n_cpy(size(bxasc%l_con%cpy) * 2))
+                      n_cpy(1:li_r-1) = bxasc%l_con%cpy(1:li_r-1)
+                      deallocate(bxasc%l_con%cpy)
+                      bxasc%l_con%cpy => n_cpy
+                   end if
+                   lcnt_r                    = lcnt_r + 1
+                   bxasc%l_con%cpy(li_r)%nd  = i
+                   bxasc%l_con%cpy(li_r)%ns  = j
+                   bxasc%l_con%cpy(li_r)%lnd = local_index(la,i)
+                   bxasc%l_con%cpy(li_r)%lns = local_index(la,j)
+                   bxasc%l_con%cpy(li_r)%sbx = sbx
+                   bxasc%l_con%cpy(li_r)%dbx = dbx
+                   li_r                      = li_r + 1
+                else if ( local(la, j) ) then
+                   if ( i_s > size(bxasc%r_con%snd) ) then
+                      allocate(n_snd(size(bxasc%r_con%snd) * 2))
+                      n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
+                      deallocate(bxasc%r_con%snd)
+                      bxasc%r_con%snd => n_snd
+                   end if
+                   cnt_s                    = cnt_s + 1
+                   parr(la%lap%prc(i), 2)   = parr(la%lap%prc(i), 2) + 1
+                   pvol(la%lap%prc(i), 2)   = pvol(la%lap%prc(i), 2) + volume(sbx)
+                   bxasc%r_con%snd(i_s)%nd  = i
+                   bxasc%r_con%snd(i_s)%ns  = j
+                   bxasc%r_con%snd(i_s)%lns = local_index(la,j)
+                   bxasc%r_con%snd(i_s)%sbx = sbx
+                   bxasc%r_con%snd(i_s)%dbx = dbx
+                   bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
+                   i_s                      = i_s + 1
+                else if ( local(la, i) ) then
+                   if ( i_r > size(bxasc%r_con%rcv) ) then
+                      allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
+                      n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
+                      deallocate(bxasc%r_con%rcv)
+                      bxasc%r_con%rcv => n_rcv
+                   end if
+                   cnt_r                    = cnt_r + 1
+                   parr(la%lap%prc(j), 1)   = parr(la%lap%prc(j), 1) + 1
+                   pvol(la%lap%prc(j), 1)   = pvol(la%lap%prc(j), 1) + volume(sbx)
+                   bxasc%r_con%rcv(i_r)%nd  = i
+                   bxasc%r_con%rcv(i_r)%ns  = j
+                   bxasc%r_con%rcv(i_r)%lnd = local_index(la,i)
+                   bxasc%r_con%rcv(i_r)%sbx = sbx
+                   bxasc%r_con%rcv(i_r)%dbx = dbx
+                   bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
+                   sh                       = 1
+                   sh(1:bxasc%dim)          = extent(sbx)
+                   bxasc%r_con%rcv(i_r)%sh  = sh
+                   i_r                      = i_r + 1
                 end if
-                lcnt_r                    = lcnt_r + 1
-                bxasc%l_con%cpy(li_r)%nd  = i
-                bxasc%l_con%cpy(li_r)%ns  = j
-                bxasc%l_con%cpy(li_r)%sbx = sbx
-                bxasc%l_con%cpy(li_r)%dbx = dbx
-                li_r                      = li_r + 1
-             else if ( local(la, j) ) then
-                if ( i_s > size(bxasc%r_con%snd) ) then
-                   allocate(n_snd(size(bxasc%r_con%snd) * 2))
-                   n_snd(1:i_s-1) = bxasc%r_con%snd(1:i_s-1)
-                   deallocate(bxasc%r_con%snd)
-                   bxasc%r_con%snd => n_snd
-                end if
-                cnt_s                    = cnt_s + 1
-                parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
-                bxasc%r_con%snd(i_s)%nd  = i
-                bxasc%r_con%snd(i_s)%ns  = j
-                bxasc%r_con%snd(i_s)%sbx = sbx
-                bxasc%r_con%snd(i_s)%dbx = dbx
-                bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
-                i_s                      = i_s + 1
-             else if ( local(la, i) ) then
-                if ( i_r > size(bxasc%r_con%rcv) ) then
-                   allocate(n_rcv(size(bxasc%r_con%rcv) * 2))
-                   n_rcv(1:i_r-1) = bxasc%r_con%rcv(1:i_r-1)
-                   deallocate(bxasc%r_con%rcv)
-                   bxasc%r_con%rcv => n_rcv
-                end if
-                cnt_r                    = cnt_r + 1
-                parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
-                bxasc%r_con%rcv(i_r)%nd  = i
-                bxasc%r_con%rcv(i_r)%ns  = j
-                bxasc%r_con%rcv(i_r)%sbx = sbx
-                bxasc%r_con%rcv(i_r)%dbx = dbx
-                bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
-                sh                       = 1
-                sh(1:bxasc%dim)          = extent(sbx)
-                bxasc%r_con%rcv(i_r)%sh  = sh
-                i_r                      = i_r + 1
-             end if
+             end do
+             call list_destroy_box(bl)
           end do
           deallocate(bi)
        end do
@@ -1343,7 +1407,6 @@ contains
   subroutine boxassoc_build(bxasc, lap, ng, nodal, cross, do_sum_boundary, idim)
     use bl_prof_module
     use bl_error_module
-    use omp_module
 
     integer,          intent(in)           :: ng
     logical,          intent(in)           :: nodal(:)
@@ -1354,14 +1417,14 @@ contains
     integer,          intent(in), optional :: idim
 
     integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    type(boxarray)                  :: bxa, batmp
-    type(layout)                    :: la, latmp
+    type(boxarray)                  :: bxa
+    type(layout)                    :: la
     integer                         :: lcnt_r, cnt_r, cnt_s, i_r, i_s, np, i
     integer, parameter              :: ChunkSize = 500
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
-    logical                         :: anynodal, ldsm
+    logical                         :: ldsm
     type(bl_prof_timer), save       :: bpt
 
     if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
@@ -1375,7 +1438,6 @@ contains
     bxasc%nboxes =  nboxes(bxa)
     bxasc%cross  =  cross
     np           =  parallel_nprocs()
-    anynodal     =  any( nodal .eqv. .true. )
 
     ldsm = .false.; if ( present(do_sum_boundary) ) ldsm = do_sum_boundary
 
@@ -1396,16 +1458,6 @@ contains
     allocate(bxasc%r_con%snd(ChunkSize))
     allocate(bxasc%r_con%rcv(ChunkSize))
 
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call copy(batmp, bxa)
-       call boxarray_nodalize(batmp, nodal)
-       call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call destroy(batmp)
-    end if
-
     bxasc%nodal = nodal
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
@@ -1414,18 +1466,12 @@ contains
        if (bxasc%idim .ne. 0) then
           call bl_error("BOXASSOC_BUILD: sumassoc_build_innards not supported for nonzero idim")
        end if
-       call sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, &
-            lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     else
-       call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, bxasc%cross, &
-            lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call boxassoc_build_innards(bxasc, la, ng, bxasc%cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 
-    if ( anynodal ) then
-       call destroy(latmp)
-    else
-       call clear_box_hash_bin(la%lap)
-    end if
+    call clear_box_hash_bin(la%lap)
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
@@ -1501,7 +1547,7 @@ contains
        end if
     end do
 
-    if (anynodal) then
+    if (any( nodal .eqv. .true. )) then
        bxasc%l_con%threadsafe = .false.
        bxasc%r_con%threadsafe = .false.
     else
@@ -1610,13 +1656,12 @@ contains
   end subroutine fgassoc_build
 
 
-  subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
+  subroutine internal_sync_unique_cover(la, ng, nodal, filled)
     use bl_error_module
 
-    type(layout), intent(in)  :: la
+    type(layout), intent(inout) :: la
     integer, intent(in)       :: ng
     logical, intent(in)       :: nodal(:)
-    logical, intent(in)       :: lall
     type(local_conn), pointer :: filled(:)
 
     type(box)                      :: jbx, abx
@@ -1626,19 +1671,10 @@ contains
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2
-    type(boxarray)                 :: bxa, batmp
+    type(boxarray)                 :: bxa
     type(box_intersector), pointer :: bi(:)
-    type(layout)                   :: latmp
 
     bxa = get_boxarray(la)
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    call copy(batmp, bxa)
-    call boxarray_nodalize(batmp, nodal)
-    if ( lall ) call boxarray_grow(batmp,ng)
-    call build(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(batmp)
 
     allocate(filled(nboxes(bxa)))
     do i = 1, nboxes(bxa)
@@ -1647,10 +1683,10 @@ contains
     end do
 
     do j = 1, nboxes(bxa)
-       jbx = get_box(latmp, j)
+       jbx = grow(box_nodalize(get_box(la, j), nodal), ng)
        call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
        do jj = 1, cnt
-          bi => layout_get_box_intersector(latmp, shift(jbx,shft(jj,:)))
+          bi => layout_get_box_intersector(la, shift(jbx,shft(jj,:)), ng_la=ng, nodal_la=nodal)
           do ii = 1, size(bi)
              !
              ! Only consider j -> i for i >= j
@@ -1690,7 +1726,8 @@ contains
           deallocate(bi)
        end do
     end do
-    call destroy(latmp)
+
+    call clear_box_hash_bin(la%lap)
 
   end subroutine internal_sync_unique_cover
 
@@ -1705,6 +1742,7 @@ contains
     logical,          intent(in)         :: lall
 
     integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np
+    integer                        :: ng_lall
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
@@ -1738,7 +1776,13 @@ contains
     snasc%lall  = lall
     snasc%nodal = nodal
 
-    call internal_sync_unique_cover(la, snasc%grwth, snasc%nodal, snasc%lall, filled)
+    if (snasc%lall) then
+       ng_lall = snasc%grwth
+    else
+       ng_lall = 0
+    end if
+
+    call internal_sync_unique_cover(la, ng_lall, snasc%nodal, filled)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
@@ -1759,6 +1803,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 snasc%l_con%cpy(li_r)%nd  = i
                 snasc%l_con%cpy(li_r)%ns  = j
+                snasc%l_con%cpy(li_r)%lnd = local_index(la,i)
+                snasc%l_con%cpy(li_r)%lns = local_index(la,j)
                 snasc%l_con%cpy(li_r)%sbx = sbx
                 snasc%l_con%cpy(li_r)%dbx = dbx
                 li_r                      = li_r + 1
@@ -1774,6 +1820,7 @@ contains
                 pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(dbx)
                 snasc%r_con%snd(i_s)%nd  = i
                 snasc%r_con%snd(i_s)%ns  = j
+                snasc%r_con%snd(i_s)%lns = local_index(la,j)
                 snasc%r_con%snd(i_s)%sbx = sbx
                 snasc%r_con%snd(i_s)%dbx = dbx
                 snasc%r_con%snd(i_s)%pr  = get_proc(la, i)
@@ -1790,6 +1837,7 @@ contains
                 pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(dbx)
                 snasc%r_con%rcv(i_r)%nd  = i
                 snasc%r_con%rcv(i_r)%ns  = j
+                snasc%r_con%rcv(i_r)%lnd = local_index(la,i)
                 snasc%r_con%rcv(i_r)%sbx = sbx
                 snasc%r_con%rcv(i_r)%dbx = dbx
                 snasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
@@ -1923,7 +1971,7 @@ contains
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
     if (associated(fgasc%prc)) deallocate(fgasc%prc) 
     if (associated(fgasc%idx)) deallocate(fgasc%idx)
-    call destroy(fgasc%ba)
+    call boxarray_destroy(fgasc%ba)
    end subroutine fgassoc_destroy
 
   subroutine syncassoc_destroy(snasc)
@@ -1942,7 +1990,6 @@ contains
   subroutine copyassoc_build(cpasc, la_dst, la_src, nd_dst, nd_src)
     use bl_prof_module
     use bl_error_module
-    use omp_module
 
     type(copyassoc),  intent(inout) :: cpasc
     type(layout),     intent(in)    :: la_src, la_dst
@@ -1951,14 +1998,13 @@ contains
     integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     integer                        :: sh(MAX_SPACEDIM+1), jj
     type(box)                      :: bx
-    type(boxarray)                 :: batmp
-    type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     integer, parameter             :: ChunkSize = 500
     type(box_intersector), pointer :: bi(:)
+    type(layout)                   :: latmp
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(cpasc) ) call bl_error("copyassoc_build(): already built")
@@ -1989,20 +2035,15 @@ contains
 
     cpasc%nd_dst = nd_dst
     cpasc%nd_src = nd_src
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    call copy(batmp, cpasc%ba_src)
-    call boxarray_nodalize(batmp, nd_src)
-    call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-    call destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
     ! Consider all copies I <- J.
     !
+    latmp = la_src  ! la_src is considered like C++ mutable
     do i = 1, nboxes(cpasc%ba_dst)
-       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst))
+       bi => layout_get_box_intersector(latmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst), &
+                                        nodal_la=nd_src)
        do jj = 1, size(bi)
           j = bi(jj)%i
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
@@ -2017,6 +2058,8 @@ contains
              lcnt_r                    = lcnt_r + 1
              cpasc%l_con%cpy(li_r)%nd  = i
              cpasc%l_con%cpy(li_r)%ns  = j
+             cpasc%l_con%cpy(li_r)%lnd = local_index(la_dst,i)
+             cpasc%l_con%cpy(li_r)%lns = local_index(la_src,j)
              cpasc%l_con%cpy(li_r)%sbx = bx
              cpasc%l_con%cpy(li_r)%dbx = bx
              li_r                      = li_r + 1
@@ -2032,6 +2075,7 @@ contains
              pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
              cpasc%r_con%snd(i_s)%nd    = i
              cpasc%r_con%snd(i_s)%ns    = j
+             cpasc%r_con%snd(i_s)%lns   = local_index(la_src,j)
              cpasc%r_con%snd(i_s)%sbx   = bx
              cpasc%r_con%snd(i_s)%dbx   = bx
              cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
@@ -2048,6 +2092,7 @@ contains
              pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
              cpasc%r_con%rcv(i_r)%nd    = i
              cpasc%r_con%rcv(i_r)%ns    = j
+             cpasc%r_con%rcv(i_r)%lnd   = local_index(la_dst,i)
              cpasc%r_con%rcv(i_r)%sbx   = bx
              cpasc%r_con%rcv(i_r)%dbx   = bx
              cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
@@ -2060,7 +2105,7 @@ contains
        deallocate(bi)
     end do
 
-    call destroy(lasrctmp)
+    call clear_box_hash_bin(latmp%lap)
 
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s
@@ -2164,8 +2209,7 @@ contains
     integer                        :: sh(MAX_SPACEDIM+1)
     integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
     type(box)                      :: fbox, isect
-    type(layout)                   :: lasrctmp
-    type(boxarray)                 :: bxa_src, bxa_dst, batmp
+    type(boxarray)                 :: bxa_src, bxa_dst
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, ii
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -2173,7 +2217,6 @@ contains
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
     integer, parameter             :: ChunkSize = 500
-    logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
@@ -2195,7 +2238,6 @@ contains
     flasc%ir(1:dm)    =  ir(1:dm)
     flasc%flux%dim    =  dm
     flasc%mask%dim    =  dm
-    anynodal          =  any( nd_src .eqv. .true. )
 
     allocate(flasc%nd_dst(dm), flasc%nd_src(dm))
 
@@ -2213,36 +2255,19 @@ contains
     allocate(flasc%mask%r_con%rcv(ChunkSize))
     allocate(flasc%fbxs(ChunkSize))
 
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call copy(batmp, bxa_src)
-       call boxarray_nodalize(batmp, nd_src)
-       call build(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  ! LA_LOCAL ==> bypass processor distribution calculation.
-       call destroy(batmp)
-    end if
-
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
     do j = 1, nboxes(bxa_dst)
 
-       if ( anynodal ) then
-          bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
-       else
-          bi => layout_get_box_intersector(la_src,   box_nodalize(get_box(bxa_dst,j), nd_dst))
-       end if
+       bi => layout_get_box_intersector(la_src, box_nodalize(get_box(bxa_dst,j), nd_dst), &
+            &                           nodal_la=nd_src)
 
        do ii = 1, size(bi)
           i = bi(ii)%i
 
           if ( remote(la_dst,j) .and. remote(la_src,i) ) cycle
 
-          if ( anynodal ) then
-             fbox = get_box(lasrctmp,i)
-          else
-             fbox = get_box(la_src,  i)
-          end if
+          fbox = box_nodalize(get_box(la_src, i), nd_src)
           isect  = bi(ii)%bx
           loflux = lwb(fbox)
 
@@ -2258,6 +2283,8 @@ contains
                 lcnt_r                         = lcnt_r + 1
                 flasc%flux%l_con%cpy(li_r)%nd  = j
                 flasc%flux%l_con%cpy(li_r)%ns  = i
+                flasc%flux%l_con%cpy(li_r)%lnd = local_index(la_dst,j)
+                flasc%flux%l_con%cpy(li_r)%lns = local_index(la_src,i)
                 flasc%flux%l_con%cpy(li_r)%sbx = isect
                 flasc%flux%l_con%cpy(li_r)%dbx = isect
                 li_r                           = li_r + 1
@@ -2277,6 +2304,7 @@ contains
                 pvol(la_dst%lap%prc(j), 2)    = pvol(la_dst%lap%prc(j), 2) + volume(isect)
                 flasc%flux%r_con%snd(i_s)%nd  = j
                 flasc%flux%r_con%snd(i_s)%ns  = i
+                flasc%flux%r_con%snd(i_s)%lns = local_index(la_src,i)
                 flasc%flux%r_con%snd(i_s)%sbx = isect
                 flasc%flux%r_con%snd(i_s)%dbx = isect
                 flasc%flux%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
@@ -2285,6 +2313,7 @@ contains
                 mpvol(la_dst%lap%prc(j), 2)   = mpvol(la_dst%lap%prc(j), 2) + volume(isect)
                 flasc%mask%r_con%snd(i_s)%nd  = j
                 flasc%mask%r_con%snd(i_s)%ns  = i
+                flasc%mask%r_con%snd(i_s)%lns = local_index(la_src,i)
                 flasc%mask%r_con%snd(i_s)%sbx = isect
                 flasc%mask%r_con%snd(i_s)%dbx = isect
                 flasc%mask%r_con%snd(i_s)%pr  = get_proc(la_dst,j)
@@ -2309,6 +2338,7 @@ contains
                 pvol(la_src%lap%prc(i), 1)    = pvol(la_src%lap%prc(i), 1) + volume(isect)
                 flasc%flux%r_con%rcv(i_r)%nd  = j
                 flasc%flux%r_con%rcv(i_r)%ns  = i
+                flasc%flux%r_con%rcv(i_r)%lnd = local_index(la_dst,j)
                 flasc%flux%r_con%rcv(i_r)%sbx = isect
                 flasc%flux%r_con%rcv(i_r)%dbx = isect
                 flasc%flux%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
@@ -2321,6 +2351,7 @@ contains
                 mpvol(la_src%lap%prc(i), 1)   = mpvol(la_src%lap%prc(i), 1) + volume(isect)
                 flasc%mask%r_con%rcv(i_r)%nd  = j
                 flasc%mask%r_con%rcv(i_r)%ns  = i
+                flasc%mask%r_con%rcv(i_r)%lnd = local_index(la_dst,j)
                 flasc%mask%r_con%rcv(i_r)%sbx = isect
                 flasc%mask%r_con%rcv(i_r)%dbx = isect
                 flasc%mask%r_con%rcv(i_r)%pr  = get_proc(la_src,i)
@@ -2334,11 +2365,7 @@ contains
        deallocate(bi)
     end do
 
-    if ( anynodal ) then
-       call destroy(lasrctmp)
-    else
-       call clear_box_hash_bin(la_src%lap)
-    end if
+    call clear_box_hash_bin(la_src%lap)
 
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
@@ -2476,8 +2503,8 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
-    call destroy(cpasc%ba_src)
-    call destroy(cpasc%ba_dst)
+    call boxarray_destroy(cpasc%ba_src)
+    call boxarray_destroy(cpasc%ba_dst)
     deallocate(cpasc%nd_dst)
     deallocate(cpasc%nd_src)
     deallocate(cpasc%l_con%cpy)
@@ -2727,7 +2754,7 @@ contains
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
     integer :: dm, n, i, j, k, cnt, full
-    type(box) :: bx, cbx
+    type(box) :: bx, cbx, nbx
     integer :: lcrsn
     integer :: sz
     type(box_hash_bin), pointer :: bins(:,:,:)
@@ -2738,8 +2765,11 @@ contains
     dm = la%lap%dim
     ba = get_boxarray(la)
     vsz = 0; vsz(1:dm) = -Huge(1)
+    bx = nobox(ba%dim)
     do n = 1, nboxes(ba)
-       vsz(1:dm) = max(vsz(1:dm),extent(get_box(ba,n)))
+       nbx = box_nodalize(get_box(ba,n),(/.true.,.true.,.true./))
+       bx = bbox(bx, nbx)
+       vsz(1:dm) = max(vsz(1:dm),extent(nbx))
     end do
     if ( present(crsn) ) then
        lcrsn = crsn
@@ -2747,7 +2777,6 @@ contains
        lcrsn = maxval(vsz)
     end if
     la%lap%crsn = lcrsn
-    bx  = boxarray_bbox(ba)
     cbx = coarsen(bx, lcrsn)
     la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
     la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
@@ -2792,20 +2821,37 @@ contains
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
-  function layout_get_box_intersector(la, bx) result(bi)
+  function layout_get_box_intersector(la, bx, ng_la, nodal_la) result(bi)
     use bl_error_module
     type(box_intersector), pointer :: bi(:)
     type(layout), intent(inout) :: la
     type(box), intent(in) :: bx
+    integer, intent(in), optional :: ng_la        ! extra ghost cells for la's boxaray
+    logical, intent(in), optional :: nodal_la(:)  ! nodal flag for la's boxarray
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: dm
-    type(box) :: bx1
-    integer :: i, j, k, n
+    type(box) :: bx1, bxtmp
+    integer :: i, j, k, n, ng
+    logical :: nodal(bx%dim)
     type(boxarray) :: ba
     integer, parameter :: ChunkSize = 50
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)
+
+    dm = la%lap%dim
+
+    if (present(ng_la)) then
+       ng = ng_la
+    else
+       ng = 0
+    end if
+
+    if (present(nodal_la)) then
+       nodal(1:dm) = nodal_la(1:dm)
+    else
+       nodal = .false.
+    end if
 
     !$OMP CRITICAL(initboxhashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
@@ -2813,10 +2859,9 @@ contains
 
     allocate(bi(ChunkSize))
 
-    dm = la%lap%dim
     ba = get_boxarray(la)
     bins => la%lap%bins
-    bx1 = coarsen(bx, la%lap%crsn)
+    bx1 = coarsen(grow(bx,ng), la%lap%crsn)
     lo = 0; lo(1:dm) = lwb(bx1)
     hi = 0; hi(1:dm) = upb(bx1)
     cnt = 0
@@ -2828,12 +2873,13 @@ contains
 
                 if ( associated(bins(i,j,k)%iv) ) then
                    do n = 1, size(bins(i,j,k)%iv)
-                      bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                      bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                      bx1 = intersection(bx, bxtmp)
                       if ( empty(bx1) ) cycle
                       cnt = cnt + 1
 
                       if (cnt > size(bi)) then
-                         allocate(tbi(size(bi) * 2))
+                         allocate(tbi(int(size(bi)*1.5)))
                          tbi(1:cnt-1) = bi(1:cnt-1)
                          deallocate(bi)
                          bi => tbi
@@ -2854,12 +2900,13 @@ contains
 
              if ( associated(bins(i,j,k)%iv) ) then
                 do n = 1, size(bins(i,j,k)%iv)
-                   bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                   bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                   bx1 = intersection(bx, bxtmp)
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
 
                    if (cnt > size(bi)) then
-                      allocate(tbi(size(bi) * 2))
+                      allocate(tbi(int(size(bi)*1.5)))
                       tbi(1:cnt-1) = bi(1:cnt-1)
                       deallocate(bi)
                       bi => tbi
@@ -2879,12 +2926,13 @@ contains
 
           if ( associated(bins(i,j,k)%iv) ) then
              do n = 1, size(bins(i,j,k)%iv)
-                bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                bx1 = intersection(bx, bxtmp)
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
 
                 if (cnt > size(bi)) then
-                   allocate(tbi(size(bi) * 2))
+                   allocate(tbi(int(size(bi)*1.5)))
                    tbi(1:cnt-1) = bi(1:cnt-1)
                    deallocate(bi)
                    bi => tbi
@@ -2983,6 +3031,8 @@ contains
                 lcnt_r                    = lcnt_r + 1
                 cpasc%l_con%cpy(li_r)%nd  = i
                 cpasc%l_con%cpy(li_r)%ns  = j
+                cpasc%l_con%cpy(li_r)%lnd = local_index(la_dst,i)
+                cpasc%l_con%cpy(li_r)%lns = local_index(la_src,j)
                 cpasc%l_con%cpy(li_r)%sbx = bx
                 cpasc%l_con%cpy(li_r)%dbx = bx
                 li_r                      = li_r + 1
@@ -2998,6 +3048,7 @@ contains
                 pvol(la_dst%lap%prc(i), 2) = pvol(la_dst%lap%prc(i), 2) + volume(bx)
                 cpasc%r_con%snd(i_s)%nd    = i
                 cpasc%r_con%snd(i_s)%ns    = j
+                cpasc%r_con%snd(i_s)%lns   = local_index(la_src,j)
                 cpasc%r_con%snd(i_s)%sbx   = bx
                 cpasc%r_con%snd(i_s)%dbx   = bx
                 cpasc%r_con%snd(i_s)%pr    = get_proc(la_dst,i)
@@ -3014,6 +3065,7 @@ contains
                 pvol(la_src%lap%prc(j), 1) = pvol(la_src%lap%prc(j), 1) + volume(bx)
                 cpasc%r_con%rcv(i_r)%nd    = i
                 cpasc%r_con%rcv(i_r)%ns    = j
+                cpasc%r_con%rcv(i_r)%lnd   = local_index(la_dst,i)
                 cpasc%r_con%rcv(i_r)%sbx   = bx
                 cpasc%r_con%rcv(i_r)%dbx   = bx
                 cpasc%r_con%rcv(i_r)%pr    = get_proc(la_src,j)
@@ -3118,21 +3170,21 @@ contains
     type(boxarray) :: ba
     
     call boxarray_build_v(ba, boxes, sort=.false.)
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
     
     do i=1,size(boxes)
        bi => layout_get_box_intersector(la, boxes(i))
        if(size(bi) .ne. 1) then
           deallocate(bi)
-          call destroy(ba)
-          call destroy(la)
+          call boxarray_destroy(ba)
+          call layout_destroy(la)
           r = .false.
           return
        end if
        deallocate(bi)
     end do
-    call destroy(ba)
-    call destroy(la)
+    call boxarray_destroy(ba)
+    call layout_destroy(la)
     r = .true.
     return
   end function boxarray_clean
@@ -3182,7 +3234,7 @@ contains
        call list_build_v_box(bl, bxs)
     else
        call list_build_v_box(bl, ba%bxs)
-       call destroy(ba)
+       call boxarray_destroy(ba)
        call list_build_v_box(bltmp, bxs)
        call splice(bl, bltmp)
     end if
@@ -3195,7 +3247,7 @@ contains
        return
     end if
 
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL) 
 
     i = 0
 
@@ -3224,8 +3276,8 @@ contains
        deallocate(bi)
     end do
 
-    call destroy(ba)
-    call destroy(la)
+    call boxarray_destroy(ba)
+    call layout_destroy(la)
 
     ! there is still one box left in the list
     call push_back(blclean, list_front_box(bl))
@@ -3263,7 +3315,7 @@ contains
     if ( nboxes(ba) .eq. 0 ) &
        call bl_error('Empty boxarray in boxarray_box_contains')
     
-    call build(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
+    call layout_build_ba(la, ba, boxarray_bbox(ba), mapping=LA_LOCAL)
 
     bi => layout_get_box_intersector(la, bx)    
 
@@ -3272,7 +3324,7 @@ contains
     end do
 
     deallocate(bi)
-    call destroy(la)
+    call layout_destroy(la)
 
     bl = boxlist_boxlist_diff(bx, bl1)
     r = empty(bl)
@@ -3332,14 +3384,14 @@ contains
     if ( nboxes(ba2) .eq. 0 ) &
        call bl_error('Empty boxarray ba2 in boxarray_boxarray_contains')
 
-    call build(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
+    call layout_build_ba(la1, ba1, boxarray_bbox(ba1), mapping=LA_LOCAL)
 
     if ( lallow) then
        do i = 1, nboxes(ba2)
           if (empty(get_box(ba2,i))) cycle !ignore empty boxes
           r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
-             call destroy(la1)
+             call layout_destroy(la1)
              call destroy(bpt)
              return
           end if
@@ -3348,14 +3400,14 @@ contains
        do i = 1, nboxes(ba2)
           r = layout_box_contains(la1, get_box(ba2,i)) 
           if ( .not. r ) then
-             call destroy(la1)
+             call layout_destroy(la1)
              call destroy(bpt)
              return
           end if
        end do
     endif
 
-    call destroy(la1)
+    call layout_destroy(la1)
 
     r = .true.
 
@@ -3442,5 +3494,199 @@ contains
     !$omp end parallel
     r_con%threadsafe = tsall
   end subroutine remote_conn_set_threadsafety
+
+
+  function init_layout_tilearray(la, tilesize, tid, nthreads) result(r)
+    type(layout), intent(inout) :: la
+    integer, intent(in) :: tilesize(:), tid, nthreads
+    type(tilearray) :: r
+
+    ! Do we have one already?
+    if (built_q(la%lap%tas(tid))) then
+       if (tilearray_check(la%lap%tas(tid), tilesize, nthreads)) then
+          r = la%lap%tas(tid)
+          return
+       end if
+    end if
+
+    ! build a new one
+    call tilearray_build(la, tilesize, tid, nthreads)
+
+    r = la%lap%tas(tid)
+    return
+  end function init_layout_tilearray
+
+  pure function tilearray_check(ta, tilesize, nthreads) result (r)
+    logical :: r
+    type(tilearray), intent(in) :: ta
+    integer, intent(in) :: tilesize(:), nthreads
+
+    r = nthreads .eq. ta%nthreads
+    if (.not.r) return
+
+    r = all(tilesize(1:ta%dim) .eq. ta%tilesize(1:ta%dim))
+    return
+  end function tilearray_check
+
+  subroutine tilearray_build(la, tilesize, tid, nthreads)
+    use mempool_module, only : bl_allocate, bl_deallocate
+    type(layout), intent(inout) :: la
+    integer, intent(in) :: tilesize(:), tid, nthreads
+
+    integer :: i, n, idim, dim, nlbx, n_tot_tiles, t, tlo, thi
+    integer :: tiles_per_thread, nl, it, gindex, ncells, nt_in_thread
+    integer, dimension(la%lap%dim) :: tsize, nleft, ijk, small, big
+    type(box) :: bx
+    integer, pointer :: nt_in_fab(:,:), ntiles(:)
+    type(tilearray), pointer :: ta
+
+    dim = la%lap%dim
+    nlbx = la%lap%nlocal
+
+    ta => la%lap%tas(tid)
+
+    ta%dim = dim
+    ta%nthreads = nthreads
+    ta%tilesize = tilesize
+
+    if (nlbx < 1) then
+       ta%dim = 0
+       return
+    end if
+
+    call bl_allocate(nt_in_fab, 1, dim, 1, nlbx)
+    call bl_allocate(ntiles, 1, nlbx)
+
+    n_tot_tiles = 0
+    do n=1, nlbx
+       bx = get_box(la%lap%bxa, la%lap%idx(n))
+
+       if (empty(bx)) then
+          ntiles(n) = 0
+          nt_in_fab(:,n) = 0
+       else
+          ntiles(n) = 1
+          do idim = 1, dim
+             nt_in_fab(idim,n) = max((bx%hi(idim)-bx%lo(idim)+1)/tilesize(idim), 1)
+             ntiles(n) = ntiles(n)*nt_in_fab(idim,n)
+          end do
+       end if
+
+       n_tot_tiles = n_tot_tiles + ntiles(n)
+    end do
+
+    if (n_tot_tiles < nthreads) then ! there are more threads than tiles
+       if (tid < n_tot_tiles) then
+          tlo = tid
+          thi = tid
+       else
+          ta%dim = 0
+          call bl_deallocate(nt_in_fab)
+          call bl_deallocate(ntiles)
+          return
+       end if
+    else
+       tiles_per_thread = n_tot_tiles / nthreads
+       nl = n_tot_tiles - tiles_per_thread*nthreads
+       if (tid < nl) then
+          tlo = tid*(tiles_per_thread+1)
+          thi = tlo + tiles_per_thread
+       else
+          tlo = tid*tiles_per_thread + nl
+          thi = tlo + tiles_per_thread -1
+       end if
+    end if
+
+    nt_in_thread = thi - tlo + 1
+    ta%ntiles = nt_in_thread
+
+    if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
+    if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
+    if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
+    if (associated(ta%tilehi)) call bl_deallocate(ta%tilehi)
+
+    call bl_allocate(ta%gidx, 1, nt_in_thread)
+    call bl_allocate(ta%lidx, 1, nt_in_thread)
+    call bl_allocate(ta%tilelo, 1, dim, 1, nt_in_thread)
+    call bl_allocate(ta%tilehi, 1, dim, 1, nt_in_thread)
+
+    it = 0
+    i = 1
+
+    do n=1, nlbx
+
+       if (ntiles(n) .eq. 0) cycle
+
+       if (it+ntiles(n)-1 < tlo) then
+          it = it + ntiles(n)
+          cycle
+       end if
+
+       gindex = la%lap%idx(n)
+       bx = get_box(la%lap%bxa, gindex)
+
+       do idim = 1, dim
+          ncells = bx%hi(idim) - bx%lo(idim) + 1
+          tsize(idim) = ncells / nt_in_fab(idim,n)
+          nleft(idim) = ncells - nt_in_fab(idim,n) * tsize(idim)
+       end do
+
+       ijk = 0
+       ijk(1) = -1
+       do t = 0, ntiles(n)-1
+          do idim = 1, dim
+             if (ijk(idim) < nt_in_fab(idim,n)-1) then
+                ijk(idim) = ijk(idim)+1
+                exit
+             else
+                ijk(idim) = 0
+             end if
+          end do
+
+          if (it .ge. tlo) then
+             do idim = 1, dim
+                if (ijk(idim) < nleft(idim)) then
+                   small(idim) = ijk(idim)*(tsize(idim)+1)
+                   big(idim) = small(idim) + tsize(idim)
+                else
+                   small(idim) = ijk(idim)*tsize(idim) + nleft(idim)
+                   big(idim) = small(idim) + tsize(idim) -1
+                end if
+             end do
+
+             ta%gidx(i) = gindex
+             ta%lidx(i) = n
+             ta%tilelo(:,i) = small + bx%lo(1:dim)
+             ta%tilehi(:,i) = big   + bx%lo(1:dim)
+             i = i+1
+          end if
+
+          it = it+1
+          if (it .gt. thi) goto 100
+       end do
+    end do
+
+100 continue
+
+    call bl_deallocate(nt_in_fab)
+    call bl_deallocate(ntiles)
+
+  end subroutine tilearray_build
+
+  subroutine tilearray_destroy(ta)
+    use mempool_module, only : bl_deallocate
+    type(tilearray), intent(inout) :: ta
+    if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
+    if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
+    if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
+    if (associated(ta%tilehi)) call bl_deallocate(ta%tilehi)
+    ta%dim = 0
+  end subroutine tilearray_destroy
+
+  pure function tilearray_built_q(ta) result(r)
+    logical :: r
+    type(tilearray), intent(in) :: ta
+    r = ta%dim /= 0
+  end function tilearray_built_q
 
 end module layout_module

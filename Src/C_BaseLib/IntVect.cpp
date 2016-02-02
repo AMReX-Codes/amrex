@@ -24,6 +24,28 @@ IntVect::TheZeroVector ()
 }
 
 const IntVect&
+IntVect::TheDimensionVector (int d)
+{
+    switch (d) {
+    case (0) :
+    {
+	static const IntVect xdim(D_DECL(1,0,0));
+	return xdim;
+    }
+    case (1) :
+    {
+	static const IntVect ydim(D_DECL(0,1,0));
+	return ydim;
+    }
+    default:
+    {
+	static const IntVect zdim(D_DECL(0,0,1));
+	return zdim;
+    }
+    };
+}
+
+const IntVect&
 IntVect::TheNodeVector ()
 {
     static const IntVect Node(D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
@@ -84,23 +106,25 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT2
 }
 
-const IntVect
+IntVect
 BoxLib::min (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
-    return p.min(p2);
+    p.min(p2);
+    return p;
 }
 
-const IntVect
+IntVect
 BoxLib::max (const IntVect& p1,
 	     const IntVect& p2)
 {
     IntVect p(p1);
-    return p.max(p2);
+    p.max(p2);
+    return p;
 }
 
-const IntVect
+IntVect
 BoxLib::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
@@ -109,13 +133,13 @@ BoxLib::BASISV (int dir)
     return tmp;
 }
 
-const IntVect
+IntVect
 BoxLib::scale (const IntVect& p, int s)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
-const IntVect
+IntVect
 BoxLib::reflect (const IntVect& a,
 		 int            ref_ix,
 		 int            idir)
@@ -126,27 +150,29 @@ BoxLib::reflect (const IntVect& a,
     return b;
 }
 
-const IntVect
+IntVect
 BoxLib::diagShift (const IntVect& p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
-const IntVect
+IntVect
 BoxLib::coarsen (const IntVect& p,
 		 int            s)
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
-    return v.coarsen(IntVect(D_DECL(s,s,s)));
+    v.coarsen(IntVect(D_DECL(s,s,s)));
+    return v;
 }
 
-const IntVect
+IntVect
 BoxLib::coarsen (const IntVect& p1,
 		 const IntVect& p2)
 {
     IntVect v = p1;
-    return v.coarsen(p2);
+    v.coarsen(p2);
+    return v;
 }
 
 IntVect&

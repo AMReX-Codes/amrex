@@ -11,6 +11,8 @@ program main
   use make_new_grids_module
   use regrid_module
   use bl_prof_module
+  use tag_boxes_module
+  use multifab_fill_ghost_module
 
   implicit none
 
@@ -209,6 +211,13 @@ program main
 
   do while ( (nl .lt. max_levs) .and. (new_grid) )
 
+     if (tagging_needs_ghost_cells .and. nl.ge.2) then
+        call multifab_fill_ghost_cells(phi(nl),phi(nl-1),phi(nl)%ng,mba%rr((nl-1),:), &
+                                       the_bc_tower%bc_tower_array(nl-1), &
+                                       the_bc_tower%bc_tower_array(nl), &
+                                       1,1,ncomp(phi(nl)))
+     end if
+
      ! determine whether we need finer grids based on tagging criteria
      ! if so, return new_grid=T and the la_array(nl+1)
      call make_new_grids(new_grid,la_array(nl),la_array(nl+1),phi(nl),dx(nl), &
@@ -277,7 +286,9 @@ program main
   dt = 0.9d0*dx(max_levs)**2/(2.d0*dim)
 
   ! write out plotfile 0
-  call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+  if (plot_int .gt. 0) then
+     call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+  end if
 
   do istep=1,nsteps
 
@@ -299,9 +310,11 @@ program main
 
      time = time + dt
 
-     if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
-        ! write out plotfile
-        call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+     if (plot_int .gt. 0) then
+        if (mod(istep,plot_int) .eq. 0 .or. istep .eq. nsteps) then
+           ! write out plotfile
+           call write_plotfile(mla,phi,istep,dx,time,prob_lo,prob_hi)
+        end if
      end if
 
   end do

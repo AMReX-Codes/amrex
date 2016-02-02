@@ -227,7 +227,22 @@ CoordSys::GetVolume (FArrayBox& vol,
     vol.resize(region,1);
     DEF_LIMITS(vol,vol_dat,vlo,vhi);
     int coord = (int) c_sys;
-    FORT_SETVOL(vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
+    const int* rlo = region.loVect();
+    const int* rhi = region.hiVect();
+    FORT_SETVOL(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
+}
+
+void
+CoordSys::SetVolume (FArrayBox& vol,
+                     const Box& region) const 
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(region.cellCentered());
+    DEF_LIMITS(vol,vol_dat,vlo,vhi);
+    int coord = (int) c_sys;
+    const int* rlo = region.loVect();
+    const int* rhi = region.hiVect();
+    FORT_SETVOL(ARLIM(rlo),ARLIM(rhi),vol_dat,ARLIM(vlo),ARLIM(vhi),offset,dx,&coord);
 }
 
 void
@@ -273,7 +288,22 @@ CoordSys::GetFaceArea (FArrayBox& area,
     area.resize(reg,1);
     DEF_LIMITS(area,area_dat,lo,hi)
     int coord = (int) c_sys;
-    FORT_SETAREA(area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
+    const int* rlo = reg.loVect();
+    const int* rhi = reg.hiVect();
+    FORT_SETAREA(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
+}
+
+void
+CoordSys::SetFaceArea (FArrayBox& area, 
+                       const Box& region,
+                       int        dir) const
+{
+    BL_ASSERT(ok);
+    DEF_LIMITS(area,area_dat,lo,hi)
+    int coord = (int) c_sys;
+    const int* rlo = region.loVect();
+    const int* rhi = region.hiVect();
+    FORT_SETAREA(ARLIM(rlo),ARLIM(rhi),area_dat,ARLIM(lo),ARLIM(hi),offset,dx,&dir,&coord);
 }
 
 void

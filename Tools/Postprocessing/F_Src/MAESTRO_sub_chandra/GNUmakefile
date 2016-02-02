@@ -1,6 +1,6 @@
 NDEBUG := t
 MPI    :=
-OMP    :=
+OMP    := t
 
 MKVERBOSE := t 
 

@@ -189,6 +189,10 @@ public:
     //
     virtual int maxOrder (int maxorder_);
     //
+    // Return the number of grow cells this operator expects in the input state to compute "apply"
+    //
+    virtual int NumGrow () const {return LinOp_grow;}
+    //
     // Construct/allocate internal data necessary for adding a new level.
     //
     virtual void prepareForLevel (int level);
@@ -328,7 +332,11 @@ protected:
     // default maximum BC interpolant order
     //
     static int def_maxorder;
-    
+    //
+    // Number of grow cells required for this operator
+    //
+   static int LinOp_grow;
+
 private:
     //
     // Not implemented.

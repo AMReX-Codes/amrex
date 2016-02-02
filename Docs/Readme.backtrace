@@ -1,7 +1,8 @@
 
 To backtrace segfault and assertion failure in a C++ BoxLib based
 code, compile it with BACKTRACE=TRUE in command line or the
-GNUmakefile.
+GNUmakefile.  The outputs are stored in "Backtrace.x" files, where x
+is MPI rank.
 
 ***************
 *  Example 1  *
@@ -79,9 +80,6 @@ Known Issues:
 
 * The methods described here probably only work with GCC on a
   GNU/Linux system.
-
-* When segfaults occur on multiple MPI processes, the outputs can be
-  out of order.
 
 * On Edison at NERSC, the function names in the first type of tracing
   are missing because the executable is statically linked.  However,

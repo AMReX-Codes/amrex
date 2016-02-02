@@ -8,23 +8,48 @@
 #include <Interpolater.H>
 #include <BCRec.H>
 
+int StateDescriptor::bf_ext_dir_threadsafe = 0;
+
 StateDescriptor::BndryFunc::BndryFunc ()
     :
     m_func(0),
-    m_gfunc(0)
+    m_gfunc(0),
+    m_func3D(0),
+    m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
     :
     m_func(inFunc),
-    m_gfunc(0)
+    m_gfunc(0),
+    m_func3D(0),
+    m_gfunc3D(0)
+{}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc)
+    :
+    m_func(0),
+    m_gfunc(0),
+    m_func3D(inFunc),
+    m_gfunc3D(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
                                        BndryFuncDefault gFunc)
     :
     m_func(inFunc),
-    m_gfunc(gFunc)
+    m_gfunc(gFunc),
+    m_func3D(0),
+    m_gfunc3D(0)
+{}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc,
+                                       BndryFunc3DDefault gFunc)
+    :
+    m_func(0),
+    m_gfunc(0),
+    m_func3D(inFunc),
+    m_gfunc3D(gFunc)
 {}
 
 StateDescriptor::BndryFunc*
@@ -35,26 +60,70 @@ StateDescriptor::BndryFunc::clone () const
 
 StateDescriptor::BndryFunc::~BndryFunc () {}
 
-void
-StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
-                                         const int* dom_lo, const int* dom_hi,
-                                         const Real* dx, const Real* grd_lo,
-                                         const Real* time, const int* bc) const
+bool
+StateDescriptor::bf_thread_safety (const int* lo,const int* hi,
+				   const int* dom_lo, const int* dom_hi,
+				   const int* bc, int ng)
 {
-    BL_ASSERT(m_func != 0);
-
-    m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool thread_safe = true;
+    if (!bf_ext_dir_threadsafe) {
+	bool has_ext_dir = false;
+	for (int i=0; i<2*BL_SPACEDIM*ng && !has_ext_dir; ++i) {
+	    has_ext_dir = bc[i]==EXT_DIR;
+	}
+	if (has_ext_dir) thread_safe = false;
+    }
+    return thread_safe;
 }
 
 void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,
-                                         const Real* time, const int* bc, bool) const
+                                         const Real* time, const int* bc) const
 {
-    BL_ASSERT(m_gfunc != 0);
+    BL_ASSERT(m_func != 0 || m_func3D != 0);
 
-    m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+    bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, 1);
+    if (thread_safe) {
+      if (m_func != 0)
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+      else
+	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+    } else {
+#ifdef _OPENMP
+#pragma omp critical (bndryfunc)
+#endif
+      if (m_func != 0)
+	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+      else
+	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+    }
+}
+
+void
+StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
+                                         const int* dom_lo, const int* dom_hi,
+                                         const Real* dx, const Real* grd_lo,
+                                         const Real* time, const int* bc, int ng) const
+{
+    BL_ASSERT(m_gfunc != 0 || m_gfunc3D != 0);
+
+    bool thread_safe = bf_thread_safety(lo, hi, dom_lo, dom_hi, bc, ng);
+    if (thread_safe) {
+        if (m_gfunc != 0)
+	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	else
+	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+    } else {
+#ifdef _OPENMP
+#pragma omp critical (bndryfunc)
+#endif
+        if (m_gfunc != 0)
+	  m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	else
+	  m_gfunc3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),ZFILL(dx),ZFILL(grd_lo),time,bc);
+    }
 }
 
 DescriptorList::DescriptorList ()

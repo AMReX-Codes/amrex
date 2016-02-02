@@ -43,6 +43,8 @@ f90sources += nodal_stencil_apply.f90
 f90sources += nodal_mg_tower_smoother.f90
 
 f90sources += tridiag.f90
+
+f90sources += stencil_util.f90
  
 #include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
 #VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT

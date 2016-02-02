@@ -3,6 +3,10 @@
 #include <iostream>
 #include <AuxBoundaryData.H>
 
+#ifdef BL_LAZY
+#include <Lazy.H>
+#endif
+
 AuxBoundaryData::AuxBoundaryData ()
     :
     m_ngrow(0),
@@ -112,11 +116,17 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_time = ParallelDescriptor::second() - strt_time;
+	const int sz       = nba.size();
 
+#ifdef BL_LAZY
+	Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
         if (ParallelDescriptor::IOProcessor()) 
-            std::cout << "AuxBoundaryData::initialize() size = " << nba.size() << ", time = " << run_time << '\n';
+            std::cout << "AuxBoundaryData::initialize() size = " << sz << ", time = " << run_time << '\n';
+#ifdef BL_LAZY
+	});
+#endif
     }
 
     m_initialized = true;
@@ -132,7 +142,7 @@ AuxBoundaryData::copyTo (MultiFab& mf,
 
     if (!m_empty && mf.size() > 0)
     {
-        mf.copy(m_fabs,src_comp,dst_comp,num_comp);
+        mf.copy(m_fabs,src_comp,dst_comp,num_comp,0,mf.nGrow());
     }
 }
 
@@ -140,12 +150,13 @@ void
 AuxBoundaryData::copyFrom (const MultiFab& mf,
                            int       src_comp,
                            int       dst_comp,
-                           int       num_comp)
+                           int       num_comp,
+			   int       src_ng)
 {
     BL_ASSERT(m_initialized);
 
     if (!m_empty && mf.size() > 0)
     {
-         m_fabs.copy(mf,src_comp,dst_comp,num_comp);
+	m_fabs.copy(mf,src_comp,dst_comp,num_comp,src_ng,0);
     }
 }

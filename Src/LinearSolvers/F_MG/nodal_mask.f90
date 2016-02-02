@@ -50,7 +50,7 @@ module nodal_mask_module
 
   call layout_build_coarse(lacfine, mm_fine_la, ir)
 
-  call build(cfmask, lacfine, ncomp(mask), nghost(mask), nodal_flags(mask))
+  call lmultifab_build(cfmask, lacfine, ncomp(mask), nghost(mask), nodal_flags(mask))
 
   call setval(  mask,.true.)
   call setval(cfmask,.true.)

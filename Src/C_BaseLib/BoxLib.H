@@ -4,6 +4,8 @@
 
 #include <ccse-mpi.H>
 
+#include <stdio.h>
+
 //
 // Error-reporting Functions and Version Number
 //
@@ -34,6 +36,7 @@ namespace BoxLib
     // exiting from BoxLib land.
     //
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
+    void ExecOnInitialize (PTR_TO_VOID_FUNC);
     //
     // Print out message to cerr and exit via BoxLib::Abort().
     //
@@ -62,11 +65,15 @@ namespace BoxLib
     //
     void OutOfMemory (const char* file,
                       int         line);
+    //
+    void print_backtrace_info (FILE* f);
 #ifdef NDEBUG
     const bool NDebug = true;
 #else
     const bool NDebug = false;
 #endif
+
+    extern int verbose;
 }
 
 #endif /*BL_BOXLIB_H*/

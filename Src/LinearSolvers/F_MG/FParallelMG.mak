@@ -68,3 +68,4 @@ cEXE_headers   += mg_cpp_f.h
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
 
+f90EXE_sources += stencil_util.f90

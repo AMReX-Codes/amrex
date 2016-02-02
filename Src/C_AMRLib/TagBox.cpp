@@ -734,6 +734,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
         delete tfine;
     }
 
+    flushTileArray(); // because we are about to modify boxarray in-place.
+
     boxarray.coarsen(ratio);
 
     m_border = 0;

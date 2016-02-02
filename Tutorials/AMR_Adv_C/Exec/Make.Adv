@@ -1,0 +1,46 @@
+BOXLIB_HOME ?= ../../../..
+ADR_DIR  ?= $(BOXLIB_HOME)/Tutorials/AMR_Adv_C
+
+TOP := $(ADR_DIR)
+
+EBASE := main
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+all: $(executable) 
+	@echo SUCCESS
+
+Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
+Pdirs 	:= C_BaseLib C_AMRLib C_BoundaryLib 
+
+Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
+
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
+
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+
+
+#-----------------------------------------------------------------------------
+# for debugging.  To see the value of a Makefile variable,
+# e.g. COMP, simply do "make print-COMP".  This will
+# print out the value.
+print-%: ; @echo $* is $($*)
+

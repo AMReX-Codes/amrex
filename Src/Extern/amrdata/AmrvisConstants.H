@@ -17,6 +17,9 @@ const int BUFSIZE = 8192;
 const int LINELENGTH = 160;
 const int MAXARGS = 50;
 
+#if (BL_SPACEDIM == 1)
+const int NPLANES = 1;
+#endif
 #if (BL_SPACEDIM == 2)
 const int NPLANES = 1;
 #endif

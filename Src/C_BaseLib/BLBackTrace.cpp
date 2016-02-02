@@ -2,9 +2,12 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
+#include <cstdio>
 
 #include <unistd.h>
 #include <execinfo.h>
+#include <signal.h>
 
 #include <BoxLib.H>
 #include <BLBackTrace.H>
@@ -15,24 +18,53 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
-    void *buffer[10];
-    int nptrs = backtrace(buffer, 10);
-    backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
-
-#ifdef _OPENMP
-#pragma omp critical(print_bt_stack)
-#endif
+    std::string errfilename;
     {
-	std::cout << std::endl;
-	while (!bt_stack.empty()) {
-	    std::cout << "== BACKTRACE == " << bt_stack.top().first
-		      <<", " << bt_stack.top().second << "\n";
-	    bt_stack.pop();
-	}
-	std::cout << std::endl;
+	std::ostringstream ss;
+	ss << "Backtrace." << ParallelDescriptor::MyProc();
+#ifdef _OPENMP
+ 	ss << "." << omp_get_thread_num();
+#endif
+	errfilename = ss.str();
     }
 
-    ParallelDescriptor::Abort();
+    if (FILE* p = fopen(errfilename.c_str(), "w")) {
+	BoxLib::print_backtrace_info(p);
+	fclose(p);
+    }
+    
+    if (!bt_stack.empty()) {
+	std::ofstream errfile;
+	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
+	if (errfile.is_open()) {
+	    errfile << std::endl;
+	    while (!bt_stack.empty()) {
+		errfile << "== BACKTRACE == " << bt_stack.top().first
+			<<", " << bt_stack.top().second << "\n";
+		bt_stack.pop();
+	    }
+	    errfile << std::endl;
+	}
+    }
+
+    if (ParallelDescriptor::NProcs() > 1)
+	sleep(30);
+
+    switch (s) {
+    case SIGSEGV:
+	BoxLib::Abort("Segfault");
+	break;
+    case SIGFPE:
+	BoxLib::Abort("Erroneous arithmetic operation");
+	break;
+    case SIGINT:
+	BoxLib::Abort("SIGINT");
+    case SIGTERM:
+	BoxLib::Abort("SIGTERM");
+	break;
+    default:
+	ParallelDescriptor::Abort();
+    }
 }
 
 BLBTer::BLBTer(const std::string& s, const char* file, int line)

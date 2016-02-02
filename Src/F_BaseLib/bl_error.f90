@@ -143,10 +143,6 @@ contains
     write(*,fmt=*) "BOXLIB WARN: ", str, val
   end subroutine bl_warn1_c
 
-  !! Stolen from Numerical Recepies
-  !! If COND is true, nothing; if COND is false, call BL_ERROR_CH, which
-  !! terminates the process
-
   subroutine bl_assert1(n1, str)
     character(len=*), intent(in) :: str
     logical, intent(in) :: n1

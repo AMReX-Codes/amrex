@@ -66,7 +66,7 @@ program fextrema
      print *, " "
      print *, "Report the extrema (min/max) for each variable in a plotfile"
      print *, "usage: "
-     print *, "   fextrema [-s|--single] plotfiles"
+     print *, "   fextrema [-s|--single] {[-v|--variable] name} plotfiles"
      print *, " "
      print *, "By default, the variable information is specified in columns, one line"
      print *, "per file.  If -s or --single are specified, then for each plotfile, each"

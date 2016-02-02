@@ -103,7 +103,11 @@ c-----------------------------------------------------------------------
       integer  i, j, k, ioff, n
 
       REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-      REAL_T delta, gamma, rho
+      REAL_T g_m_d, gamma, rho, res
+
+c     This factor of 1.15 in 3D does over-relaxation but seems to consistently reduce the number of V-cycles needed.
+      REAL_T omega
+      omega = 1.15d0
 
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
@@ -128,14 +132,15 @@ c-----------------------------------------------------------------------
                   cf5 = merge(f5(i,j,bhi(3)), 0.0D0,
      $                 (k .eq. bhi(3)) .and. (m5(i,j,bhi(3)+1).gt.0))
 
-                  delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
-     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
-     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5)
-
                   gamma = alpha*a(i,j,k)
      $                 +   dhx*(bX(i,j,k)+bX(i+1,j,k))
      $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
      $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
+
+                  g_m_d = gamma
+     $                 - (dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5))
 
                   rho =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
      $                 +       bX(i+1,j,k)*phi(i+1,j,k,n) )
@@ -144,8 +149,8 @@ c-----------------------------------------------------------------------
      $                 + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
      $                 +       bZ(i,j,k+1)*phi(i,j,k+1,n) )
 
-                  phi(i,j,k,n) = (rhs(i,j,k,n)+rho-phi(i,j,k,n)*delta)
-     $                 /                   (gamma - delta)
+                  res =  rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho)
+                  phi(i,j,k,n) = phi(i,j,k,n) + omega/g_m_d * res
 
                end do
             end do

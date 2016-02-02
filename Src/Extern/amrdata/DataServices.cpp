@@ -677,7 +677,26 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       delete [] lineBoxArrayPtr;
 
     } 
+    break;
 #endif
+
+    case InvalidRequestType:
+    {
+      // not used here
+    }
+    break;
+
+    case ExitRequest:
+    {
+      // not used here
+    }
+    break;
+
+    case NewRequest:
+    {
+      // not used here
+    }
+    break;
 
   }  // end switch
 

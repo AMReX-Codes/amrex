@@ -17,6 +17,7 @@ contains
   subroutine ml_cc_prolongation(fine, crse, ir, lininterp, ptype)
     use bl_prof_module
     use mg_prolongation_module
+    use multifab_module, only: get_dim
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
@@ -49,22 +50,22 @@ contains
        ! we prolongate by using one grow cell, which "should" always be
        ! available due to proper nesting of grids.
        !
-       call copy(ba, get_boxarray(lacfine))
+       call boxarray_build_copy(ba, get_boxarray(lacfine))
 
        call boxarray_grow(ba,1)
 
        call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
 
-       call destroy(ba)
+       call boxarray_destroy(ba)
        !
        ! "crse" should always cover "cfine" (including ghost cells) on
        ! the valid region due to proper nesting.
        !
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 1)
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 1)
        !
        ! Use this to fill cfine including ghost cells.
        !
-       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
+       call multifab_build(cfgrow, latmp, nc = ncomp(crse), ng = 0)
 
        call copy(cfgrow, 1, crse, 1, ncomp(crse))
        !
@@ -76,10 +77,10 @@ contains
           call cpy_d(cp,fp)
        end do
 
-       call destroy(cfgrow)
-       call destroy(latmp)
+       call multifab_destroy(cfgrow)
+       call layout_destroy(latmp)
     else
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 0)
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0)
        call copy(cfine, 1, crse, 1, ncomp(crse))
     end if
 
@@ -106,7 +107,7 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
     call destroy(bpt)
 
   end subroutine ml_cc_prolongation
@@ -156,22 +157,22 @@ contains
        ! we prolongate by using one grow cell, which "should" always be
        ! available due to proper nesting of grids.
        !
-       call copy(ba, get_boxarray(lacfine))
+       call boxarray_build_copy(ba, get_boxarray(lacfine))
 
        call boxarray_grow(ba,1)
 
        call layout_build_ba(latmp, ba, get_pd(lacfine), explicit_mapping = lacfine%lap%prc)
 
-       call destroy(ba)
+       call boxarray_destroy(ba)
        !
        ! "crse" should always cover "cfine" (including ghost cells) on
        ! the valid region due to proper nesting.
        !
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 1, nodal = nodal_flags(fine))
        !
        ! Use this to fill cfine including ghost cells.
        !
-       call build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call multifab_build(cfgrow, latmp, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
 
        call copy(cfgrow, 1, crse, 1, ncomp(crse))
        !
@@ -183,10 +184,10 @@ contains
           call cpy_d(cp,fp)
        end do
 
-       call destroy(cfgrow)
-       call destroy(latmp)
+       call multifab_destroy(cfgrow)
+       call layout_destroy(latmp)
     else
-       call build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
+       call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(fine))
        call copy(cfine, 1, crse, 1, ncomp(crse))
     end if
 
@@ -226,18 +227,19 @@ contains
        call fabio_write(fine, 'debug', trim(filename))
     end if
 
-    call destroy(cfine)
+    call multifab_destroy(cfine)
     call destroy(bpt)
 
   end subroutine ml_nodal_prolongation
 
-  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, nc, facemap, indxmap)
+  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, ng_fill, nc, facemap, indxmap, uncovered)
     use bl_prof_module
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:)
     integer,        intent(in)    :: cf, cc, ng_fill, nc, facemap(:), indxmap(:)
+    type(lmultifab),intent(in)    :: uncovered
 
     type(box) :: fbox, fbox_grown, cbox_refined, isect
     integer   :: lo (get_dim(fine)), hi (get_dim(fine))
@@ -247,6 +249,8 @@ contains
     logical   :: pmask(get_dim(fine))
 
     real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    logical, pointer :: mp(:,:,:,:)
+    
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, "ml_interp_bcs_c")
@@ -286,6 +290,8 @@ contains
        fp => dataptr(fine, j)
        cp => dataptr(crse, i)
 
+       mp => dataptr(uncovered, i)
+
        do n = 0, nc - 1
           select case (dm)
           case (1)
@@ -298,17 +304,19 @@ contains
              end if
           case (2)
              if ( cell_centered_q(crse) ) then
-                call ml_interp_bcs_2d(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, lo, hi, ir, side)
+                call ml_interp_bcs_2d(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), mp(:,:,1,1), loc, hic, lo, hi, ir, side)
              else if ( nodal_q(crse) ) then
-                call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, lo, hi, ir, side)
+!                call ml_interp_bcs_2d_nodal(fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, lo, hi, ir, side)
+                call bl_error("ML_INTERP_BCS: nodal 2d not provided")
              else
                 call bl_error("ML_INTERP_BCS: nodal or cell centered only")
              end if
           case (3)
              if ( cell_centered_q(crse) ) then
-                call ml_interp_bcs_3d(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, lo, hi, ir, side)
+                call ml_interp_bcs_3d(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), mp(:,:,:,1), loc, hic, lo, hi, ir, side)
              else if ( nodal_q(crse) )  then
-                call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, lo, hi, ir, side)
+!                call ml_interp_bcs_3d_nodal(fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, lo, hi, ir, side)
+                call bl_error("ML_INTERP_BCS: nodal 3d not provided")
              else
                 call bl_error("ML_INTERP_BCS: nodal or cell centered only")
              end if
@@ -323,15 +331,19 @@ contains
 
   end subroutine ml_interp_bcs_c
 
-  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, ng_fill, facemap, indxmap)
+  subroutine ml_interp_bcs(fine, crse, fine_domain, ir, ng_fill, facemap, indxmap, uncovered)
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse
     type(box),      intent(in)    :: fine_domain
     integer,        intent(in)    :: ir(:), ng_fill, facemap(:), indxmap(:)
+    type(lmultifab),intent(in)   :: uncovered  ! could make this optional if needed
     if ( ncomp(crse) .ne. ncomp(fine) ) then
        call bl_error('ml_interp_bcs: crse & fine must have same # of components')
     end if
-    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, ng_fill, ncomp(fine), facemap, indxmap)
+!    if (.not. present(uncovered) .and. cell_centered_q(crse) ) then
+!       call bl_error("ml_interp_bcs_c: must have uncovered in cell-centered case")
+!    end if
+    call ml_interp_bcs_c(fine, 1, crse, 1, fine_domain, ir, ng_fill, ncomp(fine), facemap, indxmap, uncovered)
   end subroutine ml_interp_bcs
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, lo, ir)
@@ -347,12 +359,13 @@ contains
     ff(i) = cc(ic)
   end subroutine ml_interp_bcs_1d
 
-  subroutine ml_interp_bcs_2d(ff, lof, cc, loc, hic, lo, hi, ir, side)
+  subroutine ml_interp_bcs_2d(ff, lof, cc, uc, loc, hic, lo, hi, ir, side)
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    logical    , intent(inout) :: uc(loc(1):,loc(2):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, ic, jc, m
@@ -376,19 +389,19 @@ contains
       do jc = lo(2)/ir(2), hi(2)/ir(2)
         first_der  = ZERO
         second_der = ZERO
-        if ( jc > loc(2) .and. jc < hic(2) ) then
+        if ( uc(ic,jc-1) .and. uc(ic,jc+1) ) then
           first_der  = HALF * (cc(ic,jc+1)-cc(ic,jc-1))
           second_der = (cc(ic,jc+1)+cc(ic,jc-1)-TWO*cc(ic,jc))
-        else if ( jc > loc(2) ) then
-          if (jc > loc(2)+1) then
+        else if ( uc(ic,jc-1) ) then
+          if (uc(ic,jc-2)) then
             first_der  = HALF*( THREE*cc(ic,jc)-FOUR*cc(ic,jc-1)+cc(ic,jc-2))
             second_der = cc(ic,jc-2) - TWO*cc(ic,jc-1) + cc(ic,jc)
           else
             first_der  =         (cc(ic,jc  )-cc(ic,jc-1))
             second_der = ZERO
           end if
-        else if ( jc < hic(2) ) then
-          if ( jc < hic(2)-1 ) then
+        else if ( uc(ic,jc+1) ) then
+          if ( uc(ic,jc+2) ) then
             first_der  = HALF*(-THREE*cc(ic,jc)+FOUR*cc(ic,jc+1)-cc(ic,jc+2))
             second_der = cc(ic,jc+2) - TWO*cc(ic,jc+1) + cc(ic,jc)
           else
@@ -412,19 +425,19 @@ contains
       do ic = lo(1)/ir(1), hi(1)/ir(1)
         first_der  = ZERO
         second_der = ZERO
-        if ( ic > loc(1) .and. ic < hic(1) ) then
+        if ( uc(ic-1,jc) .and. uc(ic+1,jc) ) then
           first_der  = HALF * (cc(ic+1,jc)-cc(ic-1,jc))
           second_der = (cc(ic+1,jc)+cc(ic-1,jc)-TWO*cc(ic,jc))
-        else if ( ic > loc(1) ) then
-          if ( ic > loc(1)+1 ) then
+        else if ( uc(ic-1,jc) ) then
+          if ( uc(ic-2,jc) ) then
             first_der  = HALF*( THREE*cc(ic,jc)-FOUR*cc(ic-1,jc)+cc(ic-2,jc))
             second_der = cc(ic-2,jc) - TWO*cc(ic-1,jc) + cc(ic,jc)
           else
             first_der  = (cc(ic,jc)-cc(ic-1,jc))
             second_der = ZERO
           end if
-        else if ( ic < hic(1) ) then
-          if (ic < hic(1)-1) then
+        else if ( uc(ic+1,jc) ) then
+          if ( uc(ic+2,jc) ) then
             first_der  = HALF*(-THREE*cc(ic,jc)+FOUR*cc(ic+1,jc)-cc(ic+2,jc))
             second_der = cc(ic+2,jc) - TWO*cc(ic+1,jc) + cc(ic,jc)
           else
@@ -497,12 +510,13 @@ contains
 
   end subroutine ml_interp_bcs_2d_nodal
 
-  subroutine ml_interp_bcs_3d(ff, lof, cc, loc, hic, lo, hi, ir, side)
+  subroutine ml_interp_bcs_3d(ff, lof, cc, uc, loc, hic, lo, hi, ir, side)
     integer, intent(in) :: loc(:), hic(:)
     integer, intent(in) :: lof(:)
     integer, intent(in) :: lo(:), hi(:)
     real (dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
+    logical    , intent(in) :: uc(loc(1):,loc(2):,loc(3):)  ! uncovered
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
     integer :: i, j, k, ic, jc, kc, m, n
@@ -529,29 +543,29 @@ contains
 
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do jc = lo(2)/ir(2), hi(2)/ir(2)
-            if (jc > loc(2) .and. jc < hic(2)) then
+            if (uc(ic,jc-1,kc) .and. uc(ic,jc+1,kc)) then
                yder  = HALF  * (cc(ic,jc+1,kc) - cc(ic,jc-1,kc))
                y2der = HALF  * (cc(ic,jc+1,kc) + cc(ic,jc-1,kc) - TWO*cc(ic,jc,kc))
-            else if (jc < hic(2)) then
+            else if (uc(ic,jc+1,kc)) then
                yder  = cc(ic,jc+1,kc) - cc(ic,jc,kc)
                y2der = ZERO
-            else if (jc > loc(2)) then
+            else if (uc(ic,jc-1,kc)) then
                yder  = cc(ic,jc,kc) - cc(ic,jc-1,kc)
                y2der = ZERO
             end if
 
-            if (kc > loc(3) .and. kc < hic(3)) then
+            if (uc(ic,jc,kc-1) .and. uc(ic,jc,kc+1)) then
                zder  = HALF  * (cc(ic,jc,kc+1) - cc(ic,jc,kc-1))
                z2der = HALF  * (cc(ic,jc,kc+1) + cc(ic,jc,kc-1) - TWO*cc(ic,jc,kc))
-            else if (kc < hic(3)) then
+            else if (uc(ic,jc,kc+1)) then
                zder  = cc(ic,jc,kc+1) - cc(ic,jc,kc)
                z2der = ZERO
-            else if (kc > loc(3)) then
+            else if (uc(ic,jc,kc-1)) then
                zder  = cc(ic,jc,kc) - cc(ic,jc,kc-1)
                z2der = ZERO
             end if
 
-            if (jc > loc(2) .and. jc < hic(2) .and. kc > loc(3) .and. kc < hic(3)) then
+            if (uc(ic,jc+1,kc+1) .and. uc(ic,jc-1,kc-1) .and. uc(ic,jc-1,kc+1) .and. uc(ic,jc+1,kc-1)) then
                yzder = FOURTH * (cc(ic,jc+1,kc+1) + cc(ic,jc-1,kc-1) &
                     -cc(ic,jc-1,kc+1) - cc(ic,jc+1,kc-1) )
             else
@@ -576,29 +590,29 @@ contains
       jc = loc(2)
       do kc = lo(3)/ir(3), hi(3)/ir(3)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
-            if (ic > loc(1) .and. ic < hic(1)) then
+            if (uc(ic-1,jc,kc) .and. uc(ic+1,jc,kc)) then
                xder  = HALF  * (cc(ic+1,jc,kc) - cc(ic-1,jc,kc))
                x2der = HALF  * (cc(ic+1,jc,kc) + cc(ic-1,jc,kc) - TWO*cc(ic,jc,kc))
-            else if (ic < hic(1)) then
+            else if (uc(ic+1,jc,kc)) then
                xder  = cc(ic+1,jc,kc) - cc(ic,jc,kc)
                x2der = ZERO
-            else if (ic > loc(1)) then
+            else if (uc(ic-1,jc,kc)) then
                xder  = cc(ic,jc,kc) - cc(ic-1,jc,kc)
                x2der = ZERO
             end if
 
-            if (kc > loc(3) .and. kc < hic(3)) then
+            if (uc(ic,jc,kc-1) .and. uc(ic,jc,kc+1)) then
                zder  = HALF  * (cc(ic,jc,kc+1) - cc(ic,jc,kc-1))
                z2der = HALF  * (cc(ic,jc,kc+1) + cc(ic,jc,kc-1) - TWO*cc(ic,jc,kc))
-            else if (kc < hic(3)) then
+            else if (uc(ic,jc,kc+1)) then
                zder  = cc(ic,jc,kc+1) - cc(ic,jc,kc)
                z2der = ZERO
-            else if (kc > loc(3)) then
+            else if (uc(ic,jc,kc-1)) then
                zder  = cc(ic,jc,kc) - cc(ic,jc,kc-1)
                z2der = ZERO
             end if
 
-            if (ic > loc(1) .and. ic < hic(1) .and. kc > loc(3) .and. kc < hic(3)) then
+            if (uc(ic+1,jc,kc+1) .and. uc(ic-1,jc,kc-1) .and. uc(ic-1,jc,kc+1) .and. uc(ic+1,jc,kc-1)) then
                xzder = FOURTH * (cc(ic+1,jc,kc+1) + cc(ic-1,jc,kc-1) &
                     -cc(ic-1,jc,kc+1) - cc(ic+1,jc,kc-1) )
             else
@@ -623,29 +637,29 @@ contains
       kc = loc(3)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
          do ic = lo(1)/ir(1), hi(1)/ir(1)
-            if (jc > loc(2) .and. jc < hic(2)) then
+            if (uc(ic,jc-1,kc) .and. uc(ic,jc+1,kc)) then
                yder  = HALF  * (cc(ic,jc+1,kc) - cc(ic,jc-1,kc))
                y2der = HALF  * (cc(ic,jc+1,kc) + cc(ic,jc-1,kc) - TWO*cc(ic,jc,kc))
-            else if (jc < hic(2)) then
+            else if (uc(ic,jc+1,kc)) then
                yder  = cc(ic,jc+1,kc) - cc(ic,jc,kc)
                y2der = ZERO
-            else if (jc > loc(2)) then
+            else if (uc(ic,jc-1,kc)) then
                yder  = cc(ic,jc,kc) - cc(ic,jc-1,kc)
                y2der = ZERO
             end if
 
-            if (ic > loc(1) .and. ic < hic(1)) then
+            if (uc(ic-1,jc,kc) .and. uc(ic+1,jc,kc)) then
                xder  = HALF  * (cc(ic+1,jc,kc) - cc(ic-1,jc,kc))
                x2der = HALF  * (cc(ic+1,jc,kc) + cc(ic-1,jc,kc) - TWO*cc(ic,jc,kc))
-            else if (ic < hic(1)) then
+            else if (uc(ic+1,jc,kc)) then
                xder  = cc(ic+1,jc,kc) - cc(ic,jc,kc)
                x2der = ZERO
-            else if (ic > loc(1)) then
+            else if (uc(ic-1,jc,kc)) then
                xder  = cc(ic,jc,kc) - cc(ic-1,jc,kc)
                x2der = ZERO
             end if
 
-            if (jc > loc(2) .and. jc < hic(2) .and. ic > loc(1) .and. ic < hic(1)) then
+            if (uc(ic+1,jc+1,kc) .and. uc(ic-1,jc-1,kc) .and. uc(ic+1,jc-1,kc) .and. uc(ic-1,jc+1,kc) ) then
                xyder = FOURTH * (cc(ic+1,jc+1,kc) + cc(ic-1,jc-1,kc) &
                     -cc(ic+1,jc-1,kc) - cc(ic-1,jc+1,kc) )
             else

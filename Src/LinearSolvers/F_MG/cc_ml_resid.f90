@@ -7,7 +7,8 @@ module cc_ml_resid_module
 
   implicit none
 
-  private :: ml_fill_fluxes, ml_fill_n_fluxes
+  private
+  public :: crse_fine_residual_cc, ml_resid
 
 contains
 
@@ -42,38 +43,6 @@ contains
            brs_flx%ofacemap, brs_flx%oindxmap, ONE)
 
   end subroutine crse_fine_residual_cc
-
-  subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio, filled)
-
-      use cc_interface_stencil_module, only : ml_interface
-
-      integer        , intent(in   ) :: n
-      type(mg_tower) , intent(inout) :: mgt(:)
-      type(bndry_reg), intent(inout) :: brs_flx
-      type(multifab) , intent(inout) :: uu(:)
-      type(multifab) , intent(inout) :: crse_res
-      type(box)      , intent(in   ) :: pdc
-      integer        , intent(in   ) :: ref_ratio(:)
-      logical, intent(in), optional  :: filled
-
-      integer :: mglev
-      logical :: lfilled
-
-      lfilled = .false.;  if (present(filled)) lfilled = filled
-
-      mglev = mgt(n)%nlevels
-
-      if (.not.lfilled) call multifab_fill_boundary(uu(n))
-
-      call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(1,0), &
-           uu(n), mgt(n)%mm(mglev), ref_ratio, &
-           brs_flx%facemap, brs_flx%indxmap)
-      call bndry_reg_copy_to_other(brs_flx)
-      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
-           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-           brs_flx%ofacemap, brs_flx%oindxmap, ONE)
-
-  end subroutine crse_fine_residual_n_cc
 
 !
 ! ******************************************************************************************
@@ -115,8 +84,8 @@ contains
 
        pdc = layout_get_pd(mla%la(n-1))
        lac = mla%la(n-1)
-       call bndry_reg_rr_build(brs_flx(n), la, lac, ref_ratio(n-1,:), pdc, width = 0)
-       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2, other = .false.)
+       call bndry_reg_rr_build(brs_bcs(n), la, lac, ref_ratio(n-1,:), pdc, width = 2)
+       call  flux_reg_build   (brs_flx(n), la, lac, ref_ratio(n-1,:), pdc)
 
     end do
 
@@ -125,19 +94,17 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
             ref_ratio(n-1,:), ng_fill, &
-            brs_bcs(n)%facemap, brs_bcs(n)%indxmap)
+            brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
+            brs_bcs(n)%uncovered)
     end do
-
-    call multifab_fill_boundary(full_soln(nlevs))
 
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n),mgt(n)%mm(mglev), &
-                           mgt(n)%stencil_type,mgt(n)%lcross, filled=.true.)
+                           mgt(n)%stencil_type,mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -272,61 +239,93 @@ contains
 !
 ! ******************************************************************************************
 !
-  subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, facemap, indxmap)
+  ! subroutine ml_fill_n_fluxes(ss, flux, uu, mm, ratio, facemap, indxmap)
 
-    use bl_prof_module
-    use cc_stencil_apply_module
+  !   use bl_prof_module
+  !   use cc_stencil_apply_module
 
-    type(multifab), intent(inout) :: flux
-    type(multifab), intent(in)    :: ss
-    type(multifab), intent(in)    :: uu
-    type(imultifab), intent(in)   :: mm
-    integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
-    integer :: i, j, n, dm, dim, face
-    real(kind=dp_t), pointer :: fp(:,:,:,:)
-    real(kind=dp_t), pointer :: up(:,:,:,:)
-    real(kind=dp_t), pointer :: sp(:,:,:,:)
-    integer        , pointer :: mp(:,:,:,:)
-    integer :: ng
-    type(bl_prof_timer), save :: bpt
+  !   type(multifab), intent(inout) :: flux
+  !   type(multifab), intent(in)    :: ss
+  !   type(multifab), intent(in)    :: uu
+  !   type(imultifab), intent(in)   :: mm
+  !   integer, intent(in) :: ratio(:), facemap(:), indxmap(:)
+  !   integer :: i, j, n, dm, dim, face
+  !   real(kind=dp_t), pointer :: fp(:,:,:,:)
+  !   real(kind=dp_t), pointer :: up(:,:,:,:)
+  !   real(kind=dp_t), pointer :: sp(:,:,:,:)
+  !   integer        , pointer :: mp(:,:,:,:)
+  !   integer :: ng
+  !   type(bl_prof_timer), save :: bpt
 
-    call build(bpt, "ml_fill_fluxes")
+  !   call build(bpt, "ml_fill_fluxes")
 
-    ng = nghost(uu)
-    dm = get_dim(ss)
+  !   ng = nghost(uu)
+  !   dm = get_dim(ss)
 
-    !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,sp,mp,n)
-    do i = 1, nfabs(flux)
-       j = indxmap(i)
-       dim = abs(facemap(i))
-       face = sign(1, facemap(i))
+  !   !$OMP PARALLEL DO PRIVATE(i,j,dim,face,fp,up,sp,mp,n)
+  !   do i = 1, nfabs(flux)
+  !      j = indxmap(i)
+  !      dim = abs(facemap(i))
+  !      face = sign(1, facemap(i))
 
-       fp => dataptr(flux, i)
-       up => dataptr(uu, j)
-       sp => dataptr(ss, j)
-       mp => dataptr(mm, j)
+  !      fp => dataptr(flux, i)
+  !      up => dataptr(uu, j)
+  !      sp => dataptr(ss, j)
+  !      mp => dataptr(mm, j)
 
-       do n = 1, ncomp(uu)
-          select case(dm)
-          case (1)
-             call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
-                                  mp(:,1,1,1), ng, ratio(dim), face, dim)
-          case (2)
-             if ( ncomp(flux) > 1 ) then
-                call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
-                                     mp(:,:,1,1), ng, ratio(dim), face, dim)
-             else
-                call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
-                                     mp(:,:,1,1), ng, ratio(dim), face, dim)
-             end if
-          case (3)
-             call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-                                  mp(:,:,:,1), ng, ratio(dim), face, dim)
-          end select
-       end do
-    end do
-    !$OMP END PARALLEL DO
-    call destroy(bpt)
-  end subroutine ml_fill_n_fluxes
+  !      do n = 1, ncomp(uu)
+  !         select case(dm)
+  !         case (1)
+  !            call stencil_flux_1d(sp(:,:,1,1), fp(:,1,1,n), up(:,1,1,n), &
+  !                                 mp(:,1,1,1), ng, ratio(dim), face, dim)
+  !         case (2)
+  !            if ( ncomp(flux) > 1 ) then
+  !               call stencil_flux_n_2d(sp(:,:,:,1), fp(:,:,1,:), up(:,:,1,n), &
+  !                                    mp(:,:,1,1), ng, ratio(dim), face, dim)
+  !            else
+  !               call stencil_flux_2d(sp(:,:,:,1), fp(:,:,1,n), up(:,:,1,n), &
+  !                                    mp(:,:,1,1), ng, ratio(dim), face, dim)
+  !            end if
+  !         case (3)
+  !            call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
+  !                                 mp(:,:,:,1), ng, ratio(dim), face, dim)
+  !         end select
+  !      end do
+  !   end do
+  !   !$OMP END PARALLEL DO
+  !   call destroy(bpt)
+  ! end subroutine ml_fill_n_fluxes
+
+  ! subroutine crse_fine_residual_n_cc(n, mgt, uu, crse_res, brs_flx, pdc, ref_ratio, filled)
+
+  !     use cc_interface_stencil_module, only : ml_interface
+
+  !     integer        , intent(in   ) :: n
+  !     type(mg_tower) , intent(inout) :: mgt(:)
+  !     type(bndry_reg), intent(inout) :: brs_flx
+  !     type(multifab) , intent(inout) :: uu(:)
+  !     type(multifab) , intent(inout) :: crse_res
+  !     type(box)      , intent(in   ) :: pdc
+  !     integer        , intent(in   ) :: ref_ratio(:)
+  !     logical, intent(in), optional  :: filled
+
+  !     integer :: mglev
+  !     logical :: lfilled
+
+  !     lfilled = .false.;  if (present(filled)) lfilled = filled
+
+  !     mglev = mgt(n)%nlevels
+
+  !     if (.not.lfilled) call multifab_fill_boundary(uu(n))
+
+  !     call ml_fill_n_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(1,0), &
+  !          uu(n), mgt(n)%mm(mglev), ref_ratio, &
+  !          brs_flx%facemap, brs_flx%indxmap)
+  !     call bndry_reg_copy_to_other(brs_flx)
+  !     call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
+  !          mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
+  !          brs_flx%ofacemap, brs_flx%oindxmap, ONE)
+
+  ! end subroutine crse_fine_residual_n_cc
 
 end module cc_ml_resid_module

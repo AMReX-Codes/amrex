@@ -162,12 +162,14 @@
          do n=1,nc
             do ir=0,rim1
                do kr=0,rkm1
-                  kk = ratio(3)*k + kr
-                  do i = celo(1),cehi(1)
-                     ii = ratio(1)*i + ir
-                     do j = celo(2),cehi(2)
-                        jj = ratio(2)*j
-                        ce(i,j,k,n) = ce(i,j,k,n) + fe(ii,jj,kk,n)
+                  do k = celo(3),cehi(3)
+                     kk = ratio(3)*k + kr
+                     do i = celo(1),cehi(1)
+                        ii = ratio(1)*i + ir
+                        do j = celo(2),cehi(2)
+                           jj = ratio(2)*j
+                           ce(i,j,k,n) = ce(i,j,k,n) + fe(ii,jj,kk,n)
+                        enddo
                      enddo
                   enddo
                enddo

@@ -21,14 +21,14 @@ int MCLinOp::def_verbose;
 int MCLinOp::def_maxorder;
 int MCLinOp::def_ncomp = BL_SPACEDIM;
 
-#ifndef NDEBUG
 //
 // MCLinOp::applyBC fills MCLinOp_grow ghost cells with data expected in
 // MCLinOp::apply() therefore, the incoming MultiFab to MCLinOp::applyBC()
 // better have this many ghost allocated.
 //
-const int MCLinOp_grow = 1;
-#endif
+namespace {
+    const int MCLinOp_grow = 1;
+}
 
 void
 MCLinOp::Initialize ()
@@ -598,7 +598,7 @@ MCLinOp::makeCoefficients (MultiFab&       cs,
     //
     // Determine index type of incoming MultiFab.
     //
-    const IndexType iType(fn.boxArray()[0].ixType());
+    const IndexType iType(fn.boxArray().ixType());
     const IndexType cType(D_DECL(IndexType::CELL, IndexType::CELL, IndexType::CELL));
     const IndexType xType(D_DECL(IndexType::NODE, IndexType::CELL, IndexType::CELL));
     const IndexType yType(D_DECL(IndexType::CELL, IndexType::NODE, IndexType::CELL));

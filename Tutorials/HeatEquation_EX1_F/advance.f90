@@ -58,6 +58,12 @@ contains
     real(kind=dp_t), pointer :: fyp(:,:,:,:)
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
+    ! timer for profiling - enable by building code with PROF=t
+    type(bl_prof_timer), save :: bpt
+
+    ! open the timer
+    call build(bpt,"compute_flux")
+
     dm   = phi%dim
     ng_p = phi%ng
     ng_f = flux(1)%ng
@@ -80,6 +86,9 @@ contains
                                lo, hi, dx)
        end select
     end do
+
+    ! close the timer
+    call destroy(bpt)
 
   end subroutine compute_flux
 
@@ -174,6 +183,12 @@ contains
     real(kind=dp_t), pointer :: fyp(:,:,:,:)
     real(kind=dp_t), pointer :: fzp(:,:,:,:)
 
+    ! timer for profiling - enable by building code with PROF=t
+    type(bl_prof_timer), save :: bpt
+
+    ! open the timer
+    call build(bpt,"update_phi")
+
     dm   = phi%dim
     ng_p = phi%ng
     ng_f = flux(1)%ng
@@ -203,6 +218,8 @@ contains
     ! using multifab_physbc.  But this problem is periodic, so this
     ! call is sufficient.
     call multifab_fill_boundary(phi)
+
+    call destroy(bpt)
 
   end subroutine update_phi
 

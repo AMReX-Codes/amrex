@@ -6,12 +6,20 @@
 
 ErrorRec::ErrorFunc::ErrorFunc ()
     :
-    m_func(0)
+    m_func(0),
+    m_func3D(0)
 {}
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
     :
-    m_func(inFunc)
+    m_func(inFunc),
+    m_func3D(0)
+{}
+
+ErrorRec::ErrorFunc::ErrorFunc (ErrorFunc3DDefault inFunc)
+    :
+    m_func(0),
+    m_func3D(inFunc)
 {}
 
 ErrorRec::ErrorFunc*
@@ -40,6 +48,23 @@ ErrorRec::ErrorFunc::operator () (int* tag, D_DECL(const int&tlo0,const int&tlo1
            tagval,clearval,data,D_DECL(dlo0,dlo1,dlo2),D_DECL(dhi0,dhi1,dhi2),lo,hi,nvar,
            domain_lo,domain_hi,dx,xlo,prob_lo,time,level);
 }
+
+void
+ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi, 
+                                  const int* tagval, const int* clearval,
+                                  Real* data, const int* dlo, const int* dhi,
+                                  const int* lo, const int * hi, const int* nvar,
+                                  const int* domain_lo, const int* domain_hi,
+                                  const Real* dx, const Real* xlo,
+                                  const Real* prob_lo, const Real* time,
+                                  const int* level) const
+{
+    BL_ASSERT(m_func3D != 0);
+
+    m_func3D(tag,ARLIM_3D(tlo),ARLIM_3D(thi),
+             tagval,clearval,data,ARLIM_3D(dlo),ARLIM_3D(dhi),ARLIM_3D(lo),ARLIM_3D(hi),nvar,
+             ARLIM_3D(domain_lo),ARLIM_3D(domain_hi),ZFILL(dx),ZFILL(xlo),ZFILL(prob_lo),time,level);
+}  
 
 
 ErrorRec::ErrorFunc2::ErrorFunc2 ()

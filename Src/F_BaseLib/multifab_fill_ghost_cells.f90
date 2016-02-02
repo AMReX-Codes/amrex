@@ -87,10 +87,10 @@ contains
     !
     ! We ask for a grow cell so we get wide enough strips to enable HOEXTRAP.
     !
-    call build(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la), explicit_mapping=fgasc%prc)
+    call layout_build_ba(la, fgasc%ba, get_pd(fine_la), get_pmask(fine_la), explicit_mapping=fgasc%prc)
 
     ! Don't need to make any ghost cells.
-    call build(ghost, la, nc, ng = 0)
+    call multifab_build(ghost, la, nc, ng = 0)
 
     ! Don't ask fillpatch to fill any ghost cells.
     call fillpatch(ghost, crse, 0, ir, bc_crse, bc_fine, 1, icomp, bcomp, nc, &
@@ -111,8 +111,8 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    call destroy(ghost)
-    call destroy(la)
+    call multifab_destroy(ghost)
+    call layout_destroy(la)
 
     call fill_boundary(fine, icomp, nc, ng)
     call multifab_physbc(fine, icomp, bcomp, nc, bc_fine)
@@ -171,13 +171,13 @@ contains
     call multifab_physbc(crse_new,icomp,bcomp,nc,bc_crse)
     call multifab_physbc(crse_old,icomp,bcomp,nc,bc_crse)
 
-    call build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng)
+    call multifab_build(crse, crse_old%la, nc=crse_old%nc, ng=crse_old%ng)
     call saxpy(crse, alpha, crse_old, (ONE-alpha), crse_new, all=.true.)
 
     call multifab_fill_ghost_cells(fine,crse,ng,ir,bc_crse,bc_fine,icomp,bcomp,nc, &
          stencil_width_input,fourth_order_input,.false., .false.)
 
-    call destroy(crse)
+    call multifab_destroy(crse)
 
   end subroutine multifab_fill_ghost_cells_t
 

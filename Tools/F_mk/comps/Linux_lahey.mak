@@ -1,11 +1,13 @@
     FC  = lf95
     F90 = lf95
     CC  = gcc
+    CXX = g++
     FFLAGS =
     F90FLAGS =
     F90FLAGS += -M $(mdir)
     FFLAGS += -M $(mdir)
     CFLAGS += -Wall
+    CXXFLAGS += -Wall
     ifdef NDEBUG
       FFLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
       F90FLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
