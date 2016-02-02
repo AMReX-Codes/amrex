@@ -3568,6 +3568,10 @@ FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cros
 
     }
 
+    MPI_Group_free(&tgroup);
+    if (N_rcvs > 0) MPI_Group_free(&rgroup);
+    if (N_snds > 0) MPI_Group_free(&sgroup);
+
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //

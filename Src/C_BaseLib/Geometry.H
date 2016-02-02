@@ -648,7 +648,6 @@ namespace BoxLib
 	MPI_Group tgroup, rgroup, sgroup;
 	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 
-
 	if (N_rcvs > 0) {
 	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 						mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
@@ -660,84 +659,89 @@ namespace BoxLib
         //
         // Post send's
         //
+	if (N_snds > 0)
+	{
+	    Array<value_type*>  &                  send_data = mf.fpb_send_data;
+	    Array<int>                             send_N;
+	    Array<int>                             send_rank;
+	    Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
+	    Array<MPI_Request>                     send_reqs;
+	    Array<MPI_Aint>                        send_disp;
+	    
+	    send_data.reserve(N_snds);
+	    send_N   .reserve(N_snds);
+	    send_rank.reserve(N_snds);
+	    send_fctc.reserve(N_snds);
+	    send_reqs.reserve(N_snds);
 
-	Array<value_type*>  &                  send_data = mf.fpb_send_data;
-	Array<int>                             send_N;
-	Array<int>                             send_rank;
-	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
-	Array<MPI_Request>                     send_reqs;
-	Array<MPI_Aint>                        send_disp;
-
-	send_data.reserve(N_snds);
-	send_N   .reserve(N_snds);
-	send_rank.reserve(N_snds);
-	send_fctc.reserve(N_snds);
-	send_reqs.reserve(N_snds);
-
-	send_disp.resize(N_snds);
-
-        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
-                 m_End = TheFPB.m_SndTags->end();
-             m_it != m_End;
-             ++m_it)
-        {
-            std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
-
-            BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
-
-            const int N = vol_it->second*ncomp;
-
-            BL_ASSERT(N < std::numeric_limits<int>::max());
-
-            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-
-	    send_data.push_back(data);
-	    send_N   .push_back(N);
-	    send_rank.push_back(m_it->first);
-	    send_fctc.push_back(&(m_it->second));
-	}
-
+	    send_disp.resize(N_snds);
+	
+	    for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
+		     m_End = TheFPB.m_SndTags->end();
+		 m_it != m_End;
+		 ++m_it)
+	    {
+		std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
+		
+		BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
+		
+		const int N = vol_it->second*ncomp;
+		
+		BL_ASSERT(N < std::numeric_limits<int>::max());
+		
+		value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+		
+		send_data.push_back(data);
+		send_N   .push_back(N);
+		send_rank.push_back(m_it->first);
+		send_fctc.push_back(&(m_it->second));
+	    }
+	    
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (int i=0; i<N_snds; ++i)
-	{
-	    value_type* dptr = send_data[i];
-	    BL_ASSERT(dptr != 0);
-
-	    const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
-
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                 it != fctc.end(); ++it)
-            {
-                const Box& bx = it->sbox;
-                mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
-                const int Cnt = bx.numPts()*ncomp;
-                dptr += Cnt;
-            }
-	}
-
-	int send_counter = 0;
+	    for (int i=0; i<N_snds; ++i)
+	    {
+		value_type* dptr = send_data[i];
+		BL_ASSERT(dptr != 0);
+		
+		const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
+		
+		for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
+		     it != fctc.end(); ++it)
+		{
+		    const Box& bx = it->sbox;
+		    mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
+		    const int Cnt = bx.numPts()*ncomp;
+		    dptr += Cnt;
+		}
+	    }
+	    
+	    for (int i=0; i<N_snds; ++i) {
+		send_reqs.push_back(ParallelDescriptor::Arecv
+				    (&send_disp[i],1,send_rank[i],SeqNum).req());
+	    }
 	
-	for (int i=0; i<N_snds; ++i) {
-	  send_reqs.push_back(ParallelDescriptor::Arecv
-			      (&send_disp[i],1,send_rank[i],SeqNum).req());
-	}
-	
-	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	if (N_snds > 0) MPI_Win_start(sgroup,0,win);
+	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	    MPI_Win_start(sgroup,0,win);
 
-	while (send_counter < N_snds) {
-	  MPI_Status status;
-	  int index;
-
-	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-	  BL_ASSERT(status.MPI_TAG == SeqNum);
-	  BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
-		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
-	  send_counter++;
+	    int send_counter = 0;	    
+	    while (send_counter < N_snds) {
+		MPI_Status status;
+		int index;
+		
+		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		BL_ASSERT(status.MPI_TAG == SeqNum);
+		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
+			send_N[index]*sizeof(value_type), MPI_CHAR, win);
+		send_counter++;
+	    }
 	}
+
+	MPI_Group_free(&tgroup);
+	if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	if (N_snds > 0) MPI_Group_free(&sgroup);
 
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
