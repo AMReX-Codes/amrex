@@ -11,7 +11,8 @@ BL_FORT_PROC_DECL(AB2_BNDRYRLX, ab2_bndryrlx)
       const Real* bcl, const int* maxorder, const Real dx[] );
 
 BL_FORT_PROC_DECL(AB2_GSRB, ab2_gsrb)
-    ( const int lo[], const int hi[],
+    ( const int tlo[], const int thi[],
+      const int blo[], const int bhi[],
       BL_FORT_FAB_ARG(soln),
       const BL_FORT_FAB_ARG(res),
       const Real* alpha, const Real* beta,

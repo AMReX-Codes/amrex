@@ -99,9 +99,14 @@ ABec2::Fsmooth (MultiFab&       solnL,
   Real alpha = get_alpha();
   Real beta = get_beta();
 
-  for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+  const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
   {
-    oitr.rewind();
+    OrientationIter oitr;
 
     const int gn = solnLmfi.index();
 
@@ -115,6 +120,7 @@ ABec2::Fsmooth (MultiFab&       solnL,
     const Mask& m4 = *mtuple[oitr()]; oitr++;
     const Mask& m5 = *mtuple[oitr()]; oitr++;
 #endif
+    const Box&       tbx     = solnLmfi.tilebox();
     const Box&       vbx     = solnLmfi.validbox();
     FArrayBox&       solnfab = solnL[gn];
     const FArrayBox& resfab  = resL[gn];
@@ -134,7 +140,8 @@ ABec2::Fsmooth (MultiFab&       solnL,
 #endif
 
     BL_FORT_PROC_CALL(AB2_GSRB, ab2_gsrb)
-      ( vbx.loVect(), vbx.hiVect(),
+      ( tbx.loVect(), tbx.hiVect(),
+        vbx.loVect(), vbx.hiVect(),
         BL_TO_FORTRAN(solnfab),
         BL_TO_FORTRAN(resfab),
         &alpha, &beta,

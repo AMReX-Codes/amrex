@@ -304,10 +304,15 @@ void
 ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
              int sComp, int dComp, int nComp)
 {
-  for (MFIter mfi(ca); mfi.isValid(); ++mfi) {
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(ca,tiling); mfi.isValid(); ++mfi) {
     const FArrayBox& caf = ca[mfi];
     FArrayBox& ccf = cc[mfi];
-    const Box& box = ccf.box();
+    const Box& box = mfi.tilebox();
     FORT_CA2CC(box.loVect(), box.hiVect(),
                caf.dataPtr(sComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
                ccf.dataPtr(dComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
@@ -516,9 +521,17 @@ ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
     const MultiFab& a = aCoefficients(level);
     const MultiFab& b = bCoefficients(level);
 
-    for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        const Box& vbx   = inmfi.validbox();
+        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+	       const Box& ybx   = inmfi.nodaltilebox(1);,
+	       const Box& zbx   = inmfi.nodaltilebox(2););
+
         FArrayBox& infab = in[inmfi];
 	const FArrayBox& bfab = b[inmfi];
 
@@ -532,15 +545,18 @@ ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		  ARLIM(a[inmfi].loVect()), ARLIM(a[inmfi].hiVect()),
 		  bfab.dataPtr(), 
 		  ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
-		  vbx.loVect(), vbx.hiVect(), &num_comp,
+		  &num_comp,
 		  h[level],
+		  xbx.loVect(), xbx.hiVect(), 
 		  xfluxfab.dataPtr(dst_comp),
 		  ARLIM(xfluxfab.loVect()), ARLIM(xfluxfab.hiVect())
 #if (BL_SPACEDIM >= 2)
+		  ,ybx.loVect(), ybx.hiVect()
 		  ,yfluxfab.dataPtr(dst_comp),
 		  ARLIM(yfluxfab.loVect()), ARLIM(yfluxfab.hiVect())
 #endif
 #if (BL_SPACEDIM == 3)
+		  ,zbx.loVect(), zbx.hiVect()
 		  ,zfluxfab.dataPtr(dst_comp),
 		  ARLIM(zfluxfab.loVect()), ARLIM(zfluxfab.hiVect())
 #endif
@@ -638,9 +654,14 @@ ABec4::Fapply (MultiFab&       y,
     BL_ASSERT(level<geomarray.size());
     geomarray[level].FillPeriodicBoundary(const_cast<MultiFab&>(b),src_comp,num_comp,true,local);
 
-    for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter ymfi(y,tiling); ymfi.isValid(); ++ymfi)
     {
-        const Box&       vbx  = ymfi.validbox();
+        const Box&       tbx  = ymfi.validbox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
@@ -654,7 +675,7 @@ ABec4::Fapply (MultiFab&       y,
                    ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
                    bfab.dataPtr(), 
                    ARLIM(bfab.loVect()), ARLIM(bfab.hiVect()),
-                   vbx.loVect(), vbx.hiVect(), &num_comp,
+                   tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
     }
   }
@@ -698,7 +719,12 @@ ABec4::residual (MultiFab&       residL,
 
     apply(residL, solnL, level, bc_mode, local);
 
-    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    const bool tiling = true;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter solnLmfi(solnL,tiling); solnLmfi.isValid(); ++solnLmfi)
     {
       const int nc = residL.nComp();
       //
@@ -706,9 +732,9 @@ ABec4::residual (MultiFab&       residL,
       //
       BL_ASSERT(nc == 1);
 
-      const Box& vbx = solnLmfi.validbox();
+      const Box& tbx = solnLmfi.tilebox();
 
-      BL_ASSERT(gbox[level][solnLmfi.index()] == vbx);
+      BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
 
       FArrayBox& residfab = residL[solnLmfi];
       const FArrayBox& rhsfab = rhsL[solnLmfi];
@@ -720,7 +746,7 @@ ABec4::residual (MultiFab&       residL,
         ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
         residfab.dataPtr(), 
         ARLIM(residfab.loVect()), ARLIM(residfab.hiVect()),
-        vbx.loVect(), vbx.hiVect(), &nc);
+        tbx.loVect(), tbx.hiVect(), &nc);
     }
   }
   else {

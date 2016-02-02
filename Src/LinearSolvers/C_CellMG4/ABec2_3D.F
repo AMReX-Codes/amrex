@@ -3,7 +3,7 @@
 #include "CONSTANTS.H"
 #include "LO_BCTYPES.H"
 
-      subroutine ab2_gsrb (lo, hi,
+      subroutine ab2_gsrb (lo, hi, blo, bhi,
      &     phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3,
      &     res,res_l1,res_l2,res_l3,res_h1,res_h2,res_h3,
      &     alpha, beta,
@@ -25,7 +25,7 @@
      &     nc, h, redBlack)
 
       implicit none
-      integer lo(3), hi(3), nc, redblack
+      integer lo(3), hi(3), blo(3), bhi(3), nc, redblack
 
       integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
       integer res_l1,res_l2,res_l3,res_h1,res_h2,res_h3
@@ -83,18 +83,18 @@ c
                ioff = MOD(j + k + redblack,2)
                do i = lo(1) + ioff,hi(1),2
 
-                  cf0 = merge(f0(lo(1),j,k), 0.0D0,
-     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
-                  cf1 = merge(f1(i,lo(2),k), 0.D00,
-     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
-                  cf2 = merge(f2(i,j,lo(3)), 0.0D0,
-     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
-                  cf3 = merge(f3(hi(1),j,k), 0.0D0,
-     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
-                  cf4 = merge(f4(i,hi(2),k), 0.0D0,
-     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
-                  cf5 = merge(f5(i,j,hi(3)), 0.0D0,
-     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+                  cf0 = merge(f0(blo(1),j,k), 0.0D0,
+     $                 (i .eq. blo(1)) .and. (m0(blo(1)-1,j,k).gt.0))
+                  cf1 = merge(f1(i,blo(2),k), 0.D00,
+     $                 (j .eq. blo(2)) .and. (m1(i,blo(2)-1,k).gt.0))
+                  cf2 = merge(f2(i,j,blo(3)), 0.0D0,
+     $                 (k .eq. blo(3)) .and. (m2(i,j,blo(3)-1).gt.0))
+                  cf3 = merge(f3(bhi(1),j,k), 0.0D0,
+     $                 (i .eq. bhi(1)) .and. (m3(bhi(1)+1,j,k).gt.0))
+                  cf4 = merge(f4(i,bhi(2),k), 0.0D0,
+     $                 (j .eq. bhi(2)) .and. (m4(i,bhi(2)+1,k).gt.0))
+                  cf5 = merge(f5(i,j,bhi(3)), 0.0D0,
+     $                 (k .eq. bhi(3)) .and. (m5(i,j,bhi(3)+1).gt.0))
 
                   delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
      $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)

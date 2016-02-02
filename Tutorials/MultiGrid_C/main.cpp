@@ -195,9 +195,10 @@ int main(int argc, char* argv[])
   }
 
   if (ParallelDescriptor::IOProcessor()) {
-     std::cout << "Domain size     : " << n_cell << std::endl;
-     std::cout << "Max_grid_size   : " << max_grid_size << std::endl;
-     std::cout << "Number of grids : " << bs.size() << std::endl;
+    std::cout << "Grid resolution : " << n_cell << " (cells)" << std::endl;
+    std::cout << "Domain size     : " << real_box.hi(0) - real_box.lo(0) << " (length unit) " << std::endl;
+    std::cout << "Max_grid_size   : " << max_grid_size << " (cells)" << std::endl;
+    std::cout << "Number of grids : " << bs.size() << std::endl;
   }
 
   // Allocate and define the right hand side.
