@@ -173,5 +173,13 @@ main (int argc, char* argv[])
         std::cout << "Time distribution (post, send, wait, pack, local) : " << ParallelDescriptor::timing[0] << " " << ParallelDescriptor::timing[1] << " " << ParallelDescriptor::timing[2] << " " << ParallelDescriptor::timing[3] << " " << ParallelDescriptor::timing[4] << " / " <<  ParallelDescriptor::timing[5] << std::endl;
     }
 
+    //
+    // When MPI3 shared memory is used, the dtor of MultiFab calls MPI functions.
+    // Because the scope of PArray < MultiFab > mfs is beyond the call to 
+    // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we destroy these
+    // MultiFabs by hand now.
+    //
+    mfs.clear();
+
     BoxLib::Finalize();
 }
