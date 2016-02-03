@@ -1561,8 +1561,6 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
                                               BoxArray &baWhereNot, int lev)
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(lev);
     const Real*     dx       = geom.CellSize();
 
@@ -1597,9 +1595,6 @@ ParticleContainer<N>::InitCosmo1ppcMultiLevel(MultiFab& mf, const Real disp_fac[
         FArrayBox&  myFab  = mf[mfi];
         const int  *fab_lo = mfi.validbox().loVect();
         const int  *fab_hi = mfi.validbox().hiVect();
-        const int   fab_ix = fab_hi[0] - fab_lo[0] + 1;
-        const int   fab_jx = fab_hi[1] - fab_lo[1] + 1;
-        const int   fab_kx = fab_hi[2] - fab_lo[2] + 1;
 
         for (int kx = fab_lo[2]; kx <= fab_hi[2]; kx++)
         {
@@ -1700,8 +1695,6 @@ void
 ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const Real particleMass)
 {
     const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
     const Geometry& geom     = m_gdb->Geom(0);
     const Real*     dx       = geom.CellSize();
 
@@ -1727,9 +1720,6 @@ ParticleContainer<N>::InitCosmo1ppc (MultiFab& mf, const Real vel_fac[], const R
         FArrayBox&  myFab  = mf[mfi];
         const int  *fab_lo = mfi.validbox().loVect();
         const int  *fab_hi = mfi.validbox().hiVect();
-        const int   fab_ix = fab_hi[0] - fab_lo[0] + 1;
-        const int   fab_jx = fab_hi[1] - fab_lo[1] + 1;
-        const int   fab_kx = fab_hi[2] - fab_lo[2] + 1;
 
         for (int kx = fab_lo[2]; kx <= fab_hi[2]; kx++)
         {
