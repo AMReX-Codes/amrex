@@ -990,23 +990,9 @@ public:
     //
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
-    // MPI version
-    void FillBoundary_MPI (int scomp, int ncomp, bool cross);
-
-#ifdef BL_USE_MPI_ONESIDED
-    void FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win);
-    void FillBoundary_finish_MPI_Onesided();
-#endif
-
     void FillBoundary_nowait (bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_finish ();
-#ifdef BL_USE_UPCXX
-    void FillBoundary_finish_UPCXX ();
-#endif
-#ifdef BL_USE_MPI
-    void FillBoundary_finish_MPI ();
-#endif
 
     //
     // Move FABs in this FabArray to different MPI ranks.
@@ -3155,7 +3141,8 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
-    FillBoundary(0, nComp(), cross);
+    FillBoundary_nowait(0, nComp(), cross);
+    FillBoundary_finish();
 }
 
 template <class FAB>
@@ -3164,527 +3151,25 @@ FabArray<FAB>::FillBoundary (int  scomp,
                              int  ncomp,
                              bool cross)
 {
-#ifdef BL_USE_UPCXX
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
-#elif  BL_USE_MPI_ONESIDED
-    FillBoundary_nowait_MPI_Onesided(scomp, ncomp, cross, ParallelDescriptor::win);
-    FillBoundary_finish_MPI_Onesided();
-#else
-    FillBoundary_MPI(scomp, ncomp, cross);
-#endif
 }
 
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_MPI (int  scomp,
-			         int  ncomp,
-	                         bool cross)
-{
-    BL_PROFILE("FabArray::FillBoundary()");
-
-    if ( n_grow <= 0 ) return;
-
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
-
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        //
-        // There can only be local work to do.
-        //
-	int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
-	for (int i=0; i<N_loc; ++i)
-        {
-            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
-
-            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-        }
-
-        return;
-    }
-
-#ifdef BL_USE_MPI
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    const int SeqNum = ParallelDescriptor::SeqNum();
-
-    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
-        //
-        // No work to do.
-        //
-        return;
-
-    Array<MPI_Status>  stats;
-    Array<int>         recv_from;
-    Array<value_type*> recv_data;
-    Array<MPI_Request> recv_reqs;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    value_type* the_recv_data = 0;
-
-    FabArrayBase::PostRcvs(*TheSI.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
-
-    //
-    // Post send's
-    //
-    const int N_snds = TheSI.m_SndTags->size();
-
-    Array<value_type*>                 send_data;
-    Array<int>                         send_N;
-    Array<int>                         send_rank;
-    Array<const CopyComTagsContainer*> send_cctc;
-    
-    send_data.reserve(N_snds);
-    send_N   .reserve(N_snds);
-    send_rank.reserve(N_snds);
-    send_cctc.reserve(N_snds);
-
-    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
-             m_End = TheSI.m_SndTags->end();
-         m_it != m_End;
-         ++m_it)
-    {
-	std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
-
-        BL_ASSERT(vol_it != TheSI.m_SndVols->end());
-
-        const int N = vol_it->second*ncomp;
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-
-	send_data.push_back(data);
-	send_N   .push_back(N);
-	send_rank.push_back(m_it->first);
-	send_cctc.push_back(&(m_it->second));
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i=0; i<N_snds; ++i)
-    {
-	value_type* dptr = send_data[i];
-	BL_ASSERT(dptr != 0);
-
-	const CopyComTagsContainer& cctc = *send_cctc[i];
-
-	for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-        {
-            BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-            const Box& bx = it->box;
-            get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
-            const int Cnt = bx.numPts()*ncomp;
-            dptr += Cnt;
-        }
-    }
-
-    Array<MPI_Request> send_reqs;
-
-    if (FabArrayBase::do_async_sends)
-    {
-	send_reqs.reserve(N_snds);
-	for (int i=0; i<N_snds; ++i) {
-	    send_reqs.push_back(ParallelDescriptor::Asend
-				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
-	}
-    } else {
-	for (int i=0; i<N_snds; ++i) {
-	    ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
-	    BoxLib::The_Arena()->free(send_data[i]);
-	}
-    }
-
-    //
-    // Do the local work.  Hope for a bit of communication/computation overlap.
-    //
-    int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
-    for (int i=0; i<N_loc; ++i)
-    {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
-
-        BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-    }
-
-    //
-    //  wait and unpack
-    //
-
-    const int N_rcvs = TheSI.m_RcvTags->size();
-
-    if (N_rcvs > 0)
-    {
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
-
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(recv_from[k]);
-	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-	    
-	    recv_cctc.push_back(&(m_it->second));
-	}	
-
-	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
-#endif
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    value_type*  dptr = recv_data[k];
-	    BL_ASSERT(dptr != 0);
-
-	    const CopyComTagsContainer& cctc = *recv_cctc[k];
-
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-	    {
-		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*ncomp;
-		get(it->fabIndex).copyFromMem(bx,scomp,ncomp,dptr);
-		dptr += Cnt;
-	    }	    
-	}
-    }
-
-    BoxLib::The_Arena()->free(the_recv_data);
-
-    if (FabArrayBase::do_async_sends && !TheSI.m_SndTags->empty())
-        FabArrayBase::GrokAsyncSends(TheSI.m_SndTags->size(),send_reqs,send_data,stats);
-
-#ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
-
-#endif /*BL_USE_MPI*/
-}
- 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (bool cross)
 {
-#ifdef BL_USE_MPI_ONESIDED
-    FillBoundary_nowait_MPI_Onesided(0, nComp(), cross, ParallelDescriptor::win);
-#else  
     FillBoundary_nowait(0, nComp(), cross);
-#endif
 }
-
-#ifdef BL_USE_MPI_ONESIDED
-
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_nowait_MPI_Onesided (int scomp, int ncomp, bool cross, MPI_Win& win)
-{
-    if ( n_grow <= 0 ) return;
-
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
-
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        //
-        // There can only be local work to do.
-        //
-	int N_loc = (*TheSI.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
-	for (int i=0; i<N_loc; ++i)
-        {
-            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
-
-            BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-            get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-        }
-
-        return;
-    }
-   
-    fb_cross = cross;
-    fb_scomp = scomp;
-    fb_ncomp = ncomp;
-    
-    //
-    // Do this before prematurely exiting if running in parallel.
-    // Otherwise sequence numbers will not match across MPI processes.
-    //
-    const int SeqNum = ParallelDescriptor::SeqNum();
-
-    const int N_locs = TheSI.m_LocTags->size();
-    const int N_rcvs = TheSI.m_RcvTags->size();
-    const int N_snds = TheSI.m_SndTags->size();
-
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
-        // No work to do.
-        return;
-    //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
-    //
-    
-    MPI_Group tgroup, rgroup, sgroup;
-    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
-	
-    if (N_rcvs > 0) {
-
-      double t0 = ParallelDescriptor::second();
-      FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
-					    fb_recv_data,fb_recv_from,fb_recv_reqs, 
-					    fb_recv_disp, ncomp,SeqNum,win);
-      double t1 = ParallelDescriptor::second();
-      ParallelDescriptor::timing[0] += t1 - t0;
-
-
-      MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
-      MPI_Win_post(rgroup, 0, win);
-    }
-
-    //
-    // Post send's
-    //
-    if (N_snds > 0)
-    {
-	Array<value_type*> &               send_data = fb_send_data;
-	Array<int>                         send_N;
-	Array<int>                         send_rank;
-	Array<const CopyComTagsContainer*> send_cctc;
-	Array<MPI_Request>                 send_reqs;
-	Array<MPI_Aint>                    send_disp;
-
-	send_data.reserve(N_snds);
-	send_N   .reserve(N_snds);
-	send_rank.reserve(N_snds);
-	send_cctc.reserve(N_snds);
-	send_reqs.reserve(N_snds);
-
-	send_disp.resize(N_snds);
-	
-	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
-		 m_End = TheSI.m_SndTags->end();
-	     m_it != m_End;
-	     ++m_it)
-	{
-	    std::map<int,int>::const_iterator vol_it = TheSI.m_SndVols->find(m_it->first);
-
-	    BL_ASSERT(vol_it != TheSI.m_SndVols->end());
-	    
-	    const int N = vol_it->second*ncomp;
-	    
-	    BL_ASSERT(N < std::numeric_limits<int>::max());
-
-	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-
-	    send_data.push_back(data);
-	    send_N   .push_back(N);
-	    send_rank.push_back(m_it->first);
-	    send_cctc.push_back(&(m_it->second));
-	}
-
-        double t0 = ParallelDescriptor::second();
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (int i=0; i<N_snds; ++i)
-	{
-	    value_type* dptr = send_data[i];
-	    BL_ASSERT(dptr != 0);
-	    
-	    const CopyComTagsContainer& cctc = *send_cctc[i];
-	    
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-	    {
-		BL_ASSERT(distributionMap[it->srcIndex] == ParallelDescriptor::MyProc());
-		const Box& bx = it->box;
-		get(it->srcIndex).copyToMem(bx,scomp,ncomp,dptr);
-		const int Cnt = bx.numPts()*ncomp;
-		dptr += Cnt;
-	    }
-	}
-
-        double t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[3] += t1 - t0;
-
-	for (int i=0; i<N_snds; ++i) {
-	  send_reqs.push_back(ParallelDescriptor::Arecv
-			      (&send_disp[i],1,send_rank[i],SeqNum).req());
-	}
-		
-	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	MPI_Win_start(sgroup,0,win);
-	
-	int send_counter = 0;	
-	while (send_counter < N_snds) {
-	  MPI_Status status;
-	  int index;
-
-	  MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-
-	  BL_ASSERT(status.MPI_TAG == SeqNum);
-	  BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-
-          double t0 = ParallelDescriptor::second();
-
-	  MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
-		  send_N[index]*sizeof(value_type), MPI_CHAR, win);
-
-          double t1 = ParallelDescriptor::second();
-          ParallelDescriptor::timing[1] += t1 - t0;
-
-	  send_counter++;
-	}
-
-        t0 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[5] += t0 - t1;
-
-    }
-
-    MPI_Group_free(&tgroup);
-    if (N_rcvs > 0) MPI_Group_free(&rgroup);
-    if (N_snds > 0) MPI_Group_free(&sgroup);
-
-    //
-    // Do the local work.  Hope for a bit of communication/computation overlap.
-    //
-
-    double t0 = ParallelDescriptor::second();
-
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_loc)
-#endif
-    for (int i=0; i<N_locs; ++i)
-    {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
-
-	BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
-        BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-        get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-	   
-    }
-
-    double t1 = ParallelDescriptor::second();
-    ParallelDescriptor::timing[4] += t1 - t0;
-}
-
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_finish_MPI_Onesided()
-{
-    FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
-
-    const FabArrayBase::SI& TheSI = cache_it->second;
-
-    Array<MPI_Status> stats;
-
-    const int N_rcvs = TheSI.m_RcvTags->size();
-    const int N_snds = TheSI.m_SndTags->size();
-
-    MPI_Win & win = ParallelDescriptor::win;
-    
-    double t0 = ParallelDescriptor::second();
-
-    if (N_snds > 0) MPI_Win_complete(win);
-    if (N_rcvs > 0) MPI_Win_wait(win);
-
-    double t1 = ParallelDescriptor::second();
-    ParallelDescriptor::timing[2] += t1 - t0;
-
-    if (N_rcvs > 0)
-    {
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
-
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
-	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-	    
-	    recv_cctc.push_back(&(m_it->second));
-	}	
-
-        double t0 = ParallelDescriptor::second();
-
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
-#endif
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    value_type*  dptr = fb_recv_data[k];
-	    BL_ASSERT(dptr != 0);
-
-	    const CopyComTagsContainer& cctc = *recv_cctc[k];
-
-	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
-		 it != cctc.end(); ++it)
-	    {
-		const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-		dptr += Cnt;
-	    }	    
-	}
-
-        double t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[3] += t1 - t0;
-
-	MPI_Win_detach(win, fb_the_recv_data);
-	BoxLib::The_Arena()->free(fb_the_recv_data);
-
-	fb_recv_from.clear();
-	fb_recv_data.clear();
-	fb_recv_reqs.clear();
-	fb_recv_disp.clear();
-    }
-    
-    if (N_snds > 0) {
-      for (int i = 0; i < N_snds; i++)
-        BoxLib::The_Arena()->free(fb_send_data[i]);
-      fb_send_data.clear();
-    }
-
-#ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
-}
-
-#endif /*BL_USE_MPI_ONESIDED */
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
+    //
+    // Note that it is not allowed to define both BL_USE_MPI_ONESIDED and BL_USE_UPCXX
+    // 
+
     if ( n_grow <= 0 ) return;
 
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
@@ -3739,19 +3224,29 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     double t0 = ParallelDescriptor::second();
 
+#ifdef BL_USE_MPI_ONESIDED
+    MPI_Group tgroup, rgroup, sgroup;
+    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+#endif
+
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
+#elif defined(BL_USE_MPI_ONESIDED)
+	FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
+					    fb_recv_data, fb_recv_from, fb_recv_reqs, 
+					    fb_recv_disp, ncomp, SeqNum, ParallelDescriptor::fb_win);
+	MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
+	MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #else
-	FabArrayBase::PostRcvs     (*TheSI.m_RcvVols,fb_the_recv_data,
-				    fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
+	FabArrayBase::PostRcvs(*TheSI.m_RcvVols,fb_the_recv_data,
+			       fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
 #endif
     }
 
     double t1 = ParallelDescriptor::second();
     ParallelDescriptor::timing[0] += t1 - t0;
-
 
     //
     // Post send's
@@ -3767,7 +3262,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	send_N   .reserve(N_snds);
 	send_rank.reserve(N_snds);
 	send_cctc.reserve(N_snds);
-	
+
 	for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->begin(),
 		 m_End = TheSI.m_SndTags->end();
 	     m_it != m_End;
@@ -3820,34 +3315,71 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
         double t1 = ParallelDescriptor::second();
         ParallelDescriptor::timing[3] += t1 - t0;
 
-
-#ifdef BL_USE_UPCXX
-	BLPgas::fb_send_counter = 0;
-#else
-	Array<MPI_Request>& send_reqs = fb_send_reqs;
-	send_reqs.reserve(N_snds);
-#endif
-
         t0 = ParallelDescriptor::second();
 
-	for (int i=0; i<N_snds; ++i) {
 #ifdef BL_USE_UPCXX
+
+	BLPgas::fb_send_counter = 0;
+
+	for (int i=0; i<N_snds; ++i) {
 	    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
 			 send_rank[i],
 			 send_N[i]*sizeof(value_type),
 			 SeqNum,
 			 &BLPgas::fb_send_event,
 			 &BLPgas::fb_send_counter);
-#else
-	    send_reqs.push_back(ParallelDescriptor::Asend
-				(send_data[i],send_N[i],send_rank[i],SeqNum).req());
-#endif
 	}
 
-#ifdef BL_USE_UPCXX
 	// Need to make sure at least half of the sends have been started
 	while (BLPgas::fb_send_counter < N_snds)
 	    upcxx::advance();
+
+#elif defined(BL_USE_MPI_ONESIDED)
+
+	Array<MPI_Request> send_reqs;
+	Array<MPI_Aint>    send_disp;
+	send_reqs.reserve(N_snds);
+	send_disp.resize (N_snds);
+	
+	for (int i=0; i<N_snds; ++i) {
+	    send_reqs.push_back(ParallelDescriptor::Arecv
+				(&send_disp[i],1,send_rank[i],SeqNum).req());
+	}
+		
+	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	MPI_Win_start(sgroup,0,ParallelDescriptor::fb_win);
+	
+	int send_counter = 0;	
+	while (send_counter < N_snds) {
+	    MPI_Status status;
+	    int index;
+	    
+	    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+	    
+	    BL_ASSERT(status.MPI_TAG == SeqNum);
+	    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+	    
+	    double t0 = ParallelDescriptor::second();
+	    
+	    MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+		    send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+		    ParallelDescriptor::fb_win);
+	    
+	    double t1 = ParallelDescriptor::second();
+	    ParallelDescriptor::timing[1] += t1 - t0;
+	    
+	    send_counter++;
+	}
+
+#else
+
+	fb_send_reqs.reserve(N_snds);
+
+	for (int i=0; i<N_snds; ++i) {
+	    fb_send_reqs.push_back(ParallelDescriptor::Asend
+				   (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+	}
+
 #endif
 
         t1 = ParallelDescriptor::second();
@@ -3855,7 +3387,13 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
     }
 
-     //
+#ifdef BL_USE_MPI_ONESIDED
+    MPI_Group_free(&tgroup);
+    if (N_rcvs > 0) MPI_Group_free(&rgroup);
+    if (N_snds > 0) MPI_Group_free(&sgroup);
+#endif
+
+    //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
  
@@ -3909,62 +3447,45 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (ParallelDescriptor::NProcs() == 1) return;
 
-#ifdef BL_USE_UPCXX
-
-    FillBoundary_finish_UPCXX();
-
-#elif  BL_USE_MPI_ONESIDED
-
-    FillBoundary_finish_MPI_Onesided();
-    
-#elif defined BL_USE_MPI
-
-    FillBoundary_finish_MPI();
-
-#endif
-}
-
-
 #ifdef BL_USE_MPI
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_finish_MPI ()
-{
+
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
     const FabArrayBase::SI& TheSI = cache_it->second;
 
-    Array<MPI_Status> stats;
-
     const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_snds = TheSI.m_SndTags->size();
+
+    double t0 = ParallelDescriptor::second();
+
+#ifdef BL_USE_UPCXX
+    if (N_rcvs > 0) BLPgas::fb_recv_event.wait();
+#elif defined(BL_USE_MPI_ONESIDED)
+    if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fb_win);
+    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fb_win);
+#else
+    if (N_rcvs > 0) {
+	Array<MPI_Status> stats(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+    }
+#endif
+
+    double t1 = ParallelDescriptor::second();
+    ParallelDescriptor::timing[2] += t1 - t0;
 
     if (N_rcvs > 0)
     {
-        //
-        //  wait and unpack
-        //
-
 	Array<const CopyComTagsContainer*> recv_cctc;
 	recv_cctc.reserve(N_rcvs);
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
-	    MapOfCopyComTagContainers::const_iterator m_it 
-		= TheSI.m_RcvTags->find(fb_recv_from[k]);
+	    MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
-
-        double t0 = ParallelDescriptor::second();
-
-	stats.resize(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
-
-        double t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[2] += t1 - t0;
-
 
         t0 = ParallelDescriptor::second();
 
@@ -3977,7 +3498,7 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
 	    BL_ASSERT(dptr != 0);
 
 	    const CopyComTagsContainer& cctc = *recv_cctc[k];
-
+	    
 	    for (CopyComTagsContainer::const_iterator it = cctc.begin();
 		 it != cctc.end(); ++it)
 	    {
@@ -3991,114 +3512,46 @@ FabArray<FAB>::FillBoundary_finish_MPI ()
         t1 = ParallelDescriptor::second();
         ParallelDescriptor::timing[3] += t1 - t0;
 
-
+#ifdef BL_USE_UPCXX
+	BLPgas::free(fb_the_recv_data);
+#elif defined(BL_USE_MPI_ONESIDED)
+	MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
 	BoxLib::The_Arena()->free(fb_the_recv_data);
+	fb_recv_disp.clear();
+#else
+	BoxLib::The_Arena()->free(fb_the_recv_data);
+#endif
 
 	fb_recv_from.clear();
 	fb_recv_data.clear();
 	fb_recv_reqs.clear();
     }
 
-    const int N_snds = TheSI.m_SndTags->size();
-
     if (N_snds > 0) {
-      FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
-      fb_send_data.clear();
-      fb_send_reqs.clear();
+#ifdef BL_USE_UPCXX
+        FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,
+					  &BLPgas::fb_send_event,
+					  &BLPgas::fb_send_counter);
+#elif defined(BL_USE_MPI_ONESIDED)
+	for (int i = 0; i < N_snds; ++i)
+	    BoxLib::The_Arena()->free(fb_send_data[i]);
+#else
+	Array<MPI_Status> stats;
+	FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
+#endif
+	fb_send_data.clear();
+	fb_send_reqs.clear();
     }
 
 #ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
-}
-#endif /*BL_USE_MPI*/
 
+#endif // MPI
+}
 
 #ifdef BL_USE_UPCXX
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_finish_UPCXX ()
-{
-    auto cache_it = FabArrayBase::TheFB(fb_cross,*this);
-
-    BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
-
-    const auto& TheSI = cache_it->second;
-
-    const int N_rcvs = TheSI.m_RcvTags->size();
-
-    if (N_rcvs > 0)
-    {
-	//
-	//  wait and unpack
-	//
-	
-        double t0 = ParallelDescriptor::second();
-
-	BLPgas::fb_recv_event.wait(); // wait for the recvs
-
-        double t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[2] += t1 - t0;
-
-
-	Array<const CopyComTagsContainer*> recv_cctc;
-	recv_cctc.reserve(N_rcvs);
-
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    auto m_it = TheSI.m_RcvTags->find(fb_recv_from[k]);
-	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
-	    recv_cctc.push_back(&(m_it->second));
-	}	
-
-        t0 = ParallelDescriptor::second();
-
-#ifdef _OPENMP
-#pragma omp parallel for if (TheSI.m_threadsafe_rcv)
-#endif
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    value_type* dptr = fb_recv_data[k];
-	    BL_ASSERT(dptr != 0);
-		
-	    const auto& cctc = *recv_cctc[k];
-	    
-	    for (auto it = cctc.begin(); it != cctc.end(); ++it)
-	    {
-	        const Box& bx  = it->box;
-		const int  Cnt = bx.numPts()*fb_ncomp;
-		get(it->fabIndex).copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-		dptr += Cnt;
-	    }	    
-	}
-
-        t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[3] += t1 - t0;
-
-	BLPgas::free(fb_the_recv_data);
-
-	fb_recv_from.clear();
-	fb_recv_data.clear();
-	fb_recv_reqs.clear();
-    }
-
-    const int N_snds = TheSI.m_SndTags->size();
-
-    if (N_snds > 0)
-    {
-        // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-        FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,
-					  &BLPgas::fb_send_event,
-					  &BLPgas::fb_send_counter);
-	
-	fb_send_data.clear();
-	fb_send_reqs.clear();
-    }
-
-    ParallelDescriptor::MyTeam().MemoryBarrier();
-}
-
- template<typename T>
+template<typename T>
 void
 FabArrayBase::PostRcvs_PGAS (const std::map<int,int>&               m_RcvVols,
                              T*&                                    the_recv_data,
