@@ -270,6 +270,13 @@ main (int argc, char* argv[])
 	std::cout << "----------------------------------------------" << std::endl;
     }
 
+    //
+    // When MPI3 shared memory is used, the dtor of MultiFab calls MPI functions.
+    // Because the scope of PArray < MultiFab > phis is beyond the call to 
+    // BoxLib::Finalize(), which in turn calls MPI_Finalize(), we destroy these
+    // MultiFabs by hand now.
+    phis.clear();
+
     // Say goodbye to MPI, etc...
     BoxLib::Finalize();
 }
