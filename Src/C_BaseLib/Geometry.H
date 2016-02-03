@@ -361,496 +361,6 @@ namespace BoxLib
 {
     template <class FAB>
     void
-    FillPeriodicBoundary (const Geometry& geom,
-                          FabArray<FAB>&  mf,
-                          int             scomp,
-                          int             ncomp,
-                          bool            corners=false)
-    {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
-#ifndef NDEBUG
-        //
-        // Don't let folks ask for more grow cells than they have valid region.
-        //
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (geom.isPeriodic(n))
-                BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
-#endif
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
-
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const Geometry::FPB& TheFPB = cache_it->second;
-
-        if (ParallelDescriptor::NProcs() == 1)
-        {
-            //
-            // There can only be local work to do.
-            //
-	    int N_loc = (*TheFPB.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
-#endif
-	    for (int i=0; i<N_loc; ++i)
-	    {
-                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
-                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-            }
-
-            return;
-        }
-
-#ifdef BL_USE_MPI
-        //
-        // Do this before prematurely exiting if running in parallel.
-        // Otherwise sequence numbers will not match across MPI processes.
-        //
-	const int SeqNum = ParallelDescriptor::SeqNum();
-
-        if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
-            return;
-
-        typedef typename FAB::value_type value_type;
-
-        Array<MPI_Status>  stats;
-        Array<int>         recv_from;
-        Array<value_type*> recv_data;
-        Array<MPI_Request> recv_reqs;
-        //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
-        //
-        value_type* the_recv_data = 0;
-
-        FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
-
-        //
-        // Post send's
-        //
-	const int N_snds = TheFPB.m_SndTags->size();
-
-	Array<value_type*>                     send_data;
-	Array<int>                             send_N;
-	Array<int>                             send_rank;
-	Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
-
-	send_data.reserve(N_snds);
-	send_N   .reserve(N_snds);
-	send_rank.reserve(N_snds);
-	send_fctc.reserve(N_snds);
-
-        for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
-                 m_End = TheFPB.m_SndTags->end();
-             m_it != m_End;
-             ++m_it)
-        {
-            std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
-
-            BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
-
-            const int N = vol_it->second*ncomp;
-
-            BL_ASSERT(N < std::numeric_limits<int>::max());
-
-            value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-
-	    send_data.push_back(data);
-	    send_N   .push_back(N);
-	    send_rank.push_back(m_it->first);
-	    send_fctc.push_back(&(m_it->second));
-	}
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (int i=0; i<N_snds; ++i)
-	{
-	    value_type* dptr = send_data[i];
-	    BL_ASSERT(dptr != 0);
-
-	    const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
-
-            for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                 it != fctc.end(); ++it)
-            {
-                const Box& bx = it->sbox;
-                mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
-                const int Cnt = bx.numPts()*ncomp;
-                dptr += Cnt;
-            }
-	}
-
-	Array<MPI_Request> send_reqs;
-
-	if (FabArrayBase::do_async_sends)
-	{
-	    send_reqs.reserve(N_snds);
-	    for (int i=0; i<N_snds; ++i) {
-                send_reqs.push_back(ParallelDescriptor::Asend
-				    (send_data[i],send_N[i],send_rank[i],SeqNum).req());
-            }
-	} else {
-	    for (int i=0; i<N_snds; ++i) {
-                ParallelDescriptor::Send(send_data[i],send_N[i],send_rank[i],SeqNum);
-                BoxLib::The_Arena()->free(send_data[i]);
-            }
-        }
-
-        //
-        // Do the local work.  Hope for a bit of communication/computation overlap.
-        //
-	int N_loc = (*TheFPB.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
-#endif
-	for (int i=0; i<N_loc; ++i)
-	{
-            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
-
-            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-        }
-
-	//
-	// wait and unpack
-
-        const int N_rcvs = TheFPB.m_RcvTags->size();
-
-	if (N_rcvs > 0)
-	{
-	    Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
-	    recv_fctc.reserve(N_rcvs);
-
-	    for (int k = 0; k < N_rcvs; k++)
-	    {
-		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(recv_from[k]);
-                BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
-		
-		recv_fctc.push_back(&(m_it->second));
-	    }
-
-	    stats.resize(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-	    
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
-#endif
-	    for (int k = 0; k < N_rcvs; k++) 
-	    {
-		value_type*  dptr = recv_data[k];
-		BL_ASSERT(dptr != 0);
-		
-		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
-
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                     it != fctc.end(); ++it)
-                {
-                    const Box& bx  = it->dbox;
-                    const int  Cnt = bx.numPts()*ncomp;
-                    mf[it->dstIndex].copyFromMem(bx,scomp,ncomp,dptr);
-                    dptr += Cnt;
-                }
-            }
-        }
-
-        BoxLib::The_Arena()->free(the_recv_data);
-
-        if (FabArrayBase::do_async_sends && !TheFPB.m_SndTags->empty())
-            FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
-
-#ifdef BL_USE_TEAM
-	ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
-
-#endif /*BL_USE_MPI*/
-    }
-
-#ifdef BL_USE_MPI_ONESIDED
-  
-    template <class FAB>
-    void
-    FillPeriodicBoundary_nowait_Onesided (const Geometry& geom,
-                          FabArray<FAB>&  mf,
-                          int             scomp,
-                          int             ncomp,
-                          MPI_Win &       win,
-                          bool            corners=false)
-    {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
-#ifndef NDEBUG
-        //
-        // Don't let folks ask for more grow cells than they have valid region.
-        //
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (geom.isPeriodic(n))
-                BL_ASSERT(mf.nGrow() <= geom.Domain().length(n));
-#endif
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),corners);
-
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const Geometry::FPB& TheFPB = cache_it->second;
-
-        if (ParallelDescriptor::NProcs() == 1)
-        {
-            //
-            // There can only be local work to do.
-            //
-	    int N_loc = (*TheFPB.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
-#endif
-	    for (int i=0; i<N_loc; ++i)
-	    {
-                const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
-                mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-            }
-
-            return;
-        }
-
-        //
-        // Do this before prematurely exiting if running in parallel.
-        // Otherwise sequence numbers will not match across MPI processes.
-        //
-	const int SeqNum = ParallelDescriptor::SeqNum();
-
-	const int N_locs = TheFPB.m_LocTags->size();
-	const int N_rcvs = TheFPB.m_RcvTags->size();
-	const int N_snds = TheFPB.m_SndTags->size();
-			
-        if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
-            return;
-
-        typedef typename FAB::value_type value_type;
-
-	mf.fpb_corners = corners;
-	mf.fpb_scomp = scomp;
-	mf.fpb_ncomp = ncomp;
-	
-        //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
-        //
-
-	MPI_Group tgroup, rgroup, sgroup;
-	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
-
-	if (N_rcvs > 0) {
-	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-						mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
-						mf.fpb_recv_disp,ncomp,SeqNum,win);
-	    MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
-	    MPI_Win_post(rgroup, 0, win);
-	}
-	
-        //
-        // Post send's
-        //
-	if (N_snds > 0)
-	{
-	    Array<value_type*>  &                  send_data = mf.fpb_send_data;
-	    Array<int>                             send_N;
-	    Array<int>                             send_rank;
-	    Array<const Geometry::FPB::FPBComTagsContainer*> send_fctc;
-	    Array<MPI_Request>                     send_reqs;
-	    Array<MPI_Aint>                        send_disp;
-	    
-	    send_data.reserve(N_snds);
-	    send_N   .reserve(N_snds);
-	    send_rank.reserve(N_snds);
-	    send_fctc.reserve(N_snds);
-	    send_reqs.reserve(N_snds);
-
-	    send_disp.resize(N_snds);
-	
-	    for (Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_SndTags->begin(),
-		     m_End = TheFPB.m_SndTags->end();
-		 m_it != m_End;
-		 ++m_it)
-	    {
-		std::map<int,int>::const_iterator vol_it = TheFPB.m_SndVols->find(m_it->first);
-		
-		BL_ASSERT(vol_it != TheFPB.m_SndVols->end());
-		
-		const int N = vol_it->second*ncomp;
-		
-		BL_ASSERT(N < std::numeric_limits<int>::max());
-		
-		value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-		
-		send_data.push_back(data);
-		send_N   .push_back(N);
-		send_rank.push_back(m_it->first);
-		send_fctc.push_back(&(m_it->second));
-	    }
-	    
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	    for (int i=0; i<N_snds; ++i)
-	    {
-		value_type* dptr = send_data[i];
-		BL_ASSERT(dptr != 0);
-		
-		const Geometry::FPB::FPBComTagsContainer& fctc = *send_fctc[i];
-		
-		for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-		     it != fctc.end(); ++it)
-		{
-		    const Box& bx = it->sbox;
-		    mf[it->srcIndex].copyToMem(bx,scomp,ncomp,dptr);
-		    const int Cnt = bx.numPts()*ncomp;
-		    dptr += Cnt;
-		}
-	    }
-	    
-	    for (int i=0; i<N_snds; ++i) {
-		send_reqs.push_back(ParallelDescriptor::Arecv
-				    (&send_disp[i],1,send_rank[i],SeqNum).req());
-	    }
-	
-	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	    MPI_Win_start(sgroup,0,win);
-
-	    int send_counter = 0;	    
-	    while (send_counter < N_snds) {
-		MPI_Status status;
-		int index;
-		
-		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-		BL_ASSERT(status.MPI_TAG == SeqNum);
-		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index], send_disp[index],
-			send_N[index]*sizeof(value_type), MPI_CHAR, win);
-		send_counter++;
-	    }
-	}
-
-	MPI_Group_free(&tgroup);
-	if (N_rcvs > 0) MPI_Group_free(&rgroup);
-	if (N_snds > 0) MPI_Group_free(&sgroup);
-
-        //
-        // Do the local work.  Hope for a bit of communication/computation overlap.
-        //
-	int N_loc = (*TheFPB.m_LocTags).size();
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_loc)
-#endif
-	for (int i=0; i<N_loc; ++i)
-	{
-            const Geometry::FPBComTag& tag = (*TheFPB.m_LocTags)[i];
-
-            BL_ASSERT(mf.DistributionMap()[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(mf.DistributionMap()[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-            mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
-        }
-    }
-
-    template <class FAB>
-    void
-    FillPeriodicBoundary_finish_Onesided (const Geometry& geom,
-				     FabArray<FAB>& mf, MPI_Win & win)
-    {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
-	if (ParallelDescriptor::NProcs() == 1) return;
-
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
-
-        Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const Geometry::FPB& TheFPB = cache_it->second;
-
-        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
-            return;
-
-        typedef typename FAB::value_type value_type;
-
-        const int N_rcvs = TheFPB.m_RcvTags->size();
-	const int N_snds = TheFPB.m_RcvTags->size();
-
-	//
-	// wait and unpack
-        if (N_snds > 0) MPI_Win_complete(win);
-	if (N_rcvs > 0) MPI_Win_wait(win);
-	// check the completion of send disp ?
-
-	if (N_rcvs > 0)
-	{
-	    Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
-	    recv_fctc.reserve(N_rcvs);
-
-	    for (int k = 0; k < N_rcvs; k++)
-	    {
-		Geometry::FPB::MapOfFPBComTagContainers::const_iterator m_it = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
-                BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
-		
-		recv_fctc.push_back(&(m_it->second));
-	    }
-	    
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
-#endif
-	    for (int k = 0; k < N_rcvs; k++) 
-	    {
-		value_type*  dptr = mf.fpb_recv_data[k];
-		BL_ASSERT(dptr != 0);
-		
-		const Geometry::FPB::FPBComTagsContainer& fctc = *recv_fctc[k];
-
-                for (Geometry::FPB::FPBComTagsContainer::const_iterator it = fctc.begin();
-                     it != fctc.end(); ++it)
-                {
-                    const Box& bx  = it->dbox;
-                    const int  Cnt = bx.numPts()*mf.fpb_ncomp;
-                    mf[it->dstIndex].copyFromMem(bx,mf.fpb_scomp,mf.fpb_ncomp,dptr);
-                    dptr += Cnt;
-                }
-            }
-	    MPI_Win_detach(win, mf.fpb_the_recv_data);
-	    BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
-
-	    mf.fpb_recv_from.clear();
-	    mf.fpb_recv_data.clear();
-	    mf.fpb_recv_reqs.clear();
-            mf.fpb_recv_disp.clear();
-	}
-
-	if (N_snds > 0) {
-	  for (int i = 0; i < N_snds; i++)
-	    BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
-	  mf.fpb_send_data.clear();
-	}
-
-#ifdef BL_USE_TEAM
-	ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
-    }
-  
-#endif  
-
-  template <class FAB>
-    void
     FillPeriodicBoundary_nowait (const Geometry& geom,
 				 FabArray<FAB>&  mf,
 				 int             scomp,
@@ -906,7 +416,11 @@ namespace BoxLib
         //
 	const int SeqNum = ParallelDescriptor::SeqNum();
 
-        if (TheFPB.m_LocTags->empty() && TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
+	const int N_locs = TheFPB.m_LocTags->size();
+	const int N_rcvs = TheFPB.m_RcvTags->size();
+	const int N_snds = TheFPB.m_SndTags->size();
+
+        if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
             //
             // No work to do.
             //
@@ -917,19 +431,35 @@ namespace BoxLib
 	//
 	// Post rcvs. Allocate one chunk of space to hold'm all.
 	//
-#ifdef BL_USE_UPCXX
-	FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-				    mf.fpb_recv_data,mf.fpb_recv_from,
-				    mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
-#else
-        FabArrayBase::PostRcvs     (*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-				    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
-				    mf.fpb_ncomp,SeqNum);
+
+#ifdef BL_USE_MPI_ONESIDED
+	MPI_Group tgroup, rgroup, sgroup;
+	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 #endif
+
+	if (N_rcvs > 0) {
+#ifdef BL_USE_UPCXX
+	    FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+					mf.fpb_recv_data,mf.fpb_recv_from,
+					mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
+#elif defined(BL_USE_MPI_ONESIDED)
+	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+						mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
+						mf.fpb_recv_disp,ncomp,SeqNum,
+						ParallelDescriptor::fpb_win);
+	    MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
+	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fpb_win);
+#else
+	    FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+				   mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
+				   mf.fpb_ncomp,SeqNum);
+#endif
+	}
 
         //
         // Post send's
         //
+	if (N_snds > 0)
 	{
             Array<value_type*>&                    send_data = mf.fpb_send_data;
 	    Array<int>                             send_N;
@@ -990,33 +520,66 @@ namespace BoxLib
 	    }
 
 #ifdef BL_USE_UPCXX
+
 	    BLPgas::fpb_send_counter = 0;
-#else
-	    Array<MPI_Request>& send_reqs = mf.fpb_send_reqs;
-	    mf.fpb_send_reqs.reserve(N_snds);
-#endif	
+
 	    for (int i=0; i<N_snds; ++i) {
-#ifdef BL_USE_UPCXX
 		BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
 			     send_rank[i],
 			     send_N[i]*sizeof(value_type),
 			     SeqNum,
 			     &BLPgas::fpb_send_event,
 			     &BLPgas::fpb_send_counter);
-#else
-		send_reqs.push_back(ParallelDescriptor::Asend
-				    (send_data[i],
-				     send_N[i],
-				     send_rank[i],
-				     SeqNum).req());
-#endif
 	    }
 	    
-#ifdef BL_USE_UPCXX
 	    while (BLPgas::fpb_send_counter < N_snds)
 		upcxx::advance();
+
+#elif defined(BL_USE_MPI_ONESIDED)
+
+	    Array<MPI_Request> send_reqs;
+	    Array<MPI_Aint>    send_disp;
+	    send_reqs.reserve(N_snds);
+	    send_disp.resize (N_snds);
+
+	    for (int i=0; i<N_snds; ++i) {
+		send_reqs.push_back(ParallelDescriptor::Arecv
+				    (&send_disp[i],1,send_rank[i],SeqNum).req());
+	    }
+
+	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	    MPI_Win_start(sgroup,0,ParallelDescriptor::fpb_win);
+
+	    int send_counter = 0;	    
+	    while (send_counter < N_snds) {
+		MPI_Status status;
+		int index;
+		
+		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		BL_ASSERT(status.MPI_TAG == SeqNum);
+		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+			ParallelDescriptor::fpb_win);
+		send_counter++;
+	    }
+
+#else
+
+	    mf.fpb_send_reqs.reserve(N_snds);
+
+	    for (int i=0; i<N_snds; ++i) {
+		mf.fpb_send_reqs.push_back(ParallelDescriptor::Asend
+					   (send_data[i], send_N[i], send_rank[i], SeqNum).req());
+	    }
 #endif
 	}
+
+#ifdef BL_USE_MPI_ONESIDED
+	MPI_Group_free(&tgroup);
+	if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	if (N_snds > 0) MPI_Group_free(&sgroup);
+#endif
 
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
@@ -1058,16 +621,17 @@ namespace BoxLib
 #endif /*BL_USE_MPI*/
     } 
 	
-#ifdef BL_USE_MPI
     template <class FAB>
     void
-    FillPeriodicBoundary_finish_MPI (const Geometry& geom,
-				     FabArray<FAB>& mf)
+    FillPeriodicBoundary_finish (const Geometry& geom,
+				 FabArray<FAB>&  mf)
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
 	if (ParallelDescriptor::NProcs() == 1) return;
 
+#ifdef BL_USE_MPI
+	
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
 
         Geometry::FPBMMapIter cache_it = Geometry::GetFPB(geom,fpb,mf);
@@ -1076,20 +640,22 @@ namespace BoxLib
 
         const Geometry::FPB& TheFPB = cache_it->second;
 
-        if (TheFPB.m_RcvTags->empty() && TheFPB.m_SndTags->empty())
-            //
-            // No work to do.
-            //
-            return;
-
         typedef typename FAB::value_type value_type;
 
-	Array<MPI_Status> stats;
-
-	//
-	// wait and unpack
-
         const int N_rcvs = TheFPB.m_RcvTags->size();
+        const int N_snds = TheFPB.m_SndTags->size();
+
+#ifdef BL_USE_UPCXX
+	if (N_rcvs > 0) BLPgas::fpb_recv_event.wait();
+#elif defined(BL_USE_MPI_ONESIDED)
+        if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fpb_win);
+	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fpb_win);
+#else
+	if (N_rcvs > 0) {
+	    Array<MPI_Status> stats(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	}
+#endif
 
 	if (N_rcvs > 0)
 	{
@@ -1103,9 +669,6 @@ namespace BoxLib
                 BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
 		recv_fctc.push_back(&(m_it->second));
 	    }
-
-	    stats.resize(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
 	    
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
@@ -1128,104 +691,42 @@ namespace BoxLib
             }
         }
 
+#ifdef BL_USE_UPCXX
+	BLPgas::free(mf.fpb_the_recv_data);
+#elif defined(BL_USE_MPI_ONESIDED)
+	MPI_Win_detach(ParallelDescriptor::fpb_win, mf.fpb_the_recv_data);
+	BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+	mf.fpb_recv_disp.clear();
+#else
         BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+#endif
 
 	mf.fpb_recv_from.clear();
 	mf.fpb_recv_data.clear();
 	mf.fpb_recv_reqs.clear();
 
-        if (!TheFPB.m_SndTags->empty()) {
-            FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),mf.fpb_send_reqs,mf.fpb_send_data,stats);
+	if (N_snds > 0) {
+#ifdef BL_USE_UPCXX
+	    FabArrayBase::GrokAsyncSends_PGAS(N_snds,mf.fpb_send_data,
+					      &BLPgas::fpb_send_event,
+					      &BLPgas::fpb_send_counter);
+#elif defined(BL_USE_MPI_ONESIDED)
+	    for (int i = 0; i < N_snds; ++i)
+		BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
+#else
+	    Array<MPI_Status> stats;
+            FabArrayBase::GrokAsyncSends(N_snds,mf.fpb_send_reqs,mf.fpb_send_data,stats);
+#endif
 	    mf.fpb_send_data.clear();
 	    mf.fpb_send_reqs.clear();
 	}
-
+	
 #ifdef BL_USE_TEAM
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
-    }
+
 #endif /*BL_USE_MPI*/
-
-#ifdef BL_USE_UPCXX
-    template <class FAB>
-    void
-    FillPeriodicBoundary_finish_UPCXX (const Geometry& geom,
-				       FabArray<FAB>& mf)
-    {
-        if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
-	if (ParallelDescriptor::NProcs() == 1) return;
-
-        const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
-
-        auto cache_it = Geometry::GetFPB(geom,fpb,mf);
-
-        BL_ASSERT(cache_it != Geometry::m_FPBCache.end());
-
-        const auto& TheFPB = cache_it->second;
-
-        typedef typename FAB::value_type value_type;
-
-	if (!TheFPB.m_RcvTags->empty())
-	{
-	    BLPgas::fpb_recv_event.wait(); // wait for the recvs
-
-	    //
-	    // wait and unpack
-
-	    const int N_rcvs = TheFPB.m_RcvTags->size();
-
-	    if (N_rcvs > 0)
-	    {
-		Array<const Geometry::FPB::FPBComTagsContainer*> recv_fctc;
-		recv_fctc.reserve(N_rcvs);
-		
-		for (int k = 0; k < N_rcvs; k++)
-		{
-		    auto m_it = TheFPB.m_RcvTags->find(mf.fpb_recv_from[k]);
-		    BL_ASSERT(m_it != TheFPB.m_RcvTags->end());
-		    recv_fctc.push_back(&(m_it->second));
-		}
-		
-#ifdef _OPENMP
-#pragma omp parallel for if (TheFPB.m_threadsafe_rcv)
-#endif
-		for (int k = 0; k < N_rcvs; k++) 
-		{
-		    value_type*  dptr = mf.fpb_recv_data[k];
-		    BL_ASSERT(dptr != 0);
-		    
-		    const auto& fctc = *recv_fctc[k];
-		    
-		    for (auto it = fctc.begin(); it != fctc.end(); ++it)
-		    {
-			const Box& bx  = it->dbox;
-			const int  Cnt = bx.numPts()*mf.fpb_ncomp;
-			mf[it->dstIndex].copyFromMem(bx,mf.fpb_scomp,mf.fpb_ncomp,dptr);
-			dptr += Cnt;
-		    }
-		}
-	    }
-
-	    BLPgas::free(mf.fpb_the_recv_data);
-
-	    mf.fpb_recv_from.clear();
-	    mf.fpb_recv_data.clear();
-	    mf.fpb_recv_reqs.clear();
-	}
-
-        if (!TheFPB.m_SndTags->empty()) {
-	    // Don't need to wait in the PGAS version but call GrokAsyncSends_PGAS to free the send buffers
-	    FabArrayBase::GrokAsyncSends_PGAS(TheFPB.m_SndTags->size(),mf.fpb_send_data,
-					      &BLPgas::fpb_send_event,
-					      &BLPgas::fpb_send_counter);
-	    mf.fpb_send_data.clear();
-	    mf.fpb_send_reqs.clear();
-	}
-
-	ParallelDescriptor::MyTeam().MemoryBarrier();
     }
-#endif /*BL_USE_UPCXX*/
 
     template <class FAB>
     void
