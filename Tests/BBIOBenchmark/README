@@ -1,0 +1,35 @@
+
+this code is adapted from BoxLib/Tests/IOBenchmark
+to test the burst buffer on cori.  only the write
+is called (twice by the driver).  the read needs to
+be finished.
+
+this is a boxlib i/o test.
+it writes and reads a multifab.
+
+Usage:
+iotest3d.Linux.g++.gfortran.MPI.ex
+   [nfiles = nfiles]
+   [maxgrid = maxgrid]
+   [ncomps = ncomps]
+   [nboxes = nboxes]
+   [nsleep = nsleep]
+   [ntimes = ntimes]
+   [raninit = tf]
+   [mb2    = tf]
+
+
+the range [1,nprocs] is enforced for nfiles.
+ncomps is the number of FAB components.
+nboxes is the number of boxes in the multifab.
+nsleep will sleep for nsleep seconds.
+ntimes is the number of times to run the test.
+raninit will initialize the multifab with random values.
+mb2 will use 2^20 instead of 1.0e+06 to calculate megabytes.
+
+
+example run:
+
+mpiexec -n 4 bbiotest3d.Linux.g++.gfortran.MPI.ex nfiles=4 maxgrid=64 ncomps=16 nboxes=32 ntimes=4 raninit=true mb2=true
+
+
