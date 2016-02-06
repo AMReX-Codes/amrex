@@ -225,6 +225,10 @@ public:
     //
     ~FArrayBox ();
     //
+    // Set to signaling NaNs
+    //
+    void set_snan ();
+    //
     // Are there any NaNs in the FAB?
     // This may return false, even if the FAB contains NaNs, if the machine
     // doesn't support the appropriate NaN testing functions.
@@ -404,6 +408,8 @@ private:
     //
     static bool do_initval;
     static Real initval;
+    static bool init_snan;
+    static long long snan;  // In C++11, we could use int64_t.
     //
     // These are not allowed.
     //
