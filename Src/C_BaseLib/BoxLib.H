@@ -4,6 +4,7 @@
 
 #include <ccse-mpi.H>
 
+#include <string>
 #include <stdio.h>
 
 //
@@ -65,13 +66,13 @@ namespace BoxLib
     //
     void OutOfMemory (const char* file,
                       int         line);
-    //
-    void print_backtrace_info (FILE* f);
 #ifdef NDEBUG
     const bool NDebug = true;
 #else
     const bool NDebug = false;
 #endif
+
+    extern std::string exename;
 
     extern int verbose;
 }
