@@ -25,12 +25,12 @@ using std::isinf;
 using std::isnan;
 #endif
 
-#if defined(NDEBUG)
-bool FArrayBox::do_initval = false;
-bool FArrayBox::init_snan  = false;
-#else
+#if defined(DEBUG) || defined(BL_TESTING)
 bool FArrayBox::do_initval = true;
 bool FArrayBox::init_snan  = true;
+#else
+bool FArrayBox::do_initval = false;
+bool FArrayBox::init_snan  = false;
 #endif
 Real FArrayBox::initval;
 long long FArrayBox::snan = 0x7ff0000080000001LL;
