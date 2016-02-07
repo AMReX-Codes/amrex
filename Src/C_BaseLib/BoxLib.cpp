@@ -336,7 +336,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     signal(SIGINT,  BLBackTrace::handler);
     signal(SIGTERM, BLBackTrace::handler);
-    signal(SIGABRT, BLBackTrace::handler);
 
     if (build_parm_parse)
     {

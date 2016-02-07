@@ -67,9 +67,6 @@ BLBackTrace::handler(int s)
     case SIGTERM:
 	BoxLib::Abort("SIGTERM");
 	break;
-    case SIGABRT:
-	BoxLib::Abort("SIGABRT");
-	break;
     default:
 	ParallelDescriptor::Abort();
     }
