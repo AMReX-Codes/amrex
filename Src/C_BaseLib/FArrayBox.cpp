@@ -19,6 +19,7 @@
 #include <Looping.H>
 #include <Utility.H>
 #include <BL_CXX11.H>
+#include <MemPool.H>
 
 #ifdef BL_Darwin
 using std::isinf;
@@ -33,7 +34,6 @@ bool FArrayBox::do_initval = false;
 bool FArrayBox::init_snan  = false;
 #endif
 Real FArrayBox::initval;
-long long FArrayBox::snan = 0x7ff0000080000001LL;
 
 static const char sys_name[] = "IEEE";
 //
@@ -168,7 +168,9 @@ FArrayBox::FArrayBox (const Box& b,
     if (fabio == 0) FArrayBox::Initialize();
 
     if (init_snan) {
-	set_snan();
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
     } else if (do_initval) {
 	setVal(initval);
     }
@@ -179,23 +181,6 @@ FArrayBox::operator= (const Real& v)
 {
     BaseFab<Real>::operator=(v);
     return *this;
-}
-
-void
-FArrayBox::set_snan ()
-{
-    // It seems that the copy of snan may trigger floating point exception.
-    // So we are going copy it as integer.
-    if (sizeof(Real) == sizeof(long long))
-    {
-	Real* data = dataPtr();
-	for (int i = 0; i < truesize; ++i) {
-	    long long *ll = (long long *) (data++);
-	    *ll = snan;
-	}
-    } else {
-	setVal(initval);
-    }
 }
 
 bool 
@@ -331,7 +316,9 @@ FArrayBox::resize (const Box& b,
     BaseFab<Real>::resize(b,N);
 
     if (init_snan) {
-	set_snan();
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
     } else if (do_initval) {
         setVal(initval);
     }

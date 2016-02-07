@@ -48,6 +48,12 @@ module mempool_module
        use, intrinsic :: iso_c_binding
        type(c_ptr), value :: p
      end subroutine mempool_free
+
+     subroutine double_array_init (p, n) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value :: p
+       integer(kind=c_size_t), intent(in), value :: n
+     end subroutine double_array_init
   end interface
 
 contains
@@ -60,8 +66,9 @@ contains
     type(c_ptr) :: cp
     double precision, pointer :: fp(:)
     n1 = max(hi1-lo1+1, 1)
-    sz = szd * int(n1,c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n1,c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1/))
     call shift_bound_d1(fp, lo1, a)
 !    a(lo1:) => fp  ! some compilers may not support this
@@ -83,8 +90,9 @@ contains
     double precision, pointer :: fp(:,:)
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
-    sz = szd * int(n1,c_size_t) * int(n2,c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n1,c_size_t) * int(n2,c_size_t) 
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2/))
     call shift_bound_d2(fp, lo1, lo2, a)
 !    a(lo1:,lo2:) => fp
@@ -107,8 +115,9 @@ contains
     n1 = max(hi1-lo1+1, 1)
     n2 = max(hi2-lo2+1, 1)
     n3 = max(hi3-lo3+1, 1)
-    sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3/))
     call shift_bound_d3(fp, lo1, lo2, lo3, a)
 !    a(lo1:,lo2:,lo3:) => fp
@@ -132,9 +141,10 @@ contains
     n2 = max(hi2-lo2+1, 1)
     n3 = max(hi3-lo3+1, 1)
     n4 = max(hi4-lo4+1, 1)
-    sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
+    sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4/))
     call shift_bound_d4(fp, lo1, lo2, lo3, lo4, a)
 !    a(lo1:,lo2:,lo3:,lo4:) => fp
@@ -159,9 +169,10 @@ contains
     n3 = max(hi3-lo3+1, 1)
     n4 = max(hi4-lo4+1, 1)
     n5 = max(hi5-lo5+1, 1)
-    sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
+    sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5/))
     call shift_bound_d5(fp, lo1, lo2, lo3, lo4, lo5, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:) => fp
@@ -187,9 +198,10 @@ contains
     n4 = max(hi4-lo4+1, 1)
     n5 = max(hi5-lo5+1, 1)
     n6 = max(hi6-lo6+1, 1)
-    sz = szd * int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
+    sz = int(n1,c_size_t) * int(n2,c_size_t) * int(n3,c_size_t) &
          * int(n4,c_size_t) * int(n5,c_size_t) * int(n6,c_size_t)
-    cp = mempool_alloc(sz)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5,n6/))
     call shift_bound_d6(fp, lo1, lo2, lo3, lo4, lo5, lo6, a)
 !    a(lo1:,lo2:,lo3:,lo4:,lo5:,lo6) => fp
@@ -210,8 +222,9 @@ contains
     type(c_ptr) :: cp
     double precision, pointer :: fp(:)
     n = hi - lo + 1
-    sz = szd * int(n(1),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_v(fp, lo, a)
   contains
@@ -231,8 +244,9 @@ contains
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:)
     n = hi - lo + 1
-    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t) * int(n(2),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_v(fp, lo, a)
   contains
@@ -252,8 +266,9 @@ contains
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:)
     n = hi - lo + 1
-    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_v(fp, lo, a)
   contains
@@ -274,8 +289,9 @@ contains
     double precision, pointer :: fp(:,:)
     n(1:1) = hi - lo + 1
     n(2) = ncomp
-    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t) * int(n(2),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d1_vc(fp, lo, a)
   contains
@@ -296,8 +312,9 @@ contains
     double precision, pointer :: fp(:,:,:)
     n(1:2) = hi - lo + 1
     n(3) = ncomp
-    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d2_vc(fp, lo, a)
   contains
@@ -318,8 +335,10 @@ contains
     double precision, pointer :: fp(:,:,:,:)
     n(1:3) = hi - lo + 1
     n(4) = ncomp
-    sz = szd * int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) * int(n(4),c_size_t)
-    cp = mempool_alloc(sz)
+    sz = int(n(1),c_size_t) * int(n(2),c_size_t) * int(n(3),c_size_t) &
+         * int(n(4),c_size_t)
+    cp = mempool_alloc(szd*sz)
+    call double_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
     call shift_bound_d3_vc(fp, lo, a)
   contains

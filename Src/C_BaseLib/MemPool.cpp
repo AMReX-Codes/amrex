@@ -12,9 +12,13 @@
 #include <PArray.H>
 #include <MemPool.H>
 
+#ifndef FORTRAN_BOXLIB
+#include <ParmParse.H>
+#endif
+
 namespace
 {
-  static PArray<CArena> the_memory_pool;
+    static PArray<CArena> the_memory_pool;
 }
 
 extern "C" {
@@ -75,6 +79,37 @@ void mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max & tot
   mp_min = hsu_min/(1024*1024);
   mp_max = hsu_max/(1024*1024);
   mp_tot = hsu_tot/(1024*1024);
+}
+
+void double_array_init (double* p, size_t nelems)
+{
+#if defined(BL_TESTING) || defined(DEBUG)
+    static int init_snan = 1;
+#else
+    static int init_snan = 0;
+#endif
+
+#ifndef FORTRAN_BOXLIB
+    static bool first = true;
+    if (first) {
+	first = false;
+	ParmParse pp("fab");
+	pp.query("init_snan", init_snan);
+    }
+#endif
+
+    if (init_snan) array_init_snan(p, nelems);
+}
+
+void array_init_snan (double* p, size_t nelems)
+{
+    static int ok = (sizeof(double) == sizeof(long long)) ? 1 : 0;
+    if (ok) {
+	for (size_t i = 0; i < nelems; ++i) {
+	    long long *ll = (long long *) (p++);
+	    *ll = 0x7ff0000080000001LL;
+	}
+    }
 }
 
 }
