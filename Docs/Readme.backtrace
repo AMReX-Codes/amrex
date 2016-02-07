@@ -1,54 +1,31 @@
+To help debugging, BoxLib handles various signals in the C standard
+library raised in the runs.  This gives us a chance to print out more
+information using Linux/Unix backtrace capability.  The signals
+include seg fault, interruption by the user (control-c), assertion
+errors, and floating point exceptions (NaNs, divided by zero and
+overflow).  The handling of seg fault, assertion errors and
+interruption by control-C are enabled by default. (Note that in C++
+BoxLib, BL_ASSERT() is only on when compiled with DEBUG=TRUE or
+USE_ASSERTION=TRUE.)  The trapping of floating point exceptions is not
+enabled by default unless the code is compiled with TEST=TRUE or
+DEBUG=TRUE in C++ BoxLib, or TEST=t or NDEBUG= in Fortran BoxLib.  For
+C++ BoxLib codes, one can also use runtime parameters to control the
+handling of floating point exceptions: boxlib.fpe_trap_invalid for
+NaNs, boxlib.fpe_trap_zero for division by zero and
+boxlib.fpe_trap_overflow for overflow.  To more effectively trap the
+use of uninitialized values, BoxLib also initializes MulitFabs and
+arrays allocated by bl_allocate to signaling NaNs when it is compiled
+with TEST=TRUE or DEBUG=TRUE in C++ BoxLib, or TEST=t or NDEBUG= in
+Fortran BoxLib.  In C++ BoxLib, one can also control the setting using
+the runtime parameter, fab.init_snan.
 
-To backtrace segfault and assertion failure in a C++ BoxLib based
-code, compile it with BACKTRACE=TRUE in command line or the
-GNUmakefile.  The outputs are stored in "Backtrace.x" files, where x
-is MPI rank.
-
-***************
-*  Example 1  *
-***************
-
-    std::cout << grids[-1000] << std::endl; // grids: BoxArray starting with index 0
-
-The code above results in a segfault (or assertion failure if compiled
-with DEBUG=TRUE).  The output looks like:
-
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN11BLBackTrace7handlerEi+0x17)[0x4bc7a7]
-    /lib64/libc.so.6(+0x34950)[0x7fe6f13c5950]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZlsRSoRK3Box+0xc)[0x4898dc]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro13advance_hydroEddii+0x42)[0x50c902]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN6Castro7advanceEddii+0x17)[0x50e017]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr8timeStepEidiid+0x29c)[0x4c83ac]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(_ZN3Amr14coarseTimeStepEd+0x266)[0x4c3926]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex(main+0x1ac)[0x44648c]
-    /lib64/libc.so.6(__libc_start_main+0xf0)[0x7fe6f13b0fe0]
-    ./Castro3d.Linux.gcc.gfortran.BT.OMP.ex[0x4468b6]
-
-Here the call stack before the segfault and entry point addresses such
-as [0x4bc7a7] are shown.  More details can be found out by typing:
-
-    $ addr2line -Cfie Castro3d.Linux.gcc.gfortran.BT.OMP.ex 0x50c902
-
-This will show the function name, line number and file name:
-
-    Castro::advance_hydro(double, double, int, int)
-    /home/wqzhang/mygitrepo/Castro/Exec/Sod/../../Source/Castro_advance.cpp:89
-
-Note that this also works for Fortran subroutines in C++ BoxLib based codes.
-
-***************
-*  Example 2  *
-***************
-
-    Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
-
-In this example, a segfault may occur depending on the value of
-"cell".  Suppose the line works most of the time because "cell" is
-usually good, but it fails occasionally on bad "cell".  So we would
-like more information other than that this line sometimes results in a
-segfault.  Using "std::cout" or "printf" often prints out too much.
-The following method is kind of like "printf" except that we will only
-see the information in case of segfault.
+If it is compiled with BACKTRACE=TRUE, one can get more information
+than the backtrace of the call stack by instrumenting the code.  (This
+is in C++ code only.)  Here is an example.  You know the line "Real
+rho = state(cell,0);" is causing a segfault.  You could add a print
+statement before that.  But it might print out thousands (or even
+millions) of line before it hits the segfault.  With BACKTRACE, you
+could do
 
    #include <BLBackTrace.H>
    
@@ -59,29 +36,10 @@ see the information in case of segfault.
    #endif
        Real rho = state(cell,0);  // state is a Fab, and cell is an IntVect.
    #ifdef BL_BACKTRACING
-       BL_BACKTRACE_POP();
+       BL_BACKTRACE_POP(); // One can omit this line.  In that case,
+                           // there is an implicit POP when "PUSH" is
+                           // out of scope.
    #endif
 
-The result looks like,
+When it hits the segfault, you will only see the last pint out.
 
-   == BACKTRACE == Proc. 0, Thread 2: "state.box() = ((-4,-4,-4) (7,7,35) (0,0,0)) cell = (-10000,-10000,-10000)", Line 648, File ../../Source/Castro_advance.cpp
-
-Note that "BL_BACKTRACE_PUSH" and "BL_BACKTRACE_POP" are thread-safe.
-Also note that we can have multiple "BL_BACKTRACE_PUSH"s, and we do
-not have to explicitly call "BL_BACKTRACE_POP", which will be
-implicitly called when "PUSH" is out of scope.
-
-This method currently does not work in Fortran subroutines.
-
-
-**********************************************************************
-
-Known Issues:
-
-* The methods described here probably only work with GCC on a
-  GNU/Linux system.
-
-* On Edison at NERSC, the function names in the first type of tracing
-  are missing because the executable is statically linked.  However,
-  you will still get function entry point addresses, and they can be
-  used by "addr2line" to show line number and file name.
