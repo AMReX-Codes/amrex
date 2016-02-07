@@ -104,6 +104,9 @@ namespace
 	case SIGTERM:
 	    std::cerr << "SIGTERM" << std::endl;
 	    break;
+	case SIGABRT:
+	    std::cerr << "SIGABRT" << std::endl;
+	    break;
 	}
 	abort_fortranboxlib();
     }
@@ -124,6 +127,7 @@ extern "C"
 	signal(SIGSEGV, handler); // catch seg falult
 	signal(SIGINT,  handler);
 	signal(SIGTERM, handler);
+	signal(SIGABRT, handler);
 
 #ifdef BL_TESTING
         // trap floating point exceptions
