@@ -66,6 +66,14 @@ namespace BoxLib
     //
     void OutOfMemory (const char* file,
                       int         line);
+
+    //
+    // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
+    // to ensure that when writing the message to stderr, that no additional
+    // heap-based memory is allocated.
+    //
+    void write_to_stderr_without_buffering (const char* str);
+
 #ifdef NDEBUG
     const bool NDebug = true;
 #else

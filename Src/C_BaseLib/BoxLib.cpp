@@ -75,9 +75,8 @@ namespace BoxLib
 // heap-based memory is allocated.
 //
 
-static
 void
-write_to_stderr_without_buffering (const char* str)
+BoxLib::write_to_stderr_without_buffering (const char* str)
 {
     //
     // Flush all buffers.
@@ -95,7 +94,7 @@ write_to_stderr_without_buffering (const char* str)
 void
 BL_this_is_a_dummy_routine_to_force_version_into_executable ()
 {
-    write_to_stderr_without_buffering(version);    
+    BoxLib::write_to_stderr_without_buffering(version);    
 }
 
 static
