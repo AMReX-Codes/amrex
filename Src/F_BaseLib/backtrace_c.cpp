@@ -72,8 +72,11 @@ namespace
 	}
     }
 #endif
+}
 
-    void handler (int s)
+extern "C"
+{
+    void backtrace_handler (int s)
     {
 #ifdef __linux__
 	std::string errfilename;
@@ -110,10 +113,7 @@ namespace
 	}
 	abort_fortranboxlib();
     }
-}
 
-extern "C"
-{
     void set_signal_handler (const char* ename, int rank)
     {
 	if (ename[0] != '/') {
@@ -124,15 +124,15 @@ extern "C"
 	}
 	fexename += ename;
 	
-	signal(SIGSEGV, handler); // catch seg falult
-	signal(SIGINT,  handler);
-	signal(SIGTERM, handler);
-	signal(SIGABRT, handler);
+	signal(SIGSEGV, backtrace_handler); // catch seg falult
+	signal(SIGINT,  backtrace_handler);
+	signal(SIGTERM, backtrace_handler);
+	signal(SIGABRT, backtrace_handler);
 
 #ifdef BL_TESTING
         // trap floating point exceptions
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
-	signal(SIGFPE, handler);
+	signal(SIGFPE, backtrace_handler);
 #endif
 
 	myproc = rank;
