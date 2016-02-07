@@ -107,9 +107,6 @@ extern "C"
 	case SIGTERM:
 	    std::cerr << "SIGTERM" << std::endl;
 	    break;
-	case SIGABRT:
-	    std::cerr << "SIGABRT" << std::endl;
-	    break;
 	}
 	abort_fortranboxlib();
     }
@@ -127,8 +124,6 @@ extern "C"
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
 	signal(SIGTERM, backtrace_handler);
-	signal(SIGABRT, backtrace_handler);
-
 #ifdef BL_TESTING
         // trap floating point exceptions
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
