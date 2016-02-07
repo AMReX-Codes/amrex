@@ -5,8 +5,8 @@
     FFLAGS += -g   -check bounds
     F90FLAGS += -g  -check bounds
   else
-    FFLAGS += -fast -inline all
-    F90FLAGS += -fast -inline all
+    FFLAGS += -g -fast -inline all
+    F90FLAGS += -g -fast -inline all
   endif
   ifdef OMP
     FFLAGS += -omp
