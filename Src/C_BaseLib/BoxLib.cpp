@@ -340,10 +340,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     if (build_parm_parse)
     {
 	ParmParse pp("boxlib");
-#if defined(NDEBUG)
-	int invalid = 0, divbyzero=0, overflow=0;
-#else
+#if defined(DEBUG) || defined(BL_TESTING)
 	int invalid = 1, divbyzero=1, overflow=1;
+#else
+	int invalid = 0, divbyzero=0, overflow=0;
 #endif
 	pp.query("fpe_trap_invalid", invalid);
 	pp.query("fpe_trap_zero", divbyzero);
