@@ -92,6 +92,9 @@ endif
 
 ifndef NDEBUG
   CPPFLAGS += -DDEBUG
+  ifndef TEST
+    CPPFLAGS += -DBL_TESTING
+  endif
 endif
 
 F_C_LINK := UNDERSCORE
