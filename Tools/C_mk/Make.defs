@@ -805,7 +805,7 @@ ifeq ($(TEST),TRUE)
 endif
 
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING
+    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=
