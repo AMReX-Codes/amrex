@@ -250,19 +250,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     // Make sure to catch new failures.
     //
     std::set_new_handler(BoxLib::OutOfMemory);
-#endif
 
-#ifdef __linux__
-    {
-	if (argv[0][0] != '/') {
-	    char temp[1024];
-	    getcwd(temp,1024);
-	    exename = temp;
-	    exename += "/";
-	}
-	exename += argv[0];
+    if (argv[0][0] != '/') {
+	char temp[1024];
+	getcwd(temp,1024);
+	exename = temp;
+	exename += "/";
     }
-#endif    
+    exename += argv[0];
+#endif
 
     while (!The_Initialize_Function_Stack.empty())
     {
