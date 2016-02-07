@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
 #include <unistd.h>
@@ -26,6 +27,17 @@ namespace
 {
     static std::string fexename;
     static int myproc;
+
+    void fflush_and_stderr (const char* str)
+    {
+	fflush(NULL);
+	if (str)
+	{
+	    const char * const end = " !!!\n";
+	    fwrite(str, strlen(str), 1, stderr);
+	    fwrite(end, strlen(end), 1, stderr);
+	}
+    }
 
 #ifdef __linux__
     void print_backtrace_info (FILE* f)
@@ -78,6 +90,18 @@ extern "C"
 {
     void backtrace_handler (int s)
     {
+	switch (s) {
+	case SIGSEGV:
+	    fflush_and_stderr("Segfault");
+	    break;
+	case SIGFPE:
+	    fflush_and_stderr("Erroneous arithmetic operation");
+	    break;
+	case SIGINT:
+	    fflush_and_stderr("SIGINT");
+	    break;
+	}
+
 #ifdef __linux__
 	std::string errfilename;
 	{
@@ -92,22 +116,10 @@ extern "C"
 	    print_backtrace_info(p);
 	    fclose(p);
 	}
-	sleep(10);
+	std::cerr << "See " << errfilename << " file for details" << std::endl;
+	sleep(3);
 #endif // __linux__
 	
-	switch (s) {
-	case SIGSEGV:
-	    std::cerr << "Segfault" << std::endl;;
-	    break;
-	case SIGFPE:
-	    std::cerr << "Erroneous arithmetic operation" << std::endl;
-	    break;
-	case SIGINT:
-	    std::cerr << "SIGINT" << std::endl;
-	case SIGTERM:
-	    std::cerr << "SIGTERM" << std::endl;
-	    break;
-	}
 	abort_fortranboxlib();
     }
 
@@ -123,7 +135,6 @@ extern "C"
 	
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
-	signal(SIGTERM, backtrace_handler);
 #ifdef BL_TESTING
         // trap floating point exceptions
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);

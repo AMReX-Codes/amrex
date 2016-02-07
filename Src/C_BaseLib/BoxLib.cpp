@@ -219,7 +219,7 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
-    BLBackTrace::handler(-1);
+    BLBackTrace::handler(SIGABRT);
 }
 
 namespace
@@ -335,7 +335,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     signal(SIGINT,  BLBackTrace::handler);
-    signal(SIGTERM, BLBackTrace::handler);
 
     if (build_parm_parse)
     {

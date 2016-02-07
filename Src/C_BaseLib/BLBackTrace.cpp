@@ -16,6 +16,17 @@ std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
 void
 BLBackTrace::handler(int s)
 {
+    switch (s) {
+    case SIGSEGV:
+	BoxLib::write_to_stderr_without_buffering("Segfault");
+	break;
+    case SIGFPE:
+	BoxLib::write_to_stderr_without_buffering("Erroneous arithmetic operation");
+	break;
+    case SIGINT:
+	BoxLib::write_to_stderr_without_buffering("SIGINT");
+	break;
+    }
 
 #ifdef __linux__
 
@@ -34,6 +45,8 @@ BLBackTrace::handler(int s)
 	fclose(p);
     }
     
+    std::cerr << "See " << errfilename << " file for details" << std::endl;
+
 #ifdef BL_BACKTRACING
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
@@ -51,25 +64,11 @@ BLBackTrace::handler(int s)
 #endif
 
     if (ParallelDescriptor::NProcs() > 1)
-	sleep(10);
+	sleep(3);
 
 #endif // __linux__
 
-    switch (s) {
-    case SIGSEGV:
-	BoxLib::Abort("Segfault");
-	break;
-    case SIGFPE:
-	BoxLib::Abort("Erroneous arithmetic operation");
-	break;
-    case SIGINT:
-	BoxLib::Abort("SIGINT");
-    case SIGTERM:
-	BoxLib::Abort("SIGTERM");
-	break;
-    default:
-	ParallelDescriptor::Abort();
-    }
+    ParallelDescriptor::Abort();
 }
 
 #ifdef __linux__
