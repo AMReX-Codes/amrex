@@ -1,0 +1,136 @@
+
+#include <iostream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+
+#include <unistd.h>
+
+#ifdef __linux__
+#include <execinfo.h>
+#endif
+
+#include <signal.h>
+#include <fenv.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+extern "C" {
+    extern void abort_fortranboxlib ();
+}
+
+namespace
+{
+    static std::string fexename;
+    static int myproc;
+
+#ifdef __linux__
+    void print_backtrace_info (FILE* f)
+    {
+	const int nbuf = 32;
+	char **strings = NULL;
+	void *buffer[nbuf];
+	int nptrs = backtrace(buffer, nbuf);
+	strings = backtrace_symbols(buffer, nptrs);
+	if (strings != NULL) {
+	    int have_addr2line = 0;
+	    std::string cmd = "/usr/bin/addr2line";
+	    if (FILE *fp = fopen(cmd.c_str(), "r")) {
+		fclose(fp);
+		have_addr2line = 1;
+	    }
+	    cmd += " -Cfie " + fexename; 
+	    if (have_addr2line) {
+		fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+		fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
+		fprintf(f, "    to find out the offset for that line.\n");
+	    }
+	    for (int i = 0; i < nptrs; ++i) {
+		std::string line = strings[i];
+		line += "\n";
+		if (have_addr2line) {
+		    std::size_t found1 = line.rfind('[');
+		    std::size_t found2 = line.rfind(']');
+		    if (found1 != std::string::npos && found2 != std::string::npos) {
+			std::string addr = line.substr(found1+1, found2-found1-1);
+			std::string full_cmd = cmd + " " + addr;
+			if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+			    char buff[512];
+			    while (fgets(buff, sizeof(buff), ps)) {
+				line += "    ";
+				line += buff;
+			    }
+			    pclose(ps);
+			}
+		    }
+		}
+		fprintf(f, "%2d: %s\n", i, line.c_str());
+	    }
+	}
+    }
+#endif
+
+    void handler (int s)
+    {
+#ifdef __linux__
+	std::string errfilename;
+	{
+	    std::ostringstream ss;
+	    ss << "Backtrace." << myproc;
+#ifdef _OPENMP
+		ss << "." << omp_get_thread_num();
+#endif
+	    errfilename = ss.str();
+	}
+	if (FILE* p = fopen(errfilename.c_str(), "w")) {
+	    print_backtrace_info(p);
+	    fclose(p);
+	}
+	sleep(10);
+#endif // __linux__
+	
+	switch (s) {
+	case SIGSEGV:
+	    std::cerr << "Segfault" << std::endl;;
+	    break;
+	case SIGFPE:
+	    std::cerr << "Erroneous arithmetic operation" << std::endl;
+	    break;
+	case SIGINT:
+	    std::cerr << "SIGINT" << std::endl;
+	case SIGTERM:
+	    std::cerr << "SIGTERM" << std::endl;
+	    break;
+	}
+	abort_fortranboxlib();
+    }
+}
+
+extern "C"
+{
+    void set_signal_handler (const char* ename, int rank)
+    {
+	if (ename[0] != '/') {
+	    char temp[1024];
+	    getcwd(temp,1024);
+	    fexename = temp;
+	    fexename += "/";
+	}
+	fexename += ename;
+	
+	signal(SIGSEGV, handler); // catch seg falult
+	signal(SIGINT,  handler);
+	signal(SIGTERM, handler);
+
+#ifdef BL_TESTING
+        // trap floating point exceptions
+	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
+	signal(SIGFPE, handler);
+#endif
+
+	myproc = rank;
+    }
+}
