@@ -9,10 +9,10 @@
     F90FLAGS += -J $(mdir) -I $(mdir) -em
 
     ifdef NDEBUG
-      FFLAGS   += -O 1
-      F90FLAGS += -O 1
-      CFLAGS   += -O 1
-      CXXFLAGS += -O 1
+      FFLAGS   += -g -O 1
+      F90FLAGS += -g -O 1
+      CFLAGS   += -g -O 1
+      CXXFLAGS += -g -O 1
     else
       FFLAGS   += -g -O0
       F90FLAGS += -g -O0
