@@ -1,3 +1,6 @@
+#if defined(__PGI) && defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE 1
+#endif
 
 #include <iostream>
 #include <sstream>
