@@ -19,6 +19,10 @@
 #include <omp.h>
 #endif
 
+#ifndef FORTRAN_BOXLIB
+#include <BLBackTrace.H>
+#endif
+
 extern "C" {
     extern void abort_fortranboxlib ();
 }
@@ -88,6 +92,7 @@ namespace
 
 extern "C"
 {
+#ifdef FORTRAN_BOXLIB
     void backtrace_handler (int s)
     {
 	switch (s) {
@@ -122,6 +127,12 @@ extern "C"
 	
 	abort_fortranboxlib();
     }
+#else
+    void backtrace_handler (int s)
+    { 
+	BLBackTrace::handler(s); 
+    }
+#endif
 
     void set_signal_handler (const char* ename, int rank)
     {
