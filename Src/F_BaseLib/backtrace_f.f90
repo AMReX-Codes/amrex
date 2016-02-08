@@ -8,7 +8,7 @@ module backtrace_module
 
   private
 
-  public :: backtrace_init
+  public :: backtrace_init, abort_fortranboxlib
 
 contains
 
@@ -31,10 +31,9 @@ contains
     call set_signal_handler (exename_c, parallel_myproc())
   end subroutine backtrace_init
 
-end module backtrace_module
+  subroutine abort_fortranboxlib () bind(c,name="abort_fortranboxlib")
+    call parallel_abort()
+  end subroutine abort_fortranboxlib
 
-subroutine abort_fortranboxlib () bind(c)
-  use parallel
-  call parallel_abort()
-end subroutine abort_fortranboxlib
+end module backtrace_module
 
