@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <winstd.H>
 #include <cstdio>
@@ -350,10 +349,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	if (invalid)   flags |= FE_INVALID;
 	if (divbyzero) flags |= FE_DIVBYZERO;
 	if (overflow)  flags |= FE_OVERFLOW;
+#ifndef __PGI
 	if (flags != 0) {
 	    feenableexcept(flags);  // trap floating point exceptions
 	    signal(SIGFPE,  BLBackTrace::handler);
 	}
+#endif
     }
 
     mempool_init();

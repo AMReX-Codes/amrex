@@ -1,7 +1,3 @@
-#if defined(__PGI) && defined(__linux__) && !defined(_GNU_SOURCE)
-#define _GNU_SOURCE 1
-#endif
-
 #include <iostream>
 #include <sstream>
 #include <cstdio>
@@ -151,8 +147,10 @@ extern "C"
 	signal(SIGINT,  backtrace_handler);
 #ifdef BL_TESTING
         // trap floating point exceptions
+#ifndef __PGI
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 	signal(SIGFPE, backtrace_handler);
+#endif
 #endif
 
 	myproc = rank;
