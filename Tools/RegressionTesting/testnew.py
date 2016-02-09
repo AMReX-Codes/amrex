@@ -1976,7 +1976,7 @@ def test_suite(argv):
             for btf in backtrace:
                 ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
                 shutil.copy(btf, ofile)
-                test.backtrace.append(ofile)
+                test.backtrace.append("{}.{}".format(test.name, btf))
                 
 
 
