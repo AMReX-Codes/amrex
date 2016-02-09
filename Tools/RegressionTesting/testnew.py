@@ -70,7 +70,8 @@ The "main" block specifies the global test suite parameters:
   FCOMP = < name of Fortran compiler >
   COMP  = < name of C/C++ compiler >
 
-  add_to_make_command = < any additional defines to add to the make invocation >
+  add_to_f_make_command = < any additional defines to add to the make invocation for F_Src BoxLib >
+  add_to_c_make_command = < any additional defines to add to the make invocation for C_Src BoxLib >
 
   purge_output = <0: leave all plotfiles in place; 
                   1: delete plotfiles after compare >
@@ -313,7 +314,8 @@ class Suite(object):
         self.FCOMP = "gfortran"
         self.COMP = "g++"
 
-        self.add_to_make_command = ""
+        self.add_to_f_make_command = ""
+        self.add_to_c_make_command = ""
 
         self.MAKE = "gmake"
         self.numMakeJobs = 1
@@ -636,7 +638,7 @@ class Suite(object):
     def build_f(self, opts="", target="", outfile=None):
         comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {} {}".format(
             self.MAKE, self.numMakeJobs, self.boxlib_dir, 
-            self.FCOMP, self.add_to_make_command, opts, target)
+            self.FCOMP, self.add_to_f_make_command, opts, target)
         self.log.log(comp_string)
         run(comp_string, outfile=outfile)
         return comp_string
@@ -1547,7 +1549,7 @@ def test_suite(argv):
                 suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
                 suite.extra_src_comp_string, test.addToCompileString,
                 test.dim, buildOptions, suite.COMP, suite.FCOMP, 
-                suite.add_to_make_command, executable)
+                suite.add_to_c_make_command, executable)
 
             suite.log.log(comp_string)
             so, se, r = run(comp_string,
