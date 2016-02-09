@@ -17,7 +17,11 @@ BL_FORT_PROC_DECL(AB2_GSRB, ab2_gsrb)
       const BL_FORT_FAB_ARG(res),
       const Real* alpha, const Real* beta,
       const BL_FORT_FAB_ARG(a),
-      const BL_FORT_FAB_ARG(bx),const BL_FORT_FAB_ARG(by),
+      const BL_FORT_FAB_ARG(bx),
+      const BL_FORT_FAB_ARG(by),
+#if (BL_SPACEDIM == 3)
+      const BL_FORT_FAB_ARG(bz),
+#endif
       const BL_FORT_FAB_ARG(f0),const BL_FORT_IFAB_ARG(m0),
       const BL_FORT_FAB_ARG(f1),const BL_FORT_IFAB_ARG(m1),
       const BL_FORT_FAB_ARG(f2),const BL_FORT_IFAB_ARG(m2),
@@ -34,7 +38,11 @@ BL_FORT_PROC_DECL(AB2_JACOBI, ab2_jacobi)
       const BL_FORT_FAB_ARG(res),
       const Real* alpha, const Real* beta,
       const BL_FORT_FAB_ARG(a),
-      const BL_FORT_FAB_ARG(bx),const BL_FORT_FAB_ARG(by),
+      const BL_FORT_FAB_ARG(bx),
+      const BL_FORT_FAB_ARG(by),
+#if (BL_SPACEDIM == 3)
+      const BL_FORT_FAB_ARG(bz),
+#endif
       const BL_FORT_FAB_ARG(f0),const BL_FORT_IFAB_ARG(m0),
       const BL_FORT_FAB_ARG(f1),const BL_FORT_IFAB_ARG(m1),
       const BL_FORT_FAB_ARG(f2),const BL_FORT_IFAB_ARG(m2),

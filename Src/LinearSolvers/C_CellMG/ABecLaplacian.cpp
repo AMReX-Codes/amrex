@@ -612,6 +612,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
     }
 }
 
+#include <fstream>
 void
 ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
@@ -620,6 +621,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
   int num_comp = 1;
   int src_comp = 0;
   int dst_comp = 0;
+
   Fapply(y,dst_comp,x,src_comp,num_comp,level);
 }
 

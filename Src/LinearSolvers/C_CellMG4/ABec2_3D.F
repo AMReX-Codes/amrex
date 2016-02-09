@@ -10,6 +10,7 @@
      &     a, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3, 
      &     bX,bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3,
      &     bY,bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3,
+     &     bZ,bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3,
      &     f0,f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3,
      &     m0,m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3,
      &     f1,f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3,
@@ -29,10 +30,11 @@
 
       integer phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3
       integer res_l1,res_l2,res_l3,res_h1,res_h2,res_h3
-      integer alpha, beta
+      REAL_T alpha, beta
       integer a_l1,  a_l2, a_l3, a_h1, a_h2, a_h3
       integer bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3
       integer bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3
+      integer bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3
       integer f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3
       integer m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3
       integer f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3
@@ -66,18 +68,16 @@
       REAL_T  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
       REAL_T  h(3)
 c
-      integer  i, j, k, ioff, joff, n
+      integer  i, j, k, ioff, n
 c
       REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-      REAL_T delta, gamma, rho
+      REAL_T delta, gamma
 c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,ioff,cf0,cf1,cf2,cf3,cf4,cf5,delta)
-!$omp&private(gamma) if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
@@ -110,9 +110,7 @@ c
                end do
             end do
           end do
-!$omp end parallel do
       end do
-
       end
 
 
@@ -123,6 +121,7 @@ c
      &     a, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3, 
      &     bX,bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3,
      &     bY,bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3,
+     &     bZ,bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3,
      &     f0,f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3,
      &     m0,m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3,
      &     f1,f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3,
@@ -146,6 +145,7 @@ c
       integer a_l1,  a_l2, a_l3, a_h1, a_h2, a_h3
       integer bX_l1,bX_l2,bX_l3,bX_h1,bX_h2,bX_h3
       integer bY_l1,bY_l2,bY_l3,bY_h1,bY_h2,bY_h3
+      integer bZ_l1,bZ_l2,bZ_l3,bZ_h1,bZ_h2,bZ_h3
       integer f0_l1,f0_l2,f0_l3,f0_h1,f0_h2,f0_h3
       integer m0_l1,m0_l2,m0_l3,m0_h1,m0_h2,m0_h3
       integer f1_l1,f1_l2,f1_l3,f1_h1,f1_h2,f1_h3
@@ -179,9 +179,9 @@ c
       REAL_T  m5(m5_l1:m5_h1,m5_l2:m5_h2,m5_l3:m5_h3)
       REAL_T  h(3)
 c
-      integer  i, j, n
+      integer  i, j, k, n
 c
-      REAL_T dhx, dhy, cf0, cf1, cf2, cf3
+      REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
       REAL_T delta, gamma
       REAL_T, allocatable :: phit(:,:,:)
       allocate(phit(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
@@ -191,8 +191,6 @@ c
       dhz = beta/h(3)**2
 
       do n = 1, nc
-!$omp parallel do private(i,j,k,cf0,cf1,cf2,cf3,cf4,cf5,delta,gamma,phit)
-!$omp&if((hi(3)-lo(3)).ge.3)
           do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1),hi(1)
@@ -225,7 +223,6 @@ c
             end do
           end do
           phi(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),n) = phit
-!$omp end parallel do
       end do
 
       deallocate(phit)
@@ -291,6 +288,7 @@ c
             end do
          else if (is_dirichlet(bct)) then
             x(-1) = - bcl/h(1)
+            xInt = -0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
@@ -322,6 +320,7 @@ c
             end do
          else if (is_dirichlet(bct)) then
             x(-1) = - bcl/h(1)
+            xInt = -0.5D0
             call polyInterpCoeff(xInt, x, lenx+2, coef)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
@@ -353,6 +352,7 @@ c
                end do
             else if (is_dirichlet(bct)) then
                x(-1) = - bcl/h(2)
+               xInt = -0.5D0
                call polyInterpCoeff(xInt, x, leny+2, coef)
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -384,6 +384,7 @@ c
                end do
             else if (is_dirichlet(bct)) then
                x(-1) = - bcl/h(2)
+               xInt = -0.5D0
                call polyInterpCoeff(xInt, x, leny+2, coef)
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
@@ -415,6 +416,7 @@ c
                end do
             else if (is_dirichlet(bct)) then
                x(-1) = - bcl/h(3)
+               xInt = -0.5D0
                call polyInterpCoeff(xInt, x, lenz+2, coef)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
@@ -446,6 +448,7 @@ c
                end do
             else if (is_dirichlet(bct)) then
                x(-1) = - bcl/h(3)
+               xInt = -0.5D0
                call polyInterpCoeff(xInt, x, lenz+2, coef)
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)

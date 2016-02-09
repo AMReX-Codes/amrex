@@ -146,7 +146,7 @@ extern "C"
 
     void FORT_APPLYBC4_TOUCHUP(
         Real *phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi),
-        const int *cdr,const int *lo, const int *hi, const int *nc);
+        const int *lo, const int *hi, const int *nc);
 
     void FORT_ADOTX(
         Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),

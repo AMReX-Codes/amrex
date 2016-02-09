@@ -37,163 +37,44 @@ c
       REAL_T  a(DIMV(a))
       REAL_T  b(DIMV(b))
       REAL_T h(BL_SPACEDIM)
+
       integer i,j,n
-      REAL_T b1L, b1R, b1B, b1T, g1L, g1R, g1B, g1T, FL, FR, FB, FT
-      REAL_T b2L, b2R, b2B, b2T, g2L, g2R, g2B, g2T
-      REAL_T b3L, b3R, b3B, b3T, g3L, g3R, g3B, g3T
-      REAL_T btm2, btm1, btp1, btp2, btzL, btzR, btzB, btzT
-      REAL_T gtm2, gtm1, gtp1, gtp2, gtzL, gtzR, gtzB, gtzT
-      REAL_T i144, i80, i12, bh1i, bh2i
-      REAL_T h11, h12, h13, h14
-      REAL_T h21, h22, h23, h24
-      REAL_T h1i1_12, h1i1_48, h1i2_16, h1i3_12, h12_12
-      REAL_T h2i1_12, h2i1_48, h2i2_16, h2i3_12, h22_12
+      REAL_T bh1i, bh2i
+      integer xlo(BL_SPACEDIM), xhi(BL_SPACEDIM)
+      integer ylo(BL_SPACEDIM), yhi(BL_SPACEDIM)
 
-      h11 = h(1)
-      h12 = h11*h11
-      h13 = h12*h11
-      h14 = h13*h11
-      h1i1_12 = 1.d0 / (12.d0*h11)
-      h1i1_48 = 1.d0 / (48.d0*h11)
-      h1i2_16 = 1.d0 / (16.d0*h12)
-      h1i3_12 = 1.d0 / (12.d0*h13)
-      h12_12  = h12 / 12.d0
+      REAL_T, allocatable :: xflux(:,:,:), yflux(:,:,:)
 
-      h21 = h(2)
-      h22 = h21*h21
-      h23 = h22*h21
-      h24 = h23*h21
-      h2i1_12 = 1.d0 / (12.d0*h21)
-      h2i1_48 = 1.d0 / (48.d0*h21)
-      h2i2_16 = 1.d0 / (16.d0*h22)
-      h2i3_12 = 1.d0 / (12.d0*h23)
-      h22_12  = h22 / 12.d0
+      xlo(:) = lo(:)
+      xhi(:) = hi(:)
+      ylo(:) = lo(:)
+      yhi(:) = hi(:)
+      xhi(1) = hi(1) + 1
+      yhi(2) = hi(2) + 1
 
-      i12  = 1.d0/12.d0
-      i144 = 1.d0/144.d0
-      i80  = 1.d0/80.d0
-      bh1i = beta / h11
-      bh2i = beta / h21
+      allocate(xflux(xlo(1):xhi(1),xlo(2):xhi(2),nc))
+      allocate(yflux(ylo(1):yhi(1),ylo(2):yhi(2),nc))
 
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
+      bh1i = beta / h(1)
+      bh2i = beta / h(2)
 
-            btm2 = btildei(i-1,j-2)
-            btm1 = btildei(i-1,j-1)
-            btzL = btildei(i-1,j  )
-            btp1 = btildei(i-1,j+1)
-            btp2 = btildei(i-1,j+2)
+      call flux_dir(x, DIMS(x), alpha, beta, a, DIMS(a), b, DIMS(b), nc,
+     $              h(1), xlo, xhi, xflux, xlo(1), xlo(2), xhi(1), xhi(2), 1)
+      call flux_dir(x, DIMS(x), alpha, beta, a, DIMS(a), b, DIMS(b), nc,
+     $              h(2), ylo, yhi, yflux, ylo(1), ylo(2), yhi(1), yhi(2), 2)
 
-            b1L = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)          ) * h1i1_48
-            b2L = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btzL) * h1i2_16
-            b3L = (  - btm2 + btp2  -  2*(btp1 - btm1)          ) * h1i3_12
+      do n=1,nc
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               y(i,j,n) = alpha*a(i,j)*x(i,j,n)
+     &          - bh1i*(xflux(i+1,j,n) - xflux(i,j,n))
+     &          - bh2i*(yflux(i,j+1,n) - yflux(i,j,n))
+            enddo
+         enddo
+      enddo
 
-            btm2 = btildei(i  ,j-2)
-            btm1 = btildei(i  ,j-1)
-            btzR = btildei(i  ,j  )
-            btp1 = btildei(i  ,j+1)
-            btp2 = btildei(i  ,j+2)
-
-            b1R = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)          ) * h1i1_48
-            b2R = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btzR) * h1i2_16
-            b3R = (  - btm2 + btp2  -  2*(btp1 - btm1)          ) * h1i3_12
-
-            btm2 = btildej(i-2,j-1)
-            btm1 = btildej(i-1,j-1)
-            btzB = btildej(i  ,j-1)
-            btp1 = btildej(i+1,j-1)
-            btp2 = btildej(i+2,j-1)
-
-            b1B = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)          ) * h2i1_48
-            b2B = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btzB) * h2i2_16
-            b3B = (  - btm2 + btp2  -  2*(btp1 - btm1)          ) * h2i3_12
-
-            btm2 = btildej(i-2,j  )
-            btm1 = btildej(i-1,j  )
-            btzT = btildej(i  ,j  )
-            btp1 = btildej(i+1,j  )
-            btp2 = btildej(i+2,j  )
-
-            b1T = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)          ) * h2i1_48
-            b2T = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btzT) * h2i2_16
-            b3T = (  - btm2 + btp2  -  2*(btp1 - btm1)          ) * h2i3_12
-
-            do n = 1, nc
-
-               gtm2 = gxtildei(i-1,j-2,n)
-               gtm1 = gxtildei(i-1,j-1,n)
-               gtzL = gxtildei(i-1,j  ,n)
-               gtp1 = gxtildei(i-1,j+1,n)
-               gtp2 = gxtildei(i-1,j+2,n)
-
-               g1L = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)          ) * h1i1_48
-               g2L = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtzL) * h1i2_16
-               g3L = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)          ) * h1i3_12
-
-               gtm2 = gxtildei(i  ,j-2,n)
-               gtm1 = gxtildei(i  ,j-1,n)
-               gtzR = gxtildei(i  ,j  ,n)
-               gtp1 = gxtildei(i  ,j+1,n)
-               gtp2 = gxtildei(i  ,j+2,n)
-
-               g1R = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)          ) * h1i1_48
-               g2R = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtzR) * h1i2_16
-               g3R = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)          ) * h1i3_12
-
-               gtm2 = gytildej(i-2,j-1,n)
-               gtm1 = gytildej(i-1,j-1,n)
-               gtzB = gytildej(i  ,j-1,n)
-               gtp1 = gytildej(i+1,j-1,n)
-               gtp2 = gytildej(i+2,j-1,n)
-
-               g1B = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)          ) * h2i1_48
-               g2B = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtzB) * h2i2_16
-               g3B = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)          ) * h2i3_12
-
-               gtm2 = gytildej(i-2,j  ,n)
-               gtm1 = gytildej(i-1,j  ,n)
-               gtzT = gytildej(i  ,j  ,n)
-               gtp1 = gytildej(i+1,j  ,n)
-               gtp2 = gytildej(i+2,j  ,n)
-
-               g1T = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)          ) * h2i1_48
-               g2T = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtzT) * h2i2_16
-               g3T = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)          ) * h2i3_12
-
-               FL = gtzL*btzL + g1L*b1L*h12_12 + h14*( - g2L*b2L*i144 + ( g1L*b3L + g2L*b2L + g3L*b1L )*i80 )
-               FR = gtzR*btzR + g1R*b1R*h12_12 + h14*( - g2R*b2R*i144 + ( g1R*b3R + g2R*b2R + g3R*b1R )*i80 )
-               FB = gtzB*btzB + g1B*b1B*h22_12 + h24*( - g2B*b2B*i144 + ( g1B*b3B + g2B*b2B + g3B*b1B )*i80 )
-               FT = gtzT*btzT + g1T*b1T*h22_12 + h24*( - g2T*b2T*i144 + ( g1T*b3T + g2T*b2T + g3T*b1T )*i80 )
-
-               y(i,j,n) = alpha*a(i,j)*x(i,j,n) - ( bh1i*(FR - FL) + bh2i*(FT - FB) )
-
-            end do
-         end do
-      end do
-
-      contains
-
-c     4th order approx to b at (i+1/2,j), given cell-averaged values at ([i-1,i,i+1,i+2],j)
-      REAL_T function btildei(i,j)
-      integer, intent(in) :: i, j
-      btildei = (-b(i-1,j)+7*(b(i,j)+b(i+1,j))-b(i+2,j))*i12
-      end function
-
-      REAL_T function btildej(i,j)
-      integer, intent(in) :: i,j
-      btildej = (-b(i,j-1)+7*(b(i,j)+b(i,j+1))-b(i,j+2))*i12
-      end function
-
-c     Average over edge (i+1/2,j) of derivative normal to the edge, based on cell-averaged values
-      REAL_T function gxtildei(i,j,n)
-      integer, intent(in) :: i,j,n
-      gxtildei = (x(i-1,j,n)-x(i+2,j,n)+15.d0*(x(i+1,j,n)-x(i,j,n)))*h1i1_12
-      end function
-
-      REAL_T function gytildej(i,j,n)
-      integer, intent(in) :: i,j,n
-      gytildej = (x(i,j-1,n)-x(i,j+2,n)+15.d0*(x(i,j+1,n)-x(i,j,n)))*h2i1_12
-      end function
+      deallocate(xflux)
+      deallocate(yflux)
 
       end
 
@@ -228,127 +109,99 @@ c
       REAL_T yflux(DIMV(yflux),nc)
       REAL_T h(BL_SPACEDIM)
 
+      call flux_dir(x, DIMS(x), alpha, beta, a, DIMS(a), b, DIMS(b), nc,
+     $              h(1), xlo, xhi, xflux, DIMS(xflux), 1)
+      call flux_dir(x, DIMS(x), alpha, beta, a, DIMS(a), b, DIMS(b), nc,
+     $              h(2), ylo, yhi, yflux, DIMS(yflux), 2)
+
+      end
+
+c-----------------------------------------------------------------------
+      subroutine flux_dir(
+     $     x,DIMS(x),
+     $     alpha, beta,
+     $     a, DIMS(a),
+     $     b, DIMS(b),
+     $     nc,
+     $     h,
+     $     lo,hi,flux,DIMS(flux),
+     $     dir)
+      implicit none
+      REAL_T alpha, beta
+      integer nc, dir
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+      integer DIMDEC(x)
+      integer DIMDEC(a)
+      integer DIMDEC(b)
+      integer DIMDEC(flux)
+      REAL_T  x(DIMV(x),nc)
+      REAL_T  a(DIMV(a))
+      REAL_T  b(DIMV(b))
+      REAL_T flux(DIMV(flux),nc)
+      REAL_T h
+
       integer i,j,n
-      REAL_T btm2, btm1, btz, btp1, btp2, b1, b2, b3
-      REAL_T gtm2, gtm1, gtz, gtp1, gtp2, g1, g2, g3
+      REAL_T i12, i48
+      REAL_T hi1_12
 
-      REAL_T i144, i80, i12, bh1i, bh2i
-      REAL_T h11, h12, h13, h14
-      REAL_T h21, h22, h23, h24
-      REAL_T h1i1_12, h1i1_48, h1i2_16, h1i3_12, h12_12
-      REAL_T h2i1_12, h2i1_48, h2i2_16, h2i3_12, h22_12
+      REAL_T, allocatable :: gt(:,:)
+      REAL_T, allocatable :: bt(:,:)
+      REAL_T g1, b1
 
-      h11 = h(1)
-      h12 = h11*h11
-      h13 = h12*h11
-      h14 = h13*h11
-      h1i1_12 = 1.d0 / (12.d0*h11)
-      h1i1_48 = 1.d0 / (48.d0*h11)
-      h1i2_16 = 1.d0 / (16.d0*h12)
-      h1i3_12 = 1.d0 / (12.d0*h13)
-      h12_12  = h12 / 12.d0
+      i12 = 1.d0/12.d0
+      i48 = 1.d0/48.d0
+      hi1_12 = 1.d0 / (12.d0*h)
 
-      h21 = h(2)
-      h22 = h21*h21
-      h23 = h22*h21
-      h24 = h23*h21
-      h2i1_12 = 1.d0 / (12.d0*h21)
-      h2i1_48 = 1.d0 / (48.d0*h21)
-      h2i2_16 = 1.d0 / (16.d0*h22)
-      h2i3_12 = 1.d0 / (12.d0*h23)
-      h22_12  = h22 / 12.d0
+      if (dir .eq. 1) then
+         allocate(gt(lo(1):hi(1),lo(2)-2:hi(2)+2))
+         allocate(bt(lo(1):hi(1),lo(2)-2:hi(2)+2))
 
-      i12  = 1.d0/12.d0
-      i144 = 1.d0/144.d0
-      i80  = 1.d0/80.d0
-      bh1i = beta / h11
-      bh2i = beta / h21
+         do j = lo(2)-2, hi(2)+2
+            do i = lo(1), hi(1)
+               bt(i,j) = (-b(i-2,j)+7*(b(i-1,j)+b(i,j))-b(i+1,j))*i12
+            enddo
+         enddo
+         do n=1,nc
+            do j = lo(2)-2, hi(2)+2
+               do i = lo(1), hi(1)
+                  gt(i,j) = (x(i-2,j,n)-x(i+1,j,n)+15.d0*(x(i,j,n)-x(i-1,j,n)))*hi1_12
+               enddo
+            enddo
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  g1 = (34.d0*(gt(i,j+1)-gt(i,j-1))+5.d0*(gt(i,j-2)-gt(i,j+2)))*i48
+                  b1 = (34.d0*(bt(i,j+1)-bt(i,j-1))+5.d0*(bt(i,j-2)-bt(i,j+2)))*i48
+                  flux(i,j,n) = bt(i,j)*gt(i,j)  +  i12*b1*g1
+               enddo
+            enddo
+         enddo
+      else
+         allocate(gt(lo(1)-2:hi(1)+2,lo(2):hi(2)))
+         allocate(bt(lo(1)-2:hi(1)+2,lo(2):hi(2)))
 
-      do j = xlo(2), xhi(2)
-         do i = xlo(1), xhi(1)
-            
-            btm2 = btildei(i-1,j-2)
-            btm1 = btildei(i-1,j-1)
-            btz  = btildei(i-1,j  )
-            btp1 = btildei(i-1,j+1)
-            btp2 = btildei(i-1,j+2)
+         do j = lo(2), hi(2)
+            do i = lo(1)-2, hi(1)+2
+               bt(i,j) = (-b(i,j-2)+7*(b(i,j-1)+b(i,j))-b(i,j+1))*i12
+            enddo
+         enddo
+         do n=1,nc
+            do j = lo(2), hi(2)
+               do i = lo(1)-2, hi(1)+2
+                  gt(i,j) = (x(i,j-2,n)-x(i,j+1,n)+15.d0*(x(i,j,n)-x(i,j-1,n)))*hi1_12
+               enddo
+            enddo
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  g1 = (34.d0*(gt(i+1,j)-gt(i-1,j))+5.d0*(gt(i-2,j)-gt(i+2,j)))*i48
+                  b1 = (34.d0*(bt(i+1,j)-bt(i-1,j))+5.d0*(bt(i-2,j)-bt(i+2,j)))*i48
+                  flux(i,j,n) = bt(i,j)*gt(i,j)  +  i12*b1*g1
+               enddo
+            enddo
+         enddo
+      endif
 
-            b1 = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)         ) * h1i1_48
-            b2 = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btz) * h1i2_16
-            b3 = (  - btm2 + btp2  -  2*(btp1 - btm1)         ) * h1i3_12
-
-            do n = 1, nc
-
-               gtm2 = gxtildei(i-1,j-2,n)
-               gtm1 = gxtildei(i-1,j-1,n)
-               gtz  = gxtildei(i-1,j  ,n)
-               gtp1 = gxtildei(i-1,j+1,n)
-               gtp2 = gxtildei(i-1,j+2,n)
-
-               g1 = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)         ) * h1i1_48
-               g2 = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtz) * h1i2_16
-               g3 = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)         ) * h1i3_12
-
-               xflux(i,j,n) = gtz*btz + g1*b1*h12_12 + h14*( - g2*b2*i144 + ( g1*b3 + g2*b2 + g3*b1 )*i80 ) 
-
-            end do
-         end do
-      end do
-
-      do j = ylo(2), yhi(2)
-         do i = ylo(1), yhi(1)
-            
-            btm2 = btildej(i-2,j-1)
-            btm1 = btildej(i-1,j-1)
-            btz  = btildej(i  ,j-1)
-            btp1 = btildej(i+1,j-1)
-            btp2 = btildej(i+2,j-1)
-
-            b1 = ( 5*(btm2 - btp2) + 34*(btp1 - btm1)         ) * h2i1_48
-            b2 = (-1*(btm2 + btp2) + 12*(btp1 + btm1) - 22*btz) * h2i2_16
-            b3 = (  - btm2 + btp2  -  2*(btp1 - btm1)         ) * h2i3_12
-
-            do n = 1, nc
-
-               gtm2 = gytildej(i-2,j-1,n)
-               gtm1 = gytildej(i-1,j-1,n)
-               gtz  = gytildej(i  ,j-1,n)
-               gtp1 = gytildej(i+1,j-1,n)
-               gtp2 = gytildej(i+2,j-1,n)
-
-               g1 = ( 5*(gtm2 - gtp2) + 34*(gtp1 - gtm1)         ) * h2i1_48
-               g2 = (-1*(gtm2 + gtp2) + 12*(gtp1 + gtm1) - 22*gtz) * h2i2_16
-               g3 = (  - gtm2 + gtp2  -  2*(gtp1 - gtm1)         ) * h2i3_12
-
-               yflux(i,j,n) = gtz*btz + g1*b1*h22_12 + h24*( - g2*b2*i144 + ( g1*b3 + g2*b2 + g3*b1 )*i80 ) 
-
-            end do
-         end do
-      end do
-
-      contains
-
-c     4th order approx to b at (i+1/2,j), given cell-averaged values at ([i-1,i,i+1,i+2],j)
-      REAL_T function btildei(i,j)
-      integer, intent(in) :: i, j
-      btildei = (-b(i-1,j)+7*(b(i,j)+b(i+1,j))-b(i+2,j))*i12
-      end function
-
-      REAL_T function btildej(i,j)
-      integer, intent(in) :: i,j
-      btildej = (-b(i,j-1)+7*(b(i,j)+b(i,j+1))-b(i,j+2))*i12
-      end function
-
-c     Average over edge (i+1/2,j) of derivative normal to the edge, based on cell-averaged values
-      REAL_T function gxtildei(i,j,n)
-      integer, intent(in) :: i,j,n
-      gxtildei = (x(i-1,j,n)-x(i+2,j,n)+15.d0*(x(i+1,j,n)-x(i,j,n)))*h1i1_12
-      end function
-
-      REAL_T function gytildej(i,j,n)
-      integer, intent(in) :: i,j,n
-      gytildej = (x(i,j-1,n)-x(i,j+2,n)+15.d0*(x(i,j+1,n)-x(i,j,n)))*h2i1_12
-      end function
+      deallocate(gt)
+      deallocate(bt)
 
       end
 
@@ -402,11 +255,8 @@ c
       parameter (d = 11.d0/12.d0)
       REAL_T h(BL_SPACEDIM)
 c
-      integer i
-      integer j
-      integer n
-      logical is_dirichlet
-      logical is_neumann
+      integer i, j, n
+      logical is_dirichlet, is_neumann
 c
 c
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET )
@@ -755,10 +605,10 @@ c-----------------------------------------------------------------------
 
       subroutine FORT_APPLYBC4_TOUCHUP (
      $     phi,   DIMS(phi),
-     $     cdir, lo, hi, nc)
+     $     lo, hi, nc)
 
       implicit none
-      integer nc, cdir
+      integer nc
       integer lo(BL_SPACEDIM)
       integer hi(BL_SPACEDIM)
       integer DIMDEC(phi)
@@ -766,38 +616,33 @@ c-----------------------------------------------------------------------
 c
       integer i, j, n
 
-      if(cdir .eq. 0) then
-         do n = 1, nc
-            do i = lo(1)-1, ARG_L1(phi), -1
-               do j = lo(2)-1, ARG_L2(phi), -1
-                  phi(i,j,n) = 0.5d0 *
-     &                 ( (4*phi(i,j+1,n)-6*phi(i,j+2,n)+4*phi(i,j+3,n)-phi(i,j+4,n))
-     &                 + (4*phi(i+1,j,n)-6*phi(i+2,j,n)+4*phi(i+3,j,n)-phi(i+4,j,n)) )
-               enddo
-               do j = hi(2)+1, ARG_H2(phi)
-                  phi(i,j,n) = 0.5d0 *
-     &                 ( (4*phi(i,j-1,n)-6*phi(i,j-2,n)+4*phi(i,j-3,n)-phi(i,j-4,n))
-     &                 + (4*phi(i+1,j,n)-6*phi(i+2,j,n)+4*phi(i+3,j,n)-phi(i+4,j,n)) )
-               enddo
+      do n = 1, nc
+         do i = lo(1)-1, ARG_L1(phi), -1
+            do j = lo(2)-1, ARG_L2(phi), -1
+               phi(i,j,n) = 0.5d0 *
+     &              ( (4*phi(i,j+1,n)-6*phi(i,j+2,n)+4*phi(i,j+3,n)-phi(i,j+4,n))
+     &              + (4*phi(i+1,j,n)-6*phi(i+2,j,n)+4*phi(i+3,j,n)-phi(i+4,j,n)) )
             enddo
-
-            do i = hi(1)+1, ARG_H1(phi)
-               do j = lo(2)-1, ARG_L2(phi), -1
-                  phi(i,j,n) = 0.5d0 *
-     &                 ( (4*phi(i,j+1,n)-6*phi(i,j+2,n)+4*phi(i,j+3,n)-phi(i,j+4,n))
-     &                 + (4*phi(i-1,j,n)-6*phi(i-2,j,n)+4*phi(i-3,j,n)-phi(i-4,j,n)) )
-               enddo
-               do j = hi(2)+1, ARG_H2(phi)
-                  phi(i,j,n) = 0.5d0 *
-     &                 ( (4*phi(i,j-1,n)-6*phi(i,j-2,n)+4*phi(i,j-3,n)-phi(i,j-4,n))
-     &                 + (4*phi(i-1,j,n)-6*phi(i-2,j,n)+4*phi(i-3,j,n)-phi(i-4,j,n)) )
-               enddo
+            do j = hi(2)+1, ARG_H2(phi)
+               phi(i,j,n) = 0.5d0 *
+     &              ( (4*phi(i,j-1,n)-6*phi(i,j-2,n)+4*phi(i,j-3,n)-phi(i,j-4,n))
+     &              + (4*phi(i+1,j,n)-6*phi(i+2,j,n)+4*phi(i+3,j,n)-phi(i+4,j,n)) )
             enddo
          enddo
-      else
-         print *,'In ABec4_2D::FORT_APPLYBC4_TOUCHUP: BAD cdir = ',cdir
-         call bl_pd_abort()
-      endif
+
+         do i = hi(1)+1, ARG_H1(phi)
+            do j = lo(2)-1, ARG_L2(phi), -1
+               phi(i,j,n) = 0.5d0 *
+     &              ( (4*phi(i,j+1,n)-6*phi(i,j+2,n)+4*phi(i,j+3,n)-phi(i,j+4,n))
+     &              + (4*phi(i-1,j,n)-6*phi(i-2,j,n)+4*phi(i-3,j,n)-phi(i-4,j,n)) )
+            enddo
+            do j = hi(2)+1, ARG_H2(phi)
+               phi(i,j,n) = 0.5d0 *
+     &              ( (4*phi(i,j-1,n)-6*phi(i,j-2,n)+4*phi(i,j-3,n)-phi(i,j-4,n))
+     &              + (4*phi(i-1,j,n)-6*phi(i-2,j,n)+4*phi(i-3,j,n)-phi(i-4,j,n)) )
+            enddo
+         enddo
+      enddo
       end
 
 c-----------------------------------------------------------------------
@@ -848,6 +693,10 @@ c-----------------------------------------------------------------------
       parameter (one24th = 1.d0 / 24.d0)
       parameter (five6th = 5.d0 / 6.d0)
 
+      if (ARG_H1(cc).eq.31) then
+         print *,'hello'
+      endif
+
       do n=1,nc
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -857,6 +706,9 @@ c-----------------------------------------------------------------------
             enddo
          enddo
       enddo
+      if (ARG_H1(cc).eq.31) then
+         print *,'goodbye'
+      endif
       end
 
 c-----------------------------------------------------------------------

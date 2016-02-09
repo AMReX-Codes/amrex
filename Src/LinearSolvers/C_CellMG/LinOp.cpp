@@ -426,7 +426,7 @@ LinOp::prepareForLevel (int level)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    int nGrow = NGrow(level);
+    int nGrow = NumGrow(level);
     maskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     lmaskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);

@@ -24,29 +24,29 @@ public:
                   int             level,
                   int             redBlackFlag);
 
-  void smooth (MultiFab&       solnL,
-               const MultiFab& rhsL,
-               int             level,
-               LinOp::BC_Mode  bc_mode);
+  virtual void smooth (MultiFab&       solnL,
+		       const MultiFab& rhsL,
+		       int             level,
+		       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
 
-  void jacobi_smooth (MultiFab&       solnL,
-                      const MultiFab& rhsL,
-                      int             level,
-                      LinOp::BC_Mode  bc_mode);
+  virtual void jacobi_smooth (MultiFab&       solnL,
+			      const MultiFab& rhsL,
+			      int             level,
+			      LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
 
 protected:
 
   void altApplyBC (int  level,
                    bool local);
 
-  void Fsmooth_jacobi (MultiFab&       solnL,
-		       const MultiFab& resL,
-		       int             level);
+  virtual void Fsmooth_jacobi (MultiFab&       solnL,
+			       const MultiFab& resL,
+			       int             level);
 
-  void Fsmooth (MultiFab&       solnL,
-		const MultiFab& resL,
-		int             level,
-		int             redBlackFlag);
+  virtual void Fsmooth (MultiFab&       solnL,
+			const MultiFab& resL,
+			int             level,
+			int             redBlackFlag);
 
   //
   // Disallow copy constructors

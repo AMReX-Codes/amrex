@@ -59,7 +59,7 @@ int max_grid_size;
 
 int domain_boundary_condition;
 
-void compute_analyticSolution(MultiFab& anaSoln);
+void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset);
 void setup_coeffs(BoxArray& bs, MultiFab& alpha, PArray<MultiFab>& beta, 
 		  const Geometry& geom, MultiFab& beta_cc);
 void setup_coeffs4(BoxArray& bs, MultiFab& alpha, MultiFab& beta, const Geometry& geom);
@@ -233,7 +233,9 @@ int main(int argc, char* argv[])
   }
 
   // Allocate and define the right hand side.
-  MultiFab rhs(bs, Ncomp, 0); 
+  bool do_4th = true; pp.query("do_4th",do_4th);
+  int ngr = (do_4th ? 1 : 0);
+  MultiFab rhs(bs, Ncomp, ngr); 
   setup_rhs(rhs, geom);
 
   // Set up the Helmholtz operator coefficients.
@@ -255,14 +257,17 @@ int main(int argc, char* argv[])
   MultiFab beta_cc(bs,Ncomp,1); // cell-centered beta
   setup_coeffs(bs, alpha, beta, geom, beta_cc);
 
-  MultiFab alpha4(bs, Ncomp, 4, Fab_allocate);
-  MultiFab beta4(bs, Ncomp, 3);
-  setup_coeffs4(bs, alpha4, beta4, geom);
+  MultiFab alpha4, beta4;
+  if (do_4th) {
+    alpha4.define(bs, Ncomp, 4, Fab_allocate);
+    beta4.define(bs, Ncomp, 3, Fab_allocate);
+    setup_coeffs4(bs, alpha4, beta4, geom);
+  }
 
   MultiFab anaSoln;
   if (comp_norm || plot_err || plot_asol) {
     anaSoln.define(bs, Ncomp, 0, Fab_allocate);
-    compute_analyticSolution(anaSoln);
+    compute_analyticSolution(anaSoln,Array<Real>(BL_SPACEDIM,0.5));
     
     if (plot_asol) {
       writePlotFile("ASOL", anaSoln, geom);
@@ -272,7 +277,10 @@ int main(int argc, char* argv[])
   // Allocate the solution array 
   // Set the number of ghost cells in the solution array.
   MultiFab soln(bs, Ncomp, 1);
-  MultiFab soln4(bs, Ncomp, 3, Fab_allocate);
+  MultiFab soln4;
+  if (do_4th) {
+    soln4.define(bs, Ncomp, 3, Fab_allocate);
+  }
   MultiFab gphi(bs, BL_SPACEDIM, 0);
 
 #ifdef USEHYPRE
@@ -292,21 +300,19 @@ int main(int argc, char* argv[])
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
 
-#if 0
-    solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
-    BndryData bd(bs, 1, geom);
-    set_boundary(bd, rhs, 0);
-    ABecLaplacian abec_operator(bd, dx);
-    abec_operator.setScalars(a, b);
-    abec_operator.setCoefficients(alpha, beta);
+    if (do_4th) {
+      solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
+      BndryData bd(bs, 1, geom);
+      set_boundary(bd, rhs, 0);
+      ABecLaplacian abec_operator(bd, dx);
+      abec_operator.setScalars(a, b);
+      abec_operator.setCoefficients(alpha, beta);
+      MultiFab out(bs,1,1);
+      abec_operator.apply(out,soln4);
+      writePlotFile("APPLY", out, geom);
+      writePlotFile("SOLN", soln4, geom);
+    }
 
-    MultiFab out(bs,1,1);
-    MultiFab::Copy(soln,anaSoln,0,0,1,0);
-    abec_operator.apply(out,soln);
-    writePlotFile("APPLY", out, geom);
-
-    writePlotFile("SOLN", soln, geom);
-#endif
     solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_C);
   }
 
@@ -341,7 +347,7 @@ int main(int argc, char* argv[])
   BoxLib::Finalize();
 }
 
-void compute_analyticSolution(MultiFab& anaSoln)
+void compute_analyticSolution(MultiFab& anaSoln, const Array<Real>& offset)
 {
   BL_PROFILE("compute_analyticSolution()");
   int ibnd = static_cast<int>(bc_type); 
@@ -352,7 +358,7 @@ void compute_analyticSolution(MultiFab& anaSoln)
     const Box& bx = mfi.validbox();
 
     FORT_COMP_ASOL(anaSoln[mfi].dataPtr(), ARLIM(alo), ARLIM(ahi),
-		   bx.loVect(),bx.hiVect(),dx, ibnd);
+		   bx.loVect(),bx.hiVect(),dx, ibnd, offset.dataPtr());
   }
 }
 
@@ -561,11 +567,13 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
 
   MultiFab out(bs,1,0);
 
-  compute_analyticSolution(soln);
-  
+  compute_analyticSolution(soln,Array<Real>(BL_SPACEDIM,0.5));
+
   MultiFab solnca(bs,1,2);
-  ABec4::cc2ca(soln,solnca,0,0,1);
-  abec_operator.apply(out,solnca);
+  //ABec4::cc2ca(soln,solnca,0,0,1);
+  //abec_operator.apply(out,solnca);
+
+  solnca.setVal(0);
 
   MultiGrid mg(abec_operator);
 

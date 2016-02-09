@@ -77,7 +77,6 @@ ABec2::Fsmooth (MultiFab&       solnL,
 		int             level,
 		int             redBlackFlag)
 {
-
   OrientationIter oitr;
 
   const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -146,7 +145,11 @@ ABec2::Fsmooth (MultiFab&       solnL,
         BL_TO_FORTRAN(resfab),
         &alpha, &beta,
         BL_TO_FORTRAN(afab),
-        BL_TO_FORTRAN(bxfab), BL_TO_FORTRAN(byfab),
+        BL_TO_FORTRAN(bxfab),
+	BL_TO_FORTRAN(byfab),
+#if (BL_SPACEDIM == 3)
+	BL_TO_FORTRAN(bzfab),
+#endif
         BL_TO_FORTRAN(f0fab), BL_TO_FORTRAN(m0),
         BL_TO_FORTRAN(f1fab), BL_TO_FORTRAN(m1),
         BL_TO_FORTRAN(f2fab), BL_TO_FORTRAN(m2),
@@ -226,7 +229,11 @@ ABec2::Fsmooth_jacobi (MultiFab&       solnL,
         BL_TO_FORTRAN(resfab),
         &alpha, &beta,
         BL_TO_FORTRAN(afab),
-        BL_TO_FORTRAN(bxfab), BL_TO_FORTRAN(byfab),
+        BL_TO_FORTRAN(bxfab),
+	BL_TO_FORTRAN(byfab),
+#if (BL_SPACEDIM == 3)
+	BL_TO_FORTRAN(bzfab),
+#endif
         BL_TO_FORTRAN(f0fab), BL_TO_FORTRAN(m0),
         BL_TO_FORTRAN(f1fab), BL_TO_FORTRAN(m1),
         BL_TO_FORTRAN(f2fab), BL_TO_FORTRAN(m2),
