@@ -970,7 +970,7 @@ CGSolver::solve_cabicgstab_quad (MultiFab&       sol,
 
     SetMonomialBasis(Tp,Tpp,SSS);
 
-    const int ncomp = 1, nghost = 1;
+    const int ncomp = 1, nghost = sol.nGrow();
     //
     // Contains the matrix powers of p[] and r[].
     //

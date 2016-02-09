@@ -236,12 +236,12 @@ MultiGrid::prepareForLevel (int level)
 
     if ( cor[level] == 0 )
     {
-      res[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NGrow(), Fab_allocate);
-      rhs[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NGrow(), Fab_allocate);
-      cor[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NGrow(), Fab_allocate);
+      res[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), Fab_allocate);
+      rhs[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), Fab_allocate);
+      cor[level] = new MultiFab(Lp.boxArray(level), 1, Lp.NumGrow(), Fab_allocate);
       if ( level == 0 )
       {
-        initialsolution = new MultiFab(Lp.boxArray(0), 1, Lp.NGrow(), Fab_allocate);
+        initialsolution = new MultiFab(Lp.boxArray(0), 1, Lp.NumGrow(), Fab_allocate);
       }
     }
 }
@@ -303,7 +303,6 @@ MultiGrid::solve (MultiFab&       _sol,
         BoxLib::Error("MultiGrid:: failed to converge!");
 }
 
-#include <VisMF.H>
 int
 MultiGrid::solve_ (MultiFab&      _sol,
                    Real           eps_rel,
@@ -392,7 +391,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
          norm_cor = tmp[0];
          error    = tmp[1];
-	
+
          if ( ParallelDescriptor::IOProcessor() && verbose > 1 )
          {
              const Real rel_error = error / norm_to_test_against;

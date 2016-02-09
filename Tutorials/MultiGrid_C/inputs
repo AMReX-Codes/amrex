@@ -17,11 +17,11 @@ bc_type = Dirichlet
 # These flags must be set to the same value for the solutions to match.
 # The HPGMG solver has the equivalent order to maxorder = 2.
 
-Lp.maxorder = 3
-mg.maxorder = 3
+Lp.maxorder = 4
+mg.maxorder = 4
 # OR
-Lp.maxorder = 2
-mg.maxorder = 2
+#Lp.maxorder = 2
+#mg.maxorder = 2
 
 a = 1.e-3
 b = 1.0
@@ -41,6 +41,7 @@ plot_err  = 0 # plot the error
 comp_norm = 0 # compute 2 norm of the error
 
 n_cell        = 128
+n_cell        = 16
 max_grid_size = 32
 
 tol_rel = 1.e-10

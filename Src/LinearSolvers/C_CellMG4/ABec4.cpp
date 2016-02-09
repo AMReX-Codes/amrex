@@ -39,14 +39,14 @@ ABec4::buildWorkSpace()
 }
 
 int
-ABec4::NGrow(int level) const
+ABec4::NumGrow(int level) const
 {
   if (level == 0) {
     return 2;
   }
   
   BL_ASSERT(LO_Op != 0);
-  return LO_Op->NGrow(level);
+  return LO_Op->NumGrow(level);
 }
 
 int
@@ -85,7 +85,7 @@ ABec4::applyBC (MultiFab&     inout,
     //
     // The inout MultiFab needs enough ghost cells for applyBC.
     //
-    BL_ASSERT(inout.nGrow() >= NGrow(level));
+    BL_ASSERT(inout.nGrow() >= NumGrow(level));
     //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
@@ -282,21 +282,12 @@ ABec4::applyBC (MultiFab&     inout,
 
     BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-    for (OrientationIter oitr; oitr; ++oitr) {
+    const Box& vbx   = inout.box(gn);
+    FArrayBox& iofab = inout[gn];
 
-      const Orientation o = oitr();
-      int d = o.coordDir();
-
-      if (d < BL_SPACEDIM-1) {
-
-        const Box& vbx   = inout.box(gn);
-        FArrayBox& iofab = inout[gn];
-
-        FORT_APPLYBC4_TOUCHUP(
-          iofab.dataPtr(src_comp),ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
-          &d, vbx.loVect(), vbx.hiVect(), &num_comp);
-      }
-    }
+    FORT_APPLYBC4_TOUCHUP(
+      iofab.dataPtr(src_comp),ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
+      vbx.loVect(), vbx.hiVect(), &num_comp);
   }
 }
 
@@ -313,6 +304,7 @@ ABec4::ca2cc(const MultiFab& ca, MultiFab& cc,
     const FArrayBox& caf = ca[mfi];
     FArrayBox& ccf = cc[mfi];
     const Box& box = mfi.tilebox();
+    BL_ASSERT(caf.box().contains(BoxLib::grow(box,1)));
     FORT_CA2CC(box.loVect(), box.hiVect(),
                caf.dataPtr(sComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
                ccf.dataPtr(dComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
@@ -328,6 +320,7 @@ ABec4::cc2ca(const MultiFab& cc, MultiFab& ca,
     const FArrayBox& ccf = cc[mfi];
     FArrayBox& caf = ca[mfi];
     const Box& box = caf.box();
+    BL_ASSERT(ccf.box().contains(BoxLib::grow(box,1)));
     FORT_CC2CA(box.loVect(), box.hiVect(),
                ccf.dataPtr(sComp), ARLIM(ccf.box().loVect()), ARLIM(ccf.box().hiVect()),
                caf.dataPtr(dComp), ARLIM(caf.box().loVect()), ARLIM(caf.box().hiVect()),
@@ -656,6 +649,8 @@ ABec4::Fapply (MultiFab&       y,
 
     const bool tiling = true;
 
+    std::cout << "inside Fapply: " << y.boxArray() << std::endl;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -666,6 +661,8 @@ ABec4::Fapply (MultiFab&       y,
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
 	const FArrayBox& bfab = b[ymfi];
+
+	std::cout << "inside Fapply mfi loop: " << tbx << std::endl;
 
         FORT_ADOTX(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
@@ -678,6 +675,7 @@ ABec4::Fapply (MultiFab&       y,
                    tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
     }
+    VisMF::Write(y,"OUT");
   }
   else {
     BoxLib::Abort("ABec4 cannot do Fapply on level != 0");
@@ -697,6 +695,9 @@ ABec4::apply (MultiFab&      out,
 {
   if (level == 0) {
     applyBC(in,src_comp,num_comp,level,bc_mode,local,bndry_comp);
+
+    VisMF::Write(in,"IN");
+
     Fapply(out,dst_comp,in,src_comp,num_comp,level);
   }
   else {

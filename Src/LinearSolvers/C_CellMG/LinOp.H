@@ -191,7 +191,7 @@ public:
     //
     // Return the number of grow cells this operator expects in the input state to compute "apply"
     //
-    virtual int NumGrow () const {return LinOp_grow;}
+    virtual int NumGrow (int level = 0) const {return LinOp_grow;}
     //
     // Construct/allocate internal data necessary for adding a new level.
     //
@@ -219,8 +219,6 @@ public:
     // Return reference to "b" coefficients for base level.
     //
     virtual const MultiFab& bCoefficients (int dir, int level=0);
-
-    virtual int NGrow(int level = 0) const {return 1;}
     
 protected:
     //

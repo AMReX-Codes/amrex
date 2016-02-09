@@ -170,7 +170,7 @@ public:
 
     virtual Real norm (int nm = 0, int level = 0, const bool local = false);
 
-  virtual int NGrow(int level) const;
+  virtual int NumGrow(int level = 0) const;
 
   virtual void applyBC (MultiFab&      inout,
 			int            src_comp,
