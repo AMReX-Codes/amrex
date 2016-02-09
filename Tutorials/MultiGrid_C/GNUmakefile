@@ -22,11 +22,11 @@ HPGMG_DIR ?= $(HOME)/hpgmg/finite-volume
 
 PRECISION = DOUBLE
 
-DEBUG	= FALSE
 DEBUG	= TRUE
+DEBUG	= FALSE
 
-DIM	= 2
 DIM	= 3
+DIM	= 2
 
 COMP =gcc
 FCOMP=gfortran
