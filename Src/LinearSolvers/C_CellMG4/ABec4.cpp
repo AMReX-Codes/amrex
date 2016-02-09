@@ -622,7 +622,6 @@ ABec4::Fapply (MultiFab&       y,
   Fapply(y,dst_comp,x,src_comp,num_comp,level);
 }
 
-#include <VisMF.H>
 void
 ABec4::Fapply (MultiFab&       y,
 	       int             dst_comp,
@@ -649,20 +648,16 @@ ABec4::Fapply (MultiFab&       y,
 
     const bool tiling = true;
 
-    std::cout << "inside Fapply: " << y.boxArray() << std::endl;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter ymfi(y,tiling); ymfi.isValid(); ++ymfi)
     {
-        const Box&       tbx  = ymfi.validbox();
+        const Box&       tbx  = ymfi.tilebox();
         FArrayBox&       yfab = y[ymfi];
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
 	const FArrayBox& bfab = b[ymfi];
-
-	std::cout << "inside Fapply mfi loop: " << tbx << std::endl;
 
         FORT_ADOTX(yfab.dataPtr(dst_comp),
                    ARLIM(yfab.loVect()),ARLIM(yfab.hiVect()),
@@ -675,7 +670,6 @@ ABec4::Fapply (MultiFab&       y,
                    tbx.loVect(), tbx.hiVect(), &num_comp,
                    h[level]);
     }
-    VisMF::Write(y,"OUT");
   }
   else {
     BoxLib::Abort("ABec4 cannot do Fapply on level != 0");
@@ -695,9 +689,6 @@ ABec4::apply (MultiFab&      out,
 {
   if (level == 0) {
     applyBC(in,src_comp,num_comp,level,bc_mode,local,bndry_comp);
-
-    VisMF::Write(in,"IN");
-
     Fapply(out,dst_comp,in,src_comp,num_comp,level);
   }
   else {
