@@ -59,13 +59,13 @@ ifeq ($(COMP),PGI)
 
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
-      CXXOPTF += -O
+      CXXOPTF +=-g  -O
     else
-      COPTF += -fast
-      CXXOPTF += -fast -Minline=levels:10
+      COPTF += -g -fast
+      CXXOPTF += -g -fast -Minline=levels:10
     endif
   else
-    CXXOPTF += -O
+    CXXOPTF += -g -O
   endif
 
 #  ifneq ($(USE_MPI),TRUE)

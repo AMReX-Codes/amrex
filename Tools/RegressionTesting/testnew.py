@@ -70,6 +70,9 @@ The "main" block specifies the global test suite parameters:
   FCOMP = < name of Fortran compiler >
   COMP  = < name of C/C++ compiler >
 
+  add_to_f_make_command = < any additional defines to add to the make invocation for F_Src BoxLib >
+  add_to_c_make_command = < any additional defines to add to the make invocation for C_Src BoxLib >
+
   purge_output = <0: leave all plotfiles in place; 
                   1: delete plotfiles after compare >
 
@@ -310,6 +313,9 @@ class Suite(object):
 
         self.FCOMP = "gfortran"
         self.COMP = "g++"
+
+        self.add_to_f_make_command = ""
+        self.add_to_c_make_command = ""
 
         self.MAKE = "gmake"
         self.numMakeJobs = 1
@@ -630,8 +636,9 @@ class Suite(object):
         run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
-        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
-            self.MAKE, self.numMakeJobs, self.boxlib_dir, self.FCOMP, opts, target)
+        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {} {}".format(
+            self.MAKE, self.numMakeJobs, self.boxlib_dir, 
+            self.FCOMP, self.add_to_f_make_command, opts, target)
         self.log.log(comp_string)
         run(comp_string, outfile=outfile)
         return comp_string
@@ -1485,8 +1492,8 @@ def test_suite(argv):
             suite.log.warn("  WARNING: test {} doesn't need benchmarks... skipping".format(test.name))
             continue
 
-        outputDir = suite.full_test_dir + test.name + '/'
-        os.mkdir(outputDir)
+        output_dir = suite.full_test_dir + test.name + '/'
+        os.mkdir(output_dir)
 
 
         #----------------------------------------------------------------------
@@ -1538,15 +1545,15 @@ def test_suite(argv):
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
-            comp_string = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
-                (suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
-                 suite.extra_src_comp_string, test.addToCompileString,
-                 test.dim, buildOptions, suite.COMP, suite.FCOMP,
-                 executable)
+            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {} executable={}".format(
+                suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
+                suite.extra_src_comp_string, test.addToCompileString,
+                test.dim, buildOptions, suite.COMP, suite.FCOMP, 
+                suite.add_to_c_make_command, executable)
 
             suite.log.log(comp_string)
             so, se, r = run(comp_string,
-                            outfile="{}/{}.make.out".format(outputDir, test.name))
+                            outfile="{}/{}.make.out".format(output_dir, test.name))
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -1560,7 +1567,7 @@ def test_suite(argv):
 
             comp_string = suite.build_f(opts="{} {} {}".format(
                 suite.extra_src_comp_string, test.addToCompileString, build_options),
-                          outfile="{}/{}.make.out".format(outputDir, test.name))
+                          outfile="{}/{}.make.out".format(output_dir, test.name))
 
             # we need a better way to get the executable name here
             executable = get_recent_filename(bdir, "main", ".exe")
@@ -1570,7 +1577,7 @@ def test_suite(argv):
         if test.compileTest:
 
             # compilation tests are done now -- just make the report and ...
-            shutil.copy("%s/%s.make.out"    % (outputDir, test.name), suite.full_web_dir)
+            shutil.copy("%s/%s.make.out"    % (output_dir, test.name), suite.full_web_dir)
 
             suite.log.log("creating problem test report ...")
             report_single_test(suite, test)
@@ -1584,18 +1591,18 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("copying files to run directory...")
 
-        try: shutil.copy(executable, outputDir)
+        try: shutil.copy(executable, output_dir)
         except (IOError, AttributeError):
 
             # compilation failed.  First copy the make.out into the
             # web directory and then report
-            shutil.copy("%s/%s.make.out" % (outputDir, test.name), suite.full_web_dir)
+            shutil.copy("%s/%s.make.out" % (output_dir, test.name), suite.full_web_dir)
 
             errorMsg = "    ERROR: compilation failed"
             report_test_failure(suite, errorMsg, test)
             continue
 
-        try: shutil.copy(test.inputFile, outputDir)
+        try: shutil.copy(test.inputFile, output_dir)
         except IOError:
             errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
             report_test_failure(suite, errorMsg, test)
@@ -1610,7 +1617,7 @@ def test_suite(argv):
         # if we are a "C_Src" build, we need the probin file
         if (suite.sourceTree == "C_Src" or \
                 (test.testSrcTree == "C_Src" and test.probinFile != "")):
-            try: shutil.copy(test.probinFile, outputDir)
+            try: shutil.copy(test.probinFile, output_dir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
                 report_test_failure(suite, errorMsg, test)
@@ -1628,7 +1635,7 @@ def test_suite(argv):
         # the next test
         skip_to_next_test = 0
         for file in test.auxFiles:
-            try: shutil.copy(file, outputDir)
+            try: shutil.copy(file, output_dir)
             except IOError:
                 errorMsg = "    ERROR: unable to copy aux file: %s" % file
                 report_test_failure(suite, errorMsg, test)
@@ -1651,10 +1658,10 @@ def test_suite(argv):
             else:
                 if os.path.isabs(file):
                     link_source = file
-                    link_name = outputDir + os.path.basename(file)
+                    link_name = output_dir + os.path.basename(file)
                 else:
                     link_source = os.path.abspath(file)
-                    link_name = outputDir + file
+                    link_name = output_dir + file
                 try: os.symlink(link_source, link_name)
                 except IOError:
                     errorMsg = "    ERROR: unable to symlink link file: %s" % file
@@ -1670,7 +1677,7 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("running the test...")
 
-        os.chdir(outputDir)
+        os.chdir(output_dir)
 
         test.wallTime = time.time()
 
@@ -1702,7 +1709,7 @@ def test_suite(argv):
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
-            lastFile = test.get_last_plotfile(output_dir=outputDir)
+            lastFile = test.get_last_plotfile(output_dir=output_dir)
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
@@ -1743,7 +1750,7 @@ def test_suite(argv):
 
             if test.outputFile == "":
                 if test.compareFile == "":
-                    compareFile = test.get_last_plotfile(output_dir=outputDir)
+                    compareFile = test.get_last_plotfile(output_dir=output_dir)
                 else:
                     compareFile = test.compareFile
                 outputFile = compareFile
@@ -1903,7 +1910,7 @@ def test_suite(argv):
                             tool, suite.compare_tool_dir, test.visVar, outputFile))
 
                         # convert the .ppm files into .png files
-                        ppm_file = get_recent_filename(outputDir, "", ".ppm")
+                        ppm_file = get_recent_filename(output_dir, "", ".ppm")
                         png_file = ppm_file.replace(".ppm", ".png")
                         run("convert {} {}".format(ppm_file, png_file))
 
@@ -1939,18 +1946,18 @@ def test_suite(argv):
             if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
 
-            for file in test.auxFiles:
+            for af in test.auxFiles:
 
                 # sometimes the auxFile was in a subdirectory under the
                 # build directory.
-                index = string.rfind(file, "/")
+                index = string.rfind(af, "/")
                 if index > 0:
-                    file = file[index+1:]
+                    af = af[index+1:]
 
-                shutil.copy(file, "%s/%s.%s" % (suite.full_web_dir, test.name, file) )
+                shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
 
             if test.doVis:
-               png_file = get_recent_filename(outputDir, "", ".png")
+               png_file = get_recent_filename(output_dir, "", ".png")
                if not png_file is None:
                    try: shutil.copy(png_file, suite.full_web_dir)
                    except IOError:
@@ -1963,6 +1970,15 @@ def test_suite(argv):
                     # analysis was not successful.  Reset the output image
                     test.analysisOutputImage = ""
 
+            # were any Backtrace files output (indicating a crash)
+            backtrace = [ft for ft in os.listdir(output_dir) if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+            test.backtrace = []
+            for btf in backtrace:
+                ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
+                shutil.copy(btf, ofile)
+                test.backtrace.append("{}.{}".format(test.name, btf))
+                
+
 
         else:
             shutil.copy("%s.status" % (test.name), suite.full_web_dir)
@@ -1972,7 +1988,7 @@ def test_suite(argv):
         # archive (or delete) the output
         #----------------------------------------------------------------------
         suite.log.log("archiving the output...")
-        for file in os.listdir(outputDir):
+        for file in os.listdir(output_dir):
             if (os.path.isdir(file) and
                 (file.startswith("%s_plt" % (test.name)) or
                  file.startswith("%s_chk" % (test.name)) ) ):
@@ -2512,6 +2528,15 @@ def report_single_test(suite, test):
         ll.item("Execution command:<br>{}".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         ll.outdent()
+
+
+        # were there backtrace files?
+        if len(test.backtrace) > 0:
+            ll.item("Backtraces:")
+            ll.indent()
+            for bt in test.backtrace:
+                ll.item("<a href=\"{}\">{}</a>".format(bt, bt))
+            ll.outdent()
 
         # comparison summary
         ll.item("Comparison: ")

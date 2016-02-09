@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <winstd.H>
 #include <cstdio>
@@ -31,16 +30,7 @@
 #include <omp.h>
 #endif
 
-#ifdef __linux__
-#include <execinfo.h>
-#endif
-
-#ifdef BL_BACKTRACING
 #include <BLBackTrace.H>
-#include <signal.h>
-#include <fenv.h>
-#endif
-
 #include <MemPool.H>
 
 #ifdef BL_USE_FORTRAN_MPI
@@ -72,13 +62,9 @@ __TIME__;
 #undef bl_str
 #undef bl_xstr
 
-namespace
-{
-    std::string exename;
-}
-
 namespace BoxLib
 {
+    std::string exename;
     int verbose = 0;
 }
 
@@ -88,9 +74,8 @@ namespace BoxLib
 // heap-based memory is allocated.
 //
 
-static
 void
-write_to_stderr_without_buffering (const char* str)
+BoxLib::write_to_stderr_without_buffering (const char* str)
 {
     //
     // Flush all buffers.
@@ -108,7 +93,7 @@ write_to_stderr_without_buffering (const char* str)
 void
 BL_this_is_a_dummy_routine_to_force_version_into_executable ()
 {
-    write_to_stderr_without_buffering(version);    
+    BoxLib::write_to_stderr_without_buffering(version);    
 }
 
 static
@@ -232,62 +217,8 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
-#ifdef BL_BACKTRACING
     BLBackTrace::handler(SIGABRT);
-#else
-#ifdef __linux__
-    BoxLib::print_backtrace_info(stderr);
-#endif
-    ParallelDescriptor::Abort();
-#endif
 }
-
-#ifdef __linux__
-void
-BoxLib::print_backtrace_info (FILE* f)
-{
-    const int nbuf = 32;
-    char **strings = NULL;
-    void *buffer[nbuf];
-    int nptrs = backtrace(buffer, nbuf);
-    strings = backtrace_symbols(buffer, nptrs);
-    if (strings != NULL) {
-	int have_addr2line = 0;
-	std::string cmd = "/usr/bin/addr2line";
-	if (FILE *fp = fopen(cmd.c_str(), "r")) {
-	    fclose(fp);
-	    have_addr2line = 1;
-	}
-	cmd += " -Cfie " + exename; 
-	if (have_addr2line) {
-	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
-	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
-	    fprintf(f, "    to find out the offset for that line.\n");
-	}
-	for (int i = 0; i < nptrs; ++i) {
-	    std::string line = strings[i];
-	    line += "\n";
-	    if (have_addr2line) {
-		std::size_t found1 = line.rfind('[');
-		std::size_t found2 = line.rfind(']');
-		if (found1 != std::string::npos && found2 != std::string::npos) {
-		    std::string addr = line.substr(found1+1, found2-found1-1);
-		    std::string full_cmd = cmd + " " + addr;
-		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
-			char buff[512];
-			while (fgets(buff, sizeof(buff), ps)) {
-			    line += "    ";
-			    line += buff;
-			}
-			pclose(ps);
-		    }
-		}
-	    }
-	    fprintf(f, "%2d: %s\n", i, line.c_str());
-	}
-    }
-}
-#endif
 
 namespace
 {
@@ -317,27 +248,15 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     // Make sure to catch new failures.
     //
     std::set_new_handler(BoxLib::OutOfMemory);
-#endif
 
-#ifdef BL_BACKTRACING
-    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
-    feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);  // trap floating point exceptions
-    signal(SIGFPE,  BLBackTrace::handler);
-    signal(SIGINT,  BLBackTrace::handler);
-    signal(SIGTERM, BLBackTrace::handler);
-#endif
-
-#ifdef __linux__
-    {
-	if (argv[0][0] != '/') {
-	    char temp[1024];
-	    getcwd(temp,1024);
-	    exename = temp;
-	    exename += "/";
-	}
-	exename += argv[0];
+    if (argv[0][0] != '/') {
+	char temp[1024];
+	getcwd(temp,1024);
+	exename = temp;
+	exename += "/";
     }
-#endif    
+    exename += argv[0];
+#endif
 
     while (!The_Initialize_Function_Stack.empty())
     {
@@ -411,6 +330,32 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	pp.query("verbose", verbose);
     }
 #endif
+
+    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+    signal(SIGINT,  BLBackTrace::handler);
+
+    if (build_parm_parse)
+    {
+	ParmParse pp("boxlib");
+#if defined(DEBUG) || defined(BL_TESTING)
+	int invalid = 1, divbyzero=1, overflow=1;
+#else
+	int invalid = 0, divbyzero=0, overflow=0;
+#endif
+	pp.query("fpe_trap_invalid", invalid);
+	pp.query("fpe_trap_zero", divbyzero);
+	pp.query("fpe_trap_overflow", overflow);
+	int flags = 0;
+	if (invalid)   flags |= FE_INVALID;
+	if (divbyzero) flags |= FE_DIVBYZERO;
+	if (overflow)  flags |= FE_OVERFLOW;
+#ifndef __PGI
+	if (flags != 0) {
+	    feenableexcept(flags);  // trap floating point exceptions
+	    signal(SIGFPE,  BLBackTrace::handler);
+	}
+#endif
+    }
 
     mempool_init();
 

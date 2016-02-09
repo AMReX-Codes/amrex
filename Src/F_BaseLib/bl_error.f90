@@ -43,6 +43,13 @@ module bl_error_module
      module procedure bl_assert_v
   end interface
 
+  interface
+     subroutine backtrace_handler (s) bind(c)
+       use iso_c_binding, only : c_int
+       integer (kind=c_int), value :: s
+     end subroutine backtrace_handler
+  end interface
+
 contains
 
   subroutine bl_error0(str)
@@ -53,14 +60,14 @@ contains
     else
        write(*,*) "BOXLIB ERROR"
     end if
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error0
 
   subroutine bl_error1_ch(str, str1)
     use parallel
     character(len=*), intent(in) :: str, str1
     write(*,fmt=*) "BOXLIB ERROR: ", str, str1
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_ch
 
   subroutine bl_error1_i(str, val)
@@ -68,7 +75,7 @@ contains
     character(len=*), intent(in) :: str
     integer, intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_i
 
   subroutine bl_error1_d(str, val)
@@ -76,7 +83,7 @@ contains
     character(len=*), intent(in) :: str
     real(kind=dp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_d
 
   subroutine bl_error1_s(str, val)
@@ -84,7 +91,7 @@ contains
     character(len=*), intent(in) :: str
     real(kind=sp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_s
 
   subroutine bl_error1_z(str, val)
@@ -92,7 +99,7 @@ contains
     character(len=*), intent(in) :: str
     complex(kind=dp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_z
 
   subroutine bl_error1_c(str, val)
@@ -100,7 +107,7 @@ contains
     character(len=*), intent(in) :: str
     complex(kind=sp_t), intent(in) :: val
     write(*,fmt=*) "BOXLIB ERROR: ", str, val
-    call parallel_abort()
+    call backtrace_handler(6)
   end subroutine bl_error1_c
 
   subroutine bl_warn0(str)
