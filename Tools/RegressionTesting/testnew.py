@@ -1946,15 +1946,15 @@ def test_suite(argv):
             if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
 
-            for file in test.auxFiles:
+            for af in test.auxFiles:
 
                 # sometimes the auxFile was in a subdirectory under the
                 # build directory.
-                index = string.rfind(file, "/")
+                index = string.rfind(af, "/")
                 if index > 0:
-                    file = file[index+1:]
+                    af = af[index+1:]
 
-                shutil.copy(file, "%s/%s.%s" % (suite.full_web_dir, test.name, file) )
+                shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
 
             if test.doVis:
                png_file = get_recent_filename(output_dir, "", ".png")
@@ -1971,9 +1971,13 @@ def test_suite(argv):
                     test.analysisOutputImage = ""
 
             # were any Backtrace files output (indicating a crash)
-            test.backtrace = [ft for ft in os.listdir(output_dir) if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
-            for btf in test.backtrace:
-                shutil.copy(btf, suite.full_web_dir)
+            backtrace = [ft for ft in os.listdir(output_dir) if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+            test.backtrace = []
+            for btf in backtrace:
+                ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
+                shutil.copy(btf, ofile)
+                test.backtrace.append(ofile)
+                
 
 
         else:
