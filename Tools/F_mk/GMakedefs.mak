@@ -35,6 +35,11 @@ endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
+ifdef TEST
+  ifdef NDEBUG
+    debug_suffix := .test
+  endif
+endif
 ifdef MIC
   mic_suffix    := .mic
 endif
@@ -80,6 +85,17 @@ else
 endif
 
 CPPFLAGS += -DFORTRAN_BOXLIB
+
+ifdef TEST
+  CPPFLAGS += -DBL_TESTING
+endif
+
+ifndef NDEBUG
+  CPPFLAGS += -DDEBUG
+  ifndef TEST
+    CPPFLAGS += -DBL_TESTING
+  endif
+endif
 
 F_C_LINK := UNDERSCORE
 
