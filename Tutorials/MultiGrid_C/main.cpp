@@ -46,7 +46,7 @@ int  maxorder      = 2;
 
 Real dx[BL_SPACEDIM];
 
-enum solver_t {BoxLib_C, BoxLib_F, Hypre, HPGMG, All};
+enum solver_t {BoxLib_C, BoxLib_C4, BoxLib_F, Hypre, HPGMG, All};
 enum bc_t {Periodic = 0,
 	   Dirichlet = LO_DIRICHLET, 
 	   Neumann = LO_NEUMANN};
@@ -109,6 +109,9 @@ int main(int argc, char* argv[])
     pp.get("solver_type",solver_type_s);
     if (solver_type_s == "BoxLib_C") {
       solver_type = BoxLib_C;
+    }
+    else if (solver_type_s == "BoxLib_C4") {
+      solver_type = BoxLib_C4;
     }
     else if (solver_type_s == "BoxLib_F") {
 #ifdef USE_F90_SOLVERS
@@ -233,7 +236,7 @@ int main(int argc, char* argv[])
   }
 
   // Allocate and define the right hand side.
-  bool do_4th = true; pp.query("do_4th",do_4th);
+  bool do_4th = (solver_type==BoxLib_C4 || solver_type==All);
   int ngr = (do_4th ? 1 : 0);
   MultiFab rhs(bs, Ncomp, ngr); 
   setup_rhs(rhs, geom);
@@ -299,21 +302,16 @@ int main(int argc, char* argv[])
       std::cout << "----------------------------------------" << std::endl;
       std::cout << "Solving with BoxLib C++ solver " << std::endl;
     }
+    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_C);
+  }
 
-    if (do_4th) {
-      solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
-      BndryData bd(bs, 1, geom);
-      set_boundary(bd, rhs, 0);
-      ABecLaplacian abec_operator(bd, dx);
-      abec_operator.setScalars(a, b);
-      abec_operator.setCoefficients(alpha, beta);
-      MultiFab out(bs,1,1);
-      abec_operator.apply(out,soln4);
-      writePlotFile("APPLY", out, geom);
-      writePlotFile("SOLN", soln4, geom);
+  if (solver_type == BoxLib_C4 || solver_type == All) {
+    if (ParallelDescriptor::IOProcessor()) {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << "Solving with BoxLib C++ 4th order solver " << std::endl;
     }
 
-    solve(soln, anaSoln, gphi, a, b, alpha, beta, beta_cc, rhs, bs, geom, BoxLib_C);
+    solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
   }
 
 #ifdef USE_F90_SOLVERS
@@ -570,9 +568,6 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
   compute_analyticSolution(soln,Array<Real>(BL_SPACEDIM,0.5));
 
   MultiFab solnca(bs,1,2);
-  //ABec4::cc2ca(soln,solnca,0,0,1);
-  //abec_operator.apply(out,solnca);
-
   solnca.setVal(0);
 
   MultiGrid mg(abec_operator);
