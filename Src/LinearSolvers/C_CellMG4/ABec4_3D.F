@@ -10,6 +10,9 @@
 #include "CONSTANTS.H"
 #include "LO_BCTYPES.H"
 
+#undef BC_ORDER_4
+#define BC_ORDER_5
+
 c-----------------------------------------------------------------------
 c
 c     Fill in a matrix x vector operator here
@@ -54,8 +57,6 @@ c
       xhi(1) = hi(1) + 1
       yhi(2) = hi(2) + 1
       zhi(3) = hi(3) + 1
-
-      print *,xlo,xhi
 
       allocate(xflux(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),nc))
       allocate(yflux(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),nc))
@@ -169,26 +170,7 @@ c-----------------------------------------------------------------------
       i48 = 1.d0/48.d0
       hi1_12 = 1.d0 / (12.d0*h)
 
-      if (ARG_L1(flux).gt.lo(1) .or. ARG_H1(flux).lt.hi(1)
-     &     .or. ARG_L2(x).gt.lo(2) .or. ARG_H2(x).lt.hi(2)
-     &     .or. ARG_L3(x).gt.lo(3) .or. ARG_H3(x).lt.hi(3) ) then
-         call bl_abort('fluxx box too small in flux_dir')
-      endif
-
       if (dir .eq. 1) then
-
-         if (ARG_L1(x).gt.lo(1)-2 .or. ARG_H1(x).lt.hi(1)+1
-     &        .or. ARG_L2(x).gt.lo(2)-2 .or. ARG_H2(x).lt.hi(2)+2
-     &        .or. ARG_L3(x).gt.lo(3)-2 .or. ARG_H3(x).lt.hi(3)+2 ) then
-            call bl_abort('x box too small in flux_dir')
-         endif
-
-         if (ARG_L1(b).gt.lo(1)-2 .or. ARG_H1(b).lt.hi(1)+1
-     &        .or. ARG_L2(b).gt.lo(2)-2 .or. ARG_H2(b).lt.hi(2)+2
-     &        .or. ARG_L3(b).gt.lo(3)-2 .or. ARG_H3(b).lt.hi(3)+2 ) then
-            call bl_abort('b box too small in flux_dir')
-         endif
-
          allocate(gt(lo(1):hi(1),lo(2)-2:hi(2)+2,lo(3)-2:hi(3)+2))
          allocate(bt(lo(1):hi(1),lo(2)-2:hi(2)+2,lo(3)-2:hi(3)+2))
 
@@ -220,22 +202,10 @@ c-----------------------------------------------------------------------
             enddo
          enddo
       else if (dir .eq. 2) then
-         if (ARG_L2(x).gt.lo(2)-2 .or. ARG_H2(x).lt.hi(2)+1
-     &        .or. ARG_L1(x).gt.lo(1)-2 .or. ARG_H1(x).lt.hi(1)+2
-     &        .or. ARG_L3(x).gt.lo(3)-2 .or. ARG_H3(x).lt.hi(3)+2 ) then
-            call bl_abort('x box too small in flux_dir')
-         endif
-
-         if (ARG_L2(b).gt.lo(2)-2 .or. ARG_H2(b).lt.hi(2)+1
-     &        .or. ARG_L1(b).gt.lo(1)-2 .or. ARG_H1(b).lt.hi(1)+2
-     &        .or. ARG_L3(b).gt.lo(3)-2 .or. ARG_H3(b).lt.hi(3)+2 ) then
-            call bl_abort('b box too small in flux_dir')
-         endif
-
          allocate(gt(lo(1)-2:hi(1)+2,lo(2):hi(2),lo(3)-2:hi(3)+2))
          allocate(bt(lo(1)-2:hi(1)+2,lo(2):hi(2),lo(3)-2:hi(3)+2))
 
-         do k = lo(3)+2, hi(3)+2
+         do k = lo(3)-2, hi(3)+2
             do j = lo(2), hi(2)
                do i = lo(1)-2, hi(1)+2
                   bt(i,j,k) = (-b(i,j-2,k)+7*(b(i,j-1,k)+b(i,j,k))-b(i,j+1,k))*i12
@@ -243,7 +213,7 @@ c-----------------------------------------------------------------------
             enddo
          enddo
          do n=1,nc
-            do k = lo(3)+2, hi(3)+2
+            do k = lo(3)-2, hi(3)+2
                do j = lo(2), hi(2)
                   do i = lo(1)-2, hi(1)+2
                      gt(i,j,k) = (x(i,j-2,k,n)-x(i,j+1,k,n)+15.d0*(x(i,j,k,n)-x(i,j-1,k,n)))*hi1_12
@@ -263,23 +233,11 @@ c-----------------------------------------------------------------------
             enddo
          enddo
       else
-         if (ARG_L3(x).gt.lo(3)-2 .or. ARG_H3(x).lt.hi(3)+1
-     &        .or. ARG_L1(x).gt.lo(1)-2 .or. ARG_H1(x).lt.hi(1)+2
-     &        .or. ARG_L2(x).gt.lo(2)-2 .or. ARG_H2(x).lt.hi(2)+2 ) then
-            call bl_abort('x box too small in flux_dir')
-         endif
-
-         if (ARG_L3(b).gt.lo(3)-2 .or. ARG_H3(b).lt.hi(3)+1
-     &        .or. ARG_L1(b).gt.lo(1)-2 .or. ARG_H1(b).lt.hi(1)+2
-     &        .or. ARG_L2(b).gt.lo(2)-2 .or. ARG_H2(b).lt.hi(2)+2 ) then
-            call bl_abort('b box too small in flux_dir')
-         endif
-
          allocate(gt(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3):hi(3)))
          allocate(bt(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3):hi(3)))
 
          do k = lo(3), hi(3)
-            do j = lo(2)+2, hi(2)+2
+            do j = lo(2)-2, hi(2)+2
                do i = lo(1)-2, hi(1)+2
                   bt(i,j,k) = (-b(i,j,k-2)+7*(b(i,j,k-1)+b(i,j,k))-b(i,j,k+1))*i12
                enddo
@@ -287,7 +245,7 @@ c-----------------------------------------------------------------------
          enddo
          do n=1,nc
             do k = lo(3), hi(3)
-               do j = lo(2)+2, hi(2)+2
+               do j = lo(2)-2, hi(2)+2
                   do i = lo(1)-2, hi(1)+2
                      gt(i,j,k) = (x(i,j,k-2,n)-x(i,j,k+1,n)+15.d0*(x(i,j,k,n)-x(i,j,k-1,n)))*hi1_12
                   enddo
@@ -376,12 +334,22 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      if (mask(lo(1)-1,j,k) .gt. 0) then
-c                       phi(lo(1)-1,j,k,n) =  (9*phi(lo(1),j,k,n) +  3*phi(lo(1)+1,j,k,n) - phi(lo(1)+2,j,k,n))/11.d0
-                        phi(lo(1)-1,j,k,n) =  (5*phi(lo(1),j,k,n) +  9*phi(lo(1)+1,j,k,n) - 5*phi(lo(1)+2,j,k,n) + phi(lo(1)+3,j,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(lo(1)-1,j,k,n) = (9*phi(lo(1),j,k,n)+3*phi(lo(1)+1,j,k,n)
+     &                       -phi(lo(1)+2,j,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(lo(1)-1,j,k,n) = (5*phi(lo(1),j,k,n)+9*phi(lo(1)+1,j,k,n)
+     &                       -5*phi(lo(1)+2,j,k,n)+phi(lo(1)+3,j,k,n))/10.d0
+#endif
                      endif
                      if (mask(lo(1)-2,j,k) .gt. 0) then
-c                       phi(lo(1)-2,j,k,n) = (- 30*phi(lo(1),j,k,n) + 56*phi(lo(1)+1,j,k,n) - 15*phi(lo(1)+2,j,k,n))/11.d0
-                        phi(lo(1)-2,j,k,n) = (- 75*phi(lo(1),j,k,n) + 145*phi(lo(1)+1,j,k,n) - 75*phi(lo(1)+2,j,k,n) + 15*phi(lo(1)+3,j,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(lo(1)-2,j,k,n) = (-30*phi(lo(1),j,k,n)+56*phi(lo(1)+1,j,k,n)
+     &                       -15*phi(lo(1)+2,j,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(lo(1)-2,j,k,n) = (-75*phi(lo(1),j,k,n)+145*phi(lo(1)+1,j,k,n)
+     &                       -75*phi(lo(1)+2,j,k,n)+15*phi(lo(1)+3,j,k,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -402,15 +370,26 @@ c                       phi(lo(1)-2,j,k,n) = (- 30*phi(lo(1),j,k,n) + 56*phi(lo(
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(lo(1)-1,j-1,k).gt.0 .and. mask(lo(1)-1,j+1,k).gt.0
      $                          .and. mask(lo(1)-1,j,k-1).gt.0 .and. mask(lo(1)-1,j,k+1).gt.0) then
-                              tmp = b*(bcval(lo(1)-1,j+1,k,n)+bcval(lo(1)-1,j-1,k,n)+bcval(lo(1)-1,j,k+1,n)+bcval(lo(1)-1,j,k-1,n)) + d*bcval(lo(1)-1,j,k,n)
+                              tmp = b*(bcval(lo(1)-1,j+1,k,n)+bcval(lo(1)-1,j-1,k,n)
+     &                             +bcval(lo(1)-1,j,k+1,n)+bcval(lo(1)-1,j,k-1,n))+d*bcval(lo(1)-1,j,k,n)
                            else
                               tmp = bcval(lo(1)-1,j,k,n)
                            endif
-c                          phi(lo(1)-1,j,k,n) = (12*tmp - 13*phi(lo(1),j,k,n) + 5*phi(lo(1)+1,j,k,n) - phi(lo(1)+2,j,k,n))/3.d0
-                           phi(lo(1)-1,j,k,n) = (60*tmp - 77*phi(lo(1),j,k,n) + 43*phi(lo(1)+1,j,k,n) - 17*phi(lo(1)+2,j,k,n) + 3*phi(lo(1)+3,j,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(lo(1)-1,j,k,n) = (12*tmp-13*phi(lo(1),j,k,n)
+     &                          +5*phi(lo(1)+1,j,k,n)-phi(lo(1)+2,j,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(lo(1)-1,j,k,n) = (60*tmp-77*phi(lo(1),j,k,n)+43*phi(lo(1)+1,j,k,n)
+     &                          -17*phi(lo(1)+2,j,k,n)+3*phi(lo(1)+3,j,k,n))/12.d0
+#endif
                            if (mask(lo(1)-2,j,k) .gt. 0) then
-c                             phi(lo(1)-2,j,k,n) = (48*tmp - 70*phi(lo(1),j,k,n) + 32*phi(lo(1)+1,j,k,n) - 7*phi(lo(1)+2,j,k,n))/3.d0
-                              phi(lo(1)-2,j,k,n) = (300*tmp - 505*phi(lo(1),j,k,n) + 335*phi(lo(1)+1,j,k,n) - 145*phi(lo(1)+2,j,k,n) + 27*phi(lo(1)+3,j,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                             phi(lo(1)-2,j,k,n) = (48*tmp - 70*phi(lo(1),j,k,n) +
+     &                             32*phi(lo(1)+1,j,k,n) - 7*phi(lo(1)+2,j,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(lo(1)-2,j,k,n) = (300*tmp-505*phi(lo(1),j,k,n)+
+     &                            335*phi(lo(1)+1,j,k,n)-145*phi(lo(1)+2,j,k,n)+27*phi(lo(1)+3,j,k,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
@@ -475,12 +454,22 @@ c
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      if (mask(hi(1)+1,j,k) .gt. 0) then
-c                       phi(hi(1)+1,j,k,n) =  (9*phi(hi(1),j,k,n) +  3*phi(hi(1)-1,j,k,n) - phi(hi(1)-2,j,k,n))/11.d0
-                        phi(hi(1)+1,j,k,n) =  (5*phi(hi(1)  ,j,k,n) +  9*phi(hi(1)-1,j,k,n) - 5*phi(hi(1)-2,j,k,n) + phi(hi(1)-3,j,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(hi(1)+1,j,k,n) =  (9*phi(hi(1),j,k,n)
+     &                       +3*phi(hi(1)-1,j,k,n)-phi(hi(1)-2,j,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(hi(1)+1,j,k,n) =  (5*phi(hi(1)  ,j,k,n) +  9*phi(hi(1)-1,j,k,n)
+     &                       - 5*phi(hi(1)-2,j,k,n) + phi(hi(1)-3,j,k,n))/10.d0
+#endif
                      endif
                      if (mask(hi(1)+2,j,k) .gt. 0) then
-c                       phi(hi(1)+2,j,k,n) = (- 30*phi(hi(1),j,k,n) + 56*phi(hi(1)-1,j,k,n) - 15*phi(hi(1)-2,j,k,n))/11.d0
-                        phi(hi(1)+2,j,k,n) = (- 75*phi(hi(1),j,k,n) + 145*phi(hi(1)-1,j,k,n) - 75*phi(hi(1)-2,j,k,n) + 15*phi(hi(1)-3,j,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(hi(1)+2,j,k,n) = (- 30*phi(hi(1),j,k,n) + 56*phi(hi(1)-1,j,k,n)
+     &                       - 15*phi(hi(1)-2,j,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(hi(1)+2,j,k,n) = (- 75*phi(hi(1),j,k,n) + 145*phi(hi(1)-1,j,k,n)
+     &                       - 75*phi(hi(1)-2,j,k,n) + 15*phi(hi(1)-3,j,k,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -501,15 +490,26 @@ c                       phi(hi(1)+2,j,k,n) = (- 30*phi(hi(1),j,k,n) + 56*phi(hi(
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(hi(1)+1,j-1,k).gt.0 .and. mask(hi(1)+1,j+1,k).gt.0
      $                          .and. mask(hi(1)+1,j,k-1).gt.0 .and. mask(hi(1)+1,j,k+1).gt.0) then
-                              tmp = b*(bcval(hi(1)+1,j+1,k,n)+bcval(hi(1)+1,j-1,k,n)+bcval(hi(1)+1,j,k+1,n)+bcval(hi(1)+1,j,k-1,n)) + d*bcval(hi(1)+1,j,k,n)
+                              tmp = b*(bcval(hi(1)+1,j+1,k,n)+bcval(hi(1)+1,j-1,k,n)+bcval(hi(1)+1,j,k+1,n)
+     &                             +bcval(hi(1)+1,j,k-1,n)) + d*bcval(hi(1)+1,j,k,n)
                            else
                               tmp = bcval(hi(1)+1,j,k,n)
                            endif
-c                          phi(hi(1)+1,j,k,n) = (12*tmp - 13*phi(hi(1),j,k,n) + 5*phi(hi(1)-1,j,k,n) - phi(hi(1)-2,j,k,n))/3.d0
-                           phi(hi(1)+1,j,k,n) = (60*tmp - 77*phi(hi(1),j,k,n) + 43*phi(hi(1)-1,j,k,n) - 17*phi(hi(1)-2,j,k,n) + 3*phi(hi(1)-3,j,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(hi(1)+1,j,k,n) = (12*tmp - 13*phi(hi(1),j,k,n)
+     &                          + 5*phi(hi(1)-1,j,k,n) - phi(hi(1)-2,j,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(hi(1)+1,j,k,n) = (60*tmp - 77*phi(hi(1),j,k,n) + 43*phi(hi(1)-1,j,k,n)
+     &                          - 17*phi(hi(1)-2,j,k,n) + 3*phi(hi(1)-3,j,k,n))/12.d0
+#endif
                            if (mask(hi(1)+2,j,k) .gt. 0) then
-c                             phi(hi(1)+2,j,k,n) = (48*tmp - 70*phi(hi(1),j,k,n) + 32*phi(hi(1)-1,j,k,n) - 7*phi(hi(1)-2,j,k,n))/3.d0
-                              phi(hi(1)+2,j,k,n) = (300*tmp - 505*phi(hi(1),j,k,n) + 335*phi(hi(1)-1,j,k,n) - 145*phi(hi(1)-2,j,k,n) + 27*phi(hi(1)-3,j,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                              phi(hi(1)+2,j,k,n) = (48*tmp - 70*phi(hi(1),j,k,n)
+     &                             + 32*phi(hi(1)-1,j,k,n) - 7*phi(hi(1)-2,j,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(hi(1)+2,j,k,n) = (300*tmp - 505*phi(hi(1),j,k,n) + 335*phi(hi(1)-1,j,k,n)
+     &                             - 145*phi(hi(1)-2,j,k,n) + 27*phi(hi(1)-3,j,k,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
@@ -574,12 +574,22 @@ c
                do k = lo(3),hi(3)
                   do i = lo(1),hi(1)
                      if (mask(i,lo(2)-1,k) .gt. 0) then
-c                       phi(i,lo(2)-1,k,n) =  (9*phi(i,lo(2),k,n) +  3*phi(i,lo(2)+1,k,n) - phi(i,lo(2)+2,k,n))/11.d0
-                        phi(i,lo(2)-1,k,n) =  (5*phi(i,lo(2)  ,k,n) +  9*phi(i,lo(2)+1,k,n) - 5*phi(i,lo(2)+2,k,n) + phi(i,lo(2)+3,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,lo(2)-1,k,n) =  (9*phi(i,lo(2),k,n) +  3*phi(i,lo(2)+1,k,n)
+     &                       - phi(i,lo(2)+2,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,lo(2)-1,k,n) =  (5*phi(i,lo(2)  ,k,n) +  9*phi(i,lo(2)+1,k,n)
+     &                       - 5*phi(i,lo(2)+2,k,n) + phi(i,lo(2)+3,k,n))/10.d0
+#endif
                      endif
                      if (mask(i,lo(2)-2,k) .gt. 0) then
-c                       phi(i,lo(2)-2,k,n) = (- 30*phi(i,lo(2),k,n) + 56*phi(i,lo(2)+1,k,n) - 15*phi(i,lo(2)+2,k,n))/11.d0
-                        phi(i,lo(2)-2,k,n) = (- 75*phi(i,lo(2),k,n) + 145*phi(i,lo(2)+1,k,n) - 75*phi(i,lo(2)+2,k,n) + 15*phi(i,lo(2)+3,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,lo(2)-2,k,n) = (- 30*phi(i,lo(2),k,n) + 56*phi(i,lo(2)+1,k,n)
+     &                       - 15*phi(i,lo(2)+2,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,lo(2)-2,k,n) = (- 75*phi(i,lo(2),k,n) + 145*phi(i,lo(2)+1,k,n)
+     &                       - 75*phi(i,lo(2)+2,k,n) + 15*phi(i,lo(2)+3,k,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -600,15 +610,26 @@ c                       phi(i,lo(2)-2,k,n) = (- 30*phi(i,lo(2),k,n) + 56*phi(i,l
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(i-1,lo(2)-1,k).gt.0 .and. mask(i+1,lo(2)-1,k).gt.0
      $                          .and. mask(i,lo(2)-1,k-1).gt.0 .and. mask(i,lo(2)-1,k+1).gt.0) then
-                              tmp = b*(bcval(i+1,lo(2)-1,k,n)+bcval(i-1,lo(2)-1,k,n)+bcval(i,lo(2)-1,k+1,n)+bcval(i,lo(2)-1,k-1,n)) + d*bcval(i,lo(2)-1,k,n)
+                              tmp = b*(bcval(i+1,lo(2)-1,k,n)+bcval(i-1,lo(2)-1,k,n)+bcval(i,lo(2)-1,k+1,n)
+     &                             +bcval(i,lo(2)-1,k-1,n)) + d*bcval(i,lo(2)-1,k,n)
                            else
                               tmp = bcval(i,lo(2)-1,k,n)
                            endif
-c                          phi(i,lo(2)-1,k,n) = (12*tmp - 13*phi(i,lo(2),k,n) + 5*phi(i,lo(2)+1,k,n) - phi(i,lo(2)+2,k,n))/3.d0
-                           phi(i,lo(2)-1,k,n) = (60*tmp - 77*phi(i,lo(2),k,n) + 43*phi(i,lo(2)+1,k,n) - 17*phi(i,lo(2)+2,k,n) + 3*phi(i,lo(2)+3,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(i,lo(2)-1,k,n) = (12*tmp - 13*phi(i,lo(2),k,n) + 5*phi(i,lo(2)+1,k,n)
+     &                          - phi(i,lo(2)+2,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(i,lo(2)-1,k,n) = (60*tmp - 77*phi(i,lo(2),k,n) + 43*phi(i,lo(2)+1,k,n)
+     &                          - 17*phi(i,lo(2)+2,k,n) + 3*phi(i,lo(2)+3,k,n))/12.d0
+#endif
                            if (mask(i,lo(2)-2,k) .gt. 0) then
-c                             phi(i,lo(2)-2,k,n) =   (48*tmp - 70*phi(i,lo(2),k,n) + 32*phi(i,lo(2)+1,k,n) - 7*phi(i,lo(2)+2,k,n))/3.d0
-                              phi(i,lo(2)-2,k,n) = (300*tmp - 505*phi(i,lo(2),k,n) + 335*phi(i,lo(2)+1,k,n) - 145*phi(i,lo(2)+2,k,n) + 27*phi(i,lo(2)+3,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                              phi(i,lo(2)-2,k,n) =   (48*tmp - 70*phi(i,lo(2),k,n) + 32*phi(i,lo(2)+1,k,n)
+     &                             - 7*phi(i,lo(2)+2,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(i,lo(2)-2,k,n) = (300*tmp - 505*phi(i,lo(2),k,n) + 335*phi(i,lo(2)+1,k,n)
+     &                             - 145*phi(i,lo(2)+2,k,n) + 27*phi(i,lo(2)+3,k,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
@@ -674,12 +695,22 @@ c
                do k = lo(3), hi(3)
                   do i = lo(1), hi(1)
                      if (mask(i,hi(2)+1,k) .gt. 0) then
-c                       phi(i,hi(2)+1,k,n) =  (9*phi(i,hi(2),k,n) +  3*phi(i,hi(2)-1,k,n) - phi(i,hi(2)-2,k,n))/11.d0
-                        phi(i,hi(2)+1,k,n) =  (5*phi(i,hi(2),k,n) +  9*phi(i,hi(2)-1,k,n) - 5*phi(i,hi(2)-2,k,n) + phi(i,hi(2)-3,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,hi(2)+1,k,n) =  (9*phi(i,hi(2),k,n) +  3*phi(i,hi(2)-1,k,n)
+     &                       - phi(i,hi(2)-2,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,hi(2)+1,k,n) =  (5*phi(i,hi(2),k,n) +  9*phi(i,hi(2)-1,k,n)
+     &                       - 5*phi(i,hi(2)-2,k,n) + phi(i,hi(2)-3,k,n))/10.d0
+#endif
                      endif
                      if (mask(i,hi(2)+2,k) .gt. 0) then
-c                       phi(i,hi(2)+2,k,n) = (- 30*phi(i,hi(2),k,n) + 56*phi(i,hi(2)-1,k,n) - 15*phi(i,hi(2)-2,k,n))/11.d0
-                        phi(i,hi(2)+2,k,n) = (- 75*phi(i,hi(2),k,n) + 145*phi(i,hi(2)-1,k,n) - 75*phi(i,hi(2)-2,k,n) + 15*phi(i,hi(2)-3,k,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,hi(2)+2,k,n) = (- 30*phi(i,hi(2),k,n) + 56*phi(i,hi(2)-1,k,n)
+     &                       - 15*phi(i,hi(2)-2,k,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,hi(2)+2,k,n) = (- 75*phi(i,hi(2),k,n) + 145*phi(i,hi(2)-1,k,n)
+     &                       - 75*phi(i,hi(2)-2,k,n) + 15*phi(i,hi(2)-3,k,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -700,15 +731,26 @@ c                       phi(i,hi(2)+2,k,n) = (- 30*phi(i,hi(2),k,n) + 56*phi(i,h
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(i-1,hi(2)+1,k).gt.0 .and. mask(i+1,hi(2)+1,k).gt.0
      $                          .and. mask(i,hi(2)+1,k-1).gt.0 .and. mask(i,hi(2)+1,k+1).gt.0) then
-                              tmp = b*(bcval(i+1,hi(2)+1,k,n)+bcval(i-1,hi(2)+1,k,n)+bcval(i,hi(2)+1,k+1,n)+bcval(i,hi(2)+1,k-1,n)) + d*bcval(i,hi(2)+1,k,n)
+                              tmp = b*(bcval(i+1,hi(2)+1,k,n)+bcval(i-1,hi(2)+1,k,n)+bcval(i,hi(2)+1,k+1,n)
+     &                             +bcval(i,hi(2)+1,k-1,n)) + d*bcval(i,hi(2)+1,k,n)
                            else
                               tmp = bcval(i,hi(2)+1,k,n)
                            endif
-c                          phi(i,hi(2)+1,k,n) = (12*tmp - 13*phi(i,hi(2),k,n) + 5*phi(i,hi(2)-1,k,n) - phi(i,hi(2)-2,k,n))/3.d0
-                           phi(i,hi(2)+1,k,n) = (60*tmp - 77*phi(i,hi(2),k,n) + 43*phi(i,hi(2)-1,k,n) - 17*phi(i,hi(2)-2,k,n) + 3*phi(i,hi(2)-3,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(i,hi(2)+1,k,n) = (12*tmp - 13*phi(i,hi(2),k,n) + 5*phi(i,hi(2)-1,k,n)
+     &                          - phi(i,hi(2)-2,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(i,hi(2)+1,k,n) = (60*tmp - 77*phi(i,hi(2),k,n) + 43*phi(i,hi(2)-1,k,n)
+     &                          - 17*phi(i,hi(2)-2,k,n) + 3*phi(i,hi(2)-3,k,n))/12.d0
+#endif
                            if (mask(i,hi(2)+2,k) .gt. 0) then
-c                             phi(i,hi(2)+2,k,n) =   (48*tmp -  70*phi(i,hi(2),k,n) + 32*phi(i,hi(2)-1,k,n) - 7*phi(i,hi(2)-2,k,n))/3.d0
-                              phi(i,hi(2)+2,k,n) = (300*tmp - 505*phi(i,hi(2),k,n) + 335*phi(i,hi(2)-1,k,n) - 145*phi(i,hi(2)-2,k,n) + 27*phi(i,hi(2)-3,k,n))/12.d0
+#if defined(BC_ORDER_4)
+                              phi(i,hi(2)+2,k,n) =   (48*tmp -  70*phi(i,hi(2),k,n) + 32*phi(i,hi(2)-1,k,n)
+     &                             - 7*phi(i,hi(2)-2,k,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(i,hi(2)+2,k,n) = (300*tmp - 505*phi(i,hi(2),k,n) + 335*phi(i,hi(2)-1,k,n)
+     &                             - 145*phi(i,hi(2)-2,k,n) + 27*phi(i,hi(2)-3,k,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
@@ -775,12 +817,22 @@ c
                do j = lo(2),hi(2)
                   do i = lo(1),hi(1)
                      if (mask(i,j,lo(3)-1) .gt. 0) then
-c                       phi(i,j,lo(3)-1,n) =  (9*phi(i,j,lo(3),n) +  3*phi(i,j,lo(3)+1,n) - phi(i,j,lo(3)+2,n))/11.d0
-                        phi(i,j,lo(3)-1,n) =  (5*phi(i,j,lo(3),n) +  9*phi(i,j,lo(3)+1,n) - 5*phi(i,j,lo(3)+2,n) + phi(i,j,lo(3)+3,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,j,lo(3)-1,n) =  (9*phi(i,j,lo(3),n) +  3*phi(i,j,lo(3)+1,n)
+     &                       - phi(i,j,lo(3)+2,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,j,lo(3)-1,n) =  (5*phi(i,j,lo(3),n) +  9*phi(i,j,lo(3)+1,n)
+     &                       - 5*phi(i,j,lo(3)+2,n) + phi(i,j,lo(3)+3,n))/10.d0
+#endif
                      endif
                      if (mask(i,k,lo(3)-2) .gt. 0) then
-c                       phi(i,j,lo(3)-2,n) = (- 30*phi(i,j,lo(3),n) + 56*phi(i,j,lo(3)+1,n) - 15*phi(i,j,lo(3)+2,n))/11.d0
-                        phi(i,j,lo(3)-2,n) = (- 75*phi(i,j,lo(3),n) + 145*phi(i,j,lo(3)+1,n) - 75*phi(i,j,lo(3)+2,n) + 15*phi(i,j,lo(3)+3,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,j,lo(3)-2,n) = (- 30*phi(i,j,lo(3),n) + 56*phi(i,j,lo(3)+1,n)
+     &                       - 15*phi(i,j,lo(3)+2,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,j,lo(3)-2,n) = (- 75*phi(i,j,lo(3),n) + 145*phi(i,j,lo(3)+1,n)
+     &                       - 75*phi(i,j,lo(3)+2,n) + 15*phi(i,j,lo(3)+3,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -801,15 +853,26 @@ c                       phi(i,j,lo(3)-2,n) = (- 30*phi(i,j,lo(3),n) + 56*phi(i,j
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(i-1,j,lo(3)-1).gt.0 .and. mask(i+1,j,lo(3)-1).gt.0
      $                          .and. mask(i,j-1,lo(3)-1).gt.0 .and. mask(i,j+1,lo(3)-1).gt.0) then
-                              tmp = b*(bcval(i+1,j,lo(3)-1,n)+bcval(i-1,j,lo(3)-1,n)+bcval(i,j+1,lo(3)-1,n)+bcval(i,j-1,lo(3)-1,n)) + d*bcval(i,j,lo(3)-1,n)
+                              tmp = b*(bcval(i+1,j,lo(3)-1,n)+bcval(i-1,j,lo(3)-1,n)+bcval(i,j+1,lo(3)-1,n)
+     &                             +bcval(i,j-1,lo(3)-1,n)) + d*bcval(i,j,lo(3)-1,n)
                            else
                               tmp = bcval(i,j,lo(3)-1,n)
                            endif
-c                          phi(i,j,lo(3)-1,n) = (12*tmp - 13*phi(i,j,lo(3),n) + 5*phi(i,j,lo(3)+1,n) - phi(i,j,lo(3)+2,n))/3.d0
-                           phi(i,j,lo(3)-1,n) = (60*tmp - 77*phi(i,j,lo(3),n) + 43*phi(i,j,lo(3)+1,n) - 17*phi(i,j,lo(3)+2,n) + 3*phi(i,j,lo(3)+3,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(i,j,lo(3)-1,n) = (12*tmp - 13*phi(i,j,lo(3),n) + 5*phi(i,j,lo(3)+1,n)
+     &                          - phi(i,j,lo(3)+2,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(i,j,lo(3)-1,n) = (60*tmp - 77*phi(i,j,lo(3),n) + 43*phi(i,j,lo(3)+1,n)
+     &                          - 17*phi(i,j,lo(3)+2,n) + 3*phi(i,j,lo(3)+3,n))/12.d0
+#endif
                            if (mask(i,j,lo(3)-2) .gt. 0) then
-c                             phi(i,j,lo(3)-2,n) =   (48*tmp - 70*phi(i,j,lo(3),n) + 32*phi(i,j,lo(3)+1,n) - 7*phi(i,j,lo(3)+2,n))/3.d0
-                              phi(i,j,lo(3)-2,n) = (300*tmp - 505*phi(i,j,lo(3),n) + 335*phi(i,j,lo(3)+1,n) - 145*phi(i,j,lo(3)+2,n) + 27*phi(i,j,lo(3)+3,n))/12.d0
+#if defined(BC_ORDER_4)
+                              phi(i,j,lo(3)-2,n) =   (48*tmp - 70*phi(i,j,lo(3),n) + 32*phi(i,j,lo(3)+1,n)
+     &                             - 7*phi(i,j,lo(3)+2,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(i,j,lo(3)-2,n) = (300*tmp - 505*phi(i,j,lo(3),n) + 335*phi(i,j,lo(3)+1,n)
+     &                             - 145*phi(i,j,lo(3)+2,n) + 27*phi(i,j,lo(3)+3,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
@@ -875,12 +938,22 @@ c
                do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      if (mask(i,j,hi(2)+1) .gt. 0) then
-c                       phi(i,j,hi(3)+1,n) =  (9*phi(i,j,hi(3),n) +  3*phi(i,j,hi(3)-1,n) - phi(i,j,hi(3)-2,n))/11.d0
-                        phi(i,j,hi(3)+1,n) =  (5*phi(i,j,hi(3),n) +  9*phi(i,j,hi(3)-1,n) - 5*phi(i,j,hi(3)-2,n) + phi(i,j,hi(3)-3,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,j,hi(3)+1,n) =  (9*phi(i,j,hi(3),n) +  3*phi(i,j,hi(3)-1,n)
+     &                       - phi(i,j,hi(3)-2,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,j,hi(3)+1,n) =  (5*phi(i,j,hi(3),n) +  9*phi(i,j,hi(3)-1,n)
+     &                       - 5*phi(i,j,hi(3)-2,n) + phi(i,j,hi(3)-3,n))/10.d0
+#endif
                      endif
                      if (mask(i,j,hi(3)+2) .gt. 0) then
-c                       phi(i,j,hi(3)+2,n) = (- 30*phi(i,j,hi(3),n) + 56*phi(i,j,hi(3)-1,n) - 15*phi(i,j,hi(3)-2,n))/11.d0
-                        phi(i,j,hi(3)+2,n) = (- 75*phi(i,j,hi(3),n) + 145*phi(i,j,hi(3)-1,n) - 75*phi(i,j,hi(3)-2,n) + 15*phi(i,j,hi(3)-3,n))/10.d0
+#if defined(BC_ORDER_4)
+                        phi(i,j,hi(3)+2,n) = (- 30*phi(i,j,hi(3),n) + 56*phi(i,j,hi(3)-1,n)
+     &                       - 15*phi(i,j,hi(3)-2,n))/11.d0
+#elif defined(BC_ORDER_5)
+                        phi(i,j,hi(3)+2,n) = (- 75*phi(i,j,hi(3),n) + 145*phi(i,j,hi(3)-1,n)
+     &                       - 75*phi(i,j,hi(3)-2,n) + 15*phi(i,j,hi(3)-3,n))/10.d0
+#endif
                      endif
                   enddo
                enddo
@@ -901,15 +974,26 @@ c                       phi(i,j,hi(3)+2,n) = (- 30*phi(i,j,hi(3),n) + 56*phi(i,j
 c     Convert ec BC data to ea BC data -> tmp
                            if (mask(i-1,j,hi(3)+1).gt.0 .and. mask(i+1,j,hi(3)+1).gt.0
      $                          .and. mask(i,j-1,hi(3)+1).gt.0 .and. mask(i,j+1,hi(3)+1).gt.0) then
-                              tmp = b*(bcval(i+1,j,hi(3)+1,n)+bcval(i-1,j,hi(3)+1,n)+bcval(i,j+1,hi(3)+1,n)+bcval(i,j-1,hi(3)+1,n)) + d*bcval(i,j,hi(3)+1,n)
+                              tmp = b*(bcval(i+1,j,hi(3)+1,n)+bcval(i-1,j,hi(3)+1,n)+bcval(i,j+1,hi(3)+1,n)
+     &                             +bcval(i,j-1,hi(3)+1,n)) + d*bcval(i,j,hi(3)+1,n)
                            else
                               tmp = bcval(i,j,hi(3)+1,n)
                            endif
-c                          phi(i,j,hi(3)+1,n) = (12*tmp - 13*phi(i,j,hi(3),n) + 5*phi(i,j,hi(3)-1,n) - phi(i,j,hi(3)-2,n))/3.d0
-                           phi(i,j,hi(3)+1,n) = (60*tmp - 77*phi(i,j,hi(3),n) + 43*phi(i,j,hi(3)-1,n) - 17*phi(i,j,hi(3)-2,n) + 3*phi(i,j,hi(3)-3,n))/12.d0
+#if defined(BC_ORDER_4)
+                           phi(i,j,hi(3)+1,n) = (12*tmp - 13*phi(i,j,hi(3),n) + 5*phi(i,j,hi(3)-1,n)
+     &                          - phi(i,j,hi(3)-2,n))/3.d0
+#elif defined(BC_ORDER_5)
+                           phi(i,j,hi(3)+1,n) = (60*tmp - 77*phi(i,j,hi(3),n) + 43*phi(i,j,hi(3)-1,n)
+     &                          - 17*phi(i,j,hi(3)-2,n) + 3*phi(i,j,hi(3)-3,n))/12.d0
+#endif
                            if (mask(i,j,hi(3)+2) .gt. 0) then
-c                             phi(i,j,hi(3)+2,n) =   (48*tmp -  70*phi(i,j,hi(3),n) + 32*phi(i,j,hi(3)-1,n) - 7*phi(i,j,hi(3)-2,n))/3.d0
-                              phi(i,j,hi(3)+2,n) = (300*tmp - 505*phi(i,j,hi(3),n) + 335*phi(i,j,hi(3)-1,n) - 145*phi(i,j,hi(3)-2,n) + 27*phi(i,j,hi(3)-3,n))/12.d0
+#if defined(BC_ORDER_4)
+                              phi(i,j,hi(3)+2,n) =   (48*tmp -  70*phi(i,j,hi(3),n) + 32*phi(i,j,hi(3)-1,n)
+     &                             - 7*phi(i,j,hi(3)-2,n))/3.d0
+#elif defined(BC_ORDER_5)
+                              phi(i,j,hi(3)+2,n) = (300*tmp - 505*phi(i,j,hi(3),n) + 335*phi(i,j,hi(3)-1,n)
+     &                             - 145*phi(i,j,hi(3)-2,n) + 27*phi(i,j,hi(3)-3,n))/12.d0
+#endif
                            endif
                         endif
                      enddo
