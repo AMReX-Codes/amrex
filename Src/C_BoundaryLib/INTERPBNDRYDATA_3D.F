@@ -854,6 +854,7 @@ c ---------------------------------------------------------------
                      derives(ic,jc,X2DER) = zero
                   else if (mask(i+ratiox,j,k) .eq. not_covered) then
                      derives(ic,jc,XDER)  = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
+                     derives(ic,jc,X2DER) = zero
                   else
                      derives(ic,jc,XDER) = zero
                      derives(ic,jc,X2DER) = zero
