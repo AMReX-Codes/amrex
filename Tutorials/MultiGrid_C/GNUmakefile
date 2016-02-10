@@ -1,7 +1,6 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
 BOXLIB_HOME ?= ../..
-BOXLIB_HOME := /home/marc/src/CCSE/ALT/BoxLib-4th
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
