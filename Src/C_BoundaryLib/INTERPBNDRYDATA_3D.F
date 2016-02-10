@@ -130,14 +130,16 @@ c ---------------------------------------------------------------
                      derives(jc,kc,Y2DER)  = zero
                   end if
 
-                  if ( mask(i,j-1,k) .eq. not_covered .and.
-     $                 mask(i,j+ratioz,k) .eq. not_covered .and.
-     $                 mask(i,j,k-1) .eq. not_covered .and.
-     $                 mask(i,j,k+ratioz) .eq. not_covered) then
+                  if ( 
+     $                 ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
+
+                     derives(jc,kc,XYDER) = zero
+                  else
                      derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
      &                    + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
-                  else
-                     derives(jc,kc,XYDER) = zero
                   end if
                end do
             end do
@@ -279,14 +281,16 @@ c ---------------------------------------------------------------
                      derives(jc,kc,Y2DER) = zero
                   end if
 
-                  if (mask(i,j-1,k) .eq. not_covered .and.
-     $                 mask(i,j+ratioy,k) .eq. not_covered .and.
-     $                 mask(i,j,k-1) .eq. not_covered .and.
-     $                 mask(i,j,k+ratioz) .eq. not_covered) then
+                  if (
+     $                 ( mask(i,j+ratioy,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i,j+ratioy,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i,j-1,k-1)         .ne. not_covered ) ) then
+                     
+                     derives(jc,kc,XYDER) = zero
+                  else
                      derives(jc,kc,XYDER) = forth*(crse(ic,jc+1,kc+1,n) - crse(ic,jc-1,kc+1,n)
      &                    + crse(ic,jc-1,kc-1,n) - crse(ic,jc+1,kc-1,n))
-                  else
-                     derives(jc,kc,XYDER) = zero
                   end if
 
                end do
@@ -429,14 +433,16 @@ c ---------------------------------------------------------------
                      derives(ic,kc,Y2DER) = zero
                   end if
 
-                  if (mask(i-1,j,k) .eq. not_covered .and.
-     $                 mask(i+ratiox,j,k) .eq. not_covered .and.
-     $                 mask(i,j,k-1) .eq. not_covered .and.
-     $                 mask(i,j,k+ratioz) .eq. not_covered) then
+                  if (
+     $                 ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
+                     
+                     derives(ic,kc,XYDER) = zero
+                  else
                      derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
      &                    + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
-                  else
-                     derives(ic,kc,XYDER)  = zero
                   end if
 
                end do
@@ -579,15 +585,16 @@ c ---------------------------------------------------------------
                      derives(ic,kc,Y2DER)  = zero
                   end if
 
+                  if ( 
+     $                 ( mask(i+ratiox,j,k+ratioz) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k+ratioz)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j,k-1)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j,k-1)         .ne. not_covered ) ) then
 
-                  if (mask(i-1,j,k) .eq. not_covered .and.
-     $                 mask(i+ratiox,j,k) .eq. not_covered .and.
-     $                 mask(i,j,k-1) .eq. not_covered .and.
-     $                 mask(i,j,k+ratioz) .eq. not_covered) then
+                     derives(ic,kc,XYDER) = zero
+                  else
                      derives(ic,kc,XYDER) = forth*(crse(ic+1,jc,kc+1,n) - crse(ic-1,jc,kc+1,n)
      &                    + crse(ic-1,jc,kc-1,n) - crse(ic+1,jc,kc-1,n))
-                  else
-                     derives(ic,kc,XYDER) = zero
                   end if
                end do
             end do
@@ -727,14 +734,16 @@ c ---------------------------------------------------------------
                      derives(ic,jc,Y2DER)  = zero
                   end if
 
-                  if (mask(i-1,j,k) .eq. not_covered .and. 
-     $                 mask(i+ratiox,j,k) .eq. not_covered .and.
-     $                 mask(i,j-1,k) .eq. not_covered .and. 
-     $                 mask(i,j+ratioy,k) .eq. not_covered) then
+                  if (
+     $                 ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
+                     
+                     derives(ic,jc,XYDER) = zero
+                  else
                      derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
      &                    + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
-                  else 
-                     derives(ic,jc,XYDER) = zero
                   end if
                end do
             end do
@@ -876,14 +885,16 @@ c ---------------------------------------------------------------
                      derives(ic,jc,Y2DER)  = zero
                   end if
 
-                  if (mask(i-1,j,k) .eq. not_covered .and. 
-     $                 mask(i+ratiox,j,k) .eq. not_covered .and.
-     $                 mask(i,j-1,k) .eq. not_covered .and. 
-     $                 mask(i,j+ratioy,k) .eq. not_covered) then
+                  if (
+     $                 ( mask(i+ratiox,j+ratioy,k) .ne. not_covered ) .or.
+     $                 ( mask(i-1,j+ratioy,k)     .ne. not_covered ) .or.
+     $                 ( mask(i+ratiox,j-1,k)     .ne. not_covered ) .or.
+     $                 ( mask(i-1,j-1,k)         .ne. not_covered ) ) then
+                     
+                     derives(ic,jc,XYDER) = zero
+                  else
                      derives(ic,jc,XYDER) = forth*(crse(ic+1,jc+1,kc,n) - crse(ic-1,jc+1,kc,n)
      &                    + crse(ic-1,jc-1,kc,n) - crse(ic+1,jc-1,kc,n))
-                  else
-                     derives(ic,jc,XYDER) = zero
                   end if
                end do
             end do
