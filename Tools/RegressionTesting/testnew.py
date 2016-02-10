@@ -1389,7 +1389,9 @@ def test_suite(argv):
     if not all_compile:
         bench_dir = suite.get_bench_dir()
 
-    last_run = suite.get_last_run()        
+    if not args.copy_benchmarks is None:
+        last_run = suite.get_last_run()        
+
     suite.make_test_dirs()
 
     if not args.copy_benchmarks is None:
@@ -1472,8 +1474,11 @@ def test_suite(argv):
         else:
             suite.log.log("{}".format(dir))
             os.chdir(suite.source_dir + dir)
-            suite.make_realclean()
-
+            if suite.sourceTree == "BoxLib":
+                suite.make_realclean(repo="BoxLib")
+            else:
+                suite.make_realclean()
+                
     os.chdir(suite.testTopDir)
 
 
