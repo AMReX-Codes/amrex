@@ -222,14 +222,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi -lmpi_cxx -lmpi_f77
     endif
 
-    ifeq ($(HOST),HedorahU64804)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
     ifeq ($(HOST),orion)
       MPI_HOME=/usr/local
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -335,6 +327,14 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),hedorah)
+      MPI_HOME=/usr/lib/mpich
+      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
+      INCLUDE_LOCATIONS += $(MPI_HOME)/include
+      CPPFLAGS += -DMPICH_SKIP_MPICXX
+      BL_MPI_LIBS += -lpthread
+    endif
+
+    ifeq ($(HOST),godzilla)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
