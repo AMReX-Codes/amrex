@@ -1,6 +1,6 @@
 
     CC  := pgcc
-    CXX := pgCC
+    CXX := pgc++
     FC  := pgf95
     F90 := pgf95
     FFLAGS   += -module $(mdir) -I$(mdir) 
