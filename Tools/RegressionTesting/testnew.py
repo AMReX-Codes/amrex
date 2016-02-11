@@ -165,7 +165,12 @@ Each test is given its own block, with the general form:
 
   analysisOutputImage = < name on analysis result image to show on web page >
 
-  compareFile = < explicit output file to do the comparison with >
+  compareFile = < explicit output file to do the comparison with -- this is 
+                  assumed to be prefixed with the test name when output by
+                  the code at runtime, e.g. test_plt00100 >
+
+  outputFile = < explicit output file to compare with -- exactly as it will
+                 be written.  Not prefix of the test name will be done >
 
   diffDir = < directory/file to do a plain text diff on (recursive, if dir) >
 
@@ -1254,8 +1259,13 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         wd = "{}/{}".format(old_full_test_dir, t.name)
         os.chdir(wd)
 
-        if t.compareFile == "":
+        if t.compareFile == "" and t.outputFile == "":
             p = t.get_last_plotfile(output_dir=wd)
+        elif not t.outputFile == "":
+            if not os.path.isdir(t.outputFile):
+                p = get_recent_filename(wd, t.outputFile, ".tgz")
+            else:
+                p = t.outputFile
         else:
             if not os.path.isdir(t.compareFile):
                 p = get_recent_filename(wd, t.compareFile, ".tgz")
@@ -1272,12 +1282,16 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
                 idx = p.rfind(".tgz")
                 p = p[:idx]
 
-            try: shutil.rmtree("{}/{}".format(bench_dir, p))
+            store_file = p
+            if not t.outputFile == "":
+                store_file = "{}_{}".format(t.name, p)
+
+            try: shutil.rmtree("{}/{}".format(bench_dir, store_file))
             except: pass
-            shutil.copytree(p, "{}/{}".format(bench_dir, p))
+            shutil.copytree(p, "{}/{}".format(bench_dir, store_file))
 
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
-                cf.write("benchmarks updated.  New file:  {}\n".format(p) )
+                cf.write("benchmarks updated.  New file:  {}\n".format(store_file) )
 
         else:   # no benchmark exists
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
@@ -1916,8 +1930,9 @@ def test_suite(argv):
 
                         # convert the .ppm files into .png files
                         ppm_file = get_recent_filename(output_dir, "", ".ppm")
-                        png_file = ppm_file.replace(".ppm", ".png")
-                        run("convert {} {}".format(ppm_file, png_file))
+                        if not ppm_file is None:
+                            png_file = ppm_file.replace(".ppm", ".png")
+                            run("convert {} {}".format(ppm_file, png_file))
 
                 if not test.analysisRoutine == "":
 
