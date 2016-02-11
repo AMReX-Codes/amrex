@@ -27,4 +27,5 @@ FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
       CXXFLAGS += -g
     endif
 
-    xtr_libraries += -pgcpplibs
+    LDFLAGS += -pgc++libs
+    
