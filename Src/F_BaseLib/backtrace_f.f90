@@ -8,7 +8,7 @@ module backtrace_module
 
   private
 
-  public :: backtrace_init, abort_fortranboxlib
+  public :: backtrace_init, abort_fortranboxlib, get_fpe_trap_f 
 
 contains
 
@@ -34,6 +34,18 @@ contains
   subroutine abort_fortranboxlib () bind(c,name="abort_fortranboxlib")
     call parallel_abort()
   end subroutine abort_fortranboxlib
+
+  function get_fpe_trap_f () result(r)
+    interface
+       integer(c_int) function get_fpe_trap () bind(c)
+         use iso_c_binding, only : c_int
+       end function get_fpe_trap
+    end interface
+    logical :: r
+    integer(c_int) flags
+    flags = get_fpe_trap()
+    r = flags .ne. 0
+  end function get_fpe_trap_f
 
 end module backtrace_module
 

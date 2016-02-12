@@ -70,3 +70,4 @@ CEXE_headers += MultiFab_C_F.H
 CEXE_sources += MultiFab_C_F.cpp
 
 CEXE_sources += backtrace_c.cpp
+f90EXE_sources += backtrace_f.f90
