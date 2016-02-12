@@ -54,7 +54,7 @@ ifeq ($(COMP),Cray)
   endif
 else
 ifeq ($(COMP),PGI)
-  CXX = pgCC
+  CXX = pgc++
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
@@ -72,7 +72,7 @@ ifeq ($(COMP),PGI)
      ifeq ($(WHICHLINUX), CARVER)
        override XTRALIBS += -lmpi_f90 -lmpi_f77 -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
      else
-       override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
+       override XTRALIBS += -pgf90libs
      endif
 #  endif
 
@@ -517,7 +517,7 @@ ifeq ($(WHICHLINUX), HYPERION)
     fOPTF = -O3 -ip -mp
   endif
   ifeq ($(COMP),PGI)
-    CXX = pgCC
+    CXX = pgc++    
     CXXOPTF = -fast
     CXXDEBF = -g
     FC = pgf90
