@@ -65,7 +65,7 @@ ifeq ($(COMP),PGI)
       CXXOPTF += -g -fast -Minline=levels:10
     endif
   else
-    CXXOPTF += -g -O
+    CXXOPTF += -g -O1
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
@@ -192,7 +192,7 @@ ifeq ($(FCOMP),Absoft)
 else
 
 ifeq ($(FCOMP),PGI)
-  FC := pgf90
+  FC := pgf95
   fC := $(FC)
 
   ifeq ($(BL_FAST),TRUE)
