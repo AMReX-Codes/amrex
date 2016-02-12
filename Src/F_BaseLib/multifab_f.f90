@@ -1683,6 +1683,21 @@ contains
     !$omp end parallel
   end subroutine zmultifab_setval_c
 
+  subroutine multifab_set_corner(mf, val)
+    type(multifab), intent(inout) :: mf
+    real(dp_t), intent(in) :: val
+    integer :: i
+    type(mfiter) :: mfi
+    if (mf%ng > 0) then
+       !$omp parallel private(mfi,i)
+       call mfiter_build(mfi,mf,.true.)
+       do while (next_tile(mfi,i))
+          call fab_set_corner(mf%fbs(i), val, get_growntilebox(mfi), 1, mf%nc)
+       end do
+       !$omp end parallel
+    end if
+  end subroutine multifab_set_corner
+
   subroutine logical_or(out, in)
      logical, intent(inout) :: out(:,:,:,:)
      logical, intent(in   ) ::  in(:,:,:,:)

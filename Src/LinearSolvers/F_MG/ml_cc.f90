@@ -70,6 +70,12 @@ contains
        need_grad_phi = .false.
     end if
 
+    do n = 1, nlevs 
+       if (mgt(n)%lcross) then
+          call multifab_set_corner(full_soln(n), ZERO)
+       end if
+    end do
+
     allocate(uu(nlevs), res(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
     allocate(brs_flx(2:nlevs))
