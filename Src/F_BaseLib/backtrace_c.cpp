@@ -145,14 +145,31 @@ extern "C"
 	
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
-#ifdef BL_TESTING
+#if defined(BL_TESTING) && defined(__linux__) && !defined(__PGI)
         // trap floating point exceptions
-#ifndef __PGI
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 	signal(SIGFPE, backtrace_handler);
 #endif
-#endif
 
 	myproc = rank;
+    }
+
+    int get_fpe_trap ()
+    {
+#if defined(BL_TESTING) && defined(__linux__) && !defined(__PGI)
+	static bool first = true;
+	static int flags;
+	if (first) {
+	    first = false;
+	    int all_enabled_exceptions = fegetexcept();
+	    flags = (all_enabled_exceptions & FE_INVALID) 
+		||  (all_enabled_exceptions & FE_DIVBYZERO) 
+		||  (all_enabled_exceptions & FE_OVERFLOW);
+		
+	}
+	return flags;
+#else
+	return 0;
+#endif
     }
 }

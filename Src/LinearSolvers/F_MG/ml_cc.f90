@@ -5,7 +5,7 @@ module ml_cc_module
   use ml_layout_module
   use bndry_reg_module
   ! use mg_hypre_module
-
+  
   implicit none
 
 contains
@@ -18,6 +18,7 @@ contains
     use ml_cc_restriction_module, only : ml_cc_restriction
     use ml_prolongation_module  , only : ml_cc_prolongation, ml_interp_bcs
     use cc_ml_resid_module      , only : crse_fine_residual_cc
+    use backtrace_module        , only : get_fpe_trap_f
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -70,11 +71,14 @@ contains
        need_grad_phi = .false.
     end if
 
-    do n = 1, nlevs 
-       if (mgt(n)%lcross) then
-          call multifab_set_corner(full_soln(n), ZERO)
-       end if
-    end do
+    if (get_fpe_trap_f()) then
+       do n = 1, nlevs 
+          if (mgt(n)%lcross) then
+             call multifab_set_corner(full_soln(n), ZERO)
+             call multifab_fill_boundary(full_soln(n), cross=mgt(n)%lcross)
+          end if
+       end do
+    end if
 
     allocate(uu(nlevs), res(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
