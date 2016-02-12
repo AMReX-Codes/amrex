@@ -72,7 +72,7 @@ contains
     end if
 
     if (get_fpe_trap_f()) then
-       do n = 1, nlevs 
+       do n = 2, nlevs 
           if (mgt(n)%lcross) then
              call multifab_set_corner(full_soln(n), ZERO)
              call multifab_fill_boundary(full_soln(n), cross=mgt(n)%lcross)
