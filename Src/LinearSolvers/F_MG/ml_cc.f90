@@ -71,14 +71,14 @@ contains
        need_grad_phi = .false.
     end if
 
-    if (get_fpe_trap_f()) then
-       do n = 2, nlevs 
-          if (mgt(n)%lcross) then
-             call multifab_set_corner(full_soln(n), ZERO)
-             call multifab_fill_boundary(full_soln(n), cross=mgt(n)%lcross)
-          end if
-       end do
-    end if
+    ! if (get_fpe_trap_f()) then
+    !    do n = 2, nlevs 
+    !       if (mgt(n)%lcross) then
+    !          call multifab_set_corner(full_soln(n), ZERO)
+    !          call multifab_fill_boundary(full_soln(n), cross=mgt(n)%lcross)
+    !       end if
+    !    end do
+    ! end if
 
     allocate(uu(nlevs), res(nlevs), temp_res(nlevs))
     allocate(uu_hold(2:nlevs-1))
