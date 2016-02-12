@@ -1433,6 +1433,47 @@ contains
     p = val
   end subroutine lfab_setval_bx_c
 
+  ! setval in cells not used in a cross stencil
+  subroutine fab_set_corner(fb, val, bx, c, nc)
+    type(fab), intent(inout) :: fb
+    real(dp_t), intent(in) :: val
+    type(box), intent(in) :: bx
+    integer, intent(in) :: c, nc
+    integer :: i, j, k, m, lo(4), hi(4), iin, jin, kin
+    real(kind=dp_t), pointer :: p(:,:,:,:)
+    if (fb%dim .eq. 1) return
+    p => fab_dataptr_bx_c(fb, bx, c, nc)
+    lo = lbound(p)
+    hi = ubound(p)
+    do m = lo(4), hi(4)
+       do k = lo(3), hi(3)
+          if (fb%dim .eq. 2) then
+             kin = 1
+          else if (k.ge. fb%ibx%lo(3) .and. k .le. fb%ibx%hi(3)) then
+             kin = 1
+          else
+             kin = 0
+          end if
+          do j = lo(2), hi(2)
+             if (j .ge. fb%ibx%lo(2) .and. j .le. fb%ibx%hi(2)) then
+                jin = 1
+             else
+                jin = 0
+             end if
+             if (jin+kin.eq.2) cycle
+             do i = lo(1), hi(1)
+                if (i .ge. fb%ibx%lo(1) .and. i .le. fb%ibx%hi(1)) then
+                   iin = 1
+                else
+                   iin = 0
+                end if
+                if (iin+jin+kin.le.1) p(i,j,k,m) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine fab_set_corner
+
   subroutine fab_print(fb, comp, str, unit, all, data, bx, skip)
     use bl_IO_module
     type(fab), intent(in) :: fb
