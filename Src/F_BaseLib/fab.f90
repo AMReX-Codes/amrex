@@ -1439,35 +1439,37 @@ contains
     real(dp_t), intent(in) :: val
     type(box), intent(in) :: bx
     integer, intent(in) :: c, nc
-    integer :: i, j, k, m, lo(4), hi(4), iin, jin, kin
-    real(kind=dp_t), pointer :: p(:,:,:,:)
+    integer :: i, j, k, m, lo(3), hi(3), ilo(3), ihi(3), iin, jin, kin
     if (fb%dim .eq. 1) return
-    p => fab_dataptr_bx_c(fb, bx, c, nc)
-    lo = lbound(p)
-    hi = ubound(p)
-    do m = lo(4), hi(4)
+    lo = 1
+    hi = 1
+    lo(1:fb%dim) = lwb(bx)
+    hi(1:fb%dim) = upb(bx)
+    ilo = 1
+    ihi = 1
+    ilo(1:fb%dim) = lwb(fb%ibx)
+    ihi(1:fb%dim) = upb(fb%ibx)
+    do m = 1, nc
        do k = lo(3), hi(3)
-          if (fb%dim .eq. 2) then
-             kin = 1
-          else if (k.ge. fb%ibx%lo(3) .and. k .le. fb%ibx%hi(3)) then
+          if (k .ge. ilo(3) .and. k .le. ihi(3)) then
              kin = 1
           else
              kin = 0
           end if
           do j = lo(2), hi(2)
-             if (j .ge. fb%ibx%lo(2) .and. j .le. fb%ibx%hi(2)) then
+             if (j .ge. ilo(2) .and. j .le. ihi(2)) then
                 jin = 1
              else
                 jin = 0
              end if
              if (jin+kin.eq.2) cycle
              do i = lo(1), hi(1)
-                if (i .ge. fb%ibx%lo(1) .and. i .le. fb%ibx%hi(1)) then
+                if (i .ge. ilo(1) .and. i .le. ihi(1)) then
                    iin = 1
                 else
                    iin = 0
                 end if
-                if (iin+jin+kin.le.1) p(i,j,k,m) = val
+                if (iin+jin+kin.le.1) fb%p(i,j,k,m) = val
              end do
           end do
        end do
