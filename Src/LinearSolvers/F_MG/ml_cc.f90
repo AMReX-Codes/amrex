@@ -18,7 +18,7 @@ contains
     use ml_cc_restriction_module, only : ml_cc_restriction
     use ml_prolongation_module  , only : ml_cc_prolongation, ml_interp_bcs
     use cc_ml_resid_module      , only : crse_fine_residual_cc
-    use backtrace_module        , only : get_fpe_trap_f
+    use backtrace_module        , only : fpe_trap, quiet_nan
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -71,11 +71,10 @@ contains
        need_grad_phi = .false.
     end if
 
-    if (get_fpe_trap_f()) then
+    if (fpe_trap()) then
        do n = 2, nlevs 
           if (mgt(n)%lcross) then
-             call multifab_set_corner(full_soln(n), 1.d100)
-!             call multifab_fill_boundary(full_soln(n), cross=mgt(n)%lcross)
+             call multifab_set_corner(full_soln(n), quiet_nan())
           end if
        end do
     end if
