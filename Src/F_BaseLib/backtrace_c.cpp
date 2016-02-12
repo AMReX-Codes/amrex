@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <limits>
 
 #include <unistd.h>
 
@@ -171,5 +172,10 @@ extern "C"
 #else
 	return 0;
 #endif
+    }
+
+    double get_quiet_nan ()
+    {
+	return std::numeric_limits<double>::quiet_NaN();
     }
 }
