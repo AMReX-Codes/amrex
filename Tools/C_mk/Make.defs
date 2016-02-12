@@ -744,7 +744,7 @@ ifeq ($(DEBUG),TRUE)
     fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
-    CPPFLAGS	+= -DDEBUG -DBL_TESTING
+    CPPFLAGS	+= -DDEBUG
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
