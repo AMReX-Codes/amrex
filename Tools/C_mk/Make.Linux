@@ -69,11 +69,7 @@ ifeq ($(COMP),PGI)
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
-     ifeq ($(WHICHLINUX), CARVER)
-       override XTRALIBS += -lmpi_f90 -lmpi_f77 -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
-     else
-       override XTRALIBS += -pgf90libs
-     endif
+     override XTRALIBS += -pgf90libs
 #  endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -331,15 +327,6 @@ ifeq ($(WHICHLINUX), ORION)
   endif
 endif
 
-ifeq ($(WHICHLINUX), CARVER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := mpiCC
-    FC  := mpif90
-    F90 := mpif90
-    fC  := mpif90
-  endif
-endif
 
 ifeq ($(WHICHLINUX), FREEDOM)
   DEFINES += -DMPICH_SKIP_MPICXX

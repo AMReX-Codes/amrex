@@ -443,22 +443,20 @@ ifeq ($(MACHINE), Linux)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
           ifneq ($(WHICHLINUX), DELLA)
-            ifneq ($(WHICHLINUX), CARVER)
-              ifneq ($(HOST),davinci)
-                ifneq ($(WHICHLINUX), EUCLID)
-                  ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
-                    ifneq ($(WHICHLINUX), DONEV)
-                      ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
-                        ifneq ($(WHICHLINUX), LENS)
-                          ifneq ($(WHICHLINUX), BABBAGE)
-                            ifneq ($(WHICHLINUX), MIRA)
-                              BL_MPI_LIBS += -lmpich
-                            endif
+	    ifneq ($(HOST),davinci)
+              ifneq ($(WHICHLINUX), EUCLID)
+                ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
+                  ifneq ($(WHICHLINUX), DONEV)
+                    ifneq ($(HOST), stribog)   # This is Zarija Lukic's machine
+                      ifneq ($(WHICHLINUX), LENS)
+                        ifneq ($(WHICHLINUX), BABBAGE)
+                          ifneq ($(WHICHLINUX), MIRA)
+                            BL_MPI_LIBS += -lmpich
                           endif
-                        endif  
+                        endif
                       endif  
                     endif  
-                  endif
+                  endif  
                 endif
               endif
             endif
