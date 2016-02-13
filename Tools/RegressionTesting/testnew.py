@@ -2467,7 +2467,7 @@ def report_single_test(suite, test, failure_msg=None):
 
         # write out the status file for this problem, with either
         # PASSED or FAILED
-        status_file = "%s.status" % (test.name)
+        status_file = "{}.status".format(test.name)
         with open(status_file, 'w') as sf:
             if (compileSuccessful and
                 (test.compileTest or (not test.compileTest and compareSuccessful))):
@@ -2479,6 +2479,7 @@ def report_single_test(suite, test, failure_msg=None):
 
     else:
         # we came in already admitting we failed...
+        status_file = "{}.status".format(test.name)        
         with open(status_file, 'w') as sf:
             sf.write("FAILED\n")
         suite.log.testfail("{} FAILED".format(test.name))
@@ -2509,7 +2510,7 @@ def report_single_test(suite, test, failure_msg=None):
         ll.indent()
         
         ll.item("<h3 class=\"failed\">Failed</h3>")
-        ll.item("{}".failure(failure_msg))
+        ll.item("{}".format(failure_msg))
 
         ll.outdent()
 
