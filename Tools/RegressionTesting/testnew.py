@@ -249,12 +249,15 @@ class Test(object):
 
         self.reClean = 0    # set automatically, not by users
 
-        self.wallTime = 0   # set automatically, not by users
+        self.wall_time = 0   # set automatically, not by users
 
         self.nlevels = None  # set but running fboxinfo on the output
 
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
+
+        self.backtrace = []   # filled automatically
+
         
     def __lt__(self, other):
         return self.value() < other.value()
@@ -1698,7 +1701,7 @@ def test_suite(argv):
 
         os.chdir(output_dir)
 
-        test.wallTime = time.time()
+        test.wall_time = time.time()
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
@@ -1732,6 +1735,11 @@ def test_suite(argv):
 
             if lastFile == "":
                 errorMsg = "ERROR: test did not produce output.  Restart test not possible"
+                test.wall_time = time.time() - test.wall_time
+                # copy what we can
+                shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+                
                 report_test_failure(suite, errorMsg, test)
                 continue
 
@@ -1759,7 +1767,7 @@ def test_suite(argv):
 
             suite.run_test(test, base_command)
 
-        test.wallTime = time.time() - test.wallTime
+        test.wall_time = time.time() - test.wall_time
 
 
         #----------------------------------------------------------------------
@@ -1887,7 +1895,7 @@ def test_suite(argv):
 
                 suite.log.log("looking for selfTest success string: {} ...".format(test.stSuccessString))
 
-                try: of = open("%s.run.out" % (test.name), 'r')
+                try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
                     suite.log.warn("WARNING: no output file found")
                     compareSuccessful = 0
@@ -1957,9 +1965,9 @@ def test_suite(argv):
         # move the output files into the web directory
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
-            shutil.copy("%s.run.out"     % (test.name), suite.full_web_dir)
-            shutil.copy("%s.make.out"    % (test.name), suite.full_web_dir)
-            shutil.copy("%s.compare.out" % (test.name), suite.full_web_dir)
+            shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+            shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+            shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
 
@@ -1992,7 +2000,6 @@ def test_suite(argv):
 
             # were any Backtrace files output (indicating a crash)
             backtrace = [ft for ft in os.listdir(output_dir) if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
-            test.backtrace = []
             for btf in backtrace:
                 ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
                 shutil.copy(btf, ofile)
@@ -2544,7 +2551,7 @@ def report_single_test(suite, test):
         # execution summary
         ll.item("Execution:")
         ll.indent()
-        ll.item("Execution time: {:.3f} s".format(test.wallTime))
+        ll.item("Execution time: {:.3f} s".format(test.wall_time))
         ll.item("Execution command:<br>{}".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         ll.outdent()
@@ -2698,32 +2705,111 @@ def report_test_failure(suite, message, test):
     #--------------------------------------------------------------------------
 
     # check to see if the CSS file is present, if not, write it
-    if (not os.path.isfile("tests.css")):
+    if not os.path.isfile("tests.css"):
         create_css()
 
 
-    htmlFile = "%s.html" % (test.name)
-    hf = open(htmlFile, 'w')
+    html_file = "{}.html".format(test.name)
+    hf = open(html_file, 'w')
 
-    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
+    new_head = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", suite.test_dir)
-    newHead = newHead.replace("@TESTNAME@", test.name)
+    new_head = new_head.replace("@TESTDIR@", suite.test_dir)
+    new_head = new_head.replace("@TESTNAME@", test.name)
 
-    hf.write(newHead)
+    hf.write(new_head)
 
-    # write out the information about the test
-    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
+    ll = HTMLList(of=hf)
+    
+    # build summary
+    ll.item("Test ended unexpectedly:")
+    ll.indent()
 
-    hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
-    hf.write("<P>%s</P>\n" % (message) )
+    ll.item("<h3 class=\"failed\">Failed</h3>")
+    ll.item("{}".format(message))
 
-    if (not test.comp_string == None):
-        hf.write("<P>compliation command:\n %s\n" % (test.comp_string) )
-        hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
+    ll.outdent()
 
+    # build summary    
+    ll.item("Build/Test information:")
+    ll.indent()
+
+    ll.item("Build directory: {}".format(test.buildDir))
+
+    if not test.extra_build_dir == "":
+        ll.indent()
+        ll.item("in {}".format(suite.repos[test.extra_build_dir].dir))
+        ll.outdent()
+
+    if not test.compileTest:
+
+        if test.debug:
+            ll.item("Debug test")
+
+        if test.useMPI or test.useOMP:
+            ll.item("Parallel run")
+            ll.indent()
+            if test.useMPI:
+                ll.item("MPI numprocs = {}".format(test.numprocs))
+            if test.useOMP:
+                ll.item("OpenMP numthreads = {}".format(test.numthreads))
+            ll.outdent()
+
+            ll.item("Files:")
+        ll.indent()
+
+        ll.item("input file: <a href=\"{}.{}\">{}</a>".format(test.name, test.inputFile, test.inputFile))
+
+        if suite.sourceTree == "C_Src":
+            ll.item("probin file: <a href=\"{}.{}\">{}</a>".format(test.name, test.probinFile, test.probinFile))
+
+        for i, afile in enumerate(test.auxFiles):
+            # sometimes the auxFile was in a subdirectory under the
+            # build directory.
+            index = string.rfind(afile, "/")
+            if index > 0:
+                root_file = afile[index+1:]
+            else:
+                root_file = afile
+
+            ll.item("auxillary file {}: <a href=\"{}.{}\">{}</a>".format(i+1, test.name, root_file, afile))
+
+        ll.outdent()
+
+        ll.item("Dimensionality: {}".format(test.dim))
+
+    ll.outdent()   # end of build information
+
+
+    # compilation
+    ll.item("Compilation:")
+    ll.indent()
+    ll.item("Compliation command:<br>{}".format(test.comp_string))
+    ll.item("<a href=\"{}.make.out\">make output</a>".format(test.name))
+
+    ll.outdent()
+
+    # run?
+    if os.path.isfile("{}.run.out".format(test.name)):
+        ll.item("Execution:")
+        ll.indent()
+        ll.item("Execution time: {:.3f} s".format(test.wall_time))
+        ll.item("Execution command:<br>{}".format(test.run_command))
+        ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
+        ll.outdent()
+
+        # were there backtrace files?
+        if len(test.backtrace) > 0:
+            ll.item("Backtraces:")
+            ll.indent()
+            for bt in test.backtrace:
+                ll.item("<a href=\"{}\">{}</a>".format(bt, bt))
+            ll.outdent()
+        
 
     # close
+    ll.write_list()
+    
     hf.write("</BODY>\n")
     hf.write("</HTML>\n")
 
@@ -2874,7 +2960,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
                 row_info.append("")
 
             # wallclock time
-            row_info.append("{:.3f} s".format(test.wallTime))
+            row_info.append("{:.3f} s".format(test.wall_time))
 
             if testPassed:
                 row_info.append(("PASSED", "class='passed'"))
