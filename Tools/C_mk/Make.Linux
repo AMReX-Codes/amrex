@@ -59,13 +59,13 @@ ifeq ($(COMP),PGI)
 
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
-      CXXOPTF +=-g  -O
+      CXXOPTF += -gopt  -O
     else
-      COPTF += -g -fast
-      CXXOPTF += -g -fast -Minline=levels:10
+      COPTF += -gopt -fast
+      CXXOPTF += -gopt -fast -Minline=levels:10
     endif
   else
-    CXXOPTF += -g -O1
+    CXXOPTF += -gopt -O1
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
@@ -214,6 +214,8 @@ ifeq ($(FCOMP),PGI)
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
+  FOPTF += -gopt
+  fOPTF += -gopt
   FDEBF += -g #-C
   fDEBF += -g #-C
 #  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib

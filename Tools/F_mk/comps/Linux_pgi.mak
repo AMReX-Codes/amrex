@@ -16,10 +16,10 @@ FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
     endif
 
     ifdef NDEBUG
-      FFLAGS   += -g -O2
-      F90FLAGS += -g -O2
-      CFLAGS   += -g -O2
-      CXXFLAGS += -g -O2
+      FFLAGS   += -gopt -O2
+      F90FLAGS += -gopt -O2
+      CFLAGS   += -gopt -O2
+      CXXFLAGS += -gopt -O2
     else
       FFLAGS   += -g
       F90FLAGS += -g
