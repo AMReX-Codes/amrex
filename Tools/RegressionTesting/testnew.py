@@ -668,6 +668,19 @@ class Suite(object):
         sout, serr, ierr = run(test_run_command, stdin=True, outfile="{}.run.out".format(test.name), env=test_env)
         test.run_command = test_run_command
 
+    def copy_backtrace(self, test):
+        """ 
+        if any backtrace files were output (because the run crashed), find them
+        and copy them to the web directory
+        """
+        backtrace = [ft for ft in os.listdir(test.output_dir)
+                     if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+        for btf in backtrace:
+            ofile = "{}/{}.{}".format(self.full_web_dir, test.name, btf)
+            shutil.copy(btf, ofile)
+            test.backtrace.append("{}.{}".format(test.name, btf))
+        
+        
     def build_tools(self, test_list):
 
         self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
@@ -1516,7 +1529,8 @@ def test_suite(argv):
 
         output_dir = suite.full_test_dir + test.name + '/'
         os.mkdir(output_dir)
-
+        test.output_dir = output_dir
+        
 
         #----------------------------------------------------------------------
         # compile the code
@@ -1739,7 +1753,7 @@ def test_suite(argv):
                 # copy what we can
                 shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                 shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
-                
+                suite.copy_backtrace(test)
                 report_test_failure(suite, error_msg, test)
                 continue
 
@@ -1883,7 +1897,7 @@ def test_suite(argv):
                     # copy what we can
                     shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                     shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
-
+                    suite.copy_backtrace(test)
                     error_msg = "ERROR: runtime failure during benchmark creation"
                     report_test_failure(suite, error_msg, test)
                         
@@ -2007,12 +2021,7 @@ def test_suite(argv):
                     test.analysisOutputImage = ""
 
             # were any Backtrace files output (indicating a crash)
-            backtrace = [ft for ft in os.listdir(output_dir) if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
-            for btf in backtrace:
-                ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
-                shutil.copy(btf, ofile)
-                test.backtrace.append("{}.{}".format(test.name, btf))
-
+            suite.copy_backtrace(test)
 
         else:
             shutil.copy("%s.status" % (test.name), suite.full_web_dir)
