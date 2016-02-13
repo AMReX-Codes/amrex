@@ -1883,8 +1883,9 @@ def test_suite(argv):
                     # copy what we can
                     shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                     shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
-                
-                    report_test_failure(suite, errorMsg, test)
+
+                    error_msg = "ERROR: runtime failure during benchmark creation"
+                    report_test_failure(suite, error_msg, test)
                         
 
                 if not test.diffDir == "":
