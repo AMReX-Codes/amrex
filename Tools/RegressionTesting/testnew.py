@@ -1880,6 +1880,13 @@ def test_suite(argv):
                     with open("%s.status" % (test.name), 'w') as cf:
                         cf.write("benchmarks failed")
 
+                    # copy what we can
+                    shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                    shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+                
+                    report_test_failure(suite, errorMsg, test)
+                        
+
                 if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
                     if os.path.isdir(diffDirBench):
