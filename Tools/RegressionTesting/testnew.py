@@ -1618,16 +1618,16 @@ def test_suite(argv):
 
             # compilation failed.  First copy the make.out into the
             # web directory and then report
-            shutil.copy("%s/%s.make.out" % (output_dir, test.name), suite.full_web_dir)
+            shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
 
-            errorMsg = "    ERROR: compilation failed"
-            report_test_failure(suite, errorMsg, test)
+            error_msg = "ERROR: compilation failed"
+            report_test_failure(suite, error_msg, test)
             continue
 
         try: shutil.copy(test.inputFile, output_dir)
         except IOError:
-            errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            report_test_failure(suite, errorMsg, test)
+            error_msg = "ERROR: unable to copy input file: {}".format(test.inputFile)
+            report_test_failure(suite, error_msg, test)
             continue
 
         # sometimes the input file was in a subdirectory under the
@@ -1641,8 +1641,8 @@ def test_suite(argv):
                 (test.testSrcTree == "C_Src" and test.probinFile != "")):
             try: shutil.copy(test.probinFile, output_dir)
             except IOError:
-                errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: unable to copy probin file: {}".format(test.probinFile)
+                report_test_failure(suite, error_msg, test)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1659,8 +1659,8 @@ def test_suite(argv):
         for file in test.auxFiles:
             try: shutil.copy(file, output_dir)
             except IOError:
-                errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: unable to copy aux file: {}".format(file)
+                report_test_failure(suite, error_msg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1672,8 +1672,8 @@ def test_suite(argv):
         skip_to_next_test = 0
         for file in test.linkFiles:
             if not os.path.exists(file):
-                errorMsg = "    ERROR: link file %s does not exist" % file
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: link file {} does not exist".format(file)
+                report_test_failure(suite, error_msg, test)
                 skip_to_next_test = 1
                 break
 
@@ -1686,8 +1686,8 @@ def test_suite(argv):
                     link_name = output_dir + file
                 try: os.symlink(link_source, link_name)
                 except IOError:
-                    errorMsg = "    ERROR: unable to symlink link file: %s" % file
-                    report_test_failure(suite, errorMsg, test)
+                    error_msg = "ERROR: unable to symlink link file: {}".format(file)
+                    report_test_failure(suite, error_msg, test)
                     skip_to_next_test = 1
                     break
 
@@ -1734,13 +1734,13 @@ def test_suite(argv):
             lastFile = test.get_last_plotfile(output_dir=output_dir)
 
             if lastFile == "":
-                errorMsg = "ERROR: test did not produce output.  Restart test not possible"
+                error_msg = "ERROR: test did not produce output.  Restart test not possible"
                 test.wall_time = time.time() - test.wall_time
                 # copy what we can
                 shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                 shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                 
-                report_test_failure(suite, errorMsg, test)
+                report_test_failure(suite, error_msg, test)
                 continue
 
             origLastFile = "orig_%s" % (lastFile)
@@ -2004,7 +2004,6 @@ def test_suite(argv):
                 ofile = "{}/{}.{}".format(suite.full_web_dir, test.name, btf)
                 shutil.copy(btf, ofile)
                 test.backtrace.append("{}.{}".format(test.name, btf))
-                
 
 
         else:
