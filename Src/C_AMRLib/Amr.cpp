@@ -427,7 +427,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         }
         else
         {
-            BoxLib::Warning("Using default ref_ratio = 2 at all levels");
+            if (ParallelDescriptor::IOProcessor())
+                BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
 
@@ -518,7 +519,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
        }
        else if (numvals == 0)
        {
-           BoxLib::Warning("Using default regrid_int = 1 at all levels");
+           if (ParallelDescriptor::IOProcessor())
+               BoxLib::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
