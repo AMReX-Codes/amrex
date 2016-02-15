@@ -237,6 +237,8 @@ class Test(object):
         self.analysisMainArgs = ""
         self.analysisOutputImage = ""
 
+        self.png_file = None
+
         self.outputFile = ""
         self.compareFile = ""
 
@@ -1874,7 +1876,7 @@ def test_suite(argv):
 
                 suite.log.log("storing output of {} as the new benchmark...".format(test.name))
                 suite.log.indent()
-                suite.log.log("new benchmark file: {}".format(compareFile))
+                suite.log.warn("new benchmark file: {}".format(compareFile))
                 suite.log.outdent()
 
                 if not compareFile == "":
@@ -1963,6 +1965,7 @@ def test_suite(argv):
                         if not ppm_file is None:
                             png_file = ppm_file.replace(".ppm", ".png")
                             run("convert {} {}".format(ppm_file, png_file))
+                            test.png_file = png_file
 
                 if not test.analysisRoutine == "":
 
@@ -2006,13 +2009,11 @@ def test_suite(argv):
 
                 shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
 
-            if test.doVis:
-               png_file = get_recent_filename(output_dir, "", ".png")
-               if not png_file is None:
-                   try: shutil.copy(png_file, suite.full_web_dir)
-                   except IOError:
-                       # visualization was not successful.  Reset doVis
-                       test.doVis = 0
+            if not test.png_file is None:
+                try: shutil.copy(test.png_file, suite.full_web_dir)
+                except IOError:
+                    # visualization was not successful.  Reset image
+                    test.png_file = None
 
             if not test.analysisRoutine == "":
                 try: shutil.copy(test.analysisOutputImage, suite.full_web_dir)
@@ -2698,10 +2699,9 @@ def report_single_test(suite, test, failure_msg=None):
 
         # show any visualizations
         if test.doVis:
-            png_file = get_recent_filename(suite.full_web_dir, test.name, ".png")
-            if not png_file is None:
+            if not test.png_file is None:
                 hf.write("<P>&nbsp;\n")
-                hf.write("<P><IMG SRC='%s' BORDER=0>" % (png_file) )
+                hf.write("<P><IMG SRC='{}' BORDER=0>".format(test.png_file))
 
         # show any analysis
         if not test.analysisOutputImage == "":
