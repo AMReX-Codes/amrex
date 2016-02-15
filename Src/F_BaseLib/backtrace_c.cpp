@@ -147,7 +147,7 @@ extern "C"
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
 #if (defined(BL_TESTING) || defined(DEBUG)) && defined(__linux__)
-#if !defined(__PGI)
+#if !defined(__PGI) || (__PGIC__ >= 16)
         // trap floating point exceptions
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 	signal(SIGFPE, backtrace_handler);
