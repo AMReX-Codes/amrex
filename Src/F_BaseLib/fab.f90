@@ -895,6 +895,7 @@ contains
     fb%pbx = grow(fb%ibx, lng)
     lo(1:fb%dim) = fb%pbx%lo(1:fb%dim)
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
+    if ( empty(fb%pbx) ) return
     if ( lal ) then
        if ( lst) then
           allocate(fb%p(1:lnc,lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
