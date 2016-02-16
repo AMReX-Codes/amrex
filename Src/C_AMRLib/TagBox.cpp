@@ -16,9 +16,10 @@ TagBox::TagBox () {}
 
 TagBox::TagBox (const Box& bx,
                 int        n,
-                bool       alloc)
+                bool       alloc,
+		bool       shared)
     :
-    BaseFab<TagBox::TagType>(bx,n,alloc)
+    BaseFab<TagBox::TagType>(bx,n,alloc,shared)
 {
     if (alloc) setVal(TagBox::CLEAR);
 }
@@ -427,14 +428,14 @@ TagBoxArray::buffer (int nbuf)
     {
         BL_ASSERT(nbuf <= m_border);
 
-        const int N = IndexMap().size();
+	unsigned char flags = MFIter::OwnerOnly;
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
-        {
-            get(IndexMap()[i]).buffer(nbuf, m_border);
+	for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+	{
+	    get(mfi).buffer(nbuf, m_border);
         } 
     }
 }
@@ -518,21 +519,20 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 long
 TagBoxArray::numTags () const 
 {
-   const int N = IndexMap().size();
-
-   long ntag = 0;
+    unsigned char flags = MFIter::OwnerOnly;
+    long ntag = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:ntag)
+#pragma omp parallel reduction(+:ntag)
 #endif
-   for (int i = 0; i < N; i++)
-   {
-      ntag += get(IndexMap()[i]).numTags();
-   }
-
-   ParallelDescriptor::ReduceLongSum(ntag);
-
-   return ntag;
+    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+    {
+	ntag += get(mfi).numTags();
+    }
+    
+    ParallelDescriptor::ReduceLongSum(ntag);
+    
+    return ntag;
 }
 
 IntVect*
@@ -698,20 +698,21 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
-    const int N = IndexMap().size();
+    unsigned char flags = MFIter::OwnerOnly;
+
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        const int idx = IndexMap()[i];
+        const int idx = mfi.index();
 
 	std::vector< std::pair<int,Box> > isects;
 
         ba.intersections(box(idx),isects);
 
-        TagBox& tags = get(idx);
+        TagBox& tags = get(mfi);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -723,15 +724,16 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    const int N = IndexMap().size();
+    unsigned char flags = MFIter::OwnerOnly;
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-        TagBox* tfine = m_fabs_v[i];
-        m_fabs_v[i]   = tfine->coarsen(ratio);
+	int idx = mfi.index();
+        TagBox* tfine = m_fabs_v[idx];
+        m_fabs_v[idx] = tfine->coarsen(ratio);
         delete tfine;
     }
 
