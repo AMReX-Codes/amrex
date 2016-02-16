@@ -156,7 +156,7 @@ extern "C"
 
     int get_fpe_trap ()
     {
-#if defined(__linux__)
+#if defined(__linux__) && (!defined(__PGI) || (__PGIC__ >= 16))
 	static bool first = true;
 	static int flags;
 	if (first) {
