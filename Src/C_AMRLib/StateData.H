@@ -39,6 +39,11 @@ public:
     //
     ~StateData ();
     //
+    // Takes an empty StateData object dest and defines it with the same properties
+    // as the input StateData src. Does a deep copy of the data from src into dest.
+    //
+    static void Initialize (StateData& dest, const StateData& src);
+    //
     // Initializes data members if you used default constructor.
     //
     void define (const Box&             p_domain,
@@ -53,6 +58,16 @@ public:
                  const StateDescriptor& d, 
                  Real                   cur_time,
                  Real                   dt);
+    //
+    // Copies old data from another StateData object and sets the same time level.
+    // If old data is uninitialized, allocates it with same properties as the input data.
+    //
+    void copyOld (const StateData& state);
+    //
+    // Copies new data from another StateData object and sets the same time level.
+    // If new data is uninitialized, allocates it with the same properties as the input data.
+    //
+    void copyNew (const StateData& state);
     //
     // Allocates space for old timestep data.
     //
@@ -70,11 +85,11 @@ public:
     //
     void swapTimeLevels (Real dt);
     //
-    // Points old data to a new MultiFab.
+    // Swaps old data with a new MultiFab.
     //
     void replaceOldData ( MultiFab* mf );
     //
-    // Points new data to a new MultiFab.
+    // Swaps new data with a new MultiFab.
     //
     void replaceNewData ( MultiFab* mf );
 
@@ -175,10 +190,6 @@ public:
     // Returns the new data.
     //
     const MultiFab& newData () const { BL_ASSERT(new_data != 0); return *new_data; }
-    //
-    // Returns the old data.
-    //
-    MultiFab* oldDataPtr () { BL_ASSERT(old_data != 0); return old_data; }
     //
     // Returns the old data.
     //

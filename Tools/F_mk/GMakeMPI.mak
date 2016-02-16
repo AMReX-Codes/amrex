@@ -68,16 +68,6 @@ endif
 #
 # Host changes ....
 #
-ifeq ($(findstring cvrsvc, $(HOST)), cvrsvc)
-    #
-    # carver.nersc.gov
-    #
-    ifdef MPI
-        CXX := mpiCC
-        FC  := mpif90
-        F90 := mpif90
-    endif
-endif
 ifeq ($(findstring grace, $(HOST)), grace)
     #
     # grace.nersc.gov

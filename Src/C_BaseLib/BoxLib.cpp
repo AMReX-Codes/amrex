@@ -349,11 +349,13 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	if (invalid)   flags |= FE_INVALID;
 	if (divbyzero) flags |= FE_DIVBYZERO;
 	if (overflow)  flags |= FE_OVERFLOW;
-#if defined(__linux__) && !defined(__PGI)
+#if defined(__linux__)
+#if !defined(__PGI) || (__PGIC__ >= 16)
 	if (flags != 0) {
 	    feenableexcept(flags);  // trap floating point exceptions
 	    signal(SIGFPE,  BLBackTrace::handler);
 	}
+#endif
 #endif
     }
 
