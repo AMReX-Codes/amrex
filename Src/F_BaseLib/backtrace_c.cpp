@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <limits>
 
 #include <unistd.h>
 
@@ -145,10 +146,12 @@ extern "C"
 	
 	signal(SIGSEGV, backtrace_handler); // catch seg falult
 	signal(SIGINT,  backtrace_handler);
-#if defined(BL_TESTING) && defined(__linux__) && !defined(__PGI)
+#if (defined(BL_TESTING) || defined(DEBUG)) && defined(__linux__)
+#if !defined(__PGI) || (__PGIC__ >= 16)
         // trap floating point exceptions
 	feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
 	signal(SIGFPE, backtrace_handler);
+#endif
 #endif
 
 	myproc = rank;
@@ -171,5 +174,10 @@ extern "C"
 #else
 	return 0;
 #endif
+    }
+
+    double get_quiet_nan ()
+    {
+	return std::numeric_limits<double>::quiet_NaN();
     }
 }

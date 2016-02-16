@@ -120,9 +120,6 @@ def parse_param_file(params_list, param_file, other_list=None):
         try: current_param.priority = int(fields[3])
         except: pass
 
-        if current_param.var == "burning_mode":
-            print(current_param.var, current_param.value, current_param.priority)
-
         skip = 0
 
         # check to see if this parameter is defined in the current list

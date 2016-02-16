@@ -73,6 +73,10 @@ contains
 
     is = lo(1)
     ie = hi(1)
+
+    print *, 'in multifab_physbc_edgevel ', lo, hi, phys_bc(1,1), INLET
+    print *, OUTLET, SYMMETRY, INTERIOR, PERIODIC, INLET, SLIP_WALL, NO_SLIP_WALL
+    call flush(6)
     
     ! impose lo i side bc's
     select case(phys_bc(1,1))
