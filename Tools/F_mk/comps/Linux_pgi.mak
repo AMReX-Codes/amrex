@@ -1,6 +1,6 @@
 
     CC  := pgcc
-    CXX := pgCC
+    CXX := pgc++
     FC  := pgf95
     F90 := pgf95
     FFLAGS   += -module $(mdir) -I$(mdir) 
@@ -16,10 +16,10 @@ FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
     endif
 
     ifdef NDEBUG
-      FFLAGS   += -O2
-      F90FLAGS += -O2
-      CFLAGS   += -O2
-      CXXFLAGS += -O2
+      FFLAGS   += -gopt -O2
+      F90FLAGS += -gopt -O2
+      CFLAGS   += -gopt -O2
+      CXXFLAGS += -gopt -O2
     else
       FFLAGS   += -g
       F90FLAGS += -g
@@ -27,4 +27,5 @@ FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
       CXXFLAGS += -g
     endif
 
-    xtr_libraries += -pgcpplibs
+    LDFLAGS += -pgc++libs
+    

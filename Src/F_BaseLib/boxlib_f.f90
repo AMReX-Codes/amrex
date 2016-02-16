@@ -25,6 +25,7 @@ contains
   !! Initializes _BoxLib_ applications.  This should be the
   !! first routine called in the main PROGRAM unit.
   subroutine boxlib_initialize(thread_support_level)
+    use backtrace_module, only : backtrace_init
     integer, intent(in), optional :: thread_support_level
     call parallel_initialize(MPI_COMM_WORLD, thread_support_level)
     if (parallel_IOProcessor()) then
@@ -46,6 +47,7 @@ contains
        print*, "MPI initialized with ", omp_get_max_threads(), " threads";
     endif
     if (omp_get_max_threads() > 1) call omp_set_nested(.false.)
+    call backtrace_init ()
     call mempool_init ()
   end subroutine boxlib_initialize
 
