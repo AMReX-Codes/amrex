@@ -406,6 +406,7 @@ private:
     //
     static bool do_initval;
     static Real initval;
+    static bool init_snan;
     //
     // These are not allowed.
     //

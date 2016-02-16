@@ -68,3 +68,6 @@ cEXE_sources   += timer_c.c
 f90EXE_sources += multifab_c.f90
 CEXE_headers += MultiFab_C_F.H
 CEXE_sources += MultiFab_C_F.cpp
+
+CEXE_sources += backtrace_c.cpp
+f90EXE_sources += backtrace_f.f90

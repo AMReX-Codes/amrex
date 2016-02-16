@@ -147,6 +147,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
     WHICHLINUX := HEDORAH
   endif
+  ifeq ($(findstring godzilla, $(UNAMEN)), godzilla)
+    WHICHLINUX := GODZILLA
+  endif
   ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
     WHICHLINUX := KUMONGA
   endif
@@ -216,6 +219,10 @@ endif
 
 ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
+endif
+
+ifndef TEST
+  TEST = FALSE
 endif
 
 ifndef BACKTRACE
@@ -803,8 +810,15 @@ ifeq ($(COMP),Intel)
   endif
 endif
 
+ifeq ($(TEST),TRUE)
+    CPPFLAGS += -DBL_TESTING
+    ifneq ($(DEBUG),TRUE)
+        DebugSuffix := .TEST
+    endif
+endif
+
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING
+    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=

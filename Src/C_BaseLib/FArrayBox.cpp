@@ -19,11 +19,21 @@
 #include <Looping.H>
 #include <Utility.H>
 #include <BL_CXX11.H>
+#include <MemPool.H>
 
 #ifdef BL_Darwin
 using std::isinf;
 using std::isnan;
 #endif
+
+#if defined(DEBUG) || defined(BL_TESTING)
+bool FArrayBox::do_initval = true;
+bool FArrayBox::init_snan  = true;
+#else
+bool FArrayBox::do_initval = false;
+bool FArrayBox::init_snan  = false;
+#endif
+Real FArrayBox::initval;
 
 static const char sys_name[] = "IEEE";
 //
@@ -159,8 +169,15 @@ FArrayBox::FArrayBox (const Box& b,
     //
     // For debugging purposes set values to QNAN when possible.
     //
-    if ( alloc && do_initval )
-	setVal(initval);
+    if (alloc) {
+	if (init_snan) {
+#ifdef BL_USE_DOUBLE
+	    array_init_snan(dataPtr(), truesize);
+#endif
+	} else if (do_initval) {
+	    setVal(initval);
+	}
+    }
 }
 
 FArrayBox&
@@ -301,11 +318,14 @@ FArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<Real>::resize(b,N);
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( do_initval )
+
+    if (init_snan) {
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
+    } else if (do_initval) {
         setVal(initval);
+    }
 }
 
 FABio::Format
@@ -414,16 +434,6 @@ FArrayBox::getPrecision ()
     BoxLib::Warning("FArrayBox::getPrecision() has been deprecated");
     return FABio::FAB_FLOAT;
 }
-
-#if !defined(NDEBUG)
-bool FArrayBox::do_initval = true;
-#else
-bool FArrayBox::do_initval = false;
-#endif
-Real FArrayBox::initval =
-    std::numeric_limits<Real>::has_quiet_NaN
-  ? std::numeric_limits<Real>::quiet_NaN()
-  : std::numeric_limits<Real>::max();
 
 bool
 FArrayBox::set_do_initval (bool tf)
@@ -539,8 +549,13 @@ FArrayBox::Initialize ()
         }
     }
 
+    initval = std::numeric_limits<Real>::has_quiet_NaN
+	    ? std::numeric_limits<Real>::quiet_NaN()
+	    : std::numeric_limits<Real>::max();
+
     pp.query("initval",    initval);
     pp.query("do_initval", do_initval);
+    pp.query("init_snan", init_snan);
 
     BoxLib::ExecOnFinalize(FArrayBox::Finalize);
 }
