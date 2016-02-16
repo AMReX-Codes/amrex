@@ -342,6 +342,15 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
+    ifeq ($(findstring ad.unsw.edu.au, $(HOST)), ad.unsw.edu.au)
+      ifeq ($(findstring Fyr, $(HOST)), Fyr)
+        LIBRARY_LOCATIONS += $(shell mpicc --showme:libdirs)
+        INCLUDE_LOCATIONS += $(shell mpicc --showme:incdirs)
+        mpi_libraries := $(shell mpif90 --showme:libs)
+        BL_MPI_LIBS += $(addprefix -l, $(mpi_libraries))
+      endif
+    endif
+
     ifeq ($(findstring donev, $(HOSTNAME)), donev)
       ifeq ($(MPIVENDOR),OpenMPI)
          mpihome=$(HOME)/HPC/Libraries/OMPI
@@ -443,7 +452,7 @@ ifeq ($(MACHINE), Linux)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
           ifneq ($(WHICHLINUX), DELLA)
-	    ifneq ($(HOST),davinci)
+            ifneq ($(HOST),davinci)
               ifneq ($(WHICHLINUX), EUCLID)
                 ifneq ($(HOST), hicegate0)     # This is Wolfram Schmidt's machine
                   ifneq ($(WHICHLINUX), DONEV)
@@ -451,7 +460,9 @@ ifeq ($(MACHINE), Linux)
                       ifneq ($(WHICHLINUX), LENS)
                         ifneq ($(WHICHLINUX), BABBAGE)
                           ifneq ($(WHICHLINUX), MIRA)
-                            BL_MPI_LIBS += -lmpich
+                            ifneq ($(findstring ad.unsw.edu.au, $(HOST)), ad.unsw.edu.au)
+                              BL_MPI_LIBS += -lmpich
+                            endif
                           endif
                         endif
                       endif  
