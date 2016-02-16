@@ -1576,10 +1576,15 @@ MultiFab::SumBoundary ()
 
 // Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
 // the sidecar group.
+//
+// Usage: on compute group, supply a reference to a regular MultiFab. On
+// sidecar group, supply a reference to an "empty" MultiFab, e.g.,
+//
+// MultiFab mf;
+// MultiFab::SendMultiFabToSidecars(&mf);
+//
+// This function will do all of the allocation on the sidecars for you.
 
-// Note that the compute MultiFab will be a null pointer on the sidecar nodes,
-// and the sidecar MultiFab will be null on the compute nodes. So be mindful of
-// which processes will be executing which code when you access these pointers.
 #ifdef BL_USE_MPI
 void
 MultiFab::SendMultiFabToSidecars (MultiFab *mf)
