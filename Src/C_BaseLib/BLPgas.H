@@ -65,6 +65,10 @@ namespace BLPgas
                 upcxx::event *done_event,
                 int *send_counter);
 
+  extern upcxx::event cp_send_event;
+  extern upcxx::event cp_recv_event;
+  extern int          cp_send_counter;
+
   extern upcxx::event fb_send_event;
   extern upcxx::event fb_recv_event;
   extern int          fb_send_counter;
