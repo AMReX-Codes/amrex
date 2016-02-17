@@ -341,9 +341,11 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const Box& bx       = isects[j].second;
 	    const int dst_owner = dm_dst[k_dst];
 
-	    if (dst_owner == MyProc) continue; // local copy will be dealt with later
-	    
-	    send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
+	    if (ParallelDescriptor::sameTeam(dst_owner)) {
+		continue; // local copy will be dealt with later
+	    } else if (MyProc == dm_src[k_src]) {
+		send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
+	    }
 	}
     }
 
@@ -357,6 +359,10 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         check_remote = true;
     }
 #endif    
+
+    if (ParallelDescriptor::TeamSize() > 1) {
+	check_local = true;
+    }
 
     for (int i = 0; i < nlocal_dst; ++i)
     {
@@ -381,7 +387,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const Box& bx       = isects[j].second;
 	    const int src_owner = dm_src[k_src];
 
-	    if (src_owner == MyProc) { // local copy
+	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 		for (BoxList::const_iterator
 			 it_tile  = tilelist.begin(),
@@ -392,7 +398,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 		if (check_local) {
 		    localtouch.plus(1, bx);
 		}
-	    } else {
+	    } else if (MyProc == dm_dst[k_dst]) {
 		recv_tags[src_owner].push_back(CopyComTag(bx, k_dst, k_src));
 		if (check_remote) {
 		    remotetouch.plus(1, bx);
