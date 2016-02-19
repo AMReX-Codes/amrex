@@ -1622,6 +1622,13 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
       dM.define(dmapA);
     }
   }
+  int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
+  ParallelDescriptor::Bcast(&dmID, 1, rootId, localComm);
+  ParallelDescriptor::Bcast(&nDM, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    dM.SetDistMapID(dmID);
+    DistributionMapping::SetNDistMaps(nDM);
+  }
 }
 
 
