@@ -772,6 +772,7 @@ public:
     static void MoveAllFabs (const Array<int> &newDistMapArray);
     static void LockAllFAPointers ();
     static void CheckFAPointerLocks ();
+    static void PrintFAPointers ();
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
 
@@ -1178,7 +1179,6 @@ template <class FAB>
 void
 FabArray<FAB>::clear ()
 {
-
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
     if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
@@ -1191,6 +1191,13 @@ FabArray<FAB>::clear ()
     } else {
       std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
       faPtrCachedMap.erase(aFAPId);
+      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+        std::cout << "**** In FabArray::clear()::  size distmapngrids = "
+                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+      }
+      if(faPtrCachedMap.size() == 0) {
+        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+      }
     }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
@@ -1960,7 +1967,7 @@ FabArray<FAB>::CheckFAPointerLocks ()
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-    //std::cout << "}}}} }}}} _in ChackFAPointerLocks:  faPtrCachedMap.size() = "
+    //std::cout << "}}}} }}}} _in CheckFAPointerLocks:  faPtrCachedMap.size() = "
               //<< faPtrCachedMap.size() << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
@@ -1977,6 +1984,31 @@ FabArray<FAB>::CheckFAPointerLocks ()
   }
   std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  " << pLocked << " of "
             << pLocked + pUnlocked << " FAPpinters locked." << std::endl;
+}
+
+
+template <class FAB>
+void
+FabArray<FAB>::PrintFAPointers ()
+{
+  std::cout << "}}}} _in PrintFAPointers:  allocatedFAPointers.size() = "
+            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+  typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
+  for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
+      afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
+  {
+    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+    std::cout << "}}}} }}}} _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
+              << faPtrCachedMap.size() << "  " << afapIter->first << std::endl;
+    for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
+        it != faPtrCachedMap.end(); ++it)
+    {
+      FabArray<FAB> *faPtr = it->second;
+      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock = " 
+                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+    }
+  }
+  std::cout << "}}}} }}}} }}}} _out PrintFAPointers: ================ " << std::endl;
 }
 
 
