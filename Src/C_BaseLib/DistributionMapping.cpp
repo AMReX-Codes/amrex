@@ -558,26 +558,52 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                  nprocs,
                                      std::vector<LIpair>* LIpairV)
 {
-    Array<int> ord;
+    int nteams = nprocs;
+    int nworkers = 1;
+#if defined(BL_USE_TEAM)
+    nteams = ParallelDescriptor::NTeams();
+    nworkers = ParallelDescriptor::TeamSize();
+#endif
 
-    LeastUsedCPUs(nprocs,ord);
+    Array<int> ord;
+    Array<Array<int> > wrkerord;
+
+    if (nteams == nprocs)  { // a special case in which there is only one team worker on each team
+	LeastUsedCPUs(nprocs,ord);
+	wrkerord.resize(nprocs);
+	for (int i = 0; i < nprocs; ++i) { 
+	    wrkerord[i].resize(1);
+	    wrkerord[i][0] = 0;
+	}
+    } else {
+	LeastUsedTeams(ord,wrkerord);
+    }
+
+    Array<int> w(nteams,0);
 
     if (LIpairV)
     {
-        BL_ASSERT(LIpairV->size() == nboxes);
-
-        for (int i = 0; i < nboxes; ++i)
-        {
-            m_ref->m_pmap[(*LIpairV)[i].second] = ord[i%nprocs];
-        }
+	BL_ASSERT(LIpairV->size() == nboxes);
+	
+	for (int i = 0; i < nboxes; ++i)
+	{
+	    int tid = ord[i%nteams];
+	    int wid = (w[tid]++) % nworkers;
+	    int rank = tid*nworkers + wrkerord[tid][wid];
+	    m_ref->m_pmap[(*LIpairV)[i].second] = rank;
+	}
     }
     else
     {
-        for (int i = 0; i < nboxes; ++i)
-        {
-            m_ref->m_pmap[i] = ord[i%nprocs];
-        }
+	for (int i = 0; i < nboxes; ++i)
+	{
+	    int tid = ord[i%nteams];
+	    int wid = (w[tid]++) % nworkers;
+	    int rank = tid*nworkers + wrkerord[tid][wid];
+	    m_ref->m_pmap[i] = rank;
+	}
     }
+
     //
     // Set sentinel equal to our processor number.
     //
@@ -1161,8 +1187,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                     m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
                 });
 	    }
-#else
-	    BoxLib::Abort("SFCProcessorMapDoIt: Team is only implemented for UPC++");
 #endif
 	}
     }
