@@ -497,7 +497,7 @@ DistributionMapping::SyncCache (int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&nCacheSize, 1, ioProcNumAll, scsComm);
 
 
-  Array<Array<int> >dmapArrays;
+  Array<Array<int> > dmapArrays;
   std::map< int,LnClassPtr<Ref> >::const_iterator it;
   if(scsMyId == ioProcNumSCS) {
     for(it = m_Cache.begin(); it != m_Cache.end(); ++it) {
@@ -2414,9 +2414,7 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
 void
 DistributionMapping::CacheStats (std::ostream& os)
 {
-    //if (ParallelDescriptor::IOProcessor() && m_Cache.size())
-    if (m_Cache.size())
-    {
+    //if(ParallelDescriptor::IOProcessor()) {
         //os << "DistributionMapping::m_Cache.size() = "
         os << ParallelDescriptor::MyProc() << "::DistributionMapping::m_Cache.size() = "
            << m_Cache.size()
@@ -2430,7 +2428,7 @@ DistributionMapping::CacheStats (std::ostream& os)
         }
 
         os << "]\n";
-    }
+    //}
 }
 
 

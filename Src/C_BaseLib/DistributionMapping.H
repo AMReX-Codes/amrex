@@ -212,7 +212,9 @@ class DistributionMapping
 						    int maxgrid);
 
     static int NDistMaps() { return nDistMaps; }
+    static void SetNDistMaps(int ndm) { nDistMaps = ndm; }
     int DistMapID() const { return dmID; }
+    void SetDistMapID(int dmid) { dmID = dmid; }
 
 #ifdef BL_USE_MPI
     static void SendDistributionMappingToSidecars(DistributionMapping *dm);
