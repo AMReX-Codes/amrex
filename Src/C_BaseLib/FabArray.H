@@ -1928,6 +1928,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         return;
 
+#ifdef BL_USE_MPI_ONESIDED
+    MPI_Group tgroup, rgroup, sgroup;
+    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+#endif
+
     //
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
     //
@@ -1940,6 +1945,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         Array<int>         recv_from;
         Array<value_type*> recv_data;
         Array<MPI_Request> recv_reqs;
+#ifdef BL_USE_MPI_ONESIDED
+	Array<MPI_Aint>    recv_disp;
+#endif
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -1950,7 +1958,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    FabArrayBase::PostRcvs_PGAS(*thecpc.m_RcvVols,the_recv_data,
 					recv_data,recv_from,NC,SeqNum,&BLPgas::cp_recv_event);
 #elif defined(BL_USE_MPI_ONESIDED)
-	    // todo
+	    FabArrayBase::PostRcvs_MPI_Onesided(*thecpc.m_RcvVols,the_recv_data,
+						recv_data,recv_from,recv_reqs,
+						recv_disp,NC,SeqNum,ParallelDescriptor::cp_win);
+	    MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
+	    MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #else
 	    FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,
 				   recv_data,recv_from,recv_reqs,NC,SeqNum);
@@ -2037,7 +2049,36 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		upcxx::advance();
 
 #elif defined(BL_USE_MPI_ONESIDED)
-	    // todo
+
+	    Array<MPI_Aint> send_disp;
+	    send_reqs.reserve(N_snds);
+	    send_disp.resize (N_snds);
+	    
+	    for (int i=0; i<N_snds; ++i) {
+		send_reqs.push_back(ParallelDescriptor::Arecv
+				    (&send_disp[i],1,send_rank[i],SeqNum).req());
+	    }
+	    
+	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	    MPI_Win_start(sgroup,0,ParallelDescriptor::cp_win);
+	    
+	    int send_counter = 0;	
+	    while (send_counter < N_snds) {
+		MPI_Status status;
+		int index;
+		
+		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		
+		BL_ASSERT(status.MPI_TAG == SeqNum);
+		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+	    
+		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+			ParallelDescriptor::cp_win);
+	    
+		send_counter++;
+	    }
+
 #else
 
 	    if (FabArrayBase::do_async_sends)
@@ -2057,6 +2098,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    }
 #endif
 	}
+
+#ifdef BL_USE_MPI_ONESIDED
+	if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	if (N_snds > 0) MPI_Group_free(&sgroup);
+#endif
 
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
@@ -2107,7 +2153,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_UPCXX
         if (N_rcvs > 0) BLPgas::cp_recv_event.wait();
 #elif defined(BL_USE_MPI_ONESIDED)
-
+	if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::cp_win);
+	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::cp_win);
 #else
 	if (N_rcvs > 0) {
 	    Array<MPI_Status> stats(N_rcvs);
@@ -2169,7 +2216,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_UPCXX
 	    BLPgas::free(the_recv_data);
 #elif defined(BL_USE_MPI_ONESIDED)
-	    // to do
+	    MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
+	    BoxLib::The_Arena()->free(the_recv_data);
+	    recv_disp.clear();
 #else
 	    BoxLib::The_Arena()->free(the_recv_data);
 #endif
@@ -2184,7 +2233,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 					      &BLPgas::cp_send_event,
 					      &BLPgas::cp_send_counter);
 #elif defined(BL_USE_MPI_ONESIDED)
-	// todo
+	    for (int i = 0; i < N_snds; ++i)
+		BoxLib::The_Arena()->free(send_data[i]);
 #else
 	    if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty()) {
 		Array<MPI_Status> stats;
@@ -2200,6 +2250,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         DC        += NC;
         NCompLeft -= NC;
     }
+
+#ifdef BL_USE_MPI_ONESIDED
+    MPI_Group_free(&tgroup);
+#endif
 
 #ifdef BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();

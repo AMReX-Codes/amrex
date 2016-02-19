@@ -59,6 +59,7 @@ namespace ParallelDescriptor
     const int ioProcessor = 0;
 
 #ifdef BL_USE_MPI_ONESIDED
+    MPI_Win cp_win;
     MPI_Win fb_win;
     MPI_Win fpb_win;
 #endif

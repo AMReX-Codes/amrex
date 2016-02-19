@@ -32,6 +32,7 @@ namespace ParallelDescriptor
     const int SidecarQuitSignal = -1;
 
 #ifdef BL_USE_MPI_ONESIDED
+    extern MPI_Win cp_win;
     extern MPI_Win fb_win;
     extern MPI_Win fpb_win;
 #endif
