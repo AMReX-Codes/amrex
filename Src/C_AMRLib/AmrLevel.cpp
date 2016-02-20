@@ -553,13 +553,7 @@ static
 bool
 NeedToTouchUpPhysCorners (const Geometry& geom)
 {
-    int n = 0;
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        if (geom.isPeriodic(dir))
-            n++;
-
-    return geom.isAnyPeriodic() && n < BL_SPACEDIM;
+    return geom.isAnyPeriodic() && !geom.isAllPeriodic();
 }
 
 void
