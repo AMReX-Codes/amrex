@@ -1026,9 +1026,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
             //
-#ifndef NDEBUG
-            CrseFabs[i].setVal(3.e200);
-#endif
             TheState.InterpFillFab(m_mfcd,
 				   m_mfid[l],
 				   FBIDs[i],
@@ -1105,10 +1102,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                                m_scomp,
                                                m_ncomp);
             }
-            //
-            // The coarse FAB had better be completely filled with "good" data.
-            //
-            BL_ASSERT(CrseFabs[i].norm(0,0,m_ncomp) < 3.e200);
         }
 
         if (m_FixUpCorners)
@@ -1152,10 +1145,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           theBCs,
                           bcr);
             //
-            // The coarse FAB had better be completely filled with "good" data.
-            //
-            BL_ASSERT(crsefab.norm(0,0,m_ncomp) < 3.e200);
-            //
             // Interpolate up to fine patch.
             //
             m_map->interp(crsefab,
@@ -1186,12 +1175,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     const Box&         FineDomain     = FineState.getDomain();
     const Geometry&    FineGeom       = m_amrlevel.geom;
     PArray<FArrayBox>& FinestCrseFabs = cfab[m_amrlevel.level];
-    //
-    // Set fab to special value we'll later check to ensure we've filled the FAB.
-    //
-#ifndef NDEBUG
-    fab.setVal(2.e200,fab.box(),dcomp,m_ncomp);
-#endif
     //
     // Copy intersect coarse into destination fab.
     //
