@@ -633,9 +633,6 @@ void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
                                int scsMyId, MPI_Comm scsComm)
 {
 #if BL_USE_MPI
-using std::cout;
-using std::endl;
-
       // ---- StateDescriptor
       desc = &sdPtr;
 
