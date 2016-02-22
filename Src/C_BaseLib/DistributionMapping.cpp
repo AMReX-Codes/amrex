@@ -2417,13 +2417,11 @@ DistributionMapping::RanksFromTopIV(const IntVect &iv) {
 
 
 void
-DistributionMapping::CacheStats (std::ostream& os)
+DistributionMapping::CacheStats (std::ostream& os, int whichProc)
 {
-    //if(ParallelDescriptor::IOProcessor()) {
-        //os << "DistributionMapping::m_Cache.size() = "
-        os << ParallelDescriptor::MyProc() << "::DistributionMapping::m_Cache.size() = "
-           << m_Cache.size()
-           << " [ (refs,size): ";
+    if(ParallelDescriptor::MyProcAll() == whichProc) {
+        os << whichProc << "::DistributionMapping::m_Cache.size() = "
+           << m_Cache.size() << " [ (refs,size): ";
 
         for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
              it != m_Cache.end();
@@ -2431,9 +2429,8 @@ DistributionMapping::CacheStats (std::ostream& os)
         {
             os << '(' << it->second.linkCount() << ',' << it->second->m_pmap.size()-1 << ") ";
         }
-
         os << "]\n";
-    //}
+    }
 }
 
 
