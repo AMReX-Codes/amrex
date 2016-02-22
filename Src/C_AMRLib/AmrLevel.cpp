@@ -1834,7 +1834,7 @@ using std::endl;
 
       int sentinelProc(ParallelDescriptor::MyProcComp());
       BoxLib::BroadcastDistributionMapping(particle_dmap, sentinelProc, scsMyId,
-                                           ioProcNumSCS, scsComm);
+                                           ioProcNumSCS, scsComm, true);
 
       int posg(particles_on_same_grids);
       ParallelDescriptor::Bcast(&posg, 1, ioProcNumSCS, scsComm);

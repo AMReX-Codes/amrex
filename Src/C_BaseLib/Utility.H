@@ -377,7 +377,8 @@ namespace BoxLib
     void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
-                                      int myLocalId, int rootId, MPI_Comm localComm);
+                                      int myLocalId, int rootId, MPI_Comm localComm,
+				      bool addToCache);
     const unsigned int msps(1000000);
     void USleep(double sleepsec);
 

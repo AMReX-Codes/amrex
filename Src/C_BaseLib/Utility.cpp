@@ -1602,7 +1602,8 @@ void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Com
 
 
 void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
-                                          int myLocalId, int rootId, MPI_Comm localComm)
+                                          int myLocalId, int rootId, MPI_Comm localComm,
+					  bool addToCache)
 {
   int dmStrategy(dM.strategy());
   ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
@@ -1619,7 +1620,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
-      dM.define(dmapA, true);                  // ---- add to the cache
+      dM.define(dmapA, addToCache);
     }
   }
   int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
@@ -1634,7 +1635,6 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
 
 void BoxLib::USleep(double sleepsec) {
   //usleep(sleepsec * msps);
-  //usleep(sleepsec * msps / 10.0);
-  usleep(sleepsec * msps / 4.0);
+  usleep(sleepsec * msps / 10.0);
 }
 
