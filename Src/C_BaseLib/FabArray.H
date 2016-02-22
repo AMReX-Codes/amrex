@@ -2010,7 +2010,7 @@ FabArray<FAB>::PrintFAPointers ()
 		<< "  " << faPtr->DistributionMap().NDistMaps() << std::endl;
     }
   }
-  DistributionMapping::CacheStats(std::cout);
+  DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
   std::cout << "}}}} }}}} }}}} _out PrintFAPointers: ================ " << std::endl;
 }
 
@@ -2027,7 +2027,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   // ---- DistributionMapping
   int sentinelProc(ParallelDescriptor::MyProcComp());
   BoxLib::BroadcastDistributionMapping(distributionMap, sentinelProc,
-                                       scsMyId, ioProcNumSCS, scsComm);
+                                       scsMyId, ioProcNumSCS, scsComm, true);
 
   // ---- ints
   ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
