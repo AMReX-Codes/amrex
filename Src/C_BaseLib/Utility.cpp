@@ -1619,7 +1619,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
       dmapA[dmapA.size() - 1] = sentinelProc;  // ---- set the sentinel
-      dM.define(dmapA);
+      dM.define(dmapA, true);                  // ---- add to the cache
     }
   }
   int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
@@ -1634,6 +1634,7 @@ void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelP
 
 void BoxLib::USleep(double sleepsec) {
   //usleep(sleepsec * msps);
+  //usleep(sleepsec * msps / 10.0);
   usleep(sleepsec * msps / 4.0);
 }
 
