@@ -130,7 +130,7 @@ class DistributionMapping
     //
     // Output some simple cache statistics.
     //
-    static void CacheStats (std::ostream& os);
+    static void CacheStats (std::ostream& os, int whichProc = 0);
     //
     // Put in cache
     //
