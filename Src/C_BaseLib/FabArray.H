@@ -436,9 +436,9 @@ public:
     //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
-    // Turn on via ParmParse using "fabarray.do_async_sends=1" in inputs file.
+    // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
     //
-    // Default is false.
+    // Default is true.
     //
     static bool do_async_sends;
     //
