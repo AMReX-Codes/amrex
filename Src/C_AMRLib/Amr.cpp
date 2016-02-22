@@ -2282,6 +2282,7 @@ Amr::regrid (int  lbase,
     if(rebalance_grids > 0) {
       DistributionMapping::InitProximityMap();
       DistributionMapping::Initialize();
+
         Array<BoxArray> allBoxes(amr_level.size());
 	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
 	  allBoxes[ilev] = boxArray(ilev);
@@ -3488,22 +3489,14 @@ using std::endl;
       //cout << "$$$$$$$$ myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
       //PrintData(cout);
 
-    int currentSeqNumber(-4);
-    if(scsMyId == ioProcNumSCS) {
-      currentSeqNumber = ParallelDescriptor::SeqNum(1);
-    }
-    ParallelDescriptor::Bcast(&currentSeqNumber, 1, ioProcNumAll, scsComm);
-    if(scsMyId != ioProcNumSCS) {
-      ParallelDescriptor::SeqNum(2, currentSeqNumber);
-    }
-
-cout << "vvvvvvvvvvvvvvvvvvvvvvvvv myProcAll scsMyId cachestats = " << myProcAll << "  " << scsMyId << "  " << endl;
-DistributionMapping::CacheStats(cout);
-    // ---- sync cached distribution maps
-    DistributionMapping::SyncCache(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-cout << "^^^^^^^^^^^^^^^^^^^^^^^^^ myProcAll scsMyId cachestats = " << myProcAll << "  " << scsMyId << "  " << endl;
-DistributionMapping::CacheStats(cout);
-
+      int currentSeqNumber(-4);
+      if(scsMyId == ioProcNumSCS) {
+        currentSeqNumber = ParallelDescriptor::SeqNum(1);
+      }
+      ParallelDescriptor::Bcast(&currentSeqNumber, 1, ioProcNumAll, scsComm);
+      if(scsMyId != ioProcNumSCS) {
+        ParallelDescriptor::SeqNum(2, currentSeqNumber);
+      }
 
       // ---- pack up the ints
       Array<int> allInts;
