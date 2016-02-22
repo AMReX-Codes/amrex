@@ -79,6 +79,7 @@ class DistributionMapping
     // built your DistributionMapping with the default constructor.
     //
     void define (const Array<int>& pmap);
+    void define (const Array<int>& pmap, bool put_in_cache);
     //
     // Returns a constant reference to the mapping of boxes in the
     // underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -122,12 +123,6 @@ class DistributionMapping
     // DistributionMaps from the Cache.
     //
     static void FlushCache ();
-    //
-    // Synchronize the cache of processor maps across all processors.
-    // This is used for resizing the sidecars.
-    //
-    static void SyncCache (int ioProcNumSCS, int ioProcNumAll,
-                           int scsMyId, MPI_Comm scsComm);
     //
     // The size of the cache.
     //
@@ -286,6 +281,7 @@ private:
     // Look for a cached processor map.
     //
     bool GetMap (const BoxArray& boxes);
+    bool GetMap (int nBoxes);
     //
     // A useful typedef.
     //

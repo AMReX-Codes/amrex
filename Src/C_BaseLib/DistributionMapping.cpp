@@ -307,6 +307,33 @@ DistributionMapping::GetMap (const BoxArray& boxes)
     return false;
 }
 
+bool
+DistributionMapping::GetMap (int nBoxes)
+{
+    const int N = nBoxes;
+
+    BL_ASSERT(m_ref->m_pmap.size() == N + 1);
+
+    std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.find(N+1);
+
+    if (it != m_Cache.end())
+    {
+        m_ref = it->second;
+
+        if(m_ref->m_pmap[N] != ParallelDescriptor::MyProc()) {
+	  CacheStats(std::cout);
+	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
+	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
+		    << "  " << N << "  " << m_ref->m_pmap[N] << std::endl;
+	}
+        BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
+
+        return true;
+    }
+
+    return false;
+}
+
 void
 DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArray)
 {
@@ -449,11 +476,37 @@ DistributionMapping::define (const Array<int>& pmap)
 {
     Initialize();
 
-    if (m_ref->m_pmap.size() != pmap.size())
+    if (m_ref->m_pmap.size() != pmap.size()) {
         m_ref->m_pmap.resize(pmap.size());
+    }
 
-    for (unsigned int i=0; i<pmap.size(); ++i)
+    for (unsigned int i(0); i < pmap.size(); ++i) {
         m_ref->m_pmap[i] = pmap[i];
+    }
+}
+
+void
+DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
+{
+    if( ! put_in_cache) {
+      define(pmap);
+      return;
+    }
+
+    Initialize();
+
+    if (m_ref->m_pmap.size() != pmap.size()) {
+        m_ref->m_pmap.resize(pmap.size());
+    }
+
+    if ( ! GetMap(pmap.size() - 1)) {
+	BL_ASSERT(m_BuildMap != 0);
+
+        m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    }
+    for (unsigned int i(0); i < pmap.size(); ++i) {
+        m_ref->m_pmap[i] = pmap[i];
+    }
 }
 
 DistributionMapping::~DistributionMapping () { }
@@ -478,54 +531,6 @@ DistributionMapping::FlushCache ()
             ++it;
         }
     }
-}
-
-void
-DistributionMapping::SyncCache (int ioProcNumSCS, int ioProcNumAll,
-                                int scsMyId, MPI_Comm scsComm)
-{
-  int dmStrategy(strategy());
-  ParallelDescriptor::Bcast(&dmStrategy, 1, ioProcNumAll, scsComm);
-  if(scsMyId != ioProcNumSCS) {
-    strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
-  }
-
-  if(scsMyId != ioProcNumSCS) {
-    DistributionMapping::m_Cache.clear();
-  }
-  int nCacheSize(CacheSize());
-  ParallelDescriptor::Bcast(&nCacheSize, 1, ioProcNumAll, scsComm);
-
-
-  Array<Array<int> > dmapArrays;
-  std::map< int,LnClassPtr<Ref> >::const_iterator it;
-  if(scsMyId == ioProcNumSCS) {
-    for(it = m_Cache.begin(); it != m_Cache.end(); ++it) {
-      dmapArrays.push_back(it->second->m_pmap);
-    }
-    BL_ASSERT(dmapArrays.size() == nCacheSize);
-  }
-  if(scsMyId != ioProcNumSCS) {
-    dmapArrays.resize(nCacheSize);
-  }
-
-  for(int i(0); i < nCacheSize; ++i) {
-    BoxLib::BroadcastArray(dmapArrays[i], scsMyId, ioProcNumSCS, scsComm);
-    if(dmapArrays[i].size() > 0) {
-      if(scsMyId != ioProcNumSCS) {
-        int sentinelProc(ParallelDescriptor::MyProcComp());
-        dmapArrays[i][dmapArrays[i].size() - 1] = sentinelProc;  // ---- set the sentinel
-	DistributionMapping dmSet(dmapArrays[i], true);
-      }
-    }
-  }
-
-    ParallelDescriptor::Bcast(&nDistMaps, 1, ioProcNumAll, scsComm);
-    //ParallelDescriptor::Bcast(&dmID, 1, ioProcNumAll, scsComm);
-
-    std::cout << scsMyId << "::=========== SyncCache stats:  ndm csize = " << NDistMaps() << "  " << CacheSize() << std::endl;
-    CacheStats(std::cout);
-
 }
 
 void
