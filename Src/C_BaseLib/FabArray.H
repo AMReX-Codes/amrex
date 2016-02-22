@@ -1195,7 +1195,7 @@ FabArray<FAB>::clear ()
         std::cout << "**** In FabArray::clear()::  size distmapngrids = "
                   << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
       }
-      if(faPtrCachedMap.size() == 0) {
+      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
         FabArray<FAB>::allocatedFAPointers.erase(afapIter);
       }
     }
@@ -1999,15 +1999,18 @@ FabArray<FAB>::PrintFAPointers ()
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
     std::cout << "}}}} }}}} _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
-              << faPtrCachedMap.size() << "  " << afapIter->first << std::endl;
+              << faPtrCachedMap.size()+1 << "  " << afapIter->first-1 << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
       FabArray<FAB> *faPtr = it->second;
-      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock = " 
-                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock dmID nDM = " 
+                << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock
+		<< "  " << faPtr->DistributionMap().DistMapID()
+		<< "  " << faPtr->DistributionMap().NDistMaps() << std::endl;
     }
   }
+  DistributionMapping::CacheStats(std::cout);
   std::cout << "}}}} }}}} }}}} _out PrintFAPointers: ================ " << std::endl;
 }
 
