@@ -683,6 +683,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
             }
         }
 
+	// cells outside physical boundaries are not included in unfilledThisLevel
+
         bool Done = false;
 
         Array< Array<Box> >&                TheCrseBoxes = m_cbox[idx];
