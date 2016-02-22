@@ -201,6 +201,13 @@ ifeq ($(MACHINE), HP-UX)
     MACHINE := HPUX
 endif
 
+# Australian machines
+ifeq ($(findstring ad.unsw.edu.au, $(UNAMEN)), ad.unsw.edu.au)
+  ifeq ($(findstring Fyr, $(UNAMEN)), Fyr)
+    WHICHLINUX := FYR
+  endif
+endif
+
 ifndef PRECISION
   PRECISION = DOUBLE
 endif
