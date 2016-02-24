@@ -203,6 +203,9 @@ ifeq ($(MACHINE), Linux)
       FC := mpif90
       F90 := mpif90
       fC := mpif90
+      LIBRARY_LOCATIONS += /usr/local/lib
+      INCLUDE_LOCATIONS += /usr/local/include
+      BL_MPI_LIBS += -lmpich -lmpichcxx -lmpichf90
       CPPFLAGS += -DMPICH_SKIP_MPICXX
     endif
 
