@@ -1233,8 +1233,6 @@ private:
     //
     // Some useful typedefs.
     //
-    typedef std::map<int,int> IntIntMap;
-
     typedef std::vector<FabArrayBase::FabComTag> FabComTagContainer;
 
     typedef std::vector<FabComTagContainer::const_iterator> FabComTagIterContainer;
@@ -2896,10 +2894,6 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
 #if BL_USE_MPI
     typedef typename FAB::value_type value_type;
-    //
-    // Make sure we can treat CommData as a stream of integers.
-    //
-    BL_ASSERT(sizeof(ParallelDescriptor::CommData) == ParallelDescriptor::CommData::DIM*sizeof(int));
 
     BL_PROFILE("FabArrayCopyDescriptor::CollectData()");
 
@@ -2911,7 +2905,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     //
     std::map< int,FabComTagIterContainer > RcvTags;
 
-    IntIntMap Snds, Rcvs, Npts;
+    std::map<int,int> Snds, Rcvs, Npts;
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
@@ -2958,8 +2952,10 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
         Array<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
-        for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
+        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
+	{
             RcvsArray[it->first] = it->second;
+	}
 
         {
             BL_PROFILE("CollectData_Alltoall()");
@@ -2985,170 +2981,184 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                 Snds[i] = SndsArray[i];
     }
 
-    Array<ParallelDescriptor::CommData> cd_others_need, cd_that_i_need;
+    // There are two rounds of send and recv.
+    // First, the data receivers need to send the data senders meta-data (e.g., boxes).
+    // Then, the senders know what data to send and perform send.
+    const int SeqNum_md   = ParallelDescriptor::SeqNum();
+    const int SeqNum_data = ParallelDescriptor::SeqNum();
 
-    {
-        Array<int> sdispls(NProcs,0), rdispls(NProcs,0), scnts(NProcs,0), rcnts(NProcs,0);
+    const int N_snds = Snds.size();
+    const int N_rcvs = Rcvs.size();
 
-        int nrcvs = 0;
-        for (IntIntMap::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
-        {
-            nrcvs           += it->second;
-            rcnts[it->first] = it->second;
-        }
-        for (int i = 1; i < NProcs; i++)
-            rdispls[i] = rdispls[i-1] + rcnts[i-1];
+    if ( N_snds == 0 && N_rcvs == 0 ) return;
 
-        int nsnds = 0;
-        for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
-        {
-            nsnds           += it->second;
-            scnts[it->first] = it->second;
-        }
-        for (int i = 1; i < NProcs; i++)
-            sdispls[i] = sdispls[i-1] + scnts[i-1];
+    const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
 
-        Array<int> index(sdispls);
+    // for meta-data
+    Array<int> md_sender, md_offset, md_icnts, md_bcnts;
+    int* md_recv_data;
+    Array<int*> md_send_data;
+    Array<MPI_Request> md_recv_reqs, md_send_reqs;
 
-        cd_others_need.resize(nrcvs+1); // +1 so there's always at least one element.
-        cd_that_i_need.resize(nsnds+1); // +1 so there's always at least one element.
-
-        for (FabComTagContainer::const_iterator it = fabComTagList.begin(),
-                 End = fabComTagList.end();
-             it != End;
-             ++it)
-        {
-            ParallelDescriptor::CommData data(0,
-                                              it->fabIndex,
-                                              MyProc,
-                                              0,
-                                              it->nComp,
-                                              it->srcComp,
-                                              it->fabArrayId,
-                                              it->box);
-
-            cd_that_i_need[index[it->procThatHasData]++] = data;
-        }
-        //
-        // Increment displacements to indicate integers not CommData.
-        //
-        for (int i = 0; i < NProcs; i++)   scnts[i] *= ParallelDescriptor::CommData::DIM;
-        for (int i = 0; i < NProcs; i++)   rcnts[i] *= ParallelDescriptor::CommData::DIM;
-        for (int i = 1; i < NProcs; i++) sdispls[i] *= ParallelDescriptor::CommData::DIM;
-        for (int i = 1; i < NProcs; i++) rdispls[i] *= ParallelDescriptor::CommData::DIM;
-
-        {
-            BL_PROFILE("CollectData_Alltoallv()");
-	    BL_COMM_PROFILE(BLProfiler::Alltoallv, nrcvs * sizeof(int), ParallelDescriptor::MyProc(),
-	                    BLProfiler::BeforeCall());
-
-            BL_MPI_REQUIRE( MPI_Alltoallv(cd_that_i_need.dataPtr(),
-                                          scnts.dataPtr(),
-                                          sdispls.dataPtr(),
-                                          ParallelDescriptor::Mpi_typemap<int>::type(),
-                                          cd_others_need.dataPtr(),
-                                          rcnts.dataPtr(),
-                                          rdispls.dataPtr(),
-                                          ParallelDescriptor::Mpi_typemap<int>::type(),
-                                          ParallelDescriptor::Communicator()) );
-
-	    BL_COMM_PROFILE(BLProfiler::Alltoallv, nrcvs * sizeof(int), ParallelDescriptor::MyProc(),
-	                    BLProfiler::AfterCall());
-        }
-        cd_that_i_need.clear();
-    }
-
-    Array<int>         roffset, who_R;
-    Array<MPI_Status>  stats;
-    Array<MPI_Request> recv_reqs, send_reqs;
+    // for data
+    Array<int> data_sender, data_offset;
+    value_type* recv_data;
     Array<value_type*> send_data;
-    //
-    // Post receives.  Allocate data for rcvs as one big chunk.
-    //
-    const int   SeqNum    = ParallelDescriptor::SeqNum();
-    value_type* recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
+    Array<MPI_Request> data_recv_reqs, data_send_reqs;
 
-    int Idx = 0;
-    for (IntIntMap::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
+    if (N_snds > 0)
     {
-        const int Who = it->first;
-        const int Cnt = Npts[Who];
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        who_R.push_back(Who);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(&recv_data[Idx],Cnt,Who,SeqNum).req());
-        roffset.push_back(Idx);
-        Idx += Cnt;
-    }
-    //
-    // Send the FAB data.
-    //
-    FAB fab;
+	// Recv meta-data
 
-    Idx = 0;
-    for (IntIntMap::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
-    {
-        const int Who   = it->first;
-        const int NSnds = it->second;
-
-        int N = 0;
-        const ParallelDescriptor::CommData* cd = &cd_others_need[Idx];
-        for (int k = 0; k < NSnds; k++, cd++)
-            N += cd->box().numPts()*cd->nComp();
-
-        BL_ASSERT(N < std::numeric_limits<int>::max());
-
-        value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
-        value_type* dptr = data;
-
-        cd = &cd_others_need[Idx];
-
-        for (int k = 0; k < NSnds; k++, cd++)
+	int N = 0;
+        for (std::map<int,int>::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)
         {
-            BL_ASSERT(cd->id() == 0);
-            BL_ASSERT(cd->fromproc() == Who);
-            const int Cnt = cd->box().numPts()*cd->nComp();
-            (*fabArrays[cd->fabarrayid()])[cd->fabindex()].copyToMem(cd->box(),cd->srcComp(),cd->nComp(),dptr);
-            dptr += Cnt;
+	    md_sender.push_back(it->first);
+	    md_bcnts.push_back(it->second);
+	    int cnt = it->second * Nints;
+	    md_icnts.push_back(cnt);
+            md_offset.push_back(N);
+            N += cnt; 
         }
 
-        BL_ASSERT(data+N == dptr);
+	md_recv_data = static_cast<int*>(BoxLib::The_Arena()->alloc(N*sizeof(int)));
 
-        if (FabArrayBase::do_async_sends)
-        {
-            send_data.push_back(data);
-            send_reqs.push_back(ParallelDescriptor::Asend(data,N,Who,SeqNum).req());
-        }
-        else
-        {
-            ParallelDescriptor::Send(data,N,Who,SeqNum);
-            BoxLib::The_Arena()->free(data);
-        }
-
-        Idx += NSnds;
+	for (int i = 0; i < N_snds; ++i)
+	{
+	    md_recv_reqs.push_back(ParallelDescriptor::Arecv(&md_recv_data[md_offset[i]],
+							     md_icnts[i], md_sender[i],
+							     SeqNum_md).req());
+	}	
     }
 
-    cd_others_need.clear();
-
-    //
-    //  wait and unpack
-    //
-
-    int N_rcvs = recv_reqs.size();
-
-    if (N_rcvs > 0) 
+    if (N_rcvs > 0)
     {
-	stats.resize(N_rcvs);
-	
+	// Send meta-data
+        for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
+        {
+	    int rank = it->first;
+	    int Nmds = it->second;
+	    int cnt = Nmds * Nints;
+
+	    int* p = static_cast<int*>(BoxLib::The_Arena()->alloc(cnt*sizeof(int)));
+	    md_send_data.push_back(p);
+
+	    const FabComTagIterContainer& tags = RcvTags[rank];
+
+	    // initialized the data
+	    int * md = p;
+	    for (int i = 0; i < Nmds; ++i, md += Nints)
+	    {
+		md[0] = tags[i]->fabArrayId;
+		md[1] = tags[i]->fabIndex;
+		md[2] = tags[i]->srcComp;
+		md[3] = tags[i]->nComp;
+		const int* lo = tags[i]->box.loVect();
+		const int* hi = tags[i]->box.hiVect();
+		const int* tp = tags[i]->box.type().getVect();
+		D_EXPR(md[4] = lo[0],
+		       md[5] = lo[1],
+		       md[6] = lo[2]);
+		D_EXPR(md[4+  BL_SPACEDIM] = hi[0],
+		       md[5+  BL_SPACEDIM] = hi[1],
+		       md[6+  BL_SPACEDIM] = hi[2]);
+		D_EXPR(md[4+2*BL_SPACEDIM] = tp[0],
+		       md[5+2*BL_SPACEDIM] = tp[1],
+		       md[6+2*BL_SPACEDIM] = tp[2]);
+	    }
+
+	    md_send_reqs.push_back(ParallelDescriptor::Asend(p,cnt,rank,SeqNum_md).req());
+	}
+    }
+
+    if (N_rcvs > 0)
+    {
+	recv_data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(Total_Rcvs_Size*sizeof(value_type)));
+
+	// Post receives for data
+	int Idx = 0;
+	for (std::map<int,int>::const_iterator it = Npts.begin(); it != Npts.end(); ++it)
+	{
+	    int Who = it->first;
+	    int Cnt = it->second;
+	    BL_ASSERT(Cnt > 0);
+	    BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+	    data_sender.push_back(Who);
+	    data_recv_reqs.push_back(ParallelDescriptor::Arecv(&recv_data[Idx],
+							       Cnt,Who,SeqNum_data).req());
+	    data_offset.push_back(Idx);
+	    Idx += Cnt;
+	}
+    }
+
+    // Wait on meta-data and do send
+    if (N_snds > 0) 
+    {
+	int send_counter = 0;
+	while (send_counter++ < N_snds)
+	{
+	    MPI_Status status;
+	    int index;
+	    MPI_Waitany(N_snds, md_recv_reqs.dataPtr(), &index, &status);
+
+	    int rank = status.MPI_SOURCE;
+	    BL_ASSERT(status.MPI_TAG == SeqNum_md);
+	    BL_ASSERT(rank == md_sender[index]);
+
+	    const int* p = &md_recv_data[md_offset[index]];
+	    int numboxes = md_bcnts[index];
+	    Array<int> faid(numboxes);
+	    Array<int> fidx(numboxes);
+	    Array<int> scomp(numboxes);
+	    Array<int> ncomp(numboxes);
+	    Array<int> npts(numboxes);
+	    Array<Box> bxs;
+	    int N = 0;
+	    const int * md = p;
+	    for (int i = 0; i < numboxes; ++i, md += Nints)
+	    {
+		faid[i] = md[0];
+		fidx[i] = md[1];
+		scomp[i] = md[2];
+		ncomp[i] = md[3];
+		bxs.push_back(Box(IntVect(&md[4]),
+				  IntVect(&md[4+BL_SPACEDIM]), 
+				  IntVect(&md[4+BL_SPACEDIM*2]))); 
+		npts[i] = bxs.back().numPts()*ncomp[i];
+		N += npts[i];
+	    }
+
+	    BL_ASSERT(N < std::numeric_limits<int>::max());
+	    
+	    value_type* data = static_cast<value_type*>(BoxLib::The_Arena()->alloc(N*sizeof(value_type)));
+	    value_type* dptr = data;
+	    send_data.push_back(data);
+
+	    for (int i = 0; i < numboxes; ++i)
+	    {
+		(*fabArrays[faid[i]])[fidx[i]].copyToMem(bxs[i],scomp[i],ncomp[i],dptr);
+		dptr += npts[i];
+	    }	    
+
+	    data_send_reqs.push_back(ParallelDescriptor::Asend(data,N,rank,SeqNum_data).req());
+	}
+
+	BoxLib::The_Arena()->free(md_recv_data);
+    }
+
+    // Wait and upack data
+    if (N_rcvs > 0)
+    {
+	Array<MPI_Status> stats(N_rcvs);
+	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, data_recv_reqs.dataPtr(), stats.dataPtr()) );
+
 	std::pair<FCDMapIter,FCDMapIter> match;
 	std::map< int,FabComTagIterContainer >::const_iterator found;
-	
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
-	
+
 	for (int k = 0; k < N_rcvs; k++)
 	{
-	    const int         Who     = who_R[k];
-	    const value_type* dptr    = &recv_data[roffset[k]];
+	    const int         Who  = data_sender[k];
+	    const value_type* dptr = &recv_data[data_offset[k]];
 	    
 	    BL_ASSERT(dptr != 0);
 	    
@@ -3186,25 +3196,24 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		}
 	    }
 	}
+
+	BoxLib::The_Arena()->free(recv_data);
+
+	// No need to wait md_send_reqs, because otherwise we wouldn't receive fab data.
+	for (int i = 0; i < N_rcvs; ++i) {
+            BoxLib::The_Arena()->free(md_send_data[i]);	    
+	}
     }
 
-    BoxLib::The_Arena()->free(recv_data);
-
-    if (FabArrayBase::do_async_sends && !send_reqs.empty())
+    // Finished send
+    if (N_snds > 0)
     {
-        //
-        // Now grok the asynchronous send buffers & free up send buffer space.
-        //
-        const int N_snds = send_reqs.size();
+	Array<MPI_Status> stats(N_snds);
+	BL_MPI_REQUIRE( MPI_Waitall(N_snds, data_send_reqs.dataPtr(), stats.dataPtr()) );
 
-        stats.resize(N_snds);
-
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::BeforeCall(), N_snds);
-        BL_MPI_REQUIRE( MPI_Waitall(N_snds, send_reqs.dataPtr(), stats.dataPtr()) );
-        BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);
-
-        for (int i = 0; i < N_snds; i++)
+	for (int i = 0; i < N_snds; ++i) {
             BoxLib::The_Arena()->free(send_data[i]);
+	}
     }
 
 #endif /*BL_USE_MPI*/
