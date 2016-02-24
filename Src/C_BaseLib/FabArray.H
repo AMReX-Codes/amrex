@@ -1633,11 +1633,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     const int MyProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
-#if defined(BL_USE_TEAM)
 	if(ParallelDescriptor::sameTeam(distributionMap[i])) {
-#else
-	if(distributionMap[i] == MyProc) {
-#endif
+	// If Team is not used (i.e., team size == 1), distributionMap[i] == MyProc
 	    indexMap.push_back(i);
 	}
     }
@@ -2719,7 +2716,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
         fcd->destComp      = destcomp;
         fcd->nComp         = numcomp;
 
-        if (MyProc == remoteProc)
+        if (ParallelDescriptor::sameTeam(remoteProc))
         {
             //
             // Data is local.
