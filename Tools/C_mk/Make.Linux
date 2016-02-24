@@ -725,3 +725,7 @@ ifeq ($(WHICHLINUX), MIRA)
   endif
 
 endif
+
+ifeq ($(HOST),orga)
+  override XTRALIBS += -lquadmath
+endif

@@ -1278,9 +1278,7 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         BL_ASSERT(dest_comp + num_comp <= dest.nComp());
 
         FArrayBox dest1(dest.box(), dest.nComp());
-        dest1.setVal(Real(1.e30)); // FIXME - Whats a better value?
         FArrayBox dest2(dest.box(), dest.nComp());
-        dest2.setVal(Real(1.e30)); // FIXME - Whats a better value?
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1,
@@ -1576,10 +1574,15 @@ MultiFab::SumBoundary ()
 
 // Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
 // the sidecar group.
+//
+// Usage: on compute group, supply a reference to a regular MultiFab. On
+// sidecar group, supply a reference to an "empty" MultiFab, e.g.,
+//
+// MultiFab mf;
+// MultiFab::SendMultiFabToSidecars(&mf);
+//
+// This function will do all of the allocation on the sidecars for you.
 
-// Note that the compute MultiFab will be a null pointer on the sidecar nodes,
-// and the sidecar MultiFab will be null on the compute nodes. So be mindful of
-// which processes will be executing which code when you access these pointers.
 #ifdef BL_USE_MPI
 void
 MultiFab::SendMultiFabToSidecars (MultiFab *mf)
@@ -1645,14 +1648,11 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
       {
           const int index = mfi.index();
-          if (comp_procmap[index] == ParallelDescriptor::MyProc())
-          {
-            const Box& box = (*mf)[mfi].box();
-            const long numPts = box.numPts();
-            ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-            const Real *dataPtr = (*mf)[mfi].dataPtr();
-            ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-          }
+          const Box& box = (*mf)[mfi].box();
+          const long numPts = box.numPts();
+          ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+          const Real *dataPtr = (*mf)[mfi].dataPtr();
+          ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
       }
     }
     else
@@ -1707,16 +1707,13 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       // Now we populate the MultiFab with data.
       for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
       {
-          const int index = mfi.index();
-        if (intransit_procmap[index] == ParallelDescriptor::MyProc())
-        {
-          long numPts;
-          ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-          Real FAB_data[numPts*nComp];
-          Real *data_ptr = (*mf)[mfi].dataPtr();
-          ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-          std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
-        }
+        const int index = mfi.index();
+        long numPts;
+        ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+        Real FAB_data[numPts*nComp];
+        Real *data_ptr = (*mf)[mfi].dataPtr();
+        ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+        std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
       }
     }
 }
