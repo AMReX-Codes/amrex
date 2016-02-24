@@ -3481,14 +3481,6 @@ using std::endl;
 
     // ---- send all amr data from ioprocnum to the new comp ranks
     if(scsMyId != MPI_UNDEFINED) {
-      //USleep(scsMyId / 10.0);
-      //cout << "myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
-      //PrintData(cout);
-      //ParallelDescriptor::Bcast(&cumtime, 1, ioProcNumAll, scsComm);
-      //USleep(scsMyId / 10.0);
-      //cout << "$$$$$$$$ myProcAll scsMyId = " << myProcAll << "  " << scsMyId << endl;
-      //PrintData(cout);
-
       int currentSeqNumber(-4);
       if(scsMyId == ioProcNumSCS) {
         currentSeqNumber = ParallelDescriptor::SeqNum(1);
@@ -3747,20 +3739,22 @@ using std::endl;
       }
 
       ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        allIntVects.resize(allIntVectsSize);
-      }
-      ParallelDescriptor::Bcast(allIntVects.dataPtr(), allIntVectsSize, ioProcNumAll, scsComm);
+      if(allIntVectsSize > 0) {
+        if(scsMyId != ioProcNumSCS) {
+          allIntVects.resize(allIntVectsSize);
+        }
+        ParallelDescriptor::Bcast(allIntVects.dataPtr(), allIntVectsSize, ioProcNumAll, scsComm);
 
-      // ---- unpack the IntVects
-      if(scsMyId != ioProcNumSCS) {
-	int count(0);
-	BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
+        // ---- unpack the IntVects
+        if(scsMyId != ioProcNumSCS) {
+	  int count(0);
+	  BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
 
-	ref_ratio.resize(ref_ratio_Size);
-        for(int lev(0); lev < ref_ratio.size(); ++lev) {
-          for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
-	}
+	  ref_ratio.resize(ref_ratio_Size);
+          for(int lev(0); lev < ref_ratio.size(); ++lev) {
+            for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
+	  }
+        }
       }
 
 
@@ -3822,6 +3816,14 @@ using std::endl;
     if(ParallelDescriptor::IOProcessor()) {
       cout << "%%%%%%%% finished AddProcsToComp." << endl;
     }
+
+//if(ParallelDescriptor::MyProcAll() == 0) {
+  //MultiFab::PrintFAPointers();
+//}
+//BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+//if(ParallelDescriptor::MyProcAll() == 13) {
+  //MultiFab::PrintFAPointers();
+//}
 
 #endif
 }
