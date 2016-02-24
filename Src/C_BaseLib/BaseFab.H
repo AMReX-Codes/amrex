@@ -1323,6 +1323,11 @@ BaseFab<T>::swap (BaseFab& fab)
     std::swap(numpts,fab.numpts);
     std::swap(truesize,fab.truesize);
     std::swap(dptr,fab.dptr);
+    std::swap(ptr_owner,fab.ptr_owner);
+    std::swap(shared_memory,fab.shared_memory);
+#ifdef BL_USE_MPI3
+    std::swap(win_shared,fab.win_shared);
+#endif
 }
 
 template <class T>
