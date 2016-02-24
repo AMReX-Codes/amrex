@@ -307,14 +307,6 @@ public:
     //
     static int initialBaLevels () { return initial_ba.size(); }
     //
-    // Should we keep the coarser grids fixed (and not regrid those levels) at all?
-    //
-    static bool useFixedCoarseGrids;
-    //
-    // Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
-    //
-    static int useFixedUpToLevel;
-    //
     // Do a complete integration cycle.
     //
     virtual void coarseTimeStep (Real stop_time);
@@ -438,13 +430,6 @@ public:
         return intersect_hiz;
     };
 
-    BoundaryPointList intersect_lox;
-    BoundaryPointList intersect_loy;
-    BoundaryPointList intersect_loz;
-    BoundaryPointList intersect_hix;
-    BoundaryPointList intersect_hiy;
-    BoundaryPointList intersect_hiz;
-
 #ifdef USE_PARTICLES
     //
     // Add one particle at a time.
@@ -474,14 +459,6 @@ protected:
     //
     static void ProjPeriodic (BoxList&        bd,
                               const Geometry& geom);
-    //
-    // Array of BoxArrays read in to initially define grid hierarchy
-    //
-    static Array<BoxArray> initial_ba;
-    //
-    // Array of BoxArrays read in to externally define grid hierarchy at each regrid
-    //
-    static Array<BoxArray> regrid_ba;
     //
     // Initialize grid hierarchy -- called by Amr::init.
     //
@@ -564,6 +541,7 @@ protected:
     
     void initSubcycle();
     void initPltAndChk();
+
     //
     // The data ...
     //
@@ -631,6 +609,23 @@ protected:
     static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
     static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
     static bool                   first_plotfile;
+    // Array of BoxArrays read in to initially define grid hierarchy
+    static Array<BoxArray> initial_ba;
+    // Array of BoxArrays read in to externally define grid hierarchy at each regrid
+    static Array<BoxArray> regrid_ba;
+
+public:
+    // Should we keep the coarser grids fixed (and not regrid those levels) at all?
+    static bool useFixedCoarseGrids;
+    // Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
+    static int useFixedUpToLevel;
+
+    BoundaryPointList intersect_lox;
+    BoundaryPointList intersect_loy;
+    BoundaryPointList intersect_loz;
+    BoundaryPointList intersect_hix;
+    BoundaryPointList intersect_hiy;
+    BoundaryPointList intersect_hiz;
 
 private:
     //
