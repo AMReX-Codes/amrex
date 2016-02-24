@@ -114,7 +114,8 @@ public:
     //
     const DistributionMapping& DistributionMap () const { return distributionMap; }
     //
-    // Returns constant reference to indices in the FabArray that we own.
+    // Returns constant reference to indices in the FabArray that we have access.
+    // w.z. We should eventually make this private.
     //
     const Array<int>& IndexMap () const { return indexMap; }
     //
