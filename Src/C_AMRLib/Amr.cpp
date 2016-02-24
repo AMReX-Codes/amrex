@@ -1719,6 +1719,8 @@ Amr::timeStep (int  level,
     //
     // Allow regridding of level 0 calculation on restart.
     //
+    BoxLib::USleep(ParallelDescriptor::MyProcAll() / 10.0);
+    std::cout << ParallelDescriptor::MyProcAll() << "::  ))))))))))))))) regrid_on_restart = " << regrid_on_restart << std::endl;
     if (max_level == 0 && regrid_on_restart)
     {
 	regrid_level_0_on_restart();
@@ -2659,7 +2661,7 @@ Amr::grid_places (int              lbase,
     }
 
     // Use grids in initial_grids_file as fixed coarse grids.
-    if ( !initial_grids_file.empty() && useFixedCoarseGrids)
+    if ( ! initial_grids_file.empty() && useFixedCoarseGrids)
     {
         new_finest = std::min(max_level,(finest_level+1));
         new_finest = std::min(new_finest,initial_ba.size());
@@ -3515,6 +3517,18 @@ using std::endl;
         allInts.push_back(stream_max_tries);
         allInts.push_back(rebalance_grids);
 
+	// ---- these are parmparsed in
+        allInts.push_back(plot_nfiles);
+        allInts.push_back(mffile_nstreams);
+        allInts.push_back(probinit_natonce);
+        allInts.push_back(checkpoint_nfiles);
+        allInts.push_back(regrid_on_restart);
+        allInts.push_back(use_efficient_regrid);
+        allInts.push_back(plotfile_on_restart);
+        allInts.push_back(checkpoint_on_restart);
+        allInts.push_back(compute_new_dt_on_regrid);
+        allInts.push_back(useFixedUpToLevel);
+
         allInts.push_back(level_steps.size());
         for(int i(0); i < level_steps.size(); ++i)     { allInts.push_back(level_steps[i]); }
         allInts.push_back(level_count.size());
@@ -3569,6 +3583,16 @@ using std::endl;
         stream_max_tries           = allInts[count++];
         rebalance_grids            = allInts[count++];
 
+        plot_nfiles                = allInts[count++];
+        mffile_nstreams            = allInts[count++];
+        probinit_natonce           = allInts[count++];
+        checkpoint_nfiles          = allInts[count++];
+        regrid_on_restart          = allInts[count++];
+        use_efficient_regrid       = allInts[count++];
+        plotfile_on_restart        = allInts[count++];
+        checkpoint_on_restart      = allInts[count++];
+        compute_new_dt_on_regrid   = allInts[count++];
+        useFixedUpToLevel          = allInts[count++];
 
         aSize                      = allInts[count++];
 	level_steps.resize(aSize);
@@ -3651,6 +3675,12 @@ using std::endl;
         for(int i(0); i < BL_SPACEDIM; ++i)    { allBools.push_back(isPeriodic[i]); }
         allBools.push_back(first_plotfile);
 
+        allBools.push_back(plot_files_output);
+        allBools.push_back(refine_grid_layout);
+        allBools.push_back(checkpoint_files_output);
+        allBools.push_back(initialized);
+        allBools.push_back(useFixedCoarseGrids);
+
 	allBoolsSize = allBools.size();
       }
 
@@ -3668,6 +3698,12 @@ using std::endl;
         bUserStopRequest              = allBools[count++];
         for(int i(0); i < BL_SPACEDIM; ++i)    { isPeriodic[i] = allBools[count++]; }
         first_plotfile                = allBools[count++];
+
+        plot_files_output             = allBools[count++];
+        refine_grid_layout            = allBools[count++];
+        checkpoint_files_output       = allBools[count++];
+        initialized                   = allBools[count++];
+        useFixedCoarseGrids           = allBools[count++];
       }
 
 
@@ -3761,6 +3797,15 @@ using std::endl;
       if(scsMyId != ioProcNumSCS) {
         levelbld = getLevelBld();
         //levelbld->variableSetUp();
+      }
+
+
+      // ---- BoxArrays
+      for(int i(0); i < initial_ba.size(); ++i) {
+        BoxLib::BroadcastBoxArray(initial_ba[i], scsMyId, ioProcNumAll, scsComm);
+      }
+      for(int i(0); i < regrid_ba.size(); ++i) {
+        BoxLib::BroadcastBoxArray(regrid_ba[i], scsMyId, ioProcNumAll, scsComm);
       }
 
 
