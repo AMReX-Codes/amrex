@@ -547,6 +547,10 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
 
     Initialize(boxGrow,time,index,scomp,ncomp);
+
+#if BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
 }
 
 static
@@ -856,8 +860,7 @@ FillPatchIterator::Initialize (int  boxGrow,
                                           NComp,
                                           desc.interp(SComp));
 
-
-	unsigned char flags = MFIter::OwnerOnly;
+	const unsigned char flags = MFIter::OwnerOnly;
 
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
@@ -1286,23 +1289,22 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
         FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
 
-        const int N = fpi.m_fabs.IndexMap().size();
+	const MultiFab& mf_fpi = fpi.get_mf();
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            const int  idx = fpi.m_fabs.IndexMap()[i];
-            const Box& dbx = BoxLib::grow(mf_BA[idx],nghost);
+            const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
 
             Array<BCRec> bcr(ncomp);
 
             BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            mapper->interp(fpi.m_fabs[idx],
+            mapper->interp(fpi.m_fabs[mfi],
                            0,
-                           mf[idx],
+                           mf[mfi],
                            DComp,
                            NComp,
                            dbx,
