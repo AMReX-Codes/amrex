@@ -731,7 +731,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-	int idx = mfi.index();
+	int idx = mfi.LocalIndex();
         TagBox* tfine = m_fabs_v[idx];
         m_fabs_v[idx] = tfine->coarsen(ratio);
         delete tfine;
