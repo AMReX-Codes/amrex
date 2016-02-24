@@ -1248,7 +1248,8 @@ BaseFab<T>::BaseFab ()
     numpts(0),
     truesize(0),
     dptr(0),
-    ptr_owner(false)
+    ptr_owner(false),
+    shared_memory(false)
 {}
 
 template <class T>
