@@ -6,7 +6,7 @@
 #include <limits>
 
 namespace {
-    static const Real BL_SAFE_BOGUS = std::numeric_limits<double>::quiet_NaN();
+    static const Real BL_SAFE_BOGUS = std::numeric_limits<Real>::quiet_NaN();
 }
 
 BndryRegister::BndryRegister () {}
