@@ -151,22 +151,6 @@ FluxRegister::SumReg (int comp) const
     return sum;
 }
 
-void
-FluxRegister::copyTo (FArrayBox& flx,
-                      int        dir,
-                      int        scomp,
-                      int        dcomp,
-                      int        ncomp)
-{
-    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
-
-    const FabSet& lofabs = bndry[Orientation(dir,Orientation::low)];
-    const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
-
-    lofabs.copyTo(flx,scomp,dcomp,ncomp);
-    hifabs.copyTo(flx,scomp,dcomp,ncomp);
-}
-
 struct Rec
 {
     Rec (int         dIndex,

@@ -85,32 +85,6 @@ public:
     //
     Real SumReg (int comp) const;
     //
-    // Copy from flux register to FAB flx.
-    //
-    void copyTo (FArrayBox& flx,
-                 int        dir,
-                 int        src_comp,
-                 int        dest_comp,
-                 int        num_comp);
-    //
-    // flx = flx + mult*register.
-    //
-    void addTo (FArrayBox& flx,
-                int        dir,
-                Real       mult,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp);
-    //
-    // mf = fm + mult*register.
-    //
-    void addTo (MultiFab& mf,
-                int       dir,
-                Real      mult,
-                int       src_comp,
-                int       dest_comp,
-                int       num_comp);
-    //
     // Initialize flux correction with coarse data.
     //
     void CrseInit (const MultiFab& mflx,

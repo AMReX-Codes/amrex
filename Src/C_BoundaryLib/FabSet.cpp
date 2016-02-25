@@ -40,34 +40,6 @@ FabSet::define (const BoxArray&            grids,
     tmp->define(grids, ncomp, 0, dm, Fab_allocate);
 }
 
-const FabSet&
-FabSet::copyTo (FArrayBox& dest) const
-{
-    copy(dest);
-    return *this;
-}
-
-const FabSet&
-FabSet::copyTo (FArrayBox& dest,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp) const
-{
-    copy(dest,src_comp,dest_comp,num_comp);
-    return *this;
-}
-
-const FabSet&
-FabSet::copyTo (FArrayBox& dest,
-                const Box& subbox,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp) const
-{
-    copy(dest,subbox,src_comp,dest_comp,num_comp);
-    return *this;
-}
-
 void
 FabSet::copyTo (MultiFab& dest) const
 {
