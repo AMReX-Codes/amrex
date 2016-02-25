@@ -345,6 +345,8 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
+    bool IsInitialized() const;
+    void SetInitialized(bool binit);
     //
     // To maximize thread efficiency we now can decompose things like
     // intersections among boxes into smaller tiles. This sets
@@ -385,6 +387,10 @@ protected:
 
     mutable BoxArray    boxarray_orig;
     mutable int         n_grow_orig;
+
+    static int fb_cache_max_size;
+    static int copy_cache_max_size;
+
 
 private:
     static bool LocThreadSafety(const CopyComTagsContainer* LocTags);
@@ -2008,6 +2014,9 @@ FabArray<FAB>::PrintFAPointers ()
                 << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock
 		<< "  " << faPtr->DistributionMap().DistMapID()
 		<< "  " << faPtr->DistributionMap().NDistMaps() << std::endl;
+      //if(faPtr->AllocatedFAPtrID() == 73 || faPtr->AllocatedFAPtrID() == 162) {
+        //std::cout << "_in PrintFAPointers:  dmap = " << faPtr->DistributionMap() << std::endl;
+      //}
     }
   }
   DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
@@ -2034,6 +2043,36 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&n_comp, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&aFAPId, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&n_grow_orig, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&nFabArrays, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
+
+  // ---- bools
+  bool bii(IsInitialized());
+  int bInit(bii), bV(Verbose), bDAS(do_async_sends);
+  ParallelDescriptor::Bcast(&bInit, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&bV, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&bDAS, 1, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    SetInitialized(bInit);
+    Verbose        = bV;
+    do_async_sends = bDAS;
+  }
+  ParallelDescriptor::Bcast(&fb_cache_max_size, 1, ioProcNumSCS, scsComm);
+  ParallelDescriptor::Bcast(&copy_cache_max_size, 1, ioProcNumSCS, scsComm);
+
+  // ---- IntVects
+  Array<int> allIntVects;
+  if(scsMyId == ioProcNumSCS) {
+    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
+    for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
+  }
+  BoxLib::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    int count(0);
+    for(int i(0); i < BL_SPACEDIM; ++i)    { mfiter_tile_size[i] = allIntVects[count++]; }
+    for(int i(0); i < BL_SPACEDIM; ++i)    { comm_tile_size[i] = allIntVects[count++]; }
+  }
 
   // ---- add to allocatedFAPointers
   int isAllocated(0);
