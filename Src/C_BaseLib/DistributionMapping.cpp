@@ -1818,12 +1818,19 @@ if(ParallelDescriptor::IOProcessor()) {
 Array<Array<int> >
 DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
                                           const Array<BoxArray> &allBoxes,
-					  int maxgrid, int maxRank)
+					  int maxgrid, int maxRank, int minRank)
 {
     BL_PROFILE("DistributionMapping::MultiLevelMapRandom()");
 
     if(maxRank < 0) {
       maxRank = ParallelDescriptor::NProcs() - 1;
+    }
+    maxRank = std::min(maxRank, ParallelDescriptor::NProcs() - 1);
+    minRank = std::max(0, minRank);
+    minRank = std::min(minRank, maxRank);
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "_in DistributionMapping::MultiLevelMapRandom:  minRank maxRank = "
+                << minRank << "  " << maxRank << std::endl;
     }
 
     Array<Array<int> > localPMaps(allBoxes.size());
@@ -1831,8 +1838,10 @@ DistributionMapping::MultiLevelMapRandom (const Array<IntVect>  &refRatio,
       localPMaps[n].resize(allBoxes[n].size() + 1, -1);
 
       if(ParallelDescriptor::IOProcessor()) {
+	int range(maxRank - minRank);
         for(int ir(0); ir < localPMaps[n].size() - 1; ++ir) {
-          localPMaps[n][ir] = BoxLib::Random_int(maxRank + 1);
+          //localPMaps[n][ir] = BoxLib::Random_int(maxRank + 1);
+          localPMaps[n][ir] = minRank + BoxLib::Random_int(range + 1);
         }
       }
       ParallelDescriptor::Bcast(localPMaps[n].dataPtr(), localPMaps[n].size());
