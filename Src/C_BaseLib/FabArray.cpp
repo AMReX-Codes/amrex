@@ -24,6 +24,8 @@ IntVect FabArrayBase::comm_tile_size(1024, 8, 8);
 #endif
 
 int FabArrayBase::nFabArrays(0);
+int FabArrayBase::fb_cache_max_size(0);
+int FabArrayBase::copy_cache_max_size(0);
 
 
 namespace
@@ -32,8 +34,21 @@ namespace
     //
     // Set default values in Initialize()!!!
     //
-    int fb_cache_max_size;
-    int copy_cache_max_size;
+    //int fb_cache_max_size;
+    //int copy_cache_max_size;
+}
+
+
+bool
+FabArrayBase::IsInitialized () const
+{
+  return initialized;
+}
+
+void
+FabArrayBase::SetInitialized (bool binit)
+{
+  initialized = binit;
 }
 
 void
