@@ -2260,12 +2260,13 @@ MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                           int scsMyId, MPI_Comm scsComm)
 {
   // ---- bools
-  int cFN(check_for_nan), cFI(check_for_inf);
+  int cFN(check_for_nan), cFI(check_for_inf), bInit(initialized);
   ParallelDescriptor::Bcast(&cFN, 1, ioProcNumSCS, scsComm);
   ParallelDescriptor::Bcast(&cFI, 1, ioProcNumSCS, scsComm);
   if(scsMyId != ioProcNumSCS) {
     check_for_nan = cFN;
     check_for_inf = cFI;
+    initialized   = bInit;
   }
   FabArray::AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
 }
