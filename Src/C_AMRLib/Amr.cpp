@@ -1719,8 +1719,6 @@ Amr::timeStep (int  level,
     //
     // Allow regridding of level 0 calculation on restart.
     //
-    BoxLib::USleep(ParallelDescriptor::MyProcAll() / 10.0);
-    std::cout << ParallelDescriptor::MyProcAll() << "::  ))))))))))))))) regrid_on_restart = " << regrid_on_restart << std::endl;
     if (max_level == 0 && regrid_on_restart)
     {
 	regrid_level_0_on_restart();
@@ -1729,7 +1727,7 @@ Amr::timeStep (int  level,
     {
         int lev_top = std::min(finest_level, max_level-1);
 
-        for (int i = level; i <= lev_top; i++)
+        for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
 
@@ -1753,8 +1751,9 @@ Amr::timeStep (int  level,
                                               post_regrid_flag);
                 }
 
-                for (int k = i; k <= finest_level; k++)
+                for (int k(i); k <= finest_level; ++k) {
                     level_count[k] = 0;
+		}
 
                 if (old_finest < finest_level)
                 {
@@ -1762,21 +1761,22 @@ Amr::timeStep (int  level,
                     // The new levels will not have valid time steps
                     // and iteration counts.
                     //
-                    for (int k = old_finest+1; k <= finest_level; k++)
+                    for (int k(old_finest + 1); k <= finest_level; ++k)
                     {
                         dt_level[k]    = dt_level[k-1]/n_cycle[k];
                     }
                 }
             }
-            if (old_finest > finest_level)
-                lev_top = std::min(finest_level, max_level-1);
+            if (old_finest > finest_level) {
+                lev_top = std::min(finest_level, max_level - 1);
+	    }
         }
     }
     //
     // Check to see if should write plotfile.
     // This routine is here so it is done after the restart regrid.
     //
-    if (plotfile_on_restart && !(restart_chkfile.empty()) )
+    if (plotfile_on_restart && ! (restart_chkfile.empty()) )
     {
 	plotfile_on_restart = 0;
 	writePlotFile();
@@ -3449,7 +3449,7 @@ using std::endl;
     MPI_Comm  scsComm;
 
     BL_ASSERT(nSidecarProcs < prevSidecarProcs);
-    int myProcAll(ParallelDescriptor::MyProcAll());
+    //int myProcAll(ParallelDescriptor::MyProcAll());
     int nProcsAll(ParallelDescriptor::NProcsAll());
     int ioProcNumAll(ParallelDescriptor::IOProcessorNumberAll());
     int ioProcNumSCS(-1);
@@ -3838,6 +3838,14 @@ using std::endl;
         Geometry::BroadcastGeometry(geom[lev], ioProcNumSCS, scsComm);
       }
 
+      // ---- handle BoundaryPointLists
+      BroadcastBoundaryPointList(intersect_lox, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_loy, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_loz, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hix, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hiy, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hiz, ioProcNumSCS, scsComm);
+
 #ifdef USE_STATIONDATA
       BoxLib::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
       // ---- handle station
@@ -3871,6 +3879,59 @@ using std::endl;
 //}
 
 #endif
+}
+
+
+void
+Amr::RedistributeGrids(int how) {
+    MultiFab::FlushSICache();
+    Geometry::FlushPIRMCache();
+    FabArrayBase::CPC::FlushCache();
+    DistributionMapping::FlushCache();
+    if( ! ParallelDescriptor::InCompGroup()) {
+      return;
+    }
+
+    if(how > 0) {
+      DistributionMapping::InitProximityMap();
+      DistributionMapping::Initialize();
+
+        Array<BoxArray> allBoxes(amr_level.size());
+        for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
+          allBoxes[ilev] = boxArray(ilev);
+        }
+        Array<Array<int> > mLDM;
+        if(how == 1) {
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+        } else if(how == 2) {
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+        } else if(how == 3) {
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+        } else if(how == 4) {  // ---- move all grids to proc zero
+	  int maxRank(0);
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
+        } else {
+        }
+
+        for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+          MultiFab::MoveAllFabs(mLDM[iMap]);
+        }
+      Geometry::FlushPIRMCache();
+    }
+}
+
+
+void
+Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int fromProc, MPI_Comm comm) {
+  // ---- typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+  std::cout << "**** Amr::BroadcastBoundaryPointList not yet implemented." << std::endl;
+  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
+  if(bcastSource) {  // ---- initialize the source data
+  }
+
+  if( ! bcastSource) {
+    // resize...
+  }
 }
 
 
