@@ -451,6 +451,8 @@ public:
 
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
     void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
+    void RedistributeGrids(int how);
+    void BroadcastBoundaryPointList(BoundaryPointList &bpl, int fromProc, MPI_Comm comm);
     void PrintData(std::ostream& os);
 
 protected:
