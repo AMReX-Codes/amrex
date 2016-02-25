@@ -132,30 +132,6 @@ public:
                    Real            mult = -1.0,
                    FrOp            op = FluxRegister::COPY);
     //
-    // Initialize flux correction with coarse data. 
-    //
-    // *** This function is deprecated -- do NOT use it!!!
-    // *** Use CrseInit(MultiFab&, ...) instead.
-    //
-    void CrseInit (const FArrayBox& flux,
-                   const Box&       subbox,
-                   int              dir,
-                   int              srccomp,
-                   int              destcomp,
-                   int              numcomp,
-                   Real             mult = -1.0,
-                   FrOp             op = FluxRegister::COPY);
-    //
-    // This isn't documented  --  it's a parallel feature :-(
-    //
-    // It MUST be called after all CrseInit(FArrayBox&,...)s outside of
-    // any implicit or explicit parallel loop.
-    //
-    // *** This function is deprecated -- do NOT use it!!!
-    // *** Use CrseInit(MultiFab&, ...) instead.
-    //
-    void CrseInitFinish (FrOp op = FluxRegister::COPY);
-    //
     // Increment flux correction with fine data.
     //
     void FineAdd (const MultiFab& mflx,
