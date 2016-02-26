@@ -559,8 +559,6 @@ class FillPatchIterator
 };
 
 class FillPatchIteratorHelper
-    :
-    public MFIter
 {
 public:
 
@@ -589,8 +587,6 @@ public:
 
     void fill (FArrayBox& fab, int dcomp, int idx);
 
-    bool isValid () { BL_ASSERT(m_init); return MFIter::isValid(); }
-
 private:
     //
     // Disallowed.
@@ -612,7 +608,6 @@ private:
     int                        m_index;
     int                        m_scomp;
     int                        m_ncomp;
-    bool                       m_init;
     bool                       m_FixUpCorners;
 
     std::map< int,Array< Array<Box> > >                m_fbox; // [grid][level][validregion]
