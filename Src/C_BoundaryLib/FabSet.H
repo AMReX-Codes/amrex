@@ -79,25 +79,6 @@ public:
     //
     using MultiFab::setVal;
     //
-    // Copy from this FabSet to the destination FAB.
-    //
-    const FabSet& copyTo (FArrayBox& dest) const;
-    //
-    // Copy specified components of this FabSet to the components of the destination FAB
-    //
-    const FabSet& copyTo (FArrayBox& dest,
-                          int        src_comp,
-                          int        dest_comp,
-                          int        num_comp) const;
-    //
-    // Copy specified components of this FabSet to the components of the destination FAB over the subregion
-    //
-    const FabSet& copyTo (FArrayBox& dest,
-                          const Box& subbox,
-                          int        src_comp,
-                          int        dest_comp,
-                          int        num_comp) const;
-    //
     // Copy from the FAB to this FabSet.
     //
     FabSet& copyFrom (const FArrayBox& src);

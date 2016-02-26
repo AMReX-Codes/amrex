@@ -936,43 +936,46 @@ public:
 	       int                  src_nghost,
 	       int                  dst_nghost,
                CpOp                 op = FabArrayBase::COPY);
+
+    //
+    // In the following copyTo functions, the destination FAB is identical on each process!!
     //
     // Copies the values contained in the intersection of the
     // valid + nghost region of this FabArray with the FAB dest into dest.
     //
-    void copy (FAB& dest,
-	       int  nghost = 0) const;
+    void copyTo (FAB& dest,
+		 int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
     // valid + nghost region of this FabArray with the FAB dest and the Box
     // subbox into that subregion of dest.
     //
-    void copy (FAB&       dest,
-               const Box& subbox,
-	       int        nghost = 0) const;
+    void copyTo (FAB&       dest,
+                const Box& subbox,
+		 int        nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
     // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest into dest, starting at
     // component dest_comp in dest.
     //
-    void copy (FAB& dest,
-               int  src_comp,
-               int  dest_comp,
-               int  num_comp,
-	       int  nghost = 0) const;
+    void copyTo (FAB& dest,
+		 int  src_comp,
+		 int  dest_comp,
+		 int  num_comp,
+		 int  nghost = 0) const;
     //
     // Copies the values contained in the intersection of the
     // num_comp component valid + nghost region of this FabArray, starting at
     // component src_comp, with the FAB dest and the Box subbox, into
     // dest, starting at component dest_comp in dest.
     //
-    void copy (FAB&       dest,
-               const Box& subbox,
-               int        src_comp,
-               int        dest_comp,
-               int        num_comp,
-	       int        nghost = 0) const;
+    void copyTo (FAB&       dest,
+		 const Box& subbox,
+		 int        src_comp,
+		 int        dest_comp,
+		 int        num_comp,
+		 int        nghost = 0) const;
 
     void shift (const IntVect& v);
 
@@ -2284,40 +2287,40 @@ FabArray<FAB>::copy (const FabArray<FAB>& src, CpOp op)
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB& dest,
-		     int  nghsot) const
+FabArray<FAB>::copyTo (FAB& dest,
+		       int  nghsot) const
 {
-    copy(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
+    copyTo(dest, dest.box(), 0, 0, dest.nComp(), nghsot);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB&       dest,
-                     const Box& subbox,
-		     int        nghost) const
+FabArray<FAB>::copyTo (FAB&       dest,
+		       const Box& subbox,
+		       int        nghost) const
 {
-    copy(dest, subbox, 0, 0, dest.nComp(), nghost);
+    copyTo(dest, subbox, 0, 0, dest.nComp(), nghost);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB& dest,
-                     int  scomp,
-                     int  dcomp,
-                     int  ncomp,
-		     int  nghost) const
+FabArray<FAB>::copyTo (FAB& dest,
+		       int  scomp,
+		       int  dcomp,
+		       int  ncomp,
+		       int  nghost) const
 {
-    copy(dest, dest.box(), scomp, dcomp, ncomp, nghost);
+    copyTo(dest, dest.box(), scomp, dcomp, ncomp, nghost);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (FAB&       dest,
-                     const Box& subbox,
-                     int        scomp,
-                     int        dcomp,
-                     int        ncomp,
-		     int        nghost) const
+FabArray<FAB>::copyTo (FAB&       dest,
+		       const Box& subbox,
+		       int        scomp,
+		       int        dcomp,
+		       int        ncomp,
+		       int        nghost) const
 {
     BL_PROFILE("FabArray::copy(fab)");
 
@@ -2339,27 +2342,40 @@ FabArray<FAB>::copy (FAB&       dest,
         return;
     }
 
+    //
+    //  Note that subbox must be identical on each process!!
+    //
+#ifdef DEBUG
+    {
+	BoxCommHelper bch(subbox);	
+	ParallelDescriptor::Bcast(bch.get(), bch.size(), 0);
+	const Box& bx0 = bch.make_box();
+	BL_ASSERT(subbox == bx0);
+    }
+#endif
+
     FAB ovlp;
 
-    for (int i = 0, N = size(); i < N; i++)
+    std::vector< std::pair<int,Box> > isects;
+    boxarray.intersections(subbox, isects, nghost);
+
+    for (int j = 0, M = isects.size(); j < M; ++j)
     {
-	const Box& srcbox = BoxLib::grow(boxarray[i],nghost);
-	const Box& bx = srcbox & subbox;
-	if (bx.ok())
-        {
-            ovlp.resize(bx,ncomp);
+	const int  k  = isects[j].first;
+	const Box& bx = isects[j].second;
 
-            if (ParallelDescriptor::MyProc() == distributionMap[i])
-            {
-                ovlp.copy(get(i),bx,scomp,bx,0,ncomp);
-            }
+	ovlp.resize(bx,ncomp);
 
-            const int N = bx.numPts()*ncomp;
+	if (ParallelDescriptor::MyProc() == distributionMap[k])
+	{
+	    ovlp.copy(get(k),bx,scomp,bx,0,ncomp);
+	}
 
-            ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[i]);
+	const int N = bx.numPts()*ncomp;
 
-            dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
-        }
+	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[k]);
+
+	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
     }
 }
 
