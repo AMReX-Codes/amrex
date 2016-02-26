@@ -39,16 +39,12 @@ public:
     //
     // Construct a TagBox on Box bx with number of components n.
     //
-    TagBox (const Box& bx, int n = 1);
-    //
-    // Resize the box on which the TagBox is defined.
-    //
-    void resize (const Box& b, int ncomp=1);
+    explicit TagBox (const Box& bx, int n = 1);
     //
     // Construct and return a new tagbox in which the coarsened cell
     // is tagged of any of the corresponding fine cells are tagged.
     //
-    TagBox* coarsen (const IntVect& ratio);
+    void coarsen (const IntVect& ratio, int);
     //
     // Mark neighbors of every tagged cell a distance nbuff away
     // only search interior for initial tagged points where nwid

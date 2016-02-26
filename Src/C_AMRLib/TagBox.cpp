@@ -23,32 +23,32 @@ TagBox::TagBox (const Box& bx,
 }
 
 void
-TagBox::resize (const Box& b, int ncomp)
+TagBox::coarsen (const IntVect& ratio, int)
 {
-    BaseFab<TagType>::resize(b,ncomp);
-}
+    BL_ASSERT(nComp() == 1);
 
-TagBox*
-TagBox::coarsen (const IntVect& ratio)
-{
-    TagBox* crse = new TagBox(BoxLib::coarsen(domain,ratio));
-
-    const Box& cbox = crse->box();
-
-    Box b1(BoxLib::refine(cbox,ratio));
-
-    const int* flo      = domain.loVect();
-    const int* fhi      = domain.hiVect();
+    TagType*   fdat     = dataPtr();
+    IntVect    lov      = domain.smallEnd();
+    IntVect    hiv      = domain.bigEnd();
     IntVect    d_length = domain.size();
+    const int* flo      = lov.getVect();
+    const int* fhi      = hiv.getVect();
     const int* flen     = d_length.getVect();
+
+    const Box& cbox = BoxLib::coarsen(domain,ratio);
+
+    this->resize(cbox);
+
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
     const int* clen     = cbox_len.getVect();
+
+    Box b1(BoxLib::refine(cbox,ratio));
     const int* lo       = b1.loVect();
     int        longlen  = b1.longside();
 
-    TagType* fdat = dataPtr();
-    TagType* cdat = crse->dataPtr();
+    Array<TagType> cfab(numpts);
+    TagType* cdat = cfab.dataPtr();
 
     Array<TagType> t(longlen,TagBox::CLEAR);
 
@@ -90,10 +90,12 @@ TagBox::coarsen (const IntVect& ratio)
        }
    }
 
-   return crse;
-
 #undef IXPROJ
 #undef IOFF
+
+   for (int i = 0; i < numpts; ++i) {
+       fdat[i] = cdat[i];
+   }
 }
 
 void 
@@ -426,14 +428,12 @@ TagBoxArray::buffer (int nbuf)
     {
         BL_ASSERT(nbuf <= m_border);
 
-        const int N = IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
-        {
-            get(IndexMap()[i]).buffer(nbuf, m_border);
+	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+	{
+	    get(mfi).buffer(nbuf, m_border);
         } 
     }
 }
@@ -489,10 +489,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             }
         }
     }
-    //
-    // AddBox() calls intersections() ...
-    //
-    boxArray().clear_hash_bin();
 
     if (!work_to_do) return;
 
@@ -517,21 +513,19 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 long
 TagBoxArray::numTags () const 
 {
-   const int N = IndexMap().size();
-
-   long ntag = 0;
+    long ntag = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:ntag)
+#pragma omp parallel reduction(+:ntag)
 #endif
-   for (int i = 0; i < N; i++)
-   {
-      ntag += get(IndexMap()[i]).numTags();
-   }
-
-   ParallelDescriptor::ReduceLongSum(ntag);
-
-   return ntag;
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	ntag += get(mfi).numTags();
+    }
+    
+    ParallelDescriptor::ReduceLongSum(ntag);
+    
+    return ntag;
 }
 
 IntVect*
@@ -539,12 +533,18 @@ TagBoxArray::collate (long& numtags) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    int count = 0, nfabs = 0;
+    int count = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:count)
+#endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        count += get(fai).numTags(); nfabs++;
+        count += get(fai).numTags();
     }
+
+    int nfabs = local_size();
+
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
@@ -552,6 +552,9 @@ TagBoxArray::collate (long& numtags) const
 
     count = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:count)
+#endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).collate(TheLocalCollateSpace,count);
@@ -697,20 +700,16 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
-    const int N = IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const int idx = IndexMap()[i];
-
 	std::vector< std::pair<int,Box> > isects;
 
-        ba.intersections(box(idx),isects);
+        ba.intersections(mfi.validbox(),isects);
 
-        TagBox& tags = get(idx);
+        TagBox& tags = get(mfi);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -722,16 +721,12 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    const int N = IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        TagBox* tfine = m_fabs_v[i];
-        m_fabs_v[i]   = tfine->coarsen(ratio);
-        delete tfine;
+	(*this)[mfi].coarsen(ratio,0);
     }
 
     flushTileArray(); // because we are about to modify boxarray in-place.
