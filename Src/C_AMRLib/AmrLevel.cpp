@@ -489,11 +489,9 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
                                                   MultiFab& leveldata)
     :
-    MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
-    m_mfid(m_amrlevel.level+1),
-    m_init(false)
+    m_mfid(m_amrlevel.level+1)
 {}
 
 FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
@@ -514,7 +512,6 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
                                                   int           ncomp,
                                                   Interpolater* mapper)
     :
-    MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_mfid(m_amrlevel.level+1),
@@ -522,8 +519,7 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
     m_growsize(boxGrow),
     m_index(index),
     m_scomp(scomp),
-    m_ncomp(ncomp),
-    m_init(false)
+    m_ncomp(ncomp)
 {
     Initialize(boxGrow,time,index,scomp,ncomp,mapper);
 }
@@ -820,8 +816,6 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     }
 
     m_mfcd.CollectData();
-
-    m_init = true;
 }
 
 void
