@@ -13,6 +13,7 @@
 // Forward declaration.
 //
 class Box;
+class BoxCommHelper;
 
 namespace BoxLib
 {
@@ -157,6 +158,7 @@ std::istream& operator>> (std::istream& os, Box& bx);
 class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
+    friend BoxCommHelper;
 
 public:
     //
@@ -582,5 +584,24 @@ Box::index (const IntVect& v) const
 #endif
     return result;
 }
+
+class BoxCommHelper
+{
+public:
+
+    explicit BoxCommHelper (const Box& bx, int* p_ = 0);
+
+    int* get () const { return p; }
+
+    Box make_box () const {
+	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));
+    }
+
+    static int size () { return 3*BL_SPACEDIM; }
+
+private:
+    int* p;
+    std::vector<int> v;
+};
 
 #endif /*BL_BOX_H*/
