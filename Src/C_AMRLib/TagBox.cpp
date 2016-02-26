@@ -25,32 +25,34 @@ TagBox::TagBox (const Box& bx,
 }
 
 void
-TagBox::resize (const Box& b, int ncomp)
+TagBox::coarsen (const IntVect& ratio, int)
 {
-    BaseFab<TagType>::resize(b,ncomp);
-}
+    BL_ASSERT(nComp() == 1);
 
-TagBox*
-TagBox::coarsen (const IntVect& ratio)
-{
-    TagBox* crse = new TagBox(BoxLib::coarsen(domain,ratio));
-
-    const Box& cbox = crse->box();
-
-    Box b1(BoxLib::refine(cbox,ratio));
-
-    const int* flo      = domain.loVect();
-    const int* fhi      = domain.hiVect();
+    TagType*   fdat     = dataPtr();
+    IntVect    lov      = domain.smallEnd();
+    IntVect    hiv      = domain.bigEnd();
     IntVect    d_length = domain.size();
+    const int* flo      = lov.getVect();
+    const int* fhi      = hiv.getVect();
     const int* flen     = d_length.getVect();
+
+    const Box& cbox = BoxLib::coarsen(domain,ratio);
+
+    this->resize(cbox);
+
+    if (!ptr_owner) return;
+
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
     const int* clen     = cbox_len.getVect();
+
+    Box b1(BoxLib::refine(cbox,ratio));
     const int* lo       = b1.loVect();
     int        longlen  = b1.longside();
 
-    TagType* fdat = dataPtr();
-    TagType* cdat = crse->dataPtr();
+    Array<TagType> cfab(numpts);
+    TagType* cdat = cfab.dataPtr();
 
     Array<TagType> t(longlen,TagBox::CLEAR);
 
@@ -92,10 +94,12 @@ TagBox::coarsen (const IntVect& ratio)
        }
    }
 
-   return crse;
-
 #undef IXPROJ
 #undef IOFF
+
+   for (int i = 0; i < numpts; ++i) {
+       fdat[i] = cdat[i];
+   }
 }
 
 void 
@@ -428,12 +432,10 @@ TagBoxArray::buffer (int nbuf)
     {
         BL_ASSERT(nbuf <= m_border);
 
-	unsigned char flags = MFIter::OwnerOnly;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    get(mfi).buffer(nbuf, m_border);
         } 
@@ -470,7 +472,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             const IntVect& iv   = *it;
             const Box&     shft = boxarray[i] + iv;
 
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+	    unsigned char flags = MFIter::OwnerOnly;
+            for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
             {
                 Box isect = mfi.validbox() & shft;
 
@@ -491,10 +494,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             }
         }
     }
-    //
-    // AddBox() calls intersections() ...
-    //
-    boxArray().clear_hash_bin();
 
     if (!work_to_do) return;
 
@@ -514,18 +513,21 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
         get(IDs[i].first.FabIndex()).merge(src);
     }
+
+#if BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
 }
 
 long
 TagBoxArray::numTags () const 
 {
-    unsigned char flags = MFIter::OwnerOnly;
     long ntag = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:ntag)
 #endif
-    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
 	ntag += get(mfi).numTags();
     }
@@ -540,12 +542,18 @@ TagBoxArray::collate (long& numtags) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
-    int count = 0, nfabs = 0;
+    int count = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:count)
+#endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        count += get(fai).numTags(); nfabs++;
+        count += get(fai).numTags();
     }
+
+    int nfabs = local_size();
+
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
@@ -553,6 +561,9 @@ TagBoxArray::collate (long& numtags) const
 
     count = 0;
 
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:count)
+#endif
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).collate(TheLocalCollateSpace,count);
@@ -698,19 +709,14 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
-    unsigned char flags = MFIter::OwnerOnly;
-
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        const int idx = mfi.index();
-
 	std::vector< std::pair<int,Box> > isects;
 
-        ba.intersections(box(idx),isects);
+        ba.intersections(mfi.validbox(),isects);
 
         TagBox& tags = get(mfi);
 
@@ -724,17 +730,16 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    unsigned char flags = MFIter::OwnerOnly;
+    // If team is used, all team workers need to go through all the fabs.
+    // It is assumed that OMP and team are not used at the same time.
+    unsigned char flags = (ParallelDescriptor::TeamSize() == 1) ? 0 : MFIter::NoSharing;  
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-	int idx = mfi.LocalIndex();
-        TagBox* tfine = m_fabs_v[idx];
-        m_fabs_v[idx] = tfine->coarsen(ratio);
-        delete tfine;
+	(*this)[mfi].coarsen(ratio,0);
     }
 
     flushTileArray(); // because we are about to modify boxarray in-place.
