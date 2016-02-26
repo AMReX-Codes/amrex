@@ -578,7 +578,7 @@ class MFIter
 public:
     enum Flags {
         Tiling        = 0x01,
-        NoSharing     = 0x02, // For OMP only. If on, all threads loops over all grids.
+        NoSharing     = 0x02, // If on, all threads/workers loops over all grids.
         NoTeamBarrier = 0x04, // For Team only. If on, there is no barrier in MFIter dtor.
 	OwnerOnly     = 0x08  // For Team only. If on, workers only work on fabs they own.
     };  // All these flags are off by default.
@@ -1633,8 +1633,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
         distributionMap = *dm;
     }
-
-    const int MyProc = ParallelDescriptor::MyProc();
 
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
 	if(ParallelDescriptor::sameTeam(distributionMap[i])) {

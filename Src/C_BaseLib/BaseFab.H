@@ -1297,10 +1297,16 @@ BaseFab<T>::resize (const Box& b,
 
     if (dptr == 0)
     {
+	if (shared_memory)
+	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+
         define();
     }
     else if (nvar*numpts > truesize)
     {
+	if (shared_memory)
+	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+
         clear();
 
         define();
