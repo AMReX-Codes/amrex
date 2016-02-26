@@ -853,3 +853,23 @@ Box::isSquare () const
     return (size[0] == size[1] && (size[1] == size[2]));
 #endif
 }
+
+BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
+    : p(p_)
+{
+    if (p == 0) {
+	v.resize(3*BL_SPACEDIM);
+	p = &v[0];
+    }
+
+    D_EXPR(p[0]               = bx.smallend[0],
+	   p[1]               = bx.smallend[1],
+	   p[2]               = bx.smallend[2]);
+    D_EXPR(p[0+BL_SPACEDIM]   = bx.bigend[0],
+	   p[1+BL_SPACEDIM]   = bx.bigend[1],
+	   p[2+BL_SPACEDIM]   = bx.bigend[2]);
+    const IntVect& typ = bx.btype.ixType();
+    D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
+	   p[1+BL_SPACEDIM*2] = typ[1],
+	   p[2+BL_SPACEDIM*2] = typ[2]);
+}
