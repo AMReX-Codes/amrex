@@ -427,9 +427,6 @@ public:
     // Default tilesize in MFGhostIter
     //
     static IntVect mfghostiter_tile_size;
-    // Huge box size, larger than any boxes we use
-    //
-    static IntVect mfiter_huge_box_size;
     //
     // The maximum number of components to copy() at a time.
     //
@@ -578,9 +575,11 @@ class MFIter
 public:
     enum Flags {
         Tiling        = 0x01,
-        NoSharing     = 0x02, // If on, all threads/workers loops over all grids.
+        AllBoxes      = 0x02, // If on, all threads/workers loop over all boxes without tiling.
+	                      // This essentially loops over indexMap.
+	                      // Note that many functions won't work with this.
         NoTeamBarrier = 0x04, // For Team only. If on, there is no barrier in MFIter dtor.
-	OwnerOnly     = 0x08  // For Team only. If on, workers only work on fabs they own.
+	SkipInit      = 0x08  // Used by MFGhostIter
     };  // All these flags are off by default.
     //
     // Construct a MFIter.
@@ -595,10 +594,6 @@ public:
     explicit MFIter (const FabArrayBase& fabarray, 
 		     const IntVect&      tilesize,
 		     unsigned char       flags_=0);
-    // tiling with explicit tilearray and flags
-    explicit MFIter (const FabArrayBase&            fabarray, 
-		     const FabArrayBase::TileArray* pta_,
-		     unsigned char                  flags_=0);
     // dtor
     ~MFIter ();
     //
@@ -620,21 +615,15 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    Box validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
+    Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
+    Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
     //
     // Increments iterator to the next tile we own.
     //
-    void operator++ () {
-	++currentIndex;
-	if (flags & OwnerOnly)
-	    while (currentIndex < endIndex && 
-		   !fabArray.isOwner(pta->localIndexMap[currentIndex]))
-		++currentIndex;
-    }
+    void operator++ () { ++currentIndex; }
     //
     // Is the iterator valid i.e. is it associated with a FAB?
     //
@@ -642,11 +631,12 @@ public:
     //
     // The index into the underlying BoxArray of the current FAB.
     //
-    int index () const { return pta->indexMap[currentIndex]; }
+    int index () const { return (*index_map)[currentIndex]; }
     //
     // local index into the vector of fab pointers, m_fabs_v
+    // When AllBoxes is on, local_index_map is a nullptr and local index is current index.
     //
-    int LocalIndex () const { return pta->localIndexMap[currentIndex]; }
+    int LocalIndex () const { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
     //
     // Constant reference to FabArray over which we're iterating.
     //
@@ -655,7 +645,8 @@ public:
 protected:
 
     const FabArrayBase& fabArray;
-    const FabArrayBase::TileArray* pta;
+
+    IntVect tile_size;
 
     unsigned char flags;
     int           currentIndex;
@@ -663,30 +654,25 @@ protected:
     int           endIndex;
     IndexType     typ;
 
+    const Array<int>* index_map;
+    const Array<int>* local_index_map;
+    const Array<Box>* tile_array;
+
     void Initialize ();
 };
 
 /*
- * Iterate over ghost cells
+ * Iterate over ghost cells.  Lots of MFIter functons do not work.
  */
 class MFGhostIter
     :
     public MFIter
 {
 public:
-
     explicit MFGhostIter (const FabArrayBase& fabarray);
-
 private:
-
-    FabArrayBase::TileArray lta;
-
     void Initialize ();
-
-    // disabled
-    Box nodaltilebox (int dir) const;
-    Box growntilebox (int ng=-1) const;
-    Box grownnodaltilebox (int dir=-1, int ng=-1) const;
+    FabArrayBase::TileArray lta;
 };
 
 

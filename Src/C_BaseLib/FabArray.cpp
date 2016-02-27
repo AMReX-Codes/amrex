@@ -20,7 +20,6 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
 IntVect FabArrayBase::comm_tile_size(D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfiter_huge_box_size(D_DECL(1024000,1024000,1024000));
 
 int FabArrayBase::nFabArrays(0);
 
@@ -988,50 +987,67 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
     // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
 
-    for (int i = 0; i < indexMap.size(); ++i)
+    if (tileSize == IntVect::TheZeroVector())
     {
-	const int K = indexMap[i]; 
-	const Box& bx = boxarray.getCellCenteredBox(K);
-
-	IntVect nt_in_fab, tsize, nleft;
-	int ntiles = 1;
-	for (int d=0; d<BL_SPACEDIM; d++) {
-	    int ncells = bx.length(d);
-	    nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
-	    tsize    [d] = ncells/nt_in_fab[d];
-	    nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
-	    ntiles *= nt_in_fab[d];
+	for (int i = 0; i < indexMap.size(); ++i)
+	{
+	    if (isOwner(i))
+	    {
+		const int K = indexMap[i]; 
+		const Box& bx = boxarray.getCellCenteredBox(K);
+		ta.indexMap.push_back(K);
+		ta.localIndexMap.push_back(i);
+		ta.tileArray.push_back(bx);
+	    }
 	}
-
-	IntVect small, big, ijk;  // note that the initial values are all zero.
-	ijk[0] = -1;
-	for (int t = 0; t < ntiles; ++t) {
-	    ta.indexMap.push_back(K);
-	    ta.localIndexMap.push_back(i);
-
+    }
+    else
+    {
+	for (int i = 0; i < indexMap.size(); ++i)
+	{
+	    const int K = indexMap[i]; 
+	    const Box& bx = boxarray.getCellCenteredBox(K);
+	    
+	    IntVect nt_in_fab, tsize, nleft;
+	    int ntiles = 1;
 	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d]<nt_in_fab[d]-1) {
-		    ijk[d]++;
-		    break;
-		} else {
-		    ijk[d] = 0;
-		}
+		int ncells = bx.length(d);
+		nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
+		tsize    [d] = ncells/nt_in_fab[d];
+		nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+		ntiles *= nt_in_fab[d];
 	    }
-
-	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d] < nleft[d]) {
-		    small[d] = ijk[d]*(tsize[d]+1);
-		    big[d] = small[d] + tsize[d];
-		} else {
-		    small[d] = ijk[d]*tsize[d] + nleft[d];
-		    big[d] = small[d] + tsize[d] - 1;
+	    
+	    IntVect small, big, ijk;  // note that the initial values are all zero.
+	    ijk[0] = -1;
+	    for (int t = 0; t < ntiles; ++t) {
+		ta.indexMap.push_back(K);
+		ta.localIndexMap.push_back(i);
+		
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d]<nt_in_fab[d]-1) {
+			ijk[d]++;
+			break;
+		    } else {
+			ijk[d] = 0;
+		    }
 		}
+		
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d] < nleft[d]) {
+			small[d] = ijk[d]*(tsize[d]+1);
+			big[d] = small[d] + tsize[d];
+		    } else {
+			small[d] = ijk[d]*tsize[d] + nleft[d];
+			big[d] = small[d] + tsize[d] - 1;
+		    }
+		}
+		
+		Box tbx(small, big, IndexType::TheCellType());
+		tbx.shift(bx.smallEnd());
+		
+		ta.tileArray.push_back(tbx);
 	    }
-
-	    Box tbx(small, big, IndexType::TheCellType());
-	    tbx.shift(bx.smallEnd());
-
-	    ta.tileArray.push_back(tbx);
 	}
     }
 }
@@ -1120,10 +1136,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		unsigned char       flags_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray((flags_ & Tiling) 
-			       ? FabArrayBase::mfiter_tile_size
-			       : FabArrayBase::mfiter_huge_box_size)),
-    flags(flags_)
+    tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(flags_),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
@@ -1132,10 +1149,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		bool                do_tiling_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray(do_tiling_ 
-			       ? FabArrayBase::mfiter_tile_size
-			       : FabArrayBase::mfiter_huge_box_size)),
-    flags(do_tiling_ ? Tiling : 0)
+    tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(do_tiling_ ? Tiling : 0),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
@@ -1145,19 +1163,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		unsigned char       flags_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray(tilesize_)),
-    flags(flags_ | Tiling)
-{
-    Initialize();
-}
-
-MFIter::MFIter (const FabArrayBase&            fabarray_, 
-		const FabArrayBase::TileArray* pta_,
-		unsigned char                  flags_)
-    :
-    fabArray(fabarray_),
-    pta(pta_),
-    flags(flags_ | Tiling)
+    tile_size(tilesize_),
+    flags(flags_ | Tiling),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
@@ -1173,65 +1183,79 @@ MFIter::~MFIter ()
 void 
 MFIter::Initialize ()
 {
-    if (pta == 0) return;
-
-    int rit = 0;
-    int nworkers = 1;
-    
-#ifdef _OPENMP
-    if (omp_in_parallel()) {
-	rit = omp_get_thread_num();
-	nworkers = omp_get_num_threads();
+    if (flags & SkipInit) {
+	return;
     }
-#endif
-
-#ifdef BL_USE_TEAM
-    if (ParallelDescriptor::TeamSize() > 1) {
-	rit = ParallelDescriptor::MyRankInTeam();
-	nworkers = ParallelDescriptor::TeamSize();
-    }
-#endif
-
-    if ( (flags & NoSharing) || 
-	 (flags & OwnerOnly) ) {
-	rit = 0;
-	nworkers = 1;
-    }
-
-    int ntot = pta->indexMap.size();
-
-    if (nworkers == 1)
+    else if (flags & AllBoxes)  // a very special case
     {
-	beginIndex = 0;
-	endIndex = ntot;
+	index_map    = &(fabArray.IndexMap());
+	currentIndex = 0;
+	beginIndex   = 0;
+	endIndex     = index_map->size();
     }
     else
     {
-	int nr   = ntot / nworkers;
-	int nlft = ntot - nr * nworkers;
-	if (rit < nlft) {  // get nr+1 items
-	    beginIndex = rit * (nr + 1);
-	    endIndex = beginIndex + nr + 1;
-	} else {           // get nr items
-	    beginIndex = rit * nr + nlft;
-	    endIndex = beginIndex + nr;
+	const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
+	
+	index_map       = &(pta->indexMap);
+	local_index_map = &(pta->localIndexMap);
+	tile_array      = &(pta->tileArray);
+
+	int rit = 0;
+	int nworkers = 1;
+    
+#ifdef _OPENMP
+	if (omp_in_parallel()) {
+	    rit = omp_get_thread_num();
+	    nworkers = omp_get_num_threads();
 	}
-    }
-    currentIndex = beginIndex;
+#endif
 
-    if (flags & OwnerOnly) { //move currentIndex to the first tile we own.
-	while (currentIndex < endIndex && 
-	       !fabArray.isOwner(pta->localIndexMap[currentIndex]))
-	    ++currentIndex;
-    }
+#ifdef BL_USE_TEAM
+	if (ParallelDescriptor::TeamSize() > 1) {
+	    if ( tile_size == IntVect::TheZeroVector() ) {
+		// In this case the TileArray contains only boxes owned by this worker.
+		// So there is no sharing going on.
+		rit = 0;
+		nworkers = 1;
+	    } else {
+		rit = ParallelDescriptor::MyRankInTeam();
+		nworkers = ParallelDescriptor::TeamSize();
+	    }
+	}
+#endif
 
-    typ = fabArray.boxArray().ixType();
+	int ntot = index_map->size();
+
+	if (nworkers == 1)
+	{
+	    beginIndex = 0;
+	    endIndex = ntot;
+	}
+	else
+	{
+	    int nr   = ntot / nworkers;
+	    int nlft = ntot - nr * nworkers;
+	    if (rit < nlft) {  // get nr+1 items
+		beginIndex = rit * (nr + 1);
+		endIndex = beginIndex + nr + 1;
+	    } else {           // get nr items
+		beginIndex = rit * nr + nlft;
+		endIndex = beginIndex + nr;
+	    }
+	}
+
+	currentIndex = beginIndex;
+
+	typ = fabArray.boxArray().ixType();
+    }
 }
 
 Box 
 MFIter::tilebox () const
 { 
-    Box bx(pta->tileArray[currentIndex]);
+    BL_ASSERT(tile_array != 0);
+    Box bx((*tile_array)[currentIndex]);
     if (! typ.cellCentered())
     {
 	bx.convert(typ);
@@ -1250,7 +1274,8 @@ MFIter::tilebox () const
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    Box bx(pta->tileArray[currentIndex]);
+    BL_ASSERT(tile_array != 0);
+    Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
     const IntVect& Big = validbox().bigEnd();
     int d0, d1;
@@ -1307,10 +1332,8 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :
-    MFIter(fabarray, 0, Tiling)
+    MFIter(fabarray, (unsigned char)(SkipInit|Tiling))
 {
-    lta.nuse = 0;
-    pta = &lta;
     Initialize();
 }
 
@@ -1379,4 +1402,9 @@ MFGhostIter::Initialize ()
 
     currentIndex = beginIndex = 0;
     endIndex = lta.indexMap.size();
+
+    lta.nuse = 0;
+    index_map       = &(lta.indexMap);
+    local_index_map = &(lta.localIndexMap);
+    tile_array      = &(lta.tileArray);
 }

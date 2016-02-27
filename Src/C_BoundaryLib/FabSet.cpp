@@ -262,9 +262,7 @@ FabSet::linComb (Real            a,
 
     std::vector< std::pair<int,Box> > isects;
 
-    unsigned char flags = MFIter::OwnerOnly;
-
-    for (FabSetIter fsi(*this,flags); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         bxa.intersections(get(fsi).box(),isects,ngrow);
 
