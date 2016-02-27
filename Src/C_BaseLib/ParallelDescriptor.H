@@ -22,117 +22,11 @@
 namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
-
-
-    //
-    // Data structure used by a few routines when MPI is enabled.
-    //
-    // Used to communicate up to seven integers and a box.
-    //
-    // We'll store all the info in a single array of integers.
-    //
-#ifndef BL_AMRPROF
-    struct CommData
-    {
-        //
-        // We encapsulate seven ints and a Box as an int[3*BL_SPACEDIM+7].
-        //
-        enum { DIM = 3*BL_SPACEDIM+7 };
-
-        int m_data[DIM];
-
-        CommData ();
-        CommData (int        face,
-                  int        fabindex,
-                  int        fromproc,
-                  int        id,
-                  int        ncomp,
-                  int        srccomp,
-                  int        fabarrayid,
-                  const Box& box);
-
-        CommData (const CommData& rhs);
-
-        CommData& operator= (const CommData& rhs);
-        //
-        // Compare two CommData's.
-        //
-        bool operator== (const CommData& rhs) const;
-
-        bool operator!= (const CommData& rhs) const { return !operator==(rhs); }
-        //
-        // The number of integers.
-        //
-        int length () const { return DIM; }
-        //
-        // Pointer to the data.
-        //
-        int* dataPtr() { return &m_data[0]; }
-        //
-        // The face.
-        //
-        int face () const { return m_data[0]; }
-        //
-        // The fabindex.
-        //
-        int fabindex () const { return m_data[1]; }
-        //
-        // The processor sending this data.
-        //
-        int fromproc () const { return m_data[2]; }
-        //
-        // The ID of this message.
-        //
-        // Meant to be used as the MPI tag in a send/receive of additional
-        // data associated with this data.
-        //
-        int id () const { return m_data[3]; }
-        //
-        // The number of components.
-        //
-        int nComp () const { return m_data[4]; }
-
-        void nComp (int ncomp) { m_data[4] = ncomp; }
-        //
-        // The src component.
-        //
-        int srcComp () const { return m_data[5]; }
-
-        void srcComp (int scomp) { m_data[5] = scomp; }
-        //
-        // The ID of the fab array.
-        //
-        int fabarrayid () const { return m_data[6]; }
-        //
-        // The contained box.
-        //
-        Box box () const
-            {
-                return Box(IntVect(&m_data[7]),
-                           IntVect(&m_data[7+BL_SPACEDIM]),
-                           IntVect(&m_data[7+2*BL_SPACEDIM]));
-            }
-    };
-#endif
     //
     // Used as default argument to ParallelDescriptor::Barrier().
     //
     const std::string Unnamed("Unnamed");
-}
-//
-// Yes you can output CommData.
-//
-#ifndef BL_AMRPROF
-std::ostream& operator<< (std::ostream& os, const ParallelDescriptor::CommData& cd);
 
-std::ostream& operator<< (std::ostream& os, const Array<ParallelDescriptor::CommData>& cd);
-#endif
-//
-// Functions used for implementing parallelism.
-//
-
-namespace ParallelDescriptor
-{
     class Message
     {
     public:
