@@ -24,16 +24,15 @@ ABec2::altApplyBC (int  level,
     //
     const MultiFab& a = aCoefficients(level);
 
-    const int N = a.IndexMap().size();
     int bndry_comp = 0;
     const BoxArray& ba = boxArray(level);
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(a); mfi.isValid(); ++mfi)
     {
-        const int gn = a.IndexMap()[i];
+        const int gn = mfi.index();
 
         BL_ASSERT(level<maskvals.size() && maskvals[level].local_index(gn)>=0);
         BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].local_index(gn)>=0);
