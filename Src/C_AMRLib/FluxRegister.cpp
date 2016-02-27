@@ -486,15 +486,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    const int N = mflx.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
-        const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
+        const int k = mfi.index();
+        FineAdd(mflx[mfi],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -507,15 +505,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    const int N = mflx.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
-        const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
+        const int k = mfi.index();
+        FineAdd(mflx[mfi],area[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 

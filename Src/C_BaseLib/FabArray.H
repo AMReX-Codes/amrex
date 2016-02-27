@@ -65,8 +65,12 @@ private:
 // This is meant to be a concrete class not a polymorphic one.
 //
 
+class Geometry;
+
 class FabArrayBase
 {
+    friend class Geometry;
+
 public:
 
     FabArrayBase ();
@@ -109,23 +113,6 @@ public:
     // Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const { return distributionMap; }
-    //
-    // Returns constant reference to indices in the FabArray that we own.
-    //
-    const Array<int>& IndexMap () const { return indexMap; }
-    //
-    // Returns local index in the vector of FABs.
-    //
-    int localindex (int K) const { 
-	std::vector<int>::const_iterator low
-	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
-	if (low != indexMap.end() && *low == K) {
-	    return low - indexMap.begin();
-	}
-	else {
-	    return -1;
-	}
-    }
     //
     // Flush the cache of self-intersection info used by FillBoundary.
     //
@@ -426,6 +413,24 @@ public:
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
+
+    //
+    // Returns constant reference to indices in the FabArray that we own.
+    //
+    const Array<int>& IndexMap () const { return indexMap; }
+    //
+    // Returns local index in the vector of FABs.
+    //
+    int localindex (int K) const { 
+	std::vector<int>::const_iterator low
+	    = std::lower_bound(indexMap.begin(), indexMap.end(), K);
+	if (low != indexMap.end() && *low == K) {
+	    return low - indexMap.begin();
+	}
+	else {
+	    return -1;
+	}
+    }
 
     //
     // The data ...
