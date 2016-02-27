@@ -111,14 +111,13 @@ ABec4::applyBC (MultiFab&     inout,
     //
     // Fill boundary cells.
     //
-    const int N = inout.IndexMap().size();
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(inout); mfi.isValid(); ++mfi)
     {
-        const int gn = inout.IndexMap()[i];
+        const int gn = mfi.index();
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
@@ -274,11 +273,11 @@ ABec4::applyBC (MultiFab&     inout,
   }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-  for (int i = 0; i < N; i++) {
+  for (MFIter mfi(inout); mfi.isValid(); ++mfi) {
 
-    const int gn = inout.IndexMap()[i];
+    const int gn = mfi.index();
 
     BL_ASSERT(gbox[level][gn] == inout.box(gn));
 

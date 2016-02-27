@@ -856,7 +856,7 @@ qdotxy (const MultiFab& r,
     BL_ASSERT(z.nComp() > zcomp);
     BL_ASSERT(r.boxArray() == z.boxArray());
 
-    const int N = r.IndexMap().size();
+    const int N = r.local_size();
 
     Array<Real> ldots(N);
 
