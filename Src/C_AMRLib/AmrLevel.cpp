@@ -1276,23 +1276,21 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
         FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
 
-        const int N = fpi.m_fabs.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
+        for (MFIter mfi(fpi.m_fabs); mfi.isValid(); ++mfi)
         {
-            const int  idx = fpi.m_fabs.IndexMap()[i];
+            const int  idx = mfi.index();
             const Box& dbx = BoxLib::grow(mf_BA[idx],nghost);
 
             Array<BCRec> bcr(ncomp);
 
             BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            mapper->interp(fpi.m_fabs[idx],
+            mapper->interp(fpi.m_fabs[mfi],
                            0,
-                           mf[idx],
+                           mf[mfi],
                            DComp,
                            NComp,
                            dbx,

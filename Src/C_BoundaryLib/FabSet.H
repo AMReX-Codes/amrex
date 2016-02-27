@@ -193,7 +193,6 @@ public:
     //
     using MultiFab::DistributionMap;
 
-    using MultiFab::IndexMap;
     //
     // Promote size() back to public.
     //
