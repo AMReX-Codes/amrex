@@ -854,14 +854,12 @@ FillPatchIterator::Initialize (int  boxGrow,
                                           NComp,
                                           desc.interp(SComp));
 
-	const unsigned char flags = MFIter::OwnerOnly;
-
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 #endif
-        for (MFIter mfi(m_fabs,flags); mfi.isValid(); ++mfi)
+        for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
         {
             fph->fill(m_fabs[mfi],DComp,mfi.index());
         }

@@ -472,8 +472,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             const IntVect& iv   = *it;
             const Box&     shft = boxarray[i] + iv;
 
-	    unsigned char flags = MFIter::OwnerOnly;
-            for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 Box isect = mfi.validbox() & shft;
 
@@ -730,9 +729,9 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    // If team is used, all team workers need to go through all the fabs.
+    // If team is used, all team workers need to go through all the fabs, including ones they don't own.
     // It is assumed that OMP and team are not used at the same time.
-    unsigned char flags = (ParallelDescriptor::TeamSize() == 1) ? 0 : MFIter::NoSharing;  
+    unsigned char flags = (ParallelDescriptor::TeamSize() == 1) ? 0 : MFIter::AllBoxes;
 
 #ifdef _OPENMP
 #pragma omp parallel
