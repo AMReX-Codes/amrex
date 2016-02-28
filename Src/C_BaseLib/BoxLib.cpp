@@ -115,7 +115,7 @@ BoxLib::Error (const char* msg)
 {
     write_lib_id("Error");
     write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+    BLBackTrace::handler(SIGABRT);
 }
 
 namespace
@@ -187,7 +187,7 @@ BoxLib::Abort (const char* msg)
 {
     write_lib_id("Abort");
     write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+    BLBackTrace::handler(SIGABRT);
 }
 
 void
