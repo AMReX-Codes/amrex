@@ -560,9 +560,7 @@ TagBoxArray::collate (long& numtags) const
 
     count = 0;
 
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:count)
-#endif
+    // unsafe to do OMP
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).collate(TheLocalCollateSpace,count);
