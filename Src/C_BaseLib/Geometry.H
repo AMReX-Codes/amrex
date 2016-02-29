@@ -710,25 +710,25 @@ namespace BoxLib
                     dptr += Cnt;
                 }
             }
-        }
 
 #ifdef BL_USE_UPCXX
-	BLPgas::free(mf.fpb_the_recv_data);
+	    BLPgas::free(mf.fpb_the_recv_data);
 #else
-        if (ParallelDescriptor::MPIOneSided()) {
+	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-  	    MPI_Win_detach(ParallelDescriptor::fpb_win, mf.fpb_the_recv_data);
-	    BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
-	    mf.fpb_recv_disp.clear();
+		MPI_Win_detach(ParallelDescriptor::fpb_win, mf.fpb_the_recv_data);
+		BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+		mf.fpb_recv_disp.clear();
 #endif
-	} else {
-            BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
-        }
+	    } else {
+		BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+	    }
 #endif
 
-	mf.fpb_recv_from.clear();
-	mf.fpb_recv_data.clear();
-	mf.fpb_recv_reqs.clear();
+	    mf.fpb_recv_from.clear();
+	    mf.fpb_recv_data.clear();
+	    mf.fpb_recv_reqs.clear();
+	}
 
 	if (N_snds > 0) {
 #ifdef BL_USE_UPCXX
