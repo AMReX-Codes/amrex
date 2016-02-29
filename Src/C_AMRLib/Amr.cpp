@@ -3892,7 +3892,7 @@ Amr::RedistributeGrids(int how) {
       return;
     }
 
-    if(how > 0) {
+    if(how >= 0) {
       DistributionMapping::InitProximityMap();
       DistributionMapping::Initialize();
 
@@ -3907,10 +3907,20 @@ Amr::RedistributeGrids(int how) {
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
         } else if(how == 3) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
-        } else if(how == 4) {  // ---- move all grids to proc zero
-	  int maxRank(0);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
+        } else if(how == 0) {   // ---- move all grids to proc zero
+	  int minRank(0), maxRank(0);
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
+	                                                  maxRank, minRank);
+        } else if(how == 8) {   // ---- move all grids to proc 8
+	  int minRank(8), maxRank(8);
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
+	                                                  maxRank, minRank);
+        } else if(how == 13) {  // ---- move all grids to proc 13
+	  int minRank(13), maxRank(13);
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
+	                                                  maxRank, minRank);
         } else {
+	  return;
         }
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
@@ -3982,6 +3992,23 @@ using std::endl;
   */
   os << "=============================================" << endl;
 }
+
+
+void
+Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
+{
+  int bcvect[bcrec.vectSize()];
+  if(myLocalId == rootId) {
+    for(int i(0); i < bcrec.vectSize(); ++i) {
+      bcvect[i] = bcrec.vect()[i];
+    }
+  }
+  ParallelDescriptor::Bcast(bcvect, bcrec.vectSize(), rootId, localComm);
+  if(myLocalId != rootId) {
+    bcrec.setVect(bcvect);
+  }
+}
+
 
 #if 0
 void
