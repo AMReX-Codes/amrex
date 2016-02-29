@@ -306,6 +306,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 #endif
 
+    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+    signal(SIGINT,  BLBackTrace::handler);
+
 #ifndef BL_AMRPROF
     if (build_parm_parse)
     {
@@ -328,15 +331,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	ParmParse pp("boxlib");
 	pp.query("v", verbose);
 	pp.query("verbose", verbose);
-    }
-#endif
 
-    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
-    signal(SIGINT,  BLBackTrace::handler);
-
-    if (build_parm_parse)
-    {
-	ParmParse pp("boxlib");
 #if defined(DEBUG) || defined(BL_TESTING)
 	int invalid = 1, divbyzero=1, overflow=1;
 #else
@@ -360,6 +355,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     }
 
     mempool_init();
+#endif
 
     std::cout << std::setprecision(10);
 
@@ -402,6 +398,7 @@ BoxLib::Finalize (bool finalize_parallel)
 
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
+#ifndef BL_AMRPROF
     if (BoxLib::verbose)
     {
 	int mp_min, mp_max, mp_tot;
@@ -430,6 +427,7 @@ BoxLib::Finalize (bool finalize_parallel)
 	    }
 	}
     }
+#endif
     
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI

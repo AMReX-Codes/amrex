@@ -6,12 +6,11 @@
 #include <unistd.h>
 #include <sstream>
 #include <stack>
+#include <list>
 
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
-#include <MultiFab.H>
-#include <Geometry.H>
 
 namespace ParallelDescriptor
 {
