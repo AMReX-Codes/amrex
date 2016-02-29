@@ -9,6 +9,7 @@
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
+#include <BCRec.H>
 
 #ifdef USE_STATIONDATA
 #include <StationData.H>
@@ -454,6 +455,7 @@ public:
     void RedistributeGrids(int how);
     void BroadcastBoundaryPointList(BoundaryPointList &bpl, int fromProc, MPI_Comm comm);
     void PrintData(std::ostream& os);
+    static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
 
 protected:
     //
