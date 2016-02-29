@@ -410,6 +410,11 @@ namespace BoxLib
 	mf.fpb_ncomp   = ncomp;
 
 #ifdef BL_USE_MPI
+
+#if !defined(BL_USE_MPI3)
+	BL_ASSERT(!ParallelDescriptor::MPIOneSided());
+#endif
+
         //
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
@@ -432,9 +437,10 @@ namespace BoxLib
 	// Post rcvs. Allocate one chunk of space to hold'm all.
 	//
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
 	MPI_Group tgroup, rgroup, sgroup;
-	MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
+	if (ParallelDescriptor::MPIOneSided())
+	    MPI_Comm_group(MPI_COMM_WORLD, &tgroup);
 #endif
 
 	if (N_rcvs > 0) {
@@ -442,17 +448,21 @@ namespace BoxLib
 	    FabArrayBase::PostRcvs_PGAS(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
 					mf.fpb_recv_data,mf.fpb_recv_from,
 					mf.fpb_ncomp,SeqNum,&BLPgas::fpb_recv_event);
-#elif defined(BL_USE_MPI_ONESIDED)
-	    FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-						mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
-						mf.fpb_recv_disp,ncomp,SeqNum,
-						ParallelDescriptor::fpb_win);
-	    MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
-	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fpb_win);
 #else
-	    FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
-				   mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
-				   mf.fpb_ncomp,SeqNum);
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		FabArrayBase::PostRcvs_MPI_Onesided(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+						    mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
+						    mf.fpb_recv_disp,ncomp,SeqNum,
+						    ParallelDescriptor::fpb_win);
+		MPI_Group_incl(tgroup, mf.fpb_recv_from.size(), mf.fpb_recv_from.dataPtr(), &rgroup);
+		MPI_Win_post(rgroup, 0, ParallelDescriptor::fpb_win);
+#endif
+            } else {
+		FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,mf.fpb_the_recv_data,
+				       mf.fpb_recv_data,mf.fpb_recv_from,mf.fpb_recv_reqs,
+				       mf.fpb_ncomp,SeqNum);
+	    }
 #endif
 	}
 
@@ -535,50 +545,53 @@ namespace BoxLib
 	    while (BLPgas::fpb_send_counter < N_snds)
 		upcxx::advance();
 
-#elif defined(BL_USE_MPI_ONESIDED)
-
-	    Array<MPI_Request> send_reqs;
-	    Array<MPI_Aint>    send_disp;
-	    send_reqs.reserve(N_snds);
-	    send_disp.resize (N_snds);
-
-	    for (int i=0; i<N_snds; ++i) {
-		send_reqs.push_back(ParallelDescriptor::Arecv
-				    (&send_disp[i],1,send_rank[i],SeqNum).req());
-	    }
-
-	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	    MPI_Win_start(sgroup,0,ParallelDescriptor::fpb_win);
-
-	    int send_counter = 0;	    
-	    while (send_counter < N_snds) {
-		MPI_Status status;
-		int index;
-		
-		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-		BL_ASSERT(status.MPI_TAG == SeqNum);
-		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
-			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
-			ParallelDescriptor::fpb_win);
-		send_counter++;
-	    }
-
 #else
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		Array<MPI_Request> send_reqs;
+		Array<MPI_Aint>    send_disp;
+		send_reqs.reserve(N_snds);
+		send_disp.resize (N_snds);
+		
+		for (int i=0; i<N_snds; ++i) {
+		    send_reqs.push_back(ParallelDescriptor::Arecv
+					(&send_disp[i],1,send_rank[i],SeqNum).req());
+		}
+		
+                MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+		MPI_Win_start(sgroup,0,ParallelDescriptor::fpb_win);
 
-	    mf.fpb_send_reqs.reserve(N_snds);
+	        int send_counter = 0;	    
+	        while (send_counter < N_snds) {
+		    MPI_Status status;
+		    int index;
+		
+		    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		    BL_ASSERT(status.MPI_TAG == SeqNum);
+		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+		    MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+			    send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+			    ParallelDescriptor::fpb_win);
+		    send_counter++;
+	        }
+#endif
+	    } else {
+		mf.fpb_send_reqs.reserve(N_snds);
 
-	    for (int i=0; i<N_snds; ++i) {
-		mf.fpb_send_reqs.push_back(ParallelDescriptor::Asend
-					   (send_data[i], send_N[i], send_rank[i], SeqNum).req());
+		for (int i=0; i<N_snds; ++i) {
+		    mf.fpb_send_reqs.push_back(ParallelDescriptor::Asend
+					       (send_data[i], send_N[i], send_rank[i], SeqNum).req());
+		}
 	    }
 #endif
 	}
 
-#ifdef BL_USE_MPI_ONESIDED
-	MPI_Group_free(&tgroup);
-	if (N_rcvs > 0) MPI_Group_free(&rgroup);
-	if (N_snds > 0) MPI_Group_free(&sgroup);
+#ifdef BL_USE_MPI3
+        if (ParallelDescriptor::MPIOneSided()) {
+	    MPI_Group_free(&tgroup);
+	    if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	    if (N_snds > 0) MPI_Group_free(&sgroup);
+        }
 #endif
 
         //
@@ -631,6 +644,10 @@ namespace BoxLib
 	if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
+
+#if !defined(BL_USE_MPI3)
+        BL_ASSERT(!ParallelDescriptor::MPIOneSided());
+#endif
 	
         const Geometry::FPB fpb(mf.boxArray(),mf.DistributionMap(),geom.Domain(),mf.nGrow(),mf.fpb_corners);
 
@@ -647,13 +664,17 @@ namespace BoxLib
 
 #ifdef BL_USE_UPCXX
 	if (N_rcvs > 0) BLPgas::fpb_recv_event.wait();
-#elif defined(BL_USE_MPI_ONESIDED)
-        if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fpb_win);
-	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fpb_win);
 #else
-	if (N_rcvs > 0) {
-	    Array<MPI_Status> stats(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
+        if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+            if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fpb_win);
+	    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fpb_win);
+#endif
+	} else {
+	    if (N_rcvs > 0) {
+	        Array<MPI_Status> stats(N_rcvs);
+	        BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, mf.fpb_recv_reqs.dataPtr(), stats.dataPtr()) );
+            }
 	}
 #endif
 
@@ -693,12 +714,16 @@ namespace BoxLib
 
 #ifdef BL_USE_UPCXX
 	BLPgas::free(mf.fpb_the_recv_data);
-#elif defined(BL_USE_MPI_ONESIDED)
-	MPI_Win_detach(ParallelDescriptor::fpb_win, mf.fpb_the_recv_data);
-	BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
-	mf.fpb_recv_disp.clear();
 #else
-        BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+        if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+  	    MPI_Win_detach(ParallelDescriptor::fpb_win, mf.fpb_the_recv_data);
+	    BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+	    mf.fpb_recv_disp.clear();
+#endif
+	} else {
+            BoxLib::The_Arena()->free(mf.fpb_the_recv_data);
+        }
 #endif
 
 	mf.fpb_recv_from.clear();
@@ -710,12 +735,16 @@ namespace BoxLib
 	    FabArrayBase::GrokAsyncSends_PGAS(N_snds,mf.fpb_send_data,
 					      &BLPgas::fpb_send_event,
 					      &BLPgas::fpb_send_counter);
-#elif defined(BL_USE_MPI_ONESIDED)
-	    for (int i = 0; i < N_snds; ++i)
-		BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
 #else
-	    Array<MPI_Status> stats;
-            FabArrayBase::GrokAsyncSends(N_snds,mf.fpb_send_reqs,mf.fpb_send_data,stats);
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		for (int i = 0; i < N_snds; ++i)
+		    BoxLib::The_Arena()->free(mf.fpb_send_data[i]);
+#endif
+	    } else {
+		Array<MPI_Status> stats;
+		FabArrayBase::GrokAsyncSends(N_snds,mf.fpb_send_reqs,mf.fpb_send_data,stats);
+	    }
 #endif
 	    mf.fpb_send_data.clear();
 	    mf.fpb_send_reqs.clear();

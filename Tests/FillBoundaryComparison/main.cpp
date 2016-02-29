@@ -161,16 +161,17 @@ main (int argc, char* argv[])
     if (ParallelDescriptor::IOProcessor()) {
 #ifdef BL_USE_UPCXX
         std::cout << "Using UPCXX" << std::endl;
-#elif  BL_USE_MPI_ONESIDED
-        std::cout << "Using MPI Onesided" << std::endl;
 #else
-        std::cout << "Using MPI" << std::endl;
+	if (ParallelDescriptor::MPIOneSided()) {
+	    std::cout << "Using MPI Onesided" << std::endl;
+	} else {
+	    std::cout << "Using MPI" << std::endl;
+	}
 #endif
 	std::cout << "----------------------------------------------" << std::endl;
 	std::cout << "Fill Boundary Time: " << wt1-wt0 << std::endl;
 	std::cout << "----------------------------------------------" << std::endl;
 	std::cout << "ignore this line " << err << std::endl;
-        std::cout << "Time distribution (post, send, wait, pack, local) : " << ParallelDescriptor::timing[0] << " " << ParallelDescriptor::timing[1] << " " << ParallelDescriptor::timing[2] << " " << ParallelDescriptor::timing[3] << " " << ParallelDescriptor::timing[4] << " / " <<  ParallelDescriptor::timing[5] << std::endl;
     }
 
     //

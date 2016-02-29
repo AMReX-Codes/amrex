@@ -58,12 +58,11 @@ namespace ParallelDescriptor
 
     const int ioProcessor = 0;
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     MPI_Win cp_win;
     MPI_Win fb_win;
     MPI_Win fpb_win;
 #endif
-    double timing[100];
   
     namespace util
     {
@@ -1662,4 +1661,22 @@ void
 ParallelDescriptor::EndTeams ()
 {
     m_Team.clear();
+}
+
+
+bool
+ParallelDescriptor::MPIOneSided ()
+{
+    static bool do_onesided = false;
+
+#if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
+    static bool first = true;
+    if (first) {
+	first = false;
+	ParmParse pp("mpi");
+	pp.query("onesided",do_onesided);
+    }
+#endif
+
+    return do_onesided;
 }

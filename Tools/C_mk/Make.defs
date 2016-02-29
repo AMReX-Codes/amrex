@@ -876,13 +876,6 @@ else
   endif
 endif
 
-ifeq ($(USE_MPI_ONESIDED),TRUE)
-    MPI1Suffix := .Onesided
-    CPPFLAGS    += -DBL_USE_MPI_ONESIDED
-else
-    MPI1Suffix :=
-endif
-
 ifeq ($(USE_IPM),TRUE)
     IPMSuffix	:= .IPM
 else
