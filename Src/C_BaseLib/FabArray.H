@@ -2115,7 +2115,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
 	if (ParallelDescriptor::TeamSize() > 1 && thecpc.m_threadsafe_loc)
 	{
-#ifdef BL_USE_CXX11
+#ifdef BL_USE_TEAM
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	    ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
             {
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
@@ -2129,8 +2132,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 		    get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
 		}
 	    });
-#else
-            BoxLib::Abort("FabArray::copy: Team only works with C++11");
 #endif	    
 	}
 	else 
@@ -3580,7 +3581,10 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
-#ifdef BL_USE_CXX11
+#ifdef BL_USE_TEAM
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
 	    const auto& tag = (*TheSI.m_LocTags)[i];
@@ -3590,8 +3594,6 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 	    get(tag.fabIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
 	});
-#else
-	BoxLib::Abort("FillBoundary_nowait: Team only works with C++11");
 #endif
     }
     else

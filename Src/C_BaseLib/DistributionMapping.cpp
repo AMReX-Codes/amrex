@@ -1,5 +1,3 @@
-// TODO: strategies other than SFC
-
 #include <winstd.H>
 
 #include <BoxArray.H>

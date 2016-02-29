@@ -1629,11 +1629,6 @@ ParallelDescriptor::StartTeams ()
     if (nprocs % team_size != 0)
 	BoxLib::Abort("Number of processes not divisible by team size");
 
-#ifdef _OPENMP
-    if (omp_get_num_threads() > 1 && team_size > 1)
-	BoxLib::Abort("Threads and teams cannot coexist");
-#endif
-
     m_Team.m_numTeams    = nprocs / team_size;
     m_Team.m_size        = team_size;
     m_Team.m_color       = rank / team_size;
@@ -1656,6 +1651,9 @@ ParallelDescriptor::StartTeams ()
 	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
 	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
 					m_Team.get_group(), &m_Team.get()) );
+#else
+	if (ParallelDescriptor::IOProcessor())
+	    BoxLib::Warning("Must compile with either USE_UPCXX or USE_MPI3=TRUE for team.size>1 to take effect.");
 #endif
     }
 }

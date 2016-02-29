@@ -18,6 +18,10 @@
 #include <atomic>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -325,20 +329,29 @@ namespace ParallelDescriptor
 	int rb, re;
 	if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
 	if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
-	if (rit >= nworkers) {
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	int tid = omp_get_thread_num();
+#else
+	int nthreads = 1;
+	int tid = 0;
+#endif	
+	int npes = nworkers*nthreads;
+	int pid = rit*nthreads+tid;
+	if (pid >= npes) {
 	    rb = re = end;
-	} else if (nworkers == 1) {
+	} else if (npes == 1) {
 	    rb = begin;
 	    re = end;
 	} else {
 	    int ntot = end - begin;
-	    int nr   = ntot / nworkers;
-	    int nlft = ntot - nr * nworkers;
-	    if (rit < nlft) {  // get nr+1 items
-		rb = begin + rit * (nr + 1);
+	    int nr   = ntot / npes;
+	    int nlft = ntot - nr * npes;
+	    if (pid < nlft) {  // get nr+1 items
+		rb = begin + pid * (nr + 1);
 		re = rb + nr + 1;
 	    } else {           // get nr items
-		rb = begin + rit * nr + nlft;
+		rb = begin + pid * nr + nlft;
 		re = rb + nr;
 	    }
 	}
