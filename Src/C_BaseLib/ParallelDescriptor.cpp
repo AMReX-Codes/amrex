@@ -6,13 +6,15 @@
 #include <unistd.h>
 #include <sstream>
 #include <stack>
+#include <list>
 
 #include <Utility.H>
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
-#include <MultiFab.H>
-#include <Geometry.H>
+
+#ifndef BL_AMRPROF
 #include <ParmParse.H>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -1610,6 +1612,7 @@ ParallelDescriptor::SidecarProcess ()
 }
 
 
+#ifndef BL_AMRPROF
 void
 ParallelDescriptor::StartTeams ()
 {
@@ -1656,6 +1659,7 @@ ParallelDescriptor::StartTeams ()
 #endif
     }
 }
+#endif
 
 void
 ParallelDescriptor::EndTeams ()
@@ -1669,6 +1673,7 @@ ParallelDescriptor::MPIOneSided ()
 {
     static bool do_onesided = false;
 
+#ifndef BL_AMRPROF
 #if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
     static bool first = true;
     if (first) {
@@ -1676,6 +1681,7 @@ ParallelDescriptor::MPIOneSided ()
 	ParmParse pp("mpi");
 	pp.query("onesided",do_onesided);
     }
+#endif
 #endif
 
     return do_onesided;
