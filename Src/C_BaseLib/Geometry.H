@@ -601,6 +601,9 @@ namespace BoxLib
 	if (ParallelDescriptor::TeamSize() > 1 && TheFPB.m_threadsafe_loc)
 	{
 #ifdef BL_USE_TEAM
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	    ParallelDescriptor::team_for(0, N_loc, [&] (int i) 
             {
                 const auto& tag = (*TheFPB.m_LocTags)[i];
@@ -610,8 +613,6 @@ namespace BoxLib
 
 		mf[tag.dstIndex].copy(mf[tag.srcIndex],tag.sbox,scomp,tag.dbox,scomp,ncomp);
 	    });
-#else
-	    BoxLib::Abort("FillPeriodicBoundary_nowait: Team only works with UPC++");
 #endif
 	}
 	else
