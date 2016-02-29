@@ -47,6 +47,7 @@ public:
     //
     const int* vect () const { return bc; }
     int vectSize () const { return (2 * BL_SPACEDIM); }
+    void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
     //
     // Return low-end boundary data.
     //
