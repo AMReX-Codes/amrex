@@ -216,11 +216,9 @@ StateData::restart (std::istream&          is,
                     bool                   bReadSpecial)
 {
     BL_PROFILE("StateData::restart()");
+
     if (bReadSpecial)
-    {
-	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
-        ParallelDescriptor::Abort();  // not implemented
-    }
+   	BoxLib::Abort("StateData:: restart:: w/bReadSpecial not implemented");
 
     desc = &d;
 

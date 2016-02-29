@@ -90,7 +90,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	if (have_addr2line) {
 	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
 	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
-	    fprintf(f, "    to find out the offset for that line.\n");
+	    fprintf(f, "    to find out the offset for that line.\n\n");
 	}
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
