@@ -875,9 +875,6 @@ protected:
     // Allocates memory for the BaseFab<T>.
     //
     void define (bool alloc=true);
-#ifdef BL_USE_MPI3
-    void define_mpi_shared_memory(bool alloc);
-#endif
     //
     // The function called by BaseFab copy operations.
     //
@@ -1130,79 +1127,50 @@ BaseFab<T>::define (bool alloc)
     BL_ASSERT(dptr == 0);
     BL_ASSERT(numpts > 0);
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
+    BL_ASSERT( !shared_memory || (ParallelDescriptor::TeamSize() > 1) );
 
     truesize = nvar*numpts;
-    
-    if (!alloc) return;
 
-    if (shared_memory)
+    if (!alloc)
     {
-#if defined(BL_USE_UPCXX)
-	dptr = static_cast<T*>(BLPgas::alloc(truesize*sizeof(T)));
-#else
-        BoxLib::Abort("BaseFab::define: don't know how to allocate shared memory");
+#if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
+	if (shared_memory) 
+	{
+	    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
+	    BL_MPI_REQUIRE( MPI_Win_allocate_shared(0, sizeof(T), 
+						    MPI_INFO_NULL, team_comm, 
+						    &dptr, &win_shared) );
+
+	    ptr_owner = false;
+
+	    MPI_Aint sz;
+	    int disp;
+	    BL_MPI_REQUIRE( MPI_Win_shared_query(win_shared, MPI_PROC_NULL, &sz,
+						 &disp, &dptr) );
+	}
 #endif
+	return;
     }
     else 
     {
-	dptr = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
-    }
-    ptr_owner = true;
-    //
-    // Now call T::T() on the raw memory so we have valid Ts.
-    //
-    T* ptr = dptr;
-    //
-    // Note this must be long not int for very large (e.g.,1024^3) boxes.
-    //
-    for (long i = 0; i < truesize; i++, ptr++)
-    {
-        new (ptr) T;
-    }
-
-    long tst = truesize*sizeof(T);
-    BoxLib::private_total_bytes_allocated_in_fabs += tst;
-    BoxLib::private_total_bytes_allocated_in_fabs_hwm 
-	= std::max(BoxLib::private_total_bytes_allocated_in_fabs_hwm,
-		   BoxLib::private_total_bytes_allocated_in_fabs);
-    
-    if(sizeof(T) == sizeof(Real)) {
-	BoxLib::private_total_cells_allocated_in_fabs += numpts;
-	BoxLib::private_total_cells_allocated_in_fabs_hwm 
-	    = std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
-		       BoxLib::private_total_cells_allocated_in_fabs);
-    }
-}
-
-#ifdef BL_USE_MPI3
-template <class T>
-void
-BaseFab<T>::define_mpi_shared_memory (bool alloc)
-{
-    BL_ASSERT(nvar > 0);
-    BL_ASSERT(dptr == 0);
-    BL_ASSERT(numpts > 0);
-    BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
-    
-    truesize = nvar*numpts;
-    
-    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
-    BL_ASSERT(ParallelDescriptor::TeamSize() > 1);
-
-#ifndef NDEBUG
-    int ialloc = (alloc) ? 1 : 0;
-    std::vector<int> all_alloc(ParallelDescriptor::TeamSize());
-    MPI_Allgather(&ialloc, 1, MPI_INT, &all_alloc[0], 1, MPI_INT, team_comm);
-    BL_ASSERT(std::accumulate(all_alloc.begin(), all_alloc.end(), 0) == 1);
+	if (shared_memory)
+	{
+#ifdef BL_USE_UPCXX
+	    dptr = static_cast<T*>(BLPgas::alloc(truesize*sizeof(T)));
+#elif defined (BL_USE_MPI3)
+	    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
+	    BL_MPI_REQUIRE( MPI_Win_allocate_shared(truesize*sizeof(T), sizeof(T), 
+						    MPI_INFO_NULL, team_comm, 
+						    &dptr, &win_shared) );
+#else
+	    BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
 #endif
+	}
+	else
+	{
+	    dptr = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+	}
 
-    long alloc_truesize = (alloc) ? truesize : 0;
-    BL_MPI_REQUIRE( MPI_Win_allocate_shared(alloc_truesize*sizeof(T), sizeof(T), 
-					    MPI_INFO_NULL, team_comm, 
-					    &dptr, &win_shared) );
-    
-    if (alloc)
-    {
 	ptr_owner = true;
 	//
 	// Now call T::T() on the raw memory so we have valid Ts.
@@ -1215,7 +1183,7 @@ BaseFab<T>::define_mpi_shared_memory (bool alloc)
 	{
 	    new (ptr) T;
 	}
-
+	
 	long tst = truesize*sizeof(T);
 	BoxLib::private_total_bytes_allocated_in_fabs += tst;
 	BoxLib::private_total_bytes_allocated_in_fabs_hwm 
@@ -1229,16 +1197,7 @@ BaseFab<T>::define_mpi_shared_memory (bool alloc)
 			   BoxLib::private_total_cells_allocated_in_fabs);
 	}
     }
-    else
-    {
-	ptr_owner = false;
-	MPI_Aint sz;
-	int disp;
-	BL_MPI_REQUIRE( MPI_Win_shared_query(win_shared, MPI_PROC_NULL, &sz,
-					     &disp, &dptr) );
-    }
 }
-#endif
 
 template <class T>
 BaseFab<T>::BaseFab ()
@@ -1274,15 +1233,7 @@ BaseFab<T>::BaseFab (const Box& bx,
     ptr_owner(false),
     shared_memory(shared)
 {
-#ifdef BL_USE_MPI3
-    if (shared_memory) {
-	define_mpi_shared_memory(alloc);
-    } 
-    else
-#endif
-    {
-	define(alloc);
-    }
+    define(alloc);
 }
 
 template <class T>
@@ -1378,7 +1329,7 @@ BaseFab<T>::clear ()
 		}
 	    }
 	}
-#if defined (BL_USE_MPI3)
+#if defined (BL_USE_MPI3) && !defined(BL_USE_UPCXX)
 	else {
 	    MPI_Win_free(&win_shared);	    
 	}

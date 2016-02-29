@@ -169,7 +169,7 @@ public:
                           int                                    ncomp,
                           int                                    SeqNum);
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     template<typename T>
     static void PostRcvs_MPI_Onesided (
 			  const std::map<int,int>&               m_RcvVols,
@@ -1043,7 +1043,7 @@ public:
     Array<int>         fb_recv_from;
     Array<value_type*> fb_recv_data;
     Array<MPI_Request> fb_recv_reqs;
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     Array<MPI_Aint>    fb_recv_disp;
 #endif
     //
@@ -1058,7 +1058,7 @@ public:
     Array<int>         fpb_recv_from;
     Array<value_type*> fpb_recv_data;
     Array<MPI_Request> fpb_recv_reqs;
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     Array<MPI_Aint>    fpb_recv_disp;
 #endif
     //
@@ -1337,7 +1337,7 @@ FabArrayBase::PostRcvs (const std::map<int,int>&               m_RcvVols,
     }
 }
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
 template<typename T>
 void
 FabArrayBase::PostRcvs_MPI_Onesided (
@@ -1392,7 +1392,7 @@ FabArrayBase::PostRcvs_MPI_Onesided (
         Offset += N;
     }
 }
-#endif   // BL_USE_MPI_ONESIDED
+#endif   // BL_USE_MPI3
 
 template<typename T>
 void
@@ -1903,6 +1903,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     }
 
 #ifdef BL_USE_MPI
+
+#if !defined(BL_USE_MPI3)
+    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
+#endif
+
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -1919,9 +1924,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         //
         return;
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
-    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+    if (ParallelDescriptor::MPIOneSided())
+	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
 #endif
 
     //
@@ -1936,7 +1942,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         Array<int>         recv_from;
         Array<value_type*> recv_data;
         Array<MPI_Request> recv_reqs;
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
 	Array<MPI_Aint>    recv_disp;
 #endif
         //
@@ -1948,15 +1954,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_UPCXX
 	    FabArrayBase::PostRcvs_PGAS(*thecpc.m_RcvVols,the_recv_data,
 					recv_data,recv_from,NC,SeqNum,&BLPgas::cp_recv_event);
-#elif defined(BL_USE_MPI_ONESIDED)
-	    FabArrayBase::PostRcvs_MPI_Onesided(*thecpc.m_RcvVols,the_recv_data,
-						recv_data,recv_from,recv_reqs,
-						recv_disp,NC,SeqNum,ParallelDescriptor::cp_win);
-	    MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
-	    MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #else
-	    FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,
-				   recv_data,recv_from,recv_reqs,NC,SeqNum);
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		FabArrayBase::PostRcvs_MPI_Onesided(*thecpc.m_RcvVols,the_recv_data,
+						    recv_data,recv_from,recv_reqs,
+						    recv_disp,NC,SeqNum,ParallelDescriptor::cp_win);
+		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
+		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
+#endif
+	    } else {
+		FabArrayBase::PostRcvs(*thecpc.m_RcvVols,the_recv_data,
+				       recv_data,recv_from,recv_reqs,NC,SeqNum);
+	    }
 #endif
 	}
 
@@ -2039,60 +2049,65 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    while (BLPgas::cp_send_counter < N_snds)
 		upcxx::advance();
 
-#elif defined(BL_USE_MPI_ONESIDED)
-
-	    Array<MPI_Aint> send_disp;
-	    send_reqs.reserve(N_snds);
-	    send_disp.resize (N_snds);
-	    
-	    for (int i=0; i<N_snds; ++i) {
-		send_reqs.push_back(ParallelDescriptor::Arecv
-				    (&send_disp[i],1,send_rank[i],SeqNum).req());
-	    }
-	    
-	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	    MPI_Win_start(sgroup,0,ParallelDescriptor::cp_win);
-	    
-	    int send_counter = 0;	
-	    while (send_counter < N_snds) {
-		MPI_Status status;
-		int index;
-		
-		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-		
-		BL_ASSERT(status.MPI_TAG == SeqNum);
-		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-	    
-		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
-			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
-			ParallelDescriptor::cp_win);
-	    
-		send_counter++;
-	    }
-
 #else
-
-	    if (FabArrayBase::do_async_sends)
+	    
+	    if (ParallelDescriptor::MPIOneSided())
 	    {
+#if defined(BL_USE_MPI3)
+		Array<MPI_Aint> send_disp;
 		send_reqs.reserve(N_snds);
-		for (int j=0; j<N_snds; ++j)
-		{
-		    send_reqs.push_back(ParallelDescriptor::Asend
-					(send_data[j],send_N[j],send_rank[j],SeqNum).req());
+		send_disp.resize (N_snds);
+		
+		for (int i=0; i<N_snds; ++i) {
+		    send_reqs.push_back(ParallelDescriptor::Arecv
+					(&send_disp[i],1,send_rank[i],SeqNum).req());
 		}
+		
+		MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+		MPI_Win_start(sgroup,0,ParallelDescriptor::cp_win);
+		
+		int send_counter = 0;	
+		while (send_counter < N_snds) {
+		    MPI_Status status;
+		    int index;
+		    
+		    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		    
+		    BL_ASSERT(status.MPI_TAG == SeqNum);
+		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+		    
+		    MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+			    send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+			    ParallelDescriptor::cp_win);
+		    
+		    send_counter++;
+		}
+#endif
 	    } else {
-		for (int j=0; j<N_snds; ++j)
+		if (FabArrayBase::do_async_sends)
 		{
-		    ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
-		    BoxLib::The_Arena()->free(send_data[j]);
+		    send_reqs.reserve(N_snds);
+		    for (int j=0; j<N_snds; ++j)
+		    {
+			send_reqs.push_back(ParallelDescriptor::Asend
+					    (send_data[j],send_N[j],send_rank[j],SeqNum).req());
+		    }
+		} else {
+		    for (int j=0; j<N_snds; ++j)
+		    {
+			ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
+			BoxLib::The_Arena()->free(send_data[j]);
+		    }
 		}
 	    }
 #endif
 	}
 
-#ifdef BL_USE_MPI_ONESIDED
-	if (N_rcvs > 0) MPI_Group_free(&rgroup);
-	if (N_snds > 0) MPI_Group_free(&sgroup);
+#ifdef BL_USE_MPI3
+	if (ParallelDescriptor::MPIOneSided()) {
+	    if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	    if (N_snds > 0) MPI_Group_free(&sgroup);
+	}
 #endif
 
         //
@@ -2143,13 +2158,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	//
 #ifdef BL_USE_UPCXX
         if (N_rcvs > 0) BLPgas::cp_recv_event.wait();
-#elif defined(BL_USE_MPI_ONESIDED)
-	if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::cp_win);
-	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::cp_win);
 #else
-	if (N_rcvs > 0) {
-	    Array<MPI_Status> stats(N_rcvs);
-	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	    if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::cp_win);
+	    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::cp_win);
+#endif
+	} else {
+	    if (N_rcvs > 0) {
+		Array<MPI_Status> stats(N_rcvs);
+		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+	    }
 	}
 #endif	
 
@@ -2206,12 +2225,16 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_UPCXX
 	    BLPgas::free(the_recv_data);
-#elif defined(BL_USE_MPI_ONESIDED)
-	    MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
-	    BoxLib::The_Arena()->free(the_recv_data);
-	    recv_disp.clear();
 #else
-	    BoxLib::The_Arena()->free(the_recv_data);
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
+		BoxLib::The_Arena()->free(the_recv_data);
+		recv_disp.clear();
+#endif
+	    } else {
+		BoxLib::The_Arena()->free(the_recv_data);
+	    }
 #endif
 	    recv_from.clear();
 	    recv_data.clear();
@@ -2223,13 +2246,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    FabArrayBase::GrokAsyncSends_PGAS(N_snds,send_data,
 					      &BLPgas::cp_send_event,
 					      &BLPgas::cp_send_counter);
-#elif defined(BL_USE_MPI_ONESIDED)
-	    for (int i = 0; i < N_snds; ++i)
-		BoxLib::The_Arena()->free(send_data[i]);
 #else
-	    if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty()) {
-		Array<MPI_Status> stats;
-		FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+		for (int i = 0; i < N_snds; ++i)
+		    BoxLib::The_Arena()->free(send_data[i]);
+#endif
+	    } else {
+		if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty()) {
+		    Array<MPI_Status> stats;
+		    FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+		}
 	    }
 #endif
             send_data.clear();
@@ -2242,8 +2269,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         NCompLeft -= NC;
     }
 
-#ifdef BL_USE_MPI_ONESIDED
-    MPI_Group_free(&tgroup);
+#ifdef BL_USE_MPI3
+    if (ParallelDescriptor::MPIOneSided()) {
+	MPI_Group_free(&tgroup);
+    }
 #endif
 
 #ifdef BL_USE_TEAM
@@ -3328,10 +3357,6 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 {
-    //
-    // Note that it is not allowed to define both BL_USE_MPI_ONESIDED and BL_USE_UPCXX
-    // 
-
     if ( n_grow <= 0 ) return;
 
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(cross,*this);
@@ -3367,6 +3392,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     fb_ncomp = ncomp;
     
 #ifdef BL_USE_MPI
+
+#if !defined(BL_USE_MPI3)
+    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
+#endif
+
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -3384,31 +3414,31 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-    double t0 = ParallelDescriptor::second();
-
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
-    MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+    if (ParallelDescriptor::MPIOneSided())
+	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
 #endif
 
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
 	FabArrayBase::PostRcvs_PGAS(*TheSI.m_RcvVols,fb_the_recv_data,
 				    fb_recv_data,fb_recv_from,ncomp,SeqNum,&BLPgas::fb_recv_event);
-#elif defined(BL_USE_MPI_ONESIDED)
-	FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
-					    fb_recv_data, fb_recv_from, fb_recv_reqs, 
-					    fb_recv_disp, ncomp, SeqNum, ParallelDescriptor::fb_win);
-	MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
-	MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #else
-	FabArrayBase::PostRcvs(*TheSI.m_RcvVols,fb_the_recv_data,
-			       fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
+	if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	    FabArrayBase::PostRcvs_MPI_Onesided(*TheSI.m_RcvVols, fb_the_recv_data,
+						fb_recv_data, fb_recv_from, fb_recv_reqs, 
+						fb_recv_disp, ncomp, SeqNum, ParallelDescriptor::fb_win);
+	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
+	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
+#endif
+	} else {
+	    FabArrayBase::PostRcvs(*TheSI.m_RcvVols,fb_the_recv_data,
+				   fb_recv_data,fb_recv_from,fb_recv_reqs,ncomp,SeqNum);
+	}
 #endif
     }
-
-    double t1 = ParallelDescriptor::second();
-    ParallelDescriptor::timing[0] += t1 - t0;
 
     //
     // Post send's
@@ -3451,8 +3481,6 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    send_cctc.push_back(&(m_it->second));
 	}
 
-        double t0 = ParallelDescriptor::second();
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3474,11 +3502,6 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    }
 	}
 
-        double t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[3] += t1 - t0;
-
-        t0 = ParallelDescriptor::second();
-
 #ifdef BL_USE_UPCXX
 
 	BLPgas::fb_send_counter = 0;
@@ -3496,71 +3519,65 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	while (BLPgas::fb_send_counter < N_snds)
 	    upcxx::advance();
 
-#elif defined(BL_USE_MPI_ONESIDED)
+#else  // MPI
 
-	Array<MPI_Request> send_reqs;
-	Array<MPI_Aint>    send_disp;
-	send_reqs.reserve(N_snds);
-	send_disp.resize (N_snds);
-	
-	for (int i=0; i<N_snds; ++i) {
-	    send_reqs.push_back(ParallelDescriptor::Arecv
-				(&send_disp[i],1,send_rank[i],SeqNum).req());
-	}
+	if (ParallelDescriptor::MPIOneSided())
+	{
+#if defined(BL_USE_MPI3)
+	    Array<MPI_Request> send_reqs;
+	    Array<MPI_Aint>    send_disp;
+	    send_reqs.reserve(N_snds);
+	    send_disp.resize (N_snds);
+	    
+	    for (int i=0; i<N_snds; ++i) {
+		send_reqs.push_back(ParallelDescriptor::Arecv
+				    (&send_disp[i],1,send_rank[i],SeqNum).req());
+	    }
 		
-	MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
-	MPI_Win_start(sgroup,0,ParallelDescriptor::fb_win);
-	
-	int send_counter = 0;	
-	while (send_counter < N_snds) {
-	    MPI_Status status;
-	    int index;
+	    MPI_Group_incl(tgroup, send_rank.size(), send_rank.dataPtr(), &sgroup);
+	    MPI_Win_start(sgroup,0,ParallelDescriptor::fb_win);
 	    
-	    MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
-	    
-	    BL_ASSERT(status.MPI_TAG == SeqNum);
-	    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-	    
-	    double t0 = ParallelDescriptor::second();
-	    
-	    MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
-		    send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
-		    ParallelDescriptor::fb_win);
-	    
-	    double t1 = ParallelDescriptor::second();
-	    ParallelDescriptor::timing[1] += t1 - t0;
-	    
-	    send_counter++;
+	    int send_counter = 0;	
+	    while (send_counter < N_snds) {
+		MPI_Status status;
+		int index;
+		
+		MPI_Waitany(N_snds, send_reqs.dataPtr(), &index, &status);
+		
+		BL_ASSERT(status.MPI_TAG == SeqNum);
+		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
+		
+		MPI_Put(send_data[index], send_N[index]*sizeof(value_type), MPI_CHAR, send_rank[index],
+			send_disp[index], send_N[index]*sizeof(value_type), MPI_CHAR, 
+			ParallelDescriptor::fb_win);
+		
+		send_counter++;
+	    }
+#endif // BL_USE_MPI3
+	} 
+	else 
+	{
+	    fb_send_reqs.reserve(N_snds);
+
+	    for (int i=0; i<N_snds; ++i) {
+		fb_send_reqs.push_back(ParallelDescriptor::Asend
+				       (send_data[i],send_N[i],send_rank[i],SeqNum).req());
+	    }
 	}
-
-#else
-
-	fb_send_reqs.reserve(N_snds);
-
-	for (int i=0; i<N_snds; ++i) {
-	    fb_send_reqs.push_back(ParallelDescriptor::Asend
-				   (send_data[i],send_N[i],send_rank[i],SeqNum).req());
-	}
-
-#endif
-
-        t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[1] += t1 - t0;
-
+#endif // #ifdef BL_USE_UPCXX #else 
     }
 
-#ifdef BL_USE_MPI_ONESIDED
-    MPI_Group_free(&tgroup);
-    if (N_rcvs > 0) MPI_Group_free(&rgroup);
-    if (N_snds > 0) MPI_Group_free(&sgroup);
+    if (ParallelDescriptor::MPIOneSided()) {
+#ifdef BL_USE_MPI3
+	MPI_Group_free(&tgroup);
+	if (N_rcvs > 0) MPI_Group_free(&rgroup);
+	if (N_snds > 0) MPI_Group_free(&sgroup);
 #endif
+    }
 
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
- 
-    t0 = ParallelDescriptor::second();
-
     if (ParallelDescriptor::TeamSize() > 1 && TheSI.m_threadsafe_loc)
     {
 #ifdef BL_USE_CXX11
@@ -3594,10 +3611,6 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 	    }
 	}
     }
-
-    t1 = ParallelDescriptor::second();
-    ParallelDescriptor::timing[4] += t1 - t0;
-
 #endif /*BL_USE_MPI*/
 }
 
@@ -3611,6 +3624,10 @@ FabArray<FAB>::FillBoundary_finish ()
 
 #ifdef BL_USE_MPI
 
+#if !defined(BL_USE_MPI3)
+    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
+#endif
+
     FabArrayBase::FBCacheIter cache_it = FabArrayBase::TheFB(fb_cross,*this);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
@@ -3620,22 +3637,21 @@ FabArray<FAB>::FillBoundary_finish ()
     const int N_rcvs = TheSI.m_RcvTags->size();
     const int N_snds = TheSI.m_SndTags->size();
 
-    double t0 = ParallelDescriptor::second();
-
 #ifdef BL_USE_UPCXX
     if (N_rcvs > 0) BLPgas::fb_recv_event.wait();
-#elif defined(BL_USE_MPI_ONESIDED)
-    if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fb_win);
-    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fb_win);
-#else
-    if (N_rcvs > 0) {
-	Array<MPI_Status> stats(N_rcvs);
-	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+#else 
+    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fb_win);
+	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fb_win);
+#endif
+    } else {
+	if (N_rcvs > 0) {
+	    Array<MPI_Status> stats(N_rcvs);
+	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	}
     }
 #endif
-
-    double t1 = ParallelDescriptor::second();
-    ParallelDescriptor::timing[2] += t1 - t0;
 
     if (N_rcvs > 0)
     {
@@ -3648,8 +3664,6 @@ FabArray<FAB>::FillBoundary_finish ()
 	    BL_ASSERT(m_it != TheSI.m_RcvTags->end());
 	    recv_cctc.push_back(&(m_it->second));
 	}	
-
-        t0 = ParallelDescriptor::second();
 
 #ifdef _OPENMP
 #pragma omp parallel for if (TheSI.m_threadsafe_rcv)
@@ -3671,17 +3685,18 @@ FabArray<FAB>::FillBoundary_finish ()
 	    }	    
 	}
 
-        t1 = ParallelDescriptor::second();
-        ParallelDescriptor::timing[3] += t1 - t0;
-
 #ifdef BL_USE_UPCXX
 	BLPgas::free(fb_the_recv_data);
-#elif defined(BL_USE_MPI_ONESIDED)
-	MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
-	BoxLib::The_Arena()->free(fb_the_recv_data);
-	fb_recv_disp.clear();
 #else
-	BoxLib::The_Arena()->free(fb_the_recv_data);
+	if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	    MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
+	    BoxLib::The_Arena()->free(fb_the_recv_data);
+	    fb_recv_disp.clear();
+#endif
+	} else {
+	    BoxLib::The_Arena()->free(fb_the_recv_data);
+	}
 #endif
 
 	fb_recv_from.clear();
@@ -3694,12 +3709,16 @@ FabArray<FAB>::FillBoundary_finish ()
         FabArrayBase::GrokAsyncSends_PGAS(N_snds,fb_send_data,
 					  &BLPgas::fb_send_event,
 					  &BLPgas::fb_send_counter);
-#elif defined(BL_USE_MPI_ONESIDED)
-	for (int i = 0; i < N_snds; ++i)
-	    BoxLib::The_Arena()->free(fb_send_data[i]);
 #else
-	Array<MPI_Status> stats;
-	FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
+	if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	    for (int i = 0; i < N_snds; ++i)
+		BoxLib::The_Arena()->free(fb_send_data[i]);
+#endif
+	} else {
+	    Array<MPI_Status> stats;
+	    FabArrayBase::GrokAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
+	}
 #endif
 	fb_send_data.clear();
 	fb_send_reqs.clear();

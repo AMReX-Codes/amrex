@@ -31,12 +31,11 @@ namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
 
-#ifdef BL_USE_MPI_ONESIDED
+#ifdef BL_USE_MPI3
     extern MPI_Win cp_win;
     extern MPI_Win fb_win;
     extern MPI_Win fpb_win;
 #endif
-    extern double timing[100];
 
     //
     // Used as default argument to ParallelDescriptor::Barrier().
@@ -85,6 +84,8 @@ namespace ParallelDescriptor
 
     void StartTeams ();
     void EndTeams ();
+
+    bool MPIOneSided ();
 
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
