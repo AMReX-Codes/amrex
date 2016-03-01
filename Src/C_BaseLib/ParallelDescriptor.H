@@ -371,7 +371,7 @@ namespace ParallelDescriptor
     template <typename F>
     void team_for (int begin, int end, const F& f)
     {
-	auto range = team_range(begin, end);
+	const auto& range = team_range(begin, end);
 	for (int i = range.first; i < range.second; ++i) {
 	    f(i);
 	}
@@ -379,7 +379,7 @@ namespace ParallelDescriptor
     template <typename F>               // rit: rank in team
     void team_for (int begin, int end, int rit, const F& f)
     {
-	auto range = team_range(begin, end, rit);
+	const auto& range = team_range(begin, end, rit);
 	for (int i = range.first; i < range.second; ++i) {
 	    f(i);
 	}
@@ -387,7 +387,7 @@ namespace ParallelDescriptor
     template <typename F>               // rit: rank in team
     void team_for (int begin, int end, int rit, int nworkers, const F& f)
     {
-	auto range = team_range(begin, end, rit, nworkers);
+	const auto& range = team_range(begin, end, rit, nworkers);
 	for (int i = range.first; i < range.second; ++i) {
 	    f(i);
 	}
