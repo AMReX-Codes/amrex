@@ -1201,49 +1201,61 @@ MFIter::Initialize ()
 	local_index_map = &(pta->localIndexMap);
 	tile_array      = &(pta->tileArray);
 
-	int rit = 0;
-	int nworkers = 1;
-    
-#ifdef _OPENMP
-	if (omp_in_parallel()) {
-	    rit = omp_get_thread_num();
-	    nworkers = omp_get_num_threads();
-	}
+	{
+	    int rit = 0;
+	    int nworkers = 1;
+#ifdef BL_USE_TEAM
+	    if (ParallelDescriptor::TeamSize() > 1) {
+		if ( tile_size == IntVect::TheZeroVector() ) {
+		    // In this case the TileArray contains only boxes owned by this worker.
+		    // So there is no sharing going on.
+		    rit = 0;
+		    nworkers = 1;
+		} else {
+		    rit = ParallelDescriptor::MyRankInTeam();
+		    nworkers = ParallelDescriptor::TeamSize();
+		}
+	    }
 #endif
 
-#ifdef BL_USE_TEAM
-	if (ParallelDescriptor::TeamSize() > 1) {
-	    if ( tile_size == IntVect::TheZeroVector() ) {
-		// In this case the TileArray contains only boxes owned by this worker.
-		// So there is no sharing going on.
-		rit = 0;
-		nworkers = 1;
-	    } else {
-		rit = ParallelDescriptor::MyRankInTeam();
-		nworkers = ParallelDescriptor::TeamSize();
+	    int ntot = index_map->size();
+	    
+	    if (nworkers == 1)
+	    {
+		beginIndex = 0;
+		endIndex = ntot;
+	    }
+	    else
+	    {
+		int nr   = ntot / nworkers;
+		int nlft = ntot - nr * nworkers;
+		if (rit < nlft) {  // get nr+1 items
+		    beginIndex = rit * (nr + 1);
+		    endIndex = beginIndex + nr + 1;
+		} else {           // get nr items
+		    beginIndex = rit * nr + nlft;
+		    endIndex = beginIndex + nr;
+		}
 	    }
 	}
-#endif
-
-	int ntot = index_map->size();
-
-	if (nworkers == 1)
+	
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	if (nthreads > 1)
 	{
-	    beginIndex = 0;
-	    endIndex = ntot;
-	}
-	else
-	{
-	    int nr   = ntot / nworkers;
-	    int nlft = ntot - nr * nworkers;
-	    if (rit < nlft) {  // get nr+1 items
-		beginIndex = rit * (nr + 1);
+	    int tid = omp_get_thread_num();
+	    int ntot = endIndex - beginIndex;
+	    int nr   = ntot / nthreads;
+	    int nlft = ntot - nr * nthreads;
+	    if (tid < nlft) {  // get nr+1 items
+		beginIndex += tid * (nr + 1);
 		endIndex = beginIndex + nr + 1;
 	    } else {           // get nr items
-		beginIndex = rit * nr + nlft;
+		beginIndex += tid * nr + nlft;
 		endIndex = beginIndex + nr;
-	    }
+	    }	    
 	}
+#endif
 
 	currentIndex = beginIndex;
 
