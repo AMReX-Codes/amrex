@@ -327,34 +327,44 @@ namespace ParallelDescriptor
     team_range (int begin, int end, int rit = -1, int nworkers = 0)
     {
 	int rb, re;
-	if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
-	if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
-#ifdef _OPENMP
-	int nthreads = omp_get_num_threads();
-	int tid = omp_get_thread_num();
-#else
-	int nthreads = 1;
-	int tid = 0;
-#endif	
-	int npes = nworkers*nthreads;
-	int pid = rit*nthreads+tid;
-	if (pid >= npes) {
-	    rb = re = end;
-	} else if (npes == 1) {
-	    rb = begin;
-	    re = end;
-	} else {
-	    int ntot = end - begin;
-	    int nr   = ntot / npes;
-	    int nlft = ntot - nr * npes;
-	    if (pid < nlft) {  // get nr+1 items
-		rb = begin + pid * (nr + 1);
-		re = rb + nr + 1;
-	    } else {           // get nr items
-		rb = begin + pid * nr + nlft;
-		re = rb + nr;
+	{
+	    if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
+	    if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+	    BL_ASSERT(rit<nworkers);
+	    if (nworkers == 1) {
+		rb = begin;
+		re = end;
+	    } else {
+		int ntot = end - begin;
+		int nr   = ntot / nworkers;
+		int nlft = ntot - nr * nworkers;
+		if (rit < nlft) {  // get nr+1 items
+		    rb = begin + rit * (nr + 1);
+		    re = rb + nr + 1;
+		} else {           // get nr items
+		    rb = begin + rit * nr + nlft;
+		    re = rb + nr;
+		}
 	    }
 	}
+
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	if (nthreads > 1) {
+	    int tid = omp_get_thread_num();
+	    int ntot = re - rb;
+	    int nr   = ntot / nthreads;
+	    int nlft = ntot - nr * nthreads;
+	    if (tid < nlft) {  // get nr+1 items
+		rb += tid * (nr + 1);
+		re = rb + nr + 1;
+	    } else {           // get nr items
+		rb += tid * nr + nlft;
+		re = rb + nr;
+	    }	    
+	}
+#endif	
+
 	return std::make_pair(rb,re);
     }
 #ifdef BL_USE_CXX11
