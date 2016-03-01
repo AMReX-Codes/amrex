@@ -267,6 +267,18 @@ CoordSys::GetDLogA (const Box& region,
     return dloga;
 }
 
+void
+CoordSys::SetDLogA (FArrayBox& dloga,
+                    const Box& region,
+                    int        dir) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(region.cellCentered());
+    DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
+    int coord = (int) c_sys;
+    FORT_SETDLOGA(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
+}
+
 FArrayBox*
 CoordSys::GetFaceArea (const Box& region,
                        int        dir) const 
