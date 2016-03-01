@@ -204,6 +204,13 @@ private:
                                const std::string& mf_name,
                                const Header&      hdr,
 			       int                ncomp = -1);
+    //
+    // Read the whole FAB into mf[fabIndex]
+    //
+    static void readFAB (MultiFab&          mf,
+			 int                fabIndex,
+			 const std::string& mf_name,
+			 const Header&      hdr);
 
     static std::string DirName (const std::string& filename);
 
