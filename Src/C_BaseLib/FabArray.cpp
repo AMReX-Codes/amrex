@@ -1354,20 +1354,23 @@ MFGhostIter::Initialize ()
 {
     int rit = 0;
     int nworkers = 1;
-
-#ifdef _OPENMP
-    if (omp_in_parallel()) {
-	rit = omp_get_thread_num();
-	nworkers = omp_get_num_threads();
-    }
-#endif
-
 #ifdef BL_USE_TEAM
     if (ParallelDescriptor::TeamSize() > 1) {
 	rit = ParallelDescriptor::MyRankInTeam();
 	nworkers = ParallelDescriptor::TeamSize();
     }
 #endif
+
+    int tid = 0;
+    int nthreads = 1;
+#ifdef _OPENMP
+    nthreads = omp_get_num_threads();
+    if (nthreads > 1)
+	tid = omp_get_thread_num();
+#endif
+
+    int npes = nworkers*nthreads;
+    int pid = rit*nthreads+tid;
 
     BoxList alltiles;
     Array<int> allindex;
@@ -1392,13 +1395,13 @@ MFGhostIter::Initialize ()
     }
 
     int n_tot_tiles = alltiles.size();
-    int navg = n_tot_tiles / nworkers;
-    int nleft = n_tot_tiles - navg*nworkers;
+    int navg = n_tot_tiles / npes;
+    int nleft = n_tot_tiles - navg*npes;
     int ntiles = navg;
-    if (rit < nleft) ntiles++;
+    if (pid < nleft) ntiles++;
 
     // how many tiles should we skip?
-    int nskip = rit*navg + std::min(rit,nleft);
+    int nskip = pid*navg + std::min(pid,nleft);
     BoxList::const_iterator bli = alltiles.begin();
     for (int i=0; i<nskip; ++i) ++bli;
 
