@@ -707,11 +707,13 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             dir,
                     int             ngrow) const
 {
-    dloga.define(grds,1,ngrow,Fab_noallocate);
-    for (MFIter mfi(dloga); mfi.isValid(); ++mfi)
+    dloga.define(grds,1,ngrow,Fab_allocate);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dloga,true); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
-        dloga.setFab(mfi,CoordSys::GetDLogA(gbx,dir));
+	CoordSys::SetDLogA(dloga[mfi], mfi.growntilebox(), dir);
     }
 }
 #endif
