@@ -1628,10 +1628,13 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
         distributionMap = *dm;
     }
 
+    int myproc = ParallelDescriptor::MyProc();
+
     for(int i = 0, N = boxarray.size(); i < N; ++i) {
-	if(ParallelDescriptor::sameTeam(distributionMap[i])) {
+	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
 	// If Team is not used (i.e., team size == 1), distributionMap[i] == MyProc
 	    indexMap.push_back(i);
+	    ownership.push_back(myproc == distributionMap[i]);
 	}
     }
 
@@ -1688,34 +1691,31 @@ FabArray<FAB>::AllocFabs ()
 {
     int n = indexMap.size();
 
-    bool alloc = true;
-    bool shared = false;
-
     m_fabs_v.reserve(n);
-    ownership.reserve(n);
 
+    bool shared = false;
 #if defined(BL_USE_TEAM)
-    int myproc = ParallelDescriptor::MyProc();
     int nworkers = ParallelDescriptor::TeamSize();
+    shared = nworkers > 1;
+#endif
+
+#ifdef BL_USE_UPCXX
     int teamlead = ParallelDescriptor::MyTeamLead();
     std::vector<int> dmworker(n);
-    shared = nworkers > 1;
 #endif
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
-#ifdef BL_USE_TEAM
-	alloc = (distributionMap[K] == myproc);
+#ifdef BL_USE_UPCXX
 	dmworker[i] = distributionMap[K] - teamlead;
 #endif
-	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shared));
-	ownership.push_back(alloc);
+	m_fabs_v.push_back(new FAB(tmp, n_comp, ownership[i], shared));
     }
 
 #ifdef BL_USE_UPCXX
-    if (ParallelDescriptor::TeamSize() > 1) 
+    if (shared)
     {
 	const auto& team = ParallelDescriptor::MyTeam().get();
 
