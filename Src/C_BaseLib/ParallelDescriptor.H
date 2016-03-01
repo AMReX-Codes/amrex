@@ -182,13 +182,21 @@ namespace ParallelDescriptor
 
 	void MemoryBarrier () const {
 	    if (m_size > 1) {
-#ifdef BL_USE_UPCXX
-		m_team.barrier();
-#elif defined(BL_USE_MPI3)
-		std::atomic_thread_fence(std::memory_order_release);
-		MPI_Barrier(m_team);
-		std::atomic_thread_fence(std::memory_order_acquire);
+#ifdef _OPENMP
+		if (omp_in_parallel()) {
+                    #pragma omp barrier
+	        }
+                #pragma omp master
 #endif
+		{
+#ifdef BL_USE_UPCXX
+                    m_team.barrier();
+#elif defined(BL_USE_MPI3)
+		    std::atomic_thread_fence(std::memory_order_release);
+		    MPI_Barrier(m_team);
+		    std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+	        }
 	    }
 	}
 
