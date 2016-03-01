@@ -920,6 +920,37 @@ VisMF::readFAB (int                  idx,
 }
 
 void
+VisMF::readFAB (MultiFab&            mf,
+		int                  idx,
+                const std::string&   mf_name,
+                const VisMF::Header& hdr)
+{
+    FArrayBox& fab = mf[idx];
+
+    std::string FullName = VisMF::DirName(mf_name);
+
+    FullName += hdr.m_fod[idx].m_name;
+    
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ifstream ifs;
+
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    ifs.open(FullName.c_str(), std::ios::in|std::ios::binary);
+
+    if (!ifs.good())
+        BoxLib::FileOpenFailed(FullName);
+
+    if (hdr.m_fod[idx].m_head)
+        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
+
+    fab.readFrom(ifs);
+
+    ifs.close();
+}
+
+void
 VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
@@ -973,7 +1004,7 @@ VisMF::Read (MultiFab&          mf,
 
         ifs >> hdr;
     }
-    mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
+    mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_allocate);
 
 #ifdef BL_USE_MPI
     //
@@ -1090,7 +1121,7 @@ VisMF::Read (MultiFab&          mf,
 
 	while( ! iopReads.empty()) {
 	  int index = iopReads.front();
-          mf.setFab(index, VisMF::readFAB(index, mf_name, hdr));
+	  VisMF::readFAB(mf,index, mf_name, hdr);
 	  --totalIOReqs;
 	  iopReads.pop_front();
 	  if(iopReads.empty()) {
@@ -1125,7 +1156,7 @@ VisMF::Read (MultiFab&          mf,
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, MPI_ANY_TAG);
         for(int ir(0); ir < rmess.count(); ++ir) {
 	  int mfIndex(recReads[ir]);
-          mf.setFab(mfIndex, VisMF::readFAB(mfIndex, mf_name, hdr));
+	  VisMF::readFAB(mf,mfIndex, mf_name, hdr);
 	}
         nReqs -= rmess.count();
 	iDone[iDoneIndex] = recReads[0];
@@ -1175,7 +1206,7 @@ VisMF::Read (MultiFab&          mf,
 #else
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        mf.setFab(mfi, VisMF::readFAB(mfi.index(), mf_name, hdr));
+	VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
     }
 #endif
 
