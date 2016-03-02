@@ -2410,7 +2410,7 @@ FabArray<FAB>::setVal (value_type val)
 #endif
     for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
-	Box bx = fai.growntilebox();
+	const Box& bx = fai.growntilebox();
         get(fai).setVal(val, bx, 0, n_comp);
     }
 }
@@ -2437,7 +2437,7 @@ FabArray<FAB>::setVal (value_type val,
 #endif
     for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
-	Box bx = fai.growntilebox(nghost);
+	const Box& bx = fai.growntilebox(nghost);
         get(fai).setVal(val, bx, comp, ncomp);
     }
 }
