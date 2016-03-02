@@ -1087,9 +1087,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         //
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
-        for (int i = 0; i < NC; i++)
+        for (int i = 0; i < NC; ++i)
         {
-            if (!ThePDomain.contains(CrseFabs[i].box()))
+            if ( ! ThePDomain.contains(CrseFabs[i].box()))
             {
                 TheLevel.setPhysBoundaryValues(CrseFabs[i],
                                                m_index,
@@ -1106,7 +1106,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         if (m_FixUpCorners)
         {
-            for (int i = 0; i < NC; i++)
+            for (int i = 0; i < NC; ++i)
             {
                 FixUpPhysCorners(CrseFabs[i],TheLevel,m_index,m_time,m_scomp,0,m_ncomp);
             }
@@ -1132,8 +1132,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Fill crsefab from m_cbox via copy on intersect.
             //
-            for (int j = 0; j < NC; j++)
+            for (int j = 0; j < NC; j++) {
                 crsefab.copy(CrseFabs[j]);
+	    }
             //
             // Get boundary conditions for the fine patch.
             //
@@ -1166,8 +1167,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             // Copy intersect finefab into next level m_cboxes.
             //
-	    for (int j = 0, K = FinerCrseFabs.size(); j < K; j++)
+	    for (int j = 0, K = FinerCrseFabs.size(); j < K; ++j) {
 		FinerCrseFabs[j].copy(finefab);
+	    }
         }
 
         CrseFabs.clear();
@@ -1188,8 +1190,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Copy intersect coarse into destination fab.
     //
-    for (int i = 0, N = FinestCrseFabs.size(); i < N; i++)
+    for (int i = 0, N = FinestCrseFabs.size(); i < N; ++i) {
         fab.copy(FinestCrseFabs[i],0,dcomp,m_ncomp);
+    }
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
@@ -1225,7 +1228,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Final set of non-periodic BCs.
     //
-    if (!FineState.getDomain().contains(fab.box()))
+    if (! FineState.getDomain().contains(fab.box()))
     {
         m_amrlevel.setPhysBoundaryValues(fab,
                                          m_index,
@@ -1856,9 +1859,6 @@ using std::endl;
       }
 #endif
 }
-
-
-
 
 
 
