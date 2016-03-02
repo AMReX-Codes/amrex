@@ -1344,7 +1344,10 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 
 // For whatever reason, gcc sometimes doesn't like these two functions in FabArray.H,
 // unless '-fno-inline' is used.  Moving it here seems to solve the problem.
-Box 
+Box
+#ifdef __GNUG__ 
+__attribute__ ((noinline))
+#endif
 MFIter::validbox () const 
 { 
     return fabArray.box((*index_map)[currentIndex]);
