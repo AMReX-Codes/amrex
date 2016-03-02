@@ -575,11 +575,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    Box validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
+    Box validbox () const;
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
+    Box fabbox () const;
     //
     // Increments iterator to the next tile we own.
     //
