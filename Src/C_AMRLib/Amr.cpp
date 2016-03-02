@@ -3890,22 +3890,6 @@ using std::endl;
       cout << "%%%%%%%% finished AddProcsToComp." << endl;
     }
 
-/*
-*/
-const DescriptorList &desc_lst = AmrLevel::get_desc_lst();
-if(ParallelDescriptor::MyProcAll() == 0) {
-  //MultiFab::PrintFAPointers();
-  std::cout << ParallelDescriptor::MyProcAll() << "::_pdl:" << std::endl;
-  desc_lst.Print();
-}
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-if(ParallelDescriptor::MyProcAll() == 13) {
-  //MultiFab::PrintFAPointers();
-  std::cout << ParallelDescriptor::MyProcAll() << "::_pdl:" << std::endl;
-  desc_lst.Print();
-}
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-
 #endif
 }
 
