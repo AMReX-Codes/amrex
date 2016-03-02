@@ -645,8 +645,9 @@ Amr::isStatePlotVar (const std::string& name)
          li != End;
          ++li)
     {
-        if (*li == name)
+        if (*li == name) {
             return true;
+	}
     }
     return false;
 }
@@ -655,11 +656,14 @@ void
 Amr::fillStatePlotVarList ()
 {
     state_plot_vars.clear();
-    const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
-    for (int typ = 0; typ < desc_lst.size(); typ++)
-        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
-            if (desc_lst[typ].getType() == IndexType::TheCellType())
+    const DescriptorList &desc_lst = AmrLevel::get_desc_lst();
+    for (int typ(0); typ < desc_lst.size(); ++typ) {
+        for (int comp(0); comp < desc_lst[typ].nComp(); ++comp) {
+            if (desc_lst[typ].getType() == IndexType::TheCellType()) {
                 state_plot_vars.push_back(desc_lst[typ].name(comp));
+	    }
+	}
+    }
 }
 
 void
@@ -671,15 +675,17 @@ Amr::clearStatePlotVarList ()
 void
 Amr::addStatePlotVar (const std::string& name)
 {
-    if (!isStatePlotVar(name))
+    if ( ! isStatePlotVar(name)) {
         state_plot_vars.push_back(name);
+    }
 }
 
 void
 Amr::deleteStatePlotVar (const std::string& name)
 {
-    if (isStatePlotVar(name))
+    if (isStatePlotVar(name)) {
         state_plot_vars.remove(name);
+    }
 }
 
 bool
@@ -689,8 +695,9 @@ Amr::isDerivePlotVar (const std::string& name)
          li != End;
          ++li)
     {
-        if (*li == name)
+        if (*li == name) {
             return true;
+	}
     }
 
     return false;
@@ -3492,6 +3499,7 @@ using std::endl;
         ParallelDescriptor::SeqNum(2, currentSeqNumber);
       }
 
+
       // ---- pack up the ints
       Array<int> allInts;
       int allIntsSize(0);
@@ -3794,11 +3802,6 @@ using std::endl;
       }
 
 
-      if(scsMyId != ioProcNumSCS) {
-        levelbld = getLevelBld();
-        //levelbld->variableSetUp();
-      }
-
 
       // ---- BoxArrays
       for(int i(0); i < initial_ba.size(); ++i) {
@@ -3808,6 +3811,11 @@ using std::endl;
         BoxLib::BroadcastBoxArray(regrid_ba[i], scsMyId, ioProcNumAll, scsComm);
       }
 
+
+      if(scsMyId != ioProcNumSCS) {
+        levelbld = getLevelBld();
+        levelbld->variableSetUpForNewCompProcs();
+      }
 
       // ---- handle amrlevels
       if(scsMyId == ioProcNumSCS) {
@@ -3853,6 +3861,18 @@ using std::endl;
       }
 #endif
 
+      // ---- initialize fortran data
+      if(scsMyId != ioProcNumSCS) {
+        int probin_file_length(probin_file.length());
+	int init(true);
+        Array<int> probin_file_name(probin_file_length);
+        for(int i(0); i < probin_file_length; ++i) {
+          probin_file_name[i] = probin_file[i];
+        }
+        std::cout << "Starting to read probin ... " << std::endl;
+        FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length,
+                      Geometry::ProbLo(), Geometry::ProbHi());
+      }
 
     }  // ---- end if(scsMyId != MPI_UNDEFINED)
 
@@ -3870,13 +3890,21 @@ using std::endl;
       cout << "%%%%%%%% finished AddProcsToComp." << endl;
     }
 
-//if(ParallelDescriptor::MyProcAll() == 0) {
+/*
+*/
+const DescriptorList &desc_lst = AmrLevel::get_desc_lst();
+if(ParallelDescriptor::MyProcAll() == 0) {
   //MultiFab::PrintFAPointers();
-//}
-//BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-//if(ParallelDescriptor::MyProcAll() == 13) {
+  std::cout << ParallelDescriptor::MyProcAll() << "::_pdl:" << std::endl;
+  desc_lst.Print();
+}
+BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
+if(ParallelDescriptor::MyProcAll() == 13) {
   //MultiFab::PrintFAPointers();
-//}
+  std::cout << ParallelDescriptor::MyProcAll() << "::_pdl:" << std::endl;
+  desc_lst.Print();
+}
+BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
 
 #endif
 }
