@@ -358,13 +358,13 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
     BL_ASSERT(nscp >= 0);
     nSidecarProcs = nscp;
 
-    if(m_MyId_all == 0 && nSidecarProcs > 0) {
+    if(m_MyId_all == 0) {
       std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
     }
     if(nSidecarProcs >= m_nProcs_all) {
         std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
                   << " >= " << m_nProcs_all << std::endl;
-      if(m_MyId_all == 0 && nSidecarProcs > 0) {
+      if(m_MyId_all == 0) {
         std::cerr << "**** nSidecarProcs >= m_nProcs_all:  " << nSidecarProcs
                   << " >= " << m_nProcs_all << std::endl;
       }
