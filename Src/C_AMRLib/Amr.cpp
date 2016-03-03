@@ -3448,8 +3448,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
 
-    //DistributionMapping::InitProximityMap();
-    //DistributionMapping::Initialize();
 using std::cout;
 using std::endl;
     MPI_Group scsGroup, allGroup;
@@ -3463,30 +3461,26 @@ using std::endl;
 
     // ---- make a group with ioprocnum and the new comp ranks that were part of the sidecar
     // ---- then initialize all required data for the new ranks (amr, amrlevels, ...)
-    if(nSidecarProcs > 0) {
-      Array<int> groupRanks(prevSidecarProcs - nSidecarProcs + 1, -1);  // ---- + 1 for ioprocnum
-      groupRanks[0] = ioProcNumAll;
-      int ngStart(nProcsAll - prevSidecarProcs);
-      for(int ip(1); ip < groupRanks.size(); ++ip) {
-        groupRanks[ip] = ngStart++;
-      }
-      if(ParallelDescriptor::IOProcessor()) {
-        for(int ip(0); ip < groupRanks.size(); ++ip) {
-          cout << "_in AddProcsToComp:  groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
-        }
-      }
-      BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &allGroup) );
-      BL_MPI_REQUIRE( MPI_Group_incl(allGroup, groupRanks.size(), groupRanks.dataPtr(), &scsGroup) );
-      BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::CommunicatorAll(), scsGroup, &scsComm) );
-
-      // ---- dont always assume ioprocnum == 0 everywhere
-      BL_MPI_REQUIRE( MPI_Group_translate_ranks(allGroup, 1, &ioProcNumAll, scsGroup, &ioProcNumSCS) );
+    Array<int> groupRanks(prevSidecarProcs - nSidecarProcs + 1, -1);  // ---- + 1 for ioprocnum
+    groupRanks[0] = ioProcNumAll;
+    int ngStart(nProcsAll - prevSidecarProcs);
+    for(int ip(1); ip < groupRanks.size(); ++ip) {
+      groupRanks[ip] = ngStart++;
     }
+    if(ParallelDescriptor::IOProcessor()) {
+      for(int ip(0); ip < groupRanks.size(); ++ip) {
+        cout << "_in AddProcsToComp:  groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
+      }
+    }
+    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &allGroup) );
+    BL_MPI_REQUIRE( MPI_Group_incl(allGroup, groupRanks.size(), groupRanks.dataPtr(), &scsGroup) );
+    BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::CommunicatorAll(), scsGroup, &scsComm) );
+
+    // ---- dont always assume ioprocnum == 0 everywhere
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(allGroup, 1, &ioProcNumAll, scsGroup, &ioProcNumSCS) );
 
     int scsMyId;
-    if(nSidecarProcs > 0) {
-      BL_MPI_REQUIRE( MPI_Group_rank(scsGroup, &scsMyId) );
-    }
+    BL_MPI_REQUIRE( MPI_Group_rank(scsGroup, &scsMyId) );
 
     // ---- send all amr data from ioprocnum to the new comp ranks
     if(scsMyId != MPI_UNDEFINED) {
