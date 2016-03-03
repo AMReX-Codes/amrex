@@ -518,11 +518,11 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all
    else
      ifeq ($(WHICHLINUX), BABBAGE)
        ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
@@ -677,12 +677,12 @@ ifeq ($(FCOMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), BABBAGE)
      ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
