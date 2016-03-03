@@ -330,7 +330,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
-
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
     BL_MPI_REQUIRE( MPI_Comm_group(CommunicatorAll(), &m_group_all) );
@@ -398,6 +397,9 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
     m_MyId_comp      = myId_undefined;
     m_MyId_sidecar   = myId_undefined;
 
+    BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
+    BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
+    BL_MPI_REQUIRE( MPI_Comm_group(CommunicatorAll(), &m_group_all) );
 
     if(nSidecarProcs > 0) {
       Array<int> sidecarRanksInAll(nSidecarProcs, nProcs_undefined);
