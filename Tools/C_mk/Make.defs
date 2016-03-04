@@ -518,18 +518,18 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -debug all -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), BABBAGE)
      ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
-       CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+       CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -fp-model source
      else
-       CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
+       CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
      endif
    endif
 
