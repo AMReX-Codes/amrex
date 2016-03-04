@@ -332,11 +332,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	pp.query("v", verbose);
 	pp.query("verbose", verbose);
 
-#if defined(DEBUG) || defined(BL_TESTING)
-	int invalid = 1, divbyzero=1, overflow=1;
-#else
 	int invalid = 0, divbyzero=0, overflow=0;
-#endif
 	pp.query("fpe_trap_invalid", invalid);
 	pp.query("fpe_trap_zero", divbyzero);
 	pp.query("fpe_trap_overflow", overflow);
