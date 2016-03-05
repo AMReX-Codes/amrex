@@ -21,6 +21,7 @@
 #include <Box.H>
 #include <BoxArray.H>
 #include <DistributionMapping.H>
+#include <ParallelDescriptor.H>
 
 //
 // Useful C++ Utility Functions
@@ -373,7 +374,7 @@ namespace BoxLib
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
 
-    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm);
+    template<typename T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
@@ -383,6 +384,22 @@ namespace BoxLib
     void USleep(double sleepsec);
 
 }
+
+template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm)
+{
+  int aT_Size(-2);
+  if(myLocalId == rootId) {
+    aT_Size = aT.size();
+  }
+  ParallelDescriptor::Bcast(&aT_Size, 1, rootId, localComm);
+  if(myLocalId != rootId) {
+    aT.resize(aT_Size);
+  }
+  if(aT_Size > 0) {
+    ParallelDescriptor::Bcast(aT.dataPtr(), aT.size(), rootId, localComm);
+  }
+}
+
 
 //
 // I'm going to document right here all the BL macros that aren't documented
