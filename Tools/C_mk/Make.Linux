@@ -52,6 +52,12 @@ ifeq ($(COMP),Cray)
     COPTF += -h noacc
     CDEBF += -h noacc
   endif
+
+  ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += -hstd=c++11
+       CXXDEBF += -hstd=c++11
+  endif
+
 else
 ifeq ($(COMP),PGI)
   CXX = pgc++
