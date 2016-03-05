@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = cc
 
-  CXXOPTF += -G2 -h nomessage=7221
+  CXXOPTF += -O2 -h nomessage=7221
   CXXDEBF += -g -O0
 
   # This makes Cray (more specifically cce/8.3.11 on edison) able to compile
@@ -36,7 +36,7 @@ ifeq ($(COMP),Cray)
   CXXOPTF += -h gnu
   CXXDEBF += -h gnu
 
-  COPTF += -G2
+  COPTF += -O2
   CDEBF += -g
 
   ifneq ($(USE_OMP),TRUE)
@@ -146,8 +146,8 @@ ifeq ($(FCOMP),Cray)
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -G2
-  fOPTF += -G2
+  FOPTF += -O2
+  fOPTF += -O2
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
