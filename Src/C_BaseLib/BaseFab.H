@@ -1131,6 +1131,16 @@ BaseFab<T>::define (bool alloc)
 
     truesize = nvar*numpts;
 
+#if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
+    static MPI_Info info = MPI_INFO_NULL;
+    static bool first = true;
+    if (first && shared_memory) {
+	first = false;
+	MPI_Info_create(&info);
+	MPI_Info_set(info, "alloc_shared_noncontig", "true");
+    }
+#endif
+
     if (!alloc)
     {
 #if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
@@ -1138,7 +1148,7 @@ BaseFab<T>::define (bool alloc)
 	{
 	    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
 	    BL_MPI_REQUIRE( MPI_Win_allocate_shared(0, sizeof(T), 
-						    MPI_INFO_NULL, team_comm, 
+						    info, team_comm, 
 						    &dptr, &win_shared) );
 
 	    ptr_owner = false;
@@ -1160,7 +1170,7 @@ BaseFab<T>::define (bool alloc)
 #elif defined (BL_USE_MPI3)
 	    const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
 	    BL_MPI_REQUIRE( MPI_Win_allocate_shared(truesize*sizeof(T), sizeof(T), 
-						    MPI_INFO_NULL, team_comm, 
+						    info, team_comm, 
 						    &dptr, &win_shared) );
 #else
 	    BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
