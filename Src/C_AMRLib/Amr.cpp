@@ -3448,13 +3448,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
 
-using std::cout;
-using std::endl;
     MPI_Group scsGroup, allGroup;
     MPI_Comm  scsComm;
 
     BL_ASSERT(nSidecarProcs < prevSidecarProcs);
-    //int myProcAll(ParallelDescriptor::MyProcAll());
     int nProcsAll(ParallelDescriptor::NProcsAll());
     int ioProcNumAll(ParallelDescriptor::IOProcessorNumberAll());
     int ioProcNumSCS(-1);
@@ -3469,7 +3466,7 @@ using std::endl;
     }
     if(ParallelDescriptor::IOProcessor()) {
       for(int ip(0); ip < groupRanks.size(); ++ip) {
-        cout << "_in AddProcsToComp:  groupRanks[" << ip << "] = " << groupRanks[ip] << endl;
+        std::cout << "_in AddProcsToComp:  groupRanks[" << ip << "] = " << groupRanks[ip] << std::endl;
       }
     }
     BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &allGroup) );
@@ -3558,11 +3555,7 @@ using std::endl;
         allIntsSize = allInts.size();
       }
 
-      ParallelDescriptor::Bcast(&allIntsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        allInts.resize(allIntsSize);
-      }
-      ParallelDescriptor::Bcast(allInts.dataPtr(), allIntsSize, ioProcNumAll, scsComm);
+      BoxLib::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the ints
       if(scsMyId != ioProcNumSCS) {
@@ -3646,11 +3639,7 @@ using std::endl;
 	allRealsSize = allReals.size();
       }
 
-      ParallelDescriptor::Bcast(&allRealsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        allReals.resize(allRealsSize);
-      }
-      ParallelDescriptor::Bcast(allReals.dataPtr(), allRealsSize, ioProcNumAll, scsComm);
+      BoxLib::BroadcastArray(allReals, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the Reals
       if(scsMyId != ioProcNumSCS) {
@@ -3686,11 +3675,7 @@ using std::endl;
 	allBoolsSize = allBools.size();
       }
 
-      ParallelDescriptor::Bcast(&allBoolsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        allBools.resize(allBoolsSize);
-      }
-      ParallelDescriptor::Bcast(allBools.dataPtr(), allBoolsSize, ioProcNumAll, scsComm);
+      BoxLib::BroadcastArray(allBools, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the bools
       if(scsMyId != ioProcNumSCS) {
@@ -3735,11 +3720,7 @@ using std::endl;
 	serialStringsSize = serialStrings.size();
       }
 
-      ParallelDescriptor::Bcast(&serialStringsSize, 1, ioProcNumAll, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        serialStrings.resize(serialStringsSize);
-      }
-      ParallelDescriptor::Bcast(serialStrings.dataPtr(), serialStringsSize, ioProcNumAll, scsComm);
+      BoxLib::BroadcastArray(serialStrings, scsMyId, ioProcNumAll, scsComm);
 
       // ---- unpack the strings
       if(scsMyId != ioProcNumSCS) {
@@ -3881,7 +3862,7 @@ using std::endl;
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
     if(ParallelDescriptor::IOProcessor()) {
-      cout << "%%%%%%%% finished AddProcsToComp." << endl;
+      std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;
     }
 
 #endif
