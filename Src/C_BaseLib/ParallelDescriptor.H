@@ -988,7 +988,10 @@ ParallelDescriptor::Bcast (T*     t,
 			   const MPI_Comm &comm)
 {
 #ifdef BL_LAZY
-    Lazy::EvalReduction();
+    int r;
+    MPI_Comm_compare(comm, Communicator(), &r);
+    if (r == MPI_IDENT)
+	Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
