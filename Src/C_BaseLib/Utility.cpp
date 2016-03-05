@@ -1555,23 +1555,6 @@ Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
 }
 
 
-
-template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm)
-{
-  int aT_Size(-2);
-  if(myLocalId == rootId) {
-    aT_Size = aT.size();
-  }
-  ParallelDescriptor::Bcast(&aT_Size, 1, rootId, localComm);
-  if(myLocalId != rootId) {
-    aT.resize(aT_Size);
-  }
-  if(aT_Size > 0) {
-    ParallelDescriptor::Bcast(aT.dataPtr(), aT.size(), rootId, localComm);
-  }
-}
-
-
 void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm)
 {
   Array<int> baseBoxAI;
