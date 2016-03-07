@@ -125,6 +125,23 @@ BoxLib::ResetTotalBytesAllocatedInFabsHWM()
     }
 }
 
+void
+BoxLib::update_fab_stats (long n, long s, size_t szt)
+{
+    long tst = s*szt;
+    BoxLib::private_total_bytes_allocated_in_fabs += tst;
+    BoxLib::private_total_bytes_allocated_in_fabs_hwm 
+	= std::max(BoxLib::private_total_bytes_allocated_in_fabs_hwm,
+		   BoxLib::private_total_bytes_allocated_in_fabs);
+	
+    if(szt == sizeof(Real)) {
+	BoxLib::private_total_cells_allocated_in_fabs += n;
+	BoxLib::private_total_cells_allocated_in_fabs_hwm 
+	    = std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
+		       BoxLib::private_total_cells_allocated_in_fabs);
+    }
+}
+
 Arena*
 BoxLib::The_Arena ()
 {

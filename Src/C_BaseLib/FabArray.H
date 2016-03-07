@@ -490,6 +490,13 @@ protected:
     mutable int         n_grow;
     int                 n_comp;
     int                 faID;
+    // for shared memory
+    bool                shared_memory;
+    long                n_values;
+    long                n_points;
+#ifdef BL_USE_MPI3
+    MPI_Win             shmwin;
+#endif    
 
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
@@ -1501,6 +1508,22 @@ FabArray<FAB>::clear ()
       faPtrCachedMap.erase(faID);
     }
 
+#ifdef BL_USE_TEAM
+    if (shared_memory)  // free shared memory
+    {
+#ifdef BL_USE_UPCXX
+	
+#elif defined (BL_USE_MPI3)
+	if (shmwin != MPI_WIN_NULL) {
+	    MPI_Win_free(&shmwin);
+	}
+#else
+	BoxLib::Abort("FabArray<FAB>::clear: how come shared_memroy is true?");
+#endif
+	BoxLib::update_fab_stats(n_points, n_values, sizeof(value_type));
+    }
+#endif
+
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
 	delete *it;
     }
@@ -1639,7 +1662,19 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     }
 
     addThisBD();
+
+    shared_memory = (ParallelDescriptor::TeamSize() > 1);
+#ifndef BL_USE_TEAM
+    BL_ASSERT(shared_memory == false);
+#endif
     
+#ifdef BL_USE_MPI3
+    shmwin = MPI_WIN_NULL;
+#endif
+
+    n_values = 0;  // only used by shared memory
+    n_points = 0;
+
     if(alloc == Fab_allocate) {
       AllocFabs();
 
@@ -1689,60 +1724,94 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    int n = indexMap.size();
+    const int n = indexMap.size();
 
     m_fabs_v.reserve(n);
-
-    bool shared = false;
-#if defined(BL_USE_TEAM)
-    int nworkers = ParallelDescriptor::TeamSize();
-    shared = nworkers > 1;
-#endif
-
-#ifdef BL_USE_UPCXX
-    int teamlead = ParallelDescriptor::MyTeamLead();
-    std::vector<int> dmworker(n);
-#endif
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
-#ifdef BL_USE_UPCXX
-	dmworker[i] = distributionMap[K] - teamlead;
-#endif
-	m_fabs_v.push_back(new FAB(tmp, n_comp, ownership[i], shared));
+	bool alloc = !shared_memory;
+	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shared_memory));
     }
-
-#ifdef BL_USE_UPCXX
-    if (shared)
+    
+#ifdef BL_USE_TEAM
+    if (shared_memory)
     {
-	const auto& team = ParallelDescriptor::MyTeam().get();
+	const int nworkers = ParallelDescriptor::TeamSize();
+	const int teamlead = ParallelDescriptor::MyTeamLead();
+	BL_ASSERT(nworkers > 1);
 
-	int np = (n + nworkers-1) / nworkers;
-
-	std::vector<upcxx::global_ptr<void> > psrc(np);
-	std::vector<upcxx::global_ptr<void> > pdst(np*nworkers);
-	
-	int j = 0;
+	n_values = 0;
+	n_points = 0;
+	Array<long> offset(n,0);
+	Array<long> nextoffset(nworkers,-1);
 	for (int i = 0; i < n; ++i) {
+	    int K = indexMap[i];
+	    int owner = distributionMap[K] - teamlead;
+	    long s = m_fabs_v[i]->size();
 	    if (ownership[i]) {
-	        void* p = (void*) m_fabs_v[i]->dataPtr();
-	        psrc[j++] = upcxx::global_ptr<void>(p);
-            }
-        }
-	
-	team.allgather(&psrc[0], &pdst[0], sizeof(upcxx::global_ptr<void>)*np);
-
-	std::vector<int> offset(nworkers,0);
-	for (int i = 0; i < n; ++i) {
-	    if (!ownership[i]) {
-		int w = dmworker[i]; // Box i is owned by worker w.
-		int j = w*np + (offset[w]++);
-		void* p = (void*) pdst[j];
-		m_fabs_v[i]->setPtr((value_type *) p);		
+		n_values += s;
+		n_points += m_fabs_v[i]->nPts();
 	    }
-        }
+	    if (nextoffset[owner] < 0) {
+		offset[i] = 0;
+		nextoffset[owner] = s;
+	    } else {
+		offset[i] = nextoffset[owner];
+		nextoffset[owner] += s;
+	    }
+	}
+
+	
+
+#if defined (BL_USE_UPCXX)
+
+
+#elif defined (BL_USE_MPI3)
+
+	static MPI_Info info = MPI_INFO_NULL;
+	if (info == MPI_INFO_NULL) {
+	    MPI_Info_create(&info);
+	    MPI_Info_set(info, "alloc_shared_noncontig", "true");
+	}
+
+	const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
+
+	value_type *mfp;
+
+	BL_MPI_REQUIRE( MPI_Win_allocate_shared(n_values*sizeof(value_type), sizeof(value_type), 
+						info, team_comm, &mfp, &shmwin) );
+
+	for (long i = 0; i < n_values; i++, mfp++) {
+	    new (mfp) value_type;
+	}
+
+	Array<value_type*> dps;
+	for (int w = 0; w < nworkers; ++w) {
+	    MPI_Aint sz;
+	    int disp;
+	    value_type *dptr = 0;
+	    BL_MPI_REQUIRE( MPI_Win_shared_query(shmwin, w, &sz, &disp, &dptr) );
+            // BL_ASSERT(disp == sizeof(value_type));
+	    dps.push_back(dptr);
+	}
+
+	for (int i = 0; i < n; ++i) {
+	    int K = indexMap[i];
+	    int owner = distributionMap[K] - teamlead;
+	    value_type *p = dps[owner] + offset[i];
+	    m_fabs_v[i]->setPtr(p, m_fabs_v[i]->size());
+	}
+
+#else
+
+	BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
+
+#endif
+
+	BoxLib::update_fab_stats(-n_points, -n_values, sizeof(value_type));
     }
 #endif
 }
