@@ -133,10 +133,6 @@ public:
     void resize (const Box& b,
                  int        N = 1);
     //
-    // Swap innards.
-    //
-    void swap (BaseFab& rhs);
-    //
     // The function returns the BaseFab to the invalid state.  (See
     // comments for constructors above.)  The memory is freed.
     //
@@ -1278,23 +1274,6 @@ template <class T>
 BaseFab<T>::~BaseFab ()
 {
     clear();
-}
-
-template <class T>
-void
-BaseFab<T>::swap (BaseFab& fab)
-{
-    std::swap(domain,fab.domain);
-    std::swap(dlen,fab.dlen);
-    std::swap(nvar,fab.nvar);
-    std::swap(numpts,fab.numpts);
-    std::swap(truesize,fab.truesize);
-    std::swap(dptr,fab.dptr);
-    std::swap(ptr_owner,fab.ptr_owner);
-    std::swap(shared_memory,fab.shared_memory);
-#ifdef BL_USE_MPI3
-    std::swap(win_shared,fab.win_shared);
-#endif
 }
 
 template <class T>
