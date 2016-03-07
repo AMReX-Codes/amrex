@@ -227,6 +227,8 @@ public:
     //
     ~FArrayBox ();
     //
+    void initVal ();
+    //
     // Are there any NaNs in the FAB?
     // This may return false, even if the FAB contains NaNs, if the machine
     // doesn't support the appropriate NaN testing functions.

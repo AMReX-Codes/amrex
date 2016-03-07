@@ -25,7 +25,7 @@ TagBox::TagBox (const Box& bx,
 }
 
 void
-TagBox::coarsen (const IntVect& ratio, int)
+TagBox::coarsen (const IntVect& ratio, bool owner)
 {
     BL_ASSERT(nComp() == 1);
 
@@ -41,7 +41,7 @@ TagBox::coarsen (const IntVect& ratio, int)
 
     this->resize(cbox);
 
-    if (!ptr_owner) return;
+    if (!owner) return;
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
@@ -417,6 +417,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     BoxArray grownBoxArray(ba);
     grownBoxArray.grow(ngrow);
     define(grownBoxArray, 1, 0, Fab_allocate);
+    if (shared_memory) setVal(TagBox::CLEAR);
 }
 
 int
@@ -736,7 +737,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-	(*this)[mfi].coarsen(ratio,0);
+	(*this)[mfi].coarsen(ratio,isOwner(mfi.LocalIndex()));
     }
 
     flushTileArray(); // because we are about to modify boxarray in-place.
