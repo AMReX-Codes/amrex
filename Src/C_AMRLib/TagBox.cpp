@@ -417,7 +417,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     BoxArray grownBoxArray(ba);
     grownBoxArray.grow(ngrow);
     define(grownBoxArray, 1, 0, Fab_allocate);
-    if (shared_memory) setVal(TagBox::CLEAR);
+    if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
 int
