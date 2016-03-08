@@ -435,6 +435,10 @@ ifeq ($(WHICHLINUX), CORI)
     F90 := ftn
     fC  := ftn
   endif
+  ifeq ($(USE_MPI3),TRUE)
+  # http://www.nersc.gov/users/computational-systems/edison/updates-and-status/open-issues/mpi-3-atomic-performance-degradation-since-cray-mpich7-3-0/
+    override XTRALIBS += -Wl,--whole-archive,-ldmapp,--no-whole-archive
+  endif
 endif
 
 ifeq ($(WHICHLINUX), EDISON)
@@ -451,6 +455,10 @@ ifeq ($(WHICHLINUX), EDISON)
   endif
   ifeq ($(USE_DUMPI),TRUE)
     LIBRARIES += $(DUMPI_LINK_OPTS)
+  endif
+  ifeq ($(USE_MPI3),TRUE)
+  # http://www.nersc.gov/users/computational-systems/edison/updates-and-status/open-issues/mpi-3-atomic-performance-degradation-since-cray-mpich7-3-0/
+    override XTRALIBS += -Wl,--whole-archive,-ldmapp,--no-whole-archive
   endif
 endif
 
