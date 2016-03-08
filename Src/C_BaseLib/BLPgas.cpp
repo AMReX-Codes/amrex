@@ -179,7 +179,7 @@ BLPgas::Sendrecv(upcxx::global_ptr<void> src,
 void*
 BLPgas::alloc (std::size_t _sz)
 {
-    if (sz <= 0) {
+    if (_sz <= 0) {
 	return nullptr;
     } else {
 	auto p = upcxx::allocate(_sz);
