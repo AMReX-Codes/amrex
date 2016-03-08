@@ -729,11 +729,11 @@ void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
     // If team is used, all team workers need to go through all the fabs, including ones they don't own.
-    // It is assumed that OMP and team are not used at the same time.
-    unsigned char flags = (ParallelDescriptor::TeamSize() == 1) ? 0 : MFIter::AllBoxes;
+    int teamsize = ParallelDescriptor::TeamSize();
+    unsigned char flags = (teamsize == 1) ? 0 : MFIter::AllBoxes;
 
-#ifdef _OPENMP
-#pragma omp parallel
+#if defined(_OPENMP)
+#pragma omp parallel if (teamsize == 1)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
