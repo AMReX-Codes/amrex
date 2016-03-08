@@ -490,13 +490,6 @@ protected:
     mutable int         n_grow;
     int                 n_comp;
     int                 faID;
-    // for shared memory
-    bool                shared_memory;
-    long                n_values;
-    long                n_points;
-#ifdef BL_USE_MPI3
-    MPI_Win             shmwin;
-#endif    
 
     // Key for unique combination of BoxArray and DistributionMapping
     // Note both BoxArray and DistributionMapping are reference counted.
@@ -1028,6 +1021,32 @@ protected:
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
            // <ngrids to find distmap, <FabArrayID, FabArray *> >
 
+    // for shared memory
+    struct ShMem {
+	ShMem () : alloc(false), n_values(0), n_points(0)
+#ifdef BL_USE_MPI3
+		 , win(MPI_WIN_NULL)
+#endif
+	    { }
+	~ShMem () {
+#ifdef BL_USE_MPI3
+	    if (win != MPI_WIN_NULL)
+		MPI_Win_free(&win);
+#endif
+	    if (alloc)
+		BoxLib::update_fab_stats(-n_points, -n_values, sizeof(value_type));
+	}
+	bool  alloc;
+	long  n_values;
+	long  n_points;
+#ifdef BL_USE_MPI3
+	MPI_Win win;
+#endif
+    };
+    ShMem shmem;
+
+    bool SharedMemory () const { return shmem.alloc; }
+
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
     //
@@ -1508,22 +1527,6 @@ FabArray<FAB>::clear ()
       faPtrCachedMap.erase(faID);
     }
 
-#ifdef BL_USE_TEAM
-    if (shared_memory)  // free shared memory
-    {
-#ifdef BL_USE_UPCXX
-	
-#elif defined (BL_USE_MPI3)
-	if (shmwin != MPI_WIN_NULL) {
-	    MPI_Win_free(&shmwin);
-	}
-#else
-	BoxLib::Abort("FabArray<FAB>::clear: how come shared_memroy is true?");
-#endif
-	BoxLib::update_fab_stats(n_points, n_values, sizeof(value_type));
-    }
-#endif
-
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
 	delete *it;
     }
@@ -1551,6 +1554,7 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
+    : shmem()
 {
     m_FA_stats.recordBuild();
 }
@@ -1561,6 +1565,7 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc,
 			 const IntVect&  nodal)
+    : shmem()
 {
     m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,alloc,nodal);
@@ -1573,6 +1578,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          FabAlloc                   alloc,
 			 const IntVect&             nodal)
+    : shmem()
 {
     m_FA_stats.recordBuild();
     define(bxs,nvar,ngrow,dm,alloc,nodal);
@@ -1663,18 +1669,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     addThisBD();
 
-    shared_memory = (ParallelDescriptor::TeamSize() > 1);
-#ifndef BL_USE_TEAM
-    BL_ASSERT(shared_memory == false);
-#endif
-    
-#ifdef BL_USE_MPI3
-    shmwin = MPI_WIN_NULL;
-#endif
-
-    n_values = 0;  // only used by shared memory
-    n_points = 0;
-
     if(alloc == Fab_allocate) {
       AllocFabs();
 
@@ -1725,6 +1719,8 @@ void
 FabArray<FAB>::AllocFabs ()
 {
     const int n = indexMap.size();
+    const int nworkers = ParallelDescriptor::TeamSize();
+    shmem.alloc = (nworkers > 1);
 
     m_fabs_v.reserve(n);
 
@@ -1732,19 +1728,17 @@ FabArray<FAB>::AllocFabs ()
     {
 	int K = indexMap[i];
         const Box& tmp = BoxLib::grow(box(K), n_grow);
-	bool alloc = !shared_memory;
-	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shared_memory));
+	bool alloc = !shmem.alloc;
+	m_fabs_v.push_back(new FAB(tmp, n_comp, alloc, shmem.alloc));
     }
     
 #ifdef BL_USE_TEAM
-    if (shared_memory)
+    if (shmem.alloc)
     {
-	const int nworkers = ParallelDescriptor::TeamSize();
 	const int teamlead = ParallelDescriptor::MyTeamLead();
-	BL_ASSERT(nworkers > 1);
 
-	n_values = 0;
-	n_points = 0;
+	shmem.n_values = 0;
+	shmem.n_points = 0;
 	Array<long> offset(n,0);
 	Array<long> nextoffset(nworkers,-1);
 	for (int i = 0; i < n; ++i) {
@@ -1752,8 +1746,8 @@ FabArray<FAB>::AllocFabs ()
 	    int owner = distributionMap[K] - teamlead;
 	    long s = m_fabs_v[i]->size();
 	    if (ownership[i]) {
-		n_values += s;
-		n_points += m_fabs_v[i]->nPts();
+		shmem.n_values += s;
+		shmem.n_points += m_fabs_v[i]->nPts();
 	    }
 	    if (nextoffset[owner] < 0) {
 		offset[i] = 0;
@@ -1763,8 +1757,6 @@ FabArray<FAB>::AllocFabs ()
 		nextoffset[owner] += s;
 	    }
 	}
-
-	
 
 #if defined (BL_USE_UPCXX)
 
@@ -1781,10 +1773,10 @@ FabArray<FAB>::AllocFabs ()
 
 	value_type *mfp;
 
-	BL_MPI_REQUIRE( MPI_Win_allocate_shared(n_values*sizeof(value_type), sizeof(value_type), 
-						info, team_comm, &mfp, &shmwin) );
+	BL_MPI_REQUIRE( MPI_Win_allocate_shared(shmem.n_values*sizeof(value_type), sizeof(value_type), 
+						info, team_comm, &mfp, &shmem.win) );
 
-	for (long i = 0; i < n_values; i++, mfp++) {
+	for (long i = 0; i < shmem.n_values; i++, mfp++) {
 	    new (mfp) value_type;
 	}
 
@@ -1793,7 +1785,7 @@ FabArray<FAB>::AllocFabs ()
 	    MPI_Aint sz;
 	    int disp;
 	    value_type *dptr = 0;
-	    BL_MPI_REQUIRE( MPI_Win_shared_query(shmwin, w, &sz, &disp, &dptr) );
+	    BL_MPI_REQUIRE( MPI_Win_shared_query(shmem.win, w, &sz, &disp, &dptr) );
             // BL_ASSERT(disp == sizeof(value_type));
 	    dps.push_back(dptr);
 	}
@@ -1811,7 +1803,7 @@ FabArray<FAB>::AllocFabs ()
 
 #endif
 
-	BoxLib::update_fab_stats(-n_points, -n_values, sizeof(value_type));
+	BoxLib::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
 #endif
 }

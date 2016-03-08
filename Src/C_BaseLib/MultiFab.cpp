@@ -233,7 +233,7 @@ MultiFab::MultiFab (const BoxArray& bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
     Initialize();
-    if (shared_memory && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -246,7 +246,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
     Initialize();
-    if (shared_memory && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -263,7 +263,7 @@ MultiFab::define (const BoxArray& bxs,
 		  const IntVect&  nodal)
 {
     this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
-    if (shared_memory && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -275,7 +275,7 @@ MultiFab::define (const BoxArray&            bxs,
 		  const IntVect&             nodal)
 {
     this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
-    if (shared_memory && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
