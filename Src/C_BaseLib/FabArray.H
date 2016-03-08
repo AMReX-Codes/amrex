@@ -1024,14 +1024,17 @@ protected:
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
-#ifdef BL_USE_MPI3
+#ifdef BL_USE_UPCXX
+		 , p(0)
+#elif defined(BL_USE_MPI3)
 		 , win(MPI_WIN_NULL)
 #endif
 	    { }
 	~ShMem () {
-#ifdef BL_USE_MPI3
-	    if (win != MPI_WIN_NULL)
-		MPI_Win_free(&win);
+#ifdef BL_USE_UPCXX
+	    if (p) BLPgas::free(p);
+#elif defined(BL_USE_MPI3)
+	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
 	    if (alloc)
 		BoxLib::update_fab_stats(-n_points, -n_values, sizeof(value_type));
@@ -1039,7 +1042,9 @@ protected:
 	bool  alloc;
 	long  n_values;
 	long  n_points;
-#ifdef BL_USE_MPI3
+#ifdef BL_USE_UPCXX
+	void *p;
+#elif defined(BL_USE_MPI3)
 	MPI_Win win;
 #endif
     };
@@ -1758,8 +1763,26 @@ FabArray<FAB>::AllocFabs ()
 	    }
 	}
 
+	size_t bytes = shmem.n_values*sizeof(value_type);
+
+	value_type *mfp;
+	Array<value_type*> dps;
+
 #if defined (BL_USE_UPCXX)
 
+	shmem.p = BLPgas::alloc(bytes);
+
+	upcxx::global_ptr<void> psrc = upcxx::global_ptr<void>(shmem.p);
+	std::vector<upcxx::global_ptr<void> > pdst(nworkers);
+	const auto& team = ParallelDescriptor::MyTeam().get();
+	team.allgather(&psrc, &pdst[0], sizeof(upcxx::global_ptr<void>));
+
+	mfp = static_cast<value_type*>(shmem.p);
+
+	for (int w = 0; w < nworkers; ++w) {
+	    void* p = (void*) pdst[w];
+	    dps.push_back((value_type*)p);
+	}
 
 #elif defined (BL_USE_MPI3)
 
@@ -1771,16 +1794,9 @@ FabArray<FAB>::AllocFabs ()
 
 	const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
 
-	value_type *mfp;
-
-	BL_MPI_REQUIRE( MPI_Win_allocate_shared(shmem.n_values*sizeof(value_type), sizeof(value_type), 
+	BL_MPI_REQUIRE( MPI_Win_allocate_shared(bytes, sizeof(value_type), 
 						info, team_comm, &mfp, &shmem.win) );
 
-	for (long i = 0; i < shmem.n_values; i++, mfp++) {
-	    new (mfp) value_type;
-	}
-
-	Array<value_type*> dps;
 	for (int w = 0; w < nworkers; ++w) {
 	    MPI_Aint sz;
 	    int disp;
@@ -1790,6 +1806,12 @@ FabArray<FAB>::AllocFabs ()
 	    dps.push_back(dptr);
 	}
 
+#else
+
+	BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
+
+#endif
+
 	for (int i = 0; i < n; ++i) {
 	    int K = indexMap[i];
 	    int owner = distributionMap[K] - teamlead;
@@ -1797,11 +1819,9 @@ FabArray<FAB>::AllocFabs ()
 	    m_fabs_v[i]->setPtr(p, m_fabs_v[i]->size());
 	}
 
-#else
-
-	BoxLib::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
-
-#endif
+	for (long i = 0; i < shmem.n_values; i++, mfp++) {
+	    new (mfp) value_type;
+	}
 
 	BoxLib::update_fab_stats(shmem.n_points, shmem.n_values, sizeof(value_type));
     }
