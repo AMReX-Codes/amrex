@@ -1025,7 +1025,7 @@ protected:
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
 #ifdef BL_USE_UPCXX
-		 , p(0)
+		 , p(nullptr)
 #elif defined(BL_USE_MPI3)
 		 , win(MPI_WIN_NULL)
 #endif
