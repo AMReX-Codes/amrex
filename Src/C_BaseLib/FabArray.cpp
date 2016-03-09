@@ -986,10 +986,11 @@ void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
     // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
+    const int N = indexMap.size();
 
     if (tileSize == IntVect::TheZeroVector())
     {
-	for (int i = 0; i < indexMap.size(); ++i)
+	for (int i = 0; i < N; ++i)
 	{
 	    if (isOwner(i))
 	    {
@@ -1003,9 +1004,26 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
     }
     else
     {
-	for (int i = 0; i < indexMap.size(); ++i)
+#ifdef BL_USE_TEAM
+	std::vector<int> local_idxs(N);
+	std::iota(std::begin(local_idxs), std::end(local_idxs), 0);
+	const int nworkers = ParallelDescriptor::TeamSize();
+	if (nworkers > 1) {
+	    // reorder it so that each worker will be more likely to work on their own fabs
+	    std::stable_sort(local_idxs.begin(), local_idxs.end(), [this](int i, int j) 
+			     { return this->distributionMap[i] < this->distributionMap[j]; });
+	}
+#else
+	std::vector<int> local_idxs;
+	for (int i = 0; i < N; ++i) { 
+	    local_idxs.push_back(i);
+	}
+#endif	
+
+	for (std::vector<int>::const_iterator it = local_idxs.begin(); it != local_idxs.end(); ++it)
 	{
-	    const int K = indexMap[i]; 
+	    const int i = *it;         // local index 
+	    const int K = indexMap[i]; // global index
 	    const Box& bx = boxarray.getCellCenteredBox(K);
 	    
 	    IntVect nt_in_fab, tsize, nleft;
