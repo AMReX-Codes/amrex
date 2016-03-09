@@ -591,7 +591,7 @@ public:
 
     explicit BoxCommHelper (const Box& bx, int* p_ = 0);
 
-    int* get () const { return p; }
+    int* data () const { return p; }
 
     Box make_box () const {
 	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));
