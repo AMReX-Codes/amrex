@@ -2302,11 +2302,13 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
+std::cout << ParallelDescriptor::MyProcAll() << ":tptptptp = " << TotalNumberOfParticles(true,true) << std::endl;
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
         const PBox&      pbox = pmap_it->second;
         const int        n    = pbox.size();
+std::cout << ParallelDescriptor::MyProcAll() << ":aaaaaaa  grid n gv_pointer gv.DistributionMap() = " << grid << "  " << n << "  " << gv_pointer << "  " << gv.DistributionMap() << std::endl;
         const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
 
         num_particles_at_level += n;
