@@ -5,3 +5,6 @@ endif
 ifeq ($(EBASE),sidecarresizetest)
   CEXE_sources += SidecarResizeTest.cpp
 endif
+ifeq ($(EBASE),destmftest)
+  CEXE_sources += DestMFTest.cpp
+endif
