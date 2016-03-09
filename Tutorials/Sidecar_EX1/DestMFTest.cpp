@@ -58,6 +58,25 @@ namespace
               std::cout << myProcAll << ":: sidecar recv r = " << r << std::endl;
 	    }
 
+        MPI_Group group_sidecar, group_world;
+        MPI_Comm_group(ParallelDescriptor::CommunicatorSidecar(), &group_sidecar);
+        MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+
+        // Create DM on sidecars with default strategy
+        const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar());
+        const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
+
+        Array<int> pm_world = DistributionMapping::TranslateProcMap(pm_sidecar, group_world, group_sidecar);
+        // Don't forget to set the sentinel to the proc # in the new group!
+        pm_world[pm_world.size()-1] = ParallelDescriptor::MyProcAll();
+
+        DistributionMapping dm_world(pm_world);
+        if (ParallelDescriptor::IOProcessor()) {
+          usleep(1000000);
+          std::cout << "SIDECAR DM = " << dm_sidecar << std::endl << std::flush;
+          std::cout << "WORLD DM = " << dm_world << std::endl << std::flush;
+        }
+
 	    //bab = BoxArray(bac).maxSize(r);
 
 	    //mf.clear();
