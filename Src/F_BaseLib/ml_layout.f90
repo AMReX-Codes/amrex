@@ -40,6 +40,11 @@ module ml_layout_module
      module procedure ml_layout_build_mla
   end interface
 
+  interface ml_layout_restricted_build
+     module procedure ml_layout_restricted_build_n
+     module procedure ml_layout_restricted_build_l_h
+  end interface
+
   interface destroy
      module procedure ml_layout_destroy
   end interface
@@ -228,17 +233,28 @@ contains
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
     logical, optional                :: pmask(:)
-    call ml_layout_restricted_build(mla, mba, mba%nlevel, pmask)
+    call ml_layout_restricted_build_n(mla, mba, mba%nlevel, pmask)
   end subroutine ml_layout_build
 
-  subroutine ml_layout_restricted_build(mla, mba, nlevs, pmask)
-
-    ! this subroutine is the same thing as ml_layout_build except that
-    ! the mla will only have nlevs instead of mba%nlevel
+  subroutine ml_layout_restricted_build_n(mla, mba, nlevs, pmask)
 
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
     integer          , intent(in   ) :: nlevs
+    logical, optional                :: pmask(:)
+
+    call ml_layout_restricted_build_l_h(mla, mba, 1, nlevs, pmask)
+
+  end subroutine ml_layout_restricted_build_n
+
+  subroutine ml_layout_restricted_build_l_h(mla, mba, min_lev, max_lev, pmask)
+
+    ! this subroutine is the same thing as ml_layout_build except that
+    ! the mla will only start at min_lev (>=1) and end at max_lev (<= mba%nlevel)
+
+    type(ml_layout)  , intent(inout) :: mla
+    type(ml_boxarray), intent(in   ) :: mba
+    integer          , intent(in   ) :: min_lev, max_lev
     logical, optional                :: pmask(:)
 
     type(boxarray) :: bac
@@ -250,29 +266,26 @@ contains
     allocate(mla%pmask(mba%dim))
     mla%pmask  = lpmask
 
-    mla%nlevel = nlevs
+    mla%nlevel = max_lev-min_lev+1
     mla%dim    = mba%dim
 
-!   Have to copy only nlevs of the mba
-!   Replace 
-!   call copy(mla%mba, mba)
-!   by these lines
-    call build(mla%mba,nlevs,mla%dim)
-    mla%mba%pd(1:nlevs) = mba%pd(1:nlevs)
-    do n = 1, mla%nlevel-1
-      mla%mba%rr(n,:) = mba%rr(n,:)
+!   Have to copy only min_lev:max_lev of the mba
+    call build(mla%mba,mla%nlevel,mla%dim)
+    mla%mba%pd(1:mla%nlevel) = mba%pd(min_lev:max_lev)
+    do n = min_lev, max_lev
+      mla%mba%rr(n-min_lev+1,:) = mba%rr(n,:)
     end do
-    do n = 1, mla%nlevel
-      call boxarray_build_copy(mla%mba%bas(n),mba%bas(n))
+    do n = min_lev, max_lev
+      call boxarray_build_copy(mla%mba%bas(n-min_lev+1),mba%bas(n))
     end do
 
     allocate(mla%la(mla%nlevel), la_array(mla%nlevel))
 
-    do n = 1, mla%nlevel
-       call layout_build_ba(la_array(n), mba%bas(n), mba%pd(n), pmask=lpmask)
+    do n = min_lev, max_lev
+       call layout_build_ba(la_array(n-min_lev+1), mba%bas(n), mba%pd(n), pmask=lpmask)
     end do
 
-    call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr)
+    call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr(min_lev:,:))
 
     do n = 1, mla%nlevel
        if (mla%la(n) .ne. la_array(n)) then
@@ -285,13 +298,13 @@ contains
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
-       call boxarray_build_copy(bac, mba%bas(n+1))
-       call boxarray_coarsen(bac, mba%rr(n,:))
+       call boxarray_build_copy(bac, mba%bas(n+min_lev))
+       call boxarray_coarsen(bac, mba%rr(n+min_lev-1,:))
        call setval(mla%mask(n), .false., bac)
        call boxarray_destroy(bac)
     end do
 
-  end subroutine ml_layout_restricted_build
+  end subroutine ml_layout_restricted_build_l_h
 
   subroutine ml_layout_destroy(mla, keep_coarse_layout)
     type(ml_layout), intent(inout) :: mla
