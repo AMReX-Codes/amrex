@@ -1791,14 +1791,14 @@ BaseFab<T>::min (const Box& subbox,
                  int        comp) const
 {
     T *_min_row = 0;
-    int _X_len = 0;
+    int _x_len = 0;
     ForAllThisCPencil(T,subbox,comp,1)
     {
         const T* _row = &thisR;
         if (_min_row == 0)
         {
             _min_row = new T[thisLen];
-            _X_len = thisLen;
+            _x_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _min_row[i] = _row[i];
         }
@@ -1810,7 +1810,7 @@ BaseFab<T>::min (const Box& subbox,
     } EndForPencil;
 
     T _min = _min_row[0];
-    for (int i = 1; i < _X_len; i++)
+    for (int i = 1; i < _x_len; i++)
         _min = std::min(_min,_min_row[i]);
 
     delete [] _min_row;
@@ -1831,14 +1831,14 @@ BaseFab<T>::max (const Box& subbox,
                  int        comp) const
 {
     T*  _max_row = 0;
-    int _X_len   = 0;
+    int _x_len   = 0;
     ForAllThisCPencil(T,subbox,comp,1)
     {
         const T* _row = &thisR;
         if (_max_row == 0)
         {
             _max_row = new T[thisLen];
-            _X_len = thisLen;
+            _x_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _max_row[i] = _row[i];
         }
@@ -1850,7 +1850,7 @@ BaseFab<T>::max (const Box& subbox,
     } EndForPencil;
 
     T _max = _max_row[0];
-    for (int i = 1; i < _X_len; i++)
+    for (int i = 1; i < _x_len; i++)
         _max = std::max(_max,_max_row[i]);
 
     delete [] _max_row;

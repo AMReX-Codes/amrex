@@ -136,10 +136,10 @@ Spacer (std::ostream& os, int lev)
     }
 }
 
-MultiGrid::MultiGrid (LinOp &_Lp)
+MultiGrid::MultiGrid (LinOp &_lp)
     :
     initialsolution(0),
-    Lp(_Lp)
+    Lp(_lp)
 {
     Initialize();
 

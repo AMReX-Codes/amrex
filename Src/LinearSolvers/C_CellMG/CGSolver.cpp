@@ -109,11 +109,11 @@ CGSolver::Finalize ()
     ;
 }
 
-CGSolver::CGSolver (LinOp& _Lp,
+CGSolver::CGSolver (LinOp& _lp,
                     bool   _use_mg_precond,
                     int    _lev)
     :
-    Lp(_Lp),
+    Lp(_lp),
     mg_precond(0),
     lev(_lev),
     use_mg_precond(_use_mg_precond)
