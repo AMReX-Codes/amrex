@@ -2451,7 +2451,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
-	ParallelDescriptor::Bcast(bch.get(), bch.size(), 0);
+	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0);
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
     }
