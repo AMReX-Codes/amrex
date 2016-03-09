@@ -96,6 +96,8 @@ int main(int argc, char* argv[])
 
   BL_PROFILE_VAR("main()", pmain);
 
+  {
+
   std::cout << std::setprecision(15);
 
   ParmParse ppmg("mg");  
@@ -339,7 +341,9 @@ int main(int argc, char* argv[])
   if (ParallelDescriptor::IOProcessor()) {
     std::cout << "----------------------------------------" << std::endl;
   }
-  
+ 
+  }
+ 
   BL_PROFILE_VAR_STOP(pmain);
 
   BoxLib::Finalize();
