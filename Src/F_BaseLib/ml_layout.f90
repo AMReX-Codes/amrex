@@ -272,7 +272,7 @@ contains
 !   Have to copy only min_lev:max_lev of the mba
     call build(mla%mba,mla%nlevel,mla%dim)
     mla%mba%pd(1:mla%nlevel) = mba%pd(min_lev:max_lev)
-    do n = min_lev, max_lev
+    do n = min_lev, max_lev-1
       mla%mba%rr(n-min_lev+1,:) = mba%rr(n,:)
     end do
     do n = min_lev, max_lev
