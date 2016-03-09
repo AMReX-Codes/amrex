@@ -213,6 +213,7 @@ class DistributionMapping
     void SetDistMapID(int dmid) { dmID = dmid; }
 
 #ifdef BL_USE_MPI
+    static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
     static void SendDistributionMappingToSidecars(DistributionMapping *dm);
 #endif
 
