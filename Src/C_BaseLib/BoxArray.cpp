@@ -955,52 +955,23 @@ BoxArray::removeOverlap ()
 
 #ifdef BL_USE_MPI
 void
-BoxArray::SendBoxArray(BoxArray *ba)
+BoxArray::SendBoxArray(const BoxArray &ba)
 {
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
-    int ba_size = ba->size();
-    ParallelDescriptor::Bcast(&ba_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-
-    for (Array<Box>::const_iterator bl_it = ba->begin(), bl_it_end = ba->end(); bl_it != bl_it_end; ++bl_it)
-    {
-    IntVect ivType(bl_it->type());
-        const int *index_type = ivType.getVect();
-        const int *smallEnd = bl_it->smallEnd().getVect();
-        const int *bigEnd = bl_it->bigEnd().getVect();
-
-        // getVect() requires a constant pointer, but MPI buffers require
-        // non-constant pointers. Sorry this is awful.
-        ParallelDescriptor::Bcast(const_cast<int*>(index_type)      , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(const_cast<int*>(smallEnd)        , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(const_cast<int*>(bigEnd)          , BL_SPACEDIM, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-    }
+    Array<int> ba_serial = BoxLib::SerializeBoxArray(ba);
+    int ba_serial_size = ba_serial.size();
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 }
 
 void
-BoxArray::RecvBoxArray(BoxArray *ba)
+BoxArray::RecvBoxArray(BoxArray &ba)
 {
-    BoxList bl;
-    int ba_size;
-    ParallelDescriptor::Bcast(&ba_size, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-    int box_index_type[BL_SPACEDIM];
-    int smallEnd[BL_SPACEDIM];
-    int bigEnd[BL_SPACEDIM];
-    for (unsigned int i=0; i<ba_size; ++i)
-    {
-        ParallelDescriptor::Bcast(box_index_type, BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(smallEnd      , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(bigEnd        , BL_SPACEDIM, 0, ParallelDescriptor::CommunicatorInter());
-
-        const IntVect box_index_type_IV(box_index_type);
-        const IntVect smallEnd_IV(smallEnd);
-        const IntVect bigEnd_IV(bigEnd);
-
-        Box tmp_box(smallEnd_IV, bigEnd_IV, box_index_type_IV);
-        bl.push_back(tmp_box);
-    }
-    ba->define(bl);
+    int ba_serial_size;
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, 0, ParallelDescriptor::CommunicatorInter());
+    Array<int> ba_serial(ba_serial_size);
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0, ParallelDescriptor::CommunicatorInter());
+    ba = BoxLib::UnSerializeBoxArray(ba_serial);
 }
 
 

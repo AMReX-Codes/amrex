@@ -301,8 +301,8 @@ public:
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
 #ifdef BL_USE_MPI
-    static void SendBoxArray(BoxArray *ba);
-    static void RecvBoxArray(BoxArray *ba);
+    static void SendBoxArray(const BoxArray &ba);
+    static void RecvBoxArray(BoxArray &ba);
 #endif
 
 private:

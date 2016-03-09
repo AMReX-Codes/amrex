@@ -47,7 +47,7 @@ namespace
               std::cout << myProcAll << ":: sidecar recv time_step = " << time_step << std::endl;
 	    }
 	    bac.clear();
-	    BoxArray::RecvBoxArray(&bac);
+	    BoxArray::RecvBoxArray(bac);
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv ba.size = " << bac.size() << std::endl;
 	    }
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 	  sidecarSignal = MySignal;
 	  ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
 	  ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-	  BoxArray::SendBoxArray(&ba);
+	  BoxArray::SendBoxArray(ba);
 
 	  int r = ( i%4 + 1) * 4;
 	  ParallelDescriptor::Bcast(&r, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
