@@ -1,6 +1,7 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code
 # If you set BOXLIB_HOME as an environment variable, this line will be ignored
-BOXLIB_HOME ?= ../../../BoxLib
+#BOXLIB_HOME ?= ../../../BoxLib
+BOXLIB_HOME = ../..
 
 DEBUG     = FALSE
 DEBUG     = TRUE
@@ -11,8 +12,8 @@ COMP      = g++
 FCOMP     = gfortran
 DIM       = 3
 PRECISION = DOUBLE
-EBASE     = gridmovetest
 EBASE     = sidecarresizetest
+EBASE     = gridmovetest
 EBASE     = destmftest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE

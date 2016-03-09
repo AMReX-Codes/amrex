@@ -445,8 +445,10 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
         FOPTF += -fsanitize=thread
         fOPTF += -fsanitize=thread
     endif
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    #FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    #fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    FDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp

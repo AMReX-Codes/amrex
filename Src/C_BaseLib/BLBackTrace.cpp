@@ -49,7 +49,8 @@ BLBackTrace::handler(int s)
 	}
     }
 
-    sleep(30);
+    //sleep(30);
+    sleep(2);
 
     switch (s) {
     case SIGSEGV:
