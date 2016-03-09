@@ -42,6 +42,7 @@ namespace
 
 	switch(sidecarSignal) {
 	  case MySignal:
+        {
 	    ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv time_step = " << time_step << std::endl;
@@ -65,6 +66,7 @@ namespace
             //  std::cout << myProcAll << ":: sidecar recv mf.ba = " << mf.boxArray() << std::endl;
 	    //}
 
+        }
 	  break;
 
 	  case ParallelDescriptor::SidecarQuitSignal:
