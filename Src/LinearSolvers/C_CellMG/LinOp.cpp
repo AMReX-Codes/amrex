@@ -73,12 +73,12 @@ LinOp::LinOp (const BndryData& _bgb,
     :
     bgb(new BndryData(_bgb))
 {
-    Real __h[BL_SPACEDIM];
+    Real _hh[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-        __h[i] = _h;
+        _hh[i] = _h;
     }
-    initConstruct(__h);
+    initConstruct(_hh);
 }
 
 LinOp::LinOp (const BndryData& _bgb,
