@@ -1,5 +1,8 @@
 #include <winstd.H>
 
+#include <iterator>
+#include <numeric>
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
