@@ -846,23 +846,27 @@ FabArrayBase::TheFB (bool                cross,
 		    vol += bx.numPts();
 		}
 
-		Vols[key] += vol;
+		if (vol > 0) 
+		{
+		    Vols[key] += vol;
 
-		for (std::vector<Box>::const_iterator 
-			 it_bx  = boxes.begin(),
-			 End_bx = boxes.end();    it_bx != End_bx; ++it_bx)
-	        {
-		    const BoxList tilelist(*it_bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator 
-			     it_tile  = tilelist.begin(), 
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-                    {
-			new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
+		    for (std::vector<Box>::const_iterator 
+			     it_bx  = boxes.begin(),
+			     End_bx = boxes.end();    it_bx != End_bx; ++it_bx)
+		    {
+			const BoxList tilelist(*it_bx, FabArrayBase::comm_tile_size);
+			for (BoxList::const_iterator 
+				 it_tile  = tilelist.begin(), 
+				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			{
+			    new_cctv.push_back(CopyComTag(*it_tile, it2->fabIndex, it2->srcIndex));
+			}
 		    }
 		}
 	    }
 
-	    Tags[key].swap(new_cctv);
+	    if (!new_cctv.empty())
+		Tags[key].swap(new_cctv);
 	}
     }
 
