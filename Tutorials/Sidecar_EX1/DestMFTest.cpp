@@ -23,18 +23,74 @@ namespace
 {
   const int S_SendBoxArray(42), S_CopyFabArray(43);
 
+
   void CopyFabArray(BoxArray &ba, DistributionMapping &dm) {
+
     int myProcAll(ParallelDescriptor::MyProcAll());
     int myProcComp(ParallelDescriptor::MyProcComp());
     int myProcSidecar(ParallelDescriptor::MyProcSidecar());
+    MPI_Group group_sidecar(MPI_GROUP_NULL), group_comp(MPI_GROUP_NULL), group_all(MPI_GROUP_NULL);
+
     BoxLib::USleep(myProcAll / 10.0);
     std::cout << ":::: _in CopyFabArray:  myProcAll myProcComp myProcSidecar = " << myProcAll
               << "  " << myProcComp << "  " << myProcSidecar  << std::endl;
-    std::cout << myProcAll << ":::: _in CopyFabArray:  ba = " << ba << std::endl;
-    std::cout << myProcAll << ":::: _in CopyFabArray:  dm = " << dm << std::endl;
+    //std::cout << myProcAll << ":::: _in CopyFabArray:  ba = " << ba << std::endl;
+    //std::cout << myProcAll << ":::: _in CopyFabArray:  dm = " << dm << std::endl;
 
-    MultiFab::CPC cpc;
+ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
+
+    Array<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
+    DistributionMapping dm_comp_all, dm_sidecar_all;
+    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all) );
+
+ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
+    if(ParallelDescriptor::InSidecarGroup()) {
+      MPI_Comm_group(ParallelDescriptor::CommunicatorSidecar(), &group_sidecar);
+      pm_sidecar = dm.ProcessorMap();
+      pm_sidecar_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
+      // Don't forget to set the sentinel to the proc # in the new group!
+      pm_sidecar_all[pm_sidecar_all.size()-1] = ParallelDescriptor::MyProcAll();
+    }
+    if(ParallelDescriptor::InCompGroup()) {
+      MPI_Comm_group(ParallelDescriptor::CommunicatorComp(), &group_comp);
+      pm_comp = dm.ProcessorMap();
+      pm_comp_all = DistributionMapping::TranslateProcMap(pm_comp, group_all, group_comp);
+      // Don't forget to set the sentinel to the proc # in the new group!
+      pm_comp_all[pm_comp_all.size()-1] = ParallelDescriptor::MyProcAll();
+    }
+
+ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
+    if(ParallelDescriptor::InSidecarGroup()) {
+      int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+      ParallelDescriptor::Bcast(pm_sidecar_all.dataPtr(), pm_sidecar_all.size(), MPI_IntraGroup_Broadcast_Rank,
+	                        ParallelDescriptor::CommunicatorInter());
+      pm_comp_all.resize(pm_sidecar_all.size(), -19);  // ---- broadcast these
+      ParallelDescriptor::Bcast(pm_comp_all.dataPtr(), pm_comp_all.size(), 0,
+	                        ParallelDescriptor::CommunicatorInter());
+    }
+    if(ParallelDescriptor::InCompGroup()) {
+      int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+      pm_sidecar_all.resize(pm_comp_all.size(), -17);  // ---- broadcast these
+      ParallelDescriptor::Bcast(pm_sidecar_all.dataPtr(), pm_sidecar_all.size(), 0,
+	                        ParallelDescriptor::CommunicatorInter());
+      ParallelDescriptor::Bcast(pm_comp_all.dataPtr(), pm_comp_all.size(), MPI_IntraGroup_Broadcast_Rank,
+	                        ParallelDescriptor::CommunicatorInter());
+    }
+
+      dm_sidecar_all.define(pm_sidecar_all, false);
+      dm_comp_all.define(pm_comp_all, false);
+      BoxLib::USleep(myProcAll / 10.0);
+      if(myProcAll == 0 || myProcAll == 7) {
+        std::cout << myProcAll << ":::: _in CopyFabArray:  dm_sidecar_all = " << dm_sidecar_all << std::endl;
+        std::cout << myProcAll << ":::: _in CopyFabArray:  dm_comp_all = " << dm_comp_all << std::endl;
+      }
+
+ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
+    BoxArray baDest(ba), baSource(ba);
+    DistributionMapping dmDest(dm_sidecar_all), dmSource(dm_comp_all);
+    MultiFab::CPC cpc(baDest, baSource, dmDest, dmSource);
   }
+
 
   void SidecarEventLoop() {
     bool finished(false);
@@ -51,7 +107,7 @@ namespace
 	switch(sidecarSignal) {
 
 	  case S_SendBoxArray:
-        {
+          {
 	    ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv time_step = " << time_step << std::endl;
@@ -67,23 +123,23 @@ namespace
               std::cout << myProcAll << ":: sidecar recv r = " << r << std::endl;
 	    }
 
-            MPI_Group group_sidecar, group_world;
+            MPI_Group group_sidecar, group_all;
             MPI_Comm_group(ParallelDescriptor::CommunicatorSidecar(), &group_sidecar);
-            MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+            MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all);
 
             // Create DM on sidecars with default strategy
             const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar());
             const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
-            Array<int> pm_world = DistributionMapping::TranslateProcMap(pm_sidecar, group_world, group_sidecar);
+            Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
             // Don't forget to set the sentinel to the proc # in the new group!
-            pm_world[pm_world.size()-1] = ParallelDescriptor::MyProcAll();
+            pm_all[pm_all.size()-1] = ParallelDescriptor::MyProcAll();
 
-            DistributionMapping dm_world(pm_world);
+            DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
               BoxLib::USleep(1);
               std::cout << "SIDECAR DM = " << dm_sidecar << std::endl << std::flush;
-              std::cout << "WORLD DM = " << dm_world << std::endl << std::flush;
+              std::cout << "WORLD DM = " << dm_all << std::endl << std::flush;
             }
 
 	    //bab = BoxArray(bac).maxSize(r);
