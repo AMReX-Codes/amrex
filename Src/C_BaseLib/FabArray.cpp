@@ -1007,19 +1007,21 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
     }
     else
     {
-#ifdef BL_USE_TEAM
+#if defined(BL_USE_TEAM) && !defined(__INTEL_COMPILER)
 	std::vector<int> local_idxs(N);
 	std::iota(std::begin(local_idxs), std::end(local_idxs), 0);
+#else
+	std::vector<int> local_idxs;
+	for (int i = 0; i < N; ++i)
+	    local_idxs.push_back(i);
+#endif
+
+#if defined(BL_USE_TEAM)
 	const int nworkers = ParallelDescriptor::TeamSize();
 	if (nworkers > 1) {
 	    // reorder it so that each worker will be more likely to work on their own fabs
 	    std::stable_sort(local_idxs.begin(), local_idxs.end(), [this](int i, int j) 
 			     { return this->distributionMap[i] < this->distributionMap[j]; });
-	}
-#else
-	std::vector<int> local_idxs;
-	for (int i = 0; i < N; ++i) { 
-	    local_idxs.push_back(i);
 	}
 #endif	
 
