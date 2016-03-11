@@ -1899,18 +1899,27 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 {
     BL_PROFILE("FabArray::copyInter()");
 
-    //if (dest->size() == 0 || src->size() == 0) return;
+    bool isDest( ! isSrc);
+    if(isSrc) {
+      BL_ASSERT(src  != 0);
+      BL_ASSERT(dest == 0);
+    }
+    if(isDest) {
+      BL_ASSERT(src  == 0);
+      BL_ASSERT(dest != 0);
+    }
+
+    if ((isDest && dest->size() == 0) || (isSrc && src->size() == 0)) return;
 
     BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
-    //BL_ASSERT(dest->boxArray()[0].ixType() == src->boxArray()[0].ixType());
 
-    //BL_ASSERT(src->nGrow() >= snghost);
-    //BL_ASSERT(dest->nGrow() >= dnghost);
+    if(isSrc)  { BL_ASSERT(src->nGrow() >= snghost);  }
+    if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
 
-    //if (snghost > 0) src->SetNGrow(src->nGrow()-snghost);
-    //if (dnghost > 0) dest->SetNGrow(dest->nGrow()-dnghost);
+    if (isSrc &&  snghost > 0) src->SetNGrow(src->nGrow()-snghost);
+    if (isDest && dnghost > 0) dest->SetNGrow(dest->nGrow()-dnghost);
 
-    bool isDest( ! isSrc), putInCache(false);
+    bool putInCache(false);
     MPI_Group groupSrc, groupDest, groupBoth;
     MPI_Comm commBoth(ParallelDescriptor::CommunicatorAll());  // ---- both src and dest:  fix for > 1 sidecar
     int nProcsAll(ParallelDescriptor::NProcsAll());
@@ -1947,9 +1956,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
       destPMapAll[destPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
     }
-    ParallelDescriptor::Barrier(commBoth);
+
     BoxLib::BroadcastBoxArray(srcBoxArray,  myProcAll, bcastRootSrc,  commBoth);
     BoxLib::BroadcastBoxArray(destBoxArray, myProcAll, bcastRootDest, commBoth);
+    BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
+
     BoxLib::BroadcastArray(srcPMapAll, myProcAll, bcastRootSrc, commBoth);
     BoxLib::BroadcastArray(destPMapAll, myProcAll, bcastRootDest, commBoth);
     srcDMAll.define(srcPMapAll, putInCache);
