@@ -226,15 +226,17 @@ FabArrayBase::CPCCache FabArrayBase::m_TheCopyCache;
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
-                      const FabArrayBase& src)
+                      const FabArrayBase& src,
+		      const int MyProc)
 {
-  FabArrayBase::TheCPC(cpc, dst.IndexMap(), src.IndexMap());
+  return FabArrayBase::TheCPC(cpc, dst.IndexMap(), src.IndexMap());
 }
 
 FabArrayBase::CPCCacheIter
 FabArrayBase::TheCPC (const CPC        &cpc,
                       const Array<int> &dstIndexMap,
-                      const Array<int> &srcIndexMap)
+                      const Array<int> &srcIndexMap,
+		      const int MyProc)
 {
     BL_PROFILE("FabArrayBase::TheCPC()");
 
@@ -298,7 +300,6 @@ FabArrayBase::TheCPC (const CPC        &cpc,
     //
     CPCCacheIter cache_it = TheCopyCache.insert(CPCCache::value_type(Key,cpc));
     CPC&         TheCPC   = cache_it->second;
-    const int    MyProc   = ParallelDescriptor::MyProc();
     //
     // Here's where we allocate memory for the cache innards.
     // We do this so we don't have to build objects of these types
@@ -311,7 +312,6 @@ FabArrayBase::TheCPC (const CPC        &cpc,
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
 
-    //if (dst.IndexMap().empty() && src.IndexMap().empty()) {
     if (dstIndexMap.empty() && srcIndexMap.empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
