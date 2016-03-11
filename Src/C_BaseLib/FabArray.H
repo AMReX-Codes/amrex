@@ -163,7 +163,8 @@ public:
                           Array<int>&                            recv_from,
                           Array<MPI_Request>&                    recv_reqs,
                           int                                    ncomp,
-                          int                                    SeqNum);
+                          int                                    SeqNum,
+			  MPI_Comm   comm = ParallelDescriptor::Communicator());
     //
     // Used by a bunch of routines when communicating via MPI.
     //
@@ -279,10 +280,12 @@ public:
 
     static CPCCacheIter TheCPC (const CPC          &cpc,
                                 const FabArrayBase &dst,
-                                const FabArrayBase &src);
+                                const FabArrayBase &src,
+				const int MyProc = ParallelDescriptor::MyProc());
     static CPCCacheIter TheCPC (const CPC          &cpc,
                                 const Array<int>   &dstIndexMap,
-                                const Array<int>   &srcIndexMap);
+                                const Array<int>   &srcIndexMap,
+				const int MyProc = ParallelDescriptor::MyProc());
 
     static void EraseFromTheCPC (CPCCacheIter& cache_it);
     //
@@ -1066,7 +1069,8 @@ FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
                         Array<int>&                            recv_from,
                         Array<MPI_Request>&                    recv_reqs,
                         int                                    ncomp,
-                        int                                    SeqNum)
+                        int                                    SeqNum,
+			MPI_Comm                               comm)
 {
     int TotalRcvsVolume = 0;
 
@@ -1101,7 +1105,7 @@ FabArrayBase::PostRcvs (const std::map< int,std::vector<T1> >& m_RcvTags,
 
         recv_data.push_back(&the_recv_data[Offset]);
         recv_from.push_back(m_it->first);
-        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum).req());
+        recv_reqs.push_back(ParallelDescriptor::Arecv(recv_data.back(),N,m_it->first,SeqNum,comm).req());
 
         Offset += N;
     }
@@ -1911,15 +1915,19 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     MPI_Comm commBoth(ParallelDescriptor::CommunicatorAll());  // ---- both src and dest:  fix for > 1 sidecar
     int nProcsAll(ParallelDescriptor::NProcsAll());
     int myProcAll(ParallelDescriptor::MyProcAll());
-    int myProcLocal(ParallelDescriptor::MyProc());
-    int ioProcNumberAll(ParallelDescriptor::IOProcessorNumberAll());
-    int ioProcNumberLocal(ParallelDescriptor::IOProcessorNumber());
     int bcastRootSrc(0), bcastRootDest(nProcsAll - 1);  // ---- fix these for multiple sidecars:  bcast them
 
     // ---- give all procs source and dest boxarrays and distributionmaps
     BoxArray srcBoxArray, destBoxArray;
     Array<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
     DistributionMapping srcDM, destDM, srcDMAll, destDMAll;
+    Array<int> srcIndexMap, destIndexMap;
+    if(isSrc) {
+      srcIndexMap = src->IndexMap();
+    }
+    if(isDest) {
+      destIndexMap = dest->IndexMap();
+    }
 
     BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
 
@@ -1935,7 +1943,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
-      std::cout << myProcAll << ":: _in copyInter:  destDM = " << destDM << std::endl;
       destPMap = destDM.ProcessorMap();
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
       destPMapAll[destPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
@@ -1948,54 +1955,19 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
-    BoxLib::USleep(myProcAll);
-    if(myProcAll == 1 || myProcAll == 6) {
-      std::cout << myProcAll << ":: _in copyInter:  srcBoxArray = " << srcBoxArray << std::endl;
-      std::cout << myProcAll << ":: _in copyInter:  srcDMAll = " << srcDMAll << std::endl;
-      std::cout << myProcAll << ":: _in copyInter:  destBoxArray = " << destBoxArray << std::endl;
-      std::cout << myProcAll << ":: _in copyInter:  destDMAll = " << destDMAll << std::endl;
-    }
-    ParallelDescriptor::Barrier(commBoth);
-
     const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll);
 
-    Array<int> srcIndexMap, destIndexMap;
-    if(isSrc) {
-      srcIndexMap = src->IndexMap();
-    }
-    if(isDest) {
-      destIndexMap = dest->IndexMap();
-    }
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexMap, srcIndexMap);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexMap, srcIndexMap, myProcAll);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
     const CPC& thecpc = cache_it->second;
-    //const CPC &thecpc = cpc;
-
-    ParallelDescriptor::Barrier(commBoth);
-    BoxLib::USleep(myProcAll);
-    std::cout << myProcAll << ":: thecpc.bytes() thecpc.m_SndTags = " << thecpc.bytes() << "  " << thecpc.m_SndTags << std::endl;
-    ParallelDescriptor::Barrier(commBoth);
-    BoxLib::USleep(myProcAll);
-    if(thecpc.m_LocTags) {
-      std::cout << myProcAll << ":: thecpc.m_LocTags->size() = " << thecpc.m_LocTags->size() << std::endl;
-    }
-    if(thecpc.m_SndTags) {
-      std::cout << myProcAll << ":: thecpc.m_SndTags->size() = " << thecpc.m_SndTags->size() << std::endl;
-    }
-    if(thecpc.m_RcvTags) {
-      std::cout << myProcAll << ":: thecpc.m_RcvTags->size() = " << thecpc.m_RcvTags->size() << std::endl;
-    }
-    ParallelDescriptor::Barrier(commBoth);
-
 
     if (ParallelDescriptor::NProcsAll() == 1) {
         return;
     }
 
 #ifdef BL_USE_MPI
-/*
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -2006,8 +1978,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         //
         // No work to do.
         //
-	if (snghost > 0) src.ResetNGrow();
-	if (dnghost > 0)     ResetNGrow();
+	if (snghost > 0 && isSrc)   src->ResetNGrow();
+	if (dnghost > 0 && isDest)  dest->ResetNGrow();
         return;
     }
     //
@@ -2028,10 +2000,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*thecpc.m_RcvTags,*thecpc.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,NC,SeqNum);
+        FabArrayBase::PostRcvs(*thecpc.m_RcvTags, *thecpc.m_RcvVols, the_recv_data, recv_data,
+	                       recv_from, recv_reqs, NC, SeqNum, commBoth);
 
 	//
-	// Post send's
+	// Post sends
 	// 
 	const int N_snds = thecpc.m_SndTags->size();
 
@@ -2080,7 +2053,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                  it != cctc.end(); ++it)
             {
                 const Box& bx = it->box;
-                src[it->srcIndex].copyToMem(bx,SC,NC,dptr);
+                (*src)[it->srcIndex].copyToMem(bx,SC,NC,dptr);
                 const int Cnt = bx.numPts()*NC;
                 dptr += Cnt;
             }
@@ -2094,12 +2067,12 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	    for (int j=0; j<N_snds; ++j)
 	    {
                 send_reqs.push_back(ParallelDescriptor::Asend
-				    (send_data[j],send_N[j],send_rank[j],SeqNum).req());
+				    (send_data[j],send_N[j],send_rank[j],SeqNum, commBoth).req());
             }
 	} else {
 	    for (int j=0; j<N_snds; ++j)
 	    {
-                ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum);
+                ParallelDescriptor::Send(send_data[j],send_N[j],send_rank[j],SeqNum, commBoth);
                 BoxLib::The_Arena()->free(send_data[j]);
             }
         }
@@ -2117,11 +2090,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
             if (op == FabArrayBase::COPY)
             {
-                get(tag.fabIndex).copy(src[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
+                dest->get(tag.fabIndex).copy((*src)[tag.srcIndex],tag.box,SC,tag.box,DC,NC);
             }
             else
             {
-                get(tag.fabIndex).plus(src[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
+                dest->get(tag.fabIndex).plus((*src)[tag.srcIndex],tag.box,tag.box,SC,DC,NC);
             }
         }
 
@@ -2171,14 +2144,14 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 		    
 		    if (op == FabArrayBase::COPY)
 		    {
-			get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
+			dest->get(it->fabIndex).copyFromMem(bx,DC,NC,dptr);
 		    }
 		    else
 		    {
 			fab.resize(bx,NC);
 			memcpy(fab.dataPtr(), dptr, Cnt*sizeof(value_type));
 			
-			get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
+			dest->get(it->fabIndex).plus(fab,bx,bx,0,DC,NC);
 		    }
 		    
 		    dptr += Cnt;
@@ -2189,8 +2162,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	
         BoxLib::The_Arena()->free(the_recv_data);
 	
-        if (FabArrayBase::do_async_sends && !thecpc.m_SndTags->empty())
+        if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
             FabArrayBase::GrokAsyncSends(thecpc.m_SndTags->size(),send_reqs,send_data,stats);
+	}
 
         ipass     += NC;
         SC        += NC;
@@ -2198,10 +2172,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         NCompLeft -= NC;
     }
 
-    if (snghost > 0) src.ResetNGrow();
-    if (dnghost > 0)     ResetNGrow();
+    if (snghost > 0 && isSrc)   src->ResetNGrow();
+    if (dnghost > 0 && isDest)  dest->  ResetNGrow();
     return;
-*/
 #endif /*BL_USE_MPI*/
 }
 
