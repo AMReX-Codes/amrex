@@ -2670,6 +2670,9 @@ def report_single_test(suite, test, failure_msg=None):
                     if "NaN present" in line:
                         ht.print_row([fields[0], (fields[1], "colspan='2'")])
                         continue
+                    elif "variable not present" in line:
+                        ht.print_row([fields[0], (fields[1], "colspan='2'")])
+                        continue                        
                     else:
                         ht.header([" "] + fields)
                         continue
