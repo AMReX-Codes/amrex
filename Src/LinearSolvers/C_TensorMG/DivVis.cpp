@@ -26,11 +26,11 @@ DivVis::DivVis (const BndryData& _bd,
     alpha(alpha_def),
     beta(beta_def)
 {
-    Real __h[BL_SPACEDIM];
+    Real _hh[BL_SPACEDIM];
 
-    D_TERM(__h[0]=_h;, __h[1]=_h;, __h[2]=_h;);
+    D_TERM(_hh[0]=_h;, _hh[1]=_h;, _hh[2]=_h;);
 
-    initConstruct(__h);
+    initConstruct(_hh);
 }
 
 DivVis::DivVis (const BndryData& _bd,

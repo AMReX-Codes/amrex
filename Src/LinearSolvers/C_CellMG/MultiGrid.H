@@ -85,7 +85,7 @@ public:
     //
     // constructor
     //
-    MultiGrid (LinOp& _Lp);
+    MultiGrid (LinOp& _lp);
     //
     // destructor
     //
