@@ -1076,7 +1076,6 @@ Geometry::SendGeometryToSidecars (Geometry *geom)
   int fromProc;
 
   MPI_Comm commSource = ParallelDescriptor::CommunicatorComp();
-  MPI_Comm commDest   = ParallelDescriptor::CommunicatorSidecar();
   MPI_Comm commInter  = ParallelDescriptor::CommunicatorInter();
   MPI_Comm comm = commInter;
 
