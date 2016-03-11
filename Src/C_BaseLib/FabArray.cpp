@@ -228,6 +228,14 @@ FabArrayBase::TheCPC (const CPC&          cpc,
                       const FabArrayBase& dst,
                       const FabArrayBase& src)
 {
+  FabArrayBase::TheCPC(cpc, dst.IndexMap(), src.IndexMap());
+}
+
+FabArrayBase::CPCCacheIter
+FabArrayBase::TheCPC (const CPC        &cpc,
+                      const Array<int> &dstIndexMap,
+                      const Array<int> &srcIndexMap)
+{
     BL_PROFILE("FabArrayBase::TheCPC()");
 
     BL_ASSERT(cpc.m_dstba.size() > 0 && cpc.m_srcba.size() > 0);
@@ -303,11 +311,13 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     TheCPC.m_SndVols = new std::map<int,int>;
     TheCPC.m_RcvVols = new std::map<int,int>;
 
-    if (dst.IndexMap().empty() && src.IndexMap().empty())
+    //if (dst.IndexMap().empty() && src.IndexMap().empty()) {
+    if (dstIndexMap.empty() && srcIndexMap.empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
         return cache_it;
+    }
 
     std::vector< std::pair<int,Box> > isects;
 
