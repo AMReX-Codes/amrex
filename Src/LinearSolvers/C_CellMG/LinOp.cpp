@@ -73,12 +73,12 @@ LinOp::LinOp (const BndryData& _bgb,
     :
     bgb(new BndryData(_bgb))
 {
-    Real __h[BL_SPACEDIM];
+    Real _hh[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-        __h[i] = _h;
+        _hh[i] = _h;
     }
-    initConstruct(__h);
+    initConstruct(_hh);
 }
 
 LinOp::LinOp (const BndryData& _bgb,
@@ -103,9 +103,12 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = maskvals.size(); i < N; ++i)
     {
-	for (int j = 0, M = maskvals[i].size(); j < M; ++j)
-	{
-            MaskTuple& a = maskvals[i].at_local(j);
+        for (std::map<int,MaskTuple>::iterator it = maskvals[i].begin(),
+                 End = maskvals[i].end();
+             it != End;
+             ++it)
+        {
+            MaskTuple& a = it->second;
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -113,9 +116,12 @@ LinOp::~LinOp ()
 
     for (int i = 0, N = lmaskvals.size(); i < N; ++i)
     {
-	for (int j = 0, M = lmaskvals[i].size(); j < M; ++j)
-	{
-            MaskTuple& a = lmaskvals[i].at_local(j);
+        for (std::map<int,MaskTuple>::iterator it = lmaskvals[i].begin(),
+                 End = lmaskvals[i].end();
+             it != End;
+             ++it)
+        {
+            MaskTuple& a = it->second;
             for (int k = 0; k < 2*BL_SPACEDIM; ++k)
                 delete a[k];
         }
@@ -165,8 +171,6 @@ LinOp::initConstruct (const Real* _h)
     // We note that all orientations of the FabSets have the same distribution.
     // We'll use the low 0 side as the model.
     //
-    maskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
-    lmaskvals[0].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -255,8 +259,8 @@ LinOp::applyBC (MultiFab&      inout,
 
         BL_ASSERT(gbox[level][gn] == inout.box(gn));
 
-        BL_ASSERT(level<maskvals.size() && maskvals[level].local_index(gn)>=0);
-        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].local_index(gn)>=0);
+        BL_ASSERT(level<maskvals.size() && maskvals[level].find(gn)!=maskvals[level].end());
+        BL_ASSERT(level<lmaskvals.size() && lmaskvals[level].find(gn)!=lmaskvals[level].end());
         BL_ASSERT(level<undrrelxr.size());
 
         const MaskTuple&                 ma  =  maskvals[level][gn];
@@ -427,8 +431,6 @@ LinOp::prepareForLevel (int level)
     // We'll use the low 0 side as the model.
     //
     int nGrow = NumGrow(level);
-    maskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
-    lmaskvals[level].reserve((*bgb)[Orientation(0,Orientation::low)].local_size());
     for (FabSetIter bndryfsi((*bgb)[Orientation(0,Orientation::low)]);
          bndryfsi.isValid();
          ++bndryfsi)
@@ -643,7 +645,7 @@ operator<< (std::ostream& os,
         if (ParallelDescriptor::IOProcessor())
             os << "level = " << level << '\n';
 
-        const BLMap<LinOp::MaskTuple>& m = lp.maskvals[level];
+        const std::map<int,LinOp::MaskTuple>& m = lp.maskvals[level];
 
         for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
         {
@@ -655,9 +657,12 @@ operator<< (std::ostream& os,
                 {
                     const Orientation face = oitr();
 
-		    for (int i=0, N=m.size(); i<N; ++i)
+                    for (std::map<int,LinOp::MaskTuple>::const_iterator it = m.begin(),
+                             End = m.end();
+                         it != End;
+                         ++it)
                     {
-                        os << m.at_local(i)[face];
+                        os << *(it->second[face]);
                     }
                 }
             }

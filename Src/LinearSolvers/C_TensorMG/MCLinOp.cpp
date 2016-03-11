@@ -64,12 +64,12 @@ MCLinOp::MCLinOp (const BndryData& _bgb,
     : numcomp(_nc), bgb(_bgb)
 {
     BL_ASSERT (MCLinOp::bcComponentsNeeded(numcomp) == bgb.nComp());
-    Real __h[BL_SPACEDIM];
+    Real _hh[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-        __h[i] = _h;
+        _hh[i] = _h;
     }
-    initConstruct(__h);
+    initConstruct(_hh);
 }
 
 MCLinOp::MCLinOp (const BndryData& _bgb,
