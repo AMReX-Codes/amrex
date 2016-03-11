@@ -56,6 +56,7 @@ f90EXE_sources += nodal_stencil.f90
 f90EXE_sources += nodal_stencil_fill.f90
 f90EXE_sources += nodal_smoothers.f90
 f90EXE_sources += nodal_stencil_apply.f90
+f90EXE_sources += nodal_sum.f90
 f90EXE_sources += nodal_mg_tower_smoother.f90
 
 f90EXE_sources += stencil_types.f90
