@@ -12,6 +12,10 @@
 #include <PArray.H>
 #include <MemPool.H>
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 #ifndef FORTRAN_BOXLIB
 #include <ParmParse.H>
 #endif
@@ -25,24 +29,38 @@ extern "C" {
 
 void mempool_init()
 {
+    static bool initialized = false;
+    if (!initialized)
+    {
+	initialized = true;
 #ifdef _OPENMP
-  int nthreads = omp_get_max_threads();
+	int nthreads = omp_get_max_threads();
 #else
-  int nthreads = 1;
+	int nthreads = 1;
 #endif
-  the_memory_pool.resize(nthreads, PArrayManage);
-  for (int i=0; i<nthreads; ++i) {
-    the_memory_pool.set(i, new CArena());
-  }
+	the_memory_pool.resize(nthreads, PArrayManage);
+	for (int i=0; i<nthreads; ++i) {
+	    the_memory_pool.set(i, new CArena());
+	}
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  {
-      size_t N = 1024*1024*sizeof(double);
-      void *p = mempool_alloc(N);
-      memset(p, 0, N);
-      mempool_free(p);
-  }
+	{
+	    size_t N = 1024*1024*sizeof(double);
+	    void *p = mempool_alloc(N);
+	    memset(p, 0, N);
+	    mempool_free(p);
+	}
+
+#ifdef BL_MEM_PROFILING
+	MemProfiler::add("MemPool", [] () -> MemProfiler::MemInfo {
+		int MB_min, MB_max, MB_tot;
+		mempool_get_stats(MB_min, MB_max, MB_tot);
+		long b = MB_tot * (1024L*1024L);
+		return {b, b};
+	    });
+#endif
+    }
 }
 
 void* mempool_alloc (size_t nbytes)
