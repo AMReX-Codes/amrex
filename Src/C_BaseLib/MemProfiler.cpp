@@ -70,14 +70,14 @@ MemProfiler::report_ (const std::string& prefix) const
 	    std::cout << prefix << " ";
 	std::cout << "Memory Profile Report Across Processes:\n";
 	for (int i = 0; i < the_names.size(); ++i) {
-	    std::cout << "      " << the_names[i] << " ::"
-		      << "  current : " << Bytes{cur_min[i],cur_max[i]}
-	              << "  high water mark : " << Bytes{hwm_min[i],hwm_max[i]}
+	    std::cout << "      " << the_names[i] << "::"
+		      << "  current: " << Bytes{cur_min[i],cur_max[i]}
+	              << "  high water mark: " << Bytes{hwm_min[i],hwm_max[i]}
 	              << "\n";
 	}
-	std::cout << "   Process Uses : " << Bytes{mymin[0],mymax[0]} << "\n"
-	          << "   Node Free    : " << Bytes{mymin[1],mymax[1]} << "\n"
-		  << "   Node Total   : " << Bytes{mymin[2],mymax[2]};
+	std::cout << "   Process Uses: " << Bytes{mymin[0],mymax[0]} << "\n"
+	          << "   Node Free   : " << Bytes{mymin[1],mymax[1]} << "\n"
+		  << "   Node Total  : " << Bytes{mymin[2],mymax[2]};
 	std::cout << std::endl;
     }
 }
@@ -85,20 +85,20 @@ MemProfiler::report_ (const std::string& prefix) const
 std::ostream& 
 operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
 {
-    static const long GB = 10L*1024L*1024L*1024L;
-    static const long MB = 10L*1024L*1024L;
-    static const long KB = 10L*1024L;
+    static const long G = 1024L*1024L*1024L;
+    static const long M = 1024L*1024L;
+    static const long K = 1024L;
 
     long fac;
     std::string unit;
-    if (bytes.mn >= 10L*GB) {
-	fac  =  GB; 
+    if (bytes.mn >= 10L*G) {
+	fac  =  G; 
 	unit = "GB";
-    } else if (bytes.mn >= 10L*MB) {
-	fac  =  MB; 
+    } else if (bytes.mn >= 10L*M) {
+	fac  =  M; 
 	unit = "MB";
-    } else if (bytes.mn >= 10L*KB) {
-	fac  =  KB; 
+    } else if (bytes.mn >= 10L*K) {
+	fac  =  K; 
 	unit = "KB";
     } else {
 	fac  = 1L; 
