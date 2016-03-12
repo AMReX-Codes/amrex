@@ -136,6 +136,12 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += mempool_f.f90
 endif
 
+# Memory Profiler
+ifeq ($(MEM_PROFILE),TRUE)
+  C$(BOXLIB_BASE)_sources += MemProfiler.cpp
+  C$(BOXLIB_BASE)_headers += MemProfiler.H
+endif
+
 ifeq ($(USE_PARTICLES), TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
   C$(BOXLIB_BASE)_sources += Particles.cpp

@@ -26,6 +26,10 @@
 #include <Lazy.H>
 #endif
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -378,6 +382,10 @@ BoxLib::Finalize (bool finalize_parallel)
 
 #ifdef BL_LAZY
     Lazy::Finalize();
+#endif
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::report("Final");
 #endif
 
     while (!The_Finalize_Function_Stack.empty())

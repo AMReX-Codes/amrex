@@ -41,6 +41,10 @@
 #include <Lazy.H>
 #endif
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
 #endif
@@ -2067,6 +2071,7 @@ Amr::coarseTimeStep (Real stop_time)
 	});
 #endif
 
+#ifndef BL_MEM_PROFILING
         long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
@@ -2078,7 +2083,7 @@ Amr::coarseTimeStep (Real stop_time)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes for timestep: ["
+            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes: ["
                       << min_fab_kilobytes
                       << " ... "
                       << max_fab_kilobytes
@@ -2088,12 +2093,16 @@ Amr::coarseTimeStep (Real stop_time)
 	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
 	});
 #endif
-
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::ResetTotalBytesAllocatedInFabsHWM();
+#endif
     }
+
+#ifdef BL_MEM_PROFILING
+    {
+	std::ostringstream ss;
+	ss << "[STEP " << level_steps[0] << "]";
+	MemProfiler::report(ss.str());
+    }
+#endif
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
