@@ -1,5 +1,4 @@
 
-#include <iostream>
 #include <numeric>
 #include <algorithm>
 
@@ -71,47 +70,43 @@ MemProfiler::report_ (const std::string& prefix) const
 	    std::cout << prefix << " ";
 	std::cout << "Memory Profile Report Across Processes:\n";
 	for (int i = 0; i < the_names.size(); ++i) {
-	    std::cout << "      " << the_names[i] << " ::";
-	    const std::string& uc = convertUnit(cur_min[i], cur_max[i]);
-	    const std::string& uh = convertUnit(hwm_min[i], hwm_max[i]);
-	    std::cout << "  current : [" << cur_min[i] << " ... " << cur_max[i] << " "<<uc<<"]";
-	    std::cout << "  high water mark : [" << hwm_min[i] << " ... " << hwm_max[i] <<" "<<uh<< "]";
-	    std::cout << "\n";
+	    std::cout << "      " << the_names[i] << " ::"
+		      << "  current : " << Bytes{cur_min[i],cur_max[i]}
+	              << "  high water mark : " << Bytes{hwm_min[i],hwm_max[i]}
+	              << "\n";
 	}
-	const std::string& u0 = convertUnit(mymin[0], mymax[0]);
-	const std::string& u1 = convertUnit(mymin[1], mymax[1]);
-	const std::string& u2 = convertUnit(mymin[2], mymax[2]);
-	std::cout << "   Using : [" << mymin[0] << " ... " << mymax[0] << " "<<u0<<"]" << std::endl;
-	std::cout << "   Avail : [" << mymin[1] << " ... " << mymax[1] << " "<<u1<<"]" << std::endl;
-	std::cout << "   Total : [" << mymin[2] << " ... " << mymax[2] << " "<<u2<<"]" << std::endl;
+	std::cout << "   Process Uses : " << Bytes{mymin[0],mymax[0]} << "\n"
+	          << "   Node Free    : " << Bytes{mymin[1],mymax[1]} << "\n"
+		  << "   Node Total   : " << Bytes{mymin[2],mymax[2]};
+	std::cout << std::endl;
     }
 }
 
-std::string
-MemProfiler::convertUnit(long& mn, long& mx)
+std::ostream& 
+operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
 {
     static const long GB = 10L*1024L*1024L*1024L;
     static const long MB = 10L*1024L*1024L;
     static const long KB = 10L*1024L;
 
+    long fac;
     std::string unit;
-
-    if (mn >= 10L*GB) {
-	mn /= GB;
-	mx /= GB;
+    if (bytes.mn >= 10L*GB) {
+	fac  =  GB; 
 	unit = "GB";
-    } else if (mn >= 10L*MB) {
-	mn /= MB;
-	mx /= MB;
+    } else if (bytes.mn >= 10L*MB) {
+	fac  =  MB; 
 	unit = "MB";
-    } else if (mn >= 10L*KB) {
-	mn /= KB;
-	mx /= KB;
+    } else if (bytes.mn >= 10L*KB) {
+	fac  =  KB; 
 	unit = "KB";
     } else {
+	fac  = 1L; 
 	unit = "B";
     }
 
-    return unit;
+    os << "[" << bytes.mn/fac << " ... " << bytes.mx/fac << " " << unit << "]";
+    if (os.fail())
+        BoxLib::Error("operator<<(ostream&,const MemProfiler::Bytes&) failed");
+    return os;
 }
-

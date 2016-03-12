@@ -6,6 +6,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <iostream>
 
 class MemProfiler
 {
@@ -30,9 +31,14 @@ private:
 
     void report_ (const std::string& prefix) const;
 
-    static MemProfiler& getInstance ();
+    struct Bytes {
+	long mn;
+	long mx;
+    };
+    friend std::ostream& operator<< (std::ostream& os, 
+				     const MemProfiler::Bytes& bytes);
 
-    static std::string convertUnit (long& mn, long& mx);
+    static MemProfiler& getInstance ();
 
     std::vector<std::string>               the_names;
     std::vector<std::function<MemInfo()> > the_funcs;

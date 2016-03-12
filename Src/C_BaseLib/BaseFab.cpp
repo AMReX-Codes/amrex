@@ -15,10 +15,10 @@
 #include <MemProfiler.H>
 #endif
 
-long BoxLib::private_total_bytes_allocated_in_fabs     = 0;
-long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0;
-long BoxLib::private_total_cells_allocated_in_fabs     = 0;
-long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
+long BoxLib::private_total_bytes_allocated_in_fabs     = 0L;
+long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0L;
+long BoxLib::private_total_cells_allocated_in_fabs     = 0L;
+long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0L;
 
 int BoxLib::BF_init::m_cnt = 0;
 
