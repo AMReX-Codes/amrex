@@ -1,16 +1,23 @@
 
 #include <iostream>
 #include <numeric>
+#include <algorithm>
 
 #include <unistd.h>
 
 #include <MemProfiler.H>
 #include <ParallelDescriptor.H>
+#include <BoxLib.H>
 
 void 
 MemProfiler::add(const std::string& name, std::function<MemInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
+    auto it = std::find(mprofiler.the_names.begin(), mprofiler.the_names.end(), name);
+    if (it != mprofiler.the_names.end()) {
+        std::string s = "MemProfiler::add failed because " + name + " already existed";
+        BoxLib::Abort(s.c_str());
+    }
     mprofiler.the_names.push_back(name);
     mprofiler.the_funcs.push_back(std::forward<std::function<MemInfo()> >(f));
 }
