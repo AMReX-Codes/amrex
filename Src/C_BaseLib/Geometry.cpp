@@ -797,8 +797,6 @@ Geometry::GetFPB (const Geometry&      geom,
         }
     }
 
-    long bytes_orig = bytesOfFPBCache();
-
     if (m_FPBCache.size() >= Geometry::fpb_cache_max_size)
     {
         //
@@ -851,8 +849,7 @@ Geometry::GetFPB (const Geometry&      geom,
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
 #ifdef BL_MEM_PROFILING
-	long bytes_now = bytesOfFPBCache();
-	fpb_cache_total_bytes += bytes_now - bytes_orig;
+	fpb_cache_total_bytes = bytesOfFPBCache();
 	fpb_cache_total_bytes_hwm = std::max(fpb_cache_total_bytes_hwm,
 					     fpb_cache_total_bytes);
 #endif
@@ -1066,10 +1063,8 @@ Geometry::GetFPB (const Geometry&      geom,
     }
 
 #ifdef BL_MEM_PROFILING
-    long bytes_now = bytesOfFPBCache();
-    fpb_cache_total_bytes += bytes_now - bytes_orig;
-    fpb_cache_total_bytes_hwm = std::max(fpb_cache_total_bytes_hwm,
-					 fpb_cache_total_bytes);
+    fpb_cache_total_bytes = bytesOfFPBCache();
+    fpb_cache_total_bytes_hwm = std::max(fpb_cache_total_bytes_hwm, fpb_cache_total_bytes);
 #endif
 
     return cache_it;
