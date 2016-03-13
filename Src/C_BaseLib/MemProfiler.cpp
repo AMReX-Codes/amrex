@@ -111,23 +111,3 @@ operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
     return os;
 }
 
-namespace BoxLib
-{
-    long
-    bytesOf (int i)
-    {
-	return sizeof(i);
-    }
-    
-    long
-    bytesOf (const Box& bx)
-    {
-	return sizeof(bx);
-    }
-    
-    long
-    bytesOf (const IntVect& bx)
-    {
-	return sizeof(bx);
-    }
-}

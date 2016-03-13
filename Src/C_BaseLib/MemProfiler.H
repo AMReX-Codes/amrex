@@ -9,8 +9,6 @@
 #include <map>
 #include <iostream>
 
-#include <Box.H>
-
 class MemProfiler
 {
 public:
@@ -23,6 +21,10 @@ public:
     static void add (const std::string& name, std::function<MemInfo()>&& f);
 
     static void report (const std::string& prefix = std::string());
+
+    // For gcc, there are extra 32 bytes for each map node.
+    // For others, this number may be different.
+    static const long gcc_map_node_extra_bytes = 32L;
 
 private:
 
@@ -46,36 +48,5 @@ private:
     std::vector<std::string>               the_names;
     std::vector<std::function<MemInfo()> > the_funcs;
 };
-
-namespace BoxLib
-{
-    // To avoid erroenous template deduction, we do not
-    // define template<typename T> long bytesOf (const T& a);
-    extern long bytesOf (int);
-    extern long bytesOf (const IntVect&);
-    extern long bytesOf (const Box&);
-    
-    template<typename T>
-    long
-    bytesOf (const std::vector<T>& v)
-    {
-	long r = sizeof(v) + (v.capacity()-v.size())*sizeof(T);
-	for (auto&& x: v)
-	    r += bytesOf(x);
-	return r;
-    }
-    
-    template<typename Key, typename T, class Compare, class Alloc>
-    long
-    bytesOf (const std::map<Key,T,Compare,Alloc>& m)
-    {
-	long r = sizeof(m);
-	for (auto&& x: m)
-	    // For glibc, there are extra 32 bytes for each mamp node.
-	    // For others, this number may be different.
-	    r += 32L + bytesOf(x.first) + bytesOf(x.second);
-	return r;
-    }
-}
 
 #endif
