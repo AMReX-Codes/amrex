@@ -8,9 +8,11 @@
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
-bool BoxArray::Ref::initialized     = false;
-long BoxArray::Ref::total_bytes     = 0L;
-long BoxArray::Ref::total_bytes_hwm = 0L;
+bool BoxArray::Ref::initialized          = false;
+long BoxArray::Ref::total_box_bytes      = 0L;
+long BoxArray::Ref::total_box_bytes_hwm  = 0L;
+long BoxArray::Ref::total_hash_bytes     = 0L;
+long BoxArray::Ref::total_hash_bytes_hwm = 0L;
 #endif
 
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
@@ -1152,10 +1154,10 @@ BoxArray::Ref::updateMemoryUsage_box (int s)
     if (m_abox.size() > 1) {
 	long b = BoxLib::bytesOf(m_abox);
 	if (s > 0) {
-	    total_bytes += b;
-	    total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	    total_box_bytes += b;
+	    total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
 	} else {
-	    total_bytes -= b;
+	    total_box_bytes -= b;
 	}
     }
 }
@@ -1170,10 +1172,10 @@ BoxArray::Ref::updateMemoryUsage_hash (int s)
 		+ sizeof(IntVect) + BoxLib::bytesOf(x.second);
 	}
 	if (s > 0) {
-	    total_bytes += b;
-	    total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	    total_hash_bytes += b;
+	    total_hash_bytes_hwm = std::max(total_hash_bytes_hwm, total_hash_bytes);
 	} else {
-	    total_bytes -= b;
+	    total_hash_bytes -= b;
 	}
     }
 }
@@ -1184,7 +1186,10 @@ BoxArray::Ref::Initialize ()
     if (!initialized) {
 	initialized = true;
 	MemProfiler::add("BoxArray", [] () -> MemProfiler::MemInfo {
-		return {total_bytes, total_bytes_hwm};
+		return {total_box_bytes, total_box_bytes_hwm};
+	    });
+	MemProfiler::add("BoxArrayHash", [] () -> MemProfiler::MemInfo {
+		return {total_hash_bytes, total_hash_bytes_hwm};
 	    });
     }
 }

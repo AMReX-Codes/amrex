@@ -436,8 +436,10 @@ private:
 #ifdef BL_MEM_PROFILING
 	static void Initialize ();
 	static bool initialized;
-	static long total_bytes;
-	static long total_bytes_hwm;
+	static long total_box_bytes;
+	static long total_box_bytes_hwm;
+	static long total_hash_bytes;
+	static long total_hash_bytes_hwm;
 #endif
     };
 
