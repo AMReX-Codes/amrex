@@ -218,6 +218,8 @@ public:
     typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
     typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
     //
+    static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
+    //
     // Used in caching self-intersection info for FillBoundary().
     //
     struct SI

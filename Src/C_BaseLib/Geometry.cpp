@@ -9,6 +9,7 @@
 #include <MultiFab.H>
 #include <FArrayBox.H>
 #include <BLProfiler.H>
+#include <Utility.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
@@ -101,55 +102,36 @@ Geometry::FPB::operator== (const FPB& rhs) const
         m_ngrow == rhs.m_ngrow && m_do_corners == rhs.m_do_corners && m_domain == rhs.m_domain && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
-int
+long 
+Geometry::FPB::bytesOfMapOfComTagContainers (const Geometry::FPB::MapOfFPBComTagContainers& m)
+{
+    long r = sizeof(MapOfFPBComTagContainers);
+    for (FPB::MapOfFPBComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
+	r += sizeof(it->first) + BoxLib::bytesOf(it->second)
+	    + BoxLib::gcc_map_node_extra_bytes;
+    }
+    return r;
+}
+
+long
 Geometry::FPB::bytes () const
 {
-    int cnt = sizeof(Geometry::FPB);
+    long cnt = sizeof(Geometry::FPB);
 
     if (m_LocTags)
-    {
-        cnt += sizeof(FPBComTagsContainer) + m_LocTags->size()*sizeof(FPBComTag);
-    }
+        cnt += BoxLib::bytesOf(*m_LocTags);
 
     if (m_SndTags)
-    {
-        cnt += sizeof(MapOfFPBComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
-
-        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(FPBComTag);
-        }
-    }
+	cnt += bytesOfMapOfComTagContainers(*m_SndTags);
 
     if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfFPBComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
-
-        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(FPBComTag);
-        }
-    }
+        cnt += bytesOfMapOfComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_RcvVols);
 
     return cnt;
 }
@@ -1115,12 +1097,6 @@ Geometry::FlushPIRMCache ()
     }
 
     m_FPBCache.clear();
-}
-
-int
-Geometry::PIRMCacheSize ()
-{
-    return m_FPBCache.size();
 }
 
 #ifdef BL_USE_MPI
