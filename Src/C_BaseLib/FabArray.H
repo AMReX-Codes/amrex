@@ -239,7 +239,7 @@ public:
         bool operator== (const SI& rhs) const;
         bool operator!= (const SI& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
         //
         // Basic data.
         //
@@ -270,6 +270,8 @@ public:
 
     static CacheStats m_FBC_stats;
     //
+    static long bytesOfFBCache ();
+    //
     // When copy()ing from one FabArray to another we can do a copy or an add.
     //
     enum CpOp { COPY = 0, ADD = 1 };
@@ -290,7 +292,7 @@ public:
         bool operator== (const CPC& rhs) const;
         bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
 
         static void FlushCache ();
 
@@ -322,6 +324,8 @@ public:
     static CPCCache m_TheCopyCache;
 
     static CacheStats m_CPC_stats;
+
+    static long bytesOfCPCCache ();
 
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
