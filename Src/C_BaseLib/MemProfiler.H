@@ -22,10 +22,6 @@ public:
 
     static void report (const std::string& prefix = std::string());
 
-    // For gcc, there are extra 32 bytes for each map node.
-    // For others, this number may be different.
-    static const long gcc_map_node_extra_bytes = 32L;
-
 private:
 
     MemProfiler (const MemProfiler&) = delete;

@@ -4,6 +4,7 @@
 #include <BLassert.H>
 #include <BoxArray.H>
 #include <ParallelDescriptor.H>
+#include <Utility.H>
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
@@ -1149,7 +1150,7 @@ void
 BoxArray::Ref::updateMemoryUsage_box (int s)
 {
     if (m_abox.size() > 1) {
-	long b = sizeof(m_abox) + m_abox.capacity()*sizeof(Box);
+	long b = BoxLib::bytesOf(m_abox);
 	if (s > 0) {
 	    total_bytes += b;
 	    total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
@@ -1165,8 +1166,8 @@ BoxArray::Ref::updateMemoryUsage_hash (int s)
     if (hash.size() > 0) {
 	long b = sizeof(hash);
 	for (auto&& x: hash) {
-	    b += MemProfiler::gcc_map_node_extra_bytes
-		+ sizeof(IntVect) + sizeof(x.second) + x.second.capacity()*sizeof(int);
+	    b += BoxLib::gcc_map_node_extra_bytes
+		+ sizeof(IntVect) + BoxLib::bytesOf(x.second);
 	}
 	if (s > 0) {
 	    total_bytes += b;

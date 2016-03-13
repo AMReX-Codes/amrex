@@ -110,4 +110,3 @@ operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
         BoxLib::Error("operator<<(ostream&,const MemProfiler::Bytes&) failed");
     return os;
 }
-
