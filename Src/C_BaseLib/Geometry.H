@@ -216,10 +216,6 @@ public:
     //
     static void FlushPIRMCache ();
     //
-    // The size of the PIRM cache.
-    //
-    static int PIRMCacheSize ();
-    //
     // Used by FillPeriodicBoundary().
     //
     struct FPBComTag
@@ -262,7 +258,7 @@ public:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
 
         BoxArray            m_ba;
         DistributionMapping m_dm;
@@ -286,6 +282,9 @@ public:
         MapOfFPBComTagContainers* m_RcvTags;
         std::map<int,int>*        m_SndVols;
         std::map<int,int>*        m_RcvVols;
+
+    private:
+	static long bytesOfMapOfComTagContainers (const MapOfFPBComTagContainers&);
     };
     //
     // Some useful typedefs for the FPB cache.

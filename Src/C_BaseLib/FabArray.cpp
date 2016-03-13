@@ -4,6 +4,7 @@
 #include <Lazy.H>
 #endif
 
+#include <Utility.H>
 #include <FabArray.H>
 #include <ParmParse.H>
 //
@@ -107,6 +108,17 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
+long
+FabArrayBase::bytesOfMapOfCopyComTagContainers (const FabArrayBase::MapOfCopyComTagContainers& m)
+{
+    long r = sizeof(MapOfCopyComTagContainers);
+    for (MapOfCopyComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
+	r += sizeof(it->first) + BoxLib::bytesOf(it->second)
+	    + BoxLib::gcc_map_node_extra_bytes;
+    }
+    return r;
+}
+
 //
 // Stuff used for copy() caching.
 //
@@ -166,49 +178,19 @@ FabArrayBase::CPC::bytes () const
     int cnt = sizeof(FabArrayBase::CPC);
 
     if (m_LocTags)
-    {
-        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
-    }
+	cnt += BoxLib::bytesOf(*m_LocTags);
 
     if (m_SndTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
 
     if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_RcvVols);
 
     return cnt;
 }
@@ -551,49 +533,19 @@ FabArrayBase::SI::bytes () const
     int cnt = sizeof(FabArrayBase::SI);
 
     if (m_LocTags)
-    {
-        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
-    }
+	cnt += BoxLib::bytesOf(*m_LocTags);
 
     if (m_SndTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
 
     if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_RcvVols);
 
     return cnt;
 }
