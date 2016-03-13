@@ -357,11 +357,17 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
         if (erase_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_CPC_stats.bytes -= erase_it->second.bytes();
+#endif
 	    m_CPC_stats.recordErase(erase_it->second.m_nuse);
             TheCopyCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_CPC_stats.bytes -= last_it->second.bytes();
+#endif
 	    m_CPC_stats.recordErase(last_it->second.m_nuse);
             TheCopyCache.erase(last_it);
         }
@@ -394,7 +400,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
 #ifdef BL_MEM_PROFILING
-	m_CPC_stats.bytes = bytesOfCPCCache();
+	m_CPC_stats.bytes += TheCPC.bytes();
 	m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
 #endif
         return cache_it;
@@ -546,7 +552,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     }    
 
 #ifdef BL_MEM_PROFILING
-    m_CPC_stats.bytes = bytesOfCPCCache();
+    m_CPC_stats.bytes += TheCPC.bytes();
     m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
 #endif
 
@@ -695,11 +701,17 @@ FabArrayBase::TheFB (bool                cross,
 
         if (erase_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_FBC_stats.bytes -= erase_it->second.bytes();
+#endif
 	    m_FBC_stats.recordErase(erase_it->second.m_nuse);
             m_TheFBCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_FBC_stats.bytes -= last_it->second.bytes();
+#endif
 	    m_FBC_stats.recordErase(last_it->second.m_nuse);
 	    m_TheFBCache.erase(last_it);
         }
@@ -735,7 +747,7 @@ FabArrayBase::TheFB (bool                cross,
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
 #ifdef BL_MEM_PROFILING
-	m_FBC_stats.bytes = bytesOfFBCache();
+	m_FBC_stats.bytes += TheFB.bytes();
 	m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
 #endif
         return cache_it;
@@ -926,8 +938,8 @@ FabArrayBase::TheFB (bool                cross,
     }
 
 #ifdef BL_MEM_PROFILING
-    m_FBC_stats.bytes = bytesOfFBCache();
-    m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
+	m_FBC_stats.bytes += TheFB.bytes();
+	m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
 #endif
 
     return cache_it;
@@ -1018,7 +1030,7 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
 #ifdef BL_MEM_PROFILING
-	    m_TAC_stats.bytes = bytesOfTACache();
+	    m_TAC_stats.bytes += p->bytes();
 	    m_TAC_stats.bytes_hwm = std::max(m_TAC_stats.bytes_hwm,
 					     m_TAC_stats.bytes);
 #endif
@@ -1102,6 +1114,9 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
 		 tai_it != tao_it->second.end(); ++tai_it)
 	    {
+#ifdef BL_MEM_PROFILING
+		m_TAC_stats.bytes -= tai_it->second.bytes();
+#endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
 	    }
 	    tao.erase(tao_it);
@@ -1111,14 +1126,14 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 	    TAMap& tai = tao_it->second;
 	    TAMap::iterator tai_it = tai.find(tileSize);
 	    if (tai_it != tai.end()) {
+#ifdef BL_MEM_PROFILING
+		m_TAC_stats.bytes -= tai_it->second.bytes();
+#endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
 		tai.erase(tai_it);
 	    }
 	}
     }
-#ifdef BL_MEM_PROFILING
-    m_TAC_stats.bytes = bytesOfTACache();
-#endif
 }
 
 void
