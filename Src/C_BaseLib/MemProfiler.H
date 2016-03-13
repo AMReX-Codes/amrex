@@ -6,9 +6,10 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <map>
 #include <iostream>
 
-#include <Array.H>
+#include <Box.H>
 
 class MemProfiler
 {
@@ -46,28 +47,35 @@ private:
     std::vector<std::function<MemInfo()> > the_funcs;
 };
 
-template<typename T>
-long
-bytesOf (const T& a)
+namespace BoxLib
 {
-    return sizeof(T);
-}
-
-template<typename T>
-long
-bytesOf (const std::vector<T>& v)
-{
-    long r = sizeof(v) + (v.capacity()-v.size())*sizeof(T);
-    for (auto&& x: v)
-	r += bytesOf(x);
-    return r;
-}
-
-template<typename T>
-long
-bytesOf (const Array<T>& v)
-{
-    return bytesOf(static_cast<std::vector<T> >(v));
+    // To avoid erroenous template deduction, we do not
+    // define template<typename T> long bytesOf (const T& a);
+    extern long bytesOf (int);
+    extern long bytesOf (const IntVect&);
+    extern long bytesOf (const Box&);
+    
+    template<typename T>
+    long
+    bytesOf (const std::vector<T>& v)
+    {
+	long r = sizeof(v) + (v.capacity()-v.size())*sizeof(T);
+	for (auto&& x: v)
+	    r += bytesOf(x);
+	return r;
+    }
+    
+    template<typename Key, typename T, class Compare, class Alloc>
+    long
+    bytesOf (const std::map<Key,T,Compare,Alloc>& m)
+    {
+	long r = sizeof(m);
+	for (auto&& x: m)
+	    // For glibc, there are extra 32 bytes for each mamp node.
+	    // For others, this number may be different.
+	    r += 32L + bytesOf(x.first) + bytesOf(x.second);
+	return r;
+    }
 }
 
 #endif

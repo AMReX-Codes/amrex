@@ -384,10 +384,6 @@ BoxLib::Finalize (bool finalize_parallel)
     Lazy::Finalize();
 #endif
 
-#ifdef BL_MEM_PROFILING
-    MemProfiler::report("Final");
-#endif
-
     while (!The_Finalize_Function_Stack.empty())
     {
         //
@@ -432,14 +428,18 @@ BoxLib::Finalize (bool finalize_parallel)
 	}
     }
 #endif
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::report("Final");
+#endif
     
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
 #ifdef IN_TRANSIT
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_sidecar_mpi_comm_free(fcomm);
+	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+	bl_fortran_sidecar_mpi_comm_free(fcomm);
 #else
-    bl_fortran_mpi_comm_free();
+	bl_fortran_mpi_comm_free();
 #endif
 #endif
         ParallelDescriptor::EndParallel();

@@ -2342,7 +2342,6 @@ Amr::defBaseLevel (Real              strt_time,
     //
     amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
 
-    lev0.clear();
     //
     // Now init level 0 grids with data.
     //
