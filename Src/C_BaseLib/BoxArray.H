@@ -352,26 +352,71 @@ private:
 
     class Ref
     {
-        friend class BoxArray;
+    public:
         //
         // Constructors to match those in BoxArray ....
         //
-        Ref () {}
+        Ref () { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
 
-        Ref (size_t size) : m_abox(size) {}
+        Ref (size_t size) : m_abox(size) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
 
-        Ref (const BoxList& bl) { define(bl); }
+        Ref (const BoxList& bl) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+#endif
+	    define(bl); 
+	}
 
-        Ref (std::istream& is) { define(is); }
+        Ref (std::istream& is) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+#endif
+	    define(is); 
+	}
 
-        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
+
+	~Ref () {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(-1);
+	    updateMemoryUsage_hash(-1);
+#endif	    
+	}
+
         //
         // Some defines()s to match those in BoxArray.
         //
         void define (const Box& bx);
         void define (const BoxList& bl);
-
         void define (std::istream& is);
+	//
+	void resize (int n) {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box (-1);
+#endif
+	    m_abox.resize(n);
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box (1);
+#endif
+	}
+#ifdef BL_MEM_PROFILING
+	void updateMemoryUsage_box (int s);
+	void updateMemoryUsage_hash (int s);
+#endif
         //
         // The data.
         //
@@ -384,7 +429,18 @@ private:
         mutable IntVect crsn;
 
         mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
+
+    private:
+	Ref& operator= (const Ref&); // disallowed
+
+#ifdef BL_MEM_PROFILING
+	static void Initialize ();
+	static bool initialized;
+	static long total_bytes;
+	static long total_bytes_hwm;
+#endif
     };
+
     //
     // Make ourselves unique.
     //
