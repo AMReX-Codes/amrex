@@ -1149,9 +1149,13 @@ void
 BoxArray::Ref::updateMemoryUsage_box (int s)
 {
     if (m_abox.size() > 1) {
-	long sgn = (s>0) ? 1L : -1L;
-	total_bytes += BoxLib::bytesOf(m_abox)*sgn;
-	total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	long b = sizeof(m_abox) + m_abox.capacity()*sizeof(Box);
+	if (s > 0) {
+	    total_bytes += b;
+	    total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	} else {
+	    total_bytes -= b;
+	}
     }
 }
 
@@ -1159,9 +1163,17 @@ void
 BoxArray::Ref::updateMemoryUsage_hash (int s)
 {
     if (hash.size() > 0) {
-	long sgn = (s>0) ? 1L : -1L;
-        total_bytes += BoxLib::bytesOf(hash)*sgn;
-	total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	long b = sizeof(hash);
+	for (auto&& x: hash) {
+	    b += MemProfiler::gcc_map_node_extra_bytes
+		+ sizeof(IntVect) + sizeof(x.second) + x.second.capacity()*sizeof(int);
+	}
+	if (s > 0) {
+	    total_bytes += b;
+	    total_bytes_hwm = std::max(total_bytes_hwm, total_bytes);
+	} else {
+	    total_bytes -= b;
+	}
     }
 }
 
