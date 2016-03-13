@@ -294,8 +294,12 @@ public:
     typedef FPBMMap::iterator FPBMMapIter;
 
     static FPBMMap m_FPBCache;
-
     static int fpb_cache_max_size;
+    static long bytesOfFPBCache ();
+#ifdef BL_MEM_PROFILING
+    static long fpb_cache_total_bytes;
+    static long fpb_cache_total_bytes_hwm;
+#endif
     //
     // See if we've got an approprite FPB cached.
     //
