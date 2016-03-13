@@ -2,12 +2,14 @@
 #include <numeric>
 #include <algorithm>
 #include <iomanip>
+#include <fstream>
 
 #include <unistd.h>
 
 #include <MemProfiler.H>
 #include <ParallelDescriptor.H>
 #include <BoxLib.H>
+#include <ParmParse.H>
 
 void 
 MemProfiler::add(const std::string& name, std::function<MemInfo()>&& f)
@@ -32,11 +34,19 @@ MemProfiler::getInstance ()
 void
 MemProfiler::report (const std::string& prefix)
 {
-    getInstance().report_(prefix);
+    static std::string memory_log_name;
+    if (memory_log_name.empty()) {
+	ParmParse pp("boxlib");
+	pp.query("memory_log", memory_log_name);
+	if (memory_log_name.empty())
+	    memory_log_name = "memlog";
+    }
+
+    getInstance().report_(prefix, memory_log_name);
 }
 
 void
-MemProfiler::report_ (const std::string& prefix) const
+MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_name) const
 {
     std::vector<long> cur_min;
     std::vector<long> hwm_min;
@@ -67,6 +77,11 @@ MemProfiler::report_ (const std::string& prefix) const
     ParallelDescriptor::ReduceLongMax(mymax, 3, IOProc);
 
     if (ParallelDescriptor::IOProcessor()) {
+
+	std::ofstream memlog(memory_log_name.c_str(), 
+			     std::ofstream::out|std::ofstream::app);
+	if (!memlog.good()) return;
+
 	static int width_name = 0;
 	if (width_name == 0) {
 	    for (auto& x: the_names)
@@ -76,34 +91,47 @@ MemProfiler::report_ (const std::string& prefix) const
 
 	const std::string dash_name(width_name,'-');
 	const std::string dash_bytes(width_bytes,'-');
+	const std::string ident1(3,' ');
+	const std::string ident2(6,' ');
 
 	if (!prefix.empty())
-	    std::cout << prefix << " ";
+	    memlog << prefix << " ";
 
-	std::cout << "Memory Profile Report Across Processes:\n";
+	memlog << "Memory Profile Report Across Processes:\n";
 
-	std::cout << std::setfill(' ');
-	std::cout << "  | " << std::setw(width_name) << std::left << "Name" << " | "
-		  << std::setw(width_bytes) << std::right << "Current     " << " | "
-		  << std::setw(width_bytes) << "High Water Mark " << " |\n";
+	memlog << std::setfill(' ');
+	memlog << ident2;
+	memlog << "| " << std::setw(width_name) << std::left << "Name" << " | "
+	       << std::setw(width_bytes) << std::right << "Current     " << " | "
+	       << std::setw(width_bytes) << "High Water Mark " << " |\n";
 	std::setw(0);
 
-	std::cout << "  |-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
+	memlog << ident2;
+	memlog << "|-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
 
 	for (int i = 0; i < the_names.size(); ++i) {
-	    std::cout << "  | " << std::setw(width_name) << std::left << the_names[i] << " | ";
-	    std::cout << Bytes{cur_min[i],cur_max[i]} << " | ";
-	    std::cout << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
+	    memlog << ident2;
+	    memlog << "| " << std::setw(width_name) << std::left << the_names[i] << " | ";
+	    memlog << Bytes{cur_min[i],cur_max[i]} << " | ";
+	    memlog << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
 	}
 
-	std::cout << "  |-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
+	memlog << ident2;
+	memlog << "|-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
 
-	std::cout << "  | " << std::setw(width_name) << std::left << "Total" << " | ";
-	std::cout << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
-	std::cout << std::setw(0);
+	memlog << ident2;
+	memlog << "| " << std::setw(width_name) << std::left << "Total" << " | ";
+	memlog << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
+	memlog << std::setw(0);
 
-	std::cout << " Node Free  : " << "[" << Bytes{mymin[1],mymax[1]} << "]\n";
-	std::cout << " Node Total : " << "[" << Bytes{mymin[2],mymax[2]} << "]" << std::endl;
+	memlog << ident1;
+	memlog << "Node Free  : " << "[" << Bytes{mymin[1],mymax[1]} << "]\n";
+	memlog << ident1;
+	memlog << "Node Total : " << "[" << Bytes{mymin[2],mymax[2]} << "]\n";
+
+	memlog << std::endl;
+
+	memlog.close();
     }
 }
 

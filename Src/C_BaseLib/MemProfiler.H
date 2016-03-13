@@ -30,7 +30,7 @@ private:
     MemProfiler () {}
     ~MemProfiler () {}
 
-    void report_ (const std::string& prefix) const;
+    void report_ (const std::string& prefix, const std::string& memory_log_name) const;
 
     struct Bytes {
 	long mn;
