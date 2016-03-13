@@ -1,6 +1,7 @@
 
 #include <numeric>
 #include <algorithm>
+#include <iomanip>
 
 #include <unistd.h>
 
@@ -66,19 +67,43 @@ MemProfiler::report_ (const std::string& prefix) const
     ParallelDescriptor::ReduceLongMax(mymax, 3, IOProc);
 
     if (ParallelDescriptor::IOProcessor()) {
+	static int width_name = 0;
+	if (width_name == 0) {
+	    for (auto& x: the_names)
+		width_name = std::max(width_name, int(x.size()));
+	}
+	const int width_bytes = 18;
+
+	const std::string dash_name(width_name,'-');
+	const std::string dash_bytes(width_bytes,'-');
+
 	if (!prefix.empty())
 	    std::cout << prefix << " ";
+
 	std::cout << "Memory Profile Report Across Processes:\n";
+
+	std::cout << std::setfill(' ');
+	std::cout << "  | " << std::setw(width_name) << std::left << "Name" << " | "
+		  << std::setw(width_bytes) << std::right << "Current     " << " | "
+		  << std::setw(width_bytes) << "High Water Mark " << " |\n";
+	std::setw(0);
+
+	std::cout << "  |-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
+
 	for (int i = 0; i < the_names.size(); ++i) {
-	    std::cout << "      " << the_names[i] << "::"
-		      << "  current: " << Bytes{cur_min[i],cur_max[i]}
-	              << "  high water mark: " << Bytes{hwm_min[i],hwm_max[i]}
-	              << "\n";
+	    std::cout << "  | " << std::setw(width_name) << std::left << the_names[i] << " | ";
+	    std::cout << Bytes{cur_min[i],cur_max[i]} << " | ";
+	    std::cout << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
 	}
-	std::cout << "   Process Uses: " << Bytes{mymin[0],mymax[0]} << "\n"
-	          << "   Node Free   : " << Bytes{mymin[1],mymax[1]} << "\n"
-		  << "   Node Total  : " << Bytes{mymin[2],mymax[2]};
-	std::cout << std::endl;
+
+	std::cout << "  |-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
+
+	std::cout << "  | " << std::setw(width_name) << std::left << "Total" << " | ";
+	std::cout << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
+	std::cout << std::setw(0);
+
+	std::cout << " Node Free  : " << "[" << Bytes{mymin[1],mymax[1]} << "]\n";
+	std::cout << " Node Total : " << "[" << Bytes{mymin[2],mymax[2]} << "]" << std::endl;
     }
 }
 
@@ -105,8 +130,9 @@ operator<< (std::ostream& os, const MemProfiler::Bytes& bytes)
 	unit = "B";
     }
 
-    os << "[" << bytes.mn/fac << " ... " << bytes.mx/fac << " " << unit << "]";
-    if (os.fail())
-        BoxLib::Error("operator<<(ostream&,const MemProfiler::Bytes&) failed");
+    os << std::setw(5) << std::right << bytes.mn/fac << " ... "
+       << std::setw(5) << std::left  << bytes.mx/fac << " " 
+       << std::setw(2) << std::right << unit;
+    os << std::setw(0);
     return os;
 }
