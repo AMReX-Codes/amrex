@@ -161,9 +161,12 @@ public:
 	long        nuse;     // # of uses of the whole cache
 	long        nbuild;   // # of build operations
 	long        nerase;   // # of erase operations
+	long        bytes;
+	long        bytes_hwm;
 	std::string name;     // name of the cache
 	CacheStats (const std::string& name_) 
-	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),name(name_) {;}
+	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
+	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () {
 	    ++size;  
 	    ++nbuild;  
@@ -408,6 +411,7 @@ public:
 	Array<int> localIndexMap;
 	Array<Box> tileArray;
 	TileArray () : nuse(-1) {;}
+	long bytes () const;
     };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
@@ -476,6 +480,8 @@ protected:
     //
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
+    //
+    static long bytesOfTACache ();
     //
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //

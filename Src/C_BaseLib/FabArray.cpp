@@ -7,6 +7,11 @@
 #include <Utility.H>
 #include <FabArray.H>
 #include <ParmParse.H>
+
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 //
 // Set default values in Initialize()!!!
 //
@@ -28,9 +33,9 @@ FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
 
-FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
-FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("Fill Boundary Cache");
-FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("Copy Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
+FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("SICache");
+FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("CopyCache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -90,6 +95,18 @@ FabArrayBase::Initialize ()
     FabArrayBase::nFabArrays = 0;
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add(m_TAC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_TAC_stats.bytes, m_TAC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_FBC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_FBC_stats.bytes, m_FBC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_CPC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_CPC_stats.bytes, m_CPC_stats.bytes_hwm};
+	});
+#endif
 
     initialized = true;
 }
@@ -890,6 +907,39 @@ FabArrayBase::SICacheSize ()
     return m_TheFBCache.size();
 }
 
+long
+FabArrayBase::TileArray::bytes () const
+{
+    return sizeof(*this) 
+	+ (BoxLib::bytesOf(this->indexMap)      - sizeof(this->indexMap))
+	+ (BoxLib::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
+	+ (BoxLib::bytesOf(this->tileArray)     - sizeof(this->tileArray));
+}
+
+long
+FabArrayBase::bytesOfTACache ()
+{
+    long r;
+    if (m_TheTileArrayCache.empty()) {
+	r = 0L;
+    } else {
+	r = sizeof(m_TheTileArrayCache);
+	for (TACache::const_iterator it = m_TheTileArrayCache.begin();
+	     it != m_TheTileArrayCache.end(); ++it)
+	{
+	    r += sizeof(it->first) + sizeof(it->second)
+		+ BoxLib::gcc_map_node_extra_bytes;
+	    for (TAMap::const_iterator it2 = it->second.begin();
+		 it2 != it->second.end(); ++it2)
+	    {
+		r += sizeof(it2->first) + (it2->second).bytes()
+		    + BoxLib::gcc_map_node_extra_bytes;
+	    }
+	}
+    }
+    return r;
+}
+
 const FabArrayBase::TileArray* 
 FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
@@ -905,6 +955,11 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
+#ifdef BL_MEM_PROFILING
+	    m_TAC_stats.bytes = bytesOfTACache();
+	    m_TAC_stats.bytes_hwm = std::max(m_TAC_stats.bytes_hwm,
+					     m_TAC_stats.bytes);
+#endif
 	}
 #ifdef _OPENMP
 #pragma omp master
@@ -999,6 +1054,9 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 	    }
 	}
     }
+#ifdef BL_MEM_PROFILING
+    m_TAC_stats.bytes = bytesOfTACache();
+#endif
 }
 
 void
@@ -1014,6 +1072,9 @@ FabArrayBase::flushTileArrayCache ()
 	}
     }
     m_TheTileArrayCache.clear();
+#ifdef BL_MEM_PROFILING
+    m_TAC_stats.bytes = 0L;
+#endif
 }
 
 void
