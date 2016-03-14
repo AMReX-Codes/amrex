@@ -74,6 +74,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
 #ifdef __linux
     int ierr_sysinfo;
+    int ierr_cached;
     {
 	struct sysinfo info;
 	ierr_sysinfo = sysinfo(&info);
@@ -82,6 +83,28 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	    mymin[2] = mymax[2] = info.mem_unit * info.freeram;
 	    mymin[3] = mymax[3] = info.mem_unit * (info.bufferram + info.freeram);
 	    mymin[4] = mymax[4] = info.mem_unit * info.sharedram;
+	}
+
+	// Have to read /proc/meminfo to get Cached memory.
+	{
+	    std::ifstream ifs("/proc/meminfo");
+	    std::string token;
+	    long cached;
+	    std::string unit;
+	    while (ifs >> token) {
+		if (token == "Cached:") {
+		    ifs >> cached >> unit;
+		    break;
+		}
+		ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	    }
+	    if (unit == "kB") {
+		ierr_cached = 0;
+		mymin[3] += cached*1024L;
+		mymax[3] = mymin[3];
+	    } else {
+		ierr_cached = -1;
+	    }
 	}
     }
 #endif
@@ -145,10 +168,12 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 #ifdef __linux
 	if (ierr_sysinfo == 0) {
 	    memlog << ident1 << std::setw(width_bytes) << std::left << "Node total"
-		   << "   " << std::setw(width_bytes) << "Node free"
-		   << "   " << std::setw(width_bytes) << "Node free+buffers"
-		   << "   " << std::setw(width_bytes) << "Node shared"
-		   << "\n";
+		   << "   " << std::setw(width_bytes) << "free";
+	    if (ierr_cached == 0)
+		memlog << "   " << std::setw(width_bytes) << "free+buffers+cached" << "  ";
+	    else
+		memlog << "   " << std::setw(width_bytes) << "free+buffers" << "   ";
+	    memlog << std::setw(width_bytes) << "shared" << "\n";
 	    memlog << ident1 << "[" << Bytes{mymin[1], mymax[1]} << "]"
 		   << " " << "[" << Bytes{mymin[2], mymax[2]} << "]"
 		   << " " << "[" << Bytes{mymin[3], mymax[3]} << "]"
