@@ -983,6 +983,7 @@ BoxArray::removeOverlap ()
 #ifdef BL_MEM_PROFILING
     m_ref->updateMemoryUsage_box(-1);
     m_ref->updateMemoryUsage_hash(-1);
+    long total_hash_bytes_save = m_ref->total_hash_bytes;
 #endif
     for (int i = 0; i < size(); i++)
     {
@@ -1011,7 +1012,6 @@ BoxArray::removeOverlap ()
     }
 #ifdef BL_MEM_PROFILING
     m_ref->updateMemoryUsage_box(1);
-    m_ref->updateMemoryUsage_hash(1);
 #endif
     //
     // We now have "holes" in our BoxArray. Make us good.
@@ -1049,6 +1049,10 @@ BoxArray::removeOverlap ()
     bl.clear();
 
     *this = nba;
+
+#ifdef BL_MEM_PROFILING
+    m_ref->total_hash_bytes = total_hash_bytes_save;
+#endif
 
     BL_ASSERT(isDisjoint());
 }
