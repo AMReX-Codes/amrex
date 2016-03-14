@@ -113,10 +113,13 @@ BoxArray::clear ()
     if (m_ref.unique()) {
 #ifdef BL_MEM_PROFILING
 	m_ref->updateMemoryUsage_box(-1);
+	m_ref->updateMemoryUsage_hash(-1);
 #endif
 	m_ref->m_abox.clear();
         clear_hash_bin();
-    } 
+    } else {
+	m_ref = new BoxArray::Ref();
+    }
 }
 
 void
