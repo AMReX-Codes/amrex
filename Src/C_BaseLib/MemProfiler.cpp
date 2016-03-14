@@ -4,7 +4,9 @@
 #include <iomanip>
 #include <fstream>
 
-#include <unistd.h>
+#ifdef __linux
+#include <sys/sysinfo.h>
+#endif
 
 #include <MemProfiler.H>
 #include <ParallelDescriptor.H>
@@ -59,22 +61,38 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
     std::vector<long> cur_max = cur_min;
     std::vector<long> hwm_max = hwm_min;
 
-    long mymin[3], mymax[3];
+#ifdef __linux
+    const int N = 5;
+#else
+    const int N = 1;
+#endif
+
+    std::vector<long> mymin(N, 0L);
+    std::vector<long> mymax(N, 0L);
+
     mymin[0] = mymax[0] = std::accumulate(cur_min.begin(), cur_min.end(), 0L);
 
-    static const long page_size = sysconf(_SC_PAGESIZE);
-    long sys_free  = sysconf(_SC_AVPHYS_PAGES) * page_size;
-    long sys_total = sysconf(_SC_PHYS_PAGES) * page_size;
-    mymin[1] = mymax[1] = sys_free;
-    mymin[2] = mymax[2] = sys_total;
+#ifdef __linux
+    int ierr_sysinfo;
+    {
+	struct sysinfo info;
+	ierr_sysinfo = sysinfo(&info);
+	if (ierr_sysinfo == 0) {
+	    mymin[1] = mymax[1] = info.mem_unit * info.totalram;
+	    mymin[2] = mymax[2] = info.mem_unit * info.freeram;
+	    mymin[3] = mymax[3] = info.mem_unit * (info.bufferram + info.freeram);
+	    mymin[4] = mymax[4] = info.mem_unit * info.sharedram;
+	}
+    }
+#endif
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelDescriptor::ReduceLongMin(&cur_min[0], cur_min.size(), IOProc);
     ParallelDescriptor::ReduceLongMax(&cur_max[0], cur_max.size(), IOProc);
     ParallelDescriptor::ReduceLongMin(&hwm_min[0], hwm_min.size(), IOProc);
     ParallelDescriptor::ReduceLongMax(&hwm_max[0], hwm_max.size(), IOProc);
-    ParallelDescriptor::ReduceLongMin(mymin, 3, IOProc);
-    ParallelDescriptor::ReduceLongMax(mymax, 3, IOProc);
+    ParallelDescriptor::ReduceLongMin(&mymin[0], N, IOProc);
+    ParallelDescriptor::ReduceLongMax(&mymax[0], N, IOProc);
 
     if (ParallelDescriptor::IOProcessor()) {
 
@@ -124,10 +142,20 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	memlog << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
 	memlog << std::setw(0);
 
-	memlog << ident1;
-	memlog << "Node Free  : " << "[" << Bytes{mymin[1],mymax[1]} << "]\n";
-	memlog << ident1;
-	memlog << "Node Total : " << "[" << Bytes{mymin[2],mymax[2]} << "]\n";
+#ifdef __linux
+	if (ierr_sysinfo == 0) {
+	    memlog << ident1 << std::setw(width_bytes) << std::left << "Node total"
+		   << "   " << std::setw(width_bytes) << "Node free"
+		   << "   " << std::setw(width_bytes) << "Node free+buffers"
+		   << "   " << std::setw(width_bytes) << "Node shared"
+		   << "\n";
+	    memlog << ident1 << "[" << Bytes{mymin[1], mymax[1]} << "]"
+		   << " " << "[" << Bytes{mymin[2], mymax[2]} << "]"
+		   << " " << "[" << Bytes{mymin[3], mymax[3]} << "]"
+		   << " " << "[" << Bytes{mymin[4], mymax[4]} << "]"
+		   << "\n";
+	}
+#endif
 
 	memlog << std::endl;
 
