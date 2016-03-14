@@ -110,16 +110,7 @@ BoxArray::empty () const
 void
 BoxArray::clear ()
 {
-    if (m_ref.unique()) {
-#ifdef BL_MEM_PROFILING
-	m_ref->updateMemoryUsage_box(-1);
-	m_ref->updateMemoryUsage_hash(-1);
-#endif
-	m_ref->m_abox.clear();
-        clear_hash_bin();
-    } else {
-	m_ref = new BoxArray::Ref();
-    }
+    m_ref = new BoxArray::Ref();
 }
 
 void
@@ -149,8 +140,7 @@ void
 BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-        uniqify();
+    clear();
     m_ref->define(is);
     type_update();
 }
@@ -177,8 +167,7 @@ void
 BoxArray::define (const Box& bx)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-	uniqify();
+    clear();
     m_typ = bx.ixType();
     m_ref->define(BoxLib::enclosedCells(bx));
 }
@@ -200,8 +189,7 @@ void
 BoxArray::define (const BoxList& bl)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-        uniqify();
+    clear();
     m_ref->define(bl);
     type_update();
 }
@@ -626,12 +614,14 @@ BoxArray::maxSize (const IntVect& block_size)
 {
     BoxList blst(*this);
     blst.maxSize(block_size);
-    clear();
     const int N = blst.size();
-    m_ref->resize(N);
-    BoxList::iterator bli = blst.begin(), End = blst.end();
-    for (int i = 0; bli != End; ++bli)
-        set(i++, *bli);
+    if (size() != N) { // If size doesn't change, do nothing.
+	clear();
+	m_ref->resize(N);
+	BoxList::iterator bli = blst.begin(), End = blst.end();
+	for (int i = 0; bli != End; ++bli)
+	    set(i++, *bli);
+    }
     return *this;
 }
 
