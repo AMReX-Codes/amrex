@@ -406,11 +406,13 @@ private:
 	//
 	void resize (int n) {
 #ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box (-1);
+	    updateMemoryUsage_box(-1);
+	    updateMemoryUsage_hash(-1);
 #endif
 	    m_abox.resize(n);
+	    hash.clear();
 #ifdef BL_MEM_PROFILING
-	    updateMemoryUsage_box (1);
+	    updateMemoryUsage_box(1);
 #endif
 	}
 #ifdef BL_MEM_PROFILING
