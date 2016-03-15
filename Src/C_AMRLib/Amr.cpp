@@ -3411,13 +3411,6 @@ Amr::GetParticleData (Array<Real>& part_data, int start_comp, int num_comp)
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 0" << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
@@ -3426,49 +3419,11 @@ ParallelDescriptor::Barrier();
     DistributionMapping::InitProximityMap();
     DistributionMapping::Initialize();
 
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 1" << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
+    Array<BoxArray> allBoxes(max_level);
 
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "___________  amr_level.size() = " << amr_level.size() << std::endl;
-    Array<BoxArray> allBoxes(amr_level.size());
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 2:  allBoxes.size()  = "
-          << allBoxes.size() << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/4.0);
-std::cout << ParallelDescriptor::MyProcAll() << "___________ _here 2.0:  amr_level.defined(0) = " << amr_level.defined(0) << std::endl;
-BoxLib::USleep(5.0);
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/4.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 2.00:  " << std::endl;
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/4.0);
-std::cout << ParallelDescriptor::MyProcAll() << "___________ _here 2.1:  amr_level.defined(1) = " << amr_level.defined(1) << std::endl;
-BoxLib::USleep(5.0);
-
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "___________  amr_level.size() = " << amr_level.size() << std::endl;
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 2.5:  " << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
     for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
       allBoxes[ilev] = boxArray(ilev);
     }
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 3" << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
 
     Array<Array<int> > mLDM;
     // ---- just use the random map for now
@@ -3476,13 +3431,6 @@ ParallelDescriptor::Barrier();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "_______ maxRank = " << maxRank << std::endl;
     }
-
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
-BoxLib::USleep(ParallelDescriptor::MyProcAll()/10.0);
-std::cout << ParallelDescriptor::MyProcAll() << "::AAAAAAAA:  _here 4" << std::endl;
-BoxLib::USleep(4.0);
-ParallelDescriptor::Barrier();
 
     mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
 
