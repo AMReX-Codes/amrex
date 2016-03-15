@@ -167,7 +167,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0   ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 128 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 42  ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
