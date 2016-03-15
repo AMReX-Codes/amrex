@@ -2534,15 +2534,15 @@ contains
     copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(cpasc)
     call boxarray_destroy(cpasc%ba_src)
     call boxarray_destroy(cpasc%ba_dst)
-    deallocate(cpasc%nd_dst)
-    deallocate(cpasc%nd_src)
-    deallocate(cpasc%l_con%cpy)
-    deallocate(cpasc%r_con%snd)
-    deallocate(cpasc%r_con%rcv)
-    deallocate(cpasc%r_con%str)
-    deallocate(cpasc%r_con%rtr)
-    deallocate(cpasc%prc_src)
-    deallocate(cpasc%prc_dst)
+    if (associated(cpasc%nd_dst))    deallocate(cpasc%nd_dst)
+    if (associated(cpasc%nd_src))    deallocate(cpasc%nd_src)
+    if (associated(cpasc%l_con%cpy)) deallocate(cpasc%l_con%cpy)
+    if (associated(cpasc%r_con%snd)) deallocate(cpasc%r_con%snd)
+    if (associated(cpasc%r_con%rcv)) deallocate(cpasc%r_con%rcv)
+    if (associated(cpasc%r_con%str)) deallocate(cpasc%r_con%str)
+    if (associated(cpasc%r_con%rtr)) deallocate(cpasc%r_con%rtr)
+    if (associated(cpasc%prc_src))   deallocate(cpasc%prc_src)
+    if (associated(cpasc%prc_dst))   deallocate(cpasc%prc_dst)   
     cpasc%hash_dst = -1
     cpasc%hash_src = -1
     cpasc%dim = 0
@@ -2553,20 +2553,9 @@ contains
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_dealloc(cpx_ms, flasc%mask%r_con%nsnd + flasc%mask%r_con%nrcv)
 
-    copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(flasc%flux) - cpassoc_bytes(flasc%mask)
-
-    deallocate(flasc%flux%l_con%cpy)
-    deallocate(flasc%flux%r_con%snd)
-    deallocate(flasc%flux%r_con%rcv)
-    deallocate(flasc%mask%r_con%snd)
-    deallocate(flasc%mask%r_con%rcv)
-    deallocate(flasc%flux%r_con%rtr)
-    deallocate(flasc%flux%r_con%str)
-    deallocate(flasc%mask%r_con%rtr)
-    deallocate(flasc%mask%r_con%str)
+    call copyassoc_destroy(flasc%flux)
+    call copyassoc_destroy(flasc%mask)
 
     deallocate(flasc%fbxs)
     deallocate(flasc%nd_dst)
