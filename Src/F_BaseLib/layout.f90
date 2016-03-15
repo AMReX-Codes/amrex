@@ -34,12 +34,14 @@ module layout_module
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
      integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
+  integer, private, parameter :: sizeof_comm_dsc = 96  ! bytes
 
   type trns_dsc
      integer :: sz = 0              ! Size of chunk 
      integer :: pv = -1             ! Number points in buf prior to this
      integer :: pr = MPI_ANY_SOURCE ! src or destination processor
   end type trns_dsc
+  integer, private, parameter :: sizeof_trns_dsc = 12  ! bytes
 
   type remote_conn
      logical                 :: threadsafe = .false.
@@ -54,6 +56,7 @@ module layout_module
      type(trns_dsc), pointer :: str(:) => Null()
      type(trns_dsc), pointer :: rtr(:) => Null()
   end type remote_conn
+  integer, private, parameter :: sizeof_remote_conn = 224  ! bytes
 
   type local_copy_desc
      integer   :: ns = 0    ! Source box in layout
@@ -63,12 +66,14 @@ module layout_module
      type(box) :: sbx       ! Sub-box for this copy
      type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
+  integer, private, parameter :: sizeof_local_copy_desc = 72 ! bytes
 
   type local_conn
      logical                        :: threadsafe = .false.
      integer                        :: ncpy = 0  ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
+  integer, private, parameter :: sizeof_local_conn = 56  ! bytes
 
   type boxassoc
      integer                 :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -81,6 +86,7 @@ module layout_module
      type(remote_conn)       :: r_con
      type(boxassoc), pointer :: next     => Null()
   end type boxassoc
+  integer, private, parameter :: sizeof_boxassoc = 360  ! bytes
   !
   ! Used to cache the boxarray used by multifab_fill_ghost_cells().
   !
@@ -92,6 +98,7 @@ module layout_module
      type(boxarray)         :: ba
      type(fgassoc), pointer :: next   => Null()
   end type fgassoc
+  integer, private, parameter :: sizeof_fgassoc = 168  ! bytes
 
   type syncassoc
      integer                  :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -103,6 +110,7 @@ module layout_module
      type(remote_conn)        :: r_con
      type(syncassoc), pointer :: next     => Null()
   end type syncassoc
+  integer, private, parameter :: sizeof_syncassoc = 352  ! bytes
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
@@ -120,6 +128,7 @@ module layout_module
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
   end type copyassoc
+  integer, private, parameter :: sizeof_copyassoc = 616  ! bytes
   !
   ! Note that a fluxassoc contains two copyassocs.
   !
@@ -137,6 +146,7 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
+  integer, private, parameter :: sizeof_fluxassoc = 1448  ! bytes
 
   type tilearray
      integer                   :: dim      = 0
@@ -148,7 +158,8 @@ module layout_module
      integer,          pointer :: gidx(:)  => Null() ! global index
      integer,          pointer :: lidx(:)  => Null() ! local index
   end type tilearray
-  
+  integer, private, parameter :: sizeof_tilearray = 264  ! bytes
+
   !
   ! Used by layout_get_box_intersector().
   !
@@ -160,6 +171,7 @@ module layout_module
   type box_hash_bin
      integer, pointer :: iv(:) => Null()
   end type box_hash_bin
+  integer, private, parameter :: sizeof_box_hash_bin = 48  ! bytes
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
@@ -1949,28 +1961,51 @@ contains
     integer(kind=ll_t) :: nbytes
     type(boxassoc), intent(in) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
-    nbytes = 0
-    nbytes = nbytes + 4 * 9;
-    nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
-    nbytes = nbytes + bxasc%r_con%nsnd * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
-    nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
+    nbytes = sizeof_boxassoc   &
+         + bxasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (bxasc%r_con%nsnd+bxasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (bxasc%r_con%nrp+bxasc%r_con%nsp)*sizeof_trns_dsc
   end function boxassoc_bytes
+
+  function fgassoc_bytes(fgasc) result(nbytes)
+    use bl_error_module
+    integer(kind=ll_t) :: nbytes
+    type(fgassoc), intent(in) :: fgasc
+    if ( .not. built_q(fgasc) ) call bl_error("fgassoc_bytes(): not built")
+    nbytes = sizeof_fgassoc + (size(fgasc%prc)+size(fgasc%idx))*4
+  end function fgassoc_bytes
+
+  function syncassoc_bytes(syncasc) result(nbytes)
+    use bl_error_module
+    integer(kind=ll_t) :: nbytes
+    type(syncassoc), intent(in) :: syncasc
+    if ( .not. built_q(syncasc) ) call bl_error("syncassoc_bytes(): not built")
+    nbytes = sizeof_syncassoc &
+         + syncasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (syncasc%r_con%nsnd+syncasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (syncasc%r_con%nrp+syncasc%r_con%nsp)*sizeof_trns_dsc
+  end function syncassoc_bytes
 
   function cpassoc_bytes(cpasc) result(nbytes)
     use bl_error_module
     integer(kind=ll_t) :: nbytes
     type(copyassoc), intent(in) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("cpassoc_bytes(): not built")
-    nbytes = 0
-    nbytes = nbytes + 4 * 14;
-    nbytes = nbytes + cpasc%l_con%ncpy * 4 * 16
-    nbytes = nbytes + cpasc%r_con%nsnd * 4 * 25
-    nbytes = nbytes + cpasc%r_con%nrcv * 4 * 25
-    nbytes = nbytes + cpasc%r_con%nsp  * 4 * 3
-    nbytes = nbytes + cpasc%r_con%nrp  * 4 * 3
+    nbytes = sizeof_copyassoc &
+         + cpasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (cpasc%r_con%nsnd+cpasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (cpasc%r_con%nrp+cpasc%r_con%nsp)*sizeof_trns_dsc
   end function cpassoc_bytes
+
+  function fluxassoc_bytes(fluxasc) result(nbytes)
+    use bl_error_module
+    integer(kind=ll_t) :: nbytes
+    type(fluxassoc), intent(in) :: fluxasc
+    if ( .not. built_q(fluxasc) ) call bl_error("fluxassoc_bytes(): not built")
+    nbytes = sizeof_fluxassoc &
+         - 2*(sizeof_copyassoc) & ! We count copyassoc separately.
+         + size(fluxasc%fbxs)*sizeof_box
+  end function fluxassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
