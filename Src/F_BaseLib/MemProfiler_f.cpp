@@ -9,6 +9,12 @@ extern "C"
 
     extern long memprof_boxarray_bytes ();
     extern long memprof_boxarray_bytes_hwm ();
+
+    extern long memprof_boxassoc_bytes ();
+    extern long memprof_boxassoc_bytes_hwm ();
+
+    extern long memprof_copyassoc_bytes ();
+    extern long memprof_copyassoc_bytes_hwm ();
 }
 
 void 
@@ -24,6 +30,14 @@ MemProfiler_f::initialize ()
 	MemProfiler::add("BoxArray_f", [] () -> MemProfiler::MemInfo {
 		return {memprof_boxarray_bytes(),
 			memprof_boxarray_bytes_hwm()};
+	    });
+	MemProfiler::add("Boxassoc_f", [] () -> MemProfiler::MemInfo {
+		return {memprof_boxassoc_bytes(),
+			memprof_boxassoc_bytes_hwm()};
+	    });
+	MemProfiler::add("Copyassoc_f", [] () -> MemProfiler::MemInfo {
+		return {memprof_copyassoc_bytes(),
+			memprof_copyassoc_bytes_hwm()};
 	    });
     }
 }
