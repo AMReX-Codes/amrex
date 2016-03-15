@@ -33,6 +33,10 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef MG_USE_FBOXLIB
+#include <mg_cpp_f.h>
+#endif
+
 #ifdef USE_PARTICLES
 #include <AmrParGDB.H>
 #endif
@@ -2414,6 +2418,9 @@ Amr::regrid (int  lbase,
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
+#ifdef MG_USE_FBOXLIB
+    mgt_flush_copyassoc_cache();
+#endif
 
     //
     // Define the new grids from level start up to new_finest.

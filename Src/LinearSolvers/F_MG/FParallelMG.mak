@@ -13,7 +13,6 @@
 # FBOXLIB_HOME = ../../../fParallel 
 # ifdef FBOXLIB_HOME
 #   include FParallelMG.mak
-#   DEFINES += -DMG_USE_FBOXLIB
 #   Fdirs   := boxlib mg extern/LAPACK
 #   Flocs   := $(foreach dir, $(Fdirs), $(FBOXLIB_HOME)/$(dir))
 # endif
@@ -22,6 +21,8 @@
 # INCLUDE_LOCATIONS += . $(Blocs) $(Flocs)
 #
 # ------------------------------------------------
+
+DEFINES += -DMG_USE_FBOXLIB
 
 f90EXE_sources += compute_defect.f90
 f90EXE_sources += coarsen_coeffs.f90
