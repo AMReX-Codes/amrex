@@ -28,6 +28,9 @@
 
 #ifdef BL_MEM_PROFILING
 #include <MemProfiler.H>
+#ifdef BL_USE_F_BASELIB
+#include <MemProfiler_f.H>
+#endif
 #endif
 
 #ifdef _OPENMP
@@ -372,6 +375,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_USE_FORTRAN_MPI
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
+#endif
+
+#if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
+    MemProfiler_f::initialize();
 #endif
 }
 
