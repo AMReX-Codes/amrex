@@ -28,17 +28,43 @@ int nComp(6), nGhost(2);
 // --------------------------------------------------------------------------
 namespace
 {
-  const int S_SendBoxArray(42), S_CFATests(43), S_CopyFabArray(44);
+  const int S_SendBoxArray(42), S_CFATests(43);
+  const int S_CopyFabArray(44), S_CopyFabArrayFromSidecar(45);
 
 
   // --------------------------------------------------------------------------
-  void CopyFabArray(MultiFab *mfSource, MultiFab *mfDest) {
+  void CopyFabArray(MultiFab *mfSource, MultiFab *mfDest,
+                    int srcComp, int destComp, int numComp,
+		    int srcNGhost, int destNGhost,
+		    bool fromComp)
+  {
 
     static int count(0);
     std::stringstream css;
     css << "TS_" << count << "_";
 
     VisMF::SetNOutFiles(1);
+
+    BL_ASSERT( (mfSource == 0) || (mfDest == 0) );
+    BL_ASSERT( ! ((mfSource == 0) && (mfDest == 0)) );
+
+    bool isSrc;
+    if(mfSource != 0) {
+      isSrc = true;
+    } else {
+      isSrc = false;
+    }
+
+    MPI_Comm commSrc, commDest, commInter;
+    commInter = ParallelDescriptor::CommunicatorInter();
+    if(fromComp) {
+      commSrc  = ParallelDescriptor::CommunicatorComp();
+      commDest = ParallelDescriptor::CommunicatorSidecar();
+    } else {
+      commSrc  = ParallelDescriptor::CommunicatorSidecar();
+      commDest = ParallelDescriptor::CommunicatorComp();
+    }
+
     if(mfSource != 0) {
       VisMF::Write(*mfSource, css.str() + "mfSource_before");
     }
@@ -47,11 +73,10 @@ namespace
     }
 
 
-    MultiFab::copyInter(mfSource, mfDest, 0, 0, nComp, 0, 0,
-                        ParallelDescriptor::CommunicatorComp(),
-                        ParallelDescriptor::CommunicatorSidecar(),
-                        ParallelDescriptor::CommunicatorInter(),
-                        ParallelDescriptor::InCompGroup());
+    MultiFab::copyInter(mfSource, mfDest, srcComp, destComp, numComp,
+                        srcNGhost, destNGhost,
+                        commSrc, commDest, commInter,
+                        isSrc);
 
     if(mfSource != 0) {
       VisMF::Write(*mfSource, css.str() + "mfSource_after");
@@ -72,7 +97,7 @@ namespace
     int myProcComp(ParallelDescriptor::MyProcComp());
     int myProcSidecar(ParallelDescriptor::MyProcSidecar());
     bool addToCache(false);
-    MPI_Group group_sidecar(MPI_GROUP_NULL), group_comp(MPI_GROUP_NULL), group_all(MPI_GROUP_NULL);
+    MPI_Group group_sidecar(MPI_GROUP_NULL), group_all(MPI_GROUP_NULL);
 
     ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
     BoxLib::USleep(myProcAll / 10.0);
@@ -108,7 +133,7 @@ namespace
   // --------------------------------------------------------------------------
   void SidecarEventLoop() {
     bool finished(false);
-    int sidecarSignal(-1), time_step(-2);
+    int sidecarSignal(-1);
     int myProcAll(ParallelDescriptor::MyProcAll());
     BoxArray bac, bab;
     DistributionMapping sc_DM;
@@ -160,10 +185,33 @@ namespace
 	    }
 	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar());
             MultiFab mf(bac, nComp, nGhost, sc_DM, Fab_allocate);
-	    mf.setVal(-8.91);
+	    mf.setVal(-1.0);
 	    MultiFab *mfSource = 0;
 	    MultiFab *mfDest = &mf;
-            CopyFabArray(mfSource, mfDest);
+	    bool fromComp(true);
+            CopyFabArray(mfSource, mfDest, 0, 0, nComp, 0, 0, fromComp);
+          }
+	  break;
+
+	  case S_CopyFabArrayFromSidecar:
+	  {
+            if(ParallelDescriptor::IOProcessor()) {
+              std::cout << "Sidecars received the S_CopyFabArray signal." << std::endl;
+	    }
+            Box baseBox(IntVect(2,4,6), IntVect(15, 19, 79));
+            BoxArray ba(baseBox);
+            ba.maxSize(4);
+	    MultiFab mf(ba, nComp, nGhost);
+	    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+	      for(int i(0); i < mf[mfi].nComp(); ++i) {
+	        mf[mfi].setVal(myProcAll + (Real) i / 1000.0, i);
+	      }
+	    }
+	    MultiFab *mfSource = &mf;
+	    MultiFab *mfDest = 0;
+	    int srcComp(4), destComp(2), numComp(1);
+	    bool fromComp(false);
+            CopyFabArray(mfSource, mfDest, srcComp, destComp, numComp, 0, 0, fromComp);
           }
 	  break;
 
@@ -277,7 +325,8 @@ int main(int argc, char *argv[]) {
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
-            CopyFabArray(mfSource, mfDest);
+	    bool fromComp(true);
+            CopyFabArray(mfSource, mfDest, 0, 0, nComp, 0, 0, fromComp);
 	  }
 
 	  if((i - ts) == 1) {  // ---- do a shrinked boxarray mf copy test
@@ -297,7 +346,8 @@ int main(int argc, char *argv[]) {
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
-            CopyFabArray(mfSource, mfDest);
+	    bool fromComp(true);
+            CopyFabArray(mfSource, mfDest, 0, 0, nComp, 0, 0, fromComp);
 	  }
 
 
@@ -318,16 +368,28 @@ int main(int argc, char *argv[]) {
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
-            CopyFabArray(mfSource, mfDest);
+	    bool fromComp(true);
+            CopyFabArray(mfSource, mfDest, 0, 0, nComp, 0, 0, fromComp);
 	  }
 
 
+	  if((i - ts) == 3) {  // ---- copy part of a FabArray from the sidecar
+	    MultiFab mf(ba, nComp, nGhost);
+	    mf.setVal(-2);
 
-	  //sidecarSignal = S_SendBoxArray;
-	  //ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                            //ParallelDescriptor::CommunicatorInter());
-	  //BoxArray::SendBoxArray(ba);
+	    sidecarSignal = S_CopyFabArrayFromSidecar;
+	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
+	                              ParallelDescriptor::CommunicatorInter());
 
+	    MultiFab *mfSource = 0;
+	    MultiFab *mfDest = &mf;
+	    int srcComp(4), destComp(2), numComp(1);
+	    bool fromComp(false);
+            CopyFabArray(mfSource, mfDest, srcComp, destComp, numComp, 0, 0, fromComp);
+	  }
+
+
+	  // ---- other tests?
 	  //sidecarSignal = S_CFATests;
 	  //ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
 	                            //ParallelDescriptor::CommunicatorInter());
