@@ -196,7 +196,7 @@ namespace
 	  case S_CopyFabArrayFromSidecar:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "Sidecars received the S_CopyFabArray signal." << std::endl;
+              std::cout << "Sidecars received the S_CopyFabArrayFromSidecar signal." << std::endl;
 	    }
             Box baseBox(IntVect(2,4,6), IntVect(15, 19, 79));
             BoxArray ba(baseBox);
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
 
 	  if((i - ts) == 3) {  // ---- copy part of a FabArray from the sidecar
 	    MultiFab mf(ba, nComp, nGhost);
-	    mf.setVal(-2);
+	    mf.setVal(-2.0);
 
 	    sidecarSignal = S_CopyFabArrayFromSidecar;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
