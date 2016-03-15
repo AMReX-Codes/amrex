@@ -1924,7 +1924,31 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     MPI_Comm commBoth(ParallelDescriptor::CommunicatorAll());  // ---- both src and dest:  fix for > 1 sidecar
     int nProcsAll(ParallelDescriptor::NProcsAll());
     int myProcAll(ParallelDescriptor::MyProcAll());
-    int bcastRootSrc(0), bcastRootDest(nProcsAll - 1);  // ---- fix these for multiple sidecars:  bcast them
+    int iopN(ParallelDescriptor::IOProcessorNumber());
+    int iopNInAll(-1), bcastRootSrc(-1), bcastRootDest(-1);
+
+    BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
+    if(isSrc) {
+      BL_MPI_REQUIRE( MPI_Comm_group(commSrc, &groupSrc) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupSrc, 1, &iopN, groupBoth, &iopNInAll) );
+      if(ParallelDescriptor::IOProcessor()) {
+        ParallelDescriptor::Asend(&iopNInAll, 1, 0, 1, commBoth);
+      }
+    }
+    if(isDest) {
+      BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupDest, 1, &iopN, groupBoth, &iopNInAll) );
+      if(ParallelDescriptor::IOProcessor()) {
+        ParallelDescriptor::Asend(&iopNInAll, 1, 0, 2, commBoth);
+      }
+    }
+    if(myProcAll == 0) {
+      ParallelDescriptor::Recv(&bcastRootSrc, 1, MPI_ANY_SOURCE, 1, commBoth);
+      ParallelDescriptor::Recv(&bcastRootDest, 1, MPI_ANY_SOURCE, 2, commBoth);
+    }
+    ParallelDescriptor::Bcast(&bcastRootSrc,  1, 0, commBoth);
+    ParallelDescriptor::Bcast(&bcastRootDest, 1, 0, commBoth);
+
 
     // ---- give all procs source and dest boxarrays and distributionmaps
     BoxArray srcBoxArray, destBoxArray;
@@ -1938,25 +1962,24 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       destIndexMap = dest->IndexMap();
     }
 
-    BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
 
     if(isSrc && myProcAll == bcastRootSrc) {
-      BL_MPI_REQUIRE( MPI_Comm_group(commSrc, &groupSrc) );
       srcBoxArray = src->boxArray();
       srcDM = src->DistributionMap();
       srcPMap = srcDM.ProcessorMap();
       srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
       srcPMapAll[srcPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
     }
+    if(isDest) {
+      destBoxArray = dest->boxArray();
+    }
     if(isDest && myProcAll == bcastRootDest) {
-      BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
       destPMap = destDM.ProcessorMap();
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
       destPMapAll[destPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
     }
-
     BoxLib::BroadcastBoxArray(srcBoxArray,  myProcAll, bcastRootSrc,  commBoth);
     BoxLib::BroadcastBoxArray(destBoxArray, myProcAll, bcastRootDest, commBoth);
     BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
