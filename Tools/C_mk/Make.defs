@@ -342,9 +342,6 @@ ifdef USE_GCC
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifeq ($(__gcc_major_version),2)
-       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
-    endif
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
