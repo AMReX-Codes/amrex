@@ -66,7 +66,7 @@ module layout_module
 
   type local_conn
      logical                        :: threadsafe = .false.
-     integer                        :: ncpy   ! Number of cpy chunks
+     integer                        :: ncpy = 0  ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
 
