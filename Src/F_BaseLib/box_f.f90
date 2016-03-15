@@ -22,6 +22,8 @@ module box_module
      integer :: hi(MAX_SPACEDIM) = -Huge(1)
   end type box
 
+  integer, parameter :: sizeof_box = 28  ! bytes
+
   !! Builds a box
   interface build
      module procedure box_build_2
