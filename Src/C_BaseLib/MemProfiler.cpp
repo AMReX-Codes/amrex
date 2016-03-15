@@ -157,10 +157,12 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
 	for (int ii = 0; ii < idxs.size(); ++ii) {
 	    int i = idxs[ii];
-	    memlog << ident2;
-	    memlog << "| " << std::setw(width_name) << std::left << the_names[i] << " | ";
-	    memlog << Bytes{cur_min[i],cur_max[i]} << " | ";
-	    memlog << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
+	    if (hwm_max[i] > 0) {
+		memlog << ident2;
+		memlog << "| " << std::setw(width_name) << std::left << the_names[i] << " | ";
+		memlog << Bytes{cur_min[i],cur_max[i]} << " | ";
+		memlog << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
+	    }
 	}
 
 	memlog << ident2;
