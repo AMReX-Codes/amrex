@@ -1964,7 +1964,7 @@ contains
     type(copyassoc), intent(in) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("cpassoc_bytes(): not built")
     nbytes = 0
-    nbytes = nbytes + 4 * 9;
+    nbytes = nbytes + 4 * 14;
     nbytes = nbytes + cpasc%l_con%ncpy * 4 * 16
     nbytes = nbytes + cpasc%r_con%nsnd * 4 * 25
     nbytes = nbytes + cpasc%r_con%nrcv * 4 * 25
