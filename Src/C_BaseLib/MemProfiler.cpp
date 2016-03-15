@@ -150,7 +150,13 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	memlog << ident2;
 	memlog << "|-" << dash_name << "-+-" << dash_bytes << "-+-" << dash_bytes << "-|\n";
 
-	for (int i = 0; i < the_names.size(); ++i) {
+	std::vector<int> idxs(the_names.size());
+	std::iota(idxs.begin(), idxs.end(), 0);
+	std::sort(idxs.begin(), idxs.end(), [&](int i, int j)
+		  { return hwm_max[i] > hwm_max[j]; });
+
+	for (int ii = 0; ii < idxs.size(); ++ii) {
+	    int i = idxs[ii];
 	    memlog << ident2;
 	    memlog << "| " << std::setw(width_name) << std::left << the_names[i] << " | ";
 	    memlog << Bytes{cur_min[i],cur_max[i]} << " | ";
