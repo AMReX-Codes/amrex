@@ -37,4 +37,28 @@ contains
     boxarray_bytes_hwm = boxarray_get_high_water_mark() * 28
   end function boxarray_bytes_hwm
 
+  function boxassoc_bytes() bind(c, name='memprof_boxassoc_bytes')
+    use layout_module, only : boxassoc_total_bytes
+    integer(kind=c_long) :: boxassoc_bytes
+    boxassoc_bytes = boxassoc_total_bytes
+  end function boxassoc_bytes
+
+  function boxassoc_bytes_hwm() bind(c, name='memprof_boxassoc_bytes_hwm')
+    use layout_module, only : boxassoc_total_bytes_hwm
+    integer(kind=c_long) :: boxassoc_bytes_hwm
+    boxassoc_bytes_hwm = boxassoc_total_bytes_hwm
+  end function boxassoc_bytes_hwm
+
+  function copyassoc_bytes() bind(c, name='memprof_copyassoc_bytes')
+    use layout_module, only : copyassoc_total_bytes
+    integer(kind=c_long) :: copyassoc_bytes
+    copyassoc_bytes = copyassoc_total_bytes
+  end function copyassoc_bytes
+
+  function copyassoc_bytes_hwm() bind(c, name='memprof_copyassoc_bytes_hwm')
+    use layout_module, only : copyassoc_total_bytes_hwm
+    integer(kind=c_long) :: copyassoc_bytes_hwm
+    copyassoc_bytes_hwm = copyassoc_total_bytes_hwm
+  end function copyassoc_bytes_hwm
+
 end module memprof_module

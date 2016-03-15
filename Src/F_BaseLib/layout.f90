@@ -331,6 +331,12 @@ module layout_module
   type(mem_stats), private, save :: cpx_ms
   type(mem_stats), private, save :: flx_ms
 
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes_hwm = 0
+
 contains
 
   subroutine layout_set_sfc_threshold(v)
@@ -1557,6 +1563,9 @@ contains
 
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
+    boxassoc_total_bytes = boxassoc_total_bytes + boxassoc_bytes(bxasc)
+    boxassoc_total_bytes_hwm = max(boxassoc_total_bytes_hwm, boxassoc_total_bytes)
+
     call destroy(bpt)
 
   end subroutine boxassoc_build
@@ -1937,10 +1946,9 @@ contains
 
   function boxassoc_bytes(bxasc) result(nbytes)
     use bl_error_module
-    integer :: nbytes
+    integer(kind=ll_t) :: nbytes
     type(boxassoc), intent(in) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
-
     nbytes = 0
     nbytes = nbytes + 4 * 9;
     nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
@@ -1948,14 +1956,28 @@ contains
     nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
     nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
     nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
-
   end function boxassoc_bytes
+
+  function cpassoc_bytes(cpasc) result(nbytes)
+    use bl_error_module
+    integer(kind=ll_t) :: nbytes
+    type(copyassoc), intent(in) :: cpasc
+    if ( .not. built_q(cpasc) ) call bl_error("cpassoc_bytes(): not built")
+    nbytes = 0
+    nbytes = nbytes + 4 * 9;
+    nbytes = nbytes + cpasc%l_con%ncpy * 4 * 16
+    nbytes = nbytes + cpasc%r_con%nsnd * 4 * 25
+    nbytes = nbytes + cpasc%r_con%nrcv * 4 * 25
+    nbytes = nbytes + cpasc%r_con%nsp  * 4 * 3
+    nbytes = nbytes + cpasc%r_con%nrp  * 4 * 3
+  end function cpassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
     type(boxassoc), intent(inout) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("boxassoc_destroy(): not built")
     call mem_stats_dealloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
+    boxassoc_total_bytes = boxassoc_total_bytes - boxassoc_bytes(bxasc)
     deallocate(bxasc%nodal)
     deallocate(bxasc%l_con%cpy)
     deallocate(bxasc%r_con%snd)
@@ -2187,6 +2209,9 @@ contains
     end if
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     call destroy(bpt)
     call bl_proffortfuncstop("copyassoc_build")
@@ -2491,8 +2516,11 @@ contains
     ! Recall that fluxassoc contains two copyassocs.
     !
     call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_alloc(cpx_ms, flasc%mask%r_con%nsnd + flasc%mask%r_con%nrcv)
     call mem_stats_alloc(flx_ms, size(flasc%fbxs))
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(flasc%flux) + cpassoc_bytes(flasc%mask)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     call destroy(bpt)
 
@@ -2503,6 +2531,7 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+    copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(cpasc)
     call boxarray_destroy(cpasc%ba_src)
     call boxarray_destroy(cpasc%ba_dst)
     deallocate(cpasc%nd_dst)
@@ -2525,7 +2554,9 @@ contains
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
     call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_dealloc(cpx_ms, flasc%mask%r_con%nsnd + flasc%mask%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(flasc%flux) - cpassoc_bytes(flasc%mask)
 
     deallocate(flasc%flux%l_con%cpy)
     deallocate(flasc%flux%r_con%snd)
@@ -3156,6 +3187,9 @@ contains
     cpasc%r_con%threadsafe = .true.
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
