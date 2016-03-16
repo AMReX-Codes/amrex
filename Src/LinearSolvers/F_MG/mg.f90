@@ -414,6 +414,7 @@ contains
 
                allocate(mgt%bottom_mgt)
                   
+               call bl_proffortfuncstop("mg_tower_build")
                call mg_tower_build(mgt%bottom_mgt, new_coarse_la, coarse_pd, &
                                    domain_bc, mgt%stencil_type, &
                                    dh = coarse_dx, &
@@ -438,6 +439,7 @@ contains
                                    cg_verbose = cg_verbose, &
                                    nodal = nodal, &
                                    the_bottom_comm = communicator)
+               call bl_proffortfuncstart("mg_tower_build")
            else 
 
                mgt%bottom_solver = 1
@@ -1634,7 +1636,7 @@ contains
 
     type(bl_prof_timer), save :: bpt
 
-    call bl_proffortfuncstart("mg_tower_v_cycle")
+    !!! call bl_proffortfuncstart("mg_tower_v_cycle")
     call build(bpt, "mgt_v_cycle")
 
     lbl = 1; if ( present(bottom_level) ) lbl = bottom_level
@@ -1717,10 +1719,10 @@ contains
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
 
        do i = gamma, 1, -1
-          call bl_proffortfuncstop("mg_tower_v_cycle")
+          !!! call bl_proffortfuncstop("mg_tower_v_cycle")
           call mg_tower_v_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
                               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma, bottom_level, bottom_solve_time)
-          call bl_proffortfuncstart("mg_tower_v_cycle")
+          !!! call bl_proffortfuncstart("mg_tower_v_cycle")
        end do
 
        call mg_tower_prolongation(mgt, uu, lev-1)
@@ -1750,7 +1752,7 @@ contains
     end if
 
     call destroy(bpt)
-    call bl_proffortfuncstop("mg_tower_v_cycle")
+    !!! call bl_proffortfuncstop("mg_tower_v_cycle")
 
 1000 format('AT LEVEL ',i2)
 
