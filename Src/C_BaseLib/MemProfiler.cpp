@@ -145,7 +145,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	    if (unit == "kB") {
 		ierr_cached = 0;
 		mymin[6] += cached*1024L;
-		mymax[6] = mymin[3];
+		mymax[6] = mymin[6];
 	    } else {
 		ierr_cached = -1;
 	    }
