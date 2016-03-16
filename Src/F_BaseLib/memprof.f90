@@ -26,8 +26,7 @@ contains
     integer(kind=c_long) :: boxarray_bytes
     type(mem_stats) :: ms
     ms = boxarray_mem_stats()
-    ! 7 integers/box * 4 bytes/integer = 28 bytes/box
-    boxarray_bytes = (ms%num_alloc - ms%num_dealloc) * 28
+    boxarray_bytes = (ms%num_alloc - ms%num_dealloc) * sizeof_box;
   end function boxarray_bytes
 
   function boxarray_bytes_hwm() bind(c, name='memprof_boxarray_bytes_hwm')
