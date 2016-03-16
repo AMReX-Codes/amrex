@@ -2718,6 +2718,7 @@ contains
     r = cp
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
+       the_copyassoc_cnt = the_copyassoc_cnt - 1
        cp => the_copyassoc_tail
        call remove_item(cp)
        call copyassoc_destroy(cp)
