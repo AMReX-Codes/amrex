@@ -65,7 +65,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
     std::vector<long> hwm_max = hwm_min;
 
 #ifdef __linux
-    const int N = 8;
+    const int N = 9;
 #else
     const int N = 1;
 #endif
@@ -77,6 +77,8 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
 #ifdef __linux
     int ierr_proc_status = 0;
+    const int ipstat = 1;
+    const int npstat = 4;
     {
 	static pid_t pid = getpid();
 	std::string fname = "/proc/"+std::to_string(pid) + "/status";
@@ -89,7 +91,16 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 		nfound++;
 		ifs >> n >> unit;
 		if (unit == "kB") {
-		    mymin[1] = mymax[1] = n * 1024L;
+		    mymin[ipstat+0] = mymax[ipstat+0] = n * 1024L;
+		} else {
+		    ierr_proc_status = -1;
+		    break;
+		}
+	    } else if (token == "VmSize:") {
+		nfound++;
+		ifs >> n >> unit;
+		if (unit == "kB") {
+		    mymin[ipstat+1] = mymax[ipstat+1] = n * 1024L;
 		} else {
 		    ierr_proc_status = -1;
 		    break;
@@ -98,7 +109,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 		nfound++;
 		ifs >> n >> unit;
 		if (unit == "kB") {
-		    mymin[2] = mymax[2] = n * 1024L;
+		    mymin[ipstat+2] = mymax[ipstat+2] = n * 1024L;
 		} else {
 		    ierr_proc_status = -1;
 		    break;
@@ -107,27 +118,29 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 		nfound++;
 		ifs >> n >> unit;
 		if (unit == "kB") {
-		    mymin[3] = mymax[3] = n * 1024L;
+		    mymin[ipstat+3] = mymax[ipstat+3] = n * 1024L;
 		} else {
 		    ierr_proc_status = -1;
 		    break;
 		}
 	    }
 	    ifs.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-	    if (nfound == 3) break;
+	    if (nfound == npstat) break;
 	}
     }
 
     int ierr_sysinfo;
     int ierr_cached;
+    const int isinfo = ipstat + npstat;
+    const int nsinfo = 4;
     {
 	struct sysinfo info;
 	ierr_sysinfo = sysinfo(&info);
 	if (ierr_sysinfo == 0) {
-	    mymin[4] = mymax[4] = info.mem_unit * info.totalram;
-	    mymin[5] = mymax[5] = info.mem_unit * info.freeram;
-	    mymin[6] = mymax[6] = info.mem_unit * (info.bufferram + info.freeram);
-	    mymin[7] = mymax[7] = info.mem_unit * info.sharedram;
+	    mymin[isinfo+0] = mymax[isinfo+0] = info.mem_unit * info.totalram;
+	    mymin[isinfo+1] = mymax[isinfo+1] = info.mem_unit * info.freeram;
+	    mymin[isinfo+2] = mymax[isinfo+2] = info.mem_unit * (info.bufferram + info.freeram);
+	    mymin[isinfo+3] = mymax[isinfo+3] = info.mem_unit * info.sharedram;
 	}
 
 	// Have to read /proc/meminfo to get Cached memory.
@@ -144,8 +157,8 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	    }
 	    if (unit == "kB") {
 		ierr_cached = 0;
-		mymin[6] += cached*1024L;
-		mymax[6] = mymin[6];
+		mymin[isinfo+2] += cached*1024L;
+		mymax[isinfo+2] = mymin[isinfo+2];
 	    } else {
 		ierr_cached = -1;
 	    }
@@ -217,16 +230,16 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	memlog << std::setw(0);
 
 #ifdef __linux
-
 	if (ierr_proc_status == 0) {
 	    memlog << "\n";
 	    memlog << " * " << std::setw(width_bytes) << std::left << "Proc VmPeak"
+		   << "   " << std::setw(width_bytes) << "VmSize"	    
 		   << "   " << std::setw(width_bytes) << "VmHWM"	    
 		   << "   " << std::setw(width_bytes) << "VmRSS" << "\n";
-	    memlog << "   [" << Bytes{mymin[1], mymax[1]} << "]"
-		   <<   " [" << Bytes{mymin[2], mymax[2]} << "]"
-		   <<   " [" << Bytes{mymin[3], mymax[3]} << "]"
-		   << "\n";
+	    memlog << "  ";
+	    for (int i = 0; i < npstat; ++i)
+		memlog << " [" << Bytes{mymin[ipstat+i], mymax[ipstat+i]} << "]";
+	    memlog << "\n";
 	}
 
 	if (ierr_sysinfo == 0) {
@@ -238,11 +251,10 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 	    else
 		memlog << "   " << std::setw(width_bytes) << "free+buffers" << "   ";
 	    memlog << std::setw(width_bytes) << "shared" << "\n";
-	    memlog << "   [" << Bytes{mymin[4], mymax[4]} << "]"
-		   <<   " [" << Bytes{mymin[5], mymax[5]} << "]"
-		   <<   " [" << Bytes{mymin[6], mymax[6]} << "]"
-		   <<   " [" << Bytes{mymin[7], mymax[7]} << "]"
-		   << "\n";
+	    memlog << "  ";
+	    for (int i = 0; i < nsinfo; ++i)
+		memlog << " [" << Bytes{mymin[isinfo+i], mymax[isinfo+i]} << "]";
+	    memlog << "\n";
 	}
 #endif
 
