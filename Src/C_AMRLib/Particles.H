@@ -2691,14 +2691,14 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
 #ifdef NEUTRINO_PARTICLES
-    BL_ASSERT(m_csq > 0.);
+    BL_ASSERT(m_csq > 0.0);
 #endif
 
     if (finest_level == -1)
     {
         finest_level = m_amr->finestLevel();
     }
-    while (!m_amr->getAmrLevels().defined(finest_level))
+    while ( ! m_amr->getAmrLevels().defined(finest_level))
     {
         finest_level--;
     }
@@ -2717,8 +2717,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         const int lev_index = lev - lev_min;
         mf_to_be_filled.set(lev_index, new MultiFab(m_amr->boxArray(lev), ncomp, 1));
 
-        for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
             mf_to_be_filled[lev_index][mfi].setVal(0);
+	}
     }
 
     // Test whether the grid structure of the boxArray is the same
