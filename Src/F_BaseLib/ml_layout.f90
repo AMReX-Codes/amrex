@@ -8,6 +8,7 @@ module ml_layout_module
   implicit none
 
   type ml_layout
+     logical                  :: owner  = .true.
      integer                  :: dim    = 0
      integer                  :: nlevel = 0
      type(ml_boxarray)        :: mba
@@ -42,7 +43,7 @@ module ml_layout_module
 
   interface ml_layout_restricted_build
      module procedure ml_layout_restricted_build_n
-     module procedure ml_layout_restricted_build_l_h
+     module procedure ml_layout_restricted_build_alias
   end interface
 
   interface destroy
@@ -238,23 +239,12 @@ contains
 
   subroutine ml_layout_restricted_build_n(mla, mba, nlevs, pmask)
 
+    ! this subroutine is the same thing as ml_layout_build except that
+    ! the mla will only have nlevs instead of mba%nlevel
+
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
     integer          , intent(in   ) :: nlevs
-    logical, optional                :: pmask(:)
-
-    call ml_layout_restricted_build_l_h(mla, mba, 1, nlevs, pmask)
-
-  end subroutine ml_layout_restricted_build_n
-
-  subroutine ml_layout_restricted_build_l_h(mla, mba, min_lev, max_lev, pmask)
-
-    ! this subroutine is the same thing as ml_layout_build except that
-    ! the mla will only start at min_lev (>=1) and end at max_lev (<= mba%nlevel)
-
-    type(ml_layout)  , intent(inout) :: mla
-    type(ml_boxarray), intent(in   ) :: mba
-    integer          , intent(in   ) :: min_lev, max_lev
     logical, optional                :: pmask(:)
 
     type(boxarray) :: bac
@@ -263,29 +253,35 @@ contains
     logical :: lpmask(mba%dim)
 
     lpmask = .false.; if (present(pmask)) lpmask = pmask
+
+    mla%owner = .true.
+
     allocate(mla%pmask(mba%dim))
     mla%pmask  = lpmask
 
-    mla%nlevel = max_lev-min_lev+1
+    mla%nlevel = nlevs
     mla%dim    = mba%dim
 
-!   Have to copy only min_lev:max_lev of the mba
-    call build(mla%mba,mla%nlevel,mla%dim)
-    mla%mba%pd(1:mla%nlevel) = mba%pd(min_lev:max_lev)
-    do n = min_lev, max_lev-1
-      mla%mba%rr(n-min_lev+1,:) = mba%rr(n,:)
+!   Have to copy only nlevs of the mba
+!   Replace 
+!   call copy(mla%mba, mba)
+!   by these lines
+    call build(mla%mba,nlevs,mla%dim)
+    mla%mba%pd(1:nlevs) = mba%pd(1:nlevs)
+    do n = 1, mla%nlevel-1
+      mla%mba%rr(n,:) = mba%rr(n,:)
     end do
-    do n = min_lev, max_lev
-      call boxarray_build_copy(mla%mba%bas(n-min_lev+1),mba%bas(n))
+    do n = 1, mla%nlevel
+      call boxarray_build_copy(mla%mba%bas(n),mba%bas(n))
     end do
 
     allocate(mla%la(mla%nlevel), la_array(mla%nlevel))
 
-    do n = min_lev, max_lev
-       call layout_build_ba(la_array(n-min_lev+1), mba%bas(n), mba%pd(n), pmask=lpmask)
+    do n = 1, mla%nlevel
+       call layout_build_ba(la_array(n), mba%bas(n), mba%pd(n), pmask=lpmask)
     end do
 
-    call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr(min_lev:,:))
+    call optimize_layouts(mla%la, la_array, mla%nlevel, mba%rr)
 
     do n = 1, mla%nlevel
        if (mla%la(n) .ne. la_array(n)) then
@@ -298,14 +294,14 @@ contains
     do n = mla%nlevel-1,  1, -1
        call lmultifab_build(mla%mask(n), mla%la(n), nc = 1, ng = 0)
        call setval(mla%mask(n), val = .TRUE.)
-       call boxarray_build_copy(bac, mba%bas(n+min_lev))
-       call boxarray_coarsen(bac, mba%rr(n+min_lev-1,:))
+       call boxarray_build_copy(bac, mba%bas(n+1))
+       call boxarray_coarsen(bac, mba%rr(n,:))
        call setval(mla%mask(n), .false., bac)
        call boxarray_destroy(bac)
     end do
 
-  end subroutine ml_layout_restricted_build_l_h
-
+  end subroutine ml_layout_restricted_build_n
+  
   subroutine ml_layout_destroy(mla, keep_coarse_layout)
     type(ml_layout), intent(inout) :: mla
     logical, intent(in), optional :: keep_coarse_layout
@@ -314,9 +310,12 @@ contains
 
     lkeepcoarse = .false.;  if (present(keep_coarse_layout)) lkeepcoarse = keep_coarse_layout
 
-    do n = 1, mla%nlevel-1
-       if (built_q(mla%mask(n))) call lmultifab_destroy(mla%mask(n))
-    end do
+    if (mla%owner) then
+       do n = 1, mla%nlevel-1
+          if (built_q(mla%mask(n))) call lmultifab_destroy(mla%mask(n))
+       end do
+    end if
+
     call destroy(mla%mba)
 
     if (lkeepcoarse) then
@@ -324,15 +323,55 @@ contains
     else
        n0 = 1
     end if
-    do n = n0, mla%nlevel
-       call layout_destroy(mla%la(n))
-    end do
+
+    if (mla%owner) then
+       do n = n0, mla%nlevel
+          call layout_destroy(mla%la(n))
+       end do
+    end if
 
     deallocate(mla%la, mla%mask)
+    mla%owner = .true.
     mla%dim = 0
     mla%nlevel = 0
     deallocate(mla%pmask)
   end subroutine ml_layout_destroy
+
+  subroutine ml_layout_restricted_build_alias(mla, mla_orig, min_lev, max_lev)
+
+    ! This subroutine builds a shallow copy of the origianl mla with levels starting
+    ! at the original min_lev and ending at the original max_lev.  Note that the new mla
+    ! starts at level 1, which corresponds to level min_lev in the original mla
+
+    type(ml_layout), intent(inout) :: mla
+    type(ml_layout), intent(in   ) :: mla_orig
+    integer        , intent(in   ) :: min_lev, max_lev
+
+    integer :: i, nlevs
+
+    nlevs = max_lev - min_lev + 1
+
+    mla%owner = .false. !!!
+
+    mla%dim    = mla_orig%dim
+    mla%nlevel = nlevs
+
+    call ml_boxarray_build_alias(mla%mba, mla_orig%mba, min_lev, max_lev)
+
+    allocate(mla%la(nlevs))
+    do i = 1, nlevs
+       mla%la(i) = mla_orig%la(i-1+min_lev)
+    end do
+
+    allocate(mla%mask(nlevs))
+    do i = 1, nlevs
+       mla%mask(i) = mla_orig%mask(i-1+min_lev)
+    end do
+
+    allocate(mla%pmask(mla%dim))
+    mla%pmask = mla_orig%pmask
+
+  end subroutine ml_layout_restricted_build_alias
 
   subroutine ml_layout_print(mla, str, unit, skip)
     use bl_IO_module
