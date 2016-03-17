@@ -26,6 +26,13 @@
 #include <Lazy.H>
 #endif
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#ifdef BL_USE_F_BASELIB
+#include <MemProfiler_f.H>
+#endif
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -385,6 +392,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
 #endif
+
+#if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
+    MemProfiler_f::initialize();
+#endif
 }
 
 void
@@ -440,6 +451,10 @@ BoxLib::Finalize (bool finalize_parallel)
 	}
     }
 #endif
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::report("Final");
+#endif
     
     ParallelDescriptor::EndTeams();
 
@@ -450,10 +465,10 @@ BoxLib::Finalize (bool finalize_parallel)
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
 #ifdef IN_TRANSIT
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_sidecar_mpi_comm_free(fcomm);
+	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+	bl_fortran_sidecar_mpi_comm_free(fcomm);
 #else
-    bl_fortran_mpi_comm_free();
+	bl_fortran_mpi_comm_free();
 #endif
 #endif
     /* Don't shut down MPI if GASNet is still using MPI */

@@ -228,6 +228,13 @@ ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
 endif
 
+ifndef MEM_PROFILE
+  MEM_PROFILE = FALSE
+endif
+ifeq ($(MEM_PROFILE),TRUE)
+  USE_CXX11 = TRUE
+endif
+
 ifndef TEST
   TEST = FALSE
 endif
@@ -345,9 +352,6 @@ ifdef USE_GCC
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifeq ($(__gcc_major_version),2)
-       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
-    endif
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
@@ -804,6 +808,13 @@ else
     ProfSuffix	:=
 endif
 
+ifeq ($(MEM_PROFILE),TRUE)
+  CPPFLAGS += -DBL_MEM_PROFILING
+  MProfSuffix := .MPROF
+else
+  MProfSuffix :=
+endif
+
 ifeq ($(COMP),Intel)
   ifeq ($(FCOMP),Intel)
     ifeq ($(ITAC_TRACE), TRUE)
@@ -1022,7 +1033,8 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(MPI1Suffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
