@@ -13,13 +13,12 @@ module box_module
   !!   - A dimensionality, and
   !!   - A low and high end of cells
   !!
-  !! Initially, each box is completely empty, with a low end at positive
-  !! infinity and a low end at negative infinity.  Almost all box operations
+  !! Initially, each box is completely empty. Almost all box operations
   !! are ill-defined on default boxes.
   type box
      integer :: dim  = 0
-     integer :: lo(MAX_SPACEDIM) =  Huge(1)
-     integer :: hi(MAX_SPACEDIM) = -Huge(1)
+     integer :: lo(MAX_SPACEDIM) =  1000000
+     integer :: hi(MAX_SPACEDIM) = -1000000
   end type box
 
   integer, parameter :: sizeof_box = 28  ! bytes
