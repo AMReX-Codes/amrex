@@ -180,7 +180,7 @@ contains
     mba%nlevel = nlevs
 
     allocate(mba%rr(nlevs-1,mba%dim))
-    do i = 1, nlevs
+    do i = 1, nlevs-1
        mba%rr(i,:) = mba_orig%rr(i-1+min_lev,:)
     end do
 

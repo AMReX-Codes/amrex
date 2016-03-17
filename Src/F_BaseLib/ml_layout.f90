@@ -363,8 +363,8 @@ contains
        mla%la(i) = mla_orig%la(i-1+min_lev)
     end do
 
-    allocate(mla%mask(nlevs))
-    do i = 1, nlevs
+    allocate(mla%mask(nlevs-1))
+    do i = 1, nlevs-1
        mla%mask(i) = mla_orig%mask(i-1+min_lev)
     end do
 
