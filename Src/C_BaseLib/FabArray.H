@@ -2791,6 +2791,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     if (N_rcvs > 0)
     {
 	Array<MPI_Status> stats(N_rcvs);
+
+	MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr());
+	for (int i = 0; i < N_rcvs; ++i) {
+            BoxLib::The_Arena()->free(md_send_data[i]);	    
+	}
+
 	BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, data_recv_reqs.dataPtr(), stats.dataPtr()) );
 
 	std::pair<FCDMapIter,FCDMapIter> match;
@@ -2839,11 +2845,6 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	}
 
 	BoxLib::The_Arena()->free(recv_data);
-
-	// No need to wait md_send_reqs, because otherwise we wouldn't receive fab data.
-	for (int i = 0; i < N_rcvs; ++i) {
-            BoxLib::The_Arena()->free(md_send_data[i]);	    
-	}
     }
 
     // Finished send
