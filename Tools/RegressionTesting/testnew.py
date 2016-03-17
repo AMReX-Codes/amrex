@@ -22,6 +22,7 @@ import datetime
 import email
 import argparse
 import getpass
+import json
 import os
 import shlex
 import shutil
@@ -294,7 +295,6 @@ class Test(object):
         return last_plot
 
 
-
 class Suite(object):
 
     def __init__ (self, args):
@@ -340,6 +340,12 @@ class Suite(object):
         self.emailSubject = ""
         self.emailBody = ""
 
+        self.slack_post = 0
+        self.slack_webhookfile = ""
+        self.slack_webhook_url = None
+        self.slack_channel = ""
+        self.slack_username = ""
+        
         self.globalAddToExecString = ""
 
         # delete all plot/checkfiles but the plotfile used for comparison upon
@@ -710,7 +716,21 @@ class Suite(object):
 
         self.log.outdent()
 
+    def slack_post_it(self, message):
 
+        payload = {}
+
+        # make sure there are no quotes in the strings
+        payload["channel"] = self.slack_channel.replace('"', '')
+        payload["username"] = self.slack_username.replace('"', '')
+        payload["text"] = message
+
+        s = json.dumps(payload)
+        cmd = "curl -X POST --data-urlencode 'payload={}' {}".format(s, self.slack_webhook_url)
+        print(cmd)
+        run(cmd)
+                                
+        
 class Repo(object):
     """ a simple class to manage our git operations """
     def __init__(self, suite, directory, name, 
@@ -959,6 +979,20 @@ def load_params(args):
         if mysuite.emailSubject == "":
             mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
 
+    if mysuite.slack_post:
+        if not os.path.isfile(mysuite.slack_webhookfile):
+            mysuite.log.warn("ERROR: slack_webhookfile invalid")
+            mysuite.slack_post = 0
+        else:
+            print(mysuite.slack_webhookfile)
+            try: f = open(mysuite.slack_webhookfile)
+            except:
+                mysuite.log.warn("ERROR: unable to open webhook file")
+                mysuite.slack_post = 0
+            else:
+                mysuite.slack_webhook_url = str(f.readline())
+                f.close()
+                            
     if (mysuite.sourceTree == "" or mysuite.boxlib_dir == "" or
         mysuite.source_dir == "" or mysuite.testTopDir == ""):
         mysuite.log.fail("ERROR: required suite-wide directory not specified\n" + \
@@ -1152,7 +1186,8 @@ class Log(object):
 
     def close_log(self):
         if not self.of is None: self.of.close()
-    
+
+
         
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
@@ -1426,6 +1461,14 @@ def test_suite(argv):
 
     suite.make_test_dirs()
 
+    print(suite.suiteName)
+    print(suite.sub_title)
+    print(suite.test_dir)
+    print(args.note)
+    msg = "{} ({}) test suite started, id: {}\n{}".format(suite.suiteName, suite.sub_title, suite.test_dir, args.note)
+    print(msg)
+    suite.slack_post_it(msg)
+    
     if not args.copy_benchmarks is None:
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
         copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir, suite.log)
@@ -2134,6 +2177,8 @@ def test_suite(argv):
         emailDevelopers()
 
 
+    suite.slack_post_it("test complete, num failed = {}\n{}".format(num_failed, suite.emailBody))
+    
     return num_failed
 
 
@@ -2670,6 +2715,9 @@ def report_single_test(suite, test, failure_msg=None):
                     if "NaN present" in line:
                         ht.print_row([fields[0], (fields[1], "colspan='2'")])
                         continue
+                    elif "variable not present" in line:
+                        ht.print_row([fields[0], (fields[1], "colspan='2'")])
+                        continue                        
                     else:
                         ht.header([" "] + fields)
                         continue

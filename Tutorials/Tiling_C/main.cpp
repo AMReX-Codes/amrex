@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
 #endif
     for (MFIter mfi(data,tiling); mfi.isValid(); ++mfi)
-    { // Tiling with defauly tile size in FabArray.cpp
+    { // Tiling with default tile size in FabArray.cpp
 
 	const Box& bx = mfi.tilebox();  // box for this tile
 

@@ -4,6 +4,16 @@
 #include <BLassert.H>
 #include <BoxArray.H>
 #include <ParallelDescriptor.H>
+#include <Utility.H>
+
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+bool BoxArray::Ref::initialized          = false;
+long BoxArray::Ref::total_box_bytes      = 0L;
+long BoxArray::Ref::total_box_bytes_hwm  = 0L;
+long BoxArray::Ref::total_hash_bytes     = 0L;
+long BoxArray::Ref::total_hash_bytes_hwm = 0L;
+#endif
 
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
 typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
@@ -100,19 +110,7 @@ BoxArray::empty () const
 void
 BoxArray::clear ()
 {
-    if (!m_ref.unique())
-        uniqify();
-
-    if (m_ref->m_abox.capacity() > 0)
-    {
-        //
-        // I want to forcefully clear out any memory in m_abox.
-        // Normally a clear() would just reset some internal pointers.
-        // I want to really let go of the memory so my byte count
-        // statistics are more accurate.
-        //
-        Array<Box>().swap(m_ref->m_abox);
-    }
+    m_ref = new BoxArray::Ref();
 }
 
 void
@@ -120,7 +118,7 @@ BoxArray::resize (int len)
 {
     if (!m_ref.unique())
         uniqify();
-    m_ref->m_abox.resize(len);
+    m_ref->resize(len);
 }
 
 void
@@ -142,8 +140,7 @@ void
 BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-        uniqify();
+    clear();
     m_ref->define(is);
     type_update();
 }
@@ -158,7 +155,7 @@ BoxArray::Ref::define (std::istream& is)
     int           maxbox;
     unsigned long hash;
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> hash;
-    m_abox.resize(maxbox);
+    resize(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
     is.ignore(BL_IGNORE_MAX, ')');
@@ -170,8 +167,7 @@ void
 BoxArray::define (const Box& bx)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-	uniqify();
+    clear();
     m_typ = bx.ixType();
     m_ref->define(BoxLib::enclosedCells(bx));
 }
@@ -180,15 +176,20 @@ void
 BoxArray::Ref::define (const Box& bx)
 {
     BL_ASSERT(m_abox.size() == 0);
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(-1);
+#endif
     m_abox.push_back(bx);
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif
 }
 
 void
 BoxArray::define (const BoxList& bl)
 {
     BL_ASSERT(size() == 0);
-    if (!m_ref.unique())
-        uniqify();
+    clear();
     m_ref->define(bl);
     type_update();
 }
@@ -198,7 +199,7 @@ BoxArray::Ref::define (const BoxList& bl)
 {
     BL_ASSERT(m_abox.size() == 0);
     const int N = bl.size();
-    m_abox.resize(N);
+    resize(N);
     int count = 0;
     for (BoxList::const_iterator bli = bl.begin(), End = bl.end(); bli != End; ++bli)
     {
@@ -613,12 +614,14 @@ BoxArray::maxSize (const IntVect& block_size)
 {
     BoxList blst(*this);
     blst.maxSize(block_size);
-    clear();
     const int N = blst.size();
-    m_ref->m_abox.resize(N);
-    BoxList::iterator bli = blst.begin(), End = blst.end();
-    for (int i = 0; bli != End; ++bli)
-        set(i++, *bli);
+    if (size() != N) { // If size doesn't change, do nothing.
+	clear();
+	m_ref->resize(N);
+	BoxList::iterator bli = blst.begin(), End = blst.end();
+	for (int i = 0; bli != End; ++bli)
+	    set(i++, *bli);
+    }
     return *this;
 }
 
@@ -800,6 +803,9 @@ BoxArray::clear_hash_bin () const
 {
     if (!m_ref->hash.empty())
     {
+#ifdef BL_MEM_PROFILING
+	m_ref->updateMemoryUsage_hash(-1);
+#endif
         m_ref->hash.clear();
     }
 }
@@ -900,6 +906,9 @@ BoxArray::intersections (const Box&                         bx,
             {
                 BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
             }
+#ifdef BL_MEM_PROFILING
+	    m_ref->updateMemoryUsage_hash(1);
+#endif
         }
     }
 
@@ -964,6 +973,11 @@ BoxArray::removeOverlap ()
     //
     // Note that "size()" can increase in this loop!!!
     //
+#ifdef BL_MEM_PROFILING
+    m_ref->updateMemoryUsage_box(-1);
+    m_ref->updateMemoryUsage_hash(-1);
+    long total_hash_bytes_save = m_ref->total_hash_bytes;
+#endif
     for (int i = 0; i < size(); i++)
     {
         if (m_ref->m_abox[i].ok())
@@ -989,6 +1003,9 @@ BoxArray::removeOverlap ()
             }
         }
     }
+#ifdef BL_MEM_PROFILING
+    m_ref->updateMemoryUsage_box(1);
+#endif
     //
     // We now have "holes" in our BoxArray. Make us good.
     //
@@ -1025,6 +1042,10 @@ BoxArray::removeOverlap ()
     bl.clear();
 
     *this = nba;
+
+#ifdef BL_MEM_PROFILING
+    m_ref->total_hash_bytes = total_hash_bytes_save;
+#endif
 
     BL_ASSERT(isDisjoint());
 }
@@ -1123,3 +1144,50 @@ BoxLib::readBoxArray (BoxArray&     ba,
     }
 }
 
+#ifdef BL_MEM_PROFILING
+void
+BoxArray::Ref::updateMemoryUsage_box (int s)
+{
+    if (m_abox.size() > 1) {
+	long b = BoxLib::bytesOf(m_abox);
+	if (s > 0) {
+	    total_box_bytes += b;
+	    total_box_bytes_hwm = std::max(total_box_bytes_hwm, total_box_bytes);
+	} else {
+	    total_box_bytes -= b;
+	}
+    }
+}
+
+void
+BoxArray::Ref::updateMemoryUsage_hash (int s)
+{
+    if (hash.size() > 0) {
+	long b = sizeof(hash);
+	for (auto&& x: hash) {
+	    b += BoxLib::gcc_map_node_extra_bytes
+		+ sizeof(IntVect) + BoxLib::bytesOf(x.second);
+	}
+	if (s > 0) {
+	    total_hash_bytes += b;
+	    total_hash_bytes_hwm = std::max(total_hash_bytes_hwm, total_hash_bytes);
+	} else {
+	    total_hash_bytes -= b;
+	}
+    }
+}
+
+void
+BoxArray::Ref::Initialize ()
+{
+    if (!initialized) {
+	initialized = true;
+	MemProfiler::add("BoxArray", [] () -> MemProfiler::MemInfo {
+		return {total_box_bytes, total_box_bytes_hwm};
+	    });
+	MemProfiler::add("BoxArrayHash", [] () -> MemProfiler::MemInfo {
+		return {total_hash_bytes, total_hash_bytes_hwm};
+	    });
+    }
+}
+#endif
