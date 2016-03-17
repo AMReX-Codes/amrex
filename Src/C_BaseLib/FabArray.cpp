@@ -7,8 +7,14 @@
 #include <Lazy.H>
 #endif
 
+#include <Utility.H>
 #include <FabArray.H>
 #include <ParmParse.H>
+
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 //
 // Set default values in Initialize()!!!
 //
@@ -30,9 +36,9 @@ FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
 
-FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("Tile Array Cache");
-FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("Fill Boundary Cache");
-FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("Copy Cache");
+FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
+FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("SICache");
+FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("CopyCache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -98,6 +104,18 @@ FabArrayBase::Initialize ()
 
     BoxLib::ExecOnFinalize(FabArrayBase::Finalize);
 
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add(m_TAC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_TAC_stats.bytes, m_TAC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_FBC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_FBC_stats.bytes, m_FBC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_CPC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_CPC_stats.bytes, m_CPC_stats.bytes_hwm};
+	});
+#endif
+
     initialized = true;
 }
 
@@ -113,6 +131,130 @@ Box
 FabArrayBase::fabbox (int K) const
 {
     return BoxLib::grow(boxarray[K], n_grow);
+}
+
+long
+FabArrayBase::bytesOfMapOfCopyComTagContainers (const FabArrayBase::MapOfCopyComTagContainers& m)
+{
+    long r = sizeof(MapOfCopyComTagContainers);
+    for (MapOfCopyComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
+	r += sizeof(it->first) + BoxLib::bytesOf(it->second)
+	    + BoxLib::gcc_map_node_extra_bytes;
+    }
+    return r;
+}
+
+long
+FabArrayBase::CPC::bytes () const
+{
+    long cnt = sizeof(FabArrayBase::CPC);
+
+    if (m_LocTags)
+	cnt += BoxLib::bytesOf(*m_LocTags);
+
+    if (m_SndTags)
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
+
+    if (m_RcvTags)
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
+
+    if (m_SndVols)
+	cnt += BoxLib::bytesOf(*m_SndVols);
+
+    if (m_RcvVols)
+	cnt += BoxLib::bytesOf(*m_RcvVols);
+
+    return cnt;
+}
+
+long
+FabArrayBase::bytesOfCPCCache ()
+{
+    long r;
+    if (m_TheCopyCache.empty()) {
+	r = 0L;
+    } else {
+	r = sizeof(m_TheCopyCache);
+	for (CPCCacheIter it = m_TheCopyCache.begin(), End = m_TheCopyCache.end();
+	     it != End; ++it)
+	{
+	    r += sizeof(it->first) + it->second.bytes() + BoxLib::gcc_map_node_extra_bytes;
+	}
+    }
+    return r;
+}
+
+long
+FabArrayBase::SI::bytes () const
+{
+    int cnt = sizeof(FabArrayBase::SI);
+
+    if (m_LocTags)
+	cnt += BoxLib::bytesOf(*m_LocTags);
+
+    if (m_SndTags)
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndTags);
+
+    if (m_RcvTags)
+	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
+
+    if (m_SndVols)
+	cnt += BoxLib::bytesOf(*m_SndVols);
+
+    if (m_RcvVols)
+	cnt += BoxLib::bytesOf(*m_RcvVols);
+
+    return cnt;
+}
+
+long
+FabArrayBase::bytesOfFBCache ()
+{
+    long r;
+    if (m_TheFBCache.empty()) {
+	r = 0L;
+    } else {
+	r = sizeof(m_TheFBCache);
+	for (FBCacheIter it = m_TheFBCache.begin(), End = m_TheFBCache.end();
+	     it != End; ++it)
+	{
+	    r += sizeof(it->first) + it->second.bytes() + BoxLib::gcc_map_node_extra_bytes;
+	}
+    }
+    return r;
+}
+
+long
+FabArrayBase::TileArray::bytes () const
+{
+    return sizeof(*this) 
+	+ (BoxLib::bytesOf(this->indexMap)      - sizeof(this->indexMap))
+	+ (BoxLib::bytesOf(this->localIndexMap) - sizeof(this->localIndexMap))
+	+ (BoxLib::bytesOf(this->tileArray)     - sizeof(this->tileArray));
+}
+
+long
+FabArrayBase::bytesOfTACache ()
+{
+    long r;
+    if (m_TheTileArrayCache.empty()) {
+	r = 0L;
+    } else {
+	r = sizeof(m_TheTileArrayCache);
+	for (TACache::const_iterator it = m_TheTileArrayCache.begin();
+	     it != m_TheTileArrayCache.end(); ++it)
+	{
+	    r += sizeof(it->first) + sizeof(it->second)
+		+ BoxLib::gcc_map_node_extra_bytes;
+	    for (TAMap::const_iterator it2 = it->second.begin();
+		 it2 != it->second.end(); ++it2)
+	    {
+		r += sizeof(it2->first) + (it2->second).bytes()
+		    + BoxLib::gcc_map_node_extra_bytes;
+	    }
+	}
+    }
+    return r;
 }
 
 //
@@ -166,59 +308,6 @@ FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
     return
         m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
-}
-
-int
-FabArrayBase::CPC::bytes () const
-{
-    int cnt = sizeof(FabArrayBase::CPC);
-
-    if (m_LocTags)
-    {
-        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
-    }
-
-    if (m_SndTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
-
-    if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
-
-    if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
-
-    if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
-
-    return cnt;
 }
 
 FabArrayBase::CPCCacheIter
@@ -276,11 +365,17 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 
         if (erase_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_CPC_stats.bytes -= erase_it->second.bytes();
+#endif
 	    m_CPC_stats.recordErase(erase_it->second.m_nuse);
             TheCopyCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_CPC_stats.bytes -= last_it->second.bytes();
+#endif
 	    m_CPC_stats.recordErase(last_it->second.m_nuse);
             TheCopyCache.erase(last_it);
         }
@@ -308,11 +403,16 @@ FabArrayBase::TheCPC (const CPC&          cpc,
     m_CPC_stats.recordBuild();
     m_CPC_stats.recordUse();
 
-    if (dst.IndexMap().empty() && src.IndexMap().empty())
+    if (dst.IndexMap().empty() && src.IndexMap().empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
+#ifdef BL_MEM_PROFILING
+	m_CPC_stats.bytes += TheCPC.bytes();
+	m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
+#endif
         return cache_it;
+    }
 
     const BoxArray& ba_src = TheCPC.m_srcba;
     const DistributionMapping& dm_src = TheCPC.m_srcdm;
@@ -465,6 +565,11 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	}
     }    
 
+#ifdef BL_MEM_PROFILING
+    m_CPC_stats.bytes += TheCPC.bytes();
+    m_CPC_stats.bytes_hwm = std::max(m_CPC_stats.bytes_hwm, m_CPC_stats.bytes);
+#endif
+
     return cache_it;
 }
 
@@ -479,11 +584,12 @@ FabArrayBase::CPC::FlushCache ()
          it != End;
          ++it)
     {
-        stats[2] += it->second.bytes();
         if (it->second.m_nuse >= 2)
             stats[1]++;
 	m_CPC_stats.recordErase(it->second.m_nuse);
     }
+
+    stats[2] = bytesOfCPCCache();
 
     if (BoxLib::verbose)
     {
@@ -507,6 +613,9 @@ FabArrayBase::CPC::FlushCache ()
     }
 
     m_TheCopyCache.clear();
+#ifdef BL_MEM_PROFILING
+    m_CPC_stats.bytes = 0L;
+#endif
 }
 
 FabArrayBase::SI::SI ()
@@ -559,59 +668,6 @@ FabArrayBase::SI::operator== (const SI& rhs) const
         m_ngrow == rhs.m_ngrow && m_cross == rhs.m_cross && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
-int
-FabArrayBase::SI::bytes () const
-{
-    int cnt = sizeof(FabArrayBase::SI);
-
-    if (m_LocTags)
-    {
-        cnt += sizeof(CopyComTagsContainer) + m_LocTags->size()*sizeof(CopyComTag);
-    }
-
-    if (m_SndTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
-
-    if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfCopyComTagContainers);
-
-        cnt += m_RcvTags->size()*sizeof(MapOfCopyComTagContainers::value_type);
-
-        for (MapOfCopyComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(CopyComTag);
-        }
-    }
-
-    if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
-
-    if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
-
-    return cnt;
-}
-
 FabArrayBase::FBCacheIter
 FabArrayBase::TheFB (bool                cross,
                      const FabArrayBase& mf)
@@ -659,11 +715,17 @@ FabArrayBase::TheFB (bool                cross,
 
         if (erase_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_FBC_stats.bytes -= erase_it->second.bytes();
+#endif
 	    m_FBC_stats.recordErase(erase_it->second.m_nuse);
             m_TheFBCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    m_FBC_stats.bytes -= last_it->second.bytes();
+#endif
 	    m_FBC_stats.recordErase(last_it->second.m_nuse);
 	    m_TheFBCache.erase(last_it);
         }
@@ -694,11 +756,16 @@ FabArrayBase::TheFB (bool                cross,
     m_FBC_stats.recordBuild();
     m_FBC_stats.recordUse();
 
-    if (imap.empty())
+    if (imap.empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
+#ifdef BL_MEM_PROFILING
+	m_FBC_stats.bytes += TheFB.bytes();
+	m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
+#endif
         return cache_it;
+    }
 
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
@@ -893,6 +960,11 @@ FabArrayBase::TheFB (bool                cross,
 	}
     }
 
+#ifdef BL_MEM_PROFILING
+	m_FBC_stats.bytes += TheFB.bytes();
+	m_FBC_stats.bytes_hwm = std::max(m_FBC_stats.bytes_hwm, m_FBC_stats.bytes);
+#endif
+
     return cache_it;
 }
 
@@ -925,11 +997,12 @@ FabArrayBase::FlushSICache ()
          it != End;
          ++it)
     {
-        stats[2] += it->second.bytes();
         if (it->second.m_nuse >= 2)
             stats[1]++;
 	m_FBC_stats.recordErase(it->second.m_nuse);
     }
+
+    stats[2] = bytesOfFBCache();
 
     if (BoxLib::verbose)
     {
@@ -953,6 +1026,9 @@ FabArrayBase::FlushSICache ()
     }
 
     m_TheFBCache.clear();
+#ifdef BL_MEM_PROFILING
+    m_FBC_stats.bytes = 0L;
+#endif
 }
 
 int
@@ -976,6 +1052,11 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 	    buildTileArray(tilesize, *p);
 	    p->nuse = 0;
 	    m_TAC_stats.recordBuild();
+#ifdef BL_MEM_PROFILING
+	    m_TAC_stats.bytes += p->bytes();
+	    m_TAC_stats.bytes_hwm = std::max(m_TAC_stats.bytes_hwm,
+					     m_TAC_stats.bytes);
+#endif
 	}
 #ifdef _OPENMP
 #pragma omp master
@@ -1094,6 +1175,9 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 	    for (TAMap::const_iterator tai_it = tao_it->second.begin();
 		 tai_it != tao_it->second.end(); ++tai_it)
 	    {
+#ifdef BL_MEM_PROFILING
+		m_TAC_stats.bytes -= tai_it->second.bytes();
+#endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
 	    }
 	    tao.erase(tao_it);
@@ -1103,6 +1187,9 @@ FabArrayBase::flushTileArray (const IntVect& tileSize) const
 	    TAMap& tai = tao_it->second;
 	    TAMap::iterator tai_it = tai.find(tileSize);
 	    if (tai_it != tai.end()) {
+#ifdef BL_MEM_PROFILING
+		m_TAC_stats.bytes -= tai_it->second.bytes();
+#endif		
 		m_TAC_stats.recordErase(tai_it->second.nuse);
 		tai.erase(tai_it);
 	    }
@@ -1123,6 +1210,9 @@ FabArrayBase::flushTileArrayCache ()
 	}
     }
     m_TheTileArrayCache.clear();
+#ifdef BL_MEM_PROFILING
+    m_TAC_stats.bytes = 0L;
+#endif
 }
 
 void
