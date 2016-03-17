@@ -213,7 +213,7 @@ ONES_COMP_NEG (long& n,
 
 inline
 int
-_PD_get_bit (char*      base,
+_pd_get_bit (char*      base,
              int        offs,
              int        nby,
              const int* ord)
@@ -243,7 +243,7 @@ _PD_get_bit (char*      base,
 
 static
 long
-_PD_extract_field (char*      in,
+_pd_extract_field (char*      in,
                    int        offs,
                    int        nbi,
                    int        nby,
@@ -319,7 +319,7 @@ _PD_extract_field (char*      in,
 
 static
 void
-_PD_btrvout (char* out,
+_pd_btrvout (char* out,
              long  nb,
              long  nitems)
 {
@@ -351,7 +351,7 @@ const int REVERSE_ORDER = 2;
 
 inline
 void
-_PD_insert_field (long  in_long,
+_pd_insert_field (long  in_long,
                   int   nb,
                   char* out,
                   int   offs,
@@ -401,7 +401,7 @@ _PD_insert_field (long  in_long,
     // Reorder the bytes apropriately.
     //
     if (l_order == REVERSE_ORDER)
-        _PD_btrvout(in, l_bytes, 1L);
+        _pd_btrvout(in, l_bytes, 1L);
     //
     // Copy the remaining aligned bytes over.
     //
@@ -415,7 +415,7 @@ _PD_insert_field (long  in_long,
 
 inline
 void
-_PD_set_bit (char* base, int offs)
+_pd_set_bit (char* base, int offs)
 {
     int nbytes = offs >> 3;
 
@@ -435,7 +435,7 @@ _PD_set_bit (char* base, int offs)
 
 static
 void
-_PD_reorder (char*      arr,
+_pd_reorder (char*      arr,
              long       nitems,
              int        nbytes,
              const int* ord)
@@ -533,7 +533,7 @@ permute_real_word_order (void*       out,
 // The floating point formats for a variety of platforms are supplied by
 // PDBLib and are defined at the top of this file
 
-// _PD_FCONVERT - general floating point conversion routine
+// _pd_FCONVERT - general floating point conversion routine
 //              - convert from floating point format specified by infor
 //              - to format specified by outfor
 //              -
@@ -602,8 +602,8 @@ PD_fconvert (void*       out,
         //
         // Move the exponent over.
         //
-        expn = _PD_extract_field(lin, bi_exp, nbi_exp, inbytes, inord);
-        sign = _PD_get_bit(lin, bi_sign, inbytes, inord);
+        expn = _pd_extract_field(lin, bi_exp, nbi_exp, inbytes, inord);
+        sign = _pd_get_bit(lin, bi_sign, inbytes, inord);
         //
         // If we have a negative number and ones complement arithmetic on the
         // input side (won't have it on the output side with modern data).
@@ -622,10 +622,10 @@ PD_fconvert (void*       out,
             expn += DeltaBias;
         if ((0 <= expn) && (expn < expn_max))
         {
-            _PD_insert_field(expn, nbo_exp, lout, bo_exp, l_order, l_bytes);
+            _pd_insert_field(expn, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
             if (sign)
-                _PD_set_bit(lout, bo_sign);
+                _pd_set_bit(lout, bo_sign);
 
             indxin  = bi_mant;
             inrem   = int(infor[2]);
@@ -639,7 +639,7 @@ PD_fconvert (void*       out,
             dindx = int(hmbo - hmbi);
             if (dindx > 0)
             {
-                _PD_set_bit(lout, indxout);
+                _pd_set_bit(lout, indxout);
                 indxout += dindx;
                 outrem  -= dindx;
             }
@@ -660,14 +660,14 @@ PD_fconvert (void*       out,
             {
                 nbits = BitsMax > inrem ? inrem : BitsMax;
                 nbits = nbits > outrem ? outrem : nbits;
-                mant  = _PD_extract_field(lin, indxin, nbits, inbytes, inord);
+                mant  = _pd_extract_field(lin, indxin, nbits, inbytes, inord);
                 //
                 // Do complement for negative ones complement data.
                 //
                 if (onescmp && sign)
                     ONES_COMP_NEG(mant, nbits, 0L);
 
-                _PD_insert_field(mant, nbits, lout, indxout, l_order, l_bytes);
+                _pd_insert_field(mant, nbits, lout, indxout, l_order, l_bytes);
 
                 indxin  += nbits;
                 indxout += nbits;
@@ -680,10 +680,10 @@ PD_fconvert (void*       out,
         //
         else if (expn_max <= expn)
         {
-            _PD_insert_field(expn_max, nbo_exp, lout, bo_exp, l_order, l_bytes);
+            _pd_insert_field(expn_max, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
-            if (_PD_get_bit(lin, bi_sign, inbytes, inord))
-                _PD_set_bit(lout, bo_sign);
+            if (_pd_get_bit(lin, bi_sign, inbytes, inord))
+                _pd_set_bit(lout, bo_sign);
         }
         bi_sign += nbi;
         bi_exp  += nbi;
@@ -715,7 +715,7 @@ PD_fconvert (void*       out,
     //
     // Put the output bytes into the specified order.
     //
-    _PD_reorder((char*)out, nitems, outbytes, outord);
+    _pd_reorder((char*)out, nitems, outbytes, outord);
 }
 
 static
@@ -735,7 +735,7 @@ PD_fixdenormals (void*       out,
 
     for (long i = 0L; i < nitems; i++)
     {
-        if (_PD_extract_field(lout, bo_exp, nbo_exp, outbytes, outord) == 0)
+        if (_pd_extract_field(lout, bo_exp, nbo_exp, outbytes, outord) == 0)
         {
             //
             // Set the word to zero.

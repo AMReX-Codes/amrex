@@ -30,6 +30,7 @@ realclean:: clean
 	$(SILENT) $(RM) lib*.a  TAGS tags BROWSE
 	$(SILENT) $(RM) -r d o f ii_files *~
 	$(SILENT) $(RM) *.ex *.ii *.o mon.out gmon.out
+	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) work.pc work.pcl
 
 tags:	$(allSources)

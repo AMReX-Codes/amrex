@@ -26,6 +26,13 @@
 #include <Lazy.H>
 #endif
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#ifdef BL_USE_F_BASELIB
+#include <MemProfiler_f.H>
+#endif
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -332,11 +339,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	pp.query("v", verbose);
 	pp.query("verbose", verbose);
 
-#if defined(DEBUG) || defined(BL_TESTING)
-	int invalid = 1, divbyzero=1, overflow=1;
-#else
 	int invalid = 0, divbyzero=0, overflow=0;
-#endif
 	pp.query("fpe_trap_invalid", invalid);
 	pp.query("fpe_trap_zero", divbyzero);
 	pp.query("fpe_trap_overflow", overflow);
@@ -372,6 +375,10 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #ifdef BL_USE_FORTRAN_MPI
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
+#endif
+
+#if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
+    MemProfiler_f::initialize();
 #endif
 }
 
@@ -428,14 +435,18 @@ BoxLib::Finalize (bool finalize_parallel)
 	}
     }
 #endif
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::report("Final");
+#endif
     
     if (finalize_parallel) {
 #ifdef BL_USE_FORTRAN_MPI
 #ifdef IN_TRANSIT
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_sidecar_mpi_comm_free(fcomm);
+	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+	bl_fortran_sidecar_mpi_comm_free(fcomm);
 #else
-    bl_fortran_mpi_comm_free();
+	bl_fortran_mpi_comm_free();
 #endif
 #endif
         ParallelDescriptor::EndParallel();

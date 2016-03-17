@@ -9,21 +9,27 @@
 #include <MultiFab.H>
 #include <FArrayBox.H>
 #include <BLProfiler.H>
+#include <Utility.H>
+#include <SPACE.H>
 
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+long Geometry::fpb_cache_total_bytes     = 0L;
+long Geometry::fpb_cache_total_bytes_hwm = 0L;
+#endif
+
 //
 // The definition of some static data members.
 //
-int     Geometry::spherical_origin_fix;
+int     Geometry::spherical_origin_fix = 0;
 RealBox Geometry::prob_domain;
-bool    Geometry::is_periodic[BL_SPACEDIM];
-
-const int fpb_cache_max_size_def = 25;
-
-int Geometry::fpb_cache_max_size = fpb_cache_max_size_def;
+bool    Geometry::is_periodic[BL_SPACEDIM] = {D_DECL(0,0,0)};
+int     Geometry::fpb_cache_max_size = 25;
+Geometry::FPBMMap Geometry::m_FPBCache;
 
 std::ostream&
 operator<< (std::ostream&   os,
@@ -101,55 +107,36 @@ Geometry::FPB::operator== (const FPB& rhs) const
         m_ngrow == rhs.m_ngrow && m_do_corners == rhs.m_do_corners && m_domain == rhs.m_domain && m_ba == rhs.m_ba && m_dm == rhs.m_dm;
 }
 
-int
+long 
+Geometry::FPB::bytesOfMapOfComTagContainers (const Geometry::FPB::MapOfFPBComTagContainers& m)
+{
+    long r = sizeof(MapOfFPBComTagContainers);
+    for (FPB::MapOfFPBComTagContainers::const_iterator it = m.begin(); it != m.end(); ++it) {
+	r += sizeof(it->first) + BoxLib::bytesOf(it->second)
+	    + BoxLib::gcc_map_node_extra_bytes;
+    }
+    return r;
+}
+
+long
 Geometry::FPB::bytes () const
 {
-    int cnt = sizeof(Geometry::FPB);
+    long cnt = sizeof(Geometry::FPB);
 
     if (m_LocTags)
-    {
-        cnt += sizeof(FPBComTagsContainer) + m_LocTags->size()*sizeof(FPBComTag);
-    }
+        cnt += BoxLib::bytesOf(*m_LocTags);
 
     if (m_SndTags)
-    {
-        cnt += sizeof(MapOfFPBComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
-
-        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_SndTags->begin(),
-                 m_End = m_SndTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(FPBComTag);
-        }
-    }
+	cnt += bytesOfMapOfComTagContainers(*m_SndTags);
 
     if (m_RcvTags)
-    {
-        cnt += sizeof(MapOfFPBComTagContainers);
-
-        cnt += m_SndTags->size()*sizeof(MapOfFPBComTagContainers::value_type);
-
-        for (FPB::MapOfFPBComTagContainers::const_iterator it = m_RcvTags->begin(),
-                 m_End = m_RcvTags->end();
-             it != m_End;
-             ++it)
-        {
-            cnt += it->second.size()*sizeof(FPBComTag);
-        }
-    }
+        cnt += bytesOfMapOfComTagContainers(*m_RcvTags);
 
     if (m_SndVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_SndVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_SndVols);
 
     if (m_RcvVols)
-    {
-        cnt += sizeof(std::map<int,int>) + m_RcvVols->size()*sizeof(std::map<int,int>::value_type);
-    }
+	cnt += BoxLib::bytesOf(*m_RcvVols);
 
     return cnt;
 }
@@ -588,14 +575,6 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
             prob_domain.setHi(prob_hi);
         }
     }
-    //
-    // Set default values here!!!
-    //
-    Geometry::spherical_origin_fix = 0;
-    Geometry::fpb_cache_max_size   = fpb_cache_max_size_def;
-
-    D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
-
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
     pp.query("fpb_cache_max_size",   Geometry::fpb_cache_max_size);
     //
@@ -618,6 +597,12 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         for (int n = 0; n < BL_SPACEDIM; n++)  
             is_periodic[n] = isper[n];
     }
+
+#ifdef BL_MEM_PROFILING
+    MemProfiler::add("Geometry", [] () -> MemProfiler::MemInfo {
+	    return {fpb_cache_total_bytes, fpb_cache_total_bytes_hwm};
+	});
+#endif
 
     BoxLib::ExecOnFinalize(Geometry::Finalize);
 }
@@ -782,11 +767,6 @@ Geometry::periodicShift (const Box&      target,
     }
 }
 
-//
-// The cache.
-//
-Geometry::FPBMMap Geometry::m_FPBCache;
-
 Geometry::FPBMMapIter
 Geometry::GetFPB (const Geometry&      geom,
                   const Geometry::FPB& fpb,
@@ -838,10 +818,16 @@ Geometry::GetFPB (const Geometry&      geom,
 
         if (erase_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    fpb_cache_total_bytes -= erase_it->second.bytes();
+#endif
             m_FPBCache.erase(erase_it);
         }
         else if (last_it != End)
         {
+#ifdef BL_MEM_PROFILING
+	    fpb_cache_total_bytes -= last_it->second.bytes();
+#endif
             m_FPBCache.erase(last_it);
         }
     }
@@ -864,11 +850,17 @@ Geometry::GetFPB (const Geometry&      geom,
 
     const Array<int>& imap = mf.IndexMap();
 
-    if (imap.empty())
+    if (imap.empty()) {
         //
         // We don't own any of the relevant FABs so can't possibly have any work to do.
         //
+#ifdef BL_MEM_PROFILING
+	fpb_cache_total_bytes += TheFPB.bytes();
+	fpb_cache_total_bytes_hwm = std::max(fpb_cache_total_bytes_hwm,
+					     fpb_cache_total_bytes);
+#endif
         return cache_it;
+    }
 
     const int nlocal = imap.size();
     const int ng = fpb.m_ngrow;
@@ -1076,7 +1068,30 @@ Geometry::GetFPB (const Geometry&      geom,
 	} 
     }
 
+#ifdef BL_MEM_PROFILING
+    fpb_cache_total_bytes += TheFPB.bytes();
+    fpb_cache_total_bytes_hwm = std::max(fpb_cache_total_bytes_hwm,
+					 fpb_cache_total_bytes);
+#endif
+
     return cache_it;
+}
+
+long
+Geometry::bytesOfFPBCache ()
+{
+    long r;
+    if (m_FPBCache.empty()) {
+	r = 0L;
+    } else {
+	r = sizeof(m_FPBCache);
+	for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
+	{
+	    r += sizeof(it->first) + it->second.bytes() 
+		+ BoxLib::gcc_map_node_extra_bytes;
+	}
+    }
+    return r;
 }
 
 void
@@ -1088,10 +1103,11 @@ Geometry::FlushPIRMCache ()
 
     for (FPBMMapIter it = m_FPBCache.begin(), End = m_FPBCache.end(); it != End; ++it)
     {
-        stats[2] += it->second.bytes();
         if (it->second.m_reused)
             stats[1]++;
     }
+
+    stats[2] = bytesOfFPBCache();
 
     if (BoxLib::verbose)
     {
@@ -1115,12 +1131,10 @@ Geometry::FlushPIRMCache ()
     }
 
     m_FPBCache.clear();
-}
 
-int
-Geometry::PIRMCacheSize ()
-{
-    return m_FPBCache.size();
+#ifdef BL_MEM_PROFILING
+    fpb_cache_total_bytes = 0L;
+#endif
 }
 
 #ifdef BL_USE_MPI

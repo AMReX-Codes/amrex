@@ -83,7 +83,7 @@ public:
     //
     // Constructor.
     //
-    MCMultiGrid (MCLinOp &_Lp);
+    MCMultiGrid (MCLinOp &_lp);
     //
     // Destructor.
     //

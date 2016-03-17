@@ -32,7 +32,7 @@ C$(BOXLIB_BASE)_headers += BLFort.H
 #
 # Container classes.
 #
-T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H BLMap.H
+T_headers += Array.H PArray.H PList.H Pointers.H Tuple.H
 
 #
 # FAB I/O stuff.
@@ -134,6 +134,12 @@ C$(BOXLIB_BASE)_headers += MemPool.H
 C$(BOXLIB_BASE)_sources += MemPool.cpp
 ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += mempool_f.f90
+endif
+
+# Memory Profiler
+ifeq ($(MEM_PROFILE),TRUE)
+  C$(BOXLIB_BASE)_sources += MemProfiler.cpp
+  C$(BOXLIB_BASE)_headers += MemProfiler.H
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)

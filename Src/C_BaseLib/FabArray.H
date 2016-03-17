@@ -161,9 +161,12 @@ public:
 	long        nuse;     // # of uses of the whole cache
 	long        nbuild;   // # of build operations
 	long        nerase;   // # of erase operations
+	long        bytes;
+	long        bytes_hwm;
 	std::string name;     // name of the cache
 	CacheStats (const std::string& name_) 
-	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),name(name_) {;}
+	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
+	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () {
 	    ++size;  
 	    ++nbuild;  
@@ -218,6 +221,8 @@ public:
     typedef CopyComTag::CopyComTagsContainer CopyComTagsContainer;
     typedef CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
     //
+    static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
+    //
     // Used in caching self-intersection info for FillBoundary().
     //
     struct SI
@@ -234,7 +239,7 @@ public:
         bool operator== (const SI& rhs) const;
         bool operator!= (const SI& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
         //
         // Basic data.
         //
@@ -265,6 +270,8 @@ public:
 
     static CacheStats m_FBC_stats;
     //
+    static long bytesOfFBCache ();
+    //
     // When copy()ing from one FabArray to another we can do a copy or an add.
     //
     enum CpOp { COPY = 0, ADD = 1 };
@@ -285,7 +292,7 @@ public:
         bool operator== (const CPC& rhs) const;
         bool operator!= (const CPC& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
 
         static void FlushCache ();
 
@@ -317,6 +324,8 @@ public:
     static CPCCache m_TheCopyCache;
 
     static CacheStats m_CPC_stats;
+
+    static long bytesOfCPCCache ();
 
     static CPCCacheIter TheCPC (const CPC&          cpc,
                                 const FabArrayBase& dst,
@@ -406,6 +415,7 @@ public:
 	Array<int> localIndexMap;
 	Array<Box> tileArray;
 	TileArray () : nuse(-1) {;}
+	long bytes () const;
     };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
@@ -474,6 +484,8 @@ protected:
     //
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
+    //
+    static long bytesOfTACache ();
     //
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
@@ -575,11 +587,11 @@ public:
     //
     // Returns the valid Box that current tile resides.
     //
-    Box validbox () const { return fabArray.box(pta->indexMap[currentIndex]); }
+    Box validbox () const;
     //
     // Returns the Box of the FAB at which we currently point.
     //
-    Box fabbox () const { return fabArray.fabbox(pta->indexMap[currentIndex]); }
+    Box fabbox () const;
     //
     // Increments iterator to the next tile we own.
     //
