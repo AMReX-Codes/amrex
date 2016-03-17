@@ -2744,8 +2744,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             const int lev_index = lev - lev_min;
             mf_part.set(lev_index, new MultiFab(m_amr->ParticleBoxArray(lev), ncomp, 1));
     
-            for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi)
+            for (MFIter mfi(mf_to_be_filled[lev_index]); mfi.isValid(); ++mfi) {
                 mf_part[lev_index][mfi].setVal(0);
+	    }
         }
 
         mf = &mf_part;
@@ -2830,7 +2831,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 const Box& dest = BoxLib::grow(grids[i],dgrow);
 
-                if (!dm.contains(dest))
+                if ( ! dm.contains(dest))
                 {
                     for (int j = 0; j < grids.size(); j++)
                     {
@@ -2939,7 +2940,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         compfvalid_grown.grow(1);
         compfvalid_grown.removeOverlap();
             
-        if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+        if (gm.isAnyPeriodic() && ! gm.isAllPeriodic())
         {
             BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
         }
@@ -2973,7 +2974,9 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
             {
                 const ParticleType& p = *it;
 
-                if (p.m_id <= 0) continue;
+                if (p.m_id <= 0) {
+		  continue;
+		}
                 //
                 // Get "fracs" and "cells" for the particle "p" at this level.
                 //
@@ -3013,7 +3016,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                             isBoundary = true;
                             continue;
                         }
-                        if (!fvalid.contains(cells[i]))
+                        if ( ! fvalid.contains(cells[i]))
                         {
                             //
                             // We're out of the valid region.
@@ -3080,7 +3083,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 //
                                 const Box bx(fcells[j],fcells[j]);
                                 gm_fine.periodicShift(bx, gm_fine.Domain(), pshifts);
-                                if (!pshifts.empty())
+                                if ( ! pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     fcells[j] = fcells[j] - pshifts[0];
