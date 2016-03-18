@@ -2494,6 +2494,10 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     BL_ASSERT(m_csq > 0.);
 #endif
 
+int myProcAll(ParallelDescriptor::MyProcAll());
+BoxLib::USleep(myProcAll*2.0);
+std::cout << myProcAll << "_here 8100.0:  " << std::endl;
+ParallelDescriptor::Barrier();
     MultiFab* mf_pointer;
 
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
@@ -2515,7 +2519,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
         //
         // Don't do anything if there are no particles at this level.
         //
-	if (mf_pointer != &mf_to_be_filled) delete mf_pointer;
+	if (mf_pointer != &mf_to_be_filled) {
+	  delete mf_pointer;
+	}
         return;
     }
 
@@ -2527,11 +2533,13 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     const PMap&     pmap        = m_particles[lev];
     const int       n           = pmap.size();
 
-    if (gm.isAnyPeriodic() && !gm.isAllPeriodic())
+    if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
         BoxLib::Error("AssignDensity: problem must be periodic in no or all directions");
+    }
 
-    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*mf_pointer); mfi.isValid(); ++mfi) {
         (*mf_pointer)[mfi].setVal(0);
+    }
     //
     // This is a little funky.  What in effect this'll do is force
     // each thread to work on a single (separate) grid at a time.  That
@@ -2567,7 +2575,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
         {
             const ParticleType& p = *it;
 
-            if (p.m_id <= 0) continue;
+            if (p.m_id <= 0) {
+	      continue;
+	    }
 
             const int M = ParticleBase::CIC_Cells_Fracs(p, plo, dx, dx_particle, fracs, cells);
             //
@@ -2576,19 +2586,24 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
             // any contribution outside the boundary (i.e. if allow_particles_near_boundary = true). 
             // We test this by checking the low and high corners respectively.
             //
-            if (!gm.isAllPeriodic() && !allow_particles_near_boundary)
-                if (!gm.Domain().contains(cells[0]) || !gm.Domain().contains(cells[M-1]))
+            if ( ! gm.isAllPeriodic() && ! allow_particles_near_boundary) {
+                if ( ! gm.Domain().contains(cells[0]) || ! gm.Domain().contains(cells[M-1])) {
                     BoxLib::Error("AssignDensity: if not periodic, all particles must stay away from the domain boundary");
+		}
+	    }
 
             for (int i = 0; i < M; i++)
             {
-                if (!fab.box().contains(cells[i])) continue;
+                if ( ! fab.box().contains(cells[i])) {
+		  continue;
+		}
 
                 // If the domain is not periodic and we want to let particles
                 //    live near the boundary but "throw away" the contribution that 
                 //    does not fall into the domain ...
-                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                        && !gm.Domain().contains(cells[i])) continue;
+                if ( ! gm.isAllPeriodic() && allow_particles_near_boundary && ! gm.Domain().contains(cells[i])) {
+		  continue;
+		}
                 //
                 // Sum up mass in first component.
                 //
@@ -2596,8 +2611,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
                 if (m_relativistic)
                 {
                     Real vsq = 0.0;
-                    for (int n = 1; n < ncomp; n++)
+                    for (int n = 1; n < ncomp; n++) {
                        vsq += p.m_data[n] * p.m_data[n];
+		    }
                     Real gamma = 1.0 / sqrt(1.0 - vsq / m_csq);
                     fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                 }
@@ -2609,8 +2625,9 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
                 // 
                 // Sum up momenta in next components.
                 //
-                for (int n = 1; n < ncomp; n++)
+                for (int n = 1; n < ncomp; n++) {
                    fab(cells[i],n) += p.m_data[n] * p.m_data[0] * fracs[i];
+		}
             }
         }
     }
@@ -2710,6 +2727,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     PArray<MultiFab>* mf;
     PArray<MultiFab>  mf_part;
 
+int myProcAll(ParallelDescriptor::MyProcAll());
+BoxLib::USleep(myProcAll*2.0);
+std::cout << myProcAll << "_here 8000:  finest_level = " << finest_level << std::endl;
+ParallelDescriptor::Barrier();
+
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
     mf_to_be_filled.resize(finest_level+1-lev_min, PArrayManage);
     for (int lev = lev_min; lev <= finest_level; lev++)
@@ -2754,10 +2776,20 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
 
     if (finest_level == 0)
     {
+int maxPN(ParallelDescriptor::NProcsComp() - 1);
+BoxLib::USleep(myProcAll*2.0);
+std::cout << myProcAll << "_here 8100:  maxPN  all_grids_the_same  m_particles[" << 0 << "].size() = "
+    << maxPN  << "  " << all_grids_the_same << "  " <<  m_particles[0].size() << std::endl;
+ParallelDescriptor::Barrier();
+
         //
         // Just use the far simpler single-level version.
         //
         AssignDensitySingleLevel((*mf)[0],0,ncomp);
+BoxLib::USleep(myProcAll*2.0);
+std::cout << myProcAll << "_here 8110:  maxPN  all_grids_the_same  m_particles[" << 0 << "].size() = "
+    << maxPN  << "  " << all_grids_the_same << "  " <<  m_particles[0].size() << std::endl;
+ParallelDescriptor::Barrier();
         //
         // I believe that we don't need any information in ghost cells so we don't copy those.
         //
@@ -2767,6 +2799,10 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
         return;
     }
     
+BoxLib::USleep(ParallelDescriptor::MyProcAll()*2.0);
+std::cout << ParallelDescriptor::MyProcAll() << "_here 8030:  finest_level = " << finest_level << std::endl;
+ParallelDescriptor::Barrier();
+
     const bool sub_cycle = m_amr->subCycle();
     //
     // This'll hold all the info I need for parallel.
@@ -3175,7 +3211,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 const Box bx(ccells[j],ccells[j]);
                                 gm_coarse.periodicShift(bx, gm_coarse.Domain(), pshifts);
 
-                                if (!pshifts.empty())
+                                if ( ! pshifts.empty())
                                 {
                                     BL_ASSERT(pshifts.size() == 1);
                                     ccells[j] = ccells[j] - pshifts[0]; 
@@ -3267,7 +3303,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                     // This may mean that the mass fraction is off.
                     //
                     bool AnyFineToCrse = false;
-                    if (lev_index > 0 && !GridsCoverDomain) {
+                    if (lev_index > 0 && ! GridsCoverDomain) {
                         AnyFineToCrse = ParticleBase::FineToCrse(p,lev,m_amr,cells,fvalid,compfvalid_grown,
 			                                         ccells,cfracs,fwhich,cgrid,pshifts,isects);
 		    }
@@ -3532,8 +3568,11 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
                                 // If the domain is not periodic and we want to let particles
                                 //    live near the boundary but "throw away" the contribution that 
                                 //    does not fall into the domain ...
-                                if (!gm.isAllPeriodic() && allow_particles_near_boundary 
-                                                        && !gm.Domain().contains(ccells[i])) continue;
+                                if ( ! gm.isAllPeriodic() && allow_particles_near_boundary &&
+				     ! gm.Domain().contains(ccells[i]))
+				{
+				  continue;
+				}
                                 //
                                 // Sum up mass in first component.
                                 //
@@ -3686,7 +3725,7 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     //
     // I believe that we don't need any information in ghost cells so we don't copy those.
     //
-    if (!all_grids_the_same)
+    if ( ! all_grids_the_same)
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
             const int lev_index = lev - lev_min;
@@ -3755,11 +3794,12 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
     ParallelDescriptor::ReduceIntMax(NumSnds);
 
-    if (NumSnds == 0)
+    if (NumSnds == 0) {
         //
         // There's no parallel work to do.
         //
         return;
+    }
 
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int),
                     ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
@@ -3780,9 +3820,11 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
     IntIntMap SndCnts, RcvCnts, rOffset;
 
-    for (int i = 0; i < NProcs; i++)
-        if (Snds[i] > 0)
+    for (int i = 0; i < NProcs; i++) {
+        if (Snds[i] > 0) {
             SndCnts[i] = Snds[i];
+	}
+    }
 
     for (int i = 0; i < NProcs; i++)
     {
@@ -3873,8 +3915,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
 
             ioff += iChunkSize;
 
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 rsenddata[roff+n] = p.m_data[n];
+	    }
 
             roff += ncomp;
         }
@@ -3908,8 +3951,9 @@ ParticleContainer<N>::AssignDensityDoit (PArray<MultiFab>* mf,
             BL_ASSERT((*mf)[lev].DistributionMap()[grd] == MyProc);
             BL_ASSERT((*mf)[lev][grd].box().contains(cell));
 
-            for (int n = 0; n < ncomp; n++)
+            for (int n = 0; n < ncomp; n++) {
                 (*mf)[lev][grd](cell,n) += rdata[n];
+	    }
 
             idata += iChunkSize;
             rdata += rChunkSize;
@@ -3947,8 +3991,9 @@ ParticleContainer<N>::GetParticleIDs (Array<int>& part_ids)
 
     ParallelDescriptor::Bcast(cnts.dataPtr(), cnts.size(), ParallelDescriptor::IOProcessorNumber());
 
-    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++)
+    for (int iproc = 0; iproc < ParallelDescriptor::MyProc(); iproc++) {
         cnt += cnts[iproc];
+    }
 
     std::cout << "PROC CNT " << ParallelDescriptor::MyProc() << " " << cnt << std::endl;
 
