@@ -211,7 +211,7 @@ ifeq ($(HOST),angilas)
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 
-DEFAULT_MACHINES := artoo atragon baragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan 
+DEFAULT_MACHINES := artoo atragon baragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan varan
 
 ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
   MPIHOME=/usr/lib/mpich

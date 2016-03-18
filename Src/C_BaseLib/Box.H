@@ -158,7 +158,7 @@ std::istream& operator>> (std::istream& os, Box& bx);
 class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
-    friend BoxCommHelper;
+    friend class BoxCommHelper;
 
 public:
     //
