@@ -945,6 +945,10 @@ template <class Op, class T>
 T
 ParallelDescriptor::Reduce (const T& t)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
     BL_PROFILE_T_S("ParallelDescriptor::Reduce(T)", T);
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, BLProfiler::BeforeCall(), true);
 

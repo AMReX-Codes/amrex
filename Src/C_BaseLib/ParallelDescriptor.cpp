@@ -423,6 +423,10 @@ void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -447,6 +451,10 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -474,6 +482,10 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -502,6 +514,10 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -606,6 +622,10 @@ void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -630,6 +650,10 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -657,6 +681,10 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -685,6 +713,10 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -812,6 +844,10 @@ void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -836,6 +872,10 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -863,6 +903,10 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -891,6 +935,10 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
