@@ -224,10 +224,6 @@ main (int argc, char* argv[])
 	}
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::barrier();
-#endif
-
     // Call the timer again and compute the maximum difference between the start time and stop time
     //   over all processors
     Real advance_time = ParallelDescriptor::second() - adv_start_time;

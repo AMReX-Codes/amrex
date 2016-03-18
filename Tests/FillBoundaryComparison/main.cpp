@@ -113,10 +113,6 @@ main (int argc, char* argv[])
 	mfs[lev].setVal(1.0);
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::barrier();
-#endif
-
     Array<Real> points(nlevels);
     for (int lev=0; lev<nlevels; ++lev) {
 	points[lev] = mfs[lev].norm1();
@@ -148,9 +144,6 @@ main (int argc, char* argv[])
 	    }
 	}
 	Real e = double(iround+ParallelDescriptor::MyProc());
-#ifdef BL_USE_UPCXX
-       upcxx::barrier();
-#endif
 	ParallelDescriptor::ReduceRealMax(e);
 	err += e;
     }
