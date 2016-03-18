@@ -5,6 +5,7 @@ module ml_boxarray_module
   implicit none
 
   type ml_boxarray
+     logical                 :: owner   = .true.
      integer                 :: dim     =  0
      integer                 :: nlevel  =  0
      integer, pointer        :: rr(:,:) => Null()
@@ -27,6 +28,7 @@ module ml_boxarray_module
   interface build
      module procedure ml_boxarray_build_ba
      module procedure ml_boxarray_build_n
+     module procedure ml_boxarray_build_alias
   end interface
 
   interface print
@@ -117,6 +119,7 @@ contains
     type(ml_boxarray), intent(out) :: mba
     integer, intent(in) :: nlevel
     integer, intent(in), optional :: dim
+    mba%owner  = .true.
     mba%nlevel = nlevel
     allocate(mba%bas(nlevel), mba%pd(nlevel))
     if ( present(dim) ) then
@@ -144,6 +147,7 @@ contains
     type(boxarray), intent(in) :: ba
     type(box), intent(in), optional :: pd
 
+    mba%owner  = .true.
     mba%nlevel = 1
     mba%dim = get_dim(ba)
     allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
@@ -156,16 +160,57 @@ contains
     call mem_stats_alloc(ml_boxarray_ms)
   end subroutine ml_boxarray_build_ba
 
+  subroutine ml_boxarray_build_alias(mba, mba_orig, min_lev, max_lev)
+
+    ! This subroutine builds a shallow copy of the origianl mba with levels starting
+    ! at the original min_lev and ending at the original max_lev.  Note that the new mba
+    ! starts at level 1, which corresponds to level min_lev in the original mba
+
+    type(ml_boxarray), intent(inout) :: mba
+    type(ml_boxarray), intent(in   ) :: mba_orig
+    integer          , intent(in   ) :: min_lev, max_lev
+
+    integer :: i, nlevs
+
+    nlevs = max_lev - min_lev + 1
+
+    mba%owner = .false. !!!
+
+    mba%dim    = mba_orig%dim
+    mba%nlevel = nlevs
+
+    allocate(mba%rr(nlevs-1,mba%dim))
+    do i = 1, nlevs-1
+       mba%rr(i,:) = mba_orig%rr(i-1+min_lev,:)
+    end do
+
+    allocate(mba%bas(nlevs))
+    do i = 1, nlevs
+       mba%bas(i) = mba_orig%bas(i-1+min_lev)
+    end do
+
+    allocate(mba%pd(nlevs))
+    do i = 1, nlevs
+       mba%pd(i) = mba_orig%pd(i-1+min_lev)
+    end do
+
+  end subroutine ml_boxarray_build_alias
+
   subroutine ml_boxarray_destroy(mba)
     type(ml_boxarray), intent(inout) :: mba
     integer i
     if ( associated(mba%bas) ) then
-       do i = 1, mba%nlevel
-          call boxarray_destroy(mba%bas(i))
-       end do
+       if (mba%owner) then
+          do i = 1, mba%nlevel
+             call boxarray_destroy(mba%bas(i))
+          end do
+          call mem_stats_dealloc(ml_boxarray_ms)
+       end if
        deallocate(mba%bas, mba%pd)
        deallocate(mba%rr)
-       call mem_stats_dealloc(ml_boxarray_ms)
+       mba%owner  = .true.
+       mba%dim    = 0
+       mba%nlevel = 0
     end if
   end subroutine ml_boxarray_destroy
 
