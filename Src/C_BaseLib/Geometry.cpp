@@ -35,6 +35,7 @@ operator<< (std::ostream&   os,
             const Geometry& g)
 {
     os << (CoordSys&) g << g.ProbDomain() << g.Domain();
+    for(int i(0); i < BL_SPACEDIM; ++i) { os << ' ' << g.isPeriodic(i); }
     return os;
 }
 
