@@ -2178,7 +2178,7 @@ def test_suite(argv):
         emailDevelopers()
 
 
-    if suite.slack_point:
+    if suite.slack_post:
         suite.slack_post_it("test complete, num failed = {}\n{}".format(num_failed, suite.emailBody))
     
     return num_failed
