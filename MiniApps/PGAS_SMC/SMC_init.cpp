@@ -14,7 +14,7 @@ SMC::build_multifabs ()
     ba.maxSize(mgs);
 
     int dir = 2;
-    while (ba.size() < ParallelDescriptor::NProcs()) {
+    while (ba.size() < ParallelDescriptor::NTeams()) {
 	if (dir == 2) {
 	    ba.maxSize(IntVect{mgs[0],mgs[1],mgs[2]/2});
 	    dir = 1;
