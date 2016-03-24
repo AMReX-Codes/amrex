@@ -10,7 +10,23 @@ SMC::build_multifabs ()
     Box bx(dlo, dhi);
 
     BoxArray ba(bx);
-    ba.maxSize(IntVect(max_grid_size));
+    IntVect mgs{max_grid_size};
+    ba.maxSize(mgs);
+
+    int dir = 2;
+    while (ba.size() < ParallelDescriptor::NProcs()) {
+	if (dir == 2) {
+	    ba.maxSize(IntVect{mgs[0],mgs[1],mgs[2]/2});
+	    dir = 1;
+	} else if (dir == 1) {
+	    ba.maxSize(IntVect{mgs[0],mgs[1]/2,mgs[2]/2});
+	    dir = 0;
+	} else {
+	    ba.maxSize(IntVect{mgs[0]/2,mgs[1]/2,mgs[2]/2});
+	    dir = 2;
+	    mgs = IntVect{mgs[0]/2,mgs[1]/2,mgs[2]/2};
+	}
+    }
 
     if (ParallelDescriptor::IOProcessor()) {
 	std::cout << "Number of boxes: " << ba.size() << std::endl;
