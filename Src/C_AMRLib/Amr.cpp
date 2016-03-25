@@ -3439,6 +3439,10 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     }
     Geometry::FlushPIRMCache();
     VisMF::SetNOutFiles(checkpoint_nfiles);
+
+#ifdef USE_PARTICLES
+    RedistributeParticles();
+#endif
 }
 
 
@@ -3862,6 +3866,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     }
 
     VisMF::SetNOutFiles(checkpoint_nfiles);
+
+#ifdef USE_PARTICLES
+    RedistributeParticles();
+#endif
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;
