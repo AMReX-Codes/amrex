@@ -766,7 +766,6 @@ FabArrayBase::FlushSICache ()
         if (it->second.m_reused)
             stats[1]++;
     }
-FabArrayBase::Verbose = false;
     if (FabArrayBase::Verbose)
     {
 #ifdef BL_LAZY
