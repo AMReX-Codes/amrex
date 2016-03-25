@@ -2313,13 +2313,11 @@ ParticleContainer<N>::estTimestep (MultiFab& gv,
         gv_pointer->FillBoundary(); // DO WE NEED GHOST CELLS FILLED ???
     }
 
-std::cout << ParallelDescriptor::MyProcAll() << ":tptptptp = " << TotalNumberOfParticles(true,true) << std::endl;
     for (typename PMap::const_iterator pmap_it = pmap.begin(), pmapEnd = pmap.end(); pmap_it != pmapEnd; ++pmap_it)
     {
         const int        grid = pmap_it->first;
         const PBox&      pbox = pmap_it->second;
         const int        n    = pbox.size();
-std::cout << ParallelDescriptor::MyProcAll() << ":aaaaaaa  grid n gv_pointer gv.DistributionMap() = " << grid << "  " << n << "  " << gv_pointer << "  " << gv.DistributionMap() << std::endl;
         const FArrayBox& gfab = (gv_pointer) ? (*gv_pointer)[grid] : gv[grid];
 
         num_particles_at_level += n;
@@ -2494,10 +2492,6 @@ ParticleContainer<N>::AssignDensitySingleLevel (MultiFab& mf_to_be_filled,
     BL_ASSERT(m_csq > 0.);
 #endif
 
-int myProcAll(ParallelDescriptor::MyProcAll());
-BoxLib::USleep(myProcAll*2.0);
-std::cout << myProcAll << "_here 8100.0:  " << std::endl;
-ParallelDescriptor::Barrier();
     MultiFab* mf_pointer;
 
     if (m_amr->getLevel(lev).ParticlesOnSameGrids())
@@ -2727,11 +2721,6 @@ ParticleContainer<N>::AssignDensity (PArray<MultiFab>& mf_to_be_filled,
     PArray<MultiFab>* mf;
     PArray<MultiFab>  mf_part;
 
-int myProcAll(ParallelDescriptor::MyProcAll());
-BoxLib::USleep(myProcAll*2.0);
-std::cout << myProcAll << "_here 8000:  finest_level = " << finest_level << std::endl;
-ParallelDescriptor::Barrier();
-
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
     mf_to_be_filled.resize(finest_level+1-lev_min, PArrayManage);
     for (int lev = lev_min; lev <= finest_level; lev++)
@@ -2776,20 +2765,10 @@ ParallelDescriptor::Barrier();
 
     if (finest_level == 0)
     {
-int maxPN(ParallelDescriptor::NProcsComp() - 1);
-BoxLib::USleep(myProcAll*2.0);
-std::cout << myProcAll << "_here 8100:  maxPN  all_grids_the_same  m_particles[" << 0 << "].size() = "
-    << maxPN  << "  " << all_grids_the_same << "  " <<  m_particles[0].size() << std::endl;
-ParallelDescriptor::Barrier();
-
         //
         // Just use the far simpler single-level version.
         //
         AssignDensitySingleLevel((*mf)[0],0,ncomp);
-BoxLib::USleep(myProcAll*2.0);
-std::cout << myProcAll << "_here 8110:  maxPN  all_grids_the_same  m_particles[" << 0 << "].size() = "
-    << maxPN  << "  " << all_grids_the_same << "  " <<  m_particles[0].size() << std::endl;
-ParallelDescriptor::Barrier();
         //
         // I believe that we don't need any information in ghost cells so we don't copy those.
         //
@@ -2799,10 +2778,6 @@ ParallelDescriptor::Barrier();
         return;
     }
     
-BoxLib::USleep(ParallelDescriptor::MyProcAll()*2.0);
-std::cout << ParallelDescriptor::MyProcAll() << "_here 8030:  finest_level = " << finest_level << std::endl;
-ParallelDescriptor::Barrier();
-
     const bool sub_cycle = m_amr->subCycle();
     //
     // This'll hold all the info I need for parallel.
