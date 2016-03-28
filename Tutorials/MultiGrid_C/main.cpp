@@ -498,16 +498,6 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 	  // Set the Dirichlet/Neumann boundary values 
 	  bd.setValue(Orientation(n, Orientation::low) ,i, bc_value);
 	  
-#if 1
-          Array<Real> offset(BL_SPACEDIM,0.5);
-          Orientation face(n,Orientation::low);
-          offset[n] = (face.isHigh() ? 0 : 1);
-          const BoxArray& ba = bd[face].boxArray();
-          MultiFab b(ba,1,0);
-          compute_analyticSolution(b,offset);
-          bd[face].copyFrom(b,0,0,0,1);
-#endif
-
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,ibnd);
 	}
@@ -519,16 +509,6 @@ void set_boundary(BndryData& bd, const MultiFab& rhs, int comp)
 	  
 	  // Set the Dirichlet/Neumann boundary values
 	  bd.setValue(Orientation(n, Orientation::high) ,i, bc_value);
-
-#if 1
-          Array<Real> offset(BL_SPACEDIM,0.5);
-          Orientation face(n,Orientation::high);
-          offset[n] = (face.isHigh() ? 0 : 1);
-          const BoxArray& ba = bd[face].boxArray();
-          MultiFab b(ba,1,0);
-          compute_analyticSolution(b,offset);
-          bd[face].copyFrom(b,0,0,0,1);
-#endif
 
 	  // Define the type of boundary conditions 
 	  bd.setBoundCond(Orientation(n, Orientation::high) ,i,comp,ibnd);
