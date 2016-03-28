@@ -40,6 +40,7 @@ f90sources += nodal_stencil_fill.f90
 f90sources += nodal_smoothers.f90
 f90sources += nodal_stencil.f90
 f90sources += nodal_stencil_apply.f90
+f90sources += nodal_sum.f90
 f90sources += nodal_mg_tower_smoother.f90
 
 f90sources += tridiag.f90

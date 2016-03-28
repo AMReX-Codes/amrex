@@ -165,8 +165,11 @@ def write_probin(probin_template, param_A_files, param_B_files,
     paramsA = []
     paramsB = []
 
-    print(" ")
-    print("write_probin.py: creating {}".format(out_file))
+    try:
+        print(" ")
+        print("write_probin.py: creating {}".format(out_file))
+    except:
+        sys.exit("write_probin.py: ERROR: your version of Python is unsupported. Please update to at least Python 2.7.")
 
     # read the parameters defined in the parameter files
 

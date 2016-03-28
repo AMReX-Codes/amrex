@@ -55,14 +55,14 @@ MCCGSolver::Finalize ()
     initialized = false;
 }
 
-MCCGSolver::MCCGSolver (MCLinOp& _Lp,
+MCCGSolver::MCCGSolver (MCLinOp& _lp,
 			bool     _use_mg_precond,
 			int      _lev)
     :
     mg_precond(NULL),
     use_mg_precond(_use_mg_precond),
     isExpert((int)def_isExpert),
-    Lp(_Lp),
+    Lp(_lp),
     lev(_lev)
 {
     Initialize();

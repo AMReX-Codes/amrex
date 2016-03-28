@@ -11,10 +11,14 @@
 #include <SPECIALIZE_F.H>
 #endif
 
-long BoxLib::private_total_bytes_allocated_in_fabs     = 0;
-long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0;
-long BoxLib::private_total_cells_allocated_in_fabs     = 0;
-long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
+long BoxLib::private_total_bytes_allocated_in_fabs     = 0L;
+long BoxLib::private_total_bytes_allocated_in_fabs_hwm = 0L;
+long BoxLib::private_total_cells_allocated_in_fabs     = 0L;
+long BoxLib::private_total_cells_allocated_in_fabs_hwm = 0L;
 
 int BoxLib::BF_init::m_cnt = 0;
 
@@ -43,6 +47,13 @@ BoxLib::BF_init::BF_init ()
 	    BoxLib::private_total_cells_allocated_in_fabs     = 0;
 	    BoxLib::private_total_cells_allocated_in_fabs_hwm = 0;
 	}
+#endif
+
+#ifdef BL_MEM_PROFILING
+	MemProfiler::add("Fab", [] () -> MemProfiler::MemInfo {
+	    return {BoxLib::TotalBytesAllocatedInFabs(),
+		    BoxLib::TotalBytesAllocatedInFabsHWM()};
+        });
 #endif
     }
 }

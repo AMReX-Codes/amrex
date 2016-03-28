@@ -46,7 +46,7 @@ contains
           do i = 1, n(1)
              call multifab_destroy(br%bmf(i,f))
              call layout_destroy(br%laf(i,f))
-             if ( br%other ) then
+             if ( br%other .and. associated(br%obmf) ) then
                 call multifab_destroy(br%obmf(i,f))
                 call layout_destroy(br%olaf(i,f))
              end if
@@ -56,7 +56,10 @@ contains
        if (associated(br%indxmap)) deallocate(br%indxmap)
        if (associated(br%facemap)) deallocate(br%facemap)
        if ( br%other ) then
-          deallocate(br%obmf,br%olaf,br%oindxmap,br%ofacemap)
+          if (associated(br%obmf)) deallocate(br%obmf)
+          if (associated(br%olaf)) deallocate(br%olaf)
+          if (associated(br%oindxmap)) deallocate(br%oindxmap)
+          if (associated(br%ofacemap)) deallocate(br%ofacemap)
        end if
     end if
     br%dim = 0
@@ -287,7 +290,7 @@ contains
     call destroy(indx)
     call destroy(face)
 
-    if (br%other) then
+    if (br%other .and. .not.empty(obxl)) then
 
        allocate(br%olaf(1,0:0))
        allocate(br%obmf(1,0:0))
@@ -320,7 +323,7 @@ contains
        br%nend(i) = br%nbegin(i) + nlb(i) - 1
     end do
 
-    if (br%other) then
+    if (br%other .and. associated(br%obmf)) then
        br%onbegin(1) = 1
        br%onend(1) = br%onbegin(1) + onlb(1) - 1
        do i=2,dm
@@ -535,6 +538,7 @@ contains
     integer :: i, f, n(2)
     type(bl_prof_timer), save :: bpt
     if ( .not. br%other ) call bl_error('bndry_reg_copy_to_other: other not defined')
+    if (.not.associated(br%obmf)) return
     call build(bpt, "br_copy_to_other")
     n = shape(br%bmf)
     do f = 0, n(2)-1
@@ -651,6 +655,8 @@ contains
     real(kind=dp_t), pointer :: bp(:,:,:,:), fp(:,:,:,:)
 
     call bndry_reg_setval(br, ZERO)  ! zero bmf
+
+    if (.not.associated(br%obmf)) return
 
     !$omp parallel private(ibr,iflx,idim,face,blo,bhi,br_box,bp,fp)
     blo = 1; bhi = 1
@@ -864,6 +870,8 @@ contains
     real(kind=dp_t) :: face
     type(box) :: br_box
     real(kind=dp_t), dimension(:,:,:,:), pointer :: b1p, b2p, up
+
+    if (.not.associated(br%obmf)) return
 
     call multifab_build(obmf2, br%olaf(1,0), nc=ncomp(br%obmf(1,0)), ng=0)
     call copy (obmf2, br%bmf(1,0), bndry_reg_to_other=.true.)

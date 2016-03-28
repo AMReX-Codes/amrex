@@ -34,12 +34,14 @@ module layout_module
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
      integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
+  integer, private, parameter :: sizeof_comm_dsc = 96  ! bytes
 
   type trns_dsc
      integer :: sz = 0              ! Size of chunk 
      integer :: pv = -1             ! Number points in buf prior to this
      integer :: pr = MPI_ANY_SOURCE ! src or destination processor
   end type trns_dsc
+  integer, private, parameter :: sizeof_trns_dsc = 12  ! bytes
 
   type remote_conn
      logical                 :: threadsafe = .false.
@@ -54,6 +56,7 @@ module layout_module
      type(trns_dsc), pointer :: str(:) => Null()
      type(trns_dsc), pointer :: rtr(:) => Null()
   end type remote_conn
+  integer, private, parameter :: sizeof_remote_conn = 224  ! bytes
 
   type local_copy_desc
      integer   :: ns = 0    ! Source box in layout
@@ -63,12 +66,14 @@ module layout_module
      type(box) :: sbx       ! Sub-box for this copy
      type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
+  integer, private, parameter :: sizeof_local_copy_desc = 72 ! bytes
 
   type local_conn
      logical                        :: threadsafe = .false.
-     integer                        :: ncpy   ! Number of cpy chunks
+     integer                        :: ncpy = 0  ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
+  integer, private, parameter :: sizeof_local_conn = 56  ! bytes
 
   type boxassoc
      integer                 :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -81,6 +86,7 @@ module layout_module
      type(remote_conn)       :: r_con
      type(boxassoc), pointer :: next     => Null()
   end type boxassoc
+  integer, private, parameter :: sizeof_boxassoc = 360  ! bytes
   !
   ! Used to cache the boxarray used by multifab_fill_ghost_cells().
   !
@@ -92,6 +98,7 @@ module layout_module
      type(boxarray)         :: ba
      type(fgassoc), pointer :: next   => Null()
   end type fgassoc
+  integer, private, parameter :: sizeof_fgassoc = 168  ! bytes
 
   type syncassoc
      integer                  :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -103,6 +110,7 @@ module layout_module
      type(remote_conn)        :: r_con
      type(syncassoc), pointer :: next     => Null()
   end type syncassoc
+  integer, private, parameter :: sizeof_syncassoc = 352  ! bytes
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
@@ -120,6 +128,7 @@ module layout_module
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
   end type copyassoc
+  integer, private, parameter :: sizeof_copyassoc = 616  ! bytes
   !
   ! Note that a fluxassoc contains two copyassocs.
   !
@@ -137,6 +146,7 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
+  integer, private, parameter :: sizeof_fluxassoc = 1448  ! bytes
 
   type tilearray
      integer                   :: dim      = 0
@@ -148,7 +158,8 @@ module layout_module
      integer,          pointer :: gidx(:)  => Null() ! global index
      integer,          pointer :: lidx(:)  => Null() ! local index
   end type tilearray
-  
+  integer, private, parameter :: sizeof_tilearray = 264  ! bytes
+
   !
   ! Used by layout_get_box_intersector().
   !
@@ -160,6 +171,7 @@ module layout_module
   type box_hash_bin
      integer, pointer :: iv(:) => Null()
   end type box_hash_bin
+  integer, private, parameter :: sizeof_box_hash_bin = 48  ! bytes
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
@@ -167,7 +179,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0   ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 128 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 25  ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -204,6 +216,7 @@ module layout_module
      integer                         :: vshft(MAX_SPACEDIM) = 0
      type(box_hash_bin), pointer     :: bins(:,:,:)         => Null()
   end type layout_rep
+  integer, private, parameter :: sizeof_layout_rep = 520
 
   !! A layout that is derived by coarsening an existing layout,
   !! The processor distribution and the number of boxes will be
@@ -330,6 +343,29 @@ module layout_module
   type(mem_stats), private, save :: snx_ms
   type(mem_stats), private, save :: cpx_ms
   type(mem_stats), private, save :: flx_ms
+
+  integer(kind=ll_t), public, save :: tilearray_total_bytes     = 0
+  integer(kind=ll_t), public, save :: tilearray_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: boxhash_total_bytes     = 0
+  integer(kind=ll_t), public, save :: boxhash_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: fgassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: fgassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: syncassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: syncassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: fluxassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: fluxassoc_total_bytes_hwm = 0
+
+  !$omp threadprivate(tilearray_total_bytes,tilearray_total_bytes_hwm)
 
 contains
 
@@ -650,6 +686,8 @@ contains
     nthreads = omp_get_max_threads()
     allocate(lap%tas(0:nthreads-1))
   end subroutine layout_rep_build
+
+  
 
   subroutine layout_flush_copyassoc_cache ()
     type(copyassoc), pointer :: cp, ncp
@@ -1557,6 +1595,9 @@ contains
 
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
 
+    boxassoc_total_bytes = boxassoc_total_bytes + boxassoc_bytes(bxasc)
+    boxassoc_total_bytes_hwm = max(boxassoc_total_bytes_hwm, boxassoc_total_bytes)
+
     call destroy(bpt)
 
   end subroutine boxassoc_build
@@ -1650,6 +1691,9 @@ contains
     call destroy(idx2)
 
     call mem_stats_alloc(fgx_ms, volume(fgasc%ba))
+
+    fgassoc_total_bytes = fgassoc_total_bytes + fgassoc_bytes(fgasc)
+    fgassoc_total_bytes_hwm = max(fgassoc_total_bytes_hwm,fgassoc_total_bytes)
 
     call destroy(bpt)
 
@@ -1931,31 +1975,60 @@ contains
 
     call mem_stats_alloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
 
+    syncassoc_total_bytes = syncassoc_total_bytes + syncassoc_bytes(snasc)
+    syncassoc_total_bytes_hwm = max(syncassoc_total_bytes_hwm,syncassoc_total_bytes)
+
     call destroy(bpt)
 
   end subroutine syncassoc_build
 
-  function boxassoc_bytes(bxasc) result(nbytes)
-    use bl_error_module
-    integer :: nbytes
+  pure function boxassoc_bytes(bxasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
     type(boxassoc), intent(in) :: bxasc
-    if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
-
-    nbytes = 0
-    nbytes = nbytes + 4 * 9;
-    nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
-    nbytes = nbytes + bxasc%r_con%nsnd * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
-    nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
-
+    nbytes = sizeof_boxassoc   &
+         + bxasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (bxasc%r_con%nsnd+bxasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (bxasc%r_con%nrp+bxasc%r_con%nsp)*sizeof_trns_dsc
   end function boxassoc_bytes
+
+  pure function fgassoc_bytes(fgasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(fgassoc), intent(in) :: fgasc
+    nbytes = sizeof_fgassoc + (size(fgasc%prc)+size(fgasc%idx))*4
+  end function fgassoc_bytes
+
+  pure function syncassoc_bytes(syncasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(syncassoc), intent(in) :: syncasc
+    nbytes = sizeof_syncassoc &
+         + syncasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (syncasc%r_con%nsnd+syncasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (syncasc%r_con%nrp+syncasc%r_con%nsp)*sizeof_trns_dsc
+  end function syncassoc_bytes
+
+  pure function cpassoc_bytes(cpasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(copyassoc), intent(in) :: cpasc
+    nbytes = sizeof_copyassoc &
+         + cpasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (cpasc%r_con%nsnd+cpasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (cpasc%r_con%nrp+cpasc%r_con%nsp)*sizeof_trns_dsc
+  end function cpassoc_bytes
+
+  pure function fluxassoc_bytes(fluxasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(fluxassoc), intent(in) :: fluxasc
+    nbytes = sizeof_fluxassoc &
+         - 2*(sizeof_copyassoc) & ! We count copyassoc separately.
+         + size(fluxasc%fbxs)*sizeof_box
+  end function fluxassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
     type(boxassoc), intent(inout) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("boxassoc_destroy(): not built")
     call mem_stats_dealloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
+    boxassoc_total_bytes = boxassoc_total_bytes - boxassoc_bytes(bxasc)
     deallocate(bxasc%nodal)
     deallocate(bxasc%l_con%cpy)
     deallocate(bxasc%r_con%snd)
@@ -1969,6 +2042,7 @@ contains
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("fgassoc_destroy(): not built")
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
+    fgassoc_total_bytes = fgassoc_total_bytes - fgassoc_bytes(fgasc)
     if (associated(fgasc%prc)) deallocate(fgasc%prc) 
     if (associated(fgasc%idx)) deallocate(fgasc%idx)
     call boxarray_destroy(fgasc%ba)
@@ -1979,6 +2053,7 @@ contains
     type(syncassoc), intent(inout) :: snasc
     if ( .not. built_q(snasc) ) call bl_error("syncassoc_destroy(): not built")
     call mem_stats_dealloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
+    syncassoc_total_bytes = syncassoc_total_bytes - syncassoc_bytes(snasc)
     deallocate(snasc%nodal)
     deallocate(snasc%l_con%cpy)
     deallocate(snasc%r_con%snd)
@@ -2187,6 +2262,9 @@ contains
     end if
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     call destroy(bpt)
     call bl_proffortfuncstop("copyassoc_build")
@@ -2491,8 +2569,14 @@ contains
     ! Recall that fluxassoc contains two copyassocs.
     !
     call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_alloc(cpx_ms, flasc%mask%r_con%nsnd + flasc%mask%r_con%nrcv)
     call mem_stats_alloc(flx_ms, size(flasc%fbxs))
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(flasc%flux) + cpassoc_bytes(flasc%mask)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
+
+    fluxassoc_total_bytes = fluxassoc_total_bytes + fluxassoc_bytes(flasc)
+    fluxassoc_total_bytes_hwm = max(fluxassoc_total_bytes_hwm,fluxassoc_total_bytes)
 
     call destroy(bpt)
 
@@ -2503,17 +2587,18 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+    copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(cpasc)
     call boxarray_destroy(cpasc%ba_src)
     call boxarray_destroy(cpasc%ba_dst)
-    deallocate(cpasc%nd_dst)
-    deallocate(cpasc%nd_src)
-    deallocate(cpasc%l_con%cpy)
-    deallocate(cpasc%r_con%snd)
-    deallocate(cpasc%r_con%rcv)
-    deallocate(cpasc%r_con%str)
-    deallocate(cpasc%r_con%rtr)
-    deallocate(cpasc%prc_src)
-    deallocate(cpasc%prc_dst)
+    if (associated(cpasc%nd_dst))    deallocate(cpasc%nd_dst)
+    if (associated(cpasc%nd_src))    deallocate(cpasc%nd_src)
+    if (associated(cpasc%l_con%cpy)) deallocate(cpasc%l_con%cpy)
+    if (associated(cpasc%r_con%snd)) deallocate(cpasc%r_con%snd)
+    if (associated(cpasc%r_con%rcv)) deallocate(cpasc%r_con%rcv)
+    if (associated(cpasc%r_con%str)) deallocate(cpasc%r_con%str)
+    if (associated(cpasc%r_con%rtr)) deallocate(cpasc%r_con%rtr)
+    if (associated(cpasc%prc_src))   deallocate(cpasc%prc_src)
+    if (associated(cpasc%prc_dst))   deallocate(cpasc%prc_dst)   
     cpasc%hash_dst = -1
     cpasc%hash_src = -1
     cpasc%dim = 0
@@ -2524,18 +2609,11 @@ contains
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
 
-    deallocate(flasc%flux%l_con%cpy)
-    deallocate(flasc%flux%r_con%snd)
-    deallocate(flasc%flux%r_con%rcv)
-    deallocate(flasc%mask%r_con%snd)
-    deallocate(flasc%mask%r_con%rcv)
-    deallocate(flasc%flux%r_con%rtr)
-    deallocate(flasc%flux%r_con%str)
-    deallocate(flasc%mask%r_con%rtr)
-    deallocate(flasc%mask%r_con%str)
+    fluxassoc_total_bytes = fluxassoc_total_bytes - fluxassoc_bytes(flasc)
+
+    call copyassoc_destroy(flasc%flux)
+    call copyassoc_destroy(flasc%mask)
 
     deallocate(flasc%fbxs)
     deallocate(flasc%nd_dst)
@@ -2640,6 +2718,7 @@ contains
     r = cp
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
+       the_copyassoc_cnt = the_copyassoc_cnt - 1
        cp => the_copyassoc_tail
        call remove_item(cp)
        call copyassoc_destroy(cp)
@@ -2730,6 +2809,8 @@ contains
 
     if ( associated(lap%bins) ) then
 
+       boxhash_total_bytes = boxhash_total_bytes - boxhash_bytes(lap)
+
        do k = lbound(lap%bins,3), ubound(lap%bins,3)
           do j = lbound(lap%bins,2), ubound(lap%bins,2)
              do i = lbound(lap%bins,1), ubound(lap%bins,1)
@@ -2818,8 +2899,17 @@ contains
 !       endif
     end if
 
+    boxhash_total_bytes = boxhash_total_bytes + boxhash_bytes(la%lap)
+    boxhash_total_bytes_hwm = max(boxhash_total_bytes_hwm,boxhash_total_bytes)
+
     call destroy(bpt)
   end subroutine init_box_hash_bin
+
+  pure function boxhash_bytes(lap) result(nbytes)
+    type(layout_rep), intent(in) :: lap
+    integer(kind=ll_t) :: nbytes
+    nbytes = sizeof_box_hash_bin + size(lap%bins)*4
+  end function boxhash_bytes
 
   function layout_get_box_intersector(la, bx, ng_la, nodal_la) result(bi)
     use bl_error_module
@@ -3156,6 +3246,9 @@ contains
     cpasc%r_con%threadsafe = .true.
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
@@ -3671,11 +3764,17 @@ contains
     call bl_deallocate(nt_in_fab)
     call bl_deallocate(ntiles)
 
+    tilearray_total_bytes = tilearray_total_bytes + tilearray_bytes(ta)
+    tilearray_total_bytes_hwm = max(tilearray_total_bytes_hwm,tilearray_total_bytes)
+
   end subroutine tilearray_build
 
   subroutine tilearray_destroy(ta)
     use mempool_module, only : bl_deallocate
     type(tilearray), intent(inout) :: ta
+    if (associated(ta%gidx)) then
+       tilearray_total_bytes = tilearray_total_bytes - tilearray_bytes(ta)
+    end if
     if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
     if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
     if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
@@ -3688,5 +3787,11 @@ contains
     type(tilearray), intent(in) :: ta
     r = ta%dim /= 0
   end function tilearray_built_q
+
+  pure function tilearray_bytes(ta) result(nbytes)
+    type(tilearray), intent(in) :: ta
+    integer(kind=ll_t) :: nbytes
+    nbytes = sizeof_tilearray + (ta%dim+1)*ta%ntiles*8
+  end function tilearray_bytes
 
 end module layout_module

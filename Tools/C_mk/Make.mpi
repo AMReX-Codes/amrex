@@ -314,11 +314,10 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),baragon)
-      mpihome=/usr/lib/mpich
+      mpihome=/home/wqzhang/lib/mpich
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lmpich -lmpichf90
     endif
 
     ifeq ($(HOST),megalon)
@@ -464,7 +463,11 @@ ifeq ($(MACHINE), Linux)
                         ifneq ($(WHICHLINUX), BABBAGE)
                           ifneq ($(WHICHLINUX), MIRA)
                             ifneq ($(findstring ad.unsw.edu.au, $(HOST)), ad.unsw.edu.au)
-                              BL_MPI_LIBS += -lmpich
+                              ifneq ($(WHICHLINUX), CORI)
+                                ifneq ($(WHICHLINUX), EDISON)
+                                  BL_MPI_LIBS += -lmpich
+                                endif
+                              endif
                             endif
                           endif
                         endif

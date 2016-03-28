@@ -2,6 +2,10 @@
 #include <MGT_Solver.H>
 #include <ParallelDescriptor.H>
 
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
+#endif
+
 bool  MGT_Solver::initialized = false;
 
 int   MGT_Solver::def_maxiter;

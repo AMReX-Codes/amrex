@@ -14,24 +14,21 @@ contains
     type(mg_tower) , intent(in   ) :: mgt(:)
 
     type(imultifab):: mask
-    integer        :: i,n,ng_d,dm,nlevs
+    integer        :: i,n,ng_d
     integer        :: lo(get_dim(divu_rhs(1))),hi(get_dim(divu_rhs(1)))
     integer        , pointer ::   mp(:,:,:,:) 
     real(kind=dp_t), pointer :: divp(:,:,:,:) 
 
-    dm = get_dim(divu_rhs(1))
-    nlevs = size(divu_rhs)
-
     ng_d = nghost(divu_rhs(1))
 
-    do n = 1, nlevs
+    do n = 1, size(mgt)
        mask = mgt(n)%mm(mgt(n)%nlevels)
        do i = 1, nfabs(divu_rhs(n))
           divp => dataptr(divu_rhs(n) ,i)
             mp => dataptr(mask        ,i)
           lo = lwb(get_box(divu_rhs(n),i))
           hi = upb(get_box(divu_rhs(n),i))
-          select case (dm)
+          select case (mgt(n)%dim)
           case (1)
              call enforce_dirichlet_1d(divp(:,1,1,1), mp(:,1,1,1), &
                   lo, hi, ng_d)

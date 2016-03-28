@@ -73,7 +73,7 @@ public:
     //
     // Constructor.
     //
-    MCCGSolver (MCLinOp& _Lp,
+    MCCGSolver (MCLinOp& _lp,
 		bool     _use_mg_precond = false,
 		int      _lev=0);
     //
