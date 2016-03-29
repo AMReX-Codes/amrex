@@ -335,6 +335,8 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_MyId_all != -1);
     BL_ASSERT(m_nProcs_all != -1);
 
+    MPI_Group_free(&m_group_all);
+
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
