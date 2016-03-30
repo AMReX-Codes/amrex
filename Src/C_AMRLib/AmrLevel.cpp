@@ -241,7 +241,6 @@ AmrLevel::make_particle_dmap ()
     // take a shortcut if possible
     if (grids == particle_grids) {
 	particle_dmap = get_new_data(0).DistributionMap();
-	particles_on_same_grids = true;
 	return;
     }
 
@@ -277,7 +276,6 @@ AmrLevel::make_particle_dmap ()
     {
         const bool put_in_cache = true;
         particle_dmap = DistributionMapping(ParticleProcMap,put_in_cache);
-        particles_on_same_grids = false;
     }
     else
     {
@@ -290,7 +288,6 @@ AmrLevel::make_particle_dmap ()
         {
            // Just copy the grids distribution map to the particle_grids distribution map
            particle_dmap = get_new_data(0).DistributionMap();
-           particles_on_same_grids = true;
         }
     }
 }
@@ -456,6 +453,27 @@ AmrLevel::get_data (int  state_indx,
     return bogus;
 }
 
+const BoxArray&
+AmrLevel::getEdgeBoxArray (int dir) const
+{
+    BL_ASSERT(dir >=0 && dir < BL_SPACEDIM);
+    if (edge_grids[dir].empty()) {
+	edge_grids[dir] = grids;
+	edge_grids[dir].surroundingNodes(dir);
+    }
+    return edge_grids[dir];
+}
+
+const BoxArray&
+AmrLevel::getNodalBoxArray () const
+{
+    if (nodal_grids.empty()) {
+	nodal_grids = grids;
+	nodal_grids.surroundingNodes();
+    }
+    return nodal_grids;
+}
+
 void
 AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
                                  int        state_indx,
@@ -471,11 +489,9 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
                                                   MultiFab& leveldata)
     :
-    MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
-    m_mfid(m_amrlevel.level+1),
-    m_init(false)
+    m_mfid(m_amrlevel.level+1)
 {}
 
 FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
@@ -496,7 +512,6 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
                                                   int           ncomp,
                                                   Interpolater* mapper)
     :
-    MFIter(leveldata),
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_mfid(m_amrlevel.level+1),
@@ -504,8 +519,7 @@ FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel&     amrlevel,
     m_growsize(boxGrow),
     m_index(index),
     m_scomp(scomp),
-    m_ncomp(ncomp),
-    m_init(false)
+    m_ncomp(ncomp)
 {
     Initialize(boxGrow,time,index,scomp,ncomp,mapper);
 }
@@ -535,13 +549,7 @@ static
 bool
 NeedToTouchUpPhysCorners (const Geometry& geom)
 {
-    int n = 0;
-
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        if (geom.isPeriodic(dir))
-            n++;
-
-    return geom.isAnyPeriodic() && n < BL_SPACEDIM;
+    return geom.isAnyPeriodic() && !geom.isAllPeriodic();
 }
 
 void
@@ -572,7 +580,7 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     PArray<AmrLevel>& amrLevels  = m_amrlevel.parent->getAmrLevels();
     const AmrLevel&   topLevel   = amrLevels[m_amrlevel.level];
     const Box&        topPDomain = topLevel.state[m_index].getDomain();
-    const IndexType   boxType    = m_leveldata.boxArray()[0].ixType();
+    const IndexType&  boxType    = m_leveldata.boxArray().ixType();
     const bool        extrap     = AmrLevel::desc_lst[m_index].extrap();
     //
     // Check that the interpolaters are identical.
@@ -802,8 +810,6 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     }
 
     m_mfcd.CollectData();
-
-    m_init = true;
 }
 
 void
@@ -823,7 +829,6 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
-    m_fabs.SetNGrow(0);
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
@@ -867,8 +872,6 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
-
-    m_fabs.ResetNGrow();
 }
 
 static
@@ -1017,9 +1020,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Set to special value we'll later check
             // to ensure we've filled the FABs at the coarse level.
             //
-#ifndef NDEBUG
-            CrseFabs[i].setVal(3.e200);
-#endif
             TheState.InterpFillFab(m_mfcd,
 				   m_mfid[l],
 				   FBIDs[i],
@@ -1096,10 +1096,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                                m_scomp,
                                                m_ncomp);
             }
-            //
-            // The coarse FAB had better be completely filled with "good" data.
-            //
-            BL_ASSERT(CrseFabs[i].norm(0,0,m_ncomp) < 3.e200);
         }
 
         if (m_FixUpCorners)
@@ -1143,10 +1139,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           theBCs,
                           bcr);
             //
-            // The coarse FAB had better be completely filled with "good" data.
-            //
-            BL_ASSERT(crsefab.norm(0,0,m_ncomp) < 3.e200);
-            //
             // Interpolate up to fine patch.
             //
             m_map->interp(crsefab,
@@ -1177,12 +1169,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     const Box&         FineDomain     = FineState.getDomain();
     const Geometry&    FineGeom       = m_amrlevel.geom;
     PArray<FArrayBox>& FinestCrseFabs = cfab[m_amrlevel.level];
-    //
-    // Set fab to special value we'll later check to ensure we've filled the FAB.
-    //
-#ifndef NDEBUG
-    fab.setVal(2.e200,fab.box(),dcomp,m_ncomp);
-#endif
     //
     // Copy intersect coarse into destination fab.
     //
@@ -1249,7 +1235,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
                            Real      time,
                            int       index,
                            int       scomp,
-                           int       ncomp)
+                           int       ncomp,
+			   int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
     //
@@ -1257,6 +1244,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
     //
     BL_ASSERT(level != 0);
     BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
+    BL_ASSERT(nghost <= mf.nGrow());
     BL_ASSERT(0 <= index && index < desc_lst.size());
 
     int                     DComp   = dcomp;
@@ -1281,30 +1269,28 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
         {
             BL_ASSERT(mf_BA[j].ixType() == desc.getType());
 
-            crseBA.set(j,mapper->CoarseBox(mf_BA[j],crse_ratio));
+            crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
         MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
 
         FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
 
-        const int N = fpi.m_fabs.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
+        for (MFIter mfi(fpi.m_fabs); mfi.isValid(); ++mfi)
         {
-            const int  idx = fpi.m_fabs.IndexMap()[i];
-            const Box& dbx = mf_BA[idx];
+            const int  idx = mfi.index();
+            const Box& dbx = BoxLib::grow(mf_BA[idx],nghost);
 
             Array<BCRec> bcr(ncomp);
 
             BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
-            mapper->interp(fpi.m_fabs[idx],
+            mapper->interp(fpi.m_fabs[mfi],
                            0,
-                           mf[idx],
+                           mf[mfi],
                            DComp,
                            NComp,
                            dbx,
@@ -1475,7 +1461,7 @@ AmrLevel::derive (const std::string& name,
 
         // Assert because we do not know how to un-convert the destination
         //   and also, implicitly assume the convert in fact is trivial
-        BL_ASSERT(mf.boxArray()[0].ixType()==IndexType::TheCellType());
+        BL_ASSERT(mf.boxArray().ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
         srcBA.convert(rec->boxMap());
 
@@ -1668,6 +1654,34 @@ AmrLevel::setPlotVariables ()
     }
 }
 
+void
+AmrLevel::setSmallPlotVariables ()
+{
+    ParmParse pp("amr");
+
+    if (pp.contains("small_plot_vars"))
+    {
+        std::string nm;
+      
+        int nPltVars = pp.countval("small_plot_vars");
+      
+        for (int i = 0; i < nPltVars; i++)
+        {
+            pp.get("small_plot_vars", nm, i);
+
+	    parent->addStateSmallPlotVar(nm);
+        }
+    }
+    else 
+    {
+        //
+        // The default is to use none.
+        //
+        parent->clearStateSmallPlotVarList();
+    }
+  
+}
+
 AmrLevel::TimeLevel
 AmrLevel::which_time (int  indx,
                       Real time) const
@@ -1712,6 +1726,12 @@ AmrLevel::estimateWork ()
 
 bool
 AmrLevel::writePlotNow ()
+{
+    return false;
+}
+
+bool
+AmrLevel::writeSmallPlotNow ()
 {
     return false;
 }

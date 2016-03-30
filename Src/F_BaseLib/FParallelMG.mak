@@ -11,6 +11,8 @@
 #
 # ------------------------------------------------
 
+DEFINES += -DBL_USE_F_BASELIB
+
 f90EXE_sources += bc.f90
 f90EXE_sources += bc_functions.f90
 f90EXE_sources += bl_constants.f90
@@ -56,9 +58,24 @@ endif
 
 ifeq ($(USE_MPI),TRUE)
   f90EXE_sources += parallel.f90
+  DEFINES += -DBL_USE_FORTRAN_MPI
 else
   f90EXE_sources += parallel_stubs.f90
 endif
 
 cEXE_sources   += fabio_c.c
 cEXE_sources   += timer_c.c
+
+# MultiFab_C_F
+f90EXE_sources += multifab_c.f90
+CEXE_headers += MultiFab_C_F.H
+CEXE_sources += MultiFab_C_F.cpp
+
+CEXE_sources += backtrace_c.cpp
+f90EXE_sources += backtrace_f.f90
+
+ifeq ($(MEM_PROFILE),TRUE)
+CEXE_headers += MemProfiler_f.H
+CEXE_sources += MemProfiler_f.cpp
+f90EXE_sources += memprof.f90
+endif

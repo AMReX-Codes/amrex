@@ -115,10 +115,10 @@ Spacer (std::ostream& os, int lev)
     }
 }
 
-MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
+MCMultiGrid::MCMultiGrid (MCLinOp &_lp)
     :
     initialsolution(0),
-    Lp(_Lp)
+    Lp(_lp)
 {
     Initialize();
 
@@ -135,7 +135,7 @@ MCMultiGrid::MCMultiGrid (MCLinOp &_Lp)
     nu_b = def_nu_b;
     numLevelsMAX = def_numLevelsMAX;
     numlevels = numLevels();
-    numcomps = _Lp.numberComponents();
+    numcomps = _lp.numberComponents();
     if ( ParallelDescriptor::IOProcessor() && (verbose > 2) )
     {
 	BoxArray tmp = Lp.boxArray();

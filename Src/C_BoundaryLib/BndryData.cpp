@@ -191,7 +191,8 @@ BndryData::define (const BoxArray& _grids,
         const Orientation face = fi();
         const int         cdir = face.coordDir();
 
-        BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
+        //BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
+        BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp);
         //
         // Alloc mask and set to quad_interp value.
         //
@@ -199,7 +200,8 @@ BndryData::define (const BoxArray& _grids,
         {
             const int igrid = bfsi.index();
 
-            Box face_box = BoxLib::adjCell(grids[igrid], face, 1);
+            //Box face_box = BoxLib::adjCell(grids[igrid], face, 1);
+            Box face_box = BoxLib::adjCell(grids[igrid], face, 2);
             //
             // Extend box in directions orthogonal to face normal.
             //

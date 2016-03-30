@@ -1,23 +1,34 @@
-#ifdef BL_BACKTRACING
-
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <cstdio>
 
 #include <unistd.h>
-#include <execinfo.h>
-#include <signal.h>
 
-#include <BoxLib.H>
 #include <BLBackTrace.H>
 #include <ParallelDescriptor.H>
+#include <BoxLib.H>
 
+#ifdef BL_BACKTRACING
 std::stack<std::pair<std::string, std::string> >  BLBackTrace::bt_stack;
+#endif
 
 void
 BLBackTrace::handler(int s)
 {
+    switch (s) {
+    case SIGSEGV:
+	BoxLib::write_to_stderr_without_buffering("Segfault");
+	break;
+    case SIGFPE:
+	BoxLib::write_to_stderr_without_buffering("Erroneous arithmetic operation");
+	break;
+    case SIGINT:
+	BoxLib::write_to_stderr_without_buffering("SIGINT");
+	break;
+    }
+
+#ifdef __linux__
+
     std::string errfilename;
     {
 	std::ostringstream ss;
@@ -28,13 +39,14 @@ BLBackTrace::handler(int s)
 	errfilename = ss.str();
     }
 
-    const int nbuf = 32;
-    void *buffer[nbuf];
-    int nptrs = backtrace(buffer, nbuf);
-    FILE* p = fopen(errfilename.c_str(), "w");
-    backtrace_symbols_fd(buffer, nptrs, fileno(p));
-    fclose(p);
+    if (FILE* p = fopen(errfilename.c_str(), "w")) {
+	BLBackTrace::print_backtrace_info(p);
+	fclose(p);
+    }
+    
+    std::cerr << "See " << errfilename << " file for details" << std::endl;
 
+#ifdef BL_BACKTRACING
     if (!bt_stack.empty()) {
 	std::ofstream errfile;
 	errfile.open(errfilename.c_str(), std::ofstream::out | std::ofstream::app);
@@ -48,25 +60,64 @@ BLBackTrace::handler(int s)
 	    errfile << std::endl;
 	}
     }
+#endif
 
-    sleep(30);
+    if (ParallelDescriptor::NProcs() > 1)
+	sleep(3);
 
-    switch (s) {
-    case SIGSEGV:
-	BoxLib::Abort("Segfault");
-	break;
-    case SIGFPE:
-	BoxLib::Abort("Erroneous arithmetic operation");
-	break;
-    case SIGINT:
-	BoxLib::Abort("SIGINT");
-    case SIGTERM:
-	BoxLib::Abort("SIGTERM");
-	break;
-    default:
-	ParallelDescriptor::Abort();
+#endif // __linux__
+
+    ParallelDescriptor::Abort();
+}
+
+#ifdef __linux__
+void
+BLBackTrace::print_backtrace_info (FILE* f)
+{
+    const int nbuf = 32;
+    char **strings = NULL;
+    void *buffer[nbuf];
+    int nptrs = backtrace(buffer, nbuf);
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings != NULL) {
+	int have_addr2line = 0;
+	std::string cmd = "/usr/bin/addr2line";
+	if (FILE *fp = fopen(cmd.c_str(), "r")) {
+	    fclose(fp);
+	    have_addr2line = 1;
+	}
+	cmd += " -Cfie " + BoxLib::exename; 
+	if (have_addr2line) {
+	    fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
+	    fprintf(f, "    If necessary, one can use 'readelf -wl my_exefile | grep my_line_address'\n");
+	    fprintf(f, "    to find out the offset for that line.\n\n");
+	}
+	for (int i = 0; i < nptrs; ++i) {
+	    std::string line = strings[i];
+	    line += "\n";
+	    if (have_addr2line) {
+		std::size_t found1 = line.rfind('[');
+		std::size_t found2 = line.rfind(']');
+		if (found1 != std::string::npos && found2 != std::string::npos) {
+		    std::string addr = line.substr(found1+1, found2-found1-1);
+		    std::string full_cmd = cmd + " " + addr;
+		    if (FILE * ps = popen(full_cmd.c_str(), "r")) {
+			char buff[512];
+			while (fgets(buff, sizeof(buff), ps)) {
+			    line += "    ";
+			    line += buff;
+			}
+			pclose(ps);
+		    }
+		}
+	    }
+	    fprintf(f, "%2d: %s\n", i, line.c_str());
+	}
     }
 }
+#endif
+
+#ifdef BL_BACKTRACING
 
 BLBTer::BLBTer(const std::string& s, const char* file, int line)
 {

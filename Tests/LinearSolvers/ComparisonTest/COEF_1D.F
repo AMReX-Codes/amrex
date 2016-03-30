@@ -86,27 +86,3 @@ c
 c
       end
 
-c-----------------------------------------------------------------------
-      subroutine FORT_COEF_TO_EDGES (dir, edge, e_l1, e_h1,
-     $                                    coef, c_l1, c_h1,
-     $                                    lo, hi)
-
-      implicit none
-
-      integer dir, lo(BL_SPACEDIM), hi(BL_SPACEDIM)
-      integer e_l1, e_h1
-      integer c_l1, c_h1
-      double precision edge(e_l1:e_h1)
-      double precision coef(c_l1:c_h1)
- 
-      integer i
- 
-      if (dir .eq. 0) then 
-        do i = lo(1), hi(1)+1
-          edge(i) = 0.5d0 * (coef(i) + coef(i-1))
-        end do
-      end if
- 
-      end
-
-c-----------------------------------------------------------------------

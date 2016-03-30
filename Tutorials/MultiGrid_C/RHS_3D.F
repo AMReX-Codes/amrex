@@ -28,7 +28,7 @@ c
       pi = 4.d0 * datan(1.d0)
       tpi = 2.0d0 * pi
       fpi = 4.0d0 * pi
-      fac = 12.d0 * pi**2
+      fac = 3.0d0 * tpi**2
  
       theta = 0.5d0*log(3.0) / (w + 1.d-50)
 
@@ -55,8 +55,8 @@ c
      $                                      + pi*cos(fpi*x) * sin(fpi*y) * cos(fpi*z))
      $                          + (z-0.5d0)*(tpi*cos(tpi*x) * cos(tpi*y) * sin(tpi*z)  
      $                                      + pi*cos(fpi*x) * cos(fpi*y) * sin(fpi*z)))
-     $                 + a * (cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
-     $                          + 0.25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z))
+     $                 + a * (                   cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  
+     $                                + 0.25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z))
                else if (ibnd .eq. LO_DIRICHLET) then
                   rhs(i,j,k) = beta*fac*(sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
      $                                 + sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
@@ -69,7 +69,7 @@ c
      $                 + a * (sin(tpi*x) * sin(tpi*y) * sin(tpi*z)  
      $                          + 0.25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z))
                else
-                  print *, 'FORT_SET_RHS: unknow boundary type'
+                  print *, 'FORT_SET_RHS: unknown boundary type'
                   stop
                endif
             end do

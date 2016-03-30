@@ -151,22 +151,6 @@ FluxRegister::SumReg (int comp) const
     return sum;
 }
 
-void
-FluxRegister::copyTo (FArrayBox& flx,
-                      int        dir,
-                      int        scomp,
-                      int        dcomp,
-                      int        ncomp)
-{
-    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
-
-    const FabSet& lofabs = bndry[Orientation(dir,Orientation::low)];
-    const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
-
-    lofabs.copyTo(flx,scomp,dcomp,ncomp);
-    hifabs.copyTo(flx,scomp,dcomp,ncomp);
-}
-
 struct Rec
 {
     Rec (int         dIndex,
@@ -264,7 +248,7 @@ FluxRegister::Reflux (MultiFab&       S,
     // We use this to help "find" FluxRegisters with which we may intersect.
     // It assumes that FluxRegisters have width "1".
     //
-    BoxArray ba = grids; ba.grow(1);
+    const int ng = 1;
 
     for (OrientationIter fi; fi; ++fi)
         fsid[fi()] = fscd.RegisterFabSet(&bndry[fi()]);
@@ -276,7 +260,7 @@ FluxRegister::Reflux (MultiFab&       S,
         //
         // Find flux register that intersect with this grid.
         //
-        ba.intersections(vbx,isects);
+        grids.intersections(vbx,isects,ng);
 
         for (int i = 0, N = isects.size(); i < N; i++)
         {
@@ -329,7 +313,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
             for (int k = 0, N = grids.size(); k < N; k++)
             {
-                const Box& bx = ba[k];
+                const Box& bx = BoxLib::grow(grids[k],ng);
 
                 if (geom.Domain().contains(bx)) continue;
 
@@ -381,8 +365,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-
-    ba.clear_hash_bin();
 
     fscd.CollectData();
 
@@ -496,308 +478,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     CrseInit(mflx,area,dir,srccomp,destcomp,numcomp,mult,op);
 }
 
-//
-// Helper function and data for CrseInit()/CrseInitFinish().
-//
-
-static Array<int>                           CIMsgs;
-static std::vector<FabArrayBase::FabComTag> CITags;
-static std::vector<FArrayBox*>              CIFabs;
-static BArena                               CIArena;
-
-static
-void
-DoIt (Orientation        face,
-      int                k,
-      FabSet*            bndry,
-      const Box&         bx,
-      const FArrayBox&   flux,
-      int                srccomp,
-      int                destcomp,
-      int                numcomp,
-      Real               mult,
-      FArrayBox&         tmp,
-      FluxRegister::FrOp op = FluxRegister::COPY)
-{
-    const int owner = bndry[face].DistributionMap()[k];
-
-    if (ParallelDescriptor::MyProc() == owner)
-    {
-        //
-        // Local data.
-        //
-        if (op == FluxRegister::COPY) 
-        {
-            bndry[face][k].copy(flux, bx, srccomp, bx, destcomp, numcomp);
-            bndry[face][k].mult(mult, bx, destcomp, numcomp);    
-        }
-        else
-        {
-            tmp.resize(bx, numcomp);
-            tmp.copy(flux, bx, srccomp, bx, 0, numcomp);
-            tmp.mult(mult);
-            bndry[face][k].plus(tmp, bx, bx, 0, destcomp, numcomp);
-        }
-    }
-    else
-    {
-        FabArrayBase::FabComTag tag;
-
-        tag.toProc   = owner;
-        tag.fabIndex = k;
-        tag.box      = bx;
-        tag.face     = face;
-        tag.destComp = destcomp;
-        tag.nComp    = numcomp;
-
-        FArrayBox* fab = new FArrayBox(bx, numcomp);
-
-        fab->copy(flux, bx, srccomp, bx, 0, numcomp);
-        fab->mult(mult, bx, 0, numcomp);
-
-        CITags.push_back(tag);
-        CIFabs.push_back(fab);
-
-        if (CIMsgs.empty())
-            CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
-
-        CIMsgs[owner]++;
-    }
-}
-
-void
-FluxRegister::CrseInit (const FArrayBox& flux,
-                        const Box&       subbox,
-                        int              dir,
-                        int              srccomp,
-                        int              destcomp,
-                        int              numcomp,
-                        Real             mult,
-                        FrOp             op)
-{
-    BL_ASSERT(flux.box().contains(subbox));
-    BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    if (ParallelDescriptor::IOProcessor())
-        BoxLib::Warning("\n*** FluxRegister::CrseInit(const FArrayBox&,...) is deprecated; please use CrseInit(MultiFab&,...) instead!!");
-
-    FArrayBox tmp;
-    
-    const Orientation lo(dir,Orientation::low);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    bndry[lo].boxArray().intersections(subbox,isects);
-
-    for (int i = 0, N = isects.size(); i < N; i++)
-    {
-        DoIt(lo,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
-    }
-
-    bndry[lo].boxArray().clear_hash_bin();
-
-    const Orientation hi(dir,Orientation::high);
-
-    bndry[hi].boxArray().intersections(subbox,isects);
-
-    for (int i = 0, N = isects.size(); i < N; i++)
-    {
-        DoIt(hi,isects[i].first,bndry,isects[i].second,flux,srccomp,destcomp,numcomp,mult,tmp,op);
-    }
-
-    bndry[hi].boxArray().clear_hash_bin();
-}
-
-void
-FluxRegister::CrseInitFinish (FrOp op)
-{
-    if (ParallelDescriptor::IOProcessor())
-        BoxLib::Warning("\n*** FluxRegister::CrseInitFinish() is deprecated; please use CrseInit(MultiFab&,...) instead!!");
-
-    if (ParallelDescriptor::NProcs() == 1) return;
-
-#if BL_USE_MPI
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    BL_ASSERT(CITags.size() == CIFabs.size());
-
-    if (CIMsgs.empty())
-        CIMsgs.resize(ParallelDescriptor::NProcs(),0);
-
-    BL_ASSERT(CIMsgs[MyProc] == 0);
-
-    Array<int> Rcvs(NProcs,0);
-    //
-    // Set Rcvs[i] to # of blocks we expect to get from CPU i ...
-    //
-    BL_MPI_REQUIRE( MPI_Alltoall(CIMsgs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 Rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<int>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    int NumRcvs = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumRcvs += Rcvs[i];
-    if (NumRcvs == 0) NumRcvs = 1;
-    Array<ParallelDescriptor::CommData> recvdata(NumRcvs);
-
-    int NumSnds = 0;
-    for (int i = 0; i < NProcs; i++)
-        NumSnds += CIMsgs[i];
-    if (NumSnds == 0) NumSnds = 1;
-    Array<ParallelDescriptor::CommData> senddata(NumSnds);
-    //
-    // Make sure we can treat CommData as a stream of integers.
-    //
-    BL_ASSERT(sizeof(ParallelDescriptor::CommData) == ParallelDescriptor::CommData::DIM*sizeof(int));
-    {
-        Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
-        Array<int> recvcnts(NProcs,0), rdispls(NProcs,0), offset(NProcs,0);
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            recvcnts[i] = Rcvs[i]   * ParallelDescriptor::CommData::DIM;
-            sendcnts[i] = CIMsgs[i] * ParallelDescriptor::CommData::DIM;
-
-            if (i < NProcs-1)
-            {
-                rdispls[i+1] = rdispls[i] + recvcnts[i];
-                sdispls[i+1] = sdispls[i] + sendcnts[i];
-            }
-        }
-
-        for (int i = 1; i < NProcs; i++)
-            offset[i] = offset[i-1] + CIMsgs[i-1];
-
-        for (int j = 0, N = CITags.size(); j < N; j++)
-        {
-            ParallelDescriptor::CommData data(CITags[j].face,
-                                              CITags[j].fabIndex,
-                                              MyProc,
-                                              0,
-                                              CITags[j].nComp,
-                                              CITags[j].destComp,   // Store as srcComp()
-                                              0,                    // Not used.
-                                              CITags[j].box);
-
-            senddata[offset[CITags[j].toProc]++] = data;
-        }
-
-        BL_MPI_REQUIRE( MPI_Alltoallv(senddata.dataPtr(),
-                                      sendcnts.dataPtr(),
-                                      sdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      recvdata.dataPtr(),
-                                      recvcnts.dataPtr(),
-                                      rdispls.dataPtr(),
-                                      ParallelDescriptor::Mpi_typemap<int>::type(),
-                                      ParallelDescriptor::Communicator()) );
-    }
-    Array<int> sendcnts(NProcs,0), sdispls(NProcs,0);
-    Array<int> recvcnts(NProcs,0), rdispls(NProcs,0);
-
-    int send_sz = 0, recv_sz = 0, roffset = 0, soffset = 0;
-
-    for (int i = 0; i < NProcs; i++)
-    {
-        size_t recv_N = 0;
-        for (int j = 0; j < Rcvs[i]; j++)
-            recv_N += recvdata[roffset+j].box().numPts() * recvdata[roffset+j].nComp();
-        recv_sz    += recv_N;
-        recvcnts[i] = recv_N;
-        roffset    += Rcvs[i];
-
-        size_t send_N = 0;
-        for (int j = 0; j < CIMsgs[i]; j++)
-            send_N += senddata[soffset+j].box().numPts() * senddata[soffset+j].nComp();
-        send_sz    += send_N;
-        sendcnts[i] = send_N;
-        soffset    += CIMsgs[i];
-
-        if (i < NProcs-1)
-        {
-            rdispls[i+1] = rdispls[i] + recvcnts[i];
-            sdispls[i+1] = sdispls[i] + sendcnts[i];
-        }
-    }
-
-    BL_ASSERT((send_sz*sizeof(Real)) < std::numeric_limits<size_t>::max());
-
-    Real* sendbuf = static_cast<Real*>(BoxLib::The_Arena()->alloc(send_sz*sizeof(Real)));
-
-    Array<int> offset = sdispls;
-
-    for (int j = 0; j < CITags.size(); j++)
-    {
-        BL_ASSERT(CITags[j].box == CIFabs[j]->box());
-        BL_ASSERT(CITags[j].nComp == CIFabs[j]->nComp());
-        const int N = CITags[j].box.numPts() * CITags[j].nComp;
-        memcpy(&sendbuf[offset[CITags[j].toProc]], CIFabs[j]->dataPtr(), N * sizeof(Real));
-        delete CIFabs[j];
-        CIFabs[j] = 0;
-        offset[CITags[j].toProc] += N;
-    }
-
-    BL_ASSERT((recv_sz*sizeof(Real)) < std::numeric_limits<size_t>::max());
-
-    Real* recvbuf = static_cast<Real*>(BoxLib::The_Arena()->alloc(recv_sz*sizeof(Real)));
-
-    BL_MPI_REQUIRE( MPI_Alltoallv(sendbuf,
-                                  sendcnts.dataPtr(),
-                                  sdispls.dataPtr(),
-                                  ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                  recvbuf,
-                                  recvcnts.dataPtr(),
-                                  rdispls.dataPtr(),
-                                  ParallelDescriptor::Mpi_typemap<Real>::type(),
-                                  ParallelDescriptor::Communicator()) );
-
-    BoxLib::The_Arena()->free(sendbuf);
-
-    FArrayBox fab;
-
-    roffset = 0;
-
-    for (int i = 0; i < NProcs; i++)
-    {
-        const Real* dptr = &recvbuf[rdispls[i]];
-
-        for (int j = 0; j < Rcvs[i]; j++)
-        {
-            const ParallelDescriptor::CommData& cd = recvdata[roffset+j];
-            fab.resize(cd.box(),cd.nComp());
-            const int N = fab.box().numPts() * fab.nComp();
-            memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
-            if (op == COPY)
-            {
-                bndry[cd.face()][cd.fabindex()].copy(fab, fab.box(), 0, fab.box(), cd.srcComp(), cd.nComp());
-            }
-            else
-            {
-                bndry[cd.face()][cd.fabindex()].plus(fab, fab.box(), fab.box(), 0, cd.srcComp(), cd.nComp());
-            }
-            dptr += N;
-        }
-
-        roffset += Rcvs[i];
-    }
-
-    BoxLib::The_Arena()->free(recvbuf);
-
-    CIFabs.clear();
-    CITags.clear();
-
-    for (int i = 0; i < NProcs; i++)
-        CIMsgs[i] = 0;
-#endif /*BL_USE_MPI*/
-}
-
 void
 FluxRegister::FineAdd (const MultiFab& mflx,
                        int             dir,
@@ -806,15 +486,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    const int N = mflx.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
-        const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],dir,k,srccomp,destcomp,numcomp,mult);
+        const int k = mfi.index();
+        FineAdd(mflx[mfi],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -827,15 +505,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    const int N = mflx.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-    for (int i = 0; i < N; i++)
+    for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
-        const int k = mflx.IndexMap()[i];
-        FineAdd(mflx[k],area[k],dir,k,srccomp,destcomp,numcomp,mult);
+        const int k = mfi.index();
+        FineAdd(mflx[mfi],area[k],dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 

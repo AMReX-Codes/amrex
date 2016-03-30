@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 
 #ifndef WIN32
 #include <sys/types.h>
@@ -366,6 +367,15 @@ namespace BoxLib
 
     void SyncStrings(const Array<std::string> &localStrings,
                      Array<std::string> &syncedStrings, bool &alreadySynced);
+
+    //
+    // Memory Usage Counting
+    //
+    // For gcc, there are extra 32 bytes for each map node.
+    // For others, this number may be different.
+    static const long gcc_map_node_extra_bytes = 32L;
+    template <typename T> long bytesOf (const std::vector<T>& v);
+    template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
 }
 
 //
@@ -549,6 +559,20 @@ std::ostream& operator<<(std::ostream& os, const BoxLib::base_Timer<FCN>& bt)
 	      << bt.accum_time() << "/"
 	      << bt.count()
 	      << "]";
+}
+
+template <typename T> 
+long 
+BoxLib::bytesOf (const std::vector<T>& v)
+{
+    return sizeof(v) + v.capacity()*sizeof(T);
+}
+
+template <typename Key, typename T, class Compare>
+long
+BoxLib::bytesOf (const std::map<Key,T,Compare>& m)
+{
+    return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
 
 #endif /*BL_UTILITY_H*/
