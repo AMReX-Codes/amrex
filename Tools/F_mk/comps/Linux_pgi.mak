@@ -14,6 +14,18 @@
       CFLAGS += -mp=nonuma -Minfo=mp
       CXXFLAGS += -mp=nonuma -Minfo=mp
     endif
+    
+    ifdef ACC
+      F90FLAGS += -acc -Minfo=acc
+      FFLAGS += -acc -Minfo=acc
+      CFLAGS += -acc -Minfo=acc
+      CXXFLAGS += -acc -Minfo=acc
+    else
+      F90FLAGS += -noacc
+      FFLAGS += -noacc
+      CFLAGS += -noacc
+      CXXFLAGS += -noacc
+    endif
 
     ifdef NDEBUG
       FFLAGS   += -O2
@@ -27,5 +39,4 @@
       CXXFLAGS += -g
     endif
 
-    #xtr_libraries += -pgcpplibs
-    xtr_libraries += -lstdc++
+    xtr_libraries += -pgcpplibs
