@@ -21,7 +21,7 @@
     endif
 
     ifdef ACC
-		#These are based on Blue Waters suggestions, might need to edit to be more general
+      #These are based on Blue Waters suggestions, might need to edit to be more general
       ifndef NDEBUG
         FFLAGS   += -h msgs
         F90FLAGS += -h msgs
