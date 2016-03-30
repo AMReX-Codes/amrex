@@ -32,6 +32,8 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
                          const IntVect& ratio,
 			 int            comp)
 {
+    m_phys_bc = phys_bc;
+
     //
     // ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
     // DIMENSIONS *RELATIVE* TO THE FACE, NOT IN ABSOLUTE PHYSICAL SPACE

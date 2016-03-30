@@ -1,40 +1,50 @@
 #ifndef _BL_BACKTRACE_H_
 #define _BL_BACKTRACE_H_
 
-#ifndef BL_BACKTRACING
-
-#define BL_BACKTRACE_PUSH(S) ((void)0)
-#define BL_BACKTRACE_POP(S) ((void)0)
-
-#else
-
 #include <stack>
 #include <string>
 #include <utility>
 #include <sstream>
 
+#include <cstdio>
+#include <cstdlib>
+
+#ifdef __linux__
+#include <execinfo.h>
+#endif
+
+#include <signal.h>
+#include <fenv.h>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#ifdef BL_BACKTRACING
 #define BL_PASTE2(x, y) x##y
 #define BL_PASTE(x, y) BL_PASTE2(x, y)
 #define BL_BACKTRACE_PUSH( S )  BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
 #define BL_BACKTRACE_POP()   BLBackTrace::bt_stack.pop()
+#else
+#define BL_BACKTRACE_PUSH(S) ((void)0)
+#define BL_BACKTRACE_POP(S) ((void)0)
+#endif
 
-class BLBackTrace
+struct BLBackTrace
 {
-public:
+    static void handler(int s);
+    static void print_backtrace_info (FILE* f);
 
+#ifdef BL_BACKTRACING
     static std::stack<std::pair<std::string, std::string> > bt_stack;
 // threadprivate here doesn't work with Cray and Intel 
 #if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER)
 #pragma omp threadprivate(bt_stack)
 #endif
-
-    static void handler(int s);
+#endif // BL_BACKTRACING
 };
 
+#ifdef BL_BACKTRACING
 class BLBTer
 {
 public:
@@ -44,7 +54,6 @@ private:
     std::string line_file;
     void pop_bt_stack();
 };
-
-#endif
+#endif // BL_BACKTRACING
 
 #endif

@@ -105,7 +105,7 @@ MFTower::define_alloc()
 void
 MFTower::define_noalloc(PArray<MultiFab>& pamf)
 {
-  iType = pamf[0].boxArray()[0].ixType();
+  iType = pamf[0].boxArray().ixType();
   mft.resize(nLevs,PArrayNoManage);
   const Array<BoxArray>& gridArray = layout.GridArray();
   for (int lev=0; lev<nLevs; ++lev)

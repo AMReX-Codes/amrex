@@ -45,15 +45,15 @@ well as explicit solution of the heat equation.   This introduces the use of the
 linear solvers in the BoxLib/LinearSolvers/F_MG directory.
 
 ! ************************************************************************************
-AMR_Adv_Diff_F:
+AMR_Adv_F:
 ! ************************************************************************************
 
-AMR_Adv_Diff_F:  This is an extension of HeatEquation_EX4_F, but differs in two ways:
+This is a pure F90 advection code with AMR.  It advects a scalar quantity in a 
+user-specified divergence-free velocity field on faces.  Refinement is based on 
+the value of the scalar.
 
-1) It allows subcycling in time rather than advancing all levels with the same timestep.  
-This example introduces the use of boundary registers to store fluxes for refluxing.
-
-2) It includes advective as well as diffuxive fluxes.
+It allows subcycling in time rather than advancing all levels with the same timestep.  
+This example introduces AMR and the use of boundary registers to store fluxes for refluxing.
 
 
 ! ************************************************************************************

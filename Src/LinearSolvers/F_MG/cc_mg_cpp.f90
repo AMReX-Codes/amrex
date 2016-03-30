@@ -91,10 +91,8 @@ contains
 
 end module cpp_mg_module
 
-subroutine mgt_init (comm)
-  use parallel
-  integer comm
-  call parallel_initialize(comm)
+subroutine mgt_init ()
+  return
 end subroutine mgt_init
 
 subroutine mgt_flush_copyassoc_cache()
@@ -576,6 +574,20 @@ subroutine mgt_set_cfa_1d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1), 1)
 end subroutine mgt_set_cfa_1d
 
+subroutine mgt_set_cfaa_1d(lev, n, cf, plo, phi, lo, hi, alpha)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(1), hi(1), plo(1), phi(1)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1),1)
+  real(kind=dp_t), intent(in) :: alpha
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  cp => dataptr(mgts%cell_coeffs(flev), fn)
+  cp(lo(1):hi(1), 1, 1, 1) = cf(lo(1):hi(1), 1) * alpha
+end subroutine mgt_set_cfaa_1d
+
 subroutine mgt_set_cfa2_1d(lev, n, cf, plo, phi, lo, hi, nc)
   use cpp_mg_module
   implicit none
@@ -615,6 +627,20 @@ subroutine mgt_set_cfa_2d(lev, n, cf, plo, phi, lo, hi)
   cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1)
 end subroutine mgt_set_cfa_2d
 
+subroutine mgt_set_cfaa_2d(lev, n, cf, plo, phi, lo, hi, alpha)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(2), hi(2), plo(2), phi(2)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2),1)
+  real(kind=dp_t), intent(in) :: alpha
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  cp => dataptr(mgts%cell_coeffs(flev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), 1, 1) = cf(lo(1):hi(1), lo(2):hi(2), 1) * alpha
+end subroutine mgt_set_cfaa_2d
+
 subroutine mgt_set_cfa2_2d(lev, n, cf, plo, phi, lo, hi, nc)
   use cpp_mg_module
   implicit none
@@ -653,6 +679,20 @@ subroutine mgt_set_cfa_3d(lev, n, cf, plo, phi, lo, hi)
   cp => dataptr(mgts%cell_coeffs(flev), fn)
   cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
 end subroutine mgt_set_cfa_3d
+
+subroutine mgt_set_cfaa_3d(lev, n, cf, plo, phi, lo, hi, alpha)
+  use cpp_mg_module
+  implicit none
+  integer, intent(in) :: lev, n, lo(3), hi(3), plo(3), phi(3)
+  real(kind=dp_t), intent(in) :: cf(plo(1):phi(1), plo(2):phi(2), plo(3):phi(3))
+  real(kind=dp_t), intent(in) :: alpha
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer :: flev, fn
+  fn = n + 1
+  flev = lev+1
+  cp => dataptr(mgts%cell_coeffs(flev), fn)
+  cp(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3), 1) = cf(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3)) * alpha
+end subroutine mgt_set_cfaa_3d
 
 subroutine mgt_set_cfa2_3d(lev, n, cf, plo, phi, lo, hi, nc)
   use cpp_mg_module
@@ -1081,7 +1121,6 @@ subroutine mgt_dealloc()
   mgts%dim = 0
   mgts%final = .false.
 
-  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
 end subroutine mgt_dealloc
 
 subroutine mgt_solve(tol,abs_tol,needgradphi,final_resnorm,status,always_use_bnorm)

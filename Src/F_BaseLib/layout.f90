@@ -34,12 +34,14 @@ module layout_module
      integer   :: sh(MAX_SPACEDIM+1) = 0 ! shape for data from rcvbuf
      integer   :: pr                     ! Processors number of src or dest
   end type comm_dsc
+  integer, private, parameter :: sizeof_comm_dsc = 96  ! bytes
 
   type trns_dsc
      integer :: sz = 0              ! Size of chunk 
      integer :: pv = -1             ! Number points in buf prior to this
      integer :: pr = MPI_ANY_SOURCE ! src or destination processor
   end type trns_dsc
+  integer, private, parameter :: sizeof_trns_dsc = 12  ! bytes
 
   type remote_conn
      logical                 :: threadsafe = .false.
@@ -54,6 +56,7 @@ module layout_module
      type(trns_dsc), pointer :: str(:) => Null()
      type(trns_dsc), pointer :: rtr(:) => Null()
   end type remote_conn
+  integer, private, parameter :: sizeof_remote_conn = 224  ! bytes
 
   type local_copy_desc
      integer   :: ns = 0    ! Source box in layout
@@ -63,12 +66,14 @@ module layout_module
      type(box) :: sbx       ! Sub-box for this copy
      type(box) :: dbx       ! Sub-box for this copy
   end type local_copy_desc
+  integer, private, parameter :: sizeof_local_copy_desc = 72 ! bytes
 
   type local_conn
      logical                        :: threadsafe = .false.
-     integer                        :: ncpy   ! Number of cpy chunks
+     integer                        :: ncpy = 0  ! Number of cpy chunks
      type(local_copy_desc), pointer :: cpy(:) => Null()
   end type local_conn
+  integer, private, parameter :: sizeof_local_conn = 56  ! bytes
 
   type boxassoc
      integer                 :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -81,6 +86,7 @@ module layout_module
      type(remote_conn)       :: r_con
      type(boxassoc), pointer :: next     => Null()
   end type boxassoc
+  integer, private, parameter :: sizeof_boxassoc = 360  ! bytes
   !
   ! Used to cache the boxarray used by multifab_fill_ghost_cells().
   !
@@ -92,6 +98,7 @@ module layout_module
      type(boxarray)         :: ba
      type(fgassoc), pointer :: next   => Null()
   end type fgassoc
+  integer, private, parameter :: sizeof_fgassoc = 168  ! bytes
 
   type syncassoc
      integer                  :: dim      = 0       ! spatial dimension 1, 2, or 3
@@ -103,6 +110,7 @@ module layout_module
      type(remote_conn)        :: r_con
      type(syncassoc), pointer :: next     => Null()
   end type syncassoc
+  integer, private, parameter :: sizeof_syncassoc = 352  ! bytes
 
   type copyassoc
      integer                   :: dim        = 0       ! spatial dimension 1, 2, or 3
@@ -120,6 +128,7 @@ module layout_module
      integer, pointer          :: prc_src(:) => Null()
      integer, pointer          :: prc_dst(:) => Null()
   end type copyassoc
+  integer, private, parameter :: sizeof_copyassoc = 616  ! bytes
   !
   ! Note that a fluxassoc contains two copyassocs.
   !
@@ -137,6 +146,7 @@ module layout_module
      type(layout_rep), pointer :: lap_dst => Null()
      type(layout_rep), pointer :: lap_src => Null()
   end type fluxassoc
+  integer, private, parameter :: sizeof_fluxassoc = 1448  ! bytes
 
   type tilearray
      integer                   :: dim      = 0
@@ -148,7 +158,8 @@ module layout_module
      integer,          pointer :: gidx(:)  => Null() ! global index
      integer,          pointer :: lidx(:)  => Null() ! local index
   end type tilearray
-  
+  integer, private, parameter :: sizeof_tilearray = 264  ! bytes
+
   !
   ! Used by layout_get_box_intersector().
   !
@@ -160,6 +171,7 @@ module layout_module
   type box_hash_bin
      integer, pointer :: iv(:) => Null()
   end type box_hash_bin
+  integer, private, parameter :: sizeof_box_hash_bin = 48  ! bytes
   !
   ! Global list of copyassoc's used by multifab copy routines.
   !
@@ -167,7 +179,7 @@ module layout_module
   type(copyassoc), pointer, save, private :: the_copyassoc_tail => Null()
 
   integer, save, private :: the_copyassoc_cnt = 0   ! Count of copyassocs on list.
-  integer, save, private :: the_copyassoc_max = 128 ! Maximum # copyassocs allowed on list.
+  integer, save, private :: the_copyassoc_max = 25  ! Maximum # copyassocs allowed on list.
   !
   ! Global list of fluxassoc's used by ml_crse_contrib()
   !
@@ -204,6 +216,7 @@ module layout_module
      integer                         :: vshft(MAX_SPACEDIM) = 0
      type(box_hash_bin), pointer     :: bins(:,:,:)         => Null()
   end type layout_rep
+  integer, private, parameter :: sizeof_layout_rep = 520
 
   !! A layout that is derived by coarsening an existing layout,
   !! The processor distribution and the number of boxes will be
@@ -330,6 +343,29 @@ module layout_module
   type(mem_stats), private, save :: snx_ms
   type(mem_stats), private, save :: cpx_ms
   type(mem_stats), private, save :: flx_ms
+
+  integer(kind=ll_t), public, save :: tilearray_total_bytes     = 0
+  integer(kind=ll_t), public, save :: tilearray_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: boxhash_total_bytes     = 0
+  integer(kind=ll_t), public, save :: boxhash_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: boxassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: fgassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: fgassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: syncassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: syncassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: copyassoc_total_bytes_hwm = 0
+  !
+  integer(kind=ll_t), public, save :: fluxassoc_total_bytes     = 0
+  integer(kind=ll_t), public, save :: fluxassoc_total_bytes_hwm = 0
+
+  !$omp threadprivate(tilearray_total_bytes,tilearray_total_bytes_hwm)
 
 contains
 
@@ -650,6 +686,8 @@ contains
     nthreads = omp_get_max_threads()
     allocate(lap%tas(0:nthreads-1))
   end subroutine layout_rep_build
+
+  
 
   subroutine layout_flush_copyassoc_cache ()
     type(copyassoc), pointer :: cp, ncp
@@ -1171,23 +1209,24 @@ contains
     if ( cross ) then
        gbx = box_nodalize(b,nodal)
        do i = 1, gbx%dim
-          if (idim .ne. 0 .and. idim .ne. i) cycle
-          !
-          ! lo face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          upbx(i) = lwbx(i) - 1
-          lwbx(i) = lwbx(i) - ng
-          call push_back(bl, make_box(lwbx,upbx))
-          !
-          ! hi face
-          !
-          upbx    = upb(gbx)
-          lwbx    = lwb(gbx)
-          lwbx(i) = upbx(i) + 1
-          upbx(i) = upbx(i) + ng
-          call push_back(bl, make_box(lwbx,upbx))
+          if (idim .eq. 0 .or. idim .eq. i) then
+             !
+             ! lo face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             upbx(i) = lwbx(i) - 1
+             lwbx(i) = lwbx(i) - ng
+             call push_back(bl, make_box(lwbx,upbx))
+             !
+             ! hi face
+             !
+             upbx    = upb(gbx)
+             lwbx    = lwb(gbx)
+             lwbx(i) = upbx(i) + 1
+             upbx(i) = upbx(i) + ng
+             call push_back(bl, make_box(lwbx,upbx))
+          end if
        end do
        call boxarray_build_l(tba, bl, sort = .false.)
        call destroy(bl)
@@ -1214,13 +1253,10 @@ contains
 
   end subroutine boxarray_bndry_periodic
 
-  subroutine sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
-    type(layout),     intent(inout) :: latmp
     integer,          intent(in)    :: ng
-    logical,          intent(in)    :: anynodal
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
 
@@ -1239,13 +1275,9 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, .false., bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, .false., bxasc%idim)
        do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
-          end if
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1274,8 +1306,8 @@ contains
                    bxasc%r_con%rcv => n_rcv
                 end if
                 cnt_r                    = cnt_r + 1
-                parr(lap%prc(i), 1)      = parr(lap%prc(i), 1) + 1
-                pvol(lap%prc(i), 1)      = pvol(lap%prc(i), 1) + volume(dbx)
+                parr(la%lap%prc(i), 1)   = parr(la%lap%prc(i), 1) + 1
+                pvol(la%lap%prc(i), 1)   = pvol(la%lap%prc(i), 1) + volume(dbx)
                 bxasc%r_con%rcv(i_r)%nd  = j
                 bxasc%r_con%rcv(i_r)%ns  = i
                 bxasc%r_con%rcv(i_r)%lnd = local_index(la,j)
@@ -1294,8 +1326,8 @@ contains
                    bxasc%r_con%snd => n_snd
                 end if
                 cnt_s                    = cnt_s + 1
-                parr(lap%prc(j), 2)      = parr(lap%prc(j), 2) + 1
-                pvol(lap%prc(j), 2)      = pvol(lap%prc(j), 2) + volume(dbx)
+                parr(la%lap%prc(j), 2)   = parr(la%lap%prc(j), 2) + 1
+                pvol(la%lap%prc(j), 2)   = pvol(la%lap%prc(j), 2) + volume(dbx)
                 bxasc%r_con%snd(i_s)%nd  = j
                 bxasc%r_con%snd(i_s)%ns  = i
                 bxasc%r_con%snd(i_s)%lns = local_index(la,i)
@@ -1311,13 +1343,10 @@ contains
     end do
   end subroutine sumassoc_build_innards
 
-  subroutine boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
+  subroutine boxassoc_build_innards(bxasc, la, ng, cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     type(boxassoc),   intent(inout) :: bxasc
     type(layout),     intent(inout) :: la
-    type(layout_rep), intent(in)    :: lap
-    type(layout),     intent(inout) :: latmp
     integer,          intent(in)    :: ng
-    logical,          intent(in)    :: anynodal
     logical,          intent(in)    :: cross
     integer,          intent(inout) :: lcnt_r, cnt_s, cnt_r
     integer,          intent(inout) :: pvol(0:,:), parr(0:,:)
@@ -1339,13 +1368,9 @@ contains
     ! Consider all copies I <- J.
     !
     do i = 1, nboxes(bxa)
-       call boxarray_bndry_periodic(bxai, lap%pd, get_box(bxa,i), bxasc%nodal, lap%pmask, ng, shft, cross, bxasc%idim)
+       call boxarray_bndry_periodic(bxai, la%lap%pd, get_box(bxa,i), bxasc%nodal, la%lap%pmask, ng, shft, cross, bxasc%idim)
        do ii = 1, nboxes(bxai)
-          if ( anynodal ) then
-             bi => layout_get_box_intersector(latmp, get_box(bxai,ii))
-          else
-             bi => layout_get_box_intersector(la,    get_box(bxai,ii))
-          end if
+          bi => layout_get_box_intersector(la, get_box(bxai,ii), nodal_la=bxasc%nodal)
           do jj = 1, size(bi)
              j   = bi(jj)%i
              if ( remote(la,i) .and. remote(la,j) ) cycle
@@ -1378,8 +1403,8 @@ contains
                       bxasc%r_con%snd => n_snd
                    end if
                    cnt_s                    = cnt_s + 1
-                   parr(lap%prc(i), 2)      = parr(lap%prc(i), 2) + 1
-                   pvol(lap%prc(i), 2)      = pvol(lap%prc(i), 2) + volume(sbx)
+                   parr(la%lap%prc(i), 2)   = parr(la%lap%prc(i), 2) + 1
+                   pvol(la%lap%prc(i), 2)   = pvol(la%lap%prc(i), 2) + volume(sbx)
                    bxasc%r_con%snd(i_s)%nd  = i
                    bxasc%r_con%snd(i_s)%ns  = j
                    bxasc%r_con%snd(i_s)%lns = local_index(la,j)
@@ -1395,8 +1420,8 @@ contains
                       bxasc%r_con%rcv => n_rcv
                    end if
                    cnt_r                    = cnt_r + 1
-                   parr(lap%prc(j), 1)      = parr(lap%prc(j), 1) + 1
-                   pvol(lap%prc(j), 1)      = pvol(lap%prc(j), 1) + volume(sbx)
+                   parr(la%lap%prc(j), 1)   = parr(la%lap%prc(j), 1) + 1
+                   pvol(la%lap%prc(j), 1)   = pvol(la%lap%prc(j), 1) + volume(sbx)
                    bxasc%r_con%rcv(i_r)%nd  = i
                    bxasc%r_con%rcv(i_r)%ns  = j
                    bxasc%r_con%rcv(i_r)%lnd = local_index(la,i)
@@ -1430,14 +1455,14 @@ contains
     integer,          intent(in), optional :: idim
 
     integer                         :: pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
-    type(boxarray)                  :: bxa, batmp
-    type(layout)                    :: la, latmp
+    type(boxarray)                  :: bxa
+    type(layout)                    :: la
     integer                         :: lcnt_r, cnt_r, cnt_s, i_r, i_s, np, i
     integer, parameter              :: ChunkSize = 500
     integer, allocatable            :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer  :: n_cpy(:) => Null()
     type(comm_dsc), pointer         :: n_snd(:) => Null(), n_rcv(:) => Null()
-    logical                         :: anynodal, ldsm
+    logical                         :: ldsm
     type(bl_prof_timer), save       :: bpt
 
     if ( built_q(bxasc) ) call bl_error("boxassoc_build(): already built")
@@ -1451,7 +1476,6 @@ contains
     bxasc%nboxes =  nboxes(bxa)
     bxasc%cross  =  cross
     np           =  parallel_nprocs()
-    anynodal     =  any( nodal .eqv. .true. )
 
     ldsm = .false.; if ( present(do_sum_boundary) ) ldsm = do_sum_boundary
 
@@ -1472,17 +1496,6 @@ contains
     allocate(bxasc%r_con%snd(ChunkSize))
     allocate(bxasc%r_con%rcv(ChunkSize))
 
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call boxarray_build_copy(batmp, bxa)
-       call boxarray_nodalize(batmp, nodal)
-       ! LA_LOCAL ==> bypass processor distribution calculation.
-       call layout_build_ba(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
-       call boxarray_destroy(batmp)
-    end if
-
     bxasc%nodal = nodal
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0
@@ -1491,18 +1504,12 @@ contains
        if (bxasc%idim .ne. 0) then
           call bl_error("BOXASSOC_BUILD: sumassoc_build_innards not supported for nonzero idim")
        end if
-       call sumassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, &
-            lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call sumassoc_build_innards(bxasc, la, ng, lcnt_r, cnt_s, cnt_r, pvol, parr)
     else
-       call boxassoc_build_innards(bxasc, la, lap, latmp, ng, anynodal, bxasc%cross, &
-            lcnt_r, cnt_s, cnt_r, pvol, parr)
+       call boxassoc_build_innards(bxasc, la, ng, bxasc%cross, lcnt_r, cnt_s, cnt_r, pvol, parr)
     end if
 
-    if ( anynodal ) then
-       call layout_destroy(latmp)
-    else
-       call clear_box_hash_bin(la%lap)
-    end if
+    call clear_box_hash_bin(la%lap)
 
     bxasc%l_con%ncpy = lcnt_r
     bxasc%r_con%nsnd = cnt_s
@@ -1578,7 +1585,7 @@ contains
        end if
     end do
 
-    if (anynodal) then
+    if (any( nodal .eqv. .true. )) then
        bxasc%l_con%threadsafe = .false.
        bxasc%r_con%threadsafe = .false.
     else
@@ -1587,6 +1594,9 @@ contains
     end if
 
     call mem_stats_alloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
+
+    boxassoc_total_bytes = boxassoc_total_bytes + boxassoc_bytes(bxasc)
+    boxassoc_total_bytes_hwm = max(boxassoc_total_bytes_hwm, boxassoc_total_bytes)
 
     call destroy(bpt)
 
@@ -1682,18 +1692,20 @@ contains
 
     call mem_stats_alloc(fgx_ms, volume(fgasc%ba))
 
+    fgassoc_total_bytes = fgassoc_total_bytes + fgassoc_bytes(fgasc)
+    fgassoc_total_bytes_hwm = max(fgassoc_total_bytes_hwm,fgassoc_total_bytes)
+
     call destroy(bpt)
 
   end subroutine fgassoc_build
 
 
-  subroutine internal_sync_unique_cover(la, ng, nodal, lall, filled)
+  subroutine internal_sync_unique_cover(la, ng, nodal, filled)
     use bl_error_module
 
-    type(layout), intent(in)  :: la
+    type(layout), intent(inout) :: la
     integer, intent(in)       :: ng
     logical, intent(in)       :: nodal(:)
-    logical, intent(in)       :: lall
     type(local_conn), pointer :: filled(:)
 
     type(box)                      :: jbx, abx
@@ -1703,20 +1715,10 @@ contains
     type(local_copy_desc)          :: lcd
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(list_box)                 :: lb1, lb2
-    type(boxarray)                 :: bxa, batmp
+    type(boxarray)                 :: bxa
     type(box_intersector), pointer :: bi(:)
-    type(layout)                   :: latmp
 
     bxa = get_boxarray(la)
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    call boxarray_build_copy(batmp, bxa)
-    call boxarray_nodalize(batmp, nodal)
-    if ( lall ) call boxarray_grow(batmp,ng)
-    ! LA_LOCAL ==> bypass processor distribution calculation.
-    call layout_build_ba(latmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
-    call boxarray_destroy(batmp)
 
     allocate(filled(nboxes(bxa)))
     do i = 1, nboxes(bxa)
@@ -1725,10 +1727,10 @@ contains
     end do
 
     do j = 1, nboxes(bxa)
-       jbx = get_box(latmp, j)
+       jbx = grow(box_nodalize(get_box(la, j), nodal), ng)
        call box_internal_sync_shift(la%lap%pd, jbx, la%lap%pmask, nodal, shft, cnt)
        do jj = 1, cnt
-          bi => layout_get_box_intersector(latmp, shift(jbx,shft(jj,:)))
+          bi => layout_get_box_intersector(la, shift(jbx,shft(jj,:)), ng_la=ng, nodal_la=nodal)
           do ii = 1, size(bi)
              !
              ! Only consider j -> i for i >= j
@@ -1768,7 +1770,8 @@ contains
           deallocate(bi)
        end do
     end do
-    call layout_destroy(latmp)
+
+    call clear_box_hash_bin(la%lap)
 
   end subroutine internal_sync_unique_cover
 
@@ -1783,6 +1786,7 @@ contains
     logical,          intent(in)         :: lall
 
     integer                        :: i, j, ii, jj, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s, np
+    integer                        :: ng_lall
     type(box)                      :: dbx, sbx
     type(boxarray)                 :: bxa
     type(layout)                   :: la
@@ -1816,7 +1820,13 @@ contains
     snasc%lall  = lall
     snasc%nodal = nodal
 
-    call internal_sync_unique_cover(la, snasc%grwth, snasc%nodal, snasc%lall, filled)
+    if (snasc%lall) then
+       ng_lall = snasc%grwth
+    else
+       ng_lall = 0
+    end if
+
+    call internal_sync_unique_cover(la, ng_lall, snasc%nodal, filled)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
@@ -1965,31 +1975,60 @@ contains
 
     call mem_stats_alloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
 
+    syncassoc_total_bytes = syncassoc_total_bytes + syncassoc_bytes(snasc)
+    syncassoc_total_bytes_hwm = max(syncassoc_total_bytes_hwm,syncassoc_total_bytes)
+
     call destroy(bpt)
 
   end subroutine syncassoc_build
 
-  function boxassoc_bytes(bxasc) result(nbytes)
-    use bl_error_module
-    integer :: nbytes
+  pure function boxassoc_bytes(bxasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
     type(boxassoc), intent(in) :: bxasc
-    if ( .not. built_q(bxasc) ) call bl_error("boxassoc_bytes(): not built")
-
-    nbytes = 0
-    nbytes = nbytes + 4 * 9;
-    nbytes = nbytes + bxasc%l_con%ncpy * 4 * 16
-    nbytes = nbytes + bxasc%r_con%nsnd * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nrcv * 4 * 25
-    nbytes = nbytes + bxasc%r_con%nsp  * 4 * 3
-    nbytes = nbytes + bxasc%r_con%nrp  * 4 * 3
-
+    nbytes = sizeof_boxassoc   &
+         + bxasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (bxasc%r_con%nsnd+bxasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (bxasc%r_con%nrp+bxasc%r_con%nsp)*sizeof_trns_dsc
   end function boxassoc_bytes
+
+  pure function fgassoc_bytes(fgasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(fgassoc), intent(in) :: fgasc
+    nbytes = sizeof_fgassoc + (size(fgasc%prc)+size(fgasc%idx))*4
+  end function fgassoc_bytes
+
+  pure function syncassoc_bytes(syncasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(syncassoc), intent(in) :: syncasc
+    nbytes = sizeof_syncassoc &
+         + syncasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (syncasc%r_con%nsnd+syncasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (syncasc%r_con%nrp+syncasc%r_con%nsp)*sizeof_trns_dsc
+  end function syncassoc_bytes
+
+  pure function cpassoc_bytes(cpasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(copyassoc), intent(in) :: cpasc
+    nbytes = sizeof_copyassoc &
+         + cpasc%l_con%ncpy*sizeof_local_copy_desc &
+         + (cpasc%r_con%nsnd+cpasc%r_con%nrcv)*sizeof_comm_dsc &
+         + (cpasc%r_con%nrp+cpasc%r_con%nsp)*sizeof_trns_dsc
+  end function cpassoc_bytes
+
+  pure function fluxassoc_bytes(fluxasc) result(nbytes)
+    integer(kind=ll_t) :: nbytes
+    type(fluxassoc), intent(in) :: fluxasc
+    nbytes = sizeof_fluxassoc &
+         - 2*(sizeof_copyassoc) & ! We count copyassoc separately.
+         + size(fluxasc%fbxs)*sizeof_box
+  end function fluxassoc_bytes
 
   subroutine boxassoc_destroy(bxasc)
     use bl_error_module
     type(boxassoc), intent(inout) :: bxasc
     if ( .not. built_q(bxasc) ) call bl_error("boxassoc_destroy(): not built")
     call mem_stats_dealloc(bxa_ms, bxasc%r_con%nsnd + bxasc%r_con%nrcv)
+    boxassoc_total_bytes = boxassoc_total_bytes - boxassoc_bytes(bxasc)
     deallocate(bxasc%nodal)
     deallocate(bxasc%l_con%cpy)
     deallocate(bxasc%r_con%snd)
@@ -2003,6 +2042,7 @@ contains
     type(fgassoc), intent(inout) :: fgasc
     if ( .not. built_q(fgasc) ) call bl_error("fgassoc_destroy(): not built")
     call mem_stats_dealloc(fgx_ms, volume(fgasc%ba))
+    fgassoc_total_bytes = fgassoc_total_bytes - fgassoc_bytes(fgasc)
     if (associated(fgasc%prc)) deallocate(fgasc%prc) 
     if (associated(fgasc%idx)) deallocate(fgasc%idx)
     call boxarray_destroy(fgasc%ba)
@@ -2013,6 +2053,7 @@ contains
     type(syncassoc), intent(inout) :: snasc
     if ( .not. built_q(snasc) ) call bl_error("syncassoc_destroy(): not built")
     call mem_stats_dealloc(snx_ms, snasc%r_con%nsnd + snasc%r_con%nrcv)
+    syncassoc_total_bytes = syncassoc_total_bytes - syncassoc_bytes(snasc)
     deallocate(snasc%nodal)
     deallocate(snasc%l_con%cpy)
     deallocate(snasc%r_con%snd)
@@ -2032,14 +2073,13 @@ contains
     integer                        :: i, j, pv, rpv, spv, pi_r, pi_s, pcnt_r, pcnt_s
     integer                        :: sh(MAX_SPACEDIM+1), jj
     type(box)                      :: bx
-    type(boxarray)                 :: batmp
-    type(layout)                   :: lasrctmp
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
     type(comm_dsc), pointer        :: n_snd(:) => Null(), n_rcv(:) => Null()
     integer, parameter             :: ChunkSize = 500
     type(box_intersector), pointer :: bi(:)
+    type(layout)                   :: latmp
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(cpasc) ) call bl_error("copyassoc_build(): already built")
@@ -2070,21 +2110,15 @@ contains
 
     cpasc%nd_dst = nd_dst
     cpasc%nd_src = nd_src
-    !
-    ! Build a temporary layout to be used in intersection tests below.
-    !
-    call boxarray_build_copy(batmp, cpasc%ba_src)
-    call boxarray_nodalize(batmp, nd_src)
-    ! LA_LOCAL ==> bypass processor distribution calculation.
-    call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
-    call boxarray_destroy(batmp)
 
     parr = 0; pvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
     !
     ! Consider all copies I <- J.
     !
+    latmp = la_src  ! la_src is considered like C++ mutable
     do i = 1, nboxes(cpasc%ba_dst)
-       bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst))
+       bi => layout_get_box_intersector(latmp, box_nodalize(get_box(cpasc%ba_dst,i), nd_dst), &
+                                        nodal_la=nd_src)
        do jj = 1, size(bi)
           j = bi(jj)%i
           if ( remote(la_dst,i) .and. remote(la_src,j) ) cycle
@@ -2146,7 +2180,7 @@ contains
        deallocate(bi)
     end do
 
-    call layout_destroy(lasrctmp)
+    call clear_box_hash_bin(latmp%lap)
 
     cpasc%l_con%ncpy = lcnt_r
     cpasc%r_con%nsnd = cnt_s
@@ -2229,6 +2263,9 @@ contains
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
 
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
+
     call destroy(bpt)
     call bl_proffortfuncstop("copyassoc_build")
 
@@ -2250,8 +2287,7 @@ contains
     integer                        :: sh(MAX_SPACEDIM+1)
     integer                        :: lo_dom(la_dst%lap%dim), hi_dom(la_dst%lap%dim), loflux(la_dst%lap%dim)
     type(box)                      :: fbox, isect
-    type(layout)                   :: lasrctmp
-    type(boxarray)                 :: bxa_src, bxa_dst, batmp
+    type(boxarray)                 :: bxa_src, bxa_dst
     integer                        :: lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, ii
     integer, allocatable           :: pvol(:,:), ppvol(:,:), parr(:,:), mpvol(:,:)
     type(local_copy_desc), pointer :: n_cpy(:) => Null()
@@ -2259,7 +2295,6 @@ contains
     type(box), pointer             :: pfbxs(:) => Null()
     type(box_intersector), pointer :: bi(:)
     integer, parameter             :: ChunkSize = 500
-    logical                        :: anynodal
     type(bl_prof_timer), save      :: bpt
 
     if ( built_q(flasc) ) call bl_error("fluxassoc_build(): already built")
@@ -2281,7 +2316,6 @@ contains
     flasc%ir(1:dm)    =  ir(1:dm)
     flasc%flux%dim    =  dm
     flasc%mask%dim    =  dm
-    anynodal          =  any( nd_src .eqv. .true. )
 
     allocate(flasc%nd_dst(dm), flasc%nd_src(dm))
 
@@ -2299,37 +2333,19 @@ contains
     allocate(flasc%mask%r_con%rcv(ChunkSize))
     allocate(flasc%fbxs(ChunkSize))
 
-    if ( anynodal ) then
-       !
-       ! Build a temporary layout to be used in intersection tests below.
-       !
-       call boxarray_build_copy(batmp, bxa_src)
-       call boxarray_nodalize(batmp, nd_src)
-       ! LA_LOCAL ==> bypass processor distribution calculation.
-       call layout_build_ba(lasrctmp, batmp, boxarray_bbox(batmp), mapping = LA_LOCAL)  
-       call boxarray_destroy(batmp)
-    end if
-
     parr = 0; pvol = 0; mpvol = 0; lcnt_r = 0; cnt_r = 0; cnt_s = 0; li_r = 1; i_r = 1; i_s = 1
 
     do j = 1, nboxes(bxa_dst)
 
-       if ( anynodal ) then
-          bi => layout_get_box_intersector(lasrctmp, box_nodalize(get_box(bxa_dst,j), nd_dst))
-       else
-          bi => layout_get_box_intersector(la_src,   box_nodalize(get_box(bxa_dst,j), nd_dst))
-       end if
+       bi => layout_get_box_intersector(la_src, box_nodalize(get_box(bxa_dst,j), nd_dst), &
+            &                           nodal_la=nd_src)
 
        do ii = 1, size(bi)
           i = bi(ii)%i
 
           if ( remote(la_dst,j) .and. remote(la_src,i) ) cycle
 
-          if ( anynodal ) then
-             fbox = get_box(lasrctmp,i)
-          else
-             fbox = get_box(la_src,  i)
-          end if
+          fbox = box_nodalize(get_box(la_src, i), nd_src)
           isect  = bi(ii)%bx
           loflux = lwb(fbox)
 
@@ -2427,11 +2443,7 @@ contains
        deallocate(bi)
     end do
 
-    if ( anynodal ) then
-       call layout_destroy(lasrctmp)
-    else
-       call clear_box_hash_bin(la_src%lap)
-    end if
+    call clear_box_hash_bin(la_src%lap)
 
     flasc%flux%l_con%ncpy = lcnt_r
     flasc%flux%r_con%nsnd = cnt_s
@@ -2557,8 +2569,14 @@ contains
     ! Recall that fluxassoc contains two copyassocs.
     !
     call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_alloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
+    call mem_stats_alloc(cpx_ms, flasc%mask%r_con%nsnd + flasc%mask%r_con%nrcv)
     call mem_stats_alloc(flx_ms, size(flasc%fbxs))
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(flasc%flux) + cpassoc_bytes(flasc%mask)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
+
+    fluxassoc_total_bytes = fluxassoc_total_bytes + fluxassoc_bytes(flasc)
+    fluxassoc_total_bytes_hwm = max(fluxassoc_total_bytes_hwm,fluxassoc_total_bytes)
 
     call destroy(bpt)
 
@@ -2569,17 +2587,18 @@ contains
     type(copyassoc), intent(inout) :: cpasc
     if ( .not. built_q(cpasc) ) call bl_error("copyassoc_destroy(): not built")
     call mem_stats_dealloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+    copyassoc_total_bytes = copyassoc_total_bytes - cpassoc_bytes(cpasc)
     call boxarray_destroy(cpasc%ba_src)
     call boxarray_destroy(cpasc%ba_dst)
-    deallocate(cpasc%nd_dst)
-    deallocate(cpasc%nd_src)
-    deallocate(cpasc%l_con%cpy)
-    deallocate(cpasc%r_con%snd)
-    deallocate(cpasc%r_con%rcv)
-    deallocate(cpasc%r_con%str)
-    deallocate(cpasc%r_con%rtr)
-    deallocate(cpasc%prc_src)
-    deallocate(cpasc%prc_dst)
+    if (associated(cpasc%nd_dst))    deallocate(cpasc%nd_dst)
+    if (associated(cpasc%nd_src))    deallocate(cpasc%nd_src)
+    if (associated(cpasc%l_con%cpy)) deallocate(cpasc%l_con%cpy)
+    if (associated(cpasc%r_con%snd)) deallocate(cpasc%r_con%snd)
+    if (associated(cpasc%r_con%rcv)) deallocate(cpasc%r_con%rcv)
+    if (associated(cpasc%r_con%str)) deallocate(cpasc%r_con%str)
+    if (associated(cpasc%r_con%rtr)) deallocate(cpasc%r_con%rtr)
+    if (associated(cpasc%prc_src))   deallocate(cpasc%prc_src)
+    if (associated(cpasc%prc_dst))   deallocate(cpasc%prc_dst)   
     cpasc%hash_dst = -1
     cpasc%hash_src = -1
     cpasc%dim = 0
@@ -2590,18 +2609,11 @@ contains
     type(fluxassoc), intent(inout) :: flasc
     if ( .not. built_q(flasc) ) call bl_error("fluxassoc_destroy(): not built")
     call mem_stats_dealloc(flx_ms, size(flasc%fbxs))
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
-    call mem_stats_dealloc(cpx_ms, flasc%flux%r_con%nsnd + flasc%flux%r_con%nrcv)
 
-    deallocate(flasc%flux%l_con%cpy)
-    deallocate(flasc%flux%r_con%snd)
-    deallocate(flasc%flux%r_con%rcv)
-    deallocate(flasc%mask%r_con%snd)
-    deallocate(flasc%mask%r_con%rcv)
-    deallocate(flasc%flux%r_con%rtr)
-    deallocate(flasc%flux%r_con%str)
-    deallocate(flasc%mask%r_con%rtr)
-    deallocate(flasc%mask%r_con%str)
+    fluxassoc_total_bytes = fluxassoc_total_bytes - fluxassoc_bytes(flasc)
+
+    call copyassoc_destroy(flasc%flux)
+    call copyassoc_destroy(flasc%mask)
 
     deallocate(flasc%fbxs)
     deallocate(flasc%nd_dst)
@@ -2706,6 +2718,7 @@ contains
     r = cp
 
     if ( the_copyassoc_cnt .gt. the_copyassoc_max ) then
+       the_copyassoc_cnt = the_copyassoc_cnt - 1
        cp => the_copyassoc_tail
        call remove_item(cp)
        call copyassoc_destroy(cp)
@@ -2796,6 +2809,8 @@ contains
 
     if ( associated(lap%bins) ) then
 
+       boxhash_total_bytes = boxhash_total_bytes - boxhash_bytes(lap)
+
        do k = lbound(lap%bins,3), ubound(lap%bins,3)
           do j = lbound(lap%bins,2), ubound(lap%bins,2)
              do i = lbound(lap%bins,1), ubound(lap%bins,1)
@@ -2820,7 +2835,7 @@ contains
     type(boxarray) :: ba
     integer, dimension(MAX_SPACEDIM) :: ext, vsz
     integer :: dm, n, i, j, k, cnt, full
-    type(box) :: bx, cbx
+    type(box) :: bx, cbx, nbx
     integer :: lcrsn
     integer :: sz
     type(box_hash_bin), pointer :: bins(:,:,:)
@@ -2831,8 +2846,11 @@ contains
     dm = la%lap%dim
     ba = get_boxarray(la)
     vsz = 0; vsz(1:dm) = -Huge(1)
+    bx = nobox(ba%dim)
     do n = 1, nboxes(ba)
-       vsz(1:dm) = max(vsz(1:dm),extent(get_box(ba,n)))
+       nbx = box_nodalize(get_box(ba,n),(/.true.,.true.,.true./))
+       bx = bbox(bx, nbx)
+       vsz(1:dm) = max(vsz(1:dm),extent(nbx))
     end do
     if ( present(crsn) ) then
        lcrsn = crsn
@@ -2840,7 +2858,6 @@ contains
        lcrsn = maxval(vsz)
     end if
     la%lap%crsn = lcrsn
-    bx  = boxarray_bbox(ba)
     cbx = coarsen(bx, lcrsn)
     la%lap%plo = 0; la%lap%plo(1:dm) = lwb(cbx)
     la%lap%phi = 0; la%lap%phi(1:dm) = upb(cbx)
@@ -2882,23 +2899,49 @@ contains
 !       endif
     end if
 
+    boxhash_total_bytes = boxhash_total_bytes + boxhash_bytes(la%lap)
+    boxhash_total_bytes_hwm = max(boxhash_total_bytes_hwm,boxhash_total_bytes)
+
     call destroy(bpt)
   end subroutine init_box_hash_bin
 
-  function layout_get_box_intersector(la, bx) result(bi)
+  pure function boxhash_bytes(lap) result(nbytes)
+    type(layout_rep), intent(in) :: lap
+    integer(kind=ll_t) :: nbytes
+    nbytes = sizeof_box_hash_bin + size(lap%bins)*4
+  end function boxhash_bytes
+
+  function layout_get_box_intersector(la, bx, ng_la, nodal_la) result(bi)
     use bl_error_module
     type(box_intersector), pointer :: bi(:)
     type(layout), intent(inout) :: la
     type(box), intent(in) :: bx
+    integer, intent(in), optional :: ng_la        ! extra ghost cells for la's boxaray
+    logical, intent(in), optional :: nodal_la(:)  ! nodal flag for la's boxarray
     type(box_hash_bin), pointer :: bins(:,:,:)
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: dm
-    type(box) :: bx1
-    integer :: i, j, k, n
+    type(box) :: bx1, bxtmp
+    integer :: i, j, k, n, ng
+    logical :: nodal(bx%dim)
     type(boxarray) :: ba
     integer, parameter :: ChunkSize = 50
     integer :: cnt
     type(box_intersector), pointer :: tbi(:)
+
+    dm = la%lap%dim
+
+    if (present(ng_la)) then
+       ng = ng_la
+    else
+       ng = 0
+    end if
+
+    if (present(nodal_la)) then
+       nodal(1:dm) = nodal_la(1:dm)
+    else
+       nodal = .false.
+    end if
 
     !$OMP CRITICAL(initboxhashbin)
     if (.not. associated(la%lap%bins)) call init_box_hash_bin(la)
@@ -2906,10 +2949,9 @@ contains
 
     allocate(bi(ChunkSize))
 
-    dm = la%lap%dim
     ba = get_boxarray(la)
     bins => la%lap%bins
-    bx1 = coarsen(bx, la%lap%crsn)
+    bx1 = coarsen(grow(bx,ng), la%lap%crsn)
     lo = 0; lo(1:dm) = lwb(bx1)
     hi = 0; hi(1:dm) = upb(bx1)
     cnt = 0
@@ -2921,12 +2963,13 @@ contains
 
                 if ( associated(bins(i,j,k)%iv) ) then
                    do n = 1, size(bins(i,j,k)%iv)
-                      bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                      bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                      bx1 = intersection(bx, bxtmp)
                       if ( empty(bx1) ) cycle
                       cnt = cnt + 1
 
                       if (cnt > size(bi)) then
-                         allocate(tbi(size(bi) * 2))
+                         allocate(tbi(int(size(bi)*1.5)))
                          tbi(1:cnt-1) = bi(1:cnt-1)
                          deallocate(bi)
                          bi => tbi
@@ -2947,12 +2990,13 @@ contains
 
              if ( associated(bins(i,j,k)%iv) ) then
                 do n = 1, size(bins(i,j,k)%iv)
-                   bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                   bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                   bx1 = intersection(bx, bxtmp)
                    if ( empty(bx1) ) cycle
                    cnt = cnt + 1
 
                    if (cnt > size(bi)) then
-                      allocate(tbi(size(bi) * 2))
+                      allocate(tbi(int(size(bi)*1.5)))
                       tbi(1:cnt-1) = bi(1:cnt-1)
                       deallocate(bi)
                       bi => tbi
@@ -2972,12 +3016,13 @@ contains
 
           if ( associated(bins(i,j,k)%iv) ) then
              do n = 1, size(bins(i,j,k)%iv)
-                bx1 = intersection(bx, get_box(ba,bins(i,j,k)%iv(n)))
+                bxtmp = grow(box_nodalize(get_box(ba,bins(i,j,k)%iv(n)),nodal),ng)
+                bx1 = intersection(bx, bxtmp)
                 if ( empty(bx1) ) cycle
                 cnt = cnt + 1
 
                 if (cnt > size(bi)) then
-                   allocate(tbi(size(bi) * 2))
+                   allocate(tbi(int(size(bi)*1.5)))
                    tbi(1:cnt-1) = bi(1:cnt-1)
                    deallocate(bi)
                    bi => tbi
@@ -3201,6 +3246,9 @@ contains
     cpasc%r_con%threadsafe = .true.
 
     call mem_stats_alloc(cpx_ms, cpasc%r_con%nsnd + cpasc%r_con%nrcv)
+
+    copyassoc_total_bytes = copyassoc_total_bytes + cpassoc_bytes(cpasc)
+    copyassoc_total_bytes_hwm = max(copyassoc_total_bytes_hwm, copyassoc_total_bytes)
 
     deallocate(pvol, ppvol, parr)
   end subroutine copyassoc_build_br_to_other
@@ -3716,11 +3764,17 @@ contains
     call bl_deallocate(nt_in_fab)
     call bl_deallocate(ntiles)
 
+    tilearray_total_bytes = tilearray_total_bytes + tilearray_bytes(ta)
+    tilearray_total_bytes_hwm = max(tilearray_total_bytes_hwm,tilearray_total_bytes)
+
   end subroutine tilearray_build
 
   subroutine tilearray_destroy(ta)
     use mempool_module, only : bl_deallocate
     type(tilearray), intent(inout) :: ta
+    if (associated(ta%gidx)) then
+       tilearray_total_bytes = tilearray_total_bytes - tilearray_bytes(ta)
+    end if
     if (associated(ta%gidx))   call bl_deallocate(ta%gidx)
     if (associated(ta%lidx))   call bl_deallocate(ta%lidx)
     if (associated(ta%tilelo)) call bl_deallocate(ta%tilelo)
@@ -3733,5 +3787,11 @@ contains
     type(tilearray), intent(in) :: ta
     r = ta%dim /= 0
   end function tilearray_built_q
+
+  pure function tilearray_bytes(ta) result(nbytes)
+    type(tilearray), intent(in) :: ta
+    integer(kind=ll_t) :: nbytes
+    nbytes = sizeof_tilearray + (ta%dim+1)*ta%ntiles*8
+  end function tilearray_bytes
 
 end module layout_module

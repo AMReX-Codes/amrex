@@ -1,6 +1,6 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../../
+BOXLIB_HOME ?= ../..
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -25,6 +25,7 @@ DEBUG	= TRUE
 DEBUG	= FALSE
 
 DIM	= 3
+DIM	= 2
 
 COMP =gcc
 FCOMP=gfortran
@@ -33,6 +34,7 @@ USE_HYPRE = FALSE
 USE_F90_SOLVERS = TRUE
 
 USE_HPGMG = TRUE
+USE_HPGMG = FALSE
 HPGMG_FCYCLES = TRUE
 HPGMG_POST_F_CYCLE_TYPE = V
 HPGMG_HELMHOLTZ = TRUE
@@ -46,6 +48,8 @@ CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
 
 # USE_MPI must be TRUE if USE_HYPRE
 USE_MPI=TRUE
+USE_OMP=TRUE
+USE_OMP=FALSE
 
 EBASE = main
 
@@ -56,6 +60,7 @@ CEXE_sources += $(EBASE).cpp
 include Make.package
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4/Make.package
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
@@ -66,6 +71,9 @@ vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
+
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
+vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H
@@ -111,16 +119,16 @@ vpath %.F   : . $(vpathdir)
 vpath %.f   : . $(vpathdir)
 vpath %.f90 : . $(vpathdir)
 
-ifeq ($(USE_HPGMG), TRUE)
-  # need to get the HPGMG sources too
-  vpath %.c   : . $(VPATH_LOCATIONS)
-  vpath %.h   : . $(VPATH_LOCATIONS)
-  vpath %.cpp : . $(VPATH_LOCATIONS)
-  vpath %.H   : . $(VPATH_LOCATIONS)
-  vpath %.F   : . $(VPATH_LOCATIONS)
-  vpath %.f   : . $(VPATH_LOCATIONS)
-  vpath %.f90 : . $(VPATH_LOCATIONS)
-endif
+# The HPGMG hooks in Make.defs populate VPATH_LOCATIONS, not vpathdir, so we
+# need to grab these too. In fact everything in Make.defs uses VPATH_LOCATIONS
+# instead of vpathdir. Perhaps they should be consolidated ...
+vpath %.c   : . $(VPATH_LOCATIONS)
+vpath %.h   : . $(VPATH_LOCATIONS)
+vpath %.cpp : . $(VPATH_LOCATIONS)
+vpath %.H   : . $(VPATH_LOCATIONS)
+vpath %.F   : . $(VPATH_LOCATIONS)
+vpath %.f   : . $(VPATH_LOCATIONS)
+vpath %.f90 : . $(VPATH_LOCATIONS)
 
 all: $(executable)
 	@echo SUCCESS

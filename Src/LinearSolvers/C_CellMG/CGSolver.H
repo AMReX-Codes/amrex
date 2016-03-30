@@ -88,7 +88,7 @@ public:
     //
     // The Constructor.
     //
-    CGSolver (LinOp& _Lp,
+    CGSolver (LinOp& _lp,
               bool   _use_mg_precond = false,
               int    _lev = 0);
     //

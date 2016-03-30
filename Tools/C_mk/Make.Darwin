@@ -1,13 +1,11 @@
-
 FORT_CPP := cpp -E -traditional
 
 ifeq ($(FCOMP), gfortran)
   LIBRARIES += -lquadmath
 endif
 
-ifeq ($(WHICHDARWIN), Marc)
+ifeq ($(WHICHDARWIN), MARC)
   ifeq ($(FCOMP), gfortran)
-    override XTRALIBS += -lquadmath
+    LIBRARY_LOCATIONS+=/usr/local/lib
   endif
 endif
-

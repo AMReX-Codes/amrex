@@ -30,6 +30,7 @@ realclean:: clean
 	$(SILENT) $(RM) lib*.a  TAGS tags BROWSE
 	$(SILENT) $(RM) -r d o f ii_files *~
 	$(SILENT) $(RM) *.ex *.ii *.o mon.out gmon.out
+	$(SILENT) $(RM) *.mod
 	$(SILENT) $(RM) work.pc work.pcl
 
 tags:	$(allSources)
@@ -66,12 +67,12 @@ $(objTempDir)/%.o: %.c
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(SILENT) $(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
 
-$(objTempDir)/%.o: %.F90
-	@echo Compiling $*.F90 ...
-	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
-	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
-	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
+#$(objTempDir)/%.o: %.F90
+#	@echo Compiling $*.F90 ...
+#	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+#	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+#	$(SILENT) $(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(F90PREP) > $(f77TempDir)/$*.f90
+#	$(SILENT) $(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
 
 $(objTempDir)/%.o: %.F
 	@echo Compiling $*.F ...
@@ -102,12 +103,12 @@ $(objEXETempDir)/%.o: %.c
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	$(SILENT) $(CC) $(CFLAGS) $(CPPFLAGS) -c $(CEXEFLAGS) -DBL_LANG_C $< $(EXE_OUTPUT_OPTION)
 
-$(objEXETempDir)/%.o: %.F90
-	@echo Compiling $*.F90 ...
-	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+pF90EXE_sources := $(addprefix $(f77TempDir)/, $(F90EXE_sources:.F90=.f90))
+
+$(f77TempDir)/%.f90: %.F90
+	@echo preprocessing $*.F90 ...
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(F90PREP) > $(f77TempDir)/$*.f90
-	$(SILENT) $(F90) $(F90FLAGS) $(fFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@echo Compiling $*.F ...
@@ -116,6 +117,7 @@ $(objEXETempDir)/%.o: %.F
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(SILENT) $(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
+VPATH := $(VPATH) $(f77TempDir)
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
@@ -142,12 +144,12 @@ $(depTempDir)/%.d: %.c
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
-$(depTempDir)/%.d: %.F90
-	@echo Depending $< ...
-	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
-		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+#$(depTempDir)/%.d: %.F90
+#	@echo Depending $< ...
+#	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+#	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+#		sed -e '\''s,^[^:]*\/,,'\'' | \
+#		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
 $(depTempDir)/%.d: %.F
 	@echo Depending $< ...
@@ -186,12 +188,12 @@ $(depEXETempDir)/%.d: %.c
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/%.d: %.F90
-	@echo Depending $< ...
-	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
-		sed -e '\''s,^[^:]*\/,,'\'' | \
-		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+# $(depEXETempDir)/%.d: %.F90
+# 	@echo Depending $< ...
+# 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+# 	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+# 		sed -e '\''s,^[^:]*\/,,'\'' | \
+# 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
 $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
@@ -214,7 +216,7 @@ $(depEXETempDir)/%.d: %.f
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
-$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources) 
+$(depEXETempDir)/f90.depends: $(f90EXE_sources) $(pF90EXE_sources) 
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@echo "Building f90/F90 dependency File ..."
 	@$(MODDEP) $(f_includes) --odir $(objEXETempDir) $^ > $(depEXETempDir)/f90.depends 
@@ -248,9 +250,6 @@ ifdef CEXE_sources
 endif
 ifdef FEXE_sources
 -include $(FEXE_sources:%.F=$(depEXETempDir)/%.d)
-endif
-ifdef F90EXE_sources
--include $(F90EXE_sources:%.F90=$(depEXETempDir)/%.d)
 endif
 ifdef fEXE_sources
 -include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)

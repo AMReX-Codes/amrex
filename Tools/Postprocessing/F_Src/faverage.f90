@@ -62,7 +62,7 @@ program faverage
   integer :: dim, irho_comp, irho_comp_pass
   integer :: i, j
   real(kind=dp_t) :: dx(MAX_SPACEDIM)
-  integer, dimension(MAX_SPACEDIM) :: flo, fhi
+  integer, dimension(MAX_SPACEDIM) :: flo, fhi, lo, hi
   logical, allocatable :: imask(:,:,:)
   real(kind=dp_t), allocatable :: avg(:,:), rms(:,:), cnt(:)
   real(kind=dp_t), pointer :: p(:,:,:,:)
@@ -355,27 +355,31 @@ program faverage
 
         ! get the data
         p => dataptr(pf, i, j)
+        lo(:) = 1
+        hi(:) = 1
+        lo(1:dim) = lwb(get_box(pf, i, j))
+        hi(1:dim) = upb(get_box(pf, i, j))
 
         ! loop over all the zones in the current box
         ! Here, we convert the cell-centered indices at the current level
         ! into the corresponding RANGE on the finest level, and test if 
         ! we've stored data in any of those locations.  If we havn't then
         ! we store this level's data and mark that range as filled.
-        do kk = lbound(p,dim=3), ubound(p,dim=3)
+        do kk = lo(3), hi(3)
 
            if (idir == 3) then
               index_lo = kk*r1
               index_hi = (kk+1)*r1 -1
            endif
 
-           do jj = lbound(p,dim=2), ubound(p,dim=2)
+           do jj = lo(2), hi(2)
 
               if (idir == 2) then
                  index_lo = jj*r1
                  index_hi = (jj+1)*r1 -1
               endif
 
-              do ii = lbound(p,dim=1), ubound(p,dim=1)
+              do ii = lo(1), hi(1)
 
                  if (idir == 1) then
                     index_lo = ii*r1
@@ -470,22 +474,26 @@ program faverage
         call fab_bind_comp_vec(pf, i, j, icomps_pass)
 
         p => dataptr(pf, i, j)
+        lo(:) = 1
+        hi(:) = 1
+        lo(1:dim) = lwb(get_box(pf, i, j))
+        hi(1:dim) = upb(get_box(pf, i, j))
 
-        do kk = lbound(p,dim=3), ubound(p,dim=3)
+        do kk = lo(3), hi(3)
 
            if (idir == 3) then
               index_lo = kk*r1
               index_hi = (kk+1)*r1 - 1
            endif
 
-           do jj = lbound(p,dim=2), ubound(p,dim=2)
+           do jj = lo(2), hi(2)
 
               if (idir == 2) then
                  index_lo = jj*r1
                  index_hi = (jj+1)*r1 - 1
               endif
 
-              do ii = lbound(p,dim=1), ubound(p,dim=1)
+              do ii = lo(1), hi(1)
 
                  if (idir == 1) then
                     index_lo = ii*r1
