@@ -1214,6 +1214,10 @@ def get_args(arg_string=None):
                         help="is this a temporary run? (output not stored or logged)")
     parser.add_argument("--send_no_email", action="store_true",
                         help="do not send emails when tests fail")
+    parser.add_argument("--with_valgrind", action="store_true",
+                        help="run with valgrind")
+    parser.add_argument("--valgrind_options", type=str, default="--leak-check=yes --log-file=vallog.%p",
+                        help="valgrind options")
     parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
                         help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
     parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
@@ -1784,6 +1788,9 @@ def test_suite(argv):
             if not test.restartTest: base_command += " --chk_int 0 "
 
             base_command += "{}".format(suite.globalAddToExecString)
+
+        if args.with_valgrind:
+            base_command = "valgrind " + args.valgrind_options + " " + base_command
 
         suite.run_test(test, base_command)
 

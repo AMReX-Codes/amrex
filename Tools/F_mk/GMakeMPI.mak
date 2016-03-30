@@ -211,7 +211,7 @@ ifeq ($(HOST),angilas)
   mpi_libraries += -lmpich -lmpichf90 -lpthread
 endif
 
-DEFAULT_MACHINES := artoo atragon battra ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan varan
+DEFAULT_MACHINES := artoo atragon ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan varan
 
 ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
   MPIHOME=/usr/lib/mpich
@@ -225,6 +225,17 @@ ifeq ($(HOST),baragon)
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lmpichf90
+endif
+
+ifeq ($(HOST),battra)
+  ifdef MPI_HOME
+    mpi_libraries += -Wl,-rpath,$(MPI_HOME)/lib -lmpich -lmpichf90
+  else
+    MPI_HOME=/usr/lib/mpich
+    mpi_libraries += -lmpich -lpthread
+  endif
+  mpi_include_dir = $(MPI_HOME)/include
+  mpi_lib_dir = $(MPI_HOME)/lib
 endif
 
 ifeq ($(findstring donev, $(HOSTNAME)), donev)
