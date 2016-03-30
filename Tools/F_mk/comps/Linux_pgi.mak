@@ -28,10 +28,10 @@
     endif
 
     ifdef NDEBUG
-      FFLAGS   += -gopt -O2
-      F90FLAGS += -gopt -O2
-      CFLAGS   += -gopt -O2
-      CXXFLAGS += -gopt -O2
+      #FFLAGS   += -gopt -O2
+      #F90FLAGS += -gopt -O2
+      #CFLAGS   += -gopt -O2
+      #CXXFLAGS += -gopt -O2
     else
       FFLAGS   += -g
       F90FLAGS += -g
