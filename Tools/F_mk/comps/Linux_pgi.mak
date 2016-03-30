@@ -1,8 +1,17 @@
 
-    CC  := pgcc
-    CXX := pgc++
-    FC  := pgf95
-    F90 := pgf95
+
+    ifeq ($(findstring titan, $(HOST)), titan)
+        #On Crays like Titan, you need Cray wrappers even for non-Cray compiler
+        CXX := CC
+        CC  := cc
+        FC  := ftn
+        F90 := ftn
+    else
+        CC  := pgcc
+        CXX := pgc++
+        FC  := pgf95
+        F90 := pgf95
+    endif
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
 
