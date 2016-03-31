@@ -84,6 +84,11 @@ contains
 
     dm = get_dim(crse(1))
 
+    ! Here we just measure in the x-direction, assuming the ratio is the same in every dimension
+    pd_fine = get_pd(get_layout(fine(1)))
+    pd_crse = get_pd(get_layout(crse(1)))
+    ratio = (pd_fine%hi(1)-pd_fine%lo(1)+1) / (pd_crse%hi(1)-pd_crse%lo(1)+1) 
+
     do i=1,dm
        call multifab_fill_boundary(crse(i))
     end do
@@ -97,16 +102,9 @@ contains
     call boxarray_build_copy(c_ba,fgasc%ba)
 
     do i=1,nboxes(f_ba)
-       call set_box(c_ba,i,coarsen(get_box(f_ba,i),2))
-       call set_box(f_ba,i,refine(get_box(c_ba,i),2))
+       call set_box(c_ba,i,coarsen(get_box(f_ba,i),ratio))
+       call set_box(f_ba,i,refine(get_box(c_ba,i),ratio))
     end do
-
-    pd_fine = get_pd(get_layout(fine(1)))
-    pd_crse = get_pd(get_layout(crse(1)))
-
-    ! Here we just measure in the x-direction, assuming the ratio is the same in every dimension
-    ratio = (pd_fine%hi(1)-pd_fine%lo(1)+1) / (pd_crse%hi(1)-pd_crse%lo(1)+1) 
-    print *,"RATIO IN CREATE_UMAC ",ratio
 
     do i=1,dm
 
