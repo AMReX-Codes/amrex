@@ -358,7 +358,7 @@ contains
        else if (r.eq.4) then
           do j=c_lo(2),c_hi(2)
           do i=c_lo(1),c_hi(1)
-             do jj=0,r-1
+             do ii=0,r-1
                 fine(r*i+ii,r*j+1) = FOURTH*(THREE*fine(r*i+ii,r*j)+      fine(r*i+ii,r*j+4))
                 fine(r*i+ii,r*j+2) = FOURTH*(  TWO*fine(r*i+ii,r*j)+  TWO*fine(r*i+ii,r*j+4))
                 fine(r*i+ii,r*j+3) = FOURTH*(      fine(r*i+ii,r*j)+THREE*fine(r*i+ii,r*j+4))
