@@ -2170,7 +2170,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
-    const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll);
+    const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll, dnghost, snghost);
 
     FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcAll);
 
@@ -2213,7 +2213,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*thecpc.m_RcvTags, *thecpc.m_RcvVols, the_recv_data, recv_data,
+        FabArrayBase::PostRcvs(*thecpc.m_RcvVols, the_recv_data, recv_data,
 	                       recv_from, recv_reqs, NC, SeqNum, commBoth);
 
 	//
