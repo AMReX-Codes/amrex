@@ -48,5 +48,8 @@
       CXXFLAGS += -g
     endif
 
-    LDFLAGS += -pgc++libs
+    ifneq ($(findstring titan, $(HOST)), titan)
+        #The wrappers should pick this up on Titan, so don't add it in that case.
+        LDFLAGS += -pgc++libs
+    endif
     
