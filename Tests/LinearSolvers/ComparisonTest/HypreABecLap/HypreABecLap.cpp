@@ -966,7 +966,7 @@ void HypreABecLap::buildMatrixStructure()
            i = cintrp[level].nextLocal(i)) {
         Box reg = BoxLib::adjCell(grids[level][i], ori);
         Box creg = BoxLib::coarsen(reg, rat); // coarse adjacent cells
-        const Mask &msk = bd[level].bndryMasks(ori)[i];
+        const Mask &msk = *(bd[level].bndryMasks(i)[ori]);
 
         TransverseInterpolant(cintrp[level](ori)[i], msk, reg, creg,
                               D_DECL(rat,  vj1,  vk1),
@@ -1001,7 +1001,6 @@ void HypreABecLap::buildMatrixStructure()
            i = entry.nextLocal(i)) {
         Box reg = BoxLib::adjCell(grids[level][i], ori);
         reg.shift(-vin); // fine interior cells
-	//        const Mask &msk = bd[level].bndryMasks(ori)[i];
         for (IntVect v = reg.smallEnd(); v <= reg.bigEnd(); reg.next(v)) {
 #if (0 && !defined(NDEBUG))
           if (msk(v+vin) == BndryData::not_covered &&
@@ -1240,16 +1239,20 @@ void HypreABecLap::setRhs(int level, const MultiFab& rhs)
 
     Real* vec = f->dataPtr();
 
+    const Array< Array<BoundCond> > & bcs_i = bd[level].bndryConds(i);
+    const BndryData::RealTuple      & bcl_i = bd[level].bndryLocs(i);
+    const BndryData::MaskTuple      & msk_i = bd[level].bndryMasks(i);
+
     // add b.c.'s to rhs
     const Box& domain = bd[level].getDomain();
     for (OrientationIter oitr; oitr; oitr++) {
       int cdir(oitr());
       int idim = oitr().coordDir();
-      const BoundCond &bct = bd[level].bndryConds(oitr())[i][0];
+      const BoundCond &bct = bcs_i[cdir][0];
       int bctype = bct;
-      const Real      &bcl = bd[level].bndryLocs(oitr())[i];
+      const Real      &bcl = bcl_i[cdir];
       const FArrayBox &bcv = bd[level].bndryValues(oitr())[i];
-      const Mask      &msk = bd[level].bndryMasks(oitr())[i];
+      const Mask      &msk = *msk_i[cdir];
       const int* blo = bcoefs[level][idim][mfi].loVect();
       const int* bhi = bcoefs[level][idim][mfi].hiVect();
       const int* mlo = msk.loVect();
@@ -1399,14 +1402,18 @@ void HypreABecLap::loadMatrix()
       // add b.c.'s to matrix diagonal, and
       // zero out offdiag values at domain boundaries
       
+      const Array< Array<BoundCond> > & bcs_i = bd[level].bndryConds(i);
+      const BndryData::RealTuple      & bcl_i = bd[level].bndryLocs(i);
+      const BndryData::MaskTuple      & msk_i = bd[level].bndryMasks(i);
+
       const Box& domain = bd[level].getDomain();
       for (OrientationIter oitr; oitr; oitr++) {
 	int cdir(oitr());
 	int idim = oitr().coordDir();
-	const BoundCond &bct = bd[level].bndryConds(oitr())[i][0];
+	const BoundCond &bct = bcs_i[cdir][0];
 	int bctype = bct;
-	const Real      &bcl = bd[level].bndryLocs(oitr())[i];
-	const Mask      &msk = bd[level].bndryMasks(oitr())[i];
+	const Real      &bcl = bcl_i[cdir];
+	const Mask      &msk = *msk_i[cdir];
 	const int* blo = bcoefs[level][idim][mfi].loVect();
 	const int* bhi = bcoefs[level][idim][mfi].hiVect();
 	const int* mlo = msk.loVect();
@@ -1472,7 +1479,7 @@ void HypreABecLap::loadMatrix()
            i = cintrp[level].nextLocal(i)) {
         Box reg = BoxLib::adjCell(grids[level][i], ori);
         reg.shift(-vin); // fine interior cells
-        const Mask &msk = bd[level].bndryMasks(ori)[i];
+	const Mask &msk = *(bd[level].bndryMasks(i)[ori]);
         for (IntVect v = reg.smallEnd(); v <= reg.bigEnd(); reg.next(v)) {
           if (msk(v+vin) == BndryData::not_covered) {
             entry(ori)[i](v).push(&ederiv[level](ori)[i](v+vin),

@@ -190,9 +190,11 @@ class DistributionMapping
     static int ProximityMap(const int rank)   { return proximityMap[rank];   }
     static int ProximityOrder(const int rank) { return proximityOrder[rank]; }
 
+#if !(defined(BL_NO_FORT) || defined(WIN32))
     static void ReadCheckPointHeader(const std::string &filename,
 				     Array<IntVect>  &refRatio,
                                      Array<BoxArray> &allBoxes);
+#endif
     static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
                                  const Array<BoxArray> &allBoxes);
 
@@ -211,6 +213,13 @@ class DistributionMapping
     static void SetNDistMaps(int ndm) { nDistMaps = ndm; }
     int DistMapID() const { return dmID; }
     void SetDistMapID(int dmid) { dmID = dmid; }
+
+    bool Check() const;
+
+    //
+    // This gives a unique ID of the reference, which is different from dmID above.
+    //
+    ptrdiff_t getRefID () const;
 
 #ifdef BL_USE_MPI
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);

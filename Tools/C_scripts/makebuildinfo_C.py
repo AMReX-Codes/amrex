@@ -164,7 +164,7 @@ if not build_git_dir == None:
     except:
         build_git_hash = "directory not valid"
     else:
-        build_git_hash = runcommand(get_git_hash(build_git_dir))
+        build_git_hash = get_git_hash(build_git_dir)
         os.chdir(running_dir)
 else:
     build_git_hash = ""

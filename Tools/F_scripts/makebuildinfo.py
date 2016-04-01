@@ -55,14 +55,18 @@ module build_info_module
   character (len=128), save :: build_git_hash = &
 "@@BUILD_HASH@@"
 
+  @@MODULE_STUFF@@
 
+end module build_info_module
+"""
+
+module_str = """
   integer, parameter :: NUM_MODULES=@@NUM_MODULES@@
   character (len=128), save :: modules(NUM_MODULES) = (/ &
 @@MODULE_INFO@@
   /)
-
-end module build_info_module
 """
+
 
 import sys
 import os
@@ -333,19 +337,21 @@ for line in sourceString.splitlines():
 
             fout.write(newline)
 
-        elif keyword == "NUM_MODULES":
-            newline = line.replace("@@NUM_MODULES@@", repr(len(moduleList)))
-            fout.write(newline)
+        elif keyword == "MODULE_STUFF":
 
-        elif keyword == "MODULE_INFO":
-            str = ""
-            for n in range(len(moduleList)):
-                if n < len(moduleList)-1:
-                    str += "\"%-120s\", &\n" % (moduleList[n])
-                else:
-                    str += "\"%-120s\" &" % (moduleList[n])
+            if len(moduleList) == 0:
+                newline = line.replace("@@MODULE_STUFF@@", 
+                                       "integer, parameter :: NUM_MODULES=0")
+            else:
+                str = ""
+                for n in range(len(moduleList)):
+                    if n < len(moduleList)-1:
+                        str += "\"%-120s\", &\n" % (moduleList[n])
+                    else:
+                        str += "\"%-120s\" &" % (moduleList[n])
 
-            newline = line.replace("@@MODULE_INFO@@", str)
+                newlinet = module_str.replace("@@NUM_MODULES@@", repr(len(moduleList)))
+                newline = newlinet.replace("@@MODULE_INFO@@", str)
             fout.write(newline)
 
     else:

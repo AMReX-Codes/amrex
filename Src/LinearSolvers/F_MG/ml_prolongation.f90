@@ -17,6 +17,7 @@ contains
   subroutine ml_cc_prolongation(fine, crse, ir, lininterp, ptype)
     use bl_prof_module
     use mg_prolongation_module
+    use multifab_module, only: get_dim
 
     type(multifab), intent(inout) :: fine
     type(multifab), intent(in   ) :: crse

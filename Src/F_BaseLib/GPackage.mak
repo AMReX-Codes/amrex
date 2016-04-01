@@ -5,17 +5,12 @@ f90sources += BLProfiler_f90.f90
 
 f90sources += bl_constants.f90
 f90sources += bl_IO.f90
-ifdef BACKTRACE
-  f90sources += bl_prof_backtrace.f90
-  f90sources += bl_error_backtrace.f90
-else
 ifdef PROF
   f90sources += bl_prof.f90
 else
   f90sources += bl_prof_stubs.f90
 endif
 f90sources += bl_error.f90
-endif
 f90sources += bl_mem_stat.f90
 f90sources += bl_parmparse.f90
 f90sources += bl_space.f90
@@ -109,6 +104,9 @@ endif
 ifdef RANDOM
   f90sources += mt19937ar.f90
 endif
+
+f90sources += backtrace_f.f90
+cxxsources += backtrace_c.cpp
 
 include $(BOXLIB_HOME)/Src/C_BaseLib/GPackage.mak
 VPATH_LOCATIONS += $(BOXLIB_HOME)/Src/C_BaseLib

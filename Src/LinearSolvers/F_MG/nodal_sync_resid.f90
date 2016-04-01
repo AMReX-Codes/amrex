@@ -59,10 +59,10 @@ contains
        end do
     end do
 
-    if (face_type(1,1) == BC_NEU) dvo( 0,:) = TWO*dvo( 0,:)
-    if (face_type(1,2) == BC_NEU) dvo(nx,:) = TWO*dvo(nx,:)
-    if (face_type(2,1) == BC_NEU) dvo(:, 0) = TWO*dvo(:, 0)
-    if (face_type(2,2) == BC_NEU) dvo(:,ny) = TWO*dvo(:,ny)
+    if (face_type(1,1) == BC_NEU) dvo(0 ,0:ny) = TWO*dvo( 0,0:ny)
+    if (face_type(1,2) == BC_NEU) dvo(nx,0:ny) = TWO*dvo(nx,0:ny)
+    if (face_type(2,1) == BC_NEU) dvo(0:nx,0 ) = TWO*dvo(0:nx, 0)
+    if (face_type(2,2) == BC_NEU) dvo(0:nx,ny) = TWO*dvo(0:nx,ny)
 
   end subroutine divuo_2d
 
@@ -118,12 +118,12 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    if (face_type(1,1) == BC_NEU) dvo( 0,:,:) = TWO*dvo( 0,:,:)
-    if (face_type(1,2) == BC_NEU) dvo(nx,:,:) = TWO*dvo(nx,:,:)
-    if (face_type(2,1) == BC_NEU) dvo(:, 0,:) = TWO*dvo(:, 0,:)
-    if (face_type(2,2) == BC_NEU) dvo(:,ny,:) = TWO*dvo(:,ny,:)
-    if (face_type(3,1) == BC_NEU) dvo(:,:, 0) = TWO*dvo(:,:, 0)
-    if (face_type(3,2) == BC_NEU) dvo(:,:,nz) = TWO*dvo(:,:,nz)
+    if (face_type(1,1) == BC_NEU) dvo( 0,0:ny,0:nz) = TWO*dvo( 0,0:ny,0:nz)
+    if (face_type(1,2) == BC_NEU) dvo(nx,0:ny,0:nz) = TWO*dvo(nx,0:ny,0:nz)
+    if (face_type(2,1) == BC_NEU) dvo(0:nx, 0,0:nz) = TWO*dvo(0:nx, 0,0:nz)
+    if (face_type(2,2) == BC_NEU) dvo(0:nx,ny,0:nz) = TWO*dvo(0:nx,ny,0:nz)
+    if (face_type(3,1) == BC_NEU) dvo(0:nx,0:ny, 0) = TWO*dvo(0:nx,0:ny, 0)
+    if (face_type(3,2) == BC_NEU) dvo(0:nx,0:ny,nz) = TWO*dvo(0:nx,0:ny,nz)
 
   end subroutine divuo_3d
 

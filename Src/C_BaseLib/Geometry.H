@@ -100,6 +100,8 @@ public:
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
                     int             grow) const;
+    // Fill the pre-built multifab with volume
+    void GetVolume (MultiFab&       vol) const;
 
     void GetVolume (FArrayBox&       vol,
                     const BoxArray& grds,
@@ -121,6 +123,9 @@ public:
                       const BoxArray& grds,
                       int             dir,
                       int             grow) const;
+    // Fill the pre-built multifab with area
+    void GetFaceArea (MultiFab&       area,
+                      int             dir) const;
 
     void GetFaceArea (FArrayBox&      area,
                       const BoxArray& grds,
@@ -163,11 +168,21 @@ public:
     //
     // Fill ghost cells of all components with periodic data.
     //
+    // do_corners: the corner here refers to physical DOMAIN corners
+    // that are partially but not all periodic.  If do_corners=true,
+    // these corners will be filled with periodically shifted GHOST
+    // cell data, because no valid cell data are available for the
+    // role.  Note that this does not refer to corner cells of boxes
+    // that are not at DOMAIN corners.  Corner cells of a box will
+    // always be filled if valid cell data are available periodically.
+    //
     void FillPeriodicBoundary (MultiFab& mf,
                                bool      do_corners = false,
                                bool      local      = false) const;
     //
     // Fill ghost cells of selected components with periodic data.
+    //
+    // do_corners: see comments above.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
@@ -185,23 +200,21 @@ public:
     void SumPeriodicBoundary (MultiFab& mf,
                               int       src_comp,
                               int       num_comp) const;
-
-    void SumPeriodicBoundary (MultiFab&       dstmf,
-                              const MultiFab& srcmf) const;
-
-    void SumPeriodicBoundary (MultiFab&       dstmf,
-                              const MultiFab& srcmf,
-                              int             dcomp,
-                              int             scomp,
-                              int             ncomp) const;
+    // 
+    // Copy periodically shifted data from srcmf to dstmf.
+    // Usually this only makes sense for nodal/edge/face MultiFabs.
+    //
+    void PeriodicCopy (MultiFab&       dstmf,
+		       const MultiFab& srcmf) const;
+    void PeriodicCopy (MultiFab&       dstmf,
+		       const MultiFab& srcmf,
+		       int             dcomp,
+		       int             scomp,
+		       int             ncomp) const;
     //
     // Flush the cache of PIRM information.
     //
     static void FlushPIRMCache ();
-    //
-    // The size of the PIRM cache.
-    //
-    static int PIRMCacheSize ();
     //
     // Used by FillPeriodicBoundary().
     //
@@ -211,6 +224,21 @@ public:
         Box dbox;
         int srcIndex;
         int dstIndex;
+	FPBComTag () {}
+	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
+	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
+	// FPBComTag needs to be sortable if it is used in remote communication.
+	// Unlike CopyComTag, we have to compare the destination box too, because
+	// the source fab could have several periodically shifted partners.  
+	// So the destination fab essentially intersects with several source fabs,
+	// and we need to compare the small end of the intersection box too.
+	// Note that no two different objects could possibly have the same srcIndex,
+	// dstIndex and dbox.smallEnd(). 
+	bool operator< (const FPBComTag& rhs) const {
+	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+		   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
+                   (IntVect::Compare()(dbox.smallEnd(),rhs.dbox.smallEnd()))))));
+	}
     };
     //
     // Used in caching FillPeriodicBoundary().
@@ -230,7 +258,7 @@ public:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 
-        int bytes () const;
+        long bytes () const;
 
         BoxArray            m_ba;
         DistributionMapping m_dm;
@@ -254,6 +282,9 @@ public:
         MapOfFPBComTagContainers* m_RcvTags;
         std::map<int,int>*        m_SndVols;
         std::map<int,int>*        m_RcvVols;
+
+    private:
+	static long bytesOfMapOfComTagContainers (const MapOfFPBComTagContainers&);
     };
     //
     // Some useful typedefs for the FPB cache.
@@ -263,8 +294,12 @@ public:
     typedef FPBMMap::iterator FPBMMapIter;
 
     static FPBMMap m_FPBCache;
-
     static int fpb_cache_max_size;
+    static long bytesOfFPBCache ();
+#ifdef BL_MEM_PROFILING
+    static long fpb_cache_total_bytes;
+    static long fpb_cache_total_bytes_hwm;
+#endif
     //
     // See if we've got an approprite FPB cached.
     //
@@ -318,10 +353,6 @@ namespace BoxLib
     {
         if (!geom.isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
 
-        Box TheDomain = geom.Domain();
-        for (int n = 0; n < BL_SPACEDIM; n++)
-            if (mf.boxArray()[0].ixType()[n] == IndexType::NODE)
-                TheDomain.surroundingNodes(n);
 #ifndef NDEBUG
         //
         // Don't let folks ask for more grow cells than they have valid region.
@@ -380,7 +411,7 @@ namespace BoxLib
         //
         value_type* the_recv_data = 0;
 
-        FabArrayBase::PostRcvs(*TheFPB.m_RcvTags,*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+        FabArrayBase::PostRcvs(*TheFPB.m_RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
         //
         // Post send's
@@ -519,6 +550,78 @@ namespace BoxLib
             FabArrayBase::GrokAsyncSends(TheFPB.m_SndTags->size(),send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
+    }
+
+    template <class FAB>
+    void
+    PeriodicCopy (const Geometry&      geom,
+		  FabArray<FAB>&       dstmf,
+		  const FabArray<FAB>& srcmf,
+		  int                  dcomp,
+		  int                  scomp,
+		  int                  ncomp)
+    {
+	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
+
+	const Box&                 domain = geom.Domain();
+	const BoxArray&            srcba  = srcmf.boxArray();
+	const DistributionMapping& srcdm  = srcmf.DistributionMap();
+	const IndexType&           srctyp = srcba.ixType();
+
+	BL_ASSERT(srctyp == dstmf.boxArray().ixType());
+
+	const Box& nd_domain = BoxLib::convert(domain, srctyp);
+
+	BoxList bl(srctyp);
+	Array<int> iproc;
+	Array<int> boxid;
+	Array<IntVect> boxshft;
+	Array<IntVect> pshifts(26);
+
+	for (int i = 0; i < srcba.size(); ++i) 
+	{
+	    const Box& bx0 = srcba[i];
+
+	    if (!nd_domain.contains(BoxLib::grow(bx0,1))) // not strictly contained
+	    {
+		geom.periodicShift(nd_domain,bx0,pshifts);
+
+		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		     it != End; ++it)
+		{
+		    const IntVect& iv   = *it;
+		    const Box&     shft = bx0 + iv;
+		    const Box&     bx   = shft & nd_domain;
+		    bl.push_back(bx);
+		    iproc.push_back(srcdm[i]);
+		    boxid.push_back(i);
+		    boxshft.push_back(iv);
+		}
+	    }
+	}
+	
+	if (bl.size() > 0)
+	{
+	    BoxArray shftba(bl);
+
+	    iproc.push_back(ParallelDescriptor::MyProc());
+	    DistributionMapping shftdm(iproc);
+
+	    FabArray<FAB> shftmf(shftba, ncomp, 0, shftdm);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter mfi(shftmf); mfi.isValid(); ++mfi)
+	    {
+		const Box& bx = mfi.validbox();
+		int i = mfi.index();
+		Box sbx = bx - boxshft[i];
+		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
+	    }
+
+	    dstmf.copy(shftmf, 0, dcomp, ncomp);
+	}
     }
 }
 

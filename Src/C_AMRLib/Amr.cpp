@@ -33,8 +33,20 @@
 #include <DistributionMapping.H>
 #include <FabSet.H>
 
+#ifdef MG_USE_FBOXLIB
+#include <mg_cpp_f.h>
+#endif
+
+#ifdef USE_PARTICLES
+#include <AmrParGDB.H>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
+#endif
+
+#ifdef BL_MEM_PROFILING
+#include <MemProfiler.H>
 #endif
 
 #ifdef BL_USE_ARRAYVIEW
@@ -50,8 +62,10 @@
 // Static class members.  Set defaults in Initialize()!!!
 //
 std::list<std::string> Amr::state_plot_vars;
+std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
 bool                   Amr::first_plotfile;
+bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
 Array<BoxArray>        Amr::regrid_ba;
 bool                   Amr::useFixedCoarseGrids;
@@ -92,6 +106,7 @@ Amr::Initialize ()
     // Set all defaults here!!!
     //
     Amr::first_plotfile      = true;
+    Amr::first_smallplotfile = true;
     plot_nfiles              = 64;
     mffile_nstreams          = 1;
     probinit_natonce         = 32;
@@ -242,9 +257,11 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
     //
     grid_eff               = 0.7;
     plot_int               = -1;
+    small_plot_int         = -1;
     n_proper               = 1;
     max_level              = -1;
     last_plotfile          = 0;
+    last_smallplotfile     = 0;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
@@ -419,7 +436,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         }
         else
         {
-            BoxLib::Warning("Using default ref_ratio = 2 at all levels");
+            if (ParallelDescriptor::IOProcessor())
+                BoxLib::Warning("Using default ref_ratio = 2 at all levels");
         }
     }
 
@@ -510,7 +528,8 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
        }
        else if (numvals == 0)
        {
-           BoxLib::Warning("Using default regrid_int = 1 at all levels");
+           if (ParallelDescriptor::IOProcessor())
+               BoxLib::Warning("Using default regrid_int = 1 at all levels");
        }
        else if (numvals < max_level)
        {
@@ -636,6 +655,10 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
 
     rebalance_grids = 0;
     pp.query("rebalance_grids", rebalance_grids);
+
+#ifdef USE_PARTICLES
+    m_gdb = new AmrParGDB(this);
+#endif
 }
 
 bool
@@ -648,6 +671,19 @@ Amr::isStatePlotVar (const std::string& name)
         if (*li == name) {
             return true;
 	}
+    }
+    return false;
+}
+
+bool
+Amr::isStateSmallPlotVar (const std::string& name)
+{
+    for (std::list<std::string>::const_iterator li = state_small_plot_vars.begin(), End = state_small_plot_vars.end();
+         li != End;
+         ++li)
+    {
+        if (*li == name)
+            return true;
     }
     return false;
 }
@@ -673,11 +709,24 @@ Amr::clearStatePlotVarList ()
 }
 
 void
+Amr::clearStateSmallPlotVarList ()
+{
+    state_small_plot_vars.clear();
+}
+
+void
 Amr::addStatePlotVar (const std::string& name)
 {
     if ( ! isStatePlotVar(name)) {
         state_plot_vars.push_back(name);
     }
+}
+
+void
+Amr::addStateSmallPlotVar (const std::string& name)
+{
+    if (!isStateSmallPlotVar(name))
+        state_small_plot_vars.push_back(name);
 }
 
 void
@@ -743,6 +792,10 @@ Amr::deleteDerivePlotVar (const std::string& name)
 Amr::~Amr ()
 {
     levelbld->variableCleanUp();
+
+#ifdef USE_PARTICLES
+    delete m_gdb;
+#endif
 
     Amr::Finalize();
 }
@@ -950,6 +1003,110 @@ Amr::writePlotFile ()
 }
 
 void
+Amr::writeSmallPlotFile ()
+{
+    if ( ! Plot_Files_Output()) return;
+
+    BL_PROFILE_REGION_START("Amr::writeSmallPlotFile()");
+    BL_PROFILE("Amr::writeSmallPlotFile()");
+
+    VisMF::SetNOutFiles(plot_nfiles);
+
+    if (first_smallplotfile) 
+    {
+        first_smallplotfile = false;
+        amr_level[0].setSmallPlotVariables();
+    }
+
+    // Don't continue if we have no variables to plot.
+    
+    if (stateSmallPlotVars().size() == 0) return;
+
+    Real dPlotFileTime0 = ParallelDescriptor::second();
+
+    const std::string& pltfile = BoxLib::Concatenate(small_plot_file_root,level_steps[0],file_name_digits);
+
+    if (verbose > 0 && ParallelDescriptor::IOProcessor())
+        std::cout << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+    if (record_run_info && ParallelDescriptor::IOProcessor())
+        runlog << "SMALL PLOTFILE: file = " << pltfile << '\n';
+
+  BoxLib::StreamRetry sretry(pltfile, abort_on_stream_retry_failure,
+                             stream_max_tries);
+
+  const std::string pltfileTemp(pltfile + ".temp");
+
+  while(sretry.TryFileOutput()) {
+    //
+    //  if either the pltfile or pltfileTemp exists, rename them
+    //  to move them out of the way.  then create pltfile
+    //  with the temporary name, then rename it back when
+    //  it is finished writing.  then stream retry can rename
+    //  it to a bad suffix if there were stream errors.
+    //
+    BoxLib::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
+    BoxLib::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
+
+    std::string HeaderFileName(pltfileTemp + "/Header");
+
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    std::ofstream HeaderFile;
+
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+    int old_prec(0);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out | std::ios::trunc |
+	                                        std::ios::binary);
+        if ( ! HeaderFile.good())
+            BoxLib::FileOpenFailed(HeaderFileName);
+        old_prec = HeaderFile.precision(15);
+    }
+
+    for (int k(0); k <= finest_level; ++k)
+        amr_level[k].writeSmallPlotFile(pltfileTemp, HeaderFile);
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        HeaderFile.precision(old_prec);
+        if ( ! HeaderFile.good())
+            BoxLib::Error("Amr::writePlotFile() failed");
+    }
+
+    last_smallplotfile = level_steps[0];
+
+    if (verbose > 0)
+    {
+        const int IOProc        = ParallelDescriptor::IOProcessorNumber();
+        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+
+        ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "Write small plotfile time = " << dPlotFileTime << "  seconds" << "\n\n";
+    }
+    ParallelDescriptor::Barrier("Amr::writeSmallPlotFile::end");
+
+    if(ParallelDescriptor::IOProcessor()) {
+      std::rename(pltfileTemp.c_str(), pltfile.c_str());
+    }
+    ParallelDescriptor::Barrier("Renaming temporary plotfile.");
+    //
+    // the plotfile file now has the regular name
+    //
+
+  }  // end while
+  BL_PROFILE_REGION_STOP("Amr::writeSmallPlotFile()");
+}
+
+void
 Amr::checkInput ()
 {
     if (max_level < 0)
@@ -1030,6 +1187,8 @@ Amr::init (Real strt_time,
         if(plot_int > 0 || plot_per > 0) {
             writePlotFile();
 	}
+	if (small_plot_int > 0 || small_plot_per > 0)
+	    writeSmallPlotFile();
     }
 #ifdef HAS_XGRAPH
     if (first_plotfile)
@@ -1793,10 +1952,9 @@ Amr::timeStep (int  level,
     //
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level]+1 << "] ";
-        std::cout << "ADVANCE grids at level "
-                  << level
-                  << " with dt = "
+	std::cout << "[Level " << level 
+		  << " step " << level_steps[level]+1 << "] ";
+        std::cout << "ADVANCE with dt = "
                   << dt_level[level]
                   << std::endl;
     }
@@ -1811,11 +1969,11 @@ Amr::timeStep (int  level,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-	std::cout << "[level step " << level_steps[level] << "] ";
+	std::cout << "[Level " << level
+		  << " step " << level_steps[level] << "] ";
         std::cout << "Advanced "
                   << amr_level[level].countCells()
-                  << " cells at level "
-                  << level
+                  << " cells"
                   << std::endl;
     }
 
@@ -1930,6 +2088,7 @@ Amr::coarseTimeStep (Real stop_time)
 	});
 #endif
 
+#ifndef BL_MEM_PROFILING
         long min_fab_kilobytes  = BoxLib::TotalBytesAllocatedInFabsHWM()/1024;
         long max_fab_kilobytes  = min_fab_kilobytes;
 
@@ -1941,7 +2100,7 @@ Amr::coarseTimeStep (Real stop_time)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes for timestep: ["
+            std::cout << "[STEP " << istep << "] FAB kilobyte spread across MPI nodes: ["
                       << min_fab_kilobytes
                       << " ... "
                       << max_fab_kilobytes
@@ -1951,12 +2110,16 @@ Amr::coarseTimeStep (Real stop_time)
 	if (ParallelDescriptor::IOProcessor()) std::cout << "\n";
 	});
 #endif
-
-        //
-        // Reset to zero to calculate high-water-mark for next timestep.
-        //
-        BoxLib::ResetTotalBytesAllocatedInFabsHWM();
+#endif
     }
+
+#ifdef BL_MEM_PROFILING
+    {
+	std::ostringstream ss;
+	ss << "[STEP " << level_steps[0] << "]";
+	MemProfiler::report(ss.str());
+    }
+#endif
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
@@ -1989,15 +2152,16 @@ Amr::coarseTimeStep (Real stop_time)
         runlog_terse << level_steps[0] << " " << cumtime << " " << dt_level[0] << '\n';
 
     int check_test = 0;
+
     if (check_per > 0.0)
     {
-      const int num_per_old = cumtime / check_per;
-      const int num_per_new = (cumtime+dt_level[0]) / check_per;
+      const int num_per_old = (cumtime-dt_level[0]) / check_per;
+      const int num_per_new = (cumtime            ) / check_per;
 
       if (num_per_old != num_per_new)
-	{
-	 check_test = 1;
-	}
+      {
+	check_test = 1;
+      }
     }
 
     int to_stop       = 0;    
@@ -2050,6 +2214,11 @@ Amr::coarseTimeStep (Real stop_time)
         writePlotFile();
     }
 
+    if (writeSmallPlotNow())
+    {
+        writeSmallPlotFile();
+    }
+
     bUserStopRequest = to_stop;
     if (to_stop)
     {
@@ -2091,6 +2260,32 @@ Amr::writePlotNow()
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
               plot_test == 1 ||
               amr_level[0].writePlotNow());
+} 
+
+bool
+Amr::writeSmallPlotNow()
+{
+    int plot_test = 0;
+    if (small_plot_per > 0.0)
+    {
+#ifdef BL_USE_NEWPLOTPER
+      Real rN(0.0);
+      Real rR = modf(cumtime/small_plot_per, &rN);
+      if (rR < (dt_level[0]*0.001))
+#else
+      const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
+      const int num_per_new = (cumtime            ) / small_plot_per;
+
+      if (num_per_old != num_per_new)
+#endif
+	{
+	  plot_test = 1;
+	}
+    }
+
+    return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 
+              plot_test == 1 ||
+              amr_level[0].writeSmallPlotNow());
 } 
 
 void
@@ -2164,7 +2359,6 @@ Amr::defBaseLevel (Real              strt_time,
     //
     amr_level.set(0,(*levelbld)(*this,0,geom[0],lev0,strt_time));
 
-    lev0.clear();
     //
     // Now init level 0 grids with data.
     //
@@ -2238,6 +2432,9 @@ Amr::regrid (int  lbase,
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
+#ifdef MG_USE_FBOXLIB
+    mgt_flush_copyassoc_cache();
+#endif
 
     //
     // Define the new grids from level start up to new_finest.
@@ -3235,7 +3432,8 @@ Amr::initPltAndChk ()
 
     if (check_int > 0 && check_per > 0)
     {
-        BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
+        if (ParallelDescriptor::IOProcessor())
+	    BoxLib::Warning("Warning: both amr.check_int and amr.check_per are > 0.");
     }
 
     plot_file_root = "plt";
@@ -3249,7 +3447,23 @@ Amr::initPltAndChk ()
 
     if (plot_int > 0 && plot_per > 0)
     {
-        BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.plot_int and amr.plot_per are > 0.");
+    }
+
+    small_plot_file_root = "smallplt";
+    pp.query("small_plot_file",small_plot_file_root);
+
+    small_plot_int = -1;
+    pp.query("small_plot_int",small_plot_int);
+
+    small_plot_per = -1.0;
+    pp.query("small_plot_per",small_plot_per);
+
+    if (small_plot_int > 0 && small_plot_per > 0)
+    {
+        if (ParallelDescriptor::IOProcessor())
+            BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
 
     stream_max_tries = 4;
@@ -3419,7 +3633,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     DistributionMapping::InitProximityMap();
     DistributionMapping::Initialize();
 
-    Array<BoxArray> allBoxes(max_level);
+    Array<BoxArray> allBoxes(finest_level + 1);
 
     for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
       allBoxes[ilev] = boxArray(ilev);
@@ -3435,7 +3649,13 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
 
     for(int iMap(0); iMap < mLDM.size(); ++iMap) {
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:" << std::endl;
+      }
       MultiFab::MoveAllFabs(mLDM[iMap]);
+      if(ParallelDescriptor::IOProcessor()) {
+        std::cout << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:" << std::endl;
+      }
     }
     Geometry::FlushPIRMCache();
     VisMF::SetNOutFiles(checkpoint_nfiles);
@@ -3443,6 +3663,10 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 #ifdef USE_PARTICLES
     RedistributeParticles();
 #endif
+
+    for(int lev(0); lev < amr_level.size(); ++lev) {
+      amr_level[lev].Check();
+    }
 }
 
 
@@ -3452,6 +3676,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     MultiFab::FlushSICache();
     Geometry::FlushPIRMCache();
     FabArrayBase::CPC::FlushCache();
+    //FabArrayBase::flushTileArrayCache();
     DistributionMapping::FlushCache();
 
     MPI_Group scsGroup, allGroup;
@@ -3870,6 +4095,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #ifdef USE_PARTICLES
     RedistributeParticles();
 #endif
+
+    //for(int lev(0); lev < amr_level.size(); ++lev) {
+      //amr_level[lev].Check();
+    //}
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;

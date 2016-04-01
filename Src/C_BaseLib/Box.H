@@ -14,6 +14,7 @@
 // Forward declaration.
 //
 class Box;
+class BoxCommHelper;
 
 namespace BoxLib
 {
@@ -73,6 +74,11 @@ namespace BoxLib
     // directions that encloses Box b.
     //
     Box surroundingNodes (const Box& b);
+    //
+    // Return a Box with different type
+    //
+    Box convert (const Box& b, const IntVect& typ);
+    Box convert (const Box& b, const IndexType& typ);
     //
     // Return a Box with CELL based coordinates in 
     // direction dir that is enclosed by b.
@@ -157,6 +163,7 @@ std::istream& operator>> (std::istream& os, Box& bx);
 class Box
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
+    friend class BoxCommHelper;
 
 public:
     //
@@ -210,7 +217,7 @@ public:
     //
     // Return the indexing type.
     //
-    const IntVect type () const { return btype.ixType(); }
+    IntVect type () const { return btype.ixType(); }
     //
     // Return the indexing type in the specified direction.
     //
@@ -582,5 +589,24 @@ Box::index (const IntVect& v) const
 #endif
     return result;
 }
+
+class BoxCommHelper
+{
+public:
+
+    explicit BoxCommHelper (const Box& bx, int* p_ = 0);
+
+    int* get () const { return p; }
+
+    Box make_box () const {
+	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));
+    }
+
+    static int size () { return 3*BL_SPACEDIM; }
+
+private:
+    int* p;
+    std::vector<int> v;
+};
 
 #endif /*BL_BOX_H*/

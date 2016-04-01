@@ -51,7 +51,7 @@ writePlotFile (const std::string&        dir,
     const Real curTime = cumTime;
     const int finestLevel = 1;
     Array< Box > domain(finestLevel+1);
-    const IndexType& ixType = mf.boxArray()[0].ixType();
+    const IndexType& ixType = mf.boxArray().ixType();
     if (ixType != IndexType::TheCellType())
 	BoxLib::Error("writePlotfile unable to handle non cell-centered data for now");
     Box tmpb = Box(geom.Domain()).convert(ixType);

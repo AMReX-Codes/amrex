@@ -128,7 +128,7 @@ contains
                    call bc_tower_level_build(the_bc_tower,n,la_array(n))
 
                    ! Rebuild the lower level data again if it changed.
-                   call multifab_build(phi(n),la_array(n),1,2)
+                   call multifab_build(phi(n),la_array(n),nc,ng)
 
                    if (mla%nlevel .ge. n) then
                       same_boxarray = boxarray_same_q(get_boxarray(phi     (n)), &

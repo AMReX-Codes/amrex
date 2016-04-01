@@ -9,7 +9,6 @@
 #include <BoxArray.H>
 #include <MultiFab.H>
 #include <BndryData.H>
-#include <BLMap.H>
 
 /*
         A LinOp is a virtual base class for general linear operators capable
@@ -138,15 +137,15 @@ public:
     //
     // Smooth the level system L(solnL)=rhsL.
     //
-    void smooth (MultiFab&       solnL,
-                 const MultiFab& rhsL,
-                 int             level   = 0,
-                 LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    virtual void smooth (MultiFab&       solnL,
+                         const MultiFab& rhsL,
+                         int             level   = 0,
+                         LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
 
-    void jacobi_smooth (MultiFab&       solnL,
-                        const MultiFab& rhsL,
-                        int             level   = 0,
-                        LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    virtual void jacobi_smooth (MultiFab&       solnL,
+                                const MultiFab& rhsL,
+                                int             level   = 0,
+                                LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     // Estimate the norm of the operator.
     //
@@ -168,7 +167,7 @@ public:
     //
     // Return the box array.
     //
-    const BoxArray& boxArray (int level = 0) const
+    virtual const BoxArray& boxArray (int level = 0) const
     {
         BL_ASSERT(level < numLevels()); return gbox[level];
     }
@@ -179,15 +178,19 @@ public:
     //
     // Return the number of levels.
     //
-    int numLevels () const { return h.size(); }
+    virtual int numLevels () const { return h.size(); }
     //
     // Return the order of the boundary condition interpolant.
     //
-    int maxOrder () const { return maxorder; }
+    virtual int maxOrder () const { return maxorder; }
     //
     // Set the order of the boundary condition interpolant.
     //
-    int maxOrder (int maxorder_);
+    virtual int maxOrder (int maxorder_);
+    //
+    // Return the number of grow cells this operator expects in the input state to compute "apply"
+    //
+    virtual int NumGrow (int level = 0) const {return LinOp_grow;}
     //
     // Construct/allocate internal data necessary for adding a new level.
     //
@@ -285,13 +288,13 @@ protected:
     // of pointers to Masks for whether boundary Fabs are covered,
     // not_covered, outside_domain
     //
-    Array< BLMap<MaskTuple> > maskvals;
+    Array< std::map<int,MaskTuple> > maskvals;
     //
     // Similar to maskvals, but only for "local" grids at level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array< BLMap<MaskTuple> > lmaskvals;
-   //
+    Array< std::map<int,MaskTuple> > lmaskvals;
+    //
     // boundary data class
     //
     BndryData* bgb;
@@ -326,7 +329,11 @@ protected:
     // default maximum BC interpolant order
     //
     static int def_maxorder;
-    
+    //
+    // Number of grow cells required for this operator
+    //
+   static int LinOp_grow;
+
 private:
     //
     // Not implemented.

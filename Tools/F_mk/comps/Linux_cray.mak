@@ -5,14 +5,14 @@
 
     FCOMP_VERSION := $(shell ftn -V 2>&1 | grep 'Version')
 
-    FFLAGS   += -J $(mdir) -I $(mdir) -em
-    F90FLAGS += -J $(mdir) -I $(mdir) -em
+    FFLAGS   += -J $(mdir) -I $(mdir) -em -hlist=a
+    F90FLAGS += -J $(mdir) -I $(mdir) -em -hlist=a
 
     ifdef NDEBUG
-      FFLAGS   += -O 1
-      F90FLAGS += -O 1
-      CFLAGS   += -O 1
-      CXXFLAGS += -O 1
+      FFLAGS   += -G2 -O 1
+      F90FLAGS += -G2 -O 1
+      CFLAGS   += -G2 -O 1
+      CXXFLAGS += -G2 -O 1
     else
       FFLAGS   += -g -O0
       F90FLAGS += -g -O0

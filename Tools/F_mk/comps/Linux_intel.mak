@@ -94,10 +94,10 @@
         CFLAGS   += -g #-Wcheck
         CXXFLAGS += -g #-Wcheck
       else
-        F90FLAGS += -O2 -ip # -xHost # -fp-model source -vec-report6
-        FFLAGS   += -O2 -ip # -xHost # -fp-model source 
-        CFLAGS   += -O2 -ip # -xHost # -fp-model source 
-        CXXFLAGS += -O2 -ip # -xHost # -fp-model source 
+        F90FLAGS += -g -O2 -ip # -xHost # -fp-model source -vec-report6
+        FFLAGS   += -g -O2 -ip # -xHost # -fp-model source 
+        CFLAGS   += -g -O2 -ip # -xHost # -fp-model source 
+        CXXFLAGS += -g -O2 -ip # -xHost # -fp-model source 
       endif
       ifdef GPROF
         F90FLAGS += -pg
@@ -114,15 +114,15 @@
         #CFLAGS   += -g #-Wcheck
       else
         ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	  CXXFLAGS += -fast
+	  F90FLAGS += -g -fast
+	  FFLAGS   += -g -fast
+	  CFLAGS   += -g -fast
+	  CXXFLAGS += -g -fast
 	else
-          F90FLAGS += -O2 -ip -fp-model source #-xHost
-          FFLAGS   += -O2 -ip -fp-model source #-xHost
-          CFLAGS   += -O2 -ip -fp-model source #-xHost
-          CXXFLAGS += -O2 -ip -fp-model source #-xHost
+          F90FLAGS += -g -O2 -ip -fp-model source #-xHost
+          FFLAGS   += -g -O2 -ip -fp-model source #-xHost
+          CFLAGS   += -g -O2 -ip -fp-model source #-xHost
+          CXXFLAGS += -g -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF
@@ -139,15 +139,15 @@
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
-	  F90FLAGS += -fast
-	  FFLAGS += -fast
-	  CFLAGS += -fast
-	  CXXFLAGS += -fast
+	  F90FLAGS += -g -fast
+	  FFLAGS   += -g -fast
+	  CFLAGS   += -g -fast
+	  CXXFLAGS += -g -fast
 	else
-          F90FLAGS += -O2 -ip -fp-model source #-xHost
-          FFLAGS   += -O2 -ip -fp-model source #-xHost
-          CFLAGS   += -O2 -ip -fp-model source #-xHost
-          CXXFLAGS += -O2 -ip -fp-model source #-xHost
+          F90FLAGS += -g -O2 -ip -fp-model source #-xHost
+          FFLAGS   += -g -O2 -ip -fp-model source #-xHost
+          CFLAGS   += -g -O2 -ip -fp-model source #-xHost
+          CXXFLAGS += -g -O2 -ip -fp-model source #-xHost
 	endif
       endif
       ifdef GPROF
@@ -164,15 +164,15 @@
         #CFLAGS   += -g -Wcheck
       else
         ifdef INTEL_X86
-          F90FLAGS += -fast
-          FFLAGS += -fast
-          CFLAGS += -fast
-          CXXFLAGS += -fast
+          F90FLAGS += -g -fast
+          FFLAGS   += -g -fast
+          CFLAGS   += -g -fast
+          CXXFLAGS += -g -fast
         else
-          F90FLAGS += -O3 -ip -mp1# -fltconsistency
-          FFLAGS += -O3 -ip -mp1# -fltconsistency
-          CFLAGS += -O3 -ip -mp1
-          CXXFLAGS += -O3 -ip -mp1
+          F90FLAGS += -g -O3 -ip -mp1# -fltconsistency
+          FFLAGS   += -g -O3 -ip -mp1# -fltconsistency
+          CFLAGS   += -g -O3 -ip -mp1
+          CXXFLAGS += -g -O3 -ip -mp1
         endif
       endif
       ifdef GPROF

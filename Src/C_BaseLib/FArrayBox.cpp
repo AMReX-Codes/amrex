@@ -18,11 +18,22 @@
 #include <BoxLib.H>
 #include <Looping.H>
 #include <Utility.H>
+#include <BL_CXX11.H>
+#include <MemPool.H>
 
 #ifdef BL_Darwin
 using std::isinf;
 using std::isnan;
 #endif
+
+#if defined(DEBUG) || defined(BL_TESTING)
+bool FArrayBox::do_initval = true;
+bool FArrayBox::init_snan  = true;
+#else
+bool FArrayBox::do_initval = false;
+bool FArrayBox::init_snan  = false;
+#endif
+Real FArrayBox::initval;
 
 static const char sys_name[] = "IEEE";
 //
@@ -39,23 +50,23 @@ class FABio_8bit
 {
 public:
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const;
+                       FArrayBox&    fb) const BL_OVERRIDE;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const;
+                        int              num_comp) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const;
+                       FArrayBox&    f) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const;
+		       int           nCompToSkip) const BL_OVERRIDE;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const;
+                               int              nvar) const BL_OVERRIDE;
 };
 
 //
@@ -67,23 +78,23 @@ class FABio_ascii
 {
 public:
     virtual void read (std::istream&   is,
-                       FArrayBox&      fb) const;
+                       FArrayBox&      fb) const BL_OVERRIDE;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const;
+                        int              num_comp) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const;
+                       FArrayBox&    f) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const;
+		       int           nCompToSkip) const BL_OVERRIDE;
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const;
+                               int              nvar) const BL_OVERRIDE;
 };
 
 //
@@ -97,24 +108,24 @@ public:
     FABio_binary (RealDescriptor* rd_);
 
     virtual void read (std::istream& is,
-                       FArrayBox&    fb) const;
+                       FArrayBox&    fb) const BL_OVERRIDE;
 
     virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
-                        int              num_comp) const;
+                        int              num_comp) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
-                       FArrayBox&    f) const;
+                       FArrayBox&    f) const BL_OVERRIDE;
 
     virtual void skip (std::istream& is,
                        FArrayBox&    f,
-		       int           nCompToSkip) const;
+		       int           nCompToSkip) const BL_OVERRIDE;
 
 private:
     virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
-                               int              nvar) const;
+                               int              nvar) const BL_OVERRIDE;
 
     CpClassPtr<RealDescriptor> rd;
 };
@@ -156,8 +167,13 @@ FArrayBox::FArrayBox (const Box& b,
     //
     if (fabio == 0) FArrayBox::Initialize();
 
-    if ( do_initval )
+    if (init_snan) {
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
+    } else if (do_initval) {
 	setVal(initval);
+    }
 }
 
 FArrayBox&
@@ -298,11 +314,14 @@ FArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<Real>::resize(b,N);
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( do_initval )
+
+    if (init_snan) {
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
+    } else if (do_initval) {
         setVal(initval);
+    }
 }
 
 FABio::Format
@@ -411,16 +430,6 @@ FArrayBox::getPrecision ()
     BoxLib::Warning("FArrayBox::getPrecision() has been deprecated");
     return FABio::FAB_FLOAT;
 }
-
-#if !defined(NDEBUG)
-bool FArrayBox::do_initval = true;
-#else
-bool FArrayBox::do_initval = false;
-#endif
-Real FArrayBox::initval =
-    std::numeric_limits<Real>::has_quiet_NaN
-  ? std::numeric_limits<Real>::quiet_NaN()
-  : std::numeric_limits<Real>::max();
 
 bool
 FArrayBox::set_do_initval (bool tf)
@@ -536,8 +545,13 @@ FArrayBox::Initialize ()
         }
     }
 
+    initval = std::numeric_limits<Real>::has_quiet_NaN
+	    ? std::numeric_limits<Real>::quiet_NaN()
+	    : std::numeric_limits<Real>::max();
+
     pp.query("initval",    initval);
     pp.query("do_initval", do_initval);
+    pp.query("init_snan", init_snan);
 
     BoxLib::ExecOnFinalize(FArrayBox::Finalize);
 }

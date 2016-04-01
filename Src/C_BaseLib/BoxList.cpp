@@ -134,7 +134,7 @@ BoxList::BoxList (const BoxArray &ba)
     btype()
 {
     if (ba.size() > 0)
-        btype = ba[0].ixType();
+        btype = ba.ixType();
     for (int i = 0, N = ba.size(); i < N; ++i)
         push_back(ba[i]);
 }

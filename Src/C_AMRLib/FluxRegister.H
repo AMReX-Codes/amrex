@@ -85,32 +85,6 @@ public:
     //
     Real SumReg (int comp) const;
     //
-    // Copy from flux register to FAB flx.
-    //
-    void copyTo (FArrayBox& flx,
-                 int        dir,
-                 int        src_comp,
-                 int        dest_comp,
-                 int        num_comp);
-    //
-    // flx = flx + mult*register.
-    //
-    void addTo (FArrayBox& flx,
-                int        dir,
-                Real       mult,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp);
-    //
-    // mf = fm + mult*register.
-    //
-    void addTo (MultiFab& mf,
-                int       dir,
-                Real      mult,
-                int       src_comp,
-                int       dest_comp,
-                int       num_comp);
-    //
     // Initialize flux correction with coarse data.
     //
     void CrseInit (const MultiFab& mflx,
@@ -131,30 +105,6 @@ public:
                    int             numcomp,
                    Real            mult = -1.0,
                    FrOp            op = FluxRegister::COPY);
-    //
-    // Initialize flux correction with coarse data. 
-    //
-    // *** This function is deprecated -- do NOT use it!!!
-    // *** Use CrseInit(MultiFab&, ...) instead.
-    //
-    void CrseInit (const FArrayBox& flux,
-                   const Box&       subbox,
-                   int              dir,
-                   int              srccomp,
-                   int              destcomp,
-                   int              numcomp,
-                   Real             mult = -1.0,
-                   FrOp             op = FluxRegister::COPY);
-    //
-    // This isn't documented  --  it's a parallel feature :-(
-    //
-    // It MUST be called after all CrseInit(FArrayBox&,...)s outside of
-    // any implicit or explicit parallel loop.
-    //
-    // *** This function is deprecated -- do NOT use it!!!
-    // *** Use CrseInit(MultiFab&, ...) instead.
-    //
-    void CrseInitFinish (FrOp op = FluxRegister::COPY);
     //
     // Increment flux correction with fine data.
     //

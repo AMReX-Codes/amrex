@@ -36,6 +36,28 @@ StateData::StateData (const Box&             p_domain,
 }
 
 void
+StateData::Initialize (StateData& dest, const StateData& src)
+{
+
+    // Define the object with the same properties as src.
+
+    dest.define(src.getDomain(), src.boxArray(), *(src.descriptor()),
+                src.curTime(), src.curTime() - src.prevTime());
+
+    // Now, for both the new data and the old data if it's there,
+    // generate a new MultiFab for the dest and remove the previous data.
+
+    if (src.hasOldData()) {
+      dest.allocOldData();
+      dest.copyOld(src);
+    }
+
+    if (src.hasNewData())
+      dest.copyNew(src);
+
+}
+
+void
 StateData::define (const Box&             p_domain,
                    const BoxArray&        grds,
                    const StateDescriptor& d,
@@ -117,6 +139,72 @@ StateData::define (const Box&             p_domain,
 }
 
 void
+StateData::copyOld (const StateData& state)
+{
+
+  BL_ASSERT(state.hasOldData());
+  BL_ASSERT(old_data != 0);
+
+  const MultiFab& MF = state.oldData();
+
+  int nc = MF.nComp();
+  int ng = MF.nGrow();
+
+  BL_ASSERT(nc == (*old_data).nComp());
+  BL_ASSERT(ng == (*old_data).nGrow());
+
+  MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
+
+  StateDescriptor::TimeCenter t_typ(desc->timeType());
+
+  if (t_typ == StateDescriptor::Point)
+    {
+      old_time.start = old_time.stop = state.prevTime();
+    }
+  else
+    {
+      Real dt = state.curTime() - state.prevTime();
+
+      old_time.start = state.prevTime() - dt/2.0;
+      old_time.stop  = state.prevTime() + dt/2.0;
+    }
+
+}
+
+void
+StateData::copyNew (const StateData& state)
+{
+
+  BL_ASSERT(state.hasNewData());
+  BL_ASSERT(new_data != 0);
+
+  const MultiFab& MF = state.newData();
+
+  int nc = MF.nComp();
+  int ng = MF.nGrow();
+
+  BL_ASSERT(nc == (*new_data).nComp());
+  BL_ASSERT(ng == (*new_data).nGrow());
+
+  MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
+
+  StateDescriptor::TimeCenter t_typ(desc->timeType());
+
+  if (t_typ == StateDescriptor::Point)
+    {
+      new_time.start = new_time.stop = state.curTime();
+    }
+  else
+    {
+      Real dt = state.curTime() - state.prevTime();
+
+      new_time.start = state.curTime() - dt/2.0;
+      new_time.stop  = state.curTime() + dt/2.0;
+    }
+
+}
+
+void
 StateData::reset ()
 {
     new_time = old_time;
@@ -131,11 +219,9 @@ StateData::restart (std::istream&          is,
                     bool                   bReadSpecial)
 {
     BL_PROFILE("StateData::restart()");
+
     if (bReadSpecial)
-    {
-	std::cerr << "StateData:: restart:: w/bReadSpecial not implemented" << std::endl;
-        ParallelDescriptor::Abort();  // not implemented
-    }
+   	BoxLib::Abort("StateData:: restart:: w/bReadSpecial not implemented");
 
     desc = &d;
 
@@ -683,6 +769,18 @@ void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
       ParallelDescriptor::Barrier(scsComm);
 #endif
 }
+
+
+void StateData::Check() const
+{
+      if(new_data != 0) {
+        new_data->DistributionMap().Check();
+      }
+      if(old_data != 0) {
+        old_data->DistributionMap().Check();
+      }
+}
+
 
 
 
