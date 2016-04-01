@@ -35,6 +35,11 @@ endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
+ifdef TEST
+  ifdef NDEBUG
+    debug_suffix := .test
+  endif
+endif
 ifdef MIC
   mic_suffix    := .mic
 endif
@@ -80,6 +85,14 @@ else
 endif
 
 CPPFLAGS += -DFORTRAN_BOXLIB
+
+ifdef TEST
+  CPPFLAGS += -DBL_TESTING
+endif
+
+ifndef NDEBUG
+  CPPFLAGS += -DDEBUG
+endif
 
 F_C_LINK := UNDERSCORE
 
@@ -159,6 +172,10 @@ endif
 
 ifeq ($(ARCH),OSF1)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
+endif
+
+ifeq ($(findstring mira, $(HOSTNAMEF)), mira)
+  include $(BOXLIB_HOME)/Tools/F_mk/comps/bgq.mak
 endif
 
 ifeq ($(strip $(F90)),)

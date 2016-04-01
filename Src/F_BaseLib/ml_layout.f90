@@ -8,6 +8,7 @@ module ml_layout_module
   implicit none
 
   type ml_layout
+     logical                  :: owner  = .true.
      integer                  :: dim    = 0
      integer                  :: nlevel = 0
      type(ml_boxarray)        :: mba
@@ -38,6 +39,11 @@ module ml_layout_module
      module procedure ml_layout_build
      module procedure ml_layout_build_n
      module procedure ml_layout_build_mla
+  end interface
+
+  interface ml_layout_restricted_build
+     module procedure ml_layout_restricted_build_n
+     module procedure ml_layout_restricted_build_alias
   end interface
 
   interface destroy
@@ -228,10 +234,10 @@ contains
     type(ml_layout)  , intent(inout) :: mla
     type(ml_boxarray), intent(in   ) :: mba
     logical, optional                :: pmask(:)
-    call ml_layout_restricted_build(mla, mba, mba%nlevel, pmask)
+    call ml_layout_restricted_build_n(mla, mba, mba%nlevel, pmask)
   end subroutine ml_layout_build
 
-  subroutine ml_layout_restricted_build(mla, mba, nlevs, pmask)
+  subroutine ml_layout_restricted_build_n(mla, mba, nlevs, pmask)
 
     ! this subroutine is the same thing as ml_layout_build except that
     ! the mla will only have nlevs instead of mba%nlevel
@@ -247,6 +253,9 @@ contains
     logical :: lpmask(mba%dim)
 
     lpmask = .false.; if (present(pmask)) lpmask = pmask
+
+    mla%owner = .true.
+
     allocate(mla%pmask(mba%dim))
     mla%pmask  = lpmask
 
@@ -291,8 +300,8 @@ contains
        call boxarray_destroy(bac)
     end do
 
-  end subroutine ml_layout_restricted_build
-
+  end subroutine ml_layout_restricted_build_n
+  
   subroutine ml_layout_destroy(mla, keep_coarse_layout)
     type(ml_layout), intent(inout) :: mla
     logical, intent(in), optional :: keep_coarse_layout
@@ -301,9 +310,12 @@ contains
 
     lkeepcoarse = .false.;  if (present(keep_coarse_layout)) lkeepcoarse = keep_coarse_layout
 
-    do n = 1, mla%nlevel-1
-       if (built_q(mla%mask(n))) call lmultifab_destroy(mla%mask(n))
-    end do
+    if (mla%owner) then
+       do n = 1, mla%nlevel-1
+          if (built_q(mla%mask(n))) call lmultifab_destroy(mla%mask(n))
+       end do
+    end if
+
     call destroy(mla%mba)
 
     if (lkeepcoarse) then
@@ -311,15 +323,55 @@ contains
     else
        n0 = 1
     end if
-    do n = n0, mla%nlevel
-       call layout_destroy(mla%la(n))
-    end do
+
+    if (mla%owner) then
+       do n = n0, mla%nlevel
+          call layout_destroy(mla%la(n))
+       end do
+    end if
 
     deallocate(mla%la, mla%mask)
+    mla%owner = .true.
     mla%dim = 0
     mla%nlevel = 0
     deallocate(mla%pmask)
   end subroutine ml_layout_destroy
+
+  subroutine ml_layout_restricted_build_alias(mla, mla_orig, min_lev, max_lev)
+
+    ! This subroutine builds a shallow copy of the origianl mla with levels starting
+    ! at the original min_lev and ending at the original max_lev.  Note that the new mla
+    ! starts at level 1, which corresponds to level min_lev in the original mla
+
+    type(ml_layout), intent(inout) :: mla
+    type(ml_layout), intent(in   ) :: mla_orig
+    integer        , intent(in   ) :: min_lev, max_lev
+
+    integer :: i, nlevs
+
+    nlevs = max_lev - min_lev + 1
+
+    mla%owner = .false. !!!
+
+    mla%dim    = mla_orig%dim
+    mla%nlevel = nlevs
+
+    call ml_boxarray_build_alias(mla%mba, mla_orig%mba, min_lev, max_lev)
+
+    allocate(mla%la(nlevs))
+    do i = 1, nlevs
+       mla%la(i) = mla_orig%la(i-1+min_lev)
+    end do
+
+    allocate(mla%mask(nlevs-1))
+    do i = 1, nlevs-1
+       mla%mask(i) = mla_orig%mask(i-1+min_lev)
+    end do
+
+    allocate(mla%pmask(mla%dim))
+    mla%pmask = mla_orig%pmask
+
+  end subroutine ml_layout_restricted_build_alias
 
   subroutine ml_layout_print(mla, str, unit, skip)
     use bl_IO_module

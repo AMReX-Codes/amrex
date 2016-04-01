@@ -453,6 +453,7 @@ class BLProfiler
 #define BL_PROFILE_THIS_NAME()
 
 #define BL_PROFILE_VAR(fname, vname)
+#define BL_PROFILE_VAR_NS(fname, vname)
 #define BL_PROFILE_VAR_START(vname)
 #define BL_PROFILE_VAR_STOP(vname)
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)

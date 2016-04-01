@@ -4,6 +4,7 @@
 #include <Box.H>
 #include <BCRec.H>
 #include <REAL.H>
+#include <BL_CXX11.H>
 
 class Geometry;
 class FArrayBox;
@@ -83,17 +84,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~NodeBilinear ();
+    virtual ~NodeBilinear () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -108,7 +109,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 };
 
 //
@@ -125,17 +126,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~CellBilinear ();
+    virtual ~CellBilinear () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -150,7 +151,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 };
 
 //
@@ -182,17 +183,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~CellConservativeLinear ();
+    virtual ~CellConservativeLinear () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -207,7 +208,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 
 private:
 
@@ -233,17 +234,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~CellConservativeProtected ();
+    virtual ~CellConservativeProtected () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -258,7 +259,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 
     //
     // Re-visit the interpolation to protect against under- or overshoots.
@@ -274,7 +275,7 @@ public:
                           const IntVect&   ratio,
                           const Geometry&  crse_geom,
                           const Geometry&  fine_geom,
-                          Array<BCRec>&    bcr);
+                          Array<BCRec>&    bcr) BL_OVERRIDE;
 };
 
 //
@@ -295,17 +296,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~CellQuadratic ();
+    virtual ~CellQuadratic () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -320,7 +321,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 private:
 
     bool  do_limited_slope;
@@ -340,17 +341,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~PCInterp ();
+    virtual ~PCInterp () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -365,7 +366,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 };
 
 //
@@ -384,17 +385,17 @@ public:
     //
     // The destructor.
     //
-    virtual ~CellConservativeQuartic ();
+    virtual ~CellConservativeQuartic () BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
+                           int        ratio) BL_OVERRIDE;
     //
     // Returns coarsened box given fine box and refinement ratio.
     //
     virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
+                           const IntVect& ratio) BL_OVERRIDE;
     //
     // Coarse to fine interpolation in space.
     //
@@ -409,7 +410,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr,
                          int              actual_comp,
-                         int              actual_state);
+                         int              actual_state) BL_OVERRIDE;
 };
 
 

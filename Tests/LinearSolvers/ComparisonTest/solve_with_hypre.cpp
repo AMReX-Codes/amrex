@@ -8,9 +8,9 @@
 #include <Geometry.H>
 #include <BndryData.H>
 #include <MacBndry.H>
+#include <MultiFabUtil.H>
 
 #include <HypreABecLap.H>
-#include <COEF_F.H>
 
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio);
 
@@ -69,28 +69,19 @@ void solve_with_hypre(PArray<MultiFab>& soln, Real a, Real b,
 
       hypreSolver.setACoeffs(level, alph[level]);
 
-      for (int n = 0; n < BL_SPACEDIM ; n++) {
+      PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayManage);
+      for (int n = 0; n < BL_SPACEDIM ; n++) 
+      {
+	  BoxArray edge_boxes(grids[level]);
+	  edge_boxes.surroundingNodes(n);
+	  bcoeffs.set(n, new MultiFab(edge_boxes, 1, 0));
+      }
 
-	BoxArray edge_boxes(grids[level]);
-	edge_boxes.surroundingNodes(n);
+      BoxLib::average_cellcenter_to_face(bcoeffs, beta[level], geom[level]);
 	
-	MultiFab bcoeffs(edge_boxes, 1, 0);
-	for (MFIter mfi(bcoeffs); mfi.isValid(); ++mfi) {
-	  int i = mfi.index();
-	  const Box& bx = grids[level][i];
-	  const int* betalo = beta[level][mfi].loVect();
-	  const int* betahi = beta[level][mfi].hiVect();
-	  const int* edgelo = bcoeffs[mfi].loVect();
-	  const int* edgehi = bcoeffs[mfi].hiVect();
-	  
-	  FORT_COEF_TO_EDGES(&n, bcoeffs[mfi].dataPtr(),
-			     ARLIM(edgelo), ARLIM(edgehi),
-			     beta[level][mfi].dataPtr(),
-			     ARLIM(betalo), ARLIM(betahi),
-			     bx.loVect(),bx.hiVect());
-	}
-	
-	hypreSolver.setBCoeffs(level, bcoeffs, n);
+      for (int n = 0; n < BL_SPACEDIM ; n++) 
+      {
+	  hypreSolver.setBCoeffs(level, bcoeffs[n], n);
       }
 
       hypreSolver.setRhs(level, rhs[level]);

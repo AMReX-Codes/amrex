@@ -87,9 +87,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring davinci, $(UNAMEN)), davinci)
     WHICHLINUX := DAVINCI
   endif
-  ifeq ($(findstring homer, $(UNAMEN)), homer)
-    WHICHLINUX := HOMER
-  endif
   ifeq ($(findstring hyperion, $(UNAMEN)), hyperion)
     WHICHLINUX := HYPERION
   endif
@@ -126,14 +123,11 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cab, $(UNAMEN)), cab)
     WHICHLINUX := CAB
   endif
+  ifeq ($(findstring syrah, $(UNAMEN)), syrah)
+    WHICHLINUX := SYRAH
+  endif
   ifeq ($(findstring garnet, $(UNAMEN)), garnet)
     WHICHLINUX := GARNET
-  endif
-  ifeq ($(findstring hopper, $(UNAMEN)), hopper)
-    WHICHLINUX := HOPPER
-  endif
-  ifeq ($(findstring hopper, $(NERSC_HOST)), hopper)
-    WHICHLINUX := HOPPER
   endif
   ifeq ($(findstring edison, $(UNAMEN)), edison)
     WHICHLINUX := EDISON
@@ -152,6 +146,9 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
     WHICHLINUX := HEDORAH
+  endif
+  ifeq ($(findstring godzilla, $(UNAMEN)), godzilla)
+    WHICHLINUX := GODZILLA
   endif
   ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
     WHICHLINUX := KUMONGA
@@ -185,6 +182,9 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring bint, $(UNAMEN)), bint)
     WHICHLINUX := BABBAGE
   endif
+  ifeq ($(findstring mira, $(UNAMEN)), mira)
+    WHICHLINUX := MIRA
+  endif
 endif
 #
 # Some Lawrencium crap ...
@@ -199,6 +199,13 @@ ifeq ($(MACHINE), HP-UX)
     # That is to say, -DBL_HP-UX is not, strictly speaking, valid.
     #
     MACHINE := HPUX
+endif
+
+# Australian machines
+ifeq ($(findstring ad.unsw.edu.au, $(UNAMEN)), ad.unsw.edu.au)
+  ifeq ($(findstring Fyr, $(UNAMEN)), Fyr)
+    WHICHLINUX := FYR
+  endif
 endif
 
 ifndef PRECISION
@@ -219,6 +226,17 @@ endif
 
 ifndef COMM_PROFILE
   COMM_PROFILE = FALSE
+endif
+
+ifndef MEM_PROFILE
+  MEM_PROFILE = FALSE
+endif
+ifeq ($(MEM_PROFILE),TRUE)
+  USE_CXX11 = TRUE
+endif
+
+ifndef TEST
+  TEST = FALSE
 endif
 
 ifndef BACKTRACE
@@ -298,17 +316,22 @@ ifdef USE_GCC
     ifeq ($(THREAD_SANITIZER),TRUE)
         CXXOPTF += -fsanitize=thread
     endif
+    ifeq ($(FSANITIZER),TRUE)
+        CXXOPTF += -fsanitize=address -fsanitize=undefined
+    endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
-    ifeq ($(BACKTRACE),TRUE)
-        LDFLAGS += -rdynamic
-    endif
     FULLWARN   := -pedantic -Wall -Wno-sign-compare
-    CXX	       ?= g++
-    CC	       ?= gcc
+    CXX	       := g++
+    CC	       := gcc
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+
+    # ifeq ($(findstring 5, $(__gcc_major_version)), 5)
+    # 	 CXXOPTF += -fno-inline
+    # endif
+    
     CXXFLAGS = -Wno-deprecated
     ifeq ($(USE_IN_SITU), TRUE)
         # Necessary to compile in situ analysis
@@ -319,9 +342,6 @@ ifdef USE_GCC
     DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifeq ($(__gcc_major_version),2)
-       GNU_STD_INCL = $(BOXLIB_HOME)/BoxLib/std
-    endif
     ifeq ($(USE_OMP),TRUE)
       CXXOPTF += -fopenmp
       CXXDEBF += -fopenmp
@@ -445,10 +465,12 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
         FOPTF += -fsanitize=thread
         fOPTF += -fsanitize=thread
     endif
-    #FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    #fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    FDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    fDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    ifeq ($(FSANITIZER),TRUE)
+        FOPTF += -fsanitize=address -fsanitize=undefined
+        fOPTF += -fsanitize=address -fsanitize=undefined
+    endif
+    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -500,22 +522,21 @@ ifeq ($(COMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
    endif
 
    ifeq ($(WHICHLINUX), EDISON)
-     CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
-   else
-     ifeq ($(WHICHLINUX), BABBAGE)
-       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
-         CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec
-       else
-         CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec
-       endif
+     CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 -fp-model source
+   endif
+
+   ifeq ($(WHICHLINUX), BABBAGE)
+     ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+       CXXOPTF += -g -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec -fp-model source
      else
-       CXXOPTF += -g -O2 -ip -fp-model source
+       CXXOPTF += -g -O2 -ip -qopt-report=5 -qopt-report-phase=vec -fp-model source
      endif
    endif
+
    CXXDEBF += -g -O0 -Wcheck
 
    COPTF += $(CXXOPTF) -std=c99
@@ -527,54 +548,6 @@ ifeq ($(COMP),Intel)
    endif
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
-   ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
-       ICC_VERSION := 5.0.1
-       ICC_MAJOR_VERSION := 5
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 6.0, $(__icc_version)), Version 6.0)
-       ICC_VERSION := 6.0
-       ICC_MAJOR_VERSION := 6
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 7., $(__icc_version)), Version 7.)
-       ICC_MAJOR_VERSION := 7
-       ifeq ($(findstring 7.0, $(__icc_version)), 7.0)
-	   ICC_VERSION := 7.0
-	   ICC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstring 7.1, $(__icc_version)), 7.1)
-           ICC_VERSION := 7.1
-	   ICC_MINOR_VERSION := 1
-       endif
-       endif
-   else
-   ifeq ($(findstring Version 8.0, $(__icc_version)), Version 8.0)
-       ICC_VERSION := 8.0
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 8.1, $(__icc_version)), Version 8.1)
-       ICC_VERSION := 8.1
-       ICC_MAJOR_VERSION := 8
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-       CXXOPTF += -wd1572
-       CXXDEBF += -wd1572
-   else
-   ifeq ($(findstring Version 9.0, $(__icc_version)), Version 9.0)
-       ICC_VERSION := 9.0
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 9.1, $(__icc_version)), Version 9.1)
-       ICC_VERSION := 9.1
-       ICC_MAJOR_VERSION := 9
-       ICC_MINOR_VERSION := 1
-       CXXDEBF += -Wunused-variable
-       _icpc := icpc
-   else
    ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
        ICC_VERSION := 10.0
        ICC_MAJOR_VERSION := 10
@@ -605,13 +578,6 @@ ifeq ($(COMP),Intel)
        ICC_MAJOR_VERSION := 12
        ICC_MINOR_VERSION := 1
        _icpc := icpc
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
    endif
    endif
    endif
@@ -667,59 +633,6 @@ ifeq ($(FCOMP),Intel)
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    endif
 
-   ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
-       IFC_VERSION := 5.0.1
-       IFC_MAJOR_VERSION := 5
-       IFC_MINOR_VERSION := 0
-       LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
-       override XTRALIBS += $(IA32ROOT)/lib/icrt.link
-   else
-   ifeq ($(findstring Version 6.0, $(__ifc_version)), Version 6.0)
-       IFC_VERSION := 6.0
-       IFC_MAJOR_VERSION := 6
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
-   else
-   ifeq ($(findstring Version 7, $(__ifc_version)), Version 7)
-       IFC_MAJOR_VERSION := 7
-       ifeq ($(findstr Version 7.0, $(__ifc_version)), 7.0)
-         IFC_VERSION := 7.0
-         IFC_MINOR_VERSION := 0
-       else
-       ifeq ($(findstr Version 7.1, $(__ifc_version)), 7.1)
-         IFC_VERSION := 7.1
-         IFC_MINOR_VERSION := 1
-       endif
-       endif
-#      LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
-   else
-   ifeq ($(findstring Version 8.0, $(__ifc_version)), Version 8.0)
-       IFC_VERSION := 8.0
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 8.1, $(__ifc_version)), Version 8.1)
-       IFC_VERSION := 8.1
-       IFC_MAJOR_VERSION := 8
-       IFC_MINOR_VERSION := 1
-#      LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
-   else
-   ifeq ($(findstring Version 9.0, $(__ifc_version)), Version 9.0)
-       IFC_VERSION := 9.0
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 0
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.0/lib
-   else
-   ifeq ($(findstring Version 9.1, $(__ifc_version)), Version 9.1)
-       IFC_VERSION := 9.1
-       IFC_MAJOR_VERSION := 9
-       IFC_MINOR_VERSION := 1
-       FDEBF += -warn unused
-       fDEBF += -warn unused
-#      LIBRARY_LOCATIONS += /opt/intel/fc/9.1.032/lib
-#  CAR Brittle              ^^^^^^^^^^^^^^^^^^^^^^^^^
-   else
    ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
        IFC_VERSION := 10.0
        IFC_MAJOR_VERSION := 10
@@ -751,13 +664,6 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
-   endif
 
    ifeq ($(USE_OMP),TRUE)
      FOPTF += -openmp
@@ -774,24 +680,20 @@ ifeq ($(FCOMP),Intel)
    endif
 
    ifeq ($(WHICHLINUX), CORI)
-     FOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-     fOPTF += -O2 -ip -g -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
    endif
    ifeq ($(WHICHLINUX), EDISON)
-     FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-     fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-   else
-     ifeq ($(WHICHLINUX), BABBAGE)
-       ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
-         FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-         fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-       else
-         FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-         fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
-       endif
+     FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+     fOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
+   endif
+   ifeq ($(WHICHLINUX), BABBAGE)
+     ifneq ($(MIC), TRUE) # the "-xHost" flag conflicts with the "-mmic" option
+       FOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+       fOPTF += -O2 -ip -xHost -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      else
-       FOPTF += -O2 -ip -fp-model source
-       fOPTF += -O2 -ip -fp-model source
+       FOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
+       fOPTF += -O2 -ip -qopt-report=5 -qopt-report-phase=vec #-qoverride-limits
      endif
    endif
 
@@ -896,6 +798,13 @@ else
     ProfSuffix	:=
 endif
 
+ifeq ($(MEM_PROFILE),TRUE)
+  CPPFLAGS += -DBL_MEM_PROFILING
+  MProfSuffix := .MPROF
+else
+  MProfSuffix :=
+endif
+
 ifeq ($(COMP),Intel)
   ifeq ($(FCOMP),Intel)
     ifeq ($(ITAC_TRACE), TRUE)
@@ -904,8 +813,15 @@ ifeq ($(COMP),Intel)
   endif
 endif
 
+ifeq ($(TEST),TRUE)
+    CPPFLAGS += -DBL_TESTING
+    ifneq ($(DEBUG),TRUE)
+        DebugSuffix := .TEST
+    endif
+endif
+
 ifeq ($(BACKTRACE),TRUE)
-    CPPFLAGS += -DBL_BACKTRACING
+    CPPFLAGS += -DBL_BACKTRACING -DBL_TESTING
     BTSuffix := .BT
 else
     BTSuffix :=
@@ -1017,7 +933,7 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o)			\
 			$(cEXE_sources:%.c=%.o)				\
 			$(fEXE_sources:%.f=%.o)				\
 			$(f90EXE_sources:%.f90=%.o)			\
-			$(F90EXE_sources:%.F90=%.o)
+			$(F90EXE_sources:%.F90=%.o)                     \
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
@@ -1084,7 +1000,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\
@@ -1108,7 +1024,7 @@ CSRCALL		= $(CEXE_sources) $(CEXE_headers)			\
 FSRCALL		= $(FEXE_sources) $(FEXE_headers)                       \
                   $(FLIB_sources)$(FLIB_headers)
 
-F90SRCALL	= $(F90EXE_sources) $(F90EXE_headers)                   \
+F90SRCALL	= $(pF90EXE_sources) $(F90EXE_headers)                   \
                   $(F90LIB_sources) $(F90LIB_headers)
 
 cSRCALL		= $(cEXE_sources) $(cEXE_headers)                       \
@@ -1202,6 +1118,17 @@ ifeq ($(USE_HPGMG), TRUE)
     DEFINES += -DSTENCIL_VARIABLE_COEFFICIENT=1
   endif
 
+  include $(HPGMG_DIR)/source/Make.package
+  include $(BOXLIB_HOME)/Src/Extern/hpgmg/Make.package
   INCLUDE_LOCATIONS += $(HPGMG_DIR)/source
+  INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/Extern/hpgmg
   VPATH_LOCATIONS   += $(HPGMG_DIR)/source
+  VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/Extern/hpgmg
+endif
+
+ifeq ($(WHICHLINUX),MIRA)
+  ifeq ($(COMP),IBM)
+    FORTLINK = LOWERCASE
+    CPPFLAGS += -DBL_FORT_USE_LOWERCASE
+  endif
 endif

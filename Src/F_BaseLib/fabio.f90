@@ -80,6 +80,7 @@ module fabio_module
 
   interface fabio_ml_write
      module procedure fabio_ml_multifab_write_d
+     module procedure fabio_ml_multifab_write_d_nonarray
      module procedure fabio_ml_mf_write
   end interface
 
@@ -511,6 +512,8 @@ contains
     end subroutine build_vismf_multifab
   end subroutine fabio_multifab_read_d
 
+  ! this takes a multifab array (each element is a different level of refinement)
+  ! and writes a plotfile
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, &
        prob_lo, prob_hi, time, dx, nOutFiles, lUsingNFiles, prec)
     use parallel
@@ -662,6 +665,152 @@ contains
        close(unit=un)
     end if
   end subroutine fabio_ml_multifab_write_d
+
+
+  ! this takes a single-level, non-array multifab in and writes a plotfile
+  subroutine fabio_ml_multifab_write_d_nonarray(mfs, rrs, dirname, names, bounding_box, &
+       prob_lo, prob_hi, time, dx, nOutFiles, lUsingNFiles, prec)
+    use parallel
+    use bl_IO_module
+    use bl_error_module
+    type(multifab), intent(in) :: mfs
+    integer, intent(in) :: rrs(:)
+    character(len=*), intent(in) :: dirname
+    character(len=FABIO_MAX_VAR_NAME), intent(in), optional :: names(:)
+    type(box), intent(in), optional :: bounding_box
+    real(kind=dp_t), intent(in), optional :: time
+    real(kind=dp_t), intent(in), optional :: dx(:)
+    real(kind=dp_t), intent(in), optional :: prob_lo(:), prob_hi(:)
+    integer,          intent(in), optional :: nOutFiles
+    logical,          intent(in), optional :: lUsingNFiles
+    integer,          intent(in), optional :: prec
+
+    integer :: i, j, k
+    character(len=128) :: header, sd_name
+    integer :: nc, un, nl, dm
+    real(kind=dp_t), allocatable :: plo(:), phi(:), ldx(:), ldxlev(:)
+    real(kind=dp_t), allocatable :: gridlo(:), gridhi(:)
+    integer, allocatable ::  lo(:),  hi(:)
+    integer :: idummy, rdummy
+    type(box) :: lbbox
+    real(kind=dp_t) :: ltime
+
+    nl = 1
+    nc = ncomp(mfs)
+    if ( nc == 0 ) then
+       if ( parallel_IOProcessor() ) then
+          call bl_warn("FABIO_ML_MULTIFAB_WRITE_D: no components in mfs")
+       end if
+       return
+    end if
+    dm = get_dim(mfs)
+    allocate(plo(dm),phi(dm),ldx(dm),ldxlev(dm),lo(dm),hi(dm),gridlo(dm),gridhi(dm))
+    if ( present(bounding_box) ) then
+       lbbox = bounding_box
+    else
+       lbbox = bbox(get_boxarray(mfs))
+    end if
+    ltime = 0.0_dp_t; if ( present(time) ) ltime = time
+
+    idummy = 0
+    rdummy = 0.0_dp_t
+    lo = lwb(lbbox); hi = upb(lbbox)
+    ldx = 0
+    if ( present(dx) ) then
+       ldx = dx
+    else
+       ldx  = 1.0_dp_t/(maxval(hi-lo+1))
+    end if
+
+    if ( present(prob_lo) ) then
+       plo = prob_lo(1:dm)
+    else
+       plo = lwb(lbbox)*ldx
+    endif
+    if ( present(prob_hi) ) then
+       phi = prob_hi(1:dm)
+    else
+       phi = (upb(lbbox)+1)*ldx
+    endif
+
+    if ( parallel_IOProcessor() ) then
+       call fabio_mkdir(dirname)
+    end if
+    call parallel_barrier()
+
+    do i = 1, nl
+       write(unit=sd_name, fmt='(a,"/Level_",i2.2)') trim(dirname), i-1
+       call fabio_multifab_write_d(mfs, sd_name, "Cell", nOutFiles = nOutFiles, lUsingNFiles = lUsingNFiles, prec = prec)
+    end do
+
+    if ( parallel_IOProcessor() ) then
+       header = "Header"
+       un = unit_new()
+       open(unit=un, &
+            file = trim(dirname) // "/" // trim(header), &
+            form = "formatted", access = "sequential", &
+            status = "replace", action = "write")
+       write(unit=un, fmt='("NavierStokes-V1.1")')
+       write(unit=un, fmt='(i0)') nc
+       if ( present(names) ) then
+          do i = 1, nc
+             write(unit=un, fmt='(A)') trim(names(i))
+          end do
+       else
+          do i = 1, nc
+             write(unit=un, fmt='("Var-",i3.3)') i
+          end do
+       end if
+       write(unit=un, fmt='(i1)') dm
+       write(unit=un, fmt='(es27.17e3)') ltime
+       write(unit=un, fmt='(i0)') nl - 1
+       write(unit=un, fmt='(3es27.17e3)') plo
+       write(unit=un, fmt='(3es27.17e3)') phi
+       do i = 1, nl - 1
+          write(unit=un, fmt='(i0,1x)', advance='no') rrs(i)
+       end do
+       write(unit=un, fmt='()')
+       do i = 1, nl
+          call box_print(lbbox, unit=un, legacy = .True., advance = 'no')
+          write(unit=un, fmt='(" ")', advance = 'no')
+          if ( i < nl ) lbbox = refine(lbbox, rrs(i))
+       end do
+       write(unit=un, fmt='()')
+       do i = 1, nl
+          write(unit=un, fmt='(i0,1x)', advance = 'no') idummy
+       end do
+       write(unit=un, fmt='()')
+       ldxlev = ldx
+       do i = 1, nl
+          write(unit=un, fmt='(3es27.17e3)') ldx
+          if ( i < nl ) ldx = ldx/rrs(i)
+       end do
+       write(unit=un, fmt='(i0)') idummy
+       write(unit=un, fmt='(i0)') idummy
+       ! SOME STUFF
+       do i = 1, nl
+          if (i <= 10) then
+             write(unit=un, fmt='(i1)', advance = 'no') i-1
+          else
+             write(unit=un, fmt='(i2)', advance = 'no') i-1
+          endif
+
+          write(unit=un, fmt='(i6)', advance = 'no') nboxes(mfs%la)
+          write(unit=un, fmt='(i6)') rdummy
+          write(unit=un, fmt='(i1)') idummy
+          do j = 1, nboxes(mfs%la)
+             gridlo = plo + ldxlev*lwb(get_box(mfs%la,j))
+             gridhi = plo + ldxlev*(upb(get_box(mfs%la,j))+1)
+             do k = 1, dm
+                write(unit=un, fmt='(2es27.17e3)') gridlo(k), gridhi(k)
+             end do
+          end do
+          if (i < nl) ldxlev = ldxlev/rrs(i)
+          write(unit=un, fmt='("Level_",i2.2,"/Cell")') i-1
+       end do
+       close(unit=un)
+    end if
+  end subroutine fabio_ml_multifab_write_d_nonarray
 
   subroutine fabio_ml_multifab_read_d(mmf, root, unit, ng)
     use bl_stream_module

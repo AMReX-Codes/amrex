@@ -27,7 +27,7 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = cc
 
-  CXXOPTF += -g -h nomessage=7221
+  CXXOPTF += -O2 -h nomessage=7221 -hlist=a
   CXXDEBF += -g -O0
 
   # This makes Cray (more specifically cce/8.3.11 on edison) able to compile
@@ -36,7 +36,7 @@ ifeq ($(COMP),Cray)
   CXXOPTF += -h gnu
   CXXDEBF += -h gnu
 
-  COPTF += -g
+  COPTF += -O2
   CDEBF += -g
 
   ifneq ($(USE_OMP),TRUE)
@@ -52,28 +52,30 @@ ifeq ($(COMP),Cray)
     COPTF += -h noacc
     CDEBF += -h noacc
   endif
+
+  ifeq ($(USE_CXX11),TRUE)
+       CXXOPTF += -hstd=c++11
+       CXXDEBF += -hstd=c++11
+  endif
+
 else
 ifeq ($(COMP),PGI)
-  CXX = pgCC
+  CXX = pgc++
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
-      CXXOPTF += -O
+      CXXOPTF += -gopt  -O
     else
-      COPTF += -fast
-      CXXOPTF += -fast -Minline=levels:10
+      COPTF += -gopt -fast
+      CXXOPTF += -gopt -fast -Minline=levels:10
     endif
   else
-    CXXOPTF += -O
+    CXXOPTF += -gopt -O1
   endif
 
 #  ifneq ($(USE_MPI),TRUE)
-     ifeq ($(WHICHLINUX), CARVER)
-       override XTRALIBS += -lmpi_f90 -lmpi_f77 -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
-     else
-       override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpghpf -lrt
-     endif
+     override XTRALIBS += -pgf90libs
 #  endif
 
   ifeq ($(USE_OMP),TRUE)
@@ -104,11 +106,11 @@ endif
 endif
 endif
 endif
+
 #
 # Now Fortran stuff.
 #
-FORT_CPP := gcc -E -traditional
-FORT_CPP := cpp -E -traditional
+FORT_CPP := cpp -E -traditional-cpp -P
 
 ifeq ($(FCOMP),PathScale)
   FC  = pathf95
@@ -144,14 +146,14 @@ ifeq ($(FCOMP),Cray)
   FC  = ftn
   fC  = ftn
   F90 = ftn 
-  FFLAGS +=
-  fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em
-  F90FLAGS +=
+  FFLAGS += -hlist=a
+  fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em -hlist=a
+  F90FLAGS += -hlist=a
   FDEBF += -g -O0
   fDEBF += -g -O0
 
-  FOPTF += -g
-  fOPTF += -g
+  FOPTF += -O2
+  fOPTF += -O2
 
   ifneq ($(USE_OMP),TRUE)
     FOPTF += -h noomp
@@ -192,7 +194,7 @@ ifeq ($(FCOMP),Absoft)
 else
 
 ifeq ($(FCOMP),PGI)
-  FC := pgf90
+  FC := pgf95
   fC := $(FC)
 
   ifeq ($(BL_FAST),TRUE)
@@ -218,6 +220,8 @@ ifeq ($(FCOMP),PGI)
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
+  FOPTF += -gopt
+  fOPTF += -gopt
   FDEBF += -g #-C
   fDEBF += -g #-C
 #  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
@@ -293,6 +297,17 @@ endif
 #
 # Overrides for specific machines.
 #
+ifeq ($(WHICHLINUX), FYR)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    CXX := mpicxx
+    CC  := mpicc
+    FC  := mpif90
+    F90 := mpif90
+    fC  := mpif90
+  endif
+endif
+
 ifeq ($(WHICHLINUX), RANGER)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
@@ -331,15 +346,6 @@ ifeq ($(WHICHLINUX), ORION)
   endif
 endif
 
-ifeq ($(WHICHLINUX), CARVER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  ifeq ($(USE_MPI),TRUE)
-    CXX := mpiCC
-    FC  := mpif90
-    F90 := mpif90
-    fC  := mpif90
-  endif
-endif
 
 ifeq ($(WHICHLINUX), FREEDOM)
   DEFINES += -DMPICH_SKIP_MPICXX
@@ -352,27 +358,6 @@ ifeq ($(WHICHLINUX), FREEDOM)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOPPER)
-  DEFINES += -DMPICH_SKIP_MPICXX
-  DEFINES += -DBL_HOPPER
-  ifeq ($(USE_MPI),TRUE)
-    CXX := CC
-    CC  := cc
-    FC  := ftn
-    F90 := ftn
-    fC  := ftn
-  endif
-  ifeq ($(USE_IPM),TRUE)
-    ifeq ($(COMP),PGI)
-      LIBRARIES += $(IPM)
-    else
-      LIBRARIES += $(IPM_GNU)
-    endif
-  endif
-  ifeq ($(USE_DUMPI),TRUE)
-    LIBRARIES += $(DUMPI_LINK_OPTS)
-  endif
-endif
 
 ifeq ($(WHICHLINUX), GARNET)
   DEFINES += -DMPICH_SKIP_MPICXX
@@ -404,6 +389,25 @@ ifeq ($(WHICHLINUX), HERA)
 endif
 
 ifeq ($(WHICHLINUX), CAB)
+  DEFINES += -DMPICH_SKIP_MPICXX
+  ifeq ($(USE_MPI),TRUE)
+    ifeq ($(COMP), Intel)
+      CXX := mpiicc
+      CC  := mpiicc
+      F90 := mpiifort
+      FC  := mpiifort
+      fC  := mpiifort
+    else
+      CXX := mpiCC
+      CC  := gcc
+      FC  := gfortran
+      F90 := gfortran
+      fC  := gfortran
+    endif
+  endif
+endif
+
+ifeq ($(WHICHLINUX), SYRAH)
   DEFINES += -DMPICH_SKIP_MPICXX
   ifeq ($(USE_MPI),TRUE)
     ifeq ($(COMP), Intel)
@@ -519,7 +523,7 @@ ifeq ($(WHICHLINUX), HYPERION)
     fOPTF = -O3 -ip -mp
   endif
   ifeq ($(COMP),PGI)
-    CXX = pgCC
+    CXX = pgc++    
     CXXOPTF = -fast
     CXXDEBF = -g
     FC = pgf90
@@ -530,13 +534,6 @@ ifeq ($(WHICHLINUX), HYPERION)
   endif
 endif
 
-ifeq ($(WHICHLINUX), HOMER)
-  ifeq ($(USE_MPI),TRUE)
-    CXX = mpicxx
-    FC = mpif90 -module $(fmoddir)
-    fC = mpif90 -module $(fmoddir)    
-  endif
-endif
 
 ifeq ($(WHICHLINUX), COLUMBIA)
   FOPTF   = -O3
@@ -644,4 +641,97 @@ ifeq ($(COMP),Intel)
       override XTRALIBS += -L${VT_LIB_DIR}
     endif
   endif
+endif
+
+
+ifeq ($(WHICHLINUX), MIRA)
+
+  ifeq ($(COMP), IBM)
+    ifeq ($(USE_OMP),TRUE)
+      ifeq ($(USE_MPI),TRUE)
+        CXX := mpixlcxx_r
+        CC  := mpixlc_r
+      else
+        CXX := bgxlC_r
+        CC  := bgxlc_r
+      endif
+      CFLAGS   += -qsmp=noauto:omp
+      CXXFLAGS += -qsmp=noauto:omp
+    else
+      ifeq ($(USE_MPI),TRUE)
+        CXX := mpixlcxx
+        CC  := mpixlc
+      else
+        CXX := bgxlC
+        CC  := bgxlc
+      endif
+    endif
+    CFLAGS   += -g
+    CXXFLAGS += -g
+  endif
+
+  ifeq ($(FCOMP), IBM)
+    ifeq ($(USE_OMP),TRUE)
+      ifeq ($(USE_MPI),TRUE)
+        FC  := mpixlf95_r -qfixed=72
+        fC  := mpixlf95_r -qfixed=72
+        F90 := mpixlf95_r
+      else
+        FC  := bgxlf_r -qfixed=72
+        fC  := bgxlf_r -qfixed=72
+        F90 := bgxlf95_r
+      endif
+      FFLAGS += -qsmp=noauto:omp
+      fFLAGS += -qsmp=noauto:omp
+    else
+      ifeq ($(USE_MPI),TRUE)
+        FC  := mpixlf95 -qfixed=72
+        fC  := mpixlf95 -qfixed=72
+        F90 := mpixlf95
+      else
+        FC  := bgxlf95 -qfixed=72
+        fC  := bgxlf95 -qfixed=72
+        F90 := bgxlf95
+      endif
+    endif
+    FFLAGS   += -I $(fmoddir) -qmoddir=$(fmoddir)
+    F90FLAGS += -I $(fmoddir) -qmoddir=$(fmoddir)
+    fFLAGS   += -I $(fmoddir) -qmoddir=$(fmoddir)
+
+    FFLAGS   += -g
+    F90FLAGS += -g
+    fFLAGS   += -g
+  endif
+
+  # Even though flush() is in the Fortran standard, the IBM XL Fortran
+  # compilers for some reason only understand the symbol flush_() (note the
+  # underscore). This flag lets us call flush() without the underscore.
+  FFLAGS   += -qextname=flush
+  fFLAGS   += -qextname=flush
+  F90FLAGS += -qextname=flush
+
+  CXXOPTF += -O2
+  FOPTF   += -O2
+  fOPTF   += -O2
+
+  CXXDEBF += -O0
+  FDEBF   += -O0
+  fDEBF   += -O0
+
+  ifeq ($(COMP), IBM)
+    ifeq ($(FCOMP), IBM)
+      # manual linkage options suggested by ALCF doc page for mixing F90 with C++
+      override XTRALIBS += -L/soft/compilers/ibmcmp-nov2012/xlf/bg/14.1/lib64 -lxlopt -lxl -lxlf90 -lxlfmath
+      # One of these libraries has "aio_*" functions which libxlf90.a needs.
+      # The MPI wrappers will pick it up but the serial wrappers won't. I just
+      # copied this linkage blob from the MPI wrappers by doing "mpixlcxx_r
+      # -show".
+      override XTRALIBS += -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib64 -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/sys/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/sys/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib64 -L/bgsys/drivers/V1R2M2/ppc64/comm/lib -L/bgsys/drivers/V1R2M2/ppc64/spi/lib -L/bgsys/drivers/V1R2M2/ppc64/comm/lib-lopa-xl -lmpl-xl -lpami-gcc -lSPI -lSPI_cnk -lrt -lpthread -lstdc++ -lpthread
+    endif
+  endif
+
+endif
+
+ifeq ($(HOST),orga)
+  override XTRALIBS += -lquadmath
 endif

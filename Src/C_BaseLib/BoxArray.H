@@ -24,9 +24,9 @@ namespace BoxLib
     //
     BoxArray complementIn (const Box& b, const BoxArray& ba);
     //
-    // Makes a BoxArray from the intersection of Box b and BoxArray ba.
+    // Makes a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
     //
-    BoxArray intersect (const BoxArray& ba, const Box& b);
+    BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
     //
     // Makes a BoxArray from the intersection of two BoxArrays.
     //
@@ -95,15 +95,10 @@ public:
     //
     ~BoxArray ();
     //
-    // BoxArray can be used like an const STL container.
-    // We ONLY supply const_iterators.  We do this because
-    // BoxArrays are reference counted and we don't want folks
-    // to modify without going through the non-STL BoxArray interface.
+    // Initialize the BoxArray from a single box.
+    // It is an error if the BoxArray has already been initialized.
     //
-    typedef Array<Box>::const_iterator const_iterator;
-
-    const_iterator begin () const { return m_ref->m_abox.begin(); }
-    const_iterator   end () const { return m_ref->m_abox.end();   }
+    void define (const Box& bx);
     //
     // Initialize the BoxArray from the supplied BoxList.
     // It is an error if the BoxArray has already been initialized.
@@ -154,6 +149,10 @@ public:
     // Are the BoxArrays not equal?
     //
     bool operator!= (const BoxArray& rhs) const;
+    //
+    //  Are the BoxArrays equal after conversion to cell-centered
+    //
+    bool CellEqual (const BoxArray& rhs) const;
     //
     // Forces each Box in BoxArray to have sides <= block_size.
     //
@@ -242,11 +241,25 @@ public:
     //
     // Returns element index of this BoxArray.
     //
-    const Box& operator[] (int index) const { return m_ref->m_abox.get(index); }
+    Box operator[] (int index) const {
+	Box b = m_ref->m_abox[index];
+	b.convert(m_typ); 
+	return b;
+    }
     //
     // Returns element index of this BoxArray.
     //
-    const Box& get (int index) const { return m_ref->m_abox.get(index); }
+    Box get (int index) const {
+	Box b = m_ref->m_abox[index];
+	b.convert(m_typ); 
+	return b;
+    }
+    //
+    // Returns cell-centered box at element index of this BoxArray.
+    //
+    const Box& getCellCenteredBox (int index) const {
+	return m_ref->m_abox[index];
+    }    
     //
     // Returns true if Box is valid and they all have the same
     // IndexType.  Is true by default if the BoxArray is empty.
@@ -261,11 +274,11 @@ public:
     //
     BoxList boxList () const;
     //
-    // True if the Box intersects with this BoxArray.
+    // True if the Box intersects with this BoxArray(+ghostcells).
     // The Box must have the same IndexType as those in this
     // BoxArray.
     //
-    bool intersects (const Box& b) const;
+    bool intersects (const Box& b, int ng = 0) const;
     //
     // True if the IntVect is within any of the Boxes in this BoxArray.
     //
@@ -285,9 +298,25 @@ public:
     //
     Box minimalBox () const;
 
-    std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only=false) const;
-
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, bool first_only=false) const;
+    //
+    // Returns intersections of Box and BoxArray(+ghsotcells).
+    // ng = 0 if unspecified.  first_only = false, if unspecified.  
+    //
+    std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx,
+						     bool       first_only) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
+						     int        ng) const;
+    std::vector< std::pair<int,Box> > intersections (const Box& bx, 
+						     bool first_only, int ng) const;
+    //
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
+			int ng) const;
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+			bool first_only, int ng) const;
     //
     // Clear out the internal hash table used by intersections.
     //
@@ -300,36 +329,100 @@ public:
 
     static bool SameRefs (const BoxArray& lhs, const BoxArray& rhs) { return lhs.m_ref == rhs.m_ref; }
 
+    //
+    // This gives a unique ID of the reference
+    //
+    ptrdiff_t getRefID () const;
+
+    //
+    // Returns index type of this BoxArray
+    //
+    const IndexType& ixType () const { return m_typ; }
+
 #ifdef BL_USE_MPI
     static void SendBoxArray(const BoxArray &ba);
     static void RecvBoxArray(BoxArray &ba);
 #endif
 
 private:
+    //
+    //  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
+    //
+    void type_update ();
 
     void decrementCounters () const;
 
+    IndexType m_typ;
+
     class Ref
     {
-        friend class BoxArray;
+    public:
         //
         // Constructors to match those in BoxArray ....
         //
-        Ref () {}
+        Ref () { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
 
-        Ref (size_t size) : m_abox(size) {}
+        Ref (size_t size) : m_abox(size) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
 
-        Ref (const BoxList& bl) { define(bl); }
+        Ref (const BoxList& bl) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+#endif
+	    define(bl); 
+	}
 
-        Ref (std::istream& is) { define(is); }
+        Ref (std::istream& is) { 
+#ifdef BL_MEM_PROFILING
+	    if (!initialized) Initialize();
+#endif
+	    define(is); 
+	}
 
-        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {}
+        Ref (const Ref& rhs) : m_abox(rhs.m_abox) {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(1);
+#endif	    
+	}
+
+	~Ref () {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(-1);
+	    updateMemoryUsage_hash(-1);
+#endif	    
+	}
+
         //
         // Some defines()s to match those in BoxArray.
         //
+        void define (const Box& bx);
         void define (const BoxList& bl);
-
         void define (std::istream& is);
+	//
+	void resize (int n) {
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(-1);
+	    updateMemoryUsage_hash(-1);
+#endif
+	    m_abox.resize(n);
+	    hash.clear();
+#ifdef BL_MEM_PROFILING
+	    updateMemoryUsage_box(1);
+#endif
+	}
+#ifdef BL_MEM_PROFILING
+	void updateMemoryUsage_box (int s);
+	void updateMemoryUsage_hash (int s);
+#endif
         //
         // The data.
         //
@@ -342,7 +435,21 @@ private:
         mutable IntVect crsn;
 
         mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
+
+	static long total_box_bytes;
+	static long total_box_bytes_hwm;
+	static long total_hash_bytes;
+	static long total_hash_bytes_hwm;
+
+    private:
+	Ref& operator= (const Ref&); // disallowed
+
+#ifdef BL_MEM_PROFILING
+	static void Initialize ();
+	static bool initialized;
+#endif
     };
+
     //
     // Make ourselves unique.
     //

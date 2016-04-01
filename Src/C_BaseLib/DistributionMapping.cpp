@@ -7,7 +7,9 @@
 #include <ParmParse.H>
 #include <BLProfiler.H>
 #include <FArrayBox.H>
+#if !(defined(BL_NO_FORT) || defined(WIN32))
 #include <Geometry.H>
+#endif
 #include <VisMF.H>
 #include <Utility.H>
 
@@ -382,7 +384,7 @@ DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_ca
 {
     dmID = nDistMaps++;
 
-    if (put_in_cache && ParallelDescriptor::NProcs() > 1)
+    if (put_in_cache)
     {
         //
         // We want to save this pmap in the cache.
@@ -449,25 +451,15 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
         m_ref->m_pmap.resize(boxes.size() + 1);
     }
 
-    if (nprocs == 1)
+    if ( ! GetMap(boxes))
     {
-        for (int i = 0, N = m_ref->m_pmap.size(); i < N; ++i)
-        {
-            m_ref->m_pmap[i] = 0;
-        }
-    }
-    else
-    {
-        if ( ! GetMap(boxes))
-        {
-	    BL_ASSERT(m_BuildMap != 0);
-
-            (this->*m_BuildMap)(boxes,nprocs);
-            //
-            // Add the new processor map to the cache.
-            //
-            m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-        }
+	BL_ASSERT(m_BuildMap != 0);
+	
+	(this->*m_BuildMap)(boxes,nprocs);
+	//
+	// Add the new processor map to the cache.
+	//
+	m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
     }
 }
 
@@ -514,7 +506,8 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    CacheStats(std::cout);
+    if (BoxLib::verbose)
+	CacheStats(std::cout);
     //
     // Remove maps that aren't referenced anywhere else.
     //
@@ -536,17 +529,14 @@ DistributionMapping::FlushCache ()
 void
 DistributionMapping::PutInCache ()
 {
-    if (ParallelDescriptor::NProcs() > 1)
-    {
-        //
-        // We want to save this pmap in the cache.
-        // It's an error if a pmap of this length has already been cached.
-        //
-	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-	if (r.second == false) {
-	    BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
-	}
+    //
+    // We want to save this pmap in the cache.
+    // It's an error if a pmap of this length has already been cached.
+    //
+    std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
+    r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    if (r.second == false) {
+	BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
     }
 }
 
@@ -1184,9 +1174,9 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 
         wgts.reserve(boxes.size());
 
-        for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+	for (int i = 0, N = boxes.size(); i < N; ++i)
         {
-            wgts.push_back(it->volume());
+            wgts.push_back(boxes[i].volume());
         }
 
         SFCProcessorMapDoIt(boxes,wgts,nprocs);
@@ -1559,9 +1549,9 @@ DistributionMapping::PFCProcessorMap (const BoxArray& boxes,
     std::vector<long> wgts;
     wgts.reserve(boxes.size());
 
-    for (BoxArray::const_iterator it = boxes.begin(), End = boxes.end(); it != End; ++it)
+    for (int i = 0, N = boxes.size(); i < N; ++i)
     {
-      wgts.push_back(it->numPts());
+      wgts.push_back(boxes[i].numPts());
     }
     PFCProcessorMapDoIt(boxes,wgts,nprocs);
 }
@@ -2468,6 +2458,7 @@ DistributionMapping::PrintDiagnostics(const std::string &filename)
 }
 
 
+#if !(defined(BL_NO_FORT) || defined(WIN32))
 void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
                                                Array<IntVect>  &refRatio,
                                                Array<BoxArray> &allBoxes)
@@ -2593,6 +2584,37 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
     ParallelDescriptor::Barrier();
 
 
+}
+#endif
+
+bool 
+DistributionMapping::Check () const
+{
+   bool ok(true);
+   for(int i(0); i < m_ref->m_pmap.size() - 1; ++i) {
+     if(m_ref->m_pmap[i] >= ParallelDescriptor::NProcs()) {
+       ok = false;
+       std::cout << ParallelDescriptor::MyProc() << ":: **** error 1 in DistributionMapping::Check() "
+                 << "bad rank:  nProcs dmrank = " << ParallelDescriptor::NProcs() << "  "
+		 << m_ref->m_pmap[i] << std::endl;
+       BoxLib::Abort("Bad DistributionMapping::Check");
+     }
+   }
+   if(m_ref->m_pmap[m_ref->m_pmap.size() - 1] != ParallelDescriptor::MyProc()) {
+     ok = false;
+     std::cout << ParallelDescriptor::MyProc() << ":: **** error 2 in DistributionMapping::Check() "
+               << "bad sentinel:  myProc sentinel = " << ParallelDescriptor::MyProc() << "  "
+	       << m_ref->m_pmap[m_ref->m_pmap.size() - 1] << std::endl;
+     BoxLib::Abort("Bad DistributionMapping::Check");
+   }
+   return ok;
+}
+
+ptrdiff_t 
+DistributionMapping::getRefID () const
+{
+    static DistributionMapping dm0(Array<int>(1), false);
+    return m_ref.operator->() - dm0.m_ref.operator->();
 }
 
 #ifdef BL_USE_MPI

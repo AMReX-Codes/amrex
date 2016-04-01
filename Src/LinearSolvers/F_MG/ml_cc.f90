@@ -5,7 +5,7 @@ module ml_cc_module
   use ml_layout_module
   use bndry_reg_module
   ! use mg_hypre_module
-
+  
   implicit none
 
 contains
@@ -18,6 +18,7 @@ contains
     use ml_cc_restriction_module, only : ml_cc_restriction
     use ml_prolongation_module  , only : ml_cc_prolongation, ml_interp_bcs
     use cc_ml_resid_module      , only : crse_fine_residual_cc
+    use backtrace_module        , only : fpe_trap, quiet_nan
 
     type(ml_layout), intent(in   ) :: mla
     type(mg_tower) , intent(inout) :: mgt(:)
@@ -68,6 +69,14 @@ contains
        need_grad_phi = need_grad_phi_in 
     else
        need_grad_phi = .false.
+    end if
+
+    if (fpe_trap()) then
+       do n = 2, nlevs 
+          if (mgt(n)%lcross) then
+             call multifab_set_corner(full_soln(n), quiet_nan())
+          end if
+       end do
     end if
 
     allocate(uu(nlevs), res(nlevs), temp_res(nlevs))
@@ -127,19 +136,16 @@ contains
     do n = 2,nlevs
        ng_fill = nghost(full_soln(n))
        pd = layout_get_pd(mla%la(n))
-       call multifab_fill_boundary(full_soln(n-1))
-       call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+       call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
        call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
             mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
             brs_bcs(n)%uncovered)
     end do
 
-    call multifab_fill_boundary(full_soln(nlevs))
-
     do n = 1,nlevs,1
        mglev = mgt(n)%nlevels
        call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
+                      mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
     end do
 
     do n = nlevs,2,-1
@@ -501,14 +507,11 @@ contains
           do n = 2,nlevs
              ng_fill = nghost(full_soln(n))
              pd = layout_get_pd(mla%la(n))
-             call multifab_fill_boundary(full_soln(n-1))
-             call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+             call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
              call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
                   mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
                   brs_bcs(n)%uncovered)
           end do
-
-          call multifab_fill_boundary(full_soln(nlevs))
 
           !    Optimization so don't have to do multilevel convergence test 
           !    each time
@@ -517,7 +520,7 @@ contains
           n = nlevs
           mglev = mgt(n)%nlevels
           call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                         mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
+                         mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
 
           if ( ml_fine_converged(res, max_norm, mgt(nlevs)%eps, mgt(nlevs)%abs_eps) ) then
 
@@ -527,7 +530,7 @@ contains
              do n = 1,nlevs-1
                 mglev = mgt(n)%nlevels
                 call compute_defect(mgt(n)%ss(mglev),res(n),rh(n),full_soln(n), &
-                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross, filled=.true.)
+                               mgt(n)%mm(mglev), mgt(n)%stencil_type, mgt(n)%lcross)
              end do
 
              !      Compute the coarse-fine residual 
@@ -634,12 +637,6 @@ contains
 
     call bl_proffortfuncstop("ml_cc:1.1")
 
-    if (solved) then
-       do n = 1,nlevs
-          call multifab_fill_boundary(full_soln(n))
-       end do
-    end if
-
     do n = 2,nlevs-1
        call multifab_destroy(uu_hold(n))
     end do
@@ -662,15 +659,18 @@ contains
        do n = 2,nlevs
           ng_fill = nghost(full_soln(n))
           pd = layout_get_pd(mla%la(n))
-          call multifab_fill_boundary(full_soln(n-1))
-          call bndry_reg_copy(brs_bcs(n), full_soln(n-1), filled=.true.)
+          call bndry_reg_copy(brs_bcs(n), full_soln(n-1))
           call ml_interp_bcs(full_soln(n), brs_bcs(n)%bmf(1,0), pd, &
                mla%mba%rr(n-1,:), ng_fill, brs_bcs(n)%facemap, brs_bcs(n)%indxmap, &
                brs_bcs(n)%uncovered)
        end do
 
-       call multifab_fill_boundary(full_soln(nlevs))
+    end if
 
+    if (solved) then
+       do n = 1,nlevs
+          call multifab_fill_boundary(full_soln(n))
+       end do
     end if
 
     do n = nlevs, 1, -1

@@ -680,8 +680,6 @@ subroutine mgt_nodal_dealloc()
   deallocate(mgts%amr_coeffs)
   deallocate(mgts%fine_mask)
 
-  call parallel_finalize(.false.) ! do not finalize MPI but free communicator
-
 end subroutine mgt_nodal_dealloc
 
 subroutine mgt_nodal_solve(tol, abs_tol)
