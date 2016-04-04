@@ -1856,10 +1856,6 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       int sentinelProc(ParallelDescriptor::MyProcComp());
       BoxLib::BroadcastDistributionMapping(particle_dmap, sentinelProc, scsMyId,
                                            ioProcNumSCS, scsComm, true);
-
-      int posg(particles_on_same_grids);
-      ParallelDescriptor::Bcast(&posg, 1, ioProcNumSCS, scsComm);
-      particles_on_same_grids = posg;
 #endif
 
 #ifdef USE_SLABSTAT
