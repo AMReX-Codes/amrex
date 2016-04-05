@@ -1214,6 +1214,10 @@ def get_args(arg_string=None):
                         help="is this a temporary run? (output not stored or logged)")
     parser.add_argument("--send_no_email", action="store_true",
                         help="do not send emails when tests fail")
+    parser.add_argument("--with_valgrind", action="store_true",
+                        help="run with valgrind")
+    parser.add_argument("--valgrind_options", type=str, default="--leak-check=yes --log-file=vallog.%p",
+                        help="valgrind options")
     parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
                         help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
     parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
@@ -1461,13 +1465,9 @@ def test_suite(argv):
 
     suite.make_test_dirs()
 
-    print(suite.suiteName)
-    print(suite.sub_title)
-    print(suite.test_dir)
-    print(args.note)
-    msg = "{} ({}) test suite started, id: {}\n{}".format(suite.suiteName, suite.sub_title, suite.test_dir, args.note)
-    print(msg)
-    suite.slack_post_it(msg)
+    if suite.slack_post:
+        msg = "{} ({}) test suite started, id: {}\n{}".format(suite.suiteName, suite.sub_title, suite.test_dir, args.note)
+        suite.slack_post_it(msg)
     
     if not args.copy_benchmarks is None:
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
@@ -1478,6 +1478,11 @@ def test_suite(argv):
                                           "",  
                                           testList, args.input_file[0])
         report_all_runs(suite, active_test_list)        
+
+        if suite.slack_post:
+            msg = "copied benchmarks\n{}".format(args.copy_benchmarks)
+            suite.slack_post_it(msg)
+
         sys.exit("done")
 
     
@@ -1783,6 +1788,9 @@ def test_suite(argv):
             if not test.restartTest: base_command += " --chk_int 0 "
 
             base_command += "{}".format(suite.globalAddToExecString)
+
+        if args.with_valgrind:
+            base_command = "valgrind " + args.valgrind_options + " " + base_command
 
         suite.run_test(test, base_command)
 
@@ -2177,7 +2185,8 @@ def test_suite(argv):
         emailDevelopers()
 
 
-    suite.slack_post_it("test complete, num failed = {}\n{}".format(num_failed, suite.emailBody))
+    if suite.slack_post:
+        suite.slack_post_it("test complete, num failed = {}\n{}".format(num_failed, suite.emailBody))
     
     return num_failed
 

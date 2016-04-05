@@ -234,11 +234,16 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(findstring battra, $(HOST)), battra)
-      MPI_HOME=/usr/lib/mpich
+      ifndef MPI_HOME
+        MPI_HOME=/usr/lib/mpich
+        CPPFLAGS += -DMPICH_SKIP_MPICXX
+        BL_MPI_LIBS += -lpthread
+      else
+        BL_MPI_LIBS += -lmpichf90
+        override XTRALIBS += -Wl,-rpath,$(MPI_HOME)/lib
+      endif
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),gamera)
@@ -314,11 +319,10 @@ ifeq ($(MACHINE), Linux)
     endif
 
     ifeq ($(HOST),baragon)
-      mpihome=/usr/lib/mpich
+      mpihome=/home/wqzhang/lib/mpich
       LIBRARY_LOCATIONS += $(mpihome)/lib
       INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
+      BL_MPI_LIBS += -lmpich -lmpichf90
     endif
 
     ifeq ($(HOST),megalon)
