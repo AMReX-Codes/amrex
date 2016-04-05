@@ -94,7 +94,8 @@ FINCLUDE_LOCATIONS += $(Fmincs)
 #programs += fsnapshot3d
 #programs += ftime
 #programs += fintgvar2d
-programs += fdumpdata2d
+#programs += fdumpdata2d
+programs += fcoarsen
 
 all: $(pnames)
 
