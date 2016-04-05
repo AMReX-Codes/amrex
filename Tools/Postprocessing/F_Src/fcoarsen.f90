@@ -4,8 +4,10 @@
 ! have the same number of grids.  But they must have some kind of coarse-fine relation.
 !
 
-program ffdcompare
+program fcoarsen
 
+  use BoxLib
+  use parallel
   use f2kcli
   use bl_space
   use bl_error_module
@@ -17,7 +19,7 @@ program ffdcompare
 
   implicit none
 
-  character (len=256) :: plotfile_f, plotfile_c
+  character (len=256) :: plotfile_f, plotfile_c, input_field
   integer :: narg, farg
   character (len=256) :: fname
 
@@ -50,6 +52,10 @@ program ffdcompare
   ! defaults
   plotfile_f = ""
   plotfile_c = ""
+  input_field = ""
+
+  ! use coarsening factor of 2 by default
+  rr(:) = 2
 
   farg = 1
   do while (farg <= narg)
@@ -57,13 +63,19 @@ program ffdcompare
      
      select case (fname)
 
-     case ('--infile')
+     case ('-i', '--infile')
         farg = farg + 1
         call get_command_argument(farg, value = plotfile_f)
 
      case ('-e', '--outfile')
         farg = farg + 1
         call get_command_argument(farg, value = plotfile_c)
+
+     case ('-c', '--coarsen')
+        farg = farg + 1
+        call get_command_argument(farg, value = input_field)
+        read(input_field,*) rr(1)
+        rr(2:)=rr(1)
 
      case default
         exit
@@ -80,6 +92,8 @@ program ffdcompare
      print *, " "
      stop
   endif
+
+  call boxlib_initialize()
 
   ! get variable names, prob_lo/hi, time
   call build(pf_f, plotfile_f, unit_new())
@@ -103,9 +117,6 @@ program ffdcompare
   pb_f = layout_get_pd(la_f)
 
   dm = layout_dim(la_f)
-
-  ! use coarsening factor of 2
-  rr(:) = 2
 
   ba_f = layout_boxarray(la_f)
   call boxarray_build_copy(ba_c, ba_f)
@@ -179,4 +190,4 @@ program ffdcompare
   deallocate(pltdata_f)
   deallocate(vnames)
 
-end program ffdcompare
+end program fcoarsen
