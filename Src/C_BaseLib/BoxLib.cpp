@@ -257,8 +257,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     std::set_new_handler(BoxLib::OutOfMemory);
 
     if (argv[0][0] != '/') {
-	char temp[1024];
-	getcwd(temp,1024);
+	int bufSize(1024);
+	char temp[bufSize];
+	char *rCheck = getcwd(temp, bufSize);
+	if(rCheck == 0) {
+	  BoxLib::Abort("**** Error:  getcwd buffer too small.");
+	}
 	exename = temp;
 	exename += "/";
     }
@@ -276,19 +280,6 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
         //
         The_Initialize_Function_Stack.pop();
     }
-
-/*
-    if(ParallelDescriptor::NProcsSidecar() > 0) {
-      if(ParallelDescriptor::InSidecarGroup()) {
-        if (ParallelDescriptor::IOProcessor())
-          std::cout << "===== SIDECARS INITIALIZED =====" << std::endl;
-        ParallelDescriptor::SidecarProcess();
-        BoxLib::Finalize();
-        return;
-      }
-    }
-*/
-
 
     BL_PROFILE_INITIALIZE();
 
