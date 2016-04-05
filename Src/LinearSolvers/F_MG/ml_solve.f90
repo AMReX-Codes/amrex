@@ -326,7 +326,7 @@ contains
     type(mg_tower ), intent(inout) :: mgt(:)
     type(multifab ), intent(inout) :: rh(:)
     type(multifab ), intent(inout) :: full_soln(:)
-    type(bndry_reg), intent(inout) :: fine_flx(2:)
+    type(bndry_reg), intent(inout) :: fine_flx(:)
     integer        , intent(in   ) :: do_diagnostics
 
     integer         :: i, dm, n, nlevs, mglev
@@ -343,7 +343,7 @@ contains
 
     !   Put boundary conditions of soln in fine_flx to get correct grad(phi) at
     !     crse-fine boundaries (after soln correctly interpolated in ml_cc)
-    do n = 2,nlevs
+    do n = 1,nlevs
        mglev = mgt(n)%nlevels
        do i = 1, dm
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,0), &
