@@ -140,23 +140,23 @@ program ffdcompare
 
      else if (dm .eq. 3) then
 
-        ! do m=1,mf_c%nc
-        !    do k = lo(3),hi(3)
-        !       do j = lo(2),hi(2)
-        !          do i = lo(1),hi(1)
-        !             cp(i,j,k,m) = 0.125d0*( &
-        !                  + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)  ,m) &
-        !                  + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)  ,m) &
-        !                  + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)  ,m) &
-        !                  + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)  ,m) &
-        !                  + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)+1,m) &
-        !                  + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)+1,m) &
-        !                  + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)+1,m) &
-        !                  + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)+1,m) )
-        !          end do
-        !       end do
-        !    end do
-        ! end do
+        do m=1,mf_c%nc
+           do k = lo(3),hi(3)
+              do j = lo(2),hi(2)
+                 do i = lo(1),hi(1)
+                    cp(i,j,k,m) = 0.125d0*( &
+                         + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)  ,m) &
+                         + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)  ,m) &
+                         + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)  ,m) &
+                         + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)  ,m) &
+                         + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)+1,m) &
+                         + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)+1,m) &
+                         + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)+1,m) &
+                         + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)+1,m) )
+                 end do
+              end do
+           end do
+        end do
 
      end if
 
