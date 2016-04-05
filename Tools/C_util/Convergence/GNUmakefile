@@ -15,10 +15,11 @@ USE_MPI       = TRUE
 # Base name of the executable.
 #
 #EBASE = Add
+EBASE = CoarsenPlotfile
 #EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
 #EBASE = DiffSameDomainRefined
-EBASE = DiffSameDomainRefinedStag
+#EBASE = DiffSameDomainRefinedStag
 #EBASE = DiffSameGrid2
 #EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined
