@@ -178,7 +178,7 @@ program fcoarsen
      dx = (prob_hi - prob_lo) / box_extent(boxarray_bbox(layout_boxarray(la_f)))
 
      call fabio_ml_multifab_write_d(err, rr0, plotfile_c, vnames, &
-                                    la_c%lap%pd, prob_lo, prob_hi, time, dx(1:dm))
+                                    la_c%lap%pd, prob_lo, prob_hi, time, dx(1:dm)*rr(1:dm))
   end if
 
   call destroy(ba_c)
