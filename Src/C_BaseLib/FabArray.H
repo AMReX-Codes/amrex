@@ -2081,6 +2081,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 	  bool                 isSrc,
                           CpOp                 op)
 {
+#ifdef BL_USE_MPI
     BL_PROFILE("FabArray::copyInter()");
 
     bool isDest( ! isSrc);
@@ -2182,7 +2183,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         return;
     }
 
-#ifdef BL_USE_MPI
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
