@@ -140,11 +140,8 @@ program fcoarsen
         do m=1,mf_c%nc
            do j = lo(2),hi(2)
               do i = lo(1),hi(1)
-                 cp(i,j,1,m) = 0.25d0*( &
-                      + fp(i*rr(1)  ,j*rr(2)  ,1,m) &
-                      + fp(i*rr(1)+1,j*rr(2)  ,1,m) &
-                      + fp(i*rr(1)  ,j*rr(2)+1,1,m) &
-                      + fp(i*rr(1)+1,j*rr(2)+1,1,m) )
+                 cp(i,j,1,m) = sum( fp(i*rr(1):i*rr(1)+rr(1)-1, &
+                                       j*rr(2):j*rr(2)+rr(2)-1, 1,m) ) / product(rr(1:dm))                 
               end do
            end do
         end do
@@ -155,15 +152,9 @@ program fcoarsen
            do k = lo(3),hi(3)
               do j = lo(2),hi(2)
                  do i = lo(1),hi(1)
-                    cp(i,j,k,m) = 0.125d0*( &
-                         + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)  ,m) &
-                         + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)  ,m) &
-                         + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)  ,m) &
-                         + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)  ,m) &
-                         + fp(i*rr(1)  ,j*rr(2)  ,k*rr(3)+1,m) &
-                         + fp(i*rr(1)+1,j*rr(2)  ,k*rr(3)+1,m) &
-                         + fp(i*rr(1)  ,j*rr(2)+1,k*rr(3)+1,m) &
-                         + fp(i*rr(1)+1,j*rr(2)+1,k*rr(3)+1,m) )
+                    cp(i,j,k,m) = sum( fp(i*rr(1):i*rr(1)+rr(1)-1, &
+                                          j*rr(2):j*rr(2)+rr(2)-1, &
+                                          k*rr(3):k*rr(3)+rr(3)-1, m) ) / product(rr(1:dm))  
                  end do
               end do
            end do
