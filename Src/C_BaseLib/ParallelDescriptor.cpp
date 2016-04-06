@@ -17,6 +17,11 @@ extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
     void bl_fortran_sidecar_mpi_comm_free (int fcomm);
+    void bl_fortran_set_nprocs_sidecar(int nSidecarProcs,
+                    int m_nProcs_all, int m_nProcs_comp, int m_nProcs_sidecar,
+                    int fcomma, int fcommc, int fcomms,
+                    int fgrpa, int fgrpc, int fgrps,
+                    int m_MyId_all, int m_MyId_comp, int m_MyId_sidecar);
 }
 #endif
 
@@ -367,8 +372,17 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
     }
 
 #ifdef BL_USE_FORTRAN_MPI
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_mpi_comm_init (fcomm);
+    int fcomma = MPI_Comm_c2f(ParallelDescriptor::CommunicatorAll());
+    int fcommc = MPI_Comm_c2f(ParallelDescriptor::CommunicatorComp());
+    int fcomms = MPI_Comm_c2f(ParallelDescriptor::CommunicatorSidecar());
+    int fgrpa  = MPI_Group_c2f(ParallelDescriptor::CommunicatorAll());
+    int fgrpc  = MPI_Group_c2f(ParallelDescriptor::CommunicatorComp());
+    int fgrps  = MPI_Group_c2f(ParallelDescriptor::CommunicatorSidecar());
+    bl_fortran_set_nprocs_sidecar(nSidecarProcs,
+                                  m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar,
+                                  fcomma, fcommc, fcomms,
+                                  fgrpa, fgrpc, fgrps,
+                                  m_MyId_all, m_MyId_comp, m_MyId_sidecar);
 #endif
 
 }

@@ -269,7 +269,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     exename += argv[0];
 #endif
 
-    while (!The_Initialize_Function_Stack.empty())
+    while ( ! The_Initialize_Function_Stack.empty())
     {
         //
         // Call the registered function.
@@ -438,6 +438,7 @@ BoxLib::Finalize (bool finalize_parallel)
 #ifdef IN_TRANSIT
 	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
 	bl_fortran_sidecar_mpi_comm_free(fcomm);
+	std::cout << "******** BoxLib::Finalize:  check bl_fortran_sidecar_mpi_comm_free" << std::endl;
 #else
 	bl_fortran_mpi_comm_free();
 #endif

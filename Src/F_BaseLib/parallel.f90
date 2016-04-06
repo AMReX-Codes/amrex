@@ -22,9 +22,26 @@ module parallel
 
   integer, parameter :: parallel_root = 0
   integer, parameter, private :: io_processor_node = parallel_root
+  integer, parameter, private :: m_myproc_undefined  = -11
+  integer, parameter, private :: m_myproc_notingroup = -22
+  integer, parameter, private :: m_nprocs_undefined  = -33
   integer, private :: m_nprocs = -1
+  integer, private :: m_nprocs_all     = m_nprocs_undefined
+  integer, private :: m_nprocs_comp    = m_nprocs_undefined
+  integer, private :: m_nprocs_sidecar = m_nprocs_undefined
+  integer, private :: m_nsidecar_procs = 0
   integer, private :: m_myproc = -1
+  integer, private :: m_myproc_all     = m_myproc_undefined
+  integer, private :: m_myproc_comp    = m_myproc_undefined
+  integer, private :: m_myproc_sidecar = m_myproc_undefined
   integer, private :: m_comm   = -1
+  integer, private :: m_comm_all     = MPI_COMM_NULL
+  integer, private :: m_comm_comp    = MPI_COMM_NULL
+  integer, private :: m_comm_sidecar = MPI_COMM_NULL
+  integer, private :: m_comm_inter   = MPI_COMM_NULL
+  integer, private :: m_group_all     = MPI_GROUP_NULL
+  integer, private :: m_group_comp    = MPI_GROUP_NULL
+  integer, private :: m_group_sidecar = MPI_GROUP_NULL
   integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
   integer, private :: mpi_ll_t = -1
   integer, private :: MPI_MAX_LONG = -1
@@ -264,6 +281,7 @@ contains
     call MPI_Op_create(sum_long, .true., MPI_SUM_LONG, ierr)
     call parallel_barrier()
   end subroutine parallel_initialize
+
   subroutine parallel_finalize(comm, do_finalize_MPI)
     integer, intent(in), optional :: comm
     logical, intent(in), optional :: do_finalize_MPI
@@ -388,10 +406,34 @@ contains
     integer r
     r = m_nprocs
   end function parallel_nprocs
+  pure function parallel_nprocs_all() result(r)
+    integer r
+    r = m_nprocs_all
+  end function parallel_nprocs_all
+  pure function parallel_nprocs_comp() result(r)
+    integer r
+    r = m_nprocs_comp
+  end function parallel_nprocs_comp
+  pure function parallel_nprocs_sidecar() result(r)
+    integer r
+    r = m_nprocs_sidecar
+  end function parallel_nprocs_sidecar
   pure function parallel_myproc() result(r)
     integer r
     r = m_myproc
   end function parallel_myproc
+  pure function parallel_myproc_all() result(r)
+    integer r
+    r = m_myproc_all
+  end function parallel_myproc_all
+  pure function parallel_myproc_comp() result(r)
+    integer r
+    r = m_myproc_comp
+  end function parallel_myproc_comp
+  pure function parallel_myproc_sidecar() result(r)
+    integer r
+    r = m_myproc_sidecar
+  end function parallel_myproc_sidecar
   function parallel_IOProcessor(comm) result(r)
     logical :: r
     integer, intent(in), optional :: comm
@@ -592,7 +634,7 @@ contains
 
 
 
-  ! REDUCETION operator creation:
+  ! REDUCTION operator creation:
   function parallel_op_create_d(fcn, commute) result(r)
     integer :: r
     logical, intent(in), optional :: commute
@@ -2190,5 +2232,35 @@ contains
   subroutine parallel_comm_free_from_c () bind(c, name='bl_fortran_mpi_comm_free')
     call parallel_finalize(do_finalize_MPI=.false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
+
+  subroutine parallel_set_nprocs_sidecar(nscp, npa, npc, nps, coma, comc, coms, &
+                                         grpa, grpc, grps, mpa, mpc, mps)          &
+                                         bind(c, name='bl_fortran_set_nprocs_sidecar')
+    use iso_c_binding
+    integer(c_int), intent(in), value :: nscp, npa, npc, nps, coma, comc, coms
+    integer(c_int), intent(in), value :: grpa, grpc, grps, mpa, mpc, mps
+    m_nsidecar_procs = nscp
+    m_nprocs_all = npa
+    m_nprocs_comp = npc
+    m_nprocs_sidecar = nps
+    m_comm_all = coma
+    m_comm_comp = comc
+    m_comm_sidecar = coms
+    m_group_all = grpa
+    m_group_comp = grpc
+    m_group_sidecar = grps
+    m_myproc_all = mpa
+    m_myproc_comp = mpc
+    m_myproc_sidecar = mps
+    if(m_myproc_comp.ne.m_myproc_notingroup) then
+      m_nprocs = m_nprocs_comp
+      m_myproc = m_myproc_comp
+      m_comm   = m_comm_comp
+    else
+      m_nprocs = m_nprocs_sidecar
+      m_myproc = m_myproc_sidecar
+      m_comm   = m_comm_sidecar
+    endif
+  end subroutine parallel_set_nprocs_sidecar
 
 end module parallel
