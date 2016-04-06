@@ -1077,6 +1077,7 @@ BoxArray::RecvBoxArray(BoxArray &ba)
     ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0, ParallelDescriptor::CommunicatorInter());
     ba = BoxLib::UnSerializeBoxArray(ba_serial);
 }
+#endif
 
 
 Array<int> BoxLib::SerializeBoxArray(const BoxArray &ba)
@@ -1108,7 +1109,6 @@ BoxArray BoxLib::UnSerializeBoxArray(const Array<int> &serarray)
   }
   return ba;
 }
-#endif
 
 
 void
