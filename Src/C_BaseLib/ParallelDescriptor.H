@@ -21,7 +21,6 @@
 
 namespace ParallelDescriptor
 {
-    const int SidecarQuitSignal = -1;
     //
     // Used as default argument to ParallelDescriptor::Barrier().
     //
@@ -147,8 +146,7 @@ namespace ParallelDescriptor
     // distribution maps and moving FAB data in MultiFabs).
     //
     void
-    SetNProcsSidecar (int nscp);
-
+    SetNProcsSidecar (int nscp); 
     //
     // return the number of MPI ranks number local to the comp or sidecar groups
     //
