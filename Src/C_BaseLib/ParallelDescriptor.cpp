@@ -12,6 +12,15 @@
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
 
+#ifdef BL_USE_FORTRAN_MPI
+extern "C" {
+    void bl_fortran_mpi_comm_init (int fcomm);
+    void bl_fortran_mpi_comm_free ();
+    void bl_fortran_sidecar_mpi_comm_free (int fcomm);
+}
+#endif
+
+
 namespace ParallelDescriptor
 {
     //
@@ -203,8 +212,6 @@ ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv,
                                    MPI_Comm mpi_comm)
 {
-    //m_comm_all = mpi_comm;
-
     int sflag(0);
 
     BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
@@ -358,6 +365,12 @@ ParallelDescriptor::SetNProcsSidecar (int nscp)
 	          << m_nProcs_comp << "  " << m_nProcs_sidecar << std::endl;
       BoxLib::Abort("**** Error:  bad nProcs in ParallelDescriptor::StartParallel()");
     }
+
+#ifdef BL_USE_FORTRAN_MPI
+    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
+    bl_fortran_mpi_comm_init (fcomm);
+#endif
+
 }
 
 double
@@ -1626,38 +1639,3 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     charBuf[fileLength] = '\0';
 }
 
-
-void
-ParallelDescriptor::SidecarProcess ()
-{
-BoxLib::Abort("dont use ParallelDescriptor::SidecarProcess()");
-#ifdef IN_TRANSIT
-#ifdef BL_USE_MPI
-    bool finished(false);
-    int sidecarSignal(-1);
-    while (!finished)
-    {
-        // Receive the sidecarSignal from the compute group.
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter());
-
-        // Process the sidecarSignal with the set of user-provided sidecarSignal handlers
-        for (ParallelDescriptor::SH_LIST::iterator it=The_Signal_Handler_List.begin();
-             it != The_Signal_Handler_List.end() && sidecarSignal != ParallelDescriptor::SidecarQuitSignal;
-             ++it)
-        {
-          sidecarSignal = (* *it)(sidecarSignal);
-        }
-
-        if (sidecarSignal == ParallelDescriptor::SidecarQuitSignal)
-        {
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Sidecars received the quit sidecarSignal." << std::endl;
-            finished = true;
-            break;
-        }
-    }
-    if (ParallelDescriptor::IOProcessor())
-      std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
-#endif
-#endif
-}
