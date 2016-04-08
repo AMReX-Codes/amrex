@@ -177,7 +177,7 @@ class DistributionMapping
     //
     // Initialize the topological proximity map
     //
-    static void InitProximityMap();
+    static void InitProximityMap(bool makeMap = false, bool reinit = false);
     static int NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
     static int ProcNumberFromRank(const int rank);
     static std::vector<int> RanksFromProcNumber(const int procnum);

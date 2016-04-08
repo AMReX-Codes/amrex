@@ -188,9 +188,14 @@ DistributionMapping::Initialize ()
     }
 
     if(proximityMap.size() != ParallelDescriptor::NProcs()) {
-      //std::cout << "#00#::Initialize: proximityMap not resized yet." << std::endl;
       proximityMap.resize(ParallelDescriptor::NProcs(), 0);
       proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
+      for(int i(0); i < proximityMap.size(); ++i) {
+        proximityMap[i] = i;
+      }
+      for(int i(0); i < proximityOrder.size(); ++i) {
+        proximityOrder[i] = i;
+      }
     }
     totalBoxPoints.resize(ParallelDescriptor::NProcs(), 0);
 
@@ -2084,9 +2089,12 @@ DistributionMapping::GetProcNumber() {
 
 
 void
-DistributionMapping::InitProximityMap()
+DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
 {
   static bool pMapInited(false);
+  if(reinit) {
+    pMapInited = false;
+  }
   if(pMapInited) {
     return;
   }
@@ -2096,6 +2104,16 @@ DistributionMapping::InitProximityMap()
 
   proximityMap.resize(ParallelDescriptor::NProcs(), 0);
   proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
+  if(makeMap == false) {  // ---- dont use proximity mapping
+    for(int i(0); i < proximityMap.size(); ++i) {
+      proximityMap[i] = i;
+    }
+    for(int i(0); i < proximityOrder.size(); ++i) {
+      proximityOrder[i] = i;
+    }
+    pMapInited = true;
+    return;
+  }
 
 #ifdef BL_USE_MPI
   int procNumber(GetProcNumber());
@@ -2118,8 +2136,7 @@ DistributionMapping::InitProximityMap()
     pNumOrderRank[pnor++] = mmit->second;
   }
 
-  if(ParallelDescriptor::IOProcessor())
-  {
+  if(ParallelDescriptor::IOProcessor()) {
     bool bRandomClusters(false);
     Box tBox;
     FArrayBox tFab;
@@ -2128,8 +2145,7 @@ DistributionMapping::InitProximityMap()
 #else
     std::ifstream ifs("topolcoords.3d.fab");
 #endif
-    if( ! ifs.good() && ! bRandomClusters)
-    {
+    if( ! ifs.good() && ! bRandomClusters) {
       std::cerr << "**** In DistributionMapping::InitProximityMap():  "
                 << "cannot open topolcoords.3d.fab   using defaults." << std::endl;
 
@@ -2189,7 +2205,6 @@ DistributionMapping::InitProximityMap()
         for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
           int pnum(tFab(iv, nc));
           if(pnum >= 0) {
-            //std::cout << ">>>> iv pnum = " << iv << "  " << pnum << std::endl;
             pNumTopIVMap.insert(std::pair<int, IntVect>(pnum, iv));
 	    topIVpNumMM.insert(std::pair<IntVect, int>(iv, pnum));
           }
@@ -2202,8 +2217,7 @@ DistributionMapping::InitProximityMap()
       int maxijk(0);
 
       int i(0);
-      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv))
-      {
+      for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
           tFabTokens.push_back(SFCToken(i++, iv, 1.0));
           const SFCToken &token = tFabTokens.back();
 
@@ -2213,16 +2227,14 @@ DistributionMapping::InitProximityMap()
       }
       // Set SFCToken::MaxPower for BoxArray.
       int m(0);
-      for ( ; (1<<m) <= maxijk; m++)
-      {
+      for( ; (1<<m) <= maxijk; m++) {
         // do nothing
       }
       SFCToken::MaxPower = m;
       std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());  // sfc order
       FArrayBox tFabSFC(tBox, 1);
       tFabSFC.setVal(-1.0);
-      for(int i(0); i < tFabTokens.size(); ++i)
-      {
+      for(int i(0); i < tFabTokens.size(); ++i) {
 	IntVect &iv = tFabTokens[i].m_idx;
         tFabSFC(iv) = i;
       }
