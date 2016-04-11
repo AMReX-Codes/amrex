@@ -359,8 +359,8 @@ ifdef USE_GCC
     #
     # Force C to have same flags as C++.
     #
-    COPTF := $(CXXOPTF) -std=c99
-    CDEBF := $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=gnu99
+    CDEBF := $(CXXDEBF) -std=gnu99
 
     ifeq ($(USE_CXX11),TRUE)
         CXXOPTF += -std=c++11
@@ -1033,7 +1033,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
