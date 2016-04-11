@@ -66,12 +66,12 @@ contains
     logical       , intent(in   ) :: fill_fine_boundary
 
     ! local
-    integer         :: i,j,k,it,ng_f,ng_c,dm
+    integer         :: i,j,k,it,ng_f,ng_c,dm,ratio
     integer         :: c_lo(get_dim(crse(1))),c_hi(get_dim(crse(1)))
     integer         :: f_lo(get_dim(crse(1))),f_hi(get_dim(crse(1)))
 
     type(fgassoc)   :: fgasc
-    type(box)       :: bx
+    type(box)       :: bx, pd_fine, pd_crse
     type(boxarray)  :: f_ba,c_ba,tba
     type(multifab)  :: f_mf,c_mf
     type(layout)    :: f_la,c_la,fine_la
@@ -83,6 +83,11 @@ contains
     call build(bpt, "create_umac_grown")
 
     dm = get_dim(crse(1))
+
+    ! Here we just measure in the x-direction, assuming the ratio is the same in every dimension
+    pd_fine = get_pd(get_layout(fine(1)))
+    pd_crse = get_pd(get_layout(crse(1)))
+    ratio = (pd_fine%hi(1)-pd_fine%lo(1)+1) / (pd_crse%hi(1)-pd_crse%lo(1)+1) 
 
     do i=1,dm
        call multifab_fill_boundary(crse(i))
@@ -97,8 +102,8 @@ contains
     call boxarray_build_copy(c_ba,fgasc%ba)
 
     do i=1,nboxes(f_ba)
-       call set_box(c_ba,i,coarsen(get_box(f_ba,i),2))
-       call set_box(f_ba,i,refine(get_box(c_ba,i),2))
+       call set_box(c_ba,i,coarsen(get_box(f_ba,i),ratio))
+       call set_box(f_ba,i,refine(get_box(c_ba,i),ratio))
     end do
 
     do i=1,dm
@@ -128,9 +133,9 @@ contains
           c_hi =  upb(get_box(c_mf,j))
           select case(dm)
           case (2)
-             call pc_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f,cp(:,:,1,1),ng_c)
+             call pc_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f,cp(:,:,1,1),ng_c,ratio)
           case (3)
-             call pc_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f,cp(:,:,:,1),ng_c)
+             call pc_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f,cp(:,:,:,1),ng_c,ratio)
           end select
        end do
        !$OMP END PARALLEL DO
@@ -151,9 +156,9 @@ contains
           c_hi =  upb(get_box(c_mf,j))
           select case(dm)
           case (2)
-             call lin_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f)
+             call lin_edge_interp_2d(i,f_lo,c_lo,c_hi,fp(:,:,1,1),ng_f,ratio)
           case (3)
-             call lin_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f)
+             call lin_edge_interp_3d(i,f_lo,c_lo,c_hi,fp(:,:,:,1),ng_f,ratio)
           end select
        end do
        !$OMP END PARALLEL DO
@@ -183,13 +188,15 @@ contains
        
        ng_f = nghost(fine(1))
 
-       ! Must fill bounday because correct_umac_goown_?d uses ghost cells of fine
+       ! Must fill boundary because correct_umac_grown_?d uses ghost cells of fine
        ! For those ghost cells that also overlap with other valid boxes of fine,
        ! f_mf did not touch them, and they must be filled with fill_boundary.
        call multifab_fill_boundary(fine(i))
        !
        ! Now fix up umac grown due to the low order interpolation we used.
+       ! Right now we only do this if ratio == 2 because we haven't figured this out for ratio == 4 yet.
        !
+       if (ratio .eq. 2) then
        !$OMP PARALLEL DO PRIVATE(j,fp,f_lo,f_hi)
        do j=1, nfabs(fine(i))
           fp   => dataptr(fine(i), j)
@@ -203,6 +210,7 @@ contains
           end select
        end do
        !$OMP END PARALLEL DO
+       end if
 
        if (fill_fine_boundary) call multifab_fill_boundary(fine(i))
     end do
@@ -215,10 +223,10 @@ contains
 
   end subroutine create_umac_grown
 
-  subroutine pc_edge_interp_2d(dir,f_lo,c_lo,c_hi,fine,ng_f,crse,ng_c)
+  subroutine pc_edge_interp_2d(dir,f_lo,c_lo,c_hi,fine,ng_f,crse,ng_c,r)
 
     integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:)
-    integer,         intent(in   ) :: ng_f,ng_c
+    integer,         intent(in   ) :: ng_f,ng_c,r
     real(kind=dp_t), intent(inout) :: fine(f_lo(1)-ng_f:,f_lo(2)-ng_f:)
     real(kind=dp_t), intent(inout) :: crse(c_lo(1)-ng_c:,c_lo(2)-ng_c:)
 
@@ -229,8 +237,8 @@ contains
 
        do j=c_lo(2),c_hi(2)
           do i=c_lo(1),c_hi(1)+1
-             do jj=0,1
-                fine(2*i,2*j+jj) = crse(i,j)
+             do jj=0,r-1
+                fine(r*i,r*j+jj) = crse(i,j)
              end do
           end do
        end do
@@ -239,8 +247,8 @@ contains
 
        do j=c_lo(2),c_hi(2)+1
           do i=c_lo(1),c_hi(1)
-             do ii=0,1
-                fine(2*i+ii,2*j) = crse(i,j)
+             do ii=0,r-1
+                fine(r*i+ii,r*j) = crse(i,j)
              end do
           end do
        end do
@@ -249,10 +257,10 @@ contains
 
   end subroutine pc_edge_interp_2d
 
-  subroutine pc_edge_interp_3d(dir,f_lo,c_lo,c_hi,fine,ng_f,crse,ng_c)
+  subroutine pc_edge_interp_3d(dir,f_lo,c_lo,c_hi,fine,ng_f,crse,ng_c,r)
 
     integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:)
-    integer,         intent(in   ) :: ng_f,ng_c
+    integer,         intent(in   ) :: ng_f,ng_c,r
     real(kind=dp_t), intent(inout) :: fine(f_lo(1)-ng_f:,f_lo(2)-ng_f:,f_lo(3)-ng_f:)
     real(kind=dp_t), intent(inout) :: crse(c_lo(1)-ng_c:,c_lo(2)-ng_c:,c_lo(3)-ng_c:)
 
@@ -264,9 +272,9 @@ contains
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)+1
-                do kk=0,1
-                   do jj=0,1
-                      fine(2*i,2*j+jj,2*k+kk) = crse(i,j,k)
+                do kk=0,r-1
+                   do jj=0,r-1
+                      fine(r*i,r*j+jj,r*k+kk) = crse(i,j,k)
                    end do
                 end do
              end do
@@ -278,9 +286,9 @@ contains
        do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)+1
              do i=c_lo(1),c_hi(1)
-                do kk=0,1
-                   do ii=0,1
-                      fine(2*i+ii,2*j,2*k+kk) = crse(i,j,k)
+                do kk=0,r-1
+                   do ii=0,r-1
+                      fine(r*i+ii,r*j,r*k+kk) = crse(i,j,k)
                    end do
                 end do
              end do
@@ -292,9 +300,9 @@ contains
        do k=c_lo(3),c_hi(3)+1
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
-                do jj=0,1
-                   do ii=0,1
-                      fine(2*i+ii,2*j+jj,2*k) = crse(i,j,k)
+                do jj=0,r-1
+                   do ii=0,r-1
+                      fine(r*i+ii,r*j+jj,r*k) = crse(i,j,k)
                    end do
                 end do
              end do
@@ -305,9 +313,9 @@ contains
 
   end subroutine pc_edge_interp_3d
 
-  subroutine lin_edge_interp_2d(dir,f_lo,c_lo,c_hi,fine,ng_f)
+  subroutine lin_edge_interp_2d(dir,f_lo,c_lo,c_hi,fine,ng_f,r)
 
-    integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:),ng_f
+    integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:),ng_f,r
     real(kind=dp_t), intent(inout) :: fine(f_lo(1)-ng_f:,f_lo(2)-ng_f:)
 
     ! local
@@ -315,31 +323,59 @@ contains
 
     if (dir .eq. 1) then
 
-       do j=c_lo(2),c_hi(2)
+       if (r.eq.2) then
+          do j=c_lo(2),c_hi(2)
           do i=c_lo(1),c_hi(1)
-             do jj=0,1
-                fine(2*i+1,2*j+jj) = HALF*(fine(2*i,2*j+jj)+fine(2*i+2,2*j+jj))
+             do jj=0,r-1
+                fine(r*i+1,r*j+jj) = HALF*(fine(r*i,r*j+jj)+fine(r*i+2,r*j+jj))
              end do
           end do
-       end do
+          end do
+       else if (r.eq.4) then
+          do j=c_lo(2),c_hi(2)
+          do i=c_lo(1),c_hi(1)
+             do jj=0,r-1
+                fine(r*i+1,r*j+jj) = FOURTH*(THREE*fine(r*i,r*j+jj)+      fine(r*i+4,r*j+jj))
+                fine(r*i+2,r*j+jj) = FOURTH*(  TWO*fine(r*i,r*j+jj)+  TWO*fine(r*i+4,r*j+jj))
+                fine(r*i+3,r*j+jj) = FOURTH*(      fine(r*i,r*j+jj)+THREE*fine(r*i+4,r*j+jj))
+             end do
+          end do
+          end do
+       else 
+          call bl_error("Bad ratio in lin_edge_interp_2d")
+       end if
 
     else
 
-       do j=c_lo(2),c_hi(2)
+       if (r.eq.2) then
+          do j=c_lo(2),c_hi(2)
           do i=c_lo(1),c_hi(1)
              do ii=0,1
                 fine(2*i+ii,2*j+1) = HALF*(fine(2*i+ii,2*j)+fine(2*i+ii,2*j+2))
              end do
           end do
-       end do
+          end do
+       else if (r.eq.4) then
+          do j=c_lo(2),c_hi(2)
+          do i=c_lo(1),c_hi(1)
+             do ii=0,r-1
+                fine(r*i+ii,r*j+1) = FOURTH*(THREE*fine(r*i+ii,r*j)+      fine(r*i+ii,r*j+4))
+                fine(r*i+ii,r*j+2) = FOURTH*(  TWO*fine(r*i+ii,r*j)+  TWO*fine(r*i+ii,r*j+4))
+                fine(r*i+ii,r*j+3) = FOURTH*(      fine(r*i+ii,r*j)+THREE*fine(r*i+ii,r*j+4))
+             end do
+          end do
+          end do
+       else 
+          call bl_error("Bad ratio in lin_edge_interp_2d")
+       end if
 
     end if    
 
   end subroutine lin_edge_interp_2d
 
-  subroutine lin_edge_interp_3d(dir,f_lo,c_lo,c_hi,fine,ng_f)
+  subroutine lin_edge_interp_3d(dir,f_lo,c_lo,c_hi,fine,ng_f,r)
 
-    integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:),ng_f
+    integer,         intent(in   ) :: dir,f_lo(:),c_lo(:),c_hi(:),ng_f,r
     real(kind=dp_t), intent(inout) :: fine(f_lo(1)-ng_f:,f_lo(2)-ng_f:,f_lo(3)-ng_f:)
 
     ! local
@@ -347,48 +383,99 @@ contains
 
     if (dir .eq. 1) then
 
-       do k=c_lo(3),c_hi(3)
+       if (r.eq. 2) then
+          do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
                 do kk=0,1
-                   do jj=0,1
-                      fine(2*i+1,2*j+jj,2*k+kk) = &
-                           HALF*(fine(2*i,2*j+jj,2*k+kk)+fine(2*i+2,2*j+jj,2*k+kk))
-                   end do
+                do jj=0,1
+                   fine(2*i+1,2*j+jj,2*k+kk) = HALF*(fine(2*i,2*j+jj,2*k+kk)+fine(2*i+2,2*j+jj,2*k+kk))
+                end do
                 end do
              end do
           end do
-       end do
+          end do
+       else if (r.eq. 4) then
+          do k=c_lo(3),c_hi(3)
+          do j=c_lo(2),c_hi(2)
+             do i=c_lo(1),c_hi(1)
+                do kk=0,r-1
+                do jj=0,r-1
+                   fine(4*i+1,4*j+jj,4*k+kk) = FOURTH*(THREE*fine(4*i,4*j+jj,4*k+kk)+      fine(4*i+4,4*j+jj,4*k+kk))
+                   fine(4*i+2,4*j+jj,4*k+kk) = FOURTH*(  TWO*fine(4*i,4*j+jj,4*k+kk)+  TWO*fine(4*i+4,4*j+jj,4*k+kk))
+                   fine(4*i+3,4*j+jj,4*k+kk) = FOURTH*(      fine(4*i,4*j+jj,4*k+kk)+THREE*fine(4*i+4,4*j+jj,4*k+kk))
+                end do
+                end do
+             end do
+          end do
+          end do
+       else 
+          call bl_error("Bad ratio in lin_edge_interp_3d")
+       end if
 
     else if (dir .eq. 2) then
 
-       do k=c_lo(3),c_hi(3)
+       if (r.eq. 2) then
+          do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
                 do kk=0,1
-                   do ii=0,1
-                      fine(2*i+ii,2*j+1,2*k+kk) = &
-                           HALF*(fine(2*i+ii,2*j,2*k+kk)+fine(2*i+ii,2*j+2,2*k+kk))
-                   end do
+                do ii=0,1
+                   fine(2*i+ii,2*j+1,2*k+kk) = HALF*(fine(2*i+ii,2*j,2*k+kk)+fine(2*i+ii,2*j+2,2*k+kk))
+                end do
                 end do
              end do
           end do
-       end do
+          end do
+       else if (r.eq.4) then
+          do k=c_lo(3),c_hi(3)
+          do j=c_lo(2),c_hi(2)
+             do i=c_lo(1),c_hi(1)
+                do kk=0,r-1
+                do ii=0,r-1
+                   fine(4*i+ii,4*j+1,4*k+kk) = FOURTH*(THREE*fine(4*i+ii,4*j,4*k+kk)+      fine(4*i+ii,4*j+4,4*k+kk))
+                   fine(4*i+ii,4*j+2,4*k+kk) = FOURTH*(  TWO*fine(4*i+ii,4*j,4*k+kk)+  TWO*fine(4*i+ii,4*j+4,4*k+kk))
+                   fine(4*i+ii,4*j+3,4*k+kk) = FOURTH*(      fine(4*i+ii,4*j,4*k+kk)+THREE*fine(4*i+ii,4*j+4,4*k+kk))
+                end do
+                end do
+             end do
+          end do
+          end do
+       else
+          call bl_error("Bad ratio in lin_edge_interp_3d")
+       end if
 
     else
 
-       do k=c_lo(3),c_hi(3)
+       if (r.eq. 2) then
+          do k=c_lo(3),c_hi(3)
           do j=c_lo(2),c_hi(2)
              do i=c_lo(1),c_hi(1)
-                do jj=0,1
-                   do ii=0,1
-                      fine(2*i+ii,2*j+jj,2*k+1) = &
-                           HALF*(fine(2*i+ii,2*j+jj,2*k)+fine(2*i+ii,2*j+jj,2*k+2))
-                   end do
+                do jj=0,r-1
+                do ii=0,r-1
+                   fine(2*i+ii,2*j+jj,2*k+1) = HALF*(fine(2*i+ii,2*j+jj,2*k)+fine(2*i+ii,2*j+jj,2*k+2))
+                end do
                 end do
              end do
           end do
-       end do
+          end do
+       else if (r.eq.4) then
+          do k=c_lo(3),c_hi(3)
+          do j=c_lo(2),c_hi(2)
+             do i=c_lo(1),c_hi(1)
+                do jj=0,r-1
+                do ii=0,r-1
+                   fine(4*i+ii,4*j+jj,4*k+1) = FOURTH*(THREE*fine(4*i+ii,4*j+jj,4*k)+      fine(4*i+ii,4*j+jj,4*k+4))
+                   fine(4*i+ii,4*j+jj,4*k+2) = FOURTH*(  TWO*fine(4*i+ii,4*j+jj,4*k)+  TWO*fine(4*i+ii,4*j+jj,4*k+4))
+                   fine(4*i+ii,4*j+jj,4*k+3) = FOURTH*(      fine(4*i+ii,4*j+jj,4*k)+THREE*fine(4*i+ii,4*j+jj,4*k+4))
+                end do
+                end do
+             end do
+          end do
+          end do
+       else
+          call bl_error("Bad ratio in lin_edge_interp_3d")
+       end if
 
     end if    
 
