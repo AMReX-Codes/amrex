@@ -3664,9 +3664,9 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     RedistributeParticles();
 #endif
 
-    for(int lev(0); lev < amr_level.size(); ++lev) {
-      amr_level[lev].Check();
-    }
+    //for(int lev(0); lev <= finest_level; ++lev) {
+      //amr_level[lev].Check();
+    //}
 }
 
 
@@ -4035,7 +4035,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	  amr_level.set(lev,(*levelbld)());
 	}
       }
-      for(int lev(0); lev < amr_level.size(); ++lev) {
+      for(int lev(0); lev <= finest_level; ++lev) {
         amr_level[lev].AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
 	                              ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
       }
@@ -4096,7 +4096,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     RedistributeParticles();
 #endif
 
-    //for(int lev(0); lev < amr_level.size(); ++lev) {
+    //for(int lev(0); lev <= finest_level; ++lev) {
       //amr_level[lev].Check();
     //}
 
