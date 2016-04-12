@@ -1281,8 +1281,6 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
         FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
 
-	const MultiFab& mf_fpi = fpi.get_mf();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
