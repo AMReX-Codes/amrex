@@ -3725,6 +3725,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
+    BL_PROFILE("FabArray::FillBoundary()");
     FillBoundary_nowait(0, nComp(), cross);
     FillBoundary_finish();
 }
@@ -3735,6 +3736,7 @@ FabArray<FAB>::FillBoundary (int  scomp,
                              int  ncomp,
                              bool cross)
 {
+    BL_PROFILE("FabArray::FillBoundary()");
     FillBoundary_nowait(scomp, ncomp, cross);
     FillBoundary_finish();
 }
