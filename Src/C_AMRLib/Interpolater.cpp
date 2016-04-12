@@ -8,7 +8,7 @@
 #include <INTERP_F.H>
 
 //
-// Note that in 1D, CellConservativeLinear and CellQuadratic
+// Note that in 1D, CellConservativeProtected and CellQuadratic
 // interpolation are turned off in a hardwired way.
 //
 
