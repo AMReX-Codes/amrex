@@ -36,6 +36,7 @@ int  verbose       = 2;
 Real tolerance_rel = 1.e-8;
 Real tolerance_abs = 0.0;
 int  maxiter       = 100; 
+int  fixediter     = 0;
 int  plot_rhs      = 0; 
 int  plot_beta     = 0;
 int  plot_soln     = 0; 
@@ -172,6 +173,7 @@ int main(int argc, char* argv[])
   pp.query("tol_rel", tolerance_rel);
   pp.query("tol_abs", tolerance_abs);
   pp.query("maxiter", maxiter);
+  pp.query("fixediter", fixediter);
   pp.query("plot_rhs" , plot_rhs);
   pp.query("plot_beta", plot_beta);
   pp.query("plot_soln", plot_soln);
@@ -672,6 +674,7 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 		    PArray<MultiFab>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
 {
   BL_PROFILE("solve_with_Cpp()");
+
   BndryData bd(bs, 1, geom);
   set_boundary(bd, rhs, 0);
 
@@ -681,6 +684,12 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
 
   MultiGrid mg(abec_operator);
   mg.setVerbose(verbose);
+  
+  if (fixediter) {
+      mg.setMaxIter(maxiter);
+      mg.setFixedIter(fixediter);
+  }
+
   mg.solve(soln, rhs, tolerance_rel, tolerance_abs);
 
   PArray<MultiFab> grad_phi(BL_SPACEDIM, PArrayManage);
