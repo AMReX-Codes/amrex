@@ -148,6 +148,12 @@ ifeq ($(MEM_PROFILE),TRUE)
   C$(BOXLIB_BASE)_headers += MemProfiler.H
 endif
 
+# Basic Profiler
+ifeq ($(TINY_PROFILE),TRUE)
+  C$(BOXLIB_BASE)_headers += TinyProfiler.H
+  C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
+endif
+
 ifeq ($(USE_PARTICLES), TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
   C$(BOXLIB_BASE)_sources += Particles.cpp

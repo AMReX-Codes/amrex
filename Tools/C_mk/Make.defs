@@ -235,6 +235,13 @@ ifeq ($(MEM_PROFILE),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifndef TINY_PROFILE
+  TINY_PROFILE = FALSE
+endif
+ifdef PROFILE
+  TINY_PROFILE = FALSE
+endif
+
 ifndef TEST
   TEST = FALSE
 endif
@@ -805,7 +812,12 @@ ifeq ($(PROFILE),TRUE)
         ProfSuffix	:= .PROF
     endif
 else
-    ProfSuffix	:=
+    ifeq ($(TINY_PROFILE),TRUE)
+        CPPFLAGS    += -DBL_TINY_PROFILING
+        ProfSuffix	:= .TPROF
+    else
+        ProfSuffix	:=
+    endif
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
