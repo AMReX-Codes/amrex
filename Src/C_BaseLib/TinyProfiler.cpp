@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <set>
 
 #include <TinyProfiler.H>
 #include <ParallelDescriptor.H>
@@ -15,8 +16,12 @@
 #endif
 
 std::stack<std::pair<Real,Real> >          TinyProfiler::ttstack;
-std::map<std::string, TinyProfiler::Stats> TinyProfiler::stats;
+std::map<std::string, TinyProfiler::Stats> TinyProfiler::statsmap;
 Real                                       TinyProfiler::t_init = std::numeric_limits<Real>::max();
+
+namespace {
+    std::set<std::string> improperly_nested_timers;
+}
 
 TinyProfiler::TinyProfiler (const std::string &funcname)
     : fname(funcname),
@@ -46,8 +51,11 @@ TinyProfiler::start ()
     if (!running) {
 	running = true;
 	Real t = ParallelDescriptor::second();
+
 	ttstack.push(std::make_pair(t, 0.0));
-	Stats& st = stats[fname];
+	global_depth = ttstack.size();
+
+	Stats& st = statsmap[fname];
 	++st.depth;
     }
 }
@@ -62,16 +70,27 @@ TinyProfiler::stop ()
 	running = false;
 	Real t = ParallelDescriptor::second();
 
-	std::pair<Real,Real> tt = ttstack.top();
+	if (ttstack.size() != global_depth) {
+	    if (ttstack.size() < global_depth) {
+		improperly_nested_timers.insert(fname);
+		return;
+	    } else {
+		while (ttstack.size() > global_depth) {
+		    ttstack.pop();
+		};
+	    }
+	}
+
+	std::pair<Real,Real>& tt = ttstack.top();
 	ttstack.pop();
 
-	// first: wall time when the pair is pushed into the stack
+        // first: wall time when the pair is pushed into the stack
 	// second: accumulated dt of children
 
 	Real dtin = t - tt.first; // elapsed time since start() is called.
 	Real dtex = dtin - tt.second;
 
-	Stats& st = stats[fname];
+	Stats& st = statsmap[fname];
 	--st.depth;
 	++st.n;
 	if (st.depth == 0)
@@ -96,15 +115,37 @@ TinyProfiler::Finalize ()
 {
     Real t_final = ParallelDescriptor::second();
 
+    bool properly_nested = improperly_nested_timers.size() == 0;
+    ParallelDescriptor::ReduceBoolAnd(properly_nested);
+    if (!properly_nested) {
+	Array<std::string> local_imp, sync_imp;
+	bool synced;
+	for (std::set<std::string>::const_iterator it = improperly_nested_timers.begin();
+	     it != improperly_nested_timers.end(); ++it)
+	{
+	    local_imp.push_back(*it);
+	}
+
+	BoxLib::SyncStrings(local_imp, sync_imp, synced);
+
+	if (ParallelDescriptor::IOProcessor()) {
+	    std::cout << "\nWARNING: TinyProfilers not properly nested!!!\n";
+	    for (int i = 0; i < sync_imp.size(); ++i) {
+		std::cout << "     " << sync_imp[i] << "\n";
+	    }
+	    std::cout << std::endl;
+	}
+    }
+
     // make a local copy so that any functions call after this will be recorded in the local copy.
-    std::map<std::string, Stats> lstats = stats;
+    std::map<std::string, Stats> lstatsmap = statsmap;
 
     // make sure the set of profiled functions is the same on all processors
     Array<std::string> localStrings, syncedStrings;
     bool alreadySynced;
 
-    for(std::map<std::string, Stats>::const_iterator it = lstats.begin();
-	it != lstats.end(); ++it)
+    for(std::map<std::string, Stats>::const_iterator it = lstatsmap.begin();
+	it != lstatsmap.end(); ++it)
     {
 	localStrings.push_back(it->first);
     }
@@ -113,14 +154,14 @@ TinyProfiler::Finalize ()
 
     if( ! alreadySynced) {  // add the new name
 	for(int i(0); i < syncedStrings.size(); ++i) {
-	    std::map<std::string, Stats>::const_iterator it = lstats.find(syncedStrings[i]);
-	    if(it == lstats.end()) {
-		lstats.insert(std::make_pair(syncedStrings[i], Stats()));
+	    std::map<std::string, Stats>::const_iterator it = lstatsmap.find(syncedStrings[i]);
+	    if(it == lstatsmap.end()) {
+		lstatsmap.insert(std::make_pair(syncedStrings[i], Stats()));
 	    }
 	}
     }
 
-    if (lstats.empty()) return;
+    if (lstatsmap.empty()) return;
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -130,8 +171,8 @@ TinyProfiler::Finalize ()
     long maxncalls = 0;
 
     // now collect global data onto the ioproc
-    for (std::map<std::string, Stats>::const_iterator it = lstats.begin();
-	it != lstats.end(); ++it)
+    for (std::map<std::string, Stats>::const_iterator it = lstatsmap.begin();
+	it != lstatsmap.end(); ++it)
     {
 	long n = it->second.n;
 	Real dts[2] = {it->second.dtin, it->second.dtex};

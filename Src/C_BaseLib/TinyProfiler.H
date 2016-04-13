@@ -54,9 +54,10 @@ private:
 
     std::string fname;
     bool running;
+    int global_depth;
 
     static std::stack<std::pair<Real,Real> > ttstack;
-    static std::map<std::string, Stats> stats;
+    static std::map<std::string, Stats> statsmap;
     static Real t_init;
 };
 
