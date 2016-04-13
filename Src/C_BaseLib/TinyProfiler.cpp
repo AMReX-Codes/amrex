@@ -16,7 +16,7 @@
 
 std::stack<std::pair<Real,Real> >          TinyProfiler::ttstack;
 std::map<std::string, TinyProfiler::Stats> TinyProfiler::stats;
-Real TinyProfiler::t_init = std::numeric_limits<Real>::max();
+Real                                       TinyProfiler::t_init = std::numeric_limits<Real>::max();
 
 TinyProfiler::TinyProfiler (const std::string &funcname)
     : fname(funcname),
@@ -47,6 +47,8 @@ TinyProfiler::start ()
 	running = true;
 	Real t = ParallelDescriptor::second();
 	ttstack.push(std::make_pair(t, 0.0));
+	Stats& st = stats[fname];
+	++st.depth;
     }
 }
 
@@ -70,8 +72,10 @@ TinyProfiler::stop ()
 	Real dtex = dtin - tt.second;
 
 	Stats& st = stats[fname];
+	--st.depth;
 	++st.n;
-	st.dtin += dtin;
+	if (st.depth == 0)
+	    st.dtin += dtin;
 	st.dtex += dtex;
 
 	if (!ttstack.empty()) {

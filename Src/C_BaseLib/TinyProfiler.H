@@ -25,7 +25,8 @@ public:
 private:
     struct Stats   // stats on a single process
     {
-	Stats () : n(0L), dtin(0.0), dtex(0.0) { } 
+	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { } 
+	int  depth; // recursive depth
 	long n;     // number of calls
 	Real dtin;  // inclusive dt
 	Real dtex;  // exclusive dt
@@ -56,7 +57,6 @@ private:
 
     static std::stack<std::pair<Real,Real> > ttstack;
     static std::map<std::string, Stats> stats;
-
     static Real t_init;
 };
 
