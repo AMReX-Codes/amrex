@@ -1310,9 +1310,6 @@ FabArray<FAB>::defined (int K) const
 	return true;
     }
     else {
-    std::cout << ParallelDescriptor::MyProcAll() << ":<<<<<<<< li K m_fabs_v.size() m_fabs_v[li] indexArray.size() = " << li << "  "
-              << K << "  " << m_fabs_v.size() << "  " << m_fabs_v[li] << "  "
-	      << indexArray.size() << std::endl;
 	return false;
     }
 }
@@ -1326,9 +1323,6 @@ FabArray<FAB>::defined (const MFIter& mfi) const
 	return true;
     }
     else {
-//std::cout << ParallelDescriptor::MyProcAll() << ":<<<<<<<< li m_fabs_v.size() m_fabs_v[li] indexArray.size() = " << li << "  "
-////<< m_fabs_v.size() << "  " << m_fabs_v[li] << "  "
-////<< indexArray.size() << std::endl;
 	return false;
     }
 }
@@ -2635,23 +2629,15 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
     }
   }
 
-  std::cout << ParallelDescriptor::MyProcAll() << "::***************** FabArray<FAB>::AddProcsToComp:  more data to copy." << std::endl;
   // ---- m_bdkey
   if(scsMyId != ioProcNumSCS) {
     m_bdkey =  getBDKey();
   }
 
-  // ---- m_TheTileArrayCache
-  // ---- m_TAC_stats
-  // ---- m_BD_count
-  // ---- m_FA_stats
-  std::cout << ParallelDescriptor::MyProcAll() << "::***************** m_FA_stats: nfa mnfa mnba mnbau nb = "
-            << m_FA_stats.num_fabarrays << "  "
-            << m_FA_stats.max_num_fabarrays << "  "
-            << m_FA_stats.max_num_boxarrays << "  "
-            << m_FA_stats.max_num_ba_use << "  "
-            << m_FA_stats.num_build << "  "
-            << std::endl;
+  // ---- static TACache     m_TheTileArrayCache;     // ---- cleared with flushTileArrayCache();
+  // ---- static CacheStats  m_TAC_stats;             // ---- leave as is for now
+  // ---- m_BD_count                                  // ---- leave as is for now
+  // ---- m_FA_stats                                  // ---- leave as is for now
 
 
   // ---- unlock
@@ -2948,7 +2934,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         int remoteProc     = fabArray->DistributionMap()[faindex];
 	if(remoteProc >= ParallelDescriptor::NProcs()) {
-	  std::cout << ParallelDescriptor::MyProcAll() << ":: _here 40:  nProcs remoteProc = "
+	  std::cout << ParallelDescriptor::MyProcAll() << ":: _in AddBoxDoIt:  nProcs remoteProc = "
 	            << ParallelDescriptor::NProcs() << "  " << remoteProc << std::endl;
 	  BoxLib::Abort("Bad remoteProc");
 	}
@@ -3151,18 +3137,6 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
-for (FabComTagContainer::const_iterator it = fabComTagList.begin(), End = fabComTagList.end(); it != End; ++it) {
-    const int NProcs = ParallelDescriptor::NProcs();
-  if(it->procThatNeedsData > NProcs-1) {
-	std::cout <<  ParallelDescriptor::MyProcAll() << ":: _here 30:  NProcs it->procThatNeedsData = "
-	          << NProcs << "  " << it->procThatNeedsData << std::endl;
-  }
-  if(it->procThatHasData > NProcs-1) {
-	std::cout <<  ParallelDescriptor::MyProcAll() << ":: _here 30:  NProcs it->procThatHasData = "
-	          << NProcs << "  " << it->procThatHasData << std::endl;
-  }
-}
-BoxLib::USleep(10);
     for (FabComTagContainer::const_iterator it = fabComTagList.begin(),
              End = fabComTagList.end();
          it != End;
@@ -3208,10 +3182,6 @@ BoxLib::USleep(10);
 
         for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
 	{
-	    if(it->first > RcvsArray.size()-1) {
-	      std::cout <<  ParallelDescriptor::MyProcAll() << ":: _here 20:  NProcs it->first = "
-	                << NProcs << "  " << it->first << std::endl;
-	    }
             RcvsArray[it->first] = it->second;
 	}
 
