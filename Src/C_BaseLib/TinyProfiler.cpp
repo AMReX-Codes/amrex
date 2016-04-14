@@ -66,41 +66,40 @@ TinyProfiler::stop ()
 #ifdef _OPENMP
 #pragma omp master
 #endif
-    if (running) {
+    if (running) 
+    {
 	running = false;
 	Real t = ParallelDescriptor::second();
 
-	if (ttstack.size() != global_depth) {
-	    if (ttstack.size() < global_depth) {
-		improperly_nested_timers.insert(fname);
-		return;
-	    } else {
-		while (ttstack.size() > global_depth) {
-		    ttstack.pop();
-		};
+	while (ttstack.size() > global_depth) {
+	    ttstack.pop();
+	};
+
+	if (ttstack.size() == global_depth)
+	{
+	    std::pair<Real,Real>& tt = ttstack.top();
+	    ttstack.pop();
+	    
+	    // first: wall time when the pair is pushed into the stack
+	    // second: accumulated dt of children
+	    
+	    Real dtin = t - tt.first; // elapsed time since start() is called.
+	    Real dtex = dtin - tt.second;
+	    
+	    Stats& st = statsmap[fname];
+	    --st.depth;
+	    ++st.n;
+	    if (st.depth == 0)
+		st.dtin += dtin;
+	    st.dtex += dtex;
+	    
+	    if (!ttstack.empty()) {
+		std::pair<Real,Real>& parent = ttstack.top();
+		parent.second += dtin;
 	    }
-	}
-
-	std::pair<Real,Real>& tt = ttstack.top();
-	ttstack.pop();
-
-        // first: wall time when the pair is pushed into the stack
-	// second: accumulated dt of children
-
-	Real dtin = t - tt.first; // elapsed time since start() is called.
-	Real dtex = dtin - tt.second;
-
-	Stats& st = statsmap[fname];
-	--st.depth;
-	++st.n;
-	if (st.depth == 0)
-	    st.dtin += dtin;
-	st.dtex += dtex;
-
-	if (!ttstack.empty()) {
-	    std::pair<Real,Real>& parent = ttstack.top();
-	    parent.second += dtin;
-	}
+	} else {
+	    improperly_nested_timers.insert(fname);
+	} 
     }
 }
 
