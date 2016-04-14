@@ -2997,7 +2997,7 @@ Amr::grid_places (int              lbase,
         //      if the grids at that level aren't already fixed.
         //
 
-        if ( !(useFixedCoarseGrids && levc < useFixedUpToLevel) ) {
+        if ( ! (useFixedCoarseGrids && levc < useFixedUpToLevel) ) {
             amr_level[levc].errorEst(tags,
                                      TagBox::CLEAR,TagBox::SET,time,
                                      n_error_buf[levc],ngrow);
@@ -4053,12 +4053,12 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       }
 
       // ---- handle BoundaryPointLists
-      BroadcastBoundaryPointList(intersect_lox, ioProcNumSCS, scsComm);
-      BroadcastBoundaryPointList(intersect_loy, ioProcNumSCS, scsComm);
-      BroadcastBoundaryPointList(intersect_loz, ioProcNumSCS, scsComm);
-      BroadcastBoundaryPointList(intersect_hix, ioProcNumSCS, scsComm);
-      BroadcastBoundaryPointList(intersect_hiy, ioProcNumSCS, scsComm);
-      BroadcastBoundaryPointList(intersect_hiz, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_lox, scsMyId, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_loy, scsMyId, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_loz, scsMyId, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hix, scsMyId, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hiy, scsMyId, ioProcNumSCS, scsComm);
+      BroadcastBoundaryPointList(intersect_hiz, scsMyId, ioProcNumSCS, scsComm);
 
 #ifdef USE_STATIONDATA
       BoxLib::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
@@ -4158,15 +4158,29 @@ Amr::RedistributeGrids(int how) {
 
 
 void
-Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int fromProc, MPI_Comm comm) {
-  // ---- typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
-  std::cout << "**** Amr::BroadcastBoundaryPointList not yet implemented." << std::endl;
-  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
+Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm) {
+  std::cout << "**** Amr::BroadcastBoundaryPointList:  bl.size() =  " << bpl.size() << std::endl;
+  bool bcastSource(ParallelDescriptor::MyProc() == rootId);
+  Array<int> pF, pS;
+  Array<double> bplD;
   if(bcastSource) {  // ---- initialize the source data
+    std::multimap< std::pair<int, int>, double >::iterator it;
+    for(it = bpl.begin(); it != bpl.end(); ++it) {
+      pF.push_back(it->first.first);
+      pS.push_back(it->first.second);
+      bplD.push_back(it->second);
+    }
   }
+  BoxLib::BroadcastArray(pF, myLocalId, rootId, comm);
+  BoxLib::BroadcastArray(pS, myLocalId, rootId, comm);
+  BoxLib::BroadcastArray(bplD, myLocalId, rootId, comm);
+
+  BL_ASSERT(pF.size() == pS.size() == bplD.size());
 
   if( ! bcastSource) {
-    // resize...
+    for(int i(0); i < pF.size(); ++i) {
+      bpl.insert(std::make_pair(std::make_pair(pF[i],pS[i]),bplD[i]));
+    }
   }
 }
 
