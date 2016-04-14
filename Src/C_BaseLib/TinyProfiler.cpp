@@ -77,8 +77,7 @@ TinyProfiler::stop ()
 
 	if (ttstack.size() == global_depth)
 	{
-	    std::pair<Real,Real>& tt = ttstack.top();
-	    ttstack.pop();
+	    const std::pair<Real,Real>& tt = ttstack.top();
 	    
 	    // first: wall time when the pair is pushed into the stack
 	    // second: accumulated dt of children
@@ -93,6 +92,7 @@ TinyProfiler::stop ()
 		st.dtin += dtin;
 	    st.dtex += dtex;
 	    
+	    ttstack.pop();
 	    if (!ttstack.empty()) {
 		std::pair<Real,Real>& parent = ttstack.top();
 		parent.second += dtin;
