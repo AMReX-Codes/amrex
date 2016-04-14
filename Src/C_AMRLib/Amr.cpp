@@ -4122,7 +4122,7 @@ Amr::RedistributeGrids(int how) {
       DistributionMapping::InitProximityMap();
       DistributionMapping::Initialize();
 
-        Array<BoxArray> allBoxes(amr_level.size());
+        Array<BoxArray> allBoxes(finest_level + 1);
         for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
           allBoxes[ilev] = boxArray(ilev);
         }
