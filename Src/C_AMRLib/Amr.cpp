@@ -4175,7 +4175,8 @@ Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootI
   BoxLib::BroadcastArray(pS, myLocalId, rootId, comm);
   BoxLib::BroadcastArray(bplD, myLocalId, rootId, comm);
 
-  BL_ASSERT(pF.size() == pS.size() == bplD.size());
+  BL_ASSERT(pF.size() == pS.size());
+  BL_ASSERT(pS.size() == bplD.size());
 
   if( ! bcastSource) {
     for(int i(0); i < pF.size(); ++i) {
