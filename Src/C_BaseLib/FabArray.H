@@ -2684,6 +2684,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
 
     }
 
+    ParallelDescriptor::ReduceIntSum(nFabsMoved);
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
@@ -2820,10 +2821,6 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
       }
     }
   }
-
-  // ---- we could defer this, not do it, or just do it the first time through
-  ParallelDescriptor::ReduceIntSum(nFabsSent);
-
 
   // ---- wait for all the data to move
   // ---- we could defer Waitall for multiple calls to MoveFabs with a multi-step process
