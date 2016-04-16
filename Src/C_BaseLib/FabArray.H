@@ -986,8 +986,11 @@ protected:
     //
     std::vector<FAB*> m_fabs_v;
 
+    // ---- currently active fabarrays:  <ngrids to find distmap, <aFAPId, FabArray *> >
     static std::map<int, std::map<int, FabArray<FAB> *> > allocatedFAPointers;
-           // <ngrids to find distmap, <FabArrayID, FabArray *> >
+
+    // ---- set of ids of fabarrays created with Fab_noalloc
+    static std::set<int> noallocFAPIds;
 
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
@@ -1357,6 +1360,9 @@ FAB&
 FabArray<FAB>::operator[] (int K)
 {
     int li = localindex(K);
+    if(li < 0 || li >= indexArray.size()) {
+      std::cout << ParallelDescriptor::MyProcAll() << ":: bad index:  li ia.size aFAPId = " << li << "  " << indexArray.size() << "  " << aFAPId << std::endl;
+    }
     BL_ASSERT(li >=0 && li < indexArray.size());
     return *m_fabs_v[li];
 }
@@ -1366,29 +1372,6 @@ void
 FabArray<FAB>::clear ()
 {
     clearThisBD();
-
-    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && distributionMap.size() > 0) {
-        std::cout << "**** In FabArray::clear():: map not found:  size = "
-                  << distributionMap.size() << std::endl;
-      }
-#endif
-    } else {
-      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-      faPtrCachedMap.erase(aFAPId);
-#ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-        std::cout << "**** In FabArray::clear()::  size distmapngrids = "
-                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-      }
-#endif
-      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
-        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
-      }
-    }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
 	delete *it;
@@ -1448,6 +1431,32 @@ template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     m_FA_stats.recordDelete();
+
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+#ifdef DEBUG_AFAP
+      if(ParallelDescriptor::IOProcessor() && distributionMap.size() > 0) {
+        std::cout << "**** In FabArray::clear():: map not found:  size = "
+                  << distributionMap.size() << std::endl;
+      }
+#endif
+    } else {
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      faPtrCachedMap.erase(aFAPId);
+#ifdef DEBUG_AFAP
+      if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+        std::cout << "**** In FabArray::clear()::  size distmapngrids = "
+                  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+      }
+#endif
+      if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
+        FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+      }
+    }
+
+    noallocFAPIds.erase(aFAPId);
+
     clear();
 }
 
@@ -1529,20 +1538,27 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     
     if(alloc == Fab_allocate) {
       AllocFabs();
-
-      typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-                   FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-      if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-	int dmapSize(distributionMap.size());
-	std::map<int, FabArray<FAB> *> tempMap;
-	tempMap.insert(std::make_pair(aFAPId, this));
-        FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
-
-      } else {
-        std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-        faPtrCachedMap.insert(std::make_pair(aFAPId, this));
-      }
     }
+
+    typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+                 FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+    if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+      int dmapSize(distributionMap.size());
+      std::map<int, FabArray<FAB> *> tempMap;
+      tempMap.insert(std::make_pair(aFAPId, this));
+      FabArray<FAB>::allocatedFAPointers.insert(std::make_pair(dmapSize, tempMap));
+
+    } else {
+      std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+      faPtrCachedMap.insert(std::make_pair(aFAPId, this));
+    }
+
+    if(alloc == Fab_allocate) {
+      noallocFAPIds.erase(aFAPId);
+    } else {
+      noallocFAPIds.insert(aFAPId);
+    }
+
 }
 
 template <class FAB>
@@ -2533,15 +2549,18 @@ FabArray<FAB>::PrintFAPointers ()
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
     std::cout << "}}}} }}}} _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
-              << faPtrCachedMap.size()+1 << "  " << afapIter->first-1 << std::endl;
+              << faPtrCachedMap.size() << "  " << afapIter->first-1 << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
       FabArray<FAB> *faPtr = it->second;
-      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock dmID nDM = " 
+      std::set<int>::iterator nait = noallocFAPIds.find(faPtr->AllocatedFAPtrID());
+      bool fabsAllocated(nait == noallocFAPIds.end());
+      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock dmID nDM fabsAlloced = " 
                 << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock
 		<< "  " << faPtr->DistributionMap().DistMapID()
-		<< "  " << faPtr->DistributionMap().NDistMaps() << std::endl;
+		<< "  " << faPtr->DistributionMap().NDistMaps()
+		<< "  " << fabsAllocated << std::endl;
     }
   }
   DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
@@ -2629,6 +2648,21 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
     }
   }
 
+  // ---- noallocFAPIds
+  Array<int> setArray;
+  if(scsMyId == ioProcNumSCS) {
+    std::set<int>::iterator it;
+    for(it = noallocFAPIds.begin(); it != noallocFAPIds.end(); ++it) {
+      setArray.push_back(*it);
+    }
+  }
+  BoxLib::BroadcastArray(setArray, scsMyId, ioProcNumSCS, scsComm);
+  if(scsMyId != ioProcNumSCS) {
+    for(int i(0); i < setArray.size(); ++i) {
+      noallocFAPIds.insert(setArray[i]);
+    }
+  }
+
   // ---- m_bdkey
   if(scsMyId != ioProcNumSCS) {
     m_bdkey =  getBDKey();
@@ -2678,7 +2712,7 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
         BoxLib::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
       }
 
-      nFabsMoved = faPtr->MoveFabs(newDistMapArray);  // ---- just keep the last one
+      nFabsMoved = faPtr->MoveFabs(newDistMapArray);  // ---- just use the last return value
 
       lastFAPtr = faPtr;
 
@@ -2714,6 +2748,14 @@ FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
     }
 
   }
+
+  if(ParallelDescriptor::IOProcessor()) {
+    std::cout << "FabArray<FAB>::MoveAllFabs:  noallocFAPIds.size() = " << noallocFAPIds.size() << std::endl;
+    std::set<int>::iterator nait;
+    for(nait = noallocFAPIds.begin(); nait != noallocFAPIds.end(); ++nait) {
+        std::cout << "FabArray<FAB>::MoveAllFabs:  noallocFAPIds = " << *nait << std::endl;
+    }
+  }
 }
 
 
@@ -2746,6 +2788,19 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   }
   if(newDistMapArray == distributionMap.ProcessorMap()) {
     return 0;
+  }
+
+  // ---- try to resolve fabarrays that were created with Fab_noallocate
+  std::set<int>::iterator it = noallocFAPIds.find(aFAPId);
+  bool fabsNotAllocated(it != noallocFAPIds.end());
+  if(fabsNotAllocated) {
+    if(ok()) {  // ---- this fabarray was created with Fab_noallocate then allocated later
+      noallocFAPIds.erase(aFAPId);
+    } else {
+      return 0;
+    }
+  } else {
+    BL_ASSERT(ok());
   }
 
   // ---- determine which fabs to move
@@ -3733,5 +3788,6 @@ FabArray<FAB>::FillBoundary (int  scomp,
 
 
 template <typename FAB> std::map<int, std::map<int, FabArray<FAB> *> > FabArray<FAB>::allocatedFAPointers;
+template <typename FAB> std::set<int> FabArray<FAB>::noallocFAPIds;
 
 #endif /*BL_FABARRAY_H*/
