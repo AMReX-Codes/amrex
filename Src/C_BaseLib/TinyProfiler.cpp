@@ -112,6 +112,13 @@ TinyProfiler::Initialize ()
 void
 TinyProfiler::Finalize ()
 {
+    static bool finalized = false;
+    if (finalized) {
+	return;
+    } else {
+	finalized = true;
+    }
+
     Real t_final = ParallelDescriptor::second();
 
     bool properly_nested = improperly_nested_timers.size() == 0;
