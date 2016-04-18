@@ -1360,9 +1360,6 @@ FAB&
 FabArray<FAB>::operator[] (int K)
 {
     int li = localindex(K);
-    if(li < 0 || li >= indexArray.size()) {
-      std::cout << ParallelDescriptor::MyProcAll() << ":: bad index:  li ia.size aFAPId = " << li << "  " << indexArray.size() << "  " << aFAPId << std::endl;
-    }
     BL_ASSERT(li >=0 && li < indexArray.size());
     return *m_fabs_v[li];
 }
