@@ -8,6 +8,10 @@
 #include <StateDescriptor.H>
 #include <ParallelDescriptor.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
@@ -786,80 +790,87 @@ StateDataPhysBCFunct::doit (MultiFab& mf, Real time)
     const Real*    dx          = geom.CellSize();
     const RealBox& prob_domain = geom.ProbDomain();
 
-    FArrayBox tmp;
-
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+#endif
     {
-	FArrayBox& dest = mf[mfi];
-	const Box& bx = dest.box();
+	FArrayBox tmp;
 
-	bool has_phys_bc = false;
-	bool is_periodic = false;
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
-	    if (geom.isPeriodic(i)) {
-		is_periodic = is_periodic || touch;
-	    } else {
-		has_phys_bc = has_phys_bc || touch;
-	    }
-	}
-
-	if (has_phys_bc)
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
-
-	    if (is_periodic) // fix up corner
-	    {
-		Box GrownDomain = domain;
-		
-		for (int dir = 0; dir < BL_SPACEDIM; dir++)
-		{
-		    if (!geom.isPeriodic(dir))
-		    {
-			const int lo = domainlo[dir] - bx.smallEnd(dir);
-			const int hi = bx.bigEnd(dir) - domainhi[dir];
-			if (lo > 0) GrownDomain.growLo(dir,lo);
-			if (hi > 0) GrownDomain.growHi(dir,hi);
-		    }
+	    FArrayBox& dest = mf[mfi];
+	    const Box& bx = dest.box();
+	    
+	    bool has_phys_bc = false;
+	    bool is_periodic = false;
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
+		if (geom.isPeriodic(i)) {
+		    is_periodic = is_periodic || touch;
+		} else {
+		has_phys_bc = has_phys_bc || touch;
 		}
-
-		for (int dir = 0; dir < BL_SPACEDIM; dir++)
+	    }
+	    
+	    if (has_phys_bc)
+	    {
+		statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+		
+		if (is_periodic) // fix up corner
 		{
-		    if (!geom.isPeriodic(dir)) continue;
-
-		    Box lo_slab = bx;
-		    Box hi_slab = bx;
-		    lo_slab.shift(dir, domain.length(dir));
-		    hi_slab.shift(dir,-domain.length(dir));
-		    lo_slab &= GrownDomain;
-		    hi_slab &= GrownDomain;
-
-		    if (lo_slab.ok())
+		    Box GrownDomain = domain;
+		    
+		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
 		    {
-			lo_slab.shift(dir,-domain.length(dir));
-
-			tmp.resize(lo_slab,num_comp);
-			tmp.copy(dest,dest_comp,0,num_comp);
-			tmp.shift(dir,domain.length(dir));
-
-			statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
-
-			tmp.shift(dir,-domain.length(dir));
-			dest.copy(tmp,0,dest_comp,num_comp);
+			if (!geom.isPeriodic(dir))
+			{
+			    const int lo = domainlo[dir] - bx.smallEnd(dir);
+			    const int hi = bx.bigEnd(dir) - domainhi[dir];
+			    if (lo > 0) GrownDomain.growLo(dir,lo);
+			    if (hi > 0) GrownDomain.growHi(dir,hi);
+			}
 		    }
 		    
-		    if (hi_slab.ok())
+		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
 		    {
-			hi_slab.shift(dir,domain.length(dir));
+			if (!geom.isPeriodic(dir)) continue;
 			
-			tmp.resize(hi_slab,num_comp);
-			tmp.copy(dest,dest_comp,0,num_comp);
-			tmp.shift(dir,-domain.length(dir));
-
-			statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
-
-			tmp.shift(dir,domain.length(dir));
-			dest.copy(tmp,0,dest_comp,num_comp);
+			Box lo_slab = bx;
+			Box hi_slab = bx;
+			lo_slab.shift(dir, domain.length(dir));
+			hi_slab.shift(dir,-domain.length(dir));
+			lo_slab &= GrownDomain;
+			hi_slab &= GrownDomain;
+			
+			if (lo_slab.ok())
+			{
+			    lo_slab.shift(dir,-domain.length(dir));
+			    
+			    tmp.resize(lo_slab,num_comp);
+			    tmp.copy(dest,dest_comp,0,num_comp);
+			    tmp.shift(dir,domain.length(dir));
+			    
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    
+			    tmp.shift(dir,-domain.length(dir));
+			    dest.copy(tmp,0,dest_comp,num_comp);
+			}
+			
+			if (hi_slab.ok())
+			{
+			    hi_slab.shift(dir,domain.length(dir));
+			    
+			    tmp.resize(hi_slab,num_comp);
+			    tmp.copy(dest,dest_comp,0,num_comp);
+			    tmp.shift(dir,-domain.length(dir));
+			    
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    
+			    tmp.shift(dir,domain.length(dir));
+			    dest.copy(tmp,0,dest_comp,num_comp);
+			}
 		    }
 		}
 	    }
