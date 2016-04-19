@@ -1,5 +1,10 @@
 
 #include <FillPatchUtil.H>
+#include <cmath>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace BoxLib
 {
@@ -14,9 +19,34 @@ namespace BoxLib
 	BL_ASSERT(scomp+ncomp <= smf[0].nComp());
 	BL_ASSERT(smf.size() == stime.size());
 
-	if (smf.size() == 1) 
+	if (smf.size() <= 2) 
 	{
-	    mf.copy(smf[0], scomp, 0, ncomp);
+	    if (smf.size() == 1) {
+		mf.copy(smf[0], scomp, 0, ncomp);
+	    } else {
+		BL_ASSERT(smf[0].boxArray() == smf[1].boxArray());
+		if (mf.boxArray() == smf[0].boxArray()) {
+#ifdef _OPENMP
+#pragma omp parallel 
+#endif
+		    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+		    {
+			const Box& bx = mfi.tilebox();
+			mf[mfi].linInterp(smf[0][mfi],
+					  scomp,
+					  smf[1][mfi],
+					  scomp,
+					  stime[0],
+					  stime[1],
+					  time,
+					  bx,
+					  0,
+					  ncomp);
+		    }
+		} else {
+		    BoxLib::Abort("FillPatchSingleLevel: MFs do not have the same BoxArray");
+		}
+	    }
 
 	    mf.FillBoundary_nowait();
 	    geom.FillPeriodicBoundary_nowait(mf);
@@ -26,10 +56,7 @@ namespace BoxLib
 
 	    physbcf.doit(mf, time);
 	} 
-	else if (smf.size() == 2) 
-	{
-	    BoxLib::Abort("FillPatchSingleLevel: linear interpolation in time not implemented yet");
-	} else {
+	else {
 	    BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
     }
