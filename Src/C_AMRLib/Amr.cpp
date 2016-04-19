@@ -3180,8 +3180,8 @@ Amr::grid_places (int              lbase,
 		  bool ok = true;
 		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
 		    int len = bli->length(d);
-		  int bf = blocking_factor[levf];
-		  ok &= (len/bf) * bf == len;
+		    int bf = blocking_factor[levf];
+		    ok &= (len/bf) * bf == len;
 		  }
 		  if (!ok) {
 		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
