@@ -887,6 +887,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 void
 FillPatchIterator::FillFromLevel0 (int boxGrow, Real time, int index, int scomp, int ncomp)
 {
+    BL_PROFILE("FillFromLevel0");
+
     BL_ASSERT(m_amrlevel.level == 0);
 
     m_ncomp = ncomp;
