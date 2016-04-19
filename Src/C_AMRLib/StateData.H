@@ -9,9 +9,12 @@
 #include <Array.H>
 #include <VisMF.H>
 #include <DistributionMapping.H>
+#include <PhysBCFunct.H>
+#include <Geometry.H>
 
 class RealBox;
 class StateDescriptor;
+class StateDataPhysBCFunct;
 
 //
 // Current and previous level-time data.
@@ -223,6 +226,10 @@ public:
     //
     bool hasNewData () const { return new_data != 0; }
 
+    void getData (PArray<MultiFab>& data,
+		  std::vector<Real>& datatime,
+		  Real time) const;
+
 private:
 
     struct TimeInterval
@@ -258,6 +265,21 @@ private:
     // Pointer to previous time data.
     //
     MultiFab* old_data;
+};
+
+class StateDataPhysBCFunct
+    : public PhysBCFunct
+{
+public:
+    StateDataPhysBCFunct (StateData& sd, int sc, int dc, int nc, const Geometry& geom_);
+    virtual void doit (MultiFab& mf, Real time);
+private:
+    StateData* statedata;
+    int src_comp;
+    int dest_comp;
+    int num_comp;
+    const Geometry& geom;
+    
 };
 
 #endif /*_StateData_H_*/
