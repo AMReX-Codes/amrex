@@ -6,6 +6,7 @@
 #include <Derive.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
+#include <FillPatchUtil.H>
 #include <ParmParse.H>
 #include <BLProfiler.H>
 
@@ -542,7 +543,11 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(AmrLevel::desc_lst[index].inRange(scomp,ncomp));
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
 
-    Initialize(boxGrow,time,index,scomp,ncomp);
+    if (amrlevel.level == 0) {
+	FillFromLevel0(boxGrow,time,index,scomp,ncomp);
+    } else {
+	Initialize(boxGrow,time,index,scomp,ncomp);
+    }
 
 #if BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
@@ -868,6 +873,40 @@ FillPatchIterator::Initialize (int  boxGrow,
 
         delete fph;
     }
+    //
+    // Call hack to touch up fillPatched data.
+    //
+    m_amrlevel.set_preferred_boundary_values(m_fabs,
+                                             index,
+                                             scomp,
+                                             0,
+                                             ncomp,
+                                             time);
+}
+
+void
+FillPatchIterator::FillFromLevel0 (int boxGrow, Real time, int index, int scomp, int ncomp)
+{
+    BL_ASSERT(m_amrlevel.level == 0);
+
+    m_ncomp = ncomp;
+    
+    m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
+
+    BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
+
+    StateData& statedata = m_amrlevel.state[index];
+
+    PArray<MultiFab> smf;
+    std::vector<Real> stime;
+    statedata.getData(smf,stime,time);
+
+    const Geometry& geom = m_amrlevel.geom;
+
+    StateDataPhysBCFunct physbcf(statedata,scomp,0,m_ncomp,geom);
+
+    BoxLib::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, geom, physbcf);
+
     //
     // Call hack to touch up fillPatched data.
     //
