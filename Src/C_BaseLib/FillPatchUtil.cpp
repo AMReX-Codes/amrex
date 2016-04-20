@@ -59,7 +59,9 @@ namespace BoxLib
 		}
 
 		if (!sameba) {
-		    mf.copy(*dmf, 0, dcomp, ncomp);
+		    int src_ngrow = 0;
+		    int dst_ngrow = mf.nGrow();
+		    mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow);
 		}
 	    }
 
