@@ -7,8 +7,9 @@
 
 namespace BoxLib
 {
-    void FillPatchSingleLevel (MultiFab& mf, Real time, const PArray<MultiFab>& smf,
-			       const std::vector<Real>& stime, int scomp,
+    void FillPatchSingleLevel (MultiFab& mf, Real time, 
+			       const PArray<MultiFab>& smf, const std::vector<Real>& stime, 
+			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunct& physbcf);
 }
 

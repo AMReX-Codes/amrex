@@ -770,17 +770,14 @@ StateData::printTimeInterval (std::ostream &os) const
        << '\n';
 }
 
-StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, int dc, int nc, 
-					    const Geometry& geom_)
+StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry& geom_)
     : statedata(&sd),
       src_comp(sc),
-      dest_comp(dc),
-      num_comp(nc),
       geom(geom_)
 { }
 
 void
-StateDataPhysBCFunct::doit (MultiFab& mf, Real time)
+StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time)
 {
     BL_PROFILE("StateDataPhysBCFunct::doit");
 

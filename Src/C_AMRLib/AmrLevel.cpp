@@ -543,11 +543,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     BL_ASSERT(AmrLevel::desc_lst[index].inRange(scomp,ncomp));
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
 
-    if (amrlevel.level == 0) {
-	FillFromLevel0(boxGrow,time,index,scomp,ncomp);
-    } else {
-	Initialize(boxGrow,time,index,scomp,ncomp);
-    }
+    Initialize(boxGrow,time,index,scomp,ncomp);
 
 #if BL_USE_TEAM
     ParallelDescriptor::MyTeam().MemoryBarrier();
@@ -843,35 +839,54 @@ FillPatchIterator::Initialize (int  boxGrow,
 
     BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
-    FillPatchIteratorHelper* fph = 0;
+    const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const int level = m_amrlevel.level;
 
     for (int i = 0, DComp = 0; i < m_range.size(); i++)
     {
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;
 
-        fph = new FillPatchIteratorHelper(m_amrlevel,
-                                          m_leveldata,
-                                          boxGrow,
-                                          time,
-                                          index,
-                                          SComp,
-                                          NComp,
-                                          desc.interp(SComp));
-
+	if (level == 0)
+	{
+	    FillFromLevel0(time, index, SComp, DComp, NComp);
+	}
+	else
+	{
+	    bool properly_nested;
+	    {
+		int bf = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+		const IntVect& crse_ratio = m_amrlevel.crse_ratio;
+		Box fine_box_tmp(IntVect(D_DECL(bf,bf,bf)), IntVect(D_DECL(2*bf,2*bf,2*bf)));
+		Box crse_box_tmp(IntVect(D_DECL(0 ,0 ,0 )), IntVect(D_DECL(3*bf,3*bf,3*bf)));
+		Box fine_box = BoxLib::convert(fine_box_tmp,boxType);
+		Box crse_box = BoxLib::convert(BoxLib::coarsen(crse_box_tmp,crse_ratio),boxType);
+	    }
+	    
+	    FillPatchIteratorHelper* fph = 0;
+	    fph = new FillPatchIteratorHelper(m_amrlevel,
+					      m_leveldata,
+					      boxGrow,
+					      time,
+					      index,
+					      SComp,
+					      NComp,
+					      desc.interp(SComp));
+	    
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 #endif
-        for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
-        {
-            fph->fill(m_fabs[mfi],DComp,mfi.index());
-        }
+	    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
+	    {
+		fph->fill(m_fabs[mfi],DComp,mfi.index());
+	    }
+
+	    delete fph;
+	}
 
         DComp += NComp;
-
-        delete fph;
     }
     //
     // Call hack to touch up fillPatched data.
@@ -885,17 +900,11 @@ FillPatchIterator::Initialize (int  boxGrow,
 }
 
 void
-FillPatchIterator::FillFromLevel0 (int boxGrow, Real time, int index, int scomp, int ncomp)
+FillPatchIterator::FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp)
 {
     BL_PROFILE("FillFromLevel0");
 
     BL_ASSERT(m_amrlevel.level == 0);
-
-    m_ncomp = ncomp;
-    
-    m_fabs.define(m_leveldata.boxArray(),m_ncomp,boxGrow,Fab_allocate);
-
-    BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
 
     StateData& statedata = m_amrlevel.state[index];
 
@@ -905,19 +914,9 @@ FillPatchIterator::FillFromLevel0 (int boxGrow, Real time, int index, int scomp,
 
     const Geometry& geom = m_amrlevel.geom;
 
-    StateDataPhysBCFunct physbcf(statedata,scomp,0,m_ncomp,geom);
+    StateDataPhysBCFunct physbcf(statedata,scomp,geom);
 
-    BoxLib::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, geom, physbcf);
-
-    //
-    // Call hack to touch up fillPatched data.
-    //
-    m_amrlevel.set_preferred_boundary_values(m_fabs,
-                                             index,
-                                             scomp,
-                                             0,
-                                             ncomp,
-                                             time);
+    BoxLib::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf);
 }
 
 static
@@ -1374,15 +1373,22 @@ AmrLevel::derive (const std::string& name,
         BoxArray srcBA(state[index].boxArray());
         BoxArray dstBA(state[index].boxArray());
 
-        srcBA.convert(rec->boxMap());
         dstBA.convert(rec->deriveType());
 
-        MultiFab srcMF(srcBA, rec->numState(), ngrow);
+	int ngrow_src = ngrow;
+	{
+	    Box bx0 = srcBA[0];
+	    Box bx1 = rec->boxMap()(bx0);
+	    int g = bx1.bigEnd(0) - bx0.bigEnd(0);
+	    ngrow_src += g;
+	}
+
+        MultiFab srcMF(srcBA, rec->numState(), ngrow_src);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
             rec->getRange(k, index, scomp, ncomp);
-            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
+            FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
         mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
@@ -1508,15 +1514,22 @@ AmrLevel::derive (const std::string& name,
         //   and also, implicitly assume the convert in fact is trivial
         BL_ASSERT(mf.boxArray().ixType()==IndexType::TheCellType());
         BoxArray srcBA(mf.boxArray());
-        srcBA.convert(rec->boxMap());
 
-        MultiFab srcMF(srcBA,rec->numState(),ngrow);
+	int ngrow_src = ngrow;
+	{
+	    Box bx0 = srcBA[0];
+	    Box bx1 = rec->boxMap()(bx0);
+	    int g = bx1.bigEnd(0) - bx0.bigEnd(0);
+	    ngrow_src += g;
+	}
+
+        MultiFab srcMF(srcBA,rec->numState(),ngrow_src);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
             rec->getRange(k,index,scomp,ncomp);
 
-            FillPatch(*this,srcMF,ngrow,time,index,scomp,ncomp,dc);
+            FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
 #ifdef CRSEGRNDOMP
