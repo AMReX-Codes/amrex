@@ -6,20 +6,19 @@ endif
 
 C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp Cluster.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
-                Interpolater.cpp StateData.cpp \
+                StateData.cpp \
                 StateDescriptor.cpp TagBox.cpp \
                 AuxBoundaryData.cpp
 
 C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H \
                 Cluster.H Derive.H ErrorList.H FluxRegister.H \
-                LevelBld.H Interpolater.H StateData.H \
+                LevelBld.H StateData.H \
                 StateDescriptor.H TagBox.H PROB_AMR_F.H \
                 AuxBoundaryData.H
 
-F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H
 
-F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
-                           ARRAYLIM_$(DIM)D.F
+
+F$(AMRLIB_BASE)_sources += FLUXREG_$(DIM)D.F
 
 F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F
 

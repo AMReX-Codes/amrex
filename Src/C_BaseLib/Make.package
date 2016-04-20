@@ -31,8 +31,10 @@ C$(BOXLIB_BASE)_headers += BLBackTrace.H
 C$(BOXLIB_BASE)_headers += BLFort.H
 
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(BOXLIB_BASE)_sources += MultiFabUtil.cpp FillPatchUtil.cpp
-  C$(BOXLIB_BASE)_headers += MultiFabUtil.H FillPatchUtil.H
+  C$(BOXLIB_BASE)_sources += MultiFabUtil.cpp FillPatchUtil.cpp Interpolater.cpp 
+  C$(BOXLIB_BASE)_headers += MultiFabUtil.H FillPatchUtil.H Interpolater.H 
+  F$(BOXLIB_BASE)_headers += INTERP_F.H
+  F$(BOXLIB_BASE)_sources += INTERP_$(DIM)D.F ARRAYLIM_$(DIM)D.F
 endif
 
 #
