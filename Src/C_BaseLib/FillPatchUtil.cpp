@@ -26,14 +26,27 @@ namespace BoxLib
 		mf.copy(smf[0], scomp, dcomp, ncomp);
 	    } else {
 		BL_ASSERT(smf[0].boxArray() == smf[1].boxArray());
+		PArray<MultiFab> raii(PArrayManage);
+		MultiFab * dmf;
+		int destcomp;
+		bool sameba;
 		if (mf.boxArray() == smf[0].boxArray()) {
+		    dmf = &mf;
+		    destcomp = dcomp;
+		    sameba = true;
+		} else {
+		    dmf = raii.push_back(new MultiFab(smf[0].boxArray(), ncomp, 0));
+		    destcomp = 0;
+		    sameba = false;
+		}
+
 #ifdef _OPENMP
 #pragma omp parallel 
 #endif
-		    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
-		    {
-			const Box& bx = mfi.tilebox();
-			mf[mfi].linInterp(smf[0][mfi],
+		for (MFIter mfi(*dmf,true); mfi.isValid(); ++mfi)
+		{
+		    const Box& bx = mfi.tilebox();
+		    (*dmf)[mfi].linInterp(smf[0][mfi],
 					  scomp,
 					  smf[1][mfi],
 					  scomp,
@@ -41,11 +54,12 @@ namespace BoxLib
 					  stime[1],
 					  time,
 					  bx,
-					  dcomp,
+					  destcomp,
 					  ncomp);
-		    }
-		} else {
-		    BoxLib::Abort("FillPatchSingleLevel: MFs do not have the same BoxArray");
+		}
+
+		if (!sameba) {
+		    mf.copy(*dmf, 0, dcomp, ncomp);
 		}
 	    }
 
