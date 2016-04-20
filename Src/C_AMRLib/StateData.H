@@ -271,13 +271,11 @@ class StateDataPhysBCFunct
     : public PhysBCFunct
 {
 public:
-    StateDataPhysBCFunct (StateData& sd, int sc, int dc, int nc, const Geometry& geom_);
-    virtual void doit (MultiFab& mf, Real time);
+    StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
+    virtual void doit (MultiFab& mf, int dcomp, int ncomp, Real time);
 private:
     StateData* statedata;
     int src_comp;
-    int dest_comp;
-    int num_comp;
     const Geometry& geom;
     
 };

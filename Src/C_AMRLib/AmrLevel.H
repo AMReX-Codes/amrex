@@ -549,7 +549,7 @@ class FillPatchIterator
     FillPatchIterator (const FillPatchIterator& rhs);
     FillPatchIterator& operator= (const FillPatchIterator& rhs);
 
-    void FillFromLevel0 (int boxGrow, Real time, int index, int scomp, int ncomp);
+    void FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp);
 
     //
     // The data.
