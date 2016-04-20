@@ -1370,16 +1370,16 @@ AmrLevel::derive (const std::string& name,
     {
         rec->getRange(0, index, scomp, ncomp);
 
-        BoxArray srcBA(state[index].boxArray());
-        BoxArray dstBA(state[index].boxArray());
+        const BoxArray& srcBA = state[index].boxArray();
 
+        BoxArray dstBA(srcBA);
         dstBA.convert(rec->deriveType());
 
 	int ngrow_src = ngrow;
 	{
 	    Box bx0 = srcBA[0];
 	    Box bx1 = rec->boxMap()(bx0);
-	    int g = bx1.bigEnd(0) - bx0.bigEnd(0);
+	    int g = bx0.smallEnd(0) - bx1.smallEnd(0);
 	    ngrow_src += g;
 	}
 
@@ -1510,16 +1510,13 @@ AmrLevel::derive (const std::string& name,
     {
         rec->getRange(0,index,scomp,ncomp);
 
-        // Assert because we do not know how to un-convert the destination
-        //   and also, implicitly assume the convert in fact is trivial
-        BL_ASSERT(mf.boxArray().ixType()==IndexType::TheCellType());
-        BoxArray srcBA(mf.boxArray());
+        const BoxArray& srcBA = state[index].boxArray();
 
 	int ngrow_src = ngrow;
 	{
 	    Box bx0 = srcBA[0];
 	    Box bx1 = rec->boxMap()(bx0);
-	    int g = bx1.bigEnd(0) - bx0.bigEnd(0);
+	    int g = bx0.smallEnd(0) - bx1.smallEnd(0);
 	    ngrow_src += g;
 	}
 
