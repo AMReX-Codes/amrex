@@ -252,7 +252,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeLinear::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
     //
     // Make box which is intersection of fine_region and domain of fine.
@@ -410,7 +409,6 @@ CellQuadratic::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -603,7 +601,6 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeProtected::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -736,7 +733,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
     //
     // Make box which is intersection of fine_region and domain of fine.

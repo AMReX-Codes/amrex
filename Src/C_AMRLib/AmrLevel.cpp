@@ -853,37 +853,59 @@ FillPatchIterator::Initialize (int  boxGrow,
 	}
 	else
 	{
-	    bool properly_nested;
+	    if (level == 1 || ProperlyNested(m_amrlevel.crse_ratio,
+					     m_amrlevel.parent->blockingFactor(m_amrlevel.level),
+					     boxGrow, boxType, desc.interp(SComp))) 
 	    {
-		int bf = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
-		const IntVect& crse_ratio = m_amrlevel.crse_ratio;
-		Box fine_box_tmp(IntVect(D_DECL(bf,bf,bf)), IntVect(D_DECL(2*bf,2*bf,2*bf)));
-		Box crse_box_tmp(IntVect(D_DECL(0 ,0 ,0 )), IntVect(D_DECL(3*bf,3*bf,3*bf)));
-		Box fine_box = BoxLib::convert(fine_box_tmp,boxType);
-		Box crse_box = BoxLib::convert(BoxLib::coarsen(crse_box_tmp,crse_ratio),boxType);
-	    }
-	    
-	    FillPatchIteratorHelper* fph = 0;
-	    fph = new FillPatchIteratorHelper(m_amrlevel,
-					      m_leveldata,
-					      boxGrow,
-					      time,
-					      index,
-					      SComp,
-					      NComp,
-					      desc.interp(SComp));
-	    
+		FillFromTwoLevels(time, index, SComp, DComp, NComp);
+	    } else {
+		static bool first = true;
+		if (first) {
+		    first = false;
+		    if (ParallelDescriptor::IOProcessor()) {
+			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+			for (int i = 0; i < 10; ++i) {
+			    if (ProperlyNested(m_amrlevel.crse_ratio,
+					       new_blocking_factor,
+					       boxGrow, boxType, desc.interp(SComp))) {
+				break;
+			    } else {
+				new_blocking_factor *= 2;
+			    }
+			}
+			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
+				  << "         two coarse levels to do fillpatch.  Consider using\n";
+			if (new_blocking_factor < 128) {
+			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
+			} else {
+			    std::cout << "         larger amr.blocking_factor. ";
+			}
+			std::cout << std::endl;
+		    }
+		}
+
+		FillPatchIteratorHelper* fph = 0;
+		fph = new FillPatchIteratorHelper(m_amrlevel,
+						  m_leveldata,
+						  boxGrow,
+						  time,
+						  index,
+						  SComp,
+						  NComp,
+						  desc.interp(SComp));
+		
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 #endif
-	    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
-	    {
-		fph->fill(m_fabs[mfi],DComp,mfi.index());
+		for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
+		{
+		    fph->fill(m_fabs[mfi],DComp,mfi.index());
+		}
+		
+		delete fph;
 	    }
-
-	    delete fph;
 	}
 
         DComp += NComp;
@@ -897,6 +919,32 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
+}
+
+bool
+FillPatchIterator::ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow,
+				   const IndexType& boxType, Interpolater* mapper)
+{
+    int ratio_max = ratio[0];
+#if (BL_SPACEDIM > 1)
+    ratio_max = std::max(ratio_max, ratio[1]);
+#endif
+#if (BL_SPACEDIM == 3)
+    ratio_max = std::max(ratio_max, ratio[2]);
+#endif
+    // There are at least this many coarse cells outside fine grids 
+    // (except at physical boundaries).
+    int nbuf = blockint_factor / ratio_max;
+
+    Box crse_box(IntVect(D_DECL(0 ,0 ,0 )), IntVect(D_DECL(4*nbuf-1,4*nbuf-1,4*nbuf-1)));
+    crse_box.convert(boxType);
+    Box fine_box(IntVect(D_DECL(  nbuf  ,  nbuf  ,  nbuf)),
+		 IntVect(D_DECL(3*nbuf-1,3*nbuf-1,3*nbuf-1)));
+    fine_box.convert(boxType);
+    fine_box.refine(ratio_max);
+    fine_box.grow(ngrow);
+    const Box& fine_box_coarsened = mapper->CoarseBox(fine_box, ratio_max);
+    return crse_box.contains(fine_box_coarsened);
 }
 
 void
@@ -917,6 +965,46 @@ FillPatchIterator::FillFromLevel0 (Real time, int index, int scomp, int dcomp, i
     StateDataPhysBCFunct physbcf(statedata,scomp,geom);
 
     BoxLib::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf);
+}
+
+void
+FillPatchIterator::FillFromTwoLevels (Real time, int index, int scomp, int dcomp, int ncomp)
+{
+    BL_PROFILE("FillFromTwoLevels");
+
+    int ilev_fine = m_amrlevel.level;
+    int ilev_crse = ilev_fine-1;
+
+    BL_ASSERT(ilev_crse >= 0);
+
+    AmrLevel& fine_level = m_amrlevel;
+    AmrLevel& crse_level = m_amrlevel.parent->getLevel(ilev_crse);
+
+    const Geometry& geom_fine = fine_level.geom;
+    const Geometry& geom_crse = crse_level.geom;
+    
+    PArray<MultiFab> smf_crse;
+    std::vector<Real> stime_crse;
+    StateData& statedata_crse = crse_level.state[index];
+    statedata_crse.getData(smf_crse,stime_crse,time);
+    StateDataPhysBCFunct physbcf_crse(statedata_crse,scomp,geom_crse);
+
+    PArray<MultiFab> smf_fine;
+    std::vector<Real> stime_fine;
+    StateData& statedata_fine = fine_level.state[index];
+    statedata_fine.getData(smf_fine,stime_fine,time);
+    StateDataPhysBCFunct physbcf_fine(statedata_fine,scomp,geom_fine);
+
+    const StateDescriptor& desc = AmrLevel::desc_lst[index];
+
+    BoxLib::FillPatchTwoLevels(m_fabs, time, 
+			       smf_crse, stime_crse, 
+			       smf_fine, stime_fine,
+			       scomp, dcomp, ncomp, 
+			       geom_crse, geom_fine,
+			       physbcf_crse, physbcf_fine,
+			       crse_level.fineRatio(), 
+			       desc.interp(scomp), desc.getBCs());
 }
 
 static
