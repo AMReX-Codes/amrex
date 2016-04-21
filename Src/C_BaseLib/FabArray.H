@@ -2111,7 +2111,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     bool putInCache(false);
     MPI_Group groupSrc, groupDest, groupBoth;
     MPI_Comm commBoth(ParallelDescriptor::CommunicatorAll());  // ---- both src and dest:  fix for > 1 sidecar
-    int nProcsAll(ParallelDescriptor::NProcsAll());
     int myProcAll(ParallelDescriptor::MyProcAll());
     int iopN(ParallelDescriptor::IOProcessorNumber());
     int iopNInAll(-1), bcastRootSrc(-1), bcastRootDest(-1);
@@ -2175,6 +2174,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     BoxLib::BroadcastArray(srcPMapAll, myProcAll, bcastRootSrc, commBoth);
     BoxLib::BroadcastArray(destPMapAll, myProcAll, bcastRootDest, commBoth);
+
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
@@ -2190,10 +2190,16 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         return;
     }
 
-    //
+    // ---- syncronize sequence numbers across groups
+    int currentSeqNumber(-4);
+    if(isSrc && myProcAll == bcastRootSrc) {
+      currentSeqNumber = ParallelDescriptor::SeqNum(1);
+    }
+    ParallelDescriptor::Bcast(&currentSeqNumber, 1, bcastRootSrc, commBoth);
+    ParallelDescriptor::SeqNum(2, currentSeqNumber);
+
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
-    //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
     if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty()) {
