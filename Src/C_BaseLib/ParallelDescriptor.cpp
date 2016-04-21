@@ -1427,17 +1427,6 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
         return -1;
       }
     }
-
-/*
-    int result = seqno++;
-
-    if (seqno > m_MaxTag) {
-      seqno = m_MinTag;
-      BL_COMM_PROFILE_TAGWRAP();
-    }
-
-    return result;
-*/
 }
 
 
