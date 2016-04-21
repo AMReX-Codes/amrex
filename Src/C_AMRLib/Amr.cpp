@@ -374,7 +374,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
-        blocking_factor[i] = 2;
+        blocking_factor[i] = 8;
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
