@@ -4154,12 +4154,14 @@ Amr::RedistributeGrids(int how) {
         }
       Geometry::FlushPIRMCache();
     }
+#ifdef USE_PARTICLES
+    RedistributeParticles();
+#endif
 }
 
 
 void
 Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm) {
-  std::cout << "**** Amr::BroadcastBoundaryPointList:  bl.size() =  " << bpl.size() << std::endl;
   bool bcastSource(ParallelDescriptor::MyProc() == rootId);
   Array<int> pF, pS;
   Array<double> bplD;
