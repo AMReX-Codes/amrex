@@ -771,26 +771,30 @@ namespace BoxLib
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
+	BL_PROFILE("Geometry::PeriodicCopy");
+
 	const Box&                 domain = geom.Domain();
 	const BoxArray&            dstba  = dstmf.boxArray();
-	const DistributionMapping& dstdm  = dstmf.DistributionMap();
-	const IndexType&           dsttyp = dstba.ixType();
+	const BoxArray&            srcba  = srcmf.boxArray();
+	const DistributionMapping& srcdm  = srcmf.DistributionMap();
+	const IndexType&           srctyp = srcba.ixType();
 
-	BL_ASSERT(dsttyp == srcmf.boxArray().ixType());
+	BL_ASSERT(srctyp == dstba.ixType());
 
-	const Box& nd_domain = BoxLib::convert(domain, dsttyp);
+	const Box& nd_domain = BoxLib::convert(domain, srctyp);
+	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstmf.nGrow());
 
-	BoxList bl(dsttyp);
+	BoxList bl(srctyp);
 	Array<int> iproc;
 	Array<int> boxid;
 	Array<IntVect> boxshft;
 	Array<IntVect> pshifts(26);
 
-	for (int i = 0; i < dstba.size(); ++i) 
+	for (int i = 0; i < srcba.size(); ++i) 
 	{
-	    const Box& bx0 = dstba[i];
+	    const Box& bx0 = srcba[i];
 
-	    if (!nd_domain.strictly_contains(bx0))
+	    if (!nd_domain.strictly_contains(bx0)) 
 	    {
 		geom.periodicShift(nd_domain,bx0,pshifts);
 
@@ -799,9 +803,9 @@ namespace BoxLib
 		{
 		    const IntVect& iv   = *it;
 		    const Box&     shft = bx0 + iv;
-		    const Box&     bx   = shft & nd_domain;
+		    const Box&     bx   = shft & bbox_dst;
 		    bl.push_back(bx);
-		    iproc.push_back(dstdm[i]);
+		    iproc.push_back(srcdm[i]);
 		    boxid.push_back(i);
 		    boxshft.push_back(iv);
 		}
@@ -817,18 +821,18 @@ namespace BoxLib
 
 	    FabArray<FAB> shftmf(shftba, ncomp, 0, shftdm);
 
-	    shftmf.copy(srcmf,scomp,0,ncomp);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 	    for (MFIter mfi(shftmf); mfi.isValid(); ++mfi)
 	    {
-		const Box& sbx = mfi.validbox(); // shifted box
+		const Box& bx = mfi.validbox();
 		int i = mfi.index();
-		Box bx = sbx - boxshft[i];  // original box
-		dstmf[boxid[i]].copy(shftmf[mfi], sbx, 0, bx, dcomp, ncomp);
- 	    }
+		Box sbx = bx - boxshft[i];
+		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
+	    }
+
+	    dstmf.copy(shftmf, 0, dcomp, ncomp);
 	}
     }
 }
