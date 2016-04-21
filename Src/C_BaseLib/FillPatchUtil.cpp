@@ -90,6 +90,8 @@ namespace BoxLib
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs)
     {
+	BL_PROFILE("FillPatchTwoLevels");
+
 	const BoxArray&  ba =     mf.boxArray();
 	const BoxArray& fba = fmf[0].boxArray();
 
