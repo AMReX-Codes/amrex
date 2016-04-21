@@ -804,10 +804,12 @@ namespace BoxLib
 		    const IntVect& iv   = *it;
 		    const Box&     shft = bx0 + iv;
 		    const Box&     bx   = shft & bbox_dst;
-		    bl.push_back(bx);
-		    iproc.push_back(srcdm[i]);
-		    boxid.push_back(i);
-		    boxshft.push_back(iv);
+		    if (bx.ok()) {
+			bl.push_back(bx);
+			iproc.push_back(srcdm[i]);
+			boxid.push_back(i);
+			boxshft.push_back(iv);
+		    }
 		}
 	    }
 	}
