@@ -225,7 +225,6 @@ public:
                               int       num_comp) const;
     // 
     // Copy periodically shifted data from srcmf to dstmf.
-    // Usually this only makes sense for nodal/edge/face MultiFabs.
     //
     void PeriodicCopy (MultiFab&       dstmf,
 		       const MultiFab& srcmf) const;
@@ -772,14 +771,25 @@ namespace BoxLib
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
+	BL_PROFILE("Geometry::PeriodicCopy");
+
 	const Box&                 domain = geom.Domain();
+	const BoxArray&            dstba  = dstmf.boxArray();
 	const BoxArray&            srcba  = srcmf.boxArray();
 	const DistributionMapping& srcdm  = srcmf.DistributionMap();
 	const IndexType&           srctyp = srcba.ixType();
 
-	BL_ASSERT(srctyp == dstmf.boxArray().ixType());
+	BL_ASSERT(srctyp == dstba.ixType());
 
-	const Box& nd_domain = BoxLib::convert(domain, srctyp);
+	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstmf.nGrow());
+
+	IntVect lo, hi;
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo.setVal(i, bbox_dst.bigEnd(i)  -domain.length(i));
+	    hi.setVal(i, bbox_dst.smallEnd(i)+domain.length(i));
+	}
+	Box bbox_src(lo,hi,srctyp);
+	BL_ASSERT(bbox_src.ok());
 
 	BoxList bl(srctyp);
 	Array<int> iproc;
@@ -791,20 +801,22 @@ namespace BoxLib
 	{
 	    const Box& bx0 = srcba[i];
 
-	    if (!nd_domain.contains(BoxLib::grow(bx0,1))) // not strictly contained
+	    if (!bbox_src.strictly_contains(bx0)) 
 	    {
-		geom.periodicShift(nd_domain,bx0,pshifts);
+		geom.periodicShift(bbox_dst,bx0,pshifts);
 
 		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
 		     it != End; ++it)
 		{
 		    const IntVect& iv   = *it;
 		    const Box&     shft = bx0 + iv;
-		    const Box&     bx   = shft & nd_domain;
-		    bl.push_back(bx);
-		    iproc.push_back(srcdm[i]);
-		    boxid.push_back(i);
-		    boxshft.push_back(iv);
+		    const Box&     bx   = shft & bbox_dst;
+		    if (bx.ok()) {
+			bl.push_back(bx);
+			iproc.push_back(srcdm[i]);
+			boxid.push_back(i);
+			boxshft.push_back(iv);
+		    }
 		}
 	    }
 	}
