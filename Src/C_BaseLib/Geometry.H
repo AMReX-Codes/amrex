@@ -781,8 +781,15 @@ namespace BoxLib
 
 	BL_ASSERT(srctyp == dstba.ixType());
 
-	const Box& nd_domain = BoxLib::convert(domain, srctyp);
 	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstmf.nGrow());
+
+	IntVect lo, hi;
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo.setVal(i, bbox_dst.bigEnd(i)  -domain.length(i));
+	    hi.setVal(i, bbox_dst.smallEnd(i)+domain.length(i));
+	}
+	Box bbox_src(lo,hi,srctyp);
+	BL_ASSERT(bbox_src.ok());
 
 	BoxList bl(srctyp);
 	Array<int> iproc;
@@ -794,9 +801,9 @@ namespace BoxLib
 	{
 	    const Box& bx0 = srcba[i];
 
-	    if (!nd_domain.strictly_contains(bx0)) 
+	    if (!bbox_src.strictly_contains(bx0)) 
 	    {
-		geom.periodicShift(nd_domain,bx0,pshifts);
+		geom.periodicShift(bbox_dst,bx0,pshifts);
 
 		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
 		     it != End; ++it)
