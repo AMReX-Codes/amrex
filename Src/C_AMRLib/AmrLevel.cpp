@@ -826,6 +826,8 @@ FillPatchIterator::Initialize (int  boxGrow,
                                int  scomp,
                                int  ncomp)
 {
+    BL_PROFILE("FillPatchIterator::Initialize");
+
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
@@ -950,8 +952,6 @@ FillPatchIterator::ProperlyNested (const IntVect& ratio, int blockint_factor, in
 void
 FillPatchIterator::FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp)
 {
-    BL_PROFILE("FillFromLevel0");
-
     BL_ASSERT(m_amrlevel.level == 0);
 
     StateData& statedata = m_amrlevel.state[index];
@@ -970,8 +970,6 @@ FillPatchIterator::FillFromLevel0 (Real time, int index, int scomp, int dcomp, i
 void
 FillPatchIterator::FillFromTwoLevels (Real time, int index, int scomp, int dcomp, int ncomp)
 {
-    BL_PROFILE("FillFromTwoLevels");
-
     int ilev_fine = m_amrlevel.level;
     int ilev_crse = ilev_fine-1;
 
