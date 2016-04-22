@@ -789,7 +789,6 @@ namespace BoxLib
 	    hi.setVal(i, bbox_dst.smallEnd(i)+domain.length(i));
 	}
 	Box bbox_src(lo,hi,srctyp);
-	BL_ASSERT(bbox_src.ok());
 
 	BoxList bl(srctyp);
 	Array<int> iproc;
@@ -801,7 +800,7 @@ namespace BoxLib
 	{
 	    const Box& bx0 = srcba[i];
 
-	    if (!bbox_src.strictly_contains(bx0)) 
+	    if (bbox_src.isEmpty() || !bbox_src.strictly_contains(bx0)) 
 	    {
 		geom.periodicShift(bbox_dst,bx0,pshifts);
 
