@@ -112,6 +112,13 @@ TinyProfiler::Initialize ()
 void
 TinyProfiler::Finalize ()
 {
+    static bool finalized = false;
+    if (finalized) {
+	return;
+    } else {
+	finalized = true;
+    }
+
     Real t_final = ParallelDescriptor::second();
 
     bool properly_nested = improperly_nested_timers.size() == 0;
@@ -260,7 +267,7 @@ TinyProfiler::Finalize ()
 		      << std::setw(wt+2) << it->dtexavg
 		      << std::setw(wt+2) << it->dtexmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
-		      << it->dtexavg*(100.0/dt_max) << "%";
+		      << it->dtexmax*(100.0/dt_max) << "%";
 	    std::cout.unsetf(std::ios_base::fixed);
 	    std::cout << "\n";
 	}
@@ -289,7 +296,7 @@ TinyProfiler::Finalize ()
 		      << std::setw(wt+2) << it->dtinavg
 		      << std::setw(wt+2) << it->dtinmax
 		      << std::setprecision(2) << std::setw(wp+1) << std::fixed 
-		      << it->dtinavg*(100.0/dt_max) << "%";
+		      << it->dtinmax*(100.0/dt_max) << "%";
 	    std::cout.unsetf(std::ios_base::fixed);
 	    std::cout << "\n";
 	}
