@@ -4,7 +4,7 @@ CEXE_sources += main.cpp
 F90EXE_sources += bl_space_mod.F90 
 
 f90EXE_sources += baselib_mod.f90 box_mod.f90 boxarray_mod.f90
-f90EXE_sources += fab_mod.f90 multifab_mod.f90 
+f90EXE_sources += multifab_mod.f90 
 
 CEXE_sources += boxarray_fi.cpp multifab_fi.cpp
 

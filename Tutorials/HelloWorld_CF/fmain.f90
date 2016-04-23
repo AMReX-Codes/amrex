@@ -10,9 +10,9 @@ subroutine fmain () bind(c)
   integer :: lo(3), hi(3), ncomp, nghost, i
   type(Box)      :: domain, bx
   type(BoxArray) :: ba
-  type(Fab)      :: fb
   type(MultiFab) :: mf
   type(MFIter)   :: mfi
+  double precision, pointer, dimension(:,:,:,:) :: p
 
   lo = 0
   hi = ncell-1
@@ -28,9 +28,9 @@ subroutine fmain () bind(c)
 
   do while (mfi%next())
      bx = mfi%tilebox()
-     fb = mf%get_fab(mfi)
+     p=> mf%dataPtr(mfi)
      print *, "tile: " , bx%lo, bx%hi
-     print *, "lbound, ubound of p, " ,lbound(fb%p), ubound(fb%p)
+     print *, "lbound, ubound of p, " ,lbound(p), ubound(p)
   end do
 
 end subroutine fmain

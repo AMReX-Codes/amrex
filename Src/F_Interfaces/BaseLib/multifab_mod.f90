@@ -5,7 +5,6 @@ module multifab_module
   use bl_space_module, only : ndims => bl_num_dims
   use box_module
   use boxarray_module
-  use fab_module
 
   implicit none
 
@@ -18,7 +17,7 @@ module multifab_module
    contains
      procedure :: ncomp    => multifab_ncomp
      procedure :: nghost   => multifab_nghost
-     procedure :: get_fab
+     procedure :: dataPtr
      final :: destroy_multifab
   end type MultiFab
 
@@ -176,20 +175,20 @@ contains
     call fi_mfiter_tilebox(this%p, tilebox%lo, tilebox%hi)
   end function tilebox
 
-  function get_fab (this, mfi) result(r)
+  function dataPtr (this, mfi) result(dp)
     class(MultiFab) :: this
     type(MFIter), intent(in) :: mfi
-    type(Fab) :: r
+    double precision, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
     double precision, pointer :: fp(:,:,:,:)
-    integer(c_int) :: n(4)
-    call fi_multifab_dataptr(this%p, mfi%p, cp, r%lo, r%hi)
-    r%nc = this%nc
-    n(1:3) = r%hi - r%lo + 1
-    n(4)   = r%nc
+    integer(c_int) :: lo(3), hi(3), n(4)
+    lo = 1;  hi = 1
+    call fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
+    n(1:3) = hi - lo + 1
+    n(4)   = this%ncomp()
     call c_f_pointer(cp, fp, shape=n)
-    r%p(r%lo(1):,r%lo(2):,r%lo(3):,1:) => fp
-  end function get_fab
+    dp(lo(1):,lo(2):,lo(3):,1:) => fp
+  end function dataPtr
 
 end module multifab_module
 
