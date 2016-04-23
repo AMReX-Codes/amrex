@@ -7,9 +7,9 @@ subroutine fmain () bind(c)
 
   integer, parameter :: ncell=16
 
-  integer :: lo(3), hi(3), ncomp, nghost, i
+  integer :: lo(3), hi(3), ncomp, nghost
   type(Box)      :: domain, bx
-  type(BoxArray) :: ba
+  type(BoxArray) :: ba, ba2
   type(MultiFab) :: mf
   type(MFIter)   :: mfi
   double precision, pointer, dimension(:,:,:,:) :: p
@@ -18,14 +18,16 @@ subroutine fmain () bind(c)
   hi = ncell-1
   domain = Box(lo,hi)
 
-  ba = BoxArray(domain)
+  call boxarray_build(ba, domain)
+
+  ba2 = ba
+  print *, ba2%owner, ba%owner
 
   ncomp = 1
   nghost = 0
-  mf = MultiFab(ba, ncomp, nghost)
+  call multifab_build(mf, ba, ncomp, nghost)
 
-  mfi = MFIter(mf, tiling=.true.)
-
+  call mfiter_build(mfi, mf, tiling=.true.)
   do while (mfi%next())
      bx = mfi%tilebox()
      p=> mf%dataPtr(mfi)

@@ -10,40 +10,47 @@ module multifab_module
 
   private
 
+  public :: multifab_build, mfiter_build
+
   type, public   :: MultiFab
      integer(c_int) :: nc  =  0
      integer(c_int) :: ng  =  0
+     type(BoxArray) :: ba
      type   (c_ptr) :: p   =  c_null_ptr
    contains
-     procedure :: ncomp    => multifab_ncomp
-     procedure :: nghost   => multifab_nghost
+     procedure :: ncomp  => multifab_ncomp
+     procedure :: nghost => multifab_nghost
      procedure :: dataPtr
-     final :: destroy_multifab
+     procedure :: multifab_assign
+     generic   :: assignment(=) => multifab_assign
+     final :: multifab_destroy
   end type MultiFab
 
   type, public :: MFIter
      integer ,private :: counter = -1 
      type(c_ptr)      :: p       = c_null_ptr
    contains
-     procedure :: clear   => mfiter_clear
-     procedure :: next    => mfiter_next
+     procedure :: clear => mfiter_clear
+     procedure :: next  => mfiter_next
      procedure :: tilebox
-     final :: destroy_mfiter
+     final :: mfiter_destroy
   end type MFIter
 
-  interface MultiFab
-     module procedure build_multifab
-  end interface MultiFab
+  interface multifab_build
+     module procedure multifab_build
+  end interface multifab_build
 
-  interface MFIter
-     module procedure build_mfiter
-  end interface MFIter
+  interface mfiter_build
+     module procedure mfiter_build
+  end interface mfiter_build
+
+  ! interfaces to cpp functions
 
   interface 
-     subroutine fi_new_multifab (mf,ba,nc,ng) bind(c)
+     subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(out) :: mf
-       type(c_ptr), intent(in), value :: ba 
+       type(c_ptr), intent(out) :: mf, bao
+       type(c_ptr), intent(in), value :: bai 
        integer(c_int), intent(in), value :: nc, ng
      end subroutine fi_new_multifab
      
@@ -94,22 +101,28 @@ module multifab_module
 
 contains
 
-  function build_multifab (ba, nc, ng) result(mf)
-    type(BoxArray), intent(in) :: ba
+  subroutine multifab_assign (dst, src)
+    class(MultiFab), intent(out) :: dst
+    type (MultiFab), intent(in ) :: src
+    call bl_error("MultiFab Assignment is disallowed.")
+  end subroutine multifab_assign
+
+  subroutine multifab_build (mf, ba, nc, ng)
+    type(MultiFab), intent(out) :: mf
+    type(BoxArray), intent(in ) :: ba
     integer, intent(in) :: nc, ng
-    type(MultiFab) :: mf
     mf%nc = nc
     mf%ng = ng
-    call fi_new_multifab(mf%p, ba%p, mf%nc, mf%ng)
-  end function build_multifab
+    call fi_new_multifab(mf%p, mf%ba%p, ba%p, mf%nc, mf%ng)
+  end subroutine multifab_build
 
-  subroutine destroy_multifab (this)
+  subroutine multifab_destroy (this)
     type(MultiFab) :: this
     if (c_associated(this%p)) then
        call fi_delete_multifab(this%p)
        this%p = c_null_ptr
     end if
-  end subroutine destroy_multifab
+  end subroutine multifab_destroy
 
   pure integer function multifab_ncomp (this)
     class(MultiFab), intent(in) :: this
@@ -121,12 +134,27 @@ contains
     multifab_nghost = this%ng
   end function multifab_nghost
 
+  function dataPtr (this, mfi) result(dp)
+    class(MultiFab) :: this
+    type(MFIter), intent(in) :: mfi
+    double precision, pointer, dimension(:,:,:,:) :: dp
+    type(c_ptr) :: cp
+    double precision, pointer :: fp(:,:,:,:)
+    integer(c_int) :: lo(3), hi(3), n(4)
+    lo = 1;  hi = 1
+    call fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
+    n(1:3) = hi - lo + 1
+    n(4)   = this%ncomp()
+    call c_f_pointer(cp, fp, shape=n)
+    dp(lo(1):,lo(2):,lo(3):,1:) => fp
+  end function dataPtr
+
 !------ MFIter routines ------!
 
-  function build_mfiter (mf, tiling) result(mfi)
-    type(MultiFab), intent(in) :: mf
+  subroutine mfiter_build (mfi, mf, tiling)
+    type(MFIter)  , intent(out) :: mfi
+    type(MultiFab), intent(in ) :: mf
     logical, intent(in), optional :: tiling
-    type(MFIter) :: mfi
     logical :: ltiling
     integer(c_int) :: t
     ltiling = .false.;  if (present(tiling)) ltiling = tiling
@@ -137,12 +165,12 @@ contains
     end if
     mfi%counter = 0
     call fi_new_mfiter(mfi%p, mf%p, t)
-  end function build_mfiter
+  end subroutine mfiter_build
 
-  subroutine destroy_mfiter (this)
+  subroutine mfiter_destroy (this)
     type(MFIter), intent(inout) :: this
     call this%clear()
-  end subroutine destroy_mfiter
+  end subroutine mfiter_destroy
 
   subroutine mfiter_clear (this)
     class(MFIter), intent(inout) :: this
@@ -174,21 +202,6 @@ contains
     class(MFIter), intent(in) :: this
     call fi_mfiter_tilebox(this%p, tilebox%lo, tilebox%hi)
   end function tilebox
-
-  function dataPtr (this, mfi) result(dp)
-    class(MultiFab) :: this
-    type(MFIter), intent(in) :: mfi
-    double precision, pointer, dimension(:,:,:,:) :: dp
-    type(c_ptr) :: cp
-    double precision, pointer :: fp(:,:,:,:)
-    integer(c_int) :: lo(3), hi(3), n(4)
-    lo = 1;  hi = 1
-    call fi_multifab_dataptr(this%p, mfi%p, cp, lo, hi)
-    n(1:3) = hi - lo + 1
-    n(4)   = this%ncomp()
-    call c_f_pointer(cp, fp, shape=n)
-    dp(lo(1):,lo(2):,lo(3):,1:) => fp
-  end function dataPtr
 
 end module multifab_module
 

@@ -3,22 +3,21 @@
 
 extern "C" {
 
-    void fi_new_multifab (void*& mf, void* ba, int nc, int ng)
+    void fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai, int nc, int ng)
     {
-	mf = (void*) new MultiFab(*(BoxArray*)ba, nc, ng);
+	mf = new MultiFab(*bai, nc, ng);
+	bao = (BoxArray*)&(mf->boxArray());
     }
 
-    void fi_delete_multifab (void* mf)
+    void fi_delete_multifab (MultiFab* mf)
     {
-	delete (MultiFab*) mf;
+	delete mf;
     }
 
-    void fi_multifab_dataptr (void* mf_, void* mfi_, void*& dp, int lo[3], int hi[3])
+    void fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, double*& dp, int lo[3], int hi[3])
     {
-	MultiFab& mf = *(MultiFab*)mf_;
-	MFIter& mfi = *(MFIter*)mfi_;
-	FArrayBox& fab = mf[mfi];
-	dp = (void*) (fab.dataPtr());
+	FArrayBox& fab = (*mf)[*mfi];
+	dp = fab.dataPtr();
 	const Box& bx = fab.box();
 	const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
@@ -30,33 +29,30 @@ extern "C" {
 
     // MFIter routines
 
-    void fi_new_mfiter (void*& mfi, void* mf, int tiling)
+    void fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)
     {
-	mfi = new MFIter(*(MultiFab*)mf, (bool)tiling);
+	mfi = new MFIter(*mf, (bool)tiling);
     }
 
-    void fi_delete_mfiter (void* mfi)
+    void fi_delete_mfiter (MFIter* mfi)
     {
-	delete (MFIter*) mfi;
+	delete mfi;
     }
 
-    void fi_increment_mfiter (void* mfi_, int* isvalid)
+    void fi_increment_mfiter (MFIter* mfi, int* isvalid)
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	++mfi;
-	*isvalid = mfi.isValid();
+	++(*mfi);
+	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_is_valid (void* mfi_, int* isvalid)
+    void fi_mfiter_is_valid (MFIter* mfi, int* isvalid)
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	*isvalid = mfi.isValid();
+	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_tilebox (void* mfi_, int lo[3], int hi[3])
+    void fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3])
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	const Box& bx = mfi.tilebox();
+	const Box& bx = mfi->tilebox();
 	const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
