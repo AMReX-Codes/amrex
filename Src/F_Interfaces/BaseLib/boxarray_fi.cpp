@@ -3,15 +3,15 @@
 
 extern "C" {
 
-    void fi_new_boxarray (void*& ba, int lo[3], int hi[3])
+    void fi_new_boxarray (BoxArray*& ba, int lo[3], int hi[3])
     {
 	IntVect small(lo), big(hi);
-	ba = (void*) new BoxArray(Box(small,big));
+	ba = new BoxArray(Box(small,big));
     }
 
-    void fi_delete_boxarray (void* ba)
+    void fi_delete_boxarray (BoxArray* ba)
     {
-	delete (BoxArray*) ba;
+	delete ba;
     }
 
 }

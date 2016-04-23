@@ -8,7 +8,7 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 USE_MPI3  = FALSE
 
-MEM_PROFILE  = FALSE
+MEM_PROFILE  = TRUE
 TINY_PROFILE = FALSE
 
 COMP      = g++
@@ -16,7 +16,6 @@ FCOMP     = gfortran
 
 DIM       = 3
 
-PRECISION = DOUBLE
 EBASE     = main
 
 include ./Make.package
