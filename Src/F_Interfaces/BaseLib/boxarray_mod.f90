@@ -31,7 +31,7 @@ module boxarray_module
   interface
      subroutine fi_new_boxarray (ba,lo,hi) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(out) :: ba
+       type(c_ptr), intent(inout) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine fi_new_boxarray
 
@@ -50,7 +50,7 @@ module boxarray_module
 contains
 
   subroutine boxarray_build_bx (ba, bx)
-    type(BoxArray), intent(out) :: ba
+    type(BoxArray), intent(inout) :: ba
     type(Box)     , intent(in ) :: bx
     ba%owner = .true.
     call fi_new_boxarray(ba%p, bx%lo, bx%hi)
@@ -68,14 +68,14 @@ contains
   end subroutine boxarray_destroy
 
   subroutine boxarray_assign (dst, src)
-    class(BoxArray), intent(out) :: dst
+    class(BoxArray), intent(inout) :: dst
     type (BoxArray), intent(in ) :: src
     dst%owner = .false.
     dst%p = src%p
   end subroutine boxarray_assign
 
   subroutine boxarray_move (dst, src)
-    class(BoxArray), intent(out)   :: dst
+    class(BoxArray), intent(inout) :: dst
     type (BoxArray), intent(inout) :: src
     dst%owner = src%owner
     dst%p = src%p

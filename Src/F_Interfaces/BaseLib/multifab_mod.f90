@@ -5,6 +5,7 @@ module multifab_module
   use bl_space_module, only : ndims => bl_num_dims
   use box_module
   use boxarray_module
+  use omp_module
 
   implicit none
 
@@ -54,7 +55,7 @@ module multifab_module
   interface 
      subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(out) :: mf, bao
+       type(c_ptr), intent(inout) :: mf, bao
        type(c_ptr), intent(in), value :: bai 
        integer(c_int), intent(in), value :: nc, ng
      end subroutine fi_new_multifab
@@ -67,7 +68,7 @@ module multifab_module
      subroutine fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: mf, mfi
-       type(c_ptr), intent(out) :: dp
+       type(c_ptr), intent(inout) :: dp
        integer(c_int), intent(inout) :: lo(3), hi(3)
      end subroutine fi_multifab_dataptr
 
@@ -105,7 +106,7 @@ module multifab_module
   interface
      subroutine fi_new_mfiter (mfi, mf, tiling) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(out) :: mfi
+       type(c_ptr), intent(inout) :: mfi
        type(c_ptr), intent(in), value :: mf
        integer(c_int), intent(in), value :: tiling
      end subroutine fi_new_mfiter
@@ -118,13 +119,13 @@ module multifab_module
      subroutine fi_increment_mfiter (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: p
-       integer(c_int), intent(out) :: iv
+       integer(c_int), intent(inout) :: iv
      end subroutine fi_increment_mfiter
 
      subroutine fi_mfiter_is_valid (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: p
-       integer(c_int), intent(out) :: iv
+       integer(c_int), intent(inout) :: iv
      end subroutine fi_mfiter_is_valid
 
      subroutine fi_mfiter_tilebox (p, lo, hi) bind(c)
@@ -137,13 +138,13 @@ module multifab_module
 contains
 
   subroutine multifab_assign (dst, src)
-    class(MultiFab), intent(out) :: dst
+    class(MultiFab), intent(inout) :: dst
     type (MultiFab), intent(in ) :: src
     call bl_error("MultiFab Assignment is disallowed.")
   end subroutine multifab_assign
 
   subroutine multifab_build (mf, ba, nc, ng)
-    type(MultiFab), intent(out) :: mf
+    type(MultiFab), intent(inout) :: mf
     type(BoxArray), intent(in ) :: ba
     integer, intent(in) :: nc, ng
     mf%nc = nc
@@ -244,7 +245,7 @@ contains
 !------ MFIter routines ------!
 
   subroutine mfiter_build (mfi, mf, tiling)
-    type(MFIter)  , intent(out) :: mfi
+    type(MFIter)  , intent(inout) :: mfi
     type(MultiFab), intent(in ) :: mf
     logical, intent(in), optional :: tiling
     logical :: ltiling
