@@ -27,8 +27,6 @@ module multifab_module
      procedure :: norm0         => multifab_norm0
      procedure :: norm1         => multifab_norm1
      procedure :: norm2         => multifab_norm2
-     procedure ::                  multifab_assign
-     generic   :: assignment(=) => multifab_assign
      final :: multifab_destroy
   end type MultiFab
 
@@ -50,7 +48,7 @@ module multifab_module
      module procedure mfiter_build
   end interface mfiter_build
 
-  ! interfaces to cpp functions
+  ! interfaces to c++ functions
 
   interface 
      subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
@@ -149,12 +147,6 @@ module multifab_module
   end interface
 
 contains
-
-  subroutine multifab_assign (dst, src)
-    class(MultiFab), intent(inout) :: dst
-    type (MultiFab), intent(in   ) :: src
-    call bl_error("MultiFab Assignment is disallowed.")
-  end subroutine multifab_assign
 
   subroutine multifab_build (mf, ba, nc, ng)
     type(MultiFab) :: mf
