@@ -55,7 +55,7 @@ module multifab_module
   interface 
      subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(inout) :: mf, bao
+       type(c_ptr) :: mf, bao
        type(c_ptr), intent(in), value :: bai 
        integer(c_int), intent(in), value :: nc, ng
      end subroutine fi_new_multifab
@@ -68,8 +68,8 @@ module multifab_module
      subroutine fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: mf, mfi
-       type(c_ptr), intent(inout) :: dp
-       integer(c_int), intent(inout) :: lo(3), hi(3)
+       type(c_ptr) :: dp
+       integer(c_int) :: lo(3), hi(3)
      end subroutine fi_multifab_dataptr
 
      real(c_double) function fi_multifab_min (mf, comp, nghost) bind(c)
@@ -106,7 +106,7 @@ module multifab_module
   interface
      subroutine fi_new_mfiter (mfi, mf, tiling) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(inout) :: mfi
+       type(c_ptr) :: mfi
        type(c_ptr), intent(in), value :: mf
        integer(c_int), intent(in), value :: tiling
      end subroutine fi_new_mfiter
@@ -119,19 +119,19 @@ module multifab_module
      subroutine fi_increment_mfiter (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: p
-       integer(c_int), intent(inout) :: iv
+       integer(c_int) :: iv
      end subroutine fi_increment_mfiter
 
      subroutine fi_mfiter_is_valid (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: p
-       integer(c_int), intent(inout) :: iv
+       integer(c_int) :: iv
      end subroutine fi_mfiter_is_valid
 
      subroutine fi_mfiter_tilebox (p, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
        type(c_ptr), value, intent(in) :: p
-       integer(c_int), intent(inout) :: lo(3), hi(3)
+       integer(c_int) :: lo(3), hi(3)
      end subroutine fi_mfiter_tilebox
   end interface
 
@@ -139,12 +139,12 @@ contains
 
   subroutine multifab_assign (dst, src)
     class(MultiFab), intent(inout) :: dst
-    type (MultiFab), intent(in ) :: src
+    type (MultiFab), intent(in   ) :: src
     call bl_error("MultiFab Assignment is disallowed.")
   end subroutine multifab_assign
 
   subroutine multifab_build (mf, ba, nc, ng)
-    type(MultiFab), intent(inout) :: mf
+    type(MultiFab) :: mf
     type(BoxArray), intent(in ) :: ba
     integer, intent(in) :: nc, ng
     mf%nc = nc
@@ -245,7 +245,7 @@ contains
 !------ MFIter routines ------!
 
   subroutine mfiter_build (mfi, mf, tiling)
-    type(MFIter)  , intent(inout) :: mfi
+    type(MFIter) :: mfi
     type(MultiFab), intent(in ) :: mf
     logical, intent(in), optional :: tiling
     logical :: ltiling
@@ -261,12 +261,12 @@ contains
   end subroutine mfiter_build
 
   subroutine mfiter_destroy (this)
-    type(MFIter), intent(inout) :: this
+    type(MFIter) :: this
     call this%clear()
   end subroutine mfiter_destroy
 
   subroutine mfiter_clear (this)
-    class(MFIter), intent(inout) :: this
+    class(MFIter) :: this
     this%counter = -1
     if (c_associated(this%p)) then
        call fi_delete_mfiter(this%p)
@@ -275,7 +275,7 @@ contains
   end subroutine mfiter_clear
 
   logical function mfiter_next (this)
-    class(MFIter), intent(inout) :: this
+    class(MFIter) :: this
     integer(c_int) :: isvalid
     this%counter = this%counter + 1
     if (this%counter == 1) then
