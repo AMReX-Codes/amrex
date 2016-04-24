@@ -1,7 +1,7 @@
 
 subroutine fmain () bind(c)
 
-  use baselib_module
+  use boxlib_module
 
   implicit none
 

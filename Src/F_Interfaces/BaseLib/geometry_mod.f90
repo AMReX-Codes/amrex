@@ -15,6 +15,7 @@ module geometry_module
      logical          :: pmask(3)  = .false.
      double precision :: problo(3) = 0.0d0
      double precision :: probhi(3) = 1.0d0
+     double precision :: dx(3)     = 0.0d0
      type(Box)        :: domain
      type(c_ptr)      :: p         = c_null_ptr
    contains
@@ -57,13 +58,16 @@ contains
   subroutine geometry_build (geom, domain)
     type(Geometry) :: geom
     type(Box), intent(in) :: domain
-    integer :: imask(3)
+    integer :: imask(3), i
     call fi_new_geometry(geom%p, domain%lo, domain%hi)
     imask = 0
     call fi_geometry_get_pmask(geom%p, imask)
     where (imask .eq. 1) geom%pmask = .true.
     call fi_geometry_get_probdomain(geom%p, geom%problo, geom%probhi)
     geom%domain = domain
+    do i = 1, ndims
+       geom%dx(i) = (geom%probhi(i)-geom%problo(i)) / dble(domain%hi(i)-domain%lo(i)+1)
+    end do
   end subroutine geometry_build
 
   subroutine geometry_destroy (geom)
