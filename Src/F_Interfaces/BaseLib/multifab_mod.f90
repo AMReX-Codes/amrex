@@ -5,6 +5,7 @@ module multifab_module
   use bl_space_module, only : ndims => bl_num_dims
   use box_module
   use boxarray_module
+  use geometry_module
   use omp_module
 
   implicit none
@@ -27,6 +28,8 @@ module multifab_module
      procedure :: norm0         => multifab_norm0
      procedure :: norm1         => multifab_norm1
      procedure :: norm2         => multifab_norm2
+     generic   :: fill_boundary => multifab_fill_boundary, multifab_fill_boundary_c
+     procedure, private :: multifab_fill_boundary, multifab_fill_boundary_c
      final :: multifab_destroy
   end type MultiFab
 
@@ -107,6 +110,13 @@ module multifab_module
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp
      end function fi_multifab_norm2
+
+     subroutine fi_multifab_fill_boundary (mf, geom, c, nc, cross) bind(c)
+       use iso_c_binding
+       implicit none
+       type(c_ptr), value :: mf, geom
+       integer(c_int), value :: c, nc, cross
+     end subroutine fi_multifab_fill_boundary
   end interface
 
   interface
@@ -246,6 +256,30 @@ contains
        r = fi_multifab_norm2(this%p, 0)
     end if
   end function multifab_norm2
+
+  subroutine multifab_fill_boundary (this, geom, cross)
+    class(MultiFab) :: this
+    type(Geometry), intent(in) :: geom
+    logical, intent(in), optional :: cross
+    call this%multifab_fill_boundary_c(geom, 1, this%nc, cross)
+  end subroutine multifab_fill_boundary
+
+  subroutine multifab_fill_boundary_c (this, geom, c, nc, cross)
+    class(MultiFab) :: this
+    type(Geometry), intent(in) :: geom
+    integer, intent(in) :: c, nc
+    logical, intent(in), optional :: cross
+    integer :: lcross
+    lcross = 0  
+    if (present(cross)) then
+       if (cross) then
+          lcross = 1
+       else
+          lcross = 0
+       end if
+    end if
+    call fi_multifab_fill_boundary (this%p, geom%p, c-1, nc, lcross)
+  end subroutine multifab_fill_boundary_c
 
 !------ MFIter routines ------!
 

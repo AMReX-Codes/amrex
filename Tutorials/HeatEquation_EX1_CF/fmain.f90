@@ -1,15 +1,19 @@
 
 subroutine fmain () bind(c)
 
-  use baselib_module
+  use boxlib_module
+
+  use init_phi_module, only : init_phi
 
   implicit none
 
   integer :: n_cell, max_grid_size, nsteps, plot_int
+  integer, parameter :: ncomp = 1, nghost = 1  ! one component, one ghost
   type(ParmParse) :: pp
   type(Box) :: domain
   type(BoxArray) :: bs
   type(Geometry) :: geom
+  type(MultiFab) :: new_phi, old_phi
 
   ! ParmParse is way of reading inputs from the inputs file
   ! "get" means it must be set in the inputs file, whereas
@@ -37,5 +41,14 @@ subroutine fmain () bind(c)
   ! This defines a Geometry object.
   call geometry_build(geom, domain)
 
+  ! Build new and old data
+  call multifab_build(new_phi, bs, ncomp, nghost)
+  call multifab_build(old_phi, bs, ncomp, nghost)
+
+  ! Intialize data
+  call init_phi(new_phi, geom)
+
+  ! This fills periodic ghost cells and ghost cells from neighboring grids
+  call new_phi%fill_boundary(geom)
 
 end subroutine fmain
