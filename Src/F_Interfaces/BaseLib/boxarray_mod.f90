@@ -15,8 +15,9 @@ module boxarray_module
      logical     :: owner = .false.
      type(c_ptr) :: p = c_null_ptr
    contains
-     procedure :: move => boxarray_move 
-     procedure :: boxarray_assign
+     procedure :: move          => boxarray_move 
+     procedure ::                  boxarray_assign
+     procedure :: maxSize       => boxarray_maxSize
      generic   :: assignment(=) => boxarray_assign
      final :: boxarray_destroy
   end type BoxArray
@@ -28,16 +29,22 @@ module boxarray_module
   ! interfaces to cpp functions
 
   interface
-     subroutine fi_new_boxarray (p,lo,hi) bind(c)
+     subroutine fi_new_boxarray (ba,lo,hi) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(out) :: p
+       type(c_ptr), intent(out) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine fi_new_boxarray
 
-     subroutine fi_delete_boxarray (p) bind(c)
+     subroutine fi_delete_boxarray (ba) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value, intent(in) :: ba
      end subroutine fi_delete_boxarray
+
+     subroutine fi_boxarray_maxsize (ba,n) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: ba
+       integer(c_int), value, intent(in) :: n
+     end subroutine fi_boxarray_maxsize
   end interface
 
 contains
@@ -76,5 +83,10 @@ contains
     src%p = c_null_ptr
   end subroutine boxarray_move
 
+  subroutine boxarray_maxsize (this, sz)
+    class(BoxArray), intent(inout) :: this
+    integer        , intent(in)    :: sz
+    call fi_boxarray_maxsize(this%p, sz)
+  end subroutine boxarray_maxsize
 
 end module boxarray_module

@@ -14,4 +14,8 @@ extern "C" {
 	delete ba;
     }
 
+    void fi_boxarray_maxsize (BoxArray* ba, int sz)
+    {
+	ba->maxSize(sz);
+    }
 }
