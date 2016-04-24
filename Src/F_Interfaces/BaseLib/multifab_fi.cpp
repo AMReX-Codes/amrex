@@ -27,6 +27,31 @@ extern "C" {
 	}
     }
 
+    double fi_multifab_min(const MultiFab* mf, int comp, int nghost)
+    {
+	return mf->min(comp,nghost);
+    }
+
+    double fi_multifab_max(const MultiFab* mf, int comp, int nghost)
+    {
+	return mf->max(comp,nghost);
+    }
+
+    double fi_multifab_norm0(const MultiFab* mf, int comp)
+    {
+	return mf->norm0(comp);
+    }
+
+    double fi_multifab_norm1(const MultiFab* mf, int comp)
+    {
+	return mf->norm1(comp);
+    }
+
+    double fi_multifab_norm2(const MultiFab* mf, int comp)
+    {
+	return mf->norm2(comp);
+    }
+
     // MFIter routines
 
     void fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)

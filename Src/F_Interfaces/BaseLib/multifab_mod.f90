@@ -18,10 +18,15 @@ module multifab_module
      type(BoxArray) :: ba
      type   (c_ptr) :: p   =  c_null_ptr
    contains
-     procedure :: ncomp  => multifab_ncomp
-     procedure :: nghost => multifab_nghost
-     procedure :: dataPtr
-     procedure :: multifab_assign
+     procedure :: ncomp         => multifab_ncomp
+     procedure :: nghost        => multifab_nghost
+     procedure :: dataPtr       => multifab_dataptr
+     procedure :: min           => multifab_min
+     procedure :: max           => multifab_max
+     procedure :: norm0         => multifab_norm0
+     procedure :: norm1         => multifab_norm1
+     procedure :: norm2         => multifab_norm2
+     procedure ::                  multifab_assign
      generic   :: assignment(=) => multifab_assign
      final :: multifab_destroy
   end type MultiFab
@@ -30,9 +35,9 @@ module multifab_module
      integer ,private :: counter = -1 
      type(c_ptr)      :: p       = c_null_ptr
    contains
-     procedure :: clear => mfiter_clear
-     procedure :: next  => mfiter_next
-     procedure :: tilebox
+     procedure :: clear   => mfiter_clear
+     procedure :: next    => mfiter_next
+     procedure :: tilebox => mfiter_tilebox
      final :: mfiter_destroy
   end type MFIter
 
@@ -54,9 +59,9 @@ module multifab_module
        integer(c_int), intent(in), value :: nc, ng
      end subroutine fi_new_multifab
      
-     subroutine fi_delete_multifab (p) bind(c)
+     subroutine fi_delete_multifab (mf) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), value, intent(in) :: p
+       type(c_ptr), value, intent(in) :: mf
      end subroutine fi_delete_multifab
 
      subroutine fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
@@ -65,6 +70,36 @@ module multifab_module
        type(c_ptr), intent(out) :: dp
        integer(c_int), intent(inout) :: lo(3), hi(3)
      end subroutine fi_multifab_dataptr
+
+     real(c_double) function fi_multifab_min (mf, comp, nghost) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: mf
+       integer(c_int), value, intent(in) :: comp, nghost
+     end function fi_multifab_min
+
+     real(c_double) function fi_multifab_max (mf, comp, nghost) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: mf
+       integer(c_int), value, intent(in) :: comp, nghost
+     end function fi_multifab_max
+
+     real(c_double) function fi_multifab_norm0 (mf, comp) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: mf
+       integer(c_int), value, intent(in) :: comp
+     end function fi_multifab_norm0
+
+     real(c_double) function fi_multifab_norm1 (mf, comp) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: mf
+       integer(c_int), value, intent(in) :: comp
+     end function fi_multifab_norm1
+
+     real(c_double) function fi_multifab_norm2 (mf, comp) bind(c)
+       use, intrinsic :: iso_c_binding
+       type(c_ptr), value, intent(in) :: mf
+       integer(c_int), value, intent(in) :: comp
+     end function fi_multifab_norm2
   end interface
 
   interface
@@ -134,7 +169,7 @@ contains
     multifab_nghost = this%ng
   end function multifab_nghost
 
-  function dataPtr (this, mfi) result(dp)
+  function multifab_dataPtr (this, mfi) result(dp)
     class(MultiFab) :: this
     type(MFIter), intent(in) :: mfi
     double precision, pointer, dimension(:,:,:,:) :: dp
@@ -147,7 +182,64 @@ contains
     n(4)   = this%ncomp()
     call c_f_pointer(cp, fp, shape=n)
     dp(lo(1):,lo(2):,lo(3):,1:) => fp
-  end function dataPtr
+  end function multifab_dataPtr
+
+  function multifab_min (this, comp, nghost) result(r)
+    class(MultiFab), intent(in) :: this
+    integer(c_int), intent(in) :: comp
+    integer(c_int), intent(in), optional :: nghost
+    double precision :: r
+    if (present(nghost)) then
+       r = fi_multifab_min(this%p, comp-1, nghost)
+    else
+       r = fi_multifab_min(this%p, comp-1, 0)
+    end if
+  end function multifab_min
+
+  function multifab_max (this, comp, nghost) result(r)
+    class(MultiFab), intent(in) :: this
+    integer(c_int), intent(in) :: comp
+    integer(c_int), intent(in), optional :: nghost
+    double precision :: r
+    if (present(nghost)) then
+       r = fi_multifab_max(this%p, comp-1, nghost)
+    else
+       r = fi_multifab_max(this%p, comp-1, 0)
+    end if
+  end function multifab_max
+
+  function multifab_norm0 (this, comp) result(r)
+    class(MultiFab), intent(in) :: this
+    integer(c_int), intent(in), optional :: comp
+    double precision :: r
+    if (present(comp)) then
+       r = fi_multifab_norm0(this%p, comp-1)
+    else
+       r = fi_multifab_norm0(this%p, 0)
+    end if
+  end function multifab_norm0
+
+  function multifab_norm1 (this, comp) result(r)
+    class(MultiFab), intent(in) :: this
+    integer(c_int), intent(in), optional :: comp
+    double precision :: r
+    if (present(comp)) then
+       r = fi_multifab_norm1(this%p, comp-1)
+    else
+       r = fi_multifab_norm1(this%p, 0)
+    end if
+  end function multifab_norm1
+
+  function multifab_norm2 (this, comp) result(r)
+    class(MultiFab), intent(in) :: this
+    integer(c_int), intent(in), optional :: comp
+    double precision :: r
+    if (present(comp)) then
+       r = fi_multifab_norm2(this%p, comp-1)
+    else
+       r = fi_multifab_norm2(this%p, 0)
+    end if
+  end function multifab_norm2
 
 !------ MFIter routines ------!
 
@@ -198,10 +290,10 @@ contains
     end if
   end function mfiter_next
 
-  type(Box) function tilebox (this)
+  type(Box) function mfiter_tilebox (this)
     class(MFIter), intent(in) :: this
-    call fi_mfiter_tilebox(this%p, tilebox%lo, tilebox%hi)
-  end function tilebox
+    call fi_mfiter_tilebox(this%p, mfiter_tilebox%lo, mfiter_tilebox%hi)
+  end function mfiter_tilebox
 
 end module multifab_module
 

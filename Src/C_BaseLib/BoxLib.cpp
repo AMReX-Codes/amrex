@@ -40,7 +40,7 @@
 #include <BLBackTrace.H>
 #include <MemPool.H>
 
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
@@ -388,7 +388,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	}
     }
 
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
 #endif
@@ -463,7 +463,7 @@ BoxLib::Finalize (bool finalize_parallel)
 #endif
 
     if (finalize_parallel) {
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 #ifdef IN_TRANSIT
 	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
 	bl_fortran_sidecar_mpi_comm_free(fcomm);
