@@ -31,17 +31,20 @@ module boxarray_module
   interface
      subroutine fi_new_boxarray (ba,lo,hi) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine fi_new_boxarray
 
      subroutine fi_delete_boxarray (ba) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: ba
      end subroutine fi_delete_boxarray
 
      subroutine fi_boxarray_maxsize (ba,n) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: ba
        integer(c_int), value, intent(in) :: n
      end subroutine fi_boxarray_maxsize

@@ -1,22 +1,25 @@
 
-module sting_module
+module string_module
+
+  use iso_c_binding
 
   implicit none
 
-  public
+  private
+
+  public :: string_f_to_c
 
 contains
 
-  function string_f_to_c (fs) result cs
-    use iso_c_binding
-    character(*), intent(in) :: fs
-    character(c_char) :: cs(len_trim(fs)+1)
+  function string_f_to_c (fstr) result(cstr)
+    character(*), intent(in) :: fstr
+    character(c_char) :: cstr(len_trim(fstr)+1)
     integer :: i, n
-    n = len_trim(fs)
+    n = len_trim(fstr)
     do i = 1, n
-       cs(i) = fs(i:i)
+       cstr(i) = fstr(i:i)
     end do
-    cs(n+1) = c_null_char
+    cstr(n+1) = c_null_char
   end function string_f_to_c
 
-end module sting_module
+end module string_module

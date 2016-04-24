@@ -55,6 +55,7 @@ module multifab_module
   interface 
      subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr) :: mf, bao
        type(c_ptr), intent(in), value :: bai 
        integer(c_int), intent(in), value :: nc, ng
@@ -62,11 +63,13 @@ module multifab_module
      
      subroutine fi_delete_multifab (mf) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
      end subroutine fi_delete_multifab
 
      subroutine fi_multifab_dataptr (mf, mfi, dp, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf, mfi
        type(c_ptr) :: dp
        integer(c_int) :: lo(3), hi(3)
@@ -74,30 +77,35 @@ module multifab_module
 
      real(c_double) function fi_multifab_min (mf, comp, nghost) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp, nghost
      end function fi_multifab_min
 
      real(c_double) function fi_multifab_max (mf, comp, nghost) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp, nghost
      end function fi_multifab_max
 
      real(c_double) function fi_multifab_norm0 (mf, comp) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp
      end function fi_multifab_norm0
 
      real(c_double) function fi_multifab_norm1 (mf, comp) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp
      end function fi_multifab_norm1
 
      real(c_double) function fi_multifab_norm2 (mf, comp) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: mf
        integer(c_int), value, intent(in) :: comp
      end function fi_multifab_norm2
@@ -106,6 +114,7 @@ module multifab_module
   interface
      subroutine fi_new_mfiter (mfi, mf, tiling) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr) :: mfi
        type(c_ptr), intent(in), value :: mf
        integer(c_int), intent(in), value :: tiling
@@ -113,23 +122,27 @@ module multifab_module
 
      subroutine fi_delete_mfiter (p) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: p
      end subroutine fi_delete_mfiter
 
      subroutine fi_increment_mfiter (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: p
        integer(c_int) :: iv
      end subroutine fi_increment_mfiter
 
      subroutine fi_mfiter_is_valid (p, iv) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: p
        integer(c_int) :: iv
      end subroutine fi_mfiter_is_valid
 
      subroutine fi_mfiter_tilebox (p, lo, hi) bind(c)
        use, intrinsic :: iso_c_binding
+       implicit none
        type(c_ptr), value, intent(in) :: p
        integer(c_int) :: lo(3), hi(3)
      end subroutine fi_mfiter_tilebox
