@@ -31,7 +31,7 @@ module boxarray_module
   interface
      subroutine fi_new_boxarray (ba,lo,hi) bind(c)
        use, intrinsic :: iso_c_binding
-       type(c_ptr), intent(inout) :: ba
+       type(c_ptr) :: ba
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine fi_new_boxarray
 
@@ -50,8 +50,8 @@ module boxarray_module
 contains
 
   subroutine boxarray_build_bx (ba, bx)
-    type(BoxArray), intent(inout) :: ba
-    type(Box)     , intent(in ) :: bx
+    type(BoxArray) :: ba
+    type(Box), intent(in ) :: bx
     ba%owner = .true.
     call fi_new_boxarray(ba%p, bx%lo, bx%hi)
   end subroutine boxarray_build_bx
@@ -69,14 +69,13 @@ contains
 
   subroutine boxarray_assign (dst, src)
     class(BoxArray), intent(inout) :: dst
-    type (BoxArray), intent(in ) :: src
+    type (BoxArray), intent(in   ) :: src
     dst%owner = .false.
     dst%p = src%p
   end subroutine boxarray_assign
 
   subroutine boxarray_move (dst, src)
-    class(BoxArray), intent(inout) :: dst
-    type (BoxArray), intent(inout) :: src
+    class(BoxArray) :: dst, src
     dst%owner = src%owner
     dst%p = src%p
     src%owner = .false.
@@ -84,8 +83,8 @@ contains
   end subroutine boxarray_move
 
   subroutine boxarray_maxsize (this, sz)
-    class(BoxArray), intent(inout) :: this
-    integer        , intent(in)    :: sz
+    class(BoxArray) this
+    integer, intent(in)    :: sz
     call fi_boxarray_maxsize(this%p, sz)
   end subroutine boxarray_maxsize
 
