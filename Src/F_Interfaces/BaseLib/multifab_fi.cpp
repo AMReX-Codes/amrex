@@ -1,24 +1,25 @@
 
 #include <MultiFab.H>
+#include <Geometry.H>
 
 extern "C" {
 
-    void fi_new_multifab (void*& mf, void* ba, int nc, int ng)
+    void fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai, 
+			  int nc, int ng, const int* nodal)
     {
-	mf = (void*) new MultiFab(*(BoxArray*)ba, nc, ng);
+	mf = new MultiFab(*bai, nc, ng, Fab_allocate, IntVect(nodal));
+	bao = (BoxArray*)&(mf->boxArray());
     }
 
-    void fi_delete_multifab (void* mf)
+    void fi_delete_multifab (MultiFab* mf)
     {
-	delete (MultiFab*) mf;
+	delete mf;
     }
 
-    void fi_multifab_dataptr (void* mf_, void* mfi_, void*& dp, int lo[3], int hi[3])
+    void fi_multifab_dataptr (MultiFab* mf, MFIter* mfi, double*& dp, int lo[3], int hi[3])
     {
-	MultiFab& mf = *(MultiFab*)mf_;
-	MFIter& mfi = *(MFIter*)mfi_;
-	FArrayBox& fab = mf[mfi];
-	dp = (void*) (fab.dataPtr());
+	FArrayBox& fab = (*mf)[*mfi];
+	dp = fab.dataPtr();
 	const Box& bx = fab.box();
 	const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
@@ -28,35 +29,66 @@ extern "C" {
 	}
     }
 
+    double fi_multifab_min(const MultiFab* mf, int comp, int nghost)
+    {
+	return mf->min(comp,nghost);
+    }
+
+    double fi_multifab_max(const MultiFab* mf, int comp, int nghost)
+    {
+	return mf->max(comp,nghost);
+    }
+
+    double fi_multifab_norm0(const MultiFab* mf, int comp)
+    {
+	return mf->norm0(comp);
+    }
+
+    double fi_multifab_norm1(const MultiFab* mf, int comp)
+    {
+	return mf->norm1(comp);
+    }
+
+    double fi_multifab_norm2(const MultiFab* mf, int comp)
+    {
+	return mf->norm2(comp);
+    }
+
+    void fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
+				    int c, int nc, int cross)
+    {
+	mf->FillBoundary_nowait(c, nc, cross);
+	geom->FillPeriodicBoundary_nowait(*mf, c, nc);
+	mf->FillBoundary_finish();
+	geom->FillPeriodicBoundary_finish(*mf);
+    }
+
     // MFIter routines
 
-    void fi_new_mfiter (void*& mfi, void* mf, int tiling)
+    void fi_new_mfiter (MFIter*& mfi, MultiFab* mf, int tiling)
     {
-	mfi = new MFIter(*(MultiFab*)mf, (bool)tiling);
+	mfi = new MFIter(*mf, (bool)tiling);
     }
 
-    void fi_delete_mfiter (void* mfi)
+    void fi_delete_mfiter (MFIter* mfi)
     {
-	delete (MFIter*) mfi;
+	delete mfi;
     }
 
-    void fi_increment_mfiter (void* mfi_, int* isvalid)
+    void fi_increment_mfiter (MFIter* mfi, int* isvalid)
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	++mfi;
-	*isvalid = mfi.isValid();
+	++(*mfi);
+	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_is_valid (void* mfi_, int* isvalid)
+    void fi_mfiter_is_valid (MFIter* mfi, int* isvalid)
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	*isvalid = mfi.isValid();
+	*isvalid = mfi->isValid();
     }
 
-    void fi_mfiter_tilebox (void* mfi_, int lo[3], int hi[3])
+    void fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3])
     {
-	MFIter& mfi = *(MFIter*)mfi_;
-	const Box& bx = mfi.tilebox();
+	const Box& bx = mfi->tilebox();
 	const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
 	for (int i = 0; i < BL_SPACEDIM; ++i) {

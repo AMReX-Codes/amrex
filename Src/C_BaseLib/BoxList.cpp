@@ -309,7 +309,12 @@ BoxList::complementIn (const Box&     b,
 {
     BL_ASSERT(bl.ixType() == b.ixType());
 
-    if (bl.size() == 1)
+    if (bl.size() == 0)
+    {
+	clear();
+	push_back(b);
+    }
+    else if (bl.size() == 1)
     {
         *this = BoxLib::boxDiff(b,bl.front());
     }
