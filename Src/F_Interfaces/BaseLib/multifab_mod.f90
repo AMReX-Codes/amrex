@@ -54,12 +54,13 @@ module multifab_module
   ! interfaces to c++ functions
 
   interface 
-     subroutine fi_new_multifab (mf,bao,bai,nc,ng) bind(c)
+     subroutine fi_new_multifab (mf,bao,bai,nc,ng,nodal) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: mf, bao
        type(c_ptr), intent(in), value :: bai 
        integer(c_int), intent(in), value :: nc, ng
+       integer(c_int), intent(in) :: nodal(3)
      end subroutine fi_new_multifab
      
      subroutine fi_delete_multifab (mf) bind(c)
@@ -158,13 +159,19 @@ module multifab_module
 
 contains
 
-  subroutine multifab_build (mf, ba, nc, ng)
+  subroutine multifab_build (mf, ba, nc, ng, nodal)
     type(MultiFab) :: mf
     type(BoxArray), intent(in ) :: ba
     integer, intent(in) :: nc, ng
+    logical, intent(in), optional :: nodal(:)
+    integer :: lnodal(3)
     mf%nc = nc
     mf%ng = ng
-    call fi_new_multifab(mf%p, mf%ba%p, ba%p, mf%nc, mf%ng)
+    lnodal = 0 
+    if (present(nodal)) then
+       where (nodal .eqv. .true.) lnodal = 1
+    end if
+    call fi_new_multifab(mf%p, mf%ba%p, ba%p, mf%nc, mf%ng, lnodal)
   end subroutine multifab_build
 
   subroutine multifab_destroy (this)

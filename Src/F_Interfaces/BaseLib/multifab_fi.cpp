@@ -4,9 +4,10 @@
 
 extern "C" {
 
-    void fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai, int nc, int ng)
+    void fi_new_multifab (MultiFab*& mf, BoxArray*& bao, const BoxArray* bai, 
+			  int nc, int ng, const int* nodal)
     {
-	mf = new MultiFab(*bai, nc, ng);
+	mf = new MultiFab(*bai, nc, ng, Fab_allocate, IntVect(nodal));
 	bao = (BoxArray*)&(mf->boxArray());
     }
 
