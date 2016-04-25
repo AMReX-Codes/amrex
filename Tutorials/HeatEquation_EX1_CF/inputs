@@ -1,7 +1,7 @@
 
-nsteps   = 1000  # how many steps to run?
+nsteps   = 100   # how many steps to run?
 
-plot_int = 100   # how often to make plot files?
+plot_int = 10    # how often to make plot files?
 
 n_cell        = 128  # number of cells in each dimension
 max_grid_size = 32   # max grid size

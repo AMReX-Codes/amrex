@@ -4,11 +4,14 @@ subroutine fmain () bind(c)
   use boxlib_module
 
   use init_phi_module, only : init_phi
+  use advance_module, only : advance
 
   implicit none
 
   integer :: n_cell, max_grid_size, nsteps, plot_int
   integer, parameter :: ncomp = 1, nghost = 1  ! one component, one ghost
+  integer :: istep
+  double precision :: dt, time
   type(ParmParse) :: pp
   type(Box) :: domain
   type(BoxArray) :: bs
@@ -41,14 +44,33 @@ subroutine fmain () bind(c)
   ! This defines a Geometry object.
   call geometry_build(geom, domain)
 
-  ! Build new and old data
+  ! Build data multifabs
   call multifab_build(new_phi, bs, ncomp, nghost)
   call multifab_build(old_phi, bs, ncomp, nghost)
 
   ! Intialize data
   call init_phi(new_phi, geom)
 
-  ! This fills periodic ghost cells and ghost cells from neighboring grids
-  call new_phi%fill_boundary(geom)
+  istep = 0
+  time = 0.d0
+
+  ! choose a time step with a diffusive CFL of 0.9
+  dt = 0.9d0*geom%dx(1)**2/(2.d0*bl_num_dims)
+
+  do istep = 1, nsteps
+
+     if ( parallel_IOProcessor() ) then
+        print*,'Advancing time step',istep,'with dt=',dt
+     end if
+
+     ! Swap the guts of multifabs so we don't have to allocate and de-allocate data
+     call multifab_swap(new_phi, old_phi)
+
+     ! advance phi
+     call advance(old_phi, new_phi, geom, dt)
+
+     time = time + dt
+
+  end do
 
 end subroutine fmain

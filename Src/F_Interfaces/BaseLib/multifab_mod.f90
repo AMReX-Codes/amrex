@@ -12,7 +12,7 @@ module multifab_module
 
   private
 
-  public :: multifab_build, mfiter_build
+  public :: multifab_build, multifab_swap, mfiter_build
 
   type, public   :: MultiFab
      integer(c_int) :: nc  =  0
@@ -181,6 +181,22 @@ contains
        this%p = c_null_ptr
     end if
   end subroutine multifab_destroy
+
+  subroutine multifab_swap(mf1, mf2)
+    type(MultiFab), intent(inout) :: mf1, mf2
+    integer :: itmp
+    type(BoxArray) :: batmp
+    type(c_ptr) :: ptmp
+    itmp = mf1%nc;  mf1%nc = mf2%nc;  mf2%nc = itmp
+    itmp = mf1%ng;  mf1%ng = mf2%ng;  mf2%ng = itmp
+    batmp= mf1%ba;  mf1%ba = mf2%ba;  mf2%ba = batmp
+    ptmp = mf1%p;   mf1%p  = mf2%p;   mf2%p  = ptmp
+    ! the code below causes internal compiler error for gfortran 5.2
+    ! tmp = mf1
+    ! mf1 = mf2
+    ! mf2 = tmp
+    ! tmp%p = c_null_ptr
+  end subroutine multifab_swap
 
   pure integer function multifab_ncomp (this)
     class(MultiFab), intent(in) :: this
