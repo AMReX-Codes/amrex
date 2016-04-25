@@ -124,6 +124,10 @@ class DistributionMapping
     //
     static void FlushCache ();
     //
+    // Delete the cache.  This is to support dynamic sidecars.
+    //
+    static void DeleteCache ();
+    //
     // The size of the cache.
     //
     static int CacheSize ();
