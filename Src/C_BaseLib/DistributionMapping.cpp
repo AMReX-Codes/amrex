@@ -304,7 +304,8 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 	  CacheStats(std::cout);
 	  std::cout << "********* _in GetMap:  myproc m_Cache.size() N m_pmap[N] = "
 	            << ParallelDescriptor::MyProc() << "  " << m_Cache.size()
-		    << "  " << N << "  " << m_ref->m_pmap[N] << std::endl;
+		    << "  " << N << "  " << m_ref->m_pmap[N] << "  m_pmap = "
+		    << m_ref->m_pmap << std::endl;
 	}
         BL_ASSERT(m_ref->m_pmap[N] == ParallelDescriptor::MyProc());
 
@@ -511,8 +512,9 @@ DistributionMapping::~DistributionMapping () { }
 void
 DistributionMapping::FlushCache ()
 {
-    if (BoxLib::verbose)
+    if (BoxLib::verbose) {
 	CacheStats(std::cout);
+    }
     //
     // Remove maps that aren't referenced anywhere else.
     //
@@ -529,6 +531,18 @@ DistributionMapping::FlushCache ()
             ++it;
         }
     }
+}
+
+void
+DistributionMapping::DeleteCache ()
+{
+    CacheStats(std::cout);
+    std::map< int,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
+
+    while (it != m_Cache.end()) {
+      m_Cache.erase(it++);
+    }
+    CacheStats(std::cout);
 }
 
 void
