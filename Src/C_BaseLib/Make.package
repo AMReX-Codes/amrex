@@ -29,6 +29,12 @@ C$(BOXLIB_BASE)_headers += BLProfiler.H
 C$(BOXLIB_BASE)_headers += BLBackTrace.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
+
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(BOXLIB_BASE)_sources += MultiFabUtil.cpp
+  C$(BOXLIB_BASE)_headers += MultiFabUtil.H
+endif
+
 #
 # Container classes.
 #
@@ -98,7 +104,7 @@ endif
 # Boundary-related 
 #
 C$(BOXLIB_BASE)_sources += BCRec.cpp
-C$(BOXLIB_BASE)_headers += BCRec.H
+C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
 #

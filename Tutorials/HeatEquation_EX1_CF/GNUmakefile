@@ -4,7 +4,7 @@ BOXLIB_HOME ?= ../..
 
 DEBUG     = TRUE
 
-USE_MPI   = FALSE
+USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_MPI3  = FALSE
 
