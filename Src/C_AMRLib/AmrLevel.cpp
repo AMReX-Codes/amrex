@@ -828,6 +828,14 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE("FillPatchIterator::Initialize");
 
+    static int use_collectdata = 1;
+    static bool first = true;
+    if (first) {
+	ParmParse pp("boxlib");
+	pp.query("use_collectdata", use_collectdata);
+	first = false;
+    }
+
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
@@ -849,22 +857,24 @@ FillPatchIterator::Initialize (int  boxGrow,
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;
 
-	if (level == 0)
+	if (!use_collectdata && level == 0)
 	{
 	    FillFromLevel0(time, index, SComp, DComp, NComp);
 	}
 	else
 	{
-	    if (level == 1 || ProperlyNested(m_amrlevel.crse_ratio,
-					     m_amrlevel.parent->blockingFactor(m_amrlevel.level),
-					     boxGrow, boxType, desc.interp(SComp))) 
+	    if (!use_collectdata &&
+		(level == 1 
+		 || ProperlyNested(m_amrlevel.crse_ratio,
+				   m_amrlevel.parent->blockingFactor(m_amrlevel.level),
+				   boxGrow, boxType, desc.interp(SComp))) )
 	    {
 		FillFromTwoLevels(time, index, SComp, DComp, NComp);
 	    } else {
 		static bool first = true;
 		if (first) {
 		    first = false;
-		    if (ParallelDescriptor::IOProcessor()) {
+		    if (!use_collectdata && ParallelDescriptor::IOProcessor()) {
 			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
 			for (int i = 0; i < 10; ++i) {
 			    if (ProperlyNested(m_amrlevel.crse_ratio,
