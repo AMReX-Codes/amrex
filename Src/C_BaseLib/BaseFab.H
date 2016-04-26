@@ -39,6 +39,7 @@ namespace BoxLib
     long TotalCellsAllocatedInFabs();
     long TotalCellsAllocatedInFabsHWM();
     void ResetTotalBytesAllocatedInFabsHWM();
+    void update_fab_stats (long n, long s, size_t szt);
 }
 
 /*
@@ -107,7 +108,9 @@ public:
     // Make BaseFab with desired domain and number of components.
     //
     explicit BaseFab (const Box& bx,
-                      int        n = 1);
+                      int        n = 1,
+		      bool       alloc = true,
+		      bool       shared = false);
     //
     // The destructor deletes the array memory.
     //
@@ -125,18 +128,24 @@ public:
     void resize (const Box& b,
                  int        N = 1);
     //
-    // Swap innards.
-    //
-    void swap (BaseFab& rhs);
-    //
     // The function returns the BaseFab to the invalid state.  (See
     // comments for constructors above.)  The memory is freed.
     //
     void clear ();
     //
+    // Retruns how many bytes used
+    //
+    size_t nBytes () const { return truesize*sizeof(T); }
+    //
     // Returns the number of components.
     //
     int nComp () const { return nvar; }
+    //
+    // Returns the number of points.
+    //
+    long nPts () const { return numpts; }
+    //
+    long size () const { return nvar*numpts; }
     //
     // Returns the domain (box) where the array is defined.
     //
@@ -198,6 +207,8 @@ public:
     // Same as above except works on const FABs.
     //
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    //
+    void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
     //
     // Returns true if the data for the FAB has been allocated.
     //
@@ -885,6 +896,8 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+    bool    ptr_owner;// Owner of T*?
+    bool    shared_memory;  // Is the memory allocated in shared memory?
 
 private:
     //
@@ -1108,8 +1121,9 @@ BaseFab<T>::define ()
     BL_ASSERT(numpts > 0);
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
-    truesize = nvar*numpts;
-    dptr     = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    truesize  = nvar*numpts;
+    dptr      = static_cast<T*>(BoxLib::The_Arena()->alloc(truesize*sizeof(T)));
+    ptr_owner = true;
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1122,18 +1136,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-    long tst = truesize*sizeof(T);
-    BoxLib::private_total_bytes_allocated_in_fabs += tst;
-    BoxLib::private_total_bytes_allocated_in_fabs_hwm 
-	= std::max(BoxLib::private_total_bytes_allocated_in_fabs_hwm,
-		   BoxLib::private_total_bytes_allocated_in_fabs);
-    
-    if(sizeof(T) == sizeof(Real)) {
-	BoxLib::private_total_cells_allocated_in_fabs += numpts;
-	BoxLib::private_total_cells_allocated_in_fabs_hwm 
-	    = std::max(BoxLib::private_total_cells_allocated_in_fabs_hwm,
-		       BoxLib::private_total_cells_allocated_in_fabs);
-    }
+    BoxLib::update_fab_stats(numpts, truesize, sizeof(T));
 }
 
 template <class T>
@@ -1143,7 +1146,9 @@ BaseFab<T>::BaseFab ()
     nvar(0),
     numpts(0),
     truesize(0),
-    dptr(0)
+    dptr(0),
+    ptr_owner(false),
+    shared_memory(false)
 {}
 
 template <class T>
@@ -1156,15 +1161,20 @@ BaseFab<T>::operator= (const T& t)
 
 template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
-                     int        n)
+                     int        n,
+		     bool       alloc,
+		     bool       shared)
     :
     domain(bx),
     dlen(bx.size()),
     nvar(n),
     numpts(bx.numPts()),
-    dptr(0)
+    truesize(0),
+    dptr(0),
+    ptr_owner(false),
+    shared_memory(shared)
 {
-    define();
+    if (!shared_memory && alloc) define();
 }
 
 template <class T>
@@ -1179,10 +1189,16 @@ BaseFab<T>::resize (const Box& b,
 
     if (dptr == 0)
     {
+	if (shared_memory)
+	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+
         define();
     }
     else if (nvar*numpts > truesize)
     {
+	if (shared_memory)
+	    BoxLib::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
+
         clear();
 
         define();
@@ -1197,18 +1213,6 @@ BaseFab<T>::~BaseFab ()
 
 template <class T>
 void
-BaseFab<T>::swap (BaseFab& fab)
-{
-    std::swap(domain,fab.domain);
-    std::swap(dlen,fab.dlen);
-    std::swap(nvar,fab.nvar);
-    std::swap(numpts,fab.numpts);
-    std::swap(truesize,fab.truesize);
-    std::swap(dptr,fab.dptr);
-}
-
-template <class T>
-void
 BaseFab<T>::clear ()
 {
     if (dptr)
@@ -1218,22 +1222,28 @@ BaseFab<T>::clear ()
         //
         T* ptr = dptr;
 
-        for (long i = 0; i < truesize; i++, ptr++)
-        {
-            ptr->~T();
-        }
-        BoxLib::The_Arena()->free(dptr);
+	if (ptr_owner)
+	{
+	    if (shared_memory)
+	    {
+		BoxLib::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
+	    }
 
-        dptr = 0;
-
-	long tst = truesize*sizeof(T);
-        BoxLib::private_total_bytes_allocated_in_fabs -= tst;
-	if(nvar > 0) {
-	    if(sizeof(T) == sizeof(Real)) {
-		long ncells = truesize/nvar;
-		BoxLib::private_total_cells_allocated_in_fabs -= ncells;
+	    for (long i = 0; i < truesize; i++, ptr++)
+	    {
+		ptr->~T();
+	    }
+	    BoxLib::The_Arena()->free(dptr);
+	    
+	    if (nvar > 1) {
+		BoxLib::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
+	    } else {
+		BoxLib::update_fab_stats(0, -truesize, sizeof(T));
 	    }
 	}
+
+	dptr = 0;
+	truesize = 0;
     }
 }
 

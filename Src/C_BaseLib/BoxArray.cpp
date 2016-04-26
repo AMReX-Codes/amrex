@@ -49,7 +49,9 @@ BoxArray::BoxArray (const BoxList& bl)
     :
     m_typ(bl.ixType()),
     m_ref(new BoxArray::Ref(bl))
-{}
+{
+    type_update();
+}
 
 BoxArray::BoxArray (size_t n)
     :

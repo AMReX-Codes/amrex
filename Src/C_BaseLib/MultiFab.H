@@ -99,6 +99,10 @@ public:
 
     void operator= (const Real& r);
     //
+    // Initialize FArrayBoxes
+    //
+    void initVal ();
+    //
     // Returns the minimum value contained in component comp of the
     // MultiFab.  The parameter nghost determines the number of
     // boundary cells to search for the minimum.  The default is to
@@ -513,9 +517,6 @@ private:
     //
     MultiFab (const MultiFab& rhs);
     MultiFab& operator= (const MultiFab& rhs);
-
-    static bool check_for_nan;
-    static bool check_for_inf;
 
     //
     // Some useful typedefs.

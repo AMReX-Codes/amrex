@@ -29,6 +29,12 @@ C$(BOXLIB_BASE)_headers += BLProfiler.H
 C$(BOXLIB_BASE)_headers += BLBackTrace.H
 
 C$(BOXLIB_BASE)_headers += BLFort.H
+
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(BOXLIB_BASE)_sources += MultiFabUtil.cpp
+  C$(BOXLIB_BASE)_headers += MultiFabUtil.H
+endif
+
 #
 # Container classes.
 #
@@ -98,7 +104,7 @@ endif
 # Boundary-related 
 #
 C$(BOXLIB_BASE)_sources += BCRec.cpp
-C$(BOXLIB_BASE)_headers += BCRec.H
+C$(BOXLIB_BASE)_headers += BCRec.H PhysBCFunct.H
 C$(BOXLIB_BASE)_headers += BC_TYPES.H
 
 #
@@ -136,10 +142,22 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(BOXLIB_BASE)_sources += mempool_f.f90
 endif
 
+# UPCXX
+ifeq ($(USE_UPCXX),TRUE)
+  C$(BOXLIB_BASE)_sources += BLPgas.cpp
+  C$(BOXLIB_BASE)_headers += BLPgas.H
+endif
+
 # Memory Profiler
 ifeq ($(MEM_PROFILE),TRUE)
   C$(BOXLIB_BASE)_sources += MemProfiler.cpp
   C$(BOXLIB_BASE)_headers += MemProfiler.H
+endif
+
+# Basic Profiler
+ifeq ($(TINY_PROFILE),TRUE)
+  C$(BOXLIB_BASE)_headers += TinyProfiler.H
+  C$(BOXLIB_BASE)_sources += TinyProfiler.cpp
 endif
 
 ifeq ($(USE_PARTICLES), TRUE)

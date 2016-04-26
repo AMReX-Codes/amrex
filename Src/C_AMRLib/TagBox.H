@@ -39,12 +39,12 @@ public:
     //
     // Construct a TagBox on Box bx with number of components n.
     //
-    explicit TagBox (const Box& bx, int n = 1);
+    explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
     //
     // Construct and return a new tagbox in which the coarsened cell
     // is tagged of any of the corresponding fine cells are tagged.
     //
-    void coarsen (const IntVect& ratio, int);
+    void coarsen (const IntVect& ratio, bool owner);
     //
     // Mark neighbors of every tagged cell a distance nbuff away
     // only search interior for initial tagged points where nwid
@@ -142,6 +142,7 @@ public:
     // Set values in ba to val. 
     //
     void setVal (const BoxArray& ba, TagBox::TagVal val);
+    using FabArray::setVal;
     //
     // Calls coarsen() on all contained TagBoxes.
     //

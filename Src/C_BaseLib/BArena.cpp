@@ -1,6 +1,5 @@
 
 #include <BArena.H>
-#include <BoxLib.H>
 
 void*
 BArena::alloc (std::size_t _sz)

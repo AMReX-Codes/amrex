@@ -262,6 +262,16 @@ public:
     //
     bool contains (const Box& b) const { BL_ASSERT(sameType(b)); return b.smallend >= smallend && b.bigend <= bigend; }
     //
+    // Returns true if argument is strictly contained within Box.
+    //
+    bool strictly_contains (const IntVect& p) const { return p > smallend && p < bigend; }
+    //
+    // Returns true if argument is strictly contained within Box.
+    // It is an error if the Boxes have different types.
+    //
+    bool strictly_contains (const Box& b) const 
+	{ BL_ASSERT(sameType(b)); return b.smallend > smallend && b.bigend < bigend; }
+    //
     // Returns true if Boxes have non-null intersections.
     // It is an error if the Boxes have different types.
     //
@@ -591,7 +601,7 @@ public:
 
     explicit BoxCommHelper (const Box& bx, int* p_ = 0);
 
-    int* get () const { return p; }
+    int* data () const { return p; }
 
     Box make_box () const {
 	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));

@@ -15,15 +15,17 @@
 TagBox::TagBox () {}
 
 TagBox::TagBox (const Box& bx,
-                int        n)
+                int        n,
+                bool       alloc,
+		bool       shared)
     :
-    BaseFab<TagBox::TagType>(bx,n)
+    BaseFab<TagBox::TagType>(bx,n,alloc,shared)
 {
-    setVal(TagBox::CLEAR);
+    if (alloc) setVal(TagBox::CLEAR);
 }
 
 void
-TagBox::coarsen (const IntVect& ratio, int)
+TagBox::coarsen (const IntVect& ratio, bool owner)
 {
     BL_ASSERT(nComp() == 1);
 
@@ -38,6 +40,8 @@ TagBox::coarsen (const IntVect& ratio, int)
     const Box& cbox = BoxLib::coarsen(domain,ratio);
 
     this->resize(cbox);
+
+    if (!owner) return;
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
@@ -413,6 +417,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     BoxArray grownBoxArray(ba);
     grownBoxArray.grow(ngrow);
     define(grownBoxArray, 1, 0, Fab_allocate);
+    if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
 int
@@ -508,6 +513,10 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
         get(IDs[i].first.FabIndex()).merge(src);
     }
+
+#if BL_USE_TEAM
+    ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
 }
 
 long
@@ -719,12 +728,16 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-#ifdef _OPENMP
-#pragma omp parallel
+    // If team is used, all team workers need to go through all the fabs, including ones they don't own.
+    int teamsize = ParallelDescriptor::TeamSize();
+    unsigned char flags = (teamsize == 1) ? 0 : MFIter::AllBoxes;
+
+#if defined(_OPENMP)
+#pragma omp parallel if (teamsize == 1)
 #endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-	(*this)[mfi].coarsen(ratio,0);
+	(*this)[mfi].coarsen(ratio,isOwner(mfi.LocalIndex()));
     }
 
     flushTileArray(); // because we are about to modify boxarray in-place.

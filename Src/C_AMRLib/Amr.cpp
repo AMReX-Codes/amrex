@@ -374,7 +374,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
-        blocking_factor[i] = 2;
+        blocking_factor[i] = 8;
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
@@ -3180,8 +3180,8 @@ Amr::grid_places (int              lbase,
 		  bool ok = true;
 		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
 		    int len = bli->length(d);
-		  int bf = blocking_factor[levf];
-		  ok &= (len/bf) * bf == len;
+		    int bf = blocking_factor[levf];
+		    ok &= (len/bf) * bf == len;
 		  }
 		  if (!ok) {
 		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
