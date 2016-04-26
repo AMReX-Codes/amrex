@@ -235,6 +235,13 @@ ifeq ($(MEM_PROFILE),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifndef TINY_PROFILE
+  TINY_PROFILE = FALSE
+endif
+ifdef PROFILE
+  TINY_PROFILE = FALSE
+endif
+
 ifndef TEST
   TEST = FALSE
 endif
@@ -268,6 +275,16 @@ endif
 
 ifndef USE_CXX11
   USE_CXX11 = FALSE
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+  USE_MPI = TRUE
+  USE_CXX11 = TRUE
+endif
+
+ifeq ($(USE_MPI3),TRUE)
+  USE_MPI = TRUE
+  USE_CXX11 = TRUE
 endif
 
 ifndef DIMENSION_AGNOSTIC
@@ -349,8 +366,8 @@ ifdef USE_GCC
     #
     # Force C to have same flags as C++.
     #
-    COPTF := $(CXXOPTF) -std=c99
-    CDEBF := $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=gnu99
+    CDEBF := $(CXXDEBF) -std=gnu99
 
     ifeq ($(USE_CXX11),TRUE)
         CXXOPTF += -std=c++11
@@ -795,7 +812,12 @@ ifeq ($(PROFILE),TRUE)
         ProfSuffix	:= .PROF
     endif
 else
-    ProfSuffix	:=
+    ifeq ($(TINY_PROFILE),TRUE)
+        CPPFLAGS    += -DBL_TINY_PROFILING
+        ProfSuffix	:= .TPROF
+    else
+        ProfSuffix	:=
+    endif
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
@@ -840,13 +862,36 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
   VPATH_LOCATIONS   += $(ARRAYVIEWDIR)
 endif
 
-
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI
-    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 else
     MPISuffix	:=
+endif
+
+ifeq ($(USE_MPI3),TRUE)
+    MPISuffix := .MPI3
+    CPPFLAGS  += -DBL_USE_MPI3
+endif
+
+ifeq ($(USE_MPI),TRUE)
+    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+    UPCXXSuffix := .UPCXX
+    CPPFLAGS    += -DBL_USE_UPCXX
+    include $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
+else
+    UPCXXSuffix :=
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+else
+  ifeq ($(USE_MPI3),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+  endif
 endif
 
 ifeq ($(USE_IPM),TRUE)
@@ -1000,7 +1045,8 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)$(USERSuffix)
+
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\

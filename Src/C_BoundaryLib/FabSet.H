@@ -238,17 +238,17 @@ class FabSetIter
 {
 public:
 
-    FabSetIter (const FabSet& fabset)
+    FabSetIter (const FabSet& fabset, unsigned char flags_=0)
         :
-        MFIter(fabset) {}
+        MFIter(fabset, flags_) {}
 
     FabSetIter (const FabSet& fabset, bool do_tiling)
         :
         MFIter(fabset,do_tiling) {}
 
-    FabSetIter (const FabSet& fabset, const IntVect& tilesize)
+    FabSetIter (const FabSet& fabset, const IntVect& tilesize, unsigned char flags_=0)
         :
-        MFIter(fabset,tilesize) {}
+        MFIter(fabset,tilesize,flags_) {}
 };
 
 typedef FabArrayId FabSetId;

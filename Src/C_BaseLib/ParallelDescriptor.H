@@ -1,4 +1,3 @@
-
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
@@ -11,6 +10,18 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_USE_UPCXX
+#include <upcxx.h>
+#endif
+
+#ifdef BL_USE_MPI3
+#include <atomic>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -18,10 +29,18 @@
 #include <vector>
 #include <string>
 #include <typeinfo>
+#include <algorithm>
 
 namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
+
+#ifdef BL_USE_MPI3
+    extern MPI_Win cp_win;
+    extern MPI_Win fb_win;
+    extern MPI_Win fpb_win;
+#endif
+
     //
     // Used as default argument to ParallelDescriptor::Barrier().
     //
@@ -66,6 +85,11 @@ namespace ParallelDescriptor
     void StartParallel (int*    argc = 0,
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
+
+    void StartTeams ();
+    void EndTeams ();
+
+    bool MPIOneSided ();
 
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
@@ -135,6 +159,75 @@ namespace ParallelDescriptor
     extern int m_nProcs_comp;
     extern int m_nProcs_sidecar;
     extern int nSidecarProcs;
+    //
+    // Team
+    //
+    struct ProcessTeam
+    {
+#ifdef BL_USE_UPCXX
+	typedef upcxx::team team_t;
+#else
+	typedef MPI_Comm team_t;
+#endif
+
+	void Barrier () const { 
+	    if (m_size > 1) {
+#ifdef BL_USE_UPCXX
+		m_team.barrier();
+#elif defined(BL_USE_MPI3)
+		MPI_Barrier(m_team);
+#endif
+	    }
+	}
+
+	void MemoryBarrier () const {
+	    if (m_size > 1) {
+#ifdef _OPENMP
+		if (omp_in_parallel()) {
+                    #pragma omp barrier
+	        }
+                #pragma omp master
+#endif
+		{
+#ifdef BL_USE_UPCXX
+                    m_team.barrier();
+#elif defined(BL_USE_MPI3)
+		    std::atomic_thread_fence(std::memory_order_release);
+		    MPI_Barrier(m_team);
+		    std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+	        }
+	    }
+	}
+
+	// ProcessTeam m_Team is a global static object.
+	// When it is destroyed, MPI is proably alread gone.
+	// So we should not destroy MPI_Comm in the dtor.
+	void clear () {
+	    ;
+	}
+	
+	team_t& get() { return m_team; }
+	const team_t& get() const { return m_team; }
+
+#ifdef BL_USE_MPI3
+	MPI_Group& get_group() { return m_group; }
+	const MPI_Group& get_group() const { return m_group; }
+#endif
+
+	team_t m_team;
+	int    m_numTeams;
+	int    m_size;
+	int    m_color;
+	int    m_lead;
+	int    m_rankInTeam;
+
+#ifdef BL_USE_MPI3
+	MPI_Group m_group;
+#endif
+    };
+
+    extern ProcessTeam m_Team;
 
     inline void
     SetNProcsSidecar (int npmp)  // ---- set this before calling BoxLib::Initialize()
@@ -192,6 +285,122 @@ namespace ParallelDescriptor
     {
          return MyProc() == IOProcessorNumber();
     }
+    //
+    inline int
+    TeamSize ()
+    {
+	return m_Team.m_size;
+    }
+    inline int
+    NTeams ()
+    {
+	return m_Team.m_numTeams;
+    }
+    inline int
+    MyTeamColor ()
+    {
+	return m_Team.m_color;
+    }
+    inline int
+    MyTeamLead ()
+    {
+	return m_Team.m_lead;
+    }
+    inline int
+    MyRankInTeam ()
+    {
+	return m_Team.m_rankInTeam;
+    }
+    inline int
+    TeamLead (int rank)
+    {
+	return rank - rank % m_Team.m_size;
+    }
+    inline bool
+    isTeamLead ()
+    {
+	return MyRankInTeam() == 0;
+    }
+    inline bool
+    sameTeam (int rank)
+    {
+	return MyTeamLead() == TeamLead(rank);
+    }
+    inline const ProcessTeam&
+    MyTeam ()
+    {
+	return m_Team;
+    }
+    inline std::pair<int,int>
+    team_range (int begin, int end, int rit = -1, int nworkers = 0)
+    {
+	int rb, re;
+	{
+	    if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
+	    if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+	    BL_ASSERT(rit<nworkers);
+	    if (nworkers == 1) {
+		rb = begin;
+		re = end;
+	    } else {
+		int ntot = end - begin;
+		int nr   = ntot / nworkers;
+		int nlft = ntot - nr * nworkers;
+		if (rit < nlft) {  // get nr+1 items
+		    rb = begin + rit * (nr + 1);
+		    re = rb + nr + 1;
+		} else {           // get nr items
+		    rb = begin + rit * nr + nlft;
+		    re = rb + nr;
+		}
+	    }
+	}
+
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	if (nthreads > 1) {
+	    int tid = omp_get_thread_num();
+	    int ntot = re - rb;
+	    int nr   = ntot / nthreads;
+	    int nlft = ntot - nr * nthreads;
+	    if (tid < nlft) {  // get nr+1 items
+		rb += tid * (nr + 1);
+		re = rb + nr + 1;
+	    } else {           // get nr items
+		rb += tid * nr + nlft;
+		re = rb + nr;
+	    }	    
+	}
+#endif	
+
+	return std::make_pair(rb,re);
+    }
+#ifdef BL_USE_CXX11
+    template <typename F>
+    void team_for (int begin, int end, const F& f)
+    {
+	const auto& range = team_range(begin, end);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, const F& f)
+    {
+	const auto& range = team_range(begin, end, rit);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, int nworkers, const F& f)
+    {
+	const auto& range = team_range(begin, end, rit, nworkers);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+#endif
     //
     // BoxLib's Parallel Communicators
     //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
@@ -736,6 +945,10 @@ template <class Op, class T>
 T
 ParallelDescriptor::Reduce (const T& t)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
     BL_PROFILE_T_S("ParallelDescriptor::Reduce(T)", T);
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, BLProfiler::BeforeCall(), true);
 
@@ -779,7 +992,10 @@ ParallelDescriptor::Bcast (T*     t,
 			   const MPI_Comm &comm)
 {
 #ifdef BL_LAZY
-    Lazy::EvalReduction();
+    int r;
+    MPI_Comm_compare(comm, Communicator(), &r);
+    if (r == MPI_IDENT)
+	Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);

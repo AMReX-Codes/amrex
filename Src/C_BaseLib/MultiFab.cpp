@@ -14,12 +14,6 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
-//
-// Set default values in Initialize()!!!
-//
-bool MultiFab::check_for_nan;
-bool MultiFab::check_for_inf;
-
 namespace
 {
     bool initialized = false;
@@ -213,16 +207,6 @@ void
 MultiFab::Initialize ()
 {
     if (initialized) return;
-    //
-    // Set initial values!!!
-    //
-    MultiFab::check_for_nan = false;
-    MultiFab::check_for_inf = false;
-
-    ParmParse pp("multifab");
-
-    pp.query("check_for_nan", check_for_nan);
-    pp.query("check_for_inf", check_for_inf);
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
@@ -249,8 +233,7 @@ MultiFab::MultiFab (const BoxArray& bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
     Initialize();
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -263,8 +246,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
     Initialize();
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -281,8 +263,7 @@ MultiFab::define (const BoxArray& bxs,
 		  const IntVect&  nodal)
 {
     this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -294,8 +275,19 @@ MultiFab::define (const BoxArray&            bxs,
 		  const IntVect&             nodal)
 {
     this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+}
 
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+void
+MultiFab::initVal ()
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	(*this)[mfi].initVal();
+    }
 }
 
 bool 
@@ -370,22 +362,6 @@ MultiFab::contains_inf (bool local) const
     return contains_inf(0,nComp(),nGrow(),local);
 }
 
-static
-void
-AbortOnNaN (const FArrayBox& fab)
-{
-    std::cout << fab << std::endl;
-    BoxLib::Abort("FArrayBox contains a NaN");
-}
-
-static
-void
-AbortOnInf (const FArrayBox& fab)
-{
-    std::cout << fab << std::endl;
-    BoxLib::Abort("FArrayBox contains a Inf");
-}
-
 bool 
 MultiFab::is_nodal () const
 {
@@ -397,15 +373,7 @@ const FArrayBox&
 MultiFab::operator[] (int K) const
 {
     BL_ASSERT(defined(K));
-
     const FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-
-    if (check_for_nan && fab.contains_nan())
-        AbortOnNaN(fab);
-
-    if (check_for_inf && fab.contains_inf())
-        AbortOnInf(fab);
-
     return fab;
 }
 
@@ -413,15 +381,7 @@ FArrayBox&
 MultiFab::operator[] (int K)
 {
     BL_ASSERT(defined(K));
-
     FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-
-    if (check_for_nan && fab.contains_nan())
-        AbortOnNaN(fab);
-
-    if (check_for_inf && fab.contains_inf())
-        AbortOnInf(fab);
-
     return fab;
 }
 

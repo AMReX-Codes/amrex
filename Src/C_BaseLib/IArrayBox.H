@@ -46,7 +46,9 @@ public:
     // (variables) at each data point in the Box.
     //
     explicit IArrayBox (const Box& b,
-                        int        ncomp=1);
+                        int        ncomp=1,
+			bool       alloc=true,
+			bool       shared=false);
     //
     // Set the fab to the value r.
     //

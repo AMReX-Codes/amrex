@@ -1,5 +1,8 @@
 #include <winstd.H>
 
+#include <iterator>
+#include <numeric>
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
@@ -25,7 +28,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
 IntVect FabArrayBase::comm_tile_size(D_DECL(1024000, 8, 8));
-IntVect FabArrayBase::mfiter_huge_box_size(D_DECL(1024000,1024000,1024000));
+IntVect FabArrayBase::mfghostiter_tile_size(D_DECL(1024000, 8, 8));
 
 int FabArrayBase::nFabArrays(0);
 
@@ -67,15 +70,20 @@ FabArrayBase::Initialize ()
     ParmParse pp("fabarray");
 
     Array<int> tilesize(BL_SPACEDIM);
+
     if (pp.queryarr("mfiter_tile_size", tilesize, 0, BL_SPACEDIM))
     {
 	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfiter_tile_size[i] = tilesize[i];
     }
 
-    Array<int> commtilesize(BL_SPACEDIM);
-    if (pp.queryarr("comm_tile_size", commtilesize, 0, BL_SPACEDIM))
+    if (pp.queryarr("mfghostiter_tile_size", tilesize, 0, BL_SPACEDIM))
     {
-        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = commtilesize[i];
+	for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::mfghostiter_tile_size[i] = tilesize[i];
+    }
+
+    if (pp.queryarr("comm_tile_size", tilesize, 0, BL_SPACEDIM))
+    {
+        for (int i=0; i<BL_SPACEDIM; i++) FabArrayBase::comm_tile_size[i] = tilesize[i];
     }
 
     pp.query("maxcomp",             FabArrayBase::MaxComp);
@@ -435,9 +443,11 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const Box& bx       = isects[j].second;
 	    const int dst_owner = dm_dst[k_dst];
 
-	    if (dst_owner == MyProc) continue; // local copy will be dealt with later
-	    
-	    send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
+	    if (ParallelDescriptor::sameTeam(dst_owner)) {
+		continue; // local copy will be dealt with later
+	    } else if (MyProc == dm_src[k_src]) {
+		send_tags[dst_owner].push_back(CopyComTag(bx, k_dst, k_src));
+	    }
 	}
     }
 
@@ -451,6 +461,10 @@ FabArrayBase::TheCPC (const CPC&          cpc,
         check_remote = true;
     }
 #endif    
+
+    if (ParallelDescriptor::TeamSize() > 1) {
+	check_local = true;
+    }
 
     for (int i = 0; i < nlocal_dst; ++i)
     {
@@ -475,7 +489,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 	    const Box& bx       = isects[j].second;
 	    const int src_owner = dm_src[k_src];
 
-	    if (src_owner == MyProc) { // local copy
+	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 		for (BoxList::const_iterator
 			 it_tile  = tilelist.begin(),
@@ -486,7 +500,7 @@ FabArrayBase::TheCPC (const CPC&          cpc,
 		if (check_local) {
 		    localtouch.plus(1, bx);
 		}
-	    } else {
+	    } else if (MyProc == dm_dst[k_dst]) {
 		recv_tags[src_owner].push_back(CopyComTag(bx, k_dst, k_src));
 		if (check_remote) {
 		    remotetouch.plus(1, bx);
@@ -753,6 +767,9 @@ FabArrayBase::TheFB (bool                cross,
         return cache_it;
     }
 
+    // For local copy, all workers in the same team will have the identical copy of tags
+    // so that they can share work.  But for remote communication, they are all different.
+
     const int nlocal = imap.size();
     const int ng = si.m_ngrow;
     std::vector< std::pair<int,Box> > isects;
@@ -774,9 +791,11 @@ FabArrayBase::TheFB (bool                cross,
 
 	    if (krcv == ksnd) continue;  // same box
 
-	    if (dst_owner == MyProc) continue;  // local copy will be dealt with later
-
-	    send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
+	    if (ParallelDescriptor::sameTeam(dst_owner)) {
+		continue;  // local copy will be dealt with later
+	    } else if (MyProc == dm[ksnd]) {
+		send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
+	    }
 	}
     }
 
@@ -790,6 +809,10 @@ FabArrayBase::TheFB (bool                cross,
         check_remote = true;
     }
 #endif
+
+    if (ParallelDescriptor::TeamSize() > 1) {
+	check_local = true;
+    }
 
     if (ba.ixType().cellCentered()) {
 	TheFB.m_threadsafe_loc = true;
@@ -823,7 +846,7 @@ FabArrayBase::TheFB (bool                cross,
 
 	    if (krcv == ksnd) continue;  // same box
 
-	    if (src_owner == MyProc) { // local copy
+	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
 		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
 		for (BoxList::const_iterator
 			 it_tile  = tilelist.begin(),
@@ -834,7 +857,7 @@ FabArrayBase::TheFB (bool                cross,
 		if (check_local) {
 		    localtouch.plus(1, bx);
 		}
-	    } else {
+	    } else if (MyProc == dm[krcv]) {
 		recv_tags[src_owner].push_back(CopyComTag(bx, krcv, ksnd));
 		if (check_remote) {
 		    remotetouch.plus(1, bx);
@@ -1051,51 +1074,89 @@ void
 FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 {
     // Note that we store Tiles always as cell-centered boxes, even if the boxarray is nodal.
+    const int N = indexMap.size();
 
-    for (int i = 0; i < indexMap.size(); ++i)
+    if (tileSize == IntVect::TheZeroVector())
     {
-	const int K = indexMap[i]; 
-	const Box& bx = boxarray.getCellCenteredBox(K);
-
-	IntVect nt_in_fab, tsize, nleft;
-	int ntiles = 1;
-	for (int d=0; d<BL_SPACEDIM; d++) {
-	    int ncells = bx.length(d);
-	    nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
-	    tsize    [d] = ncells/nt_in_fab[d];
-	    nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
-	    ntiles *= nt_in_fab[d];
+	for (int i = 0; i < N; ++i)
+	{
+	    if (isOwner(i))
+	    {
+		const int K = indexMap[i]; 
+		const Box& bx = boxarray.getCellCenteredBox(K);
+		ta.indexMap.push_back(K);
+		ta.localIndexMap.push_back(i);
+		ta.tileArray.push_back(bx);
+	    }
 	}
+    }
+    else
+    {
+#if defined(BL_USE_TEAM) && !defined(__INTEL_COMPILER)
+	std::vector<int> local_idxs(N);
+	std::iota(std::begin(local_idxs), std::end(local_idxs), 0);
+#else
+	std::vector<int> local_idxs;
+	for (int i = 0; i < N; ++i)
+	    local_idxs.push_back(i);
+#endif
 
-	IntVect small, big, ijk;  // note that the initial values are all zero.
-	ijk[0] = -1;
-	for (int t = 0; t < ntiles; ++t) {
-	    ta.indexMap.push_back(K);
-	    ta.localIndexMap.push_back(i);
+#if defined(BL_USE_TEAM)
+	const int nworkers = ParallelDescriptor::TeamSize();
+	if (nworkers > 1) {
+	    // reorder it so that each worker will be more likely to work on their own fabs
+	    std::stable_sort(local_idxs.begin(), local_idxs.end(), [this](int i, int j) 
+			     { return  this->distributionMap[this->indexMap[i]] 
+				     < this->distributionMap[this->indexMap[j]]; });
+	}
+#endif	
 
+	for (std::vector<int>::const_iterator it = local_idxs.begin(); it != local_idxs.end(); ++it)
+	{
+	    const int i = *it;         // local index 
+	    const int K = indexMap[i]; // global index
+	    const Box& bx = boxarray.getCellCenteredBox(K);
+	    
+	    IntVect nt_in_fab, tsize, nleft;
+	    int ntiles = 1;
 	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d]<nt_in_fab[d]-1) {
-		    ijk[d]++;
-		    break;
-		} else {
-		    ijk[d] = 0;
-		}
+		int ncells = bx.length(d);
+		nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
+		tsize    [d] = ncells/nt_in_fab[d];
+		nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+		ntiles *= nt_in_fab[d];
 	    }
-
-	    for (int d=0; d<BL_SPACEDIM; d++) {
-		if (ijk[d] < nleft[d]) {
-		    small[d] = ijk[d]*(tsize[d]+1);
-		    big[d] = small[d] + tsize[d];
-		} else {
-		    small[d] = ijk[d]*tsize[d] + nleft[d];
-		    big[d] = small[d] + tsize[d] - 1;
+	    
+	    IntVect small, big, ijk;  // note that the initial values are all zero.
+	    ijk[0] = -1;
+	    for (int t = 0; t < ntiles; ++t) {
+		ta.indexMap.push_back(K);
+		ta.localIndexMap.push_back(i);
+		
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d]<nt_in_fab[d]-1) {
+			ijk[d]++;
+			break;
+		    } else {
+			ijk[d] = 0;
+		    }
 		}
+		
+		for (int d=0; d<BL_SPACEDIM; d++) {
+		    if (ijk[d] < nleft[d]) {
+			small[d] = ijk[d]*(tsize[d]+1);
+			big[d] = small[d] + tsize[d];
+		    } else {
+			small[d] = ijk[d]*tsize[d] + nleft[d];
+			big[d] = small[d] + tsize[d] - 1;
+		    }
+		}
+		
+		Box tbx(small, big, IndexType::TheCellType());
+		tbx.shift(bx.smallEnd());
+		
+		ta.tileArray.push_back(tbx);
 	    }
-
-	    Box tbx(small, big, IndexType::TheCellType());
-	    tbx.shift(bx.smallEnd());
-
-	    ta.tileArray.push_back(tbx);
 	}
     }
 }
@@ -1193,10 +1254,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		unsigned char       flags_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray((flags_ & Tiling) 
-			       ? FabArrayBase::mfiter_tile_size
-			       : FabArrayBase::mfiter_huge_box_size)),
-    flags(flags_)
+    tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(flags_),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
@@ -1205,10 +1267,11 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		bool                do_tiling_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray(do_tiling_ 
-			       ? FabArrayBase::mfiter_tile_size
-			       : FabArrayBase::mfiter_huge_box_size)),
-    flags(do_tiling_ ? Tiling : 0)
+    tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
+    flags(do_tiling_ ? Tiling : 0),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
@@ -1218,72 +1281,111 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 		unsigned char       flags_)
     :
     fabArray(fabarray_),
-    pta(fabarray_.getTileArray(tilesize_)),
-    flags(flags_ | Tiling)
-{
-    Initialize();
-}
-
-MFIter::MFIter (const FabArrayBase&            fabarray_, 
-		const FabArrayBase::TileArray* pta_,
-		unsigned char                  flags_)
-    :
-    fabArray(fabarray_),
-    pta(pta_),
-    flags(flags_ | Tiling)
+    tile_size(tilesize_),
+    flags(flags_ | Tiling),
+    index_map(0),
+    local_index_map(0),
+    tile_array(0)
 {
     Initialize();
 }
 
 MFIter::~MFIter ()
 {
-    ;
+#if BL_USE_TEAM
+    if ( ! (flags & NoTeamBarrier) )
+	ParallelDescriptor::MyTeam().MemoryBarrier();
+#endif
 }
 
 void 
 MFIter::Initialize ()
 {
-    if (pta == 0) return;
-
-    int rit = 0;
-    int nworkers = 1;
-    
-#ifdef _OPENMP
-    int nosharing = flags & NoSharing;
-    if (omp_in_parallel() && !nosharing) {
-	rit = omp_get_thread_num();
-	nworkers = omp_get_num_threads();
+    if (flags & SkipInit) {
+	return;
     }
-#endif
-
-    int ntot = pta->indexMap.size();
-
-    if (nworkers == 1)
+    else if (flags & AllBoxes)  // a very special case
     {
-	beginIndex = 0;
-	endIndex = ntot;
+	index_map    = &(fabArray.IndexMap());
+	currentIndex = 0;
+	beginIndex   = 0;
+	endIndex     = index_map->size();
     }
     else
     {
-	int nr   = ntot / nworkers;
-	int nlft = ntot - nr * nworkers;
-	if (rit < nlft) {  // get nr+1 items
-	    beginIndex = rit * (nr + 1);
-	    endIndex = beginIndex + nr + 1;
-	} else {           // get nr items
-	    beginIndex = rit * nr + nlft;
-	    endIndex = beginIndex + nr;
-	}
-    }
-    currentIndex = beginIndex;
+	const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
+	
+	index_map       = &(pta->indexMap);
+	local_index_map = &(pta->localIndexMap);
+	tile_array      = &(pta->tileArray);
 
-    typ = fabArray.boxArray().ixType();
+	{
+	    int rit = 0;
+	    int nworkers = 1;
+#ifdef BL_USE_TEAM
+	    if (ParallelDescriptor::TeamSize() > 1) {
+		if ( tile_size == IntVect::TheZeroVector() ) {
+		    // In this case the TileArray contains only boxes owned by this worker.
+		    // So there is no sharing going on.
+		    rit = 0;
+		    nworkers = 1;
+		} else {
+		    rit = ParallelDescriptor::MyRankInTeam();
+		    nworkers = ParallelDescriptor::TeamSize();
+		}
+	    }
+#endif
+
+	    int ntot = index_map->size();
+	    
+	    if (nworkers == 1)
+	    {
+		beginIndex = 0;
+		endIndex = ntot;
+	    }
+	    else
+	    {
+		int nr   = ntot / nworkers;
+		int nlft = ntot - nr * nworkers;
+		if (rit < nlft) {  // get nr+1 items
+		    beginIndex = rit * (nr + 1);
+		    endIndex = beginIndex + nr + 1;
+		} else {           // get nr items
+		    beginIndex = rit * nr + nlft;
+		    endIndex = beginIndex + nr;
+		}
+	    }
+	}
+	
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	if (nthreads > 1)
+	{
+	    int tid = omp_get_thread_num();
+	    int ntot = endIndex - beginIndex;
+	    int nr   = ntot / nthreads;
+	    int nlft = ntot - nr * nthreads;
+	    if (tid < nlft) {  // get nr+1 items
+		beginIndex += tid * (nr + 1);
+		endIndex = beginIndex + nr + 1;
+	    } else {           // get nr items
+		beginIndex += tid * nr + nlft;
+		endIndex = beginIndex + nr;
+	    }	    
+	}
+#endif
+
+	currentIndex = beginIndex;
+
+	typ = fabArray.boxArray().ixType();
+    }
 }
 
 Box 
 MFIter::tilebox () const
 { 
-    Box bx(pta->tileArray[currentIndex]);
+    BL_ASSERT(tile_array != 0);
+    Box bx((*tile_array)[currentIndex]);
     if (! typ.cellCentered())
     {
 	bx.convert(typ);
@@ -1302,7 +1404,8 @@ MFIter::tilebox () const
 Box
 MFIter::nodaltilebox (int dir) const 
 { 
-    Box bx(pta->tileArray[currentIndex]);
+    BL_ASSERT(tile_array != 0);
+    Box bx((*tile_array)[currentIndex]);
     bx.convert(typ);
     const IntVect& Big = validbox().bigEnd();
     int d0, d1;
@@ -1365,10 +1468,92 @@ __attribute__ ((noinline))
 #endif
 MFIter::validbox () const 
 { 
-    return fabArray.box(pta->indexMap[currentIndex]); 
+    return fabArray.box((*index_map)[currentIndex]);
 }
 Box
 MFIter::fabbox () const 
 { 
-    return fabArray.fabbox(pta->indexMap[currentIndex]); 
+    return fabArray.fabbox((*index_map)[currentIndex]);
+}
+
+MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
+    :
+    MFIter(fabarray, (unsigned char)(SkipInit|Tiling))
+{
+    Initialize();
+}
+
+void
+MFGhostIter::Initialize ()
+{
+    int rit = 0;
+    int nworkers = 1;
+#ifdef BL_USE_TEAM
+    if (ParallelDescriptor::TeamSize() > 1) {
+	rit = ParallelDescriptor::MyRankInTeam();
+	nworkers = ParallelDescriptor::TeamSize();
+    }
+#endif
+
+    int tid = 0;
+    int nthreads = 1;
+#ifdef _OPENMP
+    nthreads = omp_get_num_threads();
+    if (nthreads > 1)
+	tid = omp_get_thread_num();
+#endif
+
+    int npes = nworkers*nthreads;
+    int pid = rit*nthreads+tid;
+
+    BoxList alltiles;
+    Array<int> allindex;
+    Array<int> alllocalindex;
+
+    for (int i=0; i < fabArray.IndexMap().size(); ++i) {
+	int K = fabArray.IndexMap()[i];
+	const Box& vbx = fabArray.box(K);
+	const Box& fbx = fabArray.fabbox(K);
+
+	const BoxList& diff = BoxLib::boxDiff(fbx, vbx);
+	
+	for (BoxList::const_iterator bli = diff.begin(); bli != diff.end(); ++bli) {
+	    BoxList tiles(*bli, FabArrayBase::mfghostiter_tile_size);
+	    int nt = tiles.size();
+	    for (int it=0; it<nt; ++it) {
+		allindex.push_back(K);
+		alllocalindex.push_back(i);
+	    }
+	    alltiles.catenate(tiles);
+	}
+    }
+
+    int n_tot_tiles = alltiles.size();
+    int navg = n_tot_tiles / npes;
+    int nleft = n_tot_tiles - navg*npes;
+    int ntiles = navg;
+    if (pid < nleft) ntiles++;
+
+    // how many tiles should we skip?
+    int nskip = pid*navg + std::min(pid,nleft);
+    BoxList::const_iterator bli = alltiles.begin();
+    for (int i=0; i<nskip; ++i) ++bli;
+
+    lta.indexMap.reserve(ntiles);
+    lta.localIndexMap.reserve(ntiles);
+    lta.tileArray.reserve(ntiles);
+
+    for (int i=0; i<ntiles; ++i) {
+	lta.indexMap.push_back(allindex[i+nskip]);
+	lta.localIndexMap.push_back(alllocalindex[i+nskip]);
+	lta.tileArray.push_back(*bli++);
+    }
+
+    currentIndex = beginIndex = 0;
+    endIndex = lta.indexMap.size();
+
+    lta.nuse = 0;
+    index_map       = &(lta.indexMap);
+    local_index_map = &(lta.localIndexMap);
+    tile_array      = &(lta.tileArray);
 }

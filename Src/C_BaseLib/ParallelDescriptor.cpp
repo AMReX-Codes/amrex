@@ -12,6 +12,14 @@
 #include <BLProfiler.H>
 #include <ParallelDescriptor.H>
 
+#ifndef BL_AMRPROF
+#include <ParmParse.H>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace ParallelDescriptor
 {
     //
@@ -31,6 +39,10 @@ namespace ParallelDescriptor
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
     //
+    // Team
+    //
+    ProcessTeam m_Team;
+    //
     // BoxLib's Communicators
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
@@ -48,6 +60,12 @@ namespace ParallelDescriptor
 
     const int ioProcessor = 0;
 
+#ifdef BL_USE_MPI3
+    MPI_Win cp_win;
+    MPI_Win fb_win;
+    MPI_Win fpb_win;
+#endif
+  
     namespace util
     {
 	//
@@ -216,6 +234,12 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_MPI_REQUIRE( MPI_Comm_size(CommunicatorAll(), &m_nProcs_all) );
     BL_MPI_REQUIRE( MPI_Comm_rank(CommunicatorAll(), &m_MyId_all) );
 
+#ifdef BL_USE_MPI3
+    int mpi_version, mpi_subversion;
+    BL_MPI_REQUIRE( MPI_Get_version(&mpi_version, &mpi_subversion) );
+    if (mpi_version < 3) BoxLib::Abort("MPI 3 is needed because USE_MPI3=TRUE");
+#endif
+
     if(m_MyId_all == 0 && nSidecarProcs > 0) {
       std::cout << "**** nSidecarProcs = " << nSidecarProcs << std::endl;
     }
@@ -341,7 +365,10 @@ void
 ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
 {
 #ifdef BL_LAZY
-    Lazy::EvalReduction();
+    int r;
+    MPI_Comm_compare(comm, Communicator(), &r);
+    if (r == MPI_IDENT)
+	Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Barrier(comm)");
@@ -398,6 +425,10 @@ void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -422,6 +453,10 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -449,6 +484,10 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -477,6 +516,10 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -581,6 +624,10 @@ void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -605,6 +652,10 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -632,6 +683,10 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -660,6 +715,10 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -787,6 +846,10 @@ void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -811,6 +874,10 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -838,6 +905,10 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -866,6 +937,10 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
+#ifdef BL_USE_UPCXX
+    upcxx::barrier();
+#endif
+
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1150,7 +1225,10 @@ ParallelDescriptor::Bcast(void *buf,
                           MPI_Comm comm)
 {
 #ifdef BL_LAZY
-    Lazy::EvalReduction();
+    int r;
+    MPI_Comm_compare(comm, Communicator(), &r);
+    if (r == MPI_IDENT)
+	Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_S("ParallelDescriptor::Bcast(viMiM)");
@@ -1587,4 +1665,78 @@ ParallelDescriptor::SidecarProcess ()
       std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
 #endif
 #endif
+}
+
+
+#ifndef BL_AMRPROF
+void
+ParallelDescriptor::StartTeams ()
+{
+    int team_size = 1;
+
+#ifdef BL_USE_MPI
+    ParmParse pp("team");
+    pp.query("size", team_size);
+#endif
+
+    int nprocs = ParallelDescriptor::NProcs();
+    int rank   = ParallelDescriptor::MyProc();
+
+    if (nprocs % team_size != 0)
+	BoxLib::Abort("Number of processes not divisible by team size");
+
+    m_Team.m_numTeams    = nprocs / team_size;
+    m_Team.m_size        = team_size;
+    m_Team.m_color       = rank / team_size;
+    m_Team.m_lead        = m_Team.m_color * team_size;
+    m_Team.m_rankInTeam  = rank - m_Team.m_lead;
+
+    if (team_size > 1)
+    {
+#ifdef BL_USE_UPCXX
+	upcxx::team* team;
+	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
+        m_Team.m_team = team;
+#elif defined(BL_USE_MPI3)
+	MPI_Group grp;
+	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
+	int team_ranks[team_size];
+	for (int i = 0; i < team_size; ++i) {
+	    team_ranks[i] = MyTeamLead() + i;
+	}
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+					m_Team.get_group(), &m_Team.get()) );
+#else
+	if (ParallelDescriptor::IOProcessor())
+	    BoxLib::Warning("Must compile with either USE_UPCXX or USE_MPI3=TRUE for team.size>1 to take effect.");
+#endif
+    }
+}
+#endif
+
+void
+ParallelDescriptor::EndTeams ()
+{
+    m_Team.clear();
+}
+
+
+bool
+ParallelDescriptor::MPIOneSided ()
+{
+    static bool do_onesided = false;
+
+#ifndef BL_AMRPROF
+#if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
+    static bool first = true;
+    if (first) {
+	first = false;
+	ParmParse pp("mpi");
+	pp.query("onesided",do_onesided);
+    }
+#endif
+#endif
+
+    return do_onesided;
 }
