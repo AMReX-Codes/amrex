@@ -122,6 +122,7 @@ module boxarray_module
   private :: boxlist_nboxes
 
   type(mem_stats), private, save :: boxarray_ms
+  integer(ll_t), private, save :: boxarray_high_water_mark = 0
 
 contains
 
@@ -172,6 +173,11 @@ contains
     r = boxarray_ms
   end function boxarray_mem_stats
 
+  function boxarray_get_high_water_mark() result(r)
+    integer(ll_t) :: r
+    r = boxarray_high_water_mark
+  end function boxarray_get_high_water_mark
+
   pure function boxarray_empty(ba) result(r)
     logical :: r
     type(boxarray), intent(in) :: ba
@@ -216,6 +222,8 @@ contains
     ba%dim = ba1%dim
     call boxarray_verify_dim(ba)
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
+    boxarray_high_water_mark = max( boxarray_ms%num_alloc-boxarray_ms%num_dealloc, &
+         boxarray_high_water_mark )
   end subroutine boxarray_build_copy
 
   subroutine boxarray_build_copy_l(ba, bl,sort)
@@ -244,6 +252,8 @@ contains
     call boxarray_verify_dim(ba)
     if (lsort) call boxarray_sort(ba) !! make sure all grids are sorted
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
+    boxarray_high_water_mark = max( boxarray_ms%num_alloc-boxarray_ms%num_dealloc, &
+         boxarray_high_water_mark )
   end subroutine boxarray_build_v
 
   subroutine boxarray_build_bx(ba, bx)
@@ -258,6 +268,8 @@ contains
     ba%dim = bx%dim
     call boxarray_verify_dim(ba)
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
+    boxarray_high_water_mark = max( boxarray_ms%num_alloc-boxarray_ms%num_dealloc, &
+         boxarray_high_water_mark )
   end subroutine boxarray_build_bx
 
   subroutine boxarray_build_l(ba, bl, sort)
@@ -288,6 +300,8 @@ contains
     call boxarray_verify_dim(ba)
     if ( lsort ) call boxarray_sort(ba)
     call mem_stats_alloc(boxarray_ms, ba%nboxes)
+    boxarray_high_water_mark = max( boxarray_ms%num_alloc-boxarray_ms%num_dealloc, &
+         boxarray_high_water_mark )
   end subroutine boxarray_build_l
 
   subroutine boxarray_destroy(ba)

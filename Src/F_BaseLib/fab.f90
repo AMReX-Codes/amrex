@@ -863,6 +863,14 @@ contains
   end function lfab_built_q
 
   subroutine fab_build(fb, bx, nc, ng, nodal, alloc, stencil)
+    use iso_c_binding, only : c_loc, c_ptr, c_size_t
+    interface
+       subroutine double_array_init (p, n) bind(c)
+         use, intrinsic :: iso_c_binding
+         type(c_ptr), value :: p
+         integer(kind=c_size_t), intent(in), value :: n
+       end subroutine double_array_init
+    end interface
     type(fab), intent(out) :: fb
     type(box), intent(in)  :: bx
     integer, intent(in), optional :: ng, nc
@@ -872,6 +880,8 @@ contains
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
     integer :: lnc, lng
     logical :: lal, lst
+    integer (kind=c_size_t) :: csz
+    type(c_ptr) :: cp
     lng = 0; if ( present(ng) ) lng = ng
     lnc = 1; if ( present(nc) ) lnc = nc
     lal = .true. ; if ( present(alloc)   ) lal = alloc
@@ -885,13 +895,18 @@ contains
     fb%pbx = grow(fb%ibx, lng)
     lo(1:fb%dim) = fb%pbx%lo(1:fb%dim)
     hi(1:fb%dim) = fb%pbx%hi(1:fb%dim)
+    if ( empty(fb%pbx) ) return
     if ( lal ) then
        if ( lst) then
           allocate(fb%p(1:lnc,lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+          cp = c_loc(fb%p(1,lo(1),lo(2),lo(3)))
        else
           allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
+          cp = c_loc(fb%p(lo(1),lo(2),lo(3),1))
        end if
        if ( do_init_fabs ) call setval(fb, fab_default_init)
+       csz = size(fb%p)
+       call double_array_init(cp, csz)
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
        if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then
           fab_high_water_mark = (fab_ms%num_alloc-fab_ms%num_dealloc)
@@ -1418,6 +1433,49 @@ contains
     if ( .not. associated(p) ) call bl_error("FAB_SETVAL: not associated")
     p = val
   end subroutine lfab_setval_bx_c
+
+  ! setval in cells not used in a cross stencil
+  subroutine fab_set_corner(fb, val, bx, c, nc)
+    type(fab), intent(inout) :: fb
+    real(dp_t), intent(in) :: val
+    type(box), intent(in) :: bx
+    integer, intent(in) :: c, nc
+    integer :: i, j, k, m, lo(3), hi(3), ilo(3), ihi(3), iin, jin, kin
+    if (fb%dim .eq. 1) return
+    lo = 1
+    hi = 1
+    lo(1:fb%dim) = lwb(bx)
+    hi(1:fb%dim) = upb(bx)
+    ilo = 1
+    ihi = 1
+    ilo(1:fb%dim) = lwb(fb%ibx)
+    ihi(1:fb%dim) = upb(fb%ibx)
+    do m = 1, nc
+       do k = lo(3), hi(3)
+          if (k .ge. ilo(3) .and. k .le. ihi(3)) then
+             kin = 1
+          else
+             kin = 0
+          end if
+          do j = lo(2), hi(2)
+             if (j .ge. ilo(2) .and. j .le. ihi(2)) then
+                jin = 1
+             else
+                jin = 0
+             end if
+             if (jin+kin.eq.2) cycle
+             do i = lo(1), hi(1)
+                if (i .ge. ilo(1) .and. i .le. ihi(1)) then
+                   iin = 1
+                else
+                   iin = 0
+                end if
+                if (iin+jin+kin.le.1) fb%p(i,j,k,m) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine fab_set_corner
 
   subroutine fab_print(fb, comp, str, unit, all, data, bx, skip)
     use bl_IO_module

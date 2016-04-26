@@ -386,6 +386,13 @@ AbortOnInf (const FArrayBox& fab)
     BoxLib::Abort("FArrayBox contains a Inf");
 }
 
+bool 
+MultiFab::is_nodal () const
+{
+    return boxArray().ixType().nodeCentered();
+}
+
+
 const FArrayBox&
 MultiFab::operator[] (int K) const
 {
@@ -1271,9 +1278,9 @@ BoxLib::InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         BL_ASSERT(dest_comp + num_comp <= dest.nComp());
 
         FArrayBox dest1(dest.box(), dest.nComp());
-        dest1.setVal(Real(1.e30)); // FIXME - Whats a better value?
+	dest1.setVal(std::numeric_limits<Real>::quiet_NaN());
         FArrayBox dest2(dest.box(), dest.nComp());
-        dest2.setVal(Real(1.e30)); // FIXME - Whats a better value?
+	dest2.setVal(std::numeric_limits<Real>::quiet_NaN());
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1,
@@ -1369,18 +1376,24 @@ MultiFab::SumBoundary (int scomp,
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheFBCache.end());
 
-    const FabArrayBase::SI& TheSI = cache_it->second;
+    const FabArrayBase::SI& TheSI_ = cache_it->second;
+
+    const CopyComTagsContainer&      LocTags = *(TheSI_.m_LocTags);
+    const MapOfCopyComTagContainers& SndTags = *(TheSI_.m_RcvTags);
+    const MapOfCopyComTagContainers& RcvTags = *(TheSI_.m_SndTags);
+    const std::map<int,int>&         SndVols = *(TheSI_.m_RcvVols);
+    const std::map<int,int>&         RcvVols = *(TheSI_.m_SndVols);
 
     if (ParallelDescriptor::NProcs() == 1)
     {
         //
         // There can only be local work to do.
         //
-	int N_loc = (*TheSI.m_LocTags).size();
+	int N_loc = LocTags.size();
 	// undafe to do OMP
 	for (int i=0; i<N_loc; ++i)
         {
-            const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+            const CopyComTag& tag = LocTags[i];
             mf[tag.srcIndex].plus(mf[tag.fabIndex],tag.box,tag.box,scomp,scomp,ncomp);
         }
 
@@ -1394,7 +1407,7 @@ MultiFab::SumBoundary (int scomp,
     //
     const int SeqNum = ParallelDescriptor::SeqNum();
 
-    if (TheSI.m_LocTags->empty() && TheSI.m_RcvTags->empty() && TheSI.m_SndTags->empty())
+    if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
         //
         // No work to do.
         //
@@ -1409,12 +1422,12 @@ MultiFab::SumBoundary (int scomp,
     //
     Real* the_recv_data = 0;
 
-    FabArrayBase::PostRcvs(*TheSI.m_SndTags,*TheSI.m_SndVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
+    FabArrayBase::PostRcvs(RcvVols,the_recv_data,recv_data,recv_from,recv_reqs,ncomp,SeqNum);
 
     //
     // Post send's
     //
-    const int N_snds = TheSI.m_SndTags->size();
+    const int N_snds = SndTags.size();
 
     Array<Real*>                       send_data;
     Array<int>                         send_N;
@@ -1426,14 +1439,14 @@ MultiFab::SumBoundary (int scomp,
     send_rank.reserve(N_snds);
     send_cctc.reserve(N_snds);
 
-    for (MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_RcvTags->begin(),
-             m_End = TheSI.m_RcvTags->end();
+    for (MapOfCopyComTagContainers::const_iterator m_it = SndTags.begin(),
+             m_End = SndTags.end();
          m_it != m_End;
          ++m_it)
     {
-        std::map<int,int>::const_iterator vol_it = TheSI.m_RcvVols->find(m_it->first);
+        std::map<int,int>::const_iterator vol_it = SndVols.find(m_it->first);
 
-        BL_ASSERT(vol_it != TheSI.m_RcvVols->end());
+        BL_ASSERT(vol_it != SndVols.end());
 
         const int N = vol_it->second*ncomp;
 
@@ -1487,11 +1500,11 @@ MultiFab::SumBoundary (int scomp,
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    int N_loc = (*TheSI.m_LocTags).size();
+    int N_loc = LocTags.size();
     // undafe to do OMP
     for (int i=0; i<N_loc; ++i)
     {
-        const CopyComTag& tag = (*TheSI.m_LocTags)[i];
+        const CopyComTag& tag = LocTags[i];
 
         BL_ASSERT(distributionMap[tag.fabIndex] == ParallelDescriptor::MyProc());
         BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
@@ -1502,7 +1515,7 @@ MultiFab::SumBoundary (int scomp,
     //
     //  wait and unpack
     //
-    const int N_rcvs = TheSI.m_RcvTags->size();
+    const int N_rcvs = RcvTags.size();
 
     if (N_rcvs > 0)
     {
@@ -1511,8 +1524,8 @@ MultiFab::SumBoundary (int scomp,
 
         for (int k = 0; k < N_rcvs; k++)
         {
-            MapOfCopyComTagContainers::const_iterator m_it = TheSI.m_SndTags->find(recv_from[k]);
-            BL_ASSERT(m_it != TheSI.m_SndTags->end());
+            MapOfCopyComTagContainers::const_iterator m_it = RcvTags.find(recv_from[k]);
+            BL_ASSERT(m_it != RcvTags.end());
 
 	    recv_cctc.push_back(&(m_it->second));
 	}
@@ -1548,8 +1561,8 @@ MultiFab::SumBoundary (int scomp,
 
     BoxLib::The_Arena()->free(the_recv_data);
 
-    if (FabArrayBase::do_async_sends && !TheSI.m_RcvTags->empty())
-        FabArrayBase::GrokAsyncSends(TheSI.m_RcvTags->size(),send_reqs,send_data,stats);
+    if (FabArrayBase::do_async_sends && !SndTags.empty())
+        FabArrayBase::GrokAsyncSends(N_snds,send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
 }
@@ -1563,10 +1576,15 @@ MultiFab::SumBoundary ()
 
 // Given a MultiFab in the compute MPI group, clone its data onto a MultiFab in
 // the sidecar group.
+//
+// Usage: on compute group, supply a reference to a regular MultiFab. On
+// sidecar group, supply a reference to an "empty" MultiFab, e.g.,
+//
+// MultiFab mf;
+// MultiFab::SendMultiFabToSidecars(&mf);
+//
+// This function will do all of the allocation on the sidecars for you.
 
-// Note that the compute MultiFab will be a null pointer on the sidecar nodes,
-// and the sidecar MultiFab will be null on the compute nodes. So be mindful of
-// which processes will be executing which code when you access these pointers.
 #ifdef BL_USE_MPI
 void
 MultiFab::SendMultiFabToSidecars (MultiFab *mf)
@@ -1632,14 +1650,11 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
       {
           const int index = mfi.index();
-          if (comp_procmap[index] == ParallelDescriptor::MyProc())
-          {
-            const Box& box = (*mf)[mfi].box();
-            const long numPts = box.numPts();
-            ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-            const Real *dataPtr = (*mf)[mfi].dataPtr();
-            ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-          }
+          const Box& box = (*mf)[mfi].box();
+          const long numPts = box.numPts();
+          ParallelDescriptor::Send(&numPts, 1, intransit_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+          const Real *dataPtr = (*mf)[mfi].dataPtr();
+          ParallelDescriptor::Send(dataPtr, numPts*nComp, intransit_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
       }
     }
     else
@@ -1694,16 +1709,13 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       // Now we populate the MultiFab with data.
       for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
       {
-          const int index = mfi.index();
-        if (intransit_procmap[index] == ParallelDescriptor::MyProc())
-        {
-          long numPts;
-          ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
-          Real FAB_data[numPts*nComp];
-          Real *data_ptr = (*mf)[mfi].dataPtr();
-          ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
-          std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
-        }
+        const int index = mfi.index();
+        long numPts;
+        ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+        Real FAB_data[numPts*nComp];
+        Real *data_ptr = (*mf)[mfi].dataPtr();
+        ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());
+        std::memcpy(data_ptr, FAB_data, numPts*nComp*sizeof(Real));
       }
     }
 }

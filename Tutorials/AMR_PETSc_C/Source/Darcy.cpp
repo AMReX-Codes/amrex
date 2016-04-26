@@ -1121,7 +1121,7 @@ Darcy::derive (const std::string& name,
     BL_ASSERT(rec);
     
     BoxArray dstBA(mf.boxArray());
-    BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
+    BL_ASSERT(rec->deriveType() == dstBA.ixType());
 
     const Layout::MultiIntFab& nodeIds = layout->NodeIds()[level];
 
@@ -1142,7 +1142,7 @@ Darcy::derive (const std::string& name,
     const int ngrow = mf.nGrow();
     
     BoxArray dstBA(mf.boxArray());
-    BL_ASSERT(rec->deriveType() == dstBA[0].ixType());
+    BL_ASSERT(rec->deriveType() == dstBA.ixType());
     
     mf.setVal(-1,dcomp,1,ngrow);
     Layout::IntFab ifab;

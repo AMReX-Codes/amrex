@@ -93,9 +93,9 @@ public:
     // value elem.  It is an error if the i'th element previously
     // had a value.
     //
-    void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = elem; }
+    void set (int i, T*  elem) { BL_ASSERT(vp[i] == 0 || managed == PArrayNoManage); vp[i] = elem; }
     // !!!!! Be careful!  This function removes 'const'.
-    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0); vp[i] = (T*) elem; }
+    void set (int i, const T*  elem) { BL_ASSERT(vp[i] == 0 || managed == PArrayNoManage); vp[i] = (T*) elem; }
     //
     // Returns the number of elements.
     //
@@ -141,6 +141,11 @@ public:
     // in the PArray<T>.
     //
     T* remove (int i);
+    //
+    // Pushes a pointer to the back of the array.
+    // This also returns the pushed pointer.
+    //
+    T* push_back(T* p);
 
 private:
     //
@@ -181,6 +186,14 @@ PArray<T>::remove (int i)
     void* tmp = vp[i];
     vp[i]     = 0;
     return (T*) tmp;
+}
+
+template <class T>
+T*
+PArray<T>::push_back (T* p)
+{
+    vp.push_back((void*) p);
+    return p;
 }
 
 template <class T>

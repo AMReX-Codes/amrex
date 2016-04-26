@@ -1,0 +1,5 @@
+CEXE_sources += ABec2.cpp ABec4.cpp 
+CEXE_headers += ABec2.H ABec4.H
+FEXE_headers += ABec2_F.H ABec4_F.H
+FEXE_sources += ABec2_$(DIM)D.F ABec4_$(DIM)D.F
+

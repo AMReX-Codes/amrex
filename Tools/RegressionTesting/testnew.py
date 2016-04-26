@@ -22,6 +22,7 @@ import datetime
 import email
 import argparse
 import getpass
+import json
 import os
 import shlex
 import shutil
@@ -32,6 +33,162 @@ import subprocess
 import sys
 import tarfile
 import time
+
+do_timings_plots = True
+
+try: import numpy as np
+except: do_timings_plots = False
+
+try: import matplotlib
+except: do_timings_plots = False
+else:
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    
+try: import matplotlib.dates as dates
+except: do_timings_plots = False
+
+usage = """
+The test suite and its tests are defined through an input file in an INI
+configuration file format.
+
+The "main" block specifies the global test suite parameters:
+
+  [main]
+
+  testTopDir     = < full path to test output directory >
+  webTopDir      = < full path to test web output directory >
+
+  sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
+
+  suiteName = < descriptive name (i.e. Castro) >
+
+  reportActiveTestsOnly = <0: web shows every test ever run; 
+                           1: just current tests >
+ 
+  goUpLink = <1: add "Go UP" link at top of the web page >
+
+  FCOMP = < name of Fortran compiler >
+  COMP  = < name of C/C++ compiler >
+
+  add_to_f_make_command = < any additional defines to add to the make invocation for F_Src BoxLib >
+  add_to_c_make_command = < any additional defines to add to the make invocation for C_Src BoxLib >
+
+  purge_output = <0: leave all plotfiles in place; 
+                  1: delete plotfiles after compare >
+
+  MAKE = < name of make >
+  numMakeJobs = < number of make jobs >
+
+  MPIcommand = < MPI run command, with holders for host, # of proc, command >
+
+     This should look something like:
+
+          mpiexec -host @host@ -n @nprocs@ @command@ >
+
+  MPIhost = < host for MPI job -- depends on MPI implementation >
+
+  sendEmailWhenFail = < 1: send email when any tests fail >
+
+  emailTo = < list of email addresses separated by commas, such as,
+              foo@example.com, bar@example.com >
+
+  emailBody = < email body >
+
+
+The source git repositories are defined in separate blocks.  There
+will always be a "BoxLib" block, and usually a "source" block which is
+the default directory used for compiling the tests.  Any extra repos
+(including those where additional tests are to be build) are defined
+in their own block starting with "extra-"
+
+The general form is:
+
+  [name]
+
+  dir = < full path to git repo >
+
+  branch = < desired branch in the git repo >
+
+  build = < 1: this is a directory that tests will be compiled in >
+
+  comp_string = < a string that is added to the make line >
+
+      comp_string can refer to both the main source directory (as @source@)
+      and its own directory (as @self@), for example:
+ 
+      comp_string = CASTRO_DIR=@source@ WDMERGER_HOME=@self@
+
+
+Each test is given its own block, with the general form:
+
+  [Sod-x]
+
+  buildDir = < relative path (from sourceDir) for this problem >
+
+  inputFile = < input file name >
+  probinFile = < probin file name >
+
+  dim = < dimensionality: 1, 2, or 3 >
+
+  aux?File = < name of additional file needed by the test >
+  link?File = < name of additional file needed by the test >
+
+      Here "?" is 1, 2, or 3, allowing for several files per test
+
+  restartTest = < is this a restart test? 0 for no, 1 for yes >
+  restartFileNum = < # of file to restart from (if restart test) >
+
+  useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
+  numprocs = < # of processors to run on (if parallel job) >
+
+  useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
+  numthreads = < # of threads to us with OpenMP (if OpenMP job) >
+
+  debug = < 0 for normal run, 1 if we want debugging options on >
+
+  compileTest = < 0 for normal run, 1 if we just test compilation >
+
+  selfTest = < 0 for normal run, 1 if test self-diagnoses if it succeeded >
+  stSuccessString = < string to find in self-test output to determine success >
+
+  doVis = < 0 for no visualization, 1 if we do visualization >
+  visVar = < string of the variable to visualize >
+
+  analysisRoutine = < name of the script to run on the output >
+
+      The script is run as:
+
+        analysisRoutine [options] plotfile 
+
+  analysisMainArgs = < commandline arguments to pass to the analysisRoutine -- 
+                       these should refer to options from the [main] block >
+
+  analysisOutputImage = < name on analysis result image to show on web page >
+
+  compareFile = < explicit output file to do the comparison with -- this is 
+                  assumed to be prefixed with the test name when output by
+                  the code at runtime, e.g. test_plt00100 >
+
+  outputFile = < explicit output file to compare with -- exactly as it will
+                 be written.  Not prefix of the test name will be done >
+
+  diffDir = < directory/file to do a plain text diff on (recursive, if dir) >
+
+  diffOpts = < options to use with the diff command for the diffDir comparison >
+
+
+Getting started:
+
+To set up a test suite, it is probably easiest to write the
+testfile.ini as described above and then run the test routine with the
+--make_benchmarks option to create the benchmark directory.
+Subsequent runs can be done as usual, and will compare to the newly
+created benchmarks.  If differences arise in the comparisons due to
+(desired) code changes, the benchmarks can be updated using
+--make_benchmarks to reflect the new ``correct'' solution.
+
+"""
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -46,7 +203,8 @@ class Test(object):
         self.log = None
 
         self.buildDir = ""
-        self.useExtraBuildDir = 0
+
+        self.extra_build_dir = ""
 
         self.testSrcTree = ""
 
@@ -80,6 +238,8 @@ class Test(object):
         self.analysisMainArgs = ""
         self.analysisOutputImage = ""
 
+        self.png_file = None
+
         self.outputFile = ""
         self.compareFile = ""
 
@@ -92,12 +252,15 @@ class Test(object):
 
         self.reClean = 0    # set automatically, not by users
 
-        self.wallTime = 0   # set automatically, not by users
+        self.wall_time = 0   # set automatically, not by users
 
         self.nlevels = None  # set but running fboxinfo on the output
 
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
+
+        self.backtrace = []   # filled automatically
+
         
     def __lt__(self, other):
         return self.value() < other.value()
@@ -137,7 +300,9 @@ class Suite(object):
     def __init__ (self, args):
 
         self.args = args
-        
+
+        # this will hold all of the Repo() objects for the BoxLib, source,
+        # and build directories
         self.repos = {}
 
         self.test_file_path = os.getcwd() + '/' + self.args.input_file[0]
@@ -146,43 +311,21 @@ class Suite(object):
         self.sub_title = ""
 
         self.sourceTree = ""
-        self.boxLibDir = ""
-        self.sourceDir = ""
         self.testTopDir = ""
         self.webTopDir = ""
 
-        self.useExtSrc = 0     # set automatically -- not by users
-        self.extSrcDir = ""
-        self.extSrcCompString = ""
-
-        self.boxLibGitBranch = "development"
-        self.sourceGitBranch = "development"
-        self.extSrcGitBranch = "development"
-
-        # this will hold the # of extra build directories we need to worry
-        # about.  It is set automatically, not by users
-        self.useExtraBuild = 0
-
-        self.extra_build_dirs = []
-        self.extra_build_branches = []
-
-        # this should be the environment variable name that should be
-        # set so the builds in the extraBuildDir can see the main
-        # source.  This environment variable will be set to the
-        # sourceTree path and included on the make lines
-        self.extraBuildDirCompString = ""
-
-        # these are set automatically by the script -- they hold the
-        # basename of the various source directories
-        self.srcName = ""
-        self.extSrcName = ""
-        self.extra_build_names = []
-
+        # set automatically
+        self.source_dir = ""
+        self.boxlib_dir = ""
+        
         self.MPIcommand = ""
         self.MPIhost = ""
 
         self.FCOMP = "gfortran"
         self.COMP = "g++"
+
+        self.add_to_f_make_command = ""
+        self.add_to_c_make_command = ""
 
         self.MAKE = "gmake"
         self.numMakeJobs = 1
@@ -197,6 +340,12 @@ class Suite(object):
         self.emailSubject = ""
         self.emailBody = ""
 
+        self.slack_post = 0
+        self.slack_webhookfile = ""
+        self.slack_webhook_url = None
+        self.slack_channel = ""
+        self.slack_username = ""
+        
         self.globalAddToExecString = ""
 
         # delete all plot/checkfiles but the plotfile used for comparison upon
@@ -323,6 +472,128 @@ class Suite(object):
         self.full_test_dir = full_test_dir
         self.full_web_dir = full_web_dir
 
+    def get_run_history(self, active_test_list):
+        """ return the list of output directories run over the
+            history of the suite and a separate list of the tests
+            run (unique names) """
+
+        valid_dirs = []
+        all_tests = []
+
+        # start by finding the list of valid test directories
+        for file in os.listdir(self.webTopDir):
+
+            # look for a directory of the form 20* (this will work up until 2099
+            if file.startswith("20") and os.path.isdir(file):
+
+                # look for the status file
+                status_file = file + '/' + file + '.status'
+                if os.path.isfile(status_file):
+                    valid_dirs.append(file)
+
+        valid_dirs.sort()
+        valid_dirs.reverse()
+
+        # now find all of the unique problems in the test directories
+        for dir in valid_dirs:
+
+            for file in os.listdir(self.webTopDir + dir):
+                if file.endswith(".status") and not file.startswith("20"):
+                    index = string.rfind(file, ".status")
+                    test_name = file[0:index]
+
+                    if all_tests.count(test_name) == 0:
+                        if (not self.reportActiveTestsOnly) or (test_name in active_test_list):
+                            all_tests.append(test_name)
+
+        all_tests.sort()
+
+        return valid_dirs, all_tests
+
+    def make_timing_plots(self, active_test_list):
+        """ plot the wallclock time history for all the valid tests """
+
+        valid_dirs, all_tests = self.get_run_history(active_test_list)
+
+        # store the timings in NumPy arrays in a dictionary
+        timings = {}
+        N = len(valid_dirs)
+        for t in all_tests:
+            timings[t] = np.zeros(N, dtype=np.float64)
+
+        # now get the timings from the web output
+        for n, d in enumerate(valid_dirs):
+            for t in all_tests:
+                ofile = "{}/{}/{}.html".format(self.webTopDir, d, t)
+                try: f = open(ofile)
+                except:
+                    timings[t][n] = 0.0
+                    continue
+                
+                found = False
+                for line in f:
+                    if "Execution time" in line:
+                        found = True
+                        # this is of the form: <li>Execution time: 412.930 s
+                        timings[t][n] = float(line.split(":")[1].strip().split(" ")[0])
+                        break
+
+                    elif "(seconds)" in line:
+                        found = True
+                        # this is the older form -- split on "="
+                        # form: <p><b>Execution Time</b> (seconds) = 399.414828
+                        timings[t][n] = float(line.split("=")[1])
+                        break
+                    
+                f.close()    
+                if not found:
+                    timings[t][n] = 0.0
+                    
+        # make the plots
+        for t in all_tests:
+            _d = valid_dirs[:]
+            _t = list(timings[t])
+            
+            days = []
+            times = []
+            for n, ttime in enumerate(_t):
+                if not ttime == 0.0:
+                    # sometimes the date is of the form YYYY-MM-DD-NNN, where NNN
+                    # is the run -- remove that
+                    date = _d[n]
+                    if len(date) > 10:
+                        date = date[:date.rfind("-")]
+                        
+                    days.append(dates.datestr2num(date))
+                    times.append(ttime)
+
+
+            if len(times) == 0: continue
+            
+            plt.clf()
+            plt.plot_date(days, times, "o", xdate=True)
+
+            years = dates.YearLocator()   # every year
+            months = dates.MonthLocator()
+            yearsFmt = dates.DateFormatter('%Y')
+
+            ax = plt.gca()
+            ax.xaxis.set_major_locator(years)
+            ax.xaxis.set_major_formatter(yearsFmt)
+            ax.xaxis.set_minor_locator(months)
+
+            plt.ylabel("time (seconds)")
+            plt.title(t)
+            
+            if max(times)/min(times) > 10.0:
+                ax.set_yscale("log")
+                
+            fig = plt.gcf()
+            fig.autofmt_xdate()
+
+            plt.savefig("{}/{}-timings.png".format(self.webTopDir, t))
+            
+        
     def get_last_run(self):
         """ return the name of the directory corresponding to the previous
             run of the test suite """
@@ -364,15 +635,26 @@ class Suite(object):
         os.chdir(cwd)
         return failed
 
-    def make_realclean(self):
+    def make_realclean(self, repo="source"):
+        build_comp_string = ""
+        if self.repos[repo].build == 1:
+            if not self.repos[repo].comp_string is None:
+                build_comp_string = self.repos[repo].comp_string
+
+        extra_src_comp_string = ""
+        if not self.extra_src_comp_string is None:
+            extra_src_comp_string = self.extra_src_comp_string
+            
         cmd = "{} BOXLIB_HOME={} {} {} realclean".format(
-            self.MAKE, self.boxLibDir,
-            self.extSrcCompString, self.extraBuildDirCompString)
+            self.MAKE, self.boxlib_dir,
+            extra_src_comp_string, build_comp_string)
+
         run(cmd)
 
     def build_f(self, opts="", target="", outfile=None):
-        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {}".format(
-            self.MAKE, self.numMakeJobs, self.boxLibDir, self.FCOMP, opts, target)
+        comp_string = "{} -j{} BOXLIB_HOME={} COMP={} {} {} {}".format(
+            self.MAKE, self.numMakeJobs, self.boxlib_dir, 
+            self.FCOMP, self.add_to_f_make_command, opts, target)
         self.log.log(comp_string)
         run(comp_string, outfile=outfile)
         return comp_string
@@ -394,14 +676,27 @@ class Suite(object):
         sout, serr, ierr = run(test_run_command, stdin=True, outfile="{}.run.out".format(test.name), env=test_env)
         test.run_command = test_run_command
 
+    def copy_backtrace(self, test):
+        """ 
+        if any backtrace files were output (because the run crashed), find them
+        and copy them to the web directory
+        """
+        backtrace = [ft for ft in os.listdir(test.output_dir)
+                     if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+        for btf in backtrace:
+            ofile = "{}/{}.{}".format(self.full_web_dir, test.name, btf)
+            shutil.copy(btf, ofile)
+            test.backtrace.append("{}.{}".format(test.name, btf))
+        
+        
     def build_tools(self, test_list):
 
         self.compare_tool_dir = "{}/Tools/Postprocessing/F_Src/".format(
-            os.path.normpath(self.boxLibDir))
+            os.path.normpath(self.boxlib_dir))
 
         os.chdir(self.compare_tool_dir)
 
-        self.make_realclean()
+        self.make_realclean(repo="BoxLib")
 
         tools = ["fcompare", "fboxinfo"]
         if any([t for t in test_list if t.dim == 2]): tools.append("fsnapshot2d")
@@ -421,20 +716,41 @@ class Suite(object):
 
         self.log.outdent()
 
+    def slack_post_it(self, message):
 
+        payload = {}
+
+        # make sure there are no quotes in the strings
+        payload["channel"] = self.slack_channel.replace('"', '')
+        payload["username"] = self.slack_username.replace('"', '')
+        payload["text"] = message
+
+        s = json.dumps(payload)
+        cmd = "curl -X POST --data-urlencode 'payload={}' {}".format(s, self.slack_webhook_url)
+        print(cmd)
+        run(cmd)
+                                
+        
 class Repo(object):
     """ a simple class to manage our git operations """
     def __init__(self, suite, directory, name, 
-                 branch_wanted=None, hash_wanted=None, update=True):
+                 branch_wanted=None, hash_wanted=None,
+                 build=0, comp_string=None):
+
         self.suite = suite
         self.dir = directory
         self.name = name
         self.branch_wanted = branch_wanted
-        self.branch_orig = None
         self.hash_wanted = hash_wanted
+
+        self.build = build   # does this repo contain build directories?
+        self.comp_string = comp_string   # environment vars needed to build
+
+        # for storage
+        self.branch_orig = None
         self.hash_current = None
 
-        self.update = update
+        self.update = True
         if hash_wanted:
             self.update = False
 
@@ -550,7 +866,6 @@ def load_params(args):
     mysuite.log = log
 
     valid_options = list(mysuite.__dict__.keys())
-    valid_options += ["extraBuildDir", "extraBuildDir2"]
 
     for opt in cp.options("main"):
 
@@ -565,35 +880,8 @@ def load_params(args):
                 else:
                     mysuite.sourceTree = value
 
-            elif opt == "sourceDir": mysuite.sourceDir = mysuite.check_test_dir(value)
-            elif opt == "boxLibDir": mysuite.boxLibDir = mysuite.check_test_dir(value)
             elif opt == "testTopDir": mysuite.testTopDir = mysuite.check_test_dir(value)
             elif opt == "webTopDir": mysuite.webTopDir = os.path.normpath(value) + "/"
-            elif opt == "extSrcDir":
-                mysuite.extSrcDir = mysuite.check_test_dir(value)
-                mysuite.useExtSrc = 1
-
-            elif opt == "extraBuildDir":
-                # we will keep the extra build directories in a list -- we
-                # want them in the correct order in the list so we can simply
-                # index later
-
-                try: branch = convert_type(cp.get("main", "extraBuildBranch"))
-                except: branch = "master"
-                
-                if len(mysuite.extra_build_dirs) == 0:
-                    mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
-                    mysuite.extra_build_branches.append(branch)
-                else:
-                    mysuite.extra_build_dirs.insert(0, mysuite.check_test_dir(value))
-                    mysuite.extra_build_branches.insert(0, branch)
-
-            elif opt == "extraBuildDir2":
-                try: branch = convert_type(cp.get("main", "extraBuildBranch2"))
-                except: branch = "master"
-
-                mysuite.extra_build_dirs.append(mysuite.check_test_dir(value))
-                mysuite.extra_build_branches.append(branch)
                 
             elif opt == "emailTo": mysuite.emailTo = value.split(",")
 
@@ -605,50 +893,81 @@ def load_params(args):
             mysuite.log.warn("WARNING: suite parameter %s not valid" % (opt))
 
 
-    mysuite.useExtraBuild = len(mysuite.extra_build_dirs)
+    # BoxLib -- this will always be defined
+    try: rdir = cp.get("BoxLib", "dir")
+    except: rdir = None
+    rdir = mysuite.check_test_dir(rdir)    
 
-    # create the repo objects
-    mysuite.repos["BoxLib"] = Repo(mysuite, mysuite.boxLibDir, "BoxLib",
-                                   branch_wanted=mysuite.boxLibGitBranch, 
-                                   hash_wanted=mysuite.args.boxLibGitHash)
+    try: branch = convert_type(cp.get("BoxLib", "branch"))
+    except: branch = None
 
-    mysuite.srcName = os.path.basename(os.path.normpath(mysuite.sourceDir))
-    if not mysuite.sourceTree == "BoxLib":
-        mysuite.repos["source"] = Repo(mysuite, mysuite.sourceDir, mysuite.srcName,
-                                       branch_wanted=mysuite.sourceGitBranch, 
-                                       hash_wanted=mysuite.args.sourceGitHash)
+    try: rhash = convert_type(cp.get("BoxLib", "hash"))
+    except: rhash = None
+    
+    mysuite.repos["BoxLib"] = Repo(mysuite, rdir, "BoxLib",
+                                   branch_wanted=branch, hash_wanted=rhash)
 
-    if mysuite.useExtSrc:
-        mysuite.extSrcName = os.path.basename(os.path.normpath(mysuite.extSrcDir))
 
-        # update the additional compilation str for additional source dir
-        if mysuite.extSrcCompString != "":
-            mysuite.extSrcCompString += "="+mysuite.extSrcDir
+    # now all the other build and source directories
+    other_srcs = [s for s in cp.sections() if s.startswith("extra-")]
+    if not mysuite.sourceTree == "BoxLib": other_srcs.append("source")
+        
+    for s in other_srcs:
+        if s.startswith("extra-"):
+            k = s.split("-")[1]
+        else:
+            k = "source"
+        
+        try: rdir = cp.get(s, "dir")
+        except: rdir = None
+        rdir = mysuite.check_test_dir(rdir)    
+        
+        try: branch = convert_type(cp.get(s, "branch"))
+        except: branch = None
 
-        mysuite.repos["extra_source"] = Repo(mysuite, mysuite.extSrcDir, 
-                                             mysuite.extSrcName,
-                                             branch_wanted=mysuite.extSrcGitBranch,
-                                             hash_wanted=mysuite.args.extSrcGitHash)
+        try: rhash = convert_type(cp.get(s, "hash"))
+        except: rhash = None
 
-    # update additional compiled string for any extra build directory
-    if mysuite.useExtraBuild > 0:
-        for n in range(len(mysuite.extra_build_dirs)):
-            extra_build_name = os.path.basename(os.path.normpath(mysuite.extra_build_dirs[n]))
-            mysuite.extra_build_names.append(extra_build_name)
+        try: build = convert_type(cp.get(s, "build"))
+        except: build = 0
 
-            mysuite.repos["extra_build-{}".format(n)] = \
-                Repo(mysuite, mysuite.extra_build_dirs[n],
-                     extra_build_name, 
-                     branch_wanted=mysuite.extra_build_branches[n])
+        if s == "source": build = 1
 
-        # since we are building in the extraBuildDir, we need to
-        # tell make where the sourceDir is
-        if mysuite.extraBuildDirCompString != "":
-            mysuite.extraBuildDirCompString += "="+mysuite.sourceDir
+        try: comp_string = cp.get(s, "comp_string")
+        except: comp_string = None
+        
+        name = os.path.basename(os.path.normpath(rdir))
 
+        mysuite.repos[k] = Repo(mysuite, rdir, name,
+                                branch_wanted=branch, hash_wanted=rhash,
+                                build=build, comp_string=comp_string)                                
+
+            
     # BoxLib-only tests don't have a sourceDir
-    if mysuite.sourceTree == "BoxLib": mysuite.sourceDir = mysuite.boxLibDir
+    mysuite.boxlib_dir = mysuite.repos["BoxLib"].dir
+    
+    if mysuite.sourceTree == "BoxLib":
+        mysuite.source_dir = mysuite.repos["BoxLib"].dir
+    else:
+        mysuite.source_dir = mysuite.repos["source"].dir
 
+
+    # now flesh out the compile strings -- they may refer to either themselves
+    # or the source dir
+    for r in mysuite.repos.keys():
+        s = mysuite.repos[r].comp_string
+        if not s is None:
+            mysuite.repos[r].comp_string = \
+                s.replace("@self@", mysuite.repos[r].dir).replace("@source@", mysuite.repos["source"].dir)
+
+
+    # the suite needs to know both ext_src_comp_string 
+    mysuite.extra_src_comp_string = ""
+    for r in mysuite.repos.keys():
+        if not mysuite.repos[r].build == 1:
+            if not mysuite.repos[r].comp_string is None:
+                mysuite.extra_src_comp_string += "{} ".format(mysuite.repos[r].comp_string)
+            
     # checks
     if mysuite.sendEmailWhenFail and not args.send_no_email:
         if mysuite.emailTo == [] or mysuite.emailBody == "":
@@ -660,8 +979,22 @@ def load_params(args):
         if mysuite.emailSubject == "":
             mysuite.emailSubject = mysuite.suiteName+" Regression Test Failed"
 
-    if (mysuite.sourceTree == "" or mysuite.boxLibDir == "" or
-        mysuite.sourceDir == "" or mysuite.testTopDir == ""):
+    if mysuite.slack_post:
+        if not os.path.isfile(mysuite.slack_webhookfile):
+            mysuite.log.warn("ERROR: slack_webhookfile invalid")
+            mysuite.slack_post = 0
+        else:
+            print(mysuite.slack_webhookfile)
+            try: f = open(mysuite.slack_webhookfile)
+            except:
+                mysuite.log.warn("ERROR: unable to open webhook file")
+                mysuite.slack_post = 0
+            else:
+                mysuite.slack_webhook_url = str(f.readline())
+                f.close()
+                            
+    if (mysuite.sourceTree == "" or mysuite.boxlib_dir == "" or
+        mysuite.source_dir == "" or mysuite.testTopDir == ""):
         mysuite.log.fail("ERROR: required suite-wide directory not specified\n" + \
                          "(sourceTree, boxLibDir, sourceDir, testTopDir)")
 
@@ -681,7 +1014,7 @@ def load_params(args):
 
     for sec in cp.sections():
 
-        if sec == "main": continue
+        if sec in ["main", "BoxLib", "source"] or sec.startswith("extra-"): continue
 
         # maximum test name length -- used for HTML formatting
         mysuite.lenTestName = max(mysuite.lenTestName, len(sec))
@@ -719,10 +1052,10 @@ def load_params(args):
 
 
         # make sure that the build directory actually exists
-        if mytest.useExtraBuildDir > 0:
-            bDir = mysuite.extra_build_dirs[mytest.useExtraBuildDir-1] + mytest.buildDir
+        if not mytest.extra_build_dir == "":
+            bDir = mysuite.repos[mytest.extra_build_dir].dir + mytest.buildDir
         else:
-            bDir = mysuite.sourceDir + mytest.buildDir
+            bDir = mysuite.source_dir + mytest.buildDir
 
         if not os.path.isdir(bDir):
             mysuite.log.warn("WARNING: invalid build directory: {}".format(bDir))
@@ -853,7 +1186,8 @@ class Log(object):
 
     def close_log(self):
         if not self.of is None: self.of.close()
-    
+
+
         
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # S Y S T E M   R O U T I N E S
@@ -862,7 +1196,8 @@ def get_args(arg_string=None):
     """ parse the commandline arguments.  If arg_string is present, we
         parse from there, otherwise we use the default (sys.argv) """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=usage, formatter_class=argparse.RawDescriptionHelpFormatter)
+    
     parser.add_argument("-d", type=int, default=-1,
                         help="restrict tests to a particular dimensionality")
     parser.add_argument("--make_benchmarks", type=str, default=None, metavar="comment",
@@ -879,6 +1214,10 @@ def get_args(arg_string=None):
                         help="is this a temporary run? (output not stored or logged)")
     parser.add_argument("--send_no_email", action="store_true",
                         help="do not send emails when tests fail")
+    parser.add_argument("--with_valgrind", action="store_true",
+                        help="run with valgrind")
+    parser.add_argument("--valgrind_options", type=str, default="--leak-check=yes --log-file=vallog.%p",
+                        help="valgrind options")
     parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
                         help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
     parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
@@ -893,12 +1232,12 @@ def get_args(arg_string=None):
                         help="only run the tests that failed last time")
     parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
                         help="the input file (INI format) containing the suite and test parameters")
-
+    
     if not arg_string is None:
         args = parser.parse_args(arg_string)
     else:
         args = parser.parse_args()
-
+        
     return args
 
 
@@ -950,7 +1289,7 @@ def find_build_dirs(tests):
         # in (e.g. the extra build dir)
 
         # first find the list of unique build directories
-        dir_pair = (obj.buildDir, obj.useExtraBuildDir)
+        dir_pair = (obj.buildDir, obj.extra_build_dir)
         if build_dirs.count(dir_pair) == 0:
             build_dirs.append(dir_pair)
 
@@ -977,8 +1316,13 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         wd = "{}/{}".format(old_full_test_dir, t.name)
         os.chdir(wd)
 
-        if t.compareFile == "":
+        if t.compareFile == "" and t.outputFile == "":
             p = t.get_last_plotfile(output_dir=wd)
+        elif not t.outputFile == "":
+            if not os.path.isdir(t.outputFile):
+                p = get_recent_filename(wd, t.outputFile, ".tgz")
+            else:
+                p = t.outputFile
         else:
             if not os.path.isdir(t.compareFile):
                 p = get_recent_filename(wd, t.compareFile, ".tgz")
@@ -995,12 +1339,16 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
                 idx = p.rfind(".tgz")
                 p = p[:idx]
 
-            try: shutil.rmtree("{}/{}".format(bench_dir, p))
+            store_file = p
+            if not t.outputFile == "":
+                store_file = "{}_{}".format(t.name, p)
+
+            try: shutil.rmtree("{}/{}".format(bench_dir, store_file))
             except: pass
-            shutil.copytree(p, "{}/{}".format(bench_dir, p))
+            shutil.copytree(p, "{}/{}".format(bench_dir, store_file))
 
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
-                cf.write("benchmarks updated.  New file:  {}\n".format(p) )
+                cf.write("benchmarks updated.  New file:  {}\n".format(store_file) )
 
         else:   # no benchmark exists
             with open("{}/{}.status".format(full_web_dir, t.name), 'w') as cf:
@@ -1043,237 +1391,6 @@ def convert_to_f_make_flag(opt, test_not=False):
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 def test_suite(argv):
 
-    usage = """
-    input file structure
-
-      testfile.ini
-          This is the input file that defines the tests that the
-          suite knows about.  It has the format
-
-            [main]
-            boxLibDir      = < directory to the BoxLib/ directory >
-            sourceDir      = < directory to the main Source directory >
-            testTopDir     = < full path to test output directory >
-            webTopDir      = < full path to test web directory >
-            extSrcDir      = < directory to an extra source directory other than
-                               BoxLib and the main source, if there is one >
-            extSrcCompString = < a string.  If both extSrcCompString and extSrcDir
-                                 are set, they will be used by make as follows,
-                                 make extSrcCompString=extSrcDir >
-
-            sourceTree = < C_Src, F_Src, or BoxLib -- what type is it? >
-
-            suiteName = < descriptive name (i.e. Castro) >
-
-
-            FCOMP = < name of Fortran compiler >
-            COMP  = < name of C/C++ compiler >
-
-            MAKE        = < name of make >
-            numMakeJobs = < number of make jobs >
-
-            MPIcommand = < MPI run command, with placeholders for host,
-                           # of proc, and program command.  Should look
-                           something like :
-                           mpiexec -host @host@ -n @nprocs@ @command@ >
-
-            MPIhost = < host for MPI job -- depends on MPI implementation >
-
-            reportActiveTestsOnly = <If 1, inactive tests will not be include in the web page.>
-
-            goUpLink = <If 1, add "Go UP" link at top of the web page.>
-
-            sendEmailWhenFail = < If 1, send email when any tests fail>
-            emailTo           = < list of email addresses separated by commas,
-                                  such as,
-                                  foo@example.com, bar@example.com >
-            emailBody         = < email body >
-
-            [Sod-x]
-            buildDir = < relative path (from sourceDir) for this problem >
-            inputFile = < input file name >
-            probinFile = < probin file name >
-            dim = < dimensionality: 1, 2, or 3 >
-
-            aux1File = < name of additional file needed by the test >
-            link1File = < name of additional file needed by the test >
-
-            restartTest = < is this a restart test? 0 for no, 1 for yes >
-            restartFileNum = < # of file to restart from (if restart test) >
-
-            useMPI = <is this a parallel (MPI) job? 0 for no, 1 for yes) >
-            numprocs = < # of processors to run on (if parallel job) >
-
-            useOMP = <is this an OpenMP job? 0 for no, 1 for yes) >
-            numthreads = < # of threads to us with OpenMP (if OpenMP job) >
-
-            debug = < 0 for normal run, 1 if we want debugging options on >
-
-            compileTest = < 0 for normal run, 1 if we just test compilation >
-
-            selfTest = < 0 for normal run, 1 if test self-diagnoses if it
-                         succeeded >
-            stSuccessString = < string to search for in self-test output to
-                         determine success >
-
-            doVis = < 0 for no visualization, 1 if we do visualization >
-            visVar = < string of the variable to visualize >
-
-            analysisRoutine = < name of the script to run on the output.  The
-                                script is run as:
-
-                                analysisRoutine [options] plotfile >
-
-            analysisMainArgs = < commandline arguments to pass to the
-                                 analysisRoutine -- these should refer to
-                                 options from the [main] block >
-
-            analysisOutputImage = < result of the analysis to show on the
-                                    test results page >
-
-            compareFile = < explicit output file to do the comparison with >
-
-            diffDir = < directory or file to do a plain text diff on
-                       (recursive, if directory) >
-
-            diffOpts = < options to use with the diff command for the diffDir
-                        comparison >
-
-          Here, [main] lists the parameters for the test suite as a
-          whole and [Sod-x] is a single test.  There can be many more
-          tests, each with their own unique name, following the format
-          of [Sod-x] above.
-
-          In [main],
-
-            boxLibDir is the full path to the BoxLib/ directory.
-
-            sourceDir should be the full path to the directory where
-            the application source directories live.  For example,
-            this could point to Castro/
-
-            testTopDir is the full path to the directory that will
-            contain the test run directories, the test web
-            directories, and the test benchmark directories.  It can
-            be the same as sourceDir.  The necessary sub- directories
-            will be created at runtime if they don't already exist.
-
-            sourceTree is either C_Src for applications in the C++
-            BoxLib framework or F_Src for applications in the F90
-            BoxLib framework.  For internal BoxLib tests, sourceTree
-            is set to BoxLib.  In this case, each test will need to
-            specify what source tree to use for itself (through the
-            test parameter testSrcTree).
-
-            suiteName is a descriptive name for the test run.  The
-            output directories will be named suiteName-tests/ and
-            suiteName-web/.  The benchmark directory will be
-            suiteName-benchmarks/.
-
-            FCOMP is the name of the Fortran compiler -- this should be
-            a name that the Makefiles of the code recognize.
-
-            COMP is the name of the C++ compiler -- this should be a
-            name that the Makefils of the code recognize.
-
-            MAKE is the name of the make utility -- this should be name that
-            the operating system recongnizes.
-
-            numMakeJobs is the number of make jobs to run simultaneously.
-
-            To run jobs in Parallel, the following need to be set:
-
-               MPIcommand is the full MPI run command, with placeholders
-               for the hosts to run on, number of processors, and executable.
-               For MPICH-2, this would look like:
-
-                 MPIcommand = mpiexec -host @host@ -n @nprocs@ @command@
-
-               MPIhost is the name of the host to run on -- you may or may
-               not need this, depending on the machine you are running on.
-
-               The number of processors is problem dependent and will be
-               set in the problem specific blocks described below.
-
-          For a test problem (e.g. [Sod-x]),
-
-            buildDir is the relative path (wrt sourceDir) where the
-            make command will be issued for the test problem.
-
-            inputFile and probinFile are the names of the input file
-            and associated probin file, respectively.  Note, a
-            probinFile is only required for a C_Src (not F_Src)
-            sourceTree run.
-
-            dim is the dimensionality for the problem.
-
-            aux1File (also aux2File and aux3File) is the name of
-            any additional file needed by the test.  This will be
-            COPIED into the run directory
-
-            link1File (also link2File and link3File) is the name of
-            any additional file needed by the test.  This can be
-            used instead of the aux files.  The difference is that the
-            link files are SYMLINKed into the run directory, instead
-            of copied.
-
-            restartTest = 1 means that this is a restart test.  Instead of
-            comparing to a stored benchmark, we will run the test and then
-            restart from restartFileNum and run until the end.  The last
-            file from the original run and the last from the restart will
-            be compared.
-
-            useMPI is set to 1 if the job is parallel (with MPI).  In
-            this case, you also must specify the number of processors,
-            via numprocs.
-
-            useOMP is set to 1 if the job uses OpenMP.  In this case,
-            you also must specify the number of threads, via
-            numthreads.
-
-            debug is set to 1 if we want to turn on the debugging
-            options defined in the problem's makefile.
-
-            compileTest is set to 0 for a normal test.  Setting to 1 will
-            just test compilation, and not any subsequent output.
-
-            selfTest is set to 0 for a normal test, in which case the
-            test output will be compared to the stored benchmark.  Setting
-            to 1 will determine success by searching for the string
-            stSuccessString in the execution output.
-
-            compareFile is the name of the plotfile that is output that
-            should be used for the comparison.  Normally this is not
-            specified and the suite uses the last plotfile output by the
-            test.
-
-            diffDir is the optional name of a directory (or single
-            file) output by the test that you wish to do a plain test
-            comparison on with a stored benchmark version of the
-            directory.  This is just a straight diff (recursively,
-            within the directory).  This is used, for example, for
-            particle output from some of the codes.  diffOpts is
-            a string providing options to the diff command.  For
-            example: '-I "^#"' to ignore command lines in
-            Maestro diag files.
-
-          Each test problem should get its own [testname] block
-          defining the problem.  The name between the [..] will be how
-          the test is referred to on the webpages.
-
-    Getting started:
-
-      To set up a test suite, it is probably easiest to write the
-      testfile.ini as described above and then run the test routine
-      with the --make_benchmarks option to create the benchmark
-      directory.  Subsequent runs can be done as usual, and will
-      compare to the newly created benchmarks.  If differences arise
-      in the comparisons due to (desired) code changes, the benchmarks
-      can be updated using --make_benchmarks to reflect the new
-      ``correct'' solution.
-
-    """
-
 
     #--------------------------------------------------------------------------
     # parse the commandline arguments
@@ -1285,7 +1402,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     suite, testList = load_params(args)
 
-    activeTestList = [t.name for t in testList]
+    active_test_list = [t.name for t in testList]
 
     testList = suite.get_tests_to_run(testList)
 
@@ -1303,6 +1420,8 @@ def test_suite(argv):
         if not os.path.isdir(suite.full_web_dir):
             suite.log.fail("Crash directory does not exist")
 
+        suite.test_dir = args.complete_report_from_crash
+        
         # find all the tests that completed in that web directory
         tests = []
         testFile = ""
@@ -1324,12 +1443,11 @@ def test_suite(argv):
         # create the report for this test run
         num_failed = report_this_test_run(suite, was_benchmark_run,
                                           "recreated report after crash of suite",
-                                          "",  
-                                          tests, args.complete_report_from_crash, testFile)
+                                          "", tests, testFile)
 
         # create the suite report
         suite.log.bold("creating suite report...")
-        report_all_runs(suite, activeTestList)
+        report_all_runs(suite, active_test_list)
         suite.log.close_log()
         sys.exit("done")
 
@@ -1342,9 +1460,15 @@ def test_suite(argv):
     if not all_compile:
         bench_dir = suite.get_bench_dir()
 
-    last_run = suite.get_last_run()        
+    if not args.copy_benchmarks is None:
+        last_run = suite.get_last_run()        
+
     suite.make_test_dirs()
 
+    if suite.slack_post:
+        msg = "{} ({}) test suite started, id: {}\n{}".format(suite.suiteName, suite.sub_title, suite.test_dir, args.note)
+        suite.slack_post_it(msg)
+    
     if not args.copy_benchmarks is None:
         old_full_test_dir = suite.testTopDir + suite.suiteName + "-tests/" + last_run
         copy_benchmarks(old_full_test_dir, suite.full_web_dir, testList, bench_dir, suite.log)
@@ -1353,7 +1477,12 @@ def test_suite(argv):
                                           "copy_benchmarks used -- no new tests run",
                                           "",  
                                           testList, args.input_file[0])
-        report_all_runs(suite, activeTestList)        
+        report_all_runs(suite, active_test_list)        
+
+        if suite.slack_post:
+            msg = "copied benchmarks\n{}".format(args.copy_benchmarks)
+            suite.slack_post_it(msg)
+
         sys.exit("done")
 
     
@@ -1418,15 +1547,18 @@ def test_suite(argv):
 
     for dir, source_tree in all_build_dirs:
 
-        if source_tree > 0:
-            suite.log.log("{} in {}".format(dir, suite.extra_build_names[source_tree-1]))
-            os.chdir(suite.extra_build_dirs[source_tree-1] + dir)
+        if not source_tree == "":
+            suite.log.log("{} in {}".format(dir, source_tree))
+            os.chdir(suite.repos[source_tree].dir + dir)
+            suite.make_realclean(repo=source_tree)
         else:
             suite.log.log("{}".format(dir))
-            os.chdir(suite.sourceDir + dir)
-
-        suite.make_realclean()
-
+            os.chdir(suite.source_dir + dir)
+            if suite.sourceTree == "BoxLib":
+                suite.make_realclean(repo="BoxLib")
+            else:
+                suite.make_realclean()
+                
     os.chdir(suite.testTopDir)
 
 
@@ -1445,26 +1577,30 @@ def test_suite(argv):
             suite.log.warn("  WARNING: test {} doesn't need benchmarks... skipping".format(test.name))
             continue
 
-        outputDir = suite.full_test_dir + test.name + '/'
-        os.mkdir(outputDir)
-
+        output_dir = suite.full_test_dir + test.name + '/'
+        os.mkdir(output_dir)
+        test.output_dir = output_dir
+        
 
         #----------------------------------------------------------------------
         # compile the code
         #----------------------------------------------------------------------
-        if test.useExtraBuildDir > 0:
-            bDir = suite.extra_build_dirs[test.useExtraBuildDir-1] + test.buildDir
+        if not test.extra_build_dir == "":
+            bdir = suite.repos[test.extra_build_dir].dir + test.buildDir
         else:
-            bDir = suite.sourceDir + test.buildDir
+            bdir = suite.source_dir + test.buildDir
 
-        os.chdir(bDir)
+        os.chdir(bdir)
 
         if test.reClean == 1:
             # for one reason or another, multiple tests use different
             # build options, make clean again to be safe
             suite.log.log("re-making clean...")
-            suite.make_realclean()
-
+            if not test.extra_build_dir == "":
+                suite.make_realclean(repo=test.extra_build_dir)
+            else:
+                suite.make_realclean()
+                
         suite.log.log("building...")
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
@@ -1490,20 +1626,20 @@ def test_suite(argv):
             else:
                 buildOptions += "USE_OMP=FALSE "
 
-            if test.useExtraBuildDir > 0:
-                buildOptions += suite.extraBuildDirCompString + " "
+            if not test.extra_build_dir == "":
+                buildOptions += suite.repos[test.extra_build_dir].comp_string + " "
 
             executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
 
-            comp_string = "%s -j%s BOXLIB_HOME=%s %s %s DIM=%d %s COMP=%s FCOMP=%s executable=%s" % \
-                (suite.MAKE, suite.numMakeJobs, suite.boxLibDir,
-                 suite.extSrcCompString, test.addToCompileString,
-                 test.dim, buildOptions, suite.COMP, suite.FCOMP,
-                 executable)
+            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {} executable={}".format(
+                suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
+                suite.extra_src_comp_string, test.addToCompileString,
+                test.dim, buildOptions, suite.COMP, suite.FCOMP, 
+                suite.add_to_c_make_command, executable)
 
             suite.log.log(comp_string)
             so, se, r = run(comp_string,
-                            outfile="{}/{}.make.out".format(outputDir, test.name))
+                            outfile="{}/{}.make.out".format(output_dir, test.name))
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -1512,22 +1648,22 @@ def test_suite(argv):
             build_options += "MPI={} ".format(convert_to_f_make_flag(test.useMPI))
             build_options += "OMP={} ".format(convert_to_f_make_flag(test.useOMP))
 
-            if test.useExtraBuildDir > 0:
-                build_options += suite.extraBuildDirCompString + " "
+            if not test.extra_build_dir == "":
+                build_options += suite.repos[test.extra_build_dir].comp_string + " "
 
             comp_string = suite.build_f(opts="{} {} {}".format(
-                suite.extSrcCompString, test.addToCompileString, build_options),
-                          outfile="{}/{}.make.out".format(outputDir, test.name))
+                suite.extra_src_comp_string, test.addToCompileString, build_options),
+                          outfile="{}/{}.make.out".format(output_dir, test.name))
 
             # we need a better way to get the executable name here
-            executable = get_recent_filename(bDir,"main",".exe")
+            executable = get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
 
         if test.compileTest:
 
             # compilation tests are done now -- just make the report and ...
-            shutil.copy("%s/%s.make.out"    % (outputDir, test.name), suite.full_web_dir)
+            shutil.copy("%s/%s.make.out"    % (output_dir, test.name), suite.full_web_dir)
 
             suite.log.log("creating problem test report ...")
             report_single_test(suite, test)
@@ -1541,21 +1677,21 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("copying files to run directory...")
 
-        try: shutil.copy(executable, outputDir)
+        try: shutil.copy(executable, output_dir)
         except (IOError, AttributeError):
 
             # compilation failed.  First copy the make.out into the
             # web directory and then report
-            shutil.copy("%s/%s.make.out" % (outputDir, test.name), suite.full_web_dir)
+            shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
 
-            errorMsg = "    ERROR: compilation failed"
-            report_test_failure(suite, errorMsg, test)
+            error_msg = "ERROR: compilation failed"
+            report_single_test(suite, test, failure_msg=error_msg)
             continue
 
-        try: shutil.copy(test.inputFile, outputDir)
+        try: shutil.copy(test.inputFile, output_dir)
         except IOError:
-            errorMsg = "    ERROR: unable to copy input file: %s" % test.inputFile
-            report_test_failure(suite, errorMsg, test)
+            error_msg = "ERROR: unable to copy input file: {}".format(test.inputFile)
+            report_single_test(suite, test, failure_msg=error_msg)
             continue
 
         # sometimes the input file was in a subdirectory under the
@@ -1567,10 +1703,10 @@ def test_suite(argv):
         # if we are a "C_Src" build, we need the probin file
         if (suite.sourceTree == "C_Src" or \
                 (test.testSrcTree == "C_Src" and test.probinFile != "")):
-            try: shutil.copy(test.probinFile, outputDir)
+            try: shutil.copy(test.probinFile, output_dir)
             except IOError:
-                errorMsg = "    ERROR: unable to copy probin file: %s" % test.probinFile
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: unable to copy probin file: {}".format(test.probinFile)
+                report_single_test(suite, test, failure_msg=error_msg)
                 continue
 
             # sometimes the probin file was in a subdirectory under the
@@ -1585,10 +1721,10 @@ def test_suite(argv):
         # the next test
         skip_to_next_test = 0
         for file in test.auxFiles:
-            try: shutil.copy(file, outputDir)
+            try: shutil.copy(file, output_dir)
             except IOError:
-                errorMsg = "    ERROR: unable to copy aux file: %s" % file
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: unable to copy aux file: {}".format(file)
+                report_single_test(suite, test, failure_msg=error_msg)
                 skip_to_next_test = 1
                 break
 
@@ -1600,22 +1736,22 @@ def test_suite(argv):
         skip_to_next_test = 0
         for file in test.linkFiles:
             if not os.path.exists(file):
-                errorMsg = "    ERROR: link file %s does not exist" % file
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: link file {} does not exist".format(file)
+                report_single_test(suite, test, failure_msg=error_msg)
                 skip_to_next_test = 1
                 break
 
             else:
                 if os.path.isabs(file):
                     link_source = file
-                    link_name = outputDir + os.path.basename(file)
+                    link_name = output_dir + os.path.basename(file)
                 else:
                     link_source = os.path.abspath(file)
-                    link_name = outputDir + file
+                    link_name = output_dir + file
                 try: os.symlink(link_source, link_name)
                 except IOError:
-                    errorMsg = "    ERROR: unable to symlink link file: %s" % file
-                    report_test_failure(suite, errorMsg, test)
+                    error_msg = "ERROR: unable to symlink link file: {}".format(file)
+                    report_single_test(suite, test, failure_msg=error_msg)
                     skip_to_next_test = 1
                     break
 
@@ -1627,9 +1763,9 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         suite.log.log("running the test...")
 
-        os.chdir(outputDir)
+        os.chdir(output_dir)
 
-        test.wallTime = time.time()
+        test.wall_time = time.time()
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
@@ -1653,17 +1789,25 @@ def test_suite(argv):
 
             base_command += "{}".format(suite.globalAddToExecString)
 
+        if args.with_valgrind:
+            base_command = "valgrind " + args.valgrind_options + " " + base_command
+
         suite.run_test(test, base_command)
 
 
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
-            lastFile = test.get_last_plotfile(output_dir=outputDir)
+            lastFile = test.get_last_plotfile(output_dir=output_dir)
 
             if lastFile == "":
-                errorMsg = "ERROR: test did not produce output.  Restart test not possible"
-                report_test_failure(suite, errorMsg, test)
+                error_msg = "ERROR: test did not produce output.  Restart test not possible"
+                test.wall_time = time.time() - test.wall_time
+                # copy what we can
+                shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+                suite.copy_backtrace(test)
+                report_single_test(suite, test, failure_msg=error_msg)
                 continue
 
             origLastFile = "orig_%s" % (lastFile)
@@ -1690,7 +1834,7 @@ def test_suite(argv):
 
             suite.run_test(test, base_command)
 
-        test.wallTime = time.time() - test.wallTime
+        test.wall_time = time.time() - test.wall_time
 
 
         #----------------------------------------------------------------------
@@ -1700,7 +1844,7 @@ def test_suite(argv):
 
             if test.outputFile == "":
                 if test.compareFile == "":
-                    compareFile = test.get_last_plotfile(output_dir=outputDir)
+                    compareFile = test.get_last_plotfile(output_dir=output_dir)
                 else:
                     compareFile = test.compareFile
                 outputFile = compareFile
@@ -1783,7 +1927,7 @@ def test_suite(argv):
 
                 suite.log.log("storing output of {} as the new benchmark...".format(test.name))
                 suite.log.indent()
-                suite.log.log("new benchmark file: {}".format(compareFile))
+                suite.log.warn("new benchmark file: {}".format(compareFile))
                 suite.log.outdent()
 
                 if not compareFile == "":
@@ -1803,6 +1947,14 @@ def test_suite(argv):
                     with open("%s.status" % (test.name), 'w') as cf:
                         cf.write("benchmarks failed")
 
+                    # copy what we can
+                    shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+                    shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+                    suite.copy_backtrace(test)
+                    error_msg = "ERROR: runtime failure during benchmark creation"
+                    report_single_test(suite, test, failure_msg=error_msg)
+                        
+
                 if not test.diffDir == "":
                     diffDirBench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
                     if os.path.isdir(diffDirBench):
@@ -1818,7 +1970,7 @@ def test_suite(argv):
 
                 suite.log.log("looking for selfTest success string: {} ...".format(test.stSuccessString))
 
-                try: of = open("%s.run.out" % (test.name), 'r')
+                try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
                     suite.log.warn("WARNING: no output file found")
                     compareSuccessful = 0
@@ -1860,17 +2012,19 @@ def test_suite(argv):
                             tool, suite.compare_tool_dir, test.visVar, outputFile))
 
                         # convert the .ppm files into .png files
-                        ppm_file = get_recent_filename(outputDir, "", ".ppm")
-                        png_file = ppm_file.replace(".ppm", ".png")
-                        run("convert {} {}".format(ppm_file, png_file))
+                        ppm_file = get_recent_filename(output_dir, "", ".ppm")
+                        if not ppm_file is None:
+                            png_file = ppm_file.replace(".ppm", ".png")
+                            run("convert {} {}".format(ppm_file, png_file))
+                            test.png_file = png_file
 
                 if not test.analysisRoutine == "":
 
                     suite.log.log("doing the analysis...")
-                    if test.useExtraBuildDir > 0:
-                        tool = "{}/{}".format(suite.extra_build_dirs[test.useExtraBuildDir-1], test.analysisRoutine)
+                    if not test.extra_build_dir == "":
+                        tool = "{}/{}".format(suite.repos[test.extra_build_dir].dir, test.analysisRoutine)
                     else:
-                        tool = "{}/{}".format(suite.sourceDir, test.analysisRoutine)
+                        tool = "{}/{}".format(suite.source_dir, test.analysisRoutine)
 
                     shutil.copy(tool, os.getcwd())
 
@@ -1887,32 +2041,30 @@ def test_suite(argv):
         # move the output files into the web directory
         #----------------------------------------------------------------------
         if args.make_benchmarks == None:
-            shutil.copy("%s.run.out"     % (test.name), suite.full_web_dir)
-            shutil.copy("%s.make.out"    % (test.name), suite.full_web_dir)
-            shutil.copy("%s.compare.out" % (test.name), suite.full_web_dir)
+            shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
+            shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
+            shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
 
             if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
 
-            for file in test.auxFiles:
+            for af in test.auxFiles:
 
                 # sometimes the auxFile was in a subdirectory under the
                 # build directory.
-                index = string.rfind(file, "/")
+                index = string.rfind(af, "/")
                 if index > 0:
-                    file = file[index+1:]
+                    af = af[index+1:]
 
-                shutil.copy(file, "%s/%s.%s" % (suite.full_web_dir, test.name, file) )
+                shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
 
-            if test.doVis:
-               png_file = get_recent_filename(outputDir, "", ".png")
-               if not png_file is None:
-                   try: shutil.copy(png_file, suite.full_web_dir)
-                   except IOError:
-                       # visualization was not successful.  Reset doVis
-                       test.doVis = 0
+            if not test.png_file is None:
+                try: shutil.copy(test.png_file, suite.full_web_dir)
+                except IOError:
+                    # visualization was not successful.  Reset image
+                    test.png_file = None
 
             if not test.analysisRoutine == "":
                 try: shutil.copy(test.analysisOutputImage, suite.full_web_dir)
@@ -1920,6 +2072,8 @@ def test_suite(argv):
                     # analysis was not successful.  Reset the output image
                     test.analysisOutputImage = ""
 
+            # were any Backtrace files output (indicating a crash)
+            suite.copy_backtrace(test)
 
         else:
             shutil.copy("%s.status" % (test.name), suite.full_web_dir)
@@ -1929,7 +2083,7 @@ def test_suite(argv):
         # archive (or delete) the output
         #----------------------------------------------------------------------
         suite.log.log("archiving the output...")
-        for file in os.listdir(outputDir):
+        for file in os.listdir(output_dir):
             if (os.path.isdir(file) and
                 (file.startswith("%s_plt" % (test.name)) or
                  file.startswith("%s_chk" % (test.name)) ) ):
@@ -2013,7 +2167,7 @@ def test_suite(argv):
     #--------------------------------------------------------------------------
     suite.log.skip()
     suite.log.bold("creating suite report...")
-    report_all_runs(suite, activeTestList)
+    report_all_runs(suite, active_test_list)
 
     def emailDevelopers():
         msg = email.message_from_string(suite.emailBody)
@@ -2031,6 +2185,9 @@ def test_suite(argv):
         emailDevelopers()
 
 
+    if suite.slack_post:
+        suite.slack_post_it("test complete, num failed = {}\n{}".format(num_failed, suite.emailBody))
+    
     return num_failed
 
 
@@ -2173,6 +2330,7 @@ r"""
 <TITLE>@TITLE@</TITLE>
 <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=ISO-8859-1">
 <LINK REL="stylesheet" TYPE="text/css" HREF="tests.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 </HEAD>
 <BODY>
 <!--GOUPLINK-->
@@ -2285,8 +2443,16 @@ class HTMLTable(object):
 #==============================================================================
 # REPORT ROUTINES
 #==============================================================================
-def report_single_test(suite, test):
-    """ generate a single problem's test result page """
+def report_single_test(suite, test, failure_msg=None):
+    """ generate a single problem's test result page.  If
+        failure_msg is set to a string, then it is assumed
+        that the test did not complete.  The string will
+        be reported on the test page as the error. """
+
+
+    if not failure_msg is None:
+        suite.log.testfail("aborting test")
+        suite.log.testfail(failure_msg)
 
     # get the current directory
     currentDir = os.getcwd()
@@ -2321,50 +2487,57 @@ def report_single_test(suite, test):
     #--------------------------------------------------------------------------
     # parse the compare report and determine if we passed
     #--------------------------------------------------------------------------
-    if not test.compileTest:
-        compareFile = "%s.compare.out" % (test.name)
+    if failure_msg is None:
+        if not test.compileTest:
+            compareFile = "%s.compare.out" % (test.name)
 
-        try: cf = open(compareFile, 'r')
-        except IOError:
-            suite.log.warn("WARNING: no comparison file found")
-            compareSuccessful = 0
-            diffLines = ['']
-        else:
-            diffLines = cf.readlines()
+            try: cf = open(compareFile, 'r')
+            except IOError:
+                suite.log.warn("WARNING: no comparison file found")
+                compareSuccessful = 0
+                diffLines = ['']
+            else:
+                diffLines = cf.readlines()
 
-            # successful comparison is indicated by PLOTFILES AGREE
-            compareSuccessful = 0
+                # successful comparison is indicated by PLOTFILES AGREE
+                compareSuccessful = 0
 
-            for line in diffLines:
-                if (line.find("PLOTFILES AGREE") >= 0 or
-                    line.find("SELF TEST SUCCESSFUL") >= 0):
-                    compareSuccessful = 1
-                    break
+                for line in diffLines:
+                    if (line.find("PLOTFILES AGREE") >= 0 or
+                        line.find("SELF TEST SUCCESSFUL") >= 0):
+                        compareSuccessful = 1
+                        break
 
-            if compareSuccessful:
-                if not test.diffDir == "":
-                    compareSuccessful = 0
-                    for line in diffLines:
-                        if line.find("diff was SUCCESSFUL") >= 0:
-                            compareSuccessful = 1
-                            break
+                if compareSuccessful:
+                    if not test.diffDir == "":
+                        compareSuccessful = 0
+                        for line in diffLines:
+                            if line.find("diff was SUCCESSFUL") >= 0:
+                                compareSuccessful = 1
+                                break
 
-            cf.close()
+                cf.close()
 
 
-    #--------------------------------------------------------------------------
-    # write out the status file for this problem, with either
-    # PASSED or FAILED
-    #--------------------------------------------------------------------------
-    status_file = "%s.status" % (test.name)
-    with open(status_file, 'w') as sf:
-        if (compileSuccessful and
-            (test.compileTest or (not test.compileTest and compareSuccessful))):
-            sf.write("PASSED\n")
-            suite.log.success("{} PASSED".format(test.name))
-        else:
+
+        # write out the status file for this problem, with either
+        # PASSED or FAILED
+        status_file = "{}.status".format(test.name)
+        with open(status_file, 'w') as sf:
+            if (compileSuccessful and
+                (test.compileTest or (not test.compileTest and compareSuccessful))):
+                sf.write("PASSED\n")
+                suite.log.success("{} PASSED".format(test.name))
+            else:
+                sf.write("FAILED\n")
+                suite.log.testfail("{} FAILED".format(test.name))
+
+    else:
+        # we came in already admitting we failed...
+        status_file = "{}.status".format(test.name)        
+        with open(status_file, 'w') as sf:
             sf.write("FAILED\n")
-            suite.log.testfail("{} FAILED".format(test.name))
+        suite.log.testfail("{} FAILED".format(test.name))
 
 
     #--------------------------------------------------------------------------
@@ -2374,17 +2547,27 @@ def report_single_test(suite, test):
     # write the css file
     create_css()
 
-    htmlFile = "%s.html" % (test.name)
-    hf = open(htmlFile, 'w')
+    html_file = "{}.html".format(test.name)
+    hf = open(html_file, 'w')
 
-    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
+    new_head = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
 
-    newHead = newHead.replace("@TESTDIR@", os.path.normpath(suite.test_dir))
-    newHead = newHead.replace("@TESTNAME@", test.name)
+    new_head = new_head.replace("@TESTDIR@", os.path.normpath(suite.test_dir))
+    new_head = new_head.replace("@TESTNAME@", test.name)
 
-    hf.write(newHead)
+    hf.write(new_head)
 
     ll = HTMLList(of=hf)
+
+
+    if not failure_msg is None:
+        ll.item("Test error: ")
+        ll.indent()
+        
+        ll.item("<h3 class=\"failed\">Failed</h3>")
+        ll.item("{}".format(failure_msg))
+
+        ll.outdent()
 
     # build summary
     ll.item("Build/Test information:")
@@ -2392,9 +2575,9 @@ def report_single_test(suite, test):
 
     ll.item("Build directory: {}".format(test.buildDir))
 
-    if test.useExtraBuildDir > 0:
+    if not test.extra_build_dir == "":
         ll.indent()
-        ll.item("in {}".format(suite.extra_build_dirs[test.useExtraBuildDir-1]))
+        ll.item("in {}".format(suite.repos[test.extra_build_dir].dir))
         ll.outdent()
 
     if not test.compileTest:
@@ -2464,24 +2647,35 @@ def report_single_test(suite, test):
         # execution summary
         ll.item("Execution:")
         ll.indent()
-        ll.item("Execution time: {:.3f} s".format(test.wallTime))
+        ll.item("Execution time: {:.3f} s".format(test.wall_time))
         ll.item("Execution command:<br>{}".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         ll.outdent()
 
-        # comparison summary
-        ll.item("Comparison: ")
-        ll.indent()
 
-        if compareSuccessful:
-            ll.item("<h3 class=\"passed\">Successful</h3>")
-        else:
-            ll.item("<h3 class=\"failed\">Failed</h3>")
+        # were there backtrace files?
+        if len(test.backtrace) > 0:
+            ll.item("Backtraces:")
+            ll.indent()
+            for bt in test.backtrace:
+                ll.item("<a href=\"{}\">{}</a>".format(bt, bt))
+            ll.outdent()
+
+        # comparison summary
+        if failure_msg is None:
+            ll.item("Comparison: ")
+            ll.indent()
+
+            if compareSuccessful:
+                ll.item("<h3 class=\"passed\">Successful</h3>")
+            else:
+                ll.item("<h3 class=\"failed\">Failed</h3>")
 
     ll.write_list()
 
+    
 
-    if not test.compileTest:
+    if (not test.compileTest) and failure_msg is None:
 
         # parse the compare output and make an HTML table
         ht = HTMLTable(hf, columns=3, divs=["summary", "compare"])
@@ -2530,6 +2724,9 @@ def report_single_test(suite, test):
                     if "NaN present" in line:
                         ht.print_row([fields[0], (fields[1], "colspan='2'")])
                         continue
+                    elif "variable not present" in line:
+                        ht.print_row([fields[0], (fields[1], "colspan='2'")])
+                        continue                        
                     else:
                         ht.header([" "] + fields)
                         continue
@@ -2559,10 +2756,9 @@ def report_single_test(suite, test):
 
         # show any visualizations
         if test.doVis:
-            png_file = get_recent_filename(suite.full_web_dir, test.name, ".png")
-            if not png_file is None:
+            if not test.png_file is None:
                 hf.write("<P>&nbsp;\n")
-                hf.write("<P><IMG SRC='%s' BORDER=0>" % (png_file) )
+                hf.write("<P><IMG SRC='{}' BORDER=0>".format(test.png_file))
 
         # show any analysis
         if not test.analysisOutputImage == "":
@@ -2581,72 +2777,9 @@ def report_single_test(suite, test):
     os.chdir(currentDir)
 
 
-def report_test_failure(suite, message, test):
-    """ generate a simple report for an error encountered while performing
-        the test """
-
-    suite.log.testfail("aborting test")
-    suite.log.testfail(message)
-
-    # get the current directory
-    currentDir = os.getcwd()
-
-    # switch to the web directory and open the report file
-    os.chdir(suite.full_web_dir)
-
-    #--------------------------------------------------------------------------
-    # write out the status file for this problem -- FAILED
-    #--------------------------------------------------------------------------
-    status_file = "%s.status" % (test.name)
-    with open(status_file, 'w') as sf:
-        sf.write("FAILED\n")
-
-    suite.log.testfail("{} FAILED".format(test.name))
-
-
-    #--------------------------------------------------------------------------
-    # generate the HTML page for this test
-    #--------------------------------------------------------------------------
-
-    # check to see if the CSS file is present, if not, write it
-    if (not os.path.isfile("tests.css")):
-        create_css()
-
-
-    htmlFile = "%s.html" % (test.name)
-    hf = open(htmlFile, 'w')
-
-    newHead = HTMLHeader + r"""<CENTER><H1><A HREF="index.html">@TESTDIR@</A> / @TESTNAME@</H1></CENTER>"""
-
-    newHead = newHead.replace("@TESTDIR@", suite.test_dir)
-    newHead = newHead.replace("@TESTNAME@", test.name)
-
-    hf.write(newHead)
-
-    # write out the information about the test
-    hf.write("<P><b>build directory:</b> %s\n" % (test.buildDir) )
-
-    hf.write("<P><H3 CLASS=\"failed\">Test Failed</H3></P>\n")
-    hf.write("<P>%s</P>\n" % (message) )
-
-    if (not test.comp_string == None):
-        hf.write("<P>compliation command:\n %s\n" % (test.comp_string) )
-        hf.write("<P><A HREF=\"%s.make.out\">make output</A>\n" % (test.name) )
-
-
-    # close
-    hf.write("</BODY>\n")
-    hf.write("</HTML>\n")
-
-    hf.close()
-
-
-    # switch back to the original directory
-    os.chdir(currentDir)
-
 
 def report_this_test_run(suite, make_benchmarks, note, update_time,
-                      testList, testFile):
+                         testList, testFile):
     """ generate the master page for a single run of the test suite """
 
     # get the current directory
@@ -2785,7 +2918,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
                 row_info.append("")
 
             # wallclock time
-            row_info.append("{:.3f} s".format(test.wallTime))
+            row_info.append("{:.3f} s".format(test.wall_time))
 
             if testPassed:
                 row_info.append(("PASSED", "class='passed'"))
@@ -2854,7 +2987,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     return num_failed
 
 
-def report_all_runs(suite, activeTestList):
+def report_all_runs(suite, active_test_list):
 
     tableHeight = min(max(suite.lenTestName, 4), 16)
     
@@ -2862,49 +2995,10 @@ def report_all_runs(suite, activeTestList):
 
     create_css(tableHeight=tableHeight)
 
-    validDirs = []
-    allTests = []
+    valid_dirs, all_tests = suite.get_run_history(active_test_list)
 
-
-    #--------------------------------------------------------------------------
-    # start by finding the list of valid test directories
-    #--------------------------------------------------------------------------
-    for file in os.listdir(suite.webTopDir):
-
-        # look for a directory of the form 20* (this will work up until 2099
-        if file.startswith("20") and os.path.isdir(file):
-
-            # look for the status file
-            status_file = file + '/' + file + '.status'
-
-            if os.path.isfile(status_file):
-                validDirs.append(file)
-
-
-    validDirs.sort()
-    validDirs.reverse()
-
-
-    #--------------------------------------------------------------------------
-    # now find all of the unique problems in the test directories
-    #--------------------------------------------------------------------------
-    for dir in validDirs:
-
-        for file in os.listdir(suite.webTopDir + dir):
-
-            if file.endswith(".status") and not file.startswith("20"):
-
-                index = string.rfind(file, ".status")
-                testName = file[0:index]
-
-                if allTests.count(testName) == 0:
-                    if (not suite.reportActiveTestsOnly) or (testName in activeTestList):
-                        allTests.append(testName)
-
-
-    allTests.sort()
-
-
+    if do_timings_plots: suite.make_timing_plots(active_test_list)
+    
     #--------------------------------------------------------------------------
     # generate the HTML
     #--------------------------------------------------------------------------
@@ -2926,19 +3020,30 @@ def report_all_runs(suite, activeTestList):
 
     # write out the header
     hf.write("<TR><TH ALIGN=CENTER>date</TH>\n")
-    for test in allTests:
+    for test in all_tests:
         hf.write("<TH><div class='verticaltext'>%s</div></TH>\n" % (test))
 
     hf.write("</TR>\n")
 
 
+    if do_timings_plots:
+        hf.write("<tr><td class='date'>plots</td>")
+        for t in all_tests:
+            plot_file = "{}-timings.png".format(t)
+            if os.path.isfile(plot_file):
+                hf.write("<TD ALIGN=CENTER title=\"{} timings plot\"><H3><a href=\"{}\"><i class=\"fa fa-line-chart\"></i></a></H3></TD>\n".format(t, plot_file))
+            else:
+                hf.write("<TD ALIGN=CENTER><H3>&nbsp;</H3></TD>\n")
+
+        hf.write("</TR>\n")
+        
     # loop over all the test runs
-    for dir in validDirs:
+    for dir in valid_dirs:
 
         # first look to see if there are any valid tests at all --
         # otherwise we don't do anything for this date
         valid = 0
-        for test in allTests:
+        for test in all_tests:
             status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)
             if os.path.isfile(status_file):
                 valid = 1
@@ -2950,7 +3055,7 @@ def report_all_runs(suite, activeTestList):
         hf.write("<TR><TD class='date'><SPAN CLASS='nobreak'><A class='main' HREF=\"%s/index.html\">%s&nbsp;</A></SPAN></TD>\n" %
                  (dir, dir) )
 
-        for test in allTests:
+        for test in all_tests:
 
             # look to see if the current test was part of this suite run
             status_file = "%s/%s/%s.status" % (suite.webTopDir, dir, test)

@@ -453,13 +453,13 @@ program fcompare
            write (*,1002) pf_a%names(n_a), "< NaN present > "
         else
            if (aerror(n_a) > 0.0d0) then
-              aerr = max(aerror(n_a), 1.d-99)
+              aerr = min(max(aerror(n_a), 1.d-99), 1.d98)
            else
               aerr = 0.0d0
            endif
 
            if (rerror(n_a) > 0.0d0) then
-              rerr = max(rerror(n_a), 1.d-99)
+              rerr = min(max(rerror(n_a), 1.d-99), 1.d98)
            else
               rerr = 0.0d0
            endif
