@@ -1,6 +1,6 @@
 # BOXLIB_HOME defines the directory in which we will find all the BoxLib code -- if this is already defined
 #    then the line below will be ignored
-BOXLIB_HOME ?= ../../
+BOXLIB_HOME ?= ../..
 
 # HYPRE_DIR defines the directory in which you can find hypre -- if this is already defined 
 #    then the line below will be ignored
@@ -25,6 +25,7 @@ DEBUG	= TRUE
 DEBUG	= FALSE
 
 DIM	= 3
+DIM	= 2
 
 COMP =gcc
 FCOMP=gfortran
@@ -47,6 +48,8 @@ CPPFLAGS += -DCG_USE_OLD_CONVERGENCE_CRITERIA
 
 # USE_MPI must be TRUE if USE_HYPRE
 USE_MPI=TRUE
+USE_OMP=TRUE
+USE_OMP=FALSE
 
 EBASE = main
 
@@ -57,6 +60,7 @@ CEXE_sources += $(EBASE).cpp
 include Make.package
 include $(BOXLIB_HOME)/Src/C_BoundaryLib/Make.package
 include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG/Make.package
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4/Make.package
 include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_BoundaryLib
@@ -67,6 +71,9 @@ vpathdir += $(BOXLIB_HOME)/Src/C_BaseLib
 
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
+
+INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
+vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_TYPES.H

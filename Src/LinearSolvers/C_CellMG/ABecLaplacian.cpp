@@ -109,18 +109,25 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 void
 ABecLaplacian::clearToLevel (int level)
 {
-    BL_ASSERT(level >= -1);
+  BL_ASSERT(level >= -1);
 
-    for (int i = level+1; i < numLevels(); ++i)
-    {
-        delete acoefs[i];
-        a_valid[i] = false;
-        for (int j = 0; j < BL_SPACEDIM; ++j)
-        {
-            delete bcoefs[i][j];
-        }
-        b_valid[i] = false;
+  for (int i = level+1; i < numLevels(); ++i)
+  {
+    if (acoefs[i] != 0) {
+      delete acoefs[i];
+      acoefs[i] = 0;
     }
+    a_valid[i] = false;
+
+    for (int j = 0; j < BL_SPACEDIM; ++j)
+    {
+      if (bcoefs[i][j] != 0) {
+        delete bcoefs[i][j];
+        bcoefs[i][j] = 0;
+      }
+    }
+    b_valid[i] = false;
+  }
 }
 
 void
@@ -605,6 +612,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
     }
 }
 
+#include <fstream>
 void
 ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
@@ -613,6 +621,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
   int num_comp = 1;
   int src_comp = 0;
   int dst_comp = 0;
+
   Fapply(y,dst_comp,x,src_comp,num_comp,level);
 }
 

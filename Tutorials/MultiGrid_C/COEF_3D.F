@@ -11,14 +11,14 @@
 c-----------------------------------------------------------------------
       subroutine FORT_COMP_ASOL (
      $     asol, a_l1, a_l2, a_l3, a_h1, a_h2, a_h3,
-     $     lo, hi, dx, ibnd)
+     $     lo, hi, dx, ibnd, offset)
 
       implicit none
 
       integer          :: lo(3), hi(3), ibnd
       integer          :: a_l1, a_l2, a_l3, a_h1, a_h2, a_h3
       double precision :: asol(a_l1:a_h1, a_l2:a_h2, a_l3:a_h3)
-      double precision :: dx(3)
+      double precision :: dx(3), offset(3)
 c
       integer i,j,k
       REAL_T  x,y,z
@@ -30,11 +30,11 @@ c
       fpi = 4.0d0 * pi
  
       do k = lo(3), hi(3)
-         z = (dble(k)+0.5d0)*dx(3)
+         z = (dble(k)+offset(3))*dx(3)
          do j = lo(2), hi(2)
-            y = (dble(j)+0.5d0)*dx(2)
+            y = (dble(j)+offset(2))*dx(2)
             do i = lo(1), hi(1)
-               x = (dble(i)+0.5d0)*dx(1)
+               x = (dble(i)+offset(1))*dx(1)
 
                if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
                   asol(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z)  

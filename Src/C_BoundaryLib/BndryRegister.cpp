@@ -3,8 +3,11 @@
 #include <BndryRegister.H>
 #include <Orientation.H>
 #include <Utility.H>
+#include <limits>
 
-const Real BL_SAFE_BOGUS = -666.e200;
+namespace {
+    static const Real BL_SAFE_BOGUS = std::numeric_limits<Real>::quiet_NaN();
+}
 
 BndryRegister::BndryRegister () {}
 

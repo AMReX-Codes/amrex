@@ -21,10 +21,10 @@
   CXXFLAGS += -Wall
 
   ifdef NDEBUG
-    F90FLAGS += -O2 -ftree-vectorize -fno-range-check
-    FFLAGS   += -O2 -ftree-vectorize -fno-range-check
-    CFLAGS   += -O2 -ftree-vectorize
-    CXXFLAGS += -O2 -ftree-vectorize
+    F90FLAGS += -g -O2 -ftree-vectorize -fno-range-check
+    FFLAGS   += -g -O2 -ftree-vectorize -fno-range-check
+    CFLAGS   += -g -O2 -ftree-vectorize
+    CXXFLAGS += -g -O2 -ftree-vectorize
   else
     F90FLAGS += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=snan
     FFLAGS   += -g -fno-range-check -O1 -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid -finit-real=snan
