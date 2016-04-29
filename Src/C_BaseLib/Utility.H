@@ -384,24 +384,25 @@ namespace BoxLib
     template <typename T> long bytesOf (const std::vector<T>& v);
     template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
 
-    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm);
-    void BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm);
-    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm);
+    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
+    void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
-                                      int myLocalId, int rootId, MPI_Comm localComm,
+                                      int myLocalId, int rootId, const MPI_Comm &localComm,
 				      bool addToCache);
     const unsigned int msps(1000000);
     void USleep(double sleepsec);
 
 }
 
-template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, MPI_Comm localComm)
+template<class T> void BoxLib::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   int aT_Size(-2);
   if(myLocalId == rootId) {
     aT_Size = aT.size();
   }
   ParallelDescriptor::Bcast(&aT_Size, 1, rootId, localComm);
+  BL_ASSERT(aT_Size >= 0);
   if(myLocalId != rootId) {
     aT.resize(aT_Size);
   }
