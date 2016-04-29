@@ -3630,9 +3630,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     FabArrayBase::CPC::FlushCache();
     DistributionMapping::FlushCache();
 
-    DistributionMapping::InitProximityMap();
-    DistributionMapping::Initialize();
-
     Array<BoxArray> allBoxes(finest_level + 1);
 
     for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
@@ -3664,9 +3661,12 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
     RedistributeParticles();
 #endif
 
-    //for(int lev(0); lev <= finest_level; ++lev) {
-      //amr_level[lev].Check();
-    //}
+    bool inSidecar(ParallelDescriptor::MyProc() > maxRank);
+    if(inSidecar) {
+      BoxLib::USleep(ParallelDescriptor::MyProc());
+      std::cout << ParallelDescriptor::MyProc() << "::_in Amr::AddProcsToSidecar:  deleting dm cache." << std::endl;
+      DistributionMapping::DeleteCache();
+    }
 }
 
 
