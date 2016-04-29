@@ -964,9 +964,9 @@ public:
                            int        num_comp,
                            int        src_nghost,
                            int        dst_nghost,
-                           MPI_Comm   commSrc,
-                           MPI_Comm   commDest,
-                           MPI_Comm   commInter,
+                           const MPI_Comm &commSrc,
+                           const MPI_Comm &commDest,
+                           const MPI_Comm &commInter,
                            bool       isSrc,
                            CpOp       op = FabArrayBase::COPY);
 
@@ -2082,9 +2082,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                           int                  ncomp,
                           int                  snghost,
                           int                  dnghost,
-                          MPI_Comm             commSrc,
-                          MPI_Comm             commDest,
-                          MPI_Comm             commInter,
+                          const MPI_Comm      &commSrc,
+                          const MPI_Comm      &commDest,
+                          const MPI_Comm      &commInter,
                 	  bool                 isSrc,
                           CpOp                 op)
 {
@@ -2110,7 +2110,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     bool putInCache(false);
     MPI_Group groupSrc, groupDest, groupBoth;
-    MPI_Comm commBoth(ParallelDescriptor::CommunicatorAll());  // ---- both src and dest:  fix for > 1 sidecar
+    const MPI_Comm &commBoth = ParallelDescriptor::CommunicatorAll();  // ---- both src and dest:  fix for > 1 sidecar
     int myProcAll(ParallelDescriptor::MyProcAll());
     int iopN(ParallelDescriptor::IOProcessorNumber());
     int iopNInAll(-1), bcastRootSrc(-1), bcastRootDest(-1);
@@ -2158,9 +2158,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
       srcPMapAll[srcPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
     }
-    if(isDest) {
-      destBoxArray = dest->boxArray();
-    }
+    //if(isDest) {
+      //destBoxArray = dest->boxArray();
+    //}
     if(isDest && myProcAll == bcastRootDest) {
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
@@ -2168,9 +2168,12 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
       destPMapAll[destPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
     }
+
     BoxLib::BroadcastBoxArray(srcBoxArray,  myProcAll, bcastRootSrc,  commBoth);
+
     BoxLib::BroadcastBoxArray(destBoxArray, myProcAll, bcastRootDest, commBoth);
     BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
+
 
     BoxLib::BroadcastArray(srcPMapAll, myProcAll, bcastRootSrc, commBoth);
     BoxLib::BroadcastArray(destPMapAll, myProcAll, bcastRootDest, commBoth);
@@ -2536,7 +2539,7 @@ FabArray<FAB>::CheckFAPointerLocks ()
     }
   }
   std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  " << pLocked << " of "
-            << pLocked + pUnlocked << " FAPpinters locked." << std::endl;
+            << pLocked + pUnlocked << " FAPointers locked." << std::endl;
 }
 
 
