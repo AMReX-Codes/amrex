@@ -1555,7 +1555,7 @@ Array<std::string> BoxLib::UnSerializeStringArray(const Array<char> &charArray)
 }
 
 
-void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm)
+void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Array<int> baseBoxAI;
   if(myLocalId == rootId) {
@@ -1569,7 +1569,7 @@ void BoxLib::BroadcastBox(Box &bB, int myLocalId, int rootId, MPI_Comm localComm
 
 
 
-void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Comm localComm)
+void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Array<int> sbaG;
   if(myLocalId == rootId) {
@@ -1585,7 +1585,7 @@ void BoxLib::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, MPI_Com
 
 
 void BoxLib::BroadcastDistributionMapping(DistributionMapping &dM, int sentinelProc,
-                                          int myLocalId, int rootId, MPI_Comm localComm,
+                                          int myLocalId, int rootId, const MPI_Comm &localComm,
 					  bool addToCache)
 {
   int dmStrategy(dM.strategy());
