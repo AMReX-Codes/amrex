@@ -229,7 +229,7 @@ TinyProfiler::Finalize ()
 
     if (ParallelDescriptor::IOProcessor()) {
 
-	std::cout << std::setprecision(4);
+	std::cout << std::setfill(' ') << std::setprecision(4);
 	int wt = 9;
 
 	std::cout << "\n\n";
