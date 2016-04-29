@@ -409,7 +409,7 @@ ParallelDescriptor::Barrier (const std::string &message)
 }
 
 void
-ParallelDescriptor::Barrier (MPI_Comm comm, const std::string &message)
+ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message)
 {
 #ifdef BL_LAZY
     Lazy::EvalReduction();

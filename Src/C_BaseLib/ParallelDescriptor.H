@@ -251,7 +251,7 @@ namespace ParallelDescriptor
     }
 
     void Barrier (const std::string& message = Unnamed);
-    void Barrier (MPI_Comm comm, const std::string& message = Unnamed);
+    void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
 
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
 
