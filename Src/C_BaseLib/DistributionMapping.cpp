@@ -46,6 +46,7 @@ namespace
     bool   verbose;
     int    sfc_threshold;
     Real   max_efficiency;
+    int    node_size;
 }
 
 // We default to SFC.
@@ -141,6 +142,7 @@ DistributionMapping::Initialize ()
     verbose          = false;
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
+    node_size        = 0;
 
     ParmParse pp("DistributionMapping");
 
@@ -148,6 +150,7 @@ DistributionMapping::Initialize ()
     pp.query("verbose",          verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("sfc_threshold",    sfc_threshold);
+    pp.query("node_size",        node_size);
 
     std::string theStrategy;
 
@@ -283,13 +286,11 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
 void
 DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
-				     Array<Array<int> >& rworker)
+				     Array<Array<int> >& rworker,
+				     int                 nteams, 
+				     int                 nworkers)
 {
-#if defined(BL_USE_TEAM)
     BL_PROFILE("DistributionMapping::LeastUsedTeams()");
-
-    int nteams = ParallelDescriptor::NTeams();
-    int nworkers = ParallelDescriptor::TeamSize();
 
     int nprocs = ParallelDescriptor::NProcs();
     Array<long> bytes(nprocs);
@@ -347,9 +348,6 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
     {
         rteam[i] = LIpairV[i].second;
     }
-#else
-    BoxLib::Abort("DistributionMapping::LeastUsedTeams: not supposed to be here");
-#endif
 }
 
 bool
@@ -577,7 +575,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    wrkerord[i][0] = 0;
 	}
     } else {
-	LeastUsedTeams(ord,wrkerord);
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
     }
 
     Array<int> w(nteams,0);
@@ -887,25 +885,20 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     BL_ASSERT(vec.size() == nteams);
 
-    Array<long> wgts_per_team(nteams,0);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        for (std::vector<int>::iterator lit = vec[i].begin(), End = vec[i].end();
-             lit != End;
-             ++lit)
-        {
-            wgts_per_team[i] += wgts[*lit];
-        }
-    }
-
     std::vector<LIpair> LIpairV;
 
     LIpairV.reserve(nteams);
 
     for (int i = 0; i < nteams; ++i)
     {
-        LIpairV.push_back(LIpair(wgts_per_team[i],i));
+	long wgt = 0;
+        for (std::vector<int>::const_iterator lit = vec[i].begin(), End = vec[i].end();
+             lit != End; ++lit)
+        {
+            wgt += wgts[*lit];
+        }
+
+        LIpairV.push_back(LIpair(wgt,i));
     }
 
     Sort(LIpairV, true);
@@ -921,10 +914,8 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	    wrkerord[i][0] = 0;
 	}
     } else {
-	LeastUsedTeams(ord,wrkerord);
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
     }
-
-    Array<int> w(nteams,0);
 
     for (int i = 0; i < nteams; ++i)
     {
@@ -1125,6 +1116,15 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 #if defined(BL_USE_TEAM)
     nteams = ParallelDescriptor::NTeams();
     nworkers = ParallelDescriptor::TeamSize();
+#else
+    if (node_size > 0) {
+	nteams = nprocs/node_size;
+	nworkers = node_size;
+	if (nworkers*nteams != nprocs) {
+	    nteams = nprocs;
+	    nworkers = 1;
+	}
+    }
 #endif
 
     std::vector<SFCToken> tokens;
@@ -1169,17 +1169,9 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     Distribute(tokens,nteams,volperteam,vec);
 
+    // vec has a size of nteams and vec[] holds a vector of box ids.
+
     tokens.clear();
-
-    Array<long> wgts_per_team(nteams,0);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        const std::vector<int>& vi = vec[i];
-
-        for (int j = 0, M = vi.size(); j < M; ++j)
-            wgts_per_team[i] += wgts[vi[j]];
-    }
 
     std::vector<LIpair> LIpairV;
 
@@ -1187,10 +1179,19 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     for (int i = 0; i < nteams; ++i)
     {
-        LIpairV.push_back(LIpair(wgts_per_team[i],i));
+	long wgt = 0;
+        const std::vector<int>& vi = vec[i];
+        for (int j = 0, M = vi.size(); j < M; ++j)
+            wgt += wgts[vi[j]];
+
+        LIpairV.push_back(LIpair(wgt,i));
     }
 
     Sort(LIpairV, true);
+
+    // LIpairV has a size of nteams and LIpairV[] is pair whose first is weight
+    // and second is an index into vec.  LIpairV is sorted by weight such that
+    // LIpairV is the heaviest.
 
     Array<int> ord;
     Array<Array<int> > wrkerord;
@@ -1198,32 +1199,66 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     if (nteams == nprocs) {
 	LeastUsedCPUs(nprocs,ord);
     } else {
-	LeastUsedTeams(ord,wrkerord);
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
     }
+
+    // ord is a vector of process (or team) ids, sorted from least used to more heavily used.
+    // wrkerord is a vector of sorted worker ids.
 
     for (int i = 0; i < nteams; ++i)
     {
-        const int tid = ord[i];
-        const int idx = LIpairV[i].second;
-
-        const std::vector<int>& vi = vec[idx];
-	const int N = vi.size();
+        const int tid  = ord[i];                  // tid is team id 
+        const int ivec = LIpairV[i].second;       // index into vec
+        const std::vector<int>& vi = vec[ivec];   // this vector contains boxes assigned to this team
+	const int Nbx = vi.size();                // # of boxes assigned to this team
 
 	if (nteams == nprocs) {
-	    for (int j = 0; j < N; ++j)
+	    for (int j = 0; j < Nbx; ++j)
 	    {
-		m_ref->m_pmap[vi[j]] = tid;
+		m_ref->m_pmap[vi[j]] = tid;  // In this case, team id is process id.
 	    }
-	} else {
-#ifdef BL_USE_TEAM
-	    int leadrank = tid * nworkers;
+	} 
+	else   // We would like to do knapsack within the team workers
+	{
+	    std::vector<long> local_wgts;
+	    for (int j = 0; j < Nbx; ++j) {
+		local_wgts.push_back(wgts[vi[j]]);
+	    }
+
+	    std::vector<std::vector<int> > kpres;
+	    Real kpeff;
+	    knapsack(local_wgts, nworkers, kpres, kpeff, true, N+1);
+
+	    // kpres has a size of nworkers. kpres[] contains a vector of indices into vi. 
+
+	    // sort the knapsacked chunks
+	    std::vector<LIpair> ww;
+	    for (int w = 0; w < nworkers; ++w) {
+		long wgt = 0;
+		for (std::vector<int>::const_iterator it = kpres[w].begin();
+		     it != kpres[w].end(); ++it)
+		{
+		    wgt += local_wgts[*it];
+		}
+		ww.push_back(LIpair(wgt,w));
+	    }
+	    Sort(ww,true);
+
+	    // ww is a sorted vector of pair whose first is the weight and second is a index
+	    // into kpres.
+	    
+	    const Array<int>& sorted_workers = wrkerord[i];
+
+	    const int leadrank = tid * nworkers;
+
 	    for (int w = 0; w < nworkers; ++w)
 	    {
-	        ParallelDescriptor::team_for(0, N, w, [&] (int j) {
-                    m_ref->m_pmap[vi[j]] = leadrank + wrkerord[i][w];
-                });
+		const int cpu = leadrank + sorted_workers[w];  // proc. id.
+		int ikp = ww[w].second;
+		const std::vector<int>& js = kpres[ikp];
+		for (std::vector<int>::const_iterator it = js.begin(); it!=js.end(); ++it)
+		    m_ref->m_pmap[vi[*it]] = cpu;
 	    }
-#endif
 	}
     }
     //
@@ -1234,9 +1269,9 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         Real sum_wgt = 0, max_wgt = 0;
-        for (int i = 0, N = wgts_per_team.size(); i < N; ++i)
+        for (int i = 0; i < nteams; ++i)
         {
-            const long W = wgts_per_team[i];
+            const long W = LIpairV[i].first;
             if (W > max_wgt)
                 max_wgt = W;
             sum_wgt += W;
