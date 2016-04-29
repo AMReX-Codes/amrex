@@ -550,6 +550,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
+    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX);
 }
 
@@ -568,6 +569,7 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt)
 {
+    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,cnt);
 }
 
@@ -586,6 +588,7 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt)
 void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
+    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cpu);
 }
 
@@ -604,6 +607,7 @@ ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
 {
+    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cnt,cpu);
 }
 
