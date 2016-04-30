@@ -320,8 +320,6 @@ public:
 
     struct CPC
     {
-        CPC ();
-
         CPC (const BoxArray&            dstba,
              const BoxArray&            srcba,
              const DistributionMapping& dstdm,
