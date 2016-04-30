@@ -261,17 +261,6 @@ FabArrayBase::bytesOfTACache ()
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CPC::CPC ()
-    :
-    m_nuse(0),
-    m_threadsafe_loc(false),
-    m_threadsafe_rcv(false),
-    m_LocTags(0),
-    m_SndTags(0),
-    m_RcvTags(0),
-    m_SndVols(0),
-    m_RcvVols(0) {}
-
 FabArrayBase::CPC::CPC (const BoxArray&            dstba,
                         const BoxArray&            srcba,
                         const DistributionMapping& dstdm,
