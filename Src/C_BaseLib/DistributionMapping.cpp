@@ -290,6 +290,7 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 				     int                 nteams, 
 				     int                 nworkers)
 {
+#ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::LeastUsedTeams()");
 
     int nprocs = ParallelDescriptor::NProcs();
@@ -348,6 +349,12 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
     {
         rteam[i] = LIpairV[i].second;
     }
+#else
+    rteam.clear();
+    rteam.push_back(0);
+    rworker.clear();
+    rworker.push_back(Array<int>(1,0));
+#endif
 }
 
 bool
