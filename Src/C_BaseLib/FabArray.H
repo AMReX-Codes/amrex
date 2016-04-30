@@ -1946,7 +1946,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     BL_ASSERT(    nGrow() >= dnghost);
 
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
-        (boxarray == src.boxarray && distributionMap == src.distributionMap))
+        (boxarray == src.boxarray && distributionMap == src.distributionMap)
+	&& snghost ==0 && dnghost == 0)
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
