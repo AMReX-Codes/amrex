@@ -232,7 +232,8 @@ public:
 		       const MultiFab& srcmf,
 		       int             dcomp,
 		       int             scomp,
-		       int             ncomp) const;
+		       int             ncomp,
+		       int             dstng = 0) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -767,7 +768,8 @@ namespace BoxLib
 		  const FabArray<FAB>& srcmf,
 		  int                  dcomp,
 		  int                  scomp,
-		  int                  ncomp)
+		  int                  ncomp,
+		  int                  dstng)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
@@ -780,8 +782,9 @@ namespace BoxLib
 	const IndexType&           srctyp = srcba.ixType();
 
 	BL_ASSERT(srctyp == dstba.ixType());
+	BL_ASSERT(dstng <= dstmf.nGrow());
 
-	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstmf.nGrow());
+	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstng);
 
 	IntVect lo, hi;
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -840,7 +843,7 @@ namespace BoxLib
 		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
 	    }
 
-	    dstmf.copy(shftmf, 0, dcomp, ncomp);
+	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng);
 	}
     }
 }
