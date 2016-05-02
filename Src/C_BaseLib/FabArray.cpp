@@ -35,6 +35,7 @@ int FabArrayBase::nFabArrays(0);
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+FabArrayBase::FPCCache             FabArrayBase::m_TheFillPatchCache;
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("SICache");
@@ -957,6 +958,145 @@ FabArrayBase::TheFB (bool                cross,
     return cache_it;
 }
 
+FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
+			const FabArrayBase& dstfa,
+			Box                 dstdomain,
+			int                 dstng,
+			const BoxConverter& coarsener)
+    : m_srcbdk   (srcfa.getBDKey()),
+      m_dstbdk   (dstfa.getBDKey()),
+      m_dstdomain(dstdomain),
+      m_dstng    (dstng),
+      m_coarsener(coarsener.clone())
+{ 
+    const BoxArray& srcba = srcfa.boxArray();
+    const BoxArray& dstba = dstfa.boxArray();
+    BL_ASSERT(srcba.ixType() == dstba.ixType());
+
+    const IndexType& boxtype = dstba.ixType();
+    BL_ASSERT(boxtype == dstdomain.ixType());
+     
+    const DistributionMapping& dstdm = dstfa.DistributionMap();
+    
+    const int myproc = ParallelDescriptor::MyProc();
+
+    BoxList bl(boxtype);
+    Array<int> iprocs;
+    std::vector< std::pair<int,Box> > isects;
+
+    for (int i = 0, N = dstba.size(); i < N; ++i)
+    {
+	Box bx = dstba[i];
+	bx.grow(m_dstng);
+	bx &= m_dstdomain;
+
+	srcba.intersections(bx, isects);
+
+	BoxList pieces(boxtype);
+	for (std::vector< std::pair<int,Box> >::const_iterator it = isects.begin();
+	     it != isects.end(); ++it)
+	{
+	    pieces.push_back(it->second);
+	}
+	BoxList leftover = BoxLib::complementIn(bx, pieces);
+
+	bool ismybox = (dstdm[i] == myproc);
+	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
+	{
+	    bl.push_back(m_coarsener->doit(*bli));
+	    if (ismybox) {
+		dst_boxes.push_back(*bli);
+		dst_idxs.push_back(i);
+	    }
+	    iprocs.push_back(dstdm[i]);
+	}
+    }
+
+    ba_crse_patch.define(bl);
+
+    iprocs.push_back(myproc);
+    dm_crse_patch.define(iprocs);
+}
+
+FabArrayBase::FPC::~FPC ()
+{
+    delete m_coarsener;
+}
+
+const FabArrayBase::FPC&
+FabArrayBase::TheFPC (const FabArrayBase& srcfa,
+		      const FabArrayBase& dstfa,
+		      Box                 dstdomain,
+		      int                 dstng,
+		      const BoxConverter& coarsener)
+{
+    const BDKey& srckey = srcfa.getBDKey();
+    const BDKey& dstkey = dstfa.getBDKey();
+
+    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(dstkey);
+
+    for (FPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+	if (it->second->m_srcbdk    == srckey    &&
+	    it->second->m_dstdomain == dstdomain &&
+	    it->second->m_dstng     == dstng     &&
+	    it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
+	    it->second->m_coarsener->doit(it->second->m_dstdomain) == coarsener.doit(dstdomain))
+	{
+	    return *(it->second);
+	}
+    }
+
+    // Have to build a new one
+    FPC* new_fpc = new FPC(srcfa, dstfa, dstdomain, dstng, coarsener);
+
+    m_TheFillPatchCache.insert(er_it.second,     FPCCache::value_type(dstkey,new_fpc));
+    FPCCacheIter it = m_TheFillPatchCache.insert(FPCCache::value_type(srckey,new_fpc));
+    return *(it->second);
+}
+
+void
+FabArrayBase::flushFPC ()
+{
+    BL_ASSERT(getBDKey() == m_bdkey);
+
+    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(m_bdkey);
+
+    std::vector<BDKey> other_keys;
+
+    for (FPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+	const BDKey& srckey = it->second->m_srcbdk;
+	const BDKey& dstkey = it->second->m_dstbdk;
+	if (srckey == dstkey) {
+	    BL_ASSERT(m_bdkey == dstkey);
+	} else {
+	    if (m_bdkey == srckey) {
+		other_keys.push_back(dstkey);
+	    } else {
+		BL_ASSERT(m_bdkey == dstkey);
+		other_keys.push_back(srckey);
+	    }
+	} 
+	delete it->second;
+    }
+
+    m_TheFillPatchCache.erase(er_it.first, er_it.second);
+
+    for (std::vector<BDKey>::const_iterator kit = other_keys.begin(); kit != other_keys.end(); ++kit)
+    {
+	std::pair<FPCCacheIter,FPCCacheIter> its = m_TheFillPatchCache.equal_range(*kit);
+	for (FPCCacheIter it = its.first; it!= its.second; ++it)
+	{
+	    if (m_bdkey == it->second->m_srcbdk ||
+		m_bdkey == it->second->m_dstbdk )
+	    {
+		m_TheFillPatchCache.erase(it);
+	    }
+	}
+    }
+}
+
 void
 FabArrayBase::Finalize ()
 {
@@ -1220,8 +1360,9 @@ FabArrayBase::clearThisBD ()
 		m_BD_count.erase(cnt_it);
 		
 		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from the TileArray cache.
+		// and DistributionMapping, erase it from caches.
 		flushTileArray();
+		flushFPC();
 	    }
 	}
     }

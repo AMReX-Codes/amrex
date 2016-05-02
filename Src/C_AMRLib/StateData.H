@@ -14,7 +14,6 @@
 
 class RealBox;
 class StateDescriptor;
-class StateDataPhysBCFunct;
 
 //
 // Current and previous level-time data.

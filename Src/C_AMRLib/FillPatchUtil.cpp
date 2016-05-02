@@ -96,19 +96,14 @@ namespace BoxLib
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
-	const BoxArray&  ba =     mf.boxArray();
-	const BoxArray& fba = fmf[0].boxArray();
+	BoxArray ba_crse_patch;
+	DistributionMapping dm_crse_patch;
+	InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
 
-	const DistributionMapping& dm = mf.DistributionMap();
-
-	const IndexType& boxtype = ba.ixType();
-
-	const int myproc = ParallelDescriptor::MyProc();
-
-	const int ngrow = mf.nGrow();
+	int ngrow = mf.nGrow();
 
 	Box fdomain = fgeom.Domain();
-	fdomain.convert(boxtype);
+	fdomain.convert(mf.boxArray().ixType());
 	Box fdomain_g(fdomain);
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
 	    if (fgeom.isPeriodic(i)) {
@@ -116,48 +111,11 @@ namespace BoxLib
 	    }
 	}
 
-	BoxList bl(boxtype);
-	Array<int> idxs;
-	Array<int> iprocs;
-	Array<Box> fpatch;
-	std::vector< std::pair<int,Box> > isects;
+	const FabArrayBase::FPC& fpc = FabArrayBase::TheFPC(fmf[0], mf, fdomain_g, ngrow, coarsener);
 
-	for (int i = 0, N = ba.size(); i < N; ++i)
+	if (fpc.ba_crse_patch.empty())
 	{
-	    Box bx = ba[i];
-	    bx.grow(ngrow);
-	    bx &= fdomain_g;
-
-	    fba.intersections(bx, isects);
-
-	    BoxList pieces(boxtype);
-	    for (std::vector< std::pair<int,Box> >::const_iterator it = isects.begin();
-		 it != isects.end(); ++it)
-	    {
-		pieces.push_back(it->second);
-	    }
-	    BoxList leftover = BoxLib::complementIn(bx, pieces);
-
-	    bool ismybox = (dm[i] == myproc);
-	    for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
-	    {
-		bl.push_back(mapper->CoarseBox(*bli,ratio));
-		if (ismybox) {
-		    fpatch.push_back(*bli);
-		    idxs.push_back(i);
-		}
-		iprocs.push_back(dm[i]);
-	    }
-	}
-	
-	if (!iprocs.empty())
-	{
-	    BoxArray ba_crse_patch(bl);
-
-	    iprocs.push_back(ParallelDescriptor::MyProc());
-	    DistributionMapping dm_crse_patch(iprocs,false);
-
-	    MultiFab mf_crse_patch(ba_crse_patch, ncomp, 0, dm_crse_patch);
+	    MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
 
 	    FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 
@@ -168,8 +126,8 @@ namespace BoxLib
 	    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
 	    {
 		int li = mfi.LocalIndex();
-		int gi = idxs[li];		
-		const Box& dbx = fpatch[li];
+		int gi = fpc.dst_idxs[li];		
+		const Box& dbx = fpc.dst_boxes[li];
 
 		Array<BCRec> bcr(ncomp);
 		BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
