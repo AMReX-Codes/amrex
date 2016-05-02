@@ -40,6 +40,7 @@ FabArrayBase::FPCCache             FabArrayBase::m_TheFillPatchCache;
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("SICache");
 FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("CopyCache");
+FabArrayBase::CacheStats           FabArrayBase::m_FPC_stats("FillPatchCache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -114,6 +115,9 @@ FabArrayBase::Initialize ()
 	});
     MemProfiler::add(m_CPC_stats.name, [] () -> MemProfiler::MemInfo {
 	    return {m_CPC_stats.bytes, m_CPC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_FPC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_FPC_stats.bytes, m_FPC_stats.bytes_hwm};
 	});
 #endif
 
@@ -967,7 +971,8 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
       m_dstng    (dstng),
-      m_coarsener(coarsener.clone())
+      m_coarsener(coarsener.clone()),
+      m_nuse     (0)
 { 
     const BoxArray& srcba = srcfa.boxArray();
     const BoxArray& dstba = dstfa.boxArray();
@@ -1023,6 +1028,15 @@ FabArrayBase::FPC::~FPC ()
     delete m_coarsener;
 }
 
+long
+FabArrayBase::FPC::bytes () const
+{
+    long cnt = sizeof(FabArrayBase::FPC);
+    cnt += sizeof(Box) * (ba_crse_patch.capacity() + dst_boxes.capacity());
+    cnt += sizeof(int) * (dm_crse_patch.capacity() + dst_idxs.capacity());
+    return cnt;
+}
+
 const FabArrayBase::FPC&
 FabArrayBase::TheFPC (const FabArrayBase& srcfa,
 		      const FabArrayBase& dstfa,
@@ -1030,6 +1044,8 @@ FabArrayBase::TheFPC (const FabArrayBase& srcfa,
 		      int                 dstng,
 		      const BoxConverter& coarsener)
 {
+    BL_PROFILE("FabArrayBase::TheFPC()");
+
     const BDKey& srckey = srcfa.getBDKey();
     const BDKey& dstkey = dstfa.getBDKey();
 
@@ -1043,12 +1059,23 @@ FabArrayBase::TheFPC (const FabArrayBase& srcfa,
 	    it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
 	    it->second->m_coarsener->doit(it->second->m_dstdomain) == coarsener.doit(dstdomain))
 	{
+	    ++it->second->m_nuse;
+	    m_FPC_stats.recordUse();
 	    return *(it->second);
 	}
     }
 
     // Have to build a new one
     FPC* new_fpc = new FPC(srcfa, dstfa, dstdomain, dstng, coarsener);
+
+#ifdef BL_MEM_PROFILING
+    m_FPC_stats.bytes += new_fpc->bytes();
+    m_FPC_stats.bytes_hwm = std::max(m_FPC_stats.bytes_hwm, m_FPC_stats.bytes);
+#endif
+    
+    new_fpc->m_nuse = 1;
+    m_FPC_stats.recordBuild();
+    m_FPC_stats.recordUse();
 
     m_TheFillPatchCache.insert(er_it.second,     FPCCache::value_type(dstkey,new_fpc));
     FPCCacheIter it = m_TheFillPatchCache.insert(FPCCache::value_type(srckey,new_fpc));
@@ -1078,6 +1105,10 @@ FabArrayBase::flushFPC ()
 		other_keys.push_back(srckey);
 	    }
 	} 
+#ifdef BL_MEM_PROFILING
+	m_FPC_stats.bytes -= it->second->bytes();
+#endif
+	m_FPC_stats.recordErase(it->second->m_nuse);
 	delete it->second;
     }
 
@@ -1110,6 +1141,7 @@ FabArrayBase::Finalize ()
 	m_TAC_stats.print();
 	m_FBC_stats.print();
 	m_CPC_stats.print();
+	m_FPC_stats.print();
     }
 
     initialized = false;

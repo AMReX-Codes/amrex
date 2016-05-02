@@ -113,11 +113,13 @@ public:
     //
     // Resizes the array.  See Array<T>::resize() for the gory details.
     //
-    void resize (int len);
+    void resize (long len);
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const;
+    long size () const;
+
+    long capacity () const;
 
     bool empty () const;
 
@@ -404,7 +406,7 @@ private:
         void define (const BoxList& bl);
         void define (std::istream& is);
 	//
-	void resize (int n) {
+	void resize (long n) {
 #ifdef BL_MEM_PROFILING
 	    updateMemoryUsage_box(-1);
 	    updateMemoryUsage_hash(-1);

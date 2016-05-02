@@ -97,10 +97,16 @@ BoxArray::uniqify ()
     m_ref = new BoxArray::Ref(*m_ref);
 }
 
-int
+long
 BoxArray::size () const
 {
     return m_ref->m_abox.size();
+}
+
+long
+BoxArray::capacity () const
+{
+    return m_ref->m_abox.capacity();
 }
 
 bool
@@ -116,7 +122,7 @@ BoxArray::clear ()
 }
 
 void
-BoxArray::resize (int len)
+BoxArray::resize (long len)
 {
     if (!m_ref.unique())
         uniqify();
