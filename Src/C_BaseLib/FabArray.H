@@ -473,7 +473,7 @@ public:
 	     const BoxConverter& coarsener);
 	~FPC ();
 
-	long bytes () const { return 0; } // todo
+	long bytes () const;
 
 	BoxArray            ba_crse_patch;
 	DistributionMapping dm_crse_patch;
@@ -485,12 +485,16 @@ public:
 	Box                 m_dstdomain;
 	int                 m_dstng;
 	BoxConverter*       m_coarsener;
+	//
+	int                 m_nuse;
     };
 
     typedef std::multimap<BDKey,FabArrayBase::FPC*> FPCCache;
     typedef FPCCache::iterator FPCCacheIter;
 
     static FPCCache m_TheFillPatchCache;
+
+    static CacheStats m_FPC_stats;
 
     static const FPC& TheFPC (const FabArrayBase& srcfa,
 			      const FabArrayBase& dstfa,
