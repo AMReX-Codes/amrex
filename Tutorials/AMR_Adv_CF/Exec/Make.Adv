@@ -1,0 +1,37 @@
+BOXLIB_HOME ?= ../../../..
+TOP := $(BOXLIB_HOME)/Tutorials/AMR_Adv_CF
+
+EBASE := main
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+
+all: $(executable) 
+	@echo SUCCESS
+
+Bdirs 	:= Source
+Pdirs 	:= C_BaseLib F_Interfaces/BaseLib
+
+Bpack	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
+
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.cpp . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
+vpath %.H   . $(VPATH_LOCATIONS)
+vpath %.F   . $(VPATH_LOCATIONS)
+vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
+vpath %.f   . $(VPATH_LOCATIONS)
+vpath %.fi  . $(VPATH_LOCATIONS)
+
+
+include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+
