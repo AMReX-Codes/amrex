@@ -1,0 +1,26 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.05
+
+The development branch was merged into master on May 2, 2016.
+
+* Bug Fix
+** e972938c3b825e2fd96c353e50492f4a0b045884
+This commit fixed a bug in Geometry::PeriodicCopy when copying into
+the destination's ghost cells.  Parallel-copying into ghost cells is a
+new feature.  It's unlikely any code has been using it.
+
+* New Features
+** New runtime parameter DistributionMapping.node_size=0. 
+When space-filling curve (SFC) is used for DistributionMapping and
+this parameter is changed to say 24 on Edison, every 24 MPI processes
+will be in the same team for a chunk of SFC, and the Knapsack scheme
+is then used inside the team to further distribute the boxes to
+individual processes.  For flat MPI runs, this might help load
+balance while maintaining data locality.
+** TINY_PROFILE
+This profiler only supports a tiny fraction of what the full BoxLib
+profiler can offer.  However, it does not need post-processing to
+obtain inclusive times and it does not write any data to the disk
+(other than the final report to stdout). 
