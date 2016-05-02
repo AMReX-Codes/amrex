@@ -261,17 +261,6 @@ FabArrayBase::bytesOfTACache ()
 // Stuff used for copy() caching.
 //
 
-FabArrayBase::CPC::CPC ()
-    :
-    m_nuse(0),
-    m_threadsafe_loc(false),
-    m_threadsafe_rcv(false),
-    m_LocTags(0),
-    m_SndTags(0),
-    m_RcvTags(0),
-    m_SndVols(0),
-    m_RcvVols(0) {}
-
 FabArrayBase::CPC::CPC (const BoxArray&            dstba,
                         const BoxArray&            srcba,
                         const DistributionMapping& dstdm,
@@ -307,7 +296,7 @@ bool
 FabArrayBase::CPC::operator== (const CPC& rhs) const
 {
     return
-        m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm;
+        m_dstba == rhs.m_dstba && m_srcba == rhs.m_srcba && m_dstdm == rhs.m_dstdm && m_srcdm == rhs.m_srcdm && m_dstng == rhs.m_dstng && m_srcng == rhs.m_srcng;
 }
 
 FabArrayBase::CPCCacheIter

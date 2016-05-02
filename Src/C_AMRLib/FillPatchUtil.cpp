@@ -20,10 +20,13 @@ namespace BoxLib
 	BL_ASSERT(smf.size() == stime.size());
 	BL_ASSERT(smf.size() != 0);
 
-	if (smf.size() == 1) {
-	    mf.copy(smf[0], scomp, dcomp, ncomp);
-	    geom.PeriodicCopy(mf, smf[0], dcomp, scomp, ncomp);
-	} else if (smf.size() == 2) {
+	if (smf.size() == 1) 
+	{
+	    mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow());
+	    geom.PeriodicCopy(mf, smf[0], dcomp, scomp, ncomp, mf.nGrow());
+	} 
+	else if (smf.size() == 2) 
+	{
 	    BL_ASSERT(smf[0].boxArray() == smf[1].boxArray());
 	    PArray<MultiFab> raii(PArrayManage);
 	    MultiFab * dmf;
@@ -57,23 +60,27 @@ namespace BoxLib
 				      ncomp);
 	    }
 	    
-	    if (!sameba) {
+	    if (sameba)
+	    {
+		mf.FillBoundary_nowait(dcomp,ncomp);
+		geom.FillPeriodicBoundary_nowait(mf,dcomp,ncomp);
+
+		mf.FillBoundary_finish();
+		geom.FillPeriodicBoundary_finish(mf);
+	    }
+	    else
+	    {
 		int src_ngrow = 0;
 		int dst_ngrow = mf.nGrow();
+
 		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow);
-		geom.PeriodicCopy(mf, *dmf, dcomp, 0, ncomp);
+		geom.PeriodicCopy(mf, *dmf, dcomp, 0, ncomp, dst_ngrow);
 	    }
 	}
 	else {
 	    BoxLib::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
-	mf.FillBoundary_nowait(dcomp,ncomp);
-	geom.FillPeriodicBoundary_nowait(mf,dcomp,ncomp);
-	
-	mf.FillBoundary_finish();
-	geom.FillPeriodicBoundary_finish(mf);
-	
 	physbcf.doit(mf, dcomp, ncomp, time);
     }
 
