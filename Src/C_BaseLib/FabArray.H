@@ -459,6 +459,47 @@ public:
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
 
+    // Key for unique combination of BoxArray and DistributionMapping
+    // Note both BoxArray and DistributionMapping are reference counted.
+    // Objects with the same references have the same key.
+    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
+
+    struct FPC
+    {
+	FPC (const FabArrayBase& srcfa,
+	     const FabArrayBase& dstfa,
+	     Box                 dstdomain,
+	     int                 dstng,
+	     const BoxConverter& coarsener);
+	~FPC ();
+
+	long bytes () const { return 0; } // todo
+
+	BoxArray            ba_crse_patch;
+	DistributionMapping dm_crse_patch;
+	Array<int>          dst_idxs;
+	Array<Box>          dst_boxes;
+	//
+	BDKey               m_srcbdk;
+	BDKey               m_dstbdk;
+	Box                 m_dstdomain;
+	int                 m_dstng;
+	BoxConverter*       m_coarsener;
+    };
+
+    typedef std::multimap<BDKey,FabArrayBase::FPC*> FPCCache;
+    typedef FPCCache::iterator FPCCacheIter;
+
+    static FPCCache m_TheFillPatchCache;
+
+    static const FPC& TheFPC (const FabArrayBase& srcfa,
+			      const FabArrayBase& dstfa,
+			      Box                 dstdomain,
+			      int                 dstng,
+			      const BoxConverter& coarsener);
+
+    void flushFPC ();
+
 protected:
 
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
@@ -495,14 +536,9 @@ protected:
     DistributionMapping distributionMap;
     Array<int>          indexMap;
     std::vector<bool>   ownership;
-    mutable int         n_grow;
+    int                 n_grow;
     int                 n_comp;
     int                 faID;
-
-    // Key for unique combination of BoxArray and DistributionMapping
-    // Note both BoxArray and DistributionMapping are reference counted.
-    // Objects with the same references have the same key.
-    typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
     mutable BDKey m_bdkey;
 
@@ -510,24 +546,12 @@ protected:
 	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
     }
 
-    // No operator< for std::pair before C++14
-    class CompareBDKey
-    {
-    public:
-	bool operator () (const BDKey& lhs,
-			  const BDKey& rhs) const
-	    {
-		return (lhs.first < rhs.first)
-		    || ((lhs.first == rhs.first) && (lhs.second < rhs.second));
-	    }
-    };
-
     //
     // Tiling
     //
     // We use tile size as the key for the inner map.
     typedef std::map<IntVect, TileArray, IntVect::Compare> TAMap;
-    typedef std::map<BDKey  , TAMap    , CompareBDKey    > TACache;
+    typedef std::map<BDKey, TAMap> TACache;
     //
     static TACache     m_TheTileArrayCache;
     static CacheStats  m_TAC_stats;
