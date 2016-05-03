@@ -1112,11 +1112,8 @@ FabArrayBase::flushFPC ()
 
 	    for (FPCCacheIter oit = o_er_it.first; oit != o_er_it.second; ++oit)
 	    {
-		if (m_bdkey == oit->second->m_srcbdk ||
-		    m_bdkey == oit->second->m_dstbdk )
-		{
+		if (it->second == oit->second)
 		    others.push_back(oit);
-		}
 	    }
 	} 
 
