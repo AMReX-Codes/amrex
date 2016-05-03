@@ -3437,7 +3437,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     {
 	Array<MPI_Status> stats(N_rcvs);
 
-	MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr());
+	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
 	for (int i = 0; i < N_rcvs; ++i) {
             BoxLib::The_Arena()->free(md_send_data[i]);	    
 	}
