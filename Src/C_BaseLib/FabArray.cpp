@@ -981,6 +981,8 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
     const IndexType& boxtype = dstba.ixType();
     BL_ASSERT(boxtype == dstdomain.ixType());
      
+    BL_ASSERT(dstng <= dstfa.nGrow());
+
     const DistributionMapping& dstdm = dstfa.DistributionMap();
     
     const int myproc = ParallelDescriptor::MyProc();
@@ -1017,10 +1019,11 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
 	}
     }
 
-    ba_crse_patch.define(bl);
-
-    iprocs.push_back(myproc);
-    dm_crse_patch.define(iprocs);
+    if (!iprocs.empty()) {
+	ba_crse_patch.define(bl);
+	iprocs.push_back(myproc);
+	dm_crse_patch.define(iprocs);
+    }
 }
 
 FabArrayBase::FPC::~FPC ()
@@ -1077,9 +1080,11 @@ FabArrayBase::TheFPC (const FabArrayBase& srcfa,
     m_FPC_stats.recordBuild();
     m_FPC_stats.recordUse();
 
-    m_TheFillPatchCache.insert(er_it.second,     FPCCache::value_type(dstkey,new_fpc));
-    FPCCacheIter it = m_TheFillPatchCache.insert(FPCCache::value_type(srckey,new_fpc));
-    return *(it->second);
+    m_TheFillPatchCache.insert(er_it.second, FPCCache::value_type(dstkey,new_fpc));
+    if (srckey != dstkey)
+	m_TheFillPatchCache.insert(          FPCCache::value_type(srckey,new_fpc));
+
+    return *new_fpc;
 }
 
 void
@@ -1087,44 +1092,45 @@ FabArrayBase::flushFPC ()
 {
     BL_ASSERT(getBDKey() == m_bdkey);
 
-    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(m_bdkey);
+    std::vector<FPCCacheIter> others;
 
-    std::vector<BDKey> other_keys;
+    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(m_bdkey);
 
     for (FPCCacheIter it = er_it.first; it != er_it.second; ++it)
     {
 	const BDKey& srckey = it->second->m_srcbdk;
 	const BDKey& dstkey = it->second->m_dstbdk;
-	if (srckey == dstkey) {
-	    BL_ASSERT(m_bdkey == dstkey);
-	} else {
-	    if (m_bdkey == srckey) {
-		other_keys.push_back(dstkey);
-	    } else {
-		BL_ASSERT(m_bdkey == dstkey);
-		other_keys.push_back(srckey);
+
+	BL_ASSERT((srckey==dstkey && srckey==m_bdkey) || 
+		  (m_bdkey==srckey) || (m_bdkey==dstkey));
+
+	if (srckey != dstkey) {
+	    const BDKey& otherkey = (m_bdkey == srckey) ? dstkey : srckey;
+	    std::pair<FPCCacheIter,FPCCacheIter> o_er_it = m_TheFillPatchCache.equal_range(otherkey);
+
+	    for (FPCCacheIter oit = o_er_it.first; oit != o_er_it.second; ++oit)
+	    {
+		if (m_bdkey == oit->second->m_srcbdk ||
+		    m_bdkey == oit->second->m_dstbdk )
+		{
+		    others.push_back(oit);
+		}
 	    }
 	} 
+
 #ifdef BL_MEM_PROFILING
 	m_FPC_stats.bytes -= it->second->bytes();
 #endif
 	m_FPC_stats.recordErase(it->second->m_nuse);
 	delete it->second;
     }
-
+    
     m_TheFillPatchCache.erase(er_it.first, er_it.second);
 
-    for (std::vector<BDKey>::const_iterator kit = other_keys.begin(); kit != other_keys.end(); ++kit)
+    for (std::vector<FPCCacheIter>::iterator it = others.begin(),
+	     End = others.end(); it != End; ++it)
     {
-	std::pair<FPCCacheIter,FPCCacheIter> its = m_TheFillPatchCache.equal_range(*kit);
-	for (FPCCacheIter it = its.first; it!= its.second; ++it)
-	{
-	    if (m_bdkey == it->second->m_srcbdk ||
-		m_bdkey == it->second->m_dstbdk )
-	    {
-		m_TheFillPatchCache.erase(it);
-	    }
-	}
+	m_TheFillPatchCache.erase(*it);
     }
 }
 

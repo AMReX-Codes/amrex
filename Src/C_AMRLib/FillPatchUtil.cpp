@@ -113,7 +113,7 @@ namespace BoxLib
 
 	const FabArrayBase::FPC& fpc = FabArrayBase::TheFPC(fmf[0], mf, fdomain_g, ngrow, coarsener);
 
-	if (fpc.ba_crse_patch.empty())
+	if (!fpc.ba_crse_patch.empty())
 	{
 	    MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
 
