@@ -96,53 +96,56 @@ namespace BoxLib
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
-	BoxArray ba_crse_patch;
-	DistributionMapping dm_crse_patch;
-	InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
-
 	int ngrow = mf.nGrow();
-
-	Box fdomain = fgeom.Domain();
-	fdomain.convert(mf.boxArray().ixType());
-	Box fdomain_g(fdomain);
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    if (fgeom.isPeriodic(i)) {
-		fdomain_g.grow(i,ngrow);
-	    }
-	}
-
-	const FabArrayBase::FPC& fpc = FabArrayBase::TheFPC(fmf[0], mf, fdomain_g, ngrow, coarsener);
-
-	if (!fpc.ba_crse_patch.empty())
+	    
+	if (ngrow > 0 || mf.getBDKey() != fmf[0].getBDKey()) 
 	{
-	    MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
+	    BoxArray ba_crse_patch;
+	    DistributionMapping dm_crse_patch;
+	    InterpolaterBoxCoarsener coarsener = mapper->BoxCoarsener(ratio);
+	    
+	    Box fdomain = fgeom.Domain();
+	    fdomain.convert(mf.boxArray().ixType());
+	    Box fdomain_g(fdomain);
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		if (fgeom.isPeriodic(i)) {
+		    fdomain_g.grow(i,ngrow);
+		}
+	    }
+	    
+	    const FabArrayBase::FPC& fpc = FabArrayBase::TheFPC(fmf[0], mf, fdomain_g, ngrow, coarsener);
 
-	    FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
-
-	    int idummy1=0, idummy2=0;
+	    if (!fpc.ba_crse_patch.empty())
+	    {
+		MultiFab mf_crse_patch(fpc.ba_crse_patch, ncomp, 0, fpc.dm_crse_patch);
+		
+		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
+		
+		int idummy1=0, idummy2=0;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-	    {
-		int li = mfi.LocalIndex();
-		int gi = fpc.dst_idxs[li];		
-		const Box& dbx = fpc.dst_boxes[li];
-
-		Array<BCRec> bcr(ncomp);
-		BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
-		
-		mapper->interp(mf_crse_patch[mfi],
-			       0,
-			       mf[gi],
-			       dcomp,
-			       ncomp,
-			       dbx,
-			       ratio,
-			       cgeom,
-			       fgeom,
-			       bcr,
-			       idummy1, idummy2);
+		for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+		{
+		    int li = mfi.LocalIndex();
+		    int gi = fpc.dst_idxs[li];		
+		    const Box& dbx = fpc.dst_boxes[li];
+		    
+		    Array<BCRec> bcr(ncomp);
+		    BoxLib::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+		    
+		    mapper->interp(mf_crse_patch[mfi],
+				   0,
+				   mf[gi],
+				   dcomp,
+				   ncomp,
+				   dbx,
+				   ratio,
+				   cgeom,
+				   fgeom,
+				   bcr,
+				   idummy1, idummy2);
+		}
 	    }
 	}
 
