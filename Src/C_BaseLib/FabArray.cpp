@@ -974,6 +974,8 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
       m_coarsener(coarsener.clone()),
       m_nuse     (0)
 { 
+    BL_PROFILE("FPC::FPC()");
+
     const BoxArray& srcba = srcfa.boxArray();
     const BoxArray& dstba = dstfa.boxArray();
     BL_ASSERT(srcba.ixType() == dstba.ixType());

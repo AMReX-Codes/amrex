@@ -464,6 +464,10 @@ public:
     // Objects with the same references have the same key.
     typedef std::pair<ptrdiff_t,ptrdiff_t> BDKey;
 
+    BDKey getBDKey () const {
+	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
+    }
+
     struct FPC
     {
 	FPC (const FabArrayBase& srcfa,
@@ -545,10 +549,6 @@ protected:
     int                 faID;
 
     mutable BDKey m_bdkey;
-
-    BDKey getBDKey () const {
-	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
-    }
 
     //
     // Tiling
