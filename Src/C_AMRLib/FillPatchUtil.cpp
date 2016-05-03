@@ -8,6 +8,31 @@
 
 namespace BoxLib
 {
+    bool ProperlyNested (const IntVect& ratio, int blocking_factor, int ngrow,
+			 const IndexType& boxType, Interpolater* mapper)
+    {
+	int ratio_max = ratio[0];
+#if (BL_SPACEDIM > 1)
+	ratio_max = std::max(ratio_max, ratio[1]);
+#endif
+#if (BL_SPACEDIM == 3)
+	ratio_max = std::max(ratio_max, ratio[2]);
+#endif
+	// There are at least this many coarse cells outside fine grids 
+	// (except at physical boundaries).
+	int nbuf = blocking_factor / ratio_max;
+	
+	Box crse_box(IntVect(D_DECL(0 ,0 ,0 )), IntVect(D_DECL(4*nbuf-1,4*nbuf-1,4*nbuf-1)));
+	crse_box.convert(boxType);
+	Box fine_box(IntVect(D_DECL(  nbuf  ,  nbuf  ,  nbuf)),
+		     IntVect(D_DECL(3*nbuf-1,3*nbuf-1,3*nbuf-1)));
+	fine_box.convert(boxType);
+	fine_box.refine(ratio_max);
+	fine_box.grow(ngrow);
+	const Box& fine_box_coarsened = mapper->CoarseBox(fine_box, ratio_max);
+	return crse_box.contains(fine_box_coarsened);
+    }
+
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const PArray<MultiFab>& smf, const std::vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
