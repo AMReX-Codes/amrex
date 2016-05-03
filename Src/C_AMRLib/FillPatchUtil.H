@@ -8,6 +8,9 @@
 
 namespace BoxLib
 {
+    bool ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow, 
+			 const IndexType& boxType, Interpolater* mapper);
+
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
 			       const PArray<MultiFab>& smf, const std::vector<Real>& stime, 
 			       int scomp, int dcomp, int ncomp,
