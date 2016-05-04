@@ -1346,14 +1346,6 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
 
-    static int use_collectdata = 1;
-    static bool first = true;
-    if (first) {
-	ParmParse pp("boxlib");
-	pp.query("use_collectdata", use_collectdata);
-	first = false;
-    }
-
     //
     // Must fill this region on crse level and interpolate.
     //
@@ -1387,13 +1379,11 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
-
 	MultiFab crseMF(crseBA,NComp,0);
 
-	if (!use_collectdata &&
-	    ( level == 1 
-	      || BoxLib::ProperlyNested(crse_ratio, parent->blockingFactor(level),
-					nghost, mf_BA.ixType(), mapper)) )
+	if ( level == 1 
+	     || BoxLib::ProperlyNested(crse_ratio, parent->blockingFactor(level),
+				       nghost, mf_BA.ixType(), mapper) )
 	{
 	    StateData& statedata = clev.state[index];
 	    
