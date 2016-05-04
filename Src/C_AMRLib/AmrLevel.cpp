@@ -1387,7 +1387,8 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
-        MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
+
+	MultiFab crseMF(crseBA,NComp,0);
 
 	if (!use_collectdata &&
 	    ( level == 1 
@@ -1408,32 +1409,32 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	}
 	else
 	{
-	    FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
+	    FillPatch(clev,crseMF,0,time,index,SComp,NComp,0);
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	    {
-		const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
-		
-		Array<BCRec> bcr(ncomp);
-		
-		BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
-		
-		mapper->interp(fpi.m_fabs[mfi],
-			       0,
-			       mf[mfi],
-			       DComp,
-			       NComp,
-			       dbx,
-			       crse_ratio,
-			       clev.geom,
-			       geom,
-			       bcr,
-			       SComp,
-			       index);
-	    }
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+	    const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
+	    
+	    Array<BCRec> bcr(ncomp);
+	    
+	    BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+	    
+	    mapper->interp(crseMF[mfi],
+			   0,
+			   mf[mfi],
+			   DComp,
+			   NComp,
+			   dbx,
+			   crse_ratio,
+			   clev.geom,
+			   geom,
+			   bcr,
+			   SComp,
+			   index);
 	}
 
         DComp += NComp;
