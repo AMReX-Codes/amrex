@@ -61,6 +61,7 @@ ifeq ($(COMP),Cray)
 else
 ifeq ($(COMP),PGI)
   CXX = pgc++
+  CC  = pgcc
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
