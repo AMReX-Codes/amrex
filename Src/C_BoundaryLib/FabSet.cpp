@@ -233,6 +233,9 @@ FabSet::linComb (Real          a,
     return *this;
 }
 
+//
+// CastroRadiation is the only code that uses this function. 
+//
 FabSet&
 FabSet::linComb (Real            a,
                  const MultiFab& mfa,
