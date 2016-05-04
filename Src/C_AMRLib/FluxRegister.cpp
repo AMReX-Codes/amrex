@@ -453,6 +453,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
             fs.copyFrom(mf,0,0,0,numcomp);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
                 bndry[face][mfi].plus(fs[mfi],0,destcomp,numcomp);
         }
