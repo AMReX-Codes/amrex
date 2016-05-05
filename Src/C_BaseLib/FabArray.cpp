@@ -991,7 +991,6 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
 
     BoxList bl(boxtype);
     Array<int> iprocs;
-    std::vector< std::pair<int,Box> > isects;
 
     for (int i = 0, N = dstba.size(); i < N; ++i)
     {
@@ -999,15 +998,7 @@ FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
 	bx.grow(m_dstng);
 	bx &= m_dstdomain;
 
-	srcba.intersections(bx, isects);
-
-	BoxList pieces(boxtype);
-	for (std::vector< std::pair<int,Box> >::const_iterator it = isects.begin();
-	     it != isects.end(); ++it)
-	{
-	    pieces.push_back(it->second);
-	}
-	BoxList leftover = BoxLib::complementIn(bx, pieces);
+	BoxList leftover = srcba.complement(bx);
 
 	bool ismybox = (dstdm[i] == myproc);
 	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
