@@ -114,6 +114,10 @@ public:
     // Catenate the BoxList to ourselves. Removes entries from blist.
     //
     void catenate (BoxList& blist);
+    // 
+    // Splic the BoxList to the front
+    //
+    void splice_front (BoxList& blist);
     //
     // Remove all Boxes from this BoxList.
     //

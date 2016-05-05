@@ -316,6 +316,8 @@ public:
 			int ng) const;
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
+    // Return box - boxarray
+    BoxList complement (const Box& b) const;
     //
     // Clear out the internal hash table used by intersections.
     //
@@ -351,6 +353,12 @@ private:
     void decrementCounters () const;
 
     IndexType m_typ;
+
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
+
+    BoxHashMapType& getHashMap () const;
 
     class Ref
     {
@@ -432,7 +440,7 @@ private:
 
         mutable IntVect crsn;
 
-        mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
+        mutable BoxHashMapType hash;
 
 	static long total_box_bytes;
 	static long total_box_bytes_hwm;
