@@ -151,6 +151,7 @@ FluxRegister::SumReg (int comp) const
     return sum;
 }
 
+#if 0
 struct Rec
 {
     Rec (int         dIndex,
@@ -403,6 +404,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     Reflux(S,volume,scale,scomp,dcomp,ncomp,geom);
 }
+#endif
 
 void
 FluxRegister::CrseInit (const MultiFab& mflx,
@@ -609,6 +611,72 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
 }
+
+void 
+FluxRegister::Reflux (MultiFab&       mf,
+		      const MultiFab& volume,
+		      Real            scale,
+		      int             scomp,
+		      int             dcomp,
+		      int             ncomp,
+		      const Geometry& geom)
+{
+    BL_PROFILE("FluxRegister::Reflux()");
+
+    for (OrientationIter fi; fi; ++fi)
+    {
+	const Orientation& face = fi();
+	int idir = face.coordDir();
+
+	MultiFab flux(mf.boxArray(), ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(idir));
+	flux.setVal(0.0);
+
+	flux.copy(bndry[face], scomp, 0, ncomp, 0, 0);
+	geom.PeriodicCopy(flux, bndry[face], 0, scomp, ncomp);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.tilebox();
+
+	    FArrayBox& sfab = mf[mfi];
+	    const Box& sbox = sfab.box();
+
+	    const FArrayBox& ffab = flux[mfi];
+	    const Box& fbox = ffab.box();
+	    
+	    const FArrayBox& vfab = volume[mfi];
+	    const Box& vbox = vfab.box();
+
+	    FORT_FRREFLUX(bx.loVect(), bx.hiVect(),
+			  sfab.dataPtr(dcomp), sbox.loVect(), sbox.hiVect(),
+			  ffab.dataPtr(     ), fbox.loVect(), fbox.hiVect(),
+			  vfab.dataPtr(     ), vfab.loVect(), vbox.hiVect(),
+			  &ncomp, &scale, &idir);
+			  
+	}
+    }
+}
+
+void 
+FluxRegister::Reflux (MultiFab&       mf,
+		      Real            scale,
+		      int             scomp,
+		      int             dcomp,
+		      int             ncomp,
+		      const Geometry& geom)
+{
+    const Real* dx = geom.CellSize();
+    
+    MultiFab volume(mf.boxArray(), 1, mf.nGrow());
+    
+    volume.setVal(D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
+
+    Reflux(mf,volume,scale,scomp,dcomp,ncomp,geom);
+}
+
 
 void
 FluxRegister::write (const std::string& name, std::ostream& os) const
