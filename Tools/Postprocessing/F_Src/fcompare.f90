@@ -135,10 +135,13 @@ program fcompare
      print *, "variable."
      print *, " "
      print *, "usage:"
-     print *, "   fcompare --infile1 file1 --infile2 file2"
-     print *, ' '
-     print *, ' or '
-     print *, "   fcompare file1 file2"
+     print *, "   fcompare [-g|--ghost] [-n|--norm num] [--diffvar var] file1 file2"
+     print *, " "
+     print *, "optional arguments:"
+     print *, "   -g|--ghost    : compare the ghost cells too (if stored)"
+     print *, "   -n|--norm num : what norm to use (default is 0 for inf norm)"
+     print *, "   --diffvar var : output a plotfile showing the differences for "
+     print *, "                   variable var"
      print *, " "
      stop
   endif
