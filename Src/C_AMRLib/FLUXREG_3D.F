@@ -320,7 +320,7 @@ c
       integer :: i, j, k, n
       if (dir .eq. 0) then
          do n = 1, nc
-         do j = lo(3), hi(3)
+         do k = lo(3), hi(3)
          do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i+1,j,k,n))
@@ -328,9 +328,10 @@ c
          end do
          end do
          end do
+         end do
       else if (dir .eq. 1) then
          do n = 1, nc
-         do j = lo(3), hi(3)
+         do k = lo(3), hi(3)
          do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j+1,k,n))
@@ -338,13 +339,15 @@ c
          end do
          end do
          end do
+         end do
       else
          do n = 1, nc
-         do j = lo(3), hi(3)
+         do k = lo(3), hi(3)
          do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j,k+1,n))
      &           / v(i,j,k)
+         end do
          end do
          end do
          end do
