@@ -953,7 +953,7 @@ public:
     int MoveFabs (const Array<int> &newDistMapArray);
     static void MoveAllFabs (const Array<int> &newDistMapArray);
     static void LockAllFAPointers ();
-    static void CheckFAPointerLocks ();
+    static void CheckFAPointers ();
     static void PrintFAPointers ();
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
@@ -2513,33 +2513,112 @@ FabArray<FAB>::LockAllFAPointers ()
 
 template <class FAB>
 void
-FabArray<FAB>::CheckFAPointerLocks ()
+FabArray<FAB>::CheckFAPointers ()
 {
   int pLocked(0), pUnlocked(0);
-  //std::cout << "}}}} _in CheckFAPointerLocks:  allocatedFAPointers.size() = "
-            //<< FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+  int allocFAPSize(FabArray<FAB>::allocatedFAPointers.size());
+  int iopNumber(ParallelDescriptor::IOProcessorNumber());
+  ParallelDescriptor::Bcast(&allocFAPSize, 1, iopNumber);
+
+  if(allocFAPSize != FabArray<FAB>::allocatedFAPointers.size()) {
+    BoxLib::USleep(ParallelDescriptor::MyProcAll());
+    std::cout << ParallelDescriptor::MyProcAll() << ":: allocFAPSize != FabArray<FAB>::allocatedFAPointers.size() : "
+              << allocFAPSize << "  " << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
+    BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
+  }
+
+  std::cout << "|||| _in CheckFAPointers:  allocatedFAPointers.size() = "
+            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
   for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-    //std::cout << "}}}} }}}} _in CheckFAPointerLocks:  faPtrCachedMap.size() = "
-              //<< faPtrCachedMap.size() << std::endl;
+    int fapCMapSize(faPtrCachedMap.size());
+    ParallelDescriptor::Bcast(&fapCMapSize, 1, iopNumber);
+    if(fapCMapSize != faPtrCachedMap.size()) {
+      BoxLib::USleep(ParallelDescriptor::MyProcAll());
+      std::cout << ParallelDescriptor::MyProcAll() << ":: fapCMapSize != faPtrCachedMap.size() : "
+                << fapCMapSize << "  " << faPtrCachedMap.size() << std::endl;
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
+    }
+
+    int distmapNGrids(afapIter->first-1);
+    ParallelDescriptor::Bcast(&distmapNGrids, 1, iopNumber);
+    if(distmapNGrids != afapIter->first-1) {
+      BoxLib::USleep(ParallelDescriptor::MyProcAll());
+      std::cout << ParallelDescriptor::MyProcAll() << ":: distmapNGrids != afapIter->first-1 : "
+                << distmapNGrids << "  " << afapIter->first-1 << std::endl;
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
+    }
+
+    Array<int> fapId(faPtrCachedMap.size()), dmId(faPtrCachedMap.size());
+    Array<int> nDM(faPtrCachedMap.size()), fabsAlloced(faPtrCachedMap.size());
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
       FabArray<FAB> *faPtr = it->second;
-      //std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  FAPtrId  idLock = " 
-                //<< faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock << std::endl;
+      fapId.push_back(faPtr->AllocatedFAPtrID());
+      dmId.push_back(faPtr->DistributionMap().DistMapID());
+      nDM.push_back(faPtr->DistributionMap().NDistMaps());
+      std::set<int>::iterator nait = noallocFAPIds.find(faPtr->AllocatedFAPtrID());
+      bool fabsAllocated(nait == noallocFAPIds.end());
+      fabsAlloced.push_back(fabsAllocated);
+
       if(faPtr->aFAPIdLock) {
         ++pLocked;
       } else {
         ++pUnlocked;
       }
     }
+    Array<int> fapIdCheck, dmIdCheck, nDMCheck, fabsAllocedCheck;
+    if(ParallelDescriptor::IOProcessor()) {
+      fapIdCheck = fapId;
+      dmIdCheck = dmId;
+      nDMCheck = nDM;
+      fabsAllocedCheck = fabsAlloced;
+    }
+    BoxLib::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
+    for(int i(0); i < fapId.size(); ++i) {
+      if(fapId[i] != fapIdCheck[i]) {
+        std::cout << ParallelDescriptor::MyProcAll() << ":: fapId[" << i << "] != fapIdCheck[" << i << "] : "
+                  << fapId[i] << "  " << fapIdCheck[i] << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
+      }
+    }
+    for(int i(0); i < dmId.size(); ++i) {
+      if(dmId[i] != dmIdCheck[i]) {
+        std::cout << ParallelDescriptor::MyProcAll() << ":: dmId[" << i << "] != dmIdCheck[" << i << "] : "
+                  << dmId[i] << "  " << dmIdCheck[i] << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
+      }
+    }
+    for(int i(0); i < nDM.size(); ++i) {
+      if(nDM[i] != nDMCheck[i]) {
+        std::cout << ParallelDescriptor::MyProcAll() << ":: nDM[" << i << "] != nDMCheck[" << i << "] : "
+                  << nDM[i] << "  " << nDMCheck[i] << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
+      }
+    }
+    for(int i(0); i < fabsAlloced.size(); ++i) {
+      if(fabsAlloced[i] != fabsAllocedCheck[i]) {
+        std::cout << ParallelDescriptor::MyProcAll() << ":: fabsAlloced[" << i << "] != fabsAllocedCheck[" << i << "] : "
+                  << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
+      }
+    }
   }
-  std::cout << "}}}} }}}} }}}} _in CheckFAPointerLocks:  " << pLocked << " of "
-            << pLocked + pUnlocked << " FAPointers locked." << std::endl;
+  int pLockedCheck(pLocked);
+  ParallelDescriptor::Bcast(&pLockedCheck, 1, iopNumber);
+  if(pLocked != pLockedCheck) {
+    std::cout << ParallelDescriptor::MyProcAll() << ":: pLocked != pLockedCheck : "
+              << pLocked << "  " << pLockedCheck << std::endl;
+    BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
+  }
+  std::cout << "|||| |||| |||| _out CheckFAPointers: ================ " << std::endl;
 }
 
 
@@ -2547,14 +2626,14 @@ template <class FAB>
 void
 FabArray<FAB>::PrintFAPointers ()
 {
-  std::cout << "}}}} _in PrintFAPointers:  allocatedFAPointers.size() = "
+  std::cout << "|||| _in PrintFAPointers:  allocatedFAPointers.size() = "
             << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
   for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
   {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-    std::cout << "}}}} }}}} _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
+    std::cout << "|||| |||| _in PrintFAPointers:  faPtrCachedMap.size() distmapngrids = "
               << faPtrCachedMap.size() << "  " << afapIter->first-1 << std::endl;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
@@ -2562,7 +2641,7 @@ FabArray<FAB>::PrintFAPointers ()
       FabArray<FAB> *faPtr = it->second;
       std::set<int>::iterator nait = noallocFAPIds.find(faPtr->AllocatedFAPtrID());
       bool fabsAllocated(nait == noallocFAPIds.end());
-      std::cout << "}}}} }}}} }}}} _in PrintFAPointers:  FAPtrId  idLock dmID nDM fabsAlloced = " 
+      std::cout << "|||| |||| |||| _in PrintFAPointers:  FAPtrId  idLock dmID nDM fabsAlloced = " 
                 << faPtr->AllocatedFAPtrID() << "  " << faPtr->aFAPIdLock
 		<< "  " << faPtr->DistributionMap().DistMapID()
 		<< "  " << faPtr->DistributionMap().NDistMaps()
@@ -2570,7 +2649,7 @@ FabArray<FAB>::PrintFAPointers ()
     }
   }
   DistributionMapping::CacheStats(std::cout, ParallelDescriptor::MyProcAll());
-  std::cout << "}}}} }}}} }}}} _out PrintFAPointers: ================ " << std::endl;
+  std::cout << "|||| |||| |||| _out PrintFAPointers: ================ " << std::endl;
 }
 
 
