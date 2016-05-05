@@ -31,7 +31,7 @@
 
 class FabSet
     :
-    private MultiFab
+    public MultiFab
 {
 
 public:
@@ -57,27 +57,6 @@ public:
     void define (const BoxArray&            grids,
                  int                        ncomp,
                  const DistributionMapping& dm);
-    //
-    // Returns number of variables associated with each point.
-    //
-    using MultiFab::nComp;
-    //
-    // Returns number of Fabs owned by this MPI rank
-    //
-    using MultiFab::local_size;
-    //
-    // Returns a constant reference to the BoxArray.
-    //
-    using MultiFab::boxArray;
-    //
-    // Returns a constant reference to the Kth Box in the BoxArray.
-    //
-    using MultiFab::box;
-    using MultiFab::fabbox;
-    //
-    // Promote all setVal() member functions back to public.
-    //
-    using MultiFab::setVal;
     //
     // Copy from the FAB to this FabSet.
     //
@@ -176,31 +155,7 @@ public:
                      int             num_comp,
                      int             n_ghost=0);
 
-    friend class FabSetIter;
     friend class FabSetCopyDescriptor;
-    //
-    // Promote operator[] back to public.
-    //
-    using MultiFab::operator[];
-
-    using MultiFab::get;
-    //
-    // Promote clear() back to public.
-    //
-    using MultiFab::clear;
-    //
-    // Promote DistributionMap() back to public.
-    //
-    using MultiFab::DistributionMap;
-
-    //
-    // Promote size() back to public.
-    //
-    using MultiFab::size;
-    //
-    // True if there is a FAB at specified index.
-    //
-    bool defined (int i) const { return this->MultiFab::defined(i); }
     //
     // Write (used for writing to checkpoint)
     //
@@ -224,32 +179,7 @@ protected:
                How             how);
 };
 
-//
-//  An iterator over the FABs in a FabSet.
-//
-//  This class encapsulates an iterator over the FABs in a FabSet such that
-//  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
-//  only those FABs in the FabSet that are actually owned by that CPU.
-//
-
-class FabSetIter
-    :
-    public MFIter
-{
-public:
-
-    FabSetIter (const FabSet& fabset, unsigned char flags_=0)
-        :
-        MFIter(fabset, flags_) {}
-
-    FabSetIter (const FabSet& fabset, bool do_tiling)
-        :
-        MFIter(fabset,do_tiling) {}
-
-    FabSetIter (const FabSet& fabset, const IntVect& tilesize, unsigned char flags_=0)
-        :
-        MFIter(fabset,tilesize,flags_) {}
-};
+typedef MFIter FabSetIter;
 
 typedef FabArrayId FabSetId;
 
