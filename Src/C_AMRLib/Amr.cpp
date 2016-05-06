@@ -4035,12 +4035,10 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	  amr_level.set(lev,(*levelbld)());
 	}
       }
+
       for(int lev(0); lev <= finest_level; ++lev) {
         amr_level[lev].AddProcsToComp(this, nSidecarProcs, prevSidecarProcs,
 	                              ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-      if(scsMyId == ioProcNumSCS) {
-        MultiFab::CheckFAPointerLocks();
       }
 
 
@@ -4099,6 +4097,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     //for(int lev(0); lev <= finest_level; ++lev) {
       //amr_level[lev].Check();
     //}
+
+    MultiFab::CheckFAPointers();
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;
