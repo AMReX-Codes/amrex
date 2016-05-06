@@ -769,7 +769,8 @@ namespace BoxLib
 		  int                  dcomp,
 		  int                  scomp,
 		  int                  ncomp,
-		  int                  dstng)
+		  int                  dstng,
+		  FabArrayBase::CpOp   op)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
@@ -843,7 +844,7 @@ namespace BoxLib
 		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
 	    }
 
-	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng);
+	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng, op);
 	}
     }
 }
