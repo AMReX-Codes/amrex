@@ -4094,11 +4094,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
     RedistributeParticles();
 #endif
 
-    //for(int lev(0); lev <= finest_level; ++lev) {
-      //amr_level[lev].Check();
-    //}
 
-    MultiFab::CheckFAPointers();
+    bool abortOnError(false);
+    MultiFab::CheckFAPointers(abortOnError);
 
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "%%%%%%%% finished AddProcsToComp." << std::endl;
