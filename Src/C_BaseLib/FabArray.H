@@ -468,6 +468,8 @@ public:
 	return std::make_pair(boxarray.getRefID(), distributionMap.getRefID());
     }
 
+    void updateBDKey ();
+
     struct FPC
     {
 	FPC (const FabArrayBase& srcfa,
@@ -575,7 +577,7 @@ protected:
     //
     // clear BD count and TileArray cache associated with this BD, if no other is using this BD. 
     // 
-    void clearThisBD ();
+    void clearThisBD (bool no_assertion=false);
     //
     // add the current BD into BD count database
     //

@@ -684,9 +684,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
 	(*this)[mfi].coarsen(ratio,isOwner(mfi.LocalIndex()));
     }
 
-    flushTileArray(); // because we are about to modify boxarray in-place.
-
     boxarray.growcoarsen(n_grow,ratio);
+    updateBDKey();  // because we just modify boxarray in-place.
 
     n_grow = 0;
 }

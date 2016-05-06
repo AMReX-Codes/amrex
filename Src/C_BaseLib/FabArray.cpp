@@ -1373,11 +1373,11 @@ FabArrayBase::flushTileArrayCache ()
 }
 
 void
-FabArrayBase::clearThisBD ()
+FabArrayBase::clearThisBD (bool no_assertion)
 {
     if (! boxarray.empty() ) 
     {
-	BL_ASSERT(getBDKey() == m_bdkey);
+	BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
 	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
 	if (cnt_it != m_BD_count.end()) 
@@ -1405,6 +1405,15 @@ FabArrayBase::addThisBD ()
 	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
     } else {
 	m_FA_stats.recordMaxNumBAUse(cnt);
+    }
+}
+
+void
+FabArrayBase::updateBDKey ()
+{
+    if (getBDKey() != m_bdkey) {
+	clearThisBD(true);
+	addThisBD();
     }
 }
 
