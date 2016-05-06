@@ -949,7 +949,7 @@ BoxArray::complement (const Box& bx) const
             if (it != TheEnd)
             {
                 for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end(); 
-		     v_it != v_end && !bl.isNotEmpty(); 
+		     v_it != v_end && bl.isNotEmpty(); 
 		     ++v_it)
                 {
                     const int  index = *v_it;
