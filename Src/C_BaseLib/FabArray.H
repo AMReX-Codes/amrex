@@ -953,7 +953,7 @@ public:
     int MoveFabs (const Array<int> &newDistMapArray);
     static void MoveAllFabs (const Array<int> &newDistMapArray);
     static void LockAllFAPointers ();
-    static void CheckFAPointers ();
+    static void CheckFAPointers (bool abortOnError = true);
     static void PrintFAPointers ();
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm);
@@ -2512,7 +2512,7 @@ FabArray<FAB>::LockAllFAPointers ()
 
 template <class FAB>
 void
-FabArray<FAB>::CheckFAPointers ()
+FabArray<FAB>::CheckFAPointers (bool abortOnError)
 {
   int pLocked(0), pUnlocked(0);
   int allocFAPSize(FabArray<FAB>::allocatedFAPointers.size());
@@ -2521,9 +2521,11 @@ FabArray<FAB>::CheckFAPointers ()
 
   if(allocFAPSize != FabArray<FAB>::allocatedFAPointers.size()) {
     BoxLib::USleep(ParallelDescriptor::MyProcAll());
-    std::cout << ParallelDescriptor::MyProcAll() << ":: allocFAPSize != FabArray<FAB>::allocatedFAPointers.size() : "
+    std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  allocFAPSize != FabArray<FAB>::allocatedFAPointers.size() : "
               << allocFAPSize << "  " << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
-    BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
+    if(abortOnError) {
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
+    }
   }
 
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
@@ -2535,18 +2537,22 @@ FabArray<FAB>::CheckFAPointers ()
     ParallelDescriptor::Bcast(&fapCMapSize, 1, iopNumber);
     if(fapCMapSize != faPtrCachedMap.size()) {
       BoxLib::USleep(ParallelDescriptor::MyProcAll());
-      std::cout << ParallelDescriptor::MyProcAll() << ":: fapCMapSize != faPtrCachedMap.size() : "
+      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapCMapSize != faPtrCachedMap.size() : "
                 << fapCMapSize << "  " << faPtrCachedMap.size() << std::endl;
-      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
+      if(abortOnError) {
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapCMapSize.");
+      }
     }
 
     int distmapNGrids(afapIter->first-1);
     ParallelDescriptor::Bcast(&distmapNGrids, 1, iopNumber);
     if(distmapNGrids != afapIter->first-1) {
       BoxLib::USleep(ParallelDescriptor::MyProcAll());
-      std::cout << ParallelDescriptor::MyProcAll() << ":: distmapNGrids != afapIter->first-1 : "
+      std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  distmapNGrids != afapIter->first-1 : "
                 << distmapNGrids << "  " << afapIter->first-1 << std::endl;
-      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
+      if(abortOnError) {
+        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad distmapNGrids.");
+      }
     }
 
     Array<int> fapId(faPtrCachedMap.size()), dmId(faPtrCachedMap.size());
@@ -2585,43 +2591,53 @@ FabArray<FAB>::CheckFAPointers ()
                            ParallelDescriptor::Communicator());
     for(int i(0); i < fapId.size(); ++i) {
       if(fapId[i] != fapIdCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: fapId[" << i
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fapId[" << i
 	          << "] != fapIdCheck[" << i << "] : "
                   << fapId[i] << "  " << fapIdCheck[i] << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
+        if(abortOnError) {
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
+        }
       }
     }
     for(int i(0); i < dmId.size(); ++i) {
       if(dmId[i] != dmIdCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: dmId[" << i
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  dmId[" << i
 	          << "] != dmIdCheck[" << i << "] : "
                   << dmId[i] << "  " << dmIdCheck[i] << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
+        if(abortOnError) {
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
+        }
       }
     }
     for(int i(0); i < nDM.size(); ++i) {
       if(nDM[i] != nDMCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: nDM[" << i
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  nDM[" << i
 	          << "] != nDMCheck[" << i << "] : "
                   << nDM[i] << "  " << nDMCheck[i] << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
+        if(abortOnError) {
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
+        }
       }
     }
     for(int i(0); i < fabsAlloced.size(); ++i) {
       if(fabsAlloced[i] != fabsAllocedCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: fabsAlloced[" << i
+        std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  fabsAlloced[" << i
 	          << "] != fabsAllocedCheck[" << i << "] : "
                   << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
-        BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
+        if(abortOnError) {
+          BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
+        }
       }
     }
   }
   int pLockedCheck(pLocked);
   ParallelDescriptor::Bcast(&pLockedCheck, 1, iopNumber);
   if(pLocked != pLockedCheck) {
-    std::cout << ParallelDescriptor::MyProcAll() << ":: pLocked != pLockedCheck : "
+    std::cout << ParallelDescriptor::MyProcAll() << ":: **** ERROR:  pLocked != pLockedCheck : "
               << pLocked << "  " << pLockedCheck << std::endl;
-    BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
+    if(abortOnError) {
+      BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
+    }
   }
 }
 
