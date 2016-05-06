@@ -1555,7 +1555,6 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
     } else {
       noallocFAPIds.insert(aFAPId);
     }
-
 }
 
 template <class FAB>
@@ -2527,8 +2526,6 @@ FabArray<FAB>::CheckFAPointers ()
     BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad allocFAPSize.");
   }
 
-  std::cout << "|||| _in CheckFAPointers:  allocatedFAPointers.size() = "
-            << FabArray<FAB>::allocatedFAPointers.size() << std::endl;
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter;
   for(afapIter = FabArray<FAB>::allocatedFAPointers.begin();
       afapIter != FabArray<FAB>::allocatedFAPointers.end(); ++afapIter)
@@ -2578,34 +2575,42 @@ FabArray<FAB>::CheckFAPointers ()
       nDMCheck = nDM;
       fabsAllocedCheck = fabsAlloced;
     }
-    BoxLib::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
-    BoxLib::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber, ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(fapIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(dmIdCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(nDMCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
+    BoxLib::BroadcastArray(fabsAllocedCheck, ParallelDescriptor::MyProc(), iopNumber,
+                           ParallelDescriptor::Communicator());
     for(int i(0); i < fapId.size(); ++i) {
       if(fapId[i] != fapIdCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: fapId[" << i << "] != fapIdCheck[" << i << "] : "
+        std::cout << ParallelDescriptor::MyProcAll() << ":: fapId[" << i
+	          << "] != fapIdCheck[" << i << "] : "
                   << fapId[i] << "  " << fapIdCheck[i] << std::endl;
         BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fapId.");
       }
     }
     for(int i(0); i < dmId.size(); ++i) {
       if(dmId[i] != dmIdCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: dmId[" << i << "] != dmIdCheck[" << i << "] : "
+        std::cout << ParallelDescriptor::MyProcAll() << ":: dmId[" << i
+	          << "] != dmIdCheck[" << i << "] : "
                   << dmId[i] << "  " << dmIdCheck[i] << std::endl;
         BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad dmId.");
       }
     }
     for(int i(0); i < nDM.size(); ++i) {
       if(nDM[i] != nDMCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: nDM[" << i << "] != nDMCheck[" << i << "] : "
+        std::cout << ParallelDescriptor::MyProcAll() << ":: nDM[" << i
+	          << "] != nDMCheck[" << i << "] : "
                   << nDM[i] << "  " << nDMCheck[i] << std::endl;
         BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad nDM.");
       }
     }
     for(int i(0); i < fabsAlloced.size(); ++i) {
       if(fabsAlloced[i] != fabsAllocedCheck[i]) {
-        std::cout << ParallelDescriptor::MyProcAll() << ":: fabsAlloced[" << i << "] != fabsAllocedCheck[" << i << "] : "
+        std::cout << ParallelDescriptor::MyProcAll() << ":: fabsAlloced[" << i
+	          << "] != fabsAllocedCheck[" << i << "] : "
                   << fabsAlloced[i] << "  " << fabsAllocedCheck[i] << std::endl;
         BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad fabsAlloced.");
       }
@@ -2618,7 +2623,6 @@ FabArray<FAB>::CheckFAPointers ()
               << pLocked << "  " << pLockedCheck << std::endl;
     BoxLib::Abort("**** Error in FabArray<FAB>::CheckFAPointers():  bad pLocked.");
   }
-  std::cout << "|||| |||| |||| _out CheckFAPointers: ================ " << std::endl;
 }
 
 
