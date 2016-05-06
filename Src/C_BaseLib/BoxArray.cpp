@@ -380,6 +380,20 @@ BoxArray::coarsen (const IntVect& iv)
 }
 
 BoxArray&
+BoxArray::growcoarsen (int n, const IntVect& iv)
+{
+    if (!m_ref.unique())
+        uniqify();
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].grow(n).coarsen(iv);
+    return *this;
+}
+
+BoxArray&
 BoxArray::grow (int n)
 {
     if (!m_ref.unique())

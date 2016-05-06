@@ -1,4 +1,3 @@
-
 #include <winstd.H>
 #include <algorithm>
 #include <cstdlib>
@@ -410,20 +409,17 @@ TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-                          int             ngrow)
+                          int             _ngrow)
     :
-    m_border(ngrow)
+    FabArray<TagBox>(ba,1,_ngrow)
 {
-    BoxArray grownBoxArray(ba);
-    grownBoxArray.grow(ngrow);
-    define(grownBoxArray, 1, 0, Fab_allocate);
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }
 
 int
 TagBoxArray::borderSize () const
 {
-    return m_border;
+    return n_grow;
 }
 
 void 
@@ -431,14 +427,14 @@ TagBoxArray::buffer (int nbuf)
 {
     if (nbuf != 0)
     {
-        BL_ASSERT(nbuf <= m_border);
+        BL_ASSERT(nbuf <= n_grow);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    get(mfi).buffer(nbuf, m_border);
+	    get(mfi).buffer(nbuf, n_grow);
         } 
     }
 }
@@ -450,73 +446,21 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     BL_PROFILE("TagBoxArray::mapPeriodic()");
 
-    Array<IntVect>                 pshifts(27);
-    FabArrayCopyDescriptor<TagBox> facd;
-    FabArrayId                     faid       = facd.RegisterFabArray(this);
-    bool                           work_to_do = false;
-    const Box&                     dmn        = geom.Domain();
+    // This function is called after coarsening.
+    // So we can assume that n_grow is 0.
+    BL_ASSERT(n_grow == 0);
 
-    std::vector< std::pair<FillBoxId,IntVect> > IDs;
+    TagBoxArray tmp(boxArray()); // note that tmp is filled w/ CLEAR.
 
-    for (int i = 0, N = boxarray.size(); i < N; i++)
-    {
-        if (dmn.contains(boxarray[i])) continue;
+    BoxLib::PeriodicCopy<TagBox>(geom, tmp, *this, 0, 0, 1, 0);
 
-        work_to_do = true;
-
-        geom.periodicShift(dmn, boxarray[i], pshifts);
-
-        for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-             it != End;
-             ++it)
-        {
-            const IntVect& iv   = *it;
-            const Box&     shft = boxarray[i] + iv;
-
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                Box isect = mfi.validbox() & shft;
-
-                if (isect.ok())
-                {
-                    isect -= iv;
-
-                    FillBoxId fbid = facd.AddBox(faid, isect, 0, i, 0, 0, n_comp);
-
-                    BL_ASSERT(fbid.box() == isect);
-                    //
-                    // Here we'll save the fab index.
-                    //
-                    fbid.FabIndex(mfi.index());
-
-                    IDs.push_back(std::pair<FillBoxId,IntVect>(fbid,iv));
-                }
-            }
-        }
-    }
-
-    if (!work_to_do) return;
-
-    facd.CollectData();
-
-    const int N = IDs.size();
-
-    for (int i = 0; i < N; i++)
-    {
-        BL_ASSERT(distributionMap[IDs[i].first.FabIndex()] == ParallelDescriptor::MyProc());
-
-        TagBox src(IDs[i].first.box(), n_comp);
-
-        facd.FillFab(faid, IDs[i].first, src);
-
-        src.shift(IDs[i].second);
-
-        get(IDs[i].first.FabIndex()).merge(src);
-    }
-
-#if BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	get(mfi).merge(tmp[mfi]);
+    }
 }
 
 long
@@ -714,7 +658,7 @@ TagBoxArray::setVal (const BoxArray& ba,
     {
 	std::vector< std::pair<int,Box> > isects;
 
-        ba.intersections(mfi.validbox(),isects);
+        ba.intersections(mfi.fabbox(),isects);
 
         TagBox& tags = get(mfi);
 
@@ -742,7 +686,7 @@ TagBoxArray::coarsen (const IntVect & ratio)
 
     flushTileArray(); // because we are about to modify boxarray in-place.
 
-    boxarray.coarsen(ratio);
+    boxarray.growcoarsen(n_grow,ratio);
 
-    m_border = 0;
+    n_grow = 0;
 }
