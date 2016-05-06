@@ -452,7 +452,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     TagBoxArray tmp(boxArray()); // note that tmp is filled w/ CLEAR.
 
-    BoxLib::PeriodicCopy<TagBox>(geom, tmp, *this, 0, 0, 1, 0, FabArrayBase::ADD);
+    BoxLib::PeriodicCopy<TagBox>(geom, tmp, *this, 0, 0, 1, 0, 0, FabArrayBase::ADD);
 
 #ifdef _OPENMP
 #pragma omp parallel

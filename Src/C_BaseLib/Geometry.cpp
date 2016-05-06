@@ -518,9 +518,11 @@ Geometry::PeriodicCopy (MultiFab&       dstmf,
 			int             dcomp,
 			int             scomp,
 			int             ncomp,
-			int             dstng) const
+			int             dstng,
+			int             srcng) const
 {
-    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp, dstng, FabArrayBase::COPY);
+    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp, dstng, srcng,
+			 FabArrayBase::COPY);
 }
 
 Geometry::Geometry () {}

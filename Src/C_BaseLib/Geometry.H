@@ -233,7 +233,8 @@ public:
 		       int             dcomp,
 		       int             scomp,
 		       int             ncomp,
-		       int             dstng = 0) const;
+		       int             dstng = 0,
+		       int             srcng = 0) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -770,6 +771,7 @@ namespace BoxLib
 		  int                  scomp,
 		  int                  ncomp,
 		  int                  dstng,
+		  int                  srcng,
 		  FabArrayBase::CpOp   op)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
@@ -802,7 +804,7 @@ namespace BoxLib
 
 	for (int i = 0; i < srcba.size(); ++i) 
 	{
-	    const Box& bx0 = srcba[i];
+	    const Box& bx0 = BoxLib::grow(srcba[i],srcng);
 
 	    if (bbox_src.isEmpty() || !bbox_src.strictly_contains(bx0)) 
 	    {
