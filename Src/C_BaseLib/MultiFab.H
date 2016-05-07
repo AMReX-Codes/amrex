@@ -432,6 +432,16 @@ public:
 			int             dstcomp,
 			int             numcomp,
 			int             nghost);
+    //
+    // dst += a*src
+    //
+    static void Saxpy (MultiFab&       dst,
+		       Real            a, 
+		       const MultiFab& src,
+		       int             srccomp,
+		       int             dstcomp,
+		       int             numcomp,
+		       int             nghost);
 
     void define (const BoxArray& bxs,
                  int             nvar,
