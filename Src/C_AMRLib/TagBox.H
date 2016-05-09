@@ -164,11 +164,6 @@ private:
     TagBoxArray ();
     TagBoxArray (const TagBoxArray& rhs);
     TagBoxArray& operator= (const TagBoxArray& rhs);
-    //
-    // Not to be confused with FabArray::n_grow which defines
-    // the invalid regions of the fabs in the FabArray.
-    //
-    int m_border;
 };
 
 #endif /*_TagBox_H_*/

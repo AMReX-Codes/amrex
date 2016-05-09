@@ -614,4 +614,13 @@ private:
     std::vector<int> v;
 };
 
+class BoxConverter {
+public:
+    virtual Box doit (const Box& fine) const = 0;
+    virtual BoxConverter* clone () const = 0;
+    virtual ~BoxConverter () = 0;
+};
+
+inline BoxConverter::~BoxConverter () { }
+
 #endif /*BL_BOX_H*/

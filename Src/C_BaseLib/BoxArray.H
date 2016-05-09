@@ -113,11 +113,13 @@ public:
     //
     // Resizes the array.  See Array<T>::resize() for the gory details.
     //
-    void resize (int len);
+    void resize (long len);
     //
     // Returns the number of elements in the BoxArray.
     //
-    int size () const;
+    long size () const;
+
+    long capacity () const;
 
     bool empty () const;
 
@@ -172,6 +174,10 @@ public:
     // Coarsen each Box in the BoxArray to the specified ratio.
     //
     BoxArray& coarsen (const IntVect& refinement_ratio);
+    //
+    // Grow and then coarsen each Box in the BoxArray.
+    //
+    BoxArray& growcoarsen (int n, const IntVect& refinement_ratio);
     //
     // Grow each Box in the BoxArray by the specified amount.
     //
@@ -314,6 +320,8 @@ public:
 			int ng) const;
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
 			bool first_only, int ng) const;
+    // Return box - boxarray
+    BoxList complement (const Box& b) const;
     //
     // Clear out the internal hash table used by intersections.
     //
@@ -349,6 +357,12 @@ private:
     void decrementCounters () const;
 
     IndexType m_typ;
+
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare > BoxHashMapType;
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::iterator BoxHashMapIter;
+    typedef std::map< IntVect,std::vector<int>,IntVect::Compare >::const_iterator ConstBoxHashMapIter;
+
+    BoxHashMapType& getHashMap () const;
 
     class Ref
     {
@@ -404,7 +418,7 @@ private:
         void define (const BoxList& bl);
         void define (std::istream& is);
 	//
-	void resize (int n) {
+	void resize (long n) {
 #ifdef BL_MEM_PROFILING
 	    updateMemoryUsage_box(-1);
 	    updateMemoryUsage_hash(-1);
@@ -430,7 +444,7 @@ private:
 
         mutable IntVect crsn;
 
-        mutable std::map< IntVect,std::vector<int>,IntVect::Compare > hash;
+        mutable BoxHashMapType hash;
 
 	static long total_box_bytes;
 	static long total_box_bytes_hwm;

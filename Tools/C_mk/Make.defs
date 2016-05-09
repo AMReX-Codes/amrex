@@ -467,7 +467,7 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     endif
 
     ifeq ($(HOST),baragon)
-       override XTRALIBS += -lgfortran
+       override XTRALIBS += -lgfortran -lquadmath
     else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
