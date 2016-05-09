@@ -303,53 +303,53 @@ c
       
       end
 
-c :: 
-c :: --------------------------------------------------------------
-c :: reflux:   reflux the data on the outer boundary of
-c ::           a fine grid.  
-c :: 
-c :: Inputs/Outputs
-c :: s           <=>  state data array
-c :: DIMS(s)      =>  index limits of s array
-c :: vol          =>  volume array 
-c :: DIMS(vol)    =>  index limits of vol array
-c :: reg          =>  flux register
-c :: DIMS(reg)    =>  index limits of reg array
-c :: lo,hi        =>  subregion of s array to be updated
-c :: numcomp      =>  number of components to update
-c :: mult         =>  multiplative factor (+1 or -1 depending on nomal)
-c :: --------------------------------------------------------------
-c :: 
-      subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),
-     &                          lo,hi,shft,numcomp,mult)
-
+      subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
+     &     v, vlo, vhi, nc, mult, dir)
       implicit none
-
-      integer    DIMDEC(s)
-      integer    DIMDEC(vol)
-      integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM), shft(SDIM)
-      integer    numcomp
-      REAL_T     mult
-      REAL_T       s(DIMV(s),numcomp)
-      REAL_T     vol(DIMV(vol))
-      REAL_T     reg(DIMV(reg),numcomp)
-      
-      integer    n, i, j, k, ilo, jlo, klo
-
-      ilo = shft(1)
-      jlo = shft(2)
-      klo = shft(3)
-
-      do n = 1, numcomp
+      integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+      integer, intent(in) :: flo(3), fhi(3), vlo(3), vhi(3)
+      integer, intent(in) :: nc, dir
+      REAL_T , intent(in) :: mult
+      REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),
+     &                                          slo(3):shi(3),nc)
+      REAL_T , intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),
+     &                                          flo(3):fhi(3),nc)
+      REAL_T , intent(in   ) :: v(vlo(1):vhi(1),vlo(2):vhi(2),
+     &                                          vlo(3):vhi(3))
+      !
+      integer :: i, j, k, n
+      if (dir .eq. 0) then
+         do n = 1, nc
          do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  s(i-ilo,j-jlo,k-klo,n) = s(i-ilo,j-jlo,k-klo,n)
-     &                 + mult*reg(i,j,k,n)/vol(i-ilo,j-jlo,k-klo)
-               end do
-            end do
+         do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i+1,j,k,n))
+     &           / v(i,j,k)
          end do
-      end do
-      
-      end
+         end do
+         end do
+         end do
+      else if (dir .eq. 1) then
+         do n = 1, nc
+         do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j+1,k,n))
+     &           / v(i,j,k)
+         end do
+         end do
+         end do
+         end do
+      else
+         do n = 1, nc
+         do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j,k+1,n))
+     &           / v(i,j,k)
+         end do
+         end do
+         end do
+         end do
+      end if
+      end subroutine FORT_FRREFLUX

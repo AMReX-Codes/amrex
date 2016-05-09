@@ -154,8 +154,7 @@ public:
                  int             srccomp,
                  int             destcomp,
                  int             numcomp,
-                 const Geometry& crse_geom,
-		 const Real*     multf = 0);
+                 const Geometry& crse_geom);
     //
     // Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     //

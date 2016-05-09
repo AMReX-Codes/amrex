@@ -1,0 +1,57 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.04
+
+The development branch was merged into master on Apr 11, 2016.
+
+* Bug Fixes
+** 1075b6babb32227 and ce604a709b0e22e8c
+Fix a memory leak in CollectData(): must call MPI_Wait even though the
+messages have been successfully sent.  This bug was fixed was in
+16.03.1.
+** 8bae1b5c81a4166862
+Fix a bug in Fortran bndry_reg when the fine level has a single box
+and covers the entire non-periodic domain.
+
+* Backward Incompatible Changes
+** 652dc2b991dc7d1c3175
+The flux we pass into the F90 interface (in ml_solve.f90) for
+cell-centered multigrid solvers now starts at the base level of the
+solve, not one level higher.  See fbf65dd6143a1 for an example of
+changes required.
+
+* Other Changes
+** Memory Profiler in C++: To Use it, compile with "MEM_PROFILE=TRUE".
+** New version of restricted build to ml_layout that takes a minimum and maximum.
+And a shallow copy is performed on ml_layout and ml_boxarray.
+** New routine in Fortran MultiGrid to do a nodal sum and nodal volume, weighting 
+faces, edges, and corners appropriately
+** Allow for factor 4 as well as factor 2 interpolation in create_umac_grown in Fortran.
+** Add the option in the F90 interfaces to the cell-centered solver to have the
+base level have Dirichlet boundary conditions at a distance away from
+the boundary, not just at the boundary.  You make this happen by
+passing in base_level > 1 and crse_ratio = the ratio of dx between the
+coarsest level of the solve to the coarser AMR level outside the
+solve.
+** Define BL_PROFILE_VAR_NS when PROFILE=TRUE
+** Disable SIGFPE trapping by default.
+** Clean up BLMap.
+** Slack support in regression testing.
+** Valgrind support in regression testing.
+** Decrease the default max # allowed in Fortran copyassoc.
+** Fix CMake for F_BaseLib.
+** Utility from Aleks that writes the contents of a 2d plotfile into a text file,
+one line per data point
+
+* Compilers
+** GCC does not correctly inline some of the functions.  We had to explicitly
+use the noinline attribute on a few functions.
+** Add C++11 for Cray.
+** Turn off debug symbols for optimized code with Cray, because using
+"-g" or "-G2" significantly reduces code performance. 
+** Add more debug information flags to Intel.
+** Remove explicit "-lmpich" flag for Edison and Cori. 
+** Optimization reports for Cray.
+** Use gnu99 instead of c99 for GNU because some of the strtok_r function we use 
+in Combustion/Chemistry is not a standard C99 function.

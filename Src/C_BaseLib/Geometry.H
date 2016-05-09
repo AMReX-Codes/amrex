@@ -232,7 +232,9 @@ public:
 		       const MultiFab& srcmf,
 		       int             dcomp,
 		       int             scomp,
-		       int             ncomp) const;
+		       int             ncomp,
+		       int             dstng = 0,
+		       int             srcng = 0) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -767,7 +769,10 @@ namespace BoxLib
 		  const FabArray<FAB>& srcmf,
 		  int                  dcomp,
 		  int                  scomp,
-		  int                  ncomp)
+		  int                  ncomp,
+		  int                  dstng,
+		  int                  srcng,
+		  FabArrayBase::CpOp   op)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
@@ -780,8 +785,9 @@ namespace BoxLib
 	const IndexType&           srctyp = srcba.ixType();
 
 	BL_ASSERT(srctyp == dstba.ixType());
+	BL_ASSERT(dstng <= dstmf.nGrow());
 
-	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstmf.nGrow());
+	const Box& bbox_dst  = BoxLib::grow(dstba.minimalBox(), dstng);
 
 	IntVect lo, hi;
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -798,7 +804,7 @@ namespace BoxLib
 
 	for (int i = 0; i < srcba.size(); ++i) 
 	{
-	    const Box& bx0 = srcba[i];
+	    const Box& bx0 = BoxLib::grow(srcba[i],srcng);
 
 	    if (bbox_src.isEmpty() || !bbox_src.strictly_contains(bx0)) 
 	    {
@@ -840,7 +846,7 @@ namespace BoxLib
 		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
 	    }
 
-	    dstmf.copy(shftmf, 0, dcomp, ncomp);
+	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng, op);
 	}
     }
 }

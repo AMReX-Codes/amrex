@@ -89,7 +89,8 @@ class DistributionMapping
     //
     // Length of the underlying processor map.
     //
-    int size () const { return m_ref->m_pmap.size(); }
+    long size () const { return m_ref->m_pmap.size(); }
+    long capacity () const { return m_ref->m_pmap.capacity(); }
     //
     // Number of references to this DistributionMapping
     //
@@ -285,7 +286,7 @@ private:
     // rteam: Least used ordering of Teams
     // rworker[i]: Least used ordering of team workers for Team i
     //
-    static void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker);
+    static void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
     //
     // Look for a cached processor map.
     //
