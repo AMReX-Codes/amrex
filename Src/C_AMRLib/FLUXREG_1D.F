@@ -119,20 +119,28 @@ c        ::::: flux normal to X direction
       end
 
       subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
-     &     v, vlo, vhi, nc, mult, dir)
+     &     v, vlo, vhi, nc, mult, dir, isloface)
       implicit none
       integer, intent(in) :: lo(1), hi(1), slo(1), shi(1)
       integer, intent(in) :: flo(1), fhi(1), vlo(1), vhi(1)
-      integer, intent(in) :: nc, dir
+      integer, intent(in) :: nc, dir, isloface
       REAL_T , intent(in) :: mult
       REAL_T , intent(inout) :: s(slo(1):shi(1),nc)
       REAL_T , intent(in   ) :: f(flo(1):fhi(1),nc)
       REAL_T , intent(in   ) :: v(vlo(1):vhi(1))
       !
       integer :: i, n
-      do n = 1, nc
-         do i = lo(1), hi(1)
-            s(i,n) = s(i,n)+mult*(f(i,n)-f(i+1,n))/v(i)
+      if (isloface .eq. 1) then
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               s(i,n) = s(i,n)-mult*f(i+1,n)/v(i)
+            end do
          end do
-      end do
+      else
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               s(i,n) = s(i,n)+mult*f(i,n)/v(i)
+            end do
+         end do
+      end if
       end subroutine FORT_FRREFLUX

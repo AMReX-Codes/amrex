@@ -372,6 +372,7 @@ FluxRegister::Reflux (MultiFab&       mf,
     {
 	const Orientation& face = fi();
 	int idir = face.coordDir();
+	int islo = face.isLow();
 
 	MultiFab flux(mf.boxArray(), ncomp, 0, Fab_allocate, IntVect::TheDimensionVector(idir));
 	flux.setVal(0.0);
@@ -399,7 +400,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 			  sfab.dataPtr(dcomp), sbox.loVect(), sbox.hiVect(),
 			  ffab.dataPtr(     ), fbox.loVect(), fbox.hiVect(),
 			  vfab.dataPtr(     ), vfab.loVect(), vbox.hiVect(),
-			  &ncomp, &scale, &idir);
+			  &ncomp, &scale, &idir, &islo);
 			  
 	}
     }
