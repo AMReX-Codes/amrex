@@ -304,11 +304,11 @@ c
       end
 
       subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
-     &     v, vlo, vhi, nc, mult, dir)
+     &     v, vlo, vhi, nc, mult, dir, isloface)
       implicit none
       integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
       integer, intent(in) :: flo(3), fhi(3), vlo(3), vhi(3)
-      integer, intent(in) :: nc, dir
+      integer, intent(in) :: nc, dir, isloface
       REAL_T , intent(in) :: mult
       REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),
      &                                          slo(3):shi(3),nc)
@@ -318,38 +318,47 @@ c
      &                                          vlo(3):vhi(3))
       !
       integer :: i, j, k, n
-      if (dir .eq. 0) then
-         do n = 1, nc
-         do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i+1,j,k,n))
-     &           / v(i,j,k)
-         end do
-         end do
-         end do
-         end do
-      else if (dir .eq. 1) then
-         do n = 1, nc
-         do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j+1,k,n))
-     &           / v(i,j,k)
-         end do
-         end do
-         end do
-         end do
+      if (isloface .eq. 1) then
+         if (dir .eq. 0) then
+            do n = 1, nc
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,k,n) = s(i,j,k,n)-mult*f(i+1,j,k,n)/v(i,j,k)
+            end do
+            end do
+            end do
+            end do
+         else if (dir .eq. 1) then
+            do n = 1, nc
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,k,n) = s(i,j,k,n)-mult*f(i,j+1,k,n)/v(i,j,k)
+            end do
+            end do
+            end do
+            end do
+         else
+            do n = 1, nc
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,k,n) = s(i,j,k,n)-mult*f(i,j,k+1,n)/v(i,j,k)
+            end do
+            end do
+            end do
+            end do
+         end if
       else
-         do n = 1, nc
-         do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            s(i,j,k,n) = s(i,j,k,n)+mult*(f(i,j,k,n)-f(i,j,k+1,n))
-     &           / v(i,j,k)
-         end do
-         end do
-         end do
-         end do
+            do n = 1, nc
+            do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,k,n) = s(i,j,k,n)+mult*f(i,j,k,n)/v(i,j,k)
+            end do
+            end do
+            end do
+            end do
       end if
       end subroutine FORT_FRREFLUX

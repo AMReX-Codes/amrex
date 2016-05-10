@@ -41,7 +41,8 @@ extern "C"
 			      Real* s, const int* slo, const int*shi,
 			const Real* f, const int* flo, const int*fhi,
 			const Real* v, const int* vlo, const int*vhi,
-			const int* n, const Real* mult, const int* dir);
+			const int* n, const Real* mult, 
+			const int* dir, const int* islo);
 }
 #endif
 
