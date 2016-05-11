@@ -788,7 +788,9 @@ FabArrayBase::TheFB (bool                cross,
 	    if (ParallelDescriptor::sameTeam(dst_owner)) {
 		continue;  // local copy will be dealt with later
 	    } else if (MyProc == dm[ksnd]) {
-		send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
+		const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
+		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		    send_tags[dst_owner].push_back(CopyComTag(*lit, krcv, ksnd));
 	    }
 	}
     }
@@ -818,7 +820,8 @@ FabArrayBase::TheFB (bool                cross,
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
-	const Box& bxrcv = BoxLib::grow(ba[krcv], ng);
+	const Box& vbx   = ba[krcv];
+	const Box& bxrcv = BoxLib::grow(vbx, ng);
 
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -840,21 +843,27 @@ FabArrayBase::TheFB (bool                cross,
 
 	    if (krcv == ksnd) continue;  // same box
 
-	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		for (BoxList::const_iterator
-			 it_tile  = tilelist.begin(),
-			 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		{
-		    TheFB.m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
-		}
-		if (check_local) {
-		    localtouch.plus(1, bx);
-		}
-	    } else if (MyProc == dm[krcv]) {
-		recv_tags[src_owner].push_back(CopyComTag(bx, krcv, ksnd));
-		if (check_remote) {
-		    remotetouch.plus(1, bx);
+	    const BoxList& bl = BoxLib::boxDiff(bx, vbx);
+	    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+	    {
+		const Box& blbx = *lit;
+
+		if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+		    const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+		    for (BoxList::const_iterator
+			     it_tile  = tilelist.begin(),
+			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		    {
+			TheFB.m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
+		    }
+		    if (check_local) {
+			localtouch.plus(1, blbx);
+		    }
+		} else if (MyProc == dm[krcv]) {
+		    recv_tags[src_owner].push_back(CopyComTag(blbx, krcv, ksnd));
+		    if (check_remote) {
+			remotetouch.plus(1, blbx);
+		    }
 		}
 	    }
 	}
