@@ -117,11 +117,6 @@ public:
     // Changes the i'th element of this Array<T> to elem.
     //
     void set (size_t i, const T& elem) { get(i) = elem; }
-private:
-    //
-    // This is disallowed.
-    //
-    Array<T>& operator= (int);
 };
 
 template <class T>
