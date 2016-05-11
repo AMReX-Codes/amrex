@@ -247,8 +247,9 @@ public:
 	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
 	// *this == rhs.
 	bool operator< (const CopyComTag& rhs) const {
-	    return (fabIndex < rhs.fabIndex)
-		|| ((fabIndex == rhs.fabIndex) && (srcIndex < rhs.srcIndex));
+	    return (fabIndex < rhs.fabIndex) || ((fabIndex == rhs.fabIndex) && (
+                   (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+	           (IntVect::Compare()(box.smallEnd(),rhs.box.smallEnd()))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
