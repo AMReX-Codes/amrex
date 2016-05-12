@@ -61,6 +61,7 @@ ifeq ($(COMP),Cray)
 else
 ifeq ($(COMP),PGI)
   CXX = pgc++
+  CC  = pgcc
   CXXDEBF += -g -O0
 
   ifeq ($(BL_FAST),TRUE)
@@ -86,10 +87,11 @@ ifeq ($(COMP),PGI)
   endif
 
   ifeq ($(USE_ACC),TRUE)
-    CXXOPTF += -acc
-    CXXDEBF += -acc
-    COPTF += -acc
-    CDEBF += -acc
+    CXXOPTF += -fast -acc -ta=nvidia -mcmodel=medium
+    CXXDEBF += -fast -acc -ta=nvidia -mcmodel=medium
+    COPTF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
+    CDEBF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
+    CXXEXEFLAGS += -lcudart
   endif
 
   ifeq ($(USE_CXX11),TRUE)
@@ -213,10 +215,10 @@ ifeq ($(FCOMP),PGI)
   endif
 
   ifeq ($(USE_ACC),TRUE)
-    FOPTF += -acc -Minfo=acc
-    fOPTF += -acc -Minfo=acc
-    FDEBF += -acc -Minfo=acc
-    fDEBF += -acc -Minfo=acc
+    FOPTF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    fOPTF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    FDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    fDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)

@@ -89,7 +89,8 @@ class DistributionMapping
     //
     // Length of the underlying processor map.
     //
-    int size () const { return m_ref->m_pmap.size(); }
+    long size () const { return m_ref->m_pmap.size(); }
+    long capacity () const { return m_ref->m_pmap.capacity(); }
     //
     // Number of references to this DistributionMapping
     //

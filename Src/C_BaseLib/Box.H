@@ -55,6 +55,10 @@ namespace BoxLib
     //
     Box refine (const Box& b, int refinement_ratio);
     //
+    // Return a Box with indices shifted by nzones in dir direction.
+    //
+    Box shift (const Box& b, int dir, int nzones);
+    //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
     // hi <- (hi+1)*ratio - 1.
@@ -613,5 +617,14 @@ private:
     int* p;
     std::vector<int> v;
 };
+
+class BoxConverter {
+public:
+    virtual Box doit (const Box& fine) const = 0;
+    virtual BoxConverter* clone () const = 0;
+    virtual ~BoxConverter () = 0;
+};
+
+inline BoxConverter::~BoxConverter () { }
 
 #endif /*BL_BOX_H*/

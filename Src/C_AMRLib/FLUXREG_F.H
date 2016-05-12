@@ -37,12 +37,12 @@ extern "C"
                        const int* numcomp, const int* dir,
                        const int* ratio, const Real* mult);
 
-    void FORT_FRREFLUX (Real* s,         ARLIM_P(slo), ARLIM_P(shi),
-			const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
-			const int* lo, const int* hi,
-			const int* shft,
-			const int* numcomp, const Real* mult);
+    void FORT_FRREFLUX (const int* lo, const int* hi,
+			      Real* s, const int* slo, const int*shi,
+			const Real* f, const int* flo, const int*fhi,
+			const Real* v, const int* vlo, const int*vhi,
+			const int* n, const Real* mult, 
+			const int* dir, const int* islo);
 }
 #endif
 

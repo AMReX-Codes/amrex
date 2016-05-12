@@ -933,7 +933,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 	const int N = vi.size();
 	
 	if (nteams == nprocs) {
-	    for (int j = 0, N = vi.size(); j < N; ++j)
+	    for (int j = 0; j < N; ++j)
 	    {
 		m_ref->m_pmap[vi[j]] = tid;
 	    }

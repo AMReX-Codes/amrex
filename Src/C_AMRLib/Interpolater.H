@@ -8,6 +8,7 @@
 
 class Geometry;
 class FArrayBox;
+class InterpolaterBoxCoarsener;
 
 //
 // Virtual base class for interpolaters.
@@ -68,6 +69,8 @@ public:
                           const Geometry&  crse_geom,
                           const Geometry&  fine_geom,
                           Array<BCRec>&    bcr) {};
+
+    virtual InterpolaterBoxCoarsener BoxCoarsener (const IntVect& ratio);
 };
 
 //
@@ -425,5 +428,18 @@ extern CellConservativeLinear    lincc_interp;
 extern CellConservativeLinear    cell_cons_interp;
 extern CellConservativeProtected protected_interp;
 extern CellConservativeQuartic   quartic_interp;
+
+class InterpolaterBoxCoarsener
+    : public BoxConverter
+{
+public:
+    InterpolaterBoxCoarsener (Interpolater* mapper_, const IntVect& ratio_) 
+	: mapper (mapper_), ratio(ratio_) { ; }
+    virtual Box doit (const Box& fine) const;
+    virtual BoxConverter* clone () const;
+private:
+    Interpolater* mapper;
+    IntVect ratio;
+};
 
 #endif /*_INTERPOLATER_H_*/

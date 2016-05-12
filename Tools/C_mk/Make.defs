@@ -467,7 +467,8 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     endif
 
     ifeq ($(HOST),baragon)
-       override XTRALIBS += -lgfortran
+       LIBRARY_LOCATIONS += $(shell $(FCOMP) -print-file-name=libgfortran.so)
+       override XTRALIBS += -lgfortran -lquadmath
     else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran

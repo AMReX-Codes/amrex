@@ -233,7 +233,8 @@ public:
 		       int             dcomp,
 		       int             scomp,
 		       int             ncomp,
-		       int             dstng = 0) const;
+		       int             dstng = 0,
+		       int             srcng = 0) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -251,12 +252,6 @@ public:
 	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
 	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
 	// FPBComTag needs to be sortable if it is used in remote communication.
-	// Unlike CopyComTag, we have to compare the destination box too, because
-	// the source fab could have several periodically shifted partners.  
-	// So the destination fab essentially intersects with several source fabs,
-	// and we need to compare the small end of the intersection box too.
-	// Note that no two different objects could possibly have the same srcIndex,
-	// dstIndex and dbox.smallEnd(). 
 	bool operator< (const FPBComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
 		   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
@@ -769,7 +764,9 @@ namespace BoxLib
 		  int                  dcomp,
 		  int                  scomp,
 		  int                  ncomp,
-		  int                  dstng)
+		  int                  dstng,
+		  int                  srcng,
+		  FabArrayBase::CpOp   op)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
@@ -801,7 +798,7 @@ namespace BoxLib
 
 	for (int i = 0; i < srcba.size(); ++i) 
 	{
-	    const Box& bx0 = srcba[i];
+	    const Box& bx0 = BoxLib::grow(srcba[i],srcng);
 
 	    if (bbox_src.isEmpty() || !bbox_src.strictly_contains(bx0)) 
 	    {
@@ -843,7 +840,7 @@ namespace BoxLib
 		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
 	    }
 
-	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng);
+	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng, op);
 	}
     }
 }

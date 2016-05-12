@@ -26,6 +26,24 @@ CellConservativeQuartic   quartic_interp;
 
 Interpolater::~Interpolater () {}
 
+InterpolaterBoxCoarsener
+Interpolater::BoxCoarsener (const IntVect& ratio)
+{ 
+    return InterpolaterBoxCoarsener(this, ratio);
+}
+
+Box
+InterpolaterBoxCoarsener::doit (const Box& fine) const 
+{
+    return mapper->CoarseBox(fine, ratio);
+}
+
+BoxConverter*
+InterpolaterBoxCoarsener::clone () const
+{
+    return new InterpolaterBoxCoarsener(mapper, ratio);
+}
+
 NodeBilinear::~NodeBilinear () {}
 
 Box
