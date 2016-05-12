@@ -3663,8 +3663,6 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs) {
 
     bool inSidecar(ParallelDescriptor::MyProc() > maxRank);
     if(inSidecar) {
-      BoxLib::USleep(ParallelDescriptor::MyProc());
-      std::cout << ParallelDescriptor::MyProc() << "::_in Amr::AddProcsToSidecar:  deleting dm cache." << std::endl;
       DistributionMapping::DeleteCache();
     }
 }
@@ -4093,7 +4091,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 #ifdef USE_PARTICLES
     RedistributeParticles();
 #endif
-
 
     bool abortOnError(false);
     MultiFab::CheckFAPointers(abortOnError);
