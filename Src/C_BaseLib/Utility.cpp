@@ -886,7 +886,7 @@ void
 BoxLib::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize)
 {
   if(setSize > poolSize) {
-    BoxLib::Abort("**** Error in UniqueSet:  setSize > poolSize.");
+    BoxLib::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
   Array<int> uSetTemp;

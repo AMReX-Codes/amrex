@@ -239,6 +239,8 @@ namespace BoxLib
     void RestoreRandomState (const Array<unsigned long>& state);
     //
     // Create a unique subset of random numbers from a pool
+    //   of integers in the range [0, poolSize - 1]
+    //   the set will be in the order they are found
     //   setSize must be <= poolSize
     //
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
