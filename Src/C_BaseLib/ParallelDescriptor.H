@@ -173,9 +173,9 @@ namespace ParallelDescriptor
 	void Barrier () const { 
 	    if (m_size > 1) {
 #ifdef BL_USE_UPCXX
-		m_team.barrier();
+		m_upcxx_team.barrier();
 #elif defined(BL_USE_MPI3)
-		MPI_Barrier(m_team);
+		MPI_Barrier(m_team_comm);
 #endif
 	    }
 	}
@@ -190,41 +190,46 @@ namespace ParallelDescriptor
 #endif
 		{
 #ifdef BL_USE_UPCXX
-                    m_team.barrier();
+                    m_upcxx_team.barrier();
 #elif defined(BL_USE_MPI3)
 		    std::atomic_thread_fence(std::memory_order_release);
-		    MPI_Barrier(m_team);
+		    MPI_Barrier(m_team_comm);
 		    std::atomic_thread_fence(std::memory_order_acquire);
 #endif
 	        }
 	    }
 	}
 
-	// ProcessTeam m_Team is a global static object.
-	// When it is destroyed, MPI is proably alread gone.
-	// So we should not destroy MPI_Comm in the dtor.
 	void clear () {
-	    ;
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+	    if (m_size > 1) {
+		MPI_Comm_free(&m_team_comm);
+		if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+	    }
+#endif
 	}
 	
-	team_t& get() { return m_team; }
-	const team_t& get() const { return m_team; }
-
-#ifdef BL_USE_MPI3
-	MPI_Group& get_group() { return m_group; }
-	const MPI_Group& get_group() const { return m_group; }
+	const team_t& get() const {
+#ifdef BL_USE_UPCXX
+	    return m_upcxx_team; 
+#else
+	    return m_team_comm;
 #endif
+	}
+	const MPI_Comm& get_team_comm() { return m_team_comm; }
+	const MPI_Comm& get_lead_comm() { return m_lead_comm; }
 
-	team_t m_team;
+#ifdef BL_USE_UPCXX
+	team_t m_upcxx_team;
+#endif
 	int    m_numTeams;
 	int    m_size;
 	int    m_color;
 	int    m_lead;
 	int    m_rankInTeam;
 
-#ifdef BL_USE_MPI3
-	MPI_Group m_group;
-#endif
+	MPI_Comm  m_team_comm;
+	MPI_Comm  m_lead_comm;
     };
 
     extern ProcessTeam m_Team;
