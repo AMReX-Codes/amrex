@@ -1697,24 +1697,39 @@ ParallelDescriptor::StartTeams ()
 
     if (team_size > 1)
     {
-#ifdef BL_USE_UPCXX
-	upcxx::team* team;
-	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
-        m_Team.m_team = team;
-#elif defined(BL_USE_MPI3)
-	MPI_Group grp;
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+	MPI_Group grp, team_grp, lead_grp;
 	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
 	int team_ranks[team_size];
 	for (int i = 0; i < team_size; ++i) {
 	    team_ranks[i] = MyTeamLead() + i;
 	}
-	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
 	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
-					m_Team.get_group(), &m_Team.get()) );
+					team_grp, &m_Team.m_team_comm) );
+
+	std::vector<int>lead_ranks(m_Team.m_numTeams);
+	for (int i = 0; i < lead_ranks.size(); ++i) {
+	    lead_ranks[i] = i * team_size;
+	}
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+					lead_grp, &m_Team.m_lead_comm) );
+
+        BL_MPI_REQUIRE( MPI_Group_free(&grp) );
+        BL_MPI_REQUIRE( MPI_Group_free(&team_grp) );
+        BL_MPI_REQUIRE( MPI_Group_free(&lead_grp) );
+
+#ifdef BL_USE_UPCXX
+	upcxx::team* team;
+	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
+        m_Team.m_upcxx_team = team;
+#endif
+
 #else
 	if (ParallelDescriptor::IOProcessor())
 	    BoxLib::Warning("Must compile with either USE_UPCXX or USE_MPI3=TRUE for team.size>1 to take effect.");
-#endif
+#endif	
     }
 }
 #endif
