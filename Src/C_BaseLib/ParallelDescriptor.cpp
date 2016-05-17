@@ -60,6 +60,10 @@ namespace ParallelDescriptor
 
     const int ioProcessor = 0;
 
+#ifdef BL_USE_UPCXX
+    UPCXX_MPI_Mode Mode;
+#endif    
+
 #ifdef BL_USE_MPI3
     MPI_Win cp_win;
     MPI_Win fb_win;
@@ -426,7 +430,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -470,7 +474,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            int    cnt)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -518,7 +522,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -569,7 +573,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -700,7 +704,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -744,7 +748,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            int    cnt)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -792,7 +796,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -843,7 +847,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -993,7 +997,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -1037,7 +1041,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           int    cnt)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -1085,7 +1089,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -1136,7 +1140,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY

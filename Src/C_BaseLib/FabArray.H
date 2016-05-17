@@ -2039,6 +2039,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+#endif
+
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -3328,6 +3332,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
   if (copy_events) delete[] copy_events;
 
   upcxx::barrier();
+  ParallelDescriptor::Mode.set_mpi_mode(true); // since we just had a barrier
 
   // It's safe to free the send buffers now
   for (auto it = CollectData_send_data_buffers.begin(); it != CollectData_send_data_buffers.end(); ++it) {
@@ -3818,6 +3823,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.incr_upcxx();
+#endif
+
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -4049,6 +4059,11 @@ FabArray<FAB>::FillBoundary_finish ()
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
+
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.decr_upcxx();
+#endif
 
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());

@@ -35,6 +35,25 @@ namespace ParallelDescriptor
 {
     const int SidecarQuitSignal = -1;
 
+#ifdef BL_USE_UPCXX
+    struct UPCXX_MPI_Mode {
+	unsigned short upcxx_cnt;
+	bool mpi_ready;
+	UPCXX_MPI_Mode () : upcxx_cnt(0), mpi_ready(true) { }
+	void incr_upcxx () { ++upcxx_cnt; }
+	void decr_upcxx () { --upcxx_cnt; }
+	void set_upcxx_mode () { mpi_ready = false; }
+	void set_mpi_mode (bool barrier_called=false) {
+	    BL_ASSERT(upcxx_cnt == 0);
+	    if (!mpi_ready) {
+		if (!barrier_called) upcxx::barrier();
+		mpi_ready = true;
+	    }    
+	}
+    };
+    extern UPCXX_MPI_Mode Mode;
+#endif    
+
 #ifdef BL_USE_MPI3
     extern MPI_Win cp_win;
     extern MPI_Win fb_win;
@@ -956,7 +975,7 @@ T
 ParallelDescriptor::Reduce (const T& t)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
     BL_PROFILE_T_S("ParallelDescriptor::Reduce(T)", T);
