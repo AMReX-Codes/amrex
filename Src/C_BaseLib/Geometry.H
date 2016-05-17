@@ -409,6 +409,11 @@ namespace BoxLib
 
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.incr_upcxx();
+#endif
+
 #if !defined(BL_USE_MPI3)
 	BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -643,6 +648,11 @@ namespace BoxLib
 	if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
+
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.decr_upcxx();
+#endif
 
 #if !defined(BL_USE_MPI3)
         BL_ASSERT(!ParallelDescriptor::MPIOneSided());
