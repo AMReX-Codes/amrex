@@ -359,7 +359,7 @@ namespace ParallelDescriptor
     inline bool
     doTeamReduce () 
     { 
-	return m_Team.do_team_reduce;
+	return m_Team.m_do_team_reduce;
     }
     inline const ProcessTeam&
     MyTeam ()
