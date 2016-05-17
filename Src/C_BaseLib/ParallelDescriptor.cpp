@@ -443,7 +443,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
     Real recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Real recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
@@ -489,7 +489,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
     Array<Real> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<Real> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
@@ -535,7 +535,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
     Real recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Real recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
@@ -588,7 +588,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
     Array<Real> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<Real> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Real>::type(), op,
 				   0, MyTeam().get_team_comm()) );
@@ -717,7 +717,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
     long recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	long recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
@@ -763,7 +763,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
     Array<long> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
@@ -809,7 +809,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
     long recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	long recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
@@ -862,7 +862,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
     Array<long> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
@@ -1010,7 +1010,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
     int recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	int recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
 				   0, MyTeam().get_team_comm()) );
@@ -1056,7 +1056,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
     Array<int> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<int> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
 				   0, MyTeam().get_team_comm()) );
@@ -1102,7 +1102,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
     int recv;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	int recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
 				   0, MyTeam().get_team_comm()) );
@@ -1155,7 +1155,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
     Array<int> recv(cnt);
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce() > 1) {
 	Array<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
 				   0, MyTeam().get_team_comm()) );
@@ -1894,10 +1894,12 @@ void
 ParallelDescriptor::StartTeams ()
 {
     int team_size = 1;
+    int do_team_reduce = 0;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
     ParmParse pp("team");
     pp.query("size", team_size);
+    pp.query("reduce", do_team_reduce);
 #endif
 
     int nprocs = ParallelDescriptor::NProcs();
@@ -1911,6 +1913,8 @@ ParallelDescriptor::StartTeams ()
     m_Team.m_color       = rank / team_size;
     m_Team.m_lead        = m_Team.m_color * team_size;
     m_Team.m_rankInTeam  = rank - m_Team.m_lead;
+
+    m_Team.m_do_team_reduce = team_size > 0 && do_team_reduce;
 
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
     {
