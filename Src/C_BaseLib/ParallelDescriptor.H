@@ -216,8 +216,8 @@ namespace ParallelDescriptor
 	    return m_team_comm;
 #endif
 	}
-	const MPI_Comm& get_team_comm() { return m_team_comm; }
-	const MPI_Comm& get_lead_comm() { return m_lead_comm; }
+	const MPI_Comm& get_team_comm() const { return m_team_comm; }
+	const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
 #ifdef BL_USE_UPCXX
 	team_t m_upcxx_team;
@@ -330,6 +330,11 @@ namespace ParallelDescriptor
     sameTeam (int rank)
     {
 	return MyTeamLead() == TeamLead(rank);
+    }
+    inline int
+    RankInLeadComm (int rank)
+    {
+	return rank / m_Team.m_size;
     }
     inline const ProcessTeam&
     MyTeam ()
@@ -958,12 +963,28 @@ ParallelDescriptor::Reduce (const T& t)
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, BLProfiler::BeforeCall(), true);
 
     T recv;
-    BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
-                                  &recv,
-                                  1,
-                                  Mpi_typemap<T>::type(),
-                                  Op::op(),
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	T recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&t, &recv_team, 1, Mpi_typemap<T>::type(), Op::op(),
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<T>::type(), Op::op(),
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<T>::type(),
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
+				      &recv,
+				      1,
+				      Mpi_typemap<T>::type(),
+				      Op::op(),
+				      Communicator()) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, sizeof(T), false);
     return recv;
 }

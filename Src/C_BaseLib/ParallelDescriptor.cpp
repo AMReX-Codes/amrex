@@ -438,12 +438,28 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 
     Real recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  Mpi_typemap<Real>::type(),
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Real recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      Mpi_typemap<Real>::type(),
+				      op,
+				      Communicator()) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, sizeof(Real), false);
     r = recv;
 }
@@ -468,12 +484,29 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 
     Array<Real> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  Mpi_typemap<Real>::type(),
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<Real> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  Mpi_typemap<Real>::type(), op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(), 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      Mpi_typemap<Real>::type(),
+				      op,
+				      Communicator()) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, cnt * sizeof(Real), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -497,17 +530,36 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 
     Real recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               Mpi_typemap<Real>::type(),
-                               op,
-                               cpu,
-                               Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Real recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   Mpi_typemap<Real>::type(),
+				   op,
+				   cpu,
+				   Communicator()) );
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
+	r = recv;
 }
 
 void
@@ -531,13 +583,32 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 
     Array<Real> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               Mpi_typemap<Real>::type(),
-                               op,
-                               cpu,
-                               Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<Real> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Real>::type(), op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(), 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   Mpi_typemap<Real>::type(),
+				   op,
+				   cpu,
+				   Communicator()) );
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -641,12 +712,28 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 
     long recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_LONG,
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_LONG, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG, 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      MPI_LONG,
+				      op,
+				      Communicator()) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(long), false);
     r = recv;
 }
@@ -671,12 +758,29 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 
     Array<long> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_LONG,
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  MPI_LONG, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_LONG,
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      MPI_LONG,
+				      op,
+				      Communicator()) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(long), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -700,13 +804,32 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 
     long recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG,
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   MPI_LONG,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -734,13 +857,32 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 
     Array<long> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   MPI_LONG,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -863,12 +1005,28 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 
     int recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_INT,
-                                  op,
-                                  Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	int recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_INT, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT, 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      MPI_INT,
+				      op,
+				      Communicator()));
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, sizeof(int), false);
     r = recv;
 }
@@ -893,12 +1051,29 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 
     Array<int> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_INT,
-                                  op,
-                                  Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<int> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  MPI_INT, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_INT,
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      MPI_INT,
+				      op,
+				      Communicator()));
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, cnt * sizeof(int), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -922,13 +1097,32 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
 
     int recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_INT,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	int recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_INT, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   MPI_INT,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -956,13 +1150,32 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 
     Array<int> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_INT,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (TeamSize() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   MPI_INT,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -1678,7 +1891,7 @@ ParallelDescriptor::StartTeams ()
 {
     int team_size = 1;
 
-#ifdef BL_USE_MPI
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
     ParmParse pp("team");
     pp.query("size", team_size);
 #endif
@@ -1695,9 +1908,8 @@ ParallelDescriptor::StartTeams ()
     m_Team.m_lead        = m_Team.m_color * team_size;
     m_Team.m_rankInTeam  = rank - m_Team.m_lead;
 
-    if (team_size > 1)
-    {
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    {
 	MPI_Group grp, team_grp, lead_grp;
 	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
 	int team_ranks[team_size];
@@ -1725,12 +1937,8 @@ ParallelDescriptor::StartTeams ()
 	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
         m_Team.m_upcxx_team = team;
 #endif
-
-#else
-	if (ParallelDescriptor::IOProcessor())
-	    BoxLib::Warning("Must compile with either USE_UPCXX or USE_MPI3=TRUE for team.size>1 to take effect.");
-#endif	
     }
+#endif
 }
 #endif
 
