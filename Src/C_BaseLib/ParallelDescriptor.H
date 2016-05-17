@@ -246,6 +246,7 @@ namespace ParallelDescriptor
 	int    m_color;
 	int    m_lead;
 	int    m_rankInTeam;
+	int    m_do_team_reduce;
 
 	MPI_Comm  m_team_comm;
 	MPI_Comm  m_lead_comm;
@@ -354,6 +355,11 @@ namespace ParallelDescriptor
     RankInLeadComm (int rank)
     {
 	return rank / m_Team.m_size;
+    }
+    inline bool
+    doTeamReduce () 
+    { 
+	return m_Team.do_team_reduce;
     }
     inline const ProcessTeam&
     MyTeam ()
@@ -983,7 +989,7 @@ ParallelDescriptor::Reduce (const T& t)
 
     T recv;
 #if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (TeamSize() > 1) {
+    if (doTeamReduce()) {
 	T recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&t, &recv_team, 1, Mpi_typemap<T>::type(), Op::op(),
 				   0, MyTeam().get_team_comm()) );
