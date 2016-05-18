@@ -136,6 +136,7 @@ namespace ParallelDescriptor
     extern int m_nProcs_comp;
     extern Array<int> m_nProcs_sidecar;
     extern int nSidecars;
+    extern int inWhichSidecar;
 
     //
     // This sets the number of MPI ranks in the sidecar and
@@ -167,11 +168,15 @@ namespace ParallelDescriptor
             BL_ASSERT(m_nProcs_comp != nProcs_undefined);
             return m_nProcs_comp;
         }
-        else
+        else if(inWhichSidecar >= 0)
         {
-            BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
-            return m_nProcs_sidecar;
+            BL_ASSERT(m_nProcs_sidecar[inWhichSidecar] != nProcs_undefined);
+            return m_nProcs_sidecar[inWhichSidecar];
         }
+	else
+	{
+            return nProcs_undefined;
+	}
     }
     inline int
     NProcsAll ()
@@ -186,10 +191,10 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsSidecar (int whichSidecar = 0)
+    NProcsSidecar (int whichSidecar)
     {
+        BL_ASSERT(whichSidecar >= 0 && whichSidecar < m_nProcs_sidecar.size());
         BL_ASSERT(m_nProcs_sidecar[whichSidecar] != nProcs_undefined);
-        //BL_ASSERT(m_nProcs_sidecar[whichSidecar] == nSidecarProcs[whichSidecar]);
         return m_nProcs_sidecar[whichSidecar];
     }
     //
