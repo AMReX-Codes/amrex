@@ -134,8 +134,8 @@ namespace ParallelDescriptor
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
-    extern int m_nProcs_sidecar;
-    extern int nSidecarProcs;
+    extern Array<int> m_nProcs_sidecar;
+    extern int nSidecars;
 
     //
     // This sets the number of MPI ranks in the sidecar and
@@ -143,12 +143,21 @@ namespace ParallelDescriptor
     // for the comp and sidecar sets of ranks.
     // The user will need to handle any consequences of changing
     // the numbers of processors in each group (such as changing
-    // distribution maps and moving FAB data in MultiFabs).
+    // distribution maps and moving data in FabArrays).
+    //
+    // The union of ranks in the comp and sidecar arrays must be
+    // equal to the set of ranks in 'all' (the boxlib global
+    // communicator).  The sets must be disjoint.
+    // Global rank zero is required to be in compRanksInAll[0],
+    // this restriction may be removed in the future.
     //
     void
-    SetNProcsSidecar (int nscp); 
+    SetNProcsSidecars (const Array<int> &compRanksInAll,
+                       const Array<Array<int> > &sidecarRanksInAll); 
+    void
+    SetNProcsSidecars (int nscp, int whichSidecar = 0); 
     //
-    // return the number of MPI ranks number local to the comp or sidecar groups
+    // return the number of MPI ranks local to the comp or sidecar groups
     //
     inline int
     NProcs ()
@@ -177,11 +186,11 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsSidecar ()
+    NProcsSidecar (int whichSidecar = 0)
     {
-        BL_ASSERT(m_nProcs_sidecar != nProcs_undefined);
-        BL_ASSERT(m_nProcs_sidecar == nSidecarProcs);
-        return m_nProcs_sidecar;
+        BL_ASSERT(m_nProcs_sidecar[whichSidecar] != nProcs_undefined);
+        //BL_ASSERT(m_nProcs_sidecar[whichSidecar] == nSidecarProcs[whichSidecar]);
+        return m_nProcs_sidecar[whichSidecar];
     }
     //
     // The MPI rank number of the I/O Processor (probably rank 0).
