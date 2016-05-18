@@ -566,7 +566,7 @@ iMultiFab::maxIndex (int comp,
 }
 
 int
-iMultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
+iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
@@ -578,7 +578,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    ba.intersections(mfi.validbox(),isects);
+	    ba.intersections(BoxLib::grow(mfi.validbox(),nghost),isects);
 	    
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
@@ -594,7 +594,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 }
 
 int
-iMultiFab::norm0 (int comp, bool local) const
+iMultiFab::norm0 (int comp, int nghost, bool local) const
 {
     int nm0 = -std::numeric_limits<int>::max();
 
@@ -603,7 +603,7 @@ iMultiFab::norm0 (int comp, bool local) const
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
+	nm0 = std::max(nm0, get(mfi).norm(mfi.growntilebox(nghost), 0, comp, 1));
     }
 
     if (!local)

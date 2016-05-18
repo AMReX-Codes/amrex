@@ -681,7 +681,7 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
-MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
+MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -693,7 +693,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    ba.intersections(mfi.validbox(),isects);
+	    ba.intersections(BoxLib::grow(mfi.validbox(),nghost),isects);
 
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
@@ -709,7 +709,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 }
 
 Real
-MultiFab::norm0 (int comp, bool local) const
+MultiFab::norm0 (int comp, int nghost, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -718,7 +718,7 @@ MultiFab::norm0 (int comp, bool local) const
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
+	nm0 = std::max(nm0, get(mfi).norm(mfi.growntilebox(nghost), 0, comp, 1));
     }
 
     if (!local)
@@ -728,7 +728,7 @@ MultiFab::norm0 (int comp, bool local) const
 }
 
 Array<Real>
-MultiFab::norm0 (const Array<int>& comps, bool local) const
+MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 {
     int n = comps.size();
     const Real rmax = std::numeric_limits<Real>::max();
@@ -756,7 +756,8 @@ MultiFab::norm0 (const Array<int>& comps, bool local) const
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
             for (int i=0; i<n; i++) {
-	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], get(mfi).norm(mfi.tilebox(), 0, comps[i], 1));
+	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], 
+					    get(mfi).norm(mfi.growntilebox(nghost), 0, comps[i], 1));
             }
         }
 #ifdef _OPENMP

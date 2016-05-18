@@ -153,10 +153,7 @@ static
 Real
 norm_inf (const MultiFab& res, bool local = false)
 {
-    Real restot = res.norm0(0,true);
-    if ( !local )
-        ParallelDescriptor::ReduceRealMax(restot);
-    return restot;
+    return res.norm0(0,0,true);
 }
 
 int
