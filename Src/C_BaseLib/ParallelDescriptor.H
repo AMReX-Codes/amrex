@@ -124,6 +124,7 @@ namespace ParallelDescriptor
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
+    extern int m_MyId_sub;
     extern int m_MyId_sidecar;
 
     inline int
@@ -176,6 +177,7 @@ namespace ParallelDescriptor
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
+    extern int m_nProcs_sub;
     extern int m_nProcs_sidecar;
     extern int nSidecarProcs;
     //
@@ -440,12 +442,22 @@ namespace ParallelDescriptor
     // BoxLib's Parallel Communicators
     //    m_comm_all     is for all procs, probably MPI_COMM_WORLD
     //    m_comm_comp    is for the nodes doing computations
+    //    m_comm_sub     m_comm_comp is split into sub communicators
     //    m_comm_sidecar is for the in-situ performance monitor
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
+    extern MPI_Comm m_comm_sub;
     extern MPI_Comm m_comm_sidecar;
     extern MPI_Comm m_comm_inter;
+
+    extern int m_nCommColors;
+    extern int m_MyCommSubColor;
+    extern int m_MyCommCompColor;
+
+    void StartSubCommunicator ();
+    void EndSubCommunicator ();
+
     inline MPI_Comm Communicator ()  // return the "local" communicator
     {
         if (m_MyId_comp != myId_notInGroup)
@@ -472,6 +484,40 @@ namespace ParallelDescriptor
     inline MPI_Comm CommunicatorInter ()
     {
         return m_comm_inter;
+    }
+
+    inline int NCommColors () { return m_nCommColors; }
+    inline int DefaultColor () { return m_MyCommCompColor; }
+    inline int SubCommColor () { return m_MyCommSubColor; }
+    inline int MyProc (int color) 
+    {
+	if (color == DefaultColor()) {
+	    return MyProc();
+	} else if (color == SubCommColor()) {
+	    return m_MyId_sub; 
+	} else {
+	    return -1;
+	}
+    }
+    inline int NProcs (int color) 
+    {
+	if (color == DefaultColor()) {
+	    return NProcs();
+	} else if (color == SubCommColor()) {
+	    return m_nProcs_sub; 
+	} else {
+	    return 0;
+	}
+    }
+    inline MPI_Comm Communicator (int color) 
+    { 
+	if (color == DefaultColor()) {
+	    return Communicator();
+	} else if (color == SubCommColor()) {
+	    return m_comm_sub;
+	} else {
+	    return MPI_COMM_NULL;
+	}
     }
 
     void Barrier (const std::string& message = Unnamed);

@@ -29,6 +29,7 @@ namespace ParallelDescriptor
     const int myId_notInGroup = -22;
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
+    int m_MyId_sub         = myId_undefined;
     int m_MyId_sidecar     = myId_undefined;
     //
     // The number of processors.
@@ -36,6 +37,7 @@ namespace ParallelDescriptor
     const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
+    int m_nProcs_sub     = nProcs_undefined;
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
     //
@@ -47,6 +49,7 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the computation procs
+    MPI_Comm m_comm_sub     = MPI_COMM_NULL;    // for sub computation procs
     MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the in-situ performance monitor
     MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
     //
@@ -55,6 +58,10 @@ namespace ParallelDescriptor
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
     MPI_Group m_group_sidecar = MPI_GROUP_NULL;
+
+    int m_nCommColors = 1;
+    int m_MyCommSubColor = 0;
+    int m_MyCommCompColor = 0;
 
     int m_MinTag = 1000, m_MaxTag = -1;
 
@@ -342,6 +349,43 @@ ParallelDescriptor::EndParallel ()
     MPI_Group_free(&m_group_all);
 
     BL_MPI_REQUIRE( MPI_Finalize() );
+}
+
+void
+ParallelDescriptor::StartSubCommunicator ()
+{
+    ParmParse pp("boxlib");
+    pp.query("ncolors", m_nCommColors);
+
+#if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
+    //    m_nCommColors = 1;
+    BoxLib::Abort("boxlib.ncolor > 1 not supported for MPI3 and UPCXX");
+#endif
+
+    if (m_nCommColors > 1) {
+	m_nProcs_sub = m_nProcs_comp / m_nCommColors;
+	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
+	    BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+	}
+	m_MyCommSubColor  = MyProc() / m_nProcs_sub;
+	m_MyCommCompColor = -1;  // special color for CommComp color
+
+	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor, MyProc(), &m_comm_sub) );
+	BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
+    } else {
+	m_nCommColors = 1;
+	m_comm_sub    = Communicator();
+	m_nProcs_sub  = NProcs();
+	m_MyId_sub    = MyProc();
+    }
+}
+
+void
+ParallelDescriptor::EndSubCommunicator ()
+{
+    if (m_nCommColors > 1) {
+	MPI_Comm_free(&m_comm_sub);
+    }
 }
 
 double

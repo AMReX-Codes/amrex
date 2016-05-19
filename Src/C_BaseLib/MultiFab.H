@@ -97,6 +97,11 @@ public:
               FabAlloc                   mem_mode = Fab_allocate,
 	      const IntVect&             nodal = IntVect::TheZeroVector());
 
+    MultiFab (const BoxArray& bs,
+              int             ncomp,
+              int             ngrow,
+	      int             color);
+
     void operator= (const Real& r);
     //
     // Initialize FArrayBoxes

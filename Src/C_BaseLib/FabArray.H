@@ -93,6 +93,8 @@ public:
     //
     int nComp () const { return n_comp; }
     //
+    int Color () const { return distributionMap.Color(); }
+    //
     bool empty () const { return boxarray.empty(); }
     //
     // Returns a constant reference to the BoxArray that defines the
@@ -830,6 +832,11 @@ public:
               const DistributionMapping& dm,
               FabAlloc                   mem_mode = Fab_allocate,
 	      const IntVect&             nodal = IntVect::TheZeroVector());
+
+    FabArray (const BoxArray& bxs,
+              int             nvar,
+              int             ngrow,
+	      int             color);
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -844,7 +851,8 @@ public:
                  int             nvar,
                  int             ngrow,
                  FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector());
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 int             color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
@@ -1053,7 +1061,8 @@ protected:
                      int                        ngrow,
                      FabAlloc                   mem_mode,
                      const DistributionMapping* dm,
-		     const IntVect&             nodal);
+		     const IntVect&             nodal,
+		     int                        color);
     //
     // The data.
     //
@@ -1643,6 +1652,17 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray& bxs,
+                         int             nvar,
+                         int             ngrow,
+			 int             color)
+    : shmem()
+{
+    m_FA_stats.recordBuild();
+    define(bxs,nvar,ngrow,Fab_allocate,IntVect::TheZeroVector(),color);
+}
+
+template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     m_FA_stats.recordDelete();
@@ -1682,7 +1702,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
                            int                        ngrow,
                            FabAlloc                   alloc,
                            const DistributionMapping* dm,
-			   const IntVect&             nodal)
+			   const IntVect&             nodal,
+			   int                        color)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1706,7 +1727,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     if (dm == 0)
     {
-        distributionMap.define(boxarray,ParallelDescriptor::NProcs());
+        distributionMap.define(boxarray,ParallelDescriptor::NProcs(),color);
     }
     else
     {
@@ -1755,9 +1776,10 @@ FabArray<FAB>::define (const BoxArray& bxs,
                        int             nvar,
                        int             ngrow,
                        FabAlloc        alloc,
-		       const IntVect&  nodal)
+		       const IntVect&  nodal,
+		       int             color)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,0,nodal);
+    defineDoit(bxs,nvar,ngrow,alloc,0,nodal,color);
 }
 
 template <class FAB>
@@ -1769,7 +1791,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        FabAlloc                   alloc,
 		       const IntVect&             nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal);
+    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal,ParallelDescriptor::DefaultColor());
 }
 
 template <class FAB>

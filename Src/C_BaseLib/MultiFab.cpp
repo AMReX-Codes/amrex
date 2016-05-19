@@ -274,6 +274,17 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
+MultiFab::MultiFab (const BoxArray& bxs,
+                    int             ncomp,
+                    int             ngrow,
+		    int             color)
+    :
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
+{
+    Initialize();
+    if (SharedMemory()) initVal();  // else already done in FArrayBox
+}
+
 void
 MultiFab::operator= (const Real& r)
 {
