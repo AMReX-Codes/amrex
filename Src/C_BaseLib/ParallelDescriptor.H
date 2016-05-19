@@ -65,6 +65,25 @@ namespace ParallelDescriptor
     //
     const std::string Unnamed("Unnamed");
 
+    class Color
+    {
+    public:
+	Color () : c(-100) {}
+	explicit Color (int i) : c(i) {}
+	int to_int() const { return c; }
+	friend bool operator== (const Color& lhs, const Color& rhs);
+	friend bool operator!= (const Color& lhs, const Color& rhs);
+    private:
+	int c;
+    };
+    inline bool operator== (const Color& lhs, const Color& rhs)
+    {
+	return lhs.c == rhs.c;
+    }
+    inline bool operator!= (const Color& lhs, const Color& rhs){
+	return !(lhs == rhs);
+    }
+
     class Message
     {
     public:
@@ -452,8 +471,8 @@ namespace ParallelDescriptor
     extern MPI_Comm m_comm_inter;
 
     extern int m_nCommColors;
-    extern int m_MyCommSubColor;
-    extern int m_MyCommCompColor;
+    extern Color m_MyCommSubColor;
+    extern Color m_MyCommCompColor;
 
     void StartSubCommunicator ();
     void EndSubCommunicator ();
@@ -487,9 +506,9 @@ namespace ParallelDescriptor
     }
 
     inline int NCommColors () { return m_nCommColors; }
-    inline int DefaultColor () { return m_MyCommCompColor; }
-    inline int SubCommColor () { return m_MyCommSubColor; }
-    inline int MyProc (int color) 
+    inline Color DefaultColor () { return m_MyCommCompColor; }
+    inline Color SubCommColor () { return m_MyCommSubColor; }
+    inline int MyProc (Color color) 
     {
 	if (color == DefaultColor()) {
 	    return MyProc();
@@ -499,7 +518,7 @@ namespace ParallelDescriptor
 	    return -1;
 	}
     }
-    inline int NProcs (int color) 
+    inline int NProcs (Color color) 
     {
 	if (color == DefaultColor()) {
 	    return NProcs();
@@ -509,7 +528,7 @@ namespace ParallelDescriptor
 	    return 0;
 	}
     }
-    inline MPI_Comm Communicator (int color) 
+    inline MPI_Comm Communicator (Color color) 
     { 
 	if (color == DefaultColor()) {
 	    return Communicator();

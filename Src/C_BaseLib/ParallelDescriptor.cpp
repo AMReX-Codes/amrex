@@ -60,8 +60,8 @@ namespace ParallelDescriptor
     MPI_Group m_group_sidecar = MPI_GROUP_NULL;
 
     int m_nCommColors = 1;
-    int m_MyCommSubColor = 0;
-    int m_MyCommCompColor = 0;
+    Color m_MyCommSubColor;
+    Color m_MyCommCompColor;
 
     int m_MinTag = 1000, m_MaxTag = -1;
 
@@ -367,15 +367,17 @@ ParallelDescriptor::StartSubCommunicator ()
 	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
 	    BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
 	}
-	m_MyCommSubColor  = MyProc() / m_nProcs_sub;
-	m_MyCommCompColor = -1;  // special color for CommComp color
+	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
+	m_MyCommCompColor = Color(-1);  // special color for CommComp color
 
-	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor, MyProc(), &m_comm_sub) );
+	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
 	BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
     } else {
 	m_nCommColors = 1;
-	m_comm_sub    = Communicator();
 	m_nProcs_sub  = NProcs();
+	m_MyCommSubColor = Color(0);
+	m_MyCommCompColor = Color(0);
+	m_comm_sub    = Communicator();
 	m_MyId_sub    = MyProc();
     }
 }

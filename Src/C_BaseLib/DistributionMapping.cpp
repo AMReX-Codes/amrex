@@ -448,7 +448,9 @@ DistributionMapping::Ref::Ref (int len)
     m_pmap(len)
 {}
 
-DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs, int color)
+DistributionMapping::DistributionMapping (const BoxArray& boxes,
+					  int nprocs,
+					  ParallelDescriptor::Color color)
     :
     m_ref(new DistributionMapping::Ref(boxes.size() + 1)),
     m_color(color)
@@ -488,7 +490,9 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 }
 
 void
-DistributionMapping::define (const BoxArray& boxes, int nprocs, int color)
+DistributionMapping::define (const BoxArray& boxes,
+			     int nprocs,
+			     ParallelDescriptor::Color color)
 {
     Initialize();
 

@@ -100,7 +100,7 @@ public:
     MultiFab (const BoxArray& bs,
               int             ncomp,
               int             ngrow,
-	      int             color);
+	      ParallelDescriptor::Color color);
 
     void operator= (const Real& r);
     //
