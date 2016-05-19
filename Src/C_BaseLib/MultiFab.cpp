@@ -1587,7 +1587,7 @@ MultiFab::SumBoundary ()
 
 #ifdef BL_USE_MPI
 void
-MultiFab::SendMultiFabToSidecars (MultiFab *mf)
+MultiFab::SendMultiFabToSidecars (MultiFab *mf, int whichSidecar)
 {
     // Broadcasts to intercommunicators have weird syntax. See below.
     // Whichever proc is actually broadcasting the data uses MPI_ROOT; all
@@ -1698,7 +1698,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
 
       // Now that the sidecars have all the Boxes, they can build their DM.
       DistributionMapping sidecar_DM;
-      sidecar_DM.define(ba, ParallelDescriptor::NProcsSidecar());
+      sidecar_DM.define(ba, ParallelDescriptor::NProcsSidecar(whichSidecar));
 
       // The compute procs need the sidecars' DM so that we can match Send()s
       // and Recv()s for the FAB data.
@@ -1713,7 +1713,7 @@ MultiFab::SendMultiFabToSidecars (MultiFab *mf)
       {
         const int index = mfi.index();
         long numPts;
-        ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Recv(&numPts, 1, comp_procmap[index], 0, ParallelDescriptor::CommunicatorInter(whichSidecar));
         Real FAB_data[numPts*nComp];
         Real *data_ptr = (*mf)[mfi].dataPtr();
         ParallelDescriptor::Recv(FAB_data, numPts*nComp, comp_procmap[index], 1, ParallelDescriptor::CommunicatorInter());

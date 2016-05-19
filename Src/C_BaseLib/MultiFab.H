@@ -507,7 +507,7 @@ public:
     // TODO: allow it to send only selected components
     //
 #ifdef BL_USE_MPI
-    static void SendMultiFabToSidecars(MultiFab *mf);
+    static void SendMultiFabToSidecars(MultiFab *mf, int whichSidecar);
 #endif
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
