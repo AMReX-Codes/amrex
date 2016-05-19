@@ -93,7 +93,7 @@ public:
     //
     int nComp () const { return n_comp; }
     //
-    int Color () const { return distributionMap.Color(); }
+    ParallelDescriptor::Color color () const { return distributionMap.color(); }
     //
     bool empty () const { return boxarray.empty(); }
     //
@@ -836,7 +836,7 @@ public:
     FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
-	      int             color);
+	      ParallelDescriptor::Color color);
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -852,7 +852,7 @@ public:
                  int             ngrow,
                  FabAlloc        mem_mode,
 		 const IntVect&  nodal = IntVect::TheZeroVector(),
-		 int             color = ParallelDescriptor::DefaultColor());
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
@@ -1062,7 +1062,7 @@ protected:
                      FabAlloc                   mem_mode,
                      const DistributionMapping* dm,
 		     const IntVect&             nodal,
-		     int                        color);
+		     ParallelDescriptor::Color  color);
     //
     // The data.
     //
@@ -1655,7 +1655,7 @@ template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
                          int             nvar,
                          int             ngrow,
-			 int             color)
+			 ParallelDescriptor::Color color)
     : shmem()
 {
     m_FA_stats.recordBuild();
@@ -1703,7 +1703,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
                            FabAlloc                   alloc,
                            const DistributionMapping* dm,
 			   const IntVect&             nodal,
-			   int                        color)
+			   ParallelDescriptor::Color  color)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1777,7 +1777,7 @@ FabArray<FAB>::define (const BoxArray& bxs,
                        int             ngrow,
                        FabAlloc        alloc,
 		       const IntVect&  nodal,
-		       int             color)
+		       ParallelDescriptor::Color color)
 {
     defineDoit(bxs,nvar,ngrow,alloc,0,nodal,color);
 }

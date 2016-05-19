@@ -277,7 +277,7 @@ MultiFab::MultiFab (const BoxArray&            bxs,
 MultiFab::MultiFab (const BoxArray& bxs,
                     int             ncomp,
                     int             ngrow,
-		    int             color)
+		    ParallelDescriptor::Color color)
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
 {
