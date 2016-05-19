@@ -217,7 +217,7 @@ DistributionMapping::Finalize ()
 //
 // Our cache of processor maps.
 //
-std::map< int,LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
+std::map< std::pair<int,int>, LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 void
 DistributionMapping::Sort (std::vector<LIpair>& vec,
@@ -357,13 +357,15 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 }
 
 bool
-DistributionMapping::GetMap (const BoxArray& boxes)
+DistributionMapping::GetMap (const BoxArray& boxes,
+			     ParallelDescriptor::Color color)
 {
     const int N = boxes.size();
 
     BL_ASSERT(m_ref->m_pmap.size() == N + 1);
 
-    std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.find(N+1);
+    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
+	= m_Cache.find(std::make_pair(N+1,color.to_int()));
 
     if (it != m_Cache.end())
     {
@@ -422,25 +424,15 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
     m_pmap(pmap)
 {}
 
-DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_cache)
+DistributionMapping::DistributionMapping (const Array<int>& pmap, 
+					  bool put_in_cache,
+					  ParallelDescriptor::Color color)
     :
     m_ref(new DistributionMapping::Ref(pmap)),
-    m_color(ParallelDescriptor::DefaultColor())
+    m_color(color)
 {
     dmID = nDistMaps++;
-
-    if (put_in_cache)
-    {
-        //
-        // We want to save this pmap in the cache.
-        // It's an error if a pmap of this length has already been cached.
-        //
-	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-	if (r.second == false) {
-	    BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
-	}
-    }
+    if (put_in_cache) PutInCache();
 }
 
 DistributionMapping::Ref::Ref (int len)
@@ -503,15 +495,12 @@ DistributionMapping::define (const BoxArray& boxes,
         m_ref->m_pmap.resize(boxes.size() + 1);
     }
 
-    if ( ! GetMap(boxes))
+    if ( ! GetMap(boxes,color))
     {
 	BL_ASSERT(m_BuildMap != 0);
 	
 	(this->*m_BuildMap)(boxes,nprocs);
-	//
-	// Add the new processor map to the cache.
-	//
-	m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+	PutInCache(); // Add the new processor map to the cache.
     }
 }
 
@@ -537,7 +526,7 @@ DistributionMapping::FlushCache ()
     //
     // Remove maps that aren't referenced anywhere else.
     //
-    std::map< int,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
+    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
 
     while (it != m_Cache.end())
     {
@@ -559,8 +548,9 @@ DistributionMapping::PutInCache ()
     // We want to save this pmap in the cache.
     // It's an error if a pmap of this length has already been cached.
     //
-    std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-    r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    std::pair<std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator, bool> r;
+    r = m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),
+				      m_ref));
     if (r.second == false) {
 	BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
     }
@@ -2163,7 +2153,9 @@ if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] <<
 
     for(int n(0); n < localPMaps.size(); ++n) {
       LnClassPtr<Ref> m_ref(new DistributionMapping::Ref(localPMaps[n]));
-      m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+      m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),
+						   ParallelDescriptor::DefaultColor().to_int()),
+				    m_ref));
     }
 
 
@@ -2564,7 +2556,7 @@ DistributionMapping::CacheStats (std::ostream& os)
            << m_Cache.size()
            << " [ (refs,size): ";
 
-        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
+        for (std::map< std::pair<int,int>,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
              it != m_Cache.end();
              ++it)
         {

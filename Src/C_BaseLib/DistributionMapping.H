@@ -46,7 +46,8 @@ class DistributionMapping
     //                  in boxlib and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
-    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false);
+    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false,
+			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of BoxArray over nprocs processors.
     //
@@ -295,7 +296,7 @@ private:
     //
     // Look for a cached processor map.
     //
-    bool GetMap (const BoxArray& boxes);
+    bool GetMap (const BoxArray& boxes, ParallelDescriptor::Color color);
     //
     // A useful typedef.
     //
@@ -341,7 +342,7 @@ private:
     //
     // Our cache of processor maps.
     //
-    static std::map< int,LnClassPtr<Ref> > m_Cache;
+    static std::map< std::pair<int,int>, LnClassPtr<Ref> > m_Cache;
     //
     // Topological proximity map
     //
