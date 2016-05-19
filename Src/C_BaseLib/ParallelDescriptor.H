@@ -238,7 +238,7 @@ namespace ParallelDescriptor
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
     extern MPI_Comm m_comm_sidecar;
-    extern MPI_Comm m_comm_inter;
+    extern Array<MPI_Comm> m_comm_inter;
     inline MPI_Comm Communicator ()  // return the "local" communicator
     {
         if (m_MyId_comp != myId_notInGroup)
@@ -262,9 +262,9 @@ namespace ParallelDescriptor
     {
         return m_comm_sidecar;
     }
-    inline MPI_Comm CommunicatorInter ()
+    inline MPI_Comm CommunicatorInter (int whichSidecar = 0)
     {
-        return m_comm_inter;
+        return m_comm_inter[whichSidecar];
     }
 
     void Barrier (const std::string& message = Unnamed);

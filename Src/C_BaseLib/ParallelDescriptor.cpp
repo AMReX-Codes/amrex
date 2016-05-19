@@ -17,8 +17,8 @@ extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
     void bl_fortran_sidecar_mpi_comm_free (int fcomm);
-    void bl_fortran_set_nprocs_sidecar(int nSidecarProcs,
-                    int m_nProcs_all, int m_nProcs_comp, int m_nProcs_sidecar,
+    void bl_fortran_set_nprocs_sidecar(int nSidecarProcs, int inWhichSidecar,
+                    int m_nProcs_all, int m_nProcs_comp, int *m_nProcs_sidecar,
                     int fcomma, int fcommc, int fcomms,
                     int fgrpa, int fgrpc, int fgrps,
                     int m_MyId_all, int m_MyId_comp, int m_MyId_sidecar);
@@ -272,7 +272,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 {
     BL_PROFILE("PD::SetNProcsSidecars()");
 
-    BL_ASSERT(comRanksInAll.size() > 0);
+    BL_ASSERT(compRanksInAll.size() > 0);
     BL_ASSERT(m_MyId_all != myId_undefined);
 
     bool inComp(false);
@@ -302,7 +302,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet.size() != m_nProcs_all.");
     }
     int rankCheck(0);
-    std::set<int>::const_interator cit;
+    std::set<int>::const_iterator cit;
     for(cit = rankSet.begin(); cit != rankSet.end(); ++cit) {
       if(*cit != rankCheck) {
         BoxLib::Abort("**** Error in SetNProcsSidecars:  rankSet is not correct.");
@@ -351,7 +351,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
       m_group_comp = MPI_GROUP_NULL;
     }
-    if(m_group_sidecar[i] != MPI_GROUP_NULL) {
+    if(m_group_sidecar != MPI_GROUP_NULL) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar) );
     }
 
@@ -366,15 +366,15 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
       m_nProcs_sidecar.resize(nSidecars, nProcs_undefined);
 
-      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compProcsInAll.size(), compProcsInAll.dataPtr(), &m_group_comp) );
+      BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), compRanksInAll.dataPtr(), &m_group_comp) );
       BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
 
       for(int i(0); i < sidecarRanksInAll.size(); ++i) {
 	if(sidecarRanksInAll[i].size() > 0) {
 	  if(inWhichSidecar == i) {
-            BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll.dataPtr(),
+            BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll[i].dataPtr(),
 	                                   &m_group_sidecar) );
-            BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar[i], &m_comm_sidecar) );
+            BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar) );
             BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar[i]) );
 	  } else {
 	    m_group_sidecar = MPI_GROUP_NULL;
@@ -421,8 +421,8 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
               BoxLib::Abort("**** Error 1:  bad inWhichSidecar in SetNProcsSidecars()");
 	    }
 	    if(inWhichSidecar == i) {
-              BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar[i], &m_MyId_sidecar) );
-              BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar[i], 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
+              BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar) );
+              BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
 	    } else {
 	      m_MyId_sidecar = myId_notInGroup;
 	    }
@@ -467,14 +467,14 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
 
 #ifdef BL_USE_FORTRAN_MPI
-    int fcomma = MPI_Comm_c2f(ParallelDescriptor::CommunicatorAll());
-    int fcommc = MPI_Comm_c2f(ParallelDescriptor::CommunicatorComp());
-    int fcomms = MPI_Comm_c2f(ParallelDescriptor::CommunicatorSidecar());
-    int fgrpa  = MPI_Group_c2f(ParallelDescriptor::CommunicatorAll());
-    int fgrpc  = MPI_Group_c2f(ParallelDescriptor::CommunicatorComp());
-    int fgrps  = MPI_Group_c2f(ParallelDescriptor::CommunicatorSidecar());
-    bl_fortran_set_nprocs_sidecar(nSidecarProcs,
-                                  m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar,
+    int fcomma = MPI_Comm_c2f(m_comm_all);
+    int fcommc = MPI_Comm_c2f(m_comm_comp);
+    int fcomms = MPI_Comm_c2f(m_comm_sidecar);
+    int fgrpa  = MPI_Group_c2f(m_group_all);
+    int fgrpc  = MPI_Group_c2f(m_group_comp);
+    int fgrps  = MPI_Group_c2f(m_group_sidecar);
+    bl_fortran_set_nprocs_sidecar(nSidecars, inWhichSidecar,
+                                  m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar.dataPtr(),
                                   fcomma, fcommc, fcomms,
                                   fgrpa, fgrpc, fgrps,
                                   m_MyId_all, m_MyId_comp, m_MyId_sidecar);
@@ -491,7 +491,7 @@ ParallelDescriptor::SetNProcsSidecars (int nscp)
     Array<int> compRanksInAll(m_nProcs_all - nSidecarProcs, nProcs_undefined);
     Array<Array<int> >sidecarRanksInAll;
 
-    for(int ip(0); ip < compRanksInAll.size(); +ip) {
+    for(int ip(0); ip < compRanksInAll.size(); ++ip) {
       compRanksInAll[ip] = ip;
     }
 
@@ -504,7 +504,7 @@ ParallelDescriptor::SetNProcsSidecars (int nscp)
       }
     }
 
-    SetNProcsSidecars(compRanksInAll, compRanksInAll);
+    SetNProcsSidecars(compRanksInAll, sidecarRanksInAll);
 }
 
 double
