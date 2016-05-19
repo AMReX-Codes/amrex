@@ -153,7 +153,7 @@ static
 Real
 norm_inf (const MultiFab& res, bool local = false)
 {
-    return res.norm0(0,0,true);
+    return res.norm0(0,0,local);
 }
 
 int
