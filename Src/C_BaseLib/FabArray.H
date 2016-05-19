@@ -242,7 +242,7 @@ public:
         int fabIndex;
         int srcIndex;
 	CopyComTag () {}
-	explicit CopyComTag (const Box& b, int fidx, int sidx)
+	CopyComTag (const Box& b, int fidx, int sidx)
 	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
 	// CopyComTag needs to be sortable if it is used in remote communication.
 	// Note that the intersection of two boxes is at most one box.
@@ -639,12 +639,12 @@ public:
     explicit MFIter (const FabArrayBase& fabarray,
 		     unsigned char       flags_=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, 
-		     bool                do_tiling); 
+    MFIter (const FabArrayBase& fabarray, 
+	    bool                do_tiling); 
     // tiling with explicit size and flags
-    explicit MFIter (const FabArrayBase& fabarray, 
-		     const IntVect&      tilesize,
-		     unsigned char       flags_=0);
+    MFIter (const FabArrayBase& fabarray, 
+	    const IntVect&      tilesize,
+	    unsigned char       flags_=0);
     // dtor
     ~MFIter ();
     //
