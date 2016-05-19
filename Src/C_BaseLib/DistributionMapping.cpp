@@ -2,7 +2,6 @@
 
 #include <BoxArray.H>
 #include <DistributionMapping.H>
-#include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <BLProfiler.H>
 #include <FArrayBox.H>
@@ -395,14 +394,16 @@ DistributionMapping::Ref::Ref () {}
 
 DistributionMapping::DistributionMapping ()
     :
-    m_ref(new DistributionMapping::Ref)
+    m_ref(new DistributionMapping::Ref),
+    m_color(ParallelDescriptor::DefaultColor())
 {
   dmID = nDistMaps++;
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
     :
-    m_ref(rhs.m_ref)
+    m_ref(rhs.m_ref),
+    m_color(rhs.m_color)
 {
   dmID = nDistMaps++;
 }
@@ -411,6 +412,7 @@ DistributionMapping&
 DistributionMapping::operator= (const DistributionMapping& rhs)
 {
     m_ref = rhs.m_ref;
+    m_color = rhs.m_color;
 
     return *this;
 }
@@ -422,7 +424,8 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_cache)
     :
-    m_ref(new DistributionMapping::Ref(pmap))
+    m_ref(new DistributionMapping::Ref(pmap)),
+    m_color(ParallelDescriptor::DefaultColor())
 {
     dmID = nDistMaps++;
 
@@ -445,12 +448,13 @@ DistributionMapping::Ref::Ref (int len)
     m_pmap(len)
 {}
 
-DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
+DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs, int color)
     :
-    m_ref(new DistributionMapping::Ref(boxes.size() + 1))
+    m_ref(new DistributionMapping::Ref(boxes.size() + 1)),
+    m_color(color)
 {
     dmID = nDistMaps++;
-    define(boxes,nprocs);
+    define(boxes,nprocs,color);
 }
 
 DistributionMapping::Ref::Ref (const Ref& rhs)
@@ -461,8 +465,8 @@ DistributionMapping::Ref::Ref (const Ref& rhs)
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
-    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1))
-
+    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1)),
+    m_color(ParallelDescriptor::DefaultColor())
 {
     dmID = nDistMaps++;
 
@@ -484,9 +488,11 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 }
 
 void
-DistributionMapping::define (const BoxArray& boxes, int nprocs)
+DistributionMapping::define (const BoxArray& boxes, int nprocs, int color)
 {
     Initialize();
+
+    m_color = color;
 
     if (m_ref->m_pmap.size() != boxes.size() + 1)
     {
