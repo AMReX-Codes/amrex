@@ -249,7 +249,7 @@ public:
         int srcIndex;
         int dstIndex;
 	FPBComTag () {}
-	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
+	FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
 	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
 	// FPBComTag needs to be sortable if it is used in remote communication.
 	bool operator< (const FPBComTag& rhs) const {
