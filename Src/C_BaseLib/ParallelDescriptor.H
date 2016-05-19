@@ -155,8 +155,11 @@ namespace ParallelDescriptor
     void
     SetNProcsSidecars (const Array<int> &compRanksInAll,
                        const Array<Array<int> > &sidecarRanksInAll); 
+    //
+    // This version makes one sidecar (number zero)
+    //
     void
-    SetNProcsSidecars (int nscp, int whichSidecar = 0); 
+    SetNProcsSidecars (int nscp); 
     //
     // return the number of MPI ranks local to the comp or sidecar groups
     //
