@@ -4,6 +4,13 @@ ifndef MPI
 $(error THIS FILE SHOULD ONLY BE LOADED WITH MPI defined)
 endif
 
+CCSE_MACHINES = battra baragon
+
+ifeq ($(HOST), $(findstring $(HOST), $(CCSE_MACHINES)))
+    mpi_include_dir = /usr/include/mpich
+    mpi_libraries += -lmpich -lmpichf90
+endif
+
 # Architecture specific changes...
 ifeq ($(ARCH),AIX)
   F90 = mpxlf95$(rsuf)
@@ -218,24 +225,6 @@ ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
   mpi_include_dir = $(MPIHOME)/include
   mpi_lib_dir = $(MPIHOME)/lib
   mpi_libraries += -lmpich -lpthread
-endif
-
-ifeq ($(HOST),baragon)
-  MPIHOME=/home/wqzhang/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90
-endif
-
-ifeq ($(HOST),battra)
-  ifdef MPI_HOME
-    mpi_libraries += -Wl,-rpath,$(MPI_HOME)/lib -lmpich -lmpichf90
-  else
-    MPI_HOME=/usr/lib/mpich
-    mpi_libraries += -lmpich -lpthread
-  endif
-  mpi_include_dir = $(MPI_HOME)/include
-  mpi_lib_dir = $(MPI_HOME)/lib
 endif
 
 ifeq ($(findstring donev, $(HOSTNAME)), donev)
