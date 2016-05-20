@@ -4,12 +4,25 @@ ifndef MPI
 $(error THIS FILE SHOULD ONLY BE LOADED WITH MPI defined)
 endif
 
-CCSE_MACHINES = battra baragon
+CCSE_MACHINES := angilas atragon baragon battra ebirah gamera gigan
+CCSE_MACHINES += gimantis godzilla gojira hedorah kiryu kumonga manda
+CCSE_MACHINES += megalon mothra rodan varan
+# CCSE's naphta orga are not included in CCSE_MACHINES
 
 ifeq ($(HOST), $(findstring $(HOST), $(CCSE_MACHINES)))
     mpi_include_dir = /usr/include/mpich
     mpi_libraries += -lmpich -lmpichf90
 endif
+
+DEFAULT_MACHINES := artoo naphta orga posse
+
+ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
+  MPIHOME=/usr/lib/mpich
+  mpi_include_dir = $(MPIHOME)/include
+  mpi_lib_dir = $(MPIHOME)/lib
+  mpi_libraries += -lmpich -lpthread   # -lmpichf90 might be needed
+endif
+
 
 # Architecture specific changes...
 ifeq ($(ARCH),AIX)
@@ -188,44 +201,6 @@ ifeq ($(HOST),cfe3)
   mpi_libraries += -lmpi
 endif
 
-
-ifeq ($(HOST),naphta)
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = -L$(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-endif
-
-
-ifeq ($(HOST),kiryu)
-  MPIHOME=/usr/local 
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-  ifeq ($(COMP),g95)
-    $(error SORRY NO MPI WITH G95)
-  endif
-
-endif
-
-ifeq ($(HOST),angilas)
-  MPIHOME=/usr/local
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lmpichf90 -lpthread
-endif
-
-DEFAULT_MACHINES := artoo atragon ebirah gamera gigan gimantis gojira hedorah kumonga manda megalon mothra orga posse rodan varan
-
-ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
-  MPIHOME=/usr/lib/mpich
-  mpi_include_dir = $(MPIHOME)/include
-  mpi_lib_dir = $(MPIHOME)/lib
-  mpi_libraries += -lmpich -lpthread
-endif
 
 ifeq ($(findstring donev, $(HOSTNAME)), donev)
    ifeq ($(MPIVENDOR),OpenMPIv1)
