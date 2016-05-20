@@ -26,6 +26,7 @@
 #include <Lazy.H>
 #endif
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <typeinfo>
@@ -462,6 +463,7 @@ namespace ParallelDescriptor
 	bool valid () const { return c >= 0 && c <= m_nCommColors; }
 	friend bool operator== (const Color& lhs, const Color& rhs);
 	friend bool operator!= (const Color& lhs, const Color& rhs);
+	friend std::ostream& operator<< (std::ostream& os, const Color& color);
     private:
 	int c;
     };
@@ -471,6 +473,13 @@ namespace ParallelDescriptor
     }
     inline bool operator!= (const Color& lhs, const Color& rhs){
 	return !(lhs == rhs);
+    }
+    inline std::ostream& operator<< (std::ostream& os, const Color& color)
+    {
+	os << color.c;
+	if (os.fail())
+	    BoxLib::Error("operator<<(ostream&,Const Color&) failed");
+	return os;
     }
 
     extern Color m_MyCommSubColor;
