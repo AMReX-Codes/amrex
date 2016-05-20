@@ -22,7 +22,10 @@ ifeq ($(COMP), Cray)
   endif
 endif
 
-CCSE_MACHINES := baragon battra
+CCSE_MACHINES := angilas atragon baragon battra ebirah gamera gigan
+CCSE_MACHINES += gimantis godzilla gojira hedorah kumonga manda
+CCSE_MACHINES += megalon mothra rodan varan
+# naphta orga not included in CCSE_MACHINES
 
 ifeq ($(HOST), $(findstring $(HOST), $(CCSE_MACHINES)))
     INCLUDE_LOCATIONS += /usr/include/mpich
@@ -180,29 +183,6 @@ ifeq ($(MACHINE), Linux)
       LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/include
     endif
-    ifeq ($(WHICHLINUX), GIMANTIS)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST), kumonga)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST), mothra)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
 
     ifeq ($(HOST),orga)
       CC := mpicc
@@ -214,14 +194,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += /usr/local/include
       BL_MPI_LIBS += -lmpich -lmpichcxx -lmpichf90
       CPPFLAGS += -DMPICH_SKIP_MPICXX
-    endif
-
-    ifeq ($(HOST),manda)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
     endif
 
     ifeq ($(HOST),stribog)
@@ -240,95 +212,7 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST),gamera)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),atragon)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
     ifeq ($(HOST),posse)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),gojira)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),gigan)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST), kiryu)
-      MPI_HOME=/usr/local
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),angilas)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),kumonga)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),ebirah)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),megalon)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),hedorah)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),godzilla)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
@@ -390,21 +274,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(HOST),rodan)
-      MPI_HOME=/usr/lib/mpich
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),varan)
-      mpihome=/usr/local
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      CPPFLAGS += -DMPICH_SKIP_MPICXX
-      BL_MPI_LIBS += -lpthread
-    endif
     ifeq ($(WHICHLINUX),EUCLID)
       mpihome=/usr/common/usg/openmpi/1.4.1/pgi
       LIBRARY_LOCATIONS += $(mpihome)/lib
