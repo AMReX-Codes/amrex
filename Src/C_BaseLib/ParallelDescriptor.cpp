@@ -368,7 +368,7 @@ ParallelDescriptor::StartSubCommunicator ()
 	    BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
 	}
 	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
-	m_MyCommCompColor = Color(-1);  // special color for CommComp color
+	m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
 
 	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
 	BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );

@@ -65,25 +65,6 @@ namespace ParallelDescriptor
     //
     const std::string Unnamed("Unnamed");
 
-    class Color
-    {
-    public:
-	Color () : c(-100) {}
-	explicit Color (int i) : c(i) {}
-	int to_int() const { return c; }
-	friend bool operator== (const Color& lhs, const Color& rhs);
-	friend bool operator!= (const Color& lhs, const Color& rhs);
-    private:
-	int c;
-    };
-    inline bool operator== (const Color& lhs, const Color& rhs)
-    {
-	return lhs.c == rhs.c;
-    }
-    inline bool operator!= (const Color& lhs, const Color& rhs){
-	return !(lhs == rhs);
-    }
-
     class Message
     {
     public:
@@ -360,7 +341,7 @@ namespace ParallelDescriptor
     inline int
     TeamLead (int rank)
     {
-	return rank - rank % m_Team.m_size;
+	return (rank >= 0) ? (rank - rank % m_Team.m_size) : MPI_PROC_NULL;
     }
     inline bool
     isTeamLead ()
@@ -375,7 +356,7 @@ namespace ParallelDescriptor
     inline int
     RankInLeadComm (int rank)
     {
-	return rank / m_Team.m_size;
+	return (rank >= 0) ? (rank / m_Team.m_size) : MPI_PROC_NULL;
     }
     inline bool
     doTeamReduce () 
@@ -471,6 +452,27 @@ namespace ParallelDescriptor
     extern MPI_Comm m_comm_inter;
 
     extern int m_nCommColors;
+
+    class Color
+    {
+    public:
+	Color () : c(-100) {}
+	explicit Color (int i) : c(i) {}
+	int to_int () const { return c; }
+	bool valid () const { return c >= 0 && c <= m_nCommColors; }
+	friend bool operator== (const Color& lhs, const Color& rhs);
+	friend bool operator!= (const Color& lhs, const Color& rhs);
+    private:
+	int c;
+    };
+    inline bool operator== (const Color& lhs, const Color& rhs)
+    {
+	return lhs.c == rhs.c;
+    }
+    inline bool operator!= (const Color& lhs, const Color& rhs){
+	return !(lhs == rhs);
+    }
+
     extern Color m_MyCommSubColor;
     extern Color m_MyCommCompColor;
 
@@ -505,7 +507,7 @@ namespace ParallelDescriptor
         return m_comm_inter;
     }
 
-    inline int NCommColors () { return m_nCommColors; }
+    inline int NColors () { return m_nCommColors; }
     inline Color DefaultColor () { return m_MyCommCompColor; }
     inline Color SubCommColor () { return m_MyCommSubColor; }
     inline int MyProc (Color color) 
@@ -515,14 +517,14 @@ namespace ParallelDescriptor
 	} else if (color == SubCommColor()) {
 	    return m_MyId_sub; 
 	} else {
-	    return -1;
+	    return MPI_PROC_NULL;
 	}
     }
     inline int NProcs (Color color) 
     {
 	if (color == DefaultColor()) {
 	    return NProcs();
-	} else if (color == SubCommColor()) {
+	} else if (color.valid()) {
 	    return m_nProcs_sub; 
 	} else {
 	    return 0;
@@ -536,6 +538,16 @@ namespace ParallelDescriptor
 	    return m_comm_sub;
 	} else {
 	    return MPI_COMM_NULL;
+	}
+    }
+    inline int Translate(int rc, Color color) // Given rc, rank in colored comm, return rank in CommComp
+    {
+	if (color == DefaultColor()) {
+	    return rc;
+	} else if (color.valid()) {
+	    return NProcs(color) * color.to_int() + rc;
+	} else {
+	    return MPI_PROC_NULL;
 	}
     }
 
