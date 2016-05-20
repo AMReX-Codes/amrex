@@ -1584,7 +1584,7 @@ FabArray<FAB>::clear ()
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
     if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && distributionMap.size() > 0) {
+    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
         std::cout << "**** In FabArray::clear():: map not found:  size = "
                   << distributionMap.size() << std::endl;
       }
@@ -1690,7 +1690,7 @@ FabArray<FAB>::ok () const
         }
     }
 
-    ParallelDescriptor::ReduceLongAnd(isok);
+    ParallelDescriptor::ReduceLongAnd(isok, this->color());
 
     return isok != 0;
 }
@@ -2105,7 +2105,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
     if (ParallelDescriptor::MPIOneSided())
-	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+	MPI_Comm_group(ParallelDescriptor::Communicator(this->color()), &tgroup);
 #endif
 
     //
@@ -2548,6 +2548,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
+	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0);
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
@@ -2573,6 +2574,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	const int N = bx.numPts()*ncomp;
 
+	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[k]);
 
 	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);

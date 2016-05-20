@@ -519,6 +519,10 @@ namespace ParallelDescriptor
     inline int NColors () { return m_nCommColors; }
     inline Color DefaultColor () { return m_MyCommCompColor; }
     inline Color SubCommColor () { return m_MyCommSubColor; }
+    inline bool isActive(Color color) 
+    { 
+	return color == DefaultColor() || color == SubCommColor();
+    }
     inline int MyProc (Color color) 
     {
 	if (color == DefaultColor()) {
@@ -559,6 +563,17 @@ namespace ParallelDescriptor
 	    return MPI_PROC_NULL;
 	}
     }
+    inline bool
+    IOProcessor (Color color)
+    {
+	if (color == DefaultColor()) {
+	    return IOProcessor();
+	} else if (color.valid()) {
+	    return MyProc(color) == 0;
+	} else {
+	    return false;
+	}
+    }
 
     void Barrier (const std::string& message = Unnamed);
     void Barrier (MPI_Comm comm, const std::string& message = Unnamed);
@@ -585,7 +600,7 @@ namespace ParallelDescriptor
     //
     // And-wise boolean reduction.
     //
-    void ReduceBoolAnd (bool& rvar);
+    void ReduceBoolAnd (bool& rvar, Color color = DefaultColor());
     //
     // And-wise boolean reduction to specified cpu.
     //
@@ -593,7 +608,7 @@ namespace ParallelDescriptor
     //
     // Or-wise boolean reduction.
     //
-    void ReduceBoolOr  (bool& rvar);
+    void ReduceBoolOr  (bool& rvar, Color color = DefaultColor());
     //
     // Or-wise boolean reduction to specified cpu.
     //
@@ -601,9 +616,9 @@ namespace ParallelDescriptor
     //
     // Real sum reduction.
     //
-    void ReduceRealSum (Real& rvar);
+    void ReduceRealSum (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealSum (Real* rvar, int cnt);
+    void ReduceRealSum (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real sum reduction to specified cpu.
     //
@@ -613,9 +628,9 @@ namespace ParallelDescriptor
     //
     // Real max reduction.
     //
-    void ReduceRealMax (Real& rvar);
+    void ReduceRealMax (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealMax (Real* rvar, int cnt);
+    void ReduceRealMax (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real max reduction to specified cpu.
     //
@@ -625,9 +640,9 @@ namespace ParallelDescriptor
     //
     // Real min reduction.
     //
-    void ReduceRealMin (Real& rvar);
+    void ReduceRealMin (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealMin (Real* rvar, int cnt);
+    void ReduceRealMin (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real min reduction to specified cpu.
     //
@@ -637,9 +652,9 @@ namespace ParallelDescriptor
     //
     // Integer sum reduction.
     //
-    void ReduceIntSum (int& rvar);
+    void ReduceIntSum (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntSum (int* rvar, int cnt);
+    void ReduceIntSum (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer sum reduction to specified cpu.
     //
@@ -649,9 +664,9 @@ namespace ParallelDescriptor
     //
     // Integer max reduction.
     //
-    void ReduceIntMax (int& rvar);
+    void ReduceIntMax (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntMax (int* rvar, int cnt);
+    void ReduceIntMax (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer max reduction to specified cpu.
     //
@@ -661,9 +676,9 @@ namespace ParallelDescriptor
     //
     // Integer min reduction.
     //
-    void ReduceIntMin (int& rvar);
+    void ReduceIntMin (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntMin (int* rvar, int cnt);
+    void ReduceIntMin (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer min reduction to specified cpu.
     //
@@ -673,9 +688,9 @@ namespace ParallelDescriptor
     //
     // Long sum reduction.
     //
-    void ReduceLongSum (long& rvar);
+    void ReduceLongSum (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongSum (long* rvar, int cnt);
+    void ReduceLongSum (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long sum reduction to specified cpu.
     //
@@ -685,9 +700,9 @@ namespace ParallelDescriptor
     //
     // Long max reduction.
     //
-    void ReduceLongMax (long& rvar);
+    void ReduceLongMax (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongMax (long* rvar, int cnt);
+    void ReduceLongMax (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long max reduction to specified cpu.
     //
@@ -697,9 +712,9 @@ namespace ParallelDescriptor
     //
     // Long min reduction.
     //
-    void ReduceLongMin (long& rvar);
+    void ReduceLongMin (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongMin (long* rvar, int cnt);
+    void ReduceLongMin (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long min reduction to specified cpu.
     //
@@ -709,9 +724,9 @@ namespace ParallelDescriptor
     //
     // Long and-wise reduction.
     //
-    void ReduceLongAnd (long& rvar);
+    void ReduceLongAnd (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongAnd (long* rvar, int cnt);
+    void ReduceLongAnd (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long and-wise reduction to specified cpu.
     //

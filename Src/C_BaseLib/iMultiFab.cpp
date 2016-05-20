@@ -313,7 +313,7 @@ iMultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn);
+	ParallelDescriptor::ReduceIntMin(mn, this->color());
 
     return mn;
 }
@@ -340,7 +340,7 @@ iMultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMin(mn);
+	ParallelDescriptor::ReduceIntMin(mn, this->color());
 
     return mn;
 }
@@ -363,7 +363,7 @@ iMultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx);
+	ParallelDescriptor::ReduceIntMax(mx, this->color());
 
     return mx;
 }
@@ -390,7 +390,7 @@ iMultiFab::max (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(mx);
+	ParallelDescriptor::ReduceIntMax(mx, this->color());
 
     return mx;
 }
@@ -400,6 +400,7 @@ iMultiFab::minIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -485,6 +486,7 @@ iMultiFab::maxIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -588,7 +590,7 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceIntMax(nm0);
+	ParallelDescriptor::ReduceIntMax(nm0, this->color());
  
     return nm0;
 }
@@ -607,7 +609,7 @@ iMultiFab::norm0 (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntMax(nm0);
+	ParallelDescriptor::ReduceIntMax(nm0, this->color());
 
     return nm0;
 }
@@ -627,7 +629,7 @@ iMultiFab::norm2 (int comp) const
         nm2 += nm_grid*nm_grid;
     }
 
-    ParallelDescriptor::ReduceIntSum(nm2);
+    ParallelDescriptor::ReduceIntSum(nm2, this->color());
 
     nm2 = std::sqrt(double(nm2));
 
@@ -648,7 +650,7 @@ iMultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceIntSum(nm1);
+	ParallelDescriptor::ReduceIntSum(nm1, this->color());
 
     return nm1;
 }
