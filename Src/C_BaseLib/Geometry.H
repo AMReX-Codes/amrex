@@ -410,8 +410,8 @@ namespace BoxLib
 #ifdef BL_USE_MPI
 
 #if defined(BL_USE_UPCXX)
-    ParallelDescriptor::Mode.set_upcxx_mode();
-    ParallelDescriptor::Mode.incr_upcxx();
+	ParallelDescriptor::Mode.set_upcxx_mode();
+	ParallelDescriptor::Mode.incr_upcxx();
 #endif
 
 #if !defined(BL_USE_MPI3)
@@ -422,7 +422,16 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-	const int SeqNum = ParallelDescriptor::SeqNum();
+	int SeqNum;
+	{
+	    ParallelDescriptor::Color mycolor = mf.color();
+	    if (mycolor == ParallelDescriptor::DefaultColor()) {
+		SeqNum = ParallelDescriptor::SeqNum();
+	    } else if (mycolor == ParallelDescriptor::SubCommColor()) {
+		SeqNum = ParallelDescriptor::SubSeqNum();
+	    }
+	    // else I don't have any data and my SubSeqNum() should not be called.
+	}
 
 	const int N_locs = TheFPB.m_LocTags->size();
 	const int N_rcvs = TheFPB.m_RcvTags->size();
