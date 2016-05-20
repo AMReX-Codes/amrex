@@ -351,7 +351,7 @@ MultiFab::contains_nan (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelDescriptor::ReduceBoolOr(r,this->color());
 
     return r;
 }
@@ -387,7 +387,7 @@ MultiFab::contains_inf (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelDescriptor::ReduceBoolOr(r,this->color());
 
     return r;
 }
@@ -440,7 +440,7 @@ MultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelDescriptor::ReduceRealMin(mn,this->color());
 
     return mn;
 }
@@ -467,7 +467,7 @@ MultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelDescriptor::ReduceRealMin(mn,this->color());
 
     return mn;
 }
@@ -491,7 +491,7 @@ MultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelDescriptor::ReduceRealMax(mx,this->color());
 
     return mx;
 }
@@ -518,7 +518,7 @@ MultiFab::max (const Box& region,
     }
 	
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelDescriptor::ReduceRealMax(mx,this->color());
 
     return mx;
 }
@@ -528,6 +528,7 @@ MultiFab::minIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -612,6 +613,7 @@ MultiFab::maxIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -714,7 +716,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelDescriptor::ReduceRealMax(nm0,this->color());
  
     return nm0;
 }
@@ -733,7 +735,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelDescriptor::ReduceRealMax(nm0,this->color());
 
     return nm0;
 }
@@ -783,7 +785,7 @@ MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n, this->color());
 
     return nm0;
 }
@@ -803,7 +805,7 @@ MultiFab::norm2 (int comp) const
         nm2 += nm_grid*nm_grid;
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2);
+    ParallelDescriptor::ReduceRealSum(nm2,this->color());
 
     nm2 = std::sqrt(nm2);
 
@@ -853,7 +855,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n);
+    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n, this->color());
 
     for (int i=0; i<n; i++) {
 	nm2[i] = std::sqrt(nm2[i]);
@@ -876,7 +878,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1);
+	ParallelDescriptor::ReduceRealSum(nm1,this->color());
 
     return nm1;
 }
@@ -925,7 +927,7 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
+	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n, this->color());
 
     return nm1;
 }
@@ -944,7 +946,7 @@ MultiFab::sum (int comp, bool local) const
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm);
+        ParallelDescriptor::ReduceRealSum(sm, this->color());
 
     return sm;
 }
