@@ -56,13 +56,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
     WHICHLINUX := ALPHACLUSTER
   endif
-  ifeq ($(findstring nugigan, $(UNAMEN)), nugigan)
-    WHICHLINUX := NUGIGAN
-  else
-      ifeq ($(findstring gigan, $(UNAMEN)), gigan)
-        WHICHLINUX := GIGAN
-      endif
-  endif
   ifeq ($(findstring lens, $(UNAMEN)), lens)
     WHICHLINUX := LENS
   endif
@@ -99,9 +92,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring darter, $(UNAMEN)), darter)
     WHICHLINUX := DARTER
   endif
-  ifeq ($(findstring mothra, $(UNAMEN)), mothra)
-    WHICHLINUX := MOTHRA
-  endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
   endif
@@ -137,18 +127,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring cori, $(NERSC_HOST)), cori)
     WHICHLINUX := CORI
-  endif
-  ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
-    WHICHLINUX := GIMANTIS
-  endif
-  ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
-    WHICHLINUX := HEDORAH
-  endif
-  ifeq ($(findstring godzilla, $(UNAMEN)), godzilla)
-    WHICHLINUX := GODZILLA
-  endif
-  ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
-    WHICHLINUX := KUMONGA
   endif
   ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
     WHICHLINUX := INTREPID
