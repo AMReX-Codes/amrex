@@ -159,7 +159,6 @@ class DistributionMapping
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
-    void RRSFCProcessorMap(const BoxArray&boxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -234,7 +233,7 @@ private:
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
-    void RRFCProcessorMap       (const BoxArray& boxes, int nprocs);
+    void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
     typedef std::pair<long,int> LIpair;
 
@@ -287,16 +286,16 @@ private:
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
-    static void LeastUsedCPUs (int nprocs, Array<int>& result);
+    void LeastUsedCPUs (int nprocs, Array<int>& result);
     //
     // rteam: Least used ordering of Teams
     // rworker[i]: Least used ordering of team workers for Team i
     //
-    static void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
+    void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
     //
     // Look for a cached processor map.
     //
-    bool GetMap (const BoxArray& boxes, ParallelDescriptor::Color color);
+    bool GetMap (const BoxArray& boxes);
     //
     // A useful typedef.
     //
