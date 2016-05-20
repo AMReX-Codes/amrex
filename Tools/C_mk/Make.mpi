@@ -22,6 +22,13 @@ ifeq ($(COMP), Cray)
   endif
 endif
 
+CCSE_MACHINES := baragon battra
+
+ifeq ($(HOST), $(findstring $(HOST), $(CCSE_MACHINES)))
+    INCLUDE_LOCATIONS += /usr/include/mpich
+    BL_MPI_LIBS += -lmpich -lmpichf90  
+endif
+
 #
 # Use mpicc on Lawrencium
 #
@@ -233,19 +240,6 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lpthread
     endif
 
-    ifeq ($(findstring battra, $(HOST)), battra)
-      ifndef MPI_HOME
-        MPI_HOME=/usr/lib/mpich
-        CPPFLAGS += -DMPICH_SKIP_MPICXX
-        BL_MPI_LIBS += -lpthread
-      else
-        BL_MPI_LIBS += -lmpichf90
-        override XTRALIBS += -Wl,-rpath,$(MPI_HOME)/lib
-      endif
-      LIBRARY_LOCATIONS += $(MPI_HOME)/lib
-      INCLUDE_LOCATIONS += $(MPI_HOME)/include
-    endif
-
     ifeq ($(HOST),gamera)
       MPI_HOME=/usr/lib/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib
@@ -316,13 +310,6 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
       CPPFLAGS += -DMPICH_SKIP_MPICXX
       BL_MPI_LIBS += -lpthread
-    endif
-
-    ifeq ($(HOST),baragon)
-      mpihome=/home/wqzhang/lib/mpich
-      LIBRARY_LOCATIONS += $(mpihome)/lib
-      INCLUDE_LOCATIONS += $(mpihome)/include
-      BL_MPI_LIBS += -lmpich -lmpichf90
     endif
 
     ifeq ($(HOST),megalon)
