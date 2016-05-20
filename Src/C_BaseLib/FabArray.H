@@ -2073,7 +2073,24 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color src_color = src.color();
+	ParallelDescriptor::Color dst_color = this->color();
+	if (src_color == ParallelDescriptor::DefaultColor() ||
+	    dst_color == ParallelDescriptor::DefaultColor() ||
+	    src_color != dst_color) {
+	    // If any of the two FabArrays is in the global communicator, 
+	    // or if the two have different color,
+	    // all processes are here.
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else { // The two have the same non-default color.
+	    if (ParallelDescriptor::SubCommColor() == src_color) {
+		SeqNum = ParallelDescriptor::SubSeqNum();
+	    }
+	    // else I don't have any data and my SubSeqNum() should not be called.
+	}
+    }	
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -3858,7 +3875,16 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = this->color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     const int N_locs = TheSI.m_LocTags->size();
     const int N_rcvs = TheSI.m_RcvTags->size();

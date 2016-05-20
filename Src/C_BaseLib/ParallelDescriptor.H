@@ -729,6 +729,7 @@ namespace ParallelDescriptor
     // Returns sequential message sequence numbers in range 1000-9000.
     //
     int SeqNum ();
+    int SubSeqNum ();
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);

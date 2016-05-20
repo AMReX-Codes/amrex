@@ -1675,12 +1675,35 @@ int
 ParallelDescriptor::SeqNum ()
 {
     static int seqno = m_MinTag;
+    int result = seqno;
 
-    int result = seqno++;
+    if (NColors() == 1) { 
+	++seqno;
+    } else {
+	seqno += 2;
+    } 
 
     if (seqno > m_MaxTag) {
-      seqno = m_MinTag;
-      BL_COMM_PROFILE_TAGWRAP();
+	seqno = m_MinTag;
+	BL_COMM_PROFILE_TAGWRAP();
+    }
+
+    return result;
+}
+
+// FIXME: Does COMM_PROFILE work with these two SeqNum functions?
+
+int
+ParallelDescriptor::SubSeqNum ()
+{
+    static int seqno = m_MinTag+1;    
+    int result = seqno;
+
+    seqno += 2;
+
+    if (seqno > m_MaxTag) {
+	seqno = m_MinTag+1;
+	BL_COMM_PROFILE_TAGWRAP();
     }
 
     return result;
