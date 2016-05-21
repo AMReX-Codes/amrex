@@ -664,8 +664,6 @@ namespace ParallelDescriptor
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
     void Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm);
 
-    template <class Op, class T> T Reduce(const T& t);
-
     template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root);
 
     template <class T, class T1> void Gather(const T*, size_t n, T1*, size_t n1, int root);
@@ -976,44 +974,6 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
     return Message(stat, Mpi_typemap<T>::type());
 }
 
-template <class Op, class T>
-T
-ParallelDescriptor::Reduce (const T& t)
-{
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
-    BL_PROFILE_T_S("ParallelDescriptor::Reduce(T)", T);
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, BLProfiler::BeforeCall(), true);
-
-    T recv;
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
-    if (doTeamReduce()) {
-	T recv_team;
-	BL_MPI_REQUIRE( MPI_Reduce(&t, &recv_team, 1, Mpi_typemap<T>::type(), Op::op(),
-				   0, MyTeam().get_team_comm()) );
-	if (isTeamLead()) {
-	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<T>::type(), Op::op(),
-					  MyTeam().get_lead_comm()) );
-	}
-	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<T>::type(),
-				  0, MyTeam().get_team_comm()) );
-    }
-    else
-#endif
-    {
-	BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
-				      &recv,
-				      1,
-				      Mpi_typemap<T>::type(),
-				      Op::op(),
-				      Communicator()) );
-    }
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, sizeof(T), false);
-    return recv;
-}
-
 template <class T>
 void
 ParallelDescriptor::Bcast (T*     t,
@@ -1211,13 +1171,6 @@ Message
 Recv(std::vector<T>& buf, int src_pid, int tag)
 {
     return Message();
-}
-
-template <class Op, class T>
-T
-Reduce(const T& t)
-{
-    return t;
 }
 
 template <class T>
