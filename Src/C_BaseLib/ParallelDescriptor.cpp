@@ -1566,6 +1566,17 @@ ParallelDescriptor::StartParallel (int*    argc,
 }
 
 void
+ParallelDescriptor::StartSubCommunicator ()
+{
+    m_nCommColors = 1;
+    m_nProcs_sub  = 1;
+    m_MyCommSubColor = Color(0);
+    m_MyCommCompColor = Color(0);
+    m_comm_sub    = 0;
+    m_MyId_sub    = 0;
+}
+
+void
 ParallelDescriptor::Gather (Real* sendbuf,
 			    int   nsend,
 			    Real* recvbuf,
@@ -1591,6 +1602,8 @@ ParallelDescriptor::Message::test ()
 }
 
 void ParallelDescriptor::EndParallel () {}
+
+void ParallelDescriptor::EndSubCommunicator () {}
 
 void ParallelDescriptor::Abort ()
 { 
@@ -1620,60 +1633,60 @@ void ParallelDescriptor::IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ParallelDescriptor::ReduceRealMax (Real&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceRealMin (Real&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceRealSum (Real&,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceRealMax (Real&,Color) {}
+void ParallelDescriptor::ReduceRealMin (Real&,Color) {}
+void ParallelDescriptor::ReduceRealSum (Real&,Color) {}
 
 void ParallelDescriptor::ReduceRealMax (Real&,int) {}
 void ParallelDescriptor::ReduceRealMin (Real&,int) {}
 void ParallelDescriptor::ReduceRealSum (Real&,int) {}
 
-void ParallelDescriptor::ReduceRealMax (Real*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceRealMin (Real*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceRealSum (Real*,int,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceRealMax (Real*,int,Color) {}
+void ParallelDescriptor::ReduceRealMin (Real*,int,Color) {}
+void ParallelDescriptor::ReduceRealSum (Real*,int,Color) {}
 
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongSum (long&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongMax (long&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongMin (long&,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceLongAnd (long&,Color) {}
+void ParallelDescriptor::ReduceLongSum (long&,Color) {}
+void ParallelDescriptor::ReduceLongMax (long&,Color) {}
+void ParallelDescriptor::ReduceLongMin (long&,Color) {}
 
 void ParallelDescriptor::ReduceLongAnd (long&,int) {}
 void ParallelDescriptor::ReduceLongSum (long&,int) {}
 void ParallelDescriptor::ReduceLongMax (long&,int) {}
 void ParallelDescriptor::ReduceLongMin (long&,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongSum (long*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongMax (long*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceLongMin (long*,int,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceLongAnd (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongSum (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongMax (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongMin (long*,int,Color) {}
 
 void ParallelDescriptor::ReduceLongAnd (long*,int,int) {}
 void ParallelDescriptor::ReduceLongSum (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMax (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMin (long*,int,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceIntMax (int&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceIntMin (int&,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceIntSum (int&,Color) {}
+void ParallelDescriptor::ReduceIntMax (int&,Color) {}
+void ParallelDescriptor::ReduceIntMin (int&,Color) {}
 
 void ParallelDescriptor::ReduceIntSum (int&,int) {}
 void ParallelDescriptor::ReduceIntMax (int&,int) {}
 void ParallelDescriptor::ReduceIntMin (int&,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceIntMax (int*,int,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceIntMin (int*,int,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceIntSum (int*,int,Color) {}
+void ParallelDescriptor::ReduceIntMax (int*,int,Color) {}
+void ParallelDescriptor::ReduceIntMin (int*,int,Color) {}
 
 void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool&,Color=DefaultColor()) {}
-void ParallelDescriptor::ReduceBoolOr  (bool&,Color=DefaultColor()) {}
+void ParallelDescriptor::ReduceBoolAnd (bool&,Color) {}
+void ParallelDescriptor::ReduceBoolOr  (bool&,Color) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
