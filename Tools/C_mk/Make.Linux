@@ -92,6 +92,11 @@ ifeq ($(COMP),PGI)
     COPTF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
     CDEBF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
     CXXEXEFLAGS += -lcudart
+  else
+    CXXOPTF += -noacc
+    CXXDEBF += -noacc
+    COPTF += -noacc
+    CDEBF += -noacc
   endif
 
   ifeq ($(USE_CXX11),TRUE)
@@ -219,6 +224,11 @@ ifeq ($(FCOMP),PGI)
     fOPTF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
     FDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
     fDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+  else
+    FOPTF += -noacc
+    fOPTF += -noacc
+    FDEBF += -noacc
+    fDEBF += -noacc
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
