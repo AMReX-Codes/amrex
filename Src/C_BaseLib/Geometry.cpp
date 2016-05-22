@@ -339,7 +339,16 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = mf.color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
 	//
