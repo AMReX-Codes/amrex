@@ -2514,13 +2514,12 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
                 # successful comparison is indicated by PLOTFILES AGREE
                 compare_successful = 0
-
                 for line in diff_lines:
                     if (line.find("PLOTFILES AGREE") >= 0 or
                         line.find("SELF TEST SUCCESSFUL") >= 0):
                         compare_successful = 1
                         break
-
+                    
                 if compare_successful:
                     if not test.diffDir == "":
                         compare_successful = 0
@@ -2587,9 +2586,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
     hf.write(new_head)
 
 
-
     ll = HTMLList(of=hf)
-
 
     if not failure_msg is None:
         ll.item("Test error: ")
@@ -2704,8 +2701,6 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     ll.write_list()
 
-
-
     if (not test.compileTest) and failure_msg is None:
 
         # parse the compare output and make an HTML table
@@ -2713,10 +2708,16 @@ def report_single_test(suite, test, tests, failure_msg=None):
         in_diff_region = False
 
         box_error = False
+        grid_error = False
+        
         for line in diff_lines:
 
             if "number of boxes do not match" in line:
                 box_error = True
+                break
+
+            if "grids do not match" in line:
+                grid_error = True
                 break
 
             if not in_diff_region:
@@ -2784,6 +2785,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         if box_error:
             hf.write("<p>number of boxes do not match</p>\n")
+
+        if grid_error:
+            hf.write("<p>grids do not match</p>\n")            
 
         # show any visualizations
         if test.doVis:
