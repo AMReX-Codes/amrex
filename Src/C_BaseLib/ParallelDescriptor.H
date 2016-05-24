@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include <typeinfo>
+#include <iostream>
 
 namespace ParallelDescriptor
 {
@@ -79,6 +80,7 @@ namespace ParallelDescriptor
     extern int m_MyId_all;
     extern int m_MyId_comp;
     extern int m_MyId_sidecar;
+    extern const int notInSidecar;
 
     //
     // return the rank number local to the comp or sidecar groups
@@ -231,15 +233,18 @@ namespace ParallelDescriptor
     }
     //
     // BoxLib's Parallel Communicators
-    //    m_comm_all     is for all ranks, probably MPI_COMM_WORLD
-    //    m_comm_comp    is for the ranks doing computations
-    //    m_comm_sidecar is for the ranks in the sidecar
+    //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
+    //    m_comm_comp      is for the ranks doing computations
+    //    m_comm_sidecar[] is for the ranks in the sidecar
+    //    m_comm_inter[]   is for communicating between comp and sidecars
+    //                     the user must create any sidecar to sidecar communicators
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
-    extern MPI_Comm m_comm_sidecar;
-    extern Array<MPI_Comm> m_comm_inter;
-    inline MPI_Comm Communicator ()  // return the "local" communicator
+    extern Array<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
+    extern Array<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
+
+    inline MPI_Comm Communicator ()         // ---- return the "local" communicator
     {
         if (m_MyId_comp != myId_notInGroup)
         {
@@ -247,7 +252,8 @@ namespace ParallelDescriptor
         }
         else
         {
-            return m_comm_sidecar;
+            BL_ASSERT(inWhichSidecar >= 0 && inWhichSidecar < m_comm_sidecar.size());
+            return m_comm_sidecar[inWhichSidecar];
         }
     }
     inline MPI_Comm CommunicatorAll ()
@@ -260,7 +266,11 @@ namespace ParallelDescriptor
     }
     inline MPI_Comm CommunicatorSidecar ()
     {
-        return m_comm_sidecar;
+	if(inWhichSidecar == notInSidecar) {
+          return MPI_COMM_NULL;
+	} else {
+          return m_comm_sidecar[inWhichSidecar];
+	}
     }
     inline MPI_Comm CommunicatorInter (int whichSidecar = 0)
     {
