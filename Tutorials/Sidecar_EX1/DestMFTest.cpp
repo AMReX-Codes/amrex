@@ -30,6 +30,7 @@ namespace
 {
   const int S_SendBoxArray(42), S_CFATests(43);
   const int S_CopyFabArray(44), S_CopyFabArrayFromSidecar(45);
+  const int S_QuitSignal(-100);
 
 
   // --------------------------------------------------------------------------
@@ -225,7 +226,7 @@ namespace
           }
 	  break;
 
-	  case ParallelDescriptor::SidecarQuitSignal:
+	  case S_QuitSignal:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << "Sidecars received the quit signal." << std::endl;
@@ -281,7 +282,7 @@ int main(int argc, char *argv[]) {
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << myProcAll << ":: Resizing sidecars = " << nSidecarProcs << std::endl;
     }
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+    ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
     MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 
 
@@ -401,7 +402,7 @@ int main(int argc, char *argv[]) {
 
       if(nSidecarProcs > 0) {
 	// ---- stop the sidecars
-	sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
+	sidecarSignal = S_QuitSignal;
 	ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
 	                          ParallelDescriptor::CommunicatorInter());
       }
@@ -415,10 +416,10 @@ int main(int argc, char *argv[]) {
 
     ParallelDescriptor::Barrier();
     nSidecarProcs = 0;
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
-
+    ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
 
     BoxLib::Finalize();
+
     return 0;
 }
 // --------------------------------------------------------------------------
