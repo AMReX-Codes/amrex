@@ -196,7 +196,7 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsSidecar (int whichSidecar)
+    NProcsSidecar (int whichSidecar = 0)
     {
 	if(nSidecars == 0) {
 	  return 0;
