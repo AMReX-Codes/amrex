@@ -8,3 +8,6 @@ endif
 ifeq ($(EBASE),destmftest)
   CEXE_sources += DestMFTest.cpp
 endif
+ifeq ($(EBASE),nsidecarstest)
+  CEXE_sources += NSidecarsTest.cpp
+endif
