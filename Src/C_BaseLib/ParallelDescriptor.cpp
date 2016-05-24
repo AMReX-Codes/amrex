@@ -1381,7 +1381,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 {
     m_nProcs_all     = 1;
     m_nProcs_comp    = 1;
-    m_nProcs_sidecar = 0;
 
     m_MyId_all     = 0;
     m_MyId_comp    = 0;
@@ -1440,7 +1439,7 @@ void ParallelDescriptor::Abort (int)
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
 void ParallelDescriptor::Barrier (const std::string &message) {}
-void ParallelDescriptor::Barrier (MPI_Comm, const std::string &message) {}
+void ParallelDescriptor::Barrier (const MPI_Comm &comm, const std::string &message) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
 void ParallelDescriptor::IProbe (int, int, int&, MPI_Status&) {}
