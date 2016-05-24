@@ -28,8 +28,8 @@ module parallel
   integer, private :: m_nprocs = -1
   integer, private :: m_nprocs_all     = m_nprocs_undefined
   integer, private :: m_nprocs_comp    = m_nprocs_undefined
-  integer, private :: m_nprocs_sidecar = m_nprocs_undefined
-  integer, private :: m_nsidecar_procs = 0
+  integer, private, allocatable :: m_nprocs_sidecar(:)
+  integer, private :: m_nsidecars = 0
   integer, private :: m_myproc = -1
   integer, private :: m_myproc_all     = m_myproc_undefined
   integer, private :: m_myproc_comp    = m_myproc_undefined
@@ -37,11 +37,11 @@ module parallel
   integer, private :: m_comm   = -1
   integer, private :: m_comm_all     = MPI_COMM_NULL
   integer, private :: m_comm_comp    = MPI_COMM_NULL
-  integer, private :: m_comm_sidecar = MPI_COMM_NULL
-  integer, private :: m_comm_inter   = MPI_COMM_NULL
+  integer, private, allocatable :: m_comm_sidecar(:)
+  integer, private, allocatable :: m_comm_inter(:)
   integer, private :: m_group_all     = MPI_GROUP_NULL
   integer, private :: m_group_comp    = MPI_GROUP_NULL
-  integer, private :: m_group_sidecar = MPI_GROUP_NULL
+  integer, private, allocatable :: m_group_sidecar(:)
   integer, private :: m_thread_support_level = MPI_THREAD_SINGLE
   integer, private :: mpi_ll_t = -1
   integer, private :: MPI_MAX_LONG = -1
@@ -414,9 +414,10 @@ contains
     integer r
     r = m_nprocs_comp
   end function parallel_nprocs_comp
-  pure function parallel_nprocs_sidecar() result(r)
+  pure function parallel_nprocs_sidecar(whichsidecar) result(r)
+    integer, intent(in) :: whichsidecar
     integer r
-    r = m_nprocs_sidecar
+    r = m_nprocs_sidecar(whichsidecar)
   end function parallel_nprocs_sidecar
   pure function parallel_myproc() result(r)
     integer r
@@ -2233,13 +2234,14 @@ contains
     call parallel_finalize(do_finalize_MPI=.false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
 
-  subroutine parallel_set_nprocs_sidecar(nscp, npa, npc, nps, coma, comc, coms, &
+  subroutine parallel_set_nprocs_sidecar(nsc, iws, npa, npc, nps, coma, comc, coms, &
                                          grpa, grpc, grps, mpa, mpc, mps)          &
                                          bind(c, name='bl_fortran_set_nprocs_sidecar')
     use iso_c_binding
-    integer(c_int), intent(in), value :: nscp, npa, npc, nps, coma, comc, coms
-    integer(c_int), intent(in), value :: grpa, grpc, grps, mpa, mpc, mps
-    m_nsidecar_procs = nscp
+    integer(c_int), intent(in), value :: nsc, iws, npa, npc, coma, comc
+    integer(c_int), intent(in), value :: grpa, grpc, mpa, mpc, mps
+    integer(c_int), intent(in) :: nps(0:nsc-1), coms(0:nsc-1), grps(0:nsc-1)
+    m_nsidecars = nsc
     m_nprocs_all = npa
     m_nprocs_comp = npc
     m_nprocs_sidecar = nps
@@ -2257,9 +2259,15 @@ contains
       m_myproc = m_myproc_comp
       m_comm   = m_comm_comp
     else
-      m_nprocs = m_nprocs_sidecar
-      m_myproc = m_myproc_sidecar
-      m_comm   = m_comm_sidecar
+      if(iws.ge.0) then
+        m_nprocs = m_nprocs_sidecar(iws)
+        m_myproc = m_myproc_sidecar
+        m_comm   = m_comm_sidecar(iws)
+      else
+        m_nprocs = m_nprocs_undefined
+        m_myproc = m_myproc_undefined
+        m_comm   = MPI_COMM_NULL
+      endif
     endif
   end subroutine parallel_set_nprocs_sidecar
 
