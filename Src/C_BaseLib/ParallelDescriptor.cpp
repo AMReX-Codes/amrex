@@ -42,7 +42,6 @@ namespace ParallelDescriptor
     const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
-    //int m_nProcs_sidecar = nProcs_undefined;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
     const int notInSidecar  = -44;
@@ -261,7 +260,9 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_MyId_all   != myId_undefined);
     BL_ASSERT(m_nProcs_all != nProcs_undefined);
 
-    MPI_Group_free(&m_group_all);
+    if(m_group_all != MPI_GROUP_NULL) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
+    }
 
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
@@ -352,7 +353,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
     m_comm_inter.clear();
 
-    if(m_group_comp != MPI_GROUP_NULL) {
+    if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
       m_group_comp = MPI_GROUP_NULL;
     }
