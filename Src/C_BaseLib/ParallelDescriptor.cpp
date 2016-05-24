@@ -19,8 +19,8 @@ extern "C" {
     void bl_fortran_sidecar_mpi_comm_free (int fcomm);
     void bl_fortran_set_nprocs_sidecar(int nSidecarProcs, int inWhichSidecar,
                     int m_nProcs_all, int m_nProcs_comp, int *m_nProcs_sidecar,
-                    int fcomma, int fcommc, int fcomms,
-                    int fgrpa, int fgrpc, int fgrps,
+                    int fcomma, int fcommc, int *fcomms,
+                    int fgrpa, int fgrpc, int *fgrps,
                     int m_MyId_all, int m_MyId_comp, int m_MyId_sidecar);
 }
 #endif
@@ -45,21 +45,21 @@ namespace ParallelDescriptor
     //int m_nProcs_sidecar = nProcs_undefined;
     Array<int> m_nProcs_sidecar;
     int nSidecars = 0;
-    int inWhichSidecar = -1;
+    const int notInSidecar  = -44;
+    int inWhichSidecar = notInSidecar;
     //
     // BoxLib's Communicators
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all ranks, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
-    MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the ranks in the sidecar
-    //MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
+    Array<MPI_Comm> m_comm_sidecar;             // for the ranks in the sidecar
     Array<MPI_Comm> m_comm_inter;               // for communicating between comp and sidecar
     //
     // BoxLib's Groups
     //
     MPI_Group m_group_all     = MPI_GROUP_NULL;
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
-    MPI_Group m_group_sidecar = MPI_GROUP_NULL;
+    Array<MPI_Group> m_group_sidecar;
 
     int m_MinTag = 1000, m_MaxTag = -1, m_MaxTag_MPI = -1, tagBuffer = 32;
 
@@ -285,8 +285,11 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     std::set<int> rankSet;
     for(int i(0); i < compRanksInAll.size(); ++i) {
       rankSet.insert(compRanksInAll[i]);
-      inComp = true;
+      if(m_MyId_all == compRanksInAll[i]) {
+        inComp = true;
+      }
     }
+    inWhichSidecar = notInSidecar;
     for(int i(0); i < sidecarRanksInAll.size(); ++i) {
       for(int j(0); j < sidecarRanksInAll[i].size(); ++j) {
         rankSet.insert(sidecarRanksInAll[i][j]);
@@ -328,18 +331,20 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
 
 
-
-
     // ---- free existing groups and communicators
     // ---- and reinitialize values
     if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
       m_comm_comp = MPI_COMM_NULL;
     }
-    if(m_comm_sidecar != MPI_COMM_NULL) {
-      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar) );
-      m_comm_sidecar = MPI_COMM_NULL;
+    for(int i(0); i < m_comm_sidecar.size(); ++i) {
+      if(m_comm_sidecar[i] != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_sidecar[i]) );
+        m_comm_sidecar[i] = MPI_COMM_NULL;
+      }
     }
+    m_comm_sidecar.clear();
+
     for(int i(0); i < m_comm_inter.size(); ++i) {
       if(m_comm_inter[i] != MPI_COMM_NULL) {
         BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_inter[i]) );
@@ -351,9 +356,12 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
       m_group_comp = MPI_GROUP_NULL;
     }
-    if(m_group_sidecar != MPI_GROUP_NULL) {
-      BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar) );
+    for(int i(0); i < m_group_sidecar.size(); ++i) {
+      if(m_group_sidecar[i] != MPI_GROUP_NULL) {
+        BL_MPI_REQUIRE( MPI_Group_free(&m_group_sidecar[i]) );
+      }
     }
+    m_group_sidecar.clear();
 
     m_nProcs_comp = nProcs_undefined;
     m_MyId_comp   = myId_undefined;
@@ -365,21 +373,19 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(nSidecars > 0) {
 
       m_nProcs_sidecar.resize(nSidecars, nProcs_undefined);
+      m_group_sidecar.resize(nSidecars, MPI_GROUP_NULL);
+      m_comm_sidecar.resize(nSidecars, MPI_COMM_NULL);
 
       BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, compRanksInAll.size(), compRanksInAll.dataPtr(), &m_group_comp) );
       BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_comp, &m_comm_comp) );
 
       for(int i(0); i < sidecarRanksInAll.size(); ++i) {
 	if(sidecarRanksInAll[i].size() > 0) {
-	  if(inWhichSidecar == i) {
-            BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll[i].dataPtr(),
-	                                   &m_group_sidecar) );
-            BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar, &m_comm_sidecar) );
-            BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar, &m_nProcs_sidecar[i]) );
-	  } else {
-	    m_group_sidecar = MPI_GROUP_NULL;
-	    m_comm_sidecar  = MPI_COMM_NULL;
-	  }
+          BL_MPI_REQUIRE( MPI_Group_incl(m_group_all, sidecarRanksInAll[i].size(), sidecarRanksInAll[i].dataPtr(),
+	                                 &m_group_sidecar[i]) );
+          BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, m_group_sidecar[i], &m_comm_sidecar[i]) );
+          BL_MPI_REQUIRE( MPI_Group_size(m_group_sidecar[i], &m_nProcs_sidecar[i]) );
+	  BL_ASSERT(m_nProcs_sidecar[i] == sidecarRanksInAll[i].size());
 	} else {
           m_nProcs_sidecar[i] = 0;
 	}
@@ -421,8 +427,8 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
               BoxLib::Abort("**** Error 1:  bad inWhichSidecar in SetNProcsSidecars()");
 	    }
 	    if(inWhichSidecar == i) {
-              BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar, &m_MyId_sidecar) );
-              BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar, 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
+              BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar[i], &m_MyId_sidecar) );
+              BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar[i], 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
 	    } else {
 	      m_MyId_sidecar = myId_notInGroup;
 	    }
@@ -467,17 +473,25 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
 
 #ifdef BL_USE_FORTRAN_MPI
+if(nSidecars > 0) {
     int fcomma = MPI_Comm_c2f(m_comm_all);
     int fcommc = MPI_Comm_c2f(m_comm_comp);
-    int fcomms = MPI_Comm_c2f(m_comm_sidecar);
+    Array<int> fcomms(nSidecars, -1);
+    for(int i(0); i < fcomms.size(); ++i) {
+      fcomms[i] = MPI_Comm_c2f(m_comm_sidecar[i]);
+    }
     int fgrpa  = MPI_Group_c2f(m_group_all);
     int fgrpc  = MPI_Group_c2f(m_group_comp);
-    int fgrps  = MPI_Group_c2f(m_group_sidecar);
+    Array<int> fgrps(nSidecars, -2);
+    for(int i(0); i < fgrps.size(); ++i) {
+      fgrps[i] = MPI_Group_c2f(m_group_sidecar[i]);
+    }
     bl_fortran_set_nprocs_sidecar(nSidecars, inWhichSidecar,
                                   m_nProcs_all, m_nProcs_comp, m_nProcs_sidecar.dataPtr(),
-                                  fcomma, fcommc, fcomms,
-                                  fgrpa, fgrpc, fgrps,
+                                  fcomma, fcommc, fcomms.dataPtr(),
+                                  fgrpa, fgrpc, fgrps.dataPtr(),
                                   m_MyId_all, m_MyId_comp, m_MyId_sidecar);
+}
 #endif
 
 }
@@ -1368,7 +1382,6 @@ ParallelDescriptor::StartParallel (int*    argc,
     m_nProcs_all     = 1;
     m_nProcs_comp    = 1;
     m_nProcs_sidecar = 0;
-    //nSidecarProcs    = 0;
 
     m_MyId_all     = 0;
     m_MyId_comp    = 0;
@@ -1376,8 +1389,6 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     m_comm_all     = 0;
     m_comm_comp    = 0;
-    m_comm_sidecar = 0;
-    m_comm_inter   = 0;
 
     m_MaxTag    = 9000;
 }
