@@ -5,24 +5,26 @@
 # commandline).  This is used in various makefiles to get the input
 # for write_probin.py
 
+from __future__ import print_function
+
 import sys
 import os
 
-def findparams(paramFileDirs):
+def findparams(param_file_dirs):
 
     params = []
 
-    for d in paramFileDirs:
+    for d in param_file_dirs:
         f = os.path.normpath(d + "/_parameters")
         if (os.path.isfile(f)):
             params.append(f)
 
     for f in params:
-        print f,
+        print(f,)
 
 
 if __name__ == "__main__":
 
-    paramFileDirs = sys.argv[1:]
+    param_file_dirs = sys.argv[1:]
 
-    findparams(paramFileDirs)
+    findparams(param_file_dirs)
