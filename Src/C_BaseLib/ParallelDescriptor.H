@@ -173,7 +173,7 @@ namespace ParallelDescriptor
             BL_ASSERT(m_nProcs_comp != nProcs_undefined);
             return m_nProcs_comp;
         }
-        else if(inWhichSidecar >= 0)
+        else if(inWhichSidecar != notInSidecar)
         {
             BL_ASSERT(m_nProcs_sidecar[inWhichSidecar] != nProcs_undefined);
             return m_nProcs_sidecar[inWhichSidecar];
@@ -198,6 +198,9 @@ namespace ParallelDescriptor
     inline int
     NProcsSidecar (int whichSidecar)
     {
+	if(nSidecars == 0) {
+	  return 0;
+	}
         BL_ASSERT(whichSidecar >= 0 && whichSidecar < m_nProcs_sidecar.size());
         BL_ASSERT(m_nProcs_sidecar[whichSidecar] != nProcs_undefined);
         return m_nProcs_sidecar[whichSidecar];
@@ -252,7 +255,7 @@ namespace ParallelDescriptor
         }
         else
         {
-            BL_ASSERT(inWhichSidecar >= 0 && inWhichSidecar < m_comm_sidecar.size());
+            BL_ASSERT(inWhichSidecar != notInSidecar && inWhichSidecar < m_comm_sidecar.size());
             return m_comm_sidecar[inWhichSidecar];
         }
     }
