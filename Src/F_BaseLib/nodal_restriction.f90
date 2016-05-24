@@ -555,4 +555,60 @@ contains
 
   end subroutine nodal_restriction_3d
 
+  subroutine nodal_injection_1d(cc, loc, ff, lof, lo, hi, ir)
+    integer,    intent(in)    :: loc(:)
+    integer,    intent(in)    :: lof(:)
+    integer,    intent(in)    :: lo(:), hi(:)
+    real(dp_t), intent(inout) :: cc(loc(1):)
+    real(dp_t), intent(in)    :: ff(lof(1):)
+    integer,    intent(in)    :: ir(:)
+
+    integer    :: i
+
+    do i = lo(1),hi(1)
+       cc(i) = ff(ir(1)*i)
+    end do
+
+  end subroutine nodal_injection_1d
+
+  subroutine nodal_injection_2d(cc, loc, ff, lof, lo, hi, ir)
+
+    integer,    intent(in)    :: loc(:)
+    integer,    intent(in)    :: lof(:)
+    integer,    intent(in)    :: lo(:), hi(:)
+    real(dp_t), intent(in)    :: ff(lof(1):,lof(2):)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):)
+    integer,    intent(in)    :: ir(:)
+
+    integer    :: i, j
+
+    do j = lo(2),hi(2)
+       do i = lo(1),hi(1)
+          cc(i,j) = ff(ir(1)*i,ir(2)*j)
+       end do
+    end do
+
+  end subroutine nodal_injection_2d
+
+  subroutine nodal_injection_3d(cc, loc, ff, lof, lo, hi, ir)
+
+    integer,    intent(in   ) :: loc(:)
+    integer,    intent(in   ) :: lof(:)
+    integer,    intent(in   ) :: lo(:),hi(:)
+    real(dp_t), intent(in   ) :: ff(lof(1):,lof(2):,lof(3):)
+    real(dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
+    integer,    intent(in   ) :: ir(:)
+
+    integer    :: i, j, k
+
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             cc(i,j,k) = ff(ir(1)*i,ir(2)*j,ir(3)*k)
+          end do
+       end do
+    end do
+
+  end subroutine nodal_injection_3d
+
 end module nodal_restriction_module
