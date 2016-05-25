@@ -11,7 +11,7 @@ module ml_nodal_restriction_module
 
   private
 
-  public :: periodic_add_copy, ml_nodal_restriction, ml_nodal_restriction_wrapper
+  public :: periodic_add_copy, ml_nodal_injection, ml_nodal_restriction, ml_nodal_restriction_wrapper
 
 contains
 
@@ -172,6 +172,78 @@ contains
     call destroy(bpt)
 
   end subroutine ml_nodal_restriction
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine ml_nodal_injection(crse, fine, ir)
+
+    use nodal_restriction_module
+    use impose_neumann_bcs_module
+    type(multifab),  intent(inout)        :: crse
+    type(multifab),  intent(inout)        :: fine
+    integer,         intent(in)           :: ir(:)
+
+    integer             :: i, n, dm
+    integer             :: lo (get_dim(fine)), hi (get_dim(fine))
+    integer             :: loc(get_dim(fine)), lof(get_dim(fine))
+    real(dp_t), pointer :: fp(:,:,:,:), cp(:,:,:,:)
+    type(layout)        :: lacfine, laf
+    type(multifab)      :: cfine
+    type(mfiter)        :: mfi
+    type(box)           :: bx
+
+    type(bl_prof_timer), save :: bpt
+
+    if ( ncomp(crse) .ne. ncomp(fine) ) then
+       call bl_error('ml_nodal_injection: crse & fine must have same # of components')
+    end if
+
+    call build(bpt, "ml_nodal_injection")
+
+    laf = get_layout(fine)
+
+    call layout_build_coarse(lacfine, laf, ir)
+    call multifab_build(cfine, lacfine, nc = ncomp(crse), ng = 0, nodal = nodal_flags(crse))
+    call copy(cfine, crse)
+
+    dm = get_dim(fine)
+
+    !$omp parallel private(mfi,n,i,bx,lo,hi,lof,loc) &
+    !$omp& private(cp,fp,mp_crse,mp_fine)
+    call mfiter_build(mfi,cfine,.true.)
+    do n = 1, ncomp(cfine)
+       do while(next_tile(mfi,i))
+          bx  = get_tilebox(mfi)
+
+          lo       = lwb(bx)
+          hi       = upb(bx)
+          lof      = lwb(get_pbox(fine,    i))
+          loc      = lwb(get_pbox(cfine,   i))
+
+          cp      => dataptr(cfine,   i, n, 1)
+          fp      => dataptr(fine,    i, n, 1)
+          select case (dm)
+          case (1)
+             call nodal_injection_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, &
+                  lo, hi, ir)
+          case (2)
+             call nodal_injection_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, &
+                  lo, hi, ir)
+          case (3)
+             call nodal_injection_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, &
+                  lo, hi, ir)
+          end select
+       end do
+    end do
+    !$omp end parallel
+
+    call multifab_copy(crse, cfine)
+
+    call multifab_destroy(cfine)
+
+    call destroy(bpt)
+
+  end subroutine ml_nodal_injection
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
