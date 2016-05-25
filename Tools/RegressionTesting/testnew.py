@@ -831,6 +831,9 @@ class Repo(object):
 
 def convert_type(string):
     """ return an integer, float, or string from the input string """
+    if string is None:
+        return None
+        
     try: int(string)
     except: pass
     else: return int(string)
