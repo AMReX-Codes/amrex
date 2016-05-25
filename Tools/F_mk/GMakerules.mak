@@ -67,10 +67,10 @@ ${odir}/%.o: %.F90
 	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
 	@if [ ! -d $(mdir) ]; then mkdir -p $(mdir); fi
 ifdef MKVERBOSE
-	$(COMPILE.f90) $(OUTPUT_OPTION) $<
+	$(COMPILE.f90) $(FPP_DEFINES) $(OUTPUT_OPTION) $<
 else
 	@echo "Building $< ..."
-	@$(COMPILE.f90) $(OUTPUT_OPTION) $<
+	@$(COMPILE.f90) $(FPP_DEFINES) $(OUTPUT_OPTION) $<
 endif
 
 ${odir}/%.o: %.c
