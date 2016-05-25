@@ -23,7 +23,7 @@
       CFLAGS += -mp=nonuma -Minfo=mp
       CXXFLAGS += -mp=nonuma -Minfo=mp
     endif
-    
+
     ifdef ACC
       F90FLAGS += -acc -Minfo=acc
       FFLAGS += -acc -Minfo=acc
@@ -37,10 +37,13 @@
     endif
 
     ifdef NDEBUG
-      #FFLAGS   += -gopt -O2
-      #F90FLAGS += -gopt -O2
-      #CFLAGS   += -gopt -O2
-      #CXXFLAGS += -gopt -O2
+      # Disable debug symbols on PGI for now
+      ifndef ACC
+        FFLAGS   += -gopt -O2
+        F90FLAGS += -gopt -O2
+        CFLAGS   += -gopt -O2
+        CXXFLAGS += -gopt -O2
+      endif
     else
       FFLAGS   += -g
       F90FLAGS += -g
@@ -52,4 +55,4 @@
         #The wrappers should pick this up on Titan, so don't add it in that case.
         LDFLAGS += -pgc++libs
     endif
-    
+
