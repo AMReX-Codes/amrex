@@ -8,6 +8,7 @@
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
+#include <VisMF.H>
 
 void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
                       const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
@@ -73,7 +74,7 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
         BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
     }
 
-    // VisMF::Write(grad_phi,"GradPhi");
+    // VisMF::Write(grad_phi[0],"GradPhi");
 
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
