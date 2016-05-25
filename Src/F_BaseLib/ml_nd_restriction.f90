@@ -209,7 +209,7 @@ contains
     dm = get_dim(fine)
 
     !$omp parallel private(mfi,n,i,bx,lo,hi,lof,loc) &
-    !$omp& private(cp,fp,mp_crse,mp_fine)
+    !$omp private(cp,fp)
     call mfiter_build(mfi,cfine,.true.)
     do n = 1, ncomp(cfine)
        do while(next_tile(mfi,i))
