@@ -3,6 +3,7 @@ vpath %.c   . $(VPATH_LOCATIONS)
 vpath %.cpp . $(VPATH_LOCATIONS)
 vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
+vpath %.F90 . $(VPATH_LOCATIONS)
 
 doc:	$(html_sources)
 	mv *.html $(hdir)
@@ -19,7 +20,7 @@ realclean:: clean
 	$(RM) -fr t
 	$(RM) *.exe
 
-deppairs: $(f90sources) $(fsources)
+deppairs: $(f90sources) $(F90sources) $(fsources)
 	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
@@ -60,6 +61,18 @@ else
 	@$(COMPILE.f90) $(OUTPUT_OPTION) $<
 endif
 
+# here we rely on the compiler convection that .F90 files will automatically
+# be preprocessed
+${odir}/%.o: %.F90
+	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
+	@if [ ! -d $(mdir) ]; then mkdir -p $(mdir); fi
+ifdef MKVERBOSE
+	$(COMPILE.f90) $(OUTPUT_OPTION) $<
+else
+	@echo "Building $< ..."
+	@$(COMPILE.f90) $(OUTPUT_OPTION) $<
+endif
+
 ${odir}/%.o: %.c
 	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
 ifdef MKVERBOSE
@@ -82,16 +95,20 @@ ${hdir}/%.html: %.f90
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
 	$(F90DOC) $(F90DOC_OPTION) $<
 
+${hdir}/%.html: %.F90
+	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
+	$(F90DOC) $(F90DOC_OPTION) $<
+
 ${hdir}/%.html: %.f
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
 	$(F90DOC) $(F90DOC_OPTION) $<
 
-$(tdir)/f90.depends: $(fsources) $(f90sources)
+$(tdir)/f90.depends: $(fsources) $(f90sources) $(F90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 ifdef MKVERBOSE
 	perl $(MODDEP) $(f_includes) --odir $(odir)  $^ > $(tdir)/f90.depends 
 else
-	@echo "Building f90/f dependency File ..."
+	@echo "Building f90/F90/f dependency File ..."
 	@perl $(MODDEP) $(f_includes) --odir $(odir) $^ > $(tdir)/f90.depends 
 endif
 

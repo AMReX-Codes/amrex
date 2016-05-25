@@ -93,6 +93,8 @@ public:
     //
     int nComp () const { return n_comp; }
     //
+    ParallelDescriptor::Color color () const { return distributionMap.color(); }
+    //
     bool empty () const { return boxarray.empty(); }
     //
     // Returns a constant reference to the BoxArray that defines the
@@ -240,15 +242,16 @@ public:
         int fabIndex;
         int srcIndex;
 	CopyComTag () {}
-	explicit CopyComTag (const Box& b, int fidx, int sidx)
+	CopyComTag (const Box& b, int fidx, int sidx)
 	    : box(b), fabIndex(fidx), srcIndex(sidx) {}
 	// CopyComTag needs to be sortable if it is used in remote communication.
 	// Note that the intersection of two boxes is at most one box.
 	// Therefore fabIndex==rhs.fabIndex && srcIndex==rhs.srcIndex means
 	// *this == rhs.
 	bool operator< (const CopyComTag& rhs) const {
-	    return (fabIndex < rhs.fabIndex)
-		|| ((fabIndex == rhs.fabIndex) && (srcIndex < rhs.srcIndex));
+	    return (fabIndex < rhs.fabIndex) || ((fabIndex == rhs.fabIndex) && (
+                   (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+	           (IntVect::Compare()(box.smallEnd(),rhs.box.smallEnd()))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -636,12 +639,12 @@ public:
     explicit MFIter (const FabArrayBase& fabarray,
 		     unsigned char       flags_=0);
     // tiling w/ default size, IntVect FabArrayBase::mfiter_tile_size
-    explicit MFIter (const FabArrayBase& fabarray, 
-		     bool                do_tiling); 
+    MFIter (const FabArrayBase& fabarray, 
+	    bool                do_tiling); 
     // tiling with explicit size and flags
-    explicit MFIter (const FabArrayBase& fabarray, 
-		     const IntVect&      tilesize,
-		     unsigned char       flags_=0);
+    MFIter (const FabArrayBase& fabarray, 
+	    const IntVect&      tilesize,
+	    unsigned char       flags_=0);
     // dtor
     ~MFIter ();
     //
@@ -829,6 +832,11 @@ public:
               const DistributionMapping& dm,
               FabAlloc                   mem_mode = Fab_allocate,
 	      const IntVect&             nodal = IntVect::TheZeroVector());
+
+    FabArray (const BoxArray& bxs,
+              int             nvar,
+              int             ngrow,
+	      ParallelDescriptor::Color color);
     //
     // The destructor -- deletes all FABs in the array.
     //
@@ -843,7 +851,8 @@ public:
                  int             nvar,
                  int             ngrow,
                  FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector());
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
@@ -1052,7 +1061,8 @@ protected:
                      int                        ngrow,
                      FabAlloc                   mem_mode,
                      const DistributionMapping* dm,
-		     const IntVect&             nodal);
+		     const IntVect&             nodal,
+		     ParallelDescriptor::Color  color);
     //
     // The data.
     //
@@ -1574,7 +1584,7 @@ FabArray<FAB>::clear ()
                  FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
     if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
 #ifdef DEBUG_AFAP
-      if(ParallelDescriptor::IOProcessor() && distributionMap.size() > 0) {
+    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
         std::cout << "**** In FabArray::clear():: map not found:  size = "
                   << distributionMap.size() << std::endl;
       }
@@ -1642,6 +1652,17 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 }
 
 template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray& bxs,
+                         int             nvar,
+                         int             ngrow,
+			 ParallelDescriptor::Color color)
+    : shmem()
+{
+    m_FA_stats.recordBuild();
+    define(bxs,nvar,ngrow,Fab_allocate,IntVect::TheZeroVector(),color);
+}
+
+template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     m_FA_stats.recordDelete();
@@ -1669,7 +1690,7 @@ FabArray<FAB>::ok () const
         }
     }
 
-    ParallelDescriptor::ReduceLongAnd(isok);
+    ParallelDescriptor::ReduceLongAnd(isok, this->color());
 
     return isok != 0;
 }
@@ -1681,7 +1702,8 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
                            int                        ngrow,
                            FabAlloc                   alloc,
                            const DistributionMapping* dm,
-			   const IntVect&             nodal)
+			   const IntVect&             nodal,
+			   ParallelDescriptor::Color  color)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(boxarray.size() == 0);
@@ -1705,7 +1727,7 @@ FabArray<FAB>::defineDoit (const BoxArray&            bxs,
 
     if (dm == 0)
     {
-        distributionMap.define(boxarray,ParallelDescriptor::NProcs());
+        distributionMap.define(boxarray,ParallelDescriptor::NProcs(),color);
     }
     else
     {
@@ -1754,9 +1776,10 @@ FabArray<FAB>::define (const BoxArray& bxs,
                        int             nvar,
                        int             ngrow,
                        FabAlloc        alloc,
-		       const IntVect&  nodal)
+		       const IntVect&  nodal,
+		       ParallelDescriptor::Color color)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,0,nodal);
+    defineDoit(bxs,nvar,ngrow,alloc,0,nodal,color);
 }
 
 template <class FAB>
@@ -1768,7 +1791,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        FabAlloc                   alloc,
 		       const IntVect&             nodal)
 {
-    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal);
+    defineDoit(bxs,nvar,ngrow,alloc,&dm,nodal,ParallelDescriptor::DefaultColor());
 }
 
 template <class FAB>
@@ -2038,6 +2061,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+#endif
+
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -2046,7 +2073,24 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color src_color = src.color();
+	ParallelDescriptor::Color dst_color = this->color();
+	if (src_color == ParallelDescriptor::DefaultColor() ||
+	    dst_color == ParallelDescriptor::DefaultColor() ||
+	    src_color != dst_color) {
+	    // If any of the two FabArrays is in the global communicator, 
+	    // or if the two have different color,
+	    // all processes are here.
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else { // The two have the same non-default color.
+	    if (ParallelDescriptor::SubCommColor() == src_color) {
+		SeqNum = ParallelDescriptor::SubSeqNum();
+	    }
+	    // else I don't have any data and my SubSeqNum() should not be called.
+	}
+    }	
 
     const int N_snds = thecpc.m_SndTags->size();
     const int N_rcvs = thecpc.m_RcvTags->size();
@@ -2061,7 +2105,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 #ifdef BL_USE_MPI3
     MPI_Group tgroup, rgroup, sgroup;
     if (ParallelDescriptor::MPIOneSided())
-	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+	MPI_Comm_group(ParallelDescriptor::Communicator(this->color()), &tgroup);
 #endif
 
     //
@@ -2504,6 +2548,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef DEBUG
     {
 	BoxCommHelper bch(subbox);	
+	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(bch.data(), bch.size(), 0);
 	const Box& bx0 = bch.make_box();
 	BL_ASSERT(subbox == bx0);
@@ -2529,6 +2574,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 
 	const int N = bx.numPts()*ncomp;
 
+	BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 	ParallelDescriptor::Bcast(ovlp.dataPtr(),N,distributionMap[k]);
 
 	dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
@@ -3327,6 +3373,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
   if (copy_events) delete[] copy_events;
 
   upcxx::barrier();
+  ParallelDescriptor::Mode.set_mpi_mode(true); // since we just had a barrier
 
   // It's safe to free the send buffers now
   for (auto it = CollectData_send_data_buffers.begin(); it != CollectData_send_data_buffers.end(); ++it) {
@@ -3817,6 +3864,11 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.incr_upcxx();
+#endif
+
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -3825,7 +3877,16 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = this->color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     const int N_locs = TheSI.m_LocTags->size();
     const int N_rcvs = TheSI.m_RcvTags->size();
@@ -4048,6 +4109,11 @@ FabArray<FAB>::FillBoundary_finish ()
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
+
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.decr_upcxx();
+#endif
 
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());

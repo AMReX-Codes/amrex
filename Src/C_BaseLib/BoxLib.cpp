@@ -372,6 +372,8 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 
     ParallelDescriptor::StartTeams();
 
+    ParallelDescriptor::StartSubCommunicator();
+
     mempool_init();
 
 #endif
@@ -457,6 +459,8 @@ BoxLib::Finalize (bool finalize_parallel)
 #endif
     
     ParallelDescriptor::EndTeams();
+
+    ParallelDescriptor::EndSubCommunicator();
 
 #ifdef BL_USE_UPCXX
     upcxx::finalize();

@@ -48,7 +48,7 @@ GetOptions(
 #print "incdirs = @incdirs\n";
 $odir = $odir . $pathsep;
 
-my @suffixes = qw( .f90 .f .f95 .for );
+my @suffixes = qw( .f90 .f .f95 .for .F90 );
 push @suffixes, @forexts;
 push @vpath, @srcpaths;
 

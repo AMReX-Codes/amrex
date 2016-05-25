@@ -1,0 +1,4 @@
+boxlib.ncolors = 2
+
+n_cell = 64
+max_grid_size = 32

@@ -91,7 +91,7 @@ public:
     //
     // Make a boxList consisting of non-overlapping tile box from a single Box
     //
-    explicit BoxList (const Box& bx, const IntVect& tilesize);
+    BoxList (const Box& bx, const IntVect& tilesize);
     //
     // Append a Box to this BoxList.
     //

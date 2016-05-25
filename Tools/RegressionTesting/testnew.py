@@ -831,6 +831,9 @@ class Repo(object):
 
 def convert_type(string):
     """ return an integer, float, or string from the input string """
+    if string is None:
+        return None
+        
     try: int(string)
     except: pass
     else: return int(string)
@@ -840,6 +843,11 @@ def convert_type(string):
     else: return float(string)
 
     return string.strip()
+
+def safe_get(cp, sec, opt, default=None):
+    try: v = cp.get(sec, opt)
+    except: v = default
+    return v
 
 def load_params(args):
     """
@@ -894,15 +902,10 @@ def load_params(args):
 
 
     # BoxLib -- this will always be defined
-    try: rdir = cp.get("BoxLib", "dir")
-    except: rdir = None
-    rdir = mysuite.check_test_dir(rdir)
+    rdir = mysuite.check_test_dir(safe_get(cp, "BoxLib", "dir"))
 
-    try: branch = convert_type(cp.get("BoxLib", "branch"))
-    except: branch = None
-
-    try: rhash = convert_type(cp.get("BoxLib", "hash"))
-    except: rhash = None
+    branch = convert_type(safe_get(cp, "BoxLib", "branch"))
+    rhash = convert_type(safe_get(cp, "BoxLib", "hash"))
 
     mysuite.repos["BoxLib"] = Repo(mysuite, rdir, "BoxLib",
                                    branch_wanted=branch, hash_wanted=rhash)
@@ -918,23 +921,14 @@ def load_params(args):
         else:
             k = "source"
 
-        try: rdir = cp.get(s, "dir")
-        except: rdir = None
-        rdir = mysuite.check_test_dir(rdir)
+        rdir = mysuite.check_test_dir(safe_get(cp, s, "dir"))
+        branch = convert_type(safe_get(cp, s, "branch"))
+        rhash = convert_type(safe_get(cp, s, "hash"))
 
-        try: branch = convert_type(cp.get(s, "branch"))
-        except: branch = None
-
-        try: rhash = convert_type(cp.get(s, "hash"))
-        except: rhash = None
-
-        try: build = convert_type(cp.get(s, "build"))
-        except: build = 0
-
+        build = convert_type(safe_get(cp, s, "build", default=0))
         if s == "source": build = 1
 
-        try: comp_string = cp.get(s, "comp_string")
-        except: comp_string = None
+        comp_string = safe_get(cp, s, "comp_string")
 
         name = os.path.basename(os.path.normpath(rdir))
 
@@ -2523,13 +2517,12 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
                 # successful comparison is indicated by PLOTFILES AGREE
                 compare_successful = 0
-
                 for line in diff_lines:
                     if (line.find("PLOTFILES AGREE") >= 0 or
                         line.find("SELF TEST SUCCESSFUL") >= 0):
                         compare_successful = 1
                         break
-
+                    
                 if compare_successful:
                     if not test.diffDir == "":
                         compare_successful = 0
@@ -2596,9 +2589,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
     hf.write(new_head)
 
 
-
     ll = HTMLList(of=hf)
-
 
     if not failure_msg is None:
         ll.item("Test error: ")
@@ -2713,8 +2704,6 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     ll.write_list()
 
-
-
     if (not test.compileTest) and failure_msg is None:
 
         # parse the compare output and make an HTML table
@@ -2722,10 +2711,16 @@ def report_single_test(suite, test, tests, failure_msg=None):
         in_diff_region = False
 
         box_error = False
+        grid_error = False
+        
         for line in diff_lines:
 
             if "number of boxes do not match" in line:
                 box_error = True
+                break
+
+            if "grids do not match" in line:
+                grid_error = True
                 break
 
             if not in_diff_region:
@@ -2793,6 +2788,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         if box_error:
             hf.write("<p>number of boxes do not match</p>\n")
+
+        if grid_error:
+            hf.write("<p>grids do not match</p>\n")            
 
         # show any visualizations
         if test.doVis:

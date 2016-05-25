@@ -29,6 +29,7 @@ namespace ParallelDescriptor
     const int myId_notInGroup = -22;
     int m_MyId_all         = myId_undefined;
     int m_MyId_comp        = myId_undefined;
+    int m_MyId_sub         = myId_undefined;
     int m_MyId_sidecar     = myId_undefined;
     //
     // The number of processors.
@@ -36,6 +37,7 @@ namespace ParallelDescriptor
     const int nProcs_undefined  = -33;
     int m_nProcs_all     = nProcs_undefined;
     int m_nProcs_comp    = nProcs_undefined;
+    int m_nProcs_sub     = nProcs_undefined;
     int m_nProcs_sidecar = nProcs_undefined;
     int nSidecarProcs    = 0;
     //
@@ -47,6 +49,7 @@ namespace ParallelDescriptor
     //
     MPI_Comm m_comm_all     = MPI_COMM_NULL;    // for all procs, probably MPI_COMM_WORLD
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the computation procs
+    MPI_Comm m_comm_sub     = MPI_COMM_NULL;    // for sub computation procs
     MPI_Comm m_comm_sidecar = MPI_COMM_NULL;    // for the in-situ performance monitor
     MPI_Comm m_comm_inter   = MPI_COMM_NULL;    // for communicating between comp and sidecar
     //
@@ -56,9 +59,17 @@ namespace ParallelDescriptor
     MPI_Group m_group_comp    = MPI_GROUP_NULL;
     MPI_Group m_group_sidecar = MPI_GROUP_NULL;
 
+    int m_nCommColors = 1;
+    Color m_MyCommSubColor;
+    Color m_MyCommCompColor;
+
     int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
+
+#ifdef BL_USE_UPCXX
+    UPCXX_MPI_Mode Mode;
+#endif    
 
 #ifdef BL_USE_MPI3
     MPI_Win cp_win;
@@ -71,13 +82,13 @@ namespace ParallelDescriptor
 	//
 	// Reduce helper functons.
 	//
-	void DoAllReduceReal     (Real&      r, MPI_Op op);
-	void DoAllReduceLong     (long&      r, MPI_Op op);
-	void DoAllReduceInt      (int&       r, MPI_Op op);
+	void DoAllReduceReal     (Real&      r, MPI_Op op, Color color = DefaultColor());
+	void DoAllReduceLong     (long&      r, MPI_Op op, Color color = DefaultColor());
+	void DoAllReduceInt      (int&       r, MPI_Op op, Color color = DefaultColor());
 
-	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt);
-	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt);
-	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt);
+	void DoAllReduceReal     (Real*      r, MPI_Op op, int cnt, Color color = DefaultColor());
+	void DoAllReduceLong     (long*      r, MPI_Op op, int cnt, Color color = DefaultColor());
+	void DoAllReduceInt      (int*       r, MPI_Op op, int cnt, Color color = DefaultColor());
 
 	void DoReduceReal     (Real&      r, MPI_Op op, int cpu);
 	void DoReduceLong     (long&      r, MPI_Op op, int cpu);
@@ -340,6 +351,52 @@ ParallelDescriptor::EndParallel ()
     BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
+void
+ParallelDescriptor::StartSubCommunicator ()
+{
+    ParmParse pp("boxlib");
+    pp.query("ncolors", m_nCommColors);
+
+    if (m_nCommColors > 1) {
+
+#if defined(BL_USE_MPI3) || defined(BL_USE_UPCXX)
+	//    m_nCommColors = 1;
+	BoxLib::Abort("boxlib.ncolors > 1 not supported for MPI3 and UPCXX");
+	if (doTeamReduce())
+	    BoxLib::Abort("boxlib.ncolors > 1 not supported with team.reduce on");	    
+#endif
+
+#ifdef BL_LAZY
+	BoxLib::Abort("boxlib.ncolors > 1 not supported for LAZY=TRUE");
+#endif
+
+	m_nProcs_sub = m_nProcs_comp / m_nCommColors;
+	if (m_nProcs_sub * m_nCommColors != m_nProcs_comp) {
+	    BoxLib::Abort("# of processors is not divisible by boxlib.ncolors");
+	}
+	m_MyCommSubColor  = Color(MyProc()/m_nProcs_sub);
+	m_MyCommCompColor = Color(m_nCommColors);  // special color for CommComp color
+
+	BL_MPI_REQUIRE( MPI_Comm_split(Communicator(), m_MyCommSubColor.to_int(), MyProc(), &m_comm_sub) );
+	BL_MPI_REQUIRE( MPI_Comm_rank(m_comm_sub, &m_MyId_sub) );
+    } else {
+	m_nCommColors = 1;
+	m_nProcs_sub  = NProcs();
+	m_MyCommSubColor = Color(0);
+	m_MyCommCompColor = Color(0);
+	m_comm_sub    = Communicator();
+	m_MyId_sub    = MyProc();
+    }
+}
+
+void
+ParallelDescriptor::EndSubCommunicator ()
+{
+    if (m_nCommColors > 1) {
+	MPI_Comm_free(&m_comm_sub);
+    }
+}
+
 double
 ParallelDescriptor::second ()
 {
@@ -423,10 +480,13 @@ ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 
 void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
-                                           MPI_Op op)
+                                           MPI_Op op,
+					   Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -438,12 +498,28 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 
     Real recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  Mpi_typemap<Real>::type(),
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Real recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      Mpi_typemap<Real>::type(),
+				      op,
+				      Communicator(color)) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, sizeof(Real), false);
     r = recv;
 }
@@ -451,10 +527,13 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 void
 ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
-                                           int    cnt)
+                                           int    cnt,
+					   Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -468,12 +547,29 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 
     Array<Real> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  Mpi_typemap<Real>::type(),
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<Real> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  Mpi_typemap<Real>::type(), op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, Mpi_typemap<Real>::type(), 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      Mpi_typemap<Real>::type(),
+				      op,
+				      Communicator(color)) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceR, cnt * sizeof(Real), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -485,7 +581,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -497,17 +593,36 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 
     Real recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               Mpi_typemap<Real>::type(),
-                               op,
-                               cpu,
-                               Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Real recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, Mpi_typemap<Real>::type(), op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, Mpi_typemap<Real>::type(), 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   Mpi_typemap<Real>::type(),
+				   op,
+				   cpu,
+				   Communicator()) );
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
-        r = recv;
+	r = recv;
 }
 
 void
@@ -517,7 +632,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -531,13 +646,32 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 
     Array<Real> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               Mpi_typemap<Real>::type(),
-                               op,
-                               cpu,
-                               Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<Real> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Real>::type(), op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, Mpi_typemap<Real>::type(), op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, Mpi_typemap<Real>::type(), 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   Mpi_typemap<Real>::type(),
+				   op,
+				   cpu,
+				   Communicator()) );
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceR, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -548,41 +682,41 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real& r)
+ParallelDescriptor::ReduceRealMax (Real& r, Color color)
 {
     BL_PROFILE("ReduceRealMax");
-    util::DoAllReduceReal(r,MPI_MAX);
+    util::DoAllReduceReal(r,MPI_MAX,color);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real& r)
+ParallelDescriptor::ReduceRealMin (Real& r, Color color)
 {
-    util::DoAllReduceReal(r,MPI_MIN);
+    util::DoAllReduceReal(r,MPI_MIN,color);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real& r)
+ParallelDescriptor::ReduceRealSum (Real& r, Color color)
 {
-    util::DoAllReduceReal(r,MPI_SUM);
+    util::DoAllReduceReal(r,MPI_SUM,color);
 }
 
 void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt)
+ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
 {
     BL_PROFILE("ReduceRealMax");
-    util::DoAllReduceReal(r,MPI_MAX,cnt);
+    util::DoAllReduceReal(r,MPI_MAX,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt)
+ParallelDescriptor::ReduceRealMin (Real* r, int cnt, Color color)
 {
-    util::DoAllReduceReal(r,MPI_MIN,cnt);
+    util::DoAllReduceReal(r,MPI_MIN,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt)
+ParallelDescriptor::ReduceRealSum (Real* r, int cnt, Color color)
 {
-    util::DoAllReduceReal(r,MPI_SUM,cnt);
+    util::DoAllReduceReal(r,MPI_SUM,cnt,color);
 }
 
 void
@@ -626,10 +760,13 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
 
 void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
-                                           MPI_Op op)
+                                           MPI_Op op,
+					   Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -641,12 +778,28 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 
     long recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_LONG,
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_LONG, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG, 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      MPI_LONG,
+				      op,
+				      Communicator(color)) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, sizeof(long), false);
     r = recv;
 }
@@ -654,10 +807,13 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 void
 ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
-                                           int    cnt)
+                                           int    cnt,
+					   Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -671,12 +827,29 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 
     Array<long> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_LONG,
-                                  op,
-                                  Communicator()) );
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  MPI_LONG, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_LONG,
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      MPI_LONG,
+				      op,
+				      Communicator(color)) );
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceL, cnt * sizeof(long), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -688,7 +861,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -700,13 +873,32 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 
     long recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	long recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_LONG,
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   MPI_LONG,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -720,7 +912,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -734,13 +926,32 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 
     Array<long> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_LONG,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   MPI_LONG,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceL, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -751,51 +962,51 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long& r)
+ParallelDescriptor::ReduceLongAnd (long& r, Color color)
 {
-    util::DoAllReduceLong(r,MPI_LAND);
+    util::DoAllReduceLong(r,MPI_LAND,color);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long& r)
+ParallelDescriptor::ReduceLongSum (long& r, Color color)
 {
-    util::DoAllReduceLong(r,MPI_SUM);
+    util::DoAllReduceLong(r,MPI_SUM,color);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long& r)
+ParallelDescriptor::ReduceLongMax (long& r, Color color)
 {
-    util::DoAllReduceLong(r,MPI_MAX);
+    util::DoAllReduceLong(r,MPI_MAX,color);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long& r)
+ParallelDescriptor::ReduceLongMin (long& r, Color color)
 {
-    util::DoAllReduceLong(r,MPI_MIN);
+    util::DoAllReduceLong(r,MPI_MIN,color);
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt)
+ParallelDescriptor::ReduceLongAnd (long* r, int cnt, Color color)
 {
-    util::DoAllReduceLong(r,MPI_LAND,cnt);
+    util::DoAllReduceLong(r,MPI_LAND,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt)
+ParallelDescriptor::ReduceLongSum (long* r, int cnt, Color color)
 {
-    util::DoAllReduceLong(r,MPI_SUM,cnt);
+    util::DoAllReduceLong(r,MPI_SUM,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt)
+ParallelDescriptor::ReduceLongMax (long* r, int cnt, Color color)
 {
-    util::DoAllReduceLong(r,MPI_MAX,cnt);
+    util::DoAllReduceLong(r,MPI_MAX,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt)
+ParallelDescriptor::ReduceLongMin (long* r, int cnt, Color color)
 {
-    util::DoAllReduceLong(r,MPI_MIN,cnt);
+    util::DoAllReduceLong(r,MPI_MIN,cnt,color);
 }
 
 void
@@ -848,10 +1059,13 @@ ParallelDescriptor::ReduceLongMin (long* r, int cnt, int cpu)
 
 void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
-                                          MPI_Op op)
+                                          MPI_Op op,
+					  Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -863,12 +1077,28 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 
     int recv;
 
-    BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                                  &recv,
-                                  1,
-                                  MPI_INT,
-                                  op,
-                                  Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	int recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(&recv_team, &recv, 1, MPI_INT, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT, 
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(&r,
+				      &recv,
+				      1,
+				      MPI_INT,
+				      op,
+				      Communicator(color)));
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, sizeof(int), false);
     r = recv;
 }
@@ -876,10 +1106,13 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 void
 ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
-                                          int    cnt)
+                                          int    cnt,
+					  Color  color)
 {
+    if (!isActive(color)) return;
+
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -893,12 +1126,29 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 
     Array<int> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Allreduce(r,
-                                  recv.dataPtr(),
-                                  cnt,
-                                  MPI_INT,
-                                  op,
-                                  Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<int> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Allreduce(recv_team.dataPtr(), recv.dataPtr(), cnt, 
+					  MPI_INT, op,
+					  MyTeam().get_lead_comm()) );
+	}
+	BL_MPI_REQUIRE( MPI_Bcast(recv.dataPtr(), cnt, MPI_INT,
+				  0, MyTeam().get_team_comm()) );
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Allreduce(r,
+				      recv.dataPtr(),
+				      cnt,
+				      MPI_INT,
+				      op,
+				      Communicator(color)));
+    }
     BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceI, cnt * sizeof(int), false);
     for (int i = 0; i < cnt; i++)
         r[i] = recv[i];
@@ -910,7 +1160,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -922,13 +1172,32 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
 
     int recv;
 
-    BL_MPI_REQUIRE( MPI_Reduce(&r,
-                               &recv,
-                               1,
-                               MPI_INT,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	int recv_team;
+	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team, &recv, 1, MPI_INT, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv, 1, MPI_INT,
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(&r,
+				   &recv,
+				   1,
+				   MPI_INT,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -942,7 +1211,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cpu)
 {
 #ifdef BL_USE_UPCXX
-    upcxx::barrier();
+    Mode.set_mpi_mode();
 #endif
 
 #ifdef BL_LAZY
@@ -956,13 +1225,32 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 
     Array<int> recv(cnt);
 
-    BL_MPI_REQUIRE( MPI_Reduce(r,
-                               recv.dataPtr(),
-                               cnt,
-                               MPI_INT,
-                               op,
-                               cpu,
-                               Communicator()));
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+    if (doTeamReduce() > 1) {
+	Array<long> recv_team(cnt);
+	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
+				   0, MyTeam().get_team_comm()) );
+
+	if (isTeamLead()) {
+	    BL_MPI_REQUIRE( MPI_Reduce(&recv_team[0], &recv[0], cnt, MPI_LONG, op,
+				       RankInLeadComm(cpu), MyTeam().get_lead_comm()) );
+	}
+	if (sameTeam(cpu)) {
+	    BL_MPI_REQUIRE( MPI_Bcast(&recv[0], cnt, MPI_LONG, 
+				      0, MyTeam().get_team_comm()) );
+	}
+    }
+    else
+#endif
+    {
+	BL_MPI_REQUIRE( MPI_Reduce(r,
+				   recv.dataPtr(),
+				   cnt,
+				   MPI_INT,
+				   op,
+				   cpu,
+				   Communicator()));
+    }
     BL_COMM_PROFILE_REDUCE(BLProfiler::ReduceI, BLProfiler::AfterCall(), cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
@@ -973,39 +1261,39 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int& r)
+ParallelDescriptor::ReduceIntSum (int& r, Color color)
 {
-    util::DoAllReduceInt(r,MPI_SUM);
+    util::DoAllReduceInt(r,MPI_SUM,color);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int& r)
+ParallelDescriptor::ReduceIntMax (int& r, Color color)
 {
-    util::DoAllReduceInt(r,MPI_MAX);
+    util::DoAllReduceInt(r,MPI_MAX,color);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int& r)
+ParallelDescriptor::ReduceIntMin (int& r, Color color)
 {
-    util::DoAllReduceInt(r,MPI_MIN);
+    util::DoAllReduceInt(r,MPI_MIN,color);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt)
+ParallelDescriptor::ReduceIntSum (int* r, int cnt, Color color)
 {
-    util::DoAllReduceInt(r,MPI_SUM,cnt);
+    util::DoAllReduceInt(r,MPI_SUM,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt)
+ParallelDescriptor::ReduceIntMax (int* r, int cnt, Color color)
 {
-    util::DoAllReduceInt(r,MPI_MAX,cnt);
+    util::DoAllReduceInt(r,MPI_MAX,cnt,color);
 }
 
 void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt)
+ParallelDescriptor::ReduceIntMin (int* r, int cnt, Color color)
 {
-    util::DoAllReduceInt(r,MPI_MIN,cnt);
+    util::DoAllReduceInt(r,MPI_MIN,cnt,color);
 }
 
 void
@@ -1045,21 +1333,25 @@ ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
 }
 
 void
-ParallelDescriptor::ReduceBoolAnd (bool& r)
+ParallelDescriptor::ReduceBoolAnd (bool& r, Color color)
 {
+    if (!isActive(color)) return;
+
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM);
+    util::DoAllReduceInt(src,MPI_SUM,color);
 
-    r = (src == ParallelDescriptor::NProcs()) ? true : false;
+    r = (src == ParallelDescriptor::NProcs(color)) ? true : false;
 }
 
 void
-ParallelDescriptor::ReduceBoolOr (bool& r)
+ParallelDescriptor::ReduceBoolOr (bool& r, Color color)
 {
+    if (!isActive(color)) return;
+
     int src = r; // src is either 0 or 1.
 
-    util::DoAllReduceInt(src,MPI_SUM);
+    util::DoAllReduceInt(src,MPI_SUM,color);
 
     r = (src == 0) ? false : true;
 }
@@ -1274,6 +1566,17 @@ ParallelDescriptor::StartParallel (int*    argc,
 }
 
 void
+ParallelDescriptor::StartSubCommunicator ()
+{
+    m_nCommColors = 1;
+    m_nProcs_sub  = 1;
+    m_MyCommSubColor = Color(0);
+    m_MyCommCompColor = Color(0);
+    m_comm_sub    = 0;
+    m_MyId_sub    = 0;
+}
+
+void
 ParallelDescriptor::Gather (Real* sendbuf,
 			    int   nsend,
 			    Real* recvbuf,
@@ -1299,6 +1602,8 @@ ParallelDescriptor::Message::test ()
 }
 
 void ParallelDescriptor::EndParallel () {}
+
+void ParallelDescriptor::EndSubCommunicator () {}
 
 void ParallelDescriptor::Abort ()
 { 
@@ -1328,60 +1633,60 @@ void ParallelDescriptor::IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ParallelDescriptor::ReduceRealMax (Real&) {}
-void ParallelDescriptor::ReduceRealMin (Real&) {}
-void ParallelDescriptor::ReduceRealSum (Real&) {}
+void ParallelDescriptor::ReduceRealMax (Real&,Color) {}
+void ParallelDescriptor::ReduceRealMin (Real&,Color) {}
+void ParallelDescriptor::ReduceRealSum (Real&,Color) {}
 
 void ParallelDescriptor::ReduceRealMax (Real&,int) {}
 void ParallelDescriptor::ReduceRealMin (Real&,int) {}
 void ParallelDescriptor::ReduceRealSum (Real&,int) {}
 
-void ParallelDescriptor::ReduceRealMax (Real*,int) {}
-void ParallelDescriptor::ReduceRealMin (Real*,int) {}
-void ParallelDescriptor::ReduceRealSum (Real*,int) {}
+void ParallelDescriptor::ReduceRealMax (Real*,int,Color) {}
+void ParallelDescriptor::ReduceRealMin (Real*,int,Color) {}
+void ParallelDescriptor::ReduceRealSum (Real*,int,Color) {}
 
 void ParallelDescriptor::ReduceRealMax (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealMin (Real*,int,int) {}
 void ParallelDescriptor::ReduceRealSum (Real*,int,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long&) {}
-void ParallelDescriptor::ReduceLongSum (long&) {}
-void ParallelDescriptor::ReduceLongMax (long&) {}
-void ParallelDescriptor::ReduceLongMin (long&) {}
+void ParallelDescriptor::ReduceLongAnd (long&,Color) {}
+void ParallelDescriptor::ReduceLongSum (long&,Color) {}
+void ParallelDescriptor::ReduceLongMax (long&,Color) {}
+void ParallelDescriptor::ReduceLongMin (long&,Color) {}
 
 void ParallelDescriptor::ReduceLongAnd (long&,int) {}
 void ParallelDescriptor::ReduceLongSum (long&,int) {}
 void ParallelDescriptor::ReduceLongMax (long&,int) {}
 void ParallelDescriptor::ReduceLongMin (long&,int) {}
 
-void ParallelDescriptor::ReduceLongAnd (long*,int) {}
-void ParallelDescriptor::ReduceLongSum (long*,int) {}
-void ParallelDescriptor::ReduceLongMax (long*,int) {}
-void ParallelDescriptor::ReduceLongMin (long*,int) {}
+void ParallelDescriptor::ReduceLongAnd (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongSum (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongMax (long*,int,Color) {}
+void ParallelDescriptor::ReduceLongMin (long*,int,Color) {}
 
 void ParallelDescriptor::ReduceLongAnd (long*,int,int) {}
 void ParallelDescriptor::ReduceLongSum (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMax (long*,int,int) {}
 void ParallelDescriptor::ReduceLongMin (long*,int,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int&) {}
-void ParallelDescriptor::ReduceIntMax (int&) {}
-void ParallelDescriptor::ReduceIntMin (int&) {}
+void ParallelDescriptor::ReduceIntSum (int&,Color) {}
+void ParallelDescriptor::ReduceIntMax (int&,Color) {}
+void ParallelDescriptor::ReduceIntMin (int&,Color) {}
 
 void ParallelDescriptor::ReduceIntSum (int&,int) {}
 void ParallelDescriptor::ReduceIntMax (int&,int) {}
 void ParallelDescriptor::ReduceIntMin (int&,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int*,int) {}
-void ParallelDescriptor::ReduceIntMax (int*,int) {}
-void ParallelDescriptor::ReduceIntMin (int*,int) {}
+void ParallelDescriptor::ReduceIntSum (int*,int,Color) {}
+void ParallelDescriptor::ReduceIntMax (int*,int,Color) {}
+void ParallelDescriptor::ReduceIntMin (int*,int,Color) {}
 
 void ParallelDescriptor::ReduceIntSum (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMax (int*,int,int) {}
 void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool&) {}
-void ParallelDescriptor::ReduceBoolOr  (bool&) {}
+void ParallelDescriptor::ReduceBoolAnd (bool&,Color) {}
+void ParallelDescriptor::ReduceBoolOr  (bool&,Color) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
@@ -1412,12 +1717,35 @@ int
 ParallelDescriptor::SeqNum ()
 {
     static int seqno = m_MinTag;
+    int result = seqno;
 
-    int result = seqno++;
+    if (NColors() == 1) { 
+	++seqno;
+    } else {
+	seqno += 2;
+    } 
 
     if (seqno > m_MaxTag) {
-      seqno = m_MinTag;
-      BL_COMM_PROFILE_TAGWRAP();
+	seqno = m_MinTag;
+	BL_COMM_PROFILE_TAGWRAP();
+    }
+
+    return result;
+}
+
+// FIXME: Does COMM_PROFILE work with these two SeqNum functions?
+
+int
+ParallelDescriptor::SubSeqNum ()
+{
+    static int seqno = m_MinTag+1;    
+    int result = seqno;
+
+    seqno += 2;
+
+    if (seqno > m_MaxTag) {
+	seqno = m_MinTag+1;
+	BL_COMM_PROFILE_TAGWRAP();
     }
 
     return result;
@@ -1677,10 +2005,12 @@ void
 ParallelDescriptor::StartTeams ()
 {
     int team_size = 1;
+    int do_team_reduce = 0;
 
-#ifdef BL_USE_MPI
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
     ParmParse pp("team");
     pp.query("size", team_size);
+    pp.query("reduce", do_team_reduce);
 #endif
 
     int nprocs = ParallelDescriptor::NProcs();
@@ -1695,27 +2025,39 @@ ParallelDescriptor::StartTeams ()
     m_Team.m_lead        = m_Team.m_color * team_size;
     m_Team.m_rankInTeam  = rank - m_Team.m_lead;
 
-    if (team_size > 1)
+    m_Team.m_do_team_reduce = team_size > 0 && do_team_reduce;
+
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
     {
-#ifdef BL_USE_UPCXX
-	upcxx::team* team;
-	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
-        m_Team.m_team = team;
-#elif defined(BL_USE_MPI3)
-	MPI_Group grp;
+	MPI_Group grp, team_grp, lead_grp;
 	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
 	int team_ranks[team_size];
 	for (int i = 0; i < team_size; ++i) {
 	    team_ranks[i] = MyTeamLead() + i;
 	}
-	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &m_Team.get_group()) );
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
 	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
-					m_Team.get_group(), &m_Team.get()) );
-#else
-	if (ParallelDescriptor::IOProcessor())
-	    BoxLib::Warning("Must compile with either USE_UPCXX or USE_MPI3=TRUE for team.size>1 to take effect.");
+					team_grp, &m_Team.m_team_comm) );
+
+	std::vector<int>lead_ranks(m_Team.m_numTeams);
+	for (int i = 0; i < lead_ranks.size(); ++i) {
+	    lead_ranks[i] = i * team_size;
+	}
+	BL_MPI_REQUIRE( MPI_Group_incl(grp, lead_ranks.size(), &lead_ranks[0], &lead_grp) );
+	BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(), 
+					lead_grp, &m_Team.m_lead_comm) );
+
+        BL_MPI_REQUIRE( MPI_Group_free(&grp) );
+        BL_MPI_REQUIRE( MPI_Group_free(&team_grp) );
+        BL_MPI_REQUIRE( MPI_Group_free(&lead_grp) );
+
+#ifdef BL_USE_UPCXX
+	upcxx::team* team;
+	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
+        m_Team.m_upcxx_team = team;
 #endif
     }
+#endif
 }
 #endif
 
