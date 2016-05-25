@@ -97,6 +97,11 @@ public:
               FabAlloc                   mem_mode = Fab_allocate,
 	      const IntVect&             nodal = IntVect::TheZeroVector());
 
+    MultiFab (const BoxArray& bs,
+              int             ncomp,
+              int             ngrow,
+	      ParallelDescriptor::Color color);
+
     void operator= (const Real& r);
     //
     // Initialize FArrayBoxes
@@ -138,20 +143,20 @@ public:
 	      bool       local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
-    // component comp of the MultiFab.  No ghost cells are used.
+    // component comp of the MultiFab.
     //
-    Real norm0 (int comp = 0, bool local = false) const;
+    Real norm0 (int comp = 0, int nghost = 0, bool local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the MultiFab in the intersection of the BoxArray
-    // and the valid regions of the MultiFab.  No ghost cells are used.
+    // and the valid regions of the MultiFab.
     //
-    Real norm0 (int comp, const BoxArray& ba, bool local = false) const;
+    Real norm0 (int comp, const BoxArray& ba, int nghost = 0, bool local = false) const;
     //
     // Returns the maximum *absolute* values contained in 
     // each component of "comps" of the MultiFab.  No ghost cells are used.
     //
-    Array<Real> norm0 (const Array<int>& comps, bool local = false) const;
+    Array<Real> norm0 (const Array<int>& comps, int nghost = 0, bool local = false) const;
     //
     // Returns the L1 norm of component "comp" over the MultiFab.
     // ngrow ghost cells are used.

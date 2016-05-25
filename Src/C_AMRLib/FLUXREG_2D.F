@@ -167,32 +167,42 @@ c        ::::: flux normal to Y direction
       end
 
       subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
-     &     v, vlo, vhi, nc, mult, dir)
+     &     v, vlo, vhi, nc, mult, dir, isloface)
       implicit none
       integer, intent(in) :: lo(2), hi(2), slo(2), shi(2)
       integer, intent(in) :: flo(2), fhi(2), vlo(2), vhi(2)
-      integer, intent(in) :: nc, dir
+      integer, intent(in) :: nc, dir, isloface
       REAL_T , intent(in) :: mult
       REAL_T , intent(inout) :: s(slo(1):shi(1),slo(2):shi(2),nc)
       REAL_T , intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),nc)
       REAL_T , intent(in   ) :: v(vlo(1):vhi(1),vlo(2):vhi(2))
       !
       integer :: i, j, n
-      if (dir .eq. 0) then
-         do n = 1, nc
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            s(i,j,n) = s(i,j,n)+mult*(f(i,j,n)-f(i+1,j,n))/v(i,j)
-         end do
-         end do
-         end do
+      if (isloface .eq. 1) then
+         if (dir .eq. 0) then
+            do n = 1, nc
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,n) = s(i,j,n)-mult*f(i+1,j,n)/v(i,j)
+            end do
+            end do
+            end do
+         else
+            do n = 1, nc
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,n) = s(i,j,n)-mult*f(i,j+1,n)/v(i,j)
+            end do
+            end do
+            end do
+         end if
       else
-         do n = 1, nc
-         do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            s(i,j,n) = s(i,j,n)+mult*(f(i,j,n)-f(i,j+1,n))/v(i,j)
-         end do
-         end do
-         end do
+            do n = 1, nc
+            do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               s(i,j,n) = s(i,j,n)+mult*f(i,j,n)/v(i,j)
+            end do
+            end do
+            end do
       end if
       end subroutine FORT_FRREFLUX

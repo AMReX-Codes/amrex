@@ -147,8 +147,9 @@ namespace BoxLib
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
 		int idummy1=0, idummy2=0;
+		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (cc)
 #endif
 		for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
 		{

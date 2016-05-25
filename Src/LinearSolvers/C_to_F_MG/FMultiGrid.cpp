@@ -157,7 +157,7 @@ FMultiGrid::set_scalars (Real alpha, Real beta)
 }
 
 void
-FMultiGrid::set_coefficients (MultiFab& a, PArray<MultiFab> & b)
+FMultiGrid::set_coefficients (const MultiFab& a, PArray<MultiFab> & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
     BL_ASSERT(!m_coeff.coeffs_set);
@@ -333,7 +333,7 @@ FMultiGrid::applyop (PArray<MultiFab> & phi,
 }
 
 void
-FMultiGrid::Copy (PArray<MultiFab>& dst, MultiFab& src)
+FMultiGrid::Copy (PArray<MultiFab>& dst, const MultiFab& src)
 {
     dst.resize(1);
     dst.set(0, &src);

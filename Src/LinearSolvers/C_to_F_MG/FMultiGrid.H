@@ -114,7 +114,7 @@ public:
     // For general_eq
     void set_scalars (Real alpha, Real beta);
     //
-    void set_coefficients (       MultiFab  &a,       PArray<MultiFab>   & b);
+    void set_coefficients (const  MultiFab  &a,       PArray<MultiFab>   & b);
     void set_coefficients (PArray<MultiFab> &a, Array<PArray<MultiFab> > & b);
 
     Real solve (MultiFab& phi,
@@ -202,7 +202,7 @@ private:
     };
     ABecCoeff m_coeff;
 
-    static void Copy (PArray<MultiFab>& dst, MultiFab& src);
+    static void Copy (PArray<MultiFab>& dst, const MultiFab& src);
     static void Copy (PArray<MultiFab>& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, PArray<MultiFab>& src);
     static void Copy (Array<PArray<MultiFab> >& dst, Array<PArray<MultiFab> >& src);
