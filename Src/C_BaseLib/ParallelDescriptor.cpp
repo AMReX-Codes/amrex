@@ -260,8 +260,17 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_MyId_all   != myId_undefined);
     BL_ASSERT(m_nProcs_all != nProcs_undefined);
 
+    if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
+      BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
+    }
+    if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
+    }
     if(m_group_all != MPI_GROUP_NULL) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_all) );
+    }
+    if(m_comm_all != MPI_COMM_NULL) {
+      BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_all) );
     }
 
     BL_MPI_REQUIRE( MPI_Finalize() );
