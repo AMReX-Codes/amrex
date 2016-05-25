@@ -280,7 +280,7 @@ FORTPREP  	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
 # a placeholder in case we have to write something later
 F90PREP  	= cat
 MKDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/mkdep
-MODDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/moddep.pl
+MODDEP		= perl $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 
 RANLIB = true
 
