@@ -82,6 +82,13 @@ namespace ParallelDescriptor
     extern int m_MyId_sidecar;
     extern const int notInSidecar;
 
+    extern const int nProcs_undefined;
+    extern int m_nProcs_all;
+    extern int m_nProcs_comp;
+    extern Array<int> m_nProcs_sidecar;
+    extern int nSidecars;
+    extern int inWhichSidecar;
+
     //
     // return the rank number local to the comp or sidecar groups
     //
@@ -126,19 +133,17 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_sidecar != myId_undefined);
         return (m_MyId_sidecar >= 0);
     }
+    inline int
+    InWhichSidecar ()
+    {
+        return inWhichSidecar;
+    }
     inline bool
     InCompGroup ()
     {
         BL_ASSERT(m_MyId_comp != myId_undefined);
         return (m_MyId_comp >= 0);
     }
-
-    extern const int nProcs_undefined;
-    extern int m_nProcs_all;
-    extern int m_nProcs_comp;
-    extern Array<int> m_nProcs_sidecar;
-    extern int nSidecars;
-    extern int inWhichSidecar;
 
     //
     // This sets the number of MPI ranks in the sidecar and
