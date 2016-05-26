@@ -296,7 +296,6 @@ def write_probin(probin_template, param_A_files, param_B_files,
                 for n in range(len(params)):
                     fout.write("%s%s = %s\n" % 
                                (indent, params[n].var, params[n].value))
-                    fout.write("%s!$acc update device(%s)\n" % (indent, params[n].var))
 
             elif keyword == "commandline":
 
@@ -308,14 +307,12 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     if params[n].type == "character":
                         fout.write("%s   call get_command_argument(farg, value = %s)\n" % 
                                    (indent, params[n].var))
-                        fout.write("%s   !$acc update device(%s)\n\n" % (indent, params[n].var))
 
                     else:
                         fout.write("%s   call get_command_argument(farg, value = fname)\n" % 
                                    (indent))
                         fout.write("%s   read(fname, *) %s\n" % 
                                    (indent, params[n].var))
-                        fout.write("%s   !$acc update device(%s)\n\n" % (indent, params[n].var))
 
             elif keyword == "printing":
 
@@ -351,6 +348,23 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
                     else:
                         print("write_probin.py: invalid datatype for variable {}".format(params[n].var))
+
+
+            elif keyword == "acc":
+
+                fout.write(indent + "!$acc update &\n")
+                fout.write(indent + "!$acc device(")
+
+                for n, p in enumerate(params):
+                    fout.write("{}".format(p.var))
+
+                    if n == len(params)-1:
+                        fout.write(")\n")
+                    else:
+                        if n % 3 == 2:
+                            fout.write(") &\n" + indent + "!$acc device(")
+                        else:
+                            fout.write(", ")
 
             #else:
                 
