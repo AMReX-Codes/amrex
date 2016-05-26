@@ -4,7 +4,6 @@ import sys
 import os
 import getopt
 import datetime
-import string
 import subprocess
 
 
@@ -91,7 +90,7 @@ const char* buildInfoGetBuildGitName() {
 def runcommand(command):
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     out = p.stdout.read()
-    return out.strip()
+    return out.strip().decode("ascii")
 
 def get_git_hash(d):
     cwd = os.getcwd()
@@ -180,27 +179,27 @@ for line in source.splitlines():
         keyword = line[index+len("@@"):index2]
 
         if keyword == "BUILD_DATE":
-            newline = string.replace(line, "@@BUILD_DATE@@", build_date)
+            newline = line.replace("@@BUILD_DATE@@", build_date)
             fout.write(newline)
 
         elif keyword == "BUILD_DIR":
-            newline = string.replace(line, "@@BUILD_DIR@@", build_dir)
+            newline = line.replace("@@BUILD_DIR@@", build_dir)
             fout.write(newline)
 
         elif keyword == "BUILD_MACHINE":
-            newline = string.replace(line, "@@BUILD_MACHINE@@", build_machine)
+            newline = line.replace("@@BUILD_MACHINE@@", build_machine)
             fout.write(newline)
 
         elif keyword == "BOXLIB_DIR":
-            newline = string.replace(line, "@@BOXLIB_DIR@@", boxlib_home)
+            newline = line.replace("@@BOXLIB_DIR@@", boxlib_home)
             fout.write(newline)
 
         elif keyword == "COMP":
-            newline = string.replace(line, "@@COMP@@", COMP)
+            newline = line.replace("@@COMP@@", COMP)
             fout.write(newline)
 
         elif keyword == "FCOMP":
-            newline = string.replace(line, "@@FCOMP@@", FCOMP)
+            newline = line.replace("@@FCOMP@@", FCOMP)
             fout.write(newline)
 
         elif keyword == "AUX_DECLS":
