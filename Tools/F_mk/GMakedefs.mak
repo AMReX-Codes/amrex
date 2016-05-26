@@ -14,6 +14,7 @@ F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
 CXXFLAGS :=
+FPP_DEFINES :=
 
 FCOMP_VERSION :=
 
@@ -61,7 +62,8 @@ suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp
 sources     =
 fsources    =
 f90sources  =
-sf90sources  =
+sf90sources =
+F90sources  =
 csources    =
 cxxsources  =
 libraries   =
@@ -204,6 +206,9 @@ f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
 c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
+
+# MODDEP is for .f90, .f, and .F90.  
+# MKDEP is for c
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
@@ -217,18 +222,21 @@ CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \
 	$(sort $(sf90sources:.f90=.o)) \
+	$(sort $(F90sources:.F90=.o)) \
 	$(sort $(fsources:.f=.o))     \
 	$(sort $(csources:.c=.o))     \
 	$(sort $(cxxsources:.cpp=.o))     \
 	)
 sources =                     \
 	$(sort $(f90sources)) \
+        $(sort $(F90sources)) \
 	$(sort $(fsources)  ) \
 	$(sort $(csources)  ) \
 	$(sort $(cxxsources)  )
 
 html_sources = $(addprefix $(hdir)/,     \
 	$(sort $(f90sources:.f90=.html)) \
+	$(sort $(F90sources:.F90=.html)) \
 	$(sort $(fsources:.f=.html))     \
 	)
 
