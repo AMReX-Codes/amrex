@@ -440,7 +440,9 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
               BL_MPI_REQUIRE( MPI_Group_rank(m_group_sidecar[i], &m_MyId_sidecar) );
               BL_MPI_REQUIRE( MPI_Intercomm_create(m_comm_sidecar[i], 0, m_comm_all, 0, tag, &m_comm_inter[i]) );
 	    } else {
-	      m_MyId_sidecar = myId_notInGroup;
+              if(m_MyId_sidecar == myId_undefined) {
+	        m_MyId_sidecar = myId_notInGroup;
+	      }
 	    }
 	    m_MyId_comp = myId_notInGroup;
           }
