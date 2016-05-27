@@ -15,6 +15,7 @@ PRECISION = DOUBLE
 EBASE     = sidecarresizetest
 EBASE     = gridmovetest
 EBASE     = destmftest
+EBASE     = nsidecarstest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE
 ANALYSIS_DIR = $(BOXLIB_HOME)/Tutorials/Sidecar_EX1
