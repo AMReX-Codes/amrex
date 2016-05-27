@@ -214,3 +214,69 @@ BLRngPoisson::restore (const char* name)
     }
 }
 
+//
+// binomial distribution
+//
+extern "C"
+{
+    void bl_rng_new_binomial_c (BLRngBinomial*& rng,
+				int s, int t, double p, int rank, int nprocs)
+    {
+	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
+	rng = new BLRngBinomial(seed,t,p);
+    }
+    //
+    void bl_rng_delete_binomial_c (BLRngBinomial* rng)
+    {
+	delete rng;
+    }
+    //
+    int bl_rng_get_binomial_c (BLRngBinomial* rng)
+    {
+	return (*rng)();
+    }
+    //
+    void bl_rng_save_binomial_c (const BLRngBinomial* rng, const char* name)
+    {
+	rng->save(name);
+    }
+    //
+    void bl_rng_restore_binomial_c (BLRngBinomial*& rng, const char* name)
+    {
+	rng = new BLRngBinomial();
+	rng->restore(name);
+    }
+}
+
+BLRngBinomial::BLRngBinomial (std::uint_fast32_t s, int t, double p)
+    : m_eng(s), m_dist(t,p)
+{
+    // improve quality of poor seeds
+    m_eng.discard(1000000);
+}
+
+int
+BLRngBinomial::operator() ()
+{
+    return m_dist(m_eng);
+}
+
+void
+BLRngBinomial::save (const char* name) const
+{
+    std::ofstream ofs(name);
+    ofs << m_eng << "\n" << m_dist << "\n";
+}
+
+void
+BLRngBinomial::restore (const char* name)
+{
+    std::ifstream ifs(name);
+    if (ifs.good()) {
+	ifs >> m_eng >> m_dist;
+    } else {
+	std::cerr << "bl_rng: faied to open " << name << std::endl;
+	backtrace_handler(6);
+    }
+}
+

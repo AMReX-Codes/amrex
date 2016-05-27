@@ -45,5 +45,18 @@ private:
     std::poisson_distribution<int> m_dist;
 };
 
+class BLRngBinomial
+{
+public:
+    BLRngBinomial () {}
+    BLRngBinomial (std::uint_fast32_t s, int t, double p);
+    ~BLRngBinomial () {}
+    int operator() ();
+    void save (const char* name) const;
+    void restore (const char* name);
+private:
+    std::mt19937 m_eng;
+    std::binomial_distribution<int> m_dist;
+};
 
 #endif
