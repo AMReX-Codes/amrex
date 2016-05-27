@@ -13,28 +13,33 @@ program main
   type(bl_rng_uniform_real) :: ur_orig, ur_restore
   type(bl_rng_normal) :: nm_orig, nm_restore
   type(bl_rng_poisson) :: ps_orig, ps_restore
+  type(bl_rng_binomial) :: bi_orig, bi_restore
 
   call boxlib_initialize()
 
   ! uniform real distribution: [0.0d0, 1.0d0), seed is 42.
   call bl_rng_build(ur_orig, 42, 0.0d0, 1.0d0)
 
-  ! normal distribution with mean=0.d0, stddev=1.0d0
+  ! normal distribution with mean=0.d0, stddev=1.0d0, seed is 549
   call bl_rng_build(nm_orig, 549, 0.0d0, 1.0d0)
 
-  ! poisson distribution with mean=10.d0
-  call bl_rng_build(ps_orig, 342, 10.0d0)
+  ! poisson distribution with mean=100.d0, seed is 342
+  call bl_rng_build(ps_orig, 342, 100.0d0)
+
+  ! binomial distribution with t=160 (number of trials), p=0.6d0, seed is 8856
+  call bl_rng_build(bi_orig, 8856, 160, 0.6d0)
 
   if (parallel_myproc() .eq. 0) then
-     print *, 'uniform real, normal, poisson'
+     print *, 'uniform real, normal, poisson, binomial'
   end if
   do i = 1, 10
      r(1)  = bl_rng_get(ur_orig)
      r(2)  = bl_rng_get(nm_orig)
      ir(1) = bl_rng_get(ps_orig)
+     ir(2) = bl_rng_get(bi_orig)
 
      if (parallel_myproc() .eq. 0) &
-          print *, r(1), r(2), ir(1)
+          print *, r(1), r(2), ir(1), ir(2)
   end do
 
   call bl_rng_save   (ur_orig   , "rng_state_uniform_real")
@@ -46,6 +51,8 @@ program main
   call bl_rng_save   (ps_orig   , "rng_state_poisson")
   call bl_rng_restore(ps_restore, "rng_state_poisson")
 
+  call bl_rng_save   (bi_orig   , "rng_state_binomial")
+  call bl_rng_restore(bi_restore, "rng_state_binomial")
 
   if (parallel_myproc() .eq. 0) then
      print *, 'uniform real: original, restart, difference'
@@ -85,6 +92,30 @@ program main
         print *, "poisson error!!! ", ia, ib
      end if
   end do
+
+  if (parallel_myproc() .eq. 0) then
+     print *, 'binomial: original, restart, difference'
+  end if
+  do i = 1, 10
+     ia = bl_rng_get(bi_orig)
+     ib = bl_rng_get(bi_restore)
+     if (parallel_myproc() .eq. 0) then
+        print *, ia, ib, ia-ib
+     else if (ia .ne. ib) then
+        print *, "binomial error!!! ", ia, ib
+     end if
+  end do
+
+  if (parallel_myproc() .eq. 0) then
+     print *, 'rank, uniform real, normal, poisson, binomial'
+  end if
+  do i = 0, parallel_nprocs()
+     if (i .eq. parallel_myproc()) then
+        print *, parallel_myproc(), bl_rng_get(ur_orig), bl_rng_get(nm_orig), &
+             bl_rng_get(ps_orig), bl_rng_get(bi_orig) 
+     end if
+     call parallel_barrier()
+  end do
   
   call bl_rng_destroy(ur_orig)
   call bl_rng_destroy(ur_restore)
@@ -92,6 +123,8 @@ program main
   call bl_rng_destroy(nm_restore)
   call bl_rng_destroy(ps_orig)
   call bl_rng_destroy(ps_restore)
+  call bl_rng_destroy(bi_orig)
+  call bl_rng_destroy(bi_restore)
 
   call boxlib_finalize()
 
