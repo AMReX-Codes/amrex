@@ -1,0 +1,232 @@
+
+! This module uses C++11 random number generator, Mersenne Twister
+module bl_random_module
+
+  use iso_c_binding
+  use bl_error_module
+  use parallel
+  use fabio_module
+
+  implicit none
+
+  private 
+  public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
+       bl_rng_uniform_real, bl_rng_normal
+
+  type bl_rng_uniform_real
+     type(c_ptr), private :: p = c_null_ptr
+  end type bl_rng_uniform_real
+
+  type bl_rng_normal
+     type(c_ptr), private :: p = c_null_ptr
+  end type bl_rng_normal
+
+  interface bl_rng_build
+     module procedure bl_rng_build_uniform_real
+     module procedure bl_rng_build_normal
+  end interface bl_rng_build
+
+  interface bl_rng_destroy
+     module procedure bl_rng_destroy_uniform_real
+     module procedure bl_rng_destroy_normal
+  end interface bl_rng_destroy
+
+  interface bl_rng_get
+     module procedure bl_rng_get_uniform_real
+     module procedure bl_rng_get_normal
+  end interface bl_rng_get
+
+  interface bl_rng_save
+     module procedure bl_rng_save_uniform_real
+     module procedure bl_rng_save_normal
+  end interface bl_rng_save
+
+  interface bl_rng_restore
+     module procedure bl_rng_restore_uniform_real
+     module procedure bl_rng_restore_normal
+  end interface bl_rng_restore
+
+  ! uniform real distribution
+  interface
+     subroutine bl_rng_new_uniform_real_c(rng, s, a, b, rank, nprocs) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       integer(c_int), intent(in), value :: s, rank, nprocs
+       real(c_double), intent(in), value :: a, b
+     end subroutine bl_rng_new_uniform_real_c
+
+     subroutine bl_rng_delete_uniform_real_c(rng) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+     end subroutine bl_rng_delete_uniform_real_c
+
+     function bl_rng_get_uniform_real_c(rng) result(r) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       real(c_double) :: r
+     end function bl_rng_get_uniform_real_c
+
+     subroutine bl_rng_save_uniform_real_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_save_uniform_real_c
+
+     subroutine bl_rng_restore_uniform_real_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_restore_uniform_real_c
+  end interface
+
+  ! normal distribution
+  interface
+     subroutine bl_rng_new_normal_c(rng, s, mean, stddev, rank, nprocs) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       integer(c_int), intent(in), value :: s, rank, nprocs
+       real(c_double), intent(in), value :: mean, stddev
+     end subroutine bl_rng_new_normal_c
+
+     subroutine bl_rng_delete_normal_c(rng) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+     end subroutine bl_rng_delete_normal_c
+
+     function bl_rng_get_normal_c(rng) result(r) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       real(c_double) :: r
+     end function bl_rng_get_normal_c
+
+     subroutine bl_rng_save_normal_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_save_normal_c
+
+     subroutine bl_rng_restore_normal_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_restore_normal_c
+  end interface
+
+contains
+
+  subroutine bl_rng_filename(filename, dirname)
+    character(c_char), pointer, intent(inout) :: filename(:)
+    character(len=*), intent(in) :: dirname
+    integer :: i, n
+    character(len=16) :: procname
+    character(len=128) :: fullname
+    write(procname, *) parallel_myproc()
+    fullname = trim(dirname) // "/s" // trim(adjustl(procname))
+    n = len_trim(fullname)
+    allocate(filename(n+1))
+    do i = 1, n
+       filename(i) = fullname(i:i)
+    end do
+    filename(n+1) = c_null_char
+  end subroutine bl_rng_filename
+
+  ! 
+  ! uniform real distribution
+  !
+  subroutine bl_rng_build_uniform_real(rng, seed, a, b)
+    type(bl_rng_uniform_real), intent(inout) :: rng
+    integer(c_int), intent(in) :: seed
+    real(c_double), intent(in) :: a, b
+    call bl_rng_new_uniform_real_c(rng%p, seed, a, b, parallel_myproc(), parallel_nprocs())
+  end subroutine bl_rng_build_uniform_real
+  !
+  subroutine bl_rng_destroy_uniform_real(rng)
+    type(bl_rng_uniform_real), intent(inout) :: rng
+    call bl_rng_delete_uniform_real_c(rng%p)
+    rng%p = c_null_ptr
+  end subroutine bl_rng_destroy_uniform_real
+  !
+  function bl_rng_get_uniform_real(rng) result(r)
+    type(bl_rng_uniform_real), intent(inout) :: rng
+    real(c_double) :: r
+    r = bl_rng_get_uniform_real_c(rng%p)    
+  end function bl_rng_get_uniform_real
+  !
+  subroutine bl_rng_save_uniform_real(rng, dirname)
+    type(bl_rng_uniform_real), intent(in) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    if (parallel_IOProcessor()) then
+       call fabio_mkdir(dirname)
+    end if
+    call parallel_barrier()
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_save_uniform_real_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_save_uniform_real
+  !
+  subroutine bl_rng_restore_uniform_real(rng, dirname)
+    type(bl_rng_uniform_real), intent(inout) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_restore_uniform_real_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_restore_uniform_real
+
+  ! 
+  ! normal distribution
+  !
+  subroutine bl_rng_build_normal(rng, seed, mean, stddev)
+    type(bl_rng_normal), intent(inout) :: rng
+    integer(c_int), intent(in) :: seed
+    real(c_double), intent(in) :: mean, stddev
+    call bl_rng_new_normal_c(rng%p, seed, mean, stddev, parallel_myproc(), parallel_nprocs())
+  end subroutine bl_rng_build_normal
+  !
+  subroutine bl_rng_destroy_normal(rng)
+    type(bl_rng_normal), intent(inout) :: rng
+    call bl_rng_delete_normal_c(rng%p)
+    rng%p = c_null_ptr
+  end subroutine bl_rng_destroy_normal
+  !
+  function bl_rng_get_normal(rng) result(r)
+    type(bl_rng_normal), intent(inout) :: rng
+    real(c_double) :: r
+    r = bl_rng_get_normal_c(rng%p)    
+  end function bl_rng_get_normal
+  !
+  subroutine bl_rng_save_normal(rng, dirname)
+    type(bl_rng_normal), intent(in) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    if (parallel_IOProcessor()) then
+       call fabio_mkdir(dirname)
+    end if
+    call parallel_barrier()
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_save_normal_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_save_normal
+  !
+  subroutine bl_rng_restore_normal(rng, dirname)
+    type(bl_rng_normal), intent(inout) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_restore_normal_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_restore_normal
+
+end module bl_random_module
+
