@@ -11,7 +11,7 @@ module bl_random_module
 
   private 
   public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
-       bl_rng_uniform_real, bl_rng_normal
+       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson
 
   type bl_rng_uniform_real
      type(c_ptr), private :: p = c_null_ptr
@@ -21,29 +21,38 @@ module bl_random_module
      type(c_ptr), private :: p = c_null_ptr
   end type bl_rng_normal
 
+  type bl_rng_poisson
+     type(c_ptr), private :: p = c_null_ptr
+  end type bl_rng_poisson
+
   interface bl_rng_build
      module procedure bl_rng_build_uniform_real
      module procedure bl_rng_build_normal
+     module procedure bl_rng_build_poisson
   end interface bl_rng_build
 
   interface bl_rng_destroy
      module procedure bl_rng_destroy_uniform_real
      module procedure bl_rng_destroy_normal
+     module procedure bl_rng_destroy_poisson
   end interface bl_rng_destroy
 
   interface bl_rng_get
      module procedure bl_rng_get_uniform_real
      module procedure bl_rng_get_normal
+     module procedure bl_rng_get_poisson
   end interface bl_rng_get
 
   interface bl_rng_save
      module procedure bl_rng_save_uniform_real
      module procedure bl_rng_save_normal
+     module procedure bl_rng_save_poisson
   end interface bl_rng_save
 
   interface bl_rng_restore
      module procedure bl_rng_restore_uniform_real
      module procedure bl_rng_restore_normal
+     module procedure bl_rng_restore_poisson
   end interface bl_rng_restore
 
   ! uniform real distribution
@@ -120,6 +129,44 @@ module bl_random_module
        type(c_ptr) :: rng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_restore_normal_c
+  end interface
+
+  ! poisson distribution
+  interface
+     subroutine bl_rng_new_poisson_c(rng, s, mean, rank, nprocs) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       integer(c_int), intent(in), value :: s, rank, nprocs
+       real(c_double), intent(in), value :: mean
+     end subroutine bl_rng_new_poisson_c
+
+     subroutine bl_rng_delete_poisson_c(rng) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+     end subroutine bl_rng_delete_poisson_c
+
+     function bl_rng_get_poisson_c(rng) result(r) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       integer(c_int) :: r
+     end function bl_rng_get_poisson_c
+
+     subroutine bl_rng_save_poisson_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_save_poisson_c
+
+     subroutine bl_rng_restore_poisson_c(rng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: rng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_restore_poisson_c
   end interface
 
 contains
@@ -227,6 +274,50 @@ contains
     call bl_rng_restore_normal_c(rng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_restore_normal
+
+  ! 
+  ! poisson distribution
+  !
+  subroutine bl_rng_build_poisson(rng, seed, mean)
+    type(bl_rng_poisson), intent(inout) :: rng
+    integer(c_int), intent(in) :: seed
+    real(c_double), intent(in) :: mean
+    call bl_rng_new_poisson_c(rng%p, seed, mean, parallel_myproc(), parallel_nprocs())
+  end subroutine bl_rng_build_poisson
+  !
+  subroutine bl_rng_destroy_poisson(rng)
+    type(bl_rng_poisson), intent(inout) :: rng
+    call bl_rng_delete_poisson_c(rng%p)
+    rng%p = c_null_ptr
+  end subroutine bl_rng_destroy_poisson
+  !
+  function bl_rng_get_poisson(rng) result(r)
+    type(bl_rng_poisson), intent(inout) :: rng
+    integer(c_int) :: r
+    r = bl_rng_get_poisson_c(rng%p)    
+  end function bl_rng_get_poisson
+  !
+  subroutine bl_rng_save_poisson(rng, dirname)
+    type(bl_rng_poisson), intent(in) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    if (parallel_IOProcessor()) then
+       call fabio_mkdir(dirname)
+    end if
+    call parallel_barrier()
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_save_poisson_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_save_poisson
+  !
+  subroutine bl_rng_restore_poisson(rng, dirname)
+    type(bl_rng_poisson), intent(inout) :: rng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_restore_poisson_c(rng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_restore_poisson
 
 end module bl_random_module
 
