@@ -27,7 +27,7 @@ int nComp(6), nGhost(2);
 // --------------------------------------------------------------------------
 namespace
 {
-  const int S_SendBoxArray(42), S_CFATests(43);
+  const int S_SendBoxArray(42);
   const int S_CopyFabArray(44), S_CopyFabArrayFromSidecar(45);
   const int S_ResizeSidecars(46);
   const int S_QuitSignal(-100);
@@ -90,58 +90,19 @@ namespace
 
 
 
-
   // --------------------------------------------------------------------------
-  void CFATests(BoxArray &ba, DistributionMapping &dm) {
-
-    int myProcAll(ParallelDescriptor::MyProcAll());
-    int myProcComp(ParallelDescriptor::MyProcComp());
-    int myProcSidecar(ParallelDescriptor::MyProcSidecar());
-    bool addToCache(false);
-    MPI_Group group_sidecar(MPI_GROUP_NULL), group_all(MPI_GROUP_NULL);
-
-    ParallelDescriptor::Barrier(ParallelDescriptor::CommunicatorAll());
-    BoxLib::USleep(myProcAll / 10.0);
-    std::cout << ":::: _in CFATests:  myProcAll myProcComp myProcSidecar = " << myProcAll
-              << "  " << myProcComp << "  " << myProcSidecar  << std::endl;
-
-    Array<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
-    DistributionMapping dm_comp_all, dm_sidecar_all;
-    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all) );
-
-    if(ParallelDescriptor::InSidecarGroup()) {
-      MPI_Comm_group(ParallelDescriptor::CommunicatorSidecar(), &group_sidecar);
-      pm_sidecar = dm.ProcessorMap();
-      pm_sidecar_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
-      // Don't forget to set the sentinel to the proc # in the new group!
-      pm_sidecar_all[pm_sidecar_all.size()-1] = ParallelDescriptor::MyProcAll();
-
-      dm_sidecar_all.define(pm_sidecar_all, addToCache);
-      if(ParallelDescriptor::IOProcessor()) {
-        std::cout << myProcAll << ":::: _in CFATests:  dm = " << dm << std::endl;
-        std::cout << myProcAll << ":::: _in CFATests:  dm_sidecar_all = " << dm_sidecar_all << std::endl;
-      }
-    }
-
-      dm_comp_all.define(pm_comp_all, addToCache);
-      BoxLib::USleep(myProcAll / 10.0);
-      if(myProcAll == 0) {
-        std::cout << myProcAll << ":::: _in CFATests:  dm_comp = " << dm << std::endl;
-      }
-  }
-
-
-  // --------------------------------------------------------------------------
-  void SidecarEventLoop() {
+  void SidecarEventLoop0() {
     bool finished(false);
     int sidecarSignal(-1);
     int myProcAll(ParallelDescriptor::MyProcAll());
+    int whichSidecar(0);
     BoxArray bac, bab;
     DistributionMapping sc_DM;
 
     while ( ! finished) {  // ---- Receive the signal from the compute group.
 
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0,
+	                          ParallelDescriptor::CommunicatorInter(whichSidecar));
 
 	switch(sidecarSignal) {
 
@@ -150,7 +111,7 @@ namespace
 	    bac.clear();
 	    BoxArray::RecvBoxArray(bac);
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << myProcAll << ":: sidecar recv ba.size = " << bac.size() << std::endl;
+              std::cout << myProcAll << ":: sidecar 0 recv ba.size = " << bac.size() << std::endl;
 	    }
 
             MPI_Group group_sidecar, group_all;
@@ -168,7 +129,7 @@ namespace
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
               BoxLib::USleep(1);
-              std::cout << "SIDECAR DM = " << dm_sidecar << std::endl << std::flush;
+              std::cout << "SIDECAR 0 DM = " << dm_sidecar << std::endl << std::flush;
               std::cout << "WORLD DM = " << dm_all << std::endl << std::flush;
             }
           }
@@ -177,12 +138,12 @@ namespace
 	  case S_CopyFabArray:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "Sidecars received the S_CopyFabArray signal." << std::endl;
+              std::cout << "Sidecar 0 received the S_CopyFabArray signal." << std::endl;
 	    }
 	    bac.clear();
 	    BoxArray::RecvBoxArray(bac);
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << myProcAll << ":: sidecar recv ba.size = " << bac.size() << std::endl;
+              std::cout << myProcAll << ":: sidecar 0 recv ba.size = " << bac.size() << std::endl;
 	    }
 	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar());
             MultiFab mf(bac, nComp, nGhost, sc_DM, Fab_allocate);
@@ -197,7 +158,7 @@ namespace
 	  case S_CopyFabArrayFromSidecar:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "Sidecars received the S_CopyFabArrayFromSidecar signal." << std::endl;
+              std::cout << "Sidecar 0 received the S_CopyFabArrayFromSidecar signal." << std::endl;
 	    }
             Box baseBox(IntVect(2,4,6), IntVect(15, 19, 79));
             BoxArray ba(baseBox);
@@ -216,20 +177,10 @@ namespace
           }
 	  break;
 
-	  case S_CFATests:
-	  {
-            if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "Sidecars received the S_CFATests signal." << std::endl;
-	    }
-	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar());
-            CFATests(bac, sc_DM);
-          }
-	  break;
-
 	  case S_QuitSignal:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "Sidecars received the quit signal." << std::endl;
+              std::cout << "Sidecar 0 received the quit signal." << std::endl;
 	    }
             finished = true;
 	  }
@@ -238,7 +189,7 @@ namespace
 	  default:
 	  {
             if(ParallelDescriptor::IOProcessor()) {
-              std::cout << "**** Sidecars received bad signal = " << sidecarSignal << std::endl;
+              std::cout << "**** Sidecar 0 received bad signal = " << sidecarSignal << std::endl;
 	    }
 	  }
 	  break;
@@ -246,11 +197,93 @@ namespace
 
     }
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "===== SIDECARS DONE. EXITING ... =====" << std::endl;
+      std::cout << "===== SIDECARS 0 DONE. EXITING ... =====" << std::endl;
     }
   }
 
+
+  // --------------------------------------------------------------------------
+  void SidecarEventLoop1() {
+    bool finished(false);
+    int sidecarSignal(-1);
+    int myProcAll(ParallelDescriptor::MyProcAll());
+    int whichSidecar(1);
+
+    while ( ! finished) {  // ---- Receive the signal from the compute group.
+
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0,
+	                          ParallelDescriptor::CommunicatorInter(whichSidecar));
+
+	switch(sidecarSignal) {
+
+	  case S_QuitSignal:
+	  {
+            if(ParallelDescriptor::IOProcessor()) {
+              std::cout << "Sidecar 1 received the quit signal." << std::endl;
+	    }
+            finished = true;
+	  }
+	  break;
+
+	  default:
+	  {
+            if(ParallelDescriptor::IOProcessor()) {
+              std::cout << "**** Sidecar 1 received bad signal = " << sidecarSignal << std::endl;
+	    }
+	  }
+	  break;
+	}
+
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "===== SIDECAR 1 DONE. EXITING ... =====" << std::endl;
+    }
+
+  }
+
+
+  // --------------------------------------------------------------------------
+  void SidecarEventLoop2() {
+    bool finished(false);
+    int sidecarSignal(-1);
+    int myProcAll(ParallelDescriptor::MyProcAll());
+    int whichSidecar(2);
+
+    while ( ! finished) {  // ---- Receive the signal from the compute group.
+
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0,
+	                          ParallelDescriptor::CommunicatorInter(whichSidecar));
+
+	switch(sidecarSignal) {
+
+	  case S_QuitSignal:
+	  {
+            if(ParallelDescriptor::IOProcessor()) {
+              std::cout << "Sidecar 2 received the quit signal." << std::endl;
+	    }
+            finished = true;
+	  }
+	  break;
+
+	  default:
+	  {
+            if(ParallelDescriptor::IOProcessor()) {
+              std::cout << "**** Sidecar 2 received bad signal = " << sidecarSignal << std::endl;
+	    }
+	  }
+	  break;
+	}
+
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::cout << "===== SIDECAR 2 DONE. EXITING ... =====" << std::endl;
+    }
+
+  }
+
 }
+
+
 
 
 
@@ -263,34 +296,69 @@ int main(int argc, char *argv[]) {
     // the data to the sidecar group from the IOProcessor on the compute group.
     int MPI_IntraGroup_Broadcast_Rank;
     int myProcAll(ParallelDescriptor::MyProcAll());
-    int nSidecarProcs(0), sidecarSignal(S_SendBoxArray);
+    int nSidecars(0), sidecarSignal(S_SendBoxArray);
     int maxGrid(32), maxSize(16);
     int ts(0), nSteps(5);
     ParmParse pp;
 
-    pp.query("nSidecars", nSidecarProcs);
+    pp.query("nSidecars", nSidecars);
     pp.query("maxGrid", maxGrid);
     pp.query("nComp", nComp);
     pp.query("nGhost", nGhost);
     pp.query("maxSize", maxSize);
     pp.query("nSteps", nSteps);
 
+    if(ParallelDescriptor::NProcs() != 16) {
+      BoxLib::Abort("**** Error:  this test must use 16 mpi porcesses.");
+    }
+
+    nSidecars = 3;
+
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "nSidecarProcs = " << nSidecarProcs << std::endl;
+      std::cout << "nSidecars = " << nSidecars << std::endl;
     }
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << myProcAll << ":: Resizing sidecars = " << nSidecarProcs << std::endl;
+      std::cout << myProcAll << ":: Resizing sidecars = " << nSidecars << std::endl;
     }
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+
+    // ---- for the first test we set these statically
+    Array<int> compProcsInAll;
+    for(int i(0); i < 10; ++i) {
+      compProcsInAll.push_back(i);
+    }
+    Array<Array<int> > sidecarProcsInAll(nSidecars);
+    sidecarProcsInAll[0].push_back(10);
+    sidecarProcsInAll[0].push_back(11);
+    sidecarProcsInAll[0].push_back(12);
+    sidecarProcsInAll[1].push_back(13);
+    sidecarProcsInAll[2].push_back(14);
+    sidecarProcsInAll[2].push_back(15);
+
+    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll);
+
     MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 
 
     if(ParallelDescriptor::InSidecarGroup()) {
 
-      BoxLib::USleep(myProcAll / 10.0);
-      std::cout << myProcAll << ":: Calling SidecarEventLoop()." << std::endl;
-      SidecarEventLoop();
+      int inWhichSidecar(ParallelDescriptor::InWhichSidecar());
+      BoxLib::USleep(myProcAll);
+      std::cout << myProcAll << ":: Calling SidecarEventLoop" << inWhichSidecar
+                << "()." << std::endl;
+      switch(inWhichSidecar) {
+	case 0:
+          SidecarEventLoop0();
+	break;
+	case 1:
+          SidecarEventLoop1();
+	break;
+	case 2:
+          SidecarEventLoop2();
+	break;
+	default:
+	break;
+      }
 
     } else {
 
@@ -309,7 +377,7 @@ int main(int argc, char *argv[]) {
 	  std::cout << myProcAll << ":: Doing timestep = " << i << std::endl;
 	}
 
-	if(nSidecarProcs > 0) {
+	if(nSidecars > 0) {
 
 	  if((i - ts) == 0) {  // ---- do a simple mf copy test
 	    MultiFab mf(ba, nComp, nGhost, comp_DM, Fab_allocate);
@@ -321,7 +389,7 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
+	                              ParallelDescriptor::CommunicatorInter(0));
 	    BoxArray::SendBoxArray(ba);
 
 	    MultiFab *mfSource = &mf;
@@ -342,7 +410,7 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
+	                              ParallelDescriptor::CommunicatorInter(0));
 	    BoxArray::SendBoxArray(ba);  // ---- send the sidecar the unshrunk boxarray
 
 	    MultiFab *mfSource = &mf;
@@ -364,7 +432,7 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
+	                              ParallelDescriptor::CommunicatorInter(0));
 	    BoxArray::SendBoxArray(ba);  // ---- send the sidecar the unshifted boxarray
 
 	    MultiFab *mfSource = &mf;
@@ -380,7 +448,7 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArrayFromSidecar;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
+	                              ParallelDescriptor::CommunicatorInter(0));
 
 	    MultiFab *mfSource = 0;
 	    MultiFab *mfDest = &mf;
@@ -389,34 +457,31 @@ int main(int argc, char *argv[]) {
             CopyFabArray(mfSource, mfDest, srcComp, destComp, numComp, 0, 0, fromComp);
 	  }
 
-
-	  // ---- other tests?
-	  //sidecarSignal = S_CFATests;
-	  //ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                            //ParallelDescriptor::CommunicatorInter());
-          //CFATests(ba, comp_DM);
-
 	}
       }
       ts += nSteps;
 
-      if(nSidecarProcs > 0) {
+      if(nSidecars > 0) {
 	// ---- stop the sidecars
 	sidecarSignal = S_QuitSignal;
 	ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                          ParallelDescriptor::CommunicatorInter());
+	                          ParallelDescriptor::CommunicatorInter(0));
+	ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
+	                          ParallelDescriptor::CommunicatorInter(1));
+	ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
+	                          ParallelDescriptor::CommunicatorInter(2));
       }
     }
     
     ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProcAll / 10.0);
+    BoxLib::USleep(myProcAll);
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << myProcAll << ":: Finished timesteps" << std::endl;
     }
 
     ParallelDescriptor::Barrier();
-    nSidecarProcs = 0;
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+    nSidecars = 0;
+    ParallelDescriptor::SetNProcsSidecars(nSidecars);
 
 
     BoxLib::Finalize();
