@@ -131,6 +131,13 @@ namespace ParallelDescriptor
     InSidecarGroup ()
     {
         BL_ASSERT(m_MyId_sidecar != myId_undefined);
+        BL_ASSERT( ( (inWhichSidecar == notInSidecar) &&
+	             (m_MyId_sidecar == myId_notInGroup)
+		   ) || (
+		     (inWhichSidecar >= 0) &&
+	             (m_MyId_sidecar != myId_notInGroup)
+		   )
+		);
         return (m_MyId_sidecar >= 0);
     }
     inline int
