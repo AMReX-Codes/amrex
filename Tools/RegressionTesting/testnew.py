@@ -327,6 +327,9 @@ class Suite(object):
         self.add_to_f_make_command = ""
         self.add_to_c_make_command = ""
 
+        self.summary_job_info_field1 = ""
+        self.summary_job_info_field2 = ""
+        
         self.MAKE = "gmake"
         self.numMakeJobs = 1
 
@@ -1838,17 +1841,17 @@ def test_suite(argv):
 
             if test.outputFile == "":
                 if test.compareFile == "":
-                    compareFile = test.get_last_plotfile(output_dir=output_dir)
+                    compare_file = test.get_last_plotfile(output_dir=output_dir)
                 else:
-                    compareFile = test.compareFile
-                outputFile = compareFile
+                    compare_file = test.compareFile
+                output_file = compare_file
             else:
-                outputFile = test.outputFile
-                compareFile = test.name+'_'+outputFile
+                output_file = test.outputFile
+                compare_file = test.name+'_'+output_file
 
 
             # get the number of levels for reporting
-            prog = "{} -l {}".format(suite.tools["fboxinfo"], outputFile)
+            prog = "{} -l {}".format(suite.tools["fboxinfo"], output_file)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
             if not type(convert_type(test.nlevels)) is int:
@@ -1858,12 +1861,12 @@ def test_suite(argv):
 
                 suite.log.log("doing the comparison...")
                 suite.log.indent()
-                suite.log.log("comparison file: {}".format(outputFile))
+                suite.log.log("comparison file: {}".format(output_file))
 
-                test.compare_file_used = outputFile
+                test.compare_file_used = output_file
 
                 if not test.restartTest:
-                    benchFile = bench_dir + compareFile
+                    benchFile = bench_dir + compare_file
                 else:
                     benchFile = origLastFile
 
@@ -1880,12 +1883,12 @@ def test_suite(argv):
                     cf.close()
 
                 else:
-                    if not compareFile == "":
+                    if not compare_file == "":
 
                         suite.log.log("benchmark file: {}".format(benchFile))
 
                         command = "{} -n 0 --infile1 {} --infile2 {}".format(
-                            suite.tools["fcompare"], benchFile, outputFile)
+                            suite.tools["fcompare"], benchFile, output_file)
                         sout, serr, ierr = run(command, outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
@@ -1921,21 +1924,21 @@ def test_suite(argv):
 
                 suite.log.log("storing output of {} as the new benchmark...".format(test.name))
                 suite.log.indent()
-                suite.log.warn("new benchmark file: {}".format(compareFile))
+                suite.log.warn("new benchmark file: {}".format(compare_file))
                 suite.log.outdent()
 
-                if not compareFile == "":
-                    if not outputFile == compareFile:
-                        source_file = outputFile
+                if not compare_file == "":
+                    if not output_file == compare_file:
+                        source_file = output_file
                     else:
-                        source_file = compareFile
+                        source_file = compare_file
 
-                    try: shutil.rmtree("{}/{}".format(bench_dir, compareFile))
+                    try: shutil.rmtree("{}/{}".format(bench_dir, compare_file))
                     except: pass
-                    shutil.copytree(source_file, "{}/{}".format(bench_dir, compareFile))
+                    shutil.copytree(source_file, "{}/{}".format(bench_dir, compare_file))
 
                     with open("%s.status" % (test.name), 'w') as cf:
-                        cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+                        cf.write("benchmarks updated.  New file:  %s\n" % (compare_file) )
 
                 else:
                     with open("%s.status" % (test.name), 'w') as cf:
@@ -1992,9 +1995,36 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if outputFile != "":
+        if output_file != "":
             if args.make_benchmarks == None:
 
+                # get any parameters for the summary table
+                test.job_info_field1 = ""
+                test.job_info_field2 = ""
+                
+                try: jif = open("{}/job_info".format(output_file), "r")
+                except:
+                    suite.log.warn("unable to open the job_info file")
+                else:
+                    job_file_lines = jif.readlines()
+
+                    if suite.summary_job_info_field1 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field1 = _tmp[idx:]
+                                break
+
+                    if suite.summary_job_info_field2 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field2 = _tmp[idx:]
+                                break
+                        
+                # visualization
                 if test.doVis:
 
                     if test.dim == 1:
@@ -2003,7 +2033,7 @@ def test_suite(argv):
                         suite.log.log("doing the visualization...")
                         tool = suite.tools["fsnapshot{}d".format(test.dim)]
                         run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                            tool, suite.compare_tool_dir, test.visVar, outputFile))
+                            tool, suite.compare_tool_dir, test.visVar, output_file))
 
                         # convert the .ppm files into .png files
                         ppm_file = get_recent_filename(output_dir, "", ".ppm")
@@ -2012,6 +2042,7 @@ def test_suite(argv):
                             run("convert {} {}".format(ppm_file, png_file))
                             test.png_file = png_file
 
+                # analysis
                 if not test.analysisRoutine == "":
 
                     suite.log.log("doing the analysis...")
@@ -2024,7 +2055,7 @@ def test_suite(argv):
 
                     option = eval("suite.{}".format(test.analysisMainArgs))
                     run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                          option, outputFile))
+                                          option, output_file))
 
         else:
             if test.doVis or test.analysisRoutine != "":
@@ -2082,7 +2113,7 @@ def test_suite(argv):
                 (file.startswith("%s_plt" % (test.name)) or
                  file.startswith("%s_chk" % (test.name)) ) ):
 
-                if suite.purge_output == 1 and not file == outputFile:
+                if suite.purge_output == 1 and not file == output_file:
                     # delete the plt/chk file
                     if os.path.isdir(file):
                         try: shutil.rmtree(file)
@@ -2505,9 +2536,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
     #--------------------------------------------------------------------------
     if failure_msg is None:
         if not test.compileTest:
-            compareFile = "%s.compare.out" % (test.name)
+            compare_file = "%s.compare.out" % (test.name)
 
-            try: cf = open(compareFile, 'r')
+            try: cf = open(compare_file, 'r')
             except IOError:
                 suite.log.warn("WARNING: no comparison file found")
                 compare_successful = 0
@@ -2862,6 +2893,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (test_file, test_file) )
 
+    # git info lists
     any_update = any([suite.repos[t].update for t in suite.repos])
 
     if any_update and not update_time == "":
@@ -2884,12 +2916,20 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
     hf.write("<p>&nbsp;\n")
 
+    # summary table
     if make_benchmarks == None:
-        ht = HTMLTable(hf, columns=11, divs=["summary"])
+        special_cols = []
+        if suite.summary_job_info_field1 is not "":
+            special_cols.append(suite.summary_job_info_field1)
+        if suite.summary_job_info_field2 is not "":
+            special_cols.append(suite.summary_job_info_field2)            
+
+        cols = ["test name", "dim", "compare plotfile",
+                "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
+                "compile?", "restart?"] + special_cols + ["wall time", "result"]
+        ht = HTMLTable(hf, columns=len(cols), divs=["summary"])
         ht.start_table()
-        ht.header(["test name", "dim", "compare plotfile",
-                   "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
-                   "compile?", "restart?", "wall time", "result"])
+        ht.header(cols)
 
     else:
         ht = HTMLTable(hf, columns=3, divs=["summary"])
@@ -2955,8 +2995,17 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             else:
                 row_info.append("")
 
+
+            # special columns
+            if suite.summary_job_info_field1 is not "":
+                row_info.append(test.job_info_field1)
+
+            if suite.summary_job_info_field2 is not "":
+                row_info.append(test.job_info_field2)
+
+                
             # wallclock time
-            row_info.append("{:.3f} s".format(test.wall_time))
+            row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
 
             if testPassed:
                 row_info.append(("PASSED", "class='passed'"))
