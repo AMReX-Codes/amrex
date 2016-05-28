@@ -259,6 +259,9 @@ class Test(object):
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
 
+        self.job_info_field1 = ""
+        self.job_info_field2 = ""
+        
         self.has_jobinfo = 0  # filled automatically
         
         self.backtrace = []   # filled automatically
@@ -1635,7 +1638,7 @@ def test_suite(argv):
                             outfile="{}/{}.make.out".format(output_dir, test.name))
 
             # get the executable
-            executable = get_recent_filename(bdir, "", ".exe")
+            executable = get_recent_filename(bdir, "", ".ex")
             
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -1998,9 +2001,6 @@ def test_suite(argv):
             if args.make_benchmarks == None:
 
                 # get any parameters for the summary table
-                test.job_info_field1 = ""
-                test.job_info_field2 = ""
-
                 job_info_file = "{}/job_info".format(output_file)
                 if os.path.isfile(job_info_file):
                     test.has_jobinfo = 1
