@@ -182,3 +182,6 @@
 #     FFLAGS += -stand f95
     endif
 
+  ifdef CXX11
+    CXXFLAGS += -std=c++11
+  endif
