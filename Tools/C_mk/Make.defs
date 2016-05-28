@@ -320,7 +320,7 @@ ifdef USE_GCC
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-    CCOMP_VERSION := "$(shell $(CXX) -v 2>&1 | grep version)"
+    COMP_VERSION := $(shell $(CXX) -v 2>&1 | grep version)
 
     # ifeq ($(findstring 5, $(__gcc_major_version)), 5)
     # 	 CXXOPTF += -fno-inline
@@ -443,7 +443,7 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
-    FCOMP_VERSION := "$(shell $(FC) -v 2>&1 | grep version)"
+    FCOMP_VERSION := $(shell $(FC) -v 2>&1 | grep version)
   
 
     ifeq ($(HOST),baragon)
