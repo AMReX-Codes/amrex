@@ -64,7 +64,7 @@ ifeq ($(COMP),PGI)
   CC  = pgcc
   CXXDEBF += -g -O0
 
-  CCOMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'target')
+  COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'target')
       
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
