@@ -259,6 +259,8 @@ class Test(object):
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
 
+        self.has_jobinfo = 0  # filled automatically
+        
         self.backtrace = []   # filled automatically
 
 
@@ -1603,41 +1605,38 @@ def test_suite(argv):
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
             buildOptions = ""
-            exeSuffix = ""
 
             if test.debug:
                 buildOptions += "DEBUG=TRUE "
-                exeSuffix += ".DEBUG"
             else:
                 buildOptions += "DEBUG=FALSE "
 
             if test.useMPI:
                 buildOptions += "USE_MPI=TRUE "
-                exeSuffix += ".MPI"
             else:
                 buildOptions += "USE_MPI=FALSE "
 
             if test.useOMP:
                 buildOptions += "USE_OMP=TRUE "
-                exeSuffix += ".OMP"
             else:
                 buildOptions += "USE_OMP=FALSE "
 
             if not test.extra_build_dir == "":
                 buildOptions += suite.repos[test.extra_build_dir].comp_string + " "
 
-            executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
-
-            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {} executable={}".format(
+            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {}".format(
                 suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
                 suite.extra_src_comp_string, test.addToCompileString,
                 test.dim, buildOptions, suite.COMP, suite.FCOMP,
-                suite.add_to_c_make_command, executable)
+                suite.add_to_c_make_command)
 
             suite.log.log(comp_string)
             so, se, r = run(comp_string,
                             outfile="{}/{}.make.out".format(output_dir, test.name))
 
+            # get the executable
+            executable = get_recent_filename(bdir, "", ".exe")
+            
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             build_options = ""
@@ -1650,9 +1649,9 @@ def test_suite(argv):
 
             comp_string = suite.build_f(opts="{} {} {}".format(
                 suite.extra_src_comp_string, test.addToCompileString, build_options),
-                          outfile="{}/{}.make.out".format(output_dir, test.name))
+                                        outfile="{}/{}.make.out".format(output_dir, test.name))
 
-            # we need a better way to get the executable name here
+            # get the executable
             executable = get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
@@ -1795,9 +1794,9 @@ def test_suite(argv):
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
-            lastFile = test.get_last_plotfile(output_dir=output_dir)
+            last_file = test.get_last_plotfile(output_dir=output_dir)
 
-            if lastFile == "":
+            if last_file == "":
                 error_msg = "ERROR: test did not produce output.  Restart test not possible"
                 test.wall_time = time.time() - test.wall_time
                 # copy what we can
@@ -1807,8 +1806,8 @@ def test_suite(argv):
                 report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
 
-            origLastFile = "orig_%s" % (lastFile)
-            shutil.move(lastFile, origLastFile)
+            orig_last_file = "orig_%s" % (last_file)
+            shutil.move(last_file, orig_last_file)
 
             if test.diffDir:
                 origDiffDir = "orig_%s" % (test.diffDir)
@@ -1866,16 +1865,16 @@ def test_suite(argv):
                 test.compare_file_used = output_file
 
                 if not test.restartTest:
-                    benchFile = bench_dir + compare_file
+                    bench_file = bench_dir + compare_file
                 else:
-                    benchFile = origLastFile
+                    bench_file = orig_last_file
 
                 # see if it exists
                 # note, with BoxLib, the plotfiles are actually directories
 
-                if not os.path.isdir(benchFile):
+                if not os.path.isdir(bench_file):
                     suite.log.warn("WARNING: no corresponding benchmark found")
-                    benchFile = ""
+                    bench_file = ""
 
                     cf = open("%s.compare.out" % (test.name), 'w')
                     cf.write("WARNING: no corresponding benchmark found\n")
@@ -1885,10 +1884,10 @@ def test_suite(argv):
                 else:
                     if not compare_file == "":
 
-                        suite.log.log("benchmark file: {}".format(benchFile))
+                        suite.log.log("benchmark file: {}".format(bench_file))
 
                         command = "{} -n 0 --infile1 {} --infile2 {}".format(
-                            suite.tools["fcompare"], benchFile, output_file)
+                            suite.tools["fcompare"], bench_file, output_file)
                         sout, serr, ierr = run(command, outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
@@ -1903,15 +1902,15 @@ def test_suite(argv):
 
                 if not test.diffDir == "":
                     if not test.restartTest:
-                        diffDirBench = bench_dir + '/' + test.name + '_' + test.diffDir
+                        diff_dir_bench = bench_dir + '/' + test.name + '_' + test.diffDir
                     else:
-                        diffDirBench = origDiffDir
+                        diff_dir_bench = origDiffDir
 
                     suite.log.log("doing the diff...")
                     suite.log.log("diff dir: {}".format(test.diffDir))
 
                     command = "diff %s -r %s %s" \
-                        % (test.diffOpts, diffDirBench, test.diffDir)
+                        % (test.diffOpts, diff_dir_bench, test.diffDir)
 
                     outfile = "{}.compare.out".format(test.name)
                     sout, serr, diff_status = run(command, outfile=outfile, store_command=True)
@@ -1953,12 +1952,12 @@ def test_suite(argv):
 
 
                 if not test.diffDir == "":
-                    diffDirBench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
-                    if os.path.isdir(diffDirBench):
-                        shutil.rmtree(diffDirBench)
-                        shutil.copytree(test.diffDir, diffDirBench)
+                    diff_dir_bench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
+                    if os.path.isdir(diff_dir_bench):
+                        shutil.rmtree(diff_dir_bench)
+                        shutil.copytree(test.diffDir, diff_dir_bench)
                     else:
-                        shutil.copy(test.diffDir, diffDirBench)
+                        shutil.copy(test.diffDir, diff_dir_bench)
                     suite.log.log("new diffDir: {}_{}".format(test.name, test.diffDir))
 
         else:   # selfTest
@@ -1970,23 +1969,23 @@ def test_suite(argv):
                 try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
                     suite.log.warn("WARNING: no output file found")
-                    compareSuccessful = 0
+                    compare_successful = 0
                     outLines = ['']
                 else:
                     outLines = of.readlines()
 
                     # successful comparison is indicated by PLOTFILES AGREE
-                    compareSuccessful = 0
+                    compare_successful = 0
 
                     for line in outLines:
                         if line.find(test.stSuccessString) >= 0:
-                            compareSuccessful = 1
+                            compare_successful = 1
                             break
 
                     of.close()
 
                 with open("%s.compare.out" % (test.name), 'w') as cf:
-                    if compareSuccessful:
+                    if compare_successful:
                         cf.write("SELF TEST SUCCESSFUL\n")
                     else:
                         cf.write("SELF TEST FAILED\n")
@@ -2001,8 +2000,12 @@ def test_suite(argv):
                 # get any parameters for the summary table
                 test.job_info_field1 = ""
                 test.job_info_field2 = ""
+
+                job_info_file = "{}/job_info".format(output_file)
+                if os.path.isfile(job_info_file):
+                    test.has_jobinfo = 1
                 
-                try: jif = open("{}/job_info".format(output_file), "r")
+                try: jif = open(job_info_file, "r")
                 except:
                     suite.log.warn("unable to open the job_info file")
                 else:
@@ -2072,6 +2075,9 @@ def test_suite(argv):
 
             shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
 
+            if test.has_jobinfo:
+                shutil.copy(job_info_file, suite.full_web_dir)
+                
             if suite.sourceTree == "C_Src":
                 shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
 
@@ -2155,10 +2161,10 @@ def test_suite(argv):
 
     # make sure that all of the files in the web directory are world readable
     for file in os.listdir(suite.full_web_dir):
-       currentFile = suite.full_web_dir + file
+       current_file = suite.full_web_dir + file
 
-       if os.path.isfile(currentFile):
-          os.chmod(currentFile, 0o644)
+       if os.path.isfile(current_file):
+          os.chmod(current_file, 0o644)
 
     # reset the branch to what it was originally
     suite.log.skip()
@@ -2712,6 +2718,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         ll.item("Execution time: {:.3f} s".format(test.wall_time))
         ll.item("Execution command:<br><tt>{}</tt>".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
+        if test.has_jobinfo:
+            ll.item("<a href=\"job_info\">job_info</a>")
         ll.outdent()
 
 
@@ -3022,20 +3030,20 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
 
-            benchFile = "none"
+            bench_file = "none"
 
             with open(benchStatusFile, 'r') as bf:
                 for line in bf:
                     index = line.find("file:")
                     if index >= 0:
-                        benchFile = line[index+5:]
+                        bench_file = line[index+5:]
                         break
 
             row_info = []
             row_info.append("{}".format(test.name))
-            if not benchFile == "none":
+            if not bench_file == "none":
                 row_info.append(("BENCHMARK UPDATED", "class='benchmade'"))
-                row_info.append("new benchmark file is {}".format(benchFile))
+                row_info.append("new benchmark file is {}".format(bench_file))
             else:
                 row_info.append(("BENCHMARK NOT UPDATED", "class='failed'"))
                 row_info.append("compilation or execution failed")
