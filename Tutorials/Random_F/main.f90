@@ -113,9 +113,28 @@ program main
      if (i .eq. parallel_myproc()) then
         print *, parallel_myproc(), bl_rng_get(ur_orig), bl_rng_get(nm_orig), &
              bl_rng_get(ps_orig), bl_rng_get(bi_orig) 
+        call flush(6)
      end if
      call parallel_barrier()
   end do
+
+  if (parallel_myproc() .eq. 0) then
+     print *, "we now change the change Poisson mean from 100.d0 to 30000.54d0"
+     call bl_rng_change_distribution(ps_orig, 30000.54d0)
+     print *, "Poisson old and new"
+     do i = 1, 5
+        print *, bl_rng_get(ps_restore), bl_rng_get(ps_orig)
+     end do
+  end if
+  
+  if (parallel_myproc() .eq. 0) then
+     print *, "we now change the change Binomial mean from 160, 0.6d0 to 1000, 0.3d0"
+     call bl_rng_change_distribution(bi_orig, 1000, 0.3d0)
+     print *, "Binomial old and new"
+     do i = 1, 5
+        print *, bl_rng_get(bi_restore), bl_rng_get(bi_orig)
+     end do
+  end if
   
   call bl_rng_destroy(ur_orig)
   call bl_rng_destroy(ur_restore)

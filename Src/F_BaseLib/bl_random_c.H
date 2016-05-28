@@ -40,6 +40,7 @@ public:
     int operator() ();
     void save (const char* name) const;
     void restore (const char* name);
+    void change_distribution (double mean);
 private:
     std::mt19937 m_eng;
     std::poisson_distribution<int> m_dist;
@@ -54,6 +55,7 @@ public:
     int operator() ();
     void save (const char* name) const;
     void restore (const char* name);
+    void change_distribution (int t, double p);
 private:
     std::mt19937 m_eng;
     std::binomial_distribution<int> m_dist;

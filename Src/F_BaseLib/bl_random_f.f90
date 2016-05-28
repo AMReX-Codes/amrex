@@ -11,6 +11,7 @@ module bl_random_module
 
   private 
   public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
+       bl_rng_change_distribution, &
        bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial
 
   type bl_rng_uniform_real
@@ -63,6 +64,11 @@ module bl_random_module
      module procedure bl_rng_restore_poisson
      module procedure bl_rng_restore_binomial
   end interface bl_rng_restore
+
+  interface bl_rng_change_distribution
+     module procedure bl_rng_change_poisson
+     module procedure bl_rng_change_binomial
+  end interface bl_rng_change_distribution
 
   ! uniform real distribution
   interface
@@ -176,6 +182,13 @@ module bl_random_module
        type(c_ptr) :: rng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_restore_poisson_c
+
+     subroutine bl_rng_change_poisson_c(rng, mean) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: rng
+       real(c_double), intent(in), value :: mean
+     end subroutine bl_rng_change_poisson_c
   end interface
 
   ! binomial distribution
@@ -214,6 +227,14 @@ module bl_random_module
        type(c_ptr) :: rng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_restore_binomial_c
+
+     subroutine bl_rng_change_binomial_c(rng, t, p) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: rng
+       integer(c_int), intent(in), value :: t
+       real(c_double), intent(in), value :: p
+     end subroutine bl_rng_change_binomial_c
   end interface
 
 contains
@@ -365,6 +386,12 @@ contains
     call bl_rng_restore_poisson_c(rng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_restore_poisson
+  !
+  subroutine bl_rng_change_poisson(rng, mean)
+    type(bl_rng_poisson), intent(inout) :: rng
+    real(c_double), intent(in) :: mean
+    call bl_rng_change_poisson_c(rng%p, mean)
+  end subroutine bl_rng_change_poisson
 
   ! 
   ! binomial distribution
@@ -409,6 +436,13 @@ contains
     call bl_rng_restore_binomial_c(rng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_restore_binomial
+  !
+  subroutine bl_rng_change_binomial(rng, t, p)
+    type(bl_rng_binomial), intent(inout) :: rng
+    integer(c_int), intent(in) :: t
+    real(c_double), intent(in) :: p
+    call bl_rng_change_binomial_c(rng%p, t, p)
+  end subroutine bl_rng_change_binomial
 
 end module bl_random_module
 
