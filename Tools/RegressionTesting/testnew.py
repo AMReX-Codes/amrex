@@ -2010,7 +2010,7 @@ def test_suite(argv):
 
                     if suite.summary_job_info_field1 is not "":
                         for l in job_file_lines:
-                            if l.find(suite.summary_job_info_field1) >= 0:
+                            if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
                                 _tmp = l.split(":")[1]
                                 idx = _tmp.rfind("/") + 1
                                 test.job_info_field1 = _tmp[idx:]
@@ -2018,7 +2018,7 @@ def test_suite(argv):
 
                     if suite.summary_job_info_field2 is not "":
                         for l in job_file_lines:
-                            if l.find(suite.summary_job_info_field2) >= 0:
+                            if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
                                 _tmp = l.split(":")[1]
                                 idx = _tmp.rfind("/") + 1
                                 test.job_info_field2 = _tmp[idx:]
@@ -3005,7 +3005,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
                 
             # wallclock time
-            row_info.append("{:.3f} s".format(test.wall_time))
+            row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
 
             if testPassed:
                 row_info.append(("PASSED", "class='passed'"))
