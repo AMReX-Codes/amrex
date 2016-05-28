@@ -7,7 +7,7 @@ namespace
 {
     std::uint_fast32_t bl_rng_parallel_seed (int s, int rank, int nprocs)
     {
-	std::seed_seq seq{s, 19937};
+	std::seed_seq seq{s, s+4208, s-76, s-17, s+19937, s+1};
 	std::vector<std::uint32_t> seeds(nprocs);
 	seq.generate(seeds.begin(), seeds.end());
 	return seeds[rank];
