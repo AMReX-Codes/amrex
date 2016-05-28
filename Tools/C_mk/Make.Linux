@@ -64,6 +64,8 @@ ifeq ($(COMP),PGI)
   CC  = pgcc
   CXXDEBF += -g -O0
 
+  COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'target')
+      
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
       CXXOPTF += -gopt  -O
@@ -203,6 +205,8 @@ else
 ifeq ($(FCOMP),PGI)
   FC := pgf95
   fC := $(FC)
+
+  FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
 
   ifeq ($(BL_FAST),TRUE)
     FOPTF  += -fast
