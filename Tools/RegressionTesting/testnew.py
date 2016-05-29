@@ -2542,7 +2542,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
     #--------------------------------------------------------------------------
     if failure_msg is None:
         if not test.compileTest:
-            compare_file = "%s.compare.out" % (test.name)
+            compare_file = "{}.compare.out".format(test.name)
 
             try: cf = open(compare_file, 'r')
             except IOError:
@@ -2570,7 +2570,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
                 cf.close()
 
-
+                # last check: did we produce any backtrace files?
+                if len(test.backtrace) > 0: compare_successful = 0
 
         # write out the status file for this problem, with either
         # PASSED or FAILED
@@ -2604,6 +2605,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     new_head = HTMLHeader
 
+    # arrows for previous and next test
     new_head += r"""<table style="width: 100%" class="head"><br><tr>"""
     if current_index > 0:
         new_head += r"""<td><< <a href="{}.html">previous test</td>""".format(tests[current_index-1].name)
