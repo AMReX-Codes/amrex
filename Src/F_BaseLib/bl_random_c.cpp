@@ -2,24 +2,38 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <set>
 #include <limits>
+
+extern "C" { void backtrace_handler(int); }
 
 namespace 
 {
-    std::uint_fast32_t bl_rng_parallel_seed (int s, int rank, int /*nprocs*/)
+    std::uint_fast32_t bl_rng_parallel_seed (int s, int rank, int nprocs)
     {
+	if (rank < 0 || rank >= nprocs) {
+	    std::cerr << "bl_rng_parallel_seed: " << rank << ", " << nprocs << std::endl;
+	    backtrace_handler(6);
+	}
+
 	std::mt19937 eng(s);
-	eng.discard(rank+10000);
+	eng.discard(10000);
 
 	std::uniform_int_distribution<std::uint_fast32_t> dist
 	    (std::numeric_limits<std::uint_fast32_t>::min(),
 	     std::numeric_limits<std::uint_fast32_t>::max());
 
-	return dist(eng);
+	std::uint_fast32_t r;
+	std::set<std::uint_fast32_t> seeds;
+
+	while (seeds.size() != rank+1) {
+	    r = dist(eng);
+	    seeds.insert(r);
+	};
+
+	return r;
     }
 }
-
-extern "C" { void backtrace_handler(int); }
 
 //
 // uniform real distribution
