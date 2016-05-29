@@ -262,6 +262,7 @@ contains
     type(bl_rng_uniform_real), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: a, b
+    call bl_assert(seed > 0, "bl_rng: seed must > 0")
     call bl_rng_new_uniform_real_c(rng%p, seed, a, b, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_uniform_real
   !
@@ -306,6 +307,7 @@ contains
     type(bl_rng_normal), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean, stddev
+    call bl_assert(seed > 0, "bl_rng: seed must > 0")
     call bl_rng_new_normal_c(rng%p, seed, mean, stddev, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_normal
   !
@@ -350,6 +352,7 @@ contains
     type(bl_rng_poisson), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean
+    call bl_assert(seed > 0, "bl_rng: seed must > 0")
     call bl_rng_new_poisson_c(rng%p, seed, mean, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_poisson
   !
@@ -400,6 +403,7 @@ contains
     type(bl_rng_binomial), intent(inout) :: rng
     integer(c_int), intent(in) :: seed, t
     real(c_double), intent(in) :: p
+    call bl_assert(seed > 0, "bl_rng: seed must > 0")
     call bl_rng_new_binomial_c(rng%p, seed, t, p,  parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_binomial
   !
