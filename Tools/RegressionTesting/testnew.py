@@ -2328,6 +2328,8 @@ div.verticaltext {text-align: center;
 #summary td.failed {background-color: red;}
 #summary td.benchmade {background-color: orange;}
 
+div.small {font-size: 75%;}
+
 th {background-color: grey;
     color: yellow;
     text-align: center;
@@ -2935,8 +2937,8 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             special_cols.append(suite.summary_job_info_field2)            
 
         cols = ["test name", "dim", "compare plotfile",
-                "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
-                "compile?", "restart?"] + special_cols + ["wall time", "result"]
+                "# levels", "MPI procs", "OMP threads", "debug",
+                "compile", "restart"] + special_cols + ["wall time", "result"]
         ht = HTMLTable(hf, columns=len(cols), divs=["summary"])
         ht.start_table()
         ht.header(cols)
@@ -2969,7 +2971,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             row_info = []
             row_info.append("<a href=\"{}.html\">{}</a>".format(test.name, test.name))
             row_info.append(test.dim)
-            row_info.append(test.compare_file_used)
+            row_info.append("<div class='small'>{}</div>".format(test.compare_file_used))
 
             if not test.nlevels == None:
                 row_info.append(test.nlevels)
@@ -3008,10 +3010,10 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
             # special columns
             if suite.summary_job_info_field1 is not "":
-                row_info.append(test.job_info_field1)
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field1))
 
             if suite.summary_job_info_field2 is not "":
-                row_info.append(test.job_info_field2)
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field2))
 
                 
             # wallclock time
