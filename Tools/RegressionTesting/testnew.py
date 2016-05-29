@@ -2933,8 +2933,8 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             special_cols.append(suite.summary_job_info_field2)            
 
         cols = ["test name", "dim", "compare plotfile",
-                "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
-                "compile?", "restart?"] + special_cols + ["wall time", "result"]
+                "# levels", "MPI procs", "OMP threads", "debug",
+                "compile", "restart"] + special_cols + ["wall time", "result"]
         ht = HTMLTable(hf, columns=len(cols), divs=["summary"])
         ht.start_table()
         ht.header(cols)
