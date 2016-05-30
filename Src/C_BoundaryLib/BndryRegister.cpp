@@ -17,7 +17,8 @@ BndryRegister::BndryRegister (const BoxArray& grids,
                               int             in_rad,
                               int             out_rad,
                               int             extent_rad,
-                              int             ncomp)
+                              int             ncomp,
+			      ParallelDescriptor::Color color)
     :
     grids(grids)
 {
@@ -26,7 +27,7 @@ BndryRegister::BndryRegister (const BoxArray& grids,
 
     for (OrientationIter face; face; ++face)
     {
-        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp);
+        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp,color);
     }
 }
 
@@ -37,7 +38,7 @@ BndryRegister::init (const BndryRegister& src)
 
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        bndry[i].define(src.bndry[i].boxArray(), src.bndry[i].nComp());
+        bndry[i].define(src.bndry[i].boxArray(), src.bndry[i].nComp(), src.color());
 
         for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
@@ -150,7 +151,8 @@ BndryRegister::define (Orientation _face,
                        int         _in_rad,
                        int         _out_rad,
                        int         _extent_rad,
-                       int         _ncomp)
+                       int         _ncomp,
+		       ParallelDescriptor::Color color)
 {
     BoxArray fsBA;
 
@@ -160,7 +162,7 @@ BndryRegister::define (Orientation _face,
 
     BL_ASSERT(fabs.size() == 0);
 
-    fabs.define(fsBA,_ncomp);
+    fabs.define(fsBA,_ncomp,color);
     // 
     // Go ahead and assign values to the boundary register fabs
     // since in some places APPLYBC (specifically in the tensor
