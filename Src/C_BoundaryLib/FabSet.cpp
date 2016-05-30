@@ -17,17 +17,19 @@ FabSet::FabSet () {}
 
 FabSet::~FabSet () {}
 
-FabSet::FabSet (const BoxArray& grids, int ncomp)
+FabSet::FabSet (const BoxArray& grids, int ncomp,
+		ParallelDescriptor::Color color)
     :
-    MultiFab(grids,ncomp,0,Fab_allocate)
+    MultiFab(grids,ncomp,0,color)
 {}
 
 void
-FabSet::define (const BoxArray& grids, int ncomp)
+FabSet::define (const BoxArray& grids, int ncomp,
+		ParallelDescriptor::Color color)
 {
     MultiFab* tmp = this;
 
-    tmp->define(grids, ncomp, 0, Fab_allocate);
+    tmp->define(grids, ncomp, 0, Fab_allocate, IntVect::TheZeroVector(), color);
 }
 
 void
