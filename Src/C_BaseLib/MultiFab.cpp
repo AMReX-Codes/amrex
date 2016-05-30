@@ -296,9 +296,10 @@ MultiFab::define (const BoxArray& bxs,
                   int             nvar,
                   int             ngrow,
                   FabAlloc        alloc,
-		  const IntVect&  nodal)
+		  const IntVect&  nodal,
+		  ParallelDescriptor::Color color)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal,color);
     if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 

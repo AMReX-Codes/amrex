@@ -452,7 +452,8 @@ public:
                  int             nvar,
                  int             ngrow,
                  FabAlloc        mem_mode,
-		 const IntVect&  nodal = IntVect::TheZeroVector());
+		 const IntVect&  nodal = IntVect::TheZeroVector(),
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     void define (const BoxArray&            bxs,
                  int                        nvar,
@@ -460,6 +461,7 @@ public:
 		 const DistributionMapping& dm,
                  FabAlloc                   mem_mode,
 		 const IntVect&             nodal = IntVect::TheZeroVector());
+
     //
     // Are there any NaNs in the MF?
     // This may return false, even if the MF contains NaNs, if the machine
