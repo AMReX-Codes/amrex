@@ -17,13 +17,14 @@ BndryData::BndryData ()
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
-                      const Geometry& _geom)
+                      const Geometry& _geom,
+		      ParallelDescriptor::Color color)
     :
     geom(_geom),
     m_ncomp(_ncomp),
     m_defined(false)
 {
-    define(_grids,_ncomp,_geom);
+    define(_grids,_ncomp,_geom,color);
 }
 
 void
@@ -161,7 +162,8 @@ BndryData::clear_masks ()
 void
 BndryData::define (const BoxArray& _grids,
                    int             _ncomp,
-                   const Geometry& _geom)
+                   const Geometry& _geom,
+		   ParallelDescriptor::Color color)
 {
     BL_PROFILE("BndryData::define()");
 
@@ -191,8 +193,7 @@ BndryData::define (const BoxArray& _grids,
         const Orientation face = fi();
         const int         cdir = face.coordDir();
 
-        //BndryRegister::define(face,IndexType::TheCellType(),0,1,0,_ncomp);
-        BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp);
+        BndryRegister::define(face,IndexType::TheCellType(),0,1,1,_ncomp,color);
         //
         // Alloc mask and set to quad_interp value.
         //
