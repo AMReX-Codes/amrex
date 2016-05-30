@@ -236,10 +236,12 @@ ifeq ($(FCOMP),PGI)
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
-  FOPTF += -gopt
-  fOPTF += -gopt
-  FDEBF += -g #-C
-  fDEBF += -g #-C
+  ifneq ($(USE_ACC), TRUE)
+    FOPTF += -gopt
+    fOPTF += -gopt
+    FDEBF += -g #-C
+    fDEBF += -g #-C
+  endif
 #  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
 else
 ifeq ($(FCOMP),Intel)
