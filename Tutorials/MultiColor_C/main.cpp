@@ -233,25 +233,32 @@ void colored_solve(MultiFab& soln, const MultiFab& rhs,
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
 
-    for (int i = 0; i < soln.nComp(); ++i) {
-	MultiFab ssoln(ba, 1, 1, dm);
-	MultiFab srhs(ba, 1, 0, dm);
-	MultiFab salpha(ba, 1, 0, dm);
-	PArray<MultiFab> sbeta(BL_SPACEDIM, PArrayManage);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    sbeta.set(j, new MultiFab(beta[j].boxArray(), 1, 0, dm));
+    if (rhs.nComp() == 1)
+    {
+	single_component_solve(soln, rhs, alpha, beta, geom);
+    }
+    else
+    {	    
+	for (int i = 0; i < soln.nComp(); ++i) {
+	    MultiFab ssoln(ba, 1, 1, dm);
+	    MultiFab srhs(ba, 1, 0, dm);
+	    MultiFab salpha(ba, 1, 0, dm);
+	    PArray<MultiFab> sbeta(BL_SPACEDIM, PArrayManage);
+	    for (int j = 0; j < BL_SPACEDIM; ++j) {
+		sbeta.set(j, new MultiFab(beta[j].boxArray(), 1, 0, dm));
+	    }
+	    
+	    MultiFab::Copy(ssoln , soln , i, 0, 1, 0);
+	    MultiFab::Copy(srhs  , rhs  , i, 0, 1, 0);
+	    MultiFab::Copy(salpha, alpha, i, 0, 1, 0);
+	    for (int j = 0; j < BL_SPACEDIM; ++j) {
+		MultiFab::Copy(sbeta[j], beta[j], i, 0, 1, 0);
+	    }
+	    
+	    single_component_solve(ssoln, srhs, salpha, sbeta, geom);
+	    
+	    MultiFab::Copy(soln, ssoln, 0, i, 1, 0);
 	}
-	
-	MultiFab::Copy(ssoln , soln , i, 0, 1, 0);
-	MultiFab::Copy(srhs  , rhs  , i, 0, 1, 0);
-	MultiFab::Copy(salpha, alpha, i, 0, 1, 0);
-	for (int j = 0; j < BL_SPACEDIM; ++j) {
-	    MultiFab::Copy(sbeta[j], beta[j], i, 0, 1, 0);
-	}
-
-	single_component_solve(ssoln, srhs, salpha, sbeta, geom);
-
-	MultiFab::Copy(soln, ssoln, 0, i, 1, 0);
     }
 }
 
