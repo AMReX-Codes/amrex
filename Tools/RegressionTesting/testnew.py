@@ -273,6 +273,12 @@ class Test(object):
     def value(self):
         return self.name
 
+    def find_backtrace(self):
+        """ find any backtrace files produced """        
+        return [ft for ft in os.listdir(self.output_dir)
+                if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+
+    
     def get_last_plotfile(self, output_dir=None):
         """ Find the last plotfile written.  Note: we give an error if the
             last plotfile is 0.  If output_dir is specified, then we use
@@ -689,8 +695,8 @@ class Suite(object):
         if any backtrace files were output (because the run crashed), find them
         and copy them to the web directory
         """
-        backtrace = [ft for ft in os.listdir(test.output_dir)
-                     if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+        backtrace = test.find_backtrace()
+
         for btf in backtrace:
             ofile = "{}/{}.{}".format(self.full_web_dir, test.name, btf)
             shutil.copy(btf, ofile)
@@ -1797,18 +1803,27 @@ def test_suite(argv):
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
+            skip_restart = False
+            
             last_file = test.get_last_plotfile(output_dir=output_dir)
 
             if last_file == "":
                 error_msg = "ERROR: test did not produce output.  Restart test not possible"
-                test.wall_time = time.time() - test.wall_time
+                skip_restart = True
+
+            if len(test.find_backtrace()) > 0:
+                error_msg = "ERROR: test produced backtraces.  Restart test not possible"
+                skip_restart = True
+
+            if skip_restart:
                 # copy what we can
+                test.wall_time = time.time() - test.wall_time
                 shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                 shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                 suite.copy_backtrace(test)
                 report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
-
+            
             orig_last_file = "orig_%s" % (last_file)
             shutil.move(last_file, orig_last_file)
 
