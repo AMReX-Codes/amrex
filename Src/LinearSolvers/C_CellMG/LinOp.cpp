@@ -162,7 +162,7 @@ LinOp::initConstruct (const Real* _h)
         h[level][i] = _h[i];
     }
     undrrelxr.resize(1);
-    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
+    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1, color());
 
      maskvals.resize(1);
     lmaskvals.resize(1);
@@ -410,7 +410,7 @@ LinOp::prepareForLevel (int level)
     //
     BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
-    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
+    undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1, color());
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
@@ -539,7 +539,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     //
     const int nComp=1;
     const int nGrow=0;
-    cs.define(d, nComp, nGrow, Fab_allocate);
+    cs.define(d, nComp, nGrow, fn.DistributionMap(), Fab_allocate);
 
     const bool tiling = true;
 

@@ -300,7 +300,7 @@ BndryRegister::plusFrom (const MultiFab& src,
 void
 BndryRegister::write (const std::string& name, std::ostream& os) const
 {
-    if (ParallelDescriptor::IOProcessor())
+    if (ParallelDescriptor::IOProcessor(color()))
     {
         grids.writeOn(os);
         os << '\n';
