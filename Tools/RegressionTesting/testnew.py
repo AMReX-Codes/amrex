@@ -2088,13 +2088,16 @@ def test_suite(argv):
             shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
             shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 
-            shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
+            shutil.copy(test.inputFile, "{}/{}.{}".format(
+                suite.full_web_dir, test.name, test.inputFile) )
 
             if test.has_jobinfo:
-                shutil.copy(job_info_file, suite.full_web_dir)
+                shutil.copy(job_info_file, "{}/{}.job_info".format(
+                    suite.full_web_dir, test.name))
                 
             if suite.sourceTree == "C_Src":
-                shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
+                shutil.copy(test.probinFile, "{}/{}.{}".format(
+                    suite.full_web_dir, test.name, test.probinFile) )
 
             for af in test.auxFiles:
 
@@ -2104,7 +2107,7 @@ def test_suite(argv):
                 if index > 0:
                     af = af[index+1:]
 
-                shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
+                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, af) )
 
             if not test.png_file is None:
                 try: shutil.copy(test.png_file, suite.full_web_dir)
@@ -2738,7 +2741,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
         ll.item("Execution command:<br><tt>{}</tt>".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
         if test.has_jobinfo:
-            ll.item("<a href=\"job_info\">job_info</a>")
+            ll.item("<a href=\"{}.job_info\">job_info</a>".format(test.name))
         ll.outdent()
 
 
