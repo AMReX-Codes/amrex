@@ -35,6 +35,16 @@ namespace
     }
 }
 
+extern "C"
+{
+    int bl_rng_random_uint_c ()
+    {
+	std::random_device rd;
+	std::uniform_int_distribution<int> dist(0, std::numeric_limits<int>::max());
+	return dist(rd);
+    }
+}
+
 //
 // uniform real distribution
 //

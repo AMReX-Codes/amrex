@@ -70,6 +70,14 @@ module bl_random_module
      module procedure bl_rng_change_binomial
   end interface bl_rng_change_distribution
 
+  interface
+     function bl_rng_random_uint_c() result (r) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       integer(c_int) :: r
+     end function bl_rng_random_uint_c
+  end interface
+
   ! uniform real distribution
   interface
      subroutine bl_rng_new_uniform_real_c(rng, s, a, b, rank, nprocs) bind(c)
@@ -255,6 +263,19 @@ contains
     filename(n+1) = c_null_char
   end subroutine bl_rng_filename
 
+  function bl_rng_init_seed(s) result(r)
+    integer(c_int), intent(in) :: s
+    integer :: r
+    if (s .eq. 0) then
+       r = bl_rng_random_uint_c()
+       call parallel_bcast(r)
+    else if (s .gt. 0) then
+       r = s
+    else
+       call bl_error("bl_rng: seed must >= 0")
+    end if
+  end function bl_rng_init_seed
+
   ! 
   ! uniform real distribution
   !
@@ -262,8 +283,9 @@ contains
     type(bl_rng_uniform_real), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: a, b
-    call bl_assert(seed > 0, "bl_rng: seed must > 0")
-    call bl_rng_new_uniform_real_c(rng%p, seed, a, b, parallel_myproc(), parallel_nprocs())
+    integer(c_int) :: lseed
+    lseed = bl_rng_init_seed(seed);
+    call bl_rng_new_uniform_real_c(rng%p, lseed, a, b, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_uniform_real
   !
   subroutine bl_rng_destroy_uniform_real(rng)
@@ -307,8 +329,9 @@ contains
     type(bl_rng_normal), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean, stddev
-    call bl_assert(seed > 0, "bl_rng: seed must > 0")
-    call bl_rng_new_normal_c(rng%p, seed, mean, stddev, parallel_myproc(), parallel_nprocs())
+    integer(c_int) :: lseed
+    lseed = bl_rng_init_seed(seed);
+    call bl_rng_new_normal_c(rng%p, lseed, mean, stddev, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_normal
   !
   subroutine bl_rng_destroy_normal(rng)
@@ -352,8 +375,9 @@ contains
     type(bl_rng_poisson), intent(inout) :: rng
     integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean
-    call bl_assert(seed > 0, "bl_rng: seed must > 0")
-    call bl_rng_new_poisson_c(rng%p, seed, mean, parallel_myproc(), parallel_nprocs())
+    integer(c_int) :: lseed
+    lseed = bl_rng_init_seed(seed);
+    call bl_rng_new_poisson_c(rng%p, lseed, mean, parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_poisson
   !
   subroutine bl_rng_destroy_poisson(rng)
@@ -403,8 +427,9 @@ contains
     type(bl_rng_binomial), intent(inout) :: rng
     integer(c_int), intent(in) :: seed, t
     real(c_double), intent(in) :: p
-    call bl_assert(seed > 0, "bl_rng: seed must > 0")
-    call bl_rng_new_binomial_c(rng%p, seed, t, p,  parallel_myproc(), parallel_nprocs())
+    integer(c_int) :: lseed
+    lseed = bl_rng_init_seed(seed);
+    call bl_rng_new_binomial_c(rng%p, lseed, t, p,  parallel_myproc(), parallel_nprocs())
   end subroutine bl_rng_build_binomial
   !
   subroutine bl_rng_destroy_binomial(rng)
