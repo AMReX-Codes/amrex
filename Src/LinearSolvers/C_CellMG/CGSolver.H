@@ -134,6 +134,8 @@ public:
     // Return the verbosity value.
     //
     int getVerbose () const { return verbose; }
+    //
+    ParallelDescriptor::Color color() const { return Lp.color(); }
 
 protected:
 

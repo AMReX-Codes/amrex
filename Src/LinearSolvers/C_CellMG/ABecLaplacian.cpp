@@ -102,7 +102,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealMax(res);
+        ParallelDescriptor::ReduceRealMax(res,color());
     return res;
 }
 
@@ -194,9 +194,10 @@ ABecLaplacian::initCoefficients (const BoxArray& _ba)
 {
     const int nComp=1;
     const int nGrow=0;
+    ParallelDescriptor::Color clr = color();
     acoefs.resize(1);
     bcoefs.resize(1);
-    acoefs[0] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
+    acoefs[0] = new MultiFab(_ba, nComp, nGrow, clr);
     acoefs[0]->setVal(a_def);
     a_valid.resize(1);
     a_valid[0] = true;
@@ -205,7 +206,7 @@ ABecLaplacian::initCoefficients (const BoxArray& _ba)
     {
         BoxArray edge_boxes(_ba);
         edge_boxes.surroundingNodes(i);
-        bcoefs[0][i] = new MultiFab(edge_boxes, nComp, nGrow, Fab_allocate);
+        bcoefs[0][i] = new MultiFab(edge_boxes, nComp, nGrow, clr);
         bcoefs[0][i]->setVal(b_def);
     }
     b_valid.resize(1);
