@@ -232,13 +232,13 @@ def get_args(arg_string=None):
     parser.add_argument("--with_valgrind", action="store_true",
                         help="run with valgrind")
     parser.add_argument("--valgrind_options", type=str, default="--leak-check=yes --log-file=vallog.%p",
-                        help="valgrind options")
-    parser.add_argument("--boxLibGitHash", type=str, default=None, metavar="hash",
+                        help="valgrind options", metavar="'valgrind options'")
+    parser.add_argument("--boxlib_git_hash", type=str, default=None, metavar="hash",
                         help="git hash of a version of BoxLib.  If provided, this version will be used to run tests.")
-    parser.add_argument("--sourceGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
-    parser.add_argument("--extSrcGitHash", type=str, default=None, metavar="hash",
-                        help="git hash of a version of the source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--source_git_hash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the main source code.  For BoxLib tests, this will be ignored.")
+    parser.add_argument("--extra_src_git_hash", type=str, default=None, metavar="hash",
+                        help="git hash of a version of the extra source code.  For BoxLib tests, this will be ignored.")
     parser.add_argument("--note", type=str, default="",
                         help="a note on the resulting test webpages")
     parser.add_argument("--complete_report_from_crash", type=str, default="", metavar="testdir",

@@ -119,7 +119,6 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
         os.chdir(td)
 
 
-# test
 def test_suite(argv):
     """
     the main test suite driver
@@ -335,47 +334,16 @@ def test_suite(argv):
 
         suite.log.log("building...")
 
+        coutfile="{}/{}.make.out".format(output_dir, test.name)
+
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-            build_opts = ""
-
-            if test.debug:
-                build_opts += "DEBUG=TRUE "
-            else:
-                build_opts += "DEBUG=FALSE "
-
-            if test.useMPI:
-                build_opts += "USE_MPI=TRUE "
-            else:
-                build_opts += "USE_MPI=FALSE "
-
-            if test.useOMP:
-                build_opts += "USE_OMP=TRUE "
-            else:
-                build_opts += "USE_OMP=FALSE "
-
-            if not test.extra_build_dir == "":
-                build_opts += suite.repos[test.extra_build_dir].comp_string + " "
-
-            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {}".format(
-                suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
-                suite.extra_src_comp_string, test.addToCompileString,
-                test.dim, build_opts, suite.COMP, suite.FCOMP,
-                suite.add_to_c_make_command)
-
-            suite.log.log(comp_string)
-            so, se, r = test_util.run(comp_string,
-                                      outfile="{}/{}.make.out".format(output_dir, test.name))
-
-            # get the executable
+            comp_string = suite.build_c(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "", ".ex")
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-            comp_string = suite.build_f(test=test,
-                                        outfile="{}/{}.make.out".format(output_dir, test.name))
-
-            # get the executable
+            comp_string = suite.build_f(test=test, outfile=coutfile)
             executable = test_util.get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
@@ -383,7 +351,7 @@ def test_suite(argv):
         if test.compileTest:
 
             # compilation tests are done now -- just make the report and ...
-            shutil.copy("%s/%s.make.out"    % (output_dir, test.name), suite.full_web_dir)
+            shutil.copy("{}/{}.make.out".format(output_dir, test.name), suite.full_web_dir)
 
             suite.log.log("creating problem test report ...")
             report.report_single_test(suite, test, test_list)
