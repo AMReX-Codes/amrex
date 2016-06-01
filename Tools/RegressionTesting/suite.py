@@ -522,6 +522,32 @@ class Suite(object):
         test_util.run(comp_string, outfile=outfile)
         return comp_string
 
+    def build_c(self, test=None, opts="", outfile=None):
+
+        build_opts = ""
+        
+        if test is not None:
+            build_opts += "DEBUG={} ".format(c_flag(test.debug))
+            build_opts += "USE_MPI={} ".format(c_flag(test.useMPI))
+            build_opts += "USE_OMP={} ".format(c_flag(test.useOMP))
+            build_opts += "DIM={} ".format(test.dim)
+
+            if not test.extra_build_dir == "":
+                build_opts += self.repos[test.extra_build_dir].comp_string + " "
+
+            if not test.addToCompileString == "":
+                build_opts += test.addToCompileString + " "
+
+        all_opts = "{} {} {}".format(self.extra_src_comp_string, build_opts, opts)
+
+        comp_string = "{} -j{} BOXLIB_HOME={} {} COMP={} FCOMP={} {}".format(
+            self.MAKE, self.numMakeJobs, self.boxlib_dir,
+            all_opts, self.COMP, self.FCOMP, self.add_to_c_make_command)
+
+        self.log.log(comp_string)
+        test_util.run(comp_string, outfile=outfile)
+        return comp_string
+
     def run_test(self, test, base_command):
         test_env = None
         if test.useOMP:
@@ -603,3 +629,12 @@ def f_flag(opt, test_not=False):
     else:
         if opt: return "t"
         else: return " "
+
+def c_flag(opt, test_not=False):
+    """ convert a test parameter into t if true for the Fortran build system """
+    if test_not:
+        if opt: return "FALSE"
+        else: return "TRUE"
+    else:
+        if opt: return "TRUE"
+        else: return "FALSE"
