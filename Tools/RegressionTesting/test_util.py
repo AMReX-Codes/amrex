@@ -271,13 +271,10 @@ def run(string, stdin=False, outfile=None, store_command=False, env=None, outfil
 
     # shlex.split will preserve inner quotes
     prog = shlex.split(string)
-    if stdin:
-        p0 = subprocess.Popen(prog, stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, env=env)
-    else:
-        p0 = subprocess.Popen(prog, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, env=env)
+    sin = None
+    if stdin: sin=subprocess.PIPE
+    p0 = subprocess.Popen(prog, stdin=sin, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, env=env)
 
     stdout0, stderr0 = p0.communicate()
     if stdin: p0.stdin.close()
