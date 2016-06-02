@@ -174,21 +174,29 @@ def create_css(table_height=16):
         cf.write(css)
 
 class HTMLList(object):
+    """ a simple class for managing nested HTML lists """
+
     def __init__(self, of=None):
+        # items will hold tuples: (indent, string), where indent
+        # specifies how deeply nested we are
         self.list_items = []
         self.current_indent = 0
         self.of = of
 
     def item(self, content):
+        # add an item to the list
         self.list_items.append((self.current_indent, content))
 
     def indent(self):
+        # indent (nest a new list)
         self.current_indent += 1
 
     def outdent(self):
+        # close the current nest level
         self.current_indent -= 1
 
     def write_list(self):
+        # output the list to the outfile, of, specified at creation
         self.of.write("<ul>\n")
         current_indent = -1
         for i, c in self.list_items:
@@ -215,7 +223,12 @@ class HTMLList(object):
         self.of.write("</ul>\n")
 
 class HTMLTable(object):
+    """ a simple class for creating an HTML table """
+
     def __init__(self, out_file, columns=1, divs=None):
+        """ create the table object.  Here divs is the name of 
+            any HTML div(s) we want to wrap the table with """
+
         self.hf = out_file
         self.columns = columns
         if not divs is None:
@@ -230,6 +243,7 @@ class HTMLTable(object):
         self.hf.write("<p><table>\n")
 
     def header(self, header_list):
+        """ write the table header """
         n = len(header_list)
         line = "<tr>"+n*"<th>{}</th>"+"</tr>\n"
         self.hf.write(line.format(*header_list))
@@ -298,9 +312,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         compile_successful = 0
 
         for line in cf:
-            if (line.find("SUCCESS") >= 0 or
-                line.find("is up to date.") >= 0 or
-                line.find("Nothing to be done") >= 0):
+            if any(sstr in line for sstr in ["SUCCESS", "is up to date.",
+                                             "Nothing to be done"]):
                 compile_successful = 1
                 break
 
