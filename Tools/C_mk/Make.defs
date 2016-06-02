@@ -307,9 +307,11 @@ ifdef USE_GCC
     CXXOPTF    += -g -O3
     ifeq ($(THREAD_SANITIZER),TRUE)
         CXXOPTF += -fsanitize=thread
+        CXXDEBF += -fsanitize=thread
     endif
     ifeq ($(FSANITIZER),TRUE)
         CXXOPTF += -fsanitize=address -fsanitize=undefined
+	CXXDEBF += -fsanitize=address -fsanitize=undefined
     endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
@@ -466,9 +468,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     ifeq ($(FSANITIZER),TRUE)
         FOPTF += -fsanitize=address -fsanitize=undefined
         fOPTF += -fsanitize=address -fsanitize=undefined
+        FDEBF += -fsanitize=address -fsanitize=undefined
+        fDEBF += -fsanitize=address -fsanitize=undefined
     endif
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    FDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
