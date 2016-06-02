@@ -185,9 +185,20 @@ class Log(object):
         nstr = self.fail_color + string + self.end_color
         print("{}{}".format(self.indent_str, nstr))
 
-    def warn(self, string):
-        nstr = self.warn_color + string + self.end_color
-        print("{}{}".format(self.indent_str, nstr))
+    def warn(self, warn_msg):
+        """ 
+        output a warning.  It is always prefix with 'WARNING:'
+        For multi-line warnings, send in a list of strings
+        """
+        prefix = self.indent_str + "WARNING: "
+        filler = self.indent_str + "         "
+        if isinstance(warn_msg, list):
+            msg = [prefix + warn_msg[0]] + [filler + x for x in warn_msg[1:]]
+            omsg = "\n".join(msg).strip()
+        else:
+            omsg = prefix + warn_msg
+        nstr = self.warn_color + omsg + self.end_color
+        print(nstr)
 
     def success(self, string):
         nstr = self.success_color + string + self.end_color

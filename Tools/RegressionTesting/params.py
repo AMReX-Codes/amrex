@@ -79,7 +79,7 @@ def load_params(args):
                 setattr(mysuite, opt, value)
 
         else:
-            mysuite.log.warn("WARNING: suite parameter %s not valid" % (opt))
+            mysuite.log.warn("suite parameter {} not valid".format(opt))
 
 
     # BoxLib -- this will always be defined
@@ -155,13 +155,13 @@ def load_params(args):
 
     if mysuite.slack_post:
         if not os.path.isfile(mysuite.slack_webhookfile):
-            mysuite.log.warn("ERROR: slack_webhookfile invalid")
+            mysuite.log.warn("slack_webhookfile invalid")
             mysuite.slack_post = 0
         else:
             print(mysuite.slack_webhookfile)
             try: f = open(mysuite.slack_webhookfile)
             except:
-                mysuite.log.warn("ERROR: unable to open webhook file")
+                mysuite.log.warn("unable to open webhook file")
                 mysuite.slack_post = 0
             else:
                 mysuite.slack_webhook_url = str(f.readline())
@@ -222,7 +222,7 @@ def load_params(args):
                     setattr(mytest, opt, value)
 
             else:
-                mysuite.log.warn("WARNING: unrecognized parameter {} for test {}".format(opt, sec))
+                mysuite.log.warn("unrecognized parameter {} for test {}".format(opt, sec))
 
 
         # make sure that the build directory actually exists
@@ -232,52 +232,53 @@ def load_params(args):
             bdir = mysuite.source_dir + mytest.buildDir
 
         if not os.path.isdir(bdir):
-            mysuite.log.warn("WARNING: invalid build directory: {}".format(bdir))
+            mysuite.log.warn("invalid build directory: {}".format(bdir))
             invalid = 1
 
 
         # make sure all the require parameters are present
         if mytest.compileTest:
             if mytest.buildDir == "":
-                mysuite.log.warn("WARNING: mandatory parameters for test {} not set".format(sec))
+                mysuite.log.warn("mandatory parameters for test {} not set".format(sec))
                 invalid = 1
 
         else:
             if (mytest.buildDir == "" or mytest.inputFile == "" or
                 (mysuite.sourceTree == "C_Src" and mytest.probinFile == "") or
                 mytest.dim == -1):
-                mysuite.log.warn("WARNING: mandatory parameters for test {} not set".format(sec))
-                mysuite.log.warn("         buildDir = {}".format(mytest.buildDir))
-                mysuite.log.warn("         inputFile = {}".format(mytest.inputFile))
+                warn_msg = ["required params for test {} not set".format(sec),
+                            "buildDir = {}".format(mytest.buildDir),
+                            "inputFile = {}".format(mytest.inputFile)]
                 if mysuite.sourceTree == "C_Src":
-                    mysuite.log.warn("         probinFile = {}".format(mytest.probinFile))
-                mysuite.log.warn("            dim = {}".format(mytest.dim))
+                    warn_msg += ["probinFile = {}".format(mytest.probinFile)]
+                warn_msg += ["dim = {}".format(mytest.dim)]
+                mysuite.log.warn(warn_msg)
 
                 invalid = 1
 
         # check the optional parameters
         if mytest.restartTest and mytest.restartFileNum == -1:
-            mysuite.log.warn("WARNING: restart-test {} needs a restartFileNum".format(sec))
+            mysuite.log.warn("restart-test {} needs a restartFileNum".format(sec))
             invalid = 1
 
         if mytest.selfTest and mytest.stSuccessString == "":
-            mysuite.log.warn("WARNING: self-test {} needs a stSuccessString".format(sec))
+            mysuite.log.warn("self-test {} needs a stSuccessString".format(sec))
             invalid = 1
 
         if mytest.useMPI and mytest.numprocs == -1:
-            mysuite.log.warn("WARNING: MPI parallel test {} needs numprocs".format(sec))
+            mysuite.log.warn("MPI parallel test {} needs numprocs".format(sec))
             invalid = 1
 
         if mytest.useOMP and mytest.numthreads == -1:
-            mysuite.log.warn("WARNING: OpenMP parallel test {} needs numthreads".format(sec))
+            mysuite.log.warn("OpenMP parallel test {} needs numthreads".format(sec))
             invalid = 1
 
         if mytest.doVis and mytest.visVar == "":
-            mysuite.log.warn("WARNING: test {} has visualization, needs visVar".format(sec))
+            mysuite.log.warn("test {} has visualization, needs visVar".format(sec))
             invalid = 1
 
         if mysuite.sourceTree == "BoxLib" and mytest.testSrcTree == "":
-            mysuite.log.warn("WARNING: test {} is a BoxLib test but testSrcTree not set".format(sec))
+            mysuite.log.warn("testSrcTree not set for BoxLib test {}".format(sec))
             invalid = 1
 
 
@@ -285,7 +286,7 @@ def load_params(args):
         if not invalid:
             test_list.append(mytest)
         else:
-            mysuite.log.warn("WARNING: test {} will be skipped".format(sec))
+            mysuite.log.warn("test {} will be skipped".format(sec))
 
 
     # if any runs are parallel, make sure that the MPIcommand is defined
