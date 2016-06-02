@@ -120,14 +120,14 @@ class Test(object):
                  d.startswith("{}_plt".format(self.name)) and d.endswith(".tgz"))]
 
         if len(plts) == 0:
-            self.log.warn("WARNING: test did not produce any output")
+            self.log.warn("test did not produce any output")
             return ""
 
         plts.sort()
         last_plot = plts.pop()
 
         if last_plot.endswith("00000"):
-            self.log.warn("WARNING: only plotfile 0 was output -- skipping comparison")
+            self.log.warn("only plotfile 0 was output -- skipping comparison")
             return ""
 
         return last_plot
@@ -618,7 +618,6 @@ class Suite(object):
         s = json.dumps(payload)
         cmd = "curl -X POST --data-urlencode 'payload={}' {}".format(s, self.slack_webhook_url)
         test_util.run(cmd)
-
 
 
 def f_flag(opt, test_not=False):

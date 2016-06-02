@@ -563,7 +563,7 @@ def test_suite(argv):
                 # note, with BoxLib, the plotfiles are actually directories
 
                 if not os.path.isdir(bench_file):
-                    suite.log.warn("WARNING: no corresponding benchmark found")
+                    suite.log.warn("no corresponding benchmark found")
                     bench_file = ""
 
                     cf = open("{}.compare.out".format(test.name), 'w')
@@ -582,7 +582,7 @@ def test_suite(argv):
                                                          outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
-                        suite.log.warn("WARNING: unable to do a comparison")
+                        suite.log.warn("unable to do a comparison")
 
                         cf = open("{}.compare.out".format(test.name), 'w')
                         cf.write("WARNING: run did not produce any output\n")
@@ -659,7 +659,7 @@ def test_suite(argv):
 
                 try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
-                    suite.log.warn("WARNING: no output file found")
+                    suite.log.warn("no output file found")
                     compare_successful = 0
                     out_lines = ['']
                 else:
@@ -750,7 +750,7 @@ def test_suite(argv):
 
         else:
             if test.doVis or test.analysisRoutine != "":
-                suite.log.warn("WARNING: no output file.  Skipping visualization")
+                suite.log.warn("no output file.  Skipping visualization")
 
 
         #----------------------------------------------------------------------
@@ -811,7 +811,7 @@ def test_suite(argv):
                     if os.path.isdir(pfile):
                         try: shutil.rmtree(pfile)
                         except:
-                            suite.log.warn("WARNING: unable to remove {}".format(pfile))
+                            suite.log.warn("unable to remove {}".format(pfile))
 
                 else:
                     # tar it up
@@ -821,7 +821,7 @@ def test_suite(argv):
                         tar.close()
 
                     except:
-                        suite.log.warn("WARNING: unable to tar output file {}".format(pfile))
+                        suite.log.warn("unable to tar output file {}".format(pfile))
 
                     else:
                         shutil.rmtree(pfile)
