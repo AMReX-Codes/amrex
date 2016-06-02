@@ -144,7 +144,8 @@ def test_suite(argv):
     if not args.complete_report_from_crash == "":
 
         # make sure the web directory from the crash run exists
-        suite.full_web_dir = "%s/%s/"  % (suite.webTopDir, args.complete_report_from_crash)
+        suite.full_web_dir = "{}/{}/".format(
+            suite.webTopDir, args.complete_report_from_crash)
         if not os.path.isdir(suite.full_web_dir):
             suite.log.fail("Crash directory does not exist")
 
@@ -382,27 +383,19 @@ def test_suite(argv):
             report.report_single_test(suite, test, test_list, failure_msg=error_msg)
             continue
 
-        # sometimes the input file was in a subdirectory under the
-        # build directory.  Keep only the input file for latter
-        index = string.rfind(test.inputFile, "/")
-        if index > 0:
-            test.inputFile = test.inputFile[index+1:]
+        # strip out any sub-directory from the build dir
+        test.inputFile = os.path.basename(test.inputFile)
 
         # if we are a "C_Src" build, we need the probin file
-        if (suite.sourceTree == "C_Src" or
-            (test.testSrcTree == "C_Src" and test.probinFile != "")):
+        if test.probinFile != "":
             try: shutil.copy(test.probinFile, output_dir)
             except IOError:
                 error_msg = "ERROR: unable to copy probin file: {}".format(test.probinFile)
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
 
-            # sometimes the probin file was in a subdirectory under the
-            # build directory.  Keep only the probin file for latter
-            index = string.rfind(test.probinFile, "/")
-            if index > 0:
-               test.probinFile = test.probinFile[index+1:]
-
+            # strip out any sub-directory from the build dir
+            test.probinFile = os.path.basename(test.probinFile)
 
         # python doesn't allow labelled continue statements, so we
         # use skip_to_next_test to decide if we need to skip to
@@ -430,12 +423,8 @@ def test_suite(argv):
                 break
 
             else:
-                if os.path.isabs(file):
-                    link_source = file
-                    link_name = output_dir + os.path.basename(file)
-                else:
-                    link_source = os.path.abspath(file)
-                    link_name = output_dir + file
+                link_source = os.path.abspath(file)
+                link_name = os.path.join(output_dir, os.path.basename(file))
                 try: os.symlink(link_source, link_name)
                 except IOError:
                     error_msg = "ERROR: unable to symlink link file: {}".format(file)
@@ -457,30 +446,30 @@ def test_suite(argv):
 
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-            base_command = "./%s %s amr.plot_file=%s_plt amr.check_file=%s_chk" % \
-                           (executable, test.inputFile, test.name, test.name)
+            base_cmd = "./{} {} amr.plot_file={}_plt amr.check_file={}_chk".format(
+                executable, test.inputFile, test.name, test.name)
 
             # keep around the checkpoint files only for the restart runs
             if test.restartTest:
-                base_command += " amr.checkpoint_files_output=1 amr.check_int=%d" % \
+                base_cmd += " amr.checkpoint_files_output=1 amr.check_int=%d" % \
                                 (test.restartFileNum)
             else:
-                base_command += " amr.checkpoint_files_output=0"
+                base_cmd += " amr.checkpoint_files_output=0"
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-            base_command = "./%s %s --plot_base_name %s_plt --check_base_name %s_chk " % \
-                           (executable, test.inputFile, test.name, test.name)
+            base_cmd = "./{} {} --plot_base_name {}_plt --check_base_name {}_chk ".format(
+                executable, test.inputFile, test.name, test.name)
 
             # keep around the checkpoint files only for the restart runs
-            if not test.restartTest: base_command += " --chk_int 0 "
+            if not test.restartTest: base_cmd += " --chk_int 0 "
 
-            base_command += "{}".format(suite.globalAddToExecString)
+            base_cmd += "{}".format(suite.globalAddToExecString)
 
         if args.with_valgrind:
-            base_command = "valgrind " + args.valgrind_options + " " + base_command
+            base_cmd = "valgrind " + args.valgrind_options + " " + base_cmd
 
-        suite.run_test(test, base_command)
+        suite.run_test(test, base_cmd)
 
 
         # if it is a restart test, then rename the final output file and
@@ -507,11 +496,11 @@ def test_suite(argv):
                 report.report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
 
-            orig_last_file = "orig_%s" % (last_file)
+            orig_last_file = "orig_{}".format(last_file)
             shutil.move(last_file, orig_last_file)
 
             if test.diffDir:
-                orig_diff_dir = "orig_%s" % (test.diffDir)
+                orig_diff_dir = "orig_{}".format(test.diffDir)
                 shutil.move(test.diffDir, orig_diff_dir)
 
             # get the file number to restart from
@@ -521,15 +510,15 @@ def test_suite(argv):
 
             if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
-                base_command = "./{} {} amr.plot_file={}_plt amr.check_file={}_chk amr.checkpoint_files_output=0 amr.restart={}".format(
+                base_cmd = "./{} {} amr.plot_file={}_plt amr.check_file={}_chk amr.checkpoint_files_output=0 amr.restart={}".format(
                     executable, test.inputFile, test.name, test.name, restart_file)
 
             elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
-                base_command = "./{} {} --plot_base_name {}_plt --check_base_name {}_chk --chk_int 0 --restart {} {}".format(
+                base_cmd = "./{} {} --plot_base_name {}_plt --check_base_name {}_chk --chk_int 0 --restart {} {}".format(
                     executable, test.inputFile, test.name, test.name, test.restartFileNum, suite.globalAddToExecString)
 
-            suite.run_test(test, base_command)
+            suite.run_test(test, base_cmd)
 
         test.wall_time = time.time() - test.wall_time
 
@@ -577,7 +566,7 @@ def test_suite(argv):
                     suite.log.warn("WARNING: no corresponding benchmark found")
                     bench_file = ""
 
-                    cf = open("%s.compare.out" % (test.name), 'w')
+                    cf = open("{}.compare.out".format(test.name), 'w')
                     cf.write("WARNING: no corresponding benchmark found\n")
                     cf.write("         unable to do a comparison\n")
                     cf.close()
@@ -595,7 +584,7 @@ def test_suite(argv):
                     else:
                         suite.log.warn("WARNING: unable to do a comparison")
 
-                        cf = open("%s.compare.out" % (test.name), 'w')
+                        cf = open("{}.compare.out".format(test.name), 'w')
                         cf.write("WARNING: run did not produce any output\n")
                         cf.write("         unable to do a comparison\n")
                         cf.close()
@@ -611,8 +600,8 @@ def test_suite(argv):
                     suite.log.log("doing the diff...")
                     suite.log.log("diff dir: {}".format(test.diffDir))
 
-                    command = "diff %s -r %s %s" \
-                        % (test.diffOpts, diff_dir_bench, test.diffDir)
+                    command = "diff {} -r {} {}".format(
+                        test.diffOpts, diff_dir_bench, test.diffDir)
 
                     outfile = "{}.compare.out".format(test.name)
                     sout, serr, diff_status = test_util.run(command, outfile=outfile, store_command=True)
@@ -638,11 +627,11 @@ def test_suite(argv):
                     except: pass
                     shutil.copytree(source_file, "{}/{}".format(bench_dir, compare_file))
 
-                    with open("%s.status" % (test.name), 'w') as cf:
-                        cf.write("benchmarks updated.  New file:  %s\n" % (compare_file) )
+                    with open("{}.status".format(test.name), 'w') as cf:
+                        cf.write("benchmarks updated.  New file:  {}\n".format(compare_file) )
 
                 else:
-                    with open("%s.status" % (test.name), 'w') as cf:
+                    with open("{}.status".format(test.name), 'w') as cf:
                         cf.write("benchmarks failed")
 
                     # copy what we can
@@ -686,7 +675,7 @@ def test_suite(argv):
 
                     of.close()
 
-                with open("%s.compare.out" % (test.name), 'w') as cf:
+                with open("{}.compare.out".format(test.name), 'w') as cf:
                     if compare_successful:
                         cf.write("SELF TEST SUCCESSFUL\n")
                     else:
@@ -785,13 +774,9 @@ def test_suite(argv):
 
             for af in test.auxFiles:
 
-                # sometimes the auxFile was in a subdirectory under the
-                # build directory.
-                index = string.rfind(af, "/")
-                if index > 0:
-                    af = af[index+1:]
-
-                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, af) )
+                # strip out any sub-directory under build dir for the aux file
+                # when copying
+                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, os.path.basename(af)) )
 
             if not test.png_file is None:
                 try: shutil.copy(test.png_file, suite.full_web_dir)
@@ -809,37 +794,37 @@ def test_suite(argv):
             suite.copy_backtrace(test)
 
         else:
-            shutil.copy("%s.status" % (test.name), suite.full_web_dir)
+            shutil.copy("{}.status".format(test.name), suite.full_web_dir)
 
 
         #----------------------------------------------------------------------
         # archive (or delete) the output
         #----------------------------------------------------------------------
         suite.log.log("archiving the output...")
-        for file in os.listdir(output_dir):
-            if (os.path.isdir(file) and
-                (file.startswith("%s_plt" % (test.name)) or
-                 file.startswith("%s_chk" % (test.name)) ) ):
+        for pfile in os.listdir(output_dir):
+            if (os.path.isdir(pfile) and
+                (pfile.startswith("{}_plt".format(test.name)) or
+                 pfile.startswith("{}_chk".format(test.name)) ) ):
 
-                if suite.purge_output == 1 and not file == output_file:
+                if suite.purge_output == 1 and not pfile == output_file:
                     # delete the plt/chk file
-                    if os.path.isdir(file):
-                        try: shutil.rmtree(file)
+                    if os.path.isdir(pfile):
+                        try: shutil.rmtree(pfile)
                         except:
-                            suite.log.warn("WARNING: unable to remove {}".format(file))
+                            suite.log.warn("WARNING: unable to remove {}".format(pfile))
 
                 else:
                     # tar it up
                     try:
-                        tar = tarfile.open("%s.tgz" % (file), "w:gz")
-                        tar.add("%s" % (file))
+                        tar = tarfile.open("{}.tgz".format(pfile), "w:gz")
+                        tar.add("{}".format(pfile))
                         tar.close()
 
                     except:
-                        suite.log.warn("WARNING: unable to tar output file %s" % (file))
+                        suite.log.warn("WARNING: unable to tar output file {}".format(pfile))
 
                     else:
-                        shutil.rmtree(file)
+                        shutil.rmtree(pfile)
 
 
         #----------------------------------------------------------------------
@@ -924,8 +909,5 @@ def test_suite(argv):
     return num_failed
 
 
-#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-# m a i n
-#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 if __name__ == "__main__":
     test_suite(sys.argv[1:])
