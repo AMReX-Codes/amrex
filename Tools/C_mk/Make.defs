@@ -586,6 +586,8 @@ ifeq ($(COMP),Intel)
    endif
    endif
 
+   COMP_VERSION := $(shell $(_icpc) -V 2>&1 | grep 'Version')                    
+
    ifeq ($(USE_OMP),TRUE)
      CXXOPTF += -openmp
      CXXDEBF += -openmp
@@ -666,6 +668,8 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    endif
+
+   FCOMP_VERSION := $(shell $(_ifc) -V 2>&1 | grep 'Version')                    
 
    ifeq ($(USE_OMP),TRUE)
      FOPTF += -openmp
