@@ -42,9 +42,9 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     // ***************************************************
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev].norm0();
-	if (ParallelDescriptor::IOProcessor())
-	    std::cout << "Max of rhs in solve_for_phi before correction at level  " 
-                      << lev << " " << n0 << std::endl;
+//	if (ParallelDescriptor::IOProcessor())
+//	    std::cout << "Max of rhs in solve_for_phi before correction at level  " 
+//                    << lev << " " << n0 << std::endl;
     }
 
     for (int lev = base_level; lev <= finest_level; lev++)
@@ -52,9 +52,9 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
 
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev].norm0();
-	if (ParallelDescriptor::IOProcessor())
-	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
-                      << lev << " " << n0 << std::endl;
+//	if (ParallelDescriptor::IOProcessor())
+//	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
+//                    << lev << " " << n0 << std::endl;
     }
 
     // ***************************************************
@@ -79,7 +79,6 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         Real      end    = ParallelDescriptor::second() - strt;
-
 #if 0
 #ifdef BL_LAZY
         Lazy::QueueReduction( [=] () mutable {
