@@ -204,7 +204,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     int finest_level = nlevs-1;
 
     PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs);
+    PartMF.resize(nlevs,PArrayManage);
     PartMF.set(0,new MultiFab(ba[0],1,1));
     PartMF[0].setVal(0.0);
     MyPC->AssignDensity(PartMF, base_level, 1, finest_level);
