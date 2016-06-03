@@ -146,7 +146,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     int finest_level = 0;
 
     PArray<MultiFab> PartMF;
-    PartMF.resize(nlevs);
+    PartMF.resize(nlevs,PArrayManage);
     PartMF.set(0,new MultiFab(ba[0],1,1));
     PartMF[0].setVal(0.0);
 
