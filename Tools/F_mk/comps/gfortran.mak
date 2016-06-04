@@ -58,4 +58,8 @@
     endif
   endif
 
+  ifdef CXX11
+    CXXFLAGS += -std=c++11
+  endif
+
   xtr_libraries += -lstdc++

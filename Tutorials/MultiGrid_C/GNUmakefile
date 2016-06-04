@@ -75,11 +75,6 @@ vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG
 INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
 vpathdir += $(BOXLIB_HOME)/Src/LinearSolvers/C_CellMG4
 
-CEXE_sources += BCRec.cpp 
-CEXE_headers += BCRec.H BC_TYPES.H
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/C_AMRLib
-vpathdir += $(BOXLIB_HOME)/Src/C_AMRLib
-
 ifeq ($(USE_F90_SOLVERS), TRUE)
   include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
   INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG

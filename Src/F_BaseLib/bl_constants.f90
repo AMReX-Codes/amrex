@@ -41,7 +41,10 @@ module bl_constants_module
 
   real(kind = dp_t), parameter :: THREE4TH  = 0.75_dp_t
 
+  real(kind = dp_t), parameter :: FIVE12TH = FIVE/TWELVE
   real(kind = dp_t), parameter :: SEVEN12TH = SEVEN/TWELVE
+
+  real(kind = dp_t), parameter :: FIVE32ND = FIVE/32.0_dp_t
 
   !! Pi
   real(kind = dp_t), parameter :: M_PI    = &

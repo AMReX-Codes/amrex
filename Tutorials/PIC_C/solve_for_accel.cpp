@@ -8,6 +8,7 @@
 #include <MGT_Solver.H>
 #include <mg_cpp_f.h>
 #include <stencil_types.H>
+#include <VisMF.H>
 
 void solve_with_f90  (PArray<MultiFab>& rhs, PArray<MultiFab>& phi, Array< PArray<MultiFab> >& grad_phi_edge, 
                       const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
@@ -41,9 +42,9 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
     // ***************************************************
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev].norm0();
-	if (ParallelDescriptor::IOProcessor())
-	    std::cout << "Max of rhs in solve_for_phi before correction at level  " 
-                      << lev << " " << n0 << std::endl;
+//	if (ParallelDescriptor::IOProcessor())
+//	    std::cout << "Max of rhs in solve_for_phi before correction at level  " 
+//                    << lev << " " << n0 << std::endl;
     }
 
     for (int lev = base_level; lev <= finest_level; lev++)
@@ -51,9 +52,9 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
 
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev].norm0();
-	if (ParallelDescriptor::IOProcessor())
-	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
-                      << lev << " " << n0 << std::endl;
+//	if (ParallelDescriptor::IOProcessor())
+//	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
+//                    << lev << " " << n0 << std::endl;
     }
 
     // ***************************************************
@@ -73,12 +74,11 @@ solve_for_accel(PArray<MultiFab>& rhs, PArray<MultiFab>& phi, PArray<MultiFab>& 
         BoxLib::fill_boundary(grad_phi[lev],0,BL_SPACEDIM,geom[lev],false);
     }
 
-    // VisMF::Write(grad_phi,"GradPhi");
+    // VisMF::Write(grad_phi[0],"GradPhi");
 
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         Real      end    = ParallelDescriptor::second() - strt;
-
 #if 0
 #ifdef BL_LAZY
         Lazy::QueueReduction( [=] () mutable {

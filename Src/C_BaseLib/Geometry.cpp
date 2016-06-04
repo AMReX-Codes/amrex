@@ -339,7 +339,16 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = mf.color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
 	//
@@ -518,9 +527,11 @@ Geometry::PeriodicCopy (MultiFab&       dstmf,
 			int             dcomp,
 			int             scomp,
 			int             ncomp,
-			int             dstng) const
+			int             dstng,
+			int             srcng) const
 {
-    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp, dstng);
+    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp, dstng, srcng,
+			 FabArrayBase::COPY);
 }
 
 Geometry::Geometry () {}
@@ -971,7 +982,9 @@ Geometry::GetFPB (const Geometry&      geom,
 		if (ParallelDescriptor::sameTeam(dst_owner)) {
 		    continue; // local copy will be dealt with later
 		} else if (MyProc == dm[k_src]) {
-		    send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
+		    const BoxList& bl = BoxLib::boxDiff(bx, bx_dst);
+		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+			send_tags[dst_owner].push_back(FPBComTag(*lit-iv, *lit, k_src, k_dst));
 		}
 	    }
 	}
@@ -1050,22 +1063,28 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator
-			     it_tile  = tilelist.begin(),
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		    {
-			TheFPB.m_LocTags->push_back(FPBComTag(*it_tile, (*it_tile)-iv,
-							      k_src, k_dst));
-		    }
-		    if (check_local) {
-			localtouch.plus(1, bx-iv);
-		    }
-		} else if (MyProc == dm[k_dst]) {
-		    recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
-		    if (check_remote) {
-			remotetouch.plus(1, bx-iv);
+		const BoxList& bl = BoxLib::boxDiff(bx-iv, bx_dst); // destinatin boxes
+		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		{
+		    const Box& blbx = *lit;
+
+		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+			for (BoxList::const_iterator
+				 it_tile  = tilelist.begin(),
+				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			{
+			    TheFPB.m_LocTags->push_back(FPBComTag((*it_tile)+iv, *it_tile,
+								  k_src, k_dst));
+			}
+			if (check_local) {
+			    localtouch.plus(1, blbx);
+			}
+		    } else if (MyProc == dm[k_dst]) {
+			recv_tags[src_owner].push_back(FPBComTag(blbx+iv, blbx, k_src, k_dst));
+			if (check_remote) {
+			    remotetouch.plus(1, blbx);
+			}
 		    }
 		}
 	    }

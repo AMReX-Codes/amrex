@@ -51,6 +51,15 @@ module build_info_module
   character (len=128), save :: extra_git_hash2 = &
 "@@EXTRA_HASH2@@"
 
+  character (len=128), save :: network_dir = &
+"@@NETWORK@@"
+
+  character (len=128), save :: eos_dir = &
+"@@EOS@@"
+
+  character (len=128), save :: conductivity_dir = &
+"@@CONDUCTIVITY@@"
+
   logical, parameter :: different_build_tree = @@BUILD_TREE_LOGICAL@@
   character (len=128), save :: build_git_hash = &
 "@@BUILD_HASH@@"
@@ -99,7 +108,10 @@ try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 "boxlib_home=",
                                 "source_home=",
                                 "extra_home=",
-                                "extra_home2="])
+                                "extra_home2=",
+                                "network=",
+                                "eos=",
+                                "conductivity="])
 except getopt.GetoptError:
     sys.exit("invalid calling sequence")
 
@@ -114,6 +126,9 @@ boxlib_home = ""
 source_home = ""
 extra_home = ""
 extra_home2 = ""
+network = ""
+eos = ""
+conductivity = ""
 
 for o, a in opts:
 
@@ -150,6 +165,15 @@ for o, a in opts:
     if o == "--extra_home2":
         extra_home2 = a        
 
+    if o == "--network":
+        network = a        
+
+    if o == "--eos":
+        eos = a        
+
+    if o == "--conductivity":
+        conductivity = a        
+
 
 MAX_STRING_LENGTH=128
 DBL_STRING_LINE_LENGTH=125
@@ -185,21 +209,21 @@ if (not extra_home2 == ""):
     
 # we may not be building in a sub-directory of the source directory, in that
 # case, store an extra hash
-sourceDir = os.path.abspath(source_home)
-buildDir = os.path.abspath(os.getcwd())
+source_dir = os.path.abspath(source_home)
+build_dir = os.path.abspath(os.getcwd())
 
-sDirParts = sourceDir.split("/")
-bDirParts = buildDir.split("/")
+sdir_parts = source_dir.split("/")
+bdir_parts = build_dir.split("/")
 
-isSubDir = 1
-for n in range(len(sDirParts)):
-    if not sDirParts[n] == bDirParts[n]:
-        isSubDir = 0
+is_sub_dir = 1
+for n in range(len(sdir_parts)):
+    if not sdir_parts[n] == bdir_parts[n]:
+        is_sub_dir = 0
         break
 
-if not isSubDir:
+if not is_sub_dir:
     have_build_hash = 1
-    build_hash = get_git_hash(buildDir)
+    build_hash = get_git_hash(build_dir)
 else:
     have_build_hash = 0
 
@@ -336,6 +360,15 @@ for line in sourceString.splitlines():
                 newline = line.replace("@@BUILD_HASH@@", "")
 
             fout.write(newline)
+
+        elif keyword == "NETWORK":
+            fout.write(line.replace("@@NETWORK@@", network))
+
+        elif keyword == "EOS":
+            fout.write(line.replace("@@EOS@@", eos))
+
+        elif keyword == "CONDUCTIVITY":
+            fout.write(line.replace("@@CONDUCTIVITY@@", conductivity))
 
         elif keyword == "MODULE_STUFF":
 

@@ -220,18 +220,22 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     if type == "real":
                         fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
                                    (indent, paramsA[n].var, paramsA[n].value))
+                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
 
                     elif type == "character":
                         fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
                                    (indent, paramsA[n].var, paramsA[n].value))
+                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
 
                     elif type == "integer":
                         fout.write("%sinteger, save, public :: %s = %s\n" % 
                                    (indent, paramsA[n].var, paramsA[n].value))
+                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
 
                     elif type == "logical":
                         fout.write("%slogical, save, public :: %s = %s\n" % 
                                    (indent, paramsA[n].var, paramsA[n].value))
+                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
 
                     else:
                         print("write_probin.py: invalid datatype for variable {}".format(paramsA[n].var))
@@ -251,18 +255,22 @@ def write_probin(probin_template, param_A_files, param_B_files,
                         if type == "real":
                             fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
                                        (indent, paramsB[n].var, paramsB[n].value))
+                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
 
                         elif type == "character":
                             fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
                                        (indent, paramsB[n].var, paramsB[n].value))
+                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
 
                         elif type == "integer":
                             fout.write("%sinteger, save, public :: %s = %s\n" % 
                                        (indent, paramsB[n].var, paramsB[n].value))
+                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
 
                         elif type == "logical":
                             fout.write("%slogical, save, public :: %s = %s\n" % 
                                        (indent, paramsB[n].var, paramsB[n].value))
+                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
 
                         else:
                             print("write_probin.py: invalid datatype for variable {}".format(paramsB[n].var))
@@ -297,13 +305,13 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     fout.write("%s   farg = farg + 1\n" % (indent))
 
                     if params[n].type == "character":
-                        fout.write("%s   call get_command_argument(farg, value = %s)\n\n" % 
+                        fout.write("%s   call get_command_argument(farg, value = %s)\n" % 
                                    (indent, params[n].var))
 
                     else:
                         fout.write("%s   call get_command_argument(farg, value = fname)\n" % 
                                    (indent))
-                        fout.write("%s   read(fname, *) %s\n\n" % 
+                        fout.write("%s   read(fname, *) %s\n" % 
                                    (indent, params[n].var))
 
             elif keyword == "printing":
@@ -340,6 +348,23 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
                     else:
                         print("write_probin.py: invalid datatype for variable {}".format(params[n].var))
+
+
+            elif keyword == "acc":
+
+                fout.write(indent + "!$acc update &\n")
+                fout.write(indent + "!$acc device(")
+
+                for n, p in enumerate(params):
+                    fout.write("{}".format(p.var))
+
+                    if n == len(params)-1:
+                        fout.write(")\n")
+                    else:
+                        if n % 3 == 2:
+                            fout.write(") &\n" + indent + "!$acc device(")
+                        else:
+                            fout.write(", ")
 
             #else:
                 

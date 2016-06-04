@@ -161,6 +161,8 @@ public:
     //
     const BndryData& bndryData () const { return *bgb; }
     //
+    ParallelDescriptor::Color color () const { return bgb->color(); }
+    //
     // Set the boundary data object.
     //
     void bndryData (const BndryData& bd);

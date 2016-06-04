@@ -549,8 +549,6 @@ class FillPatchIterator
     FillPatchIterator (const FillPatchIterator& rhs);
     FillPatchIterator& operator= (const FillPatchIterator& rhs);
 
-    bool ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow, 
-			 const IndexType& boxType, Interpolater* mapper);
     void FillFromLevel0 (Real time, int index, int scomp, int dcomp, int ncomp);
     void FillFromTwoLevels (Real time, int index, int scomp, int dcomp, int ncomp);
 

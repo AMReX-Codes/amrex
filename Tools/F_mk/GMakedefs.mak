@@ -14,6 +14,7 @@ F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
 CXXFLAGS :=
+FPP_DEFINES :=
 
 FCOMP_VERSION :=
 
@@ -61,7 +62,8 @@ suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp
 sources     =
 fsources    =
 f90sources  =
-sf90sources  =
+sf90sources =
+F90sources  =
 csources    =
 cxxsources  =
 libraries   =
@@ -170,10 +172,6 @@ ifeq ($(ARCH),AIX)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
 endif
 
-ifeq ($(ARCH),OSF1)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
-endif
-
 ifeq ($(findstring mira, $(HOSTNAMEF)), mira)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/bgq.mak
 endif
@@ -204,6 +202,9 @@ f_includes = $(addprefix -I , $(FINCLUDE_LOCATIONS))
 c_includes = $(addprefix -I , $(INCLUDE_LOCATIONS))
 
 TCSORT  :=  $(BOXLIB_HOME)/Tools/F_scripts/tcsort.pl
+
+# MODDEP is for .f90, .f, and .F90.  
+# MKDEP is for c
 MODDEP  :=  $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 MKDEP   :=  $(BOXLIB_HOME)/Tools/F_scripts/mkdep.pl
 F90DOC  :=  $(BOXLIB_HOME)/Tools/F_scripts/f90doc/f90doc
@@ -214,21 +215,28 @@ libraries += $(hypre_libraries) $(mpi_libraries) $(xtr_libraries)
 
 CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
+ifdef CXX11
+  CXXFLAGS += -DBL_USE_CXX11
+endif
+
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \
 	$(sort $(sf90sources:.f90=.o)) \
+	$(sort $(F90sources:.F90=.o)) \
 	$(sort $(fsources:.f=.o))     \
 	$(sort $(csources:.c=.o))     \
 	$(sort $(cxxsources:.cpp=.o))     \
 	)
 sources =                     \
 	$(sort $(f90sources)) \
+        $(sort $(F90sources)) \
 	$(sort $(fsources)  ) \
 	$(sort $(csources)  ) \
 	$(sort $(cxxsources)  )
 
 html_sources = $(addprefix $(hdir)/,     \
 	$(sort $(f90sources:.f90=.html)) \
+	$(sort $(F90sources:.F90=.html)) \
 	$(sort $(fsources:.f=.html))     \
 	)
 
