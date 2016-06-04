@@ -259,6 +259,11 @@ class Test(object):
         self.comp_string = None  # set automatically
         self.run_command = None  # set automatically
 
+        self.job_info_field1 = ""
+        self.job_info_field2 = ""
+        
+        self.has_jobinfo = 0  # filled automatically
+        
         self.backtrace = []   # filled automatically
 
 
@@ -268,6 +273,12 @@ class Test(object):
     def value(self):
         return self.name
 
+    def find_backtrace(self):
+        """ find any backtrace files produced """        
+        return [ft for ft in os.listdir(self.output_dir)
+                if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+
+    
     def get_last_plotfile(self, output_dir=None):
         """ Find the last plotfile written.  Note: we give an error if the
             last plotfile is 0.  If output_dir is specified, then we use
@@ -327,6 +338,9 @@ class Suite(object):
         self.add_to_f_make_command = ""
         self.add_to_c_make_command = ""
 
+        self.summary_job_info_field1 = ""
+        self.summary_job_info_field2 = ""
+        
         self.MAKE = "gmake"
         self.numMakeJobs = 1
 
@@ -681,8 +695,8 @@ class Suite(object):
         if any backtrace files were output (because the run crashed), find them
         and copy them to the web directory
         """
-        backtrace = [ft for ft in os.listdir(test.output_dir)
-                     if (os.path.isfile(ft) and ft.startswith("Backtrace."))]
+        backtrace = test.find_backtrace()
+
         for btf in backtrace:
             ofile = "{}/{}.{}".format(self.full_web_dir, test.name, btf)
             shutil.copy(btf, ofile)
@@ -831,6 +845,9 @@ class Repo(object):
 
 def convert_type(string):
     """ return an integer, float, or string from the input string """
+    if string is None:
+        return None
+        
     try: int(string)
     except: pass
     else: return int(string)
@@ -840,6 +857,11 @@ def convert_type(string):
     else: return float(string)
 
     return string.strip()
+
+def safe_get(cp, sec, opt, default=None):
+    try: v = cp.get(sec, opt)
+    except: v = default
+    return v
 
 def load_params(args):
     """
@@ -894,15 +916,10 @@ def load_params(args):
 
 
     # BoxLib -- this will always be defined
-    try: rdir = cp.get("BoxLib", "dir")
-    except: rdir = None
-    rdir = mysuite.check_test_dir(rdir)
+    rdir = mysuite.check_test_dir(safe_get(cp, "BoxLib", "dir"))
 
-    try: branch = convert_type(cp.get("BoxLib", "branch"))
-    except: branch = None
-
-    try: rhash = convert_type(cp.get("BoxLib", "hash"))
-    except: rhash = None
+    branch = convert_type(safe_get(cp, "BoxLib", "branch"))
+    rhash = convert_type(safe_get(cp, "BoxLib", "hash"))
 
     mysuite.repos["BoxLib"] = Repo(mysuite, rdir, "BoxLib",
                                    branch_wanted=branch, hash_wanted=rhash)
@@ -918,23 +935,14 @@ def load_params(args):
         else:
             k = "source"
 
-        try: rdir = cp.get(s, "dir")
-        except: rdir = None
-        rdir = mysuite.check_test_dir(rdir)
+        rdir = mysuite.check_test_dir(safe_get(cp, s, "dir"))
+        branch = convert_type(safe_get(cp, s, "branch"))
+        rhash = convert_type(safe_get(cp, s, "hash"))
 
-        try: branch = convert_type(cp.get(s, "branch"))
-        except: branch = None
-
-        try: rhash = convert_type(cp.get(s, "hash"))
-        except: rhash = None
-
-        try: build = convert_type(cp.get(s, "build"))
-        except: build = 0
-
+        build = convert_type(safe_get(cp, s, "build", default=0))
         if s == "source": build = 1
 
-        try: comp_string = cp.get(s, "comp_string")
-        except: comp_string = None
+        comp_string = safe_get(cp, s, "comp_string")
 
         name = os.path.basename(os.path.normpath(rdir))
 
@@ -1606,41 +1614,38 @@ def test_suite(argv):
         if suite.sourceTree == "C_Src" or test.testSrcTree == "C_Src":
 
             buildOptions = ""
-            exeSuffix = ""
 
             if test.debug:
                 buildOptions += "DEBUG=TRUE "
-                exeSuffix += ".DEBUG"
             else:
                 buildOptions += "DEBUG=FALSE "
 
             if test.useMPI:
                 buildOptions += "USE_MPI=TRUE "
-                exeSuffix += ".MPI"
             else:
                 buildOptions += "USE_MPI=FALSE "
 
             if test.useOMP:
                 buildOptions += "USE_OMP=TRUE "
-                exeSuffix += ".OMP"
             else:
                 buildOptions += "USE_OMP=FALSE "
 
             if not test.extra_build_dir == "":
                 buildOptions += suite.repos[test.extra_build_dir].comp_string + " "
 
-            executable = "%s%dd" % (suite.suiteName, test.dim) + exeSuffix + ".ex"
-
-            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {} executable={}".format(
+            comp_string = "{} -j{} BOXLIB_HOME={} {} {} DIM={} {} COMP={} FCOMP={} {}".format(
                 suite.MAKE, suite.numMakeJobs, suite.boxlib_dir,
                 suite.extra_src_comp_string, test.addToCompileString,
                 test.dim, buildOptions, suite.COMP, suite.FCOMP,
-                suite.add_to_c_make_command, executable)
+                suite.add_to_c_make_command)
 
             suite.log.log(comp_string)
             so, se, r = run(comp_string,
                             outfile="{}/{}.make.out".format(output_dir, test.name))
 
+            # get the executable
+            executable = get_recent_filename(bdir, "", ".ex")
+            
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
             build_options = ""
@@ -1653,9 +1658,9 @@ def test_suite(argv):
 
             comp_string = suite.build_f(opts="{} {} {}".format(
                 suite.extra_src_comp_string, test.addToCompileString, build_options),
-                          outfile="{}/{}.make.out".format(output_dir, test.name))
+                                        outfile="{}/{}.make.out".format(output_dir, test.name))
 
-            # we need a better way to get the executable name here
+            # get the executable
             executable = get_recent_filename(bdir, "main", ".exe")
 
         test.comp_string = comp_string
@@ -1798,20 +1803,29 @@ def test_suite(argv):
         # if it is a restart test, then rename the final output file and
         # restart the test
         if test.restartTest:
-            lastFile = test.get_last_plotfile(output_dir=output_dir)
+            skip_restart = False
+            
+            last_file = test.get_last_plotfile(output_dir=output_dir)
 
-            if lastFile == "":
+            if last_file == "":
                 error_msg = "ERROR: test did not produce output.  Restart test not possible"
-                test.wall_time = time.time() - test.wall_time
+                skip_restart = True
+
+            if len(test.find_backtrace()) > 0:
+                error_msg = "ERROR: test produced backtraces.  Restart test not possible"
+                skip_restart = True
+
+            if skip_restart:
                 # copy what we can
+                test.wall_time = time.time() - test.wall_time
                 shutil.copy("{}.run.out".format(test.name), suite.full_web_dir)
                 shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
                 suite.copy_backtrace(test)
                 report_single_test(suite, test, test_list, failure_msg=error_msg)
                 continue
-
-            origLastFile = "orig_%s" % (lastFile)
-            shutil.move(lastFile, origLastFile)
+            
+            orig_last_file = "orig_%s" % (last_file)
+            shutil.move(last_file, orig_last_file)
 
             if test.diffDir:
                 origDiffDir = "orig_%s" % (test.diffDir)
@@ -1844,17 +1858,17 @@ def test_suite(argv):
 
             if test.outputFile == "":
                 if test.compareFile == "":
-                    compareFile = test.get_last_plotfile(output_dir=output_dir)
+                    compare_file = test.get_last_plotfile(output_dir=output_dir)
                 else:
-                    compareFile = test.compareFile
-                outputFile = compareFile
+                    compare_file = test.compareFile
+                output_file = compare_file
             else:
-                outputFile = test.outputFile
-                compareFile = test.name+'_'+outputFile
+                output_file = test.outputFile
+                compare_file = test.name+'_'+output_file
 
 
             # get the number of levels for reporting
-            prog = "{} -l {}".format(suite.tools["fboxinfo"], outputFile)
+            prog = "{} -l {}".format(suite.tools["fboxinfo"], output_file)
             stdout0, stderr0, rc = run(prog)
             test.nlevels = stdout0.rstrip('\n')
             if not type(convert_type(test.nlevels)) is int:
@@ -1864,21 +1878,21 @@ def test_suite(argv):
 
                 suite.log.log("doing the comparison...")
                 suite.log.indent()
-                suite.log.log("comparison file: {}".format(outputFile))
+                suite.log.log("comparison file: {}".format(output_file))
 
-                test.compare_file_used = outputFile
+                test.compare_file_used = output_file
 
                 if not test.restartTest:
-                    benchFile = bench_dir + compareFile
+                    bench_file = bench_dir + compare_file
                 else:
-                    benchFile = origLastFile
+                    bench_file = orig_last_file
 
                 # see if it exists
                 # note, with BoxLib, the plotfiles are actually directories
 
-                if not os.path.isdir(benchFile):
+                if not os.path.isdir(bench_file):
                     suite.log.warn("WARNING: no corresponding benchmark found")
-                    benchFile = ""
+                    bench_file = ""
 
                     cf = open("%s.compare.out" % (test.name), 'w')
                     cf.write("WARNING: no corresponding benchmark found\n")
@@ -1886,12 +1900,12 @@ def test_suite(argv):
                     cf.close()
 
                 else:
-                    if not compareFile == "":
+                    if not compare_file == "":
 
-                        suite.log.log("benchmark file: {}".format(benchFile))
+                        suite.log.log("benchmark file: {}".format(bench_file))
 
                         command = "{} -n 0 --infile1 {} --infile2 {}".format(
-                            suite.tools["fcompare"], benchFile, outputFile)
+                            suite.tools["fcompare"], bench_file, output_file)
                         sout, serr, ierr = run(command, outfile="{}.compare.out".format(test.name), store_command=True)
 
                     else:
@@ -1906,15 +1920,15 @@ def test_suite(argv):
 
                 if not test.diffDir == "":
                     if not test.restartTest:
-                        diffDirBench = bench_dir + '/' + test.name + '_' + test.diffDir
+                        diff_dir_bench = bench_dir + '/' + test.name + '_' + test.diffDir
                     else:
-                        diffDirBench = origDiffDir
+                        diff_dir_bench = origDiffDir
 
                     suite.log.log("doing the diff...")
                     suite.log.log("diff dir: {}".format(test.diffDir))
 
                     command = "diff %s -r %s %s" \
-                        % (test.diffOpts, diffDirBench, test.diffDir)
+                        % (test.diffOpts, diff_dir_bench, test.diffDir)
 
                     outfile = "{}.compare.out".format(test.name)
                     sout, serr, diff_status = run(command, outfile=outfile, store_command=True)
@@ -1927,21 +1941,21 @@ def test_suite(argv):
 
                 suite.log.log("storing output of {} as the new benchmark...".format(test.name))
                 suite.log.indent()
-                suite.log.warn("new benchmark file: {}".format(compareFile))
+                suite.log.warn("new benchmark file: {}".format(compare_file))
                 suite.log.outdent()
 
-                if not compareFile == "":
-                    if not outputFile == compareFile:
-                        source_file = outputFile
+                if not compare_file == "":
+                    if not output_file == compare_file:
+                        source_file = output_file
                     else:
-                        source_file = compareFile
+                        source_file = compare_file
 
-                    try: shutil.rmtree("{}/{}".format(bench_dir, compareFile))
+                    try: shutil.rmtree("{}/{}".format(bench_dir, compare_file))
                     except: pass
-                    shutil.copytree(source_file, "{}/{}".format(bench_dir, compareFile))
+                    shutil.copytree(source_file, "{}/{}".format(bench_dir, compare_file))
 
                     with open("%s.status" % (test.name), 'w') as cf:
-                        cf.write("benchmarks updated.  New file:  %s\n" % (compareFile) )
+                        cf.write("benchmarks updated.  New file:  %s\n" % (compare_file) )
 
                 else:
                     with open("%s.status" % (test.name), 'w') as cf:
@@ -1956,12 +1970,12 @@ def test_suite(argv):
 
 
                 if not test.diffDir == "":
-                    diffDirBench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
-                    if os.path.isdir(diffDirBench):
-                        shutil.rmtree(diffDirBench)
-                        shutil.copytree(test.diffDir, diffDirBench)
+                    diff_dir_bench = "{}/{}_{}".format(bench_dir, test.name, test.diffDir)
+                    if os.path.isdir(diff_dir_bench):
+                        shutil.rmtree(diff_dir_bench)
+                        shutil.copytree(test.diffDir, diff_dir_bench)
                     else:
-                        shutil.copy(test.diffDir, diffDirBench)
+                        shutil.copy(test.diffDir, diff_dir_bench)
                     suite.log.log("new diffDir: {}_{}".format(test.name, test.diffDir))
 
         else:   # selfTest
@@ -1973,23 +1987,23 @@ def test_suite(argv):
                 try: of = open("{}.run.out".format(test.name), 'r')
                 except IOError:
                     suite.log.warn("WARNING: no output file found")
-                    compareSuccessful = 0
+                    compare_successful = 0
                     outLines = ['']
                 else:
                     outLines = of.readlines()
 
                     # successful comparison is indicated by PLOTFILES AGREE
-                    compareSuccessful = 0
+                    compare_successful = 0
 
                     for line in outLines:
                         if line.find(test.stSuccessString) >= 0:
-                            compareSuccessful = 1
+                            compare_successful = 1
                             break
 
                     of.close()
 
                 with open("%s.compare.out" % (test.name), 'w') as cf:
-                    if compareSuccessful:
+                    if compare_successful:
                         cf.write("SELF TEST SUCCESSFUL\n")
                     else:
                         cf.write("SELF TEST FAILED\n")
@@ -1998,9 +2012,37 @@ def test_suite(argv):
         #----------------------------------------------------------------------
         # do any requested visualization (2- and 3-d only) and analysis
         #----------------------------------------------------------------------
-        if outputFile != "":
+        if output_file != "":
             if args.make_benchmarks == None:
 
+                # get any parameters for the summary table
+                job_info_file = "{}/job_info".format(output_file)
+                if os.path.isfile(job_info_file):
+                    test.has_jobinfo = 1
+                
+                try: jif = open(job_info_file, "r")
+                except:
+                    suite.log.warn("unable to open the job_info file")
+                else:
+                    job_file_lines = jif.readlines()
+
+                    if suite.summary_job_info_field1 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field1 = _tmp[idx:]
+                                break
+
+                    if suite.summary_job_info_field2 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field2 = _tmp[idx:]
+                                break
+                        
+                # visualization
                 if test.doVis:
 
                     if test.dim == 1:
@@ -2009,7 +2051,7 @@ def test_suite(argv):
                         suite.log.log("doing the visualization...")
                         tool = suite.tools["fsnapshot{}d".format(test.dim)]
                         run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                            tool, suite.compare_tool_dir, test.visVar, outputFile))
+                            tool, suite.compare_tool_dir, test.visVar, output_file))
 
                         # convert the .ppm files into .png files
                         ppm_file = get_recent_filename(output_dir, "", ".ppm")
@@ -2018,6 +2060,7 @@ def test_suite(argv):
                             run("convert {} {}".format(ppm_file, png_file))
                             test.png_file = png_file
 
+                # analysis
                 if not test.analysisRoutine == "":
 
                     suite.log.log("doing the analysis...")
@@ -2030,7 +2073,7 @@ def test_suite(argv):
 
                     option = eval("suite.{}".format(test.analysisMainArgs))
                     run("{} {} {}".format(os.path.basename(test.analysisRoutine),
-                                          option, outputFile))
+                                          option, output_file))
 
         else:
             if test.doVis or test.analysisRoutine != "":
@@ -2045,10 +2088,16 @@ def test_suite(argv):
             shutil.copy("{}.make.out".format(test.name), suite.full_web_dir)
             shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
 
-            shutil.copy(test.inputFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.inputFile) )
+            shutil.copy(test.inputFile, "{}/{}.{}".format(
+                suite.full_web_dir, test.name, test.inputFile) )
 
+            if test.has_jobinfo:
+                shutil.copy(job_info_file, "{}/{}.job_info".format(
+                    suite.full_web_dir, test.name))
+                
             if suite.sourceTree == "C_Src":
-                shutil.copy(test.probinFile, "%s/%s.%s" % (suite.full_web_dir, test.name, test.probinFile) )
+                shutil.copy(test.probinFile, "{}/{}.{}".format(
+                    suite.full_web_dir, test.name, test.probinFile) )
 
             for af in test.auxFiles:
 
@@ -2058,7 +2107,7 @@ def test_suite(argv):
                 if index > 0:
                     af = af[index+1:]
 
-                shutil.copy(af, "%s/%s.%s" % (suite.full_web_dir, test.name, af) )
+                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, af) )
 
             if not test.png_file is None:
                 try: shutil.copy(test.png_file, suite.full_web_dir)
@@ -2088,7 +2137,7 @@ def test_suite(argv):
                 (file.startswith("%s_plt" % (test.name)) or
                  file.startswith("%s_chk" % (test.name)) ) ):
 
-                if suite.purge_output == 1 and not file == outputFile:
+                if suite.purge_output == 1 and not file == output_file:
                     # delete the plt/chk file
                     if os.path.isdir(file):
                         try: shutil.rmtree(file)
@@ -2130,10 +2179,10 @@ def test_suite(argv):
 
     # make sure that all of the files in the web directory are world readable
     for file in os.listdir(suite.full_web_dir):
-       currentFile = suite.full_web_dir + file
+       current_file = suite.full_web_dir + file
 
-       if os.path.isfile(currentFile):
-          os.chmod(currentFile, 0o644)
+       if os.path.isfile(current_file):
+          os.chmod(current_file, 0o644)
 
     # reset the branch to what it was originally
     suite.log.skip()
@@ -2296,6 +2345,8 @@ div.verticaltext {text-align: center;
 #summary td.passed {background-color: lime;}
 #summary td.failed {background-color: red;}
 #summary td.benchmade {background-color: orange;}
+
+div.small {font-size: 75%;}
 
 th {background-color: grey;
     color: yellow;
@@ -2511,9 +2562,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
     #--------------------------------------------------------------------------
     if failure_msg is None:
         if not test.compileTest:
-            compareFile = "%s.compare.out" % (test.name)
+            compare_file = "{}.compare.out".format(test.name)
 
-            try: cf = open(compareFile, 'r')
+            try: cf = open(compare_file, 'r')
             except IOError:
                 suite.log.warn("WARNING: no comparison file found")
                 compare_successful = 0
@@ -2523,13 +2574,12 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
                 # successful comparison is indicated by PLOTFILES AGREE
                 compare_successful = 0
-
                 for line in diff_lines:
                     if (line.find("PLOTFILES AGREE") >= 0 or
                         line.find("SELF TEST SUCCESSFUL") >= 0):
                         compare_successful = 1
                         break
-
+                    
                 if compare_successful:
                     if not test.diffDir == "":
                         compare_successful = 0
@@ -2540,7 +2590,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
                 cf.close()
 
-
+                # last check: did we produce any backtrace files?
+                if len(test.backtrace) > 0: compare_successful = 0
 
         # write out the status file for this problem, with either
         # PASSED or FAILED
@@ -2574,6 +2625,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     new_head = HTMLHeader
 
+    # arrows for previous and next test
     new_head += r"""<table style="width: 100%" class="head"><br><tr>"""
     if current_index > 0:
         new_head += r"""<td><< <a href="{}.html">previous test</td>""".format(tests[current_index-1].name)
@@ -2596,9 +2648,7 @@ def report_single_test(suite, test, tests, failure_msg=None):
     hf.write(new_head)
 
 
-
     ll = HTMLList(of=hf)
-
 
     if not failure_msg is None:
         ll.item("Test error: ")
@@ -2690,6 +2740,8 @@ def report_single_test(suite, test, tests, failure_msg=None):
         ll.item("Execution time: {:.3f} s".format(test.wall_time))
         ll.item("Execution command:<br><tt>{}</tt>".format(test.run_command))
         ll.item("<a href=\"{}.run.out\">execution output</a>".format(test.name))
+        if test.has_jobinfo:
+            ll.item("<a href=\"{}.job_info\">job_info</a>".format(test.name))
         ll.outdent()
 
 
@@ -2713,8 +2765,6 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
     ll.write_list()
 
-
-
     if (not test.compileTest) and failure_msg is None:
 
         # parse the compare output and make an HTML table
@@ -2722,10 +2772,16 @@ def report_single_test(suite, test, tests, failure_msg=None):
         in_diff_region = False
 
         box_error = False
+        grid_error = False
+        
         for line in diff_lines:
 
             if "number of boxes do not match" in line:
                 box_error = True
+                break
+
+            if "grids do not match" in line:
+                grid_error = True
                 break
 
             if not in_diff_region:
@@ -2793,6 +2849,9 @@ def report_single_test(suite, test, tests, failure_msg=None):
 
         if box_error:
             hf.write("<p>number of boxes do not match</p>\n")
+
+        if grid_error:
+            hf.write("<p>grids do not match</p>\n")            
 
         # show any visualizations
         if test.doVis:
@@ -2864,6 +2923,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
     hf.write("<p><b>test input parameter file:</b> <A HREF=\"%s\">%s</A>\n" %
              (test_file, test_file) )
 
+    # git info lists
     any_update = any([suite.repos[t].update for t in suite.repos])
 
     if any_update and not update_time == "":
@@ -2886,12 +2946,20 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
     hf.write("<p>&nbsp;\n")
 
+    # summary table
     if make_benchmarks == None:
-        ht = HTMLTable(hf, columns=11, divs=["summary"])
+        special_cols = []
+        if suite.summary_job_info_field1 is not "":
+            special_cols.append(suite.summary_job_info_field1)
+        if suite.summary_job_info_field2 is not "":
+            special_cols.append(suite.summary_job_info_field2)            
+
+        cols = ["test name", "dim", "compare plotfile",
+                "# levels", "MPI procs", "OMP threads", "debug",
+                "compile", "restart"] + special_cols + ["wall time", "result"]
+        ht = HTMLTable(hf, columns=len(cols), divs=["summary"])
         ht.start_table()
-        ht.header(["test name", "dim", "compare plotfile",
-                   "# levels", "MPI (# procs)", "OMP (# threads)", "debug?",
-                   "compile?", "restart?", "wall time", "result"])
+        ht.header(cols)
 
     else:
         ht = HTMLTable(hf, columns=3, divs=["summary"])
@@ -2921,7 +2989,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             row_info = []
             row_info.append("<a href=\"{}.html\">{}</a>".format(test.name, test.name))
             row_info.append(test.dim)
-            row_info.append(test.compare_file_used)
+            row_info.append("<div class='small'>{}</div>".format(test.compare_file_used))
 
             if not test.nlevels == None:
                 row_info.append(test.nlevels)
@@ -2957,8 +3025,17 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             else:
                 row_info.append("")
 
+
+            # special columns
+            if suite.summary_job_info_field1 is not "":
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field1))
+
+            if suite.summary_job_info_field2 is not "":
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field2))
+
+                
             # wallclock time
-            row_info.append("{:.3f} s".format(test.wall_time))
+            row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
 
             if testPassed:
                 row_info.append(("PASSED", "class='passed'"))
@@ -2975,20 +3052,20 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             # the benchmark was updated -- find the name of the new benchmark file
             benchStatusFile = "%s.status" % (test.name)
 
-            benchFile = "none"
+            bench_file = "none"
 
             with open(benchStatusFile, 'r') as bf:
                 for line in bf:
                     index = line.find("file:")
                     if index >= 0:
-                        benchFile = line[index+5:]
+                        bench_file = line[index+5:]
                         break
 
             row_info = []
             row_info.append("{}".format(test.name))
-            if not benchFile == "none":
+            if not bench_file == "none":
                 row_info.append(("BENCHMARK UPDATED", "class='benchmade'"))
-                row_info.append("new benchmark file is {}".format(benchFile))
+                row_info.append("new benchmark file is {}".format(bench_file))
             else:
                 row_info.append(("BENCHMARK NOT UPDATED", "class='failed'"))
                 row_info.append("compilation or execution failed")

@@ -91,7 +91,7 @@ public:
     //
     // Make a boxList consisting of non-overlapping tile box from a single Box
     //
-    explicit BoxList (const Box& bx, const IntVect& tilesize);
+    BoxList (const Box& bx, const IntVect& tilesize);
     //
     // Append a Box to this BoxList.
     //
@@ -114,6 +114,10 @@ public:
     // Catenate the BoxList to ourselves. Removes entries from blist.
     //
     void catenate (BoxList& blist);
+    // 
+    // Splic the BoxList to the front
+    //
+    void splice_front (BoxList& blist);
     //
     // Remove all Boxes from this BoxList.
     //

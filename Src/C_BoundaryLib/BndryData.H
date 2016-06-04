@@ -67,7 +67,8 @@ public:
     //
     BndryData (const BoxArray& grids,
                int             ncomp,
-               const Geometry& geom);
+               const Geometry& geom,
+	       ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // destructor
     //
@@ -85,7 +86,8 @@ public:
     //
     void define (const BoxArray& grids,
                  int             ncomp,
-                 const Geometry& geom);
+                 const Geometry& geom,
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // write to output stream
     //
@@ -120,6 +122,8 @@ public:
     // return number of components for which this object is intended
     //
     int nComp () const { return m_ncomp; }
+    //
+    using BndryRegister::color;
     //
     // return domain used to define masks
     //

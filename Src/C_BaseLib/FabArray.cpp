@@ -35,10 +35,12 @@ int FabArrayBase::nFabArrays(0);
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
 FabArrayBase::CPCCache             FabArrayBase::m_TheCopyCache;
+FabArrayBase::FPCCache             FabArrayBase::m_TheFillPatchCache;
 
 FabArrayBase::CacheStats           FabArrayBase::m_TAC_stats("TileArrayCache");
 FabArrayBase::CacheStats           FabArrayBase::m_FBC_stats("SICache");
 FabArrayBase::CacheStats           FabArrayBase::m_CPC_stats("CopyCache");
+FabArrayBase::CacheStats           FabArrayBase::m_FPC_stats("FillPatchCache");
 
 std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
@@ -113,6 +115,9 @@ FabArrayBase::Initialize ()
 	});
     MemProfiler::add(m_CPC_stats.name, [] () -> MemProfiler::MemInfo {
 	    return {m_CPC_stats.bytes, m_CPC_stats.bytes_hwm};
+	});
+    MemProfiler::add(m_FPC_stats.name, [] () -> MemProfiler::MemInfo {
+	    return {m_FPC_stats.bytes, m_FPC_stats.bytes_hwm};
 	});
 #endif
 
@@ -783,7 +788,9 @@ FabArrayBase::TheFB (bool                cross,
 	    if (ParallelDescriptor::sameTeam(dst_owner)) {
 		continue;  // local copy will be dealt with later
 	    } else if (MyProc == dm[ksnd]) {
-		send_tags[dst_owner].push_back(CopyComTag(bx, krcv, ksnd));
+		const BoxList& bl = BoxLib::boxDiff(bx, ba[krcv]);
+		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		    send_tags[dst_owner].push_back(CopyComTag(*lit, krcv, ksnd));
 	    }
 	}
     }
@@ -813,7 +820,8 @@ FabArrayBase::TheFB (bool                cross,
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
-	const Box& bxrcv = BoxLib::grow(ba[krcv], ng);
+	const Box& vbx   = ba[krcv];
+	const Box& bxrcv = BoxLib::grow(vbx, ng);
 
 	if (check_local) {
 	    localtouch.resize(bxrcv);
@@ -835,21 +843,27 @@ FabArrayBase::TheFB (bool                cross,
 
 	    if (krcv == ksnd) continue;  // same box
 
-	    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
-		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		for (BoxList::const_iterator
-			 it_tile  = tilelist.begin(),
-			 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		{
-		    TheFB.m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
-		}
-		if (check_local) {
-		    localtouch.plus(1, bx);
-		}
-	    } else if (MyProc == dm[krcv]) {
-		recv_tags[src_owner].push_back(CopyComTag(bx, krcv, ksnd));
-		if (check_remote) {
-		    remotetouch.plus(1, bx);
+	    const BoxList& bl = BoxLib::boxDiff(bx, vbx);
+	    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+	    {
+		const Box& blbx = *lit;
+
+		if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+		    const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+		    for (BoxList::const_iterator
+			     it_tile  = tilelist.begin(),
+			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+		    {
+			TheFB.m_LocTags->push_back(CopyComTag(*it_tile, krcv, ksnd));
+		    }
+		    if (check_local) {
+			localtouch.plus(1, blbx);
+		    }
+		} else if (MyProc == dm[krcv]) {
+		    recv_tags[src_owner].push_back(CopyComTag(blbx, krcv, ksnd));
+		    if (check_remote) {
+			remotetouch.plus(1, blbx);
+		    }
 		}
 	    }
 	}
@@ -957,6 +971,168 @@ FabArrayBase::TheFB (bool                cross,
     return cache_it;
 }
 
+FabArrayBase::FPC::FPC (const FabArrayBase& srcfa,
+			const FabArrayBase& dstfa,
+			Box                 dstdomain,
+			int                 dstng,
+			const BoxConverter& coarsener)
+    : m_srcbdk   (srcfa.getBDKey()),
+      m_dstbdk   (dstfa.getBDKey()),
+      m_dstdomain(dstdomain),
+      m_dstng    (dstng),
+      m_coarsener(coarsener.clone()),
+      m_nuse     (0)
+{ 
+    BL_PROFILE("FPC::FPC()");
+
+    const BoxArray& srcba = srcfa.boxArray();
+    const BoxArray& dstba = dstfa.boxArray();
+    BL_ASSERT(srcba.ixType() == dstba.ixType());
+
+    const IndexType& boxtype = dstba.ixType();
+    BL_ASSERT(boxtype == dstdomain.ixType());
+     
+    BL_ASSERT(dstng <= dstfa.nGrow());
+
+    const DistributionMapping& dstdm = dstfa.DistributionMap();
+    
+    const int myproc = ParallelDescriptor::MyProc();
+
+    BoxList bl(boxtype);
+    Array<int> iprocs;
+
+    for (int i = 0, N = dstba.size(); i < N; ++i)
+    {
+	Box bx = dstba[i];
+	bx.grow(m_dstng);
+	bx &= m_dstdomain;
+
+	BoxList leftover = srcba.complement(bx);
+
+	bool ismybox = (dstdm[i] == myproc);
+	for (BoxList::const_iterator bli = leftover.begin(); bli != leftover.end(); ++bli)
+	{
+	    bl.push_back(m_coarsener->doit(*bli));
+	    if (ismybox) {
+		dst_boxes.push_back(*bli);
+		dst_idxs.push_back(i);
+	    }
+	    iprocs.push_back(dstdm[i]);
+	}
+    }
+
+    if (!iprocs.empty()) {
+	ba_crse_patch.define(bl);
+	iprocs.push_back(myproc);
+	dm_crse_patch.define(iprocs);
+    }
+}
+
+FabArrayBase::FPC::~FPC ()
+{
+    delete m_coarsener;
+}
+
+long
+FabArrayBase::FPC::bytes () const
+{
+    long cnt = sizeof(FabArrayBase::FPC);
+    cnt += sizeof(Box) * (ba_crse_patch.capacity() + dst_boxes.capacity());
+    cnt += sizeof(int) * (dm_crse_patch.capacity() + dst_idxs.capacity());
+    return cnt;
+}
+
+const FabArrayBase::FPC&
+FabArrayBase::TheFPC (const FabArrayBase& srcfa,
+		      const FabArrayBase& dstfa,
+		      Box                 dstdomain,
+		      int                 dstng,
+		      const BoxConverter& coarsener)
+{
+    BL_PROFILE("FabArrayBase::TheFPC()");
+
+    const BDKey& srckey = srcfa.getBDKey();
+    const BDKey& dstkey = dstfa.getBDKey();
+
+    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(dstkey);
+
+    for (FPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+	if (it->second->m_srcbdk    == srckey    &&
+	    it->second->m_dstdomain == dstdomain &&
+	    it->second->m_dstng     == dstng     &&
+	    it->second->m_dstdomain.ixType() == dstdomain.ixType() &&
+	    it->second->m_coarsener->doit(it->second->m_dstdomain) == coarsener.doit(dstdomain))
+	{
+	    ++it->second->m_nuse;
+	    m_FPC_stats.recordUse();
+	    return *(it->second);
+	}
+    }
+
+    // Have to build a new one
+    FPC* new_fpc = new FPC(srcfa, dstfa, dstdomain, dstng, coarsener);
+
+#ifdef BL_MEM_PROFILING
+    m_FPC_stats.bytes += new_fpc->bytes();
+    m_FPC_stats.bytes_hwm = std::max(m_FPC_stats.bytes_hwm, m_FPC_stats.bytes);
+#endif
+    
+    new_fpc->m_nuse = 1;
+    m_FPC_stats.recordBuild();
+    m_FPC_stats.recordUse();
+
+    m_TheFillPatchCache.insert(er_it.second, FPCCache::value_type(dstkey,new_fpc));
+    if (srckey != dstkey)
+	m_TheFillPatchCache.insert(          FPCCache::value_type(srckey,new_fpc));
+
+    return *new_fpc;
+}
+
+void
+FabArrayBase::flushFPC ()
+{
+    BL_ASSERT(getBDKey() == m_bdkey);
+
+    std::vector<FPCCacheIter> others;
+
+    std::pair<FPCCacheIter,FPCCacheIter> er_it = m_TheFillPatchCache.equal_range(m_bdkey);
+
+    for (FPCCacheIter it = er_it.first; it != er_it.second; ++it)
+    {
+	const BDKey& srckey = it->second->m_srcbdk;
+	const BDKey& dstkey = it->second->m_dstbdk;
+
+	BL_ASSERT((srckey==dstkey && srckey==m_bdkey) || 
+		  (m_bdkey==srckey) || (m_bdkey==dstkey));
+
+	if (srckey != dstkey) {
+	    const BDKey& otherkey = (m_bdkey == srckey) ? dstkey : srckey;
+	    std::pair<FPCCacheIter,FPCCacheIter> o_er_it = m_TheFillPatchCache.equal_range(otherkey);
+
+	    for (FPCCacheIter oit = o_er_it.first; oit != o_er_it.second; ++oit)
+	    {
+		if (it->second == oit->second)
+		    others.push_back(oit);
+	    }
+	} 
+
+#ifdef BL_MEM_PROFILING
+	m_FPC_stats.bytes -= it->second->bytes();
+#endif
+	m_FPC_stats.recordErase(it->second->m_nuse);
+	delete it->second;
+    }
+    
+    m_TheFillPatchCache.erase(er_it.first, er_it.second);
+
+    for (std::vector<FPCCacheIter>::iterator it = others.begin(),
+	     End = others.end(); it != End; ++it)
+    {
+	m_TheFillPatchCache.erase(*it);
+    }
+}
+
 void
 FabArrayBase::Finalize ()
 {
@@ -970,6 +1146,7 @@ FabArrayBase::Finalize ()
 	m_TAC_stats.print();
 	m_FBC_stats.print();
 	m_CPC_stats.print();
+	m_FPC_stats.print();
     }
 
     initialized = false;
@@ -1205,11 +1382,11 @@ FabArrayBase::flushTileArrayCache ()
 }
 
 void
-FabArrayBase::clearThisBD ()
+FabArrayBase::clearThisBD (bool no_assertion)
 {
     if (! boxarray.empty() ) 
     {
-	BL_ASSERT(getBDKey() == m_bdkey);
+	BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
 	std::map<BDKey, int>::iterator cnt_it = m_BD_count.find(m_bdkey);
 	if (cnt_it != m_BD_count.end()) 
@@ -1220,8 +1397,9 @@ FabArrayBase::clearThisBD ()
 		m_BD_count.erase(cnt_it);
 		
 		// Since this is the last one built with these BoxArray 
-		// and DistributionMapping, erase it from the TileArray cache.
+		// and DistributionMapping, erase it from caches.
 		flushTileArray();
+		flushFPC();
 	    }
 	}
     }
@@ -1236,6 +1414,15 @@ FabArrayBase::addThisBD ()
 	m_FA_stats.recordMaxNumBoxArrays(m_BD_count.size());
     } else {
 	m_FA_stats.recordMaxNumBAUse(cnt);
+    }
+}
+
+void
+FabArrayBase::updateBDKey ()
+{
+    if (getBDKey() != m_bdkey) {
+	clearThisBD(true);
+	addThisBD();
     }
 }
 

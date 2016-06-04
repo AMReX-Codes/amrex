@@ -828,14 +828,6 @@ FillPatchIterator::Initialize (int  boxGrow,
 {
     BL_PROFILE("FillPatchIterator::Initialize");
 
-    static int use_collectdata = 1;
-    static bool first = true;
-    if (first) {
-	ParmParse pp("boxlib");
-	pp.query("use_collectdata", use_collectdata);
-	first = false;
-    }
-
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
@@ -857,29 +849,28 @@ FillPatchIterator::Initialize (int  boxGrow,
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;
 
-	if (!use_collectdata && level == 0)
+	if (level == 0)
 	{
 	    FillFromLevel0(time, index, SComp, DComp, NComp);
 	}
 	else
 	{
-	    if (!use_collectdata &&
-		(level == 1 
-		 || ProperlyNested(m_amrlevel.crse_ratio,
-				   m_amrlevel.parent->blockingFactor(m_amrlevel.level),
-				   boxGrow, boxType, desc.interp(SComp))) )
+	    if (level == 1 || 
+		BoxLib::ProperlyNested(m_amrlevel.crse_ratio,
+				       m_amrlevel.parent->blockingFactor(m_amrlevel.level),
+				       boxGrow, boxType, desc.interp(SComp)))
 	    {
 		FillFromTwoLevels(time, index, SComp, DComp, NComp);
 	    } else {
 		static bool first = true;
 		if (first) {
 		    first = false;
-		    if (!use_collectdata && ParallelDescriptor::IOProcessor()) {
+		    if (ParallelDescriptor::IOProcessor()) {
 			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
 			for (int i = 0; i < 10; ++i) {
-			    if (ProperlyNested(m_amrlevel.crse_ratio,
-					       new_blocking_factor,
-					       boxGrow, boxType, desc.interp(SComp))) {
+			    if (BoxLib::ProperlyNested(m_amrlevel.crse_ratio,
+						       new_blocking_factor,
+						       boxGrow, boxType, desc.interp(SComp))) {
 				break;
 			    } else {
 				new_blocking_factor *= 2;
@@ -931,32 +922,6 @@ FillPatchIterator::Initialize (int  boxGrow,
                                              0,
                                              ncomp,
                                              time);
-}
-
-bool
-FillPatchIterator::ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow,
-				   const IndexType& boxType, Interpolater* mapper)
-{
-    int ratio_max = ratio[0];
-#if (BL_SPACEDIM > 1)
-    ratio_max = std::max(ratio_max, ratio[1]);
-#endif
-#if (BL_SPACEDIM == 3)
-    ratio_max = std::max(ratio_max, ratio[2]);
-#endif
-    // There are at least this many coarse cells outside fine grids 
-    // (except at physical boundaries).
-    int nbuf = blockint_factor / ratio_max;
-
-    Box crse_box(IntVect(D_DECL(0 ,0 ,0 )), IntVect(D_DECL(4*nbuf-1,4*nbuf-1,4*nbuf-1)));
-    crse_box.convert(boxType);
-    Box fine_box(IntVect(D_DECL(  nbuf  ,  nbuf  ,  nbuf)),
-		 IntVect(D_DECL(3*nbuf-1,3*nbuf-1,3*nbuf-1)));
-    fine_box.convert(boxType);
-    fine_box.refine(ratio_max);
-    fine_box.grow(ngrow);
-    const Box& fine_box_coarsened = mapper->CoarseBox(fine_box, ratio_max);
-    return crse_box.contains(fine_box_coarsened);
 }
 
 void
@@ -1380,6 +1345,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 			   int       nghost)
 {
     BL_PROFILE("AmrLevel::FillCoarsePatch()");
+
     //
     // Must fill this region on crse level and interpolate.
     //
@@ -1413,34 +1379,53 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(BoxLib::grow(mf_BA[j],nghost),crse_ratio));
         }
 
-        MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
+	MultiFab crseMF(crseBA,NComp,0);
 
-        FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
+	if ( level == 1 
+	     || BoxLib::ProperlyNested(crse_ratio, parent->blockingFactor(level),
+				       nghost, mf_BA.ixType(), mapper) )
+	{
+	    StateData& statedata = clev.state[index];
+	    
+	    PArray<MultiFab> smf;
+	    std::vector<Real> stime;
+	    statedata.getData(smf,stime,time);
+
+	    const Geometry& geom = clev.geom;
+
+	    StateDataPhysBCFunct physbcf(statedata,SComp,geom);
+
+	    BoxLib::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,geom,physbcf);
+	}
+	else
+	{
+	    FillPatch(clev,crseMF,0,time,index,SComp,NComp,0);
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-        {
-            const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
-
-            Array<BCRec> bcr(ncomp);
-
-            BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
-
-            mapper->interp(fpi.m_fabs[mfi],
-                           0,
-                           mf[mfi],
-                           DComp,
-                           NComp,
-                           dbx,
-                           crse_ratio,
-                           clev.geom,
-                           geom,
-                           bcr,
-                           SComp,
-                           index);
-        }
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+	    const Box& dbx = BoxLib::grow(mfi.validbox(),nghost);
+	    
+	    Array<BCRec> bcr(ncomp);
+	    
+	    BoxLib::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+	    
+	    mapper->interp(crseMF[mfi],
+			   0,
+			   mf[mfi],
+			   DComp,
+			   NComp,
+			   dbx,
+			   crse_ratio,
+			   clev.geom,
+			   geom,
+			   bcr,
+			   SComp,
+			   index);
+	}
 
         DComp += NComp;
     }

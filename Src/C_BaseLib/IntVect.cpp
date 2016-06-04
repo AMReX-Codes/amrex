@@ -73,37 +73,27 @@ IntVect::IntVect (const Array<int> &a)
 bool
 IntVect::lexLT (const IntVect &s) const
 {
-#define LLT0 (vect[0] < s[0])
-#define LLT1 ((vect[0] == s[0]) && (vect[1] < s[1]))
-#define LLT2 ((vect[1] == s[1]) && (vect[2] < s[2]))
-#if   BL_SPACEDIM == 1
-    return LLT0;
-#elif BL_SPACEDIM == 2
-    return LLT0 || LLT1;
-#elif BL_SPACEDIM == 3
-    return LLT0 || (vect[0]==s[0] && ((vect[1] < s[1] || LLT2)));
+#if (BL_SPACEDIM == 1)
+    return vect[0] < s[0];
+#elif (BL_SPACEDIM == 2)
+    return (vect[1] < s[1]) || ((vect[1] == s[1]) && (vect[0] < s[0]));
+#else
+    return (vect[2] < s[2]) || ((vect[2] == s[2]) &&
+	(  (vect[1] < s[1]) || ((vect[1] == s[1]) && (vect[0] < s[0])) ));
 #endif
-#undef LLT0
-#undef LLT1
-#undef LLT2
 }
 
 bool
 IntVect::lexGT (const IntVect& s) const
 {
-#define LGT0 (vect[0] > s[0])
-#define LGT1 ((vect[0] == s[0]) && (vect[1] > s[1]))
-#define LGT2 ((vect[1] == s[1]) && (vect[2] > s[2]))
-#if   BL_SPACEDIM == 1
-    return LGT0;
-#elif BL_SPACEDIM == 2
-    return LGT0 || LGT1;
-#elif BL_SPACEDIM == 3
-    return LGT0 || (vect[0] == s[0] && ((vect[1] > s[1] || LGT2)));
+#if (BL_SPACEDIM == 1)
+    return vect[0] > s[0];
+#elif (BL_SPACEDIM == 2)
+    return (vect[1] > s[1]) || ((vect[1] == s[1]) && (vect[0] > s[0]));
+#else
+    return (vect[2] > s[2]) || ((vect[2] == s[2]) &&
+	(  (vect[1] > s[1]) || ((vect[1] == s[1]) && (vect[0] > s[0])) ));
 #endif
-#undef LGT0
-#undef LGT1
-#undef LGT2
 }
 
 IntVect

@@ -99,15 +99,15 @@ public:
 	     bool       local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
-    // component comp of the iMultiFab.  No ghost cells are used.
+    // component comp of the iMultiFab.
     //
-    int norm0 (int comp = 0, bool local = false) const;
+    int norm0 (int comp = 0, int nghost = 0, bool local = false) const;
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the iMultiFab in the intersection of the BoxArray
-    // and the valid regions of the iMultiFab.  No ghost cells are used.
+    // and the valid regions of the iMultiFab.
     //
-    int norm0 (int comp, const BoxArray& ba, bool local = false) const;
+    int norm0 (int comp, const BoxArray& ba, int nghost = 0, bool local = false) const;
 
     //
     // Returns the L1 norm of component "comp" over the iMultiFab.

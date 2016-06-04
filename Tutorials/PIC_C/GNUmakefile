@@ -1,8 +1,5 @@
 BOXLIB_HOME ?= ../../
 
-# location of finite-volume HPGMG on edison
-HPGMG_DIR ?= ../../../hpgmg/finite-volume
-
 DEBUG	= TRUE
 DEBUG	= FALSE
 
@@ -14,10 +11,16 @@ FCOMP   = gfortran
 USE_PARTICLES = TRUE
 
 PRECISION = DOUBLE
-USE_MPI   = TRUE
 
+USE_MPI   = TRUE
 USE_OMP   = FALSE
+
+###################################################
+
 EBASE     = main
+
+# location of finite-volume HPGMG on edison
+HPGMG_DIR ?= ../../../hpgmg/finite-volume
 
 USE_HPGMG = FALSE
 HPGMG_FCYCLES = TRUE

@@ -4,7 +4,6 @@ import sys
 import os
 import getopt
 import datetime
-import string
 import subprocess
 
 
@@ -39,10 +38,22 @@ const char* buildInfoGetComp() {
   return COMP;
 }
 
+const char* buildInfoGetCompVersion() {
+
+  static const char COMP_VERSION[] = "@@COMP_VERSION@@";
+  return COMP_VERSION;
+}
+
 const char* buildInfoGetFcomp() {
 
   static const char FCOMP[] = "@@FCOMP@@";
   return FCOMP;
+}
+
+const char* buildInfoGetFcompVersion() {
+
+  static const char FCOMP_VERSION[] = "@@FCOMP_VERSION@@";
+  return FCOMP_VERSION;
 }
 
 const char* buildInfoGetAux(int i) {
@@ -91,7 +102,7 @@ const char* buildInfoGetBuildGitName() {
 def runcommand(command):
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     out = p.stdout.read()
-    return out.strip()
+    return out.strip().decode("ascii")
 
 def get_git_hash(d):
     cwd = os.getcwd()
@@ -105,7 +116,9 @@ def get_git_hash(d):
 try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 ["boxlib_home=",
                                  "FCOMP=",
+                                 "FCOMP_VERSION=",
                                  "COMP=",
+                                 "COMP_VERSION=",
                                  "AUX=",
                                  "GIT=",
                                  "build_git_name=",
@@ -116,7 +129,9 @@ except getopt.GetoptError:
 
 boxlib_home = ""
 FCOMP = ""
+FCOMP_VERSION = ""
 COMP = ""
+COMP_VERSION = ""
 AUX = []
 GIT = []
 build_git_name = ""
@@ -128,7 +143,11 @@ for o, a in opts:
 
     if o == "--FCOMP": FCOMP = a
 
+    if o == "--FCOMP_VERSION": FCOMP_VERSION = a    
+
     if o == "--COMP": COMP = a
+
+    if o == "--COMP_VERSION": COMP_VERSION = a    
 
     if o == "--AUX":
         if not a == "": AUX = a.split()
@@ -180,27 +199,35 @@ for line in source.splitlines():
         keyword = line[index+len("@@"):index2]
 
         if keyword == "BUILD_DATE":
-            newline = string.replace(line, "@@BUILD_DATE@@", build_date)
+            newline = line.replace("@@BUILD_DATE@@", build_date)
             fout.write(newline)
 
         elif keyword == "BUILD_DIR":
-            newline = string.replace(line, "@@BUILD_DIR@@", build_dir)
+            newline = line.replace("@@BUILD_DIR@@", build_dir)
             fout.write(newline)
 
         elif keyword == "BUILD_MACHINE":
-            newline = string.replace(line, "@@BUILD_MACHINE@@", build_machine)
+            newline = line.replace("@@BUILD_MACHINE@@", build_machine)
             fout.write(newline)
 
         elif keyword == "BOXLIB_DIR":
-            newline = string.replace(line, "@@BOXLIB_DIR@@", boxlib_home)
+            newline = line.replace("@@BOXLIB_DIR@@", boxlib_home)
             fout.write(newline)
 
         elif keyword == "COMP":
-            newline = string.replace(line, "@@COMP@@", COMP)
+            newline = line.replace("@@COMP@@", COMP)
+            fout.write(newline)
+
+        elif keyword == "COMP_VERSION":
+            newline = line.replace("@@COMP_VERSION@@", COMP_VERSION)
             fout.write(newline)
 
         elif keyword == "FCOMP":
-            newline = string.replace(line, "@@FCOMP@@", FCOMP)
+            newline = line.replace("@@FCOMP@@", FCOMP)
+            fout.write(newline)
+
+        elif keyword == "FCOMP_VERSION":
+            newline = line.replace("@@FCOMP_VERSION@@", FCOMP_VERSION)
             fout.write(newline)
 
         elif keyword == "AUX_DECLS":

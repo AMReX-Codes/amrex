@@ -9,6 +9,7 @@
 #include <Array.H>
 #include <Box.H>
 #include <REAL.H>
+#include <ParallelDescriptor.H>
 
 class BoxArray;
 
@@ -45,11 +46,13 @@ class DistributionMapping
     //                  in boxlib and its value must be set to
     //                  ParallelDescriptor::MyProc() by the caller.
     //
-    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false);
+    DistributionMapping (const Array<int>& pmap, bool put_in_cache = false,
+			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of BoxArray over nprocs processors.
     //
-    DistributionMapping (const BoxArray& boxes, int nprocs);
+    DistributionMapping (const BoxArray& boxes, int nprocs, 
+			 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // This is a very specialized distribution map.
     // Do NOT use it unless you really understand what it does.
@@ -73,7 +76,8 @@ class DistributionMapping
     // You need to call this if you built your DistributionMapping
     // with the default constructor.
     //
-    void define (const BoxArray& boxes, int nprocs);
+    void define (const BoxArray& boxes, int nprocs,
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build mapping out of an Array of ints. You need to call this if you
     // built your DistributionMapping with the default constructor.
@@ -87,9 +91,12 @@ class DistributionMapping
     //
     const Array<int>& ProcessorMap () const;
     //
+    ParallelDescriptor::Color color() const { return m_color; }
+    //
     // Length of the underlying processor map.
     //
-    int size () const { return m_ref->m_pmap.size(); }
+    long size () const { return m_ref->m_pmap.size(); }
+    long capacity () const { return m_ref->m_pmap.capacity(); }
     //
     // Number of references to this DistributionMapping
     //
@@ -152,7 +159,6 @@ class DistributionMapping
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
-    void RRSFCProcessorMap(const BoxArray&boxes, int nprocs);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -227,7 +233,7 @@ private:
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
     void SFCProcessorMap        (const BoxArray& boxes, int nprocs);
     void PFCProcessorMap        (const BoxArray& boxes, int nprocs);
-    void RRFCProcessorMap       (const BoxArray& boxes, int nprocs);
+    void RRSFCProcessorMap      (const BoxArray& boxes, int nprocs);
 
     typedef std::pair<long,int> LIpair;
 
@@ -280,12 +286,12 @@ private:
     //
     // Least used ordering of CPUs (by # of bytes of FAB data).
     //
-    static void LeastUsedCPUs (int nprocs, Array<int>& result);
+    void LeastUsedCPUs (int nprocs, Array<int>& result);
     //
     // rteam: Least used ordering of Teams
     // rworker[i]: Least used ordering of team workers for Team i
     //
-    static void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
+    void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
     //
     // Look for a cached processor map.
     //
@@ -331,10 +337,11 @@ private:
     // The data -- a reference-counted pointer to a Ref.
     //
     LnClassPtr<Ref> m_ref;
+    ParallelDescriptor::Color m_color;
     //
     // Our cache of processor maps.
     //
-    static std::map< int,LnClassPtr<Ref> > m_Cache;
+    static std::map< std::pair<int,int>, LnClassPtr<Ref> > m_Cache;
     //
     // Topological proximity map
     //

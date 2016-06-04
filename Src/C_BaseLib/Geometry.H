@@ -233,7 +233,8 @@ public:
 		       int             dcomp,
 		       int             scomp,
 		       int             ncomp,
-		       int             dstng = 0) const;
+		       int             dstng = 0,
+		       int             srcng = 0) const;
     //
     // Flush the cache of PIRM information.
     //
@@ -248,15 +249,9 @@ public:
         int srcIndex;
         int dstIndex;
 	FPBComTag () {}
-	explicit FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
+	FPBComTag (const Box& sb, const Box& db, int sidx, int didx)
 	    : sbox(sb), dbox(db), srcIndex(sidx), dstIndex(didx) {}
 	// FPBComTag needs to be sortable if it is used in remote communication.
-	// Unlike CopyComTag, we have to compare the destination box too, because
-	// the source fab could have several periodically shifted partners.  
-	// So the destination fab essentially intersects with several source fabs,
-	// and we need to compare the small end of the intersection box too.
-	// Note that no two different objects could possibly have the same srcIndex,
-	// dstIndex and dbox.smallEnd(). 
 	bool operator< (const FPBComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
 		   (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
@@ -414,6 +409,11 @@ namespace BoxLib
 
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+	ParallelDescriptor::Mode.set_upcxx_mode();
+	ParallelDescriptor::Mode.incr_upcxx();
+#endif
+
 #if !defined(BL_USE_MPI3)
 	BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -422,7 +422,16 @@ namespace BoxLib
         // Do this before prematurely exiting if running in parallel.
         // Otherwise sequence numbers will not match across MPI processes.
         //
-	const int SeqNum = ParallelDescriptor::SeqNum();
+	int SeqNum;
+	{
+	    ParallelDescriptor::Color mycolor = mf.color();
+	    if (mycolor == ParallelDescriptor::DefaultColor()) {
+		SeqNum = ParallelDescriptor::SeqNum();
+	    } else if (mycolor == ParallelDescriptor::SubCommColor()) {
+		SeqNum = ParallelDescriptor::SubSeqNum();
+	    }
+	    // else I don't have any data and my SubSeqNum() should not be called.
+	}
 
 	const int N_locs = TheFPB.m_LocTags->size();
 	const int N_rcvs = TheFPB.m_RcvTags->size();
@@ -649,6 +658,11 @@ namespace BoxLib
 
 #ifdef BL_USE_MPI
 
+#if defined(BL_USE_UPCXX)
+    ParallelDescriptor::Mode.set_upcxx_mode();
+    ParallelDescriptor::Mode.decr_upcxx();
+#endif
+
 #if !defined(BL_USE_MPI3)
         BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -769,7 +783,9 @@ namespace BoxLib
 		  int                  dcomp,
 		  int                  scomp,
 		  int                  ncomp,
-		  int                  dstng)
+		  int                  dstng,
+		  int                  srcng,
+		  FabArrayBase::CpOp   op)
     {
 	if (!geom.isAnyPeriodic() || dstmf.size() == 0 || srcmf.size() == 0) return;
 
@@ -801,7 +817,7 @@ namespace BoxLib
 
 	for (int i = 0; i < srcba.size(); ++i) 
 	{
-	    const Box& bx0 = srcba[i];
+	    const Box& bx0 = BoxLib::grow(srcba[i],srcng);
 
 	    if (bbox_src.isEmpty() || !bbox_src.strictly_contains(bx0)) 
 	    {
@@ -843,7 +859,7 @@ namespace BoxLib
 		shftmf[mfi].copy(srcmf[boxid[i]], sbx, scomp, bx, 0, ncomp);
 	    }
 
-	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng);
+	    dstmf.copy(shftmf, 0, dcomp, ncomp, 0, dstng, op);
 	}
     }
 }
