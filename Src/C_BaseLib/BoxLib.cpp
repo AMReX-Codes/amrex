@@ -91,6 +91,9 @@ BoxLib::write_to_stderr_without_buffering (const char* str)
 
     if (str)
     {
+	std::ostringstream procall;
+	procall << ParallelDescriptor::MyProcAll() << "::";
+	const char *cprocall = procall.str().c_str();
         const char * const end = " !!!\n";
         fwrite(str, strlen(str), 1, stderr);
         fwrite(end, strlen(end), 1, stderr);
