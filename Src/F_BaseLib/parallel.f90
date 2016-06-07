@@ -2191,4 +2191,14 @@ contains
     call parallel_finalize(do_finalize_MPI=.false.) ! do not finalize MPI but free communicator
   end subroutine parallel_comm_free_from_c
 
+  function parallel_tag () result(tag)
+    integer :: tag
+    integer, parameter :: mintag = 100
+    integer, parameter :: maxtag = 999
+    integer, save :: ctag = mintag
+    ctag = ctag + 1
+    if (ctag > maxtag) ctag = mintag
+    tag = ctag
+  end function parallel_tag
+
 end module parallel
