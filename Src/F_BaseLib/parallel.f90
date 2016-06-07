@@ -2193,8 +2193,8 @@ contains
 
   function parallel_tag () result(tag)
     integer :: tag
-    integer, parameter :: mintag = 1000
-    integer, parameter :: maxtag = 32000
+    integer, parameter :: mintag = 100
+    integer, parameter :: maxtag = 999
     integer, save :: ctag = mintag
     ctag = ctag + 1
     if (ctag > maxtag) ctag = mintag
