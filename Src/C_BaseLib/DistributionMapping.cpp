@@ -2651,29 +2651,6 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
     BL_MPI_REQUIRE( MPI_Group_translate_ranks(group_old, pm_old.size(), pm_old.dataPtr(), group_new, pm_new.dataPtr()) );
     return pm_new;
 }
-
-void
-DistributionMapping::SendDistributionMappingToSidecars(DistributionMapping *dm)
-{
-    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-
-    if (ParallelDescriptor::InCompGroup())
-    {
-        int ProcessorMapSize(dm->size());
-        Array<int> ProcessorMap(dm->ProcessorMap());
-        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-    }
-    else
-    {
-        int ProcessorMapSize;
-        ParallelDescriptor::Bcast(&ProcessorMapSize, 1, 0, ParallelDescriptor::CommunicatorInter());
-        Array<int> ProcessorMap(ProcessorMapSize);
-        ParallelDescriptor::Bcast(&ProcessorMap[0], ProcessorMapSize, 0, ParallelDescriptor::CommunicatorInter());
-
-        dm->define(ProcessorMap);
-    }
-}
 #endif
 
 
