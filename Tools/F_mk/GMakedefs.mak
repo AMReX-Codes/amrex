@@ -172,10 +172,6 @@ ifeq ($(ARCH),AIX)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/aix.mak
 endif
 
-ifeq ($(ARCH),OSF1)
-  include $(BOXLIB_HOME)/Tools/F_mk/comps/osf1.mak
-endif
-
 ifeq ($(findstring mira, $(HOSTNAMEF)), mira)
   include $(BOXLIB_HOME)/Tools/F_mk/comps/bgq.mak
 endif

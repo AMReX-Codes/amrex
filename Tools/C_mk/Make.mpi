@@ -106,30 +106,6 @@ ifeq ($(MACHINE), Linux)
 	endif
     endif
 
-    ifeq ($(WHICHLINUX), INTREPID)
-
-      ifeq ($(USE_OMP),TRUE)
-        CXX := mpixlcxx_r
-        CC  := mpixlc_r
-        FC  := mpixlf90_r -qfixed=72
-        fC  := mpixlf90_r -qfixed=72
-        F90 := mpixlf90_r
-      else
-        CXX := mpixlcxx
-        CC  := mpixlc
-        FC  := mpixlf90 -qfixed=72
-        fC  := mpixlf90 -qfixed=72
-        F90 := mpixlf90
-      endif
-
-      CXXDEBF += -qarch=450d -qtune=450
-      CXXOPTF += -qarch=450d -qtune=450
-      FOPTF   += -qarch=450d -qtune=450
-      FDEBF   += -qarch=450d -qtune=450
-
-      BL_MPI_LIBS += -L/soft/apps/ibmcmp-jan2010/xlf/bg/11.1/lib -lxlf90 -lxlfmath -lxlopt -lxlsmp -lxl -lxlomp_ser -lpthread -lrt
-    endif
-
     ifeq ($(WHICHLINUX), LENS)
       ifeq ($(COMP), g++)
   	MPI_HOME:=/sw/analysis-x64/ompi/1.4.2/centos5.5_gnu4.4.4
@@ -311,7 +287,6 @@ ifeq ($(MACHINE), Linux)
 
     ifneq ($(WHICHLINUX), LANL)
     ifneq ($(HOSTNAME), hyades.ucsc.edu)
-    ifneq ($(WHICHLINUX), INTREPID)
       ifneq ($(WHICHLINUX), JACQUARD)
         ifneq ($(WHICHLINUX), COLUMBIA)
           ifneq ($(WHICHLINUX), DELLA)
@@ -338,7 +313,6 @@ ifeq ($(MACHINE), Linux)
                 endif
               endif
             endif
-          endif
         endif
       endif
     endif
