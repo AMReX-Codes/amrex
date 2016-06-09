@@ -49,7 +49,6 @@ module multifab_module
   end type lmultifab
 
   type mf_fb_data
-     integer :: tag = 100
      logical :: sent = .false.
      logical :: rcvd = .false.
      integer, pointer :: send_request(:) => Null()
@@ -2155,7 +2154,7 @@ contains
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer,    allocatable :: rst(:)
-    integer,    parameter   :: tag = 1102
+    integer                 :: tag
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
@@ -2176,6 +2175,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
@@ -2186,16 +2187,18 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     !$OMP PARALLEL DO PRIVATE(i,sh,p) if (bxasc%r_con%threadsafe)
     do i = 1, bxasc%r_con%nrcv
@@ -2216,7 +2219,7 @@ contains
     integer, intent(in), optional :: idim
 
     real(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
-    integer                 :: i, ii, jj, np, istart, iend, nsize
+    integer                 :: i, ii, jj, np, istart, iend, nsize, tag
     type(boxassoc)          :: bxasc
 
     ! make sure fb_data is clean
@@ -2248,6 +2251,8 @@ contains
        return
     end if
 
+    tag = parallel_tag()
+
     allocate(fb_data%send_buffer(nc*bxasc%r_con%svol))
     allocate(fb_data%recv_buffer(nc*bxasc%r_con%rvol))
 
@@ -2277,7 +2282,7 @@ contains
        nsize = nc*bxasc%r_con%rtr(i)%sz
        iend = istart + nsize - 1
        fb_data%recv_request(i) = parallel_irecv_dv(fb_data%recv_buffer(istart:iend), &
-            nsize, bxasc%r_con%rtr(i)%pr, fb_data%tag)
+            nsize, bxasc%r_con%rtr(i)%pr, tag)
     end do
 
     do i = 1, bxasc%r_con%nsp
@@ -2285,7 +2290,7 @@ contains
        nsize = nc*bxasc%r_con%str(i)%sz
        iend = istart + nsize - 1
        fb_data%send_request(i) = parallel_isend_dv(fb_data%send_buffer(istart:iend), &
-            nsize, bxasc%r_con%str(i)%pr, fb_data%tag)
+            nsize, bxasc%r_con%str(i)%pr, tag)
     end do
 
   end subroutine mf_fb_fancy_double_nowait
@@ -2416,7 +2421,7 @@ contains
 
     integer, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable :: rst(:)
-    integer, parameter   :: tag = 1102
+    integer              :: tag
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)       :: bxasc
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
@@ -2437,6 +2442,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_i(nc*bxasc%r_con%svol))
     allocate(g_rcv_i(nc*bxasc%r_con%rvol))
 
@@ -2447,16 +2454,18 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) = parallel_isend_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) = parallel_isend_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     !$OMP PARALLEL DO PRIVATE(i,sh,p)
     do i = 1, bxasc%r_con%nrcv
@@ -2476,7 +2485,7 @@ contains
 
     logical, pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable :: rst(:)
-    integer, parameter   :: tag = 1102
+    integer              :: tag
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     type(boxassoc)       :: bxasc
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
@@ -2497,6 +2506,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_l(nc*bxasc%r_con%svol))
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
@@ -2507,16 +2518,18 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) =  parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) =  parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     !$OMP PARALLEL DO PRIVATE(i,sh,p)
     do i = 1, bxasc%r_con%nrcv
@@ -2536,7 +2549,7 @@ contains
 
     complex(dp_t), pointer     :: p(:,:,:,:), p1(:,:,:,:), p2(:,:,:,:)
     integer, allocatable       :: rst(:)
-    integer, parameter         :: tag = 1102
+    integer                    :: tag
     integer                    :: i, ii, jj, sh(MAX_SPACEDIM+1)
     type(boxassoc)             :: bxasc
     complex(dp_t), allocatable :: g_snd_z(:), g_rcv_z(:)
@@ -2559,16 +2572,20 @@ contains
        call reshape_z_4_1(g_snd_z, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_zv(g_rcv_z(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) = parallel_isend_zv(g_snd_z(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    tag = parallel_tag()
+
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_zv(g_rcv_z(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) = parallel_isend_zv(g_snd_z(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2831,7 +2848,7 @@ contains
 
     real(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable    :: rst(:)
-    integer, parameter      :: tag = 1713
+    integer                 :: tag
     integer                 :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)          :: bxasc
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
@@ -2860,6 +2877,8 @@ contains
        return
     end if
 
+    tag = parallel_tag()
+
     allocate(g_snd_d(nc*bxasc%r_con%svol))
     allocate(g_rcv_d(nc*bxasc%r_con%rvol))
 
@@ -2870,16 +2889,18 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     ! unsafe to do OMP
     do i = 1, bxasc%r_con%nrcv
@@ -2908,7 +2929,7 @@ contains
 
     logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable :: rst(:)
-    integer, parameter   :: tag = 1713
+    integer              :: tag
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1), lng
     type(boxassoc)       :: bxasc
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
@@ -2936,6 +2957,8 @@ contains
        return
     end if
 
+    tag = parallel_tag()
+
     allocate(g_snd_l(nc*bxasc%r_con%svol))
     allocate(g_rcv_l(nc*bxasc%r_con%rvol))
 
@@ -2944,16 +2967,18 @@ contains
        call reshape_l_4_1(g_snd_l, 1 + nc*bxasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
-    do i = 1, bxasc%r_con%nrp
-       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv), &
-            nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, bxasc%r_con%nsp
-       rst(i+bxasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
-            nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (bxasc%r_con%nrp+bxasc%r_con%nsp .gt. 0) then
+       allocate(rst(bxasc%r_con%nrp+bxasc%r_con%nsp))
+       do i = 1, bxasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv), &
+               nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, bxasc%r_con%nsp
+          rst(i+bxasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv), &
+               nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, bxasc%r_con%nrcv
        sh = bxasc%r_con%rcv(i)%sh
@@ -2980,7 +3005,7 @@ contains
 
     real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc, p
     integer                                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
-    integer, parameter                      :: tag = 1104
+    integer                                 :: tag
     type(syncassoc)                         :: snasc
     integer,    allocatable                 :: rst(:)
     real(dp_t), allocatable                 :: g_snd_d(:), g_rcv_d(:)
@@ -3009,6 +3034,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_d(nc*snasc%r_con%svol))
     allocate(g_rcv_d(nc*snasc%r_con%rvol))
 
@@ -3017,16 +3044,18 @@ contains
        call reshape_d_4_1(g_snd_d, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(snasc%r_con%nrp+snasc%r_con%nsp))
-    do i = 1, snasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv), &
-            nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, snasc%r_con%nsp
-       rst(i+snasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
-            nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (snasc%r_con%nrp+snasc%r_con%nsp .gt. 0) then
+       allocate(rst(snasc%r_con%nrp+snasc%r_con%nsp))
+       do i = 1, snasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*snasc%r_con%rtr(i)%pv), &
+               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, snasc%r_con%nsp
+          rst(i+snasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*snasc%r_con%str(i)%pv), &
+               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
@@ -3089,7 +3118,7 @@ contains
 
     logical, dimension(:,:,:,:), pointer :: pdst, psrc, p
     integer                              :: i, ii, jj, sh(MAX_SPACEDIM+1), np
-    integer, parameter                   :: tag = 1104
+    integer                              :: tag
     type(syncassoc)                      :: snasc
     integer, allocatable                 :: rst(:)
     logical, allocatable                 :: g_snd_l(:), g_rcv_l(:)
@@ -3118,6 +3147,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_l(nc*snasc%r_con%svol))
     allocate(g_rcv_l(nc*snasc%r_con%rvol))
 
@@ -3126,16 +3157,18 @@ contains
        call reshape_l_4_1(g_snd_l, 1 + nc*snasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(snasc%r_con%nrp+snasc%r_con%nsp))
-    do i = 1, snasc%r_con%nrp
-       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*snasc%r_con%rtr(i)%pv), &
-            nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, snasc%r_con%nsp
-       rst(i+snasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*snasc%r_con%str(i)%pv), &
-            nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (snasc%r_con%nrp+snasc%r_con%nsp .gt. 0) then
+       allocate(rst(snasc%r_con%nrp+snasc%r_con%nsp))
+       do i = 1, snasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*snasc%r_con%rtr(i)%pv), &
+               nc*snasc%r_con%rtr(i)%sz, snasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, snasc%r_con%nsp
+          rst(i+snasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*snasc%r_con%str(i)%pv), &
+               nc*snasc%r_con%str(i)%sz, snasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, snasc%r_con%nrcv
        sh = snasc%r_con%rcv(i)%sh
@@ -3185,7 +3218,7 @@ contains
     type(box)                 :: jbx, abx
     real(dp_t), pointer       :: pdst(:,:,:,:), psrc(:,:,:,:)
     integer                   :: i, j, lnc
-    integer, parameter        :: tag = 1204
+    integer                   :: tag
     type(bl_prof_timer), save :: bpt
 
     lnc = 1; if ( present(nc)  ) lnc  = nc
@@ -3194,6 +3227,8 @@ contains
     if ( mf_out%nc < (c_out+lnc-1) ) call bl_error('MULTIFAB_COPY_ON_SHIFT: nc too large', lnc)
 
     call build(bpt, "mf_copy_on_shift")
+
+    tag = parallel_tag()
 
     do j = 1, nboxes(mf_in%la)
        jbx = shift(box_nodalize(get_box(mf_in%la,j), mf_in%nodal), len, face)
@@ -3470,7 +3505,7 @@ contains
     type(copyassoc)         :: cpasc
     real(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable    :: rst(:)
-    integer, parameter      :: tag = 1102
+    integer                 :: tag
     integer                 :: i, ii, jj, sh(MAX_SPACEDIM+1), np
     real(dp_t), allocatable :: g_snd_d(:), g_rcv_d(:)
     logical                 :: br_to_other
@@ -3501,6 +3536,8 @@ contains
        return
     end if
 
+    tag = parallel_tag()
+
     allocate(g_snd_d(nc*cpasc%r_con%svol))
     allocate(g_rcv_d(nc*cpasc%r_con%rvol))
 
@@ -3511,16 +3548,18 @@ contains
     end do
     !$OMP END PARALLEL DO
 
-    allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
-    do i = 1, cpasc%r_con%nrp
-       rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv), &
-            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, cpasc%r_con%nsp
-       rst(i+cpasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
-            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (cpasc%r_con%nrp+cpasc%r_con%nsp .gt. 0) then
+       allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*cpasc%r_con%rtr(i)%pv), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          rst(i+cpasc%r_con%nrp) = parallel_isend_dv(g_snd_d(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     !$OMP PARALLEL DO PRIVATE(i,sh,p) if (cpasc%r_con%threadsafe)
     do i = 1, cpasc%r_con%nrcv
@@ -3553,7 +3592,7 @@ contains
     type(copyassoc)      :: cpasc
     integer, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable :: rst(:)
-    integer, parameter   :: tag = 1102
+    integer              :: tag
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     integer, allocatable :: g_snd_i(:), g_rcv_i(:)
 
@@ -3571,6 +3610,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_i(nc*cpasc%r_con%svol))
     allocate(g_rcv_i(nc*cpasc%r_con%rvol))
 
@@ -3579,16 +3620,18 @@ contains
        call reshape_i_4_1(g_snd_i, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
-    do i = 1, cpasc%r_con%nrp
-       rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv), &
-            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, cpasc%r_con%nsp
-       rst(i+cpasc%r_con%nrp) = parallel_isend_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
-            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (cpasc%r_con%nrp+cpasc%r_con%nsp .gt. 0) then
+       allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*cpasc%r_con%rtr(i)%pv), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          rst(i+cpasc%r_con%nrp) = parallel_isend_iv(g_snd_i(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
@@ -3617,7 +3660,7 @@ contains
     type(copyassoc)      :: cpasc
     logical, pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable :: rst(:)
-    integer, parameter   :: tag = 1102
+    integer              :: tag 
     integer              :: i, ii, jj, np, sh(MAX_SPACEDIM+1)
     logical, allocatable :: g_snd_l(:), g_rcv_l(:)
 
@@ -3635,6 +3678,8 @@ contains
 
     if (np == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_l(nc*cpasc%r_con%svol))
     allocate(g_rcv_l(nc*cpasc%r_con%rvol))
 
@@ -3643,16 +3688,18 @@ contains
        call reshape_l_4_1(g_snd_l, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
-    do i = 1, cpasc%r_con%nrp
-       rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv), &
-            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, cpasc%r_con%nsp
-       rst(i+cpasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
-            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (cpasc%r_con%nrp+cpasc%r_con%nsp .gt. 0) then
+       allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*cpasc%r_con%rtr(i)%pv), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          rst(i+cpasc%r_con%nrp) = parallel_isend_lv(g_snd_l(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh
@@ -3681,7 +3728,7 @@ contains
     type(copyassoc)            :: cpasc
     complex(dp_t), pointer     :: p(:,:,:,:), pdst(:,:,:,:), psrc(:,:,:,:)
     integer, allocatable       :: rst(:)
-    integer, parameter         :: tag = 1102
+    integer                    :: tag
     integer                    :: i, ii, jj, sh(MAX_SPACEDIM+1)
     complex(dp_t), allocatable :: g_snd_z(:), g_rcv_z(:)
 
@@ -3697,6 +3744,8 @@ contains
 
     if (parallel_nprocs() == 1) return
 
+    tag = parallel_tag()
+
     allocate(g_snd_z(nc*cpasc%r_con%svol))
     allocate(g_rcv_z(nc*cpasc%r_con%rvol))
 
@@ -3705,16 +3754,18 @@ contains
        call reshape_z_4_1(g_snd_z, 1 + nc*cpasc%r_con%snd(i)%pv, p)
     end do
 
-    allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
-    do i = 1, cpasc%r_con%nrp
-       rst(i) = parallel_irecv_zv(g_rcv_z(1+nc*cpasc%r_con%rtr(i)%pv), &
-            nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
-    end do
-    do i = 1, cpasc%r_con%nsp
-       rst(i+cpasc%r_con%nrp) = parallel_isend_zv(g_snd_z(1+nc*cpasc%r_con%str(i)%pv), &
-            nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
-    end do
-    call parallel_wait(rst)
+    if (cpasc%r_con%nrp+cpasc%r_con%nsp .gt. 0) then
+       allocate(rst(cpasc%r_con%nrp+cpasc%r_con%nsp))
+       do i = 1, cpasc%r_con%nrp
+          rst(i) = parallel_irecv_zv(g_rcv_z(1+nc*cpasc%r_con%rtr(i)%pv), &
+               nc*cpasc%r_con%rtr(i)%sz, cpasc%r_con%rtr(i)%pr, tag)
+       end do
+       do i = 1, cpasc%r_con%nsp
+          rst(i+cpasc%r_con%nrp) = parallel_isend_zv(g_snd_z(1+nc*cpasc%r_con%str(i)%pv), &
+               nc*cpasc%r_con%str(i)%sz, cpasc%r_con%str(i)%pr, tag)
+       end do
+       call parallel_wait(rst)
+    end if
 
     do i = 1, cpasc%r_con%nrcv
        sh = cpasc%r_con%rcv(i)%sh

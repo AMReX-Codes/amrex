@@ -128,9 +128,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring cori, $(NERSC_HOST)), cori)
     WHICHLINUX := CORI
   endif
-  ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
-    WHICHLINUX := INTREPID
-  endif
   ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
   endif
@@ -550,58 +547,20 @@ ifeq ($(COMP),Intel)
    endif
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
-   ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
-       ICC_VERSION := 10.0
-       ICC_MAJOR_VERSION := 10
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 10.1, $(__icc_version)), Version 10.1)
-       ICC_VERSION := 10.1
-       ICC_MAJOR_VERSION := 10
-       ICC_MINOR_VERSION := 1
-       CXXDEBF += -Wunused-variable
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 11.0, $(__icc_version)), Version 11.0)
-       ICC_VERSION := 11.0
-       ICC_MAJOR_VERSION := 11
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 11.1, $(__icc_version)), Version 11.1)
-       ICC_VERSION := 11.1
-       ICC_MAJOR_VERSION := 11
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 12.1, $(__icc_version)), Version 12.1)
-       ICC_VERSION := 12.1
-       ICC_MAJOR_VERSION := 12
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-   endif
-   endif
-   endif
-   endif
-   endif
+
+   COMP_VERSION := $(shell $(_icpc) -V 2>&1 | grep 'Version')                    
 
    ifeq ($(USE_OMP),TRUE)
      CXXOPTF += -openmp
      CXXDEBF += -openmp
      COPTF += -openmp
      CDEBF += -openmp
-     ifeq ($(ICC_MAJOR_VERSION),11)
-        CXXOPTF += -openmp-report2
-        CXXDEBF += -openmp-report2
-     endif
    endif
 
-   ifeq ($(ICC_MAJOR_VERSION),9)
-     CXXDEBF += -O0
-   endif
    CXX = $(_icpc) -Wno-deprecated
    CC  = $(_icc)
+
+   # these were never defined for Intel > 12
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
@@ -625,47 +584,12 @@ ifeq ($(FCOMP),Intel)
    endif
 
    __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
-   ifneq ($(IFC_MAJOR_VERSION),7)
-     _ifc = ifort
-     __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
-     override XTRALIBS += -lifcore
+   _ifc = ifort
+   override XTRALIBS += -lifcore
 #    override XTRALIBS += -lguide
 #    CAR: Might be needed ^^^^^^^ in some instances.
-   else
-     override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
-   endif
 
-   ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
-       IFC_VERSION := 10.0
-       IFC_MAJOR_VERSION := 10
-       IFC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 10.1, $(__ifc_version)), Version 10.1)
-       IFC_VERSION := 10.1
-       IFC_MAJOR_VERSION := 10
-       IFC_MINOR_VERSION := 1
-       FDEBF += -warn unused
-       fDEBF += -warn unused
-   else
-   ifeq ($(findstring Version 11.0, $(__ifc_version)), Version 11.0)
-       IFC_VERSION := 11.0
-       IFC_MAJOR_VERSION := 11
-       IFC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 11.1, $(__ifc_version)), Version 11.1)
-       IFC_VERSION := 11.1
-       IFC_MAJOR_VERSION := 11
-       IFC_MINOR_VERSION := 1
-   else
-   ifeq ($(findstring Version 12.1, $(__ifc_version)), Version 12.1)
-       IFC_VERSION := 12.1
-       IFC_MAJOR_VERSION := 12
-       IFC_MINOR_VERSION := 1
-   endif
-   endif
-   endif
-   endif
-   endif
+   FCOMP_VERSION := $(shell $(_ifc) -V 2>&1 | grep 'Version')                    
 
    ifeq ($(USE_OMP),TRUE)
      FOPTF += -openmp
@@ -676,10 +600,10 @@ ifeq ($(FCOMP),Intel)
 
    FDEBF += -g # -u -check all -warn all
    fDEBF += -g # -u -check all -warn all 
-   ifneq ($(IFC_MAJOR_VERSION), 10)
-     FOPTF += -g
-     fOPTF += -g
-   endif
+
+
+   FOPTF += -g
+   fOPTF += -g
 
    ifeq ($(WHICHLINUX), CORI)
      FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
@@ -699,21 +623,9 @@ ifeq ($(FCOMP),Intel)
      endif
    endif
 
-   ifneq ($(IFC_MAJOR_VERSION), 9)
-     ifneq ($(IFC_MAJOR_VERSION), 10)
-     ifneq ($(IFC_MAJOR_VERSION), 11)
-       FDEBF += -CB #-warn all -warn nounused
-       fDEBF += -CB #-warn all -warn nounused 
-     endif
-     endif
-   else
-     FDEBF += -check all -traceback -debug extended
-     fDEBF += -check all -traceback -debug extended
-     FDEBF += -O0
-     fDEBF += -O0
-#     FDEBF += -ftrapuv
-#     fDEBF += -ftrapuv
-   endif
+   FDEBF += -CB #-warn all -warn nounused
+   fDEBF += -CB #-warn all -warn nounused 
+
    ifneq ($(UNAMEN),maudib.ucolick.org)
       LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
    endif
