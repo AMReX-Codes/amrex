@@ -194,6 +194,8 @@ contains
   !
   ! A value of false means it's outside our domain.
   !
+  ! Set the particle's lev, grd, and cell attributes, unless update==.true.
+  !
   function particle_where(p,mla,dx,prob_lo,update) result(r)
 
     use bl_error_module
