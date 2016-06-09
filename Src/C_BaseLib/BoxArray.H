@@ -340,8 +340,8 @@ public:
     const IndexType& ixType () const { return m_typ; }
 
 #ifdef BL_USE_MPI
-    static void SendBoxArray(const BoxArray &ba);
-    static void RecvBoxArray(BoxArray &ba);
+    static void SendBoxArray(const BoxArray &ba, int whichSidecar);
+    static void RecvBoxArray(BoxArray &ba, int whichSidecar);
 #endif
 
 private:

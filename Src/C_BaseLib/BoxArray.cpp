@@ -1059,22 +1059,26 @@ BoxArray::getRefID () const
 
 #ifdef BL_USE_MPI
 void
-BoxArray::SendBoxArray(const BoxArray &ba)
+BoxArray::SendBoxArray(const BoxArray &ba, int whichSidecar)
 {
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
     Array<int> ba_serial = BoxLib::SerializeBoxArray(ba);
     int ba_serial_size = ba_serial.size();
-    ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, MPI_IntraGroup_Broadcast_Rank,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
 }
 
 void
-BoxArray::RecvBoxArray(BoxArray &ba)
+BoxArray::RecvBoxArray(BoxArray &ba, int whichSidecar)
 {
     int ba_serial_size;
-    ParallelDescriptor::Bcast(&ba_serial_size, 1, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(&ba_serial_size, 1, 0,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
     Array<int> ba_serial(ba_serial_size);
-    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0, ParallelDescriptor::CommunicatorInter());
+    ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0,
+                              ParallelDescriptor::CommunicatorInter(whichSidecar));
     ba = BoxLib::UnSerializeBoxArray(ba_serial);
 }
 #endif
