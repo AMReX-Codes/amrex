@@ -1139,12 +1139,12 @@ Geometry::FlushPIRMCache ()
 
 #ifdef BL_USE_MPI
 void
-Geometry::SendGeometryToSidecars (Geometry *geom)
+Geometry::SendGeometryToSidecar (Geometry *geom, int whichSidecar)
 {
   int fromProc;
 
   MPI_Comm commSource = ParallelDescriptor::CommunicatorComp();
-  MPI_Comm commInter  = ParallelDescriptor::CommunicatorInter();
+  MPI_Comm commInter  = ParallelDescriptor::CommunicatorInter(whichSidecar);
   MPI_Comm comm = commInter;
 
   bool bcastSource(ParallelDescriptor::Communicator() == commSource);
