@@ -2648,6 +2648,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
     // way no thread will step on any other.  If there's only one grid per CPU,
     // then oh well ....
     //
+    // TODO: implement tiling with OpenMP in this grid loop.
     Array<int>         pgrd(ngrids);
     Array<const PBox*> pbxs(ngrids);
 
