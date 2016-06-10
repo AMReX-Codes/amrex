@@ -2715,7 +2715,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
                     fab(cells[i],0) += p.m_data[0] * fracs[i] * gamma;
                 }
                 else 
-#endif
+#endif /* NEUTRINO_PARTICLES */
                 {
 #ifdef _OPENMP
 #pragma omp atomic
