@@ -56,3 +56,12 @@ Resizing the calculation:
     a good test case to make it work.
 
 
+    // Broadcasts to intercommunicators have weird syntax. See below.
+    // Whichever proc is actually broadcasting the data uses MPI_ROOT; all
+    // other procs in that same communicator use MPI_PROC_NULL. On the
+    // receiving end, the source rank is the rank of the broadcasting process
+    // within its local communicator, *not* its rank in MPI_COMM_WORLD.
+    // (Usually broadcasts will come from IOProcessor(), which is typically
+    // rank 0.)
+    const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
+
