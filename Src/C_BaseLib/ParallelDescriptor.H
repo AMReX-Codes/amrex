@@ -208,7 +208,7 @@ namespace ParallelDescriptor
         return m_nProcs_comp;
     }
     inline int
-    NProcsSidecar (int whichSidecar = 0)
+    NProcsSidecar (int whichSidecar)
     {
 	if(nSidecars == 0) {
 	  return 0;
@@ -253,11 +253,14 @@ namespace ParallelDescriptor
     //    m_comm_sidecar[] is for the ranks in the sidecar
     //    m_comm_inter[]   is for communicating between comp and sidecars
     //                     the user must create any sidecar to sidecar communicators
+    //    m_comm_both[]    is for communicating within a group made from comp and
+    //                     one of the sidecars
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
     extern Array<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
     extern Array<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
+    extern Array<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
 
     inline MPI_Comm Communicator ()         // ---- return the "local" communicator
     {
@@ -287,9 +290,14 @@ namespace ParallelDescriptor
           return m_comm_sidecar[inWhichSidecar];
 	}
     }
-    inline MPI_Comm CommunicatorInter (int whichSidecar = 0)
+    inline MPI_Comm CommunicatorInter (int whichSidecar)
     {
         return m_comm_inter[whichSidecar];
+    }
+
+    inline MPI_Comm CommunicatorBoth (int whichSidecar)
+    {
+        return m_comm_both[whichSidecar];
     }
 
     void Barrier (const std::string& message = Unnamed);

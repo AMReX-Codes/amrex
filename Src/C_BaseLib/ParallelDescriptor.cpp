@@ -53,6 +53,7 @@ namespace ParallelDescriptor
     MPI_Comm m_comm_comp    = MPI_COMM_NULL;    // for the ranks doing computations
     Array<MPI_Comm> m_comm_sidecar;             // for the ranks in the sidecar
     Array<MPI_Comm> m_comm_inter;               // for communicating between comp and sidecar
+    Array<MPI_Comm> m_comm_both;                // for communicating within comp and a sidecar
     //
     // BoxLib's Groups
     //
@@ -323,7 +324,6 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       ++rankCheck;
     }
 
-
     // ---- print the ranks
     if(m_MyId_all == 0) {
       std::cout << "cccc nCompProcs = " << compRanksInAll.size() << std::endl;
@@ -362,6 +362,13 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
     m_comm_inter.clear();
 
+    for(int i(0); i < m_comm_both.size(); ++i) {
+      if(m_comm_both[i] != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_both[i]) );
+      }
+    }
+    m_comm_both.clear();
+
     if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
       BL_MPI_REQUIRE( MPI_Group_free(&m_group_comp) );
       m_group_comp = MPI_GROUP_NULL;
@@ -381,7 +388,6 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
 
     // ---- now create new groups and communicators
     if(nSidecars > 0) {
-
       m_nProcs_sidecar.resize(nSidecars, nProcs_undefined);
       m_group_sidecar.resize(nSidecars, MPI_GROUP_NULL);
       m_comm_sidecar.resize(nSidecars, MPI_COMM_NULL);
@@ -400,9 +406,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
           m_nProcs_sidecar[i] = 0;
 	}
       }
-
       BL_MPI_REQUIRE( MPI_Group_size(m_group_comp, &m_nProcs_comp) );
-
     } else {
       m_comm_comp   = m_comm_all;
       m_group_comp  = m_group_all;
@@ -416,7 +420,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
     }
 
-    // ---- create the inter communicators, but only between comp and sidecars
+    // ---- create the inter communicators, but only between comp and each sidecar
     // ---- the user will have to create any sidecar to sidecar communicators
     if(nSidecars > 0) {
       m_comm_inter.resize(nSidecars, MPI_COMM_NULL);
@@ -448,10 +452,19 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
           }
 	}
       }
-
     } else {
       m_MyId_comp = m_MyId_all;
       m_MyId_sidecar = myId_notInGroup;
+    }
+
+    // ---- create communicator spanning comp and each sidecar
+    if(nSidecars > 0) {
+      m_comm_both.resize(nSidecars, MPI_COMM_NULL);
+      for(int i(0); i < m_group_sidecar.size(); ++i) {
+	MPI_Group groupBoth;
+        BL_MPI_REQUIRE( MPI_Group_union(m_group_comp, m_group_sidecar[i], &groupBoth) );
+        BL_MPI_REQUIRE( MPI_Comm_create(m_comm_all, groupBoth, &m_comm_both[i]) );
+      }
     }
 
     // ---- more error checking
