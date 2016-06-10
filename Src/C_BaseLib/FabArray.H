@@ -967,6 +967,7 @@ public:
                            const MPI_Comm &commSrc,
                            const MPI_Comm &commDest,
                            const MPI_Comm &commInter,
+                           const MPI_Comm &commBoth,
                            bool       isSrc,
                            CpOp       op = FabArrayBase::COPY);
 
@@ -2084,6 +2085,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                           const MPI_Comm      &commSrc,
                           const MPI_Comm      &commDest,
                           const MPI_Comm      &commInter,
+                          const MPI_Comm      &commBoth,
                 	  bool                 isSrc,
                           CpOp                 op)
 {
@@ -2108,36 +2110,42 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     if(isDest) { BL_ASSERT(dest->nGrow() >= dnghost); }
 
     bool putInCache(false);
-    MPI_Group groupSrc, groupDest, groupBoth;
-    const MPI_Comm &commBoth = ParallelDescriptor::CommunicatorAll();  // ---- both src and dest:  fix for > 1 sidecar
-    int myProcAll(ParallelDescriptor::MyProcAll());
-    int iopN(ParallelDescriptor::IOProcessorNumber());
-    int iopNInAll(-1), bcastRootSrc(-1), bcastRootDest(-1);
+    MPI_Group groupSrc(MPI_GROUP_NULL), groupDest(MPI_GROUP_NULL), groupBoth(MPI_GROUP_NULL);
+    MPI_Group groupAll(MPI_GROUP_NULL);
+    int myProcAll(ParallelDescriptor::MyProcAll()), myProcBoth(MPI_UNDEFINED);
+    int iopN(ParallelDescriptor::IOProcessorNumber()), iopNInBoth(MPI_UNDEFINED);
+    int bcastRootSrc(MPI_UNDEFINED), bcastRootDest(MPI_UNDEFINED);
+    size_t sizeOne(1);
+    int tagOne(1), tagTwo(2);
 
+    BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &groupAll) );
     BL_MPI_REQUIRE( MPI_Comm_group(commBoth, &groupBoth) );
+
+    BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupAll, sizeOne, &myProcAll, groupBoth, &myProcBoth) );
+
     if(isSrc) {
       BL_MPI_REQUIRE( MPI_Comm_group(commSrc, &groupSrc) );
-      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupSrc, 1, &iopN, groupBoth, &iopNInAll) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupSrc, sizeOne, &iopN, groupBoth, &iopNInBoth) );
       if(ParallelDescriptor::IOProcessor()) {
-        ParallelDescriptor::Asend(&iopNInAll, 1, 0, 1, commBoth);
+        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagOne, commBoth);
       }
     }
     if(isDest) {
       BL_MPI_REQUIRE( MPI_Comm_group(commDest, &groupDest) );
-      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupDest, 1, &iopN, groupBoth, &iopNInAll) );
+      BL_MPI_REQUIRE( MPI_Group_translate_ranks(groupDest, sizeOne, &iopN, groupBoth, &iopNInBoth) );
       if(ParallelDescriptor::IOProcessor()) {
-        ParallelDescriptor::Asend(&iopNInAll, 1, 0, 2, commBoth);
+        ParallelDescriptor::Asend(&iopNInBoth, sizeOne, iopN, tagTwo, commBoth);
       }
     }
-    if(myProcAll == 0) {
-      ParallelDescriptor::Recv(&bcastRootSrc, 1, MPI_ANY_SOURCE, 1, commBoth);
-      ParallelDescriptor::Recv(&bcastRootDest, 1, MPI_ANY_SOURCE, 2, commBoth);
+    if(myProcBoth == iopN) {
+      ParallelDescriptor::Recv(&bcastRootSrc,  sizeOne, MPI_ANY_SOURCE, tagOne, commBoth);
+      ParallelDescriptor::Recv(&bcastRootDest, sizeOne, MPI_ANY_SOURCE, tagTwo, commBoth);
     }
-    ParallelDescriptor::Bcast(&bcastRootSrc,  1, 0, commBoth);
-    ParallelDescriptor::Bcast(&bcastRootDest, 1, 0, commBoth);
+    ParallelDescriptor::Bcast(&bcastRootSrc,  sizeOne, iopN, commBoth);
+    ParallelDescriptor::Bcast(&bcastRootDest, sizeOne, iopN, commBoth);
 
 
-    // ---- give all procs source and dest boxarrays and distributionmaps
+    // ---- give all procs in commBoth source and dest boxarrays and distribution maps
     BoxArray srcBoxArray, destBoxArray;
     Array<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
     DistributionMapping srcDM, destDM, srcDMAll, destDMAll;
@@ -2150,39 +2158,36 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     }
 
 
-    if(isSrc && myProcAll == bcastRootSrc) {
+    if(isSrc && myProcBoth == bcastRootSrc) {
       srcBoxArray = src->boxArray();
       srcDM = src->DistributionMap();
       srcPMap = srcDM.ProcessorMap();
       srcPMapAll = DistributionMapping::TranslateProcMap(srcPMap, groupBoth, groupSrc);
-      srcPMapAll[srcPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
+      srcPMapAll[srcPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
-    //if(isDest) {
-      //destBoxArray = dest->boxArray();
-    //}
-    if(isDest && myProcAll == bcastRootDest) {
+    if(isDest && myProcBoth == bcastRootDest) {
       destBoxArray = dest->boxArray();
       destDM = dest->DistributionMap();
       destPMap = destDM.ProcessorMap();
       destPMapAll = DistributionMapping::TranslateProcMap(destPMap, groupBoth, groupDest);
-      destPMapAll[destPMapAll.size()-1] = myProcAll;  // ---- set the sentinel
+      destPMapAll[destPMapAll.size()-1] = myProcBoth;  // ---- set the sentinel
     }
 
-    BoxLib::BroadcastBoxArray(srcBoxArray,  myProcAll, bcastRootSrc,  commBoth);
+    BoxLib::BroadcastBoxArray(srcBoxArray,  myProcBoth, bcastRootSrc,  commBoth);
 
-    BoxLib::BroadcastBoxArray(destBoxArray, myProcAll, bcastRootDest, commBoth);
+    BoxLib::BroadcastBoxArray(destBoxArray, myProcBoth, bcastRootDest, commBoth);
     BL_ASSERT(destBoxArray[0].ixType() == srcBoxArray[0].ixType());
 
 
-    BoxLib::BroadcastArray(srcPMapAll, myProcAll, bcastRootSrc, commBoth);
-    BoxLib::BroadcastArray(destPMapAll, myProcAll, bcastRootDest, commBoth);
+    BoxLib::BroadcastArray(srcPMapAll,  myProcBoth, bcastRootSrc,  commBoth);
+    BoxLib::BroadcastArray(destPMapAll, myProcBoth, bcastRootDest, commBoth);
 
     srcDMAll.define(srcPMapAll, putInCache);
     destDMAll.define(destPMapAll, putInCache);
 
     const CPC cpc(destBoxArray, srcBoxArray, destDMAll, srcDMAll, dnghost, snghost);
 
-    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcAll);
+    FabArrayBase::CPCCacheIter cache_it = FabArrayBase::TheCPC(cpc, destIndexArray, srcIndexArray, myProcBoth);
 
     BL_ASSERT(cache_it != FabArrayBase::m_TheCopyCache.end());
 
@@ -2194,10 +2199,10 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     // ---- syncronize sequence numbers across groups
     int currentSeqNumber(-4);
-    if(isSrc && myProcAll == bcastRootSrc) {
+    if(isSrc && myProcBoth == bcastRootSrc) {
       currentSeqNumber = ParallelDescriptor::SeqNum(1);
     }
-    ParallelDescriptor::Bcast(&currentSeqNumber, 1, bcastRootSrc, commBoth);
+    ParallelDescriptor::Bcast(&currentSeqNumber, sizeOne, bcastRootSrc, commBoth);
     ParallelDescriptor::SeqNum(2, currentSeqNumber);
 
     // Do this before prematurely exiting if running in parallel.
