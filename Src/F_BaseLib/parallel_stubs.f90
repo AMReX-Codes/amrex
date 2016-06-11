@@ -1749,7 +1749,8 @@ contains
     rcv(1:n) = snd(1:n)
   end subroutine parallel_scatter_lv
 
-  function parallel_tag () result(tag)
+  function parallel_tag (reset) result(tag)
+    logical, intent(in), optional :: reset
     integer :: tag
     tag = 1000
   end function parallel_tag
