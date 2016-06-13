@@ -14,7 +14,7 @@ ifeq ($(HOST), $(findstring $(HOST), $(CCSE_MACHINES)))
     mpi_libraries += -lmpich -lmpichf90
 endif
 
-DEFAULT_MACHINES := artoo naphta orga posse
+DEFAULT_MACHINES := artoo naphta orga posse rob
 
 ifeq ($(HOST), $(findstring $(HOST), $(DEFAULT_MACHINES)))
   MPIHOME=/usr/lib/mpich
