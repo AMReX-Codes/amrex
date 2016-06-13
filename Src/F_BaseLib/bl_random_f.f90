@@ -13,7 +13,8 @@ module bl_random_module
   private 
   public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
        bl_rng_change_distribution, &
-       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial
+       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial, &
+       bl_rng_random_uint_c
 
   type bl_rng_uniform_real
      type(c_ptr), private :: p = c_null_ptr
@@ -277,9 +278,6 @@ contains
        r = s
     else
        call bl_error("bl_rng: seed must >= 0")
-    end if
-    if (parallel_IOProcessor()) then
-       print*,'root seed =',r
     end if
   end function bl_rng_init_seed
 
