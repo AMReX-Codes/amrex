@@ -269,11 +269,11 @@ contains
     integer(c_int), intent(in) :: s
     integer :: r
     if (s .eq. 0) then
-       if (parallel_IOProcessor()) then
-          print*,'seed = 0 --> picking a random root seed'
-       end if
        r = bl_rng_random_uint_c()
        call parallel_bcast(r)
+       if (parallel_IOProcessor()) then
+          print*,'seed = 0 --> picking a random root seed',r
+       end if
     else if (s .gt. 0) then
        r = s
     else
