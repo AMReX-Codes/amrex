@@ -2672,9 +2672,7 @@ ParticleContainer<N>::AssignCellDensitySingleLevel (MultiFab& mf_to_be_filled,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(fracs,cells) shared(plo,dx,dx_particle,gm,fab,ncomp,pbx)
 #endif
-        for (typename PBox::const_iterator it = pbx.begin(), End = pbx.end();
-             it != End;
-             ++it)
+        for (typename PBox::const_iterator it = pbx.begin(); it < pbx.end(); ++it)
         {
             const ParticleType& p = *it;
 

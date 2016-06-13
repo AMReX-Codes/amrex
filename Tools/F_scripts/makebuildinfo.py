@@ -27,7 +27,7 @@ module build_info_module
 "@@FCOMP_VERSION@@"
 
   character (len=250), save :: f90_compile_line = &
-@@F90_COMP_LINE@@ 
+@@F90_COMP_LINE@@
 
   character (len=250), save :: f_compile_line = &
 @@F_COMP_LINE@@
@@ -53,6 +53,9 @@ module build_info_module
 
   character (len=128), save :: network_dir = &
 "@@NETWORK@@"
+
+  character (len=128), save :: integrator_dir = &
+"@@INTEGRATOR@@"
 
   character (len=128), save :: eos_dir = &
 "@@EOS@@"
@@ -110,6 +113,7 @@ try: opts, next = getopt.getopt(sys.argv[1:], "",
                                 "extra_home=",
                                 "extra_home2=",
                                 "network=",
+                                "integrator=",
                                 "eos=",
                                 "conductivity="])
 except getopt.GetoptError:
@@ -127,6 +131,7 @@ source_home = ""
 extra_home = ""
 extra_home2 = ""
 network = ""
+integrator = ""
 eos = ""
 conductivity = ""
 
@@ -149,7 +154,7 @@ for o, a in opts:
 
     if o == "--C_compile_line":
         C_compile_line = a
-        
+
     if o == "--link_line":
         link_line = a
 
@@ -163,16 +168,19 @@ for o, a in opts:
         extra_home = a
 
     if o == "--extra_home2":
-        extra_home2 = a        
+        extra_home2 = a
 
     if o == "--network":
-        network = a        
+        network = a
+
+    if o == "--integrator":
+        integrator = a
 
     if o == "--eos":
-        eos = a        
+        eos = a
 
     if o == "--conductivity":
-        conductivity = a        
+        conductivity = a
 
 
 MAX_STRING_LENGTH=128
@@ -206,7 +214,7 @@ if (not extra_home2 == ""):
     else:
         extra_hash2 = get_git_hash(extra_home2)
         os.chdir(runningDir)
-    
+
 # we may not be building in a sub-directory of the source directory, in that
 # case, store an extra hash
 source_dir = os.path.abspath(source_home)
@@ -252,24 +260,24 @@ for line in sourceString.splitlines():
             fout.write(newline)
 
         elif keyword == "BUILD_MACHINE":
-            newline = line.replace("@@BUILD_MACHINE@@", 
+            newline = line.replace("@@BUILD_MACHINE@@",
                                    build_machine[:MAX_STRING_LENGTH])
             fout.write(newline)
 
         elif keyword == "BOXLIB_DIR":
-            newline = line.replace("@@BOXLIB_DIR@@", 
+            newline = line.replace("@@BOXLIB_DIR@@",
                                    boxlib_home[:MAX_STRING_LENGTH])
             fout.write(newline)
 
         elif keyword == "FCOMP":
-            newline = line.replace("@@FCOMP@@", 
+            newline = line.replace("@@FCOMP@@",
                                    FCOMP)
-            fout.write(newline)            
+            fout.write(newline)
 
         elif keyword == "FCOMP_VERSION":
-            newline = line.replace("@@FCOMP_VERSION@@", 
+            newline = line.replace("@@FCOMP_VERSION@@",
                                    FCOMP_version[:MAX_STRING_LENGTH])
-            fout.write(newline)            
+            fout.write(newline)
 
         elif keyword == "F90_COMP_LINE":
             # this can span 2 lines
@@ -279,7 +287,7 @@ for line in sourceString.splitlines():
             else:
                 str = f90_compile_line
 
-            newline = line.replace("@@F90_COMP_LINE@@", 
+            newline = line.replace("@@F90_COMP_LINE@@",
                                    "\"%s\"" % (str))
             fout.write(newline)
 
@@ -291,7 +299,7 @@ for line in sourceString.splitlines():
             else:
                 str = f_compile_line
 
-            newline = line.replace("@@F_COMP_LINE@@", 
+            newline = line.replace("@@F_COMP_LINE@@",
                                    "\"%s\"" % (str))
             fout.write(newline)
 
@@ -303,7 +311,7 @@ for line in sourceString.splitlines():
             else:
                 str = C_compile_line
 
-            newline = line.replace("@@C_COMP_LINE@@", 
+            newline = line.replace("@@C_COMP_LINE@@",
                                    "\"%s\"" % (str))
             fout.write(newline)
 
@@ -315,7 +323,7 @@ for line in sourceString.splitlines():
             else:
                 str = link_line
 
-            newline = line.replace("@@LINK_LINE@@", 
+            newline = line.replace("@@LINK_LINE@@",
                                    "\"%s\"" % (str))
             fout.write(newline)
 
@@ -342,13 +350,13 @@ for line in sourceString.splitlines():
                 newline = line.replace("@@EXTRA_HASH2@@", "")
 
             fout.write(newline)
-            
+
         elif keyword == "BUILD_TREE_LOGICAL":
             if have_build_hash == 1:
-                newline = line.replace("@@BUILD_TREE_LOGICAL@@", 
+                newline = line.replace("@@BUILD_TREE_LOGICAL@@",
                                        ".true.")
             else:
-                newline = line.replace("@@BUILD_TREE_LOGICAL@@", 
+                newline = line.replace("@@BUILD_TREE_LOGICAL@@",
                                        ".false.")
 
             fout.write(newline)
@@ -364,6 +372,9 @@ for line in sourceString.splitlines():
         elif keyword == "NETWORK":
             fout.write(line.replace("@@NETWORK@@", network))
 
+        elif keyword == "INTEGRATOR":
+            fout.write(line.replace("@@INTEGRATOR@@", integrator))
+
         elif keyword == "EOS":
             fout.write(line.replace("@@EOS@@", eos))
 
@@ -373,7 +384,7 @@ for line in sourceString.splitlines():
         elif keyword == "MODULE_STUFF":
 
             if len(moduleList) == 0:
-                newline = line.replace("@@MODULE_STUFF@@", 
+                newline = line.replace("@@MODULE_STUFF@@",
                                        "integer, parameter :: NUM_MODULES=0")
             else:
                 str = ""
