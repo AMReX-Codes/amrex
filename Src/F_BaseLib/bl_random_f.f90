@@ -6,6 +6,7 @@ module bl_random_module
   use bl_error_module
   use parallel
   use fabio_module
+  use bl_types
 
   implicit none
 
@@ -267,12 +268,18 @@ contains
     integer(c_int), intent(in) :: s
     integer :: r
     if (s .eq. 0) then
+       if (parallel_IOProcessor()) then
+          print*,'seed = 0 --> picking a random root seed'
+       end if
        r = bl_rng_random_uint_c()
        call parallel_bcast(r)
     else if (s .gt. 0) then
        r = s
     else
        call bl_error("bl_rng: seed must >= 0")
+    end if
+    if (parallel_IOProcessor()) then
+       print*,'root seed =',r
     end if
   end function bl_rng_init_seed
 
