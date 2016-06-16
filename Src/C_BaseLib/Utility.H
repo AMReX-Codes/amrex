@@ -242,6 +242,9 @@ namespace BoxLib
     //   of integers in the range [0, poolSize - 1]
     //   the set will be in the order they are found
     //   setSize must be <= poolSize
+    //   uSet will be resized to setSize
+    //   if you want all processors to have the same set,
+    //   call this on one processor and broadcast the array
     //
     void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize);
     //
