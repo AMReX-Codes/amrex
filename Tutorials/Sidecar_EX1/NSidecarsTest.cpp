@@ -302,21 +302,22 @@ int main(int argc, char *argv[]) {
     // the data to the sidecar group from the IOProcessor on the compute group.
     int MPI_IntraGroup_Broadcast_Rank;
     int myProcAll(ParallelDescriptor::MyProcAll());
+    int nProcs(ParallelDescriptor::NProcs());
+    int ioProcNum(ParallelDescriptor::IOProcessorNumber());
     int nSidecars(0), sidecarSignal(S_SendBoxArray);
     int maxGrid(32), maxSize(16);
     int ts(0), nSteps(5);
     ParmParse pp;
 
-    pp.query("nSidecars", nSidecars);
+    if(nProcs < 8) {
+      BoxLib::Abort("**** Error:  this test must be run with at least 8 processes.");
+    }
+
     pp.query("maxGrid", maxGrid);
     pp.query("nComp", nComp);
     pp.query("nGhost", nGhost);
     pp.query("maxSize", maxSize);
     pp.query("nSteps", nSteps);
-
-    if(ParallelDescriptor::NProcs() != 16) {
-      BoxLib::Abort("**** Error:  this test must use 16 mpi porcesses.");
-    }
 
     nSidecars = 3;
 
@@ -328,70 +329,36 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Resizing sidecars = " << nSidecars << std::endl;
     }
 
-    // ---- for the first test we set these statically
-    Array<int> compProcsInAll;
-    for(int i(0); i < 10; ++i) {
-      compProcsInAll.push_back(i);
+    Array<int> randomRanks;
+    if(ParallelDescriptor::IOProcessor()) {
+      BoxLib::UniqueRandomSubset(randomRanks, nProcs, nProcs);
+      for(int i(0); i < randomRanks.size(); ++i) {
+        if(randomRanks[i] == 0) {  // ---- comprank[0] must be 0
+	  randomRanks[i] = randomRanks[0];
+	  randomRanks[0] = 0;
+	}
+      }
     }
-    Array<Array<int> > sidecarProcsInAll(nSidecars);
-    sidecarProcsInAll[0].push_back(10);
-    sidecarProcsInAll[0].push_back(11);
-    sidecarProcsInAll[0].push_back(12);
+    BoxLib::BroadcastArray(randomRanks, myProcAll, ioProcNum, ParallelDescriptor::Communicator());
 
-    sidecarProcsInAll[1].push_back(13);
-
-    sidecarProcsInAll[2].push_back(14);
-    sidecarProcsInAll[2].push_back(15);
-    /*
-    */
-
-    /*
+    int totalSidecarProcs(6);
     Array<int> compProcsInAll;
-    compProcsInAll.push_back(0);
-    compProcsInAll.push_back(8);
-    compProcsInAll.push_back(3);
-    compProcsInAll.push_back(12);
-    compProcsInAll.push_back(2);
-    compProcsInAll.push_back(15);
-    compProcsInAll.push_back(9);
-    compProcsInAll.push_back(7);
-    compProcsInAll.push_back(10);
-    compProcsInAll.push_back(4);
 
+    for(int i(0); i < nProcs - totalSidecarProcs; ++i) {
+      compProcsInAll.push_back(randomRanks[i]);
+    }
+
+    int sCount(nProcs - totalSidecarProcs);
     Array<Array<int> > sidecarProcsInAll(nSidecars);
-    sidecarProcsInAll[0].push_back(14);
-    sidecarProcsInAll[0].push_back(1);
-    sidecarProcsInAll[0].push_back(5);
-    
-    sidecarProcsInAll[1].push_back(13);
+    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
+    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
+    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
 
-    sidecarProcsInAll[2].push_back(6);
-    sidecarProcsInAll[2].push_back(11);
-    */
+    sidecarProcsInAll[1].push_back(randomRanks[sCount++]);
 
-/*
-    Array<int> compProcsInAll;
-    compProcsInAll.push_back(0);
-    compProcsInAll.push_back(1);
-    compProcsInAll.push_back(2);
-    compProcsInAll.push_back(3);
-    compProcsInAll.push_back(14);
-    compProcsInAll.push_back(5);
-    compProcsInAll.push_back(6);
-    compProcsInAll.push_back(7);
-    compProcsInAll.push_back(8);
+    sidecarProcsInAll[2].push_back(randomRanks[sCount++]);
+    sidecarProcsInAll[2].push_back(randomRanks[sCount++]);
 
-    Array<Array<int> > sidecarProcsInAll(nSidecars);
-    sidecarProcsInAll[0].push_back(9);
-    sidecarProcsInAll[0].push_back(10);
-    sidecarProcsInAll[0].push_back(11);
-    sidecarProcsInAll[0].push_back(12);
-
-    sidecarProcsInAll[1].push_back(13);
-
-    sidecarProcsInAll[2].push_back(4);
-    sidecarProcsInAll[2].push_back(15);
-*/
 
 
     ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll);
