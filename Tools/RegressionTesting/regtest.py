@@ -776,7 +776,9 @@ def test_suite(argv):
 
                 # strip out any sub-directory under build dir for the aux file
                 # when copying
-                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, os.path.basename(af)) )
+                shutil.copy(os.path.basename(af),
+                            "{}/{}.{}".format(suite.full_web_dir,
+                                              test.name, os.path.basename(af)) )
 
             if not test.png_file is None:
                 try: shutil.copy(test.png_file, suite.full_web_dir)
