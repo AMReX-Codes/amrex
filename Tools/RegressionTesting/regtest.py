@@ -715,6 +715,14 @@ def test_suite(argv):
                                 test.job_info_field2 = _tmp[idx:]
                                 break
 
+                    if suite.summary_job_info_field3 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field3) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field3 = _tmp[idx:]
+                                break
+
                 # visualization
                 if test.doVis:
 

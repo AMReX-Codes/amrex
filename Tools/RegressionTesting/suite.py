@@ -87,6 +87,7 @@ class Test(object):
 
         self.job_info_field1 = ""
         self.job_info_field2 = ""
+        self.job_info_field3 = ""
 
         self.has_jobinfo = 0  # filled automatically
 
@@ -167,6 +168,7 @@ class Suite(object):
 
         self.summary_job_info_field1 = ""
         self.summary_job_info_field2 = ""
+        self.summary_job_info_field3 = ""
 
         self.MAKE = "gmake"
         self.numMakeJobs = 1
