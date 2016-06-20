@@ -473,14 +473,14 @@ public:
 
     void updateBDKey ();
 
-    struct FPC
+    struct FPinfo
     {
-	FPC (const FabArrayBase& srcfa,
-	     const FabArrayBase& dstfa,
-	     Box                 dstdomain,
-	     int                 dstng,
-	     const BoxConverter& coarsener);
-	~FPC ();
+	FPinfo (const FabArrayBase& srcfa,
+		const FabArrayBase& dstfa,
+		Box                 dstdomain,
+		int                 dstng,
+		const BoxConverter& coarsener);
+	~FPinfo ();
 
 	long bytes () const;
 
@@ -498,20 +498,20 @@ public:
 	int                 m_nuse;
     };
 
-    typedef std::multimap<BDKey,FabArrayBase::FPC*> FPCCache;
-    typedef FPCCache::iterator FPCCacheIter;
+    typedef std::multimap<BDKey,FabArrayBase::FPinfo*> FPinfoCache;
+    typedef FPinfoCache::iterator FPinfoCacheIter;
 
-    static FPCCache m_TheFillPatchCache;
+    static FPinfoCache m_TheFillPatchCache;
 
-    static CacheStats m_FPC_stats;
+    static CacheStats m_FPinfo_stats;
 
-    static const FPC& TheFPC (const FabArrayBase& srcfa,
-			      const FabArrayBase& dstfa,
-			      Box                 dstdomain,
-			      int                 dstng,
-			      const BoxConverter& coarsener);
+    static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
+				    const FabArrayBase& dstfa,
+				    Box                 dstdomain,
+				    int                 dstng,
+				    const BoxConverter& coarsener);
 
-    void flushFPC ();
+    void flushFPinfo ();
 
 protected:
 
