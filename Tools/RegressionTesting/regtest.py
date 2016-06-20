@@ -715,6 +715,14 @@ def test_suite(argv):
                                 test.job_info_field2 = _tmp[idx:]
                                 break
 
+                    if suite.summary_job_info_field3 is not "":
+                        for l in job_file_lines:
+                            if l.find(suite.summary_job_info_field3) >= 0 and l.find(":") >= 0:
+                                _tmp = l.split(":")[1]
+                                idx = _tmp.rfind("/") + 1
+                                test.job_info_field3 = _tmp[idx:]
+                                break
+
                 # visualization
                 if test.doVis:
 
@@ -776,7 +784,9 @@ def test_suite(argv):
 
                 # strip out any sub-directory under build dir for the aux file
                 # when copying
-                shutil.copy(af, "{}/{}.{}".format(suite.full_web_dir, test.name, os.path.basename(af)) )
+                shutil.copy(os.path.basename(af),
+                            "{}/{}.{}".format(suite.full_web_dir,
+                                              test.name, os.path.basename(af)) )
 
             if not test.png_file is None:
                 try: shutil.copy(test.png_file, suite.full_web_dir)

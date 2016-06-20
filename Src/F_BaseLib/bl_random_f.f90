@@ -6,13 +6,15 @@ module bl_random_module
   use bl_error_module
   use parallel
   use fabio_module
+  use bl_types
 
   implicit none
 
   private 
   public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
        bl_rng_change_distribution, &
-       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial
+       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial, &
+       bl_rng_random_uint_c
 
   type bl_rng_uniform_real
      type(c_ptr), private :: p = c_null_ptr
@@ -269,6 +271,9 @@ contains
     if (s .eq. 0) then
        r = bl_rng_random_uint_c()
        call parallel_bcast(r)
+       if (parallel_IOProcessor()) then
+          print*,'seed = 0 --> picking a random root seed',r
+       end if
     else if (s .gt. 0) then
        r = s
     else
