@@ -710,6 +710,8 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             special_cols.append(suite.summary_job_info_field1)
         if suite.summary_job_info_field2 is not "":
             special_cols.append(suite.summary_job_info_field2)
+        if suite.summary_job_info_field3 is not "":
+            special_cols.append(suite.summary_job_info_field3)
 
         cols = ["test name", "dim", "compare plotfile",
                 "# levels", "MPI procs", "OMP threads", "debug",
@@ -790,6 +792,9 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
             if suite.summary_job_info_field2 is not "":
                 row_info.append("<div class='small'>{}</div>".format(test.job_info_field2))
 
+            if suite.summary_job_info_field3 is not "":
+                row_info.append("<div class='small'>{}</div>".format(test.job_info_field3))
+
 
             # wallclock time
             row_info.append("{:.3f}&nbsp;s".format(test.wall_time))
@@ -863,7 +868,7 @@ def report_this_test_run(suite, make_benchmarks, note, update_time,
 
 def report_all_runs(suite, active_test_list):
 
-    table_height = min(max(suite.lenTestName, 4), 16)
+    table_height = min(max(suite.lenTestName, 4), 18)
 
     os.chdir(suite.webTopDir)
 
