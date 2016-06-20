@@ -16,64 +16,62 @@ int main(int argc, char *argv[]) {
 
     int myProcAll(ParallelDescriptor::MyProcAll());
     int nProcs(ParallelDescriptor::NProcs());
-    int ioProcNum(ParallelDescriptor::IOProcessorNumber());
-    int nSidecars(0);
+    int nSidecars(1), totalSidecarProcs(4);
+    bool printRanks(true);
 
-    nSidecars = 3;
-
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "nSidecars = " << nSidecars << std::endl;
+    if(nProcs < 8) {
+      BoxLib::Abort("**** Error:  must use at least 8 processes.");
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << myProcAll << ":: Resizing sidecars = " << nSidecars << std::endl;
-    }
-
-    Array<int> randomRanks;
-    if(ParallelDescriptor::IOProcessor()) {
-      BoxLib::UniqueRandomSubset(randomRanks, nProcs, nProcs);
-      for(int i(0); i < randomRanks.size(); ++i) {
-        if(randomRanks[i] == 0) {  // ---- comprank[0] must be 0
-	  randomRanks[i] = randomRanks[0];
-	  randomRanks[0] = 0;
-	}
-      }
-    }
-    BoxLib::BroadcastArray(randomRanks, myProcAll, ioProcNum, ParallelDescriptor::Communicator());
-
-    int totalSidecarProcs(6);
     Array<int> compProcsInAll;
-
-    for(int i(0); i < nProcs - totalSidecarProcs; ++i) {
-      compProcsInAll.push_back(randomRanks[i]);
+    compProcsInAll.push_back(0);
+    for(int i(1); i < nProcs - totalSidecarProcs; ++i) {
+      compProcsInAll.push_back(nProcs - totalSidecarProcs - i);  // ---- backwards
     }
 
-    int sCount(nProcs - totalSidecarProcs);
     Array<Array<int> > sidecarProcsInAll(nSidecars);
-    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
-    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
-    sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
+    for(int i(nProcs - totalSidecarProcs); i < nProcs; ++i) {
+      sidecarProcsInAll[0].push_back(i);
+    }
+    if(myProcAll == 0) {
+      std::cout << myProcAll << ":: Set initial sidecar sizes." << std::endl;
+      std::cout << std::endl;
+    }
+    BoxLib::USleep(myProcAll);
+    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
-    sidecarProcsInAll[1].push_back(randomRanks[sCount++]);
 
-    sidecarProcsInAll[2].push_back(randomRanks[sCount++]);
-    sidecarProcsInAll[2].push_back(randomRanks[sCount++]);
+    // ---- now move some procs to the sidecar
+    sidecarProcsInAll[0].push_back(compProcsInAll[compProcsInAll.size() - 1]);
+    compProcsInAll.pop_back();
+
+    if(myProcAll == 0) {
+      std::cout << myProcAll << ":: Move elements from comp to sidecar." << std::endl;
+      std::cout << std::endl;
+    }
+    BoxLib::USleep(myProcAll);
+    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
 
+    // ---- now swap the last elements, this test should fail
+    int cLast(compProcsInAll[compProcsInAll.size() - 1]);
+    compProcsInAll[compProcsInAll.size() - 1] = sidecarProcsInAll[0][sidecarProcsInAll.size() - 1];
+    sidecarProcsInAll[0][sidecarProcsInAll.size() - 1] = cLast;
 
-    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll);
+    if(myProcAll == 0) {
+      std::cout << myProcAll << ":: Move elements both from and to comp.  This test should fail." << std::endl;
+      std::cout << std::endl;
+    }
+    BoxLib::USleep(myProcAll);
+    ParallelDescriptor::SetNProcsSidecars(compProcsInAll, sidecarProcsInAll, printRanks);
 
     
-    ParallelDescriptor::Barrier();
-    BoxLib::USleep(myProcAll);
-    if(ParallelDescriptor::IOProcessor()) {
-      std::cout << myProcAll << ":: Finished timesteps" << std::endl;
-    }
-
-    ParallelDescriptor::Barrier();
     nSidecars = 0;
     ParallelDescriptor::SetNProcsSidecars(nSidecars);
 
+    if(myProcAll == 0) {
+      std::cout << myProcAll << ":: Finished." << std::endl;
+    }
 
     BoxLib::Finalize();
     return 0;

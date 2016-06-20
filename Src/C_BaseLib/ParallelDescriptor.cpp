@@ -279,7 +279,7 @@ ParallelDescriptor::EndParallel ()
 
 void
 ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
-                                       const Array<Array<int> > &sidecarRanksInAll)
+                                       const Array<Array<int> > &sidecarRanksInAll, bool printRanks)
 {
     BL_PROFILE("PD::SetNProcsSidecars()");
 
@@ -324,8 +324,54 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       ++rankCheck;
     }
 
+    // ---- check to ensure ranks are only removed from comp or added to comp but not both
+    // ---- during one call to this function.  this is currently disallowed because of
+    // ---- data movement issues into and out of the computation, it is not a communicator problem
+    // ---- this resctriction could be removed if there is a valid use case
+    if(m_MyId_all == 0 && m_nProcs_comp > 0) {
+      Array<int> oldCompRanks(m_nProcs_comp), oldCompRanksInAll(m_nProcs_comp);
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+        oldCompRanks[i] = i;
+      }
+      if(m_group_comp != MPI_GROUP_NULL && m_group_comp != m_group_all) {
+        BL_MPI_REQUIRE( MPI_Group_translate_ranks(m_group_comp, oldCompRanks.size(), oldCompRanks.dataPtr(),
+                                                  m_group_all,  oldCompRanksInAll.dataPtr()) );
+      }
+      std::set<int> ocrSet, criaSet;
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+	ocrSet.insert(oldCompRanksInAll[i]);
+        if(printRanks) {
+          std::cout << "oooo i oldCompRanks[i] oldCompRanksInAll[i] = " << i << "  "
+                    << oldCompRanks[i] << "  " << oldCompRanksInAll[i] << std::endl;
+	}
+      }
+      for(int i(0); i < compRanksInAll.size(); ++i) {
+	criaSet.insert(compRanksInAll[i]);
+      }
+
+      for(int i(0); i < oldCompRanksInAll.size(); ++i) {
+        if(criaSet.find(oldCompRanksInAll[i]) != criaSet.end()) {  // ---- erase from both sets
+	  criaSet.erase(oldCompRanksInAll[i]);
+	  ocrSet.erase(oldCompRanksInAll[i]);
+	}
+      }
+      if(printRanks) {
+        std::cout << "criaSet.size() ocrSet.size() = " << criaSet.size() << "  " << ocrSet.size() << std::endl;
+        std::set<int>::iterator it;
+        for(it = criaSet.begin(); it != criaSet.end(); ++it) {
+          std::cout << "criaSet = " << *it << std::endl;
+        }
+        for(it = ocrSet.begin(); it != ocrSet.end(); ++it) {
+          std::cout << "ocrSet = " << *it << std::endl;
+        }
+      }
+      if(ocrSet.size() > 0 && criaSet.size() > 0) {  // ---- this is currently not allowed
+        BoxLib::Abort("**** Error in SetNProcsSidecars:  adding and removing ranks from comp not supported.");
+      }
+    }
+
     // ---- print the ranks
-    if(m_MyId_all == 0) {
+    if(m_MyId_all == 0 && printRanks) {
       std::cout << "cccc nCompProcs = " << compRanksInAll.size() << std::endl;
       for(int i(0); i < compRanksInAll.size(); ++i) {
         std::cout << "cccc cccc compRanksInAll[" << i << "] = " << compRanksInAll[i] << std::endl;
@@ -341,8 +387,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     }
 
 
-    // ---- free existing groups and communicators
-    // ---- and reinitialize values
+    // ---- free existing groups and communicators and reinitialize values
     if(m_comm_comp != MPI_COMM_NULL && m_comm_comp != m_comm_all) {
       BL_MPI_REQUIRE( MPI_Comm_free(&m_comm_comp) );
       m_comm_comp = MPI_COMM_NULL;

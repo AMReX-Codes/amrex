@@ -168,7 +168,8 @@ namespace ParallelDescriptor
     //
     void
     SetNProcsSidecars (const Array<int> &compRanksInAll,
-                       const Array<Array<int> > &sidecarRanksInAll); 
+                       const Array<Array<int> > &sidecarRanksInAll,
+		       bool printRanks = false); 
     //
     // This version makes one sidecar (number zero)
     //
