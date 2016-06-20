@@ -3,6 +3,16 @@
 ! For the comparison to take place, the grids must be identical.
 !
 
+module util_module
+  type zone_t
+     integer :: level
+     integer :: box
+     integer :: i
+     integer :: j
+     integer :: k
+  end type zone_t
+end module util_module
+
 program fcompare
 
   use f2kcli
@@ -12,15 +22,17 @@ program fcompare
   use bl_IO_module
   use plotfile_module
   use multifab_module
+  use util_module
 
   implicit none
 
   type(plotfile) :: pf_a, pf_b
   character (len=256) :: plotfile_a, plotfile_b
-  character (len=256) :: diffvar
+  character (len=256) :: diffvar, zone_info_var_name
   integer :: unit_a, unit_b
+  logical :: zone_info
 
-  real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:)
+  real(kind=dp_t), pointer :: p_a(:,:,:,:), p_b(:,:,:,:), p(:,:,:,:)
   real(kind=dp_t), pointer :: mp(:,:,:,:)
 
   integer :: lo_a(MAX_SPACEDIM), hi_a(MAX_SPACEDIM)
@@ -33,7 +45,7 @@ program fcompare
 
   integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
-  integer :: save_var_a
+  integer :: save_var_a, zone_info_var_a
 
   real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
@@ -68,6 +80,10 @@ program fcompare
 
   logical :: do_ghost, gc_warn
 
+  type(zone_t) :: err_zone
+  real (kind=dp_t) :: max_abs_err
+
+
   !---------------------------------------------------------------------------
   ! process the command line arguments
 
@@ -80,6 +96,8 @@ program fcompare
 
   diffvar = ""
   do_ghost = .false.
+  zone_info = .false.
+  zone_info_var_name = ""
 
   allocate(plot_names(1))
 
@@ -105,6 +123,11 @@ program fcompare
      case ('-g','--ghost')
         farg = farg + 1
         do_ghost = .true.
+
+     case ('-z','--zone_info')
+        farg = farg + 1
+        call get_command_argument(farg, value = zone_info_var_name)
+        zone_info = .true.
 
      case ('--diffvar')
         farg = farg + 1
@@ -135,13 +158,15 @@ program fcompare
      print *, "variable."
      print *, " "
      print *, "usage:"
-     print *, "   fcompare [-g|--ghost] [-n|--norm num] [--diffvar var] file1 file2"
+     print *, "   fcompare [-g|--ghost] [-n|--norm num] [--diffvar var] [-z|--zone_info var] file1 file2"
      print *, " "
      print *, "optional arguments:"
-     print *, "   -g|--ghost    : compare the ghost cells too (if stored)"
-     print *, "   -n|--norm num : what norm to use (default is 0 for inf norm)"
-     print *, "   --diffvar var : output a plotfile showing the differences for "
-     print *, "                   variable var"
+     print *, "   -g|--ghost         : compare the ghost cells too (if stored)"
+     print *, "   -n|--norm num      : what norm to use (default is 0 for inf norm)"
+     print *, "   --diffvar var      : output a plotfile showing the differences for "
+     print *, "                        variable var"
+     print *, "   -z|--zone_info var : output the information for a zone corresponding"
+     print *, "                        to the maximum error for the given variable"
      print *, " "
      stop
   endif
@@ -193,6 +218,7 @@ program fcompare
   any_nans = .false.
 
   save_var_a = -1
+  zone_info_var_a = -1
 
   ! in case the variables are not in the same order, figure out the
   ! mapping between pf_a and pf_b variables
@@ -218,6 +244,12 @@ program fcompare
      if (.not. diffvar == "") then
         if (pf_a%names(n_a) == trim(diffvar)) then
            save_var_a = n_a
+        endif
+     endif
+
+     if (.not. zone_info_var_name == "") then
+        if (pf_a%names(n_a) == trim(zone_info_var_name)) then
+           zone_info_var_a = n_a
         endif
      endif
 
@@ -295,6 +327,8 @@ program fcompare
 
   gc_warn = .false.
 
+  max_abs_err = -1.d33
+
   do i = 1, pf_a%flevel
 
      aerror(:) = ZERO
@@ -363,7 +397,7 @@ program fcompare
            n_b = ivar_b(n_a)
            if (n_b == -1) cycle
 
-           call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )
+           call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )           
            call fab_bind_comp_vec(pf_b, i, j, (/ n_b /) )
 
            p_a => dataptr(pf_a, i, j)
@@ -407,6 +441,14 @@ program fcompare
                        rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
                     endif
 
+                    if (n_a == zone_info_var_a .and. pd > max_abs_err) then
+                       err_zone % level = i
+                       err_zone % box = j
+                       err_zone % i = ii
+                       err_zone % j = jj
+                       err_zone % k = kk
+                    endif
+
                  enddo
               enddo
            enddo
@@ -446,6 +488,7 @@ program fcompare
 1000 format(1x,"level = ", i2)
 1001 format(1x,a24,2x,g24.10,2x,g24.10)
 1002 format(1x,a24,2x,a50)
+1003 format(1x,a24,2x,g24.10)
 
      write (*,1000) i
 
@@ -493,5 +536,26 @@ program fcompare
                                     pf_a%tm, &
                                     plotfile_get_dx(pf_a,1))
   endif
+
+
+  !------------------------------------------------------------------------
+  ! print out the zone info for max abs error (if desired)
+  !------------------------------------------------------------------------
+  if (zone_info) then
+        
+     call fab_bind(pf_a, err_zone % level, err_zone % box)        
+     p => dataptr(pf_a, err_zone % level, err_zone % box)
+
+     print *, " "
+     print *, "maximum error in ", trim(zone_info_var_name)
+     do n_a = 1, pf_a%nvars
+        write (*, 1003), trim(pf_a%names(n_a)), &
+             p(err_zone % i, err_zone % j, err_zone % k, n_a)
+     enddo
+     
+  endif
+
+  call destroy(pf_a)
+  call destroy(pf_b)
 
 end program fcompare
