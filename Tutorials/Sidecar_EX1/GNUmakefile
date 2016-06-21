@@ -15,6 +15,7 @@ PRECISION = DOUBLE
 EBASE     = sidecarresizetest
 EBASE     = gridmovetest
 EBASE     = destmftest
+EBASE     = testranksets
 EBASE     = nsidecarstest
 
 DO_IN_TRANSIT_ANALYSIS = TRUE
