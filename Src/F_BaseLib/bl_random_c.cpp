@@ -45,16 +45,67 @@ extern "C"
     }
 }
 
+// 
+// engine
+//
+extern "C"
+{
+    void bl_rng_new_engine_c (BLRngEngine*& eng, int s, int rank, int nprocs)
+    {
+	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
+	eng = new BLRngEngine(seed);
+    }
+
+    void bl_rng_delete_engine_c (BLRngEngine* eng)
+    {
+	delete eng;
+    }
+
+    void bl_rng_save_engine_c (const BLRngEngine* eng, const char* name)
+    {
+	eng->save(name);
+    }
+
+    void bl_rng_restore_engine_c (BLRngEngine*& eng, const char* name)
+    {
+	eng = new BLRngEngine();
+	eng->restore(name);
+    }
+}
+
+BLRngEngine::BLRngEngine (std::uint_fast32_t s)
+    : m_eng(s)
+{
+    m_eng.discard(1000000);  // warm up
+}
+
+void
+BLRngEngine::save (const char* name) const
+{
+    std::ofstream ofs(name);
+    ofs << m_eng;
+}
+
+void
+BLRngEngine::restore (const char* name)
+{
+    std::ifstream ifs(name);
+    if (ifs.good()) {
+	ifs >> m_eng;
+    } else {
+	std::cerr << "bl_rng: faied to open " << name << std::endl;
+	backtrace_handler(6);
+    }
+}
+
 //
 // uniform real distribution
 //
 extern "C"
 {
-    void bl_rng_new_uniform_real_c (BLRngUniformReal*& rng,
-				    int s, double a, double b, int rank, int nprocs)
+    void bl_rng_new_uniform_real_c (BLRngUniformReal*& rng, double a, double b)
     {
-	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
-	rng = new BLRngUniformReal(seed,a,b);
+	rng = new BLRngUniformReal(a,b);
     }
     //
     void bl_rng_delete_uniform_real_c (BLRngUniformReal* rng)
@@ -62,9 +113,9 @@ extern "C"
 	delete rng;
     }
     //
-    double bl_rng_get_uniform_real_c (BLRngUniformReal* rng)
+    double bl_rng_get_uniform_real_c (BLRngUniformReal* rng, BLRngEngine* eng)
     {
-	return (*rng)();
+	return (*rng)(*eng);
     }
     //
     void bl_rng_save_uniform_real_c (const BLRngUniformReal* rng, const char* name)
@@ -79,24 +130,21 @@ extern "C"
     }
 }
 
-BLRngUniformReal::BLRngUniformReal (std::uint_fast32_t s, double a, double b)
-    : m_eng(s), m_dist(a,b)
-{
-    // improve quality of poor seeds
-    m_eng.discard(1000000);
-}
+BLRngUniformReal::BLRngUniformReal (double a, double b)
+    : m_dist(a,b)
+{ }
 
 double
-BLRngUniformReal::operator() ()
+BLRngUniformReal::operator() (BLRngEngine& eng)
 {
-    return m_dist(m_eng);
+    return m_dist(eng.get());
 }
 
 void
 BLRngUniformReal::save (const char* name) const
 {
     std::ofstream ofs(name);
-    ofs << m_eng << "\n" << m_dist << "\n";
+    ofs << m_dist;
 }
 
 void
@@ -104,7 +152,7 @@ BLRngUniformReal::restore (const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> m_eng >> m_dist;
+	ifs >> m_dist;
     } else {
 	std::cerr << "bl_rng: faied to open " << name << std::endl;
 	backtrace_handler(6);
@@ -116,11 +164,9 @@ BLRngUniformReal::restore (const char* name)
 //
 extern "C"
 {
-    void bl_rng_new_normal_c (BLRngNormal*& rng,
-			      int s, double mean, double stddev, int rank, int nprocs)
+    void bl_rng_new_normal_c (BLRngNormal*& rng, double mean, double stddev)
     {
-	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
-	rng = new BLRngNormal(seed,mean,stddev);
+	rng = new BLRngNormal(mean,stddev);
     }
     //
     void bl_rng_delete_normal_c (BLRngNormal* rng)
@@ -128,9 +174,9 @@ extern "C"
 	delete rng;
     }
     //
-    double bl_rng_get_normal_c (BLRngNormal* rng)
+    double bl_rng_get_normal_c (BLRngNormal* rng, BLRngEngine* eng)
     {
-	return (*rng)();
+	return (*rng)(*eng);
     }
     //
     void bl_rng_save_normal_c (const BLRngNormal* rng, const char* name)
@@ -145,24 +191,21 @@ extern "C"
     }
 }
 
-BLRngNormal::BLRngNormal (std::uint_fast32_t s, double mean, double stddev)
-    : m_eng(s), m_dist(mean,stddev)
-{
-    // improve quality of poor seeds
-    m_eng.discard(1000000);
-}
+BLRngNormal::BLRngNormal (double mean, double stddev)
+    : m_dist(mean,stddev)
+{ }
 
 double
-BLRngNormal::operator() ()
+BLRngNormal::operator() (BLRngEngine& eng)
 {
-    return m_dist(m_eng);
+    return m_dist(eng.get());
 }
 
 void
 BLRngNormal::save (const char* name) const
 {
     std::ofstream ofs(name);
-    ofs << m_eng << "\n" << m_dist << "\n";
+    ofs << m_dist;
 }
 
 void
@@ -170,7 +213,7 @@ BLRngNormal::restore (const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> m_eng >> m_dist;
+	ifs >> m_dist;
     } else {
 	std::cerr << "bl_rng: faied to open " << name << std::endl;
 	backtrace_handler(6);
@@ -182,11 +225,9 @@ BLRngNormal::restore (const char* name)
 //
 extern "C"
 {
-    void bl_rng_new_poisson_c (BLRngPoisson*& rng,
-			      int s, double mean, int rank, int nprocs)
+    void bl_rng_new_poisson_c (BLRngPoisson*& rng, double mean)
     {
-	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
-	rng = new BLRngPoisson(seed,mean);
+	rng = new BLRngPoisson(mean);
     }
     //
     void bl_rng_delete_poisson_c (BLRngPoisson* rng)
@@ -194,9 +235,9 @@ extern "C"
 	delete rng;
     }
     //
-    int bl_rng_get_poisson_c (BLRngPoisson* rng)
+    int bl_rng_get_poisson_c (BLRngPoisson* rng, BLRngEngine* eng)
     {
-	return (*rng)();
+	return (*rng)(*eng);
     }
     //
     void bl_rng_save_poisson_c (const BLRngPoisson* rng, const char* name)
@@ -210,31 +251,27 @@ extern "C"
 	rng->restore(name);
     }
 
-    void bl_rng_change_poisson_c (BLRngPoisson* rng,
-				  double mean)
+    void bl_rng_change_poisson_c (BLRngPoisson* rng, double mean)
     {
 	rng->change_distribution(mean);
     }
 }
 
-BLRngPoisson::BLRngPoisson (std::uint_fast32_t s, double mean)
-    : m_eng(s), m_dist(mean)
-{
-    // improve quality of poor seeds
-    m_eng.discard(1000000);
-}
+BLRngPoisson::BLRngPoisson (double mean)
+    : m_dist(mean)
+{ }
 
 int
-BLRngPoisson::operator() ()
+BLRngPoisson::operator() (BLRngEngine& eng)
 {
-    return m_dist(m_eng);
+    return m_dist(eng.get());
 }
 
 void
 BLRngPoisson::save (const char* name) const
 {
     std::ofstream ofs(name);
-    ofs << m_eng << "\n" << m_dist << "\n";
+    ofs << m_dist;
 }
 
 void
@@ -242,7 +279,7 @@ BLRngPoisson::restore (const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> m_eng >> m_dist;
+	ifs >> m_dist;
     } else {
 	std::cerr << "bl_rng: faied to open " << name << std::endl;
 	backtrace_handler(6);
@@ -261,11 +298,9 @@ BLRngPoisson::change_distribution (double mean)
 //
 extern "C"
 {
-    void bl_rng_new_binomial_c (BLRngBinomial*& rng,
-				int s, int t, double p, int rank, int nprocs)
+    void bl_rng_new_binomial_c (BLRngBinomial*& rng, int t, double p)
     {
-	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
-	rng = new BLRngBinomial(seed,t,p);
+	rng = new BLRngBinomial(t,p);
     }
     //
     void bl_rng_delete_binomial_c (BLRngBinomial* rng)
@@ -273,9 +308,9 @@ extern "C"
 	delete rng;
     }
     //
-    int bl_rng_get_binomial_c (BLRngBinomial* rng)
+    int bl_rng_get_binomial_c (BLRngBinomial* rng, BLRngEngine* eng)
     {
-	return (*rng)();
+	return (*rng)(*eng);
     }
     //
     void bl_rng_save_binomial_c (const BLRngBinomial* rng, const char* name)
@@ -296,24 +331,21 @@ extern "C"
     }
 }
 
-BLRngBinomial::BLRngBinomial (std::uint_fast32_t s, int t, double p)
-    : m_eng(s), m_dist(t,p)
-{
-    // improve quality of poor seeds
-    m_eng.discard(1000000);
-}
+BLRngBinomial::BLRngBinomial (int t, double p)
+    : m_dist(t,p)
+{ }
 
 int
-BLRngBinomial::operator() ()
+BLRngBinomial::operator() (BLRngEngine& eng)
 {
-    return m_dist(m_eng);
+    return m_dist(eng.get());
 }
 
 void
 BLRngBinomial::save (const char* name) const
 {
     std::ofstream ofs(name);
-    ofs << m_eng << "\n" << m_dist << "\n";
+    ofs << m_dist;
 }
 
 void
@@ -321,7 +353,7 @@ BLRngBinomial::restore (const char* name)
 {
     std::ifstream ifs(name);
     if (ifs.good()) {
-	ifs >> m_eng >> m_dist;
+	ifs >> m_dist;
     } else {
 	std::cerr << "bl_rng: faied to open " << name << std::endl;
 	backtrace_handler(6);
