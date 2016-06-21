@@ -116,8 +116,6 @@ def parse_param_file(params_list, param_file, other_list=None):
         except:
             idx = -1
         else:
-            print("idx = {}, param = {}".format(idx, current_param.var))
-
             if params_list[idx] < current_param:
                 params_list.pop(idx)
             else:
