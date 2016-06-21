@@ -130,7 +130,8 @@ program main
 
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Poisson mean from 100.d0 to 30000.54d0"
-     call bl_rng_change_distribution(ps, 30000.54d0)
+     call bl_rng_destroy(ps)
+     call bl_rng_build(ps, 30000.54d0)
      print *, "Poisson old and new"
      do i = 1, 5
         print *, bl_rng_get(ps_r, eng1), bl_rng_get(ps, eng2)
@@ -139,7 +140,8 @@ program main
   
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Binomial mean from 160, 0.6d0 to 1000, 0.3d0"
-     call bl_rng_change_distribution(bi, 1000, 0.3d0)
+     call bl_rng_destroy(bi)
+     call bl_rng_build(bi, 1000, 0.3d0)
      print *, "Binomial old and new"
      do i = 1, 5
         print *, bl_rng_get(bi_r, eng1), bl_rng_get(bi, eng2)
