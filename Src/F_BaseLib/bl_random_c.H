@@ -51,7 +51,6 @@ public:
     int operator() (BLRngEngine& eng);
     void save (const char* name) const;
     void restore (const char* name);
-    void change_distribution (double mean);
 private:
     std::poisson_distribution<int> m_dist;
 };
@@ -65,7 +64,6 @@ public:
     int operator() (BLRngEngine& eng);
     void save (const char* name) const;
     void restore (const char* name);
-    void change_distribution (int t, double p);
 private:
     std::binomial_distribution<int> m_dist;
 };

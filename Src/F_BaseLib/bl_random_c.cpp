@@ -250,11 +250,6 @@ extern "C"
 	rng = new BLRngPoisson();
 	rng->restore(name);
     }
-
-    void bl_rng_change_poisson_c (BLRngPoisson* rng, double mean)
-    {
-	rng->change_distribution(mean);
-    }
 }
 
 BLRngPoisson::BLRngPoisson (double mean)
@@ -284,13 +279,6 @@ BLRngPoisson::restore (const char* name)
 	std::cerr << "bl_rng: faied to open " << name << std::endl;
 	backtrace_handler(6);
     }
-}
-
-void
-BLRngPoisson::change_distribution (double mean)
-{
-    if (mean != m_dist.mean())
-	m_dist = std::poisson_distribution<int>(mean);
 }
 
 //
@@ -323,12 +311,6 @@ extern "C"
 	rng = new BLRngBinomial();
 	rng->restore(name);
     }
-    //
-    void bl_rng_change_binomial_c (BLRngBinomial* rng,
-				   int t, double p)
-    {
-	rng->change_distribution(t,p);
-    }
 }
 
 BLRngBinomial::BLRngBinomial (int t, double p)
@@ -360,9 +342,3 @@ BLRngBinomial::restore (const char* name)
     }
 }
 
-void
-BLRngBinomial::change_distribution (int t, double p)
-{
-    if (t != m_dist.t() || p != m_dist.p())
-	m_dist = std::binomial_distribution<int>(t,p);
-}
