@@ -111,17 +111,21 @@ def parse_param_file(params_list, param_file, other_list=None):
 
         # check to see if this parameter is defined in the current list
         # if so, keep the one with the highest priority
-        try: idx = params_list.index(current_param.var)
+        p_names = [p.var for p in params_list]
+        try: idx = p_names.index(current_param.var)
         except:
             idx = -1
         else:
+            print("idx = {}, param = {}".format(idx, current_param.var))
+
             if params_list[idx] < current_param:
                 params_list.pop(idx)
             else:
                 skip = 1
 
         # don't allow it to be a duplicate in the other_list
-        try: idx2 = other_list.index(current_param.var)
+        o_names = [p.var for p in other_list]
+        try: idx2 = o_names.index(current_param.var)
         except:
             pass
         else:
@@ -205,6 +209,9 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     pm = paramsA
                 elif keyword == "declarationsB":
                     pm = paramsB
+
+                print("here: ", keyword)
+                print([k.var for k in pm])
 
                 # declaraction statements
                 for n in range(len(pm)):
