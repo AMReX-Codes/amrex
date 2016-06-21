@@ -19,11 +19,11 @@ existing parameter is encountered, the value from the one with
 the highest priority (largest integer) is retained.
 
 This script takes a template file and replaces keywords in it
-(delimited by @@...@@) with the Fortran code required to 
-initialize the parameters, setup a namelist, and allow for 
+(delimited by @@...@@) with the Fortran code required to
+initialize the parameters, setup a namelist, and allow for
 commandline overriding of their defaults.
 
-""" 
+"""
 
 from __future__ import print_function
 
@@ -59,30 +59,17 @@ def get_next_line(fin):
 
     pos = str.find(line, "#")
 
-    while (pos == 0) or (str.strip(line) == "") and line:
+    while (pos == 0 or str.strip(line) == "") and line:
         line = fin.readline()
         pos = str.find(line, "#")
 
     return line[:pos]
 
 
-def get_param_index(param_list, var):
-    # looks through the param_list and return the index corresponding
-    # to the parameter specified by var
-
-    index = -1
-    for n in range(len(param_list)):
-        if param_list[n].var == var:
-            index = n
-            break
-
-    return index
-
-
 def parse_param_file(params_list, param_file, other_list=None):
     """read all the parameters in a given parameter file and add valid
     parameters to the params list.
-    
+
     if otherList is present, we will search through it to make sure
     we don't add a duplicate parameter.
 
@@ -112,7 +99,7 @@ def parse_param_file(params_list, param_file, other_list=None):
             continue
 
         current_param = Parameter()
-            
+
         current_param.var   = fields[0]
         current_param.type  = fields[1]
         current_param.value = fields[2]
@@ -124,19 +111,22 @@ def parse_param_file(params_list, param_file, other_list=None):
 
         # check to see if this parameter is defined in the current list
         # if so, keep the one with the highest priority
-        index = get_param_index(params_list, current_param.var)
-        if index >= 0:
-            if params_list[index] < current_param:
-                params_list.pop(index)
+        try: idx = params_list.index(current_param.var)
+        except:
+            idx = -1
+        else:
+            if params_list[idx] < current_param:
+                params_list.pop(idx)
             else:
                 skip = 1
 
         # don't allow it to be a duplicate in the other_list
-        index2 = get_param_index(other_list, current_param.var)
-
-        if index2 > 0:
+        try: idx2 = other_list.index(current_param.var)
+        except:
+            pass
+        else:
             print("write_probin.py: ERROR: parameter {} already defined.".format(current_param.var))
-            err = 1                
+            err = 1
 
         if not err == 1 and not skip == 1:
             params_list.append(current_param)
@@ -156,7 +146,7 @@ def abort(outfile):
     sys.exit(1)
 
 
-def write_probin(probin_template, param_A_files, param_B_files, 
+def write_probin(probin_template, param_A_files, param_B_files,
                  namelist_name, out_file):
 
     """ write_probin will read through the list of parameter files and
@@ -183,7 +173,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
     # params will hold all the parameters (from both lists A and B)
     params = paramsA + paramsB
-            
+
 
     # open up the template
 
@@ -210,109 +200,77 @@ def write_probin(probin_template, param_A_files, param_B_files,
             keyword = line[index+len("@@"):index2]
             indent = index*" "
 
-            if keyword == "declarationsA":
+            if keyword in ["declarationsA", "declarationsB"]:
+                if keyword == "declarationsA":
+                    pm = paramsA
+                elif keyword == "declarationsB":
+                    pm = paramsB
 
                 # declaraction statements
-                for n in range(len(paramsA)):
+                for n in range(len(pm)):
 
-                    type = paramsA[n].type
+                    type = pm[n].type
 
                     if type == "real":
-                        fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
-                                   (indent, paramsA[n].var, paramsA[n].value))
-                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
+                        fout.write("{}real (kind=dp_t), save, public :: {} = {}\n".format(
+                            indent, pm[n].var, pm[n].value))
+                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "character":
-                        fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
-                                   (indent, paramsA[n].var, paramsA[n].value))
-                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
+                        fout.write("{}character (len=256), save, public :: {} = {}\n".format(
+                            indent, pm[n].var, pm[n].value))
+                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "integer":
-                        fout.write("%sinteger, save, public :: %s = %s\n" % 
-                                   (indent, paramsA[n].var, paramsA[n].value))
-                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
+                        fout.write("{}integer, save, public :: {} = {}\n".format(
+                            indent, pm[n].var, pm[n].value))
+                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "logical":
-                        fout.write("%slogical, save, public :: %s = %s\n" % 
-                                   (indent, paramsA[n].var, paramsA[n].value))
-                        fout.write("%s!$acc declare create(%s)\n" % (indent, paramsA[n].var))
+                        fout.write("{}logical, save, public :: {} = {}\n".format(
+                            indent, pm[n].var, pm[n].value))
+                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     else:
-                        print("write_probin.py: invalid datatype for variable {}".format(paramsA[n].var))
+                        print("write_probin.py: invalid datatype for variable {}".format(pm[n].var))
 
-                if len(paramsA) == 0:
-                    fout.write("%sinteger, save, public :: a_dummy_var = 0\n" % (indent))
+                if len(pm) == 0:
+                    if keyword == "declarationsA":
+                        fout.write("{}integer, save, public :: a_dummy_var = 0\n".format(indent))
+                    else:
+                        fout.write("\n")
 
-            elif keyword == "declarationsB":
-
-                if len(paramsB) > 0:
-
-                    # declaraction statements
-                    for n in range(len(paramsB)):
-
-                        type = paramsB[n].type
-
-                        if type == "real":
-                            fout.write("%sreal (kind=dp_t), save, public :: %s = %s\n" % 
-                                       (indent, paramsB[n].var, paramsB[n].value))
-                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
-
-                        elif type == "character":
-                            fout.write("%scharacter (len=256), save, public :: %s = %s\n" % 
-                                       (indent, paramsB[n].var, paramsB[n].value))
-                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
-
-                        elif type == "integer":
-                            fout.write("%sinteger, save, public :: %s = %s\n" % 
-                                       (indent, paramsB[n].var, paramsB[n].value))
-                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
-
-                        elif type == "logical":
-                            fout.write("%slogical, save, public :: %s = %s\n" % 
-                                       (indent, paramsB[n].var, paramsB[n].value))
-                            fout.write("%s!$acc declare create(%s)\n" % (indent, paramsB[n].var))
-
-                        else:
-                            print("write_probin.py: invalid datatype for variable {}".format(paramsB[n].var))
-
-                else:
-                    fout.write("\n")
-                    
 
             elif keyword == "namelist":
-                                       
-                # namelist
+
                 for n in range(len(params)):
-                    fout.write("%snamelist /%s/ %s\n" % 
-                               (indent, namelist_name, params[n].var))
-                    
+                    fout.write("{}namelist /{}/ {}\n".format(
+                        indent, namelist_name, params[n].var))
+
                 if len(params) == 0:
-                    fout.write("%snamelist /%s/ a_dummy_var\n" %
-                               (indent, namelist_name))
+                    fout.write("{}namelist /{}/ a_dummy_var\n".format(
+                        indent, namelist_name))
 
             elif keyword == "defaults":
 
-                # defaults
                 for n in range(len(params)):
-                    fout.write("%s%s = %s\n" % 
-                               (indent, params[n].var, params[n].value))
+                    fout.write("{}{} = {}\n".format(
+                        indent, params[n].var, params[n].value))
 
             elif keyword == "commandline":
 
                 for n in range(len(params)):
 
-                    fout.write("%scase (\'--%s\')\n" % (indent, params[n].var))
-                    fout.write("%s   farg = farg + 1\n" % (indent))
+                    fout.write("{}case (\'--{}\')\n".format(indent, params[n].var))
+                    fout.write("{}   farg = farg + 1\n".format(indent))
 
                     if params[n].type == "character":
-                        fout.write("%s   call get_command_argument(farg, value = %s)\n" % 
-                                   (indent, params[n].var))
+                        fout.write("{}   call get_command_argument(farg, value = {})\n".format(
+                            indent, params[n].var))
 
                     else:
-                        fout.write("%s   call get_command_argument(farg, value = fname)\n" % 
-                                   (indent))
-                        fout.write("%s   read(fname, *) %s\n" % 
-                                   (indent, params[n].var))
+                        fout.write("{}   call get_command_argument(farg, value = fname)\n".format(indent))
+                        fout.write("{}   read(fname, *) {}\n".format(indent, params[n].var))
 
             elif keyword == "printing":
 
@@ -320,31 +278,31 @@ def write_probin(probin_template, param_A_files, param_B_files,
                 fout.write("101 format (1x, a3, 2x, a32, 1x, \"=\", 1x, i10)\n")
                 fout.write("102 format (1x, a3, 2x, a32, 1x, \"=\", 1x, g20.10)\n")
                 fout.write("103 format (1x, a3, 2x, a32, 1x, \"=\", 1x, l)\n")
-                                   
+
                 for n in range(len(params)):
 
                     type = params[n].type
 
                     if type == "logical":
-                        cmd = "merge(\"   \", \"[*]\", %s .eqv. %s)" % (params[n].var, params[n].value)
+                        cmd = "merge(\"   \", \"[*]\", {} .eqv. {})".format(params[n].var, params[n].value)
                     else:
-                        cmd = "merge(\"   \", \"[*]\", %s == %s)" % (params[n].var, params[n].value)
+                        cmd = "merge(\"   \", \"[*]\", {} == {})".format(params[n].var, params[n].value)
 
                     if type == "real":
-                        fout.write("%swrite (unit,102) %s, &\n \"%s\", %s\n" % 
-                                   (indent, cmd, params[n].var, params[n].var) )
+                        fout.write("{}write (unit,102) {}, &\n \"{}\", {}\n".format(
+                            indent, cmd, params[n].var, params[n].var) )
 
                     elif type == "character":
-                        fout.write("%swrite (unit,100) %s, &\n \"%s\", trim(%s)\n" % 
-                                   (indent, cmd, params[n].var, params[n].var) )
+                        fout.write("{}write (unit,100) {}, &\n \"{}\", trim({})\n".format(
+                            indent, cmd, params[n].var, params[n].var) )
 
                     elif type == "integer":
-                        fout.write("%swrite (unit,101) %s, &\n \"%s\", %s\n" % 
-                                   (indent, cmd, params[n].var, params[n].var) )
+                        fout.write("{}write (unit,101) {}, &\n \"{}\", {}\n".format(
+                            indent, cmd, params[n].var, params[n].var) )
 
                     elif type == "logical":
-                        fout.write("%swrite (unit,103) %s, &\n \"%s\", %s\n" % 
-                                   (indent, cmd, params[n].var, params[n].var) )
+                        fout.write("{}write (unit,103) {}, &\n \"{}\", {}\n".format(
+                            indent, cmd, params[n].var, params[n].var) )
 
                     else:
                         print("write_probin.py: invalid datatype for variable {}".format(params[n].var))
@@ -366,19 +324,16 @@ def write_probin(probin_template, param_A_files, param_B_files,
                         else:
                             fout.write(", ")
 
-            #else:
-                
-
         else:
             fout.write(line)
-    
+
     print(" ")
     fout.close()
 
 
 if __name__ == "__main__":
 
-    try: opts, next = getopt.getopt(sys.argv[1:], "t:o:n:", ["pa=","pb="])
+    try: opts, _ = getopt.getopt(sys.argv[1:], "t:o:n:", ["pa=", "pb="])
 
     except getopt.GetoptError:
         print("write_probin.py: invalid calling sequence")
@@ -414,8 +369,5 @@ if __name__ == "__main__":
     param_A_files = param_A_files_str.split()
     param_B_files = param_B_files_str.split()
 
-    write_probin(probin_template, param_A_files, param_B_files, 
+    write_probin(probin_template, param_A_files, param_B_files,
                  namelist_name, out_file)
-
-
-
