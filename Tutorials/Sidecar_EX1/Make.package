@@ -11,3 +11,6 @@ endif
 ifeq ($(EBASE),nsidecarstest)
   CEXE_sources += NSidecarsTest.cpp
 endif
+ifeq ($(EBASE),testranksets)
+  CEXE_sources += TestRankSets.cpp
+endif
