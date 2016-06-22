@@ -15,7 +15,6 @@ end module util_module
 
 program fcompare
 
-  use f2kcli
   use bl_space
   use bl_error_module
   use bl_constants_module
