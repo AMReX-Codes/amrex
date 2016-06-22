@@ -1,9 +1,7 @@
-
 #include <winstd.H>
 
 #include <BoxArray.H>
 #include <DistributionMapping.H>
-#include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <BLProfiler.H>
 #include <FArrayBox.H>
@@ -47,6 +45,7 @@ namespace
     bool   verbose;
     int    sfc_threshold;
     Real   max_efficiency;
+    int    node_size;
 }
 
 // We default to SFC.
@@ -142,6 +141,7 @@ DistributionMapping::Initialize ()
     verbose          = false;
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
+    node_size        = 0;
 
     ParmParse pp("DistributionMapping");
 
@@ -149,6 +149,7 @@ DistributionMapping::Initialize ()
     pp.query("verbose",          verbose);
     pp.query("efficiency",       max_efficiency);
     pp.query("sfc_threshold",    sfc_threshold);
+    pp.query("node_size",        node_size);
 
     std::string theStrategy;
 
@@ -221,7 +222,7 @@ DistributionMapping::Finalize ()
 //
 // Our cache of processor maps.
 //
-std::map< int,LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
+std::map< std::pair<int,int>, LnClassPtr<DistributionMapping::Ref> > DistributionMapping::m_Cache;
 
 void
 DistributionMapping::Sort (std::vector<LIpair>& vec,
@@ -247,7 +248,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 #ifdef BL_USE_MPI
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
-    Array<long> bytes(nprocs);
+    Array<long> bytes(ParallelDescriptor::NProcs());
+
     long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
 
     BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
@@ -268,7 +270,8 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 
     for (int i(0); i < nprocs; ++i)
     {
-        LIpairV.push_back(LIpair(bytes[i],i));
+	int globalrank = ParallelDescriptor::Translate(i,m_color);
+        LIpairV.push_back(LIpair(bytes[globalrank],i));
     }
 
     bytes.clear();
@@ -287,6 +290,80 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
 #endif
 }
 
+void
+DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
+				     Array<Array<int> >& rworker,
+				     int                 nteams, 
+				     int                 nworkers)
+{
+#ifdef BL_USE_MPI
+    BL_PROFILE("DistributionMapping::LeastUsedTeams()");
+
+    Array<long> bytes(ParallelDescriptor::NProcs());
+
+    long thisbyte = BoxLib::TotalBytesAllocatedInFabs()/1024;
+
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
+                    BLProfiler::NoTag());
+    MPI_Allgather(&thisbyte,
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  bytes.dataPtr(),
+                  1,
+                  ParallelDescriptor::Mpi_typemap<long>::type(),
+                  ParallelDescriptor::Communicator());
+    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
+                    BLProfiler::NoTag());
+
+    std::vector<LIpair> LIpairV;
+    std::vector<LIpair> LIworker;
+
+    LIpairV.reserve(nteams);
+    LIworker.resize(nworkers);
+
+    rteam.resize(nteams);
+    rworker.resize(nteams);
+
+    for (int i(0); i < nteams; ++i)
+    {
+	rworker[i].resize(nworkers);
+
+	long teambytes = 0;
+	int offset = i*nworkers;
+	for (int j = 0; j < nworkers; ++j)
+	{
+	    int globalrank = ParallelDescriptor::Translate(offset+j,m_color);
+	    long b = bytes[globalrank];
+	    teambytes += b;
+	    LIworker[j] = LIpair(b,j);
+	}
+
+	Sort(LIworker, false);
+	
+	for (int j = 0; j < nworkers; ++j)
+	{
+	    rworker[i][j] = LIworker[j].second;
+	}
+
+        LIpairV.push_back(LIpair(teambytes,i));
+    }
+
+    bytes.clear();
+
+    Sort(LIpairV, false);
+
+    for (int i(0); i < nteams; ++i)
+    {
+        rteam[i] = LIpairV[i].second;
+    }
+#else
+    rteam.clear();
+    rteam.push_back(0);
+    rworker.clear();
+    rworker.push_back(Array<int>(1,0));
+#endif
+}
+
 bool
 DistributionMapping::GetMap (const BoxArray& boxes)
 {
@@ -294,7 +371,8 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 
     BL_ASSERT(m_ref->m_pmap.size() == N + 1);
 
-    std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.find(N+1);
+    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
+	= m_Cache.find(std::make_pair(N+1,m_color.to_int()));
 
     if (it != m_Cache.end())
     {
@@ -359,14 +437,16 @@ DistributionMapping::Ref::Ref () {}
 
 DistributionMapping::DistributionMapping ()
     :
-    m_ref(new DistributionMapping::Ref)
+    m_ref(new DistributionMapping::Ref),
+    m_color(ParallelDescriptor::DefaultColor())
 {
   dmID = nDistMaps++;
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& rhs)
     :
-    m_ref(rhs.m_ref)
+    m_ref(rhs.m_ref),
+    m_color(rhs.m_color)
 {
   dmID = nDistMaps++;
 }
@@ -375,6 +455,7 @@ DistributionMapping&
 DistributionMapping::operator= (const DistributionMapping& rhs)
 {
     m_ref = rhs.m_ref;
+    m_color = rhs.m_color;
 
     return *this;
 }
@@ -384,24 +465,15 @@ DistributionMapping::Ref::Ref (const Array<int>& pmap)
     m_pmap(pmap)
 {}
 
-DistributionMapping::DistributionMapping (const Array<int>& pmap, bool put_in_cache)
+DistributionMapping::DistributionMapping (const Array<int>& pmap, 
+					  bool put_in_cache,
+					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(pmap))
+    m_ref(new DistributionMapping::Ref(pmap)),
+    m_color(color)
 {
     dmID = nDistMaps++;
-
-    if (put_in_cache)
-    {
-        //
-        // We want to save this pmap in the cache.
-        // It's an error if a pmap of this length has already been cached.
-        //
-	std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-	r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
-	if (r.second == false) {
-	    BoxLib::Abort("DistributionMapping::DistributionMapping: pmap of given length already exists");
-	}
-    }
+    if (put_in_cache) PutInCache();
 }
 
 DistributionMapping::Ref::Ref (int len)
@@ -409,12 +481,15 @@ DistributionMapping::Ref::Ref (int len)
     m_pmap(len)
 {}
 
-DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
+DistributionMapping::DistributionMapping (const BoxArray& boxes,
+					  int nprocs,
+					  ParallelDescriptor::Color color)
     :
-    m_ref(new DistributionMapping::Ref(boxes.size() + 1))
+    m_ref(new DistributionMapping::Ref(boxes.size() + 1)),
+    m_color(color)
 {
     dmID = nDistMaps++;
-    define(boxes,nprocs);
+    define(boxes,nprocs,color);
 }
 
 DistributionMapping::Ref::Ref (const Ref& rhs)
@@ -425,8 +500,8 @@ DistributionMapping::Ref::Ref (const Ref& rhs)
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
                                           const DistributionMapping& d2)
     :
-    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1))
-
+    m_ref(new DistributionMapping::Ref(d1.size() + d2.size() - 1)),
+    m_color(ParallelDescriptor::DefaultColor())
 {
     dmID = nDistMaps++;
 
@@ -448,9 +523,13 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 }
 
 void
-DistributionMapping::define (const BoxArray& boxes, int nprocs)
+DistributionMapping::define (const BoxArray& boxes,
+			     int nprocs,
+			     ParallelDescriptor::Color color)
 {
     Initialize();
+
+    m_color = color;
 
     if (m_ref->m_pmap.size() != boxes.size() + 1)
     {
@@ -462,10 +541,7 @@ DistributionMapping::define (const BoxArray& boxes, int nprocs)
 	BL_ASSERT(m_BuildMap != 0);
 	
 	(this->*m_BuildMap)(boxes,nprocs);
-	//
-	// Add the new processor map to the cache.
-	//
-	m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+	PutInCache(); // Add the new processor map to the cache.
     }
 }
 
@@ -518,7 +594,7 @@ DistributionMapping::FlushCache ()
     //
     // Remove maps that aren't referenced anywhere else.
     //
-    std::map< int,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
+    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
 
     while (it != m_Cache.end())
     {
@@ -552,8 +628,9 @@ DistributionMapping::PutInCache ()
     // We want to save this pmap in the cache.
     // It's an error if a pmap of this length has already been cached.
     //
-    std::pair<std::map< int,LnClassPtr<Ref> >::iterator, bool> r;
-    r = m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+    std::pair<std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator, bool> r;
+    r = m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),
+				      m_ref));
     if (r.second == false) {
 	BoxLib::Abort("DistributionMapping::PutInCache: pmap of given length already exists");
     }
@@ -561,36 +638,62 @@ DistributionMapping::PutInCache ()
 
 void
 DistributionMapping::RoundRobinDoIt (int                  nboxes,
-                                     int                  nprocs,
+                                     int                 /* nprocs */,
                                      std::vector<LIpair>* LIpairV)
 {
-    Array<int> ord;
+    int nprocs = ParallelDescriptor::NProcs(m_color);
 
-#ifdef BL_USE_RRLUCPU
-    LeastUsedCPUs(nprocs,ord);
-#else
-    ord.resize(nprocs);
-    for(int i(0); i < nprocs; ++i) {
-      ord[i] = i;
-    }
+    // If team is not use, we are going to treat it as a special case in which
+    // the number of teams is nprocs and the number of workers is 1.
+
+    int nteams = nprocs;
+    int nworkers = 1;
+#if defined(BL_USE_TEAM)
+    nteams = ParallelDescriptor::NTeams();
+    nworkers = ParallelDescriptor::TeamSize();
+    if (ParallelDescriptor::NColors() > 1) 
+	BoxLib::Abort("Team and color together are not supported yet");
 #endif
+
+    Array<int> ord;
+    Array<Array<int> > wrkerord;
+
+    if (nteams == nprocs)  {
+	LeastUsedCPUs(nprocs,ord);
+	wrkerord.resize(nprocs);
+	for (int i = 0; i < nprocs; ++i) { 
+	    wrkerord[i].resize(1);
+	    wrkerord[i][0] = 0;
+	}
+    } else {
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+    }
+
+    Array<int> w(nteams,0);
 
     if (LIpairV)
     {
-        BL_ASSERT(LIpairV->size() == nboxes);
-
-        for (int i = 0; i < nboxes; ++i)
-        {
-            m_ref->m_pmap[(*LIpairV)[i].second] = ord[i%nprocs];
-        }
+	BL_ASSERT(LIpairV->size() == nboxes);
+	
+	for (int i = 0; i < nboxes; ++i)
+	{
+	    int tid = ord[i%nteams];
+	    int wid = (w[tid]++) % nworkers;
+	    int rank = tid*nworkers + wrkerord[tid][wid];
+	    m_ref->m_pmap[(*LIpairV)[i].second] = ParallelDescriptor::Translate(rank,m_color);
+	}
     }
     else
     {
-        for (int i = 0; i < nboxes; ++i)
-        {
-            m_ref->m_pmap[i] = ord[i%nprocs];
-        }
+	for (int i = 0; i < nboxes; ++i)
+	{
+	    int tid = ord[i%nteams];
+	    int wid = (w[tid]++) % nworkers;
+	    int rank = tid*nworkers + wrkerord[tid][wid];
+	    m_ref->m_pmap[i] = ParallelDescriptor::Translate(rank,m_color);
+	}
     }
+
     //
     // Set sentinel equal to our processor number.
     //
@@ -848,59 +951,91 @@ top:
 
 void
 DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
-                                   int                      nprocs,
+                                   int                    /*  nprocs */,
                                    Real&                    efficiency,
                                    bool                     do_full_knapsack,
 				   int                      nmax)
 {
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
+    int nprocs = ParallelDescriptor::NProcs(m_color);
+
+    // If team is not use, we are going to treat it as a special case in which
+    // the number of teams is nprocs and the number of workers is 1.
+
+    int nteams = nprocs;
+    int nworkers = 1;
+#if defined(BL_USE_TEAM)
+    nteams = ParallelDescriptor::NTeams();
+    nworkers = ParallelDescriptor::TeamSize();
+    if (ParallelDescriptor::NColors() > 1) 
+	BoxLib::Abort("Team and color together are not supported yet");
+#endif
+
     std::vector< std::vector<int> > vec;
 
     efficiency = 0;
 
-    knapsack(wgts,nprocs,vec,efficiency,do_full_knapsack,nmax);
+    knapsack(wgts,nteams,vec,efficiency,do_full_knapsack,nmax);
 
-    BL_ASSERT(vec.size() == nprocs);
-
-    Array<long> wgts_per_cpu(nprocs,0);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        for (std::vector<int>::iterator lit = vec[i].begin(), End = vec[i].end();
-             lit != End;
-             ++lit)
-        {
-            wgts_per_cpu[i] += wgts[*lit];
-        }
-    }
+    BL_ASSERT(vec.size() == nteams);
 
     std::vector<LIpair> LIpairV;
 
-    LIpairV.reserve(nprocs);
+    LIpairV.reserve(nteams);
 
-    for (int i = 0; i < nprocs; ++i)
+    for (int i = 0; i < nteams; ++i)
     {
-        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
+	long wgt = 0;
+        for (std::vector<int>::const_iterator lit = vec[i].begin(), End = vec[i].end();
+             lit != End; ++lit)
+        {
+            wgt += wgts[*lit];
+        }
+
+        LIpairV.push_back(LIpair(wgt,i));
     }
 
     Sort(LIpairV, true);
 
     Array<int> ord;
+    Array<Array<int> > wrkerord;
+    
+    if (nteams == nprocs) {
+	LeastUsedCPUs(nprocs,ord);
+	wrkerord.resize(nprocs);
+	for (int i = 0; i < nprocs; ++i) { 
+	    wrkerord[i].resize(1);
+	    wrkerord[i][0] = 0;
+	}
+    } else {
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+    }
 
-    LeastUsedCPUs(nprocs,ord);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
+    for (int i = 0; i < nteams; ++i)
     {
         const int idx = LIpairV[i].second;
-        const int cpu = ord[i];
-
-        for (std::vector<int>::iterator lit = vec[idx].begin(), End = vec[idx].end();
-             lit != End;
-             ++lit)
-        {
-            m_ref->m_pmap[*lit] = cpu;
-        }
+        const int tid = ord[i];
+	
+	const std::vector<int>& vi = vec[idx];
+	const int N = vi.size();
+	
+	if (nteams == nprocs) {
+	    for (int j = 0; j < N; ++j)
+	    {
+		m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(tid,m_color);
+	    }
+	} else {
+#ifdef BL_USE_TEAM
+	    int leadrank = tid * nworkers;
+	    for (int w = 0; w < nworkers; ++w)
+	    {
+	        ParallelDescriptor::team_for(0, N, w, [&] (int j) {
+		    m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(leadrank + wrkerord[i][w], m_color);
+                });
+	    }
+#endif
+	}
     }
     //
     // Set sentinel equal to our processor number.
@@ -1067,9 +1202,29 @@ Distribute (const std::vector<SFCToken>&     tokens,
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<long>& wgts,
-                                          int                      nprocs)
+                                          int                   /*   nprocs */)
 {
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
+
+    int nprocs = ParallelDescriptor::NProcs(m_color);
+
+    int nteams = nprocs;
+    int nworkers = 1;
+#if defined(BL_USE_TEAM)
+    nteams = ParallelDescriptor::NTeams();
+    nworkers = ParallelDescriptor::TeamSize();
+    if (ParallelDescriptor::NColors() > 1) 
+	BoxLib::Abort("Team and color together are not supported yet");
+#else
+    if (node_size > 0) {
+	nteams = nprocs/node_size;
+	nworkers = node_size;
+	if (nworkers*nteams != nprocs) {
+	    nteams = nprocs;
+	    nworkers = 1;
+	}
+    }
+#endif
 
     std::vector<SFCToken> tokens;
 
@@ -1102,55 +1257,108 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
     //
-    // Split'm up as equitably as possible per CPU.
+    // Split'm up as equitably as possible per team.
     //
-    Real volpercpu = 0;
+    Real volperteam = 0;
     for (int i = 0, N = tokens.size(); i < N; ++i)
-        volpercpu += tokens[i].m_vol;
-    volpercpu /= nprocs;
+        volperteam += tokens[i].m_vol;
+    volperteam /= nteams;
 
-    std::vector< std::vector<int> > vec(nprocs);
+    std::vector< std::vector<int> > vec(nteams);
 
-    Distribute(tokens,nprocs,volpercpu,vec);
+    Distribute(tokens,nteams,volperteam,vec);
+
+    // vec has a size of nteams and vec[] holds a vector of box ids.
 
     tokens.clear();
 
-    Array<long> wgts_per_cpu(nprocs,0);
-
-    for (unsigned int i = 0, N = vec.size(); i < N; ++i)
-    {
-        const std::vector<int>& vi = vec[i];
-
-        for (int j = 0, M = vi.size(); j < M; ++j)
-            wgts_per_cpu[i] += wgts[vi[j]];
-    }
-
     std::vector<LIpair> LIpairV;
 
-    LIpairV.reserve(nprocs);
+    LIpairV.reserve(nteams);
 
-    for (int i = 0; i < nprocs; ++i)
+    for (int i = 0; i < nteams; ++i)
     {
-        LIpairV.push_back(LIpair(wgts_per_cpu[i],i));
+	long wgt = 0;
+        const std::vector<int>& vi = vec[i];
+        for (int j = 0, M = vi.size(); j < M; ++j)
+            wgt += wgts[vi[j]];
+
+        LIpairV.push_back(LIpair(wgt,i));
     }
 
     Sort(LIpairV, true);
 
+    // LIpairV has a size of nteams and LIpairV[] is pair whose first is weight
+    // and second is an index into vec.  LIpairV is sorted by weight such that
+    // LIpairV is the heaviest.
+
     Array<int> ord;
+    Array<Array<int> > wrkerord;
 
-    LeastUsedCPUs(nprocs,ord);
+    if (nteams == nprocs) {
+	LeastUsedCPUs(nprocs,ord);
+    } else {
+	LeastUsedTeams(ord,wrkerord,nteams,nworkers);
+    }
 
-    for (int i = 0; i < nprocs; ++i)
+    // ord is a vector of process (or team) ids, sorted from least used to more heavily used.
+    // wrkerord is a vector of sorted worker ids.
+
+    for (int i = 0; i < nteams; ++i)
     {
-        const int cpu = ord[i];
-        const int idx = LIpairV[i].second;
+        const int tid  = ord[i];                  // tid is team id 
+        const int ivec = LIpairV[i].second;       // index into vec
+        const std::vector<int>& vi = vec[ivec];   // this vector contains boxes assigned to this team
+	const int Nbx = vi.size();                // # of boxes assigned to this team
 
-        const std::vector<int>& vi = vec[idx];
+	if (nteams == nprocs) { // In this case, team id is process id.
+	    for (int j = 0; j < Nbx; ++j)
+	    {
+		m_ref->m_pmap[vi[j]] = ParallelDescriptor::Translate(tid,m_color);  
+	    }
+	} 
+	else   // We would like to do knapsack within the team workers
+	{
+	    std::vector<long> local_wgts;
+	    for (int j = 0; j < Nbx; ++j) {
+		local_wgts.push_back(wgts[vi[j]]);
+	    }
 
-        for (int j = 0, N = vi.size(); j < N; ++j)
-        {
-            m_ref->m_pmap[vi[j]] = cpu;
-        }
+	    std::vector<std::vector<int> > kpres;
+	    Real kpeff;
+	    knapsack(local_wgts, nworkers, kpres, kpeff, true, N+1);
+
+	    // kpres has a size of nworkers. kpres[] contains a vector of indices into vi. 
+
+	    // sort the knapsacked chunks
+	    std::vector<LIpair> ww;
+	    for (int w = 0; w < nworkers; ++w) {
+		long wgt = 0;
+		for (std::vector<int>::const_iterator it = kpres[w].begin();
+		     it != kpres[w].end(); ++it)
+		{
+		    wgt += local_wgts[*it];
+		}
+		ww.push_back(LIpair(wgt,w));
+	    }
+	    Sort(ww,true);
+
+	    // ww is a sorted vector of pair whose first is the weight and second is a index
+	    // into kpres.
+	    
+	    const Array<int>& sorted_workers = wrkerord[i];
+
+	    const int leadrank = tid * nworkers;
+
+	    for (int w = 0; w < nworkers; ++w)
+	    {
+		const int cpu = ParallelDescriptor::Translate(leadrank + sorted_workers[w], m_color);
+		int ikp = ww[w].second;
+		const std::vector<int>& js = kpres[ikp];
+		for (std::vector<int>::const_iterator it = js.begin(); it!=js.end(); ++it)
+		    m_ref->m_pmap[vi[*it]] = cpu;
+	    }
+	}
     }
     //
     // Set sentinel equal to our processor number.
@@ -1160,15 +1368,15 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         Real sum_wgt = 0, max_wgt = 0;
-        for (int i = 0, N = wgts_per_cpu.size(); i < N; ++i)
+        for (int i = 0; i < nteams; ++i)
         {
-            const long W = wgts_per_cpu[i];
+            const long W = LIpairV[i].first;
             if (W > max_wgt)
                 max_wgt = W;
             sum_wgt += W;
         }
 
-        std::cout << "SFC efficiency: " << (sum_wgt/(nprocs*max_wgt)) << '\n';
+        std::cout << "SFC efficiency: " << (sum_wgt/(nteams*max_wgt)) << '\n';
     }
 }
 
@@ -1230,6 +1438,13 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 				int                      nprocs)
 {
     BL_PROFILE("DistributionMapping::RRSFCDoIt()");
+
+#if defined (BL_USE_TEAM)
+    BoxLib::Abort("Team support is not implemented yet in RRSFC");
+#endif
+
+    if (ParallelDescriptor::NColors() > 1) 
+	BoxLib::Abort("RRSFCMap does not support multi colors");
 
     std::vector<SFCToken> tokens;
 
@@ -1404,6 +1619,13 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
                                           int                      nprocs)
 {
     BL_PROFILE("DistributionMapping::PFCProcessorMapDoIt()");
+
+#if defined (BL_USE_TEAM)
+    BoxLib::Abort("Team support is not implemented yet in PFC");
+#endif
+
+    if (ParallelDescriptor::NColors() > 1) 
+	BoxLib::Abort("PFCProcessorMap does not support multi colors");
 
     std::vector< std::vector<int> > vec(nprocs);
     std::vector<PFCToken> tokens;
@@ -2042,7 +2264,9 @@ if(IOP) cout << "localPMaps[" << n << "][" << i << "] = " << localPMaps[n][i] <<
 
     for(int n(0); n < localPMaps.size(); ++n) {
       LnClassPtr<Ref> m_ref(new DistributionMapping::Ref(localPMaps[n]));
-      m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+      m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),
+						   ParallelDescriptor::DefaultColor().to_int()),
+				    m_ref));
     }
 
 
@@ -2448,7 +2672,7 @@ DistributionMapping::CacheStats (std::ostream& os, int whichProc)
         os << whichProc << "::DistributionMapping::m_Cache.size() = "
            << m_Cache.size() << " [ (refs,size): ";
 
-        for (std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
+        for (std::map< std::pair<int,int>,LnClassPtr<Ref> >::const_iterator it = m_Cache.begin();
              it != m_Cache.end();
              ++it)
         {

@@ -58,4 +58,22 @@
     endif
   endif
 
+  ifdef CXX11
+    CXXFLAGS += -std=c++11
+  endif
+
+  ifdef FSANITIZER
+    F90FLAGS += -fsanitize=address -fsanitize=undefined
+    FFLAGS   += -fsanitize=address -fsanitize=undefined
+    CFLAGS   += -fsanitize=address -fsanitize=undefined
+    CXXFLAGS += -fsanitize=address -fsanitize=undefined
+  endif 
+ 
+  ifdef THREAD_SANITIZER
+    F90FLAGS += -fsanitize=thread
+    FFLAGS   += -fsanitize=thread
+    CFLAGS   += -fsanitize=thread
+    CXXFLAGS += -fsanitize=thread
+  endif
+
   xtr_libraries += -lstdc++

@@ -45,7 +45,8 @@ public:
                    int             in_rad,
                    int             out_rad,
                    int             extent_rad,
-                   int             ncomp);
+                   int             ncomp,
+		   ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // The copy constructor.
     //
@@ -66,6 +67,10 @@ public:
     // Return the number of grids in this domain.
     //
     int size () const { return grids.size(); }
+    //
+    // Return color
+    //
+    ParallelDescriptor::Color color() const { return bndry[0].color(); }
     //
     // Return const set of FABs bounding the domain grid boxes on a given orientation
     //
@@ -127,7 +132,8 @@ public:
                  int         in_rad,
                  int         out_rad,
                  int         extent_rad,
-                 int         ncomp);
+                 int         ncomp,
+		 ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Build FABs along given face, specifying the DistributionMapping.
     //

@@ -899,14 +899,20 @@ contains
     if ( lal ) then
        if ( lst) then
           allocate(fb%p(1:lnc,lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
-          cp = c_loc(fb%p(1,lo(1),lo(2),lo(3)))
        else
           allocate(fb%p(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),1:lnc))
-          cp = c_loc(fb%p(lo(1),lo(2),lo(3),1))
        end if
-       if ( do_init_fabs ) call setval(fb, fab_default_init)
-       csz = size(fb%p)
-       call double_array_init(cp, csz)
+       if ( do_init_fabs ) then
+          call setval(fb, fab_default_init)
+       else
+          if (lst) then
+             cp = c_loc(fb%p(1,lo(1),lo(2),lo(3)))
+          else
+             cp = c_loc(fb%p(lo(1),lo(2),lo(3),1))
+          end if
+          csz = size(fb%p)
+          call double_array_init(cp, csz)
+       end if
        call mem_stats_alloc(fab_ms, volume(fb, all=.TRUE.))
        if ( (fab_ms%num_alloc-fab_ms%num_dealloc) > fab_high_water_mark ) then
           fab_high_water_mark = (fab_ms%num_alloc-fab_ms%num_dealloc)

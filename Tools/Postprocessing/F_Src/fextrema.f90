@@ -5,7 +5,6 @@ program fextrema
 
   use plotfile_module
   use filler_module
-  use f2kcli
   use bl_IO_module
 
   implicit none
@@ -70,7 +69,8 @@ program fextrema
      print *, " "
      print *, "By default, the variable information is specified in columns, one line"
      print *, "per file.  If -s or --single are specified, then for each plotfile, each"
-     print *, "variable's information is printed on a separate line"
+     print *, "variable's information is printed on a separate line.  This is the"
+     print *, "behavior when only 1 plotfile is specified"
      print *
      stop
   endif
@@ -79,6 +79,10 @@ program fextrema
 
   ! ntime is the number of files to loop over
   ntime = narg - farg  + 1
+
+  if (ntime == 1) then
+     single = .true.
+  endif
 
   do f = 1, ntime
 

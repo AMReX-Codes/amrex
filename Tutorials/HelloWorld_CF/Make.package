@@ -1,0 +1,2 @@
+f90EXE_sources += fmain.f90
+

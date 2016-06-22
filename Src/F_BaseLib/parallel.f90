@@ -2271,4 +2271,17 @@ contains
     endif
   end subroutine parallel_set_nprocs_sidecar
 
+  function parallel_tag (reset) result(tag)
+    logical, intent(in), optional :: reset
+    integer :: tag
+    integer, parameter :: mintag = 100
+    integer, parameter :: maxtag = 999
+    integer, save :: ctag = mintag
+    logical :: lreset
+    lreset = .false.;  if (present(reset)) lreset = reset
+    ctag = ctag + 1
+    if (ctag > maxtag .or. lreset) ctag = mintag
+    tag = ctag
+  end function parallel_tag
+
 end module parallel

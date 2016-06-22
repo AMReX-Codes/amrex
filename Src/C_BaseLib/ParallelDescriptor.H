@@ -1,4 +1,3 @@
-
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 
@@ -11,17 +10,56 @@
 #endif
 #include <ccse-mpi.H>
 
+#ifdef BL_USE_UPCXX
+#include <upcxx.h>
+#endif
+
+#ifdef BL_USE_MPI3
+#include <atomic>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifdef BL_LAZY
 #include <Lazy.H>
 #endif
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <typeinfo>
+#include <algorithm>
 #include <iostream>
 
 namespace ParallelDescriptor
 {
+#ifdef BL_USE_UPCXX
+    struct UPCXX_MPI_Mode {
+	unsigned short upcxx_cnt;
+	bool mpi_ready;
+	UPCXX_MPI_Mode () : upcxx_cnt(0), mpi_ready(true) { }
+	void incr_upcxx () { ++upcxx_cnt; }
+	void decr_upcxx () { --upcxx_cnt; }
+	void set_upcxx_mode () { mpi_ready = false; }
+	void set_mpi_mode (bool barrier_called=false) {
+	    BL_ASSERT(upcxx_cnt == 0);
+	    if (!mpi_ready) {
+		if (!barrier_called) upcxx::barrier();
+		mpi_ready = true;
+	    }    
+	}
+    };
+    extern UPCXX_MPI_Mode Mode;
+#endif    
+
+#ifdef BL_USE_MPI3
+    extern MPI_Win cp_win;
+    extern MPI_Win fb_win;
+    extern MPI_Win fpb_win;
+#endif
+
     //
     // Used as default argument to ParallelDescriptor::Barrier().
     //
@@ -67,6 +105,11 @@ namespace ParallelDescriptor
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
+    void StartTeams ();
+    void EndTeams ();
+
+    bool MPIOneSided ();
+
     typedef int (*PTR_TO_SIGNAL_HANDLER)(int);
     void AddSignalHandler (PTR_TO_SIGNAL_HANDLER);
     //
@@ -79,12 +122,14 @@ namespace ParallelDescriptor
     extern const int myId_notInGroup;
     extern int m_MyId_all;
     extern int m_MyId_comp;
+    extern int m_MyId_sub;
     extern int m_MyId_sidecar;
     extern const int notInSidecar;
 
     extern const int nProcs_undefined;
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
+    extern int m_nProcs_sub;
     extern Array<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
@@ -175,6 +220,83 @@ namespace ParallelDescriptor
     //
     void
     SetNProcsSidecars (int nscp); 
+
+    //
+    // Team
+    //
+    struct ProcessTeam
+    {
+#ifdef BL_USE_UPCXX
+	typedef upcxx::team team_t;
+#else
+	typedef MPI_Comm team_t;
+#endif
+
+	void Barrier () const { 
+	    if (m_size > 1) {
+#ifdef BL_USE_UPCXX
+		m_upcxx_team.barrier();
+#elif defined(BL_USE_MPI3)
+		MPI_Barrier(m_team_comm);
+#endif
+	    }
+	}
+
+	void MemoryBarrier () const {
+	    if (m_size > 1) {
+#ifdef _OPENMP
+		if (omp_in_parallel()) {
+                    #pragma omp barrier
+	        }
+                #pragma omp master
+#endif
+		{
+#ifdef BL_USE_UPCXX
+                    m_upcxx_team.barrier();
+#elif defined(BL_USE_MPI3)
+		    std::atomic_thread_fence(std::memory_order_release);
+		    MPI_Barrier(m_team_comm);
+		    std::atomic_thread_fence(std::memory_order_acquire);
+#endif
+	        }
+	    }
+	}
+
+	void clear () {
+#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+	    if (m_size > 1) {
+		MPI_Comm_free(&m_team_comm);
+		if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
+	    }
+#endif
+	}
+	
+	const team_t& get() const {
+#ifdef BL_USE_UPCXX
+	    return m_upcxx_team; 
+#else
+	    return m_team_comm;
+#endif
+	}
+	const MPI_Comm& get_team_comm() const { return m_team_comm; }
+	const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
+
+#ifdef BL_USE_UPCXX
+	team_t m_upcxx_team;
+#endif
+	int    m_numTeams;
+	int    m_size;
+	int    m_color;
+	int    m_lead;
+	int    m_rankInTeam;
+	int    m_do_team_reduce;
+
+	MPI_Comm  m_team_comm;
+	MPI_Comm  m_lead_comm;
+    };
+
+    extern ProcessTeam m_Team;
+
     //
     // return the number of MPI ranks local to the comp or sidecar groups
     //
@@ -248,9 +370,136 @@ namespace ParallelDescriptor
          return MyProcAll() == IOProcessorNumberAll();
     }
     //
+    inline int
+    TeamSize ()
+    {
+	return m_Team.m_size;
+    }
+    inline int
+    NTeams ()
+    {
+	return m_Team.m_numTeams;
+    }
+    inline int
+    MyTeamColor ()
+    {
+	return m_Team.m_color;
+    }
+    inline int
+    MyTeamLead ()
+    {
+	return m_Team.m_lead;
+    }
+    inline int
+    MyRankInTeam ()
+    {
+	return m_Team.m_rankInTeam;
+    }
+    inline int
+    TeamLead (int rank)
+    {
+	return (rank >= 0) ? (rank - rank % m_Team.m_size) : MPI_PROC_NULL;
+    }
+    inline bool
+    isTeamLead ()
+    {
+	return MyRankInTeam() == 0;
+    }
+    inline bool
+    sameTeam (int rank)
+    {
+	return MyTeamLead() == TeamLead(rank);
+    }
+    inline int
+    RankInLeadComm (int rank)
+    {
+	return (rank >= 0) ? (rank / m_Team.m_size) : MPI_PROC_NULL;
+    }
+    inline bool
+    doTeamReduce () 
+    { 
+	return m_Team.m_do_team_reduce;
+    }
+    inline const ProcessTeam&
+    MyTeam ()
+    {
+	return m_Team;
+    }
+    inline std::pair<int,int>
+    team_range (int begin, int end, int rit = -1, int nworkers = 0)
+    {
+	int rb, re;
+	{
+	    if (rit < 0) rit = ParallelDescriptor::MyRankInTeam();
+	    if (nworkers == 0) nworkers = ParallelDescriptor::TeamSize();
+	    BL_ASSERT(rit<nworkers);
+	    if (nworkers == 1) {
+		rb = begin;
+		re = end;
+	    } else {
+		int ntot = end - begin;
+		int nr   = ntot / nworkers;
+		int nlft = ntot - nr * nworkers;
+		if (rit < nlft) {  // get nr+1 items
+		    rb = begin + rit * (nr + 1);
+		    re = rb + nr + 1;
+		} else {           // get nr items
+		    rb = begin + rit * nr + nlft;
+		    re = rb + nr;
+		}
+	    }
+	}
+
+#ifdef _OPENMP
+	int nthreads = omp_get_num_threads();
+	if (nthreads > 1) {
+	    int tid = omp_get_thread_num();
+	    int ntot = re - rb;
+	    int nr   = ntot / nthreads;
+	    int nlft = ntot - nr * nthreads;
+	    if (tid < nlft) {  // get nr+1 items
+		rb += tid * (nr + 1);
+		re = rb + nr + 1;
+	    } else {           // get nr items
+		rb += tid * nr + nlft;
+		re = rb + nr;
+	    }	    
+	}
+#endif	
+
+	return std::make_pair(rb,re);
+    }
+#ifdef BL_USE_CXX11
+    template <typename F>
+    void team_for (int begin, int end, const F& f)
+    {
+	const auto& range = team_range(begin, end);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, const F& f)
+    {
+	const auto& range = team_range(begin, end, rit);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+    template <typename F>               // rit: rank in team
+    void team_for (int begin, int end, int rit, int nworkers, const F& f)
+    {
+	const auto& range = team_range(begin, end, rit, nworkers);
+	for (int i = range.first; i < range.second; ++i) {
+	    f(i);
+	}
+    }
+#endif
+    //
     // BoxLib's Parallel Communicators
     //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
     //    m_comm_comp      is for the ranks doing computations
+    //    m_comm_sub       m_comm_comp is split into sub communicators
     //    m_comm_sidecar[] is for the ranks in the sidecar
     //    m_comm_inter[]   is for communicating between comp and sidecars
     //                     the user must create any sidecar to sidecar communicators
@@ -259,9 +508,47 @@ namespace ParallelDescriptor
     //
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
+    extern MPI_Comm m_comm_sub;
     extern Array<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
     extern Array<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
     extern Array<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
+
+
+    extern int m_nCommColors;
+
+    class Color
+    {
+    public:
+	Color () : c(-100) {}
+	explicit Color (int i) : c(i) {}
+	int to_int () const { return c; }
+	bool valid () const { return c >= 0 && c <= m_nCommColors; }
+	friend bool operator== (const Color& lhs, const Color& rhs);
+	friend bool operator!= (const Color& lhs, const Color& rhs);
+	friend std::ostream& operator<< (std::ostream& os, const Color& color);
+    private:
+	int c;
+    };
+    inline bool operator== (const Color& lhs, const Color& rhs)
+    {
+	return lhs.c == rhs.c;
+    }
+    inline bool operator!= (const Color& lhs, const Color& rhs){
+	return !(lhs == rhs);
+    }
+    inline std::ostream& operator<< (std::ostream& os, const Color& color)
+    {
+	os << color.c;
+	if (os.fail())
+	    BoxLib::Error("operator<<(ostream&,Const Color&) failed");
+	return os;
+    }
+
+    extern Color m_MyCommSubColor;
+    extern Color m_MyCommCompColor;
+
+    void StartSubCommunicator ();
+    void EndSubCommunicator ();
 
     inline MPI_Comm Communicator ()         // ---- return the "local" communicator
     {
@@ -301,6 +588,65 @@ namespace ParallelDescriptor
         return m_comm_both[whichSidecar];
     }
 
+    inline int NColors () { return m_nCommColors; }
+    inline Color DefaultColor () { return m_MyCommCompColor; }
+    inline Color SubCommColor () { return m_MyCommSubColor; }
+    inline bool isActive(Color color) 
+    { 
+	return color == DefaultColor() || color == SubCommColor();
+    }
+    inline int MyProc (Color color) 
+    {
+	if (color == DefaultColor()) {
+	    return MyProc();
+	} else if (color == SubCommColor()) {
+	    return m_MyId_sub; 
+	} else {
+	    return MPI_PROC_NULL;
+	}
+    }
+    inline int NProcs (Color color) 
+    {
+	if (color == DefaultColor()) {
+	    return NProcs();
+	} else if (color.valid()) {
+	    return m_nProcs_sub; 
+	} else {
+	    return 0;
+	}
+    }
+    inline MPI_Comm Communicator (Color color) 
+    { 
+	if (color == DefaultColor()) {
+	    return Communicator();
+	} else if (color == SubCommColor()) {
+	    return m_comm_sub;
+	} else {
+	    return MPI_COMM_NULL;
+	}
+    }
+    inline int Translate(int rc, Color color) // Given rc, rank in colored comm, return rank in CommComp
+    {
+	if (color == DefaultColor()) {
+	    return rc;
+	} else if (color.valid()) {
+	    return NProcs(color) * color.to_int() + rc;
+	} else {
+	    return MPI_PROC_NULL;
+	}
+    }
+    inline bool
+    IOProcessor (Color color)
+    {
+	if (color == DefaultColor()) {
+	    return IOProcessor();
+	} else if (color.valid()) {
+	    return MyProc(color) == 0;
+	} else {
+	    return false;
+	}
+    }
+
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
 
@@ -326,7 +672,7 @@ namespace ParallelDescriptor
     //
     // And-wise boolean reduction.
     //
-    void ReduceBoolAnd (bool& rvar);
+    void ReduceBoolAnd (bool& rvar, Color color = DefaultColor());
     //
     // And-wise boolean reduction to specified cpu.
     //
@@ -334,7 +680,7 @@ namespace ParallelDescriptor
     //
     // Or-wise boolean reduction.
     //
-    void ReduceBoolOr  (bool& rvar);
+    void ReduceBoolOr  (bool& rvar, Color color = DefaultColor());
     //
     // Or-wise boolean reduction to specified cpu.
     //
@@ -342,9 +688,9 @@ namespace ParallelDescriptor
     //
     // Real sum reduction.
     //
-    void ReduceRealSum (Real& rvar);
+    void ReduceRealSum (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealSum (Real* rvar, int cnt);
+    void ReduceRealSum (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real sum reduction to specified cpu.
     //
@@ -354,9 +700,9 @@ namespace ParallelDescriptor
     //
     // Real max reduction.
     //
-    void ReduceRealMax (Real& rvar);
+    void ReduceRealMax (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealMax (Real* rvar, int cnt);
+    void ReduceRealMax (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real max reduction to specified cpu.
     //
@@ -366,9 +712,9 @@ namespace ParallelDescriptor
     //
     // Real min reduction.
     //
-    void ReduceRealMin (Real& rvar);
+    void ReduceRealMin (Real& rvar, Color color = DefaultColor());
 
-    void ReduceRealMin (Real* rvar, int cnt);
+    void ReduceRealMin (Real* rvar, int cnt, Color color = DefaultColor());
     //
     // Real min reduction to specified cpu.
     //
@@ -378,9 +724,9 @@ namespace ParallelDescriptor
     //
     // Integer sum reduction.
     //
-    void ReduceIntSum (int& rvar);
+    void ReduceIntSum (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntSum (int* rvar, int cnt);
+    void ReduceIntSum (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer sum reduction to specified cpu.
     //
@@ -390,9 +736,9 @@ namespace ParallelDescriptor
     //
     // Integer max reduction.
     //
-    void ReduceIntMax (int& rvar);
+    void ReduceIntMax (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntMax (int* rvar, int cnt);
+    void ReduceIntMax (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer max reduction to specified cpu.
     //
@@ -402,9 +748,9 @@ namespace ParallelDescriptor
     //
     // Integer min reduction.
     //
-    void ReduceIntMin (int& rvar);
+    void ReduceIntMin (int& rvar, Color color = DefaultColor());
 
-    void ReduceIntMin (int* rvar, int cnt);
+    void ReduceIntMin (int* rvar, int cnt, Color color = DefaultColor());
     //
     // Integer min reduction to specified cpu.
     //
@@ -414,9 +760,9 @@ namespace ParallelDescriptor
     //
     // Long sum reduction.
     //
-    void ReduceLongSum (long& rvar);
+    void ReduceLongSum (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongSum (long* rvar, int cnt);
+    void ReduceLongSum (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long sum reduction to specified cpu.
     //
@@ -426,9 +772,9 @@ namespace ParallelDescriptor
     //
     // Long max reduction.
     //
-    void ReduceLongMax (long& rvar);
+    void ReduceLongMax (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongMax (long* rvar, int cnt);
+    void ReduceLongMax (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long max reduction to specified cpu.
     //
@@ -438,9 +784,9 @@ namespace ParallelDescriptor
     //
     // Long min reduction.
     //
-    void ReduceLongMin (long& rvar);
+    void ReduceLongMin (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongMin (long* rvar, int cnt);
+    void ReduceLongMin (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long min reduction to specified cpu.
     //
@@ -450,9 +796,9 @@ namespace ParallelDescriptor
     //
     // Long and-wise reduction.
     //
-    void ReduceLongAnd (long& rvar);
+    void ReduceLongAnd (long& rvar, Color color = DefaultColor());
 
-    void ReduceLongAnd (long* rvar, int cnt);
+    void ReduceLongAnd (long* rvar, int cnt, Color color = DefaultColor());
     //
     // Long and-wise reduction to specified cpu.
     //
@@ -470,6 +816,7 @@ namespace ParallelDescriptor
     // Returns sequential message sequence numbers in range 1000-9000.
     //
     int SeqNum (int getsetinc = 0, int newvalue = 0);
+    int SubSeqNum (int getsetinc = 0, int newvalue = 0);
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
@@ -490,8 +837,6 @@ namespace ParallelDescriptor
     template <class T> void Bcast(T*, size_t n, int root = 0);
     template <class T> void Bcast(T*, size_t n, int root, const MPI_Comm &comm);
     void Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm);
-
-    template <class Op, class T> T Reduce(const T& t);
 
     template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root);
 
@@ -799,24 +1144,6 @@ ParallelDescriptor::Recv (std::vector<T>& buf,
     return Message(stat, Mpi_typemap<T>::type());
 }
 
-template <class Op, class T>
-T
-ParallelDescriptor::Reduce (const T& t)
-{
-    BL_PROFILE_T_S("ParallelDescriptor::Reduce(T)", T);
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, BLProfiler::BeforeCall(), true);
-
-    T recv;
-    BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
-                                  &recv,
-                                  1,
-                                  Mpi_typemap<T>::type(),
-                                  Op::op(),
-                                  Communicator()) );
-    BL_COMM_PROFILE_ALLREDUCE(BLProfiler::AllReduceT, sizeof(T), false);
-    return recv;
-}
-
 template <class T>
 void
 ParallelDescriptor::Bcast (T*     t,
@@ -846,7 +1173,10 @@ ParallelDescriptor::Bcast (T*     t,
 			   const MPI_Comm &comm)
 {
 #ifdef BL_LAZY
-    Lazy::EvalReduction();
+    int r;
+    MPI_Comm_compare(comm, Communicator(), &r);
+    if (r == MPI_IDENT)
+	Lazy::EvalReduction();
 #endif
 
     BL_PROFILE_T_S("ParallelDescriptor::Bcast(Tsi)", T);
@@ -1011,13 +1341,6 @@ Message
 Recv(std::vector<T>& buf, int src_pid, int tag)
 {
     return Message();
-}
-
-template <class Op, class T>
-T
-Reduce(const T& t)
-{
-    return t;
 }
 
 template <class T>

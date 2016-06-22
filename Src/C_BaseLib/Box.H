@@ -56,6 +56,10 @@ namespace BoxLib
     //
     Box refine (const Box& b, int refinement_ratio);
     //
+    // Return a Box with indices shifted by nzones in dir direction.
+    //
+    Box shift (const Box& b, int dir, int nzones);
+    //
     // Refine Box by given (positive) refinement ratio.
     // NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
     // hi <- (hi+1)*ratio - 1.
@@ -266,6 +270,16 @@ public:
     // It is an error if the Boxes have different types.
     //
     bool contains (const Box& b) const { BL_ASSERT(sameType(b)); return b.smallend >= smallend && b.bigend <= bigend; }
+    //
+    // Returns true if argument is strictly contained within Box.
+    //
+    bool strictly_contains (const IntVect& p) const { return p > smallend && p < bigend; }
+    //
+    // Returns true if argument is strictly contained within Box.
+    // It is an error if the Boxes have different types.
+    //
+    bool strictly_contains (const Box& b) const 
+	{ BL_ASSERT(sameType(b)); return b.smallend > smallend && b.bigend < bigend; }
     //
     // Returns true if Boxes have non-null intersections.
     // It is an error if the Boxes have different types.
@@ -596,7 +610,7 @@ public:
 
     explicit BoxCommHelper (const Box& bx, int* p_ = 0);
 
-    int* get () const { return p; }
+    int* data () const { return p; }
 
     Box make_box () const {
 	return Box(IntVect(p), IntVect(p+BL_SPACEDIM), IntVect(p+2*BL_SPACEDIM));
@@ -608,5 +622,14 @@ private:
     int* p;
     std::vector<int> v;
 };
+
+class BoxConverter {
+public:
+    virtual Box doit (const Box& fine) const = 0;
+    virtual BoxConverter* clone () const = 0;
+    virtual ~BoxConverter () = 0;
+};
+
+inline BoxConverter::~BoxConverter () { }
 
 #endif /*BL_BOX_H*/

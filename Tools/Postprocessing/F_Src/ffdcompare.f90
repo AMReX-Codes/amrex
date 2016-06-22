@@ -6,7 +6,6 @@
 
 program ffdcompare
 
-  use f2kcli
   use bl_space
   use bl_error_module
   use bl_IO_module
@@ -39,6 +38,8 @@ program ffdcompare
   double precision :: prob_lo(3), prob_hi(3), time, dx(3)
   type(multifab) :: err(1)
   integer :: rr0(0)
+
+  integer :: ng
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -99,11 +100,14 @@ program ffdcompare
   prob_hi = pf_a%phi
   time = pf_a%tm
 
+  ng = nghost(pf_a, 1, 1)
+  print *, "ng = ", ng
+
   call destroy(pf_a)
 
   ! read plotfiles
-  call fabio_ml_multifab_read_d(pltdata_a, plotfile_a)
-  call fabio_ml_multifab_read_d(pltdata_b, plotfile_b)
+  call fabio_ml_multifab_read_d(pltdata_a, plotfile_a, ng=ng)
+  call fabio_ml_multifab_read_d(pltdata_b, plotfile_b, ng=ng)
 
   if (size(pltdata_a) .ne. 1 .or. size(pltdata_b) .ne. 1) then
      call bl_error("ERROR: plotfiles have more than one level")
@@ -127,7 +131,7 @@ program ffdcompare
   call boxarray_coarsen(ba_c, rr)
 
   call layout_build_ba(la_c,ba_c,boxarray_bbox(ba_c),pmask=get_pmask(la_b))
-  call multifab_build(mf_c, la_c, pltdata_b(1)%nc, 0)
+  call multifab_build(mf_c, la_c, pltdata_b(1)%nc, ng)
   call destroy(ba_c)
 
   do n=1,nfabs(mf_c)
@@ -154,7 +158,7 @@ program ffdcompare
   call destroy(pltdata_b(1))
   call destroy(la_b)
 
-  call multifab_build(mf_d, la_a, mf_c%nc, 0)
+  call multifab_build(mf_d, la_a, mf_c%nc, ng)
   call multifab_copy_c(mf_d,1,mf_c,1,mf_c%nc)
 
   call destroy(mf_c)

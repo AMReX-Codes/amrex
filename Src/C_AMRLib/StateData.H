@@ -9,6 +9,8 @@
 #include <Array.H>
 #include <VisMF.H>
 #include <DistributionMapping.H>
+#include <PhysBCFunct.H>
+#include <Geometry.H>
 
 class RealBox;
 class StateDescriptor;
@@ -223,12 +225,16 @@ public:
     //
     bool hasNewData () const { return new_data != 0; }
 
+    void getData (PArray<MultiFab>& data,
+		  std::vector<Real>& datatime,
+		  Real time) const;
 
     void AddProcsToComp(const StateDescriptor &sdPtr,
                         int ioProcNumSCS, int ioProcNumAll,
                         int scsMyId, MPI_Comm scsComm);
 
     void Check() const;
+
 
 private:
 
@@ -265,6 +271,19 @@ private:
     // Pointer to previous time data.
     //
     MultiFab* old_data;
+};
+
+class StateDataPhysBCFunct
+    : public PhysBCFunct
+{
+public:
+    StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
+    virtual void doit (MultiFab& mf, int dcomp, int ncomp, Real time);
+private:
+    StateData* statedata;
+    int src_comp;
+    const Geometry& geom;
+    
 };
 
 #endif /*_StateData_H_*/

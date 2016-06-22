@@ -118,92 +118,29 @@ c        ::::: flux normal to X direction
 
       end
 
-c ::
-c :: --------------------------------------------------------------
-c :: reflux:   reflux the data on the outer boundary of
-c ::           a fine grid.
-c ::
-c :: Inputs/Outputs
-c :: s           <=>  state data array
-c :: slo,shi      =>  index limits of s array
-c :: vol          =>  volume array
-c :: vlo,vhi      =>  index limits of vol array
-c :: reg          =>  flux register
-c :: rlo,rhi      =>  index limits of reg array
-c :: lo,hi        =>  subregion of s array to be updated
-c :: numcomp      =>  number of components to update
-c :: mult         =>  multiplative factor (+1 or -1 depending on nomal)
-c :: --------------------------------------------------------------
-c ::
-      subroutine FORT_FRREFLUX (s,DIMS(s),vol,DIMS(vol),reg,DIMS(reg),
-     &                          lo,hi,shft,numcomp,mult)
-
+      subroutine FORT_FRREFLUX (lo, hi, s, slo, shi, f, flo, fhi,
+     &     v, vlo, vhi, nc, mult, dir, isloface)
       implicit none
-
-      integer    DIMDEC(s)
-      integer    DIMDEC(vol)
-      integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM), shft(SDIM)
-      integer    numcomp
-      REAL_T     mult
-      REAL_T     reg(DIMV(reg),numcomp)
-      REAL_T       s(DIMV(s),numcomp)
-      REAL_T     vol(DIMV(vol))
-
-      integer n, i, ilo
-
-      ilo = shft(1)
-
-      do n = 1, numcomp
-         do i = lo(1), hi(1)
-            s(i-ilo,n) = s(i-ilo,n) + mult*reg(i,n)/vol(i-ilo)
+      integer, intent(in) :: lo(1), hi(1), slo(1), shi(1)
+      integer, intent(in) :: flo(1), fhi(1), vlo(1), vhi(1)
+      integer, intent(in) :: nc, dir, isloface
+      REAL_T , intent(in) :: mult
+      REAL_T , intent(inout) :: s(slo(1):shi(1),nc)
+      REAL_T , intent(in   ) :: f(flo(1):fhi(1),nc)
+      REAL_T , intent(in   ) :: v(vlo(1):vhi(1))
+      !
+      integer :: i, n
+      if (isloface .eq. 1) then
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               s(i,n) = s(i,n)-mult*f(i+1,n)/v(i)
+            end do
          end do
-      end do
-
-      end
-
-c ::: -----------------------------------------------------------
-c ::: Add flux register into coarse grid flux (opposite of standard reflux ops)
-c :::
-c ::: INPUTS/OUTPUTS:
-c ::: flx        => flux array
-c ::: DIMS(flx)  => index limits for flx
-c ::: reg       <=  flux register
-c ::: DIMS(reg)  => index limits for reg
-c ::: lo,hi      => region of update
-c ::: mult       => scalar multiplicative factor
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SCALADDTO (flx,DIMS(flx),area,DIMS(area),reg,DIMS(reg),
-     $                           lo,hi,numcomp,mult)
-
-      implicit none
-
-      integer    DIMDEC(flx)
-      integer    DIMDEC(area)
-      integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM)
-      integer    numcomp
-      REAL_T     mult
-      REAL_T     flx(DIMV(flx),numcomp)
-      REAL_T     area(DIMV(area))
-      REAL_T     reg(DIMV(reg),numcomp)
-
-      integer    n, i, istart
-
-      if (area(lo(1)) .lt. 1.d-8) then
-        do n = 1, numcomp
-           flx(lo(1),n) = flx(lo(1),n)
-        end do
-        istart = lo(1)+1
       else
-        istart = lo(1)
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               s(i,n) = s(i,n)+mult*f(i,n)/v(i)
+            end do
+         end do
       end if
-
-      do n = 1, numcomp
-        do i = istart, hi(1)
-          flx(i,n) = flx(i,n) + mult*reg(i,numcomp)/area(i)
-        end do
-      end do
-
-      end
+      end subroutine FORT_FRREFLUX

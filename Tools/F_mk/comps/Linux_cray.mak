@@ -21,7 +21,7 @@
     endif
 
     ifdef ACC
-		#These are based on Blue Waters suggestions, might need to edit to be more general
+      #These are based on Blue Waters suggestions, might need to edit to be more general
       ifndef NDEBUG
         FFLAGS   += -h msgs
         F90FLAGS += -h msgs
@@ -44,4 +44,8 @@
       F90FLAGS += -h noomp
       CFLAGS   += -h noomp
       CXXFLAGS += -h noomp
+    endif
+ 
+    ifdef CXX11
+      CXXFLAGS += -hstd=c++11
     endif

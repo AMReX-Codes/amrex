@@ -7,10 +7,6 @@
         _comp := Intel14
     else ifeq ($(findstring Version 13, $(_ifc_version)), Version 13)
         _comp := Intel13
-    else ifeq ($(findstring Version 12, $(_ifc_version)), Version 12)
-        _comp := Intel12
-    else ifeq ($(findstring Version 11, $(_ifc_version)), Version 11)
-        _comp := Intel11
     else
       $(error "$(_ifc_version) of IFC is not supported")
     endif
@@ -132,53 +128,7 @@
 #     FFLAGS += -stand f95
     endif
 
-    ifeq ($(_comp),Intel12)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0 #-check all -warn all -u 
-        FFLAGS   += -g -traceback -O0 #-check all -warn all -u 
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-	  F90FLAGS += -g -fast
-	  FFLAGS   += -g -fast
-	  CFLAGS   += -g -fast
-	  CXXFLAGS += -g -fast
-	else
-          F90FLAGS += -g -O2 -ip -fp-model source #-xHost
-          FFLAGS   += -g -O2 -ip -fp-model source #-xHost
-          CFLAGS   += -g -O2 -ip -fp-model source #-xHost
-          CXXFLAGS += -g -O2 -ip -fp-model source #-xHost
-	endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
 
-    ifeq ($(_comp),Intel11)
-      ifndef NDEBUG
-        F90FLAGS += -g -traceback -O0 -check all -warn all -u
-        FFLAGS   += -g -traceback -O0 -check all -warn all -u
-        #CFLAGS   += -g -Wcheck
-      else
-        ifdef INTEL_X86
-          F90FLAGS += -g -fast
-          FFLAGS   += -g -fast
-          CFLAGS   += -g -fast
-          CXXFLAGS += -g -fast
-        else
-          F90FLAGS += -g -O3 -ip -mp1# -fltconsistency
-          FFLAGS   += -g -O3 -ip -mp1# -fltconsistency
-          CFLAGS   += -g -O3 -ip -mp1
-          CXXFLAGS += -g -O3 -ip -mp1
-        endif
-      endif
-      ifdef GPROF
-        F90FLAGS += -pg
-      endif
-#      F90FLAGS += -stand f95
-#     FFLAGS += -stand f95
-    endif
-
+  ifdef CXX11
+    CXXFLAGS += -std=c++11
+  endif

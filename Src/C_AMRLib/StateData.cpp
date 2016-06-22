@@ -11,6 +11,10 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
@@ -634,6 +638,62 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 }
 
 void
+StateData::getData (PArray<MultiFab>& data,
+		    std::vector<Real>& datatime,
+		    Real time) const
+{
+    data.clear();
+    datatime.clear();
+
+    if (desc->timeType() == StateDescriptor::Point)
+    {
+	BL_ASSERT(new_data != 0);
+        if (old_data == 0)
+        {
+	    data.push_back(new_data);
+	    datatime.push_back(new_time.start);
+        }
+        else
+        {
+	    const Real teps = (new_time.start - old_time.start)*1.e-3;
+	    if (time > new_time.start-teps && time < new_time.start+teps) {
+		data.push_back(new_data);
+		datatime.push_back(new_time.start);
+	    } else if (time > old_time.start-teps && time < old_time.start+teps) {
+	    	    data.push_back(old_data);
+		    datatime.push_back(old_time.start);
+	    } else {
+		data.push_back(old_data);
+		data.push_back(new_data);
+		datatime.push_back(old_time.start);
+		datatime.push_back(new_time.start);
+	    }
+        }
+    }
+    else
+    {
+        const Real teps = (new_time.start - old_time.start)*1.e-3;
+
+        if (time > new_time.start-teps && time < new_time.stop+teps)
+        {
+	    data.push_back(new_data);
+	    datatime.push_back(time);
+        }
+        else if (old_data != 0              &&
+                 time > old_time.start-teps &&
+                 time < old_time.stop+teps)
+        {
+	    data.push_back(old_data);
+	    datatime.push_back(time);
+        }
+        else
+        {
+            BoxLib::Error("StateData::getData(): how did we get here?");
+        }
+    }
+}
+
+void
 StateData::checkPoint (const std::string& name,
                        const std::string& fullpathname,
                        std::ostream&  os,
@@ -713,6 +773,111 @@ StateData::printTimeInterval (std::ostream &os) const
        << '\n';
 }
 
+StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry& geom_)
+    : statedata(&sd),
+      src_comp(sc),
+      geom(geom_)
+{ }
+
+void
+StateDataPhysBCFunct::doit (MultiFab& mf, int dest_comp, int num_comp, Real time)
+{
+    BL_PROFILE("StateDataPhysBCFunct::doit");
+
+    const Box&     domain      = statedata->getDomain();
+    const int*     domainlo    = domain.loVect();
+    const int*     domainhi    = domain.hiVect();
+    const Real*    dx          = geom.CellSize();
+    const RealBox& prob_domain = geom.ProbDomain();
+
+#ifdef CRSEGRNDOMP
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+#endif
+    {
+	FArrayBox tmp;
+
+	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& dest = mf[mfi];
+	    const Box& bx = dest.box();
+	    
+	    bool has_phys_bc = false;
+	    bool is_periodic = false;
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		bool touch = bx.smallEnd(i) < domainlo[i] || bx.bigEnd(i) > domainhi[i];
+		if (geom.isPeriodic(i)) {
+		    is_periodic = is_periodic || touch;
+		} else {
+		has_phys_bc = has_phys_bc || touch;
+		}
+	    }
+	    
+	    if (has_phys_bc)
+	    {
+		statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+		
+		if (is_periodic) // fix up corner
+		{
+		    Box GrownDomain = domain;
+		    
+		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    {
+			if (!geom.isPeriodic(dir))
+			{
+			    const int lo = domainlo[dir] - bx.smallEnd(dir);
+			    const int hi = bx.bigEnd(dir) - domainhi[dir];
+			    if (lo > 0) GrownDomain.growLo(dir,lo);
+			    if (hi > 0) GrownDomain.growHi(dir,hi);
+			}
+		    }
+		    
+		    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+		    {
+			if (!geom.isPeriodic(dir)) continue;
+			
+			Box lo_slab = bx;
+			Box hi_slab = bx;
+			lo_slab.shift(dir, domain.length(dir));
+			hi_slab.shift(dir,-domain.length(dir));
+			lo_slab &= GrownDomain;
+			hi_slab &= GrownDomain;
+			
+			if (lo_slab.ok())
+			{
+			    lo_slab.shift(dir,-domain.length(dir));
+			    
+			    tmp.resize(lo_slab,num_comp);
+			    tmp.copy(dest,dest_comp,0,num_comp);
+			    tmp.shift(dir,domain.length(dir));
+			    
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    
+			    tmp.shift(dir,-domain.length(dir));
+			    dest.copy(tmp,0,dest_comp,num_comp);
+			}
+			
+			if (hi_slab.ok())
+			{
+			    hi_slab.shift(dir,domain.length(dir));
+			    
+			    tmp.resize(hi_slab,num_comp);
+			    tmp.copy(dest,dest_comp,0,num_comp);
+			    tmp.shift(dir,-domain.length(dir));
+			    
+			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    
+			    tmp.shift(dir,domain.length(dir));
+			    dest.copy(tmp,0,dest_comp,num_comp);
+			}
+		    }
+		}
+	    }
+	}
+    }
+}
+
 
 void StateData::AddProcsToComp(const StateDescriptor &sdPtr,
                                int ioProcNumSCS, int ioProcNumAll,
@@ -780,7 +945,5 @@ void StateData::Check() const
         old_data->DistributionMap().Check();
       }
 }
-
-
 
 

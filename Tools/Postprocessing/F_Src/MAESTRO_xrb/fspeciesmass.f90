@@ -7,11 +7,11 @@
 
 program fspeciesmass
 
-  use f2kcli
   use bl_space, only: MAX_SPACEDIM
   use bl_constants_module, only: ZERO, HALF
   use bl_IO_module
   use plotfile_module
+
   implicit none
 
   type(plotfile) pf

@@ -150,6 +150,14 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 }
 
 void
+Geometry::FillPeriodicBoundary_nowait (MultiFab& mf,
+				       bool      do_corners,
+				       bool      local) const
+{
+    FillPeriodicBoundary_nowait(mf,0,mf.nComp(),do_corners,local);
+}
+
+void
 Geometry::SumPeriodicBoundary (MultiFab& mf) const
 {
     SumPeriodicBoundary(mf,0,mf.nComp());
@@ -162,18 +170,36 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners,
                                 bool      local) const
 {
-    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
-
     BL_PROFILE("Geometry::FillPeriodicBoundary()");
 
     if ( local )
     {
-        //
-        // Do what you can with the FABs you own.  No parallelism allowed.
-        //
+	FillPeriodicBoundary_local(mf, scomp, ncomp, corners);
+    }
+    else
+    {
+	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+        BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
+	BoxLib::FillPeriodicBoundary_finish(*this, mf);
+    }
+}
 
-	Box TheDomain = Domain();
-	TheDomain.convert(mf.boxArray().ixType());
+void
+Geometry::FillPeriodicBoundary_local (MultiFab& mf,
+				      int       scomp,
+				      int       ncomp,
+				      bool      corners) const
+{
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+
+    BL_PROFILE("Geometry::FillPeriodicBoundary_local()");
+
+    //
+    // Do what you can with the FABs you own.  No parallelism allowed.
+    //
+    
+    Box TheDomain = Domain();
+    TheDomain.convert(mf.boxArray().ixType());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -189,8 +215,8 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
             if (TheDomain.contains(dst)) continue;
 
-            // Turn off sharing among threas because this MFIter is inside another MFIter
-	    unsigned char flags = MFIter::NoSharing;
+            // Turn off sharing among threads because this MFIter is inside another MFIter
+	    unsigned char flags = MFIter::AllBoxes || MFIter::NoTeamBarrier;
             for (MFIter mfisrc(mf,flags); mfisrc.isValid(); ++mfisrc)
             {
                 Box src = mfisrc.validbox() & TheDomain;
@@ -228,11 +254,33 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
             }
         }
     }
+}
+
+void
+Geometry::FillPeriodicBoundary_nowait (MultiFab& mf,
+				       int       scomp,
+				       int       ncomp,
+				       bool      corners,
+				       bool      local) const
+{
+    BL_PROFILE("Geometry::FillPeriodicBoundary_nowait()");
+
+    if ( local )
+    {
+	FillPeriodicBoundary_local(mf, scomp, ncomp, corners);
     }
     else
     {
-        BoxLib::FillPeriodicBoundary(*this, mf, scomp, ncomp, corners);
+	if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+        BoxLib::FillPeriodicBoundary_nowait(*this, mf, scomp, ncomp, corners);
     }
+}
+
+void
+Geometry::FillPeriodicBoundary_finish (MultiFab& mf) const
+{
+    if (!isAnyPeriodic() || mf.nGrow() == 0 || mf.size() == 0) return;
+    BoxLib::FillPeriodicBoundary_finish(*this, mf);
 }
 
 void
@@ -291,7 +339,16 @@ Geometry::SumPeriodicBoundary (MultiFab& mf,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = mf.color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
 	//
@@ -469,9 +526,12 @@ Geometry::PeriodicCopy (MultiFab&       dstmf,
 			const MultiFab& srcmf,
 			int             dcomp,
 			int             scomp,
-			int             ncomp) const
+			int             ncomp,
+			int             dstng,
+			int             srcng) const
 {
-    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp);
+    BoxLib::PeriodicCopy(*this, dstmf, srcmf, dcomp, scomp, ncomp, dstng, srcng,
+			 FabArrayBase::COPY);
 }
 
 Geometry::Geometry () {}
@@ -644,11 +704,13 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             dir,
                     int             ngrow) const
 {
-    dloga.define(grds,1,ngrow,Fab_noallocate);
-    for (MFIter mfi(dloga); mfi.isValid(); ++mfi)
+    dloga.define(grds,1,ngrow,Fab_allocate);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dloga,true); mfi.isValid(); ++mfi)
     {
-        const Box& gbx = BoxLib::grow(grds[mfi.index()],ngrow);
-        dloga.setFab(mfi,CoordSys::GetDLogA(gbx,dir));
+	CoordSys::SetDLogA(dloga[mfi], mfi.growntilebox(), dir);
     }
 }
 #endif
@@ -862,6 +924,9 @@ Geometry::GetFPB (const Geometry&      geom,
         return cache_it;
     }
 
+    // All workers in the same team will have identical copies of tags for local copy
+    // so that they can share work.  But for remote communication, they are all different.
+
     const int nlocal = imap.size();
     const int ng = fpb.m_ngrow;
     std::vector<std::pair<int,Box> > isects;
@@ -914,9 +979,13 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (dst_owner == MyProc) continue;  // local copy will be dealt with later
-
-		send_tags[dst_owner].push_back(FPBComTag(bx-iv, bx, k_src, k_dst));
+		if (ParallelDescriptor::sameTeam(dst_owner)) {
+		    continue; // local copy will be dealt with later
+		} else if (MyProc == dm[k_src]) {
+		    const BoxList& bl = BoxLib::boxDiff(bx, bx_dst);
+		    for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+			send_tags[dst_owner].push_back(FPBComTag(*lit-iv, *lit, k_src, k_dst));
+		}
 	    }
 	}
     }
@@ -931,6 +1000,10 @@ Geometry::GetFPB (const Geometry&      geom,
         check_remote = true;
     }
 #endif    
+
+    if (ParallelDescriptor::TeamSize() > 1) {
+	check_local = true;
+    }
 
     if ( ba.ixType().cellCentered() ) {
 	TheFPB.m_threadsafe_loc = true;
@@ -990,22 +1063,28 @@ Geometry::GetFPB (const Geometry&      geom,
 		    }
 		}
 
-		if (src_owner == MyProc) { // local copy
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-		    for (BoxList::const_iterator
-			     it_tile  = tilelist.begin(),
-			     End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
-		    {
-			TheFPB.m_LocTags->push_back(FPBComTag(*it_tile, (*it_tile)-iv,
-							      k_src, k_dst));
-		    }
-		    if (check_local) {
-			localtouch.plus(1, bx-iv);
-		    }
-		} else {
-		    recv_tags[src_owner].push_back(FPBComTag(bx, bx-iv, k_src, k_dst));
-		    if (check_remote) {
-			remotetouch.plus(1, bx-iv);
+		const BoxList& bl = BoxLib::boxDiff(bx-iv, bx_dst); // destinatin boxes
+		for (BoxList::const_iterator lit = bl.begin(); lit != bl.end(); ++lit)
+		{
+		    const Box& blbx = *lit;
+
+		    if (ParallelDescriptor::sameTeam(src_owner)) { // local copy
+			const BoxList tilelist(blbx, FabArrayBase::comm_tile_size);
+			for (BoxList::const_iterator
+				 it_tile  = tilelist.begin(),
+				 End_tile = tilelist.end();   it_tile != End_tile; ++it_tile)
+			{
+			    TheFPB.m_LocTags->push_back(FPBComTag((*it_tile)+iv, *it_tile,
+								  k_src, k_dst));
+			}
+			if (check_local) {
+			    localtouch.plus(1, blbx);
+			}
+		    } else if (MyProc == dm[k_dst]) {
+			recv_tags[src_owner].push_back(FPBComTag(blbx+iv, blbx, k_src, k_dst));
+			if (check_remote) {
+			    remotetouch.plus(1, blbx);
+			}
 		    }
 		}
 	    }

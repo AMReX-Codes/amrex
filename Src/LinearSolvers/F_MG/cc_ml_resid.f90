@@ -37,10 +37,12 @@ contains
       call ml_fill_fluxes(mgt(n)%ss(mglev), brs_flx%bmf(1,0), &
            uu(n), mgt(n)%mm(mglev), ref_ratio, &
            brs_flx%facemap, brs_flx%indxmap)
-      call bndry_reg_copy_to_other(brs_flx)
-      call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
-           mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
-           brs_flx%ofacemap, brs_flx%oindxmap, ONE)
+      if (associated(brs_flx%obmf)) then
+         call bndry_reg_copy_to_other(brs_flx)
+         call ml_interface(crse_res, brs_flx%obmf(1,0), uu(n-1), &
+              mgt(n-1)%ss(mgt(n-1)%nlevels), pdc, &
+              brs_flx%ofacemap, brs_flx%oindxmap, ONE)
+      end if
 
   end subroutine crse_fine_residual_cc
 

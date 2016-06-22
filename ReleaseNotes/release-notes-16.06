@@ -1,0 +1,40 @@
+#-*- mode: org -*-
+#+STARTUP: showall
+
+        Release Notes for BoxLib 16.06
+
+The development branch was merged into master on Jun 4, 2016.
+
+* New Features
+** Fortran bl_random_module
+There is a new random number module in Fortran BoxLib.  This module
+used C++11's random number generator, Mersenne Twister, and provides
+uniform real, normal, Poisson, and binomial distributions.  Unlike the
+other existing random number generators in both C++ and Fortran
+BoxLib, this new module allows multiple independent random number
+generators.  If this feature is needed in C++ BoxLib codes, we can
+implement this in C++ BoxLib too.
+** Multi-Color
+This allows us to split the default MPI communicator into
+boxlib.ncolors sub-communicators.  See Tutorials/MultiColor_c for an
+example of solving multiple linear systems in multiple
+sub-communicators.
+** Improved regression test script
+** Added nodal injection
+
+* Major Changes
+** FillPatchIterator and FluxRegister now use parallel copy and FillBoundary 
+functions instead of CollectData for communication if
+amr.blocking_factor is large enough (e.g., >=8 when filling 4 ghost
+cells with second spatial interpolation).  This avoids the use of
+MPI_Alltoall. 
+** DistributionMap now use std::pair<int,int> instead of int as key to the cache.
+The first of the pair is the number of boxes.  The second is used to
+represented communicator color.  However, it can also be used for
+general purpose to allow BoxArrays with the same number of boxes to
+be distributed differently.
+
+* Make System
+** removed some old machines and Intel < 13
+** Support for F90 file preprocessing in Fortran BoxLib
+** disable -g on PGI when using OpenACC for performance reason

@@ -10,7 +10,6 @@ program fconv_slopes
   use eos_module
   use network
   use bl_constants_module
-  use f2kcli
   use bl_error_module
   
   implicit none

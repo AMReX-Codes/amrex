@@ -375,7 +375,7 @@ Amr::InitAmr (int max_level_in, Array<int> n_cell_in)
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
-        blocking_factor[i] = 2;
+        blocking_factor[i] = 8;
         max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
     }
 
@@ -2209,7 +2209,7 @@ Amr::coarseTimeStep (Real stop_time)
     }
 
 
-    if (writePlotNow() || to_checkpoint)
+    if (writePlotNow() || (to_checkpoint && write_plotfile_with_checkpoint))
     {
         writePlotFile();
     }
@@ -2389,24 +2389,26 @@ Amr::regrid (int  lbase,
         (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray()) && (!initial);
 
     const int start = regrid_level_zero ? 0 : lbase+1;
+
+    bool grids_unchanged = finest_level == new_finest;
+    for (int lev = start, End = std::min(finest_level,new_finest); lev <= End; lev++) {
+	if (new_grid_places[lev] == amr_level[lev].boxArray()) {
+	    new_grid_places[lev] = amr_level[lev].boxArray();  // to avoid duplicates
+	} else {
+	    grids_unchanged = false;
+	}
+    }
+
     //
-    // If use_efficient_regrid flag is set, then test to see whether we in fact 
-    // have changed the grids at any of the levels through the regridding process.
-    // If not, then don't do anything more here.
+    // If use_efficient_regrid flag is set and grids are unchanged, then don't do anything more here.
     //
-    if (use_efficient_regrid == 1 && !regrid_level_zero && (finest_level == new_finest) )
+    if (use_efficient_regrid == 1 && !regrid_level_zero && grids_unchanged )
     {
-        bool grids_unchanged = true;
-        for (int lev = start; lev <= finest_level && grids_unchanged; lev++)
-        {
-            if (new_grid_places[lev] != amr_level[lev].boxArray()) grids_unchanged = false;
-        }
-        if (grids_unchanged) 
-        {
-            if (verbose > 0 && ParallelDescriptor::IOProcessor())
-                std::cout << "Regridding at level lbase = " << lbase << " but grids unchanged " << std::endl;
-            return;
-        }
+	if (verbose > 0 && ParallelDescriptor::IOProcessor()) {
+	    std::cout << "Regridding at level lbase = " << lbase 
+		      << " but grids unchanged " << std::endl;
+	}
+	return;
     }
 
     //
@@ -3199,8 +3201,8 @@ Amr::grid_places (int              lbase,
 		  bool ok = true;
 		  for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
 		    int len = bli->length(d);
-		  int bf = blocking_factor[levf];
-		  ok &= (len/bf) * bf == len;
+		    int bf = blocking_factor[levf];
+		    ok &= (len/bf) * bf == len;
 		  }
 		  if (!ok) {
 		    BoxLib::Warning("WARNING: New grids violate blocking factor near upper boundary");
@@ -3465,6 +3467,9 @@ Amr::initPltAndChk ()
         if (ParallelDescriptor::IOProcessor())
             BoxLib::Warning("Warning: both amr.small_plot_int and amr.small_plot_per are > 0.");
     }
+
+    write_plotfile_with_checkpoint = 1;
+    pp.query("write_plotfile_with_checkpoint",write_plotfile_with_checkpoint);
 
     stream_max_tries = 4;
     pp.query("stream_max_tries",stream_max_tries);

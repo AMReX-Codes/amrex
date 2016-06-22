@@ -56,13 +56,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
     WHICHLINUX := ALPHACLUSTER
   endif
-  ifeq ($(findstring nugigan, $(UNAMEN)), nugigan)
-    WHICHLINUX := NUGIGAN
-  else
-      ifeq ($(findstring gigan, $(UNAMEN)), gigan)
-        WHICHLINUX := GIGAN
-      endif
-  endif
   ifeq ($(findstring lens, $(UNAMEN)), lens)
     WHICHLINUX := LENS
   endif
@@ -99,9 +92,6 @@ ifeq ($(MACHINE), Linux)
   ifeq ($(findstring darter, $(UNAMEN)), darter)
     WHICHLINUX := DARTER
   endif
-  ifeq ($(findstring mothra, $(UNAMEN)), mothra)
-    WHICHLINUX := MOTHRA
-  endif
   ifeq ($(findstring orion, $(UNAMEN)), orion)
     WHICHLINUX := ORION
   endif
@@ -137,24 +127,6 @@ ifeq ($(MACHINE), Linux)
   endif
   ifeq ($(findstring cori, $(NERSC_HOST)), cori)
     WHICHLINUX := CORI
-  endif
-  ifeq ($(findstring gimantis, $(UNAMEN)), gimantis)
-    WHICHLINUX := GIMANTIS
-  endif
-  ifeq ($(findstring baragon, $(UNAMEN)), baragon)
-    WHICHLINUX := BARAGON
-  endif
-  ifeq ($(findstring hedorah, $(UNAMEN)), hedorah)
-    WHICHLINUX := HEDORAH
-  endif
-  ifeq ($(findstring godzilla, $(UNAMEN)), godzilla)
-    WHICHLINUX := GODZILLA
-  endif
-  ifeq ($(findstring kumonga, $(UNAMEN)), kumonga)
-    WHICHLINUX := KUMONGA
-  endif
-  ifeq ($(findstring intrepid, $(HOSTNAMEF)), intrepid)
-    WHICHLINUX := INTREPID
   endif
   ifeq ($(findstring cims.nyu.edu, $(HOSTNAMEF)), cims.nyu.edu)
     WHICHLINUX := DONEV
@@ -235,6 +207,13 @@ ifeq ($(MEM_PROFILE),TRUE)
   USE_CXX11 = TRUE
 endif
 
+ifndef TINY_PROFILE
+  TINY_PROFILE = FALSE
+endif
+ifdef PROFILE
+  TINY_PROFILE = FALSE
+endif
+
 ifndef TEST
   TEST = FALSE
 endif
@@ -270,6 +249,16 @@ ifndef USE_CXX11
   USE_CXX11 = FALSE
 endif
 
+ifeq ($(USE_UPCXX),TRUE)
+  USE_MPI = TRUE
+  USE_CXX11 = TRUE
+endif
+
+ifeq ($(USE_MPI3),TRUE)
+  USE_MPI = TRUE
+  USE_CXX11 = TRUE
+endif
+
 ifndef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC = FALSE
 endif
@@ -288,7 +277,7 @@ FORTPREP  	= perl $(BOXLIB_HOME)/Tools/C_scripts/strip72 -c
 # a placeholder in case we have to write something later
 F90PREP  	= cat
 MKDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/mkdep
-MODDEP		= perl $(BOXLIB_HOME)/Tools/C_scripts/moddep.pl
+MODDEP		= perl $(BOXLIB_HOME)/Tools/F_scripts/moddep.pl
 
 RANLIB = true
 
@@ -315,9 +304,11 @@ ifdef USE_GCC
     CXXOPTF    += -g -O3
     ifeq ($(THREAD_SANITIZER),TRUE)
         CXXOPTF += -fsanitize=thread
+        CXXDEBF += -fsanitize=thread
     endif
     ifeq ($(FSANITIZER),TRUE)
         CXXOPTF += -fsanitize=address -fsanitize=undefined
+	CXXDEBF += -fsanitize=address -fsanitize=undefined
     endif
     #CXXDEBF    += -g -O1 -Wall -Wno-sign-compare
     CXXDEBF    += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare
@@ -327,6 +318,8 @@ ifdef USE_GCC
     __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
     __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+
+    COMP_VERSION := $(shell $(CXX) -v 2>&1 | grep version)
 
     # ifeq ($(findstring 5, $(__gcc_major_version)), 5)
     # 	 CXXOPTF += -fno-inline
@@ -349,8 +342,8 @@ ifdef USE_GCC
     #
     # Force C to have same flags as C++.
     #
-    COPTF := $(CXXOPTF) -std=c99
-    CDEBF := $(CXXDEBF) -std=c99
+    COPTF := $(CXXOPTF) -std=gnu99
+    CDEBF := $(CXXDEBF) -std=gnu99
 
     ifeq ($(USE_CXX11),TRUE)
         CXXOPTF += -std=c++11
@@ -449,8 +442,12 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
       _f95_lib:=$(shell $(FCOMP) -print-file-name=libgfortran.so)
     endif
 
+    FCOMP_VERSION := $(shell $(FC) -v 2>&1 | grep version)
+  
+
     ifeq ($(HOST),baragon)
-       override XTRALIBS += -lgfortran
+       LIBRARY_LOCATIONS += $(shell $(FCOMP) -print-file-name=libgfortran.so)
+       override XTRALIBS += -lgfortran -lquadmath
     else
     ifeq ($(findstring cims.nyu.edu, $(HOSTNAME)), cims.nyu.edu)
        XTRALIBS += -lgfortran
@@ -468,9 +465,11 @@ ifeq ($(findstring gfortran, $(FCOMP)), gfortran)
     ifeq ($(FSANITIZER),TRUE)
         FOPTF += -fsanitize=address -fsanitize=undefined
         fOPTF += -fsanitize=address -fsanitize=undefined
+        FDEBF += -fsanitize=address -fsanitize=undefined
+        fDEBF += -fsanitize=address -fsanitize=undefined
     endif
-    FDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
-    fDEBF += -g -O1 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    FDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
+    fDEBF += -g -O0 -ffixed-line-length-0 -fbounds-check -fbacktrace -Wuninitialized -Wno-maybe-uninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan
 
    ifeq ($(USE_OMP),TRUE)
     FOPTF += -fopenmp
@@ -548,58 +547,20 @@ ifeq ($(COMP),Intel)
    endif
 
    __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
-   ifeq ($(findstring Version 10.0, $(__icc_version)), Version 10.0)
-       ICC_VERSION := 10.0
-       ICC_MAJOR_VERSION := 10
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 10.1, $(__icc_version)), Version 10.1)
-       ICC_VERSION := 10.1
-       ICC_MAJOR_VERSION := 10
-       ICC_MINOR_VERSION := 1
-       CXXDEBF += -Wunused-variable
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 11.0, $(__icc_version)), Version 11.0)
-       ICC_VERSION := 11.0
-       ICC_MAJOR_VERSION := 11
-       ICC_MINOR_VERSION := 0
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 11.1, $(__icc_version)), Version 11.1)
-       ICC_VERSION := 11.1
-       ICC_MAJOR_VERSION := 11
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-   else
-   ifeq ($(findstring Version 12.1, $(__icc_version)), Version 12.1)
-       ICC_VERSION := 12.1
-       ICC_MAJOR_VERSION := 12
-       ICC_MINOR_VERSION := 1
-       _icpc := icpc
-   endif
-   endif
-   endif
-   endif
-   endif
+
+   COMP_VERSION := $(shell $(_icpc) -V 2>&1 | grep 'Version')                    
 
    ifeq ($(USE_OMP),TRUE)
      CXXOPTF += -openmp
      CXXDEBF += -openmp
      COPTF += -openmp
      CDEBF += -openmp
-     ifeq ($(ICC_MAJOR_VERSION),11)
-        CXXOPTF += -openmp-report2
-        CXXDEBF += -openmp-report2
-     endif
    endif
 
-   ifeq ($(ICC_MAJOR_VERSION),9)
-     CXXDEBF += -O0
-   endif
    CXX = $(_icpc) -Wno-deprecated
    CC  = $(_icc)
+
+   # these were never defined for Intel > 12
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
@@ -623,47 +584,12 @@ ifeq ($(FCOMP),Intel)
    endif
 
    __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
-   ifneq ($(IFC_MAJOR_VERSION),7)
-     _ifc = ifort
-     __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
-     override XTRALIBS += -lifcore
+   _ifc = ifort
+   override XTRALIBS += -lifcore
 #    override XTRALIBS += -lguide
 #    CAR: Might be needed ^^^^^^^ in some instances.
-   else
-     override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
-   endif
 
-   ifeq ($(findstring Version 10.0, $(__ifc_version)), Version 10.0)
-       IFC_VERSION := 10.0
-       IFC_MAJOR_VERSION := 10
-       IFC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 10.1, $(__ifc_version)), Version 10.1)
-       IFC_VERSION := 10.1
-       IFC_MAJOR_VERSION := 10
-       IFC_MINOR_VERSION := 1
-       FDEBF += -warn unused
-       fDEBF += -warn unused
-   else
-   ifeq ($(findstring Version 11.0, $(__ifc_version)), Version 11.0)
-       IFC_VERSION := 11.0
-       IFC_MAJOR_VERSION := 11
-       IFC_MINOR_VERSION := 0
-   else
-   ifeq ($(findstring Version 11.1, $(__ifc_version)), Version 11.1)
-       IFC_VERSION := 11.1
-       IFC_MAJOR_VERSION := 11
-       IFC_MINOR_VERSION := 1
-   else
-   ifeq ($(findstring Version 12.1, $(__ifc_version)), Version 12.1)
-       IFC_VERSION := 12.1
-       IFC_MAJOR_VERSION := 12
-       IFC_MINOR_VERSION := 1
-   endif
-   endif
-   endif
-   endif
-   endif
+   FCOMP_VERSION := $(shell $(_ifc) -V 2>&1 | grep 'Version')                    
 
    ifeq ($(USE_OMP),TRUE)
      FOPTF += -openmp
@@ -674,10 +600,10 @@ ifeq ($(FCOMP),Intel)
 
    FDEBF += -g # -u -check all -warn all
    fDEBF += -g # -u -check all -warn all 
-   ifneq ($(IFC_MAJOR_VERSION), 10)
-     FOPTF += -g
-     fOPTF += -g
-   endif
+
+
+   FOPTF += -g
+   fOPTF += -g
 
    ifeq ($(WHICHLINUX), CORI)
      FOPTF += -O2 -ip -g -qopt-report=5 -qopt-report-phase=vec -parallel-source-info=2 #-qoverride-limits
@@ -697,21 +623,9 @@ ifeq ($(FCOMP),Intel)
      endif
    endif
 
-   ifneq ($(IFC_MAJOR_VERSION), 9)
-     ifneq ($(IFC_MAJOR_VERSION), 10)
-     ifneq ($(IFC_MAJOR_VERSION), 11)
-       FDEBF += -CB #-warn all -warn nounused
-       fDEBF += -CB #-warn all -warn nounused 
-     endif
-     endif
-   else
-     FDEBF += -check all -traceback -debug extended
-     fDEBF += -check all -traceback -debug extended
-     FDEBF += -O0
-     fDEBF += -O0
-#     FDEBF += -ftrapuv
-#     fDEBF += -ftrapuv
-   endif
+   FDEBF += -CB #-warn all -warn nounused
+   fDEBF += -CB #-warn all -warn nounused 
+
    ifneq ($(UNAMEN),maudib.ucolick.org)
       LIBRARY_LOCATIONS += $(shell echo `which ifort | sed 's;bin/ifort;;'`lib)
    endif
@@ -795,7 +709,12 @@ ifeq ($(PROFILE),TRUE)
         ProfSuffix	:= .PROF
     endif
 else
-    ProfSuffix	:=
+    ifeq ($(TINY_PROFILE),TRUE)
+        CPPFLAGS    += -DBL_TINY_PROFILING
+        ProfSuffix	:= .TPROF
+    else
+        ProfSuffix	:=
+    endif
 endif
 
 ifeq ($(MEM_PROFILE),TRUE)
@@ -840,13 +759,36 @@ ifeq ($(USE_ARRAYVIEW), TRUE)
   VPATH_LOCATIONS   += $(ARRAYVIEWDIR)
 endif
 
-
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI
-    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
 else
     MPISuffix	:=
+endif
+
+ifeq ($(USE_MPI3),TRUE)
+    MPISuffix := .MPI3
+    CPPFLAGS  += -DBL_USE_MPI3
+endif
+
+ifeq ($(USE_MPI),TRUE)
+    include $(BOXLIB_HOME)/Tools/C_mk/Make.mpi
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+    UPCXXSuffix := .UPCXX
+    CPPFLAGS    += -DBL_USE_UPCXX
+    include $(BOXLIB_HOME)/Tools/C_mk/Make.upcxx
+else
+    UPCXXSuffix :=
+endif
+
+ifeq ($(USE_UPCXX),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+else
+  ifeq ($(USE_MPI3),TRUE)
+    CPPFLAGS  += -DBL_USE_TEAM 
+  endif
 endif
 
 ifeq ($(USE_IPM),TRUE)
@@ -1000,7 +942,8 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(FCOMPSuffix)$(LevelSetSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(ITACSuffix)$(BTSuffix)$(MAESTROSuffix)$(SDCSuffix)$(WBARSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ThreadsSuffix)$(IPMSuffix)$(DUMPISuffix)$(USERSuffix)
+
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib,					\

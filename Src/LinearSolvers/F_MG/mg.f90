@@ -781,7 +781,7 @@ contains
     integer, intent(in) :: lev
     real(dp_t), intent(in), optional :: eps_in
 
-    integer             :: i,stat,communicator
+    integer             :: i,stat,communicator,tag
     logical             :: singular_test,do_diag
     real(dp_t)          :: nrm, eps
 
@@ -887,6 +887,10 @@ contains
     case default
        call bl_error("MG_TOWER_BOTTOM_SOLVE: no such solver: ", mgt%bottom_solver)
     end select
+
+    if (associated(mgt%bottom_comm)) then
+       tag = parallel_tag(reset=.true.)
+    end if
 
     if ( stat /= 0 ) then
        if ( parallel_IOProcessor() .and. mgt%verbose > 0 ) then

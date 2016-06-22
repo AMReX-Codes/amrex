@@ -40,7 +40,7 @@
 #include <BLBackTrace.H>
 #include <MemPool.H>
 
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
     void bl_fortran_mpi_comm_free ();
@@ -273,6 +273,18 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
     exename += argv[0];
 #endif
 
+#ifdef BL_USE_UPCXX
+    upcxx::init(&argc, &argv);
+    if (upcxx::myrank() != ParallelDescriptor::MyProc())
+	BoxLib::Abort("UPC++ rank != MPI rank");
+#endif
+
+#ifdef BL_USE_MPI3
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::cp_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
+    BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fpb_win) );
+#endif
+
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
@@ -331,7 +343,9 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
                 ParmParse::Initialize(argc-2,argv+2,argv[1]);
             }
         }
+    }
 
+    {
 	ParmParse pp("boxlib");
 	pp.query("v", verbose);
 	pp.query("verbose", verbose);
@@ -354,7 +368,12 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 #endif
     }
 
+    ParallelDescriptor::StartTeams();
+
+    ParallelDescriptor::StartSubCommunicator();
+
     mempool_init();
+
 #endif
 
     std::cout << std::setprecision(10);
@@ -369,7 +388,7 @@ BoxLib::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi
 	}
     }
 
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
 #endif
@@ -437,8 +456,16 @@ BoxLib::Finalize (bool finalize_parallel)
     MemProfiler::report("Final");
 #endif
     
+    ParallelDescriptor::EndTeams();
+
+    ParallelDescriptor::EndSubCommunicator();
+
+#ifdef BL_USE_UPCXX
+    upcxx::finalize();
+#endif
+
     if (finalize_parallel) {
-#ifdef BL_USE_FORTRAN_MPI
+#if defined(BL_USE_FORTRAN_MPI) || defined(BL_USE_F_INTERFACES)
 #ifdef IN_TRANSIT
 	int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
 	bl_fortran_sidecar_mpi_comm_free(fcomm);
@@ -447,7 +474,10 @@ BoxLib::Finalize (bool finalize_parallel)
 	bl_fortran_mpi_comm_free();
 #endif
 #endif
+    /* Don't shut down MPI if GASNet is still using MPI */
+#ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
+#endif
     }
 }
 

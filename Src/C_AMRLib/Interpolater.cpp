@@ -8,7 +8,7 @@
 #include <INTERP_F.H>
 
 //
-// Note that in 1D, CellConservativeLinear and CellQuadratic
+// Note that in 1D, CellConservativeProtected and CellQuadratic
 // interpolation are turned off in a hardwired way.
 //
 
@@ -25,6 +25,24 @@ CellConservativeProtected protected_interp;
 CellConservativeQuartic   quartic_interp;
 
 Interpolater::~Interpolater () {}
+
+InterpolaterBoxCoarsener
+Interpolater::BoxCoarsener (const IntVect& ratio)
+{ 
+    return InterpolaterBoxCoarsener(this, ratio);
+}
+
+Box
+InterpolaterBoxCoarsener::doit (const Box& fine) const 
+{
+    return mapper->CoarseBox(fine, ratio);
+}
+
+BoxConverter*
+InterpolaterBoxCoarsener::clone () const
+{
+    return new InterpolaterBoxCoarsener(mapper, ratio);
+}
 
 NodeBilinear::~NodeBilinear () {}
 
@@ -252,7 +270,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeLinear::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
     //
     // Make box which is intersection of fine_region and domain of fine.
@@ -410,7 +427,6 @@ CellQuadratic::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellQuadratic::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -603,7 +619,6 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeProtected::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -736,7 +751,6 @@ CellConservativeProtected::protect (const FArrayBox& crse,
 {
     BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);
-    BL_ASSERT(fine_geom.Domain().contains(fine_region));
 
     //
     // Make box which is intersection of fine_region and domain of fine.

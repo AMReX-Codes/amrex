@@ -33,7 +33,7 @@ contains
   ! only the first row of arguments is required; everything else is optional and will
   ! revert to defaults in mg_tower.f90 if not passed in
   subroutine ml_cc_solve_1(mla,rh,full_soln,fine_flx,alpha,beta,dx,the_bc_tower,bc_comp, &
-                           nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
+                           base_level_in, crse_ratio_in, nu1, nu2, nuf, nub, cycle_type, smoother, nc, ng, &
                            max_nlevel, max_bottom_nlevel, min_width, max_iter, &
                            abort_on_max_iter, eps, abs_eps, bottom_solver, &
                            bottom_max_iter, bottom_solver_eps, max_L0_growth, &
@@ -53,6 +53,8 @@ contains
     integer        , intent(in   ) :: bc_comp
 
     ! optional arguments
+    integer, intent(in), optional :: base_level_in
+    integer, intent(in), optional :: crse_ratio_in
     integer, intent(in), optional :: nu1
     integer, intent(in), optional :: nu2
     integer, intent(in), optional :: nuf
@@ -84,6 +86,7 @@ contains
 
     ! local
     logical :: is_parabolic
+    integer :: base_level, crse_ratio
 
     type(mg_tower) :: mgt(mla%nlevel)
 
@@ -97,6 +100,12 @@ contains
 
     real(dp_t) ::  xa(mla%dim),  xb(mla%dim)
     real(dp_t) :: pxa(mla%dim), pxb(mla%dim)
+
+    base_level = 1
+    if (present(base_level_in)) base_level = base_level_in
+
+    crse_ratio = 2
+    if (present(crse_ratio_in)) crse_ratio = crse_ratio_in
 
     dm = mla%dim
     nlevs = mla%nlevel
@@ -270,8 +279,13 @@ contains
           xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
           xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
        else
-          xa = ZERO
-          xb = ZERO
+          if (base_level .gt. 1) then
+             xa = HALF*crse_ratio*mgt(n)%dh(:,mgt(n)%nlevels)
+             xb = HALF*crse_ratio*mgt(n)%dh(:,mgt(n)%nlevels)
+          else 
+             xa = ZERO
+             xb = ZERO
+          end if
        end if
 
        ! pxa and pxb tell the stencil how far away the ghost cell values are in physical
@@ -312,7 +326,7 @@ contains
     type(mg_tower ), intent(inout) :: mgt(:)
     type(multifab ), intent(inout) :: rh(:)
     type(multifab ), intent(inout) :: full_soln(:)
-    type(bndry_reg), intent(inout) :: fine_flx(2:)
+    type(bndry_reg), intent(inout) :: fine_flx(:)
     integer        , intent(in   ) :: do_diagnostics
 
     integer         :: i, dm, n, nlevs, mglev
@@ -329,7 +343,7 @@ contains
 
     !   Put boundary conditions of soln in fine_flx to get correct grad(phi) at
     !     crse-fine boundaries (after soln correctly interpolated in ml_cc)
-    do n = 2,nlevs
+    do n = 1,nlevs
        mglev = mgt(n)%nlevels
        do i = 1, dm
           call ml_fill_fine_fluxes(mgt(n)%ss(mglev), fine_flx(n)%bmf(i,0), &

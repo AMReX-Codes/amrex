@@ -48,7 +48,7 @@ GetOptions(
 #print "incdirs = @incdirs\n";
 $odir = $odir . $pathsep;
 
-my @suffixes = qw( .f90 .f .f95 .for );
+my @suffixes = qw( .f90 .f .f95 .for .F90 );
 push @suffixes, @forexts;
 push @vpath, @srcpaths;
 
@@ -161,6 +161,8 @@ sub find_uses {
 	while ( $line =~ /(^|;)\s*use\s+(\w+)/ig ) {
 	    my $use = $2;
 	    next if (lc($use) eq "iso_c_binding");
+	    next if (lc($use) eq "iso_fortran_env");
+	    next if (lc($use) eq "hdf5");
 	    $self->{'uses'}{$use} = 1;
 	    print "#\t\tuses = $use\n" if $debug;
 	}

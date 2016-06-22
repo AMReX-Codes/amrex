@@ -33,6 +33,14 @@ BoxList::catenate (BoxList& blist)
     BL_ASSERT(blist.isEmpty());
 }
 
+void
+BoxList::splice_front (BoxList& blist)
+{
+    BL_ASSERT(ixType() == blist.ixType());
+    lbox.splice(lbox.begin(), blist.lbox);
+    BL_ASSERT(blist.isEmpty());
+}
+
 BoxList&
 BoxList::remove (const Box& bx)
 {
@@ -309,7 +317,12 @@ BoxList::complementIn (const Box&     b,
 {
     BL_ASSERT(bl.ixType() == b.ixType());
 
-    if (bl.size() == 1)
+    if (bl.size() == 0)
+    {
+	clear();
+	push_back(b);
+    }
+    else if (bl.size() == 1)
     {
         *this = BoxLib::boxDiff(b,bl.front());
     }
