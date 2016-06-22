@@ -1502,7 +1502,7 @@ MFIter::Initialize ()
     }
     else if (flags & AllBoxes)  // a very special case
     {
-	index_map    = &(fabArray.IndexMap());
+	index_map    = &(fabArray.IndexArray());
 	currentIndex = 0;
 	beginIndex   = 0;
 	endIndex     = index_map->size();
@@ -1706,8 +1706,8 @@ MFGhostIter::Initialize ()
     Array<int> allindex;
     Array<int> alllocalindex;
 
-    for (int i=0; i < fabArray.IndexMap().size(); ++i) {
-	int K = fabArray.IndexMap()[i];
+    for (int i=0; i < fabArray.IndexArray().size(); ++i) {
+	int K = fabArray.IndexArray()[i];
 	const Box& vbx = fabArray.box(K);
 	const Box& fbx = fabArray.fabbox(K);
 
