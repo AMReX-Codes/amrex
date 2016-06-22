@@ -196,6 +196,11 @@ public:
     FArrayBox* GetVolume (const Box& region) const;
     //
     // Compute d(log(A))/dr at cell centers in given region and
+    // place them into input FAB.
+    //
+    void SetDLogA (FArrayBox& dloga, const Box& region, int dir) const;
+    //
+    // Compute d(log(A))/dr at cell centers in given region and
     // return the results in the resize()d input FAB.
     //
     void GetDLogA (FArrayBox& dloga, const Box& region, int dir) const;

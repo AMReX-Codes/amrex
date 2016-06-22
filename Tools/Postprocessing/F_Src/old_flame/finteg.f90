@@ -6,11 +6,13 @@ program fdata
 end program fdata
 
 subroutine process_rate
-  use f2kcli
+
   use bl_space
   use bl_IO_module
   use plotfile_module
+
   implicit none
+
   real(kind=dp_t), allocatable :: tslice(:)
   real(kind=dp_t), allocatable :: bslice(:)
   real(kind=dp_t), allocatable :: allda(:,:)

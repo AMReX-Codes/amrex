@@ -27,6 +27,8 @@ ifeq ($(COMP),Cray)
   CXX = CC
   CC  = cc
 
+  COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'Version')
+
   CXXOPTF += -O2 -h nomessage=7221 -hlist=a
   CXXDEBF += -g -O0
 
@@ -61,8 +63,11 @@ ifeq ($(COMP),Cray)
 else
 ifeq ($(COMP),PGI)
   CXX = pgc++
+  CC  = pgcc
   CXXDEBF += -g -O0
 
+  COMP_VERSION := $(shell $(CXX) -V 2>&1 | grep 'target')
+      
   ifeq ($(BL_FAST),TRUE)
     ifeq ($(WHICHLINUX), TITAN)
       CXXOPTF += -gopt  -O
@@ -86,10 +91,16 @@ ifeq ($(COMP),PGI)
   endif
 
   ifeq ($(USE_ACC),TRUE)
-    CXXOPTF += -acc
-    CXXDEBF += -acc
-    COPTF += -acc
-    CDEBF += -acc
+    CXXOPTF += -fast -acc -ta=nvidia -mcmodel=medium
+    CXXDEBF += -fast -acc -ta=nvidia -mcmodel=medium
+    COPTF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
+    CDEBF += -fast -acc -ta=nvidia -lcudart -mcmodel=medium
+    CXXEXEFLAGS += -lcudart
+  else
+    CXXOPTF += -noacc
+    CXXDEBF += -noacc
+    COPTF += -noacc
+    CDEBF += -noacc
   endif
 
   ifeq ($(USE_CXX11),TRUE)
@@ -146,6 +157,9 @@ ifeq ($(FCOMP),Cray)
   FC  = ftn
   fC  = ftn
   F90 = ftn 
+
+  FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'Version')
+
   FFLAGS += -hlist=a
   fFLAGS += -N 132 -I$(objEXETempDir) -J $(objEXETempDir) -em -hlist=a
   F90FLAGS += -hlist=a
@@ -197,6 +211,8 @@ ifeq ($(FCOMP),PGI)
   FC := pgf95
   fC := $(FC)
 
+  FCOMP_VERSION := $(shell $(FC) -V 2>&1 | grep 'target')
+
   ifeq ($(BL_FAST),TRUE)
     FOPTF  += -fast
     fOPTF  += -fast
@@ -213,17 +229,24 @@ ifeq ($(FCOMP),PGI)
   endif
 
   ifeq ($(USE_ACC),TRUE)
-    FOPTF += -acc -Minfo=acc
-    fOPTF += -acc -Minfo=acc
-    FDEBF += -acc -Minfo=acc
-    fDEBF += -acc -Minfo=acc
+    FOPTF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    fOPTF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    FDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+    fDEBF += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+  else
+    FOPTF += -noacc
+    fOPTF += -noacc
+    FDEBF += -noacc
+    fDEBF += -noacc
   endif
 
   fFLAGS += -Mextend -module $(objEXETempDir) -I$(objEXETempDir)
-  FOPTF += -gopt
-  fOPTF += -gopt
-  FDEBF += -g #-C
-  fDEBF += -g #-C
+  ifneq ($(USE_ACC), TRUE)
+    FOPTF += -gopt
+    fOPTF += -gopt
+    FDEBF += -g #-C
+    fDEBF += -g #-C
+  endif
 #  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
 else
 ifeq ($(FCOMP),Intel)
@@ -435,6 +458,10 @@ ifeq ($(WHICHLINUX), CORI)
     F90 := ftn
     fC  := ftn
   endif
+#  ifeq ($(USE_MPI3),TRUE)
+  # http://www.nersc.gov/users/computational-systems/edison/updates-and-status/open-issues/mpi-3-atomic-performance-degradation-since-cray-mpich7-3-0/
+#    override XTRALIBS += -Wl,--whole-archive,-ldmapp,--no-whole-archive
+#  endif
 endif
 
 ifeq ($(WHICHLINUX), EDISON)
@@ -451,6 +478,10 @@ ifeq ($(WHICHLINUX), EDISON)
   endif
   ifeq ($(USE_DUMPI),TRUE)
     LIBRARIES += $(DUMPI_LINK_OPTS)
+  endif
+  ifeq ($(USE_MPI3),TRUE)
+  # http://www.nersc.gov/users/computational-systems/edison/updates-and-status/open-issues/mpi-3-atomic-performance-degradation-since-cray-mpich7-3-0/
+    override XTRALIBS += -Wl,--whole-archive,-ldmapp,--no-whole-archive
   endif
 endif
 

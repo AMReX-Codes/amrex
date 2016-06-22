@@ -158,22 +158,14 @@ FArrayBox::FArrayBox ()
 }
 
 FArrayBox::FArrayBox (const Box& b,
-                      int        n)
+                      int        n,
+		      bool       alloc,
+		      bool       shared)
     :
-    BaseFab<Real>(b,n)
+    BaseFab<Real>(b,n,alloc,shared)
 {
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
     if (fabio == 0) FArrayBox::Initialize();
-
-    if (init_snan) {
-#ifdef BL_USE_DOUBLE
-	array_init_snan(dataPtr(), truesize);
-#endif
-    } else if (do_initval) {
-	setVal(initval);
-    }
+    if (alloc) initVal();
 }
 
 FArrayBox&
@@ -181,6 +173,18 @@ FArrayBox::operator= (const Real& v)
 {
     BaseFab<Real>::operator=(v);
     return *this;
+}
+
+void
+FArrayBox::initVal ()
+{
+    if (init_snan) {
+#ifdef BL_USE_DOUBLE
+	array_init_snan(dataPtr(), truesize);
+#endif
+    } else if (do_initval) {
+	setVal(initval);
+    }
 }
 
 bool 
@@ -314,14 +318,7 @@ FArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<Real>::resize(b,N);
-
-    if (init_snan) {
-#ifdef BL_USE_DOUBLE
-	array_init_snan(dataPtr(), truesize);
-#endif
-    } else if (do_initval) {
-        setVal(initval);
-    }
+    initVal();
 }
 
 FABio::Format

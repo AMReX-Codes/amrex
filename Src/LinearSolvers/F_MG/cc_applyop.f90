@@ -14,7 +14,7 @@ module cc_applyop_module
 
 contains
 
-  subroutine cc_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,stencil_order_in)
+  subroutine cc_applyop(mla,res,phi,alpha,beta,dx,the_bc_tower,bc_comp,base_level_in,crse_ratio_in,stencil_order_in)
 
     use mg_module             , only: mg_tower, mg_tower_build, mg_tower_destroy
     use cc_stencil_fill_module, only: stencil_fill_cc
@@ -26,7 +26,9 @@ contains
     real(dp_t)     , intent(in   ) :: dx(:,:)
     type(bc_tower) , intent(in   ) :: the_bc_tower
     integer        , intent(in   ) :: bc_comp
-    integer, intent(in), optional :: stencil_order_in
+    integer, intent(in), optional  :: base_level_in
+    integer, intent(in), optional  :: crse_ratio_in
+    integer, intent(in), optional  :: stencil_order_in
 
     type(layout  ) :: la
     type(box     ) :: pd
@@ -37,6 +39,8 @@ contains
     type(mg_tower)  :: mgt(mla%nlevel)
     integer         :: d, dm, nlevs
     integer         :: stencil_order
+    integer         :: base_level
+    integer         :: crse_ratio
 
     ! MG solver defaults
     integer    :: n
@@ -52,6 +56,12 @@ contains
 
     stencil_order = 2
     if (present(stencil_order_in)) stencil_order = stencil_order_in
+
+    base_level = 1
+    if (present(base_level_in)) base_level = base_level_in
+
+    crse_ratio = 2
+    if (present(crse_ratio_in)) crse_ratio = crse_ratio_in
 
     do n = nlevs, 1, -1
 
@@ -79,12 +89,19 @@ contains
           call multifab_copy_c(edge_coeffs(d),1,beta(n,d),1,nc=1,ng=nghost(beta(n,d)))
        end do
 
+       ! xa and xb tell the stencil how far away the ghost cell values are in physical
+       ! dimensions from the edge of the grid
        if (n > 1) then
           xa = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
           xb = HALF*mla%mba%rr(n-1,:)*mgt(n)%dh(:,mgt(n)%nlevels)
        else
-          xa = ZERO
-          xb = ZERO
+          if (base_level .gt. 1) then
+             xa = HALF*crse_ratio*mgt(n)%dh(:,mgt(n)%nlevels)
+             xb = HALF*crse_ratio*mgt(n)%dh(:,mgt(n)%nlevels)
+          else
+             xa = ZERO
+             xb = ZERO
+          end if
        end if
 
        pxa = ZERO

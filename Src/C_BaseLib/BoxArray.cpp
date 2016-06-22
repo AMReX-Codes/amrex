@@ -49,7 +49,9 @@ BoxArray::BoxArray (const BoxList& bl)
     :
     m_typ(bl.ixType()),
     m_ref(new BoxArray::Ref(bl))
-{}
+{
+    type_update();
+}
 
 BoxArray::BoxArray (size_t n)
     :
@@ -95,10 +97,16 @@ BoxArray::uniqify ()
     m_ref = new BoxArray::Ref(*m_ref);
 }
 
-int
+long
 BoxArray::size () const
 {
     return m_ref->m_abox.size();
+}
+
+long
+BoxArray::capacity () const
+{
+    return m_ref->m_abox.capacity();
 }
 
 bool
@@ -114,7 +122,7 @@ BoxArray::clear ()
 }
 
 void
-BoxArray::resize (int len)
+BoxArray::resize (long len)
 {
     if (!m_ref.unique())
         uniqify();
@@ -368,6 +376,20 @@ BoxArray::coarsen (const IntVect& iv)
 #endif
     for (int i = 0; i < N; i++)
         m_ref->m_abox[i].coarsen(iv);
+    return *this;
+}
+
+BoxArray&
+BoxArray::growcoarsen (int n, const IntVect& iv)
+{
+    if (!m_ref.unique())
+        uniqify();
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++)
+        m_ref->m_abox[i].grow(n).coarsen(iv);
     return *this;
 }
 
@@ -873,44 +895,7 @@ BoxArray::intersections (const Box&                         bx,
 {
     // called too many times  BL_PROFILE("BoxArray::intersections()");
 
-    BoxHashMapType& BoxHashMap = m_ref->hash;
-
-#ifdef _OPENMP
-    #pragma omp critical(intersections_lock)
-#endif
-    {
-        if (BoxHashMap.empty() && size() > 0)
-        {
-            BL_ASSERT(bx.ixType() == m_typ);
-            //
-            // Calculate the bounding box & maximum extent of the boxes.
-            //
-            Box boundingbox = BoxLib::surroundingNodes(m_ref->m_abox[0]);
-	    IntVect maxext = boundingbox.size();
-
-	    const int N = size();
-
-	    for (int i = 1; i < N; ++i)
-            {
-                const Box& bx = BoxLib::surroundingNodes(m_ref->m_abox[i]);
-		boundingbox.minBox(bx);
-                maxext = BoxLib::max(maxext, bx.size());
-            }
-
-            boundingbox.coarsen(maxext);
-
-            m_ref->crsn = maxext;
-            m_ref->bbox = boundingbox;
-
-            for (int i = 0; i < N; i++)
-            {
-                BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
-            }
-#ifdef BL_MEM_PROFILING
-	    m_ref->updateMemoryUsage_hash(1);
-#endif
-        }
-    }
+    BoxHashMapType& BoxHashMap = getHashMap();
 
     isects.resize(0);
 
@@ -948,6 +933,101 @@ BoxArray::intersections (const Box&                         bx,
             }
         }
     }
+}
+
+BoxList
+BoxArray::complement (const Box& bx) const
+{
+    BoxList bl(bx);
+
+    if (!empty()) 
+    {
+	BoxHashMapType& BoxHashMap = getHashMap();
+
+	BL_ASSERT(bx.ixType() == m_typ);
+
+	Box           cbx = BoxLib::coarsen(bx, m_ref->crsn);
+        const IntVect& sm = BoxLib::max(cbx.smallEnd()-1, m_ref->bbox.smallEnd());
+        const IntVect& bg = BoxLib::min(cbx.bigEnd(),     m_ref->bbox.bigEnd());
+
+        cbx = Box(sm,bg);
+
+        ConstBoxHashMapIter TheEnd = BoxHashMap.end();
+
+	for (IntVect iv = cbx.smallEnd(), End = cbx.bigEnd(); 
+	     iv <= End && bl.isNotEmpty(); 
+	     cbx.next(iv))
+        {
+            ConstBoxHashMapIter it = BoxHashMap.find(iv);
+
+            if (it != TheEnd)
+            {
+                for (std::vector<int>::const_iterator v_it = it->second.begin(), v_end = it->second.end(); 
+		     v_it != v_end && bl.isNotEmpty(); 
+		     ++v_it)
+                {
+                    const int  index = *v_it;
+                    const Box& isect = bx & get(index);
+
+                    if (isect.ok())
+                    {
+			for (BoxList::iterator bli = bl.begin(); bli != bl.end(); )
+			{
+			    BoxList diff = BoxLib::boxDiff(*bli, isect);
+			    bl.splice_front(diff);
+			    bl.remove(bli++);
+			}
+                    }
+                }
+            }
+        }
+    }
+
+    return bl;
+}
+
+BoxArray::BoxHashMapType&
+BoxArray::getHashMap () const
+{
+    BoxHashMapType& BoxHashMap = m_ref->hash;
+
+#ifdef _OPENMP
+    #pragma omp critical(intersections_lock)
+#endif
+    {
+        if (BoxHashMap.empty() && size() > 0)
+        {
+            //
+            // Calculate the bounding box & maximum extent of the boxes.
+            //
+            Box boundingbox = BoxLib::surroundingNodes(m_ref->m_abox[0]);
+	    IntVect maxext = boundingbox.size();
+
+	    const int N = size();
+
+	    for (int i = 1; i < N; ++i)
+            {
+                const Box& bx = BoxLib::surroundingNodes(m_ref->m_abox[i]);
+		boundingbox.minBox(bx);
+                maxext = BoxLib::max(maxext, bx.size());
+            }
+
+            boundingbox.coarsen(maxext);
+
+            m_ref->crsn = maxext;
+            m_ref->bbox = boundingbox;
+
+            for (int i = 0; i < N; i++)
+            {
+                BoxHashMap[BoxLib::coarsen(m_ref->m_abox[i].smallEnd(),maxext)].push_back(i);
+            }
+#ifdef BL_MEM_PROFILING
+	    m_ref->updateMemoryUsage_hash(1);
+#endif
+        }
+    }
+
+    return BoxHashMap;
 }
 
 //

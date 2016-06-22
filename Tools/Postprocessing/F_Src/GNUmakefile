@@ -87,14 +87,16 @@ FINCLUDE_LOCATIONS += $(Fmincs)
 
 #programs += faverage
 #programs += fcompare
-#programs += fextract
+programs += fextract
 #programs += fextrema
 #programs += fIDLdump
 #programs += fsnapshot2d
 #programs += fsnapshot3d
 #programs += ftime
 #programs += fintgvar2d
-programs += fdumpdata2d
+#programs += fdumpdata2d
+#programs += fcoarsen
+#programs += fwritecontents2d
 
 all: $(pnames)
 

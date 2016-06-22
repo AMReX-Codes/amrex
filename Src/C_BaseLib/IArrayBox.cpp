@@ -23,16 +23,18 @@ IArrayBox::IArrayBox ()
 }
 
 IArrayBox::IArrayBox (const Box& b,
-                      int        n)
+                      int        n,
+		      bool       alloc,
+		      bool       shared)
     :
-    BaseFab<int>(b,n)
+    BaseFab<int>(b,n,alloc,shared)
 {
     //
     // For debugging purposes set values to QNAN when possible.
     //
     IArrayBox::Initialize();
 
-    if ( do_initval )
+    if ( alloc && do_initval )
 	setVal(0);
 }
 

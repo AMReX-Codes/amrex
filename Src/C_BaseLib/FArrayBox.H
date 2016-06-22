@@ -215,7 +215,9 @@ public:
     // (variables) at each data point in the Box.
     //
     explicit FArrayBox (const Box& b,
-                        int        ncomp=1);
+                        int        ncomp=1,
+			bool       alloc=true,
+			bool       shared=false);
     //
     // Set the fab to the value r.
     //
@@ -224,6 +226,8 @@ public:
     //  The destructor.
     //
     ~FArrayBox ();
+    //
+    void initVal ();
     //
     // Are there any NaNs in the FAB?
     // This may return false, even if the FAB contains NaNs, if the machine

@@ -50,11 +50,11 @@
 
 program fdumpdata2d 
 
-  use f2kcli
   use bl_space, only: MAX_SPACEDIM
   use bl_constants_module, only: HALF
   use bl_IO_module
   use plotfile_module
+
   implicit none
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

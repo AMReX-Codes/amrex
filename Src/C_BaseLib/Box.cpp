@@ -451,6 +451,14 @@ Box::refine (const IntVect& ref_ratio)
     return *this;
 }
 
+Box
+BoxLib::shift (const Box& b, int dir, int nzones)
+{
+    Box result = b;
+    result.shift(dir, nzones);
+    return result;
+}
+
 //
 // Define a macro which will compute an object's length vector from
 // the smallend and bigend.  Do several versions according to dimension

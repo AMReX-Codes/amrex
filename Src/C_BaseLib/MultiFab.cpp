@@ -14,12 +14,6 @@
 #include <ParmParse.H>
 #include <PArray.H>
 
-//
-// Set default values in Initialize()!!!
-//
-bool MultiFab::check_for_nan;
-bool MultiFab::check_for_inf;
-
 namespace
 {
     bool initialized = false;
@@ -152,6 +146,31 @@ MultiFab::Divide (MultiFab&       dst,
 }
 
 void
+MultiFab::Saxpy (MultiFab&       dst,
+		 Real            a, 
+		 const MultiFab& src,
+		 int             srccomp,
+		 int             dstcomp,
+		 int             numcomp,
+		 int             nghost)
+{
+    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+
+        if (bx.ok())
+            dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+    }
+}
+
+void
 MultiFab::plus (Real val,
                 int  nghost)
 {
@@ -213,16 +232,6 @@ void
 MultiFab::Initialize ()
 {
     if (initialized) return;
-    //
-    // Set initial values!!!
-    //
-    MultiFab::check_for_nan = false;
-    MultiFab::check_for_inf = false;
-
-    ParmParse pp("multifab");
-
-    pp.query("check_for_nan", check_for_nan);
-    pp.query("check_for_inf", check_for_inf);
 
     BoxLib::ExecOnFinalize(MultiFab::Finalize);
 
@@ -249,8 +258,7 @@ MultiFab::MultiFab (const BoxArray& bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc,nodal)
 {
     Initialize();
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 MultiFab::MultiFab (const BoxArray&            bxs,
@@ -263,8 +271,18 @@ MultiFab::MultiFab (const BoxArray&            bxs,
     FabArray<FArrayBox>(bxs,ncomp,ngrow,dm,alloc,nodal)
 {
     Initialize();
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+}
 
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+MultiFab::MultiFab (const BoxArray& bxs,
+                    int             ncomp,
+                    int             ngrow,
+		    ParallelDescriptor::Color color)
+    :
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,color)
+{
+    Initialize();
+    if (SharedMemory()) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -278,11 +296,11 @@ MultiFab::define (const BoxArray& bxs,
                   int             nvar,
                   int             ngrow,
                   FabAlloc        alloc,
-		  const IntVect&  nodal)
+		  const IntVect&  nodal,
+		  ParallelDescriptor::Color color)
 {
-    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal);
-
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+    this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,alloc,nodal,color);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -294,8 +312,19 @@ MultiFab::define (const BoxArray&            bxs,
 		  const IntVect&             nodal)
 {
     this->FabArray<FArrayBox>::define(bxs,nvar,ngrow,dm,alloc,nodal);
+    if (SharedMemory() && alloc == Fab_allocate) initVal();  // else already done in FArrayBox
+}
 
-    if ((check_for_nan || check_for_inf) && alloc == Fab_allocate) setVal(0);
+void
+MultiFab::initVal ()
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+	(*this)[mfi].initVal();
+    }
 }
 
 bool 
@@ -323,7 +352,7 @@ MultiFab::contains_nan (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelDescriptor::ReduceBoolOr(r,this->color());
 
     return r;
 }
@@ -359,7 +388,7 @@ MultiFab::contains_inf (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelDescriptor::ReduceBoolOr(r,this->color());
 
     return r;
 }
@@ -368,22 +397,6 @@ bool
 MultiFab::contains_inf (bool local) const
 {
     return contains_inf(0,nComp(),nGrow(),local);
-}
-
-static
-void
-AbortOnNaN (const FArrayBox& fab)
-{
-    std::cout << fab << std::endl;
-    BoxLib::Abort("FArrayBox contains a NaN");
-}
-
-static
-void
-AbortOnInf (const FArrayBox& fab)
-{
-    std::cout << fab << std::endl;
-    BoxLib::Abort("FArrayBox contains a Inf");
 }
 
 bool 
@@ -397,15 +410,7 @@ const FArrayBox&
 MultiFab::operator[] (int K) const
 {
     BL_ASSERT(defined(K));
-
     const FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-
-    if (check_for_nan && fab.contains_nan())
-        AbortOnNaN(fab);
-
-    if (check_for_inf && fab.contains_inf())
-        AbortOnInf(fab);
-
     return fab;
 }
 
@@ -413,15 +418,7 @@ FArrayBox&
 MultiFab::operator[] (int K)
 {
     BL_ASSERT(defined(K));
-
     FArrayBox& fab = this->FabArray<FArrayBox>::get(K);
-
-    if (check_for_nan && fab.contains_nan())
-        AbortOnNaN(fab);
-
-    if (check_for_inf && fab.contains_inf())
-        AbortOnInf(fab);
-
     return fab;
 }
 
@@ -444,7 +441,7 @@ MultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelDescriptor::ReduceRealMin(mn,this->color());
 
     return mn;
 }
@@ -471,7 +468,7 @@ MultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelDescriptor::ReduceRealMin(mn,this->color());
 
     return mn;
 }
@@ -495,7 +492,7 @@ MultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelDescriptor::ReduceRealMax(mx,this->color());
 
     return mx;
 }
@@ -522,7 +519,7 @@ MultiFab::max (const Box& region,
     }
 	
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelDescriptor::ReduceRealMax(mx,this->color());
 
     return mx;
 }
@@ -532,6 +529,7 @@ MultiFab::minIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -616,6 +614,7 @@ MultiFab::maxIndex (int comp,
                     int nghost) const
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(this->color() == ParallelDescriptor::DefaultColor());
 
     IntVect loc;
 
@@ -696,7 +695,7 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
-MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
+MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -708,7 +707,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    ba.intersections(mfi.validbox(),isects);
+	    ba.intersections(BoxLib::grow(mfi.validbox(),nghost),isects);
 
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
@@ -718,13 +717,13 @@ MultiFab::norm0 (int comp, const BoxArray& ba, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelDescriptor::ReduceRealMax(nm0,this->color());
  
     return nm0;
 }
 
 Real
-MultiFab::norm0 (int comp, bool local) const
+MultiFab::norm0 (int comp, int nghost, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -733,17 +732,17 @@ MultiFab::norm0 (int comp, bool local) const
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	nm0 = std::max(nm0, get(mfi).norm(mfi.tilebox(), 0, comp, 1));
+	nm0 = std::max(nm0, get(mfi).norm(mfi.growntilebox(nghost), 0, comp, 1));
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelDescriptor::ReduceRealMax(nm0,this->color());
 
     return nm0;
 }
 
 Array<Real>
-MultiFab::norm0 (const Array<int>& comps, bool local) const
+MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
 {
     int n = comps.size();
     const Real rmax = std::numeric_limits<Real>::max();
@@ -771,7 +770,8 @@ MultiFab::norm0 (const Array<int>& comps, bool local) const
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
             for (int i=0; i<n; i++) {
-	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], get(mfi).norm(mfi.tilebox(), 0, comps[i], 1));
+	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], 
+					    get(mfi).norm(mfi.growntilebox(nghost), 0, comps[i], 1));
             }
         }
 #ifdef _OPENMP
@@ -786,7 +786,7 @@ MultiFab::norm0 (const Array<int>& comps, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n, this->color());
 
     return nm0;
 }
@@ -806,7 +806,7 @@ MultiFab::norm2 (int comp) const
         nm2 += nm_grid*nm_grid;
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2);
+    ParallelDescriptor::ReduceRealSum(nm2,this->color());
 
     nm2 = std::sqrt(nm2);
 
@@ -856,7 +856,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n);
+    ParallelDescriptor::ReduceRealSum(nm2.dataPtr(), n, this->color());
 
     for (int i=0; i<n; i++) {
 	nm2[i] = std::sqrt(nm2[i]);
@@ -879,7 +879,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1);
+	ParallelDescriptor::ReduceRealSum(nm1,this->color());
 
     return nm1;
 }
@@ -928,7 +928,7 @@ MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
+	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n, this->color());
 
     return nm1;
 }
@@ -947,7 +947,7 @@ MultiFab::sum (int comp, bool local) const
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm);
+        ParallelDescriptor::ReduceRealSum(sm, this->color());
 
     return sm;
 }
@@ -1405,7 +1405,16 @@ MultiFab::SumBoundary (int scomp,
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
     //
-    const int SeqNum = ParallelDescriptor::SeqNum();
+    int SeqNum;
+    {
+	ParallelDescriptor::Color mycolor = this->color();
+	if (mycolor == ParallelDescriptor::DefaultColor()) {
+	    SeqNum = ParallelDescriptor::SeqNum();
+	} else if (mycolor == ParallelDescriptor::SubCommColor()) {
+	    SeqNum = ParallelDescriptor::SubSeqNum();
+	}
+	// else I don't have any data and my SubSeqNum() should not be called.
+    }
 
     if (LocTags.empty() && RcvTags.empty() && SndTags.empty())
         //

@@ -24,7 +24,7 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
             mg_bc[2*dir + 1] = 0;
         }
     } else {
-	BoxLib::Abort("non periodic boundraies not supported here");
+	BoxLib::Abort("non periodic boundaries not supported here");
     }
 
     // Have to do some packing because these arrays does not always start with base_level
@@ -53,7 +53,7 @@ solve_with_f90(PArray<MultiFab>& rhs, PArray<MultiFab>& phi,
 
     int always_use_bnorm = 0;
     int need_grad_phi = 1;
-    fmg.set_verbose(1);
+    fmg.set_verbose(0);
     fmg.solve(phi_p, rhs_p, tol, abs_tol, always_use_bnorm, need_grad_phi);
    
     for (int ilev = 0; ilev < nlevs; ++ilev)

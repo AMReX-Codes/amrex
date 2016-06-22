@@ -14,7 +14,8 @@ public:
 
     MacBndry (const BoxArray& _grids,
               int             _ncomp,
-              const Geometry& _geom);
+              const Geometry& _geom,
+	      ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
 
     virtual ~MacBndry ()  BL_OVERRIDE;
 

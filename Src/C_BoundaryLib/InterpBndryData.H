@@ -51,7 +51,8 @@ public:
     //
     InterpBndryData (const BoxArray& _grids,
                      int             _ncomp,
-                     const Geometry& geom);
+                     const Geometry& geom,
+		     ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //
     // Copy constructor.
     //
