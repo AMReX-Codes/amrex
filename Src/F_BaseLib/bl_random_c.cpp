@@ -1,11 +1,7 @@
 #include <bl_random_c.H>
-#include <fstream>
-#include <iostream>
 #include <vector>
 #include <set>
 #include <limits>
-
-extern "C" { void backtrace_handler(int); }
 
 namespace 
 {
@@ -63,39 +59,20 @@ extern "C"
 
     void bl_rng_save_engine_c (const BLRngEngine* eng, const char* name)
     {
-	eng->save(name);
+	BLRng_save(*eng, name);
     }
 
     void bl_rng_restore_engine_c (BLRngEngine*& eng, const char* name)
     {
 	eng = new BLRngEngine();
-	eng->restore(name);
+	BLRng_restore(*eng, name);
     }
 }
 
 BLRngEngine::BLRngEngine (std::uint_fast32_t s)
-    : m_eng(s)
+    : m_data(s)
 {
-    m_eng.discard(1000000);  // warm up
-}
-
-void
-BLRngEngine::save (const char* name) const
-{
-    std::ofstream ofs(name);
-    ofs << m_eng;
-}
-
-void
-BLRngEngine::restore (const char* name)
-{
-    std::ifstream ifs(name);
-    if (ifs.good()) {
-	ifs >> m_eng;
-    } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-	backtrace_handler(6);
-    }
+    m_data.discard(1000000);  // warm up
 }
 
 //
@@ -120,43 +97,24 @@ extern "C"
     //
     void bl_rng_save_uniform_real_c (const BLRngUniformReal* rng, const char* name)
     {
-	rng->save(name);
+	BLRng_save(*rng, name);
     }
     //
     void bl_rng_restore_uniform_real_c (BLRngUniformReal*& rng, const char* name)
     {
 	rng = new BLRngUniformReal();
-	rng->restore(name);
+	BLRng_restore(*rng, name);
     }
 }
 
 BLRngUniformReal::BLRngUniformReal (double a, double b)
-    : m_dist(a,b)
+    : m_data(a,b)
 { }
 
 double
 BLRngUniformReal::operator() (BLRngEngine& eng)
 {
-    return m_dist(eng.get());
-}
-
-void
-BLRngUniformReal::save (const char* name) const
-{
-    std::ofstream ofs(name);
-    ofs << m_dist;
-}
-
-void
-BLRngUniformReal::restore (const char* name)
-{
-    std::ifstream ifs(name);
-    if (ifs.good()) {
-	ifs >> m_dist;
-    } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-	backtrace_handler(6);
-    }
+    return m_data(eng.get());
 }
 
 //
@@ -181,43 +139,24 @@ extern "C"
     //
     void bl_rng_save_normal_c (const BLRngNormal* rng, const char* name)
     {
-	rng->save(name);
+	BLRng_save(*rng, name);
     }
     //
     void bl_rng_restore_normal_c (BLRngNormal*& rng, const char* name)
     {
 	rng = new BLRngNormal();
-	rng->restore(name);
+	BLRng_restore(*rng, name);
     }
 }
 
 BLRngNormal::BLRngNormal (double mean, double stddev)
-    : m_dist(mean,stddev)
+    : m_data(mean,stddev)
 { }
 
 double
 BLRngNormal::operator() (BLRngEngine& eng)
 {
-    return m_dist(eng.get());
-}
-
-void
-BLRngNormal::save (const char* name) const
-{
-    std::ofstream ofs(name);
-    ofs << m_dist;
-}
-
-void
-BLRngNormal::restore (const char* name)
-{
-    std::ifstream ifs(name);
-    if (ifs.good()) {
-	ifs >> m_dist;
-    } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-	backtrace_handler(6);
-    }
+    return m_data(eng.get());
 }
 
 //
@@ -242,43 +181,24 @@ extern "C"
     //
     void bl_rng_save_poisson_c (const BLRngPoisson* rng, const char* name)
     {
-	rng->save(name);
+	BLRng_save(*rng, name);
     }
     //
     void bl_rng_restore_poisson_c (BLRngPoisson*& rng, const char* name)
     {
 	rng = new BLRngPoisson();
-	rng->restore(name);
+	BLRng_restore(*rng, name);
     }
 }
 
 BLRngPoisson::BLRngPoisson (double mean)
-    : m_dist(mean)
+    : m_data(mean)
 { }
 
 int
 BLRngPoisson::operator() (BLRngEngine& eng)
 {
-    return m_dist(eng.get());
-}
-
-void
-BLRngPoisson::save (const char* name) const
-{
-    std::ofstream ofs(name);
-    ofs << m_dist;
-}
-
-void
-BLRngPoisson::restore (const char* name)
-{
-    std::ifstream ifs(name);
-    if (ifs.good()) {
-	ifs >> m_dist;
-    } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-	backtrace_handler(6);
-    }
+    return m_data(eng.get());
 }
 
 //
@@ -303,42 +223,22 @@ extern "C"
     //
     void bl_rng_save_binomial_c (const BLRngBinomial* rng, const char* name)
     {
-	rng->save(name);
+	BLRng_save(*rng, name);
     }
     //
     void bl_rng_restore_binomial_c (BLRngBinomial*& rng, const char* name)
     {
 	rng = new BLRngBinomial();
-	rng->restore(name);
+	BLRng_restore(*rng, name);
     }
 }
 
 BLRngBinomial::BLRngBinomial (int t, double p)
-    : m_dist(t,p)
+    : m_data(t,p)
 { }
 
 int
 BLRngBinomial::operator() (BLRngEngine& eng)
 {
-    return m_dist(eng.get());
+    return m_data(eng.get());
 }
-
-void
-BLRngBinomial::save (const char* name) const
-{
-    std::ofstream ofs(name);
-    ofs << m_dist;
-}
-
-void
-BLRngBinomial::restore (const char* name)
-{
-    std::ifstream ifs(name);
-    if (ifs.good()) {
-	ifs >> m_dist;
-    } else {
-	std::cerr << "bl_rng: faied to open " << name << std::endl;
-	backtrace_handler(6);
-    }
-}
-
