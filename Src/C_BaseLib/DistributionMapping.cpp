@@ -400,7 +400,8 @@ DistributionMapping::GetMap (int nBoxes)
 
     BL_ASSERT(m_ref->m_pmap.size() == N + 1);
 
-    std::map< int,LnClassPtr<Ref> >::const_iterator it = m_Cache.find(N+1);
+    std::map< std::pair<int,int>, LnClassPtr<Ref> >::const_iterator it 
+	= m_Cache.find(std::make_pair(N+1,m_color.to_int()));
 
     if (it != m_Cache.end())
     {
@@ -576,7 +577,7 @@ DistributionMapping::define (const Array<int>& pmap, bool put_in_cache)
     if ( ! GetMap(pmap.size() - 1)) {
 	BL_ASSERT(m_BuildMap != 0);
 
-        m_Cache.insert(std::make_pair(m_ref->m_pmap.size(),m_ref));
+        m_Cache.insert(std::make_pair(std::make_pair(m_ref->m_pmap.size(),m_color.to_int()),m_ref));
     }
     for (unsigned int i(0); i < pmap.size(); ++i) {
         m_ref->m_pmap[i] = pmap[i];
@@ -613,7 +614,7 @@ void
 DistributionMapping::DeleteCache ()
 {
     CacheStats(std::cout);
-    std::map< int,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
+    std::map< std::pair<int,int>,LnClassPtr<Ref> >::iterator it = m_Cache.begin();
 
     while (it != m_Cache.end()) {
       m_Cache.erase(it++);
