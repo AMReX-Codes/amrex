@@ -39,17 +39,17 @@ extern "C"
 	std::uniform_int_distribution<int> dist(0, std::numeric_limits<int>::max());
 	return dist(rd);
     }
-}
 
-// 
-// engine
-//
-extern "C"
-{
+    // 
+    // engine
+    //
+    using BLRngEngine = std::mt19937;
+
     void bl_rng_new_engine_c (BLRngEngine*& eng, int s, int rank, int nprocs)
     {
 	std::uint_fast32_t seed = bl_rng_parallel_seed(s, rank, nprocs);
 	eng = new BLRngEngine(seed);
+	eng->discard(1000000);  // warm up
     }
 
     void bl_rng_delete_engine_c (BLRngEngine* eng)
@@ -67,178 +67,128 @@ extern "C"
 	eng = new BLRngEngine();
 	BLRng_restore(*eng, name);
     }
-}
 
-BLRngEngine::BLRngEngine (std::uint_fast32_t s)
-    : m_data(s)
-{
-    m_data.discard(1000000);  // warm up
-}
+    //
+    // uniform real distribution
+    //
+    using BLRngUniformReal = std::uniform_real_distribution<double>;
 
-//
-// uniform real distribution
-//
-extern "C"
-{
-    void bl_rng_new_uniform_real_c (BLRngUniformReal*& rng, double a, double b)
+    void bl_rng_new_uniform_real_c (BLRngUniformReal*& distro, double a, double b)
     {
-	rng = new BLRngUniformReal(a,b);
+	distro = new BLRngUniformReal(a,b);
     }
-    //
-    void bl_rng_delete_uniform_real_c (BLRngUniformReal* rng)
-    {
-	delete rng;
-    }
-    //
-    double bl_rng_get_uniform_real_c (BLRngUniformReal* rng, BLRngEngine* eng)
-    {
-	return (*rng)(*eng);
-    }
-    //
-    void bl_rng_save_uniform_real_c (const BLRngUniformReal* rng, const char* name)
-    {
-	BLRng_save(*rng, name);
-    }
-    //
-    void bl_rng_restore_uniform_real_c (BLRngUniformReal*& rng, const char* name)
-    {
-	rng = new BLRngUniformReal();
-	BLRng_restore(*rng, name);
-    }
-}
 
-BLRngUniformReal::BLRngUniformReal (double a, double b)
-    : m_data(a,b)
-{ }
+    void bl_rng_delete_uniform_real_c (BLRngUniformReal* distro)
+    {
+	delete distro;
+    }
 
-double
-BLRngUniformReal::operator() (BLRngEngine& eng)
-{
-    return m_data(eng.get());
-}
+    double bl_rng_get_uniform_real_c (BLRngUniformReal* distro, BLRngEngine* eng)
+    {
+	return BLRng_get<double>(*distro,*eng);
+    }
 
-//
-// normal distribution
-//
-extern "C"
-{
-    void bl_rng_new_normal_c (BLRngNormal*& rng, double mean, double stddev)
+    void bl_rng_save_uniform_real_c (const BLRngUniformReal* distro, const char* name)
     {
-	rng = new BLRngNormal(mean,stddev);
+	BLRng_save(*distro, name);
     }
-    //
-    void bl_rng_delete_normal_c (BLRngNormal* rng)
-    {
-	delete rng;
-    }
-    //
-    double bl_rng_get_normal_c (BLRngNormal* rng, BLRngEngine* eng)
-    {
-	return (*rng)(*eng);
-    }
-    //
-    void bl_rng_save_normal_c (const BLRngNormal* rng, const char* name)
-    {
-	BLRng_save(*rng, name);
-    }
-    //
-    void bl_rng_restore_normal_c (BLRngNormal*& rng, const char* name)
-    {
-	rng = new BLRngNormal();
-	BLRng_restore(*rng, name);
-    }
-}
 
-BLRngNormal::BLRngNormal (double mean, double stddev)
-    : m_data(mean,stddev)
-{ }
+    void bl_rng_restore_uniform_real_c (BLRngUniformReal*& distro, const char* name)
+    {
+	distro = new BLRngUniformReal();
+	BLRng_restore(*distro, name);
+    }
 
-double
-BLRngNormal::operator() (BLRngEngine& eng)
-{
-    return m_data(eng.get());
-}
+    //
+    // normal distribution
+    //
+    using BLRngNormal = std::normal_distribution<double>;
 
-//
-// poisson distribution
-//
-extern "C"
-{
-    void bl_rng_new_poisson_c (BLRngPoisson*& rng, double mean)
+    void bl_rng_new_normal_c (BLRngNormal*& distro, double mean, double stddev)
     {
-	rng = new BLRngPoisson(mean);
+	distro = new BLRngNormal(mean,stddev);
     }
-    //
-    void bl_rng_delete_poisson_c (BLRngPoisson* rng)
-    {
-	delete rng;
-    }
-    //
-    int bl_rng_get_poisson_c (BLRngPoisson* rng, BLRngEngine* eng)
-    {
-	return (*rng)(*eng);
-    }
-    //
-    void bl_rng_save_poisson_c (const BLRngPoisson* rng, const char* name)
-    {
-	BLRng_save(*rng, name);
-    }
-    //
-    void bl_rng_restore_poisson_c (BLRngPoisson*& rng, const char* name)
-    {
-	rng = new BLRngPoisson();
-	BLRng_restore(*rng, name);
-    }
-}
 
-BLRngPoisson::BLRngPoisson (double mean)
-    : m_data(mean)
-{ }
+    void bl_rng_delete_normal_c (BLRngNormal* distro)
+    {
+	delete distro;
+    }
 
-int
-BLRngPoisson::operator() (BLRngEngine& eng)
-{
-    return m_data(eng.get());
-}
+    double bl_rng_get_normal_c (BLRngNormal* distro, BLRngEngine* eng)
+    {
+	return BLRng_get<double>(*distro, *eng);
+    }
 
-//
-// binomial distribution
-//
-extern "C"
-{
-    void bl_rng_new_binomial_c (BLRngBinomial*& rng, int t, double p)
+    void bl_rng_save_normal_c (const BLRngNormal* distro, const char* name)
     {
-	rng = new BLRngBinomial(t,p);
+	BLRng_save(*distro, name);
     }
-    //
-    void bl_rng_delete_binomial_c (BLRngBinomial* rng)
-    {
-	delete rng;
-    }
-    //
-    int bl_rng_get_binomial_c (BLRngBinomial* rng, BLRngEngine* eng)
-    {
-	return (*rng)(*eng);
-    }
-    //
-    void bl_rng_save_binomial_c (const BLRngBinomial* rng, const char* name)
-    {
-	BLRng_save(*rng, name);
-    }
-    //
-    void bl_rng_restore_binomial_c (BLRngBinomial*& rng, const char* name)
-    {
-	rng = new BLRngBinomial();
-	BLRng_restore(*rng, name);
-    }
-}
 
-BLRngBinomial::BLRngBinomial (int t, double p)
-    : m_data(t,p)
-{ }
+    void bl_rng_restore_normal_c (BLRngNormal*& distro, const char* name)
+    {
+	distro = new BLRngNormal();
+	BLRng_restore(*distro, name);
+    }
 
-int
-BLRngBinomial::operator() (BLRngEngine& eng)
-{
-    return m_data(eng.get());
+    //
+    // poisson distribution
+    //
+    using BLRngPoisson = std::poisson_distribution<int>;
+
+    void bl_rng_new_poisson_c (BLRngPoisson*& distro, double mean)
+    {
+	distro = new BLRngPoisson(mean);
+    }
+
+    void bl_rng_delete_poisson_c (BLRngPoisson* distro)
+    {
+	delete distro;
+    }
+
+    int bl_rng_get_poisson_c (BLRngPoisson* distro, BLRngEngine* eng)
+    {
+	return BLRng_get<int>(*distro, *eng);
+    }
+
+    void bl_rng_save_poisson_c (const BLRngPoisson* distro, const char* name)
+    {
+	BLRng_save(*distro, name);
+    }
+
+    void bl_rng_restore_poisson_c (BLRngPoisson*& distro, const char* name)
+    {
+	distro = new BLRngPoisson();
+	BLRng_restore(*distro, name);
+    }
+
+    //
+    // binomial distribution
+    //
+    using BLRngBinomial = std::binomial_distribution<int>;
+
+    void bl_rng_new_binomial_c (BLRngBinomial*& distro, int t, double p)
+    {
+	distro = new BLRngBinomial(t,p);
+    }
+
+    void bl_rng_delete_binomial_c (BLRngBinomial* distro)
+    {
+	delete distro;
+    }
+
+    int bl_rng_get_binomial_c (BLRngBinomial* distro, BLRngEngine* eng)
+    {
+	return BLRng_get<int>(*distro, *eng);
+    }
+
+    void bl_rng_save_binomial_c (const BLRngBinomial* distro, const char* name)
+    {
+	BLRng_save(*distro, name);
+    }
+
+    void bl_rng_restore_binomial_c (BLRngBinomial*& distro, const char* name)
+    {
+	distro = new BLRngBinomial();
+	BLRng_restore(*distro, name);
+    }
 }
