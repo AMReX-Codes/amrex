@@ -2,12 +2,13 @@
 ! This code borrows from fsedov3d_sph.f90 and fwdconvect.f90
 
 module subchandra
-  !Global modules (used by 2 or more subroutines)
+
   use bl_space
   use bl_error_module
   use bl_constants_module
   use bl_IO_module
   use plotfile_module
+
   implicit none
   private 
 
@@ -147,8 +148,7 @@ module subchandra
 contains
   !Parse command line args, initialize variables
   subroutine parse_args(slicefile, pltfile, globals_only, fullstar, hpcnt, pf)
-    !Modules 
-    use f2kcli
+
     implicit none
 
     !Arguments

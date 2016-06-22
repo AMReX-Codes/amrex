@@ -5,7 +5,6 @@ program fextrema
 
   use plotfile_module
   use filler_module
-  use f2kcli
   use bl_IO_module
 
   implicit none
