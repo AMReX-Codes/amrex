@@ -11,10 +11,10 @@ module bl_random_module
   implicit none
 
   private 
-  public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
-       bl_rng_engine, bl_rng_build_engine, bl_rng_destroy_engine, &
-       bl_rng_save_engine, bl_rng_restore_engine, &
-       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial       
+  public :: bl_rng_get, &
+       bl_rng_build_engine, bl_rng_destroy_engine, bl_rng_save_engine, bl_rng_restore_engine, &
+       bl_rng_build_distro, bl_rng_destroy_distro, bl_rng_save_distro, bl_rng_restore_distro, &
+       bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial       
 
   type bl_rng_engine
      type(c_ptr), private :: p = c_null_ptr
@@ -36,19 +36,19 @@ module bl_random_module
      type(c_ptr), private :: p = c_null_ptr
   end type bl_rng_binomial
 
-  interface bl_rng_build
+  interface bl_rng_build_distro
      module procedure bl_rng_build_uniform_real
      module procedure bl_rng_build_normal
      module procedure bl_rng_build_poisson
      module procedure bl_rng_build_binomial
-  end interface bl_rng_build
+  end interface bl_rng_build_distro
 
-  interface bl_rng_destroy
+  interface bl_rng_destroy_distro
      module procedure bl_rng_destroy_uniform_real
      module procedure bl_rng_destroy_normal
      module procedure bl_rng_destroy_poisson
      module procedure bl_rng_destroy_binomial
-  end interface bl_rng_destroy
+  end interface bl_rng_destroy_distro
 
   interface bl_rng_get
      module procedure bl_rng_get_uniform_real
@@ -57,19 +57,19 @@ module bl_random_module
      module procedure bl_rng_get_binomial
   end interface bl_rng_get
 
-  interface bl_rng_save
+  interface bl_rng_save_distro
      module procedure bl_rng_save_uniform_real
      module procedure bl_rng_save_normal
      module procedure bl_rng_save_poisson
      module procedure bl_rng_save_binomial
-  end interface bl_rng_save
+  end interface bl_rng_save_distro
 
-  interface bl_rng_restore
+  interface bl_rng_restore_distro
      module procedure bl_rng_restore_uniform_real
      module procedure bl_rng_restore_normal
      module procedure bl_rng_restore_poisson
      module procedure bl_rng_restore_binomial
-  end interface bl_rng_restore
+  end interface bl_rng_restore_distro
 
   interface
      function bl_rng_random_uint_c() result (r) bind(c)

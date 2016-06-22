@@ -22,16 +22,16 @@ program main
   call bl_rng_build_engine(eng2, 0)
 
   ! uniform real distribution: [0.0d0, 1.0d0)
-  call bl_rng_build(ur, 0.0d0, 1.0d0)
+  call bl_rng_build_distro(ur, 0.0d0, 1.0d0)
 
   ! normal distribution with mean=0.d0, stddev=1.0d0
-  call bl_rng_build(nm, 0.0d0, 1.0d0)
+  call bl_rng_build_distro(nm, 0.0d0, 1.0d0)
 
   ! poisson distribution with mean=100.d0
-  call bl_rng_build(ps, 100.0d0)
+  call bl_rng_build_distro(ps, 100.0d0)
 
   ! binomial distribution with t=160 (number of trials), p=0.6d0
-  call bl_rng_build(bi, 160, 0.6d0)
+  call bl_rng_build_distro(bi, 160, 0.6d0)
 
   if (parallel_myproc() .eq. 0) then
      print *, 'uniform real, normal, poisson, binomial'
@@ -52,17 +52,17 @@ program main
   call bl_rng_save_engine   (eng2  , "eng2")
   call bl_rng_restore_engine(eng2_r, "eng2")
 
-  call bl_rng_save   (nm  , "normal")
-  call bl_rng_restore(nm_r, "normal")
+  call bl_rng_save_distro   (nm  , "normal")
+  call bl_rng_restore_distro(nm_r, "normal")
 
-  call bl_rng_save   (ur  , "uniform")
-  call bl_rng_restore(ur_r, "uniform")
+  call bl_rng_save_distro   (ur  , "uniform")
+  call bl_rng_restore_distro(ur_r, "uniform")
 
-  call bl_rng_save   (ps  , "poisson")
-  call bl_rng_restore(ps_r, "poisson")
+  call bl_rng_save_distro   (ps  , "poisson")
+  call bl_rng_restore_distro(ps_r, "poisson")
 
-  call bl_rng_save   (bi  , "binomial")
-  call bl_rng_restore(bi_r, "binomial")
+  call bl_rng_save_distro   (bi  , "binomial")
+  call bl_rng_restore_distro(bi_r, "binomial")
 
   if (parallel_myproc() .eq. 0) then
      print *, 'uniform real: original, restart, difference'
@@ -130,8 +130,8 @@ program main
 
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Poisson mean from 100.d0 to 30000.54d0"
-     call bl_rng_destroy(ps)
-     call bl_rng_build(ps, 30000.54d0)
+     call bl_rng_destroy_distro(ps)
+     call bl_rng_build_distro(ps, 30000.54d0)
      print *, "Poisson old and new"
      do i = 1, 5
         print *, bl_rng_get(ps_r, eng1), bl_rng_get(ps, eng2)
@@ -140,22 +140,22 @@ program main
   
   if (parallel_myproc() .eq. 0) then
      print *, "we now change the change Binomial mean from 160, 0.6d0 to 1000, 0.3d0"
-     call bl_rng_destroy(bi)
-     call bl_rng_build(bi, 1000, 0.3d0)
+     call bl_rng_destroy_distro(bi)
+     call bl_rng_build_distro(bi, 1000, 0.3d0)
      print *, "Binomial old and new"
      do i = 1, 5
         print *, bl_rng_get(bi_r, eng1), bl_rng_get(bi, eng2)
      end do
   end if
   
-  call bl_rng_destroy(ur)
-  call bl_rng_destroy(nm)
-  call bl_rng_destroy(ps)
-  call bl_rng_destroy(bi)
-  call bl_rng_destroy(ur_r)
-  call bl_rng_destroy(nm_r)
-  call bl_rng_destroy(ps_r)
-  call bl_rng_destroy(bi_r)
+  call bl_rng_destroy_distro(ur)
+  call bl_rng_destroy_distro(nm)
+  call bl_rng_destroy_distro(ps)
+  call bl_rng_destroy_distro(bi)
+  call bl_rng_destroy_distro(ur_r)
+  call bl_rng_destroy_distro(nm_r)
+  call bl_rng_destroy_distro(ps_r)
+  call bl_rng_destroy_distro(bi_r)
 
   call bl_rng_destroy_engine(eng1)
   call bl_rng_destroy_engine(eng2)
