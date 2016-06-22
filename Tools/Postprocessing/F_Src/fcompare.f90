@@ -441,6 +441,7 @@ program fcompare
                     endif
 
                     if (n_a == zone_info_var_a .and. pd > max_abs_err) then
+                       max_abs_err = pd
                        err_zone % level = i
                        err_zone % box = j
                        err_zone % i = ii
