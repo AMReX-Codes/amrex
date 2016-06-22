@@ -6,7 +6,7 @@
 class BLRngEngine
 {
 public:
-    BLRngEngine () {}
+    BLRngEngine () = default;
     BLRngEngine (std::uint_fast32_t s);
     ~BLRngEngine () {}
     std::mt19937& get () { return m_eng; }
@@ -19,7 +19,7 @@ private:
 class BLRngUniformReal
 {
 public:
-    BLRngUniformReal () {}
+    BLRngUniformReal () = default;
     BLRngUniformReal (double a, double b);
     ~BLRngUniformReal () {}
     double operator() (BLRngEngine& eng);
@@ -32,7 +32,7 @@ private:
 class BLRngNormal
 {
 public:
-    BLRngNormal () {}
+    BLRngNormal () = default;
     BLRngNormal (double mean, double stddev);
     ~BLRngNormal () {}
     double operator() (BLRngEngine& eng);
@@ -45,7 +45,7 @@ private:
 class BLRngPoisson
 {
 public:
-    BLRngPoisson () {}
+    BLRngPoisson () = default;
     BLRngPoisson (double mean);
     ~BLRngPoisson () {}
     int operator() (BLRngEngine& eng);
@@ -58,7 +58,7 @@ private:
 class BLRngBinomial
 {
 public:
-    BLRngBinomial () {}
+    BLRngBinomial () = default;
     BLRngBinomial (int t, double p);
     ~BLRngBinomial () {}
     int operator() (BLRngEngine& eng);
