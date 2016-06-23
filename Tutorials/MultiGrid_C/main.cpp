@@ -376,8 +376,11 @@ void setup_coeffs(BoxArray& bs, MultiFab& alpha, PArray<MultiFab>& beta,
   pp.get("sigma", sigma);
   pp.get("w", w);
 
-  for ( MFIter mfi(alpha); mfi.isValid(); ++mfi ) {
-    const Box& bx = mfi.validbox();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for ( MFIter mfi(alpha,true); mfi.isValid(); ++mfi ) {
+    const Box& bx = mfi.tilebox();
 
     const int* alo = alpha[mfi].loVect();
     const int* ahi = alpha[mfi].hiVect();
