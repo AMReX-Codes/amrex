@@ -445,13 +445,24 @@ void setup_rhs(MultiFab& rhs, const Geometry& geom)
   // We test the sum of the RHS to check solvability
   Real sum_rhs = 0.;
 
-  for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
-    const int* rlo = rhs[mfi].loVect();
-    const int* rhi = rhs[mfi].hiVect();
-    const Box& bx = rhs[mfi].box();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for ( MFIter mfi(rhs,true); mfi.isValid(); ++mfi ) {
+    const Box& tbx = mfi.tilebox();
+    const Box&  bx = mfi.validbox();
+
+    const int* rlo = bx.loVect();
+    const int* rhi = bx.hiVect();
 
     FORT_SET_RHS(rhs[mfi].dataPtr(),ARLIM(rlo),ARLIM(rhi),
-                 bx.loVect(),bx.hiVect(),dx, a, b, sigma, w, ibnd);
+                 tbx.loVect(),tbx.hiVect(),dx, a, b, sigma, w, ibnd);
+  }
+
+  // MultiFab::sum() does a tiled MFIter loop internally, so we don't want to
+  // put this summation into the above tiled MFIter loop or else we get nested
+  // loops over tiles, and, more importantly, the wrong answer.
+  for ( MFIter mfi(rhs); mfi.isValid(); ++mfi ) {
     sum_rhs += rhs[mfi].sum(0,1);
   }
 
