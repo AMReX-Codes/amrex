@@ -975,7 +975,9 @@ contains
        !$omp end parallel do
     end if
 
-    !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi) shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode)
+    !$omp parallel default(none) &
+    !$omp  private(i,mfi,tilebox,tlo,thi,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi) &
+    !$omp  shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode)
     call mfiter_build(mfi, crse, tiling=.true.)
     do while(next_tile(mfi,i))
 
