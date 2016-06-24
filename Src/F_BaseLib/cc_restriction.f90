@@ -76,10 +76,10 @@ contains
 
   end subroutine cc_restriction_2d
 
-  subroutine cc_restriction_3d(cc, loc, ff, lof, lo, hi, ir)
+  subroutine cc_restriction_3d(cc, loc, ff, lof, lo, hi, tlo, thi, ir)
     integer,     intent(in)    :: loc(:)
     integer,     intent(in)    :: lof(:)
-    integer,     intent(in)    :: lo(:),hi(:)
+    integer,     intent(in)    :: lo(:),hi(:), tlo(3), thi(3)
     real (dp_t), intent(inout) :: cc(loc(1):,loc(2):,loc(3):)
     real (dp_t), intent(in)    :: ff(lof(1):,lof(2):,lof(3):)
     integer,     intent(in)    :: ir(:)
@@ -89,15 +89,15 @@ contains
 
     if ( ir(1) == 2 .and. ir(2) == 2 .and. ir(3) == 2 ) then
 
-       do k = lo(3),hi(3)
+       do k = tlo(3),thi(3)
           twok   = 2*k
           twokp1 = 2*k+1
 
-          do j = lo(2),hi(2)
+          do j = tlo(2),thi(2)
              twoj   = 2*j
              twojp1 = 2*j+1
 
-             do i = lo(1),hi(1)
+             do i = tlo(1),thi(1)
                 twoi   = 2*i
                 twoip1 = 2*i+1
 
@@ -118,9 +118,9 @@ contains
 
        fac = one/real(product(ir),kind=dp_t)
 
-       do k = lo(3),hi(3)
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
+       do k = tlo(3),thi(3)
+          do j = tlo(2),thi(2)
+             do i = tlo(1),thi(1)
                 cc(i,j,k) = zero
                 do n = 0, ir(3)-1
                    do m = 0, ir(2)-1

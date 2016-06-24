@@ -938,6 +938,9 @@ contains
 
     integer :: mg_restriction_mode, ng
     type(bl_prof_timer), save :: bpt
+    type(mfiter) :: mfi
+    integer :: tlo(3), thi(3)
+    type(box) :: tilebox
 
     call bl_proffortfuncstart("mg_tower_restriction")
     call build(bpt, "mgt_restriction")
@@ -972,8 +975,13 @@ contains
        !$omp end parallel do
     end if
 
-    !$OMP PARALLEL DO PRIVATE(i,n,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi)
-    do i = 1, nfabs(crse)
+    !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi) shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode)
+    call mfiter_build(mfi, crse, tiling=.true.)
+    do while(next_tile(mfi,i))
+
+       tilebox = get_tilebox(mfi)
+       tlo = lwb(tilebox)
+       thi = upb(tilebox)
 
        cp       => dataptr(crse, i)
        fp       => dataptr(fine, i)
@@ -1011,7 +1019,7 @@ contains
              end if
           case (3)
              if ( .not. nodal_flag ) then
-                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+                call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, tlo, thi, ir)
              else
                 call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
                                           mp_fine(:,:,:,1), lom_fine, &
@@ -1021,7 +1029,7 @@ contains
           end select
        end do
     end do
-    !$OMP END PARALLEL DO
+    !$OMP END PARALLEL
 
     call destroy(bpt)
     call bl_proffortfuncstop("mg_tower_restriction")
