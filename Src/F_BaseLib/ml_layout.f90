@@ -190,6 +190,10 @@ contains
     
     call optimize_layouts(mla%la, la_array, mla%nlevel, mla%mba%rr)
 
+    do n = 1, mla%nlevel
+       mla%la(n)%lap%pmask = pmask
+    end do
+
     allocate(mla%mask(mla%nlevel-1))
 
     do n = mla%nlevel-1,  1, -1
