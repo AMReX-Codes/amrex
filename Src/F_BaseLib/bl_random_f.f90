@@ -326,6 +326,7 @@ contains
     type(bl_rng_engine), intent(inout) :: eng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(eng%p)) call bl_rng_destroy_engine(eng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_engine_c(eng%p,filename)
     deallocate(filename)
@@ -370,6 +371,7 @@ contains
     type(bl_rng_uniform_real), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_uniform_real_c(rng%p,filename)
     deallocate(filename)
@@ -414,6 +416,7 @@ contains
     type(bl_rng_normal), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_normal_c(rng%p,filename)
     deallocate(filename)
@@ -458,6 +461,7 @@ contains
     type(bl_rng_poisson), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_poisson_c(rng%p,filename)
     deallocate(filename)
@@ -503,6 +507,7 @@ contains
     type(bl_rng_binomial), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_binomial_c(rng%p,filename)
     deallocate(filename)
