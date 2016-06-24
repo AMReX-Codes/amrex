@@ -17,6 +17,11 @@
 #include <Looping.H>
 #include <Utility.H>
 
+namespace
+{
+    bool initialized = false;
+}
+
 IArrayBox::IArrayBox ()
 {
     IArrayBox::Initialize();
@@ -76,13 +81,16 @@ bool IArrayBox::do_initval = false;
 void
 IArrayBox::Initialize ()
 {
-    ParmParse pp("iab");
+    if (initialized) return;
+//    ParmParse pp("iab");
     BoxLib::ExecOnFinalize(IArrayBox::Finalize);
+    initialized = true;
 }
 
 void
 IArrayBox::Finalize ()
 {
+    initialized = false;
 }
 
 int
