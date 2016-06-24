@@ -267,9 +267,9 @@ contains
 
   end subroutine gs_rb_smoother_2d
 
-  subroutine gs_rb_smoother_3d(ss, uu, ff, mm, lo, ng, n, skwd)
+  subroutine gs_rb_smoother_3d(ss, uu, ff, mm, lo, tlo, thi, ng, n, skwd)
     use bl_prof_module
-    integer,    intent(in   ) :: ng, lo(:), n
+    integer,    intent(in   ) :: ng, lo(:), tlo(:), thi(:), n
     real(dp_t), intent(in   ) :: ff(lo(1):,lo(2):,lo(3):)
     real(dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real(dp_t), intent(in   ) :: ss(0:,lo(1):, lo(2):, lo(3):)
@@ -406,11 +406,10 @@ contains
        !
        ! USE THIS FOR GAUSS-SEIDEL
        !
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
-       do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
-             ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
-             do i = lo(1)+ioff, hi(1), 2
+       do k = tlo(3), thi(3)
+          do j = tlo(2), thi(2)
+             ioff = 0; if ( mod (tlo(1) + j + k, 2) /= n ) ioff = 1
+             do i = tlo(1)+ioff, thi(1), 2
 
                   dd = ss(0,i,j,k)*uu(i,j,k)   + &
                        ss(1,i,j,k)*uu(i+1,j,k) + ss(2,i,j,k)*uu(i-1,j,k) + &
@@ -421,7 +420,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     end if
 
@@ -943,10 +941,10 @@ contains
 
   end subroutine gs_rb_smoother_ibc_2d
 
-  subroutine gs_rb_smoother_ibc_3d(ss, uu, ff, lo, ng, n)
+  subroutine gs_rb_smoother_ibc_3d(ss, uu, ff, lo, tlo, thi, ng, n)
     use bl_prof_module
     integer, intent(in) :: ng
-    integer, intent(in) :: lo(:)
+    integer, intent(in) :: lo(:), tlo(:), thi(:)
     integer, intent(in) :: n
     real (kind = dp_t), intent(in   ) :: ff(lo(1)   :, lo(2)   :, lo(3)   :)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:, lo(3)-ng:)
@@ -964,11 +962,10 @@ contains
 
     ss0inv = omega/ss(0)
 
-    !$omp parallel do private(i,j,k,ioff,dd) collapse(2)
-    do k = lo(3), hi(3)
-       do j = lo(2),hi(2)
-          ioff = 0; if ( mod (lo(1) + j + k, 2) /= n ) ioff = 1
-          do i = lo(1) + ioff, hi(1), 2
+    do k = tlo(3), thi(3)
+       do j = tlo(2),thi(2)
+          ioff = 0; if ( mod (tlo(1) + j + k, 2) /= n ) ioff = 1
+          do i = tlo(1) + ioff, thi(1), 2
              dd =   ss(1) * (uu(i-1,j,k) + uu(i+1,j,k)) &
                   + ss(2) * (uu(i,j-1,k) + uu(i,j+1,k)) &
                   + ss(3) * (uu(i,j,k-1) + uu(i,j,k+1))
@@ -976,7 +973,6 @@ contains
           end do
        end do
     end do
-    !$omp end parallel do
 
     call destroy(bpt)
 
