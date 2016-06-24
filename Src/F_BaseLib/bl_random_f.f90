@@ -11,10 +11,14 @@ module bl_random_module
   implicit none
 
   private 
-  public :: bl_rng_build, bl_rng_destroy, bl_rng_get, bl_rng_save, bl_rng_restore, &
-       bl_rng_change_distribution, &
-       bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial, &
-       bl_rng_random_uint_c
+  public :: bl_rng_get, &
+       bl_rng_build_engine, bl_rng_destroy_engine, bl_rng_save_engine, bl_rng_restore_engine, &
+       bl_rng_build_distro, bl_rng_destroy_distro, bl_rng_save_distro, bl_rng_restore_distro, &
+       bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, bl_rng_binomial       
+
+  type bl_rng_engine
+     type(c_ptr), private :: p = c_null_ptr
+  end type bl_rng_engine
 
   type bl_rng_uniform_real
      type(c_ptr), private :: p = c_null_ptr
@@ -32,19 +36,19 @@ module bl_random_module
      type(c_ptr), private :: p = c_null_ptr
   end type bl_rng_binomial
 
-  interface bl_rng_build
+  interface bl_rng_build_distro
      module procedure bl_rng_build_uniform_real
      module procedure bl_rng_build_normal
      module procedure bl_rng_build_poisson
      module procedure bl_rng_build_binomial
-  end interface bl_rng_build
+  end interface bl_rng_build_distro
 
-  interface bl_rng_destroy
+  interface bl_rng_destroy_distro
      module procedure bl_rng_destroy_uniform_real
      module procedure bl_rng_destroy_normal
      module procedure bl_rng_destroy_poisson
      module procedure bl_rng_destroy_binomial
-  end interface bl_rng_destroy
+  end interface bl_rng_destroy_distro
 
   interface bl_rng_get
      module procedure bl_rng_get_uniform_real
@@ -53,24 +57,19 @@ module bl_random_module
      module procedure bl_rng_get_binomial
   end interface bl_rng_get
 
-  interface bl_rng_save
+  interface bl_rng_save_distro
      module procedure bl_rng_save_uniform_real
      module procedure bl_rng_save_normal
      module procedure bl_rng_save_poisson
      module procedure bl_rng_save_binomial
-  end interface bl_rng_save
+  end interface bl_rng_save_distro
 
-  interface bl_rng_restore
+  interface bl_rng_restore_distro
      module procedure bl_rng_restore_uniform_real
      module procedure bl_rng_restore_normal
      module procedure bl_rng_restore_poisson
      module procedure bl_rng_restore_binomial
-  end interface bl_rng_restore
-
-  interface bl_rng_change_distribution
-     module procedure bl_rng_change_poisson
-     module procedure bl_rng_change_binomial
-  end interface bl_rng_change_distribution
+  end interface bl_rng_restore_distro
 
   interface
      function bl_rng_random_uint_c() result (r) bind(c)
@@ -80,13 +79,42 @@ module bl_random_module
      end function bl_rng_random_uint_c
   end interface
 
+  ! engine
+  interface
+     subroutine bl_rng_new_engine_c(eng, s, rank, nprocs) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: eng
+       integer(c_int), intent(in), value :: s, rank, nprocs
+     end subroutine bl_rng_new_engine_c
+     
+     subroutine bl_rng_delete_engine_c(eng) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: eng
+     end subroutine bl_rng_delete_engine_c
+
+     subroutine bl_rng_save_engine_c(eng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: eng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_save_engine_c
+
+     subroutine bl_rng_restore_engine_c(eng, name) bind(c)
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr) :: eng
+       character(c_char), intent(in) :: name(*)
+     end subroutine bl_rng_restore_engine_c
+  end interface
+
   ! uniform real distribution
   interface
-     subroutine bl_rng_new_uniform_real_c(rng, s, a, b, rank, nprocs) bind(c)
+     subroutine bl_rng_new_uniform_real_c(rng, a, b) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: rng
-       integer(c_int), intent(in), value :: s, rank, nprocs
        real(c_double), intent(in), value :: a, b
      end subroutine bl_rng_new_uniform_real_c
 
@@ -96,10 +124,10 @@ module bl_random_module
        type(c_ptr), value :: rng
      end subroutine bl_rng_delete_uniform_real_c
 
-     function bl_rng_get_uniform_real_c(rng) result(r) bind(c)
+     function bl_rng_get_uniform_real_c(rng,eng) result(r) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value :: rng
+       type(c_ptr), value :: rng, eng
        real(c_double) :: r
      end function bl_rng_get_uniform_real_c
 
@@ -120,11 +148,10 @@ module bl_random_module
 
   ! normal distribution
   interface
-     subroutine bl_rng_new_normal_c(rng, s, mean, stddev, rank, nprocs) bind(c)
+     subroutine bl_rng_new_normal_c(rng, mean, stddev) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: rng
-       integer(c_int), intent(in), value :: s, rank, nprocs
        real(c_double), intent(in), value :: mean, stddev
      end subroutine bl_rng_new_normal_c
 
@@ -134,10 +161,10 @@ module bl_random_module
        type(c_ptr), value :: rng
      end subroutine bl_rng_delete_normal_c
 
-     function bl_rng_get_normal_c(rng) result(r) bind(c)
+     function bl_rng_get_normal_c(rng, eng) result(r) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value :: rng
+       type(c_ptr), value :: rng, eng
        real(c_double) :: r
      end function bl_rng_get_normal_c
 
@@ -158,11 +185,10 @@ module bl_random_module
 
   ! poisson distribution
   interface
-     subroutine bl_rng_new_poisson_c(rng, s, mean, rank, nprocs) bind(c)
+     subroutine bl_rng_new_poisson_c(rng, mean) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: rng
-       integer(c_int), intent(in), value :: s, rank, nprocs
        real(c_double), intent(in), value :: mean
      end subroutine bl_rng_new_poisson_c
 
@@ -172,10 +198,10 @@ module bl_random_module
        type(c_ptr), value :: rng
      end subroutine bl_rng_delete_poisson_c
 
-     function bl_rng_get_poisson_c(rng) result(r) bind(c)
+     function bl_rng_get_poisson_c(rng, eng) result(r) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value :: rng
+       type(c_ptr), value :: rng, eng
        integer(c_int) :: r
      end function bl_rng_get_poisson_c
 
@@ -192,22 +218,15 @@ module bl_random_module
        type(c_ptr) :: rng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_restore_poisson_c
-
-     subroutine bl_rng_change_poisson_c(rng, mean) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), intent(in), value :: rng
-       real(c_double), intent(in), value :: mean
-     end subroutine bl_rng_change_poisson_c
   end interface
 
   ! binomial distribution
   interface
-     subroutine bl_rng_new_binomial_c(rng, s, t, p, rank, nprocs) bind(c)
+     subroutine bl_rng_new_binomial_c(rng, t, p) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr) :: rng
-       integer(c_int), intent(in), value :: s, t, rank, nprocs
+       integer(c_int), intent(in), value :: t
        real(c_double), intent(in), value :: p
      end subroutine bl_rng_new_binomial_c
 
@@ -217,10 +236,10 @@ module bl_random_module
        type(c_ptr), value :: rng
      end subroutine bl_rng_delete_binomial_c
 
-     function bl_rng_get_binomial_c(rng) result(r) bind(c)
+     function bl_rng_get_binomial_c(rng, eng) result(r) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
-       type(c_ptr), value :: rng
+       type(c_ptr), value :: rng, eng
        integer(c_int) :: r
      end function bl_rng_get_binomial_c
 
@@ -237,14 +256,6 @@ module bl_random_module
        type(c_ptr) :: rng
        character(c_char), intent(in) :: name(*)
      end subroutine bl_rng_restore_binomial_c
-
-     subroutine bl_rng_change_binomial_c(rng, t, p) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), intent(in), value :: rng
-       integer(c_int), intent(in), value :: t
-       real(c_double), intent(in), value :: p
-     end subroutine bl_rng_change_binomial_c
   end interface
 
 contains
@@ -281,16 +292,53 @@ contains
     end if
   end function bl_rng_init_seed
 
+  !
+  ! engine
+  !
+  subroutine bl_rng_build_engine(eng, seed)
+    type(bl_rng_engine), intent(inout) :: eng
+    integer(c_int), intent(in) :: seed
+    integer(c_int) :: lseed
+    lseed = bl_rng_init_seed(seed)
+    call bl_rng_new_engine_c(eng%p, lseed, parallel_myproc(), parallel_nprocs())
+  end subroutine bl_rng_build_engine
+  !
+  subroutine bl_rng_destroy_engine(eng)
+    type(bl_rng_engine), intent(inout) :: eng
+    call bl_rng_delete_engine_c(eng%p)
+    eng%p = c_null_ptr
+  end subroutine bl_rng_destroy_engine
+  !
+  subroutine bl_rng_save_engine(eng, dirname)
+    type(bl_rng_engine), intent(in) :: eng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    if (parallel_IOProcessor()) then
+       call fabio_mkdir(dirname)
+    end if
+    call parallel_barrier()
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_save_engine_c(eng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_save_engine
+  !
+  subroutine bl_rng_restore_engine(eng, dirname)
+    type(bl_rng_engine), intent(inout) :: eng
+    character(len=*), intent(in) :: dirname
+    character(c_char), pointer :: filename(:)
+    if (c_associated(eng%p)) call bl_rng_destroy_engine(eng) 
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_restore_engine_c(eng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_restore_engine
+
   ! 
   ! uniform real distribution
   !
-  subroutine bl_rng_build_uniform_real(rng, seed, a, b)
+  subroutine bl_rng_build_uniform_real(rng, a, b)
     type(bl_rng_uniform_real), intent(inout) :: rng
-    integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: a, b
-    integer(c_int) :: lseed
-    lseed = bl_rng_init_seed(seed);
-    call bl_rng_new_uniform_real_c(rng%p, lseed, a, b, parallel_myproc(), parallel_nprocs())
+    call bl_rng_new_uniform_real_c(rng%p, a, b)
   end subroutine bl_rng_build_uniform_real
   !
   subroutine bl_rng_destroy_uniform_real(rng)
@@ -299,10 +347,11 @@ contains
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_uniform_real
   !
-  function bl_rng_get_uniform_real(rng) result(r)
+  function bl_rng_get_uniform_real(rng, eng) result(r)
     type(bl_rng_uniform_real), intent(inout) :: rng
+    type(bl_rng_engine), intent(inout) :: eng
     real(c_double) :: r
-    r = bl_rng_get_uniform_real_c(rng%p)    
+    r = bl_rng_get_uniform_real_c(rng%p, eng%p)    
   end function bl_rng_get_uniform_real
   !
   subroutine bl_rng_save_uniform_real(rng, dirname)
@@ -322,6 +371,7 @@ contains
     type(bl_rng_uniform_real), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_uniform_real_c(rng%p,filename)
     deallocate(filename)
@@ -330,13 +380,10 @@ contains
   ! 
   ! normal distribution
   !
-  subroutine bl_rng_build_normal(rng, seed, mean, stddev)
+  subroutine bl_rng_build_normal(rng,  mean, stddev)
     type(bl_rng_normal), intent(inout) :: rng
-    integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean, stddev
-    integer(c_int) :: lseed
-    lseed = bl_rng_init_seed(seed);
-    call bl_rng_new_normal_c(rng%p, lseed, mean, stddev, parallel_myproc(), parallel_nprocs())
+    call bl_rng_new_normal_c(rng%p, mean, stddev)
   end subroutine bl_rng_build_normal
   !
   subroutine bl_rng_destroy_normal(rng)
@@ -345,10 +392,11 @@ contains
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_normal
   !
-  function bl_rng_get_normal(rng) result(r)
+  function bl_rng_get_normal(rng, eng) result(r)
     type(bl_rng_normal), intent(inout) :: rng
+    type(bl_rng_engine), intent(inout) :: eng
     real(c_double) :: r
-    r = bl_rng_get_normal_c(rng%p)    
+    r = bl_rng_get_normal_c(rng%p, eng%p)    
   end function bl_rng_get_normal
   !
   subroutine bl_rng_save_normal(rng, dirname)
@@ -368,6 +416,7 @@ contains
     type(bl_rng_normal), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_normal_c(rng%p,filename)
     deallocate(filename)
@@ -376,13 +425,10 @@ contains
   ! 
   ! poisson distribution
   !
-  subroutine bl_rng_build_poisson(rng, seed, mean)
+  subroutine bl_rng_build_poisson(rng, mean)
     type(bl_rng_poisson), intent(inout) :: rng
-    integer(c_int), intent(in) :: seed
     real(c_double), intent(in) :: mean
-    integer(c_int) :: lseed
-    lseed = bl_rng_init_seed(seed);
-    call bl_rng_new_poisson_c(rng%p, lseed, mean, parallel_myproc(), parallel_nprocs())
+    call bl_rng_new_poisson_c(rng%p, mean)
   end subroutine bl_rng_build_poisson
   !
   subroutine bl_rng_destroy_poisson(rng)
@@ -391,10 +437,11 @@ contains
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_poisson
   !
-  function bl_rng_get_poisson(rng) result(r)
+  function bl_rng_get_poisson(rng, eng) result(r)
     type(bl_rng_poisson), intent(inout) :: rng
+    type(bl_rng_engine), intent(inout) :: eng
     integer(c_int) :: r
-    r = bl_rng_get_poisson_c(rng%p)    
+    r = bl_rng_get_poisson_c(rng%p, eng%p)    
   end function bl_rng_get_poisson
   !
   subroutine bl_rng_save_poisson(rng, dirname)
@@ -414,27 +461,20 @@ contains
     type(bl_rng_poisson), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_poisson_c(rng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_restore_poisson
-  !
-  subroutine bl_rng_change_poisson(rng, mean)
-    type(bl_rng_poisson), intent(inout) :: rng
-    real(c_double), intent(in) :: mean
-    call bl_rng_change_poisson_c(rng%p, mean)
-  end subroutine bl_rng_change_poisson
 
   ! 
   ! binomial distribution
   !
-  subroutine bl_rng_build_binomial(rng, seed, t, p)
+  subroutine bl_rng_build_binomial(rng, t, p)
     type(bl_rng_binomial), intent(inout) :: rng
-    integer(c_int), intent(in) :: seed, t
+    integer(c_int), intent(in) :: t
     real(c_double), intent(in) :: p
-    integer(c_int) :: lseed
-    lseed = bl_rng_init_seed(seed);
-    call bl_rng_new_binomial_c(rng%p, lseed, t, p,  parallel_myproc(), parallel_nprocs())
+    call bl_rng_new_binomial_c(rng%p, t, p)
   end subroutine bl_rng_build_binomial
   !
   subroutine bl_rng_destroy_binomial(rng)
@@ -443,10 +483,11 @@ contains
     rng%p = c_null_ptr
   end subroutine bl_rng_destroy_binomial
   !
-  function bl_rng_get_binomial(rng) result(r)
+  function bl_rng_get_binomial(rng, eng) result(r)
     type(bl_rng_binomial), intent(inout) :: rng
+    type(bl_rng_engine), intent(inout) :: eng
     integer(c_int) :: r
-    r = bl_rng_get_binomial_c(rng%p)    
+    r = bl_rng_get_binomial_c(rng%p, eng%p)    
   end function bl_rng_get_binomial
   !
   subroutine bl_rng_save_binomial(rng, dirname)
@@ -466,17 +507,11 @@ contains
     type(bl_rng_binomial), intent(inout) :: rng
     character(len=*), intent(in) :: dirname
     character(c_char), pointer :: filename(:)
+    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
     call bl_rng_filename(filename, dirname)
     call bl_rng_restore_binomial_c(rng%p,filename)
     deallocate(filename)
   end subroutine bl_rng_restore_binomial
-  !
-  subroutine bl_rng_change_binomial(rng, t, p)
-    type(bl_rng_binomial), intent(inout) :: rng
-    integer(c_int), intent(in) :: t
-    real(c_double), intent(in) :: p
-    call bl_rng_change_binomial_c(rng%p, t, p)
-  end subroutine bl_rng_change_binomial
 
 end module bl_random_module
 

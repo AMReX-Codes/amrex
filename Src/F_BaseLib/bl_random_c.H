@@ -2,63 +2,37 @@
 #define _BL_RANDOM_C_H_
 
 #include <random>
+#include <fstream>
+#include <iostream>
 
-class BLRngUniformReal
-{
-public:
-    BLRngUniformReal () {}
-    BLRngUniformReal (std::uint_fast32_t s, double a, double b);
-    ~BLRngUniformReal () {}
-    double operator() ();
-    void save (const char* name) const;
-    void restore (const char* name);
-private:
-    std::mt19937 m_eng;
-    std::uniform_real_distribution<double> m_dist;
-};
+extern "C" { void backtrace_handler(int); }
 
-class BLRngNormal
+template <typename T>
+void
+BLRng_save (const T& rng, const char* name)
 {
-public:
-    BLRngNormal () {}
-    BLRngNormal (std::uint_fast32_t s, double mean, double stddev);
-    ~BLRngNormal () {}
-    double operator() ();
-    void save (const char* name) const;
-    void restore (const char* name);
-private:
-    std::mt19937 m_eng;
-    std::normal_distribution<double> m_dist;
-};
+    std::ofstream ofs(name);
+    ofs << rng;
+}
 
-class BLRngPoisson
+template <typename T>
+void
+BLRng_restore (T& rng, const char* name)
 {
-public:
-    BLRngPoisson () {}
-    BLRngPoisson (std::uint_fast32_t s, double mean);
-    ~BLRngPoisson () {}
-    int operator() ();
-    void save (const char* name) const;
-    void restore (const char* name);
-    void change_distribution (double mean);
-private:
-    std::mt19937 m_eng;
-    std::poisson_distribution<int> m_dist;
-};
+    std::ifstream ifs(name);
+    if (ifs.good()) {
+	ifs >> rng;
+    } else {
+	std::cerr << "bl_rng: faied to open " << name << std::endl;
+	backtrace_handler(6);
+    }
+}
 
-class BLRngBinomial
+template <typename Return_t, typename Distro_t, typename Engine_t>
+Return_t 
+BLRng_get (Distro_t& distro, Engine_t& eng)
 {
-public:
-    BLRngBinomial () {}
-    BLRngBinomial (std::uint_fast32_t s, int t, double p);
-    ~BLRngBinomial () {}
-    int operator() ();
-    void save (const char* name) const;
-    void restore (const char* name);
-    void change_distribution (int t, double p);
-private:
-    std::mt19937 m_eng;
-    std::binomial_distribution<int> m_dist;
-};
+    return distro(eng);
+}
 
 #endif
