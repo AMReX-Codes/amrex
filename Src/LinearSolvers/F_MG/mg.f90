@@ -939,7 +939,7 @@ contains
     integer :: mg_restriction_mode, ng
     type(bl_prof_timer), save :: bpt
     type(mfiter) :: mfi
-    integer :: tlo(3), thi(3)
+    integer :: tlo(mgt%dim), thi(mgt%dim)
     type(box) :: tilebox
 
     call bl_proffortfuncstart("mg_tower_restriction")
