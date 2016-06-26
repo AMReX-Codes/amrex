@@ -21,7 +21,7 @@
 #include <BL_CXX11.H>
 #include <MemPool.H>
 
-#ifdef BL_Darwin
+#if (__GNUC__ >= 6 || defined(BL_Darwin))
 using std::isinf;
 using std::isnan;
 #endif
