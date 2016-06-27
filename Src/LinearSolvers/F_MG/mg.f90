@@ -941,6 +941,7 @@ contains
     type(mfiter) :: mfi
     integer :: tlo(mgt%dim), thi(mgt%dim)
     type(box) :: tilebox
+    logical :: do_tiling
 
     call bl_proffortfuncstart("mg_tower_restriction")
     call build(bpt, "mgt_restriction")
@@ -975,10 +976,12 @@ contains
        !$omp end parallel do
     end if
 
+    do_tiling = mgt%dim.eq.3 .and. .not.nodal_flag
+
     !$omp parallel default(none) &
     !$omp  private(i,mfi,tilebox,tlo,thi,cp,fp,mp_fine,mp_crse,loc,lof,lom_fine,lom_crse,lo,hi,vlo,vhi) &
-    !$omp  shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode)
-    call mfiter_build(mfi, crse, tiling=.true.)
+    !$omp  shared(crse,fine,mm_fine,mm_crse,mgt,nodal_flag,ir,mg_restriction_mode,do_tiling)
+    call mfiter_build(mfi, crse, tiling=do_tiling)
     do while(next_tile(mfi,i))
 
        tilebox = get_tilebox(mfi)
