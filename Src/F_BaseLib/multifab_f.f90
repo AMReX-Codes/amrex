@@ -5718,7 +5718,7 @@ contains
     tid = omp_get_thread_num()
     nthreads = omp_get_num_threads()
 
-    mfi%ta = init_layout_tilearray(la, ltilesize, tid, nthreads)
+    call init_layout_tilearray(mfi%ta, la, ltilesize, tid, nthreads)
     
     if (mfi%ta%dim .gt. 0) then
        mfi%dim = dim

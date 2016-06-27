@@ -331,7 +331,7 @@ ifeq ($(MACHINE), Linux)
       BL_MPI_LIBS += -lmpi
     endif
     ifeq ($(WHICHLINUX), GENERICLINUX)
-      ifdef BOXLIB_USE_MPI_WRAPPERS
+      ifdef BOXLIB_USE_MPI_WRAPPERSxxxxxxxxxxxxxxxx
         CXX := mpic++
         CC  := mpicc
         FC  := mpif90
@@ -449,3 +449,7 @@ ifeq ($(MACHINE), Darwin)
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
 
 endif
+
+    LIBRARY_LOCATIONS += /usr/lib64/mpich/lib
+    INCLUDE_LOCATIONS += /usr/include/mpich-x86_64
+    BL_MPI_LIBS += -lmpich -lmpichf90  
