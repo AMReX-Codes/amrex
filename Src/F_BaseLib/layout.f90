@@ -3589,15 +3589,15 @@ contains
   end subroutine remote_conn_set_threadsafety
 
 
-  function init_layout_tilearray(la, tilesize, tid, nthreads) result(r)
+  subroutine init_layout_tilearray(ta, la, tilesize, tid, nthreads)
+    type(tilearray), intent(inout) :: ta
     type(layout), intent(inout) :: la
     integer, intent(in) :: tilesize(:), tid, nthreads
-    type(tilearray) :: r
 
     ! Do we have one already?
     if (built_q(la%lap%tas(tid))) then
        if (tilearray_check(la%lap%tas(tid), tilesize, nthreads)) then
-          r = la%lap%tas(tid)
+          ta = la%lap%tas(tid)
           return
        end if
     end if
@@ -3605,9 +3605,9 @@ contains
     ! build a new one
     call tilearray_build(la, tilesize, tid, nthreads)
 
-    r = la%lap%tas(tid)
-    return
-  end function init_layout_tilearray
+    ta = la%lap%tas(tid)
+
+  end subroutine init_layout_tilearray
 
   pure function tilearray_check(ta, tilesize, nthreads) result (r)
     logical :: r
