@@ -617,7 +617,7 @@ class Suite(object):
         # make sure there are no quotes in the strings
         payload["channel"] = self.slack_channel.replace('"', '')
         payload["username"] = self.slack_username.replace('"', '')
-        payload["text"] = message.place("'", "")  # apostrophes
+        payload["text"] = message.replace("'", "")  # apostrophes
 
         s = json.dumps(payload)
         cmd = "curl -X POST --data-urlencode 'payload={}' {}".format(s, self.slack_webhook_url)
