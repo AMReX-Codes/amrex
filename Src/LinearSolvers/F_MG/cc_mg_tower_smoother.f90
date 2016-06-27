@@ -229,6 +229,7 @@ contains
                 end do
              end if
           end do
+          !$omp end parallel
           
        case ( MG_SMOOTHER_MINION_CROSS )
           
