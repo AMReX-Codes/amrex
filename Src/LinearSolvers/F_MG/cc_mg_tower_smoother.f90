@@ -41,7 +41,7 @@ contains
     integer :: i, n, ng, nn, stat, npts
     integer :: lo(mgt%dim), tlo(mgt%dim), thi(mgt%dim)
     type(bl_prof_timer), save :: bpt
-    logical :: pmask(mgt%dim), singular_test
+    logical :: pmask(mgt%dim), singular_test, do_tiling
     real(kind=dp_t) :: local_eps
     type(mfiter) :: mfi
     type(box) :: tilebox
@@ -114,8 +114,11 @@ contains
           do nn = 0, 1
              call fill_boundary(uu, cross = mgt%lcross)
 
-             !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,lo,up,fp,sp,mp,n) shared(uu,ff,ss,mgt,ng,nn,mm,lev)
-             call mfiter_build(mfi, ff, tiling=.true.)
+             do_tiling = mgt%dim.eq.3
+
+             !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,lo,up,fp,sp,mp,n) &
+             !$omp  shared(uu,ff,ss,mgt,ng,nn,mm,lev,do_tiling)
+             call mfiter_build(mfi, ff, tiling=do_tiling)
              do while(next_tile(mfi,i))
                 tilebox = get_tilebox(mfi)
                 tlo = lwb(tilebox)
@@ -164,7 +167,18 @@ contains
        case ( MG_SMOOTHER_EFF_RB )
           
           call fill_boundary(uu, cross = mgt%lcross)
-          do i = 1, nfabs(ff)
+
+
+          do_tiling = mgt%dim.eq.3
+
+          !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,lo,up,fp,sp,mp,n) &
+          !$omp  shared(uu,ff,ss,mgt,ng,nn,mm,lev,do_tiling)
+          call mfiter_build(mfi, ff, tiling=do_tiling)
+          do while(next_tile(mfi,i))
+             tilebox = get_tilebox(mfi)
+             tlo = lwb(tilebox)
+             thi = upb(tilebox)
+             
              up => dataptr(uu, i)
              fp => dataptr(ff, i)
              sp => dataptr(ss, i)
