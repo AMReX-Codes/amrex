@@ -93,7 +93,6 @@ def parse_param_file(params_list, param_file, other_list=None):
         fields = line.split()
 
         if not len(fields) >= 3:
-            print(line)
             print("write_probin.py: ERROR: missing one or more fields in parameter definition.")
             err = 1
             continue
@@ -208,8 +207,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
                 elif keyword == "declarationsB":
                     pm = paramsB
 
-                print("here: ", keyword)
-                print([k.var for k in pm])
+                #print([k.var for k in pm])
 
                 # declaraction statements
                 for n in range(len(pm)):
