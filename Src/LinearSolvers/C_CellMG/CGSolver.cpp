@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <cmath>
 
-#ifdef BL_Darwin
+#if (__GNUC__ >= 6 || defined(BL_Darwin))
 using std::isinf;
 #endif
 
