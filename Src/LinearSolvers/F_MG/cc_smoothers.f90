@@ -269,6 +269,7 @@ contains
 
   subroutine gs_rb_smoother_3d(ss, uu, ff, mm, lo, tlo, thi, ng, n, skwd)
     use bl_prof_module
+    use bl_error_module
     integer,    intent(in   ) :: ng, lo(:), tlo(:), thi(:), n
     real(dp_t), intent(in   ) :: ff(lo(1):,lo(2):,lo(3):)
     real(dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
@@ -283,9 +284,9 @@ contains
     !
     ! These are small so we'll put'm on the stack instead of the heap.
     !
-    real(dp_t) lr(lbound(ff,2):ubound(ff,2), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) tb(lbound(ff,1):ubound(ff,1), lbound(ff,3):ubound(ff,3), 2)
-    real(dp_t) fb(lbound(ff,1):ubound(ff,1), lbound(ff,2):ubound(ff,2), 2)
+    real(dp_t) lr(tlo(2):thi(2), tlo(3):thi(3), 2)
+    real(dp_t) tb(tlo(1):thi(1), tlo(3):thi(3), 2)
+    real(dp_t) fb(tlo(1):thi(1), tlo(2):thi(2), 2)
 
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
 
@@ -346,6 +347,8 @@ contains
 
 1234 if ( lskwd ) then
 
+       call bl_assert(lo.eq.tlo .and. hi.eq.thi, "Tiling must be turned off for skewed stencil.")
+
        do k = lo(3), hi(3)
           do i = lo(1), hi(1)
              if (bc_skewed(mm(i,lo(2),k),2,+1)) tb(i,k,1) = uu(i,lo(2)+2,k)
@@ -367,7 +370,6 @@ contains
           end do
        end do
 
-       !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd) IF((hi(3)-lo(3)).ge.3)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              ioff = 0; if ( mod(lo(1) + j + k, 2) /= n ) ioff = 1
@@ -400,7 +402,6 @@ contains
              end do
           end do
        end do
-       !$OMP END PARALLEL DO
 
     else
        !
