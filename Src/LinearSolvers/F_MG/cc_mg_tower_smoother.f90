@@ -111,7 +111,7 @@ contains
           
        case ( MG_SMOOTHER_GS_RB )
 
-          do_tiling = mgt%dim.eq.3 .and. (.not.(any(mgt%skewed)))
+          do_tiling = mgt%dim.eq.3 .and. (.not.(any(mgt%skewed(lev,:))))
           
           do nn = 0, 1
              call fill_boundary(uu, cross = mgt%lcross)
@@ -168,7 +168,7 @@ contains
           
           call fill_boundary(uu, cross = mgt%lcross)
 
-          do_tiling = mgt%dim.eq.3 .and. (.not.(any(mgt%skewed)))
+          do_tiling = mgt%dim.eq.3 .and. (.not.(any(mgt%skewed(lev,:))))
 
           !$omp parallel default(none) private(i,mfi,tilebox,tlo,thi,lo,up,fp,sp,mp,n) &
           !$omp  shared(uu,ff,ss,mgt,ng,nn,mm,lev,do_tiling)
