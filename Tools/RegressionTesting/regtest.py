@@ -576,7 +576,7 @@ def test_suite(argv):
 
                         suite.log.log("benchmark file: {}".format(bench_file))
 
-                        command = "{} -n 0 --infile1 {} --infile2 {}".format(
+                        command = "{} -n 0 {} {}".format(
                             suite.tools["fcompare"], bench_file, output_file)
                         sout, serr, ierr = test_util.run(command,
                                                          outfile="{}.compare.out".format(test.name), store_command=True)
